@@ -30,6 +30,9 @@
   var mentionCandidates = []; // [{ id, name }] merged from presence + thread authors
   var presenceUsers = [];     // raw /api/collab/presence items
   var commentAuthors = [];    // raw { author_id, author_name } from the thread
+  var mentionItems = [];      // visible candidate buttons (keyboard nav)
+  var mentionIndex = -1;      // highlighted candidate index
+  var activeMention = null;   // { at, partial } token currently open
 
   function ensureCss() {
     if (document.getElementById(CSS_ID)) return;
@@ -275,6 +278,17 @@
 
   function hideMentions() {
     if (mentionBox) { mentionBox.style.display = "none"; mentionBox.innerHTML = ""; }
+    mentionItems = [];
+    mentionIndex = -1;
+    activeMention = null;
+  }
+
+  function highlightMention(idx) {
+    if (!mentionBox) return;
+    var children = mentionBox.children;
+    for (var i = 0; i < children.length; i++) {
+      children[i].style.background = i === idx ? "#334155" : "none";
+    }
   }
 
   function renderMentions(token) {
@@ -285,18 +299,31 @@
     }).slice(0, 8);
     if (!matches.length) { hideMentions(); return; }
     mentionBox.innerHTML = "";
+    mentionItems = [];
     matches.forEach(function (c) {
       var b = document.createElement("button");
       b.type = "button";
       b.className = "gbc-mention-item";
       b.textContent = c.name;
       b.style.cssText = "display:block;width:100%;text-align:left;background:none;border:none;color:#f8fafc;font-size:13px;padding:8px 12px;cursor:pointer;";
-      b.addEventListener("mouseover", function () { b.style.background = "#334155"; });
-      b.addEventListener("mouseout", function () { b.style.background = "none"; });
+      b.addEventListener("mouseover", function () {
+        mentionIndex = mentionItems.indexOf(b);
+        highlightMention(mentionIndex);
+      });
       b.addEventListener("mousedown", function (e) { e.preventDefault(); applyMention(token.at, c.name); });
       mentionBox.appendChild(b);
+      mentionItems.push(b);
     });
+    activeMention = token;
+    mentionIndex = 0;
+    highlightMention(0);
     mentionBox.style.display = "block";
+  }
+
+  function selectMentionIndex() {
+    if (mentionIndex < 0 || mentionIndex >= mentionItems.length || !activeMention) return false;
+    applyMention(activeMention.at, mentionItems[mentionIndex].textContent);
+    return true;
   }
 
   function applyMention(at, name) {
@@ -345,10 +372,29 @@
       else hideMentions();
     });
     inputEl.addEventListener("keydown", function (e) {
-      if (mentionBox && mentionBox.style.display !== "none" && e.key === "Escape") {
-        e.preventDefault();
-        hideMentions();
-        return;
+      var open = mentionBox && mentionBox.style.display !== "none" && mentionItems.length > 0;
+      if (open) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          mentionIndex = (mentionIndex + 1) % mentionItems.length;
+          highlightMention(mentionIndex);
+          return;
+        }
+        if (e.key === "ArrowUp") {
+          e.preventDefault();
+          mentionIndex = (mentionIndex - 1 + mentionItems.length) % mentionItems.length;
+          highlightMention(mentionIndex);
+          return;
+        }
+        if (e.key === "Enter" || e.key === "Tab") {
+          if (e.key === "Enter") e.preventDefault();
+          if (selectMentionIndex()) return;
+        }
+        if (e.key === "Escape") {
+          e.preventDefault();
+          hideMentions();
+          return;
+        }
       }
       if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); hideMentions(); post(); return; }
       typingSent = true;
