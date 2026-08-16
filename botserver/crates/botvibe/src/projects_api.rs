@@ -122,6 +122,14 @@ async fn create_project(
             if let Err(e) = rbac.set_user_role(p.id, user.user_id, ProjectRole::Owner) {
                 log::error!("grant owner on project {} failed: {e}", p.id);
             }
+            // Vibe owns its starter content: seed the built-in template
+            // (calculator for calculator-style projects, README starter
+            // otherwise) so the workspace is never empty and nothing depends
+            // on a pre-seeded external tree. Never clobbers agent output.
+            let key = workspace_key(&p);
+            if let Err(e) = crate::templates::seed_project_workspace(&key, &p.name) {
+                log::warn!("seed workspace for project {} failed: {e}", p.id);
+            }
             ok_project(p)
         }
         Err(e) => err_response(e),

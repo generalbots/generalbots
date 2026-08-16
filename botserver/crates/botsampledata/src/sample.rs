@@ -13,12 +13,14 @@ use diesel::sql_query;
 use diesel::sql_types::{BigInt, Text, Uuid as SqlUuid};
 use uuid::Uuid;
 
-/// Demo-only password for the sample accounts.
-///
-/// This is intentionally documented plain text because it is configuration for
-/// the demo tenant, not a secret. It must never be considered secure and never
-/// used outside demo environments.
-pub const DEFAULT_SAMPLE_PASSWORD: &str = "sample123!";
+/// Demo-only password for the sample accounts, generated on the fly so no
+/// credential literal ever lands in source (secret scanners flag hardcoded
+/// passwords). The demo tenant is fully isolated (deterministic namespace +
+/// sample branch), so the generated value is safe to log for operators of
+/// demo environments; it must never be used outside demo.
+fn generate_demo_password() -> String {
+    format!("gb-demo-{}", Uuid::new_v4().simple())
+}
 
 /// Deterministic sample tenant id (fixed namespace; never collides with the
 /// nil/global or system scopes used elsewhere in the codebase).
@@ -151,7 +153,11 @@ pub fn ensure_sample_scope(conn: &mut diesel::PgConnection) -> Result<SampleScop
     .execute(conn)
     .map_err(|e| format!("fail to create sample cloud workspace: {e}"))?;
 
-    let password_hash = hash_demo_password(DEFAULT_SAMPLE_PASSWORD)?;
+    let demo_password = generate_demo_password();
+    let password_hash = hash_demo_password(&demo_password)?;
+    log::info!(
+        "botsampledata: sample tenant ready — demo login for user@sample.com uses the generated password logged here (demo-only): {demo_password}"
+    );
 
     // 6. Demo accounts with a real Argon2 hash so they can log in.
     let users: &[(&str, &str, Uuid, bool)] = &[
