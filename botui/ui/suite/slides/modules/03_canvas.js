@@ -20,6 +20,12 @@ SlideCanvas.deselectAll = function () {
   });
   var rg = document.getElementById("rotation-group");
   if (rg) rg.style.display = "none";
+  if (window.GBCollab && window.GBCollab.isConnected && window.GBCollab.isConnected()) {
+    window.GBCollab.send("cursor", {
+      slide_index: parseInt((this.canvas && this.canvas.dataset.slideId) || "0", 10) || 0,
+      element_id: null
+    });
+  }
 };
 
 SlideCanvas.selectElement = function (el) {
@@ -37,6 +43,12 @@ SlideCanvas.selectElement = function (el) {
   this.syncRotationInput(el);
   var rg = document.getElementById("rotation-group");
   if (rg) rg.style.display = "inline-flex";
+  if (window.GBCollab && window.GBCollab.isConnected && window.GBCollab.isConnected()) {
+    window.GBCollab.send("cursor", {
+      slide_index: parseInt((this.canvas && this.canvas.dataset.slideId) || "0", 10) || 0,
+      element_id: el.dataset.id
+    });
+  }
 };
 
 SlideCanvas.bindElement = function (el) {
@@ -73,7 +85,16 @@ SlideCanvas.bindElement = function (el) {
       if (!t) t = el;
       t.contentEditable = "true";
       t.focus();
+      var slideIdx = parseInt((self.canvas && self.canvas.dataset.slideId) || "0", 10) || 0;
+      t.addEventListener("input", function () {
+        if (window.GBCollab && window.GBCollab.isConnected && window.GBCollab.isConnected()) {
+          window.GBCollab.send("typing_start", { slide_index: slideIdx, element_id: el.dataset.id });
+        }
+      });
       t.addEventListener("blur", function () {
+        if (window.GBCollab && window.GBCollab.isConnected && window.GBCollab.isConnected()) {
+          window.GBCollab.send("typing_stop", {});
+        }
         t.contentEditable = "false";
         self.persistElement(el);
       }, { once: true });
@@ -169,7 +190,7 @@ SlideCanvas.insertShape = function (type) {
   this.bindElement(el);
   this.selectElement(el);
   var payload = {
-    presentation_id: "current",
+    presentation_id: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current",
     slide_id: slideId,
     element_id: id,
     element_type: "shape",
@@ -192,7 +213,7 @@ SlideCanvas.persistElement = function (el) {
   var slide = this.canvas ? this.canvas.dataset.slideId : null;
   if (!slide) return;
   var payload = {
-    presentation_id: "current",
+    presentation_id: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current",
     slide_id: slide,
     element_id: el.dataset.id,
     x: parseInt(el.style.left, 10) || 0,
@@ -218,7 +239,7 @@ SlideCanvas.persistSlide = function () {
   fetch("/api/slides/element/add", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ presentation_id: "current", slide_id: slide, elements: elements })
+    body: JSON.stringify({ presentation_id: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current", slide_id: slide, elements: elements })
   }).catch(function () {});
 };
 

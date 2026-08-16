@@ -47,18 +47,43 @@ function initAuth() {
   if (window.GBAuthGuard) GBAuthGuard.injectLoginButton(document.getElementById("gb-auth-button"));
 }
 
+// Single source of truth for the active presentation id. Persisted saves can
+// capture a real UUID into window.__SLIDES_PRESENTATION_ID; until then the
+// app operates on the "current" deck (the backend treats "current" as the
+// literal id of the live presentation).
+function getSlidesPresentationId() {
+  return window.__SLIDES_PRESENTATION_ID || "current";
+}
+window.getSlidesPresentationId = getSlidesPresentationId;
+
 function initCollab() {
   if (!window.GBCollab) return;
   var connStatus = document.getElementById("gb-conn-status");
   window.GBCollab.connect({
     app: "slides",
-    docId: "current",
+    docId: getSlidesPresentationId(),
     collaboratorsEl: document.getElementById("collaborators"),
     onConnect: function () {
       if (connStatus) { connStatus.className = "gb-connection-status online"; connStatus.style.display = "inline-flex"; connStatus.querySelector(".label").textContent = "online"; }
     },
     onDisconnect: function () {
       if (connStatus) { connStatus.className = "gb-connection-status offline"; connStatus.style.display = "inline-flex"; connStatus.querySelector(".label").textContent = "offline"; }
+      if (window.SlidesPresence) window.SlidesPresence.clearAll();
+    },
+    onMessage: function (msg) {
+      if (!msg || !window.SlidesPresence) return;
+      if (msg.msg_type === "cursor") window.SlidesPresence.cursor(msg);
+    },
+    onSelection: function (msg) {
+      if (window.SlidesPresence) window.SlidesPresence.selection(msg);
+    },
+    onTyping: function (msg) {
+      if (!msg || !window.SlidesPresence) return;
+      if (msg.msg_type === "typing_start") window.SlidesPresence.typing(msg);
+      else if (msg.msg_type === "typing_stop") window.SlidesPresence.clearTyping(msg.user_id);
+    },
+    onPresence: function (users) {
+      if (window.SlidesPresence) window.SlidesPresence.sync(users);
     },
     onEdit: function (msg) {
       if (!msg || !msg.content) return;

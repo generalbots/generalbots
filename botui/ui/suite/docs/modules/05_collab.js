@@ -16,6 +16,17 @@ function initCollab() {
     },
     onDisconnect: function () {
       if (connStatus) { connStatus.className = "gb-connection-status offline"; connStatus.style.display = "inline-flex"; connStatus.querySelector(".label").textContent = "offline"; }
+      if (window.DocsPresence) window.DocsPresence.clearAll();
+    },
+    onMessage: function (msg) {
+      if (!msg || !window.DocsPresence) return;
+      if (msg.msg_type === "cursor") window.DocsPresence.cursor(msg);
+    },
+    onSelection: function (msg) {
+      if (window.DocsPresence) window.DocsPresence.selection(msg);
+    },
+    onPresence: function (users) {
+      if (window.DocsPresence) window.DocsPresence.sync(users);
     },
     onTyping: function (msg) {
       var map = (window.__gbTypingUsers = window.__gbTypingUsers || new Map());
