@@ -120,6 +120,7 @@ function initCollab() {
 document.addEventListener("htmx:afterSwap", function (e) {
   if (e.target.id === "slides-content" || (e.target.closest && e.target.closest("#slides-content"))) {
     SlideCanvas.attach(document.getElementById("slides-content"));
+    if (typeof checkSlidesDraftOnLoad === "function") checkSlidesDraftOnLoad();
   }
   if (e.target.id === "sidebar-thumbs" || (e.target.closest && e.target.closest("#sidebar-thumbs"))) {
     $$(".sl-thumb", e.target).forEach(function (thumb) {

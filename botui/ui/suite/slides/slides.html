@@ -128,6 +128,7 @@ if (typeof htmx === 'undefined') {
 </script>
 <script src="/suite/js/vendor/htmx-json-enc.js"></script>
 <script src="/suite/js/collab.js"></script>
+<script src="/suite/js/offline-draft.js"></script>
 <script src="/suite/js/collab-a11y.js"></script>
 <script src="/suite/js/collab-comments.js"></script>
 <script src="/suite/js/collab-follow.js"></script>
@@ -202,14 +203,56 @@ function recordSlidesSnapshot() {
     _slidesSnapshotTimer = setTimeout(function () {
         var host = document.getElementById("slides-content");
         if (!host) return;
+        var sid = (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current";
         window.GBCollabVersions.snapshot({
             resourceType: "slides",
-            resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current",
+            resourceId: sid,
             content: host.innerHTML
-        }).catch(function () {});
+        }).then(function () {
+            if (window.GBOfflineDraft) window.GBOfflineDraft.clear("slides:" + sid);
+        }).catch(function () {
+            if (window.GBOfflineDraft) window.GBOfflineDraft.save("slides:" + sid, host.innerHTML);
+        });
     }, 1500);
 }
 var _slidesEditTimer = null;
+function slidesDraftKey() {
+    return "slides:" + ((window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current");
+}
+function applySlidesContent(content) {
+    var host = document.getElementById("slides-content");
+    if (!host) return;
+    host.innerHTML = content;
+    var els = host.querySelectorAll(".sl-element");
+    if (window.SlidesCanvas && window.SlidesCanvas.bindElement) {
+        for (var i = 0; i < els.length; i++) window.SlidesCanvas.bindElement(els[i]);
+    }
+    if (window.recordSlidesEdit) window.recordSlidesEdit();
+}
+function restoreSlidesDraft() {
+    if (!window.GBOfflineDraft) return;
+    var key = slidesDraftKey();
+    var draft = window.GBOfflineDraft.load(key);
+    if (!draft) return;
+    if (window.GBOfflineDraft.isOnline() && window.GBCollabVersions) {
+        window.GBCollabVersions.snapshot({ resourceType: "slides", resourceId: key.slice(7), content: draft.c })
+            .then(function () {
+                window.GBOfflineDraft.clear(key);
+                window.GBOfflineDraft.hideBanner();
+            })
+            .catch(function () {});
+    } else {
+        applySlidesContent(draft.c);
+    }
+}
+function checkSlidesDraftOnLoad() {
+    if (!window.GBOfflineDraft || !window.GBOfflineDraft.has(slidesDraftKey())) return;
+    window.GBOfflineDraft.showBanner(
+        "You have unsaved changes from a previous session",
+        { sticky: true, actionLabel: "Restore", onAction: restoreSlidesDraft }
+    );
+    window.GBOfflineDraft.onReconnect(restoreSlidesDraft);
+}
 function recordSlidesEdit() {
     if (!window.GBCollabActivity) return;
     clearTimeout(_slidesEditTimer);
