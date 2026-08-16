@@ -298,7 +298,7 @@ auth-remember-me = 记住我
 auth-login-success = 登录成功
 auth-logout-success = 退出成功
 auth-invalid-credentials = 电子邮件或密码无效
-auth-session-expired = 您的会话已过期。请重新登录。
+auth-session-expired = 您的会话已过期
 
 # -----------------------------------------------------------------------------
 # Search
@@ -715,7 +715,7 @@ nav-all-apps = 所有应用程序
 # -----------------------------------------------------------------------------
 # Login Screen
 # -----------------------------------------------------------------------------
-auth-welcome-back = 欢迎回来
+auth-welcome-back = 欢迎回来，{ $name }！
 auth-sign-in-to-account = 登录您的 General Bots 帐户
 auth-email-address = 电子邮件地址
 auth-email-placeholder = you@example.com
@@ -1556,7 +1556,7 @@ tickets-no-closed = 没有封闭门票
 # Security Module
 # -----------------------------------------------------------------------------
 security-title = 安全性
-security-subtitle = 安全工具、合规性扫描和服务器保护
+security-subtitle = 管理您的帐户安全设置
 security-tab-compliance = API 合规报告
 security-tab-protection = 保护
 security-export-report = 出口报告
@@ -1732,3 +1732,27 @@ sources-remove-connector = 删除
 sources-connector-health = 健康
 sources-connector-last-sync = 上次同步
 sources-no-connectors = 未配置连接器
+
+# VDI (remote desktop)
+vdi-title = 虚拟桌面
+vdi-new-connection = 新连接
+vdi-connection-name = 连接名称
+vdi-host = 主持人
+vdi-port = 港口
+vdi-protocol = 协议
+vdi-rdp-password = RDP 密码
+vdi-rdp-domain = RDP 域（可选）
+vdi-save-connect = 保存并连接
+vdi-cancel = 取消
+vdi-connect = 连接
+vdi-delete = 删除
+vdi-no-connections = 还没有连接
+vdi-create-first = 创建新连接以开始
+vdi-connecting = 正在连接...
+vdi-connected = 已连接
+vdi-disconnected = 已断开连接
+vdi-error = 错误
+vdi-clipboard-sent = 剪贴板已发送
+vdi-ctrl-alt-del-sent = Ctrl+Alt+Del 已发送
+vdi-rdp = 远程开发计划
+vdi-vnc = 虚拟网络控制器

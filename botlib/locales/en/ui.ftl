@@ -1732,3 +1732,27 @@ sources-remove-connector = Remove
 sources-connector-health = Health
 sources-connector-last-sync = Last sync
 sources-no-connectors = No connectors configured
+
+# VDI (remote desktop)
+vdi-title = Virtual Desktop
+vdi-new-connection = New Connection
+vdi-connection-name = Connection Name
+vdi-host = Host
+vdi-port = Port
+vdi-protocol = Protocol
+vdi-rdp-password = RDP Password
+vdi-rdp-domain = RDP Domain (optional)
+vdi-save-connect = Save & Connect
+vdi-cancel = Cancel
+vdi-connect = Connect
+vdi-delete = Delete
+vdi-no-connections = No connections yet
+vdi-create-first = Create a new connection to get started
+vdi-connecting = Connecting...
+vdi-connected = Connected
+vdi-disconnected = Disconnected
+vdi-error = Error
+vdi-clipboard-sent = Clipboard sent
+vdi-ctrl-alt-del-sent = Ctrl+Alt+Del sent
+vdi-rdp = RDP
+vdi-vnc = VNC

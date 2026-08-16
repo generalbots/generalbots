@@ -45,6 +45,8 @@ pub struct DesktopSession {
     pub branch_id: Option<Uuid>,
     pub target_host: String,
     pub target_port: u16,
+    /// Remote-desktop protocol carried by the proxy tunnel (`vnc` or `rdp`).
+    pub protocol: String,
     pub status: SessionStatus,
     pub created_at: DateTime<Utc>,
     pub last_active_at: DateTime<Utc>,
@@ -67,6 +69,19 @@ impl DesktopSession {
         target_port: u16,
         client_ip: String,
     ) -> Self {
+        Self::with_protocol(user_id, org_id, branch_id, target_host, target_port, "vnc", client_ip)
+    }
+
+    /// Creates a session with an explicit remote-desktop protocol.
+    pub fn with_protocol(
+        user_id: Uuid,
+        org_id: Option<Uuid>,
+        branch_id: Option<Uuid>,
+        target_host: String,
+        target_port: u16,
+        protocol: &str,
+        client_ip: String,
+    ) -> Self {
         let now = Utc::now();
         Self {
             id: Uuid::new_v4(),
@@ -75,6 +90,7 @@ impl DesktopSession {
             branch_id,
             target_host,
             target_port,
+            protocol: protocol.to_string(),
             status: SessionStatus::Connecting,
             created_at: now,
             last_active_at: now,
@@ -114,6 +130,7 @@ impl DesktopSession {
             user_id: self.user_id,
             target_host: self.target_host.clone(),
             target_port: self.target_port,
+            protocol: self.protocol.clone(),
             status: self.status.to_string(),
             created_at: self.created_at,
             last_active_at: self.last_active_at,

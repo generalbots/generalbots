@@ -4,11 +4,11 @@
     <div class="vdi-container">
         <header class="vdi-header">
             <div class="vdi-header-left">
-                <h1>Desktop VDI</h1>
+                <h1 data-i18n="vdi-title">Virtual Desktop</h1>
             </div>
             <div class="vdi-header-right">
                 <span class="session-badge" id="session-count" style="display:none">0</span>
-                <button class="btn btn-primary" id="btn-new-connection">+ New Connection</button>
+                <button class="btn btn-primary" id="btn-new-connection" data-i18n="vdi-new-connection">+ New Connection</button>
             </div>
         </header>
 
@@ -16,12 +16,12 @@
             <section class="vdi-connections" id="connections-section">
                 <div class="quick-connect">
                     <input type="text" id="quick-host" placeholder="host:port (e.g., 10.0.0.1:5900)" class="input-field">
-                    <button class="btn btn-primary" id="btn-quick-connect">Connect</button>
+                    <button class="btn btn-primary" id="btn-quick-connect" data-i18n="vdi-connect">Connect</button>
                 </div>
 
                 <div class="connections-grid" id="connections-grid">
                     <div class="connection-card empty-state">
-                        <p>No saved connections. Create one or use Quick Connect above.</p>
+                        <p data-i18n="vdi-no-connections">No connections yet</p>
                     </div>
                 </div>
             </section>
@@ -119,5 +119,7 @@
     </div>
 
     <script src="/suite/desktop/desktop.js"></script>
+    <script src="/suite/desktop/vdi.js"></script>
     <script src="/suite/desktop/vdi-connection.js"></script>
+    <script src="/suite/desktop/vdi-rdp.js"></script>
 

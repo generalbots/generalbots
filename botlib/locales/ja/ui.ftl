@@ -298,7 +298,7 @@ auth-remember-me = 私を覚えていてください
 auth-login-success = 正常にログインしました
 auth-logout-success = 正常にログアウトされました
 auth-invalid-credentials = 無効な電子メールまたはパスワード
-auth-session-expired = セッションの有効期限が切れました。再度ログインしてください。
+auth-session-expired = セッションの有効期限が切れました
 
 # -----------------------------------------------------------------------------
 # Search
@@ -715,7 +715,7 @@ nav-all-apps = すべてのアプリケーション
 # -----------------------------------------------------------------------------
 # Login Screen
 # -----------------------------------------------------------------------------
-auth-welcome-back = おかえりなさい
+auth-welcome-back = { $name }さん、おかえりなさい！
 auth-sign-in-to-account = General Bots アカウントにサインインします
 auth-email-address = メールアドレス
 auth-email-placeholder = you@example.com
@@ -1556,7 +1556,7 @@ tickets-no-closed = 終了したチケットはありません
 # Security Module
 # -----------------------------------------------------------------------------
 security-title = セキュリティ
-security-subtitle = セキュリティ ツール、コンプライアンス スキャン、およびサーバー保護
+security-subtitle = アカウントのセキュリティ設定を管理する
 security-tab-compliance = APIコンプライアンスレポート
 security-tab-protection = 保護
 security-export-report = レポートのエクスポート
@@ -1732,3 +1732,27 @@ sources-remove-connector = 削除する
 sources-connector-health = 健康
 sources-connector-last-sync = 最終同期
 sources-no-connectors = コネクタが構成されていません
+
+# VDI (remote desktop)
+vdi-title = 仮想デスクトップ
+vdi-new-connection = 新しい接続
+vdi-connection-name = 接続名
+vdi-host = ホスト
+vdi-port = 港
+vdi-protocol = プロトコル
+vdi-rdp-password = RDPパスワード
+vdi-rdp-domain = RDP ドメイン (オプション)
+vdi-save-connect = 保存して接続する
+vdi-cancel = キャンセル
+vdi-connect = 接続する
+vdi-delete = 削除
+vdi-no-connections = まだ接続がありません
+vdi-create-first = 新しい接続を作成して開始してください
+vdi-connecting = 接続中...
+vdi-connected = 接続済み
+vdi-disconnected = 切断されました
+vdi-error = エラー
+vdi-clipboard-sent = クリップボードが送信されました
+vdi-ctrl-alt-del-sent = Ctrl+Alt+Del を送信しました
+vdi-rdp = RDP
+vdi-vnc = VNC

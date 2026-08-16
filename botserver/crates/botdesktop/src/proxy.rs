@@ -271,6 +271,39 @@ pub async fn tcp_health_check(host: &str, port: u16) -> (bool, Option<u64>, Opti
     }
 }
 
+/// Probe an RDP endpoint: connect and confirm the peer speaks RDP by reading
+/// the first TPKT header byte (0x03 = X.224 data TPDU), which every RDP
+/// server emits at the start of the negotiation.
+///
+/// Unlike a plain TCP probe this verifies the port actually serves RDP and
+/// not, say, a database that happens to listen there.
+pub async fn rdp_health_check(host: &str, port: u16) -> (bool, Option<u64>, Option<String>) {
+    let target = format!("{host}:{port}");
+    let start = tokio::time::Instant::now();
+
+    let stream = match tokio::time::timeout(Duration::from_secs(5), TcpStream::connect(&target)).await {
+        Ok(Ok(s)) => s,
+        Ok(Err(e)) => return (false, None, Some(e.to_string())),
+        Err(_) => return (false, None, Some("connection timed out".into())),
+    };
+
+    let (mut reader, _writer) = stream.into_split();
+    let mut header = [0u8; 4];
+    let read = tokio::time::timeout(Duration::from_secs(5), reader.read_exact(&mut header)).await;
+
+    let latency = start.elapsed().as_millis() as u64;
+    match read {
+        Ok(Ok(_)) if header[0] == 0x03 => (true, Some(latency), None),
+        Ok(Ok(_)) => (
+            false,
+            Some(latency),
+            Some(format!("peer is not an RDP server (first byte 0x{:02x})", header[0])),
+        ),
+        Ok(Err(e)) => (false, Some(latency), Some(format!("RDP handshake read failed: {e}"))),
+        Err(_) => (false, Some(latency), Some("RDP handshake timed out".into())),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -289,5 +322,23 @@ mod tests {
     #[test]
     fn test_relay_channel_size() {
         assert!(RELAY_CHANNEL_SIZE > 0);
+    }
+
+    #[tokio::test]
+    async fn test_rdp_health_check_rejects_non_rdp_peer() {
+        // A TCP listener that is not an RDP server must be reported as such
+        // rather than merely reachable.
+        let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let addr = listener.local_addr().unwrap();
+        tokio::spawn(async move {
+            // Speak like a plain TCP service: accept and stay silent.
+            if let Ok((mut socket, _)) = listener.accept().await {
+                let _ = socket.write_all(b"NO").await;
+            }
+        });
+
+        let (ok, _latency, err) = rdp_health_check(&addr.ip().to_string(), addr.port()).await;
+        assert!(!ok);
+        assert!(err.is_some());
     }
 }

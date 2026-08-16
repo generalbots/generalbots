@@ -66,7 +66,8 @@ var activeSessions = new Map();
         try {
             var resp = await fetch("/api/desktop/connections");
             if (!resp.ok) return;
-            CONNECTIONS = (await resp.json()) || [];
+            var body = await resp.json();
+            CONNECTIONS = (body && body.data) || [];
             renderConnections();
         } catch (e) {
             console.error("Failed to load connections:", e);
@@ -133,7 +134,8 @@ var activeSessions = new Map();
         ctx.fillText("Place noVNC files in /suite/desktop/vendor/novnc/", w / 2, h / 2 + 80);
     }
 
-    async function startSession(host, port) {
+    async function startSession(host, port, protocol) {
+        protocol = protocol || "vnc";
         // The backend only accepts registered (UUID) sessions — quick connect
         // must register via POST /connect first, then proxy through the returned id.
         var sessionId;
@@ -141,7 +143,7 @@ var activeSessions = new Map();
             var reg = await fetch("/api/desktop/connect", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: "Desktop", host: host, port: port, protocol: "vnc", auth_type: "password" }),
+                body: JSON.stringify({ name: "Desktop", host: host, port: port, protocol: protocol, auth_type: "password" }),
             });
             if (!reg.ok) throw new Error("registration failed");
             var regData = await reg.json();
@@ -151,10 +153,11 @@ var activeSessions = new Map();
             toast("Failed to register connection: " + e.message, "error");
             return;
         }
-        startSessionWithId(host, port, sessionId);
+        startSessionWithId(host, port, sessionId, protocol);
     }
 
-    async function startSessionWithId(host, port, sessionId) {
+    async function startSessionWithId(host, port, sessionId, protocol) {
+        protocol = protocol || "vnc";
         if (!sessionId) {
             toast("No session id available", "error");
             return;
@@ -176,7 +179,7 @@ var activeSessions = new Map();
             statusEl.textContent = "Connecting...";
             statusEl.className = "status-badge status-connecting";
         }
-        if (infoEl) infoEl.textContent = host + ":" + port;
+        if (infoEl) infoEl.textContent = host + ":" + port + " (" + protocol.toUpperCase() + ")";
         if (loadingEl) loadingEl.style.display = "";
 
         switchView("canvas");
@@ -186,12 +189,15 @@ var activeSessions = new Map();
             ws: null,
             host: host,
             port: port,
+            protocol: protocol,
             connected: false,
         };
         activeSessions.set(sessionId, session);
         updateSessionBadge();
 
-        if (typeof VNCAdapter !== "undefined") {
+        if (protocol === "rdp" && typeof RDPAdapter !== "undefined") {
+            connectWithRDP(sessionId, session, wsUrl, host, port);
+        } else if (typeof VNCAdapter !== "undefined") {
             connectWithNoVNC(sessionId, session, wsUrl, host, port);
         } else {
             connectRawProxy(sessionId, session, wsUrl, host, port);
@@ -212,7 +218,7 @@ var activeSessions = new Map();
         };
 
         document.getElementById("btn-clipboard").onclick = function () {
-            if (session.adapter && session.adapter.rfb) {
+            if (session.adapter && session.connected) {
                 navigator.clipboard.readText().then(function (text) {
                     session.adapter.clipboardPaste(text);
                     toast("Clipboard sent", "info");
@@ -220,16 +226,16 @@ var activeSessions = new Map();
                     toast("Clipboard access denied", "error");
                 });
             } else {
-                toast("Clipboard requires VNC connection", "info");
+                toast("Clipboard requires an active connection", "info");
             }
         };
 
         document.getElementById("btn-ctrl-alt-del").onclick = function () {
-            if (session.adapter && session.adapter.rfb) {
+            if (session.adapter && session.connected) {
                 session.adapter.sendCtrlAltDel();
                 toast("Ctrl+Alt+Del sent", "info");
             } else {
-                toast("Ctrl+Alt+Del requires VNC connection", "info");
+                toast("Ctrl+Alt+Del requires an active connection", "info");
             }
         };
     }
@@ -270,6 +276,46 @@ var activeSessions = new Map();
             toast("VNC error: " + (e.detail || "unknown"), "error");
             if (loadingEl) loadingEl.style.display = "none";
             connectRawProxy(sessionId, session, wsUrl, host, port);
+        });
+
+        session.adapter = adapter;
+        adapter.connect();
+    }
+
+    function connectWithRDP(sessionId, session, wsUrl, host, port) {
+        var loadingEl = document.getElementById("vnc-loading");
+
+        var adapter = new RDPAdapter(document.getElementById("vnc-container"), wsUrl, host, port);
+
+        adapter.addEventListener("connect", function (e) {
+            if (loadingEl) loadingEl.style.display = "none";
+            var statusEl = document.getElementById("connection-status");
+            if (statusEl) {
+                statusEl.textContent = "Connected";
+                statusEl.className = "status-badge status-connected";
+            }
+            session.connected = true;
+            session.adapter = adapter;
+            toast("Connected to " + host + ":" + port + " (RDP)", "success");
+        });
+
+        adapter.addEventListener("disconnect", function () {
+            var statusEl = document.getElementById("connection-status");
+            if (statusEl) {
+                statusEl.textContent = "Disconnected";
+                statusEl.className = "status-badge status-disconnected";
+            }
+            disconnectSession(sessionId);
+        });
+
+        adapter.addEventListener("error", function (e) {
+            var statusEl = document.getElementById("connection-status");
+            if (statusEl) {
+                statusEl.textContent = "Error";
+                statusEl.className = "status-badge status-error";
+            }
+            toast("RDP error: " + (e.detail || "unknown"), "error");
+            if (loadingEl) loadingEl.style.display = "none";
         });
 
         session.adapter = adapter;
@@ -403,10 +449,18 @@ var activeSessions = new Map();
             "</div>" +
             '<div class="form-group">' +
             '<label>Protocol</label>' +
-            '<select id="new-conn-protocol" class="input">' +
+            '<select id="new-conn-protocol" class="input" onchange="VDI.onProtocolChange()">' +
             '<option value="vnc">VNC</option>' +
-            '<option value="rdp">RDP (coming soon)</option>' +
+            '<option value="rdp">RDP</option>' +
             "</select>" +
+            "</div>" +
+            '<div class="form-group" id="new-conn-rdp-fields" style="display:none;">' +
+            '<label>RDP Password</label>' +
+            '<input type="password" id="new-conn-password" class="input" placeholder="Target password (vaulted)" autocomplete="off">' +
+            "</div>" +
+            '<div class="form-group" id="new-conn-rdp-domain" style="display:none;">' +
+            '<label>RDP Domain (optional)</label>' +
+            '<input type="text" id="new-conn-domain" class="input" placeholder="CORP\\user">' +
             "</div>" +
             '<div class="form-actions">' +
             '<button class="btn btn-ghost" onclick="VDI.closeModal()">Cancel</button>' +
@@ -414,6 +468,17 @@ var activeSessions = new Map();
             "</div>" +
             "</div>";
         showModal("New Connection", formHtml);
+        window.VDI.onProtocolChange = function () {
+            var proto = (document.getElementById("new-conn-protocol") || {}).value || "vnc";
+            var portEl = document.getElementById("new-conn-port");
+            var pwdRow = document.getElementById("new-conn-rdp-fields");
+            var domRow = document.getElementById("new-conn-rdp-domain");
+            var isRdp = proto === "rdp";
+            if (portEl && isRdp && parseInt(portEl.value, 10) === 5900) portEl.value = "3389";
+            if (portEl && !isRdp && parseInt(portEl.value, 10) === 3389) portEl.value = "5900";
+            if (pwdRow) pwdRow.style.display = isRdp ? "" : "none";
+            if (domRow) domRow.style.display = isRdp ? "" : "none";
+        };
     }
 
     window.saveNewConnection = async function saveNewConnection() {
@@ -422,6 +487,8 @@ var activeSessions = new Map();
         var host = (document.getElementById("new-conn-host") || {}).value || "";
         var port = parseInt((document.getElementById("new-conn-port") || {}).value || "5900");
         var protocol = (document.getElementById("new-conn-protocol") || {}).value || "vnc";
+        var password = (document.getElementById("new-conn-password") || {}).value || "";
+        var domain = (document.getElementById("new-conn-domain") || {}).value || "";
         name = name.trim();
         host = host.trim();
         if (!name || !host) {
@@ -429,17 +496,22 @@ var activeSessions = new Map();
             return;
         }
         try {
+            var payload = { name: name, host: host, port: port, protocol: protocol, auth_type: "password" };
+            if (protocol === "rdp") {
+                if (password) payload.password = password;
+                if (domain) payload.domain = domain;
+            }
             var resp = await fetch("/api/desktop/connect", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: name, host: host, port: port, protocol: protocol, auth_type: "password" }),
+                body: JSON.stringify(payload),
             });
             if (!resp.ok) throw new Error("Save failed");
             var saved = await resp.json();
             hideModal();
             toast("Connection saved", "success");
             await loadConnections();
-            startSessionWithId(host, port, saved.data && saved.data.id);
+            startSessionWithId(host, port, saved.data && saved.data.id, protocol);
         } catch (e) {
             toast("Failed to save: " + e.message, "error");
         }

@@ -298,7 +298,7 @@ auth-remember-me = 나를 기억해
 auth-login-success = 성공적으로 로그인되었습니다
 auth-logout-success = 성공적으로 로그아웃되었습니다
 auth-invalid-credentials = 잘못된 이메일 또는 비밀번호
-auth-session-expired = 세션이 만료되었습니다. 다시 로그인해주세요.
+auth-session-expired = 세션이 만료되었습니다
 
 # -----------------------------------------------------------------------------
 # Search
@@ -715,7 +715,7 @@ nav-all-apps = 모든 애플리케이션
 # -----------------------------------------------------------------------------
 # Login Screen
 # -----------------------------------------------------------------------------
-auth-welcome-back = 돌아온 것을 환영합니다
+auth-welcome-back = 돌아온 것을 환영합니다, { $name }!
 auth-sign-in-to-account = 일반 봇 계정에 로그인하세요
 auth-email-address = 이메일 주소
 auth-email-placeholder = you@example.com
@@ -1556,7 +1556,7 @@ tickets-no-closed = 마감된 티켓 없음
 # Security Module
 # -----------------------------------------------------------------------------
 security-title = 보안
-security-subtitle = 보안 도구, 규정 준수 검사 및 서버 보호
+security-subtitle = 계정 보안 설정 관리
 security-tab-compliance = API 규정 준수 보고서
 security-tab-protection = 보호
 security-export-report = 보고서 내보내기
@@ -1732,3 +1732,27 @@ sources-remove-connector = 제거
 sources-connector-health = 건강
 sources-connector-last-sync = 마지막 동기화
 sources-no-connectors = 구성된 커넥터가 없습니다.
+
+# VDI (remote desktop)
+vdi-title = 가상 데스크탑
+vdi-new-connection = 새로운 연결
+vdi-connection-name = 연결 이름
+vdi-host = 호스트
+vdi-port = 항구
+vdi-protocol = 프로토콜
+vdi-rdp-password = RDP 비밀번호
+vdi-rdp-domain = RDP 도메인(선택 사항)
+vdi-save-connect = 저장 및 연결
+vdi-cancel = 취소
+vdi-connect = 연결하다
+vdi-delete = 삭제
+vdi-no-connections = 아직 연결이 없습니다.
+vdi-create-first = 시작하려면 새 연결을 만드세요.
+vdi-connecting = 연결 중...
+vdi-connected = 연결됨
+vdi-disconnected = 연결이 끊김
+vdi-error = 오류
+vdi-clipboard-sent = 클립보드가 전송되었습니다.
+vdi-ctrl-alt-del-sent = Ctrl+Alt+Del 보냄
+vdi-rdp = RDP
+vdi-vnc = VNC

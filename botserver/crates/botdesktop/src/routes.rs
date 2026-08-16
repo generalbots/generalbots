@@ -10,9 +10,87 @@ use uuid::Uuid;
 use botsecurity_auth::auth_api::types::AuthenticatedUser;
 
 use crate::models::{ConnectionConfig, DesktopSession, SessionAuditEvent};
-use crate::proxy::{extract_client_ip, handle_ws_connection, tcp_health_check};
+use crate::proxy::{extract_client_ip, handle_ws_connection, rdp_health_check, tcp_health_check};
 use crate::session_manager::{SessionError, SessionManager};
 use crate::types::{ConnectionCreateRequest, HealthCheckResponse, mask_ip};
+
+// ---------------------------------------------------------------------------
+// Protocol helpers
+// ---------------------------------------------------------------------------
+
+/// Remote-desktop protocols the proxy tunnel may carry.
+const SUPPORTED_PROTOCOLS: &[&str] = &["vnc", "rdp"];
+
+/// Returns true when the protocol is a supported remote-desktop protocol.
+fn is_supported_protocol(protocol: &str) -> bool {
+    SUPPORTED_PROTOCOLS.contains(&protocol)
+}
+
+/// Stores RDP target credentials in Vault and returns the vault path, or
+/// `None` when no secret needs vaulting (no password supplied).
+///
+/// The path is scoped per user so one tenant can never read another's
+/// credentials: `gbo/orgs/{org_id}/vdi/{connection_id}`.
+fn vault_vdi_credentials(
+    user_id: Uuid,
+    org_id: Option<Uuid>,
+    connection_id: Uuid,
+    password: Option<&str>,
+    domain: Option<&str>,
+) -> Option<String> {
+    let password = password.unwrap_or("");
+    let domain = domain.unwrap_or("");
+    if password.is_empty() && domain.is_empty() {
+        return None;
+    }
+
+    let org = org_id.map(|o| o.to_string()).unwrap_or_else(|| "default".to_string());
+    let path = format!("gbo/orgs/{org}/vdi/{connection_id}");
+
+    let manager = match botcoresecrets::SecretsManager::get_clone() {
+        Ok(m) => m,
+        Err(e) => {
+            warn!("vdi: Vault unavailable, RDP credentials for {path} not vaulted: {e}");
+            return None;
+        }
+    };
+    let mut secrets = std::collections::HashMap::new();
+    if !password.is_empty() {
+        secrets.insert("password".to_string(), password.to_string());
+    }
+    if !domain.is_empty() {
+        secrets.insert("domain".to_string(), domain.to_string());
+    }
+
+    let (tx, rx) = std::sync::mpsc::channel();
+    let manager_clone = manager.clone();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build();
+        let result = match rt {
+            Ok(rt) => rt.block_on(manager_clone.put_secret(&path, secrets)),
+            Err(e) => {
+                warn!("vdi: failed to build runtime for credential storage: {e}");
+                return;
+            }
+        };
+        let _ = tx.send(result);
+    });
+
+    match rx.recv() {
+        Ok(Ok(())) => {
+            info!("vdi: RDP credentials for {connection_id} vaulted at {path} (user {user_id})");
+            Some(path)
+        }
+        Ok(Err(e)) => {
+            warn!("vdi: failed to store RDP credentials at {path}: {e}");
+            None
+        }
+        Err(_) => {
+            warn!("vdi: credential storage channel closed for {path}");
+            None
+        }
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Authentication & authorization helpers
@@ -119,23 +197,42 @@ pub async fn create_connection(
             Json(serde_json::json!({ "success": false, "error": "target port is not on the allowed list (VNC 5900-5999, RDP 3389)" })),
         );
     }
+    if !is_supported_protocol(&req.protocol) {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "success": false, "error": "unsupported protocol (expected vnc or rdp)" })),
+        );
+    }
 
     // Tenant scoping: sessions are attributed to the authenticated user and
     // their organization/branch when available.
-    let session = DesktopSession::with_scope(
+    let session = DesktopSession::with_protocol(
         user_id,
         user.organization_id,
         None,
         req.target_host.clone(),
         req.target_port,
+        &req.protocol,
         client_ip,
     );
+
+    // RDP credentials are vaulted server-side; the session keeps only the
+    // vault path (never the password itself).
+    if req.protocol == "rdp" {
+        let _ = vault_vdi_credentials(
+            user_id,
+            user.organization_id,
+            session.id,
+            req.password.as_deref(),
+            req.domain.as_deref(),
+        );
+    }
 
     match state.session_manager.register_session(session).await {
         Ok(session) => {
             info!(
-                "Connection created: {} (user={}, target={}:{})",
-                session.id, user_id, req.target_host, req.target_port,
+                "Connection created: {} (user={}, target={}:{}, protocol={})",
+                session.id, user_id, req.target_host, req.target_port, session.protocol,
             );
             // Audit: session start with actor + target (masked in logs).
             if let Some(pool) = state.pool.clone() {
@@ -147,7 +244,7 @@ pub async fn create_connection(
                         session_id: session.id,
                         host: session.target_host.clone(),
                         port: session.target_port,
-                        protocol: "vnc".to_string(),
+                        protocol: session.protocol.clone(),
                         connected_at: session.created_at,
                         disconnected_at: None,
                         bytes_transferred: 0,
@@ -191,6 +288,12 @@ pub struct ConnectRequest {
     pub port: u16,
     pub protocol: Option<String>,
     pub auth_type: Option<String>,
+    /// Optional RDP target password, vaulted server-side (never persisted).
+    #[serde(default)]
+    pub password: Option<String>,
+    /// Optional RDP domain for NLA authentication.
+    #[serde(default)]
+    pub domain: Option<String>,
 }
 
 pub async fn handle_connect(
@@ -229,28 +332,54 @@ pub async fn handle_connect(
         );
     }
 
-    let session = DesktopSession::with_scope(
+    let protocol = req.protocol.clone().unwrap_or_else(|| "vnc".to_string());
+    if !is_supported_protocol(&protocol) {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "success": false, "error": "unsupported protocol (expected vnc or rdp)" })),
+        );
+    }
+
+    let session = DesktopSession::with_protocol(
         user_id,
         user.organization_id,
         None,
         req.host.clone(),
         req.port,
+        &protocol,
         client_ip,
     );
-    let protocol = req.protocol.unwrap_or_else(|| "vnc".to_string());
+
+    // RDP credentials go to Vault, never to the DB or UI.
+    let vault_path = if protocol == "rdp" {
+        vault_vdi_credentials(
+            user_id,
+            user.organization_id,
+            session.id,
+            req.password.as_deref(),
+            req.domain.as_deref(),
+        )
+    } else {
+        None
+    };
+
     let auth_type = req.auth_type.clone().unwrap_or_else(|| "password".to_string());
     let conn_name = req.name.clone();
     let target_host = req.host.clone();
     let target_port = req.port;
     let proto = protocol.clone();
+    let domain = req.domain.clone();
 
     // Persist the saved connection so it survives restarts (#vdi persistence).
+    // RDP credentials live in Vault; the row keeps only the vault path.
     if let Some(pool) = state.pool.clone() {
         let pool_for_task = pool.clone();
         let host_for_task = target_host.clone();
         let name_for_task = conn_name.clone();
         let auth_for_task = auth_type.clone();
         let proto_for_task = proto.clone();
+        let vault_path_for_task = vault_path.clone();
+        let domain_for_task = domain.clone();
         let now = chrono::Utc::now();
         let log_name = name_for_task.clone();
         let log_host = host_for_task.clone();
@@ -258,8 +387,8 @@ pub async fn handle_connect(
             let mut conn = pool_for_task.get().map_err(|e| format!("db pool: {e}"))?;
             diesel::sql_query(
                 "INSERT INTO desktop_connections \
-                 (id, user_id, name, host, port, protocol, auth_type, auto_connect, created_at, updated_at, last_used_at) \
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $8, $8) \
+                 (id, user_id, name, host, port, protocol, auth_type, auto_connect, secrets_vault_path, rdp_domain, created_at, updated_at, last_used_at) \
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, true, $8, $9, $10, $10, $10) \
                  ON CONFLICT DO NOTHING",
             )
             .bind::<diesel::sql_types::Uuid, _>(Uuid::new_v4())
@@ -269,6 +398,8 @@ pub async fn handle_connect(
             .bind::<diesel::sql_types::Int4, _>(target_port as i32)
             .bind::<diesel::sql_types::Text, _>(&proto_for_task)
             .bind::<diesel::sql_types::Text, _>(&auth_for_task)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&vault_path_for_task)
+            .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&domain_for_task)
             .bind::<diesel::sql_types::Timestamptz, _>(now)
             .execute(&mut conn)
             .map_err(|e| format!("persist vdi connection: {e}"))?;
@@ -280,7 +411,7 @@ pub async fn handle_connect(
         }
     }
 
-    // Audit: session start for the VDI connect flow.
+    // Audit: session start for the VDI connect flow (protocol-aware).
     if let Some(pool) = state.pool.clone() {
         let audit_session = session.clone();
         write_audit_event(
@@ -291,7 +422,7 @@ pub async fn handle_connect(
                 session_id: audit_session.id,
                 host: audit_session.target_host.clone(),
                 port: audit_session.target_port,
-                protocol: protocol.clone(),
+                protocol: audit_session.protocol.clone(),
                 connected_at: audit_session.created_at,
                 disconnected_at: None,
                 bytes_transferred: 0,
@@ -302,14 +433,14 @@ pub async fn handle_connect(
 
     match state.session_manager.register_session(session).await {
         Ok(session) => {
-            info!("VDI connect created: {} -> {}:{}", req.name, req.host, req.port);
+            info!("VDI connect created: {} -> {}:{} ({})", req.name, req.host, req.port, session.protocol);
             (
                 StatusCode::CREATED,
                 Json(serde_json::json!({
                     "success": true,
                     "data": session.to_summary(),
                     "name": req.name,
-                    "protocol": protocol,
+                    "protocol": session.protocol,
                 })),
             )
         }
@@ -498,7 +629,7 @@ pub async fn delete_connection(
                     session_id: removed.id,
                     host: removed.target_host.clone(),
                     port: removed.target_port,
-                    protocol: "vnc".to_string(),
+                    protocol: removed.protocol.clone(),
                     connected_at: removed.created_at,
                     disconnected_at: Some(chrono::Utc::now()),
                     bytes_transferred: removed.bytes_sent + removed.bytes_received,
@@ -550,7 +681,7 @@ pub async fn kill_own_sessions(
                     session_id: s.id,
                     host: s.target_host.clone(),
                     port: s.target_port,
-                    protocol: "vnc".to_string(),
+                    protocol: s.protocol.clone(),
                     connected_at: s.created_at,
                     disconnected_at: Some(now),
                     bytes_transferred: s.bytes_sent + s.bytes_received,
@@ -587,6 +718,22 @@ pub async fn health_check_tcp(
     Json(req): Json<crate::types::HealthCheckRequest>,
 ) -> impl IntoResponse {
     let (reachable, latency_ms, err) = tcp_health_check(&req.host, req.port).await;
+    let resp = HealthCheckResponse {
+        reachable,
+        latency_ms,
+        error: err,
+    };
+    (StatusCode::OK, Json(serde_json::json!({ "success": true, "data": resp })))
+}
+
+// ---------------------------------------------------------------------------
+// POST /health/rdp — RDP-specific probe (confirms an RDP server is listening)
+// ---------------------------------------------------------------------------
+
+pub async fn health_check_rdp(
+    Json(req): Json<crate::types::HealthCheckRequest>,
+) -> impl IntoResponse {
+    let (reachable, latency_ms, err) = rdp_health_check(&req.host, req.port).await;
     let resp = HealthCheckResponse {
         reachable,
         latency_ms,
@@ -652,6 +799,7 @@ pub fn router(state: AppState) -> axum::Router {
         .route(&format!("{PREFIX}/connect"), axum::routing::post(handle_connect))
         .route(&format!("{PREFIX}/health"), axum::routing::get(health_check))
         .route(&format!("{PREFIX}/health/tcp"), axum::routing::post(health_check_tcp))
+        .route(&format!("{PREFIX}/health/rdp"), axum::routing::post(health_check_rdp))
         .route(&format!("{PREFIX}/ws/proxy/{{session_id}}"), axum::routing::get(ws_proxy_handler))
         .with_state(state)
 }

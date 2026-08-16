@@ -10,12 +10,26 @@ use uuid::Uuid;
 pub struct ConnectionCreateRequest {
     pub target_host: String,
     pub target_port: u16,
+    /// Remote-desktop protocol (`vnc` or `rdp`); defaults to `vnc`.
+    #[serde(default = "default_protocol")]
+    pub protocol: String,
+    /// Optional RDP target password, vaulted server-side and never persisted
+    /// in the database or returned to the client.
+    #[serde(default)]
+    pub password: Option<String>,
+    /// Optional RDP domain for NLA authentication.
+    #[serde(default)]
+    pub domain: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct HealthCheckRequest {
     pub host: String,
     pub port: u16,
+}
+
+fn default_protocol() -> String {
+    "vnc".to_string()
 }
 
 // ---------------------------------------------------------------------------
@@ -29,6 +43,8 @@ pub struct ConnectionSummary {
     pub user_id: Uuid,
     pub target_host: String,
     pub target_port: u16,
+    /// Remote-desktop protocol (`vnc` or `rdp`).
+    pub protocol: String,
     pub status: String,
     pub created_at: DateTime<Utc>,
     pub last_active_at: DateTime<Utc>,
