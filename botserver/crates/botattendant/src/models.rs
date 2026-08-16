@@ -53,6 +53,35 @@ pub struct AttendantSession {
     pub created_at: DateTime<Utc>,
 }
 
+/// Metadata for a file shared inside an attendant conversation. Serialized
+/// into the message's `attachments` JSONB so the thread can render previews
+/// and download links without fetching every blob.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AttachmentMeta {
+    pub id: Uuid,
+    pub name: String,
+    pub content_type: String,
+    pub size_bytes: i64,
+    /// Download URL served by `GET /api/attendant/attachments/{id}/download`.
+    pub url: String,
+    /// Optional thumbnail URL for image previews in the thread.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub thumb_url: Option<String>,
+}
+
+/// Stored blob backing a conversation attachment (BYTEA row).
+#[derive(Debug, Clone, Queryable, Insertable)]
+#[diesel(table_name = attendant_attachments)]
+pub struct AttendantAttachment {
+    pub id: Uuid,
+    pub session_id: Uuid,
+    pub name: String,
+    pub content_type: String,
+    pub size_bytes: i64,
+    pub data: Vec<u8>,
+    pub created_at: DateTime<Utc>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable)]
 #[diesel(table_name = attendant_session_messages)]
 pub struct SessionMessage {
@@ -209,6 +238,9 @@ pub struct SendMessageRequest {
     pub content_type: Option<String>,
     pub is_internal: Option<bool>,
     pub sender_name: Option<String>,
+    /// Attachment metadata for files uploaded via the session attachment API.
+    #[serde(default)]
+    pub attachments: Option<Vec<AttachmentMeta>>,
 }
 
 #[derive(Debug, Deserialize)]
