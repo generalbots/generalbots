@@ -407,7 +407,8 @@ async fn inner_build_sub_router(
 
     #[cfg(feature = "project")]
     {
-        let project_service = Arc::new(crate::project::ProjectService::new());
+        let project_service = Arc::new(crate::project::ProjectService::with_pool(app_state.conn.clone()));
+        project_service.load_from_db().await;
         let project_router = crate::project::configure(project_service.clone());
         sub_router = sub_router.merge(project_router.with_state(project_service.clone()));
         sub_router = sub_router.merge(crate::project::project_ui::configure_project_ui_routes().with_state(project_service));
