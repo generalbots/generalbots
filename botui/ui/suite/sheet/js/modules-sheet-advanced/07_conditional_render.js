@@ -194,7 +194,9 @@
         if (hasComment && !node.querySelector(".ss-comment-marker")) {
           const mark = document.createElement("span");
           mark.className = "ss-comment-marker";
-          mark.style.cssText = "position:absolute;right:2px;bottom:2px;width:0;height:0;border-right:6px solid transparent;border-bottom:6px solid #f59e0b;";
+          mark.style.cssText = "position:absolute;right:2px;bottom:2px;width:0;height:0;border-right:6px solid transparent;border-bottom:6px solid #f59e0b;cursor:pointer;";
+          mark.dataset.row = r;
+          mark.dataset.col = c;
           node.appendChild(mark);
           if (d.note) {
             mark.title = String(d.note);
