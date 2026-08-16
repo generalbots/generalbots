@@ -118,11 +118,27 @@
     }).join("");
   }
 
+  // When the panel aggregates child resources (includeChildren), surface the
+  // anchor (e.g. cell A1) of a comment whose resource is nested under the
+  // panel's resource, so users can tell where each comment belongs.
+  function anchorBadge(comment) {
+    if (!state.includeChildren || !comment.resource_type || comment.resource_type === state.resourceType) return "";
+    var suffix = comment.resource_id || "";
+    if (state.resourceId && suffix.indexOf(state.resourceId + ":") === 0) {
+      suffix = suffix.slice(state.resourceId.length + 1);
+    }
+    var parts = suffix.split(":");
+    var cell = parts[parts.length - 1];
+    if (!cell) return "";
+    return '<span class="gbc-anchor" style="font-size:10px;color:#60a5fa;background:rgba(59,130,246,.12);border-radius:3px;padding:0 5px;line-height:16px;font-weight:600;">' + esc(cell) + "</span>";
+  }
+
   function node(comment, isReply) {
     var n = document.createElement("div");
     n.className = "gbc-item" + (isReply ? " gbc-reply" : "");
     n.innerHTML =
       '<div class="gbc-meta"><span class="gbc-author">' + esc(comment.author_name || comment.author_id) + "</span>" +
+      anchorBadge(comment) +
       '<span class="gbc-time">' + timeFmt(comment.created_at) + "</span></div>" +
       '<div class="gbc-body">' + renderBody(comment.body) + "</div>" +
       '<div class="gbc-actions">' +
