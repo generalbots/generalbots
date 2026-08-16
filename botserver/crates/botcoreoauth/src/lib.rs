@@ -97,7 +97,7 @@ impl fmt::Display for OAuthProvider {
 pub fn generate_pkce_verifier() -> String {
     use rand::RngCore;
     let mut bytes = [0u8; 48];
-    rand::thread_rng().fill_bytes(&mut bytes);
+    rand::rng().fill_bytes(&mut bytes);
     use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
     URL_SAFE_NO_PAD.encode(bytes)
 }
