@@ -299,6 +299,13 @@ struct ActivityRow {
 // ---------------------------------------------------------------------------
 
 #[derive(Debug, Deserialize)]
+pub struct MentionsQuery {
+    /// Max comments to return (1..100, default 20).
+    #[serde(default)]
+    pub limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct VersionsQuery {
     pub resource_type: String,
     pub resource_id: String,
@@ -1312,6 +1319,61 @@ pub async fn name_version(
     Ok(Json(serde_json::json!({ "success": true, "name": name })))
 }
 
+/// `GET /api/collab/mentions/me?limit=` — comments that @mention the current
+/// user (matched against their username and email), newest first. This backs
+/// the in-app "you were mentioned" notification without any SMTP dependency.
+pub async fn my_mentions(
+    State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Query(params): Query<MentionsQuery>,
+) -> Result<Json<Vec<CommentItem>>, (StatusCode, Json<serde_json::Value>)> {
+    let uid = collab_user_id(&user);
+    let uname = collab_user_name(&user);
+    let limit = params.limit.unwrap_or(20).clamp(1, 100);
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+
+    let rows = diesel::sql_query(
+        "SELECT id::text, resource_type, resource_id, author_id, author_name, \
+                parent_id::text, body, mentions, created_at, updated_at, \
+                resolved, resolved_by, resolved_at \
+         FROM collab_comments \
+         WHERE deleted = FALSE \
+           AND (mentions::jsonb ? $1 OR mentions::jsonb ? $2) \
+         ORDER BY created_at DESC LIMIT $3",
+    )
+    .bind::<Text, _>(&uname)
+    .bind::<Text, _>(&uid)
+    .bind::<BigInt, _>(limit)
+    .load::<CommentRow>(&mut conn)
+    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?;
+
+    let items: Vec<CommentItem> = rows
+        .into_iter()
+        .map(|r| CommentItem {
+            id: r.id,
+            resource_type: r.resource_type,
+            resource_id: r.resource_id,
+            author_id: r.author_id,
+            author_name: r.author_name,
+            parent_id: r.parent_id,
+            body: r.body,
+            mentions: serde_json::from_str(&r.mentions).unwrap_or_default(),
+            created_at: r.created_at.to_rfc3339(),
+            updated_at: r.updated_at.to_rfc3339(),
+            resolved: r.resolved,
+            resolved_by: r.resolved_by,
+            resolved_at: r.resolved_at.map(|d| d.to_rfc3339()),
+            reactions: Vec::new(),
+            replies: Vec::new(),
+        })
+        .collect();
+
+    Ok(Json(items))
+}
+
 pub fn configure_collab_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route(
@@ -1333,6 +1395,7 @@ pub fn configure_collab_routes() -> Router<Arc<AppState>> {
         )
         .route("/api/collab/comments/read", post(mark_comments_read))
         .route("/api/collab/comments/unread", get(unread_count))
+        .route("/api/collab/mentions/me", get(my_mentions))
         .route(
             "/api/collab/presence",
             get(list_presence).post(update_presence),
