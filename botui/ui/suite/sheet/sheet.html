@@ -239,6 +239,10 @@ function openSheetComments() {
         resourceType: 'sheet',
         resourceId: String(id),
         title: 'Spreadsheet comments',
+        // Aggregate every cell-anchored comment (sheet:cell) under this sheet
+        // so the doc-level panel shows the full discussion, not just a few
+        // sheet-level comments.
+        includeChildren: true,
     });
 }
 function renameSheet() {

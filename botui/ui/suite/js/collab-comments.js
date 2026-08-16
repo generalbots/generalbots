@@ -25,7 +25,7 @@
   var presenceEl = null;
   var heartbeatTimer = null;
   var typingSent = false;
-  var state = { resourceType: null, resourceId: null, title: "Comments", notify: null };
+  var state = { resourceType: null, resourceId: null, title: "Comments", notify: null, includeChildren: false };
   var mentionBox = null;      // floating @mention autocomplete dropdown
   var mentionCandidates = []; // [{ id, name }] merged from presence + thread authors
   var presenceUsers = [];     // raw /api/collab/presence items
@@ -145,7 +145,9 @@
   function load() {
     if (!listEl || !state.resourceId) return;
     listEl.innerHTML = '<div class="gbc-loading">Loading comments\u2026</div>';
-    req("/comments?resource_type=" + encodeURIComponent(state.resourceType) + "&resource_id=" + encodeURIComponent(state.resourceId))
+    var qs = "/comments?resource_type=" + encodeURIComponent(state.resourceType) + "&resource_id=" + encodeURIComponent(state.resourceId);
+    if (state.includeChildren) qs += "&include_children=true";
+    req(qs)
       .then(function (items) {
         listEl.innerHTML = "";
         commentAuthors = [];
@@ -420,6 +422,7 @@
     state.resourceId = opts.resourceId || null;
     state.title = opts.title || "Comments";
     state.notify = opts.notify || null;
+    state.includeChildren = !!opts.includeChildren;
     document.getElementById("gbc-title").textContent = state.title;
     if (inputEl) inputEl.value = "";
     panel.classList.add("gbc-open");

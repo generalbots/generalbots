@@ -77,6 +77,11 @@ fn extract_mentions(body: &str) -> Vec<String> {
 pub struct CommentQuery {
     pub resource_type: String,
     pub resource_id: String,
+    /// When true, also match child resources (resource_type + ":" and
+    /// resource_id + ":") so a document-level view aggregates anchored
+    /// comments — e.g. every `sheet:cell` comment under its sheet.
+    #[serde(default)]
+    pub include_children: bool,
 }
 
 #[derive(Debug, Deserialize)]
@@ -202,25 +207,49 @@ pub async fn list_comments(
         .get()
         .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
 
+    // When children are not requested, the LIKE patterns bind as the empty
+    // string (which matches nothing — resource_type/resource_id are never
+    // empty), so the OR branch is inert and the query behaves like an exact
+    // match. Binding the same four parameters in both cases keeps the two
+    // diesel bind chains type-compatible.
+    let ty_prefix = if params.include_children {
+        format!("{}:%", params.resource_type)
+    } else {
+        String::new()
+    };
+    let id_prefix = if params.include_children {
+        format!("{}:%", params.resource_id)
+    } else {
+        String::new()
+    };
+
     let rows = diesel::sql_query(
         "SELECT id::text, resource_type, resource_id, author_id, author_name, \
                 parent_id::text, body, mentions, created_at, updated_at \
          FROM collab_comments \
-         WHERE resource_type = $1 AND resource_id = $2 AND deleted = FALSE \
+         WHERE deleted = FALSE \
+           AND ((resource_type = $1 AND resource_id = $2) \
+             OR (resource_type LIKE $3 AND resource_id LIKE $4)) \
          ORDER BY created_at ASC",
     )
     .bind::<Text, _>(&params.resource_type)
     .bind::<Text, _>(&params.resource_id)
+    .bind::<Text, _>(&ty_prefix)
+    .bind::<Text, _>(&id_prefix)
     .load::<CommentRow>(&mut conn)
     .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?;
 
     let reaction_rows = diesel::sql_query(
         "SELECT comment_id::text, user_id, emoji FROM collab_comment_reactions \
          WHERE comment_id IN (SELECT id FROM collab_comments \
-                              WHERE resource_type = $1 AND resource_id = $2)",
+                              WHERE deleted = FALSE \
+                                AND ((resource_type = $1 AND resource_id = $2) \
+                                  OR (resource_type LIKE $3 AND resource_id LIKE $4)))",
     )
     .bind::<Text, _>(&params.resource_type)
     .bind::<Text, _>(&params.resource_id)
+    .bind::<Text, _>(&ty_prefix)
+    .bind::<Text, _>(&id_prefix)
     .load::<ReactionRow>(&mut conn)
     .unwrap_or_default();
 
