@@ -2161,6 +2161,7 @@ name = "botlearn"
 version = "6.3.1"
 dependencies = [
  "axum",
+ "base64 0.22.1",
  "chrono",
  "diesel",
  "serde",
