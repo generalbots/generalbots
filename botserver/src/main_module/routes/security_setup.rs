@@ -96,7 +96,6 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
             .add_public_path("/favicon.ico")
             .add_public_path("/suite")
             .add_public_path("/themes")
-            .add_public_path("/api/cloud")
             .add_public_path("/api/product")
             .add_public_path("/api/auth/suite-sso")
             // Vibe domain forward-auth: Caddy calls this without a token;
