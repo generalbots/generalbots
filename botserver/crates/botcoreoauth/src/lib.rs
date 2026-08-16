@@ -19,6 +19,7 @@ pub enum OAuthProvider {
     Twitter,
     Microsoft,
     Facebook,
+    GitHub,
 }
 
 impl OAuthProvider {
@@ -30,6 +31,7 @@ impl OAuthProvider {
             Self::Twitter,
             Self::Microsoft,
             Self::Facebook,
+            Self::GitHub,
         ]
     }
 
@@ -41,6 +43,7 @@ impl OAuthProvider {
             "twitter" | "x" => Some(Self::Twitter),
             "microsoft" => Some(Self::Microsoft),
             "facebook" => Some(Self::Facebook),
+            "github" => Some(Self::GitHub),
             _ => None,
         }
     }
@@ -53,6 +56,7 @@ impl OAuthProvider {
             Self::Twitter => "oauth-twitter",
             Self::Microsoft => "oauth-microsoft",
             Self::Facebook => "oauth-facebook",
+            Self::GitHub => "oauth-github",
         }
     }
 
@@ -64,6 +68,7 @@ impl OAuthProvider {
             Self::Twitter => "Twitter",
             Self::Microsoft => "Microsoft",
             Self::Facebook => "Facebook",
+            Self::GitHub => "GitHub",
         }
     }
 
@@ -74,7 +79,8 @@ impl OAuthProvider {
             | Self::Reddit
             | Self::Twitter
             | Self::Microsoft
-            | Self::Facebook => "",
+            | Self::Facebook
+            | Self::GitHub => "",
         }
     }
 }
@@ -83,6 +89,25 @@ impl fmt::Display for OAuthProvider {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.display_name())
     }
+}
+
+/// Generates a random PKCE code verifier (43–128 chars, unreserved ASCII).
+/// The S256 challenge is derived from it during the authorization request;
+/// the verifier itself is presented at the token exchange.
+pub fn generate_pkce_verifier() -> String {
+    use rand::RngCore;
+    let mut bytes = [0u8; 48];
+    rand::thread_rng().fill_bytes(&mut bytes);
+    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+    URL_SAFE_NO_PAD.encode(bytes)
+}
+
+/// Derives the S256 PKCE code challenge from a verifier.
+pub fn pkce_s256_challenge(verifier: &str) -> String {
+    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+    use sha2::{Digest, Sha256};
+    let digest = Sha256::digest(verifier.as_bytes());
+    URL_SAFE_NO_PAD.encode(digest)
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -166,6 +191,15 @@ pub struct OAuthState {
     pub provider: OAuthProvider,
     pub redirect_after: Option<String>,
     pub created_at: i64,
+    /// Owning user id when the flow is an account *link* (Settings) rather
+    /// than a fresh login. Binds the OAuth callback to the authenticated
+    /// user so the external identity is attached to their profile.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<String>,
+    /// PKCE code verifier (S256). Generated server-side, carried inside the
+    /// state token, and presented during the code exchange. Never logged.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub pkce_verifier: Option<String>,
 }
 
 impl OAuthState {
@@ -183,7 +217,21 @@ impl OAuthState {
             provider,
             redirect_after,
             created_at,
+            user_id: None,
+            pkce_verifier: None,
         }
+    }
+
+    /// Marks the flow as an account link for `user_id` (Settings flow).
+    pub fn for_user(mut self, user_id: &str) -> Self {
+        self.user_id = Some(user_id.to_string());
+        self
+    }
+
+    /// Attaches a freshly generated PKCE S256 code verifier.
+    pub fn with_pkce(mut self) -> Self {
+        self.pkce_verifier = Some(generate_pkce_verifier());
+        self
     }
 
     pub fn is_expired(&self) -> bool {

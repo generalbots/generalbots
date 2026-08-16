@@ -1649,3 +1649,14 @@ mail-crm-log = Log to CRM
 mail-crm-create-lead = Create Lead
 mail-add-to-list = Add to List
 campaign-send-email = Send Email
+
+# -----------------------------------------------------------------------------
+# OAuth Account Linking (Settings)
+# -----------------------------------------------------------------------------
+oauth-connected-accounts = Connected Accounts
+oauth-connect = Connect
+oauth-unlink = Unlink
+oauth-not-connected = Not connected
+oauth-linked = Linked
+oauth-no-accounts = No accounts linked yet.
+oauth-loading = Loading linked accounts…

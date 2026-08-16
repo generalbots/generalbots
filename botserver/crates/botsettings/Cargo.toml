@@ -12,6 +12,8 @@ mail = ["dep:lettre"]
 botcore = { path = "../botcore" }
 botsecurity = { path = "../botsecurity" }
 botcoredirectory = { path = "../botcoredirectory" }
+botcoreoauth = { path = "../botcoreoauth" }
+botcoresecrets = { path = "../botcoresecrets" }
 botschema = { path = "../../../botschema" }
 axum = { workspace = true, features = ["ws", "macros"] }
 serde = { workspace = true, features = ["derive"] }

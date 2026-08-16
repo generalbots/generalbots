@@ -57,10 +57,17 @@ impl OAuthProvider {
                 scopes: &["email", "public_profile"],
                 use_basic_auth: false,
             },
+            Self::GitHub => ProviderEndpoints {
+                auth_url: "https://github.com/login/oauth/authorize",
+                token_url: "https://github.com/login/oauth/access_token",
+                userinfo_url: "https://api.github.com/user",
+                scopes: &["read:user", "user:email"],
+                use_basic_auth: false,
+            },
         }
     }
 
-    pub fn build_auth_url(&self, config: &OAuthConfig, state: &str) -> String {
+    pub fn build_auth_url(&self, config: &OAuthConfig, state: &str, pkce_verifier: Option<&str>) -> String {
         let endpoints = self.endpoints();
         let scopes = endpoints.scopes.join(" ");
 
@@ -72,12 +79,18 @@ impl OAuthProvider {
             ("scope", &scopes),
         ];
 
+        // RFC 7636: send the S256 challenge whenever a verifier was minted.
+        if let Some(verifier) = pkce_verifier {
+            params.push(("code_challenge", &crate::pkce_s256_challenge(verifier)));
+            params.push(("code_challenge_method", "S256"));
+        }
+
         match self {
             Self::Google => {
                 params.push(("access_type", "offline"));
                 params.push(("prompt", "consent"));
             }
-            Self::Discord | Self::Facebook => {}
+            Self::Discord | Self::Facebook | Self::GitHub => {}
             Self::Reddit => {
                 params.push(("duration", "temporary"));
             }
@@ -104,6 +117,7 @@ impl OAuthProvider {
         config: &OAuthConfig,
         code: &str,
         client: &Client,
+        pkce_verifier: Option<&str>,
     ) -> Result<OAuthTokenResponse> {
         let endpoints = self.endpoints();
 
@@ -113,7 +127,10 @@ impl OAuthProvider {
         params.insert("redirect_uri", config.redirect_uri.as_str());
         params.insert("client_id", config.client_id.as_str());
 
-        if matches!(self, Self::Twitter) {
+        // RFC 7636: present the code verifier when the flow used PKCE.
+        if let Some(verifier) = pkce_verifier {
+            params.insert("code_verifier", verifier);
+        } else if matches!(self, Self::Twitter) {
             params.insert("code_verifier", "challenge");
         }
 
@@ -173,6 +190,14 @@ impl OAuthProvider {
                     ("fields", "id,name,email,picture.type(large)"),
                     ("access_token", access_token),
                 ]);
+            }
+            Self::GitHub => {
+                // GitHub requires the version header for the REST API and
+                // returns numeric ids — see `parse_user_info`.
+                request = request
+                    .header("Accept", "application/vnd.github+json")
+                    .header("X-GitHub-Api-Version", "2022-11-28")
+                    .bearer_auth(access_token);
             }
             _ => {
                 request = request.bearer_auth(access_token);
@@ -260,6 +285,28 @@ impl OAuthProvider {
                 avatar_url: raw["picture"]["data"]["url"].as_str().map(String::from),
                 raw: Some(raw.clone()),
             }),
+            Self::GitHub => {
+                // GitHub returns the numeric user id as a JSON number, and
+                // `email` may be null unless the account is public; `login`
+                // is always present and serves as the stable handle.
+                let provider_id = raw["id"]
+                    .as_u64()
+                    .map(|n| n.to_string())
+                    .or_else(|| raw["id"].as_str().map(String::from))
+                    .unwrap_or_default();
+                let login = raw["login"].as_str().map(String::from);
+                Ok(OAuthUserInfo {
+                    provider_id,
+                    provider: self,
+                    email: raw["email"].as_str().map(String::from),
+                    name: raw["name"]
+                        .as_str()
+                        .map(String::from)
+                        .or_else(|| login.clone()),
+                    avatar_url: raw["avatar_url"].as_str().map(String::from),
+                    raw: Some(raw.clone()),
+                })
+            }
         }
     }
 }
