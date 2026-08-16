@@ -2,6 +2,7 @@ use axum::{routing::{get, post, put}, Router};
 use std::sync::Arc;
 
 use crate::handlers;
+use crate::routes_sales::configure_sales_routes;
 use crate::ui;
 use crate::CrateState;
 
@@ -63,7 +64,8 @@ pub fn configure_external_sync_routes() -> Router<Arc<CrateState>> {
 pub fn configure_all_routes() -> Router<Arc<CrateState>> {
     let router = Router::new()
         .merge(configure_crm_api_routes())
-        .merge(configure_crm_ui_routes());
+        .merge(configure_crm_ui_routes())
+        .merge(configure_sales_routes());
 
     #[cfg(feature = "calendar")]
     let router = router.merge(configure_calendar_routes());

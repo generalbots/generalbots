@@ -77,10 +77,7 @@
                 <span>New List</span>
             </button>
         </div>
-        <div class="campaigns-grid" id="listsList"
-             hx-get="/api/crm/lists"
-             hx-trigger="load"
-             hx-swap="innerHTML">
+        <div class="campaigns-grid" id="listsList">
             <div class="pipeline-column" style="grid-column: 1 / -1;">
                 <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
                     Loading lists...
@@ -96,10 +93,7 @@
                 <span>New Template</span>
             </button>
         </div>
-        <div class="campaigns-grid" id="templatesList"
-             hx-get="/api/crm/templates"
-             hx-trigger="load"
-             hx-swap="innerHTML">
+        <div class="campaigns-grid" id="templatesList">
             <div class="pipeline-column" style="grid-column: 1 / -1;">
                 <div style="padding: 40px; text-align: center; color: var(--text-secondary);">
                     Loading templates...
@@ -324,29 +318,208 @@
     </div>
 </div>
 
+<!-- Create List Modal -->
+<div id="list-modal" class="crm-modal" style="display: none;">
+    <div class="crm-modal-overlay" onclick="closeListModal()"></div>
+    <div class="crm-modal-content" style="max-width:520px;">
+        <div class="crm-modal-header">
+            <h2 id="list-modal-title">New List</h2>
+            <button class="crm-modal-close" onclick="closeListModal()">×</button>
+        </div>
+        <form id="list-form">
+            <div class="crm-form-group">
+                <label for="list-name">List Name</label>
+                <input type="text" id="list-name" required placeholder="e.g., Newsletter subscribers">
+            </div>
+            <div class="crm-form-group">
+                <label for="list-type">Type</label>
+                <select id="list-type">
+                    <option value="static">Static</option>
+                    <option value="dynamic">Dynamic (query-based)</option>
+                </select>
+            </div>
+            <div class="crm-form-group">
+                <label for="list-query">Segment query (optional)</label>
+                <textarea id="list-query" rows="3" placeholder="e.g., status = 'active' AND country = 'BR'"></textarea>
+            </div>
+            <div class="crm-form-actions">
+                <button type="button" class="btn-secondary" onclick="closeListModal()">Cancel</button>
+                <button type="button" class="btn-primary" onclick="saveList()">Create List</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Create Template Modal -->
+<div id="template-modal" class="crm-modal" style="display: none;">
+    <div class="crm-modal-overlay" onclick="closeTemplateModal()"></div>
+    <div class="crm-modal-content" style="max-width:520px;">
+        <div class="crm-modal-header">
+            <h2 id="template-modal-title">New Template</h2>
+            <button class="crm-modal-close" onclick="closeTemplateModal()">×</button>
+        </div>
+        <form id="template-form">
+            <div class="crm-form-group">
+                <label for="template-name">Template Name</label>
+                <input type="text" id="template-name" required placeholder="e.g., Welcome email">
+            </div>
+            <div class="crm-form-group">
+                <label for="template-channel">Channel</label>
+                <select id="template-channel">
+                    <option value="email">📧 Email</option>
+                    <option value="whatsapp">💬 WhatsApp</option>
+                    <option value="instagram">📸 Instagram</option>
+                    <option value="facebook">📘 Facebook</option>
+                    <option value="sms">✉️ SMS</option>
+                </select>
+            </div>
+            <div class="crm-form-group">
+                <label for="template-subject">Subject (email)</label>
+                <input type="text" id="template-subject" placeholder="e.g., Special offer inside — {{name}}">
+            </div>
+            <div class="crm-form-group">
+                <label for="template-body">Body</label>
+                <textarea id="template-body" rows="6" placeholder="Write your message… supports {{name}}, {{company}}, {{email}}"></textarea>
+            </div>
+            <div class="crm-form-actions">
+                <button type="button" class="btn-secondary" onclick="closeTemplateModal()">Cancel</button>
+                <button type="button" class="btn-primary" onclick="saveTemplate()">Create Template</button>
+            </div>
+        </form>
+    </div>
+</div>
+
 <script>
+function apiFetch(path, opts) {
+    var headers = { 'Content-Type': 'application/json' };
+    var token = localStorage.getItem('gb_token');
+    if (token) headers['Authorization'] = 'Bearer ' + token;
+    return fetch(path, Object.assign({ headers: headers }, opts)).then(function (res) {
+        if (!res.ok) throw new Error('API error: ' + res.status);
+        return res.status === 204 ? null : res.json();
+    });
+}
+
+function escHtml(s) {
+    var d = document.createElement('div');
+    d.textContent = s == null ? '' : s;
+    return d.innerHTML;
+}
+
 function showListModal() {
-    var existing = document.getElementById('coming-soon-banner');
-    if (!existing) {
-        var banner = document.createElement('div');
-        banner.id = 'coming-soon-banner';
-        banner.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--accent,#3b82f6);color:#fff;padding:12px 24px;border-radius:8px;z-index:9999;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,0.15)';
-        banner.textContent = '📋 List creation — coming soon!';
-        document.body.appendChild(banner);
-        setTimeout(function(){banner.remove()}, 3000);
+    document.getElementById('list-modal').style.display = 'flex';
+    document.getElementById('list-modal-title').textContent = 'New List';
+    document.getElementById('list-form').reset();
+}
+
+function closeListModal() {
+    document.getElementById('list-modal').style.display = 'none';
+}
+
+async function saveList() {
+    var name = document.getElementById('list-name').value.trim();
+    if (!name) { alert('List name is required'); return; }
+    var payload = {
+        name: name,
+        list_type: document.getElementById('list-type').value || 'static',
+        query_text: document.getElementById('list-query').value || null,
+    };
+    try {
+        await apiFetch('/api/crm/lists', { method: 'POST', body: JSON.stringify(payload) });
+        closeListModal();
+        loadLists();
+    } catch (err) {
+        console.error('Save list failed:', err);
+        alert('Failed to save list');
+    }
+}
+
+async function deleteList(id) {
+    if (!confirm('Delete this list?')) return;
+    try {
+        await apiFetch('/api/crm/lists/' + id, { method: 'DELETE' });
+        loadLists();
+    } catch (err) { console.error('Delete list failed:', err); alert('Failed to delete list'); }
+}
+
+async function loadLists() {
+    var grid = document.getElementById('listsList');
+    if (!grid) return;
+    try {
+        var lists = await apiFetch('/api/crm/lists');
+        if (!Array.isArray(lists) || !lists.length) {
+            grid.innerHTML = '<div class="pipeline-column" style="grid-column: 1 / -1;"><div style="padding: 40px; text-align: center; color: var(--text-secondary);">No lists yet — create your first one.</div></div>';
+            return;
+        }
+        grid.innerHTML = lists.map(function (l) {
+            return '<div class="campaign-card"><div class="campaign-card-header"><span class="campaign-card-title">' + escHtml(l.name) + '</span><span class="campaign-card-badge">' + escHtml(l.list_type || 'static') + '</span></div><div class="campaign-card-meta">' + (l.member_count || l.contact_count || 0) + ' members</div><div class="campaign-card-actions"><button class="btn-secondary" onclick="deleteList(\'' + l.id + '\')">Delete</button></div></div>';
+        }).join('');
+    } catch (err) {
+        grid.innerHTML = '<div class="pipeline-column" style="grid-column: 1 / -1;"><div style="padding: 40px; text-align: center; color: var(--text-secondary);">Failed to load lists</div></div>';
+        console.error('loadLists error:', err);
     }
 }
 
 function showTemplateModal() {
-    var existing = document.getElementById('coming-soon-banner');
-    if (!existing) {
-        var banner = document.createElement('div');
-        banner.id = 'coming-soon-banner';
-        banner.style.cssText = 'position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--accent,#3b82f6);color:#fff;padding:12px 24px;border-radius:8px;z-index:9999;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,0.15)';
-        banner.textContent = '📋 Template creation — coming soon!';
-        document.body.appendChild(banner);
-        setTimeout(function(){banner.remove()}, 3000);
+    document.getElementById('template-modal').style.display = 'flex';
+    document.getElementById('template-modal-title').textContent = 'New Template';
+    document.getElementById('template-form').reset();
+}
+
+function closeTemplateModal() {
+    document.getElementById('template-modal').style.display = 'none';
+}
+
+async function saveTemplate() {
+    var name = document.getElementById('template-name').value.trim();
+    if (!name) { alert('Template name is required'); return; }
+    var payload = {
+        name: name,
+        channel: document.getElementById('template-channel').value || 'email',
+        subject: document.getElementById('template-subject').value || null,
+        body: document.getElementById('template-body').value || null,
+    };
+    try {
+        await apiFetch('/api/crm/templates', { method: 'POST', body: JSON.stringify(payload) });
+        closeTemplateModal();
+        loadTemplates();
+    } catch (err) {
+        console.error('Save template failed:', err);
+        alert('Failed to save template');
     }
+}
+
+async function deleteTemplate(id) {
+    if (!confirm('Delete this template?')) return;
+    try {
+        await apiFetch('/api/crm/templates/' + id, { method: 'DELETE' });
+        loadTemplates();
+    } catch (err) { console.error('Delete template failed:', err); alert('Failed to delete template'); }
+}
+
+async function loadTemplates() {
+    var grid = document.getElementById('templatesList');
+    if (!grid) return;
+    try {
+        var templates = await apiFetch('/api/crm/templates');
+        if (!Array.isArray(templates) || !templates.length) {
+            grid.innerHTML = '<div class="pipeline-column" style="grid-column: 1 / -1;"><div style="padding: 40px; text-align: center; color: var(--text-secondary);">No templates yet — create your first one.</div></div>';
+            return;
+        }
+        grid.innerHTML = templates.map(function (t) {
+            return '<div class="campaign-card"><div class="campaign-card-header"><span class="campaign-card-title">' + escHtml(t.name) + '</span><span class="campaign-card-badge">' + escHtml(t.channel || 'email') + '</span></div><div class="campaign-card-meta">' + escHtml(t.subject || '') + '</div><div class="campaign-card-actions"><button class="btn-secondary" onclick="deleteTemplate(\'' + t.id + '\')">Delete</button></div></div>';
+        }).join('');
+    } catch (err) {
+        grid.innerHTML = '<div class="pipeline-column" style="grid-column: 1 / -1;"><div style="padding: 40px; text-align: center; color: var(--text-secondary);">Failed to load templates</div></div>';
+        console.error('loadTemplates error:', err);
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { loadLists(); loadTemplates(); });
+} else {
+    loadLists();
+    loadTemplates();
 }
 
 // Tab switching (lists/templates stay HTMX-driven; monitor renders via JS)

@@ -125,6 +125,25 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
         ApiEndpoint { method: "DELETE", path: "/api/integrations/connectors/:id/disconnect", summary: "Remove a data connector and its vaulted credentials" },
         ApiEndpoint { method: "GET", path: "/api/integrations/connectors/templates", summary: "Connector type catalog for typed configuration forms" },
 
+        // Sales / CRM pipeline
+        ApiEndpoint { method: "GET", path: "/api/sales/deals", summary: "List sales deals with stage, value, probability and owner" },
+        ApiEndpoint { method: "POST", path: "/api/sales/deals", summary: "Create a sales deal (title, value, stage, expected close date)" },
+        ApiEndpoint { method: "PATCH", path: "/api/sales/deals/:id", summary: "Update a deal (stage moves, value, probability, notes)" },
+        ApiEndpoint { method: "DELETE", path: "/api/sales/deals/:id", summary: "Delete a deal" },
+        ApiEndpoint { method: "GET", path: "/api/sales/contacts", summary: "List CRM contacts available for deals" },
+        ApiEndpoint { method: "GET", path: "/api/sales/activities", summary: "List recent sales activities (calls, emails, meetings)" },
+        ApiEndpoint { method: "GET", path: "/api/sales/funnel", summary: "Pipeline funnel summary grouped by stage with weighted value" },
+        ApiEndpoint { method: "GET", path: "/api/sales/forecast", summary: "Weighted sales forecast from stage probabilities" },
+        // Marketing campaigns, lists and templates
+        ApiEndpoint { method: "GET", path: "/api/crm/campaigns", summary: "List marketing campaigns across channels" },
+        ApiEndpoint { method: "POST", path: "/api/crm/campaigns", summary: "Create a marketing campaign (name, channel, content template)" },
+        ApiEndpoint { method: "POST", path: "/api/crm/campaigns/:id/send", summary: "Send a campaign to its recipient list" },
+        ApiEndpoint { method: "GET", path: "/api/crm/lists", summary: "List audience lists with member counts" },
+        ApiEndpoint { method: "POST", path: "/api/crm/lists", summary: "Create an audience list (name, type, segment query)" },
+        ApiEndpoint { method: "DELETE", path: "/api/crm/lists/:id", summary: "Delete an audience list" },
+        ApiEndpoint { method: "GET", path: "/api/crm/templates", summary: "List channel templates (email, WhatsApp, social, SMS)" },
+        ApiEndpoint { method: "POST", path: "/api/crm/templates", summary: "Create a channel template with variables" },
+        ApiEndpoint { method: "DELETE", path: "/api/crm/templates/:id", summary: "Delete a channel template" },
         // VDI / remote desktop
         ApiEndpoint { method: "GET", path: "/api/desktop/connections", summary: "List active and saved remote desktop (VNC/RDP) connections for the user" },
         ApiEndpoint { method: "POST", path: "/api/desktop/connect", summary: "Register a remote desktop connection (VNC or RDP, credentials vaulted)" },
