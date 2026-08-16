@@ -32,59 +32,44 @@ pub async fn handle_export_presentation<D: DriveOps>(
             )
         })?;
 
-    match req.format.as_str() {
-        "html" => {
-            let html = export_to_html(&presentation);
-            Ok(([(axum::http::header::CONTENT_TYPE, "text/html")], html))
-        }
-        "json" => {
-            let json = export_to_json(&presentation);
-            Ok((
-                [(axum::http::header::CONTENT_TYPE, "application/json")],
-                json,
-            ))
-        }
-        "svg" => {
-            if !presentation.slides.is_empty() {
-                let svg = export_to_svg(&presentation.slides[0], 960, 540);
-                Ok((
-                    [(axum::http::header::CONTENT_TYPE, "image/svg+xml")],
-                    svg,
-                ))
-            } else {
-                Err((
-                    StatusCode::BAD_REQUEST,
-                    Json(serde_json::json!({ "error": "No slides to export" })),
-                ))
-            }
-        }
-        "md" | "markdown" => {
-            let md = export_to_markdown(&presentation);
-            Ok((
-                [(axum::http::header::CONTENT_TYPE, "text/markdown")],
-                md,
-            ))
-        }
-        "odp" => {
-            let odp = export_to_odp_content(&presentation);
-            Ok((
-                [(
-                    axum::http::header::CONTENT_TYPE,
-                    "application/vnd.oasis.opendocument.presentation",
-                )],
-                odp,
-            ))
-        }
-        "pptx" => Ok((
-            [(
-                axum::http::header::CONTENT_TYPE,
-                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-            )],
-            "PPTX export not yet implemented".to_string(),
-        )),
-        _ => Err((
+    if req.format == "svg" && presentation.slides.is_empty() {
+        return Err((
             StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({ "error": "Unsupported format" })),
-        )),
+            Json(serde_json::json!({ "error": "No slides to export" })),
+        ));
     }
+
+    let (content_type, body): (&'static str, axum::body::Body) = match req.format.as_str() {
+        "html" => ("text/html", axum::body::Body::from(export_to_html(&presentation))),
+        "json" => ("application/json", axum::body::Body::from(export_to_json(&presentation))),
+        "svg" => (
+            "image/svg+xml",
+            axum::body::Body::from(export_to_svg(&presentation.slides[0], 960, 540)),
+        ),
+        "md" | "markdown" => ("text/markdown", axum::body::Body::from(export_to_markdown(&presentation))),
+        "odp" => (
+            "application/vnd.oasis.opendocument.presentation",
+            axum::body::Body::from(export_to_odp_content(&presentation)),
+        ),
+        "pptx" => {
+            let bytes = crate::pptx::export_to_pptx(&presentation).map_err(|e| {
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({ "error": e })),
+                )
+            })?;
+            (
+                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                axum::body::Body::from(bytes),
+            )
+        }
+        _ => {
+            return Err((
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": "Unsupported format" })),
+            ))
+        }
+    };
+
+    Ok(([(axum::http::header::CONTENT_TYPE, content_type)], body))
 }

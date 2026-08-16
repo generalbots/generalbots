@@ -58,6 +58,14 @@ pub async fn handle_import_presentation<D: DriveOps>(
                 }
             }
         }
+        "pptx" => crate::pptx::load_pptx(&bytes)
+            .map_err(|e| {
+                (
+                    StatusCode::BAD_REQUEST,
+                    Json(serde_json::json!({ "error": format!("Invalid PPTX: {e}") })),
+                )
+            })?
+            .slides,
         _ => {
             return Err((
                 StatusCode::BAD_REQUEST,
@@ -66,14 +74,14 @@ pub async fn handle_import_presentation<D: DriveOps>(
         }
     };
 
-let name = filename
-    .rsplit('/')
-    .next()
-    .unwrap_or(&filename)
-    .rsplit('.')
-    .next_back()
-    .unwrap_or(&filename)
-    .to_string();
+    let name = filename
+        .rsplit('/')
+        .next()
+        .unwrap_or(&filename)
+        .rsplit('.')
+        .next_back()
+        .unwrap_or(&filename)
+        .to_string();
 
     let user_id = get_current_user_id();
     let presentation = Presentation {

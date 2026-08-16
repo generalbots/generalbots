@@ -4,7 +4,9 @@ use crate::types::{
     CompareDocumentsRequest, CompareDocumentsResponse, ComparisonSummary, Document,
     DocumentComparison, DocumentDiff,
 };
+use crate::storage::convert_docx_to_html;
 use crate::utils::{detect_document_format, markdown_to_html, rtf_to_html, strip_html};
+use crate::utils_ooxml::odt_zip_to_html;
 use axum::{extract::State, http::StatusCode, Json};
 use chrono::Utc;
 use std::sync::Arc;
@@ -32,8 +34,14 @@ pub async fn handle_import_document(
         )
     })?;
 
-    let format = detect_document_format(&bytes);
-    let content = match format {
+    let format = detect_import_format(&filename, &bytes);
+    let content = match format.as_str() {
+        "docx" => convert_docx_to_html(&bytes).map_err(|e| {
+            (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": e })))
+        })?,
+        "odt" => odt_zip_to_html(&bytes).map_err(|e| {
+            (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "error": e })))
+        })?,
         "rtf" => rtf_to_html(&String::from_utf8_lossy(&bytes)),
         "html" => String::from_utf8_lossy(&bytes).to_string(),
         "markdown" => markdown_to_html(&String::from_utf8_lossy(&bytes)),
@@ -44,7 +52,7 @@ pub async fn handle_import_document(
         _ => {
             return Err((
                 StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({ "error": format!("Unsupported format: {}", format) })),
+                Json(serde_json::json!({ "error": format!("Unsupported format: {format}") })),
             ))
         }
     };
@@ -72,6 +80,20 @@ pub async fn handle_import_document(
     }
 
     Ok(Json(doc))
+}
+
+fn detect_import_format(filename: &str, bytes: &[u8]) -> String {
+    let ext = filename.rsplit('.').next().unwrap_or("").to_lowercase();
+    match ext.as_str() {
+        "docx" => return "docx".to_string(),
+        "odt" => return "odt".to_string(),
+        "rtf" => return "rtf".to_string(),
+        "md" | "markdown" => return "markdown".to_string(),
+        "html" | "htm" => return "html".to_string(),
+        "txt" => return "txt".to_string(),
+        _ => {}
+    }
+    detect_document_format(bytes).to_string()
 }
 
 pub async fn handle_compare_documents(
