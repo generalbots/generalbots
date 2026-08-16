@@ -148,6 +148,8 @@ pub static ALL_COMMANDS: &[AppCommand] = &[
     cmd("mail", "mail.send", "Send an email", "Send an email message.", &[("to", "recipient"), ("subject", "subject"), ("body", "body")], None, true),
     cmd("calendar", "calendar.events.list", "List events", "List calendar events.", &[("start", "start date"), ("end", "end date")], Some("app://calendar?event_id={event_id}"), false),
     cmd("meet", "meet.recordings.list", "List recordings", "List meeting recordings and transcriptions.", &[], Some("app://meet?meeting_id={meeting_id}"), false),
+    cmd("meet", "meet.recordings.start", "Start recording", "Start recording a meeting (host only).", &[("room_id", "meeting room id")], None, false),
+    cmd("meet", "meet.recordings.stop", "Stop recording", "Stop the active recording of a meeting (host only).", &[("room_id", "meeting room id")], None, false),
     cmd("docs", "docs.list", "List documents", "List documents in the workspace.", &[], Some("app://docs?file={file}"), false),
     cmd("sheet", "sheet.open", "Open spreadsheet", "Open a spreadsheet and read cells.", &[("file_id", "spreadsheet id"), ("cell", "optional A1 cell")], Some("app://sheet?file_id={file_id}&cell={cell}"), false),
     cmd("tasks", "tasks.list", "List tasks", "List tasks and their status.", &[("filter", "all/active/completed")], Some("app://tasks?task_id={task_id}"), false),

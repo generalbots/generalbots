@@ -641,3 +641,146 @@
         padding: 0.5rem;
     }
 }
+
+/* Recording control */
+.recording-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.7rem;
+    border-radius: 9999px;
+    background: rgba(239, 68, 68, 0.18);
+    color: #f87171;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.recording-indicator.hidden {
+    display: none;
+}
+
+.recording-dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: #ef4444;
+    animation: gb-rec-pulse 1.2s infinite;
+}
+
+@keyframes gb-rec-pulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.35;
+    }
+}
+
+.control-btn.recording {
+    background: rgba(239, 68, 68, 0.85);
+    color: white;
+}
+
+/* Recordings panel */
+.recordings-panel {
+    position: absolute;
+    right: 1rem;
+    top: 4rem;
+    width: min(420px, calc(100vw - 2rem));
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--surface, #1e293b);
+    border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+    border-radius: 12px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+    z-index: 50;
+    overflow: hidden;
+}
+
+.recordings-panel.hidden {
+    display: none;
+}
+
+.recordings-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 1rem;
+    border-bottom: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+}
+
+.recordings-panel-header h3 {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.recordings-list {
+    overflow-y: auto;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+
+.recordings-empty {
+    padding: 1.5rem;
+    text-align: center;
+    color: var(--text-secondary, #94a3b8);
+    font-size: 0.85rem;
+}
+
+.recording-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.7rem 0.85rem;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+}
+
+.recording-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.recording-item-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.recording-item-meta {
+    font-size: 0.7rem;
+    color: var(--text-secondary, #94a3b8);
+}
+
+.recording-item-actions {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.recording-item-actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: none;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.recording-item-actions button:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.recording-item-actions button.recording-delete:hover {
+    background: rgba(239, 68, 68, 0.6);
+}
