@@ -561,5 +561,31 @@
     return badge;
   }
 
+  // In-app @mention notification: poll the mentions feed and announce new
+  // mentions via the screen-reader live region (no SMTP dependency).
+  var lastMentionId = null;
+  function pollMentions() {
+    if (!window.GBCollabA11y) return;
+    req("/mentions/me?limit=5")
+      .then(function (items) {
+        if (!items || !items.length) return;
+        var newest = items[0];
+        if (newest && newest.id !== lastMentionId) {
+          lastMentionId = newest.id;
+          window.GBCollabA11y.announce(
+            "You were mentioned in a comment by " + (newest.author_name || "someone"),
+            true
+          );
+        }
+      })
+      .catch(function () {});
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", function () { pollMentions(); setInterval(pollMentions, 60000); });
+  } else {
+    pollMentions();
+    setInterval(pollMentions, 60000);
+  }
+
   window.GBCollabComments = { open: open, close: close, post: post, mountButton: mountButton, bindBadge: bindBadge, resolve: resolve };
 })(window);
