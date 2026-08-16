@@ -764,6 +764,36 @@ async fn execute_via_postgres(
     }
 }
 
+/// Removes leading SQL comments (`-- ...` and `/* ... */`) so the statement
+/// classifier inspects the real first keyword instead of being spoofed by a
+/// comment prefix (e.g. `/* x */ DROP TABLE users`).
+fn strip_leading_comments(sql: &str) -> &str {
+    let mut s = sql.trim_start();
+    loop {
+        if s.starts_with("--") {
+            match s.find('\n') {
+                Some(i) => s = s[i + 1..].trim_start(),
+                None => return "",
+            }
+        } else if s.starts_with("/*") {
+            match s.find("*/") {
+                Some(i) => s = s[i + 2..].trim_start(),
+                None => return "",
+            }
+        } else {
+            return s;
+        }
+    }
+}
+
+/// Returns true when the (lowercased, comment-stripped) query wraps a DML/DDL
+/// statement inside a `WITH` common table expression (e.g. a data-modifying CTE).
+fn contains_dml_keyword(sql: &str) -> bool {
+    ["insert", "update", "delete", "drop", "alter", "create", "truncate"]
+        .iter()
+        .any(|kw| sql.split_whitespace().any(|w| w == *kw))
+}
+
 pub async fn execute_query(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -771,23 +801,26 @@ pub async fn execute_query(
 ) -> Result<Json<QueryResult>, (StatusCode, Json<serde_json::Value>)> {
     let bot_id = extract_bot_id(&headers)?;
 
-    let trimmed = payload.query.trim().to_lowercase();
+    let stripped = strip_leading_comments(&payload.query);
+    let trimmed = stripped.trim().to_lowercase();
     if trimmed.is_empty() {
         return Err(error_response("Query cannot be empty"));
     }
 
-    let is_mutation = trimmed.starts_with("insert")
-        || trimmed.starts_with("update")
-        || trimmed.starts_with("delete")
-        || trimmed.starts_with("drop")
-        || trimmed.starts_with("alter")
-        || trimmed.starts_with("create")
-        || trimmed.starts_with("truncate");
-
-    let semicolon_count = trimmed.matches(';').count();
-    if semicolon_count > 1 {
-        return Err(error_response("Multiple statements not allowed"));
+    // Reject multiple statements: a single trailing semicolon is allowed, but
+    // any content after a semicolon (a second statement) is rejected.
+    let body = trimmed.trim_end();
+    if let Some(idx) = body.find(';') {
+        if !body[idx + 1..].trim().is_empty() {
+            return Err(error_response("Multiple statements not allowed"));
+        }
     }
+
+    let first_word = trimmed.split_whitespace().next().unwrap_or("");
+    let is_mutation = matches!(
+        first_word,
+        "insert" | "update" | "delete" | "drop" | "alter" | "create" | "truncate"
+    ) || (first_word == "with" && contains_dml_keyword(&trimmed));
 
     let start = std::time::Instant::now();
 
