@@ -319,19 +319,64 @@ function closeNewTaskForm() {
     document.getElementById('project-modal').innerHTML = '';
 }
 
+function closeProjectModal() {
+    document.getElementById('project-modal').innerHTML = '';
+}
+
+async function createProjectFromForm() {
+    const name = document.getElementById('new-project-name').value.trim();
+    if (!name) { alert('Please enter a project name'); return; }
+
+    const start = document.getElementById('new-project-start').value
+        || new Date().toISOString().slice(0, 10);
+    const end = document.getElementById('new-project-end').value || null;
+
+    try {
+        const resp = await fetch('/api/projects', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: name,
+                description: document.getElementById('new-project-description').value.trim() || null,
+                start_date: start,
+                end_date: end
+            })
+        });
+        if (resp.ok) {
+            closeProjectModal();
+            loadProjectList();
+        } else {
+            alert('Failed to create project: ' + resp.status);
+        }
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+}
+
 async function createTask() {
     const name = document.getElementById('new-task-name').value.trim();
     if (!name) { alert('Please enter a task name'); return; }
 
+    const start = document.getElementById('new-task-start').value
+        || new Date().toISOString().slice(0, 10);
+    const end = document.getElementById('new-task-end').value;
+    let duration_days = 1;
+    if (end) {
+        const ms = new Date(end) - new Date(start);
+        if (ms > 0) duration_days = Math.max(1, Math.round(ms / 86400000));
+    }
+
     try {
+        // CreateTaskRequest expects { name, start_date, duration_days } —
+        // end_date is derived server-side (start_date + duration_days) and
+        // resource assignment is a separate endpoint.
         const resp = await fetch(`/api/projects/${currentProjectId}/tasks`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 name: name,
-                assignee: document.getElementById('new-task-assignee').value.trim() || null,
-                start_date: document.getElementById('new-task-start').value || null,
-                end_date: document.getElementById('new-task-end').value || null
+                start_date: start,
+                duration_days: duration_days
             })
         });
         if (resp.ok) {

@@ -27,7 +27,10 @@ pub fn configure_project_ui_routes() -> Router<Arc<ProjectService>> {
 }
 
 async fn project_new_form() -> Html<&'static str> {
-    Html(r##"<div class="project-form"><h3>New Project</h3><form hx-post="/projects" hx-target="#project-list" hx-swap="innerHTML" hx-on::after-request="if(event.detail.successful){htmx.trigger('body','projectCreated')}"><div class="form-group"><label>Project Name</label><input type="text" name="name" class="form-input" required placeholder="Enter project name"></div><div class="form-group"><label>Description</label><textarea name="description" class="form-textarea" rows="3" placeholder="Project description..."></textarea></div><div class="form-group"><label>Organization ID</label><input type="text" name="org_id" class="form-input" placeholder="org-uuid"></div><div class="form-actions"><button type="button" class="form-btn secondary" onclick="closeProjectModal()">Cancel</button><button type="submit" class="form-btn primary">Create Project</button></div></form></div>"##)
+    // The create_project handler expects a JSON body (name, description,
+    // start_date, end_date), so this form submits via fetch instead of a
+    // plain HTML form (which would send form-encoded data to the wrong URL).
+    Html(r##"<div class="project-form"><h3>New Project</h3><div class="form-group"><label>Project Name</label><input type="text" id="new-project-name" class="form-input" required placeholder="Enter project name"></div><div class="form-group"><label>Description</label><textarea id="new-project-description" class="form-textarea" rows="3" placeholder="Project description..."></textarea></div><div class="form-group"><label>Start Date</label><input type="date" id="new-project-start" class="form-input"></div><div class="form-group"><label>End Date</label><input type="date" id="new-project-end" class="form-input"></div><div class="form-actions"><button type="button" class="form-btn secondary" onclick="closeProjectModal()">Cancel</button><button type="button" class="form-btn primary" onclick="createProjectFromForm()">Create Project</button></div></div>"##)
 }
 
 async fn task_new_form() -> Html<&'static str> {
