@@ -17,6 +17,7 @@ if (typeof TasksState === "undefined") {
     agentLogPaused: false,
     selectedItemType: "task", // task, goal, pending, scheduler, monitor
     loadingTaskId: null, // Prevent multiple simultaneous loads
+    editingTaskId: null, // Task currently open in the edit modal
   };
 }
 
@@ -82,7 +83,6 @@ function findPendingManifest(taskId) {
 
 function setupHtmxListeners() {
   // Listen for HTMX content swaps to apply pending manifest updates
-  const tasksWindow = document.getElementById("window-tasks");
 if (tasksWindow) {
   tasksWindow.addEventListener("htmx:afterSwap", function (evt) {
     const target = evt.detail.target;
@@ -119,6 +119,7 @@ if (tasksWindow) {
       }
     }
   }, 100);
+  }
 }
 
 function setupIntentInputHandlers() {
@@ -134,7 +135,6 @@ function setupIntentInputHandlers() {
     }, 100);
   }
 
-  const tasksWindow = document.getElementById("window-tasks");
 if (tasksWindow) {
   tasksWindow.addEventListener("htmx:beforeRequest", function (e) {
     if (e.detail.elt.id === "quick-intent-btn") {
@@ -149,8 +149,8 @@ if (tasksWindow) {
       `;
     }
   }, 100);
+}
 
-  const tasksWindow = document.getElementById("window-tasks");
 if (tasksWindow) {
   tasksWindow.addEventListener("htmx:afterRequest", function (e) {
     if (e.detail.elt.id === "quick-intent-btn") {
@@ -212,6 +212,7 @@ if (tasksWindow) {
       }
     }
   }, 100);
+}
 
   // Save intent text before submit for progress display
   if (input) {
@@ -1932,7 +1933,6 @@ function setupEventListeners() {
 }
 
 function setupKeyboardShortcuts() {
-  const tasksWindow = document.getElementById("window-tasks");
 if (tasksWindow) {
   tasksWindow.addEventListener("keydown", function (e) {
     // Escape: Deselect task
@@ -1969,6 +1969,7 @@ if (tasksWindow) {
       }
     }
   }, 100);
+  }
 }
 
 // =============================================================================
@@ -2220,8 +2221,9 @@ function addTaskCardToList(taskId, title, status) {
         <span class="task-progress-percent">0%</span>
       </div>
       <div class="task-card-actions">
-        <button class="task-action-btn" title="Star">★</button>
-        <button class="task-action-btn" title="Delete">🗑</button>
+        <button class="task-action-btn" title="Edit" onclick="event.stopPropagation(); editTask('${taskId}')">✏️</button>
+        <button class="task-action-btn" title="Complete" onclick="event.stopPropagation(); completeTask('${taskId}')">✓</button>
+        <button class="task-action-btn" title="Delete" onclick="event.stopPropagation(); deleteTask('${taskId}')">🗑</button>
       </div>
     </div>
   `;
@@ -2457,6 +2459,243 @@ function toggleAgentLogPause() {
 }
 
 // =============================================================================
+// =============================================================================
+// TASK EDIT MODAL (issue #878)
+// =============================================================================
+
+function editTask(taskId) {
+  if (!taskId) return;
+
+  fetch(`/api/tasks/${taskId}`, {
+    headers: { "Content-Type": "application/json" },
+  })
+    .then((response) => response.json())
+    .then((data) => {
+      const task = data.task || data;
+      if (!task) {
+        showToast("Task not found", "error");
+        return;
+      }
+
+      TasksState.editingTaskId = task.id || taskId;
+      document.getElementById("task-edit-id").value = task.id || taskId;
+      document.getElementById("task-edit-title").value = task.title || "";
+      document.getElementById("task-edit-description").value =
+        task.description || "";
+      document.getElementById("task-edit-priority").value = priorityToIndex(
+        task.priority,
+      );
+      document.getElementById("task-edit-due").value = task.due_date
+        ? toDatetimeLocal(task.due_date)
+        : "";
+      document.getElementById("task-edit-assignee").value =
+        task.assignee_id || "";
+      document.getElementById("task-edit-parent").value = task.parent_id || "";
+
+      const done = isDoneStatus(task.status);
+      document.getElementById("task-edit-complete-btn").style.display = done
+        ? "none"
+        : "";
+      document.getElementById("task-edit-reopen-btn").style.display = done
+        ? ""
+        : "none";
+
+      document.getElementById("task-edit-modal").style.display = "flex";
+    })
+    .catch((error) => {
+      showToast("Failed to load task", "error");
+      console.error("[TASK] editTask error:", error);
+    });
+}
+
+function closeTaskEditor() {
+  const modal = document.getElementById("task-edit-modal");
+  if (modal) modal.style.display = "none";
+  TasksState.editingTaskId = null;
+}
+
+function saveTaskEdit() {
+  const taskId =
+    TasksState.editingTaskId ||
+    document.getElementById("task-edit-id").value;
+  if (!taskId) return;
+
+  const title = document.getElementById("task-edit-title").value.trim();
+  const description = document
+    .getElementById("task-edit-description")
+    .value.trim();
+  const priorityIdx = document.getElementById("task-edit-priority").value;
+  const due = document.getElementById("task-edit-due").value;
+  const assignee = document.getElementById("task-edit-assignee").value.trim();
+  const parent = document.getElementById("task-edit-parent").value.trim();
+
+  const payload = {
+    title: title || undefined,
+    description: description ? description : null,
+    priority: priorityIdx === "" ? null : parseInt(priorityIdx, 10),
+    assignee_id: assignee ? assignee : null,
+    due_date: due ? new Date(due).toISOString() : null,
+    parent_id: parent ? parent : null,
+  };
+
+  fetch(`/api/tasks/${taskId}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  })
+    .then((response) => response.json())
+    .then((result) => {
+      if (result.error) {
+        showToast("Failed to save task: " + result.error, "error");
+        return;
+      }
+      showToast("Task saved", "success");
+      closeTaskEditor();
+      htmx.trigger(document.body, "taskCreated");
+      if (TasksState.selectedTaskId === taskId) {
+        loadTaskDetails(taskId);
+      }
+    })
+    .catch((error) => {
+      showToast("Failed to save task", "error");
+      console.error("[TASK] saveTaskEdit error:", error);
+    });
+}
+
+function completeTaskFromEditor() {
+  const taskId =
+    TasksState.editingTaskId ||
+    document.getElementById("task-edit-id").value;
+  if (taskId) completeTask(taskId);
+}
+
+function reopenTaskFromEditor() {
+  const taskId =
+    TasksState.editingTaskId ||
+    document.getElementById("task-edit-id").value;
+  if (taskId) reopenTask(taskId);
+}
+
+function deleteTaskFromEditor() {
+  const taskId =
+    TasksState.editingTaskId ||
+    document.getElementById("task-edit-id").value;
+  if (taskId) deleteTask(taskId);
+}
+
+function completeTask(taskId) {
+  if (!taskId) return;
+
+  fetch(`/api/tasks/${taskId}/complete`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  })
+    .then((response) => response.json())
+    .then((result) => {
+      if (result.error) {
+        showToast("Failed to complete task: " + result.error, "error");
+        return;
+      }
+      showToast("Task completed", "success");
+      closeTaskEditor();
+      htmx.trigger(document.body, "taskCreated");
+      if (TasksState.selectedTaskId === taskId) {
+        loadTaskDetails(taskId);
+      }
+    })
+    .catch((error) => {
+      showToast("Failed to complete task", "error");
+      console.error("[TASK] completeTask error:", error);
+    });
+}
+
+function reopenTask(taskId) {
+  if (!taskId) return;
+
+  fetch(`/api/tasks/${taskId}/reopen`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+  })
+    .then((response) => response.json())
+    .then((result) => {
+      if (result.error) {
+        showToast("Failed to reopen task: " + result.error, "error");
+        return;
+      }
+      showToast("Task reopened", "success");
+      closeTaskEditor();
+      htmx.trigger(document.body, "taskCreated");
+      if (TasksState.selectedTaskId === taskId) {
+        loadTaskDetails(taskId);
+      }
+    })
+    .catch((error) => {
+      showToast("Failed to reopen task", "error");
+      console.error("[TASK] reopenTask error:", error);
+    });
+}
+
+function deleteTask(taskId) {
+  if (!taskId) return;
+  if (!confirm("Delete this task? This cannot be undone.")) {
+    return;
+  }
+
+  fetch(`/api/tasks/${taskId}`, {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+  })
+    .then((response) => response.json())
+    .then((result) => {
+      if (result.error) {
+        showToast("Failed to delete task: " + result.error, "error");
+        return;
+      }
+      showToast("Task deleted", "success");
+      closeTaskEditor();
+      if (TasksState.selectedTaskId === taskId) {
+        deselectTask();
+      }
+      htmx.trigger(document.body, "taskCreated");
+    })
+    .catch((error) => {
+      showToast("Failed to delete task", "error");
+      console.error("[TASK] deleteTask error:", error);
+    });
+}
+
+function isDoneStatus(status) {
+  return ["done", "complete", "completed", "resolved"].includes(status);
+}
+
+function priorityToIndex(priority) {
+  // schema priority is an int (0 low .. 3 critical); legacy data may store
+  // text ('low'/'medium'/'high'/'urgent'). Normalize to a 0..3 index.
+  if (typeof priority === "number" && !Number.isNaN(priority)) {
+    return String(Math.max(0, Math.min(3, priority)));
+  }
+  const map = {
+    low: "0",
+    medium: "1",
+    normal: "1",
+    high: "2",
+    critical: "3",
+    urgent: "3",
+  };
+  return map[String(priority || "").toLowerCase()] || "1";
+}
+
+function toDatetimeLocal(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    `T${pad(d.getHours())}:${pad(d.getMinutes())}`
+  );
+}
+
 // TASK ACTIONS
 // =============================================================================
 
@@ -3020,7 +3259,6 @@ function hideAllDetailSections() {
 }
 
 // Fill pending info form submission
-const tasksWindow = document.getElementById("window-tasks");
 if (tasksWindow) {
   tasksWindow.addEventListener("htmx:afterRequest", function (event) {
   if (event.detail.elt.id === "pending-fill-form" && event.detail.successful) {
@@ -3029,6 +3267,7 @@ if (tasksWindow) {
     addAgentLog("success", "[OK] Pending info filled successfully");
   }
 }, 100);
+}
 
 // Update counts for new filters
 function updateFilterCounts() {
@@ -3069,9 +3308,9 @@ function updateFilterCounts() {
 
 // Call updateFilterCounts on load
 setTimeout(updateFilterCounts, 100);
-const tasksWindow = document.getElementById("window-tasks");
 if (tasksWindow) {
   tasksWindow.addEventListener("taskCreated", updateFilterCounts);
+}
 
 // =============================================================================
 // MODAL FUNCTIONS
@@ -3204,7 +3443,6 @@ function loadTaskStats() {
     e.preventDefault();
   }, 100);
 
-  const tasksWindow = document.getElementById("window-tasks");
 if (tasksWindow) {
   tasksWindow.addEventListener("mousemove", function (e) {
     if (!isDragging) return;
@@ -3214,8 +3452,8 @@ if (tasksWindow) {
     leftPanel.style.flex = "0 0 " + newWidth + "px";
     leftPanel.style.width = newWidth + "px";
   }, 100);
+}
 
-  const tasksWindow = document.getElementById("window-tasks");
 if (tasksWindow) {
   tasksWindow.addEventListener("mouseup", function () {
     if (isDragging) {
@@ -3224,13 +3462,13 @@ if (tasksWindow) {
       document.body.style.userSelect = "";
     }
   }, 100);
+}
 })();
 
 // =============================================================================
 // HTMX TASK CREATION HANDLER
 // =============================================================================
 
-const tasksWindow = document.getElementById("window-tasks");
 if (tasksWindow) {
   tasksWindow.addEventListener("htmx:afterRequest", function (evt) {
   if (!evt.detail.pathInfo) return;
@@ -3286,6 +3524,7 @@ if (tasksWindow) {
     intentResult.style.display = "block";
   }
 }, 100);
+}
 
 // =============================================================================
 // FILTER PILL CLICK HANDLER
@@ -3304,7 +3543,6 @@ document.getElementById("window-tasks").querySelectorAll(".filter-pill").forEach
 // HTMX TASK LIST REFRESH HANDLER
 // =============================================================================
 
-const tasksWindow = document.getElementById("window-tasks");
 if (tasksWindow) {
   tasksWindow.addEventListener("htmx:afterSwap", function (e) {
   if (e.detail.target && e.detail.target.id === "task-list") {
@@ -3317,3 +3555,4 @@ if (tasksWindow) {
     }
   }
 }, 100);
+}

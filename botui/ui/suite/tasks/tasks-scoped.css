@@ -574,6 +574,19 @@ body:has(.tasks-app) {
     border-top: 1px solid var(--border, #2a2a2a);
 }
 
+.task-card-actions {
+    display: flex;
+    gap: 4px;
+    justify-content: flex-end;
+    margin-top: 6px;
+}
+
+.task-card-subtask {
+    margin-left: 28px;
+    border-left: 2px solid var(--border, #2a2a2a);
+    padding-left: 8px;
+}
+
 .task-action-btn {
     background: transparent;
     border: none;
@@ -1123,6 +1136,24 @@ body:has(.tasks-app) {
 
 .btn-secondary:hover {
     background: var(--surface-hover, #1f1f1f);
+}
+
+.btn-danger {
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid var(--danger, #ef4444);
+    border-radius: 6px;
+    color: var(--danger, #ef4444);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-danger:hover {
+    background: var(--danger, #ef4444);
+    color: #fff;
 }
 
 /* Detail Scroll Content */

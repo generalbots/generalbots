@@ -314,6 +314,96 @@
     </div>
 </div>
 
+<!-- Task Edit Modal (issue #878) -->
+<div class="modal" id="task-edit-modal" style="display: none">
+    <div class="modal-backdrop" onclick="closeTaskEditor()"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Edit Task</h3>
+            <button class="btn-close" onclick="closeTaskEditor()">×</button>
+        </div>
+        <div class="modal-div">
+            <form id="task-edit-form" onsubmit="event.preventDefault(); saveTaskEdit()">
+                <input type="hidden" id="task-edit-id" />
+                <div class="form-group">
+                    <label for="task-edit-title">Title</label>
+                    <input id="task-edit-title" name="title" type="text" />
+                </div>
+                <div class="form-group">
+                    <label for="task-edit-description">Description</label>
+                    <textarea
+                        id="task-edit-description"
+                        name="description"
+                        rows="3"
+                    ></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="task-edit-priority">Priority</label>
+                        <select id="task-edit-priority" name="priority">
+                            <option value="0">Low</option>
+                            <option value="1" selected>Normal</option>
+                            <option value="2">High</option>
+                            <option value="3">Critical</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="task-edit-due">Due date</label>
+                        <input
+                            id="task-edit-due"
+                            name="due_date"
+                            type="datetime-local"
+                        />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="task-edit-assignee">Assignee (user ID)</label>
+                    <input
+                        id="task-edit-assignee"
+                        name="assignee_id"
+                        type="text"
+                        placeholder="UUID of the assignee (optional)"
+                    />
+                </div>
+                <div class="form-group">
+                    <label for="task-edit-parent">Parent task (subtask of…)</label>
+                    <input
+                        id="task-edit-parent"
+                        name="parent_id"
+                        type="text"
+                        placeholder="UUID of parent task (optional)"
+                    />
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer task-edit-actions">
+            <button
+                class="btn-secondary"
+                id="task-edit-reopen-btn"
+                onclick="reopenTaskFromEditor()"
+                style="display: none"
+            >
+                ↩ Reopen
+            </button>
+            <button
+                class="btn-secondary"
+                id="task-edit-complete-btn"
+                onclick="completeTaskFromEditor()"
+            >
+                ✓ Complete
+            </button>
+            <button class="btn-danger" onclick="deleteTaskFromEditor()">
+                🗑 Delete
+            </button>
+            <span style="flex: 1"></span>
+            <button class="btn-secondary" onclick="closeTaskEditor()">
+                Cancel
+            </button>
+            <button class="btn-primary" onclick="saveTaskEdit()">Save</button>
+        </div>
+    </div>
+</div>
+
 <link rel="stylesheet" href="/suite/tasks/tasks-scoped.css" />
 <script src="/suite/tasks/tasks-scoped.js"></script>
 <script src="/suite/tasks/tasks-collab.js"></script>
