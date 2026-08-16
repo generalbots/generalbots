@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use uuid::Uuid;
 
 use crate::state::TasksState;
-use crate::types::{NewTask, Task};
+use crate::types::{NewTask, Task, UpdateTaskRequest};
 
 pub struct TaskEngine {
     state: Arc<TasksState>,
@@ -99,11 +100,128 @@ impl TaskEngine {
             .map_err(|e| format!("Pool error: {}", e))?;
 
         diesel::update(tasks.filter(id.eq(task_id).and(branch_id.eq(task_branch_id))))
-            .set(status.eq(Some(new_status.to_string())))
+            .set((status.eq(Some(new_status.to_string())), updated_at.eq(Utc::now())))
             .execute(&mut conn)
             .map_err(|e| format!("Update error: {}", e))?;
 
         Ok(())
+    }
+
+    /// Applies a partial update to a task, scoped by tenant branch (issue #877).
+    ///
+    /// The task is first fetched inside the branch filter (which both proves it
+    /// exists and enforces tenant isolation), then each provided field is merged
+    /// over the current value. The final `UPDATE` re-applies the branch filter so
+    /// a caller can never modify a row that does not belong to their branch.
+    pub fn update_task(
+        &self,
+        task_id: Uuid,
+        task_branch_id: Uuid,
+        update: &UpdateTaskRequest,
+    ) -> Result<Task, String> {
+        use crate::schema::tasks::dsl::*;
+
+        let mut conn = self
+            .state
+            .pool
+            .get()
+            .map_err(|e| format!("Pool error: {}", e))?;
+
+        let current = tasks
+            .filter(id.eq(task_id).and(branch_id.eq(task_branch_id)))
+            .first::<Task>(&mut conn)
+            .map_err(|e| format!("Query error: {}", e))?;
+
+        let new_title = match &update.title {
+            Some(t) if !t.trim().is_empty() => t.clone(),
+            _ => current.title.clone(),
+        };
+        let new_description = match &update.description {
+            None => current.description.clone(),
+            Some(inner) => inner.clone(),
+        };
+        let new_priority = update.priority.or(current.priority);
+        let new_assignee_id = match &update.assignee_id {
+            None => current.assignee_id,
+            Some(inner) => *inner,
+        };
+        let new_due_date = match &update.due_date {
+            None => current.due_date,
+            Some(inner) => *inner,
+        };
+        let new_parent_id = match &update.parent_id {
+            None => current.parent_id,
+            Some(inner) => *inner,
+        };
+
+        diesel::update(tasks.filter(id.eq(task_id).and(branch_id.eq(task_branch_id))))
+            .set((
+                title.eq(new_title),
+                description.eq(new_description),
+                priority.eq(new_priority),
+                assignee_id.eq(new_assignee_id),
+                due_date.eq(new_due_date),
+                parent_id.eq(new_parent_id),
+                updated_at.eq(Utc::now()),
+            ))
+            .execute(&mut conn)
+            .map_err(|e| format!("Update error: {}", e))?;
+
+        tasks
+            .filter(id.eq(task_id).and(branch_id.eq(task_branch_id)))
+            .first::<Task>(&mut conn)
+            .map_err(|e| format!("Fetch error: {}", e))
+    }
+
+    /// Marks a task completed, recording the completion timestamp (issue #877).
+    pub fn complete_task(&self, task_id: Uuid, task_branch_id: Uuid) -> Result<Task, String> {
+        use crate::schema::tasks::dsl::*;
+
+        let mut conn = self
+            .state
+            .pool
+            .get()
+            .map_err(|e| format!("Pool error: {}", e))?;
+
+        let now = Utc::now();
+        diesel::update(tasks.filter(id.eq(task_id).and(branch_id.eq(task_branch_id))))
+            .set((
+                status.eq(Some("completed".to_string())),
+                completed_at.eq(Some(now)),
+                updated_at.eq(now),
+            ))
+            .execute(&mut conn)
+            .map_err(|e| format!("Update error: {}", e))?;
+
+        tasks
+            .filter(id.eq(task_id).and(branch_id.eq(task_branch_id)))
+            .first::<Task>(&mut conn)
+            .map_err(|e| format!("Fetch error: {}", e))
+    }
+
+    /// Reopens a completed task, clearing the completion timestamp (issue #877).
+    pub fn reopen_task(&self, task_id: Uuid, task_branch_id: Uuid) -> Result<Task, String> {
+        use crate::schema::tasks::dsl::*;
+
+        let mut conn = self
+            .state
+            .pool
+            .get()
+            .map_err(|e| format!("Pool error: {}", e))?;
+
+        diesel::update(tasks.filter(id.eq(task_id).and(branch_id.eq(task_branch_id))))
+            .set((
+                status.eq(Some("pending".to_string())),
+                completed_at.eq(None::<DateTime<Utc>>),
+                updated_at.eq(Utc::now()),
+            ))
+            .execute(&mut conn)
+            .map_err(|e| format!("Update error: {}", e))?;
+
+        tasks
+            .filter(id.eq(task_id).and(branch_id.eq(task_branch_id)))
+            .first::<Task>(&mut conn)
+            .map_err(|e| format!("Fetch error: {}", e))
     }
 
     pub fn delete_task(&self, task_id: Uuid, task_branch_id: Uuid) -> Result<(), String> {
