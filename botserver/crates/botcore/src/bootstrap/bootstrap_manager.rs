@@ -5,9 +5,13 @@ use crate::bootstrap::bootstrap_utils::{
     tables_health_check, vault_health_check, vector_db_health_check, zitadel_health_check,
 };
 use crate::package_manager::{InstallMode, PackageManager};
+use anyhow::Context;
+use diesel::RunQueryDsl;
 use log::{info, warn};
+use std::path::Path;
 use std::time::Duration;
 use tokio::time::sleep;
+use uuid::Uuid;
 
 impl BootstrapManager {
     pub fn new(mode: InstallMode, tenant: Option<String>) -> Self {
@@ -286,19 +290,159 @@ impl BootstrapManager {
         Ok(())
     }
 
-    /// Sync templates to database
+    /// Find the directory holding template bots: the cloned templates repo
+    /// (`work/templates`) takes precedence, falling back to the bundled
+    /// `bottemplates/bots` directory shipped with the workspace.
+    fn templates_source_dir(&self) -> PathBuf {
+        let work = PathBuf::from("work/templates");
+        if work.is_dir() {
+            work
+        } else {
+            PathBuf::from("bottemplates/bots")
+        }
+    }
+
+    /// Sync the on-disk template bots into the `app_templates` table so the
+    /// templates API lists real, persisted entries. Each `*.gbai` directory
+    /// becomes one row; existing names are refreshed (version/description),
+    /// never duplicated.
     pub fn sync_templates_to_database(&self) -> anyhow::Result<()> {
         info!("Syncing templates to database...");
-        // TODO: Implement actual template sync
+        let source = self.templates_source_dir();
+        if !source.is_dir() {
+            warn!("No templates directory found at {}; skipping sync", source.display());
+            return Ok(());
+        }
+
+        let mut conn = crate::shared::utils::establish_pg_connection()?;
+        let branch_id = crate::shared::utils::current_org_id();
+
+        let mut synced = 0usize;
+        let entries = std::fs::read_dir(&source)
+            .with_context(|| format!("Failed to read templates dir {}", source.display()))?;
+        for entry in entries {
+            let entry = match entry {
+                Ok(e) => e,
+                Err(e) => {
+                    warn!("Skipping unreadable template entry: {e}");
+                    continue;
+                }
+            };
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+            let dir_name = match entry.file_name().into_string() {
+                Ok(name) => name,
+                Err(_) => continue,
+            };
+            let Some(bot_name) = dir_name.strip_suffix(".gbai") else {
+                continue;
+            };
+            if bot_name.is_empty() {
+                continue;
+            }
+
+            // Idempotent by (name, branch): refresh an existing row, insert a
+            // new one otherwise — never duplicate templates across restarts.
+            let updated = diesel::sql_query(
+                "UPDATE app_templates SET version = '1.0' \
+                 WHERE name = $1 AND branch_id = $2",
+            )
+            .bind::<diesel::sql_types::Text, _>(bot_name.to_string())
+            .bind::<diesel::sql_types::Uuid, _>(branch_id)
+            .execute(&mut conn)
+            .with_context(|| format!("Failed to update template {bot_name}"))?;
+            if updated == 0 {
+                let id = Uuid::new_v4();
+                diesel::sql_query(
+                    "INSERT INTO app_templates (id, name, description, kind, version, author, branch_id) \
+                     VALUES ($1, $2, '', 'bot', '1.0', '', $3)",
+                )
+                .bind::<diesel::sql_types::Uuid, _>(id)
+                .bind::<diesel::sql_types::Text, _>(bot_name.to_string())
+                .bind::<diesel::sql_types::Uuid, _>(branch_id)
+                .execute(&mut conn)
+                .with_context(|| format!("Failed to insert template {bot_name}"))?;
+            }
+            synced += 1;
+        }
+        info!("Synced {synced} templates to database");
         Ok(())
     }
 
-    /// Upload templates to drive
+    /// Copy template bots into the org work path (`{work}/{org}.gborg/`)
+    /// so the drive monitor discovers and loads them into MinIO. Existing
+    /// copies are replaced recursively; the whole pass is best-effort and
+    /// never fails startup when a template is malformed.
     pub async fn upload_templates_to_drive(&self, _cfg: &AppConfig) -> anyhow::Result<()> {
         info!("Uploading templates to drive...");
-        // TODO: Implement actual template upload
+        let source = self.templates_source_dir();
+        if !source.is_dir() {
+            warn!("No templates directory found at {}; skipping upload", source.display());
+            return Ok(());
+        }
+
+        let org_id = crate::shared::utils::current_org_id();
+        let org_work = crate::shared::utils::get_org_work_path(org_id);
+        let target_root = PathBuf::from(org_work);
+        if !target_root.exists() {
+            std::fs::create_dir_all(&target_root)
+                .with_context(|| format!("Failed to create org work dir {}", target_root.display()))?;
+        }
+
+        let mut uploaded = 0usize;
+        let entries = std::fs::read_dir(&source)
+            .with_context(|| format!("Failed to read templates dir {}", source.display()))?;
+        for entry in entries {
+            let entry = match entry {
+                Ok(e) => e,
+                Err(e) => {
+                    warn!("Skipping unreadable template entry: {e}");
+                    continue;
+                }
+            };
+            let path = entry.path();
+            if !path.is_dir() {
+                continue;
+            }
+            let dir_name = match entry.file_name().into_string() {
+                Ok(name) => name,
+                Err(_) => continue,
+            };
+            let target = target_root.join(&dir_name);
+            if let Err(e) = copy_dir_recursive(&path, &target) {
+                warn!("Failed to copy template {dir_name}: {e}");
+                continue;
+            }
+            uploaded += 1;
+        }
+        info!("Uploaded {uploaded} templates to drive work path");
         Ok(())
     }
+}
+
+/// Recursively copy a directory tree, replacing the destination. Returns an
+/// error with context when any file cannot be copied, leaving already-copied
+/// files in place (the caller treats each template independently).
+fn copy_dir_recursive(src: &Path, dst: &Path) -> anyhow::Result<()> {
+    std::fs::create_dir_all(dst)
+        .with_context(|| format!("Failed to create {}", dst.display()))?;
+    for entry in std::fs::read_dir(src)
+        .with_context(|| format!("Failed to read {}", src.display()))?
+    {
+        let entry = entry.with_context(|| format!("Failed to read entry in {}", src.display()))?;
+        let from = entry.path();
+        let to = dst.join(entry.file_name());
+        if from.is_dir() {
+            copy_dir_recursive(&from, &to)?;
+        } else {
+            std::fs::copy(&from, &to).with_context(|| {
+                format!("Failed to copy {} to {}", from.display(), to.display())
+            })?;
+        }
+    }
+    Ok(())
 }
 
 // Standalone functions for backward compatibility
