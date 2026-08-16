@@ -187,7 +187,15 @@ pub fn validate_session_sync(session_id: &str) -> Result<AuthenticatedUser, Auth
         if let Some(user_data) = botsecurity_core::lookup_session_cache(session_id) {
             debug!("Found user in session cache: {}", user_data.email);
 
-            let user_id = Uuid::parse_str(&user_data.user_id).unwrap_or_else(|_| Uuid::new_v4());
+            // The cached identity may be a Zitadel numeric id (e.g.
+            // "369127176865351408") rather than a UUID. Map it through
+            // UUIDv5("zitadel:{id}") exactly like botcloud/saas_jwt_auth so
+            // the same user yields the SAME user_id across requests — a
+            // random UUID here breaks RBAC (owner granted on one request is
+            // invisible on the next) and cross-request identity in general.
+            let user_id = Uuid::parse_str(&user_data.user_id).unwrap_or_else(|_| {
+                Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{}", user_data.user_id).as_bytes())
+            });
 
             let mut user =
                 AuthenticatedUser::new(user_id, user_data.email.clone()).with_session(session_id);
@@ -219,7 +227,13 @@ pub fn validate_session_sync(session_id: &str) -> Result<AuthenticatedUser, Auth
             return Ok(user);
         }
 
-        let user = AuthenticatedUser::new(Uuid::new_v4(), "session-user".to_string())
+        // Uncacheable token (e.g. a raw JWT that failed provider lookup): map
+        // it to a deterministic UUIDv5 identity instead of a random UUID, so
+        // repeated requests with the same token resolve to the same user.
+        let user = AuthenticatedUser::new(
+            Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("session:{session_id}").as_bytes()),
+            "session-user".to_string(),
+        )
         .with_session(session_id)
         .with_role(Role::User);
 
