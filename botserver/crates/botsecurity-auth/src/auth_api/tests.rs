@@ -91,6 +91,33 @@ mod tests {
     }
 
     #[test]
+    fn test_auth_config_glob_paths() {
+        let config = AuthConfig::default().add_anonymous_path("/api/bots/*/access");
+
+        // Wildcard scopes exactly one route shape.
+        assert!(config.is_anonymous_allowed("/api/bots/foo/access"));
+        assert!(config.is_anonymous_allowed("/api/bots/default/access"));
+        // Sibling routes under /api/bots must NOT be caught by the glob.
+        assert!(!config.is_anonymous_allowed("/api/bots/list"));
+        assert!(!config.is_anonymous_allowed("/api/bots/config"));
+        assert!(!config.is_anonymous_allowed("/api/bots"));
+        assert!(!config.is_anonymous_allowed("/api/bots/foo/config"));
+        assert!(!config.is_anonymous_allowed("/api/bots/a/access/extra"));
+    }
+
+    #[test]
+    fn test_auth_config_trailing_slash_is_noop() {
+        // A trailing-slash entry must not widen the namespace: the legacy
+        // matcher produced a `//` prefix that matches nothing. Pin that the
+        // anonymous allowlist never exposes sibling routes via a trailing
+        // slash — the previous `/api/bots/` entry was a silent no-op.
+        let config = AuthConfig::default().add_anonymous_path("/api/bots/");
+        assert!(!config.is_anonymous_allowed("/api/bots/list"));
+        assert!(!config.is_anonymous_allowed("/api/bots/foo/access"));
+        assert!(!config.is_anonymous_allowed("/api/bots"));
+    }
+
+    #[test]
     fn test_auth_error_responses() {
         assert_eq!(
             AuthError::MissingToken.status_code(),

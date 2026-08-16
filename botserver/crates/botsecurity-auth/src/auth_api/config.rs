@@ -98,24 +98,57 @@ impl AuthConfig {
     }
 
     pub fn is_public_path(&self, path: &str) -> bool {
-        for public_path in &self.public_paths {
-            // Special case: "/" matches everything
-            if public_path == "/" {
-                return true;
-            }
-            if path == public_path || path.starts_with(&format!("{}/", public_path)) {
-                return true;
-            }
-        }
-        false
+        self.public_paths.iter().any(|p| path_matches(p, path))
     }
 
     pub fn is_anonymous_allowed(&self, path: &str) -> bool {
-        for allowed_path in &self.allow_anonymous_paths {
-            if path == allowed_path || path.starts_with(&format!("{}/", allowed_path)) {
-                return true;
-            }
-        }
-        false
+        self.allow_anonymous_paths
+            .iter()
+            .any(|p| path_matches(p, path))
     }
+}
+
+/// Match `path` against a configured `pattern`.
+///
+/// * A `pattern` of `"/"` matches everything.
+/// * Without a `*`, the legacy prefix semantics apply: exact equality or a
+///   `pattern/` prefix (so `/api/bots` matches `/api/bots/list` but not
+///   `/api/bots-config`).
+/// * A `pattern` containing `*` is a simple glob where `*` matches any
+///   sequence of characters (including none). This scopes anonymous access to
+///   a single route shape — e.g. `/api/bots/*/access` matches
+///   `/api/bots/foo/access` but not `/api/bots/list` or
+///   `/api/bots/foo/config`.
+fn path_matches(pattern: &str, path: &str) -> bool {
+    if pattern == "/" {
+        return true;
+    }
+    if !pattern.contains('*') {
+        return path == pattern || path.starts_with(&format!("{}/", pattern));
+    }
+
+    let segments: Vec<&str> = pattern.split('*').collect();
+    let first = segments.first().copied().unwrap_or("");
+    let last = segments.last().copied().unwrap_or("");
+
+    if !path.starts_with(first) {
+        return false;
+    }
+    if !last.is_empty() && !path.ends_with(last) {
+        return false;
+    }
+
+    // Middle literals must appear in order between the prefix and suffix.
+    let mut cursor = first.len();
+    let middle_count = segments.len().saturating_sub(1);
+    for seg in segments.iter().take(middle_count).skip(1) {
+        if seg.is_empty() {
+            continue;
+        }
+        match path[cursor..].find(seg) {
+            Some(rel) => cursor += rel + seg.len(),
+            None => return false,
+        }
+    }
+    true
 }
