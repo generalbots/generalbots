@@ -181,6 +181,16 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
         ApiEndpoint { method: "PUT", path: "/api/player/playlists/:id/reorder", summary: "Reorder playlist items" },
         ApiEndpoint { method: "GET", path: "/api/player/playlists/:id/analytics", summary: "Playlist analytics: counts, total items, recent activity" },
         ApiEndpoint { method: "POST", path: "/api/player/playbacks", summary: "Record a media playback event (play, pause, complete)" },
+        // Dashboards / analytics
+        ApiEndpoint { method: "GET", path: "/api/dashboards", summary: "List dashboards with their widgets" },
+        ApiEndpoint { method: "POST", path: "/api/dashboards", summary: "Create a dashboard" },
+        ApiEndpoint { method: "GET", path: "/api/dashboards/:id", summary: "Get a dashboard with its widgets and filters" },
+        ApiEndpoint { method: "PUT", path: "/api/dashboards/:id", summary: "Rename or reconfigure a dashboard" },
+        ApiEndpoint { method: "DELETE", path: "/api/dashboards/:id", summary: "Delete a dashboard" },
+        ApiEndpoint { method: "POST", path: "/api/dashboards/:id/widgets", summary: "Add a widget to a dashboard" },
+        ApiEndpoint { method: "PUT", path: "/api/dashboards/:id/widgets/:widget_id", summary: "Update a widget title, size or chart configuration" },
+        ApiEndpoint { method: "DELETE", path: "/api/dashboards/:id/widgets/:widget_id", summary: "Remove a widget from a dashboard" },
+        ApiEndpoint { method: "GET", path: "/api/dashboards/sources", summary: "List dashboard data sources" },
     ]
 }
 

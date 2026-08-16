@@ -813,6 +813,75 @@
         </div>
     </div>
 
+    <div class="modal" id="editWidgetModal" style="display: none">
+        <div class="modal-backdrop" onclick="closeEditWidgetModal()"></div>
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="dashboards-edit-widget">Edit Widget</h3>
+                <button class="modal-close" onclick="closeEditWidgetModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18" />
+                        <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                </button>
+            </div>
+            <div class="edit-widget-form">
+                <input type="hidden" id="editWidgetId" />
+                <div class="form-group">
+                    <label for="editWidgetTitle" data-i18n="dashboards-widget-title">Title</label>
+                    <input type="text" id="editWidgetTitle" placeholder="Widget title" data-i18n-placeholder="dashboards-widget-title-placeholder" />
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editWidgetType" data-i18n="dashboards-widget-type">Type</label>
+                        <select id="editWidgetType">
+                            <option value="line_chart">Line Chart</option>
+                            <option value="bar_chart">Bar Chart</option>
+                            <option value="pie_chart">Pie Chart</option>
+                            <option value="area_chart">Area Chart</option>
+                            <option value="scatter_plot">Scatter Plot</option>
+                            <option value="kpi">KPI</option>
+                            <option value="table">Table</option>
+                            <option value="gauge">Gauge</option>
+                            <option value="map">Map</option>
+                            <option value="text">Text</option>
+                            <option value="image">Image</option>
+                            <option value="iframe">iFrame</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editWidgetWidth" data-i18n="dashboards-width">Width</label>
+                        <input type="number" id="editWidgetWidth" min="1" max="12" step="1" placeholder="4" />
+                    </div>
+                    <div class="form-group">
+                        <label for="editWidgetHeight" data-i18n="dashboards-height">Height</label>
+                        <input type="number" id="editWidgetHeight" min="1" max="12" step="1" placeholder="2" />
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="editWidgetDataSource" data-i18n="dashboards-data-source">Data source</label>
+                    <select id="editWidgetDataSource">
+                        <option value="" data-i18n="dashboards-all-sources">All Data Sources</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editWidgetXAxis" data-i18n="dashboards-x-axis">X axis field</label>
+                    <input type="text" id="editWidgetXAxis" placeholder="date" />
+                </div>
+                <div class="form-group">
+                    <label for="editWidgetYAxis" data-i18n="dashboards-y-axis">Y axis field</label>
+                    <input type="text" id="editWidgetYAxis" placeholder="value" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeEditWidgetModal()" data-i18n="action-cancel">Cancel</button>
+                    <button type="button" class="btn-primary" onclick="saveWidgetEdit()" data-i18n="action-save">Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="modal" id="addWidgetModal" style="display: none">
         <div class="modal-backdrop" onclick="closeAddWidgetModal()"></div>
         <div class="modal-content modal-lg">
@@ -1236,17 +1305,32 @@
         document.getElementById("addWidgetModal").style.display = "none";
     }
 
-    function selectWidgetType(type) {
+    async function selectWidgetType(type) {
         closeAddWidgetModal();
-        if (currentDashboardId) {
-            htmx.ajax("POST", `/api/dashboards/${currentDashboardId}/widgets`, {
-                target: "#viewer-content",
-                swap: "innerHTML",
-                values: {
+        if (!currentDashboardId) return;
+        try {
+            const resp = await fetch(`/api/dashboards/${currentDashboardId}/widgets`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
                     widget_type: type,
                     title: `New ${type.replace("_", " ")}`,
-                },
+                    position: { x: 0, y: 0, width: 4, height: 2 },
+                    config: {},
+                    data_query: null,
+                    style: null,
+                }),
             });
+            if (resp.ok) {
+                showNotification("Widget added", "success");
+                loadDashboard(currentDashboardId);
+            } else {
+                const body = await resp.json().catch(() => null);
+                showNotification((body && body.error) || "Failed to add widget", "error");
+            }
+        } catch (e) {
+            console.error("Failed to add widget:", e);
+            showNotification("Failed to add widget", "error");
         }
     }
 
@@ -1255,10 +1339,94 @@
         document.getElementById("viewer-title").textContent = name;
         document.getElementById("dashboards-grid").style.display = "none";
         document.getElementById("dashboard-viewer").style.display = "block";
-        htmx.ajax("GET", `/api/dashboards/${id}`, {
-            target: "#viewer-content",
-            swap: "innerHTML",
-        });
+        loadDashboard(id);
+    }
+
+    async function loadDashboard(id) {
+        try {
+            const resp = await fetch(`/api/dashboards/${id}`);
+            if (!resp.ok) throw new Error("HTTP " + resp.status);
+            const dashboard = await resp.json();
+            if (!dashboard) {
+                document.getElementById("viewer-content").innerHTML =
+                    '<p class="empty-message">Dashboard not found</p>';
+                return;
+            }
+            renderWidgetGrid(dashboard.widgets || []);
+        } catch (e) {
+            console.error("Failed to load dashboard:", e);
+            document.getElementById("viewer-content").innerHTML =
+                '<p class="empty-message">Failed to load dashboard</p>';
+        }
+    }
+
+    function renderWidgetGrid(widgets) {
+        const container = document.getElementById("viewer-content");
+        if (!container) return;
+        if (!widgets.length) {
+            container.innerHTML =
+                '<div class="widget-grid empty-widgets"><p class="empty-message">No widgets yet — add one below</p></div>';
+            return;
+        }
+        container.innerHTML =
+            '<div class="widget-grid">' +
+            widgets
+                .map(
+                    (w) =>
+                        '<div class="widget" data-id="' +
+                        w.id +
+                        '" style="grid-column: span ' +
+                        (w.position && w.position.width ? w.position.width : 4) +
+                        '; grid-row: span ' +
+                        (w.position && w.position.height ? w.position.height : 2) +
+                        ';">' +
+                        '<div class="widget-header">' +
+                        '<h5>' +
+                        escapeHtml(w.title || "Widget") +
+                        "</h5>" +
+                        '<div class="widget-actions">' +
+                        '<button class="btn-icon btn-sm" title="Edit" onclick="editWidget(\'' +
+                        w.id +
+                        '\')">⚙️</button>' +
+                        '<button class="btn-icon btn-sm" title="Remove" onclick="removeWidget(\'' +
+                        w.id +
+                        '\')">✕</button>' +
+                        "</div>" +
+                        "</div>" +
+                        '<div class="widget-content">' +
+                        renderWidgetContent(w) +
+                        "</div>" +
+                        "</div>",
+                )
+                .join("");
+        if (window.htmx) htmx.process(container);
+    }
+
+    function renderWidgetContent(widget) {
+        const icons = {
+            line_chart: "📈",
+            bar_chart: "📊",
+            pie_chart: "🥧",
+            area_chart: "📉",
+            scatter_plot: "⚬",
+            kpi: "🎯",
+            table: "📋",
+            gauge: "⏲️",
+            map: "🗺️",
+            text: "📝",
+            image: "🖼️",
+            iframe: "🔗",
+        };
+        return (
+            '<div class="widget-placeholder">' +
+            '<span class="widget-icon">' +
+            (icons[widget.widget_type] || "📊") +
+            "</span>" +
+            '<span class="widget-type">' +
+            escapeHtml(widget.widget_type || "") +
+            "</span>" +
+            "</div>"
+        );
     }
 
     function closeDashboardViewer() {
@@ -1269,10 +1437,134 @@
 
     function refreshDashboard() {
         if (currentDashboardId) {
-            htmx.ajax("GET", `/api/dashboards/${currentDashboardId}`, {
-                target: "#viewer-content",
-                swap: "innerHTML",
+            loadDashboard(currentDashboardId);
+        }
+    }
+
+    async function populateEditDataSource() {
+        const select = document.getElementById("editWidgetDataSource");
+        if (!select) return;
+        select.innerHTML = '<option value="">All Data Sources</option>';
+        try {
+            const resp = await fetch("/api/dashboards/sources");
+            if (!resp.ok) return;
+            const sources = await resp.json();
+            (sources || []).forEach((s) => {
+                const opt = document.createElement("option");
+                opt.value = s.id;
+                opt.textContent = s.name || s.id;
+                select.appendChild(opt);
             });
+        } catch (e) {
+            console.error("Failed to load data sources:", e);
+        }
+    }
+
+    async function editWidget(widgetId) {
+        if (!currentDashboardId) return;
+        try {
+            const resp = await fetch(`/api/dashboards/${currentDashboardId}`);
+            if (!resp.ok) throw new Error("HTTP " + resp.status);
+            const dashboard = await resp.json();
+            const widget = (dashboard && dashboard.widgets || []).find((w) => w.id === widgetId);
+            if (!widget) {
+                showNotification("Widget not found", "error");
+                return;
+            }
+            await populateEditDataSource();
+            document.getElementById("editWidgetId").value = widget.id;
+            document.getElementById("editWidgetTitle").value = widget.title || "";
+            document.getElementById("editWidgetType").value = widget.widget_type || "line_chart";
+            const pos = widget.position || {};
+            document.getElementById("editWidgetWidth").value = pos.width || 4;
+            document.getElementById("editWidgetHeight").value = pos.height || 2;
+            const cfg = widget.config || {};
+            const chart = cfg.chart_config || {};
+            const series = (chart.series || []);
+            document.getElementById("editWidgetXAxis").value = chart.x_axis || (series[0] ? series[0].field : "");
+            document.getElementById("editWidgetYAxis").value = chart.y_axis || (series[1] ? series[1].field : "");
+            document.getElementById("editWidgetDataSource").value =
+                (widget.data_query && widget.data_query.source_id) || "";
+            const modal = document.getElementById("editWidgetModal");
+            if (modal) modal.style.display = "flex";
+        } catch (e) {
+            console.error("Failed to load widget:", e);
+            showNotification("Failed to load widget", "error");
+        }
+    }
+
+    function closeEditWidgetModal() {
+        const modal = document.getElementById("editWidgetModal");
+        if (modal) modal.style.display = "none";
+    }
+
+    async function saveWidgetEdit() {
+        const widgetId = document.getElementById("editWidgetId").value;
+        if (!widgetId || !currentDashboardId) return;
+        const sourceId = document.getElementById("editWidgetDataSource").value || null;
+        const xAxis = document.getElementById("editWidgetXAxis").value.trim();
+        const yAxis = document.getElementById("editWidgetYAxis").value.trim();
+        const payload = {
+            title: document.getElementById("editWidgetTitle").value.trim() || "Widget",
+            position: {
+                x: 0,
+                y: 0,
+                width: parseInt(document.getElementById("editWidgetWidth").value, 10) || 4,
+                height: parseInt(document.getElementById("editWidgetHeight").value, 10) || 2,
+            },
+            config: {
+                chart_config: {
+                    x_axis: xAxis || null,
+                    y_axis: yAxis || null,
+                    series: xAxis ? [{ name: yAxis || xAxis, field: yAxis || xAxis }] : [],
+                    legend_position: "bottom",
+                    show_labels: true,
+                    animations: true,
+                },
+                text_content: null,
+                image_url: null,
+                iframe_url: null,
+            },
+            data_query: sourceId
+                ? { source_id: sourceId, query_type: "table", filters: [] }
+                : null,
+            style: null,
+        };
+        try {
+            const resp = await fetch(`/api/dashboards/${currentDashboardId}/widgets/${widgetId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            if (resp.ok) {
+                closeEditWidgetModal();
+                showNotification("Widget updated", "success");
+                loadDashboard(currentDashboardId);
+            } else {
+                const body = await resp.json().catch(() => null);
+                showNotification((body && body.error) || "Failed to update widget", "error");
+            }
+        } catch (e) {
+            console.error("Failed to update widget:", e);
+            showNotification("Failed to update widget", "error");
+        }
+    }
+
+    async function removeWidget(widgetId) {
+        if (!currentDashboardId || !confirm("Remove this widget?")) return;
+        try {
+            const resp = await fetch(`/api/dashboards/${currentDashboardId}/widgets/${widgetId}`, {
+                method: "DELETE",
+            });
+            if (resp.ok) {
+                showNotification("Widget removed", "success");
+                loadDashboard(currentDashboardId);
+            } else {
+                showNotification("Failed to remove widget", "error");
+            }
+        } catch (e) {
+            console.error("Failed to remove widget:", e);
+            showNotification("Failed to remove widget", "error");
         }
     }
 
@@ -1407,6 +1699,16 @@
         });
     }
 
+    function escapeHtml(text) {
+        if (!text) return "";
+        return String(text)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
     function showNotification(message, type) {
         const notification = document.createElement("div");
         notification.className = `notification ${type}`;
@@ -1431,6 +1733,7 @@
             closeCreateDashboardModal();
             closeAddDataSourceModal();
             closeAddWidgetModal();
+            closeEditWidgetModal();
             if (currentDashboardId && !editMode) {
                 closeDashboardViewer();
             }

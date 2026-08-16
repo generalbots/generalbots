@@ -1785,3 +1785,14 @@ player-playlist-renamed = Playlist renamed
 player-playlist-item-added = Added to playlist
 player-playlist-item-removed = Removed from playlist
 player-playlist-error = Failed to load playlists
+
+# Dashboards widget editing
+dashboards-edit-widget = Edit Widget
+dashboards-widget-title = Title
+dashboards-widget-title-placeholder = Widget title
+dashboards-widget-type = Type
+dashboards-width = Width
+dashboards-height = Height
+dashboards-data-source = Data source
+dashboards-x-axis = X axis field
+dashboards-y-axis = Y axis field

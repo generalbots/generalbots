@@ -1785,3 +1785,14 @@ player-playlist-renamed = Lista de reproducción renombrada
 player-playlist-item-added = Agregado a la lista de reproducción
 player-playlist-item-removed = Eliminado de la lista de reproducción
 player-playlist-error = No se pudieron cargar las listas de reproducción
+
+# Dashboards widget editing
+dashboards-edit-widget = Editar widget
+dashboards-widget-title = Título
+dashboards-widget-title-placeholder = Título del widget
+dashboards-widget-type = Tipo
+dashboards-width = Ancho
+dashboards-height = altura
+dashboards-data-source = fuente de datos
+dashboards-x-axis = campo del eje X
+dashboards-y-axis = Campo del eje Y

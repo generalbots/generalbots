@@ -1785,3 +1785,14 @@ player-playlist-renamed = 播放列表已重命名
 player-playlist-item-added = 已添加到播放列表
 player-playlist-item-removed = 已从播放列表中删除
 player-playlist-error = 无法加载播放列表
+
+# Dashboards widget editing
+dashboards-edit-widget = 编辑小工具
+dashboards-widget-title = 标题
+dashboards-widget-title-placeholder = 小部件标题
+dashboards-widget-type = 类型
+dashboards-width = 宽度
+dashboards-height = 身高
+dashboards-data-source = 数据来源
+dashboards-x-axis = X 轴字段
+dashboards-y-axis = Y 轴字段

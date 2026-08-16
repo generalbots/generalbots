@@ -1766,3 +1766,5 @@ meet-recording = Gravando
 meet-recordings = Gravações
 meet-recordings-empty = Nenhuma gravação ainda
 
+
+# Dashboards widget editing

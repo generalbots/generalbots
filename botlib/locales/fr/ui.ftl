@@ -1785,3 +1785,14 @@ player-playlist-renamed = Liste de lecture renommée
 player-playlist-item-added = Ajouté à la playlist
 player-playlist-item-removed = Supprimé de la playlist
 player-playlist-error = Échec du chargement des listes de lecture
+
+# Dashboards widget editing
+dashboards-edit-widget = Modifier le widget
+dashboards-widget-title = Titre
+dashboards-widget-title-placeholder = Titre du widget
+dashboards-widget-type = Tapez
+dashboards-width = Largeur
+dashboards-height = Hauteur
+dashboards-data-source = Source de données
+dashboards-x-axis = Champ de l'axe X
+dashboards-y-axis = Champ de l'axe Y

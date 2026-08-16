@@ -1785,3 +1785,14 @@ player-playlist-renamed = Playlist umbenannt
 player-playlist-item-added = Zur Playlist hinzugefügt
 player-playlist-item-removed = Aus der Playlist entfernt
 player-playlist-error = Playlists konnten nicht geladen werden
+
+# Dashboards widget editing
+dashboards-edit-widget = Widget bearbeiten
+dashboards-widget-title = Titel
+dashboards-widget-title-placeholder = Widget-Titel
+dashboards-widget-type = Typ
+dashboards-width = Breite
+dashboards-height = Höhe
+dashboards-data-source = Datenquelle
+dashboards-x-axis = Feld der X-Achse
+dashboards-y-axis = Y-Achsenfeld

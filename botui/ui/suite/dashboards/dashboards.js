@@ -633,9 +633,77 @@
     }
   }
 
-  function editWidget(widgetId) {
-    // TODO: Implement widget editing modal
-    showNotification("Widget editing coming soon", "info");
+  async function editWidget(widgetId) {
+    if (!state.currentDashboard) return;
+    const widget = (state.widgets || []).find((w) => w.id === widgetId);
+    if (!widget) {
+      showNotification("Widget not found", "error");
+      return;
+    }
+    // Reuse the suite edit modal when present; otherwise fall back to an
+    // inline prompt-driven flow so editing always works from this module.
+    const modal = document.getElementById("editWidgetModal");
+    if (modal) {
+      document.getElementById("editWidgetId").value = widget.id;
+      document.getElementById("editWidgetTitle").value = widget.title || "";
+      document.getElementById("editWidgetType").value =
+        widget.widget_type || "line_chart";
+      const pos = widget.position || {};
+      document.getElementById("editWidgetWidth").value = pos.width || 4;
+      document.getElementById("editWidgetHeight").value = pos.height || 2;
+      const cfg = widget.config || {};
+      const chart = cfg.chart_config || {};
+      const series = chart.series || [];
+      document.getElementById("editWidgetXAxis").value =
+        chart.x_axis || (series[0] ? series[0].field : "");
+      document.getElementById("editWidgetYAxis").value =
+        chart.y_axis || (series[1] ? series[1].field : "");
+      document.getElementById("editWidgetDataSource").value =
+        (widget.data_query && widget.data_query.source_id) || "";
+      modal.style.display = "flex";
+      return;
+    }
+    const title = prompt("Widget title", widget.title || "");
+    if (title === null) return;
+    const width = parseInt(
+      prompt("Width (columns 1-12)", String((widget.position && widget.position.width) || 4)),
+      10,
+    );
+    if (isNaN(width)) return;
+    const height = parseInt(
+      prompt("Height (rows 1-12)", String((widget.position && widget.position.height) || 2)),
+      10,
+    );
+    if (isNaN(height)) return;
+    const data = {
+      title: title || "Untitled Widget",
+      position: {
+        x: (widget.position && widget.position.x) || 0,
+        y: (widget.position && widget.position.y) || 0,
+        width,
+        height,
+      },
+    };
+    try {
+      const response = await fetch(
+        `/api/dashboards/${state.currentDashboard.id}/widgets/${widgetId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        },
+      );
+      if (response.ok) {
+        showNotification("Widget updated", "success");
+        openDashboard(state.currentDashboard.id);
+      } else {
+        const body = await response.json().catch(() => null);
+        showNotification((body && body.error) || "Failed to update widget", "error");
+      }
+    } catch (e) {
+      console.error("Failed to update widget:", e);
+      showNotification("Failed to update widget", "error");
+    }
   }
 
   async function removeWidget(widgetId) {
