@@ -267,9 +267,26 @@
             DBApp.executeQuery();
         },
 
-        exportTableCSV: function () {
+        exportTableCSV: async function () {
             if (!DB.currentTable) return;
-            window.open(DB.API + '/table/' + encodeURIComponent(DB.currentTable) + '/export?format=csv');
+            try {
+                // window.open can't carry the Authorization header (the global
+                // fetch wrapper only injects it for fetch/HTMX/XHR), so fetch
+                // the CSV and trigger a blob download instead.
+                var resp = await fetch(DB.API + '/table/' + encodeURIComponent(DB.currentTable) + '/export?format=csv');
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                var blob = await resp.blob();
+                var url = URL.createObjectURL(blob);
+                var a = document.createElement('a');
+                a.href = url;
+                a.download = (DB.currentTable || 'export') + '.csv';
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+            } catch (e) {
+                alert('Error exporting CSV: ' + e.message);
+            }
         },
 
         importCSV: function () {
