@@ -8,6 +8,7 @@ repository = "https://github.com/GeneralBots/BotServer"
 
 [dependencies]
 botlib = { workspace = true }
+botsecurity-auth = { workspace = true }
 axum = { workspace = true }
 chrono = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
