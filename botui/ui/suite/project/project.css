@@ -1,14 +1,25 @@
+/* =============================================================================
+   PROJECT APP - Project Management (Gantt / Timeline / List / Board / Resources)
+   Themed via the universal suite tokens (app.css): --background/--card (HSL
+   triples), --text-*, --accent-*, --border-color, --success/warning/error-color.
+   No per-theme colors are hardcoded, so every theme in the desktop works.
+   ============================================================================= */
+
+/* ---- Layout shell -------------------------------------------------------- */
+
 .project-app {
     display: flex;
     height: 100%;
-    background: var(--bg-primary);
+    min-height: 0;
+    background: hsl(var(--background));
     color: var(--text-primary);
+    overflow: hidden;
 }
 
 .project-sidebar {
-    width: 280px;
-    min-width: 280px;
-    background: var(--bg-secondary);
+    width: 260px;
+    min-width: 260px;
+    background: hsl(var(--card));
     border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
@@ -19,7 +30,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem;
+    padding: 0.875rem 1rem;
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -27,20 +38,26 @@
     font-size: 1rem;
     font-weight: 600;
     margin: 0;
+    color: var(--text-primary);
 }
 
 .sidebar-search {
-    padding: 0.75rem 1rem;
+    padding: 0.625rem 0.875rem;
 }
 
 .sidebar-search input {
     width: 100%;
-    padding: 0.5rem 0.75rem;
+    padding: 0.5rem 0.7rem;
     border: 1px solid var(--border-color);
-    border-radius: 6px;
-    background: var(--bg-primary);
+    border-radius: var(--radius-sm, 6px);
+    background: hsl(var(--background));
     color: var(--text-primary);
     font-size: 0.875rem;
+    outline: none;
+}
+
+.sidebar-search input:focus {
+    border-color: var(--accent-color);
 }
 
 .sidebar-nav {
@@ -51,52 +68,69 @@
 
 .project-list-item {
     padding: 0.625rem 0.75rem;
-    border-radius: 6px;
+    border-radius: var(--radius-sm, 6px);
     cursor: pointer;
     transition: background 0.15s;
     margin-bottom: 0.25rem;
+    border: 1px solid transparent;
 }
+
 .project-list-item:hover {
-    background: var(--bg-primary);
+    background: var(--bg-hover);
 }
+
 .project-item-name {
     font-weight: 500;
     font-size: 0.875rem;
     color: var(--text-primary);
 }
+
 .project-item-meta {
     font-size: 0.75rem;
     color: var(--text-muted);
     margin-top: 0.125rem;
 }
 
+/* ---- Main column + header ------------------------------------------------ */
+
 .project-main {
     flex: 1;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-width: 0;
 }
 
 .project-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1rem 1.5rem;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.875rem 1.25rem;
     border-bottom: 1px solid var(--border-color);
-    background: var(--bg-secondary);
+    background: hsl(var(--card));
 }
 
 .project-info h1 {
-    font-size: 1.25rem;
+    font-size: 1.2rem;
     font-weight: 600;
     margin: 0 0 0.25rem 0;
+    color: var(--text-primary);
 }
 
 .project-meta {
     display: flex;
-    gap: 1.5rem;
-    font-size: 0.875rem;
+    gap: 1.25rem;
+    font-size: 0.8125rem;
     color: var(--text-muted);
+    align-items: center;
+}
+
+.meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
 }
 
 .status-dot {
@@ -107,47 +141,54 @@
     background: var(--text-muted);
     margin-right: 0.375rem;
 }
+
 .project-actions {
     display: flex;
-    gap: 1rem;
+    gap: 0.75rem;
     align-items: center;
 }
 
 .view-toggle {
     display: flex;
-    background: var(--bg-primary);
-    border-radius: 6px;
+    background: hsl(var(--background));
+    border-radius: var(--radius-sm, 6px);
     padding: 2px;
     border: 1px solid var(--border-color);
+    flex-wrap: wrap;
 }
 
 .view-btn {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.375rem;
-    padding: 0.5rem 0.75rem;
+    padding: 0.4rem 0.7rem;
     border: none;
     background: transparent;
     color: var(--text-secondary);
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     cursor: pointer;
     border-radius: 4px;
     transition: all 0.15s;
+    white-space: nowrap;
 }
 
 .view-btn:hover {
     color: var(--text-primary);
+    background: var(--bg-hover);
 }
 
 .view-btn.active {
     background: var(--accent-color);
-    color: white;
+    color: hsl(var(--accent-foreground));
 }
+
+/* ---- View containers ----------------------------------------------------- */
 
 .project-views {
     flex: 1;
     overflow: hidden;
     position: relative;
+    min-height: 0;
 }
 
 .view-container {
@@ -161,13 +202,16 @@
     flex-direction: column;
 }
 
-/* Gantt Chart Styles */
+/* ---- Gantt --------------------------------------------------------------- */
+
 .gantt-toolbar {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.75rem 1rem;
-    background: var(--bg-secondary);
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.625rem 1rem;
+    background: hsl(var(--card));
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -177,18 +221,22 @@
 }
 
 .zoom-btn {
-    padding: 0.375rem 0.75rem;
+    padding: 0.3rem 0.625rem;
     border: 1px solid var(--border-color);
-    background: var(--bg-primary);
+    background: hsl(var(--background));
     color: var(--text-secondary);
     font-size: 0.75rem;
     cursor: pointer;
     border-radius: 4px;
 }
 
+.zoom-btn:hover {
+    color: var(--text-primary);
+}
+
 .zoom-btn.active {
     background: var(--accent-color);
-    color: white;
+    color: hsl(var(--accent-foreground));
     border-color: var(--accent-color);
 }
 
@@ -198,34 +246,46 @@
 }
 
 .gantt-filters label {
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 0.375rem;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     color: var(--text-secondary);
     cursor: pointer;
+}
+
+.gantt-filters input[type="checkbox"] {
+    accent-color: hsl(var(--primary));
 }
 
 .gantt-container {
     flex: 1;
     display: flex;
     overflow: hidden;
+    min-height: 0;
 }
 
 .gantt-table {
-    width: 400px;
-    min-width: 400px;
-    border-right: 2px solid var(--border-color);
+    width: 420px;
+    min-width: 420px;
+    border-right: 1px solid var(--border-color);
     overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.gantt-table-header,
+.gantt-table-row {
+    display: grid;
+    grid-template-columns: minmax(140px, 1fr) 88px 88px 64px 80px 92px;
+    align-items: center;
+    gap: 0.25rem;
 }
 
 .gantt-table-header {
-    display: grid;
-    grid-template-columns: 1fr 80px 80px 70px 70px 90px;
-    padding: 0.75rem 0.5rem;
-    background: var(--bg-secondary);
+    padding: 0.625rem 0.625rem;
+    background: hsl(var(--card));
     border-bottom: 1px solid var(--border-color);
-    font-size: 0.75rem;
+    font-size: 0.6875rem;
     font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
@@ -234,19 +294,56 @@
     z-index: 10;
 }
 
-.gantt-table-body {
-    font-size: 0.875rem;
+.gantt-table-row {
+    padding: 0.5rem 0.625rem;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.gantt-table-row:hover {
+    background: var(--bg-hover);
+}
+
+.gantt-table-row .col-name {
+    color: var(--text-primary);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gantt-table-row .col-start,
+.gantt-table-row .col-end,
+.gantt-table-row .col-duration {
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.progress-bar {
+    height: 6px;
+    background: var(--bg-hover);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--accent-color);
+    border-radius: 999px;
 }
 
 .gantt-chart {
     flex: 1;
     overflow: auto;
     position: relative;
+    min-width: 0;
 }
 
 .gantt-timeline-header {
     display: flex;
-    background: var(--bg-secondary);
+    background: hsl(var(--card));
     border-bottom: 1px solid var(--border-color);
     position: sticky;
     top: 0;
@@ -257,31 +354,186 @@
 .gantt-chart-body {
     position: relative;
     min-height: 200px;
+    padding: 0.5rem 0;
 }
 
-/* Board View */
+.gantt-bar-row {
+    display: flex;
+    align-items: center;
+    height: 34px;
+    padding: 0 0.75rem;
+}
+
+.gantt-bar {
+    display: flex;
+    align-items: center;
+    padding: 0 0.625rem;
+    height: 22px;
+    border-radius: 6px;
+    background: var(--accent-color);
+    color: hsl(var(--accent-foreground));
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: var(--sentient-shadow-sm, 0 1px 2px hsla(var(--foreground) / 0.05));
+}
+
+.gantt-bar.critical {
+    background: var(--error-color);
+    color: hsl(var(--destructive-foreground));
+}
+
+.gantt-milestone {
+    width: 0;
+    height: 0;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-bottom: 14px solid var(--warning-color);
+}
+
+/* ---- Timeline ------------------------------------------------------------ */
+
+.timeline-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    padding: 1rem;
+}
+
+.timeline-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    background: hsl(var(--card));
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+}
+
+.timeline-row:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-color);
+}
+
+.timeline-date {
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    min-width: 84px;
+}
+
+.timeline-name {
+    flex: 1;
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.timeline-end {
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---- List ----------------------------------------------------------------- */
+
+.task-list-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.task-list-table thead th {
+    text-align: left;
+    padding: 0.625rem 0.875rem;
+    background: hsl(var(--card));
+    color: var(--text-muted);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+}
+
+.task-list-table tbody tr {
+    border-bottom: 1px solid var(--border-light);
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.task-list-table tbody tr:hover {
+    background: var(--bg-hover);
+}
+
+.task-list-table td {
+    padding: 0.625rem 0.875rem;
+    color: var(--text-primary);
+}
+
+/* ---- Status badges -------------------------------------------------------- */
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: capitalize;
+    border: 1px solid transparent;
+}
+
+.status-badge.status-not-started {
+    color: var(--text-muted);
+    border-color: var(--border-color);
+}
+
+.status-badge.status-in-progress {
+    color: var(--warning-color);
+    border-color: var(--warning-color);
+    background: hsla(38 92% 50% / 0.08);
+}
+
+.status-badge.status-completed {
+    color: var(--success-color);
+    border-color: var(--success-color);
+    background: hsla(142 76% 36% / 0.08);
+}
+
+/* ---- Board ----------------------------------------------------------------- */
+
 .board-columns {
     display: flex;
     gap: 1rem;
     padding: 1rem;
     height: 100%;
     overflow-x: auto;
+    align-items: flex-start;
 }
 
 .board-column {
-    width: 300px;
-    min-width: 300px;
-    background: var(--bg-secondary);
-    border-radius: 8px;
+    width: 290px;
+    min-width: 290px;
+    background: hsl(var(--card));
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md, 8px);
     display: flex;
     flex-direction: column;
+    max-height: 100%;
 }
 
 .board-column h3 {
-    padding: 1rem;
+    padding: 0.75rem 1rem;
     margin: 0;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     font-weight: 600;
+    color: var(--text-secondary);
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -289,14 +541,70 @@
     flex: 1;
     padding: 0.5rem;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
 }
 
-/* Details Panel */
+.board-card {
+    padding: 0.75rem;
+    background: hsl(var(--background));
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    cursor: pointer;
+    transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.board-card:hover {
+    border-color: var(--accent-color);
+    box-shadow: var(--sentient-shadow-md, 0 4px 6px -1px hsla(var(--foreground) / 0.1));
+}
+
+.card-title {
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 0.8125rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.card-meta {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+.card-progress {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    margin-top: 0.375rem;
+}
+
+.empty-card {
+    padding: 1rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+/* ---- Resources ------------------------------------------------------------- */
+
+.resource-table {
+    margin: 1rem;
+    width: calc(100% - 2rem);
+}
+
+/* ---- Details panel --------------------------------------------------------- */
+
 .details-panel {
     width: 320px;
-    background: var(--bg-secondary);
+    background: hsl(var(--card));
     border-left: 1px solid var(--border-color);
     transition: width 0.2s;
+    display: flex;
+    flex-direction: column;
 }
 
 .details-panel.collapsed {
@@ -314,6 +622,7 @@
     background: transparent;
     cursor: pointer;
     font-size: 1.25rem;
+    color: var(--text-secondary);
 }
 
 .panel-content {
@@ -322,7 +631,13 @@
     height: calc(100% - 48px);
 }
 
-/* Empty State */
+.empty-message {
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+}
+
+/* ---- Empty states ----------------------------------------------------------- */
+
 .empty-state {
     display: none;
     flex-direction: column;
@@ -350,9 +665,11 @@
     padding: 2rem;
     text-align: center;
     color: var(--text-muted);
+    font-size: 0.875rem;
 }
 
-/* Buttons */
+/* ---- Buttons ----------------------------------------------------------------- */
+
 .btn-icon {
     width: 28px;
     height: 28px;
@@ -364,6 +681,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 1.125rem;
 }
 
 .btn-icon:hover {
@@ -377,9 +695,9 @@
     gap: 0.5rem;
     padding: 0.5rem 1rem;
     background: var(--accent-color);
-    color: white;
+    color: hsl(var(--accent-foreground));
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-sm, 6px);
     font-size: 0.875rem;
     font-weight: 500;
     cursor: pointer;
@@ -395,18 +713,40 @@
 }
 
 .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
     padding: 0.375rem 0.75rem;
-    background: var(--bg-primary);
+    background: hsl(var(--background));
     color: var(--text-primary);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: var(--radius-sm, 6px);
     font-size: 0.875rem;
     cursor: pointer;
+}
+
+.btn-secondary:hover {
+    background: var(--bg-hover);
 }
 
 .btn-secondary:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+.btn-cancel {
+    padding: 0.5rem 1rem;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.btn-cancel:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
 }
 
 .row-comment-btn {
@@ -423,15 +763,91 @@
     opacity: 1;
 }
 
-.status-select {
-    padding: 0.25rem 0.5rem;
-    background: var(--bg-primary);
+/* ---- Modal + forms ------------------------------------------------------------ */
+
+.modal-container:empty {
+    display: none;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: hsla(var(--foreground) / 0.4);
+    backdrop-filter: blur(2px);
+}
+
+.modal-content {
+    position: relative;
+    background: hsl(var(--card));
     color: var(--text-primary);
     border: 1px solid var(--border-color);
-    border-radius: 6px;
-    font-size: 0.8125rem;
-    cursor: pointer;
+    border-radius: var(--radius-md, 8px);
+    padding: 1.5rem;
+    width: 100%;
+    box-shadow: var(--sentient-shadow-lg, 0 10px 15px -3px hsla(var(--foreground) / 0.1));
 }
+
+.form-group {
+    margin-bottom: 0.875rem;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.form-row {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+.form-input,
+.form-textarea,
+.status-select {
+    width: 100%;
+    padding: 0.5rem 0.7rem;
+    background: hsl(var(--background));
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    font-size: 0.875rem;
+    outline: none;
+}
+
+.form-input:focus,
+.form-textarea:focus,
+.status-select:focus {
+    border-color: var(--accent-color);
+}
+
+.form-textarea {
+    resize: vertical;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+/* ---- Misc ------------------------------------------------------------------------ */
 
 .loading-placeholder {
     color: var(--text-muted);
@@ -440,9 +856,7 @@
     text-align: center;
 }
 
-.modal-container:empty {
-    display: none;
-}
+/* ---- Responsive ------------------------------------------------------------------ */
 
 @media (max-width: 1024px) {
     .gantt-table {
@@ -450,12 +864,15 @@
         min-width: 300px;
     }
 
-    .gantt-table-header {
-        grid-template-columns: 1fr 70px 70px 60px;
+    .gantt-table-header,
+    .gantt-table-row {
+        grid-template-columns: minmax(120px, 1fr) 80px 80px 60px;
     }
 
     .gantt-table-header .col-progress,
-    .gantt-table-header .col-assignee {
+    .gantt-table-header .col-assignee,
+    .gantt-table-row .col-progress,
+    .gantt-table-row .col-assignee {
         display: none;
     }
 }
@@ -463,7 +880,7 @@
 @media (max-width: 768px) {
     .project-sidebar {
         position: absolute;
-        left: -280px;
+        left: -260px;
         height: 100%;
         z-index: 50;
         transition: left 0.2s;
@@ -478,7 +895,6 @@
     }
 
     .view-toggle {
-        display: none;
+        width: 100%;
     }
 }
-</style>
