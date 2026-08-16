@@ -105,15 +105,20 @@ fn ensure_account(conn: &mut diesel::PgConnection, user_id: Uuid) -> Result<Uuid
     .n;
 
     if n == 0 {
+        // Generated on the fly — never a hardcoded credential literal in
+        // source (the demo inbox only talks to localhost, so the value is
+        // functionally inert, but it must still not be a checked-in secret).
+        let demo_password = Uuid::new_v4().to_string();
         sql_query(
             "INSERT INTO user_email_accounts
              (id, user_id, email, display_name, imap_server, imap_port, smtp_server, smtp_port, username, password_encrypted, is_primary, is_active, created_at)
-             VALUES ($1, $2, $3, 'Demo Inbox', 'localhost', 993, 'localhost', 587, 'demo', 'ZGVtbw==', true, true, NOW())
+             VALUES ($1, $2, $3, 'Demo Inbox', 'localhost', 993, 'localhost', 587, 'demo', $4, true, true, NOW())
              RETURNING id",
         )
         .bind::<SqlUuid, _>(Uuid::new_v4())
         .bind::<SqlUuid, _>(user_id)
         .bind::<Text, _>(DEMO_EMAIL)
+        .bind::<Text, _>(&demo_password)
         .get_result::<UuidRowNamed>(conn)
         .map(|r| r.id)
         .map_err(|e| e.to_string())

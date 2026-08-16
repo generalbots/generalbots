@@ -18,6 +18,7 @@ pub mod domains_api;
 pub mod domains_tool;
 pub mod harness;
 pub mod ops;
+pub mod templates;
 pub mod ops_api;
 pub mod ops_tools;
 pub mod backups;
