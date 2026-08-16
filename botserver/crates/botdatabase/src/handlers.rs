@@ -178,43 +178,7 @@ fn extract_bot_id(headers: &HeaderMap) -> Result<uuid::Uuid, (StatusCode, Json<s
     if let Some(v) = headers.get("X-Bot-Id").and_then(|v| v.to_str().ok()) {
         let bot_id = uuid::Uuid::parse_str(v)
             .map_err(|_| error_response("Invalid X-Bot-Id header"))?;
-
-        // Tenant isolation (issue #850): a client-supplied X-Bot-Id may only
-        // reference a bot in the caller's branch. The caller branch comes from
-        // the server-minted JWT claim (never client input); when it is present,
-        // reject bots that belong to a different branch. Anonymous/internal
-        // callers (no branch claim) and global (nil-branch) bots are unchanged.
-        if let Some(caller_branch) = botsecurity_core::tenant::branch_from_claims(headers) {
-            let pool = db::pool()
-                .map_err(|(code, msg)| (code, Json(serde_json::json!({"error": msg}))))?;
-            let mut conn = pool
-                .get()
-                .map_err(|e| internal_error(&format!("Main DB connection error: {e}")))?;
-
-            #[derive(QueryableByName)]
-            struct BotBranch {
-                #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
-                branch_id: Option<uuid::Uuid>,
-            }
-
-            let owner: Option<BotBranch> = diesel::sql_query("SELECT branch_id FROM bots WHERE id = $1")
-                .bind::<diesel::sql_types::Uuid, _>(bot_id)
-                .get_result(&mut conn)
-                .optional()
-                .map_err(|e| internal_error(&format!("Bot lookup error: {e}")))?;
-
-            if let Some(b) = owner {
-                if let Some(bot_branch) = b.branch_id {
-                    if bot_branch != caller_branch {
-                        return Err((
-                            StatusCode::FORBIDDEN,
-                            Json(serde_json::json!({"error": "Bot does not belong to your branch"})),
-                        ));
-                    }
-                }
-            }
-        }
-
+        authorize_bot_access(headers, bot_id)?;
         return Ok(bot_id);
     }
 
@@ -226,6 +190,48 @@ fn extract_bot_id(headers: &HeaderMap) -> Result<uuid::Uuid, (StatusCode, Json<s
         .map_err(|e| internal_error(&format!("Main DB connection error: {e}")))?;
     let (bot_id, _) = botcore::bot::get_default_bot(&mut conn);
     Ok(bot_id)
+}
+
+/// Tenant authorization for a client-supplied bot id (issue #850, following
+/// the #734 pattern in botbanking::cashflow::resolve_bot_scope): a caller may
+/// only address a bot that belongs to their workspace branch. The caller's
+/// branch is resolved exclusively from the server-minted JWT `branch_id`
+/// claim — never from client input. Callers without a branch claim
+/// (global/super-admin tokens) and the legacy nil branch are unrestricted.
+fn authorize_bot_access(
+    headers: &HeaderMap,
+    bot_id: uuid::Uuid,
+) -> Result<(), (StatusCode, Json<serde_json::Value>)> {
+    let caller_branch = match botcore::shared::tenant::branch_from_claims(headers) {
+        Some(branch) if branch != uuid::Uuid::nil() => branch,
+        _ => return Ok(()),
+    };
+
+    let pool = db::pool().map_err(|(code, msg)| (code, Json(serde_json::json!({"error": msg}))))?;
+    let mut conn = pool
+        .get()
+        .map_err(|e| internal_error(&format!("Main DB connection error: {e}")))?;
+
+    #[derive(diesel::QueryableByName)]
+    struct BotRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        branch_id: uuid::Uuid,
+    }
+    let row: Option<BotRow> = diesel::sql_query(
+        "SELECT branch_id FROM bots WHERE id = $1 AND is_active = true",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(bot_id)
+    .get_result(&mut conn)
+    .ok();
+
+    match row {
+        Some(r) if r.branch_id == caller_branch => Ok(()),
+        Some(_) => Err((
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({"error": "Bot not accessible in this workspace"})),
+        )),
+        None => Err(error_response("Bot not found or inactive")),
+    }
 }
 
 fn get_bot_pool(
