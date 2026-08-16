@@ -29,3 +29,5 @@ dump.rdb
 .playwright-mcp/
 test-results/
 opt/
+__pycache__/
+*.pyc
