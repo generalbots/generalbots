@@ -318,3 +318,68 @@ pub struct AddDependencyRequest {
     pub dependency_type: DependencyType,
     pub lag_days: Option<i32>,
 }
+
+/// Partial task update (issue #872). `None` leaves a field unchanged; for
+/// nullable fields, `Some(None)` clears the value.
+#[derive(Debug, Deserialize)]
+pub struct UpdateTaskRequest {
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub description: Option<Option<String>>,
+    #[serde(default)]
+    pub task_type: Option<TaskType>,
+    #[serde(default)]
+    pub start_date: Option<NaiveDate>,
+    #[serde(default)]
+    pub end_date: Option<NaiveDate>,
+    #[serde(default)]
+    pub duration_days: Option<u32>,
+    #[serde(default)]
+    pub status: Option<TaskStatus>,
+    #[serde(default)]
+    pub priority: Option<TaskPriority>,
+    #[serde(default)]
+    pub assigned_to: Option<Vec<Uuid>>,
+    #[serde(default)]
+    pub estimated_hours: Option<Option<f32>>,
+    #[serde(default)]
+    pub actual_hours: Option<Option<f32>>,
+    #[serde(default)]
+    pub cost: Option<Option<f64>>,
+    #[serde(default)]
+    pub notes: Option<Option<String>>,
+    #[serde(default)]
+    pub is_milestone: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RemoveDependencyRequest {
+    pub predecessor_id: Uuid,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateResourceRequest {
+    pub name: String,
+    #[serde(default)]
+    pub resource_type: Option<ResourceType>,
+    #[serde(default)]
+    pub user_id: Option<Uuid>,
+    #[serde(default)]
+    pub email: Option<String>,
+    #[serde(default)]
+    pub max_units: Option<f32>,
+    #[serde(default)]
+    pub standard_rate: Option<f64>,
+    #[serde(default)]
+    pub overtime_rate: Option<f64>,
+    #[serde(default)]
+    pub cost_per_use: Option<f64>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AssignResourceRequest {
+    pub resource_id: Uuid,
+    pub units: f32,
+    pub work_hours: f32,
+}
