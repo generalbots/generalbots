@@ -90,6 +90,28 @@
             >
             <span class="pill-count" id="count-blocked">-</span>
         </button>
+        <button
+            class="filter-pill"
+            data-filter="overdue"
+            hx-get="/api/ui/tasks?filter=overdue"
+            hx-target="closest .window-body #task-list"
+            hx-swap="innerHTML"
+        >
+            <span class="pill-icon">🔴</span>
+            <span class="pill-label">Overdue</span>
+            <span class="pill-count" id="count-overdue">-</span>
+        </button>
+        <button
+            class="filter-pill"
+            data-filter="due-soon"
+            hx-get="/api/ui/tasks?filter=due-soon"
+            hx-target="closest .window-body #task-list"
+            hx-swap="innerHTML"
+        >
+            <span class="pill-icon">🟠</span>
+            <span class="pill-label">Due soon</span>
+            <span class="pill-count" id="count-due-soon">-</span>
+        </button>
         <div class="time-saved-badge">
             <span class="time-label" data-i18n="tasks-time-saved"
                 >Active Time Saved:</span

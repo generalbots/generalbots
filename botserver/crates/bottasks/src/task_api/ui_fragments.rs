@@ -9,6 +9,7 @@ use axum::{
     extract::{Query, State},
     response::{Html, IntoResponse},
 };
+use chrono::{DateTime, Duration, Utc};
 use diesel::prelude::*;
 use serde::Deserialize;
 use std::sync::Arc;
@@ -42,6 +43,8 @@ struct TaskRow {
     progress: Option<i32>,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
     parent_id: Option<Uuid>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)]
+    due_date: Option<DateTime<Utc>>,
 }
 
 #[derive(diesel::QueryableByName)]
@@ -50,6 +53,14 @@ struct StatusCountRow {
     s: String,
     #[diesel(sql_type = diesel::sql_types::BigInt)]
     n: i64,
+}
+
+#[derive(diesel::QueryableByName)]
+struct AtRiskRow {
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    overdue: i64,
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    due_soon: i64,
 }
 
 #[derive(diesel::QueryableByName)]
@@ -136,8 +147,9 @@ pub async fn handle_ui_tasks_list(
         let branch_id = resolve_branch(&mut conn, None);
 
         let filter = query.filter.as_deref().unwrap_or("all");
+        let not_done = "status NOT IN ('done','complete','completed','resolved')";
         let mut sql = String::from(
-            "SELECT id, title, description, status, priority, progress, parent_id \
+            "SELECT id, title, description, status, priority, progress, parent_id, due_date \
              FROM tasks WHERE branch_id = $1",
         );
         match filter {
@@ -145,6 +157,10 @@ pub async fn handle_ui_tasks_list(
             "active" | "running" | "in_progress" => sql.push_str(" AND status IN ('active','running','in_progress','in-progress')"),
             "awaiting" | "blocked" => sql.push_str(" AND status IN ('awaiting','blocked','pending_approval')"),
             "paused" => sql.push_str(" AND status = 'paused'"),
+            "overdue" => sql.push_str(&format!(" AND {not_done} AND due_date IS NOT NULL AND due_date < NOW()")),
+            "due-soon" | "due_soon" | "due soon" => {
+                sql.push_str(&format!(" AND {not_done} AND due_date IS NOT NULL AND due_date >= NOW() AND due_date <= NOW() + INTERVAL '24 hours'"))
+            }
             _ => {}
         }
         sql.push_str(" ORDER BY created_at DESC LIMIT 100");
@@ -188,11 +204,31 @@ pub async fn handle_ui_tasks_list(
             task.status.as_str(),
             "done" | "complete" | "completed" | "resolved"
         );
+        let now = Utc::now();
+        let overdue = !done && task.due_date.map(|d| d < now).unwrap_or(false);
+        let due_soon = !done
+            && !overdue
+            && task
+                .due_date
+                .map(|d| d <= now + Duration::hours(24))
+                .unwrap_or(false);
         let is_subtask = task.parent_id.is_some();
-        let card_class = if is_subtask {
+        let mut card_class = if is_subtask {
             format!("task-card task-card-subtask {cls}")
         } else {
             format!("task-card {cls}")
+        };
+        if overdue {
+            card_class.push_str(" overdue");
+        } else if due_soon {
+            card_class.push_str(" due-soon");
+        }
+        let due_badge = if overdue {
+            "<span class=\"task-due-badge overdue\">Overdue</span>".to_string()
+        } else if due_soon {
+            "<span class=\"task-due-badge due-soon\">Due soon</span>".to_string()
+        } else {
+            String::new()
         };
         let parent_attr = task
             .parent_id
@@ -218,6 +254,7 @@ pub async fn handle_ui_tasks_list(
   <div class="task-card-meta">
     <span class="task-card-status {cls}">{status_text}</span>
     <span class="task-card-priority">{priority}</span>
+    {due_badge}
   </div>
   <div class="task-card-progress">
     <div class="task-progress-bar"><div class="task-progress-fill" style="width:{progress}%"></div></div>
@@ -236,6 +273,7 @@ pub async fn handle_ui_tasks_list(
             title = title,
             status_text = status_text,
             priority = priority,
+            due_badge = due_badge,
             progress = progress,
             complete_action = complete_action,
         ));
@@ -277,19 +315,37 @@ pub async fn handle_ui_tasks_stats(
             .map(|r| r.n)
             .sum();
 
-        Ok::<(i64, i64, i64), String>((total, completed, active))
+        let at_risk = diesel::sql_query(
+            "SELECT \
+               count(*) FILTER (WHERE status NOT IN ('done','complete','completed','resolved') AND due_date IS NOT NULL AND due_date < NOW()) AS overdue, \
+               count(*) FILTER (WHERE status NOT IN ('done','complete','completed','resolved') AND due_date IS NOT NULL AND due_date >= NOW() AND due_date <= NOW() + INTERVAL '24 hours') AS due_soon \
+             FROM tasks WHERE branch_id = $1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(branch_id)
+        .get_result::<AtRiskRow>(&mut conn)
+        .map_err(|e| e.to_string())?;
+
+        Ok::<(i64, i64, i64, i64, i64), String>((
+            total,
+            completed,
+            active,
+            at_risk.overdue,
+            at_risk.due_soon,
+        ))
     })
     .await
     .ok()
     .and_then(Result::ok)
-    .unwrap_or((0, 0, 0));
+    .unwrap_or((0, 0, 0, 0, 0));
 
-    let (total, completed, active) = result;
+    let (total, completed, active, overdue, due_soon) = result;
     Html(format!(
         r#"<div class="task-stats">
   <span class="stat"><b>{total}</b> all</span>
   <span class="stat"><b>{active}</b> active</span>
   <span class="stat"><b>{completed}</b> done</span>
+  <span class="stat stat-overdue"><b>{overdue}</b> overdue</span>
+  <span class="stat stat-due-soon"><b>{due_soon}</b> due soon</span>
 </div>"#
     ))
     .into_response()

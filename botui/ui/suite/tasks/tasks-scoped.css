@@ -587,6 +587,39 @@ body:has(.tasks-app) {
     padding-left: 8px;
 }
 
+.task-card.overdue {
+    border-left: 3px solid var(--danger, #ef4444);
+}
+
+.task-card.due-soon {
+    border-left: 3px solid var(--warning, #f59e0b);
+}
+
+.task-due-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-weight: 600;
+}
+
+.task-due-badge.overdue {
+    color: #fff;
+    background: var(--danger, #ef4444);
+}
+
+.task-due-badge.due-soon {
+    color: #1f2937;
+    background: var(--warning, #f59e0b);
+}
+
+.stat-overdue b {
+    color: var(--danger, #ef4444);
+}
+
+.stat-due-soon b {
+    color: var(--warning, #f59e0b);
+}
+
 .task-action-btn {
     background: transparent;
     border: none;
