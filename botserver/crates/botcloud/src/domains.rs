@@ -94,7 +94,13 @@ pub async fn create_domain(
     let mut conn = service.pool().get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB: {e}")))?;
 
-    let (_admin, user_branch) = get_scope_filter(&headers, &mut conn)?;
+    // Domain creation is admin-only (documented contract: JWT + super admin).
+    // Never allow a non-admin caller to mint an arbitrary domain→bot mapping
+    // with attacker-controlled org_id/branch_id.
+    let (admin, user_branch) = get_scope_filter(&headers, &mut conn)?;
+    if !admin {
+        return Err((StatusCode::FORBIDDEN, "Administrator access required".to_string()));
+    }
 
     let domain = body.domain.trim().to_lowercase();
     if domain.is_empty() {
@@ -153,10 +159,10 @@ pub async fn update_domain(
                     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update domain: {e}")))?;
             } else if let Some(bid) = user_branch {
                 diesel::sql_query("UPDATE bot_domains SET domain = $1, updated_at = $2 WHERE id = $3 AND (branch_id = $4 OR branch_id IS NULL)")
-                    .bind::<diesel::sql_types::Uuid, _>(bid)
                     .bind::<diesel::sql_types::Text, _>(&d)
                     .bind::<diesel::sql_types::Timestamptz, _>(now)
                     .bind::<diesel::sql_types::Uuid, _>(domain_id)
+                    .bind::<diesel::sql_types::Uuid, _>(bid)
                     .execute(&mut conn)
                     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update domain: {e}")))?;
             } else {
@@ -175,10 +181,10 @@ pub async fn update_domain(
                 .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update bot_id: {e}")))?;
         } else if let Some(bid) = user_branch {
             diesel::sql_query("UPDATE bot_domains SET bot_id = $1, updated_at = $2 WHERE id = $3 AND (branch_id = $4 OR branch_id IS NULL)")
-                .bind::<diesel::sql_types::Uuid, _>(bid)
                 .bind::<diesel::sql_types::Uuid, _>(b)
                 .bind::<diesel::sql_types::Timestamptz, _>(now)
                 .bind::<diesel::sql_types::Uuid, _>(domain_id)
+                .bind::<diesel::sql_types::Uuid, _>(bid)
                 .execute(&mut conn)
                 .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update bot_id: {e}")))?;
         } else {
