@@ -2,6 +2,7 @@ pub mod api_keys;
 pub mod auth;
 pub mod auth_api;
 pub mod auth_provider;
+pub mod blacklist;
 pub mod csrf;
 pub mod jwt;
 pub mod mfa;
@@ -11,6 +12,8 @@ pub mod rbac_middleware;
 pub mod saas_jwt_auth;
 pub mod request_limits;
 pub mod session;
+#[cfg(feature = "cache")]
+pub mod redis_blacklist_store;
 #[cfg(feature = "cache")]
 pub mod redis_csrf_store;
 #[cfg(feature = "cache")]

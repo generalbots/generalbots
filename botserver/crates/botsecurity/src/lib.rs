@@ -88,6 +88,9 @@ pub use botsecurity_auth::auth_provider::{
     ApiKeyAuthProvider, ApiKeyInfo, AuthProvider, AuthProviderBuilder, AuthProviderRegistry,
     LocalJwtAuthProvider, ZitadelAuthProviderAdapter, create_default_registry,
 };
+pub use botsecurity_auth::blacklist::{
+    BlacklistEntry, BlacklistStore, InMemoryBlacklistStore,
+};
 pub use botsecurity_auth::jwt::{
     Claims, JwtAlgorithm, JwtConfig, JwtKey, JwtManager, JwkSet, TokenIntrospectionResponse,
     TokenPair, TokenType, extract_bearer_token,
@@ -129,6 +132,8 @@ pub use botsecurity_auth::api_keys::{
     CreateApiKeyRequest, CreateApiKeyResponse, RateLimitConfig as ApiKeyRateLimitConfig,
     extract_api_key_from_header,
 };
+#[cfg(feature = "cache")]
+pub use botsecurity_auth::redis_blacklist_store::RedisBlacklistStore;
 #[cfg(feature = "cache")]
 pub use botsecurity_auth::redis_csrf_store::RedisCsrfManager;
 #[cfg(feature = "cache")]

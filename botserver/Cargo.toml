@@ -82,7 +82,7 @@ git = ["automation", "drive", "cache", "dep:botgit"]
 
 # Admin
 attendant = ["automation", "drive", "cache", "dep:botattendant"]
-security = ["automation", "drive", "cache", "dep:botsecurity"]
+security = ["automation", "drive", "cache", "dep:botsecurity", "botsecurity/cache"]
 settings = ["automation", "drive", "cache"]
 
 whatsapp = ["automation", "drive", "cache", "dep:botwhatsapp"]

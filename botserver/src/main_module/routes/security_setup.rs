@@ -115,6 +115,24 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
     let jwt_key = JwtKey::from_secret(&jwt_secret);
     let jwt_manager = match JwtManager::new(jwt_config, jwt_key) {
         Ok(manager) => {
+            #[cfg(feature = "cache")]
+            let manager = {
+                // Persist the token blacklist in the shared cache so revoked
+                // tokens stay rejected across process restarts (#901). Falls
+                // back to in-memory when no cache client is available.
+                match &app_state.cache {
+                    Some(client) => {
+                        let store = Arc::new(crate::security::RedisBlacklistStore::new(Arc::clone(client)));
+                        info!("JWT Manager using Redis-backed token blacklist");
+                        manager.with_blacklist_store(store)
+                    }
+                    None => {
+                        info!("JWT Manager using in-memory token blacklist (no cache client)");
+                        manager
+                    }
+                }
+            };
+
             info!("JWT Manager initialized successfully");
             Some(Arc::new(manager))
         }

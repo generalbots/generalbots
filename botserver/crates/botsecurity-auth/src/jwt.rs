@@ -4,11 +4,11 @@ use jsonwebtoken::{
     decode, encode, Algorithm, DecodingKey, EncodingKey, Header, TokenData, Validation,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 use std::sync::Arc;
-use tokio::sync::RwLock;
 use tracing::info;
 use uuid::Uuid;
+
+use crate::blacklist::{BlacklistEntry, BlacklistStore, InMemoryBlacklistStore};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct JwtConfig {
@@ -268,7 +268,7 @@ pub struct JwtManager {
     config: JwtConfig,
     encoding_key: EncodingKey,
     decoding_key: DecodingKey,
-    blacklist: Arc<RwLock<HashSet<String>>>,
+    blacklist: Arc<dyn BlacklistStore>,
 }
 
 impl std::fmt::Debug for JwtManager {
@@ -309,8 +309,15 @@ impl JwtManager {
             config,
             encoding_key,
             decoding_key,
-            blacklist: Arc::new(RwLock::new(HashSet::new())),
+            blacklist: Arc::new(InMemoryBlacklistStore::new()),
         })
+    }
+
+    /// Replaces the default in-memory blacklist with a custom store (e.g. a
+    /// Redis/Valkey-backed store so revocations survive restarts).
+    pub fn with_blacklist_store(mut self, store: Arc<dyn BlacklistStore>) -> Self {
+        self.blacklist = store;
+        self
     }
 
     pub fn with_separate_keys(
@@ -352,7 +359,7 @@ impl JwtManager {
             config,
             encoding_key,
             decoding_key,
-            blacklist: Arc::new(RwLock::new(HashSet::new())),
+            blacklist: Arc::new(InMemoryBlacklistStore::new()),
         })
     }
 
@@ -491,8 +498,7 @@ impl JwtManager {
     pub async fn validate_token_with_blacklist(&self, token: &str) -> Result<TokenData<Claims>> {
         let token_data = self.validate_token(token)?;
 
-        let blacklist = self.blacklist.read().await;
-        if blacklist.contains(&token_data.claims.jti) {
+        if self.blacklist.contains(&token_data.claims.jti).await {
             return Err(anyhow!("Token has been revoked"));
         }
 
@@ -522,16 +528,13 @@ impl JwtManager {
     pub async fn refresh_tokens(&self, refresh_token: &str) -> Result<TokenPair> {
         let claims = self.validate_refresh_token(refresh_token)?;
 
-        {
-            let blacklist = self.blacklist.read().await;
-            if blacklist.contains(&claims.jti) {
-                return Err(anyhow!("Refresh token has been revoked"));
-            }
+        if self.blacklist.contains(&claims.jti).await {
+            return Err(anyhow!("Refresh token has been revoked"));
         }
 
         let user_id = claims.user_id()?;
 
-        self.revoke_token(&claims.jti).await?;
+        self.revoke_token_with_expiry(&claims.jti, claims.exp).await?;
 
         let new_pair = self.generate_token_pair_with_claims(
             user_id,
@@ -545,51 +548,53 @@ impl JwtManager {
         Ok(new_pair)
     }
 
+    /// Revokes a token by JTI. When the original expiration is unknown the
+    /// entry is bounded by the refresh-token lifetime (the longest any token
+    /// can be valid), so cleanup can still prune it once that window passes.
     pub async fn revoke_token(&self, jti: &str) -> Result<()> {
-        let mut blacklist = self.blacklist.write().await;
-        blacklist.insert(jti.to_string());
+        let now = Utc::now();
+        let expires_at = now + Duration::days(self.config.refresh_token_expiry_days);
+        self.revoke_token_with_expiry(jti, expires_at.timestamp())
+            .await
+    }
+
+    /// Revokes a token with its original `exp` claim so the entry can be
+    /// pruned exactly when both revocation and expiration are in the past.
+    pub async fn revoke_token_with_expiry(&self, jti: &str, expires_at_epoch: i64) -> Result<()> {
+        let now = Utc::now();
+        let expires_at = DateTime::<Utc>::from_timestamp(expires_at_epoch, 0)
+            .unwrap_or_else(|| now + Duration::days(self.config.refresh_token_expiry_days));
+        let entry = BlacklistEntry::new(jti.to_string(), now, expires_at);
+        self.blacklist.insert(entry).await?;
         info!("Token revoked: {}", jti);
         Ok(())
     }
 
     pub async fn revoke_by_token(&self, token: &str) -> Result<()> {
         let token_data = self.validate_token(token)?;
-        self.revoke_token(&token_data.claims.jti).await
+        self.revoke_token_with_expiry(&token_data.claims.jti, token_data.claims.exp)
+            .await
     }
 
     pub async fn is_revoked(&self, jti: &str) -> bool {
-        let blacklist = self.blacklist.read().await;
-        blacklist.contains(jti)
+        self.blacklist.contains(jti).await
     }
 
-    pub async fn cleanup_blacklist(&self, _expired_before: DateTime<Utc>) -> usize {
-        let blacklist = self.blacklist.read().await;
-        let initial_count = blacklist.len();
-
-        // Store expiration times with JTIs for proper cleanup
-        // For now, we need a different approach - track when tokens were revoked
-        // Since we can't determine expiration from JTI alone, we'll use a time-based heuristic
-
-        // Proper fix: Store (JTI, expiration_time) tuples instead of just JTI strings
-        // For backward compatibility, implement conservative cleanup that preserves all tokens
-        // and log this limitation
-
-        // For production: Reimplement blacklist as HashMap<String, DateTime<Utc>>
-        // to store revocation timestamp, then cleanup tokens where both revocation and
-        // original expiration are before expired_before
-
-        // Conservative approach: don't remove anything until we have proper timestamp tracking
-        // This is safe - the blacklist will grow but won't cause security issues
-        let removed = 0;
-
-        // TODO: Reimplement blacklist storage to track revocation timestamps
-        // Suggested: HashMap<String, (DateTime<Utc>, DateTime<Utc>)> storing (revoked_at, expires_at)
-        // Then cleanup can check: revoked_at < expired_before AND expires_at < expired_before
-
-        if initial_count > 0 {
-            info!("Token blacklist has {} entries (cleanup deferred pending timestamp tracking implementation)", initial_count);
-        }
+    /// Prunes entries whose revocation and original expiration both precede
+    /// `expired_before`. Returns the number of removed entries.
+    pub async fn cleanup_blacklist(&self, expired_before: DateTime<Utc>) -> usize {
+        let removed = self.blacklist.cleanup(expired_before).await;
+        let remaining = self.blacklist.len().await;
+        info!(
+            "Token blacklist cleanup: removed {removed} entries, {} remain",
+            remaining
+        );
         removed
+    }
+
+    /// Current blacklist size — exposed as a metric so growth is observable.
+    pub async fn blacklist_size(&self) -> usize {
+        self.blacklist.len().await
     }
 
     pub fn decode_without_validation(&self, token: &str) -> Result<Claims> {
@@ -842,6 +847,51 @@ mod tests {
             .validate_token_with_blacklist(&pair.access_token)
             .await;
         assert!(result.is_err());
+    }
+
+    #[tokio::test]
+    async fn test_cleanup_blacklist_removes_expired() {
+        let manager = create_test_manager();
+        let user_id = Uuid::new_v4();
+
+        let pair = manager.generate_token_pair(user_id).expect("Failed to generate");
+        let token_data = manager
+            .validate_token(&pair.access_token)
+            .expect("Validation failed");
+
+        manager
+            .revoke_token_with_expiry(&token_data.claims.jti, Utc::now().timestamp() - 3600)
+            .await
+            .expect("Revoke failed");
+
+        assert!(manager.is_revoked(&token_data.claims.jti).await);
+
+        let removed = manager.cleanup_blacklist(Utc::now()).await;
+        assert_eq!(removed, 1);
+        assert!(!manager.is_revoked(&token_data.claims.jti).await);
+        assert_eq!(manager.blacklist_size().await, 0);
+    }
+
+    #[tokio::test]
+    async fn test_cleanup_blacklist_keeps_recent() {
+        let manager = create_test_manager();
+        let user_id = Uuid::new_v4();
+
+        let pair = manager.generate_token_pair(user_id).expect("Failed to generate");
+        let token_data = manager
+            .validate_token(&pair.access_token)
+            .expect("Validation failed");
+
+        // Revoked now, expires in the future → must survive cleanup.
+        manager
+            .revoke_token_with_expiry(&token_data.claims.jti, Utc::now().timestamp() + 3600)
+            .await
+            .expect("Revoke failed");
+
+        let removed = manager.cleanup_blacklist(Utc::now()).await;
+        assert_eq!(removed, 0);
+        assert!(manager.is_revoked(&token_data.claims.jti).await);
+        assert_eq!(manager.blacklist_size().await, 1);
     }
 
     #[tokio::test]
