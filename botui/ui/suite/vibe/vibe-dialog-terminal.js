@@ -79,6 +79,9 @@
                 (token ? "&token=" + encodeURIComponent(token) : "");
             ws = new WebSocket(url);
             ws.onopen = function () {
+                // The dialog may have been closed while the WS connected;
+                // bail so we never write to a disposed terminal.
+                if (!term) return;
                 // The PTY shell prints its own prompt — no client-side prompt
                 // is needed (a fake prompt would double up with the real one).
                 term.write("\x1b[32m✓ connected — vibe workspace shell\x1b[0m\r\n");
@@ -88,6 +91,7 @@
                 term.focus();
             };
             ws.onmessage = function (ev) {
+                if (!term) return;
                 try {
                     var msg = JSON.parse(ev.data);
                     if (msg.type === "connected") {
@@ -104,9 +108,11 @@
                 }
             };
             ws.onclose = function () {
+                if (!term) return;
                 term.write("\r\n\x1b[33mdisconnected\x1b[0m\r\n");
             };
             ws.onerror = function () {
+                if (!term) return;
                 term.write("\r\n\x1b[31mconnection error — retrying…\x1b[0m\r\n");
                 setTimeout(connect, 3000);
             };
@@ -132,11 +138,15 @@
                 try { ws.close(); } catch (ignore) { }
                 ws = null;
             }
-            if (term) {
-                try { term.dispose(); } catch (ignore) { }
-                term = null;
-            }
+            // Null the global BEFORE dispose so any in-flight ws.onmessage /
+            // onopen callback that fires during teardown sees term === null and
+            // bails instead of calling write() on a half-disposed terminal.
+            var oldTerm = term;
+            term = null;
             fitAddon = null;
+            if (oldTerm) {
+                try { oldTerm.dispose(); } catch (ignore) { }
+            }
         },
     });
 })();
