@@ -142,4 +142,16 @@ function openSlidesComments() {
         includeChildren: true,
     });
 }
+function bindSlidesBadge() {
+    if (!window.GBCollabComments || !window.GBCollabComments.bindBadge) return;
+    var btn = document.getElementById("commentsBtn");
+    if (!btn) return;
+    window.GBCollabComments.bindBadge(btn, {
+        resourceType: "slides",
+        resourceId: (window.getSlidesPresentationId && window.getSlidesPresentationId()) || "current",
+        includeChildren: true,
+    });
+}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bindSlidesBadge);
+else bindSlidesBadge();
 </script>
