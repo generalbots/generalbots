@@ -201,7 +201,7 @@ fn build_base_router(
     #[cfg(feature = "slides")]
     let base_router = add_slides_routes(base_router, &app_state);
     #[cfg(feature = "plan")]
-    let base_router = add_plan_routes(base_router);
+    let base_router = add_plan_routes(base_router, &app_state);
     #[cfg(feature = "video")]
     let base_router = add_video_routes(base_router, &app_state);
     #[cfg(feature = "workspaces")]
@@ -368,7 +368,9 @@ fn add_slides_routes(r: Router, s: &Arc<AppState>) -> Router {
 }
 
 #[cfg(feature = "plan")]
-fn add_plan_routes(r: Router) -> Router {
+fn add_plan_routes(r: Router, s: &Arc<AppState>) -> Router {
+    crate::plan::set_pool(s.conn.clone());
+    crate::plan::load_from_db();
     r.merge(crate::plan::configure_plan_routes())
 }
 
