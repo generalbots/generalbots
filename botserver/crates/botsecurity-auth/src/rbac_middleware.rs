@@ -1436,6 +1436,11 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/ui/player/**", "GET", ""),
         RoutePermission::new("/api/ui/workspaces/**", "GET", ""),
         RoutePermission::new("/api/ui/projects/**", "GET", ""),
+        // Project app UI fragments (singular `/api/ui/project/**` — must match
+        // the routes registered in src/project/project_ui.rs; the plural
+        // `/api/ui/projects/**` entry above does NOT cover these).
+        RoutePermission::new("/api/ui/project/**", "GET", ""),
+        RoutePermission::new("/api/ui/project/**", "POST", ""),
         RoutePermission::new("/api/ui/goals/**", "GET", ""),
         RoutePermission::new("/api/ui/designer/**", "GET", ""),
         RoutePermission::new("/api/ui/dashboards/**", "GET", ""),
