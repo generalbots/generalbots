@@ -1,6 +1,6 @@
 use axum::{
     extract::{Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     routing::{get, post},
     Json, Router,
 };
@@ -15,6 +15,7 @@ use crate::email_integration::{
     EmailIntegrationService, EmailTracking, EmailTrackingEvent, TrackedEmailRequest,
 };
 use crate::forecast::{DealInput, ForecastService, HistoricalTrend, MonthlyInput, SalesForecast};
+use crate::handlers::{contacts as contacts_handlers, crm as crm_handlers};
 use crate::sales_funnel::{DealStageHistory, PipelineStage, SalesFunnelService};
 use crate::CrateState;
 
@@ -58,47 +59,69 @@ pub struct EmailWebhookBody {
 }
 
 async fn handle_funnel_summary(
-    State(_state): State<Arc<CrateState>>,
+    State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
 ) -> Result<Json<PipelineSummaryResponse>, (StatusCode, String)> {
+    let mut conn = state
+        .db_pool
+        .get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+    let scoped_branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| state.get_bot_context());
+
     let stages = vec![
         PipelineStage {
             id: Uuid::new_v4(),
-            name: "Prospecting".to_string(),
+            name: "new".to_string(),
             order: 1,
             probability: 10,
             color: Some("#6b7280".to_string()),
         },
         PipelineStage {
             id: Uuid::new_v4(),
-            name: "Qualification".to_string(),
+            name: "qualified".to_string(),
             order: 2,
             probability: 25,
             color: Some("#3b82f6".to_string()),
         },
         PipelineStage {
             id: Uuid::new_v4(),
-            name: "Proposal".to_string(),
+            name: "proposal".to_string(),
             order: 3,
             probability: 50,
             color: Some("#f59e0b".to_string()),
         },
         PipelineStage {
             id: Uuid::new_v4(),
-            name: "Negotiation".to_string(),
+            name: "negotiation".to_string(),
             order: 4,
             probability: 75,
             color: Some("#f97316".to_string()),
         },
         PipelineStage {
             id: Uuid::new_v4(),
-            name: "Closed Won".to_string(),
+            name: "won".to_string(),
             order: 5,
             probability: 100,
             color: Some("#22c55e".to_string()),
         },
     ];
 
-    let deals_by_stage: HashMap<String, Vec<(f64, Uuid)>> = HashMap::new();
+    let rows: Vec<(Option<String>, Option<f64>, Uuid)> = crate::schema::crm_deals::table
+        .filter(crate::schema::crm_deals::branch_id.eq(scoped_branch_id))
+        .select((
+            crate::schema::crm_deals::stage,
+            crate::schema::crm_deals::value,
+            crate::schema::crm_deals::id,
+        ))
+        .load(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to load deals: {e}")))?;
+
+    let mut deals_by_stage: HashMap<String, Vec<(f64, Uuid)>> = HashMap::new();
+    for (deal_stage, deal_value, deal_id) in rows {
+        let key = deal_stage.unwrap_or_else(|| "new".to_string());
+        deals_by_stage.entry(key).or_default().push((deal_value.unwrap_or(0.0), deal_id));
+    }
     let summaries = SalesFunnelService::get_pipeline_summary(&stages, &deals_by_stage);
 
     let stage_responses: Vec<PipelineStageResponse> = summaries
@@ -139,13 +162,16 @@ async fn handle_move_stage(
 
 async fn handle_forecast(
     State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
     Query(query): Query<ForecastQuery>,
 ) -> Result<Json<SalesForecast>, (StatusCode, String)> {
-    let bot_id = query.bot_id.unwrap_or(Uuid::nil());
     let mut conn = state
         .db_pool
         .get()
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+    let scoped_branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
+        .unwrap_or_else(|| state.get_bot_context());
+    let bot_id = query.bot_id.unwrap_or(scoped_branch_id);
 
     #[derive(diesel::QueryableByName)]
     struct DealRow {
@@ -160,9 +186,9 @@ async fn handle_forecast(
     }
 
     let deals: Vec<DealRow> = diesel::sql_query(
-        "SELECT value, won, stage, created_at FROM crm_deals WHERE bot_id = $1",
+        "SELECT value, won, stage, created_at FROM crm_deals WHERE branch_id = $1",
     )
-    .bind::<diesel::sql_types::Uuid, _>(bot_id)
+    .bind::<diesel::sql_types::Uuid, _>(scoped_branch_id)
     .load(&mut conn)
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Failed to load deals: {e}")))?;
 
@@ -304,6 +330,15 @@ async fn handle_conversion_rates(
 
 pub fn configure_sales_routes() -> Router<Arc<CrateState>> {
     Router::new()
+        .route("/api/sales/deals", get(crm_handlers::list_deals).post(crm_handlers::create_deal))
+        .route(
+            "/api/sales/deals/:id",
+            get(crm_handlers::get_deal)
+                .patch(crm_handlers::update_deal)
+                .delete(crm_handlers::delete_deal),
+        )
+        .route("/api/sales/contacts", get(contacts_handlers::list_contacts))
+        .route("/api/sales/activities", get(crm_handlers::list_activities))
         .route("/api/sales/funnel", get(handle_funnel_summary))
         .route("/api/sales/funnel/move", post(handle_move_stage))
         .route("/api/sales/funnel/conversion-rates", get(handle_conversion_rates))

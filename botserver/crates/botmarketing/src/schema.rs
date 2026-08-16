@@ -42,7 +42,7 @@ diesel::table! {
     crm_contacts (id) {
         id -> Uuid,
         branch_id -> Uuid,
-        first_name -> Varchar,
+        first_name -> Nullable<Varchar>,
         last_name -> Nullable<Varchar>,
         email -> Nullable<Varchar>,
         phone -> Nullable<Varchar>,
