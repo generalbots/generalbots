@@ -1,4 +1,4 @@
-use axum::extract::{ConnectInfo, State, WebSocketUpgrade};
+use axum::extract::{ConnectInfo, Extension, State, WebSocketUpgrade};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::Json;
@@ -7,10 +7,60 @@ use serde::Deserialize;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 
-use crate::models::{ConnectionConfig, DesktopSession};
+use botsecurity_auth::auth_api::types::AuthenticatedUser;
+
+use crate::models::{ConnectionConfig, DesktopSession, SessionAuditEvent};
 use crate::proxy::{extract_client_ip, handle_ws_connection, tcp_health_check};
 use crate::session_manager::{SessionError, SessionManager};
 use crate::types::{ConnectionCreateRequest, HealthCheckResponse, mask_ip};
+
+// ---------------------------------------------------------------------------
+// Authentication & authorization helpers
+// ---------------------------------------------------------------------------
+
+/// Rejects unauthenticated callers (anonymous users or the nil UUID).
+/// Returns `Ok(user)` for authenticated callers, `Err(status)` otherwise.
+fn require_authenticated(user: &AuthenticatedUser) -> Result<(), StatusCode> {
+    if !user.is_authenticated() {
+        warn!("Desktop proxy: rejected unauthenticated request (user={})", user.user_id);
+        return Err(StatusCode::UNAUTHORIZED);
+    }
+    Ok(())
+}
+
+/// Applies RBAC: a user may only reach sessions they own; admins may reach
+/// any session.
+fn can_access_session(user: &AuthenticatedUser, session: &DesktopSession) -> bool {
+    user.is_admin() || session.is_owned_by(user.user_id)
+}
+
+/// Persists a session audit event into `desktop_connection_log`.
+fn write_audit_event(pool: &DbPool, event: &SessionAuditEvent) {
+    let pool = pool.clone();
+    let event = event.clone();
+    tokio::task::spawn_blocking(move || -> Result<(), String> {
+        let mut conn = pool.get().map_err(|e| format!("db pool: {e}"))?;
+        diesel::sql_query(
+            "INSERT INTO desktop_connection_log \
+             (connection_id, user_id, session_id, host, port, protocol, connected_at, \
+              disconnected_at, bytes_transferred, disconnect_reason) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(event.connection_id)
+        .bind::<diesel::sql_types::Uuid, _>(event.user_id)
+        .bind::<diesel::sql_types::Uuid, _>(event.session_id)
+        .bind::<diesel::sql_types::Text, _>(&event.host)
+        .bind::<diesel::sql_types::Int4, _>(event.port as i32)
+        .bind::<diesel::sql_types::Text, _>(&event.protocol)
+        .bind::<diesel::sql_types::Timestamptz, _>(event.connected_at)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(event.disconnected_at)
+        .bind::<diesel::sql_types::BigInt, _>(event.bytes_transferred)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(event.disconnect_reason)
+        .execute(&mut conn)
+        .map_err(|e| format!("write desktop audit event: {e}"))?;
+        Ok(())
+    });
+}
 
 pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 
@@ -32,10 +82,15 @@ pub struct AppState {
 pub async fn create_connection(
     State(state): State<AppState>,
     ConnectInfo(addr): ConnectInfo<std::net::SocketAddr>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<ConnectionCreateRequest>,
 ) -> impl IntoResponse {
     let client_ip = extract_client_ip(&addr);
-    let user_id = Uuid::nil(); // TODO: extract from auth middleware
+    let user_id = user.user_id;
+
+    if let Err(status) = require_authenticated(&user) {
+        return (status, Json(serde_json::json!({ "success": false, "error": "Authentication required" })));
+    }
 
     debug!(
         "create_connection: user={} target={}:{} client={}",
@@ -54,12 +109,52 @@ pub async fn create_connection(
             Json(serde_json::json!({ "success": false, "error": "target_port must be between 1 and 65535" })),
         );
     }
+    if !state.config.is_target_port_allowed(req.target_port) {
+        warn!(
+            "Desktop proxy: user {} attempted to proxy to disallowed port {} (allow-list: VNC 5900-5999, RDP 3389)",
+            user_id, req.target_port
+        );
+        return (
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "success": false, "error": "target port is not on the allowed list (VNC 5900-5999, RDP 3389)" })),
+        );
+    }
 
-    let session = DesktopSession::new(user_id, req.target_host, req.target_port, client_ip);
+    // Tenant scoping: sessions are attributed to the authenticated user and
+    // their organization/branch when available.
+    let session = DesktopSession::with_scope(
+        user_id,
+        user.organization_id,
+        None,
+        req.target_host.clone(),
+        req.target_port,
+        client_ip,
+    );
 
     match state.session_manager.register_session(session).await {
         Ok(session) => {
-            info!("Connection created: {}", session.id);
+            info!(
+                "Connection created: {} (user={}, target={}:{})",
+                session.id, user_id, req.target_host, req.target_port,
+            );
+            // Audit: session start with actor + target (masked in logs).
+            if let Some(pool) = state.pool.clone() {
+                write_audit_event(
+                    &pool,
+                    &SessionAuditEvent {
+                        connection_id: Uuid::new_v4(),
+                        user_id,
+                        session_id: session.id,
+                        host: session.target_host.clone(),
+                        port: session.target_port,
+                        protocol: "vnc".to_string(),
+                        connected_at: session.created_at,
+                        disconnected_at: None,
+                        bytes_transferred: 0,
+                        disconnect_reason: None,
+                    },
+                );
+            }
             (
                 StatusCode::CREATED,
                 Json(serde_json::json!({
@@ -101,10 +196,15 @@ pub struct ConnectRequest {
 pub async fn handle_connect(
     State(state): State<AppState>,
     ConnectInfo(addr): ConnectInfo<std::net::SocketAddr>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<ConnectRequest>,
 ) -> impl IntoResponse {
     let client_ip = extract_client_ip(&addr);
-    let user_id = Uuid::nil();
+    let user_id = user.user_id;
+
+    if let Err(status) = require_authenticated(&user) {
+        return (status, Json(serde_json::json!({ "success": false, "error": "Authentication required" })));
+    }
 
     if req.host.is_empty() {
         return (
@@ -118,8 +218,25 @@ pub async fn handle_connect(
             Json(serde_json::json!({ "success": false, "error": "port must be between 1 and 65535" })),
         );
     }
+    if !state.config.is_target_port_allowed(req.port) {
+        warn!(
+            "Desktop proxy: user {} attempted to proxy to disallowed port {} (allow-list: VNC 5900-5999, RDP 3389)",
+            user_id, req.port
+        );
+        return (
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "success": false, "error": "port is not on the allowed list (VNC 5900-5999, RDP 3389)" })),
+        );
+    }
 
-    let session = DesktopSession::new(user_id, req.host.clone(), req.port, client_ip);
+    let session = DesktopSession::with_scope(
+        user_id,
+        user.organization_id,
+        None,
+        req.host.clone(),
+        req.port,
+        client_ip,
+    );
     let protocol = req.protocol.unwrap_or_else(|| "vnc".to_string());
     let auth_type = req.auth_type.clone().unwrap_or_else(|| "password".to_string());
     let conn_name = req.name.clone();
@@ -163,6 +280,26 @@ pub async fn handle_connect(
         }
     }
 
+    // Audit: session start for the VDI connect flow.
+    if let Some(pool) = state.pool.clone() {
+        let audit_session = session.clone();
+        write_audit_event(
+            &pool,
+            &SessionAuditEvent {
+                connection_id: Uuid::new_v4(),
+                user_id,
+                session_id: audit_session.id,
+                host: audit_session.target_host.clone(),
+                port: audit_session.target_port,
+                protocol: protocol.clone(),
+                connected_at: audit_session.created_at,
+                disconnected_at: None,
+                bytes_transferred: 0,
+                disconnect_reason: None,
+            },
+        );
+    }
+
     match state.session_manager.register_session(session).await {
         Ok(session) => {
             info!("VDI connect created: {} -> {}:{}", req.name, req.host, req.port);
@@ -197,19 +334,35 @@ pub async fn handle_connect(
 // GET /connections — list all active connections
 // ---------------------------------------------------------------------------
 
-pub async fn list_connections(State(state): State<AppState>) -> impl IntoResponse {
+pub async fn list_connections(
+    State(state): State<AppState>,
+    Extension(user): Extension<AuthenticatedUser>,
+) -> impl IntoResponse {
+    if let Err(status) = require_authenticated(&user) {
+        return (status, Json(serde_json::json!({ "success": false, "error": "Authentication required" })));
+    }
+
+    // Session listing is scoped to the owning user (admins see all).
     let sessions = state.session_manager.get_all_sessions().await;
-    let mut summaries: Vec<serde_json::Value> =
-        sessions.iter().map(|s| serde_json::json!(s.to_summary())).collect();
+    let mut summaries: Vec<serde_json::Value> = sessions
+        .iter()
+        .filter(|s| user.is_admin() || s.is_owned_by(user.user_id))
+        .map(|s| serde_json::json!(s.to_summary()))
+        .collect();
 
     // Merge saved (persisted) connections so the grid shows them after restart.
     if let Some(pool) = state.pool.clone() {
+        let pool_for_task = pool.clone();
+        let user_for_task = user.user_id;
+        let is_admin = user.is_admin();
         let result = tokio::task::spawn_blocking(move || -> Result<Vec<serde_json::Value>, String> {
-            let mut conn = pool.get().map_err(|e| format!("db pool: {e}"))?;
+            let mut conn = pool_for_task.get().map_err(|e| format!("db pool: {e}"))?;
             #[derive(diesel::QueryableByName)]
             struct SavedRow {
                 #[diesel(sql_type = diesel::sql_types::Uuid)]
                 id: Uuid,
+                #[diesel(sql_type = diesel::sql_types::Uuid)]
+                user_id: Uuid,
                 #[diesel(sql_type = diesel::sql_types::Text)]
                 name: String,
                 #[diesel(sql_type = diesel::sql_types::Text)]
@@ -219,16 +372,24 @@ pub async fn list_connections(State(state): State<AppState>) -> impl IntoRespons
                 #[diesel(sql_type = diesel::sql_types::Text)]
                 protocol: String,
             }
-            let rows: Vec<SavedRow> = diesel::sql_query(
-                "SELECT id, name, host, port, protocol FROM desktop_connections ORDER BY name ASC",
-            )
-            .load::<SavedRow>(&mut conn)
-            .map_err(|e| format!("load saved vdi connections: {e}"))?;
+            let query = if is_admin {
+                "SELECT id, user_id, name, host, port, protocol FROM desktop_connections ORDER BY name ASC"
+            } else {
+                "SELECT id, user_id, name, host, port, protocol FROM desktop_connections WHERE user_id = $1 ORDER BY name ASC"
+            };
+            let mut query_builder = diesel::sql_query(query);
+            if !is_admin {
+                query_builder = query_builder.bind::<diesel::sql_types::Uuid, _>(user_for_task);
+            }
+            let rows: Vec<SavedRow> = query_builder
+                .load::<SavedRow>(&mut conn)
+                .map_err(|e| format!("load saved vdi connections: {e}"))?;
             Ok(rows
                 .into_iter()
                 .map(|r| {
                     serde_json::json!({
                         "id": r.id,
+                        "user_id": r.user_id,
                         "target_host": r.host,
                         "target_port": r.port,
                         "status": "saved",
@@ -254,10 +415,21 @@ pub async fn list_connections(State(state): State<AppState>) -> impl IntoRespons
 
 pub async fn get_connection(
     State(state): State<AppState>,
+    Extension(user): Extension<AuthenticatedUser>,
     axum::extract::Path(id): axum::extract::Path<Uuid>,
 ) -> impl IntoResponse {
+    if let Err(status) = require_authenticated(&user) {
+        return (status, Json(serde_json::json!({ "success": false, "error": "Authentication required" })));
+    }
+
     match state.session_manager.get_session(id).await {
-        Some(s) => (StatusCode::OK, Json(serde_json::json!({ "success": true, "data": s.to_summary() }))),
+        Some(s) if can_access_session(&user, &s) => {
+            (StatusCode::OK, Json(serde_json::json!({ "success": true, "data": s.to_summary() })))
+        }
+        Some(_) => (
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "success": false, "error": "not authorized to view this connection" })),
+        ),
         None => (
             StatusCode::NOT_FOUND,
             Json(serde_json::json!({ "success": false, "error": format!("connection {id} not found") })),
@@ -271,19 +443,42 @@ pub async fn get_connection(
 
 pub async fn delete_connection(
     State(state): State<AppState>,
+    Extension(user): Extension<AuthenticatedUser>,
     axum::extract::Path(id): axum::extract::Path<Uuid>,
 ) -> impl IntoResponse {
-    let removed_session = state.session_manager.remove_session(id).await;
+    if let Err(status) = require_authenticated(&user) {
+        return (status, Json(serde_json::json!({ "success": false, "error": "Authentication required" })));
+    }
 
-    // Also remove the saved row if it exists.
+    // Ownership check before removal (kill switch for non-owners is denied).
+    let authorized = match state.session_manager.get_session(id).await {
+        Some(s) => can_access_session(&user, &s),
+        None => true, // Allow the delete to fall through to DB removal below.
+    };
+    if !authorized {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "success": false, "error": "not authorized to delete this connection" })),
+        );
+    }
+
+    let removed_session = state.session_manager.remove_session(id).await;
+    let user_for_task = user.user_id;
+
+    // Also remove the saved row if it exists (scoped to the owner).
     let mut db_deleted = false;
     if let Some(pool) = state.pool.clone() {
+        let pool_for_task = pool.clone();
         let result = tokio::task::spawn_blocking(move || -> Result<bool, String> {
-            let mut conn = pool.get().map_err(|e| format!("db pool: {e}"))?;
-            let affected = diesel::sql_query("DELETE FROM desktop_connections WHERE id = $1")
-                .bind::<diesel::sql_types::Uuid, _>(id)
-                .execute(&mut conn)
-                .map_err(|e| format!("delete saved vdi connection: {e}"))?;
+            let mut conn = pool_for_task.get().map_err(|e| format!("db pool: {e}"))?;
+            let affected = diesel::sql_query(
+                "DELETE FROM desktop_connections WHERE id = $1 AND (user_id = $2 OR $3)",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(id)
+            .bind::<diesel::sql_types::Uuid, _>(user_for_task)
+            .bind::<diesel::sql_types::Bool, _>(user.is_admin())
+            .execute(&mut conn)
+            .map_err(|e| format!("delete saved vdi connection: {e}"))?;
             Ok(affected > 0)
         })
         .await;
@@ -292,8 +487,29 @@ pub async fn delete_connection(
         }
     }
 
+    // Audit: session end with actor + reason.
+    if let Some(removed) = &removed_session {
+        if let Some(pool) = state.pool.clone() {
+            write_audit_event(
+                &pool,
+                &SessionAuditEvent {
+                    connection_id: Uuid::new_v4(),
+                    user_id: user_for_task,
+                    session_id: removed.id,
+                    host: removed.target_host.clone(),
+                    port: removed.target_port,
+                    protocol: "vnc".to_string(),
+                    connected_at: removed.created_at,
+                    disconnected_at: Some(chrono::Utc::now()),
+                    bytes_transferred: removed.bytes_sent + removed.bytes_received,
+                    disconnect_reason: Some("deleted".to_string()),
+                },
+            );
+        }
+    }
+
     if removed_session.is_some() || db_deleted {
-        info!("Connection deleted: {}", id);
+        info!("Connection deleted: {} by user {}", id, user_for_task);
         (StatusCode::OK, Json(serde_json::json!({ "success": true, "data": "deleted" })))
     } else {
         (
@@ -301,6 +517,53 @@ pub async fn delete_connection(
             Json(serde_json::json!({ "success": false, "error": format!("connection {id} not found") })),
         )
     }
+}
+
+// ---------------------------------------------------------------------------
+// POST /connections/kill — kill switch for the caller's active sessions
+// ---------------------------------------------------------------------------
+
+pub async fn kill_own_sessions(
+    State(state): State<AppState>,
+    Extension(user): Extension<AuthenticatedUser>,
+) -> impl IntoResponse {
+    if let Err(status) = require_authenticated(&user) {
+        return (status, Json(serde_json::json!({ "success": false, "error": "Authentication required" })));
+    }
+
+    let removed = state.session_manager.kill_sessions_for_user(user.user_id).await;
+    info!(
+        "Kill switch: user {} terminated {} active session(s)",
+        user.user_id,
+        removed.len()
+    );
+
+    // Audit each terminated session.
+    if let Some(pool) = state.pool.clone() {
+        let now = chrono::Utc::now();
+        for s in &removed {
+            write_audit_event(
+                &pool,
+                &SessionAuditEvent {
+                    connection_id: Uuid::new_v4(),
+                    user_id: user.user_id,
+                    session_id: s.id,
+                    host: s.target_host.clone(),
+                    port: s.target_port,
+                    protocol: "vnc".to_string(),
+                    connected_at: s.created_at,
+                    disconnected_at: Some(now),
+                    bytes_transferred: s.bytes_sent + s.bytes_received,
+                    disconnect_reason: Some("kill-switch".to_string()),
+                },
+            );
+        }
+    }
+
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({ "success": true, "data": { "terminated": removed.len() } })),
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -342,6 +605,11 @@ pub async fn ws_proxy_handler(
     State(state): State<AppState>,
     ConnectInfo(addr): ConnectInfo<std::net::SocketAddr>,
 ) -> impl IntoResponse {
+    // Browser WebSocket handshakes cannot carry an Authorization header, so
+    // the random 128-bit `session_id` acts as a capability token (same model
+    // as the terminal WS). Sessions are only ever created by authenticated
+    // users (`create_connection`/`handle_connect` reject anonymous callers),
+    // so a valid session id already implies an authenticated owner.
     let session = match state.session_manager.get_session(session_id).await {
         Some(s) => s,
         None => {
@@ -349,6 +617,12 @@ pub async fn ws_proxy_handler(
             return (StatusCode::NOT_FOUND, "session not found").into_response();
         }
     };
+
+    // WebSocket handshakes from the browser cannot send an Authorization
+    // header, so the session id is the capability. Sessions are created only
+    // by authenticated users and the owner check happens at creation time
+    // (`create_connection`/`handle_connect`); the proxy itself validates the
+    // session exists and is not expired.
 
     let client_ip = extract_client_ip(&addr);
     debug!(
@@ -372,6 +646,7 @@ pub fn router(state: AppState) -> axum::Router {
     axum::Router::new()
         .route(&format!("{PREFIX}/connections"), axum::routing::post(create_connection))
         .route(&format!("{PREFIX}/connections"), axum::routing::get(list_connections))
+        .route(&format!("{PREFIX}/connections/kill"), axum::routing::post(kill_own_sessions))
         .route(&format!("{PREFIX}/connections/{{id}}"), axum::routing::get(get_connection))
         .route(&format!("{PREFIX}/connections/{{id}}"), axum::routing::delete(delete_connection))
         .route(&format!("{PREFIX}/connect"), axum::routing::post(handle_connect))
@@ -491,6 +766,7 @@ mod tests {
         let state = AppState {
             session_manager: SessionManager::new(ConnectionConfig::default()),
             config: ConnectionConfig::default(),
+            pool: None,
         };
         let _app = router(state);
     }

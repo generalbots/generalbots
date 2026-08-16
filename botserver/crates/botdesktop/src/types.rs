@@ -25,6 +25,8 @@ pub struct HealthCheckRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConnectionSummary {
     pub id: Uuid,
+    /// Owning user (never the nil UUID in authenticated flows).
+    pub user_id: Uuid,
     pub target_host: String,
     pub target_port: u16,
     pub status: String,
@@ -32,6 +34,8 @@ pub struct ConnectionSummary {
     pub last_active_at: DateTime<Utc>,
     pub bytes_sent: i64,
     pub bytes_received: i64,
+    /// Client IP (masked for logs; full value only for the owning user).
+    pub client_ip: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

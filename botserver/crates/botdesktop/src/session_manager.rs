@@ -68,6 +68,44 @@ impl SessionManager {
         removed
     }
 
+    /// Kill switch: removes every active session belonging to `user_id`.
+    /// Returns the removed sessions (empty when the user has none).
+    pub async fn kill_sessions_for_user(&self, user_id: Uuid) -> Vec<DesktopSession> {
+        let mut sessions = self.sessions.write().await;
+        let ids: Vec<Uuid> = sessions
+            .values()
+            .filter(|s| s.user_id == user_id && s.status != SessionStatus::Disconnected)
+            .map(|s| s.id)
+            .collect();
+        let mut removed = Vec::new();
+        for id in ids {
+            if let Some(s) = sessions.remove(&id) {
+                info!("Kill switch: removed session {} for user {}", id, user_id);
+                removed.push(s);
+            }
+        }
+        removed
+    }
+
+    /// Kill switch for administrators: removes every active session for all
+    /// users. Returns the removed sessions.
+    pub async fn kill_all_sessions(&self) -> Vec<DesktopSession> {
+        let mut sessions = self.sessions.write().await;
+        let ids: Vec<Uuid> = sessions
+            .values()
+            .filter(|s| s.status != SessionStatus::Disconnected)
+            .map(|s| s.id)
+            .collect();
+        let mut removed = Vec::new();
+        for id in ids {
+            if let Some(s) = sessions.remove(&id) {
+                info!("Kill switch: removed session {} for user {}", id, s.user_id);
+                removed.push(s);
+            }
+        }
+        removed
+    }
+
     /// Mark a session as disconnected and schedule removal.
     pub async fn disconnect_session(&self, id: Uuid) {
         let mut sessions = self.sessions.write().await;
@@ -343,5 +381,35 @@ mod tests {
         let s = mgr.get_session(id).await.unwrap();
         assert_eq!(s.bytes_sent, 1024);
         assert_eq!(s.bytes_received, 2048);
+    }
+
+    #[tokio::test]
+    async fn test_kill_sessions_for_user() {
+        let mgr = SessionManager::new(test_config());
+        let user = Uuid::new_v4();
+        let other = Uuid::new_v4();
+
+        mgr.register_session(make_user_session(user)).await.unwrap();
+        mgr.register_session(make_user_session(user)).await.unwrap();
+        mgr.register_session(make_user_session(other)).await.unwrap();
+
+        let removed = mgr.kill_sessions_for_user(user).await;
+        assert_eq!(removed.len(), 2);
+        assert_eq!(mgr.count_for_user(user).await, 0);
+        assert_eq!(mgr.count_for_user(other).await, 1);
+    }
+
+    #[tokio::test]
+    async fn test_kill_switch_skips_disconnected() {
+        let mgr = SessionManager::new(test_config());
+        let user = Uuid::new_v4();
+        let s = make_user_session(user);
+        let id = s.id;
+
+        mgr.register_session(s).await.unwrap();
+        mgr.disconnect_session(id).await;
+
+        let removed = mgr.kill_sessions_for_user(user).await;
+        assert!(removed.is_empty());
     }
 }
