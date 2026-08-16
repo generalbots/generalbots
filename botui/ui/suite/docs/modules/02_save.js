@@ -30,6 +30,13 @@ function scheduleSave(id, content) {
             payload: {}
           }).catch(function () {});
         }
+        if (window.GBCollabVersions) {
+          window.GBCollabVersions.snapshot({
+            resourceType: "docs",
+            resourceId: String(id || "current"),
+            content: content
+          }).catch(function () {});
+        }
       })
       .catch(function () { setSaveStatus("Save failed", true); });
   }, SAVE_DEBOUNCE_MS);
