@@ -423,6 +423,16 @@
     opacity: 1;
 }
 
+.status-select {
+    padding: 0.25rem 0.5rem;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.8125rem;
+    cursor: pointer;
+}
+
 .loading-placeholder {
     color: var(--text-muted);
     font-size: 0.875rem;

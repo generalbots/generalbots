@@ -274,6 +274,27 @@ pub struct CreateProjectRequest {
     pub end_date: Option<NaiveDate>,
 }
 
+/// Partial update for a project (issue #873). `None` leaves a field unchanged;
+/// for nullable fields, `Some(None)` clears the value.
+#[derive(Debug, Deserialize)]
+pub struct UpdateProjectRequest {
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub description: Option<Option<String>>,
+    #[serde(default)]
+    pub start_date: Option<NaiveDate>,
+    #[serde(default)]
+    pub end_date: Option<Option<NaiveDate>>,
+    #[serde(default)]
+    pub status: Option<ProjectStatus>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateProjectStatusRequest {
+    pub status: ProjectStatus,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct CreateTaskRequest {
     pub name: String,

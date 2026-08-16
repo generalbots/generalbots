@@ -78,6 +78,22 @@ async function loadProjectData(projectId) {
     }
 }
 
+async function updateProjectStatus(status) {
+    if (!currentProjectId || !status) return;
+    try {
+        const resp = await fetch(`/api/projects/${currentProjectId}/status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status })
+        });
+        if (resp.ok) {
+            loadProjectData(currentProjectId);
+        }
+    } catch (e) {
+        console.error('Failed to update project status:', e);
+    }
+}
+
 function openProjectComments() {
     if (!currentProjectId) return;
     const name = (currentProjectData && (currentProjectData.name || currentProjectData.title)) || 'Project';
@@ -123,6 +139,16 @@ function renderProjectHeader(project, tasks) {
     const statusEl = document.getElementById('project-status');
     if (statusEl) {
         statusEl.querySelector('span:last-child').textContent = project ? (project.status || 'Active') : 'No project selected';
+    }
+
+    const statusSelect = document.getElementById('project-status-select');
+    if (statusSelect) {
+        if (project) {
+            statusSelect.value = (project.status || 'active').toLowerCase();
+            statusSelect.style.display = '';
+        } else {
+            statusSelect.style.display = 'none';
+        }
     }
 
     const progressEl = document.getElementById('project-progress');
