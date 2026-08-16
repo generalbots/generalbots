@@ -186,14 +186,15 @@
           const dot = document.createElement("span");
           dot.className = "ss-validation-dot";
           dot.style.cssText = "position:absolute;right:2px;top:2px;width:6px;height:6px;border-radius:50%;background:#ef4444;";
-          node.style.position = "relative";
+          // The cell is already position:absolute (its natural containing
+          // block), so the marker anchors to it without flipping the cell to
+          // relative — which previously displaced the cell in the grid.
           node.appendChild(dot);
         }
         if (hasComment && !node.querySelector(".ss-comment-marker")) {
           const mark = document.createElement("span");
           mark.className = "ss-comment-marker";
           mark.style.cssText = "position:absolute;right:2px;bottom:2px;width:0;height:0;border-right:6px solid transparent;border-bottom:6px solid #f59e0b;";
-          node.style.position = "relative";
           node.appendChild(mark);
           if (d.note) {
             mark.title = String(d.note);
