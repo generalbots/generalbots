@@ -23,6 +23,7 @@
             <div class="collaborators" id="collaborators" data-max-avatars="6"></div>
             <span class="gb-connection-status offline" id="gb-conn-status" style="display:none;"><span class="dot"></span><span class="label">offline</span></span>
             <span id="gb-auth-button"></span>
+            <button class="plan-btn plan-btn-secondary" id="commentsBtn" onclick="openPlanComments()" title="Comments">💬 Comentários</button>
         </div>
     </div>
 
@@ -41,5 +42,18 @@ if (typeof htmx === 'undefined') {
 </script>
 <script src="/suite/js/vendor/htmx-json-enc.js"></script>
 <script src="/suite/js/collab.js"></script>
+<script src="/suite/js/collab-comments.js"></script>
 <script src="/suite/js/auth-guard.js"></script>
 <script src="/suite/plan/plan.js"></script>
+<script>
+/* Plan collab comments — open threaded comments for the active board/plan. */
+function openPlanComments() {
+    if (!window.GBCollabComments) return;
+    var title = (document.getElementById("planTitle") && document.getElementById("planTitle").value) || "Project Plan";
+    window.GBCollabComments.open({
+        resourceType: "plan",
+        resourceId: "current",
+        title: "Comments on " + title,
+    });
+}
+</script>

@@ -763,10 +763,41 @@ pub async fn search_records_handler(
 
     let safe_search = search_term.replace('%', "\\%").replace('_', "\\_");
 
+    // Discover the table's text columns so search works on any table shape
+    // (previously hardcoded title/name/description, which 500s on generic tables).
+    #[derive(QueryableByName)]
+    struct TextColRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        column_name: String,
+    }
+
+    let text_cols: Vec<String> = sql_query(
+        "SELECT column_name FROM information_schema.columns \
+         WHERE table_schema = 'public' AND table_name = $1 \
+           AND data_type IN ('text', 'character varying', 'character', 'citext', 'name') \
+         ORDER BY ordinal_position ASC",
+    )
+    .bind::<diesel::sql_types::Text, _>(&table_name)
+    .load::<TextColRow>(&mut conn)
+    .unwrap_or_default()
+    .into_iter()
+    .map(|r| r.column_name)
+    .collect();
+
+    if text_cols.is_empty() {
+        // No searchable text columns — return an empty result instead of 500.
+        return (StatusCode::OK, Json(json!({ "data": Vec::<Value>::new() }))).into_response();
+    }
+
+    let concat = text_cols
+        .iter()
+        .map(|c| format!("COALESCE(t.{c}::text, '')"))
+        .collect::<Vec<_>>()
+        .join(" || ' ' || ");
+
     let query = format!(
-        "SELECT row_to_json(t.*) as data FROM {} t WHERE
-         COALESCE(t.title::text, '') || ' ' || COALESCE(t.name::text, '') || ' ' || COALESCE(t.description::text, '')
-         ILIKE '%' || $1 || '%' LIMIT {}",
+        "SELECT row_to_json(t.*) as data FROM {} t \
+         WHERE {concat} ILIKE '%' || $1 || '%' LIMIT {}",
         table_name, limit
     );
 

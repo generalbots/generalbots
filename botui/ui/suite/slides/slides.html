@@ -85,6 +85,9 @@
             <div class="collaborators" id="collaborators" data-max-avatars="6"></div>
             <span class="gb-connection-status offline" id="gb-conn-status" style="display:none;"><span class="dot"></span><span class="label">offline</span></span>
             <span id="gb-auth-button"></span>
+            <button class="btn-icon" id="commentsBtn" onclick="openSlidesComments()" title="Comments">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+            </button>
             <button class="btn-primary" id="shareBtn" hx-get="/suite/slides/modals/share" hx-vals='{"id":"current","name":"Apresentação"}' hx-target="#modal-container" hx-swap="innerHTML">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>
                 <span>Share</span>
@@ -118,9 +121,22 @@ if (typeof htmx === 'undefined') {
 </script>
 <script src="/suite/js/vendor/htmx-json-enc.js"></script>
 <script src="/suite/js/collab.js"></script>
+<script src="/suite/js/collab-comments.js"></script>
 <script src="/suite/js/auth-guard.js"></script>
 <script src="/suite/slides/modules/01_state.js"></script>
 <script src="/suite/slides/modules/02_handles.js"></script>
 <script src="/suite/slides/modules/03_canvas.js"></script>
 <script src="/suite/slides/modules/04_events.js"></script>
 <script src="/suite/slides/modules/99_init.js"></script>
+<script>
+/* Slides collab comments — open threaded comments for the active deck. */
+function openSlidesComments() {
+    if (!window.GBCollabComments) return;
+    var title = (document.getElementById("presTitle") && document.getElementById("presTitle").value) || "Presentation";
+    window.GBCollabComments.open({
+        resourceType: "slides",
+        resourceId: "current",
+        title: "Comments on " + title,
+    });
+}
+</script>
