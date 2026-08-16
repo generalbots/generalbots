@@ -60,6 +60,11 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
             .add_anonymous_path("/api/suggestions")
             .add_anonymous_path("/api/client-errors")
             .add_anonymous_path("/ws")
+            // Terminal WS: the browser WebSocket API cannot send an
+            // Authorization header, so the upgrade is anonymous and gated by
+            // the session id (?id=...) issued by the authenticated
+            // /api/terminal/create endpoint (a random UUID capability).
+            .add_anonymous_path("/api/terminal/ws")
             .add_anonymous_path("/auth")
             .add_anonymous_path("/webhook/whatsapp")
             .add_anonymous_path("/api/whatsapp/webhook")
