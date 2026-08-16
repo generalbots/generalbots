@@ -62,6 +62,15 @@ impl std::fmt::Display for VibeRunState {
     }
 }
 
+impl VibeRunState {
+    /// True for the terminal states after which the run must never transition
+    /// again. Guards against a late approve/cancel regressing a finished run
+    /// back into a non-terminal state (stale "running" dock).
+    pub fn is_terminal(self) -> bool {
+        matches!(self, Self::Completed | Self::Failed | Self::Cancelled)
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum VibeUseCase {

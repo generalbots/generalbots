@@ -437,7 +437,11 @@ async fn cancel_run(
     }
     let mut runs = api.runs.write().await;
     if let Some(run) = runs.get_mut(&run_id) {
-        run.transition(VibeRunState::Cancelled);
+        // A late cancel must not regress an already-finished run back into
+        // Cancelled (same terminal-clobber class as approve_run below).
+        if !run.state.is_terminal() {
+            run.transition(VibeRunState::Cancelled);
+        }
         let snapshot = run.clone();
         drop(runs);
         if let Err(e) = api.runs_store.save_run(&snapshot) {
@@ -473,7 +477,15 @@ async fn approve_run(
             }
         }
         info!("Vibe run approved: {run_id}");
-        run.transition(VibeRunState::Running);
+        // A late approval must not clobber a terminal state back to Running.
+        // When the approval lands after the loop already finished, the run
+        // would otherwise stay stuck as "running" forever (completed_at stays
+        // set but state regresses) — see the stale run-dock issue. Approve the
+        // pending tool calls regardless, but preserve the terminal state.
+        let was_terminal = run.state.is_terminal();
+        if !was_terminal {
+            run.transition(VibeRunState::Running);
+        }
         let snapshot = run.clone();
         drop(runs);
         if let Err(e) = api.runs_store.save_run(&snapshot) {
@@ -481,7 +493,11 @@ async fn approve_run(
         }
         Json(ActionResponse {
             success: true,
-            message: Some("Pending tool calls approved and run resumed".to_string()),
+            message: Some(if was_terminal {
+                "Run already finished — approval recorded, state unchanged".to_string()
+            } else {
+                "Pending tool calls approved and run resumed".to_string()
+            }),
             error: None,
         })
     } else {
