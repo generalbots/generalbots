@@ -13,7 +13,10 @@ pub struct CrmContact {
     pub org_id: Uuid,
     pub bot_id: Uuid,
     pub branch_id: Uuid,
-    pub first_name: String,
+    /// Nullable in the DB (migration 6.0.7-01-people created it as
+    /// `first_name VARCHAR(255)` without NOT NULL); contacts from external
+    /// syncs or legacy rows can carry NULL, which must not fail deserialization.
+    pub first_name: Option<String>,
     pub last_name: Option<String>,
     pub email: Option<String>,
     pub phone: Option<String>,
