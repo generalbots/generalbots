@@ -9,6 +9,7 @@ use diesel::PgConnection;
 use log::warn;
 use serde::{Deserialize, Serialize};
 
+use crate::import::ImportResult;
 use crate::types::*;
 
 /// Postgres pool shared by every persistence operation. Kept as a concrete
@@ -318,7 +319,18 @@ impl ProjectService {
                     dependency_type,
                     lag_days,
                 };
-                task.dependencies.push(dependency);
+                // Re-linking the same predecessor updates the existing edge
+                // instead of stacking duplicates (a task can only depend on a
+                // predecessor once).
+                if let Some(existing) = task
+                    .dependencies
+                    .iter_mut()
+                    .find(|d| d.predecessor_id == predecessor_id)
+                {
+                    *existing = dependency;
+                } else {
+                    task.dependencies.push(dependency);
+                }
                 task.updated_at = Utc::now();
                 Some(task.clone())
             } else {
@@ -385,6 +397,46 @@ impl ProjectService {
             .filter(|a| a.task_id == task_id)
             .cloned()
             .collect()
+    }
+
+    pub async fn get_assignments_for_project(&self, project_id: Uuid) -> Vec<ResourceAssignment> {
+        let tasks = self.tasks.read().await;
+        let task_ids: std::collections::HashSet<Uuid> = tasks
+            .values()
+            .filter(|t| t.project_id == project_id)
+            .map(|t| t.id)
+            .collect();
+        let assignments = self.assignments.read().await;
+        assignments
+            .values()
+            .filter(|a| task_ids.contains(&a.task_id))
+            .cloned()
+            .collect()
+    }
+
+    /// Insert a whole imported snapshot (project + tasks + resources +
+    /// assignments) in one shot and persist once. The import service already
+    /// assigned ids and scoped `organization_id`/`owner_id`; this just stores
+    /// them verbatim.
+    pub async fn import_data(&self, result: ImportResult) -> ImportResult {
+        {
+            let mut projects = self.projects.write().await;
+            projects.insert(result.project.id, result.project.clone());
+            let mut tasks = self.tasks.write().await;
+            for t in &result.tasks {
+                tasks.insert(t.id, t.clone());
+            }
+            let mut resources = self.resources.write().await;
+            for r in &result.resources {
+                resources.insert(r.id, r.clone());
+            }
+            let mut assignments = self.assignments.write().await;
+            for a in &result.assignments {
+                assignments.insert(a.id, a.clone());
+            }
+        }
+        self.persist_all().await;
+        result
     }
 
     pub async fn assign_resource(

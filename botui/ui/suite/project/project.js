@@ -1,8 +1,13 @@
-let currentView = 'gantt';
-let currentZoom = 'week';
-let currentProjectId = null;
-let currentProjectData = null;
-const taskNameCache = {};
+// Top-level `var` (not `let`/`const`) — the window manager re-injects app
+// scripts every time the Projects window opens, and `let`/`const` throw
+// "Identifier has already been declared" on the second injection.
+var currentView = 'gantt';
+var currentZoom = 'week';
+var currentProjectId = null;
+var currentProjectData = null;
+var taskNameCache = {};
+var currentTasks = [];
+var resourceById = {};
 
 function switchView(view) {
     currentView = view;
@@ -22,6 +27,8 @@ function zoomGantt(level) {
     document.querySelectorAll('.zoom-btn').forEach(btn => {
         btn.classList.toggle('active', btn.textContent.toLowerCase() === level);
     });
+
+    renderGantt(currentTasks, currentZoom);
 }
 
 function toggleCriticalPath() {
@@ -54,6 +61,8 @@ async function loadProjectData(projectId) {
     currentProjectId = projectId;
     document.querySelector('.project-app').classList.add('has-project');
     document.getElementById('add-task-btn').disabled = false;
+    const exportBtn = document.getElementById('project-export-btn');
+    if (exportBtn) exportBtn.disabled = false;
 
     try {
         const resp = await fetch(`/api/projects/${projectId}`);
@@ -65,11 +74,18 @@ async function loadProjectData(projectId) {
         let tasks = [];
         if (tasksResp.ok) tasks = await tasksResp.json();
 
+        const resResp = await fetch(`/api/projects/${projectId}/resources`);
+        let resources = [];
+        if (resResp.ok) resources = await resResp.json();
+        resourceById = {};
+        resources.forEach((r) => { resourceById[r.id] = r.name || r.email || r.id; });
+
         tasks.forEach((t) => { taskNameCache[t.id] = t.name || t.title || t.id; });
+        currentTasks = tasks;
 
         renderProjectHeader(currentProjectData, tasks);
         renderGanttTable(tasks);
-        renderGanttChart(tasks);
+        renderGantt(tasks, currentZoom);
         renderListView(tasks);
         renderBoardView(tasks);
         renderTimelineView(tasks);
@@ -78,6 +94,14 @@ async function loadProjectData(projectId) {
     } catch (e) {
         console.error('Failed to load project data:', e);
     }
+}
+
+/* Resolve a task's assigned_to (Vec<Uuid>) into resource names. */
+function assigneeNames(task) {
+    const ids = task.assigned_to || task.assignedTo || [];
+    if (!ids || !ids.length) return '-';
+    const names = ids.map((id) => resourceById[id] || id).filter(Boolean);
+    return names.length ? names.join(', ') : '-';
 }
 
 async function updateProjectStatus(status) {
@@ -182,38 +206,14 @@ function renderGanttTable(tasks) {
                 <div class="col-end">${task.end_date || task.endDate || ''}</div>
                 <div class="col-duration">${task.duration || '-'}</div>
                 <div class="col-progress"><div class="progress-bar"><div class="progress-fill" style="width:${task.percent_complete || task.percentComplete || 0}%"></div></div></div>
-                <div class="col-assignee">${task.assignee || '-'} <button class="row-comment-btn" onclick="event.stopPropagation(); openProjectTaskComments('${task.id}')" title="Comments">💬</button></div>
+                <div class="col-assignee">${assigneeNames(task)} <button class="row-comment-btn" onclick="event.stopPropagation(); openProjectTaskComments('${task.id}')" title="Comments">💬</button></div>
             </div>
         `;
     }
     body.innerHTML = html;
 }
 
-function renderGanttChart(tasks) {
-    const body = document.getElementById('gantt-chart-body');
-    if (!body) return;
 
-    if (!tasks || tasks.length === 0) {
-        body.innerHTML = '<div class="empty-state-inline"><p>No tasks to display</p></div>';
-        return;
-    }
-
-    generateTimelineHeaders();
-
-    let html = '';
-    for (const task of tasks) {
-        const pct = task.percent_complete || task.percentComplete || 0;
-        const isCritical = task.is_critical ? 'critical' : '';
-        html += `
-            <div class="gantt-bar-row">
-                <div class="gantt-bar ${isCritical}" style="width:${Math.max(pct, 20)}%; min-width:60px;">
-                    <span>${task.name || 'Task'}</span>
-                </div>
-            </div>
-        `;
-    }
-    body.innerHTML = html;
-}
 
 function renderListView(tasks) {
     const container = document.getElementById('list-container');
@@ -230,7 +230,7 @@ function renderListView(tasks) {
             <tr onclick="showTaskDetail('${task.id}')">
                 <td>${task.name || ''}</td>
                 <td><span class="status-badge status-${(task.status || 'not-started').toLowerCase().replace(' ', '-')}">${task.status || 'Not Started'}</span></td>
-                <td>${task.assignee || '-'}</td>
+                <td>${assigneeNames(task)}</td>
                 <td>${task.percent_complete || task.percentComplete || 0}%</td>
                 <td><button class="row-comment-btn" onclick="event.stopPropagation(); openProjectTaskComments('${task.id}')" title="Comments">💬</button></td>
             </tr>
@@ -266,7 +266,7 @@ function renderBoardColumn(containerId, tasks) {
         html += `
             <div class="board-card" onclick="showTaskDetail('${task.id}')" draggable="true">
                 <div class="card-title">${task.name || ''} <button class="row-comment-btn" onclick="event.stopPropagation(); openProjectTaskComments('${task.id}')" title="Comments">💬</button></div>
-                <div class="card-meta">${task.assignee ? '👤 ' + task.assignee : ''}</div>
+                <div class="card-meta">${assigneeNames(task) !== '-' ? '👤 ' + assigneeNames(task) : ''}</div>
                 <div class="card-progress">${task.percent_complete || task.percentComplete || 0}%</div>
             </div>
         `;
@@ -347,9 +347,183 @@ function showTaskDetail(taskId) {
     const panel = document.getElementById('task-details');
     if (!panel) return;
 
-    const tasks = document.querySelectorAll('.gantt-table-row[onclick]');
-    panel.innerHTML = `<p class="empty-message">Task details would appear here (ID: ${taskId})</p>`;
+    const task = currentTasks.find((t) => t.id === taskId);
+    if (!task) {
+        panel.innerHTML = '<p class="empty-message">Task not found</p>';
+        return;
+    }
+
+    const pct = task.percent_complete || task.percentComplete || 0;
+    const deps = task.dependencies || [];
+    const otherTasks = currentTasks.filter((t) => t.id !== taskId);
+
+    let depHtml = '';
+    if (!deps.length) {
+        depHtml = '<p class="empty-message">No dependencies. Link a predecessor below.</p>';
+    } else {
+        depHtml = '<ul class="dep-list">';
+        deps.forEach((d) => {
+            const predName = taskNameCache[d.predecessor_id] || d.predecessor_id;
+            depHtml += `<li class="dep-item"><span>${predName}</span>` +
+                `<span class="dep-type">${d.dependency_type || 'finish_to_start'}</span>` +
+                (d.lag_days ? `<span class="dep-lag">lag ${d.lag_days}d</span>` : '') +
+                `<button class="row-comment-btn" onclick="removeDependency('${taskId}','${d.predecessor_id}')" title="Remove">✕</button></li>`;
+        });
+        depHtml += '</ul>';
+    }
+
+    const predOptions = otherTasks
+        .map((t) => `<option value="${t.id}">${t.name || t.id}</option>`)
+        .join('');
+
+    panel.innerHTML = `
+        <h4 class="td-title">${task.name || 'Task'}</h4>
+        <div class="td-grid">
+            <div><label>Start</label><span>${task.start_date || task.startDate || '-'}</span></div>
+            <div><label>End</label><span>${task.end_date || task.endDate || '-'}</span></div>
+            <div><label>Duration</label><span>${task.duration_days != null ? task.duration_days + 'd' : '-'}</span></div>
+            <div><label>Status</label><span>${task.status || '-'}</span></div>
+            <div><label>Assignee</label><span>${assigneeNames(task)}</span></div>
+        </div>
+        <div class="form-group">
+            <label>Progress: ${pct}%</label>
+            <input type="range" min="0" max="100" value="${pct}"
+                oninput="document.getElementById('td-progress-val').textContent = this.value + '%'"
+                onchange="updateTaskProgress('${taskId}', this.value)" />
+            <span id="td-progress-val" class="td-progress-val">${pct}%</span>
+        </div>
+        <div class="td-section">
+            <h5>Dependencies</h5>
+            ${depHtml}
+            <div class="dep-add">
+                <select id="dep-predecessor" class="form-input">${predOptions}</select>
+                <select id="dep-type" class="form-input">
+                    <option value="finish_to_start">Finish → Start</option>
+                    <option value="start_to_start">Start → Start</option>
+                    <option value="finish_to_finish">Finish → Finish</option>
+                    <option value="start_to_finish">Start → Finish</option>
+                </select>
+                <input type="number" id="dep-lag" class="form-input" value="0" step="1" title="Lag days" />
+                <button class="btn-primary" onclick="addDependency('${taskId}')" ${predOptions ? '' : 'disabled'}>Link</button>
+            </div>
+        </div>
+    `;
     document.getElementById('details-panel').classList.remove('collapsed');
+}
+
+async function addDependency(taskId) {
+    const predecessorId = document.getElementById('dep-predecessor').value;
+    const dependencyType = document.getElementById('dep-type').value;
+    const lagDays = parseInt(document.getElementById('dep-lag').value || '0', 10);
+    if (!predecessorId) return;
+
+    try {
+        const resp = await fetch(`/api/tasks/${taskId}/dependencies`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ predecessor_id: predecessorId, dependency_type: dependencyType, lag_days: lagDays })
+        });
+        if (resp.ok) {
+            await loadProjectData(currentProjectId);
+            showTaskDetail(taskId);
+        } else {
+            alert('Failed to add dependency');
+        }
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+}
+
+async function removeDependency(taskId, predecessorId) {
+    try {
+        const resp = await fetch(`/api/tasks/${taskId}/dependencies/remove`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ predecessor_id: predecessorId })
+        });
+        if (resp.ok) {
+            await loadProjectData(currentProjectId);
+            showTaskDetail(taskId);
+        } else {
+            alert('Failed to remove dependency');
+        }
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+}
+
+async function updateTaskProgress(taskId, pct) {
+    try {
+        const resp = await fetch(`/api/tasks/${taskId}/progress`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ percent_complete: parseInt(pct, 10) })
+        });
+        if (resp.ok) {
+            loadProjectData(currentProjectId);
+        }
+    } catch (e) {
+        console.error('Failed to update progress:', e);
+    }
+}
+
+/* ---- Import (open MPP/XML/CSV/JSON) + Export ---- */
+
+function triggerImportPicker() {
+    const input = document.getElementById('project-import-input');
+    if (input) input.click();
+}
+
+async function handleImportFile(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+
+    const form = new FormData();
+    form.append('file', file);
+
+    try {
+        const resp = await fetch('/api/projects/import', { method: 'POST', body: form });
+        if (resp.ok) {
+            const result = await resp.json();
+            input.value = '';
+            if (result.warnings && result.warnings.length) {
+                alert(result.warnings.map((w) => w.message).join('\n'));
+            }
+            loadProjectList();
+            if (result.project && result.project.id) {
+                selectProject(result.project.id);
+            }
+        } else {
+            const err = await resp.json().catch(() => ({}));
+            alert('Import failed: ' + (err.error || resp.status));
+        }
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
+}
+
+async function exportProject(format) {
+    if (!currentProjectId) { alert('Select a project first'); return; }
+    const fmt = format || 'xml';
+    try {
+        const resp = await fetch(`/api/projects/${currentProjectId}/export?format=${fmt}`);
+        if (!resp.ok) {
+            alert('Export failed: ' + resp.status);
+            return;
+        }
+        const blob = await resp.blob();
+        const name = (currentProjectData && (currentProjectData.name || 'project')) || 'project';
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name + '.' + (fmt === 'mpp' ? 'xml' : fmt);
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    } catch (e) {
+        alert('Error: ' + e.message);
+    }
 }
 
 function showNewTaskForm() {
@@ -364,10 +538,6 @@ function showNewTaskForm() {
                 <div class="form-group">
                     <label>Task Name</label>
                     <input type="text" id="new-task-name" class="form-input" placeholder="Enter task name" />
-                </div>
-                <div class="form-group">
-                    <label>Assignee</label>
-                    <input type="text" id="new-task-assignee" class="form-input" placeholder="Assignee name" />
                 </div>
                 <div class="form-group">
                     <label>Start Date</label>
@@ -493,7 +663,7 @@ async function loadProjectList(query) {
 }
 
 (function(){ var __cb = function() {
-    generateTimelineHeaders();
+    renderGantt(currentTasks, currentZoom);
     loadProjectList();
     // Deep-link support: open contextualized via app://project?project_id=...
     const params = window.__gbAppParams__ || {};
@@ -507,28 +677,3 @@ async function loadProjectList(query) {
         setTimeout(tryOpen, 400);
     }
 }; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
-
-function generateTimelineHeaders() {
-    const header = document.getElementById('gantt-timeline-header');
-    if (!header) return;
-
-    const today = new Date();
-    let html = '';
-
-    for (let i = 0; i < 30; i++) {
-        const date = new Date(today);
-        date.setDate(date.getDate() + i);
-        const day = date.getDate();
-        const dayName = date.toLocaleDateString('en-US', { weekday: 'short' });
-        const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-
-        html += `
-            <div class="timeline-day ${isWeekend ? 'weekend' : ''}" style="width: 40px; text-align: center; padding: 0.5rem 0; border-right: 1px solid var(--border-color);">
-                <div style="font-size: 0.625rem; color: var(--text-muted);">${dayName}</div>
-                <div style="font-size: 0.75rem; font-weight: 600;">${day}</div>
-            </div>
-        `;
-    }
-
-    header.innerHTML = html;
-}
