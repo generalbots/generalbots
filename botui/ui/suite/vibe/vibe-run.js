@@ -115,6 +115,21 @@
 
     /* ------------------------------------------------- repatriation */
 
+    function syncRunDock() {
+        var dock = q("vibeRunDockState");
+        if (!dock || !state.run) return;
+        var label = {
+            pending: "ACTIVE",
+            running: "ACTIVE",
+            awaiting_approval: "APPROVAL",
+            completed: "COMPLETED",
+            failed: "FAILED",
+            cancelled: "CANCELLED",
+        }[String(state.run.state)] || "IDLE";
+        dock.textContent = label;
+        dock.className = "vibe-chip " + chipState(state.run.state);
+    }
+
     function renderRunCard() {
         if (!state.run) return;
         var card = q("vibeRunCard");
@@ -128,6 +143,12 @@
             stateEl.textContent = state.run.state;
             stateEl.className = "vibe-chip " + chipState(state.run.state);
         }
+        // Terminal states freeze the phase and the run-dock ribbon so the
+        // dock never lingers on "PLANNING"/"ACTIVE" after completion.
+        if (["completed", "failed", "cancelled"].indexOf(String(state.run.state)) !== -1) {
+            state.phase = defaultPhase(state.run.state);
+        }
+        syncRunDock();
         var phaseEl = q("vibeRunPhase");
         if (phaseEl) {
             phaseEl.textContent = String(state.phase || defaultPhase(state.run.state)).toUpperCase();

@@ -95,6 +95,30 @@ impl VibeRunStore {
         row.to_vibe_run().ok()
     }
 
+    /// Marks every non-terminal run as failed on boot. After a restart the
+    /// in-memory agent loop that owned those runs is gone, so leaving them in
+    /// `pending`/`running`/`awaiting_approval` would strand them forever.
+    /// Returns the number of runs recovered.
+    pub fn recover_orphaned_runs(&self) -> usize {
+        let mut conn = match self.pool.get() {
+            Ok(conn) => conn,
+            Err(_) => return 0,
+        };
+        diesel::sql_query(
+            "UPDATE vibe_runs \
+             SET state = 'failed', \
+                 error = COALESCE(error, 'interrupted by server restart'), \
+                 completed_at = COALESCE(completed_at, NOW()), \
+                 updated_at = NOW() \
+             WHERE state IN ('pending', 'running', 'awaiting_approval')",
+        )
+        .execute(&mut conn)
+        .unwrap_or_else(|e| {
+            log::warn!("run store: recover_orphaned_runs failed: {e}");
+            0
+        })
+    }
+
     /// Lists stored runs, newest first, bounded by `limit`.
     pub fn list_runs(&self, limit: i64) -> Vec<VibeRun> {
         let mut conn = match self.pool.get() {
