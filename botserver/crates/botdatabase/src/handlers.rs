@@ -618,7 +618,17 @@ pub async fn get_table_data(
             rows.into_iter().map(|r| vec![r.c1, r.c2, r.c3]).collect()
         }
         _ => {
-            return execute_via_postgres(state, &bot_id, &query, page, page_size, count_result.count, pk_column).await;
+            return execute_via_postgres(
+                state,
+                &bot_id,
+                &query,
+                page,
+                page_size,
+                count_result.count,
+                pk_column,
+                col_names,
+            )
+            .await;
         }
     };
 
@@ -756,6 +766,7 @@ async fn execute_via_postgres(
     page_size: i64,
     total_rows: i64,
     pk_column: Option<String>,
+    col_names: Vec<String>,
 ) -> Result<Json<TableDataResponse>, (StatusCode, Json<serde_json::Value>)> {
     let db_url = get_bot_database_url(&state, *bot_id).await?;
     let query = query.to_string();
@@ -766,9 +777,32 @@ async fn execute_via_postgres(
         .map_err(|e: (StatusCode, Json<serde_json::Value>)| e)?;
 
     match result {
-        Ok((columns, rows)) => {
+        Ok((_columns, rows)) => {
+            // The query aliases each column as c1..cN (text-cast); remap the
+            // keys back to the real column names so the grid can address cells
+            // and the PK column by name. Without this, the frontend could not
+            // find `row[pk_column]` and fell back to the row index (0, 1, ...),
+            // producing UPDATE ... WHERE id = '0' (500 on UUID PKs) (#906).
+            let rows: Vec<serde_json::Value> = rows
+                .into_iter()
+                .map(|row| {
+                    let mut obj = serde_json::Map::new();
+                    if let serde_json::Value::Object(map) = row {
+                        for (i, col) in col_names.iter().enumerate() {
+                            let key = format!("c{}", i + 1);
+                            let value = map
+                                .get(&key)
+                                .cloned()
+                                .unwrap_or(serde_json::Value::Null);
+                            obj.insert(col.clone(), value);
+                        }
+                    }
+                    serde_json::Value::Object(obj)
+                })
+                .collect();
+
             Ok(Json(TableDataResponse {
-                columns,
+                columns: col_names,
                 rows,
                 total: total_rows,
                 total_rows,

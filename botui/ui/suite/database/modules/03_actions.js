@@ -81,8 +81,8 @@
             DB.totalCount = data.total != null ? data.total : (data.total_rows != null ? data.total_rows : DB.rows.length);
             DB.pkColumn = data.pk_column || null;
             enrichColumns();
-            DB.rowPks = DB.rows.map(function (row, i) {
-                return DB.pkColumn && row[DB.pkColumn] != null ? String(row[DB.pkColumn]) : String(i);
+            DB.rowPks = DB.rows.map(function (row) {
+                return DB.pkColumn && row[DB.pkColumn] != null ? String(row[DB.pkColumn]) : null;
             });
 
             var count = document.getElementById('db-row-count');
@@ -115,8 +115,8 @@
             DB.rows = data.rows || [];
             DB.totalCount = data.total != null ? data.total : DB.rows.length;
             DB.currentPage = 0;
-            DB.rowPks = DB.rows.map(function (row, i) {
-                return DB.pkColumn && row[DB.pkColumn] != null ? String(row[DB.pkColumn]) : String(i);
+            DB.rowPks = DB.rows.map(function (row) {
+                return DB.pkColumn && row[DB.pkColumn] != null ? String(row[DB.pkColumn]) : null;
             });
             var count = document.getElementById('db-row-count');
             if (count) count.textContent = DB.totalCount + ' rows';
@@ -130,7 +130,7 @@
     DB.deleteRows = async function (indices) {
         var ids = [];
         indices.forEach(function (i) {
-            if (DB.rowPks[i] !== undefined) ids.push(DB.rowPks[i]);
+            if (DB.rowPks[i]) ids.push(DB.rowPks[i]);
         });
         if (!ids.length) return;
         try {
@@ -148,7 +148,7 @@
 
     DB.saveCellValue = async function (col, rowIdx, rawValue) {
         var pk = DB.rowPks[rowIdx];
-        if (pk === undefined) {
+        if (!pk) {
             alert('No primary key available for this row');
             return;
         }
