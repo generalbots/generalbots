@@ -224,6 +224,10 @@ pub static ALL_COMMANDS: &[AppCommand] = &[
     cmd("vdi", "vdi.connect", "Connect VDI", "Connect a virtual desktop session.", &[], None, false),
     cmd("biometry", "biometry.status", "Biometry status", "Report biometric verification status.", &[], None, false),
     cmd("player", "player.streams.list", "List streams", "List media streams.", &[], Some("app://player?media_id={media_id}"), false),
+    cmd("player", "player.playlists.list", "List playlists", "List the user's media playlists.", &[], Some("app://player"), false),
+    cmd("player", "player.playlists.create", "Create playlist", "Create a media playlist.", &[("name", "playlist name")], Some("app://player"), false),
+    cmd("player", "player.playlists.add", "Add to playlist", "Add a media stream to a playlist.", &[("playlist_id", "playlist uuid"), ("media_id", "stream id")], Some("app://player"), false),
+    cmd("player", "player.playlists.play", "Play playlist", "Start playback of a playlist.", &[("playlist_id", "playlist uuid")], Some("app://player"), false),
     // ——— Legacy core commands (kept for backward compatibility: the chat
     // prompt and executors reference these exact names) ———
     cmd("tax", "service.tax", "Calculate service taxes", "Compute Brazilian service taxes for a service value or registered service (IRPJ, CSLL, PIS/COFINS, ISS).", &[("service", "optional service name or id"), ("value", "the service amount; required when no service is given")], None, false),

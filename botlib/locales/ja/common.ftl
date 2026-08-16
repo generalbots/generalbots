@@ -303,7 +303,7 @@ size-terabytes = { $value }TB
 # Pagination
 # -----------------------------------------------------------------------------
 pagination-page = ページ { $current }/{ $total }
-pagination-showing = { $total }中{ $start }から{ $end }を表示中
+pagination-showing = { $total }中 { $start }から{ $end }を表示中
 pagination-items-per-page = ページごとの項目
 pagination-first = まず
 pagination-previous = 前へ

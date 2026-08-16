@@ -551,6 +551,11 @@ async fn inner_build_sub_router(
         );
     }
 
+    #[cfg(feature = "player")]
+    {
+        sub_router = sub_router.merge(crate::player::configure_player_routes().with_state(app_state.clone()));
+    }
+
     #[cfg(feature = "terminal")]
     { sub_router = sub_router.merge(crate::api::terminal::routes::configure_terminal_routes()); }
 

@@ -1,18 +1,38 @@
+//! Media player backend: drive streaming plus persisted playlists.
+//!
+//! Streaming routes read media bytes from the bot's MinIO drive bucket
+//! (`{bot_id}.gbai/{bot_id}.gbdrive/...`) through `AppState.drive`. Playlist
+//! routes persist playlists/items and playback analytics in Postgres via
+//! `AppState.conn`.
+
 use async_trait::async_trait;
 use axum::{
     body::Body,
     extract::{Path, Query, State},
     http::{header, StatusCode},
     response::{IntoResponse, Response},
-    routing::get,
+    routing::{delete, get, patch, post, put},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+use botcore::shared::state::AppState;
+
+pub mod playlists;
+
+/// Byte-level access to drive storage used by the streaming handlers.
 #[async_trait]
 pub trait DriveStore: Send + Sync {
     async fn get_object_bytes(&self, bucket: &str, key: &str) -> Result<Vec<u8>, String>;
+}
+
+/// Reads an object from the app's drive repository. Returns `None` when no
+/// drive backend is configured (suite without drive) so handlers can answer
+/// 503 instead of panicking.
+async fn drive_bytes(state: &Arc<AppState>, bucket: &str, key: &str) -> Option<Vec<u8>> {
+    let drive = state.drive.as_ref()?;
+    drive.get_object(bucket, key).await.ok()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -94,23 +114,20 @@ fn get_format(path: &str) -> String {
 }
 
 async fn get_file_info(
-    State(state): State<Arc<dyn DriveStore>>,
+    State(state): State<Arc<AppState>>,
     Path((bot_id, path)): Path<(String, String)>,
 ) -> Result<Json<MediaInfo>, PlayerError> {
     let filename = path.rsplit('/').next().unwrap_or(&path).to_string();
     let mime_type = get_mime_type(&path).to_string();
     let format = get_format(&path);
 
-    // Fetch the object so `size` reflects the real file (the DriveStore trait
-    // exposes only `get_object_bytes`, so the byte length is the available
-    // size signal). Missing files surface an honest error instead of a fake
-    // zero-byte entry.
+    // Fetch the object so `size` reflects the real file. Missing files
+    // surface an honest error instead of a fake zero-byte entry.
     let full_path = format!("{bot_id}.gbdrive/{path}");
-    let bytes = state
-        .get_object_bytes(&format!("{bot_id}.gbai"), &full_path)
+    let bytes = drive_bytes(&state, &format!("{bot_id}.gbai"), &full_path)
         .await
-        .map_err(|e| PlayerError {
-            error: format!("Failed to get file: {e}"),
+        .ok_or_else(|| PlayerError {
+            error: "Failed to get file".to_string(),
             code: "FILE_NOT_FOUND".to_string(),
         })?;
 
@@ -129,18 +146,17 @@ async fn get_file_info(
 }
 
 async fn stream_file(
-    State(state): State<Arc<dyn DriveStore>>,
+    State(state): State<Arc<AppState>>,
     Path((bot_id, path)): Path<(String, String)>,
     Query(_query): Query<StreamQuery>,
 ) -> Result<Response<Body>, PlayerError> {
     let mime_type = get_mime_type(&path);
     let full_path = format!("{bot_id}.gbdrive/{path}");
 
-    let bytes = state
-        .get_object_bytes(&format!("{bot_id}.gbai"), &full_path)
+    let bytes = drive_bytes(&state, &format!("{bot_id}.gbai"), &full_path)
         .await
-        .map_err(|e| PlayerError {
-            error: format!("Failed to get file: {e}"),
+        .ok_or_else(|| PlayerError {
+            error: "Failed to get file".to_string(),
             code: "FILE_NOT_FOUND".to_string(),
         })?;
 
@@ -158,7 +174,7 @@ async fn stream_file(
 }
 
 async fn get_thumbnail(
-    State(_state): State<Arc<dyn DriveStore>>,
+    State(_state): State<Arc<AppState>>,
     Path((_bot_id, path)): Path<(String, String)>,
     Query(query): Query<ThumbnailQuery>,
 ) -> Result<Response<Body>, PlayerError> {
@@ -189,7 +205,7 @@ async fn get_thumbnail(
 }
 
 async fn get_supported_formats(
-    State(_state): State<Arc<dyn DriveStore>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Json<serde_json::Value> {
     Json(serde_json::json!({
         "video": ["mp4", "webm", "ogv"],
@@ -200,10 +216,38 @@ async fn get_supported_formats(
     }))
 }
 
-pub fn configure_player_routes() -> Router<Arc<dyn DriveStore>> {
+/// Builds the full player router (streaming + playlists) with `AppState`.
+pub fn configure_player_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/player/formats", get(get_supported_formats))
         .route("/api/player/:bot_id/info/*path", get(get_file_info))
         .route("/api/player/:bot_id/stream/*path", get(stream_file))
         .route("/api/player/:bot_id/thumbnail/*path", get(get_thumbnail))
+        .route(
+            "/api/player/playlists",
+            get(playlists::list_playlists).post(playlists::create_playlist),
+        )
+        .route(
+            "/api/player/playlists/{id}",
+            get(playlists::get_playlist)
+                .patch(playlists::update_playlist)
+                .delete(playlists::delete_playlist),
+        )
+        .route(
+            "/api/player/playlists/{id}/items",
+            post(playlists::add_item),
+        )
+        .route(
+            "/api/player/playlists/{id}/items/{item_id}",
+            delete(playlists::remove_item),
+        )
+        .route(
+            "/api/player/playlists/{id}/reorder",
+            put(playlists::reorder_items),
+        )
+        .route(
+            "/api/player/playlists/{id}/analytics",
+            get(playlists::playlist_analytics),
+        )
+        .route("/api/player/playbacks", post(playlists::record_playback))
 }

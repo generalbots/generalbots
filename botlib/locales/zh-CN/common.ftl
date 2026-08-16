@@ -303,7 +303,7 @@ size-terabytes = { $value }TB
 # Pagination
 # -----------------------------------------------------------------------------
 pagination-page = 第 { $current } 页（共 { $total }）
-pagination-showing = 显示 { $start } 至 { $end }（共 { $total }）
+pagination-showing = 显示 { $total } 中的{ $start } 至 { $end }
 pagination-items-per-page = 每页项目数
 pagination-first = 第一
 pagination-previous = 上一页

@@ -170,6 +170,17 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
         ApiEndpoint { method: "POST", path: "/api/meet/rooms/:id/recording/stop", summary: "Stop the active meeting recording" },
         ApiEndpoint { method: "GET", path: "/api/meet/rooms/:id/recordings", summary: "List recordings for a meeting room" },
         ApiEndpoint { method: "GET", path: "/api/meet/recordings/:recording_id/file", summary: "Stream or download a meeting recording file" },
+        // Player / playlists
+        ApiEndpoint { method: "GET", path: "/api/player/playlists", summary: "List media playlists for the current user" },
+        ApiEndpoint { method: "POST", path: "/api/player/playlists", summary: "Create a media playlist" },
+        ApiEndpoint { method: "GET", path: "/api/player/playlists/:id", summary: "Get a playlist with its items" },
+        ApiEndpoint { method: "PUT", path: "/api/player/playlists/:id", summary: "Rename a media playlist" },
+        ApiEndpoint { method: "DELETE", path: "/api/player/playlists/:id", summary: "Delete a media playlist" },
+        ApiEndpoint { method: "POST", path: "/api/player/playlists/:id/items", summary: "Add a media item to a playlist" },
+        ApiEndpoint { method: "DELETE", path: "/api/player/playlists/:id/items/:item_id", summary: "Remove a media item from a playlist" },
+        ApiEndpoint { method: "PUT", path: "/api/player/playlists/:id/reorder", summary: "Reorder playlist items" },
+        ApiEndpoint { method: "GET", path: "/api/player/playlists/:id/analytics", summary: "Playlist analytics: counts, total items, recent activity" },
+        ApiEndpoint { method: "POST", path: "/api/player/playbacks", summary: "Record a media playback event (play, pause, complete)" },
     ]
 }
 
