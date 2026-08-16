@@ -174,6 +174,23 @@ fn internal_error(msg: &str) -> (StatusCode, Json<serde_json::Value>) {
     )
 }
 
+/// Builds the `DEFAULT ...` clause for a column. A UUID primary key with no
+/// explicit default gets `gen_random_uuid()` so the first row insert (which
+/// omits the auto-generated PK) doesn't fail with a not-null violation.
+fn column_default(col: &ColumnDef, data_type: &str) -> String {
+    col.default
+        .as_ref()
+        .map(|d| format!(" DEFAULT {d}"))
+        .unwrap_or_else(|| {
+            let is_uuid_pk = col.primary_key.unwrap_or(false) && data_type.eq_ignore_ascii_case("uuid");
+            if is_uuid_pk {
+                " DEFAULT gen_random_uuid()".to_string()
+            } else {
+                String::new()
+            }
+        })
+}
+
 fn extract_bot_id(headers: &HeaderMap) -> Result<uuid::Uuid, (StatusCode, Json<serde_json::Value>)> {
     if let Some(v) = headers.get("X-Bot-Id").and_then(|v| v.to_str().ok()) {
         let bot_id = uuid::Uuid::parse_str(v)
@@ -1014,11 +1031,7 @@ pub async fn create_table(
                 .unwrap_or(true);
             let null_clause = if nullable { "" } else { " NOT NULL" };
             let pk_clause = if col.primary_key.unwrap_or(false) { " PRIMARY KEY" } else { "" };
-            let default = col
-                .default
-                .as_ref()
-                .map(|d| format!(" DEFAULT {d}"))
-                .unwrap_or_default();
+            let default = column_default(col, &data_type);
             Ok::<String, (StatusCode, Json<serde_json::Value>)>(format!(
                 "    {col_name} {data_type}{null_clause}{pk_clause}{default}"
             ))
@@ -1068,11 +1081,7 @@ pub async fn alter_table(
                 .or_else(|| col.not_null.map(|n| !n))
                 .unwrap_or(true);
             let null_clause = if nullable { "" } else { " NOT NULL" };
-            let default = col
-                .default
-                .as_ref()
-                .map(|d| format!(" DEFAULT {d}"))
-                .unwrap_or_default();
+            let default = column_default(col, &data_type);
 
             let sql = format!(
                 "ALTER TABLE {safe_name} ADD COLUMN IF NOT EXISTS {col_name} {data_type}{null_clause}{default}",
