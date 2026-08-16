@@ -68,21 +68,13 @@ function attachEditorHandlers(host) {
   });
   article.addEventListener("keyup", function () {
     if (window.GBCollab && window.GBCollab.isConnected && window.GBCollab.isConnected()) {
-      var sel = window.getSelection();
-      if (sel && sel.rangeCount) {
-        var range = sel.getRangeAt(0);
-        var start = range.startOffset;
-        var end = range.endOffset;
-        if (start !== end) window.GBCollab.sendSelection(start, end);
-      }
+      var offs = getSelectionCharacterOffsets(article);
+      if (offs.start !== offs.end) window.GBCollab.sendSelection(offs.start, offs.end);
     }
   });
   article.addEventListener("click", function () {
     if (window.GBCollab && window.GBCollab.isConnected && window.GBCollab.isConnected()) {
-      var sel = window.getSelection();
-      if (sel && sel.rangeCount) {
-        window.GBCollab.sendCursor(sel.getRangeAt(0).startOffset);
-      }
+      window.GBCollab.sendCursor(getCaretCharacterOffsetWithin(article));
     }
   });
   updatePageCount();

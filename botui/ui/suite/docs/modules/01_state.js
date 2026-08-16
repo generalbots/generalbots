@@ -30,6 +30,28 @@ function getPlainTextLength(root) {
   return (root.textContent || "").length;
 }
 
+// Global [start,end) character offsets of the current selection within element
+// (mirrors getCaretCharacterOffsetWithin, which returns only the collapsed
+// start). Used to broadcast selection ranges to remote collaborators.
+function getSelectionCharacterOffsets(element) {
+  var doc = element.ownerDocument || document;
+  var win = doc.defaultView || doc.parentWindow;
+  var result = { start: 0, end: 0 };
+  if (win && win.getSelection) {
+    var sel = win.getSelection();
+    if (sel.rangeCount > 0) {
+      var range = sel.getRangeAt(0);
+      var pre = range.cloneRange();
+      pre.selectNodeContents(element);
+      pre.setEnd(range.startContainer, range.startOffset);
+      result.start = pre.toString().length;
+      pre.setEnd(range.endContainer, range.endOffset);
+      result.end = pre.toString().length;
+    }
+  }
+  return result;
+}
+
 function applyDeltaEdit(article, position, content, removeLength) {
   var doc = article.ownerDocument || article.document;
   if (!doc) return;
