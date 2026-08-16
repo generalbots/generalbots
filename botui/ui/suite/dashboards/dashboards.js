@@ -292,26 +292,69 @@
   }
 
   function renderWidgetContent(widget) {
-    // Placeholder rendering - in production, this would render actual charts
-    const icons = {
-      line_chart: "📈",
-      bar_chart: "📊",
-      pie_chart: "🥧",
-      area_chart: "📉",
-      scatter_plot: "⚬",
-      kpi: "🎯",
-      table: "📋",
-      gauge: "⏲️",
-      map: "🗺️",
-      text: "📝",
-    };
+    const cfg = widget.config || {};
+    const chart = cfg.chart_config || {};
+    const series = chart.series || [];
+    const type = widget.widget_type || "line_chart";
 
-    return `
-      <div class="widget-placeholder">
-        <span class="widget-icon">${icons[widget.widget_type] || "📊"}</span>
-        <span class="widget-type">${widget.widget_type}</span>
-      </div>
-    `;
+    if (type === "kpi") {
+      const kpi = cfg.kpi_config || {};
+      const value = kpi.value != null ? kpi.value : "--";
+      return `<div class="widget-kpi"><span class="widget-kpi-value">${escapeHtml(String(value))}</span><span class="widget-kpi-label">${escapeHtml(kpi.label || widget.title || "")}</span></div>`;
+    }
+    if (type === "text") {
+      return `<div class="widget-text">${escapeHtml(cfg.text_content || "")}</div>`;
+    }
+    if (type === "image") {
+      return cfg.image_url
+        ? `<img src="${escapeHtml(cfg.image_url)}" alt="${escapeHtml(widget.title)}" class="widget-image" />`
+        : `<div class="widget-empty">No image configured</div>`;
+    }
+    if (type === "iframe") {
+      return cfg.iframe_url
+        ? `<iframe src="${escapeHtml(cfg.iframe_url)}" class="widget-iframe" title="${escapeHtml(widget.title)}"></iframe>`
+        : `<div class="widget-empty">No URL configured</div>`;
+    }
+    if (type === "table") {
+      const table = cfg.table_config || {};
+      const columns = table.columns || [];
+      if (!columns.length) return `<div class="widget-empty">No columns configured</div>`;
+      return `<div class="widget-table-wrap"><table class="widget-table"><thead><tr>${columns.map(c => `<th>${escapeHtml(c.label || c.field || "")}</th>`).join("")}</tr></thead><tbody></tbody></table></div>`;
+    }
+
+    // Charts: line, bar, area, pie, scatter, gauge
+    const data = widget.data || (widget.latest_data && widget.latest_data.values) || [];
+    const values = Array.isArray(data)
+      ? data.map(d => {
+          const field = series[1] ? series[1].field : (series[0] ? series[0].field : "value");
+          return parseFloat(d && d[field]);
+        }).filter(v => !isNaN(v))
+      : [];
+
+    if (!values.length) {
+      return `<div class="widget-empty">No data yet — configure a data source and refresh.</div>`;
+    }
+
+    const max = Math.max(...values, 1);
+    const bars = values.slice(0, 24).map(v => {
+      const h = Math.round((v / max) * 100);
+      return `<div class="widget-bar" style="height:${h}%" title="${v}"></div>`;
+    }).join("");
+
+    if (type === "pie_chart") {
+      const total = values.reduce((a, b) => a + b, 0) || 1;
+      const segments = values.map((v, i) => {
+        const pct = (v / total) * 100;
+        return `<div class="widget-pie-segment" style="background:${(chart.colors && chart.colors[i]) || "var(--accent,#d4f505)"};width:${pct}%"></div>`;
+      }).join("");
+      return `<div class="widget-pie">${segments}</div>`;
+    }
+    if (type === "gauge") {
+      const pct = Math.min(100, Math.round((values[values.length - 1] || 0) / max * 100));
+      return `<div class="widget-gauge"><span class="widget-gauge-value">${pct}%</span></div>`;
+    }
+
+    return `<div class="widget-chart">${bars}</div>`;
   }
 
   // =============================================================================
@@ -706,13 +749,82 @@
     }
   }
 
+  function closeEditWidgetModal() {
+    const modal = document.getElementById("editWidgetModal");
+    if (modal) modal.style.display = "none";
+  }
+
+  async function saveWidgetEdit() {
+    if (!state.currentDashboard) return;
+    const widgetId = document.getElementById("editWidgetId").value;
+    if (!widgetId) {
+      showNotification("Widget not found", "error");
+      return;
+    }
+    const width = parseInt(document.getElementById("editWidgetWidth").value, 10);
+    const height = parseInt(document.getElementById("editWidgetHeight").value, 10);
+    if (isNaN(width) || isNaN(height) || width < 1 || height < 1) {
+      showNotification("Width and height must be positive numbers", "error");
+      return;
+    }
+    const widget = (state.widgets || []).find((w) => w.id === widgetId);
+    const pos = (widget && widget.position) || { x: 0, y: 0, width: 4, height: 2 };
+    const series = [
+      {
+        name: document.getElementById("editWidgetYAxis").value || "Value",
+        field: document.getElementById("editWidgetYAxis").value || "value",
+      },
+    ];
+    const data = {
+      title: document.getElementById("editWidgetTitle").value || "Untitled Widget",
+      position: {
+        x: pos.x || 0,
+        y: pos.y || 0,
+        width,
+        height,
+      },
+      config: {
+        chart_config: {
+          x_axis: document.getElementById("editWidgetXAxis").value || null,
+          y_axis: document.getElementById("editWidgetYAxis").value || null,
+          series,
+        },
+      },
+    };
+    try {
+      const response = await fetch(
+        `/api/dashboards/${state.currentDashboard.id}/widgets/${widgetId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
+        },
+      );
+      if (response.ok) {
+        showNotification("Widget updated", "success");
+        closeEditWidgetModal();
+        openDashboard(state.currentDashboard.id);
+      } else {
+        const body = await response.json().catch(() => null);
+        showNotification((body && body.error) || "Failed to update widget", "error");
+      }
+    } catch (e) {
+      console.error("Failed to update widget:", e);
+      showNotification("Failed to update widget", "error");
+    }
+  }
+
   async function removeWidget(widgetId) {
     if (!confirm("Remove this widget?")) return;
+    if (!state.currentDashboard) return;
 
     try {
-      const response = await fetch(`/api/dashboards/widgets/${widgetId}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/dashboards/${state.currentDashboard.id}/widgets/${widgetId}`,
+        {
+          method: "DELETE",
+        },
+      );
 
       if (response.ok) {
         showNotification("Widget removed", "success");
