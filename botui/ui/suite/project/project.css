@@ -404,6 +404,25 @@
     cursor: pointer;
 }
 
+.btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.row-comment-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 2px 4px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.row-comment-btn:hover {
+    opacity: 1;
+}
+
 .loading-placeholder {
     color: var(--text-muted);
     font-size: 0.875rem;

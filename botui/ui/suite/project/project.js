@@ -2,6 +2,7 @@ let currentView = 'gantt';
 let currentZoom = 'week';
 let currentProjectId = null;
 let currentProjectData = null;
+const taskNameCache = {};
 
 function switchView(view) {
     currentView = view;
@@ -64,14 +65,51 @@ async function loadProjectData(projectId) {
         let tasks = [];
         if (tasksResp.ok) tasks = await tasksResp.json();
 
+        tasks.forEach((t) => { taskNameCache[t.id] = t.name || t.title || t.id; });
+
         renderProjectHeader(currentProjectData, tasks);
         renderGanttTable(tasks);
         renderGanttChart(tasks);
         renderListView(tasks);
         renderBoardView(tasks);
+        bindProjectCommentsBadge();
     } catch (e) {
         console.error('Failed to load project data:', e);
     }
+}
+
+function openProjectComments() {
+    if (!currentProjectId) return;
+    const name = (currentProjectData && (currentProjectData.name || currentProjectData.title)) || 'Project';
+    if (typeof GBCollabComments === 'undefined') return;
+    GBCollabComments.open({
+        resourceType: 'project',
+        resourceId: String(currentProjectId),
+        includeChildren: true,
+        title: 'Comments on ' + name
+    });
+}
+
+function openProjectTaskComments(taskId) {
+    if (typeof GBCollabComments === 'undefined') return;
+    const name = taskNameCache[taskId] || 'Task';
+    GBCollabComments.open({
+        resourceType: 'project:task',
+        resourceId: String(taskId),
+        title: 'Comments on ' + name
+    });
+}
+
+function bindProjectCommentsBadge() {
+    const btn = document.getElementById('projectCommentsBtn');
+    if (!btn || !currentProjectId) return;
+    btn.disabled = false;
+    if (typeof GBCollabComments === 'undefined') return;
+    GBCollabComments.bindBadge(btn, {
+        resourceType: 'project',
+        resourceId: String(currentProjectId),
+        includeChildren: true
+    });
 }
 
 function selectProject(projectId) {
@@ -116,7 +154,7 @@ function renderGanttTable(tasks) {
                 <div class="col-end">${task.end_date || task.endDate || ''}</div>
                 <div class="col-duration">${task.duration || '-'}</div>
                 <div class="col-progress"><div class="progress-bar"><div class="progress-fill" style="width:${task.percent_complete || task.percentComplete || 0}%"></div></div></div>
-                <div class="col-assignee">${task.assignee || '-'}</div>
+                <div class="col-assignee">${task.assignee || '-'} <button class="row-comment-btn" onclick="event.stopPropagation(); openProjectTaskComments('${task.id}')" title="Comments">💬</button></div>
             </div>
         `;
     }
@@ -166,6 +204,7 @@ function renderListView(tasks) {
                 <td><span class="status-badge status-${(task.status || 'not-started').toLowerCase().replace(' ', '-')}">${task.status || 'Not Started'}</span></td>
                 <td>${task.assignee || '-'}</td>
                 <td>${task.percent_complete || task.percentComplete || 0}%</td>
+                <td><button class="row-comment-btn" onclick="event.stopPropagation(); openProjectTaskComments('${task.id}')" title="Comments">💬</button></td>
             </tr>
         `;
     }
@@ -198,7 +237,7 @@ function renderBoardColumn(containerId, tasks) {
     for (const task of tasks) {
         html += `
             <div class="board-card" onclick="showTaskDetail('${task.id}')" draggable="true">
-                <div class="card-title">${task.name || ''}</div>
+                <div class="card-title">${task.name || ''} <button class="row-comment-btn" onclick="event.stopPropagation(); openProjectTaskComments('${task.id}')" title="Comments">💬</button></div>
                 <div class="card-meta">${task.assignee ? '👤 ' + task.assignee : ''}</div>
                 <div class="card-progress">${task.percent_complete || task.percentComplete || 0}%</div>
             </div>
