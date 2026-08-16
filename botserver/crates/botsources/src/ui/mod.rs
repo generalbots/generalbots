@@ -430,7 +430,6 @@ loadSources();
 
 function addSource() {
 if (currentTab === 'mcp') { window.location = '/suite/sources/mcp/add'; }
-else if (currentTab === 'repos') { window.location = '/suite/sources/repos/connect'; }
 else { openAddModal(); }
 }
 

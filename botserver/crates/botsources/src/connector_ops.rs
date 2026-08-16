@@ -58,7 +58,7 @@ pub fn store_secrets(
     if secrets.is_empty() {
         return;
     }
-    if !manager.is_configured() {
+    if !manager.is_enabled() {
         log::warn!(
             "connector secrets for {path} not vaulted: Vault is not configured"
         );
@@ -80,7 +80,7 @@ pub fn store_secrets(
 
 /// Reads the vaulted secrets for a connector, if any.
 pub fn load_secrets(manager: &SecretsManager, path: &str) -> HashMap<String, String> {
-    if !manager.is_configured() || path.is_empty() {
+    if !manager.is_enabled() || path.is_empty() {
         return HashMap::new();
     }
     let rt = tokio::runtime::Builder::new_current_thread()
