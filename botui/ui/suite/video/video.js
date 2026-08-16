@@ -17,6 +17,7 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 
 function showToast(message, type = 'success') {
   const toast = document.getElementById('toast');
+  if (!toast) return;
   toast.textContent = message;
   toast.className = `toast ${type} show`;
   setTimeout(() => toast.classList.remove('show'), 3000);
@@ -37,6 +38,9 @@ function formatTime(dateStr) {
 
 function renderCameras(cameras) {
   const grid = document.getElementById('camerasGrid');
+  // The desktop window manager removes the app DOM on close while the
+  // polling interval keeps firing; no-op instead of throwing (#908).
+  if (!grid) return;
   if (!cameras.length) {
     grid.innerHTML = '<div class="loading">Nenhuma câmera cadastrada</div>';
     return;
@@ -62,6 +66,7 @@ function renderCameras(cameras) {
 
 function renderAlerts(alerts) {
   const list = document.getElementById('alertsList');
+  if (!list) return;
   if (!alerts.length) {
     list.innerHTML = '<div class="loading">Nenhum alerta registrado</div>';
     return;
@@ -80,6 +85,7 @@ function renderAlerts(alerts) {
 
 function renderAnalytics(analytics) {
   const list = document.getElementById('analyticsList');
+  if (!list) return;
   const items = [
     { label: 'Detecções Hoje', value: analytics.detections_today || analytics.detecoes_hoje || 0 },
     { label: 'Uptime', value: `${analytics.uptime || 0}%` },
@@ -93,10 +99,14 @@ function renderAnalytics(analytics) {
     </div>
   `).join('');
 
-  document.getElementById('statDetections').textContent = analytics.detections_today || analytics.detecoes_hoje || 0;
-  document.getElementById('statUptime').textContent = `${analytics.uptime || 0}%`;
-  document.getElementById('statStorage').textContent = `${analytics.storage_used || analytics.armazenamento || 0} GB`;
-  document.getElementById('statCamerasActive').textContent = analytics.cameras_online || 0;
+  const statDetections = document.getElementById('statDetections');
+  const statUptime = document.getElementById('statUptime');
+  const statStorage = document.getElementById('statStorage');
+  const statCamerasActive = document.getElementById('statCamerasActive');
+  if (statDetections) statDetections.textContent = analytics.detections_today || analytics.detecoes_hoje || 0;
+  if (statUptime) statUptime.textContent = `${analytics.uptime || 0}%`;
+  if (statStorage) statStorage.textContent = `${analytics.storage_used || analytics.armazenamento || 0} GB`;
+  if (statCamerasActive) statCamerasActive.textContent = analytics.cameras_online || 0;
 }
 
 async function loadCameras() {
@@ -172,14 +182,20 @@ async function addCamera() {
   }
 }
 
-document.getElementById('btnAddCamera').addEventListener('click', () => {
+const btnAddCamera = document.getElementById('btnAddCamera');
+const btnSaveCamera = document.getElementById('btnSaveCamera');
+const btnRefreshCameras = document.getElementById('btnRefreshCameras');
+const btnRefreshAlerts = document.getElementById('btnRefreshAlerts');
+if (btnAddCamera) btnAddCamera.addEventListener('click', () => {
   document.getElementById('addCameraModal').classList.add('active');
 });
-
-document.getElementById('btnSaveCamera').addEventListener('click', addCamera);
-document.getElementById('btnRefreshCameras').addEventListener('click', loadCameras);
-document.getElementById('btnRefreshAlerts').addEventListener('click', loadAlerts);
+if (btnSaveCamera) btnSaveCamera.addEventListener('click', addCamera);
+if (btnRefreshCameras) btnRefreshCameras.addEventListener('click', loadCameras);
+if (btnRefreshAlerts) btnRefreshAlerts.addEventListener('click', loadAlerts);
 
 loadAll();
-setInterval(loadAlerts, 30000);
+// Re-opening the app re-injects this script; drop any previous poll so
+// closed windows do not keep piling up intervals against a removed DOM.
+if (window.__videoPollTimer) clearInterval(window.__videoPollTimer);
+window.__videoPollTimer = setInterval(loadAlerts, 30000);
 })();
