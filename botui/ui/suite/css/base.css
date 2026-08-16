@@ -1705,6 +1705,43 @@ a:focus-visible {
 }
 
 /* ============================================ */
+/* RTL SUPPORT (design tokens, no hardcoded LTR) */
+/* ============================================ */
+/* The document `dir` attribute is set by i18n.js based on the active
+   locale (ar/he/fa/ur render right-to-left). Layout primitives below
+   mirror to logical flow without rewriting component styles. */
+
+[dir="rtl"] body,
+[dir="rtl"] .app-container,
+[dir="rtl"] .panel {
+    direction: rtl;
+    text-align: right;
+}
+
+[dir="rtl"] .text-left {
+    text-align: right;
+}
+
+[dir="rtl"] .text-right {
+    text-align: left;
+}
+
+[dir="rtl"] .mr-auto {
+    margin-left: auto;
+    margin-right: 0;
+}
+
+[dir="rtl"] .ml-auto {
+    margin-right: auto;
+    margin-left: 0;
+}
+
+[dir="rtl"] input,
+[dir="rtl"] textarea {
+    text-align: right;
+}
+
+/* ============================================ */
 /* RESPONSIVE                                   */
 /* ============================================ */
 

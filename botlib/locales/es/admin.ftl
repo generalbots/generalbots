@@ -1,11 +1,11 @@
 # =============================================================================
-# General Bots - Traducciones de Administración (Español)
+# General Bots - Admin Translations (English)
 # =============================================================================
-# Traducciones de la interfaz administrativa para el Panel de Admin de GB
+# Administrative interface translations for the GB Admin Panel
 # =============================================================================
 
 # -----------------------------------------------------------------------------
-# Navegación y Panel de Administración
+# Admin Navigation & Dashboard
 # -----------------------------------------------------------------------------
 admin-title = Administración
 admin-dashboard = Panel de Administración
@@ -28,7 +28,7 @@ admin-nav-dns = DNS
 admin-nav-system = Sistema
 
 # -----------------------------------------------------------------------------
-# Acciones Rápidas de Admin
+# Admin Quick Actions
 # -----------------------------------------------------------------------------
 admin-quick-actions = Acciones Rápidas
 admin-create-user = Crear Usuario
@@ -38,7 +38,7 @@ admin-recent-activity = Actividad Reciente
 admin-system-health = Salud del Sistema
 
 # -----------------------------------------------------------------------------
-# Gestión de Usuarios
+# User Management
 # -----------------------------------------------------------------------------
 admin-users-title = Gestión de Usuarios
 admin-users-list = Lista de Usuarios
@@ -69,7 +69,7 @@ admin-users-bulk-actions = Acciones Masivas
 admin-users-select-all = Seleccionar Todo
 admin-users-deselect-all = Deseleccionar Todo
 
-# Detalles de Usuario
+# User Details
 admin-user-details = Detalles del Usuario
 admin-user-profile = Perfil
 admin-user-email = Correo Electrónico
@@ -97,7 +97,7 @@ admin-user-enable-2fa = Habilitar 2FA
 admin-user-disable-2fa = Deshabilitar 2FA
 
 # -----------------------------------------------------------------------------
-# Gestión de Grupos
+# Group Management
 # -----------------------------------------------------------------------------
 admin-groups-title = Gestión de Grupos
 admin-groups-subtitle = Administra grupos, miembros y permisos
@@ -117,7 +117,7 @@ admin-groups-saved = Grupo guardado exitosamente
 admin-groups-created = Grupo creado exitosamente
 admin-groups-loading = Cargando grupos...
 
-# Detalles de Grupo
+# Group Details
 admin-group-details = Detalles del Grupo
 admin-group-name = Nombre del Grupo
 admin-group-description = Descripción
@@ -131,8 +131,8 @@ admin-group-join-request = Solicitar Unirse
 admin-group-join-open = Abierto
 admin-group-members = Miembros
 admin-group-member-count = { $count ->
-    [one] { $count } miembro
-   *[other] { $count } miembros
+    [one] { $count } member
+   *[other] { $count } members
 }
 admin-group-add-member = Agregar Miembro
 admin-group-remove-member = Eliminar Miembro
@@ -141,13 +141,13 @@ admin-group-settings = Configuración
 admin-group-analytics = Analíticas
 admin-group-overview = Resumen
 
-# Modos de Vista de Grupos
+# Group View Modes
 admin-groups-view-grid = Vista de Cuadrícula
 admin-groups-view-list = Vista de Lista
 admin-groups-all-visibility = Toda Visibilidad
 
 # -----------------------------------------------------------------------------
-# Gestión de DNS
+# DNS Management
 # -----------------------------------------------------------------------------
 admin-dns-title = Gestión de DNS
 admin-dns-subtitle = Registra y administra nombres de host DNS para tus bots
@@ -162,7 +162,7 @@ admin-dns-deleted = Nombre de host eliminado exitosamente
 admin-dns-saved = Registro DNS guardado exitosamente
 admin-dns-created = Nombre de host registrado exitosamente
 
-# Campos del Formulario DNS
+# DNS Form Fields
 admin-dns-hostname = Nombre de Host
 admin-dns-hostname-placeholder = mibot.ejemplo.com
 admin-dns-hostname-help = Ingresa el nombre de dominio completo que deseas registrar
@@ -183,7 +183,7 @@ admin-dns-target-help-aaaa = Ingresa la dirección IPv6 a la que apuntar
 admin-dns-target-help-cname = Ingresa el nombre de dominio destino
 admin-dns-auto-ssl = Aprovisionar certificado SSL automáticamente
 
-# Encabezados de Tabla DNS
+# DNS Table Headers
 admin-dns-col-hostname = Nombre de Host
 admin-dns-col-type = Tipo
 admin-dns-col-target = Destino
@@ -192,7 +192,7 @@ admin-dns-col-ssl = SSL
 admin-dns-col-status = Estado
 admin-dns-col-actions = Acciones
 
-# Estado DNS
+# DNS Status
 admin-dns-status-active = Activo
 admin-dns-status-pending = Pendiente
 admin-dns-status-error = Error
@@ -200,7 +200,7 @@ admin-dns-ssl-enabled = SSL Habilitado
 admin-dns-ssl-disabled = Sin SSL
 admin-dns-ssl-pending = SSL Pendiente
 
-# Tarjetas de Ayuda DNS
+# DNS Info Cards
 admin-dns-help-title = Ayuda de Configuración DNS
 admin-dns-help-a-record = Registro A
 admin-dns-help-a-record-desc = Mapea un nombre de dominio a una dirección IPv4. Úsalo para apuntar tu nombre de host directamente a una IP de servidor.
@@ -211,13 +211,13 @@ admin-dns-help-cname-record-desc = Crea un alias de un dominio a otro. Útil par
 admin-dns-help-ssl = SSL/TLS
 admin-dns-help-ssl-desc = Aprovisiona automáticamente certificados Let's Encrypt para conexiones HTTPS seguras.
 
-# Modales de Editar/Eliminar DNS
+# DNS Edit/Remove Modals
 admin-dns-edit-title = Editar Registro DNS
 admin-dns-remove-title = Eliminar Nombre de Host
 admin-dns-remove-warning = Esto eliminará el registro DNS y cualquier certificado SSL asociado. El nombre de host ya no resolverá.
 
 # -----------------------------------------------------------------------------
-# Gestión de Bots
+# Bot Management
 # -----------------------------------------------------------------------------
 admin-bots-title = Gestión de Bots
 admin-bots-list = Lista de Bots
@@ -248,125 +248,7 @@ admin-bots-templates = Plantillas
 admin-bots-dialogs = Diálogos
 admin-bots-knowledge-base = Base de Conocimiento
 
-# Detalles del Bot
-admin-bot-details = Detalles del Bot
-admin-bot-name = Nombre del Bot
-admin-bot-description = Descripción
-admin-bot-avatar = Avatar
-admin-bot-status = Estado
-admin-bot-status-active = Activo
-admin-bot-status-inactive = Inactivo
-admin-bot-status-draft = Borrador
-admin-bot-status-published = Publicado
-admin-bot-language = Idioma
-admin-bot-timezone = Zona Horaria
-admin-bot-welcome-message = Mensaje de Bienvenida
-admin-bot-fallback-message = Mensaje de Respaldo
-admin-bot-channels = Canales
-admin-bot-integrations = Integraciones
-admin-bot-settings = Configuración
-admin-bot-permissions = Permisos
-admin-bot-analytics = Analíticas
-admin-bot-usage = Uso
-admin-bot-conversations-count = { $count ->
-    [one] { $count } conversación
-   *[other] { $count } conversaciones
-}
-
-# -----------------------------------------------------------------------------
-# Gestión de Inquilinos
-# -----------------------------------------------------------------------------
-admin-tenants-title = Gestión de Inquilinos
-admin-tenants-list = Lista de Inquilinos
-admin-tenants-add = Agregar Inquilino
-admin-tenants-edit = Editar Inquilino
-admin-tenants-delete = Eliminar Inquilino
-admin-tenants-search = Buscar inquilinos...
-admin-tenants-no-tenants = No se encontraron inquilinos
-admin-tenants-confirm-delete = ¿Estás seguro de que deseas eliminar este inquilino?
-admin-tenants-deleted = Inquilino eliminado exitosamente
-admin-tenants-saved = Inquilino guardado exitosamente
-
-# -----------------------------------------------------------------------------
-# Configuración del Sistema
-# -----------------------------------------------------------------------------
-admin-settings-title = Configuración del Sistema
-admin-settings-general = General
-admin-settings-security = Seguridad
-admin-settings-email = Correo Electrónico
-admin-settings-storage = Almacenamiento
-admin-settings-integrations = Integraciones
-admin-settings-api = API
-admin-settings-webhooks = Webhooks
-admin-settings-branding = Marca
-admin-settings-saved = Configuración guardada exitosamente
-
-# -----------------------------------------------------------------------------
-# Registros y Monitoreo
-# -----------------------------------------------------------------------------
-admin-logs-title = Registros del Sistema
-admin-logs-filter = Filtrar Registros
-admin-logs-level = Nivel
-admin-logs-level-all = Todos
-admin-logs-level-debug = Depuración
-admin-logs-level-info = Información
-admin-logs-level-warn = Advertencia
-admin-logs-level-error = Error
-admin-logs-search = Buscar registros...
-admin-logs-refresh = Actualizar
-admin-logs-export = Exportar Registros
-admin-logs-clear = Limpiar Registros
-admin-logs-no-logs = No se encontraron registros
-admin-logs-timestamp = Marca de Tiempo
-admin-logs-message = Mensaje
-admin-logs-source = Fuente
-
-# -----------------------------------------------------------------------------
-# Seguridad
-# -----------------------------------------------------------------------------
-admin-security-title = Configuración de Seguridad
-admin-security-2fa = Autenticación de Dos Factores
-admin-security-2fa-required = Requerir 2FA para todos los usuarios
-admin-security-password-policy = Política de Contraseñas
-admin-security-password-min-length = Longitud Mínima
-admin-security-password-require-uppercase = Requerir Mayúsculas
-admin-security-password-require-lowercase = Requerir Minúsculas
-admin-security-password-require-numbers = Requerir Números
-admin-security-password-require-symbols = Requerir Símbolos
-admin-security-session-timeout = Tiempo de Espera de Sesión
-admin-security-ip-whitelist = Lista Blanca de IP
-admin-security-audit-log = Registro de Auditoría
-admin-security-api-keys = Claves de API
-
-# -----------------------------------------------------------------------------
-# Integraciones
-# -----------------------------------------------------------------------------
-admin-integrations-title = Integraciones
-admin-integrations-available = Integraciones Disponibles
-admin-integrations-connected = Integraciones Conectadas
-admin-integrations-connect = Conectar
-admin-integrations-disconnect = Desconectar
-admin-integrations-configure = Configurar
-admin-integrations-status-connected = Conectado
-admin-integrations-status-disconnected = Desconectado
-admin-integrations-status-error = Error
-admin-integrations-no-integrations = No hay integraciones configuradas
-
-# -----------------------------------------------------------------------------
-# Facturación
-# -----------------------------------------------------------------------------
-admin-billing-title = Facturación
-admin-billing-current-plan = Plan Actual
-admin-billing-usage = Uso
-admin-billing-invoices = Facturas
-admin-billing-payment-methods = Métodos de Pago
-admin-billing-upgrade = Mejorar Plan
-admin-billing-downgrade = Reducir Plan
-admin-billing-cancel = Cancelar Suscripción
-
-# -----------------------------------------------------------------------------
-# Gestión de Bots (continuación - Detalles)
-# -----------------------------------------------------------------------------
+# Bot Details
 admin-bot-details = Detalles del Bot
 admin-bot-name = Nombre del Bot
 admin-bot-description = Descripción
@@ -388,7 +270,7 @@ admin-bot-max-tokens = Máx Tokens
 admin-bot-system-prompt = Prompt del Sistema
 
 # -----------------------------------------------------------------------------
-# Gestión de Inquilinos (continuación - Detalles)
+# Tenant Management
 # -----------------------------------------------------------------------------
 admin-tenants-title = Gestión de Inquilinos
 admin-tenants-list = Lista de Inquilinos
@@ -405,7 +287,7 @@ admin-tenants-confirm-delete = ¿Estás seguro de que deseas eliminar este inqui
 admin-tenants-deleted = Inquilino eliminado exitosamente
 admin-tenants-saved = Inquilino guardado exitosamente
 
-# Detalles del Inquilino
+# Tenant Details
 admin-tenant-details = Detalles del Inquilino
 admin-tenant-name = Nombre del Inquilino
 admin-tenant-domain = Dominio
@@ -422,7 +304,7 @@ admin-tenant-limits = Límites de Uso
 admin-tenant-billing = Información de Facturación
 
 # -----------------------------------------------------------------------------
-# Configuración del Sistema (continuación)
+# System Settings
 # -----------------------------------------------------------------------------
 admin-settings-title = Configuración del Sistema
 admin-settings-general = Configuración General
@@ -440,7 +322,7 @@ admin-settings-saved = Configuración guardada exitosamente
 admin-settings-reset = Restablecer a Predeterminados
 admin-settings-confirm-reset = ¿Estás seguro de que deseas restablecer toda la configuración a los valores predeterminados?
 
-# Configuración General
+# General Settings
 admin-settings-site-name = Nombre del Sitio
 admin-settings-site-url = URL del Sitio
 admin-settings-admin-email = Correo del Administrador
@@ -451,7 +333,7 @@ admin-settings-date-format = Formato de Fecha
 admin-settings-time-format = Formato de Hora
 admin-settings-currency = Moneda
 
-# Configuración de Correo
+# Email Settings
 admin-settings-smtp-host = Servidor SMTP
 admin-settings-smtp-port = Puerto SMTP
 admin-settings-smtp-user = Usuario SMTP
@@ -463,7 +345,7 @@ admin-settings-smtp-test = Enviar Correo de Prueba
 admin-settings-smtp-test-success = Correo de prueba enviado exitosamente
 admin-settings-smtp-test-failed = Error al enviar correo de prueba
 
-# Configuración de Almacenamiento
+# Storage Settings
 admin-settings-storage-provider = Proveedor de Almacenamiento
 admin-settings-storage-local = Almacenamiento Local
 admin-settings-storage-s3 = Amazon S3
@@ -477,7 +359,7 @@ admin-settings-storage-secret-key = Clave Secreta
 admin-settings-storage-endpoint = URL del Endpoint
 
 # -----------------------------------------------------------------------------
-# Registros del Sistema
+# System Logs
 # -----------------------------------------------------------------------------
 admin-logs-title = Registros del Sistema
 admin-logs-search = Buscar registros...
@@ -504,7 +386,7 @@ admin-logs-message = Mensaje
 admin-logs-details = Detalles
 
 # -----------------------------------------------------------------------------
-# Analíticas
+# Analytics
 # -----------------------------------------------------------------------------
 admin-analytics-title = Analíticas
 admin-analytics-overview = Resumen
@@ -531,7 +413,7 @@ admin-analytics-satisfaction-rate = Tasa de Satisfacción
 admin-analytics-resolution-rate = Tasa de Resolución
 
 # -----------------------------------------------------------------------------
-# Seguridad
+# Security
 # -----------------------------------------------------------------------------
 admin-security-title = Seguridad
 admin-security-overview = Resumen de Seguridad
@@ -547,7 +429,7 @@ admin-security-2fa = Autenticación de Dos Factores
 admin-security-sso = Inicio de Sesión Único
 admin-security-password-policy = Política de Contraseñas
 
-# Claves API
+# API Keys
 admin-api-keys-title = Claves API
 admin-api-keys-add = Crear Clave API
 admin-api-keys-name = Nombre de la Clave
@@ -566,7 +448,7 @@ admin-api-keys-copied = ¡Copiado!
 admin-api-keys-warning = ¡Asegúrate de copiar tu clave API ahora. No podrás verla de nuevo!
 
 # -----------------------------------------------------------------------------
-# Facturación (continuación)
+# Billing
 # -----------------------------------------------------------------------------
 admin-billing-title = Facturación
 admin-billing-overview = Resumen de Facturación
@@ -586,7 +468,7 @@ admin-billing-invoice-overdue = Vencido
 admin-billing-invoice-download = Descargar Factura
 
 # -----------------------------------------------------------------------------
-# Respaldo y Restauración
+# Backup & Restore
 # -----------------------------------------------------------------------------
 admin-backup-title = Respaldo y Restauración
 admin-backup-create = Crear Respaldo
@@ -608,7 +490,7 @@ admin-backup-restore-completed = Restauración completada exitosamente
 admin-backup-restore-failed = Restauración fallida
 
 # -----------------------------------------------------------------------------
-# Modo Mantenimiento
+# Maintenance Mode
 # -----------------------------------------------------------------------------
 admin-maintenance-title = Modo Mantenimiento
 admin-maintenance-enable = Habilitar Modo Mantenimiento
@@ -622,7 +504,7 @@ admin-maintenance-allowed-ips = Direcciones IP Permitidas
 admin-maintenance-confirm-enable = ¿Estás seguro de que deseas habilitar el modo mantenimiento? Los usuarios no podrán acceder al sistema.
 
 # -----------------------------------------------------------------------------
-# Elementos Comunes de la UI de Admin
+# Common Admin UI Elements
 # -----------------------------------------------------------------------------
 admin-required = Requerido
 admin-optional = Opcional
@@ -658,18 +540,18 @@ admin-success = Éxito
 admin-warning = Advertencia
 admin-info = Información
 
-# Paginación de Tabla
+# Table Pagination
 admin-showing = Mostrando { $from } a { $to } de { $total } resultados
 admin-page = Página { $current } de { $total }
 admin-items-per-page = Elementos por página
 admin-go-to-page = Ir a la página
 
-# Acciones Masivas
+# Bulk Actions
 admin-bulk-delete = Eliminar Seleccionados
 admin-bulk-export = Exportar Seleccionados
 admin-bulk-activate = Activar Seleccionados
 admin-bulk-deactivate = Desactivar Seleccionados
 admin-selected-count = { $count ->
-[one] { $count } elemento seleccionado
-*[other] { $count } elementos seleccionados
+    [one] { $count } item selected
+   *[other] { $count } items selected
 }

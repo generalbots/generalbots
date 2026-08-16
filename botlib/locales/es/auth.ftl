@@ -1,7 +1,7 @@
 # =============================================================================
-# General Bots - Authentication Translations (Spanish)
+# General Bots - Authentication Translations (English)
 # =============================================================================
-# Traducciones de autenticación, Passkey/WebAuthn y seguridad
+# Authentication, Passkey/WebAuthn, and security interface translations
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -82,8 +82,8 @@ passkey-login-try-another = Probar otro método
 passkey-manage-title = Gestionar Llaves de Acceso
 passkey-manage-subtitle = Ver y gestionar tus llaves de acceso registradas
 passkey-manage-count = { $count ->
-    [one] { $count } llave de acceso registrada
-   *[other] { $count } llaves de acceso registradas
+    [one] { $count } passkey registered
+   *[other] { $count } passkeys registered
 }
 passkey-manage-add = Añadir Nueva Llave de Acceso
 passkey-manage-rename = Renombrar
