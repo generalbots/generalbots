@@ -93,6 +93,23 @@
                     💬 Comments
                 </button>
                 <button
+                    class="btn-secondary"
+                    id="project-import-btn"
+                    onclick="triggerImportPicker()"
+                    title="Open an MS Project (.xml/.mpp), CSV, or JSON file"
+                >
+                    📂 Open
+                </button>
+                <button
+                    class="btn-secondary"
+                    id="project-export-btn"
+                    onclick="exportProject('xml')"
+                    title="Export as MS Project XML"
+                    disabled
+                >
+                    ⬇ Export
+                </button>
+                <button
                     class="btn-primary"
                     id="add-task-btn"
                     onclick="showNewTaskForm()"
@@ -241,8 +258,18 @@
 
     <!-- Modal Container -->
     <div id="project-modal" class="modal-container"></div>
+
+    <!-- Hidden file input for project import (MPP/XML/CSV/JSON) -->
+    <input
+        type="file"
+        id="project-import-input"
+        accept=".xml,.mpp,.csv,.json"
+        style="display: none"
+        onchange="handleImportFile(this)"
+    />
 </div>
 
 <link rel="stylesheet" href="/suite/project/project.css" />
 <script src="/suite/js/collab-comments.js"></script>
-<script src="/suite/project/project.js?v=2"></script>
+<script src="/suite/project/project-gantt.js"></script>
+<script src="/suite/project/project.js?v=3"></script>

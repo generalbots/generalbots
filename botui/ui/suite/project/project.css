@@ -295,7 +295,9 @@
 }
 
 .gantt-table-row {
-    padding: 0.5rem 0.625rem;
+    padding: 0 0.625rem;
+    height: 36px;
+    box-sizing: border-box;
     border-bottom: 1px solid var(--border-light);
     font-size: 0.8125rem;
     cursor: pointer;
@@ -354,20 +356,20 @@
 .gantt-chart-body {
     position: relative;
     min-height: 200px;
-    padding: 0.5rem 0;
+    padding: 0;
 }
 
-.gantt-bar-row {
+.gantt-row {
     display: flex;
     align-items: center;
-    height: 34px;
-    padding: 0 0.75rem;
 }
 
 .gantt-bar {
+    position: absolute;
     display: flex;
     align-items: center;
-    padding: 0 0.625rem;
+    top: 50%;
+    transform: translateY(-50%);
     height: 22px;
     border-radius: 6px;
     background: var(--accent-color);
@@ -377,7 +379,9 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    box-sizing: border-box;
     box-shadow: var(--sentient-shadow-sm, 0 1px 2px hsla(var(--foreground) / 0.05));
+    z-index: 2;
 }
 
 .gantt-bar.critical {
@@ -385,12 +389,73 @@
     color: hsl(var(--destructive-foreground));
 }
 
+.gantt-bar.summary {
+    background: var(--warning-color);
+    color: hsl(var(--accent-foreground));
+}
+
+.gantt-bar-fill {
+    position: absolute;
+    inset: 0;
+    background: hsla(var(--foreground) / 0.18);
+    border-radius: inherit;
+    z-index: 0;
+}
+
+.gantt-bar-label {
+    position: relative;
+    z-index: 1;
+    padding: 0 0.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
 .gantt-milestone {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
     width: 0;
     height: 0;
     border-left: 9px solid transparent;
     border-right: 9px solid transparent;
     border-bottom: 14px solid var(--warning-color);
+    z-index: 2;
+}
+
+.gantt-milestone.critical {
+    border-bottom-color: var(--error-color);
+}
+
+.gantt-arrows {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 3;
+    color: var(--text-muted);
+}
+
+.gantt-arrows path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+}
+
+.gantt-timeline-header .timeline-day {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    text-align: center;
+    padding: 0.5rem 0;
+    border-right: 1px solid var(--border-color);
+}
+
+.gantt-timeline-header .tl-label {
+    font-size: 0.625rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 /* ---- Timeline ------------------------------------------------------------ */
@@ -633,6 +698,112 @@
 
 .empty-message {
     color: var(--text-muted);
+    font-size: 0.8125rem;
+}
+
+/* ---- Task detail panel -------------------------------------------------------- */
+
+.td-title {
+    margin: 0 0 0.75rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.td-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.td-grid > div {
+    background: hsl(var(--background));
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    padding: 0.4rem 0.5rem;
+}
+
+.td-grid label {
+    display: block;
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.125rem;
+}
+
+.td-grid span {
+    font-size: 0.8125rem;
+    color: var(--text-primary);
+    word-break: break-word;
+}
+
+.td-progress-val {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    margin-left: 0.5rem;
+}
+
+.td-section {
+    margin-top: 0.75rem;
+    border-top: 1px solid var(--border-color);
+    padding-top: 0.75rem;
+}
+
+.td-section h5 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.dep-list {
+    list-style: none;
+    margin: 0 0 0.5rem 0;
+    padding: 0;
+}
+
+.dep-item {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    margin-bottom: 0.25rem;
+    font-size: 0.8125rem;
+    color: var(--text-primary);
+}
+
+.dep-item span:first-child {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dep-type,
+.dep-lag {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.dep-add {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.375rem;
+}
+
+.dep-add .form-input {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.8125rem;
+}
+
+.dep-add .btn-primary {
+    grid-column: 1 / -1;
+    justify-content: center;
+    padding: 0.375rem;
     font-size: 0.8125rem;
 }
 
@@ -890,8 +1061,11 @@
         left: 0;
     }
 
+    /* The details panel (task info + dependency management) stays visible even
+       in narrow windows — this is a desktop window-manager app, not a mobile
+       page, so hiding it made dependency linking unreachable. */
     .details-panel {
-        display: none;
+        min-width: 260px;
     }
 
     .view-toggle {

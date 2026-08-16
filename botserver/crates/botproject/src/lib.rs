@@ -1,3 +1,4 @@
+pub mod export;
 pub mod import;
 mod types;
 mod service;
@@ -6,6 +7,7 @@ mod handlers;
 
 pub use types::*;
 pub use service::ProjectService;
+pub use import::{ConflictResolution, ImportFormat, ImportOptions, ProjectImportService};
 
 use axum::{
     routing::{delete, get, post, put},
@@ -69,5 +71,9 @@ pub fn configure(service: Arc<ProjectService>) -> Router<Arc<ProjectService>> {
         .route("/api/projects/:project_id/resources", post(create_resource))
         .route("/api/projects/:project_id/resources", get(list_resources))
         .route("/api/resources/:resource_id", delete(delete_resource))
+        .route("/api/projects/import", post(import_project))
+        .route("/api/projects/:project_id/export", get(export_project))
+        .route("/projects/import", post(import_project))
+        .route("/projects/:project_id/export", get(export_project))
         .with_state(service)
 }

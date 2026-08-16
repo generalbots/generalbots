@@ -1,13 +1,17 @@
 use axum::{
-    extract::{Extension, Path, State},
+    extract::{Extension, Multipart, Path, Query, State},
     http::StatusCode,
+    response::IntoResponse,
     Json,
 };
 use botsecurity_auth::auth_api::types::AuthenticatedUser;
 use chrono::Utc;
+use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::export;
+use crate::import::{ImportFormat, ImportOptions, ProjectImportService};
 use crate::service::ProjectService;
 use crate::types::*;
 
@@ -25,6 +29,28 @@ fn not_found(what: &str) -> ApiError {
         StatusCode::NOT_FOUND,
         Json(serde_json::json!({ "error": what })),
     )
+}
+
+fn bad_request(what: &str) -> ApiError {
+    (
+        StatusCode::BAD_REQUEST,
+        Json(serde_json::json!({ "error": what })),
+    )
+}
+
+/// Detect the import format from a file extension, defaulting to MS Project
+/// XML (the interchange format MS Project writes via File > Save As > XML).
+fn format_from_filename(filename: &str) -> ImportFormat {
+    let lower = filename.to_lowercase();
+    if lower.ends_with(".mpp") {
+        ImportFormat::MsProjectMpp
+    } else if lower.ends_with(".csv") {
+        ImportFormat::Csv
+    } else if lower.ends_with(".json") {
+        ImportFormat::Json
+    } else {
+        ImportFormat::MsProjectXml
+    }
 }
 
 /// Effective tenant scope for a user. When the auth middleware has not
@@ -487,6 +513,136 @@ pub async fn list_assignments(
 ) -> Result<Json<Vec<ResourceAssignment>>, ApiError> {
     require_task(&service, &user, task_id).await?;
     Ok(Json(service.get_assignments_for_task(task_id).await))
+}
+
+/// Import a project from an uploaded file (MS Project XML/MPP, CSV, JSON).
+/// Multipart fields: `file` (required) and optional `format` override.
+pub async fn import_project(
+    State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    mut multipart: Multipart,
+) -> Result<Json<crate::import::ImportResult>, ApiError> {
+    if user.user_id.is_nil() {
+        return Err(forbidden());
+    }
+
+    let mut file_bytes: Option<Vec<u8>> = None;
+    let mut filename = "import.xml".to_string();
+    let mut explicit_format: Option<String> = None;
+
+    while let Ok(Some(field)) = multipart.next_field().await {
+        match field.name() {
+            Some("file") => {
+                if let Some(name) = field.file_name() {
+                    filename = name.to_string();
+                }
+                match field.bytes().await {
+                    Ok(bytes) => file_bytes = Some(bytes.to_vec()),
+                    Err(e) => return Err(bad_request(&format!("Failed to read file: {e}"))),
+                }
+            }
+            Some("format") => {
+                if let Ok(text) = field.text().await {
+                    explicit_format = Some(text);
+                }
+            }
+            _ => {}
+        }
+    }
+
+    let bytes = file_bytes.ok_or_else(|| bad_request("No file uploaded"))?;
+
+    let format = match explicit_format.as_deref().map(str::to_lowercase).as_deref() {
+        Some("xml") | Some("ms_project_xml") => ImportFormat::MsProjectXml,
+        Some("mpp") | Some("ms_project_mpp") => ImportFormat::MsProjectMpp,
+        Some("csv") => ImportFormat::Csv,
+        Some("json") => ImportFormat::Json,
+        _ => format_from_filename(&filename),
+    };
+
+    let options = ImportOptions {
+        format,
+        organization_id: user_org(&user),
+        owner_id: user.user_id,
+        ..ImportOptions::default()
+    };
+
+    let importer = ProjectImportService::new();
+    let result = importer
+        .import(&bytes[..], options)
+        .map_err(|e| bad_request(&e))?;
+
+    let result = service.import_data(result).await;
+    Ok(Json(result))
+}
+
+#[derive(Deserialize)]
+pub struct ExportQuery {
+    pub format: Option<String>,
+}
+
+/// Export a project to MS Project XML (default), CSV, or JSON as a file
+/// download.
+pub async fn export_project(
+    State(service): State<Arc<ProjectService>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(project_id): Path<Uuid>,
+    Query(query): Query<ExportQuery>,
+) -> Result<impl IntoResponse, ApiError> {
+    let project = require_project(&service, &user, project_id).await?;
+    let tasks = service.get_tasks_for_project(project_id).await;
+    let resources = service.get_resources_for_project(project_id).await;
+    let assignments = service.get_assignments_for_project(project_id).await;
+
+    let format = query.format.unwrap_or_else(|| "xml".to_string()).to_lowercase();
+
+    let (content_type, body) = match format.as_str() {
+        "xml" | "mpp" => (
+            "application/xml; charset=utf-8",
+            export::export_ms_project_xml(&project, &tasks, &resources, &assignments),
+        ),
+        "csv" => ("text/csv; charset=utf-8", export::export_csv(&project, &tasks)),
+        "json" => (
+            "application/json; charset=utf-8",
+            export::export_json(&project, &tasks),
+        ),
+        _ => return Err(bad_request("Unsupported export format (use xml, csv, or json)")),
+    };
+
+    let filename = format!(
+        "{}.{}",
+        sanitize_filename(&project.name),
+        if format.as_str() == "mpp" { "xml" } else { &format }
+    );
+
+    Ok((
+        [
+            (axum::http::header::CONTENT_TYPE, content_type.to_string()),
+            (
+                axum::http::header::CONTENT_DISPOSITION,
+                format!("attachment; filename=\"{filename}\""),
+            ),
+        ],
+        body,
+    ))
+}
+
+fn sanitize_filename(name: &str) -> String {
+    let cleaned: String = name
+        .chars()
+        .map(|c| {
+            if c.is_ascii_alphanumeric() || c == '-' || c == '_' {
+                c
+            } else {
+                '-'
+            }
+        })
+        .collect();
+    if cleaned.is_empty() {
+        "project".to_string()
+    } else {
+        cleaned
+    }
 }
 
 #[cfg(test)]
