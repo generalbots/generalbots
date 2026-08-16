@@ -2,7 +2,7 @@ use axum::{
     extract::{Form, Path, State},
     http::StatusCode,
     response::{Html, IntoResponse, Json},
-    routing::{get, post},
+    routing::{delete, get, post},
     Router,
 };
 use futures::{SinkExt, StreamExt};
@@ -24,6 +24,7 @@ pub mod conversation_messages;
 pub mod conversation_calls;
 pub mod dashboard;
 pub mod recording;
+pub mod recording_routes;
 pub mod room_persistence;
 pub mod service;
 pub mod signaling;
@@ -49,6 +50,14 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route(ApiUrls::MEET_ROOM_BY_ID, get(get_room))
         .route(ApiUrls::MEET_JOIN, post(join_room))
         .route(ApiUrls::MEET_TRANSCRIPTION, post(start_transcription))
+        .route(ApiUrls::MEET_RECORDING_START, post(recording_routes::start_recording))
+        .route(ApiUrls::MEET_RECORDING_STOP, post(recording_routes::stop_recording))
+        .route(ApiUrls::MEET_RECORDING_PAUSE, post(recording_routes::pause_recording))
+        .route(ApiUrls::MEET_RECORDING_RESUME, post(recording_routes::resume_recording))
+        .route(ApiUrls::MEET_RECORDINGS_LIST, get(recording_routes::list_recordings))
+        .route(ApiUrls::MEET_RECORDING_GET, get(recording_routes::get_recording))
+        .route(ApiUrls::MEET_RECORDING_FILE, get(recording_routes::get_recording_file))
+        .route(ApiUrls::MEET_RECORDING_DELETE, delete(recording_routes::delete_recording))
         .route(ApiUrls::MEET_TOKEN, post(get_meeting_token))
         .route(ApiUrls::MEET_INVITE, post(send_meeting_invites))
         .route(ApiUrls::WS_MEET, get(meeting_websocket))

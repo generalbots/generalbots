@@ -165,6 +165,11 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
         // Attendant / human handoff
         ApiEndpoint { method: "POST", path: "/api/attendant/attachments", summary: "Upload an attachment to an attendant conversation" },
         ApiEndpoint { method: "GET", path: "/api/attendant/attachments/:id", summary: "Download an attendant conversation attachment" },
+        // Meet / recording
+        ApiEndpoint { method: "POST", path: "/api/meet/rooms/:id/recording/start", summary: "Start recording a meeting (host/co-host only)" },
+        ApiEndpoint { method: "POST", path: "/api/meet/rooms/:id/recording/stop", summary: "Stop the active meeting recording" },
+        ApiEndpoint { method: "GET", path: "/api/meet/rooms/:id/recordings", summary: "List recordings for a meeting room" },
+        ApiEndpoint { method: "GET", path: "/api/meet/recordings/:recording_id/file", summary: "Stream or download a meeting recording file" },
     ]
 }
 

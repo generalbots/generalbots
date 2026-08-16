@@ -117,7 +117,8 @@
                     class="control-btn"
                     id="record-btn"
                     title="Record Meeting"
-                    onclick="showNotification('Recording feature coming soon')"
+                    data-i18n-title="meet-record-title"
+                    onclick="toggleRecording()"
                 >
                     <svg
                         width="18"
@@ -135,7 +136,31 @@
                             fill="currentColor"
                         ></circle>
                     </svg>
-                    <span data-i18n="meet-record">Record</span>
+                    <span data-i18n="meet-record" id="record-label">Record</span>
+                </button>
+                <span class="recording-indicator hidden" id="recording-indicator">
+                    <span class="recording-dot"></span>
+                    <span data-i18n="meet-recording">Recording</span>
+                    <span id="recording-timer">00:00</span>
+                </span>
+                <button
+                    class="control-btn"
+                    id="recordings-btn"
+                    title="Recordings"
+                    onclick="openRecordingsPanel()"
+                >
+                    <svg
+                        width="18"
+                        height="18"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <rect x="2" y="4" width="20" height="16" rx="2" ry="2"></rect>
+                        <line x1="2" y1="10" x2="22" y2="10"></line>
+                    </svg>
+                    <span data-i18n="meet-recordings">Recordings</span>
                 </button>
                 <button
                     class="control-btn active"
@@ -576,6 +601,22 @@
                 </button>
             </div>
         </footer>
+
+        <!-- Recordings Panel -->
+        <div class="recordings-panel hidden" id="recordings-panel">
+            <div class="recordings-panel-header">
+                <h3 data-i18n="meet-recordings">Recordings</h3>
+                <button class="btn-icon-sm" onclick="closeRecordingsPanel()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="recordings-list" id="recordings-list">
+                <div class="recordings-empty" data-i18n="meet-recordings-empty">No recordings yet</div>
+            </div>
+        </div>
     </div>
 
     <!-- Create Meeting Modal -->

@@ -357,7 +357,7 @@ pub async fn handle_meet_room_page(
                 <button class="control-btn active" onclick="toggleChat()">💬</button>
                 <button class="control-btn active" onclick="toggleParticipants()">👥</button>
                 <button class="control-btn active" onclick="toggleWhiteboard()">📝</button>
-                <button class="control-btn active" onclick="toggleRecord()">⏺️</button>
+                <button class="control-btn active" id="recordBtn" data-recording="false" onclick="toggleRecord()">⏺️ Record</button>
                 <button class="control-btn end" onclick="leaveMeeting()">Leave Meeting</button>
             </div>
         </div>
@@ -458,7 +458,25 @@ pub async fn handle_meet_room_page(
         }}
 
         function toggleRecord() {{
-            alert('Recording feature coming soon');
+            const btn = document.getElementById('recordBtn');
+            const recording = btn && btn.dataset.recording === 'true';
+            const token = localStorage.getItem('gb_access_token') || sessionStorage.getItem('gb_access_token') || '';
+            const url = recording
+                ? `/api/meet/rooms/${{roomId}}/recording/stop`
+                : `/api/meet/rooms/${{roomId}}/recording/start`;
+            fetch(url, {{
+                method: 'POST',
+                headers: {{ 'Content-Type': 'application/json', ...(token ? {{ 'Authorization': 'Bearer ' + token }} : {{}}) }},
+                body: JSON.stringify({{ enable_transcription: true, transcription_language: 'en-US' }})
+            }})
+                .then(r => r.json())
+                .then(() => {{
+                    if (btn) {{
+                        btn.dataset.recording = recording ? 'false' : 'true';
+                        btn.textContent = recording ? 'Record' : 'Stop';
+                    }}
+                }})
+                .catch(err => console.error('Recording toggle failed:', err));
         }}
 
         function sendChat() {{

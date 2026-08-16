@@ -462,16 +462,12 @@ impl RecordingService {
         // 4. Upload to cloud storage
         // 5. Update database with URLs
 
-        // Simulate processing completion
-        let file_url = format!(
-            "https://storage.example.com/recordings/{}.mp4",
-            recording_id
-        );
-
-        let download_url = format!(
-            "https://storage.example.com/recordings/{}/download",
-            recording_id
-        );
+        // The recording object is streamed by the server from MinIO drive at
+        // `meet/recordings/{recording_id}.webm`; the file/download URLs point
+        // at the authenticated server routes (see recording_routes.rs) so the
+        // client never touches storage credentials directly.
+        let file_url = format!("/api/meet/recordings/{recording_id}/file");
+        let download_url = format!("/api/meet/recordings/{recording_id}/file");
         self.update_recording_processed(recording_id, &file_url, &download_url)
             .await?;
 

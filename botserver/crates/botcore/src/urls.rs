@@ -141,6 +141,14 @@ impl ApiUrls {
     pub const MEET_TOKEN: &'static str = "/api/meet/token";
     pub const MEET_INVITE: &'static str = "/api/meet/invite";
     pub const MEET_TRANSCRIPTION: &'static str = "/api/meet/rooms/{id}/transcription";
+    pub const MEET_RECORDING_START: &'static str = "/api/meet/rooms/{id}/recording/start";
+    pub const MEET_RECORDING_STOP: &'static str = "/api/meet/rooms/{id}/recording/stop";
+    pub const MEET_RECORDING_PAUSE: &'static str = "/api/meet/rooms/{id}/recording/{recording_id}/pause";
+    pub const MEET_RECORDING_RESUME: &'static str = "/api/meet/rooms/{id}/recording/{recording_id}/resume";
+    pub const MEET_RECORDINGS_LIST: &'static str = "/api/meet/rooms/{id}/recordings";
+    pub const MEET_RECORDING_GET: &'static str = "/api/meet/recordings/{recording_id}";
+    pub const MEET_RECORDING_FILE: &'static str = "/api/meet/recordings/{recording_id}/file";
+    pub const MEET_RECORDING_DELETE: &'static str = "/api/meet/recordings/{recording_id}";
     pub const MEET_TURN_CREDENTIALS: &'static str = "/api/meet/turn-credentials";
     pub const MEET_SCHEDULE: &'static str = "/api/meet/schedule";
     pub const MEET_DASHBOARD_STATS: &'static str = "/api/meet/dashboard/stats";
