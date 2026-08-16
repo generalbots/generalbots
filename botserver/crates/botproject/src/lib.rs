@@ -18,7 +18,11 @@ use crate::handlers::*;
 pub fn configure(service: Arc<ProjectService>) -> Router<Arc<ProjectService>> {
     Router::new()
         .route("/projects", get(list_projects).post(create_project))
-        .route("/projects/:project_id", get(get_project))
+        .route(
+            "/projects/:project_id",
+            get(get_project).put(update_project),
+        )
+        .route("/projects/:project_id/status", post(update_project_status))
         .route("/projects/:project_id", delete(delete_project))
         .route("/projects/:project_id/tasks", post(create_task))
         .route("/projects/:project_id/tasks", get(get_tasks))
@@ -31,7 +35,11 @@ pub fn configure(service: Arc<ProjectService>) -> Router<Arc<ProjectService>> {
         // `/api`-prefixed aliases so the frontend (proxied through botui
         // which routes `/api/*` to this server) can reach the same handlers.
         .route("/api/projects", get(list_projects).post(create_project))
-        .route("/api/projects/:project_id", get(get_project))
+        .route(
+            "/api/projects/:project_id",
+            get(get_project).put(update_project),
+        )
+        .route("/api/projects/:project_id/status", post(update_project_status))
         .route("/api/projects/:project_id", delete(delete_project))
         .route("/api/projects/:project_id/tasks", post(create_task))
         .route("/api/projects/:project_id/tasks", get(get_tasks))

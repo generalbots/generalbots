@@ -47,6 +47,18 @@
                         <span class="status-dot"></span>
                         <span>No project selected</span>
                     </span>
+                    <select
+                        class="status-select"
+                        id="project-status-select"
+                        onchange="updateProjectStatus(this.value)"
+                        style="display: none"
+                    >
+                        <option value="planning">Planning</option>
+                        <option value="active">Active</option>
+                        <option value="on_hold">On Hold</option>
+                        <option value="completed">Completed</option>
+                        <option value="cancelled">Cancelled</option>
+                    </select>
                     <span class="meta-item" id="project-progress">
                         <span class="progress-label">Progress:</span>
                         <span class="progress-value">--</span>

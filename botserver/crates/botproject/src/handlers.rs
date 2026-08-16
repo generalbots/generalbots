@@ -66,6 +66,85 @@ pub async fn delete_project(
     }
 }
 
+/// Applies a partial update to a project (issue #873). Loads the project,
+/// overlays the provided fields, refreshes `updated_at`, and persists.
+pub async fn update_project(
+    State(service): State<Arc<ProjectService>>,
+    Path(project_id): Path<Uuid>,
+    Json(req): Json<UpdateProjectRequest>,
+) -> Result<Json<Project>, (StatusCode, Json<serde_json::Value>)> {
+    let mut project = service
+        .get_project(project_id)
+        .await
+        .ok_or_else(|| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({"error": "Project not found"})),
+            )
+        })?;
+
+    if let Some(name) = req.name {
+        if !name.trim().is_empty() {
+            project.name = name;
+        }
+    }
+    if let Some(description) = req.description {
+        project.description = description;
+    }
+    if let Some(start_date) = req.start_date {
+        project.start_date = start_date;
+    }
+    if let Some(end_date) = req.end_date {
+        project.end_date = end_date;
+    }
+    if let Some(status) = req.status {
+        project.status = status;
+    }
+    project.updated_at = Utc::now();
+
+    service
+        .update_project(project)
+        .await
+        .map(Json)
+        .ok_or_else(|| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({"error": "Project not found"})),
+            )
+        })
+}
+
+/// Single-purpose lifecycle transition endpoint (issue #873).
+pub async fn update_project_status(
+    State(service): State<Arc<ProjectService>>,
+    Path(project_id): Path<Uuid>,
+    Json(req): Json<UpdateProjectStatusRequest>,
+) -> Result<Json<Project>, (StatusCode, Json<serde_json::Value>)> {
+    let mut project = service
+        .get_project(project_id)
+        .await
+        .ok_or_else(|| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({"error": "Project not found"})),
+            )
+        })?;
+
+    project.status = req.status;
+    project.updated_at = Utc::now();
+
+    service
+        .update_project(project)
+        .await
+        .map(Json)
+        .ok_or_else(|| {
+            (
+                StatusCode::NOT_FOUND,
+                Json(serde_json::json!({"error": "Project not found"})),
+            )
+        })
+}
+
 pub async fn create_task(
     State(service): State<Arc<ProjectService>>,
     Path(project_id): Path<Uuid>,
