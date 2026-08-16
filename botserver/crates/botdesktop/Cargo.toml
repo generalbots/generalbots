@@ -18,3 +18,4 @@ futures-util = "0.3"
 tracing = "0.1"
 thiserror = "2"
 botcoresecrets = { workspace = true }
+botsecurity-auth = { workspace = true }

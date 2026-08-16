@@ -38,6 +38,11 @@ impl std::fmt::Display for SessionStatus {
 pub struct DesktopSession {
     pub id: Uuid,
     pub user_id: Uuid,
+    /// Owning organization, when known (extracted from the authenticated
+    /// user). Kept for tenant scoping of session listings and audit.
+    pub org_id: Option<Uuid>,
+    /// Workspace branch, when known (extracted from the authenticated user).
+    pub branch_id: Option<Uuid>,
     pub target_host: String,
     pub target_port: u16,
     pub status: SessionStatus,
@@ -50,10 +55,24 @@ pub struct DesktopSession {
 
 impl DesktopSession {
     pub fn new(user_id: Uuid, target_host: String, target_port: u16, client_ip: String) -> Self {
+        Self::with_scope(user_id, None, None, target_host, target_port, client_ip)
+    }
+
+    /// Creates a session attributed to a real user with tenant scope.
+    pub fn with_scope(
+        user_id: Uuid,
+        org_id: Option<Uuid>,
+        branch_id: Option<Uuid>,
+        target_host: String,
+        target_port: u16,
+        client_ip: String,
+    ) -> Self {
         let now = Utc::now();
         Self {
             id: Uuid::new_v4(),
             user_id,
+            org_id,
+            branch_id,
             target_host,
             target_port,
             status: SessionStatus::Connecting,
@@ -63,6 +82,12 @@ impl DesktopSession {
             bytes_received: 0,
             client_ip,
         }
+    }
+
+    /// True when the session is owned by the given user (or the user is an
+    /// admin operating on any session).
+    pub fn is_owned_by(&self, user_id: Uuid) -> bool {
+        self.user_id == user_id
     }
 
     /// True if the session exceeds the maximum lifetime (4 hours).
@@ -86,6 +111,7 @@ impl DesktopSession {
     pub fn to_summary(&self) -> ConnectionSummary {
         ConnectionSummary {
             id: self.id,
+            user_id: self.user_id,
             target_host: self.target_host.clone(),
             target_port: self.target_port,
             status: self.status.to_string(),
@@ -93,8 +119,27 @@ impl DesktopSession {
             last_active_at: self.last_active_at,
             bytes_sent: self.bytes_sent,
             bytes_received: self.bytes_received,
+            // Client IP is masked so session listings never leak full
+            // addresses through the API (audit tables keep the full value).
+            client_ip: crate::types::mask_ip(&self.client_ip),
         }
     }
+}
+
+/// A single audit entry for a desktop proxy session. Written to the
+/// `desktop_connection_log` table on session start and end.
+#[derive(Debug, Clone)]
+pub struct SessionAuditEvent {
+    pub connection_id: Uuid,
+    pub user_id: Uuid,
+    pub session_id: Uuid,
+    pub host: String,
+    pub port: u16,
+    pub protocol: String,
+    pub connected_at: DateTime<Utc>,
+    pub disconnected_at: Option<DateTime<Utc>>,
+    pub bytes_transferred: i64,
+    pub disconnect_reason: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -111,6 +156,16 @@ pub struct ConnectionConfig {
     pub max_lifetime_hours: i64,
     /// Cleanup interval in seconds (60).
     pub cleanup_interval_secs: u64,
+}
+
+impl ConnectionConfig {
+    /// Target port allow-list. The desktop proxy exists to relay remote
+    /// desktop protocols only (VNC 5900-5999 and RDP 3389); proxying to
+    /// arbitrary service ports (databases, caches, control planes) is an
+    /// SSRF vector and is rejected.
+    pub fn is_target_port_allowed(port: u16) -> bool {
+        port == RDP_PORT || (VNC_PORT_MIN..=VNC_PORT_MAX).contains(&port)
+    }
 }
 
 impl Default for ConnectionConfig {
@@ -132,6 +187,12 @@ pub const MAX_SESSIONS_PER_USER: usize = 3;
 pub const IDLE_TIMEOUT_MINUTES: i64 = 30;
 pub const MAX_LIFETIME_HOURS: i64 = 4;
 pub const CLEANUP_INTERVAL_SECS: u64 = 60;
+
+/// RDP (Microsoft Remote Desktop Protocol).
+pub const RDP_PORT: u16 = 3389;
+/// VNC (RFB) default port range.
+pub const VNC_PORT_MIN: u16 = 5900;
+pub const VNC_PORT_MAX: u16 = 5999;
 
 #[cfg(test)]
 mod tests {
@@ -197,6 +258,42 @@ mod tests {
         assert_eq!(cfg.idle_timeout_minutes, 30);
         assert_eq!(cfg.max_lifetime_hours, 4);
         assert_eq!(cfg.cleanup_interval_secs, 60);
+    }
+
+    #[test]
+    fn test_target_port_allow_list() {
+        // VNC range and RDP are allowed.
+        assert!(ConnectionConfig::is_target_port_allowed(5900));
+        assert!(ConnectionConfig::is_target_port_allowed(5999));
+        assert!(ConnectionConfig::is_target_port_allowed(3389));
+        // Arbitrary service ports are rejected (SSRF hardening).
+        assert!(!ConnectionConfig::is_target_port_allowed(22));
+        assert!(!ConnectionConfig::is_target_port_allowed(5432));
+        assert!(!ConnectionConfig::is_target_port_allowed(6379));
+        assert!(!ConnectionConfig::is_target_port_allowed(80));
+        assert!(!ConnectionConfig::is_target_port_allowed(8080));
+    }
+
+    #[test]
+    fn test_session_ownership() {
+        let owner = Uuid::new_v4();
+        let other = Uuid::new_v4();
+        let s = DesktopSession::new(owner, "10.0.0.1".into(), 5900, "127.0.0.1".into());
+        assert!(s.is_owned_by(owner));
+        assert!(!s.is_owned_by(other));
+    }
+
+    #[test]
+    fn test_summary_masks_client_ip() {
+        let s = DesktopSession::new(
+            Uuid::new_v4(),
+            "10.0.0.1".into(),
+            5900,
+            "192.168.1.99".into(),
+        );
+        let sum = s.to_summary();
+        assert_eq!(sum.user_id, s.user_id);
+        assert_eq!(sum.client_ip, "192.x.x.xxx");
     }
 
     #[test]
