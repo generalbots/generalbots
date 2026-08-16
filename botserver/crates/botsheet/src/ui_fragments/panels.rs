@@ -16,10 +16,11 @@ pub async fn handle_named_ranges_panel(
 <h3 style="margin:0;color:#f8fafc;font-size:16px;">"##,
             );
             html.push_str(&t(lang, "panel.ranges.title"));
-            html.push_str(
+            html.push_str(&format!(
                 r##"</h3>
-<button class="btn-icon" hx-get="/suite/sheet/modals/conditional-format" hx-target="#modal-container" hx-swap="innerHTML" title=""##,
-            );
+<button class="btn-icon" hx-get="/suite/sheet/modals/conditional-format" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" title=""##,
+                id = html_escape(&sheet.id)
+            ));
             html.push_str(&t(lang, "panel.ranges.add"));
             html.push_str(
                 r##"" style="background:#3b82f6;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;">"##,

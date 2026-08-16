@@ -1,17 +1,27 @@
 use super::{html_escape, Lang, t, tf};
+use axum::extract::Query;
 use axum::http::HeaderMap;
 use axum::{response::Html, Json};
+use std::collections::HashMap;
 
 pub async fn handle_share_modal(
     headers: HeaderMap,
-    Json(payload): Json<serde_json::Value>,
+    Query(query): Query<HashMap<String, String>>,
+    body: Option<Json<serde_json::Value>>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
-    let sheet_id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
-    let name = payload
-        .get("name")
+    let sheet_id = body
+        .as_ref()
+        .and_then(|Json(v)| v.get("id"))
+        .and_then(|v| v.as_str())
+        .or_else(|| query.get("id").map(String::as_str))
+        .unwrap_or("");
+    let name = body
+        .as_ref()
+        .and_then(|Json(v)| v.get("name"))
         .and_then(|v| v.as_str())
         .map(str::to_string)
+        .or_else(|| query.get("name").cloned())
         .unwrap_or_else(|| t(lang, "common.spreadsheet"));
     Html(format!(
         r##"<div class="ss-modal" id="share-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;">
@@ -30,10 +40,16 @@ pub async fn handle_share_modal(
 
 pub async fn handle_chart_modal(
     headers: HeaderMap,
-    Json(payload): Json<serde_json::Value>,
+    Query(query): Query<HashMap<String, String>>,
+    body: Option<Json<serde_json::Value>>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
-    let sheet_id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
+    let sheet_id = body
+        .as_ref()
+        .and_then(|Json(v)| v.get("id"))
+        .and_then(|v| v.as_str())
+        .or_else(|| query.get("id").map(String::as_str))
+        .unwrap_or("");
     Html(format!(
         r##"<div class="ss-modal" id="chart-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;">
 <div class="ss-modal-content" style="background:#1e293b;border:1px solid #334155;border-radius:8px;max-width:480px;width:90%;">
@@ -51,10 +67,16 @@ pub async fn handle_chart_modal(
 
 pub async fn handle_find_replace_modal(
     headers: HeaderMap,
-    Json(payload): Json<serde_json::Value>,
+    Query(query): Query<HashMap<String, String>>,
+    body: Option<Json<serde_json::Value>>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
-    let sheet_id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
+    let sheet_id = body
+        .as_ref()
+        .and_then(|Json(v)| v.get("id"))
+        .and_then(|v| v.as_str())
+        .or_else(|| query.get("id").map(String::as_str))
+        .unwrap_or("");
     Html(format!(
         r##"<div class="ss-modal" id="find-replace-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;">
 <div class="ss-modal-content" style="background:#1e293b;border:1px solid #334155;border-radius:8px;max-width:480px;width:90%;">
@@ -72,10 +94,16 @@ pub async fn handle_find_replace_modal(
 
 pub async fn handle_conditional_format_modal(
     headers: HeaderMap,
-    Json(payload): Json<serde_json::Value>,
+    Query(query): Query<HashMap<String, String>>,
+    body: Option<Json<serde_json::Value>>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
-    let sheet_id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
+    let sheet_id = body
+        .as_ref()
+        .and_then(|Json(v)| v.get("id"))
+        .and_then(|v| v.as_str())
+        .or_else(|| query.get("id").map(String::as_str))
+        .unwrap_or("");
     Html(format!(
         r##"<div class="ss-modal" id="conditional-format-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;">
 <div class="ss-modal-content" style="background:#1e293b;border:1px solid #334155;border-radius:8px;max-width:480px;width:90%;">
@@ -93,10 +121,16 @@ pub async fn handle_conditional_format_modal(
 
 pub async fn handle_data_validation_modal(
     headers: HeaderMap,
-    Json(payload): Json<serde_json::Value>,
+    Query(query): Query<HashMap<String, String>>,
+    body: Option<Json<serde_json::Value>>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
-    let sheet_id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
+    let sheet_id = body
+        .as_ref()
+        .and_then(|Json(v)| v.get("id"))
+        .and_then(|v| v.as_str())
+        .or_else(|| query.get("id").map(String::as_str))
+        .unwrap_or("");
     Html(format!(
         r##"<div class="ss-modal" id="data-validation-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;">
 <div class="ss-modal-content" style="background:#1e293b;border:1px solid #334155;border-radius:8px;max-width:480px;width:90%;">
@@ -114,10 +148,16 @@ pub async fn handle_data_validation_modal(
 
 pub async fn handle_custom_format_modal(
     headers: HeaderMap,
-    Json(payload): Json<serde_json::Value>,
+    Query(query): Query<HashMap<String, String>>,
+    body: Option<Json<serde_json::Value>>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
-    let sheet_id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
+    let sheet_id = body
+        .as_ref()
+        .and_then(|Json(v)| v.get("id"))
+        .and_then(|v| v.as_str())
+        .or_else(|| query.get("id").map(String::as_str))
+        .unwrap_or("");
     Html(format!(
         r##"<div class="ss-modal" id="custom-format-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;">
 <div class="ss-modal-content" style="background:#1e293b;border:1px solid #334155;border-radius:8px;max-width:480px;width:90%;">
@@ -135,10 +175,16 @@ pub async fn handle_custom_format_modal(
 
 pub async fn handle_insert_image_modal(
     headers: HeaderMap,
-    Json(payload): Json<serde_json::Value>,
+    Query(query): Query<HashMap<String, String>>,
+    body: Option<Json<serde_json::Value>>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
-    let sheet_id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
+    let sheet_id = body
+        .as_ref()
+        .and_then(|Json(v)| v.get("id"))
+        .and_then(|v| v.as_str())
+        .or_else(|| query.get("id").map(String::as_str))
+        .unwrap_or("");
     Html(format!(
         r##"<div class="ss-modal" id="insert-image-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;">
 <div class="ss-modal-content" style="background:#1e293b;border:1px solid #334155;border-radius:8px;max-width:480px;width:90%;">
@@ -156,10 +202,16 @@ pub async fn handle_insert_image_modal(
 
 pub async fn handle_print_preview_modal(
     headers: HeaderMap,
-    Json(payload): Json<serde_json::Value>,
+    Query(query): Query<HashMap<String, String>>,
+    body: Option<Json<serde_json::Value>>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
-    let sheet_id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
+    let sheet_id = body
+        .as_ref()
+        .and_then(|Json(v)| v.get("id"))
+        .and_then(|v| v.as_str())
+        .or_else(|| query.get("id").map(String::as_str))
+        .unwrap_or("");
     Html(format!(
         r##"<div class="ss-modal" id="print-preview-modal" style="position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:1000;display:flex;align-items:center;justify-content:center;">
 <div class="ss-modal-content" style="background:#1e293b;border:1px solid #334155;border-radius:8px;max-width:640px;width:90%;">
@@ -177,11 +229,22 @@ pub async fn handle_print_preview_modal(
 
 pub async fn handle_ai_panel(
     headers: HeaderMap,
-    Json(payload): Json<serde_json::Value>,
+    Query(query): Query<HashMap<String, String>>,
+    body: Option<Json<serde_json::Value>>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
-    let sheet_id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
-    let prompt = payload.get("prompt").and_then(|v| v.as_str()).unwrap_or("");
+    let sheet_id = body
+        .as_ref()
+        .and_then(|Json(v)| v.get("id"))
+        .and_then(|v| v.as_str())
+        .or_else(|| query.get("id").map(String::as_str))
+        .unwrap_or("");
+    let prompt = body
+        .as_ref()
+        .and_then(|Json(v)| v.get("prompt"))
+        .and_then(|v| v.as_str())
+        .or_else(|| query.get("prompt").map(String::as_str))
+        .unwrap_or("");
     Html(format!(
         r##"<div class="ss-panel" id="ai-panel" style="padding:16px;background:#1e1b4b;border:1px solid #4338ca;border-radius:8px;">
 <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
@@ -204,34 +267,41 @@ pub async fn handle_ai_panel(
 
 pub async fn handle_advanced_ranges_panel(
     headers: HeaderMap,
-    Json(_payload): Json<serde_json::Value>,
+    Query(query): Query<HashMap<String, String>>,
+    body: Option<Json<serde_json::Value>>,
 ) -> Html<String> {
     let lang = Lang::from_headers(&headers);
+    let sheet_id = body
+        .as_ref()
+        .and_then(|Json(v)| v.get("id"))
+        .and_then(|v| v.as_str())
+        .or_else(|| query.get("id").map(String::as_str))
+        .unwrap_or("");
     Html(format!(
         r##"<div class="ss-panel" id="advanced-ranges-panel" style="padding:16px;">
 <h3 style="color:#f8fafc;margin-top:0;">{title}</h3>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-<button hx-get="/suite/sheet/modals/conditional-format" hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button hx-get="/suite/sheet/modals/conditional-format" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>{cf_title}</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">{cf_desc}</div>
 </button>
-<button hx-get="/suite/sheet/modals/data-validation" hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button hx-get="/suite/sheet/modals/data-validation" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>{dv_title}</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">{dv_desc}</div>
 </button>
-<button hx-get="/suite/sheet/modals/chart" hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button hx-get="/suite/sheet/modals/chart" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>{charts_title}</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">{charts_desc}</div>
 </button>
-<button hx-get="/suite/sheet/modals/print-preview" hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button hx-get="/suite/sheet/modals/print-preview" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>{print_title}</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">{print_desc}</div>
 </button>
-<button hx-get="/suite/sheet/modals/ai" hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button hx-get="/suite/sheet/modals/ai" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>{ai_title}</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">{ai_desc}</div>
 </button>
-<button hx-get="/suite/sheet/modals/find-replace" hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button hx-get="/suite/sheet/modals/find-replace" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>{find_title}</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">{find_desc}</div>
 </button>
@@ -249,6 +319,7 @@ pub async fn handle_advanced_ranges_panel(
         ai_title = t(lang, "modal.ai_assistant"),
         ai_desc = t(lang, "panel.advanced.ai_desc"),
         find_title = t(lang, "modal.find_replace"),
-        find_desc = t(lang, "panel.advanced.find_desc")
+        find_desc = t(lang, "panel.advanced.find_desc"),
+        id = html_escape(sheet_id)
     ))
 }
