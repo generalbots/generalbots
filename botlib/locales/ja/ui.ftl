@@ -966,7 +966,6 @@ sources-server-configure = 設定する
 # Model Cards
 # -----------------------------------------------------------------------------
 sources-model-active = アクティブ
-sources-model-coming-soon = 近日公開予定
 sources-model-provider = プロバイダー
 sources-model-context = コンテキスト
 sources-model-tokens = トークン

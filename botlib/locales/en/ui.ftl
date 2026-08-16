@@ -966,7 +966,6 @@ sources-server-configure = Configure
 # Model Cards
 # -----------------------------------------------------------------------------
 sources-model-active = Active
-sources-model-coming-soon = Coming Soon
 sources-model-provider = Provider
 sources-model-context = Context
 sources-model-tokens = tokens

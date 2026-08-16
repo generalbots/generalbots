@@ -966,7 +966,6 @@ sources-server-configure = 구성
 # Model Cards
 # -----------------------------------------------------------------------------
 sources-model-active = 활성
-sources-model-coming-soon = 출시 예정
 sources-model-provider = 공급자
 sources-model-context = 맥락
 sources-model-tokens = 토큰

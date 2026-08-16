@@ -101,7 +101,7 @@ pub struct PlaylistQuery {
 /// Resolves the scope for playlists: the branch the caller belongs to, or the
 /// default branch when no JWT is carried (suite mode).
 fn resolve_branch(state: &Arc<AppState>, user_id: Option<Uuid>) -> Uuid {
-    if let Some(uid) = user_id {
+    if let Some(_uid) = user_id {
         // Branch scope still applies; ownership is enforced by the user_id
         // column on the playlist itself.
         return Uuid::nil();
@@ -137,9 +137,13 @@ pub async fn list_playlists(
 
     match result {
         Ok(Ok(rows)) => Ok(Json(rows.into_iter().map(|r| r.into_summary()).collect())),
-        Ok(Err(e)) | Err(e) => Err((
+        Ok(Err(e)) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": format!("Database error: {e}") })),
+        )),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": format!("Task error: {e}") })),
         )),
     }
 }
@@ -194,6 +198,8 @@ pub async fn create_playlist(
     let now = Utc::now();
     let pool = state.conn.clone();
     let branch_id = resolve_branch(&state, None);
+    let resp_name = name.clone();
+    let resp_visibility = visibility.clone();
 
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| format!("Pool error: {e}"))?;
@@ -213,24 +219,24 @@ pub async fn create_playlist(
     })
     .await;
 
-    if let Err(e) = result {
-        let msg = match e {
-            Ok(e) | Err(e) => e,
-        };
-        return Err((
+    match result {
+        Ok(Ok(())) => Ok(Json(PlaylistSummary {
+            id,
+            name: resp_name,
+            visibility: resp_visibility,
+            item_count: 0,
+            created_at: now,
+            updated_at: now,
+        })),
+        Ok(Err(e)) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": format!("Database error: {msg}") })),
-        ));
+            Json(serde_json::json!({ "error": format!("Database error: {e}") })),
+        )),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": format!("Task join error: {e}") })),
+        )),
     }
-
-    Ok(Json(PlaylistSummary {
-        id,
-        name,
-        visibility,
-        item_count: 0,
-        created_at: now,
-        updated_at: now,
-    }))
 }
 
 /// `GET /api/player/playlists/{id}` — playlist detail with ordered items.
@@ -243,18 +249,34 @@ pub async fn get_playlist(
     let result = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| format!("Pool error: {e}"))?;
 
-        let row: Option<(Uuid, String, String, chrono::DateTime<Utc>, chrono::DateTime<Utc>)> =
-            diesel::sql_query(
-                "SELECT id, name, visibility, created_at, updated_at
-                 FROM player_playlists WHERE id = $1",
-            )
-            .bind::<diesel::sql_types::Uuid, _>(playlist_id)
-            .get_result(&mut conn)
-            .optional()
-            .map_err(|e| format!("Query error: {e}"))?;
+        #[derive(diesel::QueryableByName)]
+        struct PlaylistRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            name: String,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            visibility: String,
+            #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+            created_at: chrono::DateTime<Utc>,
+            #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+            updated_at: chrono::DateTime<Utc>,
+        }
+        let row: Option<PlaylistRow> = diesel::sql_query(
+            "SELECT id, name, visibility, created_at, updated_at
+             FROM player_playlists WHERE id = $1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(playlist_id)
+        .get_result(&mut conn)
+        .optional()
+        .map_err(|e| format!("Query error: {e}"))?;
 
-        let (id, name, visibility, created_at, updated_at) =
-            row.ok_or_else(|| "Playlist not found".to_string())?;
+        let row = row.ok_or_else(|| "Playlist not found".to_string())?;
+        let id = row.id;
+        let name = row.name;
+        let visibility = row.visibility;
+        let created_at = row.created_at;
+        let updated_at = row.updated_at;
 
         let items: Vec<PlaylistItem> = diesel::sql_query(
             "SELECT id, media_path, title, position
@@ -364,7 +386,8 @@ pub async fn update_playlist(
 
     match result {
         Ok(Ok(())) => Ok(Json(serde_json::json!({ "success": true }))),
-        Ok(Err(e)) | Err(e) => Err(db_err(e)),
+        Ok(Err(e)) => Err(db_err(e)),
+        Err(e) => Err(db_err(format!("Task join error: {e}"))),
     }
 }
 
@@ -482,7 +505,8 @@ pub async fn remove_item(
 
     match result {
         Ok(Ok(())) => Ok(Json(serde_json::json!({ "success": true }))),
-        Ok(Err(e)) | Err(e) => Err(db_err(e)),
+        Ok(Err(e)) => Err(db_err(e)),
+        Err(e) => Err(db_err(format!("Task join error: {e}"))),
     }
 }
 
@@ -518,7 +542,8 @@ pub async fn reorder_items(
 
     match result {
         Ok(Ok(())) => Ok(Json(serde_json::json!({ "success": true }))),
-        Ok(Err(e)) | Err(e) => Err(db_err(e)),
+        Ok(Err(e)) => Err(db_err(e)),
+        Err(e) => Err(db_err(format!("Task join error: {e}"))),
     }
 }
 
@@ -540,7 +565,8 @@ pub async fn delete_playlist(
 
     match result {
         Ok(Ok(())) => Ok(Json(serde_json::json!({ "success": true }))),
-        Ok(Err(e)) | Err(e) => Err(db_err(e)),
+        Ok(Err(e)) => Err(db_err(e)),
+        Err(e) => Err(db_err(format!("Task join error: {e}"))),
     }
 }
 
@@ -577,7 +603,8 @@ pub async fn record_playback(
 
     match result {
         Ok(Ok(())) => Ok(Json(serde_json::json!({ "success": true }))),
-        Ok(Err(e)) | Err(e) => Err(db_err(e)),
+        Ok(Err(e)) => Err(db_err(e)),
+        Err(e) => Err(db_err(format!("Task join error: {e}"))),
     }
 }
 
@@ -621,7 +648,8 @@ pub async fn playlist_analytics(
 
     match result {
         Ok(Ok(value)) => Ok(Json(value)),
-        Ok(Err(e)) | Err(e) => Err(db_err(e)),
+        Ok(Err(e)) => Err(db_err(e)),
+        Err(e) => Err(db_err(format!("Task join error: {e}"))),
     }
 }
 

@@ -138,5 +138,3 @@ video-error-export = 无法开始导出
 video-create-project-first = 请先创建一个项目
 video-select-clip-to-split = 选择要分割的剪辑
 video-playhead-within-clip = 播放头必须位于所选剪辑内
-video-tts-coming-soon = TTS 一代即将推出
-video-split-coming-soon = 拆分功能即将推出

@@ -968,7 +968,6 @@ sources-server-configure = Configurar
 # Cards de Modelo
 # -----------------------------------------------------------------------------
 sources-model-active = Ativo
-sources-model-coming-soon = Em Breve
 sources-model-provider = Provedor
 sources-model-context = Contexto
 sources-model-tokens = tokens

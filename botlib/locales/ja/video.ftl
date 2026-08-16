@@ -138,5 +138,3 @@ video-error-export = エクスポートの開始に失敗しました
 video-create-project-first = 最初にプロジェクトを作成してください
 video-select-clip-to-split = 分割するクリップを選択してください
 video-playhead-within-clip = 再生ヘッドは選択したクリップ内にある必要があります
-video-tts-coming-soon = TTS 世代が近日登場
-video-split-coming-soon = 分割機能は近日公開予定

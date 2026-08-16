@@ -138,5 +138,3 @@ video-error-export = Falha ao iniciar exportação
 video-create-project-first = Por favor crie um projeto primeiro
 video-select-clip-to-split = Selecione um clip para dividir
 video-playhead-within-clip = O cursor deve estar dentro do clip selecionado
-video-tts-coming-soon = Geração de TTS em breve
-video-split-coming-soon = Função de dividir em breve
