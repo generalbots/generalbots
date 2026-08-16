@@ -122,6 +122,11 @@ fn load_public_products(
     dsl::products
         .filter(dsl::is_active.eq(true))
         .filter(dsl::is_public.eq(true))
+        // Public catalog shows only the global (nil-branch) seed; org-specific
+        // products are served by the branch-scoped /api/products/* endpoints.
+        // Without this filter, every org's signup seed is returned too, which
+        // duplicates each product (issue #880).
+        .filter(dsl::branch_id.eq(uuid::Uuid::nil()))
         .select(CatalogProduct::as_select())
         .order(dsl::name)
         .load::<CatalogProduct>(conn)
@@ -163,6 +168,7 @@ pub async fn get_product_by_sku(
     let product: Option<CatalogProduct> = dsl::products
         .filter(dsl::is_active.eq(true))
         .filter(dsl::is_public.eq(true))
+        .filter(dsl::branch_id.eq(uuid::Uuid::nil()))
         .filter(dsl::sku.eq(&product_sku))
         .select(CatalogProduct::as_select())
         .first(&mut conn)
@@ -191,6 +197,7 @@ pub async fn list_plans(
     let products: Vec<CatalogProduct> = dsl::products
         .filter(dsl::is_active.eq(true))
         .filter(dsl::is_public.eq(true))
+        .filter(dsl::branch_id.eq(uuid::Uuid::nil()))
         .select(CatalogProduct::as_select())
         .order(dsl::price.asc())
         .load(&mut conn)
