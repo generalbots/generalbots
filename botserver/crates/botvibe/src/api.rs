@@ -1,6 +1,7 @@
 use crate::agent_loop::AgentLoop;
 use crate::pipeline::{PipelineEngine, PipelineRunContext, RunPipeline, StageStatus};
 use crate::prompt_manager::VibePromptManager;
+use crate::projects::{CreateProjectRequest, ProjectRegistryRef};
 use crate::telemetry::VibeTelemetry;
 use crate::tool_executor::{ToolDescriptor, VibeToolExecutor};
 use crate::types::{VibeProgressEvent, VibeRun, VibeRunConfig, VibeRunState, VibeState, VibeUseCase};
@@ -16,6 +17,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
+
+use botsecurity_auth::auth_api::types::AuthenticatedUser;
 
 #[derive(Debug, Deserialize)]
 pub struct CreateRunRequest {
@@ -102,6 +105,72 @@ fn resolve_effective_bot_id(pool: &crate::types::DbPool) -> Uuid {
         .unwrap_or(Uuid::nil())
 }
 
+/// Resolves the `(project_id, project_name)` a run operates on. An explicit
+/// project in the request is honored as-is; otherwise a stable name is derived
+/// from the intent and a project auto-created in the registry (scoped to the
+/// caller's organization) so the run's output shows up in the sidebar project
+/// list instead of landing in an untracked workspace directory.
+fn resolve_project(
+    registry: &ProjectRegistryRef,
+    user: &AuthenticatedUser,
+    req: &CreateRunRequest,
+) -> (Option<String>, Option<String>) {
+    match (req.project_id.as_deref(), req.project_name.as_deref()) {
+        (Some(pid), name) => (Some(pid.to_string()), name.map(String::from)),
+        (None, Some(name)) => (None, Some(name.to_string())),
+        (None, None) => {
+            let name = derive_project_name(&req.intent);
+            let org_id = user.organization_id.unwrap_or_else(Uuid::nil);
+            let create = CreateProjectRequest {
+                name: name.clone(),
+                project_type: Some("custom".to_string()),
+                repository: Some(name.clone()),
+                framework: None,
+                custom_domain: None,
+                environment: None,
+                org_id: Some(org_id),
+                branch_id: None,
+            };
+            match registry.create(&create) {
+                Ok(p) => (Some(p.id.to_string()), Some(p.name)),
+                Err(e) => {
+                    error!("Vibe: auto-create project '{name}' failed: {e}");
+                    (None, Some(name))
+                }
+            }
+        }
+    }
+}
+
+/// Derives a short, stable project name (workspace slug) from a run intent.
+/// Leading verbs/articles are stripped so "Create a calculator web app"
+/// becomes "calculator-web-app" rather than a noisy stop-word slug.
+fn derive_project_name(intent: &str) -> String {
+    const STOP: &[&str] = &[
+        "create", "make", "build", "write", "generate", "develop", "add", "a", "an", "the",
+        "my", "new", "simple", "basic", "me", "please",
+    ];
+    let mut words: Vec<String> = Vec::new();
+    for raw in intent.split(|c: char| !c.is_ascii_alphanumeric()) {
+        let word = raw.to_ascii_lowercase();
+        if word.is_empty() {
+            continue;
+        }
+        if words.is_empty() && STOP.contains(&word.as_str()) {
+            continue;
+        }
+        words.push(word);
+        if words.len() >= 3 {
+            break;
+        }
+    }
+    if words.is_empty() {
+        "app".to_string()
+    } else {
+        words.join("-")
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub struct ActionResponse {
     pub success: bool,
@@ -144,6 +213,7 @@ pub(crate) struct VibeApiInner {
     skills: Arc<crate::skills::SkillStore>,
     runs: Arc<RwLock<HashMap<Uuid, VibeRun>>>,
     runs_store: crate::run_store::VibeRunStore,
+    project_registry: ProjectRegistryRef,
 }
 
 impl crate::knowledge_graph::GraphDataSource for VibeApiInner {
@@ -191,24 +261,32 @@ impl VibeApiInner {
     }
 }
 
+/// Bundled security dependencies (permissions + skills) wired into the Vibe
+/// API, grouped so the router keeps a readable signature.
+pub struct VibeSecurityDeps {
+    pub permissions: crate::permissions::PermissionEngineRef,
+    pub skills: Arc<crate::skills::SkillStore>,
+}
+
 pub fn router(
     state: Arc<dyn VibeState>,
     prompt_manager: Arc<VibePromptManager>,
     tool_executor: Arc<VibeToolExecutor>,
     telemetry: Arc<VibeTelemetry>,
-    permissions: crate::permissions::PermissionEngineRef,
-    skills: Arc<crate::skills::SkillStore>,
+    security: VibeSecurityDeps,
     pool: crate::types::DbPool,
+    project_registry: ProjectRegistryRef,
 ) -> axum::Router {
     let api = Arc::new(VibeApiInner {
         state,
         prompt_manager,
         tool_executor,
         telemetry,
-        permissions,
-        skills,
+        permissions: security.permissions,
+        skills: security.skills,
         runs: Arc::new(RwLock::new(HashMap::new())),
         runs_store: crate::run_store::VibeRunStore::new(pool),
+        project_registry,
     });
     axum::Router::new()
         .route("/api/vibe/run", axum::routing::post(create_run))
@@ -233,6 +311,7 @@ pub fn router(
 
 async fn create_run(
     Extension(api): Extension<Arc<VibeApiInner>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<CreateRunRequest>,
 ) -> impl IntoResponse {
     info!("Vibe create run: {}", &req.intent[..req.intent.len().min(80)]);
@@ -242,6 +321,11 @@ async fn create_run(
         .as_deref()
         .and_then(parse_use_case)
         .unwrap_or(VibeUseCase::SoftwareDevelopment);
+
+    // An explicit project wins; otherwise derive one from the intent and
+    // auto-create it in the registry so the run's output lands in a tracked
+    // project (visible in the sidebar) instead of an orphan workspace dir.
+    let (project_id, project_name) = resolve_project(&api.project_registry, &user, &req);
 
     let config = VibeRunConfig {
         use_case,
@@ -253,11 +337,11 @@ async fn create_run(
         llm_key: None,
         llm_url: None,
         budget_cents: req.budget_cents.unwrap_or(0),
-        project_id: req.project_id.clone(),
-        project_name: req.project_name.clone(),
+        project_id,
+        project_name: project_name.clone(),
     };
 
-    let intent = match (&req.project_name, req.intent.as_str()) {
+    let intent = match (project_name.as_deref(), req.intent.as_str()) {
         (Some(name), raw) if !name.is_empty() && !raw.to_lowercase().contains(name.to_lowercase().as_str()) => {
             format!("In project {name}: {raw}")
         }
@@ -375,6 +459,30 @@ async fn create_run(
                     .await;
             } else {
                 agent_loop.execute_run(&mut run).await;
+            }
+            // Keep the sidebar project status truthful: a completed run marks
+            // its project active, a failed/cancelled one marks it failed.
+            if let Some(pid) = run.config.project_id.as_deref() {
+                if let Ok(pid) = Uuid::parse_str(pid) {
+                    let status = match run.state {
+                        VibeRunState::Completed => "active",
+                        VibeRunState::Failed | VibeRunState::Cancelled => "failed",
+                        _ => "pending",
+                    };
+                    let update = crate::projects::UpdateProjectRequest {
+                        name: None,
+                        project_type: None,
+                        repository: None,
+                        framework: None,
+                        custom_domain: None,
+                        environment: None,
+                        status: Some(status.to_string()),
+                        payload: None,
+                    };
+                    if let Err(e) = api_clone.project_registry.update(pid, &update) {
+                        error!("Vibe: sync project {pid} status failed: {e}");
+                    }
+                }
             }
             if let Err(e) = api_clone.runs_store.save_run(&run) {
                 error!("Vibe: persist run {run_id} failed: {e}");
@@ -798,5 +906,25 @@ fn parse_use_case(s: &str) -> Option<VibeUseCase> {
         "customer_support" => Some(VibeUseCase::CustomerSupport),
         "financial_analysis" => Some(VibeUseCase::FinancialAnalysis),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn derive_project_name_strips_stopwords_and_slugs() {
+        assert_eq!(
+            derive_project_name("Create a calculator web app with + - * / buttons"),
+            "calculator-web-app"
+        );
+        assert_eq!(
+            derive_project_name("Build a new landing page"),
+            "landing-page"
+        );
+        assert_eq!(derive_project_name("refactor the auth module"), "refactor-the-auth");
+        assert_eq!(derive_project_name(""), "app");
+        assert_eq!(derive_project_name("   "), "app");
     }
 }

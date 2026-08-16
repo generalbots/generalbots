@@ -174,9 +174,12 @@ pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
         prompt_manager.clone(),
         tool_executor.clone(),
         telemetry.clone(),
-        permissions.clone(),
-        skills.clone(),
+        botvibe::api::VibeSecurityDeps {
+            permissions: permissions.clone(),
+            skills: skills.clone(),
+        },
         app_state.conn.clone(),
+        project_registry.clone(),
     )
         .merge(projects_router(
             project_registry.clone(),
