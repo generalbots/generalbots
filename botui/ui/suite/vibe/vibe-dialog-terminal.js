@@ -11,8 +11,20 @@
     var fitAddon = null;
     var ws = null;
     var sessionId = null;
+    // The dialog's teardown nulls `term` while a pending create/connect may
+    // still resolve afterwards; WS callbacks must not crash on a null term
+    // (#912). tornDown also stops the retry loop from resurrecting a closed
+    // dialog.
+    var tornDown = false;
+
+    function writeTerm(text) {
+        if (term) {
+            try { term.write(text); } catch (ignore) { }
+        }
+    }
 
     function buildTerm(container) {
+        tornDown = false;
         if (!window.Terminal) {
             container.innerHTML = '<div class="vibe-empty">xterm.js not loaded.</div>';
             return;
@@ -61,7 +73,7 @@
     }
 
     function connect() {
-        if (!term) return;
+        if (!term || tornDown) return;
         sessionId = "vibe-" + Date.now() + "-" + Math.random().toString(36).substr(2, 8);
 
         D.api("/api/terminal/create", {
@@ -84,40 +96,40 @@
                 if (!term) return;
                 // The PTY shell prints its own prompt — no client-side prompt
                 // is needed (a fake prompt would double up with the real one).
-                term.write("\x1b[32m✓ connected — vibe workspace shell\x1b[0m\r\n");
+                writeTerm("\x1b[32m✓ connected — vibe workspace shell\x1b[0m\r\n");
                 // Grab focus so the user can type immediately after the
                 // dialog opens — without it, keystrokes go nowhere until
                 // the terminal is clicked once.
-                term.focus();
+                if (term) term.focus();
             };
             ws.onmessage = function (ev) {
                 if (!term) return;
                 try {
                     var msg = JSON.parse(ev.data);
                     if (msg.type === "connected") {
-                        term.write("\r\n\x1b[90m" + (msg.message || "") + "\x1b[0m\r\n");
+                        writeTerm("\r\n\x1b[90m" + (msg.message || "") + "\x1b[0m\r\n");
                     } else if (msg.type === "system") {
-                        term.write("\x1b[90m" + msg.message + "\x1b[0m");
+                        writeTerm("\x1b[90m" + msg.message + "\x1b[0m");
                     } else if (msg.type === "error") {
-                        term.write("\x1b[31m" + msg.message + "\x1b[0m\r\n");
+                        writeTerm("\x1b[31m" + msg.message + "\x1b[0m\r\n");
                     } else if (msg.data != null) {
-                        term.write(msg.data);
+                        writeTerm(msg.data);
                     }
                 } catch (e) {
-                    term.write(ev.data);
+                    writeTerm(ev.data);
                 }
             };
             ws.onclose = function () {
-                if (!term) return;
-                term.write("\r\n\x1b[33mdisconnected\x1b[0m\r\n");
+                writeTerm("\r\n\x1b[33mdisconnected\x1b[0m\r\n");
             };
             ws.onerror = function () {
-                if (!term) return;
-                term.write("\r\n\x1b[31mconnection error — retrying…\x1b[0m\r\n");
-                setTimeout(connect, 3000);
+                writeTerm("\r\n\x1b[31mconnection error — retrying…\x1b[0m\r\n");
+                setTimeout(function () {
+                    if (!tornDown) connect();
+                }, 3000);
             };
         }).catch(function () {
-            term.write("\r\n\x1b[31mterminal backend unavailable\x1b[0m\r\n");
+            writeTerm("\r\n\x1b[31mterminal backend unavailable\x1b[0m\r\n");
         });
     }
 
@@ -134,6 +146,7 @@
             });
         },
         teardown: function () {
+            tornDown = true;
             if (ws) {
                 try { ws.close(); } catch (ignore) { }
                 ws = null;
