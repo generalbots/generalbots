@@ -721,10 +721,13 @@ const Omnibox = {
     // For other patterns, use first segment if it's not a known route
     const firstSegment = segments[0];
     const knownRoutes = ["suite", "auth", "api", "static", "public", "bot"];
-    if (firstSegment && !knownRoutes.includes(firstSegment)) {
+    // Suite apps are routes, not bot names — keep the domain-resolved bot the
+    // server already injected (e.g. chat.pragmatismo.com.br/vibe -> pragmatismo).
+    const suiteApps = ["vibe", "project", "database", "drive", "chat", "tasks", "admin", "mail", "calendar", "meet", "docs", "sheet", "slides", "paper", "research", "sources", "learn", "analytics", "dashboards", "monitoring", "governance", "people", "crm", "tickets", "billing", "products", "video", "player", "canvas", "social", "goals", "workspace", "designer", "integrations", "erp", "fraud", "settings", "about", "tools", "attendant", "banking", "biometry", "brazil", "browser", "campaigns", "compliance", "desktop", "email", "handoff", "hr", "itsm", "kyc", "lists", "o365", "minutes", "plan", "plugins", "pos", "retail", "sales", "tax", "templates", "templates-app", "terminal", "timeclock", "vision"];
+    if (firstSegment && !knownRoutes.includes(firstSegment) && !suiteApps.includes(firstSegment)) {
       return firstSegment;
     }
-    return "default";
+    return window.__INITIAL_BOT_NAME__ || "default";
   };
 
   // Set global bot name

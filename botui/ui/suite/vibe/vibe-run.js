@@ -454,6 +454,7 @@
         if (typeof currentProject !== "undefined" && currentProject) pname = currentProject;
         var body = {
             intent: intent,
+            bot_id: (typeof vibeBotId !== "undefined" && vibeBotId && vibeBotId !== "default") ? vibeBotId : null,
             use_case: state.useCase,
             budget_cents: budgetCents,
             auto_approve: opts.auto_approve !== false,

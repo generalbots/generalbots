@@ -20,6 +20,10 @@ use uuid::Uuid;
 #[derive(Debug, Deserialize)]
 pub struct CreateRunRequest {
     pub intent: String,
+    /// Bot this run operates on. When absent, falls back to the default bot.
+    /// The frontend passes the authenticated session's bot so runs are scoped
+    /// to the user's tenant (not the global default).
+    pub bot_id: Option<Uuid>,
     pub use_case: Option<String>,
     pub lang: Option<String>,
     pub auto_approve: Option<bool>,
@@ -259,7 +263,10 @@ async fn create_run(
         }
         _ => req.intent,
     };
-    let run = VibeRun::new(resolve_effective_bot_id(api.state.db_pool()), Uuid::nil(), Uuid::nil(), intent, config);
+    let bot_id = req
+        .bot_id
+        .unwrap_or_else(|| resolve_effective_bot_id(api.state.db_pool()));
+    let run = VibeRun::new(bot_id, Uuid::nil(), Uuid::nil(), intent, config);
     let run_id = run.run_id;
     let state_str = run.state.to_string();
     let uc_str = run.use_case.to_string();

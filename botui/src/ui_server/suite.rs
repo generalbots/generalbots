@@ -102,6 +102,29 @@ pub async fn index(
     let suite_dirs: &[&str] = &["drive", "chat", "tasks", "admin", "mail", "calendar", "meet", "docs", "sheet", "slides", "paper", "research", "sources", "learn", "analytics", "dashboards", "monitoring", "governance", "people", "crm", "tickets", "billing", "products", "video", "player", "canvas", "social", "project", "goals", "workspace", "designer", "vibe", "integrations", "erp", "fraud", "settings", "about", "tools", "attendant", "banking", "biometry", "brazil", "browser", "campaigns", "compliance", "database", "desktop", "email", "handoff", "hr", "itsm", "kyc", "lists", "o365", "minutes", "plan", "plugins", "pos", "retail", "sales", "tax", "templates", "templates-app", "terminal", "timeclock", "vision"];
     let known_dirs: &[&str] = &["suite", "js", "css", "vendor", "assets", "public", "partials", "settings", "about", "drive", "chat", "tasks", "admin", "mail", "calendar", "meet", "docs", "sheet", "slides", "paper", "research", "sources", "learn", "analytics", "dashboards", "monitoring", "governance", "people", "crm", "tickets", "billing", "products", "video", "player", "canvas", "social", "project", "goals", "workspace", "designer", "vibe", "integrations", "erp", "fraud", "attendant", "banking", "biometry", "brazil", "browser", "campaigns", "compliance", "database", "desktop", "email", "handoff", "hr", "itsm", "kyc", "lists", "o365", "minutes", "plan", "plugins", "pos", "retail", "sales", "tax", "templates", "templates-app", "terminal", "timeclock", "tools", "vision"];
     let is_suite_dir = bot_name.as_ref().is_some_and(|b| suite_dirs.contains(&b.as_str()));
+
+    // Suite dirs (vibe, project, database, …) are apps, not bots. Resolve the
+    // real bot from the domain (e.g. chat.pragmatismo.com.br -> pragmatismo);
+    // otherwise fall back to "default" so API/WebSocket calls target a real bot.
+    if is_suite_dir {
+        let mut resolved = None;
+        if let Some(ref host) = domain_resolved_bot {
+            resolved = resolve_bot_from_host(&state, host).await;
+            if resolved.is_none() {
+                // Fallback: derive the bot from the chat subdomain, e.g.
+                // chat.pragmatismo.com.br -> pragmatismo (bot_domains may be empty).
+                let parts: Vec<&str> = host.split('.').collect();
+                if parts.len() >= 2 {
+                    resolved = match parts[0] {
+                        "chat" | "www" | "bot" | "app" => Some(parts[1].to_string()),
+                        _ => Some(parts[0].to_string()),
+                    };
+                }
+            }
+        }
+        bot_name = Some(resolved.unwrap_or_else(|| "default".to_string()));
+    }
+
     if let Some(ref bot) = bot_name {
         if !is_suite_dir {
         // Check for token from query param (cloud dashboard link)
