@@ -13,7 +13,7 @@ use crate::task_api::engine_persist::EnginePersistence;
 use crate::task_api::html_renderers_cards::render_cards;
 use crate::task_api::html_renderers_terminal::render_terminal;
 use crate::task_api::utils::get_user_id_from_headers;
-use crate::types::{CreateTaskRequest, TaskManifest};
+use crate::types::{CreateTaskRequest, TaskManifest, UpdateTaskRequest};
 use crate::scheduler_exec;
 
 #[derive(Deserialize)]
@@ -177,6 +177,83 @@ pub async fn handle_cancel_task(
     }
 
     Json(serde_json::json!({"status": "cancelled"})).into_response()
+}
+
+pub async fn handle_update_task(
+    State(state): State<Arc<TasksState>>,
+    headers: HeaderMap,
+    Path(task_id): Path<String>,
+    Json(payload): Json<UpdateTaskRequest>,
+) -> impl IntoResponse {
+    let id = match task_id.parse::<Uuid>() {
+        Ok(id) => id,
+        Err(_) => return Json(serde_json::json!({"error": "Invalid task ID"})).into_response(),
+    };
+
+    let branch_id = resolve_branch(&state, &headers);
+    let engine = TaskEngine::new(state.clone());
+
+    match engine.update_task(id, branch_id, &payload) {
+        Ok(task) => Json(serde_json::json!({"task": task})).into_response(),
+        Err(e) => Json(serde_json::json!({"error": e})).into_response(),
+    }
+}
+
+pub async fn handle_complete_task(
+    State(state): State<Arc<TasksState>>,
+    headers: HeaderMap,
+    Path(task_id): Path<String>,
+) -> impl IntoResponse {
+    let id = match task_id.parse::<Uuid>() {
+        Ok(id) => id,
+        Err(_) => return Json(serde_json::json!({"error": "Invalid task ID"})).into_response(),
+    };
+
+    let branch_id = resolve_branch(&state, &headers);
+    let engine = TaskEngine::new(state.clone());
+
+    match engine.complete_task(id, branch_id) {
+        Ok(task) => Json(serde_json::json!({"task": task})).into_response(),
+        Err(e) => Json(serde_json::json!({"error": e})).into_response(),
+    }
+}
+
+pub async fn handle_reopen_task(
+    State(state): State<Arc<TasksState>>,
+    headers: HeaderMap,
+    Path(task_id): Path<String>,
+) -> impl IntoResponse {
+    let id = match task_id.parse::<Uuid>() {
+        Ok(id) => id,
+        Err(_) => return Json(serde_json::json!({"error": "Invalid task ID"})).into_response(),
+    };
+
+    let branch_id = resolve_branch(&state, &headers);
+    let engine = TaskEngine::new(state.clone());
+
+    match engine.reopen_task(id, branch_id) {
+        Ok(task) => Json(serde_json::json!({"task": task})).into_response(),
+        Err(e) => Json(serde_json::json!({"error": e})).into_response(),
+    }
+}
+
+pub async fn handle_delete_task(
+    State(state): State<Arc<TasksState>>,
+    headers: HeaderMap,
+    Path(task_id): Path<String>,
+) -> impl IntoResponse {
+    let id = match task_id.parse::<Uuid>() {
+        Ok(id) => id,
+        Err(_) => return Json(serde_json::json!({"error": "Invalid task ID"})).into_response(),
+    };
+
+    let branch_id = resolve_branch(&state, &headers);
+    let engine = TaskEngine::new(state.clone());
+
+    match engine.delete_task(id, branch_id) {
+        Ok(()) => Json(serde_json::json!({"status": "deleted"})).into_response(),
+        Err(e) => Json(serde_json::json!({"error": e})).into_response(),
+    }
 }
 
 pub async fn handle_get_manifest(

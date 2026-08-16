@@ -74,6 +74,26 @@ pub struct CreateTaskRequest {
     pub enabled: Option<bool>,
 }
 
+/// Partial update payload for a task (issue #877).
+///
+/// Semantics follow the double-`Option` pattern so the API can distinguish
+/// three states for nullable columns:
+/// * `None`        — leave the column unchanged,
+/// * `Some(None)`  — clear the column (set it to `NULL`),
+/// * `Some(value)` — set the column to `value`.
+///
+/// `title` is non-nullable, so `Some(title)` replaces it (blank titles are
+/// ignored) and `None` leaves it unchanged.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateTaskRequest {
+    pub title: Option<String>,
+    pub description: Option<Option<String>>,
+    pub priority: Option<i32>,
+    pub assignee_id: Option<Option<Uuid>>,
+    pub due_date: Option<Option<DateTime<Utc>>>,
+    pub parent_id: Option<Option<Uuid>>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskManifest {
     pub id: Uuid,
