@@ -143,6 +143,17 @@
     openMenu(r, c, e);
   }
 
+  // Clicking the amber comment triangle opens the threaded comments for that
+  // cell (the marker carries data-row/data-col from the conditional renderer).
+  function onClick(e) {
+    const t = e.target;
+    if (!t || !t.classList || !t.classList.contains("ss-comment-marker")) return;
+    const r = parseInt(t.dataset.row, 10);
+    const c = parseInt(t.dataset.col, 10);
+    if (isNaN(r) || isNaN(c)) return;
+    openCellComments(r, c);
+  }
+
   function wire() {
     const g = grid();
     if (!g || !g.bodyInner) {
@@ -152,6 +163,7 @@
     if (g.bodyInner.__notesBound) return;
     g.bodyInner.__notesBound = true;
     g.bodyInner.addEventListener("contextmenu", onContextMenu, true);
+    g.bodyInner.addEventListener("click", onClick, true);
     document.addEventListener("mousedown", function (e) {
       if (menu && !menu.contains(e.target)) closeMenu();
     }, true);

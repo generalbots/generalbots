@@ -26,6 +26,10 @@
   var heartbeatTimer = null;
   var typingSent = false;
   var state = { resourceType: null, resourceId: null, title: "Comments", notify: null };
+  var mentionBox = null;      // floating @mention autocomplete dropdown
+  var mentionCandidates = []; // [{ id, name }] merged from presence + thread authors
+  var presenceUsers = [];     // raw /api/collab/presence items
+  var commentAuthors = [];    // raw { author_id, author_name } from the thread
 
   function ensureCss() {
     if (document.getElementById(CSS_ID)) return;
@@ -141,11 +145,20 @@
     req("/comments?resource_type=" + encodeURIComponent(state.resourceType) + "&resource_id=" + encodeURIComponent(state.resourceId))
       .then(function (items) {
         listEl.innerHTML = "";
+        commentAuthors = [];
         if (!items || !items.length) {
           listEl.innerHTML = '<div class="gbc-empty">No comments yet. Use @name to mention someone.</div>';
         } else {
-          items.forEach(function (c) { listEl.appendChild(node(c, false)); });
+          var seen = {};
+          items.forEach(function (c) {
+            listEl.appendChild(node(c, false));
+            if (c.author_name && !seen[c.author_name]) {
+              seen[c.author_name] = true;
+              commentAuthors.push({ author_id: c.author_id, author_name: c.author_name });
+            }
+          });
         }
+        refreshMentionCandidates();
         loadPresence();
       })
       .catch(function (e) {
@@ -157,6 +170,8 @@
     if (!presenceEl || !state.resourceId) return;
     req("/presence?resource_type=" + encodeURIComponent(state.resourceType) + "&resource_id=" + encodeURIComponent(state.resourceId))
       .then(function (items) {
+        presenceUsers = items || [];
+        refreshMentionCandidates();
         if (!items || !items.length) { presenceEl.style.display = "none"; presenceEl.textContent = ""; return; }
         var typing = items.filter(function (p) { return p.typing; });
         var names = items.map(function (p) { return p.user_name; });
@@ -230,6 +245,72 @@
     setTimeout(function () { t.remove(); }, 4000);
   }
 
+  // Merge active presence users with the thread's authors into the
+  // autocomplete candidate list (deduplicated by display name).
+  function refreshMentionCandidates() {
+    var seen = {};
+    var out = [];
+    function add(id, name) {
+      if (!name || seen[name]) return;
+      seen[name] = true;
+      out.push({ id: id || name, name: name });
+    }
+    presenceUsers.forEach(function (p) { add(p.user_id, p.user_name); });
+    commentAuthors.forEach(function (a) { add(a.author_id, a.author_name); });
+    mentionCandidates = out;
+  }
+
+  // The partial @token being typed at the caret, or null when not mentioning.
+  function currentMentionToken() {
+    if (!inputEl) return null;
+    var value = inputEl.value;
+    var pos = inputEl.selectionStart == null ? value.length : inputEl.selectionStart;
+    var before = value.slice(0, pos);
+    var at = before.lastIndexOf("@");
+    if (at === -1) return null;
+    var partial = before.slice(at + 1);
+    if (!/^[\w.@-]*$/.test(partial)) return null;
+    return { at: at, partial: partial };
+  }
+
+  function hideMentions() {
+    if (mentionBox) { mentionBox.style.display = "none"; mentionBox.innerHTML = ""; }
+  }
+
+  function renderMentions(token) {
+    if (!mentionBox) return;
+    var lower = token.partial.toLowerCase();
+    var matches = mentionCandidates.filter(function (c) {
+      return c.name.toLowerCase().indexOf(lower) === 0;
+    }).slice(0, 8);
+    if (!matches.length) { hideMentions(); return; }
+    mentionBox.innerHTML = "";
+    matches.forEach(function (c) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "gbc-mention-item";
+      b.textContent = c.name;
+      b.style.cssText = "display:block;width:100%;text-align:left;background:none;border:none;color:#f8fafc;font-size:13px;padding:8px 12px;cursor:pointer;";
+      b.addEventListener("mouseover", function () { b.style.background = "#334155"; });
+      b.addEventListener("mouseout", function () { b.style.background = "none"; });
+      b.addEventListener("mousedown", function (e) { e.preventDefault(); applyMention(token.at, c.name); });
+      mentionBox.appendChild(b);
+    });
+    mentionBox.style.display = "block";
+  }
+
+  function applyMention(at, name) {
+    if (!inputEl) return;
+    var value = inputEl.value;
+    var pos = inputEl.selectionStart == null ? value.length : inputEl.selectionStart;
+    var newValue = value.slice(0, at) + "@" + name + " " + value.slice(pos);
+    inputEl.value = newValue;
+    var caret = at + name.length + 2; // after "@name "
+    inputEl.focus();
+    try { inputEl.setSelectionRange(caret, caret); } catch (_) {}
+    hideMentions();
+  }
+
   function build() {
     if (panel) return;
     ensureCss();
@@ -251,8 +332,25 @@
     inputEl = document.getElementById("gbc-input");
     presenceEl = document.getElementById("gbc-presence");
 
+    var inputRow = panel.querySelector(".gbc-input-row");
+    if (inputRow) inputRow.style.position = "relative";
+    mentionBox = document.createElement("div");
+    mentionBox.className = "gbc-mention-box";
+    mentionBox.style.cssText = "position:absolute;left:14px;right:14px;bottom:54px;background:#1e293b;border:1px solid #334155;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.45);max-height:220px;overflow-y:auto;display:none;z-index:10;";
+    if (inputRow) inputRow.appendChild(mentionBox);
+
+    inputEl.addEventListener("input", function () {
+      var token = currentMentionToken();
+      if (token) renderMentions(token);
+      else hideMentions();
+    });
     inputEl.addEventListener("keydown", function (e) {
-      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); post(); return; }
+      if (mentionBox && mentionBox.style.display !== "none" && e.key === "Escape") {
+        e.preventDefault();
+        hideMentions();
+        return;
+      }
+      if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); hideMentions(); post(); return; }
       typingSent = true;
       sendPresence(true);
     });
