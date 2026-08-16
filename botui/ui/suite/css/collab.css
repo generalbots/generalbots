@@ -92,6 +92,19 @@
 .gb-connection-status.offline .dot {
   background: #f87171;
 }
+/* Visible keyboard focus for the dark collaboration theme (a11y). */
+.btn-icon:focus-visible,
+.btn-primary:focus-visible,
+.gbc-close:focus-visible,
+.gba-close:focus-visible,
+.gbv-close:focus-visible,
+.gbv-btn:focus-visible,
+.gbc-send:focus-visible,
+.gbc-filter-btn:focus-visible,
+.gbc-input:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
 @keyframes gb-cursor-blink {
   0%, 49% { opacity: 1; }
   50%, 100% { opacity: 0.3; }

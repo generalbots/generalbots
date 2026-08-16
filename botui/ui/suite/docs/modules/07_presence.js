@@ -21,6 +21,7 @@
   const cursors = new Map();     // userId -> { name, color, position }
   const selections = new Map();  // userId -> { name, color, start, end }
   let onlineUsers = [];          // most recent presence snapshot
+  let announcedOnce = false;     // skip the initial snapshot (includes self)
   let overlay = null;
   let rafId = null;
 
@@ -181,10 +182,19 @@
     },
 
     sync: function (users) {
+      var prev = new Set(onlineUsers.map(function (u) { return u.user_id; }));
       onlineUsers = users || [];
       var active = new Set(onlineUsers.map(function (u) { return u.user_id; }));
       cursors.forEach(function (_, id) { if (!active.has(id)) cursors.delete(id); });
       selections.forEach(function (_, id) { if (!active.has(id)) selections.delete(id); });
+      if (announcedOnce) {
+        onlineUsers.forEach(function (u) {
+          if (!prev.has(u.user_id) && window.GBCollabA11y) {
+            window.GBCollabA11y.announce((u.user_name || "A collaborator") + " joined");
+          }
+        });
+      }
+      announcedOnce = true;
       scheduleRender();
     },
 

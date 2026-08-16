@@ -120,6 +120,8 @@
     if (panel && panel.parentNode) return panel;
     panel = document.createElement("div");
     panel.id = "gb-activity-panel";
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-label", "Activity");
     panel.innerHTML =
       '<div class="gba-header">' +
       '<span class="gba-title">' + esc(state.title) + '</span>' +
