@@ -173,7 +173,16 @@ impl VibeRun {
     }
 
     pub fn transition(&mut self, new_state: VibeRunState) {
-        if matches!(new_state, VibeRunState::Completed | VibeRunState::Failed | VibeRunState::Cancelled) {
+        // Terminal states are absorbing: a finished run must never regress.
+        // This guards against a late approve/cancel *and* a still-running
+        // agent loop flipping a completed run back to "running" (stale dock).
+        // Call sites that need to distinguish an already-finished run check
+        // `is_terminal()` first; every other transition out of a terminal
+        // state is simply ignored.
+        if self.state.is_terminal() {
+            return;
+        }
+        if new_state.is_terminal() {
             self.completed_at = Some(chrono::Utc::now());
         }
         self.state = new_state;
@@ -467,6 +476,29 @@ mod tests {
         assert_eq!(VibeRunState::Completed.to_string(), "completed");
         assert_eq!(VibeRunState::Failed.to_string(), "failed");
         assert_eq!(VibeRunState::Cancelled.to_string(), "cancelled");
+    }
+
+    #[test]
+    fn terminal_state_is_absorbing() {
+        let mut run = VibeRun::new(Uuid::new_v4(), Uuid::nil(), Uuid::nil(), "i".into(), VibeRunConfig::default());
+        run.transition(VibeRunState::Completed);
+        assert_eq!(run.state, VibeRunState::Completed);
+        let completed_at = run.completed_at;
+
+        // A late approval/cancel or a lingering loop must not regress the run.
+        run.transition(VibeRunState::Running);
+        assert_eq!(run.state, VibeRunState::Completed);
+        assert_eq!(run.completed_at, completed_at);
+    }
+
+    #[test]
+    fn run_state_is_terminal() {
+        assert!(!VibeRunState::Pending.is_terminal());
+        assert!(!VibeRunState::Running.is_terminal());
+        assert!(!VibeRunState::AwaitingApproval.is_terminal());
+        assert!(VibeRunState::Completed.is_terminal());
+        assert!(VibeRunState::Failed.is_terminal());
+        assert!(VibeRunState::Cancelled.is_terminal());
     }
 
     #[test]

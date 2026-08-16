@@ -230,10 +230,29 @@
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: "{}",
-        }).then(function () {
+        }).then(function (data) {
+            var msg = data && data.message ? String(data.message) : "";
+            // The backend guards terminal states: a late approval still
+            // records the pending tool calls but reports the run already
+            // finished. Reflect that instead of leaving the dock stuck on
+            // "Resuming…" forever.
+            if (msg.indexOf("already finished") !== -1) {
+                resetApproveBtn();
+                uiMsg("✅ Approval recorded — run already finished.");
+                pollRun();
+                return;
+            }
             uiMsg("✅ Approval sent — resuming run.");
             waitForResume();
         });
+    }
+
+    function resetApproveBtn() {
+        var btn = q("vibeApproveBtn");
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = "✓ Approve & Resume";
+        }
     }
 
     function denyRun() {
@@ -260,11 +279,7 @@
                     renderRunCard();
                 } else if (tries >= 40) {
                     clearInterval(t);
-                    var btn = q("vibeApproveBtn");
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.textContent = "✓ Approve & Resume";
-                    }
+                    resetApproveBtn();
                 }
             });
         }, 750);
