@@ -86,6 +86,20 @@ pub struct UpdateTaskRequest {
     pub progress: Option<u8>,
     #[serde(default)]
     pub tags: Option<Vec<String>>,
+    #[serde(default)]
+    pub depends_on: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct AddMemberRequest {
+    pub user_id: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct SetDependenciesRequest {
+    pub plan_id: String,
+    pub task_id: String,
+    pub depends_on: Vec<String>,
 }
 
 pub type PlanStore = Arc<RwLock<HashMap<String, Plan>>>;
@@ -109,9 +123,14 @@ pub fn configure_plan_routes() -> Router {
         )
         .route("/api/plan/:plan_id/typing", get(handle_get_plan_typing))
         .route("/api/plan/:plan_id", get(handle_get_plan))
+        .route(
+            "/api/plan/:plan_id/members",
+            post(handle_add_member).delete(handle_remove_member),
+        )
         .route("/api/plan/task", post(handle_create_task))
         .route("/api/plan/task/update", post(handle_update_task))
         .route("/api/plan/task/delete", post(handle_delete_task))
+        .route("/api/plan/task/depends", post(handle_set_dependencies))
 }
 
 pub async fn handle_get_plan(Path(plan_id): Path<String>) -> impl IntoResponse {
@@ -185,10 +204,52 @@ pub async fn handle_update_task(Json(req): Json<UpdateTaskRequest>) -> impl Into
             if let Some(v) = req.end { t.end = Some(v); }
             if let Some(v) = req.progress { t.progress = v.min(100); }
             if let Some(v) = req.tags { t.tags = v; }
+            if let Some(v) = req.depends_on { t.depends_on = v; }
             t.updated_at = Utc::now();
             plan.updated_at = Utc::now();
             let updated = t.clone();
             return Json(serde_json::json!({ "ok": true, "task": updated }));
+        }
+    }
+    Json(serde_json::json!({ "ok": false, "error": "task not found" }))
+}
+
+pub async fn handle_add_member(
+    Path(plan_id): Path<String>,
+    Json(req): Json<AddMemberRequest>,
+) -> impl IntoResponse {
+    let mut store = get_store().write().await;
+    if let Some(plan) = store.get_mut(&plan_id) {
+        if !plan.members.iter().any(|m| m == &req.user_id) {
+            plan.members.push(req.user_id);
+        }
+        plan.updated_at = Utc::now();
+        return Json(serde_json::json!({ "ok": true, "plan": plan }));
+    }
+    Json(serde_json::json!({ "ok": false, "error": "plan not found" }))
+}
+
+pub async fn handle_remove_member(
+    Path(plan_id): Path<String>,
+    Json(req): Json<AddMemberRequest>,
+) -> impl IntoResponse {
+    let mut store = get_store().write().await;
+    if let Some(plan) = store.get_mut(&plan_id) {
+        plan.members.retain(|m| m != &req.user_id);
+        plan.updated_at = Utc::now();
+        return Json(serde_json::json!({ "ok": true, "plan": plan }));
+    }
+    Json(serde_json::json!({ "ok": false, "error": "plan not found" }))
+}
+
+pub async fn handle_set_dependencies(Json(req): Json<SetDependenciesRequest>) -> impl IntoResponse {
+    let mut store = get_store().write().await;
+    if let Some(plan) = store.get_mut(&req.plan_id) {
+        if let Some(t) = plan.tasks.get_mut(&req.task_id) {
+            t.depends_on = req.depends_on;
+            t.updated_at = Utc::now();
+            plan.updated_at = Utc::now();
+            return Json(serde_json::json!({ "ok": true, "task": t }));
         }
     }
     Json(serde_json::json!({ "ok": false, "error": "task not found" }))

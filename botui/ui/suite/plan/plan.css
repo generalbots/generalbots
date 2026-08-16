@@ -132,6 +132,8 @@
 .plan-card-priority-bar { width: 3px; flex-shrink: 0; }
 .plan-card-body { flex: 1; padding: 8px 10px; min-width: 0; }
 .plan-card-title { font-size: 13px; font-weight: 500; margin-bottom: 6px; word-break: break-word; }
+.plan-card-comment-btn { background: transparent; border: none; cursor: pointer; font-size: 12px; padding: 0 4px; opacity: 0.5; float: right; }
+.plan-card-comment-btn:hover { opacity: 1; }
 .plan-card-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 11px; color: var(--text-secondary); }
 .plan-card-avatar {
   display: inline-flex;
