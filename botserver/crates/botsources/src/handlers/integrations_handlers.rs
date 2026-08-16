@@ -77,6 +77,7 @@ pub async fn handle_connect_connector(
 
     let schedule = payload.schedule.clone();
     if let Err(e) = crate::connector_ops::validate_schedule(schedule.as_deref()) {
+        log::warn!("invalid connector schedule '{schedule:?}': {e}");
         return Err(StatusCode::BAD_REQUEST);
     }
 
