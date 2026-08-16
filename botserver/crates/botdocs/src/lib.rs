@@ -13,6 +13,8 @@ pub mod ui_fragments;
 pub mod utils;
 pub mod utils_convert;
 pub mod utils_format;
+pub mod utils_ooxml;
+pub mod utils_pdf;
 
 use axum::{routing::get, Router};
 use state::DocState;
@@ -55,6 +57,7 @@ pub fn configure_docs_routes() -> Router<Arc<DocState>> {
         .route("/api/docs/ai/custom", axum::routing::post(handle_ai_custom))
         .route("/api/docs/export/pdf", get(handle_export_pdf))
         .route("/api/docs/export/docx", get(handle_export_docx))
+        .route("/api/docs/export/odt", get(handle_export_odt))
         .route("/api/docs/export/md", get(handle_export_md))
         .route("/api/docs/export/html", get(handle_export_html))
         .route("/api/docs/export/txt", get(handle_export_txt))
