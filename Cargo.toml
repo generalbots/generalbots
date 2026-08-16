@@ -458,7 +458,12 @@ trayicon = "0.2"
 lto = true
 opt-level = "z"
 strip = true
-panic = "abort"
+# `html2md` (botdocs export) and `chromiumoxide` (botvibe browser tools)
+# use std::panic::catch_unwind internally; panic=abort makes the release
+# link fail with "the linked panic runtime panic_unwind is not compiled
+# with this crate's panic strategy abort". Unwind is the Rust default and
+# required for these dependencies.
+panic = "unwind"
 codegen-units = 1
 
 [profile.fast]
