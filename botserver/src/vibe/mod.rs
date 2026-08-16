@@ -140,6 +140,11 @@ pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
         Ok(()) => info!("Vibe: vibe_runs schema ensured"),
         Err(e) => log::error!("Vibe: ensure vibe_runs schema failed: {e}"),
     }
+    let run_store = botvibe::run_store::VibeRunStore::new(app_state.conn.clone());
+    let recovered = run_store.recover_orphaned_runs();
+    if recovered > 0 {
+        info!("Vibe: marked {recovered} orphaned run(s) as failed after restart");
+    }
     let tool_executor = Arc::new(VibeToolExecutor::new(tool_registry));
     let telemetry = Arc::new(VibeTelemetry::new());
 

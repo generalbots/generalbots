@@ -427,6 +427,36 @@ fn run_to_response(run: &VibeRun) -> GetRunResponse {
     }
 }
 
+/// Cancels a run without regressing a terminal state. The run must already
+/// be removed from the in-memory map's borrow scope before this is called.
+fn cancel_run_inner(run: &mut VibeRun) {
+    // A late cancel must not regress an already-finished run back into
+    // Cancelled (same terminal-clobber class as approve_run below).
+    if !run.state.is_terminal() {
+        run.transition(VibeRunState::Cancelled);
+    }
+}
+
+/// Approves all pending tool calls and, unless the run already finished,
+/// resumes it. Returns the user-facing message (the frontend keys off
+/// "already finished" to refresh to the terminal state).
+fn approve_run_inner(run: &mut VibeRun) -> String {
+    for tool_call in &mut run.tool_calls {
+        if tool_call.requires_approval && !tool_call.approved {
+            tool_call.approved = true;
+        }
+    }
+    let was_terminal = run.state.is_terminal();
+    if !was_terminal {
+        run.transition(VibeRunState::Running);
+    }
+    if was_terminal {
+        "Run already finished — approval recorded, state unchanged".to_string()
+    } else {
+        "Pending tool calls approved and run resumed".to_string()
+    }
+}
+
 async fn cancel_run(
     Extension(api): Extension<Arc<VibeApiInner>>,
     Path(run_id): Path<Uuid>,
@@ -437,11 +467,7 @@ async fn cancel_run(
     }
     let mut runs = api.runs.write().await;
     if let Some(run) = runs.get_mut(&run_id) {
-        // A late cancel must not regress an already-finished run back into
-        // Cancelled (same terminal-clobber class as approve_run below).
-        if !run.state.is_terminal() {
-            run.transition(VibeRunState::Cancelled);
-        }
+        cancel_run_inner(run);
         let snapshot = run.clone();
         drop(runs);
         if let Err(e) = api.runs_store.save_run(&snapshot) {
@@ -454,11 +480,28 @@ async fn cancel_run(
             error: None,
         })
     } else {
-        Json(ActionResponse {
-            success: false,
-            message: None,
-            error: Some("Run not found".to_string()),
-        })
+        drop(runs);
+        // After a restart the in-memory map is empty; fall back to the
+        // persisted store so a stored run can still be resolved.
+        match api.runs_store.get_run(run_id) {
+            Some(mut run) => {
+                cancel_run_inner(&mut run);
+                if let Err(e) = api.runs_store.save_run(&run) {
+                    error!("Vibe: persist cancelled run {run_id} failed: {e}");
+                }
+                info!("Vibe run cancelled (persisted): {run_id}");
+                Json(ActionResponse {
+                    success: true,
+                    message: Some("Run cancelled".to_string()),
+                    error: None,
+                })
+            }
+            None => Json(ActionResponse {
+                success: false,
+                message: None,
+                error: Some("Run not found".to_string()),
+            }),
+        }
     }
 }
 
@@ -471,21 +514,8 @@ async fn approve_run(
     }
     let mut runs = api.runs.write().await;
     if let Some(run) = runs.get_mut(&run_id) {
-        for tool_call in &mut run.tool_calls {
-            if tool_call.requires_approval && !tool_call.approved {
-                tool_call.approved = true;
-            }
-        }
+        let msg = approve_run_inner(run);
         info!("Vibe run approved: {run_id}");
-        // A late approval must not clobber a terminal state back to Running.
-        // When the approval lands after the loop already finished, the run
-        // would otherwise stay stuck as "running" forever (completed_at stays
-        // set but state regresses) — see the stale run-dock issue. Approve the
-        // pending tool calls regardless, but preserve the terminal state.
-        let was_terminal = run.state.is_terminal();
-        if !was_terminal {
-            run.transition(VibeRunState::Running);
-        }
         let snapshot = run.clone();
         drop(runs);
         if let Err(e) = api.runs_store.save_run(&snapshot) {
@@ -493,19 +523,32 @@ async fn approve_run(
         }
         Json(ActionResponse {
             success: true,
-            message: Some(if was_terminal {
-                "Run already finished — approval recorded, state unchanged".to_string()
-            } else {
-                "Pending tool calls approved and run resumed".to_string()
-            }),
+            message: Some(msg),
             error: None,
         })
     } else {
-        Json(ActionResponse {
-            success: false,
-            message: None,
-            error: Some("Run not found".to_string()),
-        })
+        drop(runs);
+        // After a restart the in-memory map is empty; fall back to the
+        // persisted store so a stored run can still be approved.
+        match api.runs_store.get_run(run_id) {
+            Some(mut run) => {
+                let msg = approve_run_inner(&mut run);
+                if let Err(e) = api.runs_store.save_run(&run) {
+                    error!("Vibe: persist approved run {run_id} failed: {e}");
+                }
+                info!("Vibe run approved (persisted): {run_id}");
+                Json(ActionResponse {
+                    success: true,
+                    message: Some(msg),
+                    error: None,
+                })
+            }
+            None => Json(ActionResponse {
+                success: false,
+                message: None,
+                error: Some("Run not found".to_string()),
+            }),
+        }
     }
 }
 
