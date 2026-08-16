@@ -25,7 +25,8 @@
   var presenceEl = null;
   var heartbeatTimer = null;
   var typingSent = false;
-  var state = { resourceType: null, resourceId: null, title: "Comments", notify: null, includeChildren: false };
+  var state = { resourceType: null, resourceId: null, title: "Comments", notify: null, includeChildren: false, filter: "open" };
+  var badgeRefreshFn = null; // bound unread-badge refresher (last one wins)
   var mentionBox = null;      // floating @mention autocomplete dropdown
   var mentionCandidates = []; // [{ id, name }] merged from presence + thread authors
   var presenceUsers = [];     // raw /api/collab/presence items
@@ -68,7 +69,14 @@
       "#gb-comments-panel .gbc-reply-btn,#gb-comments-panel .gbc-del{font-size:12px;color:#94a3b8;cursor:pointer;padding:2px 4px;border-radius:4px;}",
       "#gb-comments-panel .gbc-reply-btn:hover{color:#60a5fa;background:#1e293b;}",
       "#gb-comments-panel .gbc-del:hover{color:#f87171;background:#1e293b;}",
-      "#gb-comments-panel .gbc-replies{display:flex;flex-direction:column;gap:8px;margin-top:10px;}"
+      "#gb-comments-panel .gbc-replies{display:flex;flex-direction:column;gap:8px;margin-top:10px;}",
+      "#gb-comments-panel .gbc-filter{display:flex;gap:4px;padding:8px 14px;border-bottom:1px solid #334155;background:#0f172a;}",
+      "#gb-comments-panel .gbc-filter-btn{background:none;border:1px solid #334155;color:#94a3b8;border-radius:999px;padding:3px 10px;font-size:11px;cursor:pointer;}",
+      "#gb-comments-panel .gbc-filter-btn.active{background:#3b82f6;border-color:#3b82f6;color:#fff;}",
+      "#gb-comments-panel .gbc-resolved-chip{font-size:10px;color:#10b981;background:rgba(16,185,129,.15);border-radius:3px;padding:0 5px;line-height:16px;font-weight:600;}",
+      "#gb-comments-panel .gbc-item.gbc-resolved .gbc-body{opacity:.55;}",
+      "#gb-comments-panel .gbc-resolve-btn{font-size:12px;color:#94a3b8;cursor:pointer;padding:2px 4px;border-radius:4px;}",
+      "#gb-comments-panel .gbc-resolve-btn:hover{color:#10b981;background:#1e293b;}"
     ].join("");
     var style = document.createElement("style");
     style.id = CSS_ID;
@@ -135,10 +143,16 @@
 
   function node(comment, isReply) {
     var n = document.createElement("div");
-    n.className = "gbc-item" + (isReply ? " gbc-reply" : "");
+    n.className = "gbc-item" + (isReply ? " gbc-reply" : "") + (comment.resolved ? " gbc-resolved" : "");
+    var resolvedChip = comment.resolved
+      ? '<span class="gbc-resolved-chip">✓ Resolved</span>'
+      : "";
+    var resolveBtn = isReply ? "" :
+      '<span class="gbc-resolve-btn" data-comment="' + esc(comment.id) + '" data-resolved="' + (comment.resolved ? "1" : "0") + '">' +
+        (comment.resolved ? "Reopen" : "Resolve") + "</span>";
     n.innerHTML =
       '<div class="gbc-meta"><span class="gbc-author">' + esc(comment.author_name || comment.author_id) + "</span>" +
-      anchorBadge(comment) +
+      anchorBadge(comment) + resolvedChip +
       '<span class="gbc-time">' + timeFmt(comment.created_at) + "</span></div>" +
       '<div class="gbc-body">' + renderBody(comment.body) + "</div>" +
       '<div class="gbc-actions">' +
@@ -147,6 +161,7 @@
         }).join("") +
         chips(comment) +
         '<span class="gbc-reply-btn" data-comment="' + esc(comment.id) + '">Reply</span>' +
+        resolveBtn +
         '<span class="gbc-del" data-comment="' + esc(comment.id) + '">Delete</span>' +
       "</div>";
     if (comment.replies && comment.replies.length) {
@@ -167,17 +182,23 @@
       .then(function (items) {
         listEl.innerHTML = "";
         commentAuthors = [];
-        if (!items || !items.length) {
-          listEl.innerHTML = '<div class="gbc-empty">No comments yet. Use @name to mention someone.</div>';
+        var all = items || [];
+        var seen = {};
+        all.forEach(function (c) {
+          if (c.author_name && !seen[c.author_name]) {
+            seen[c.author_name] = true;
+            commentAuthors.push({ author_id: c.author_id, author_name: c.author_name });
+          }
+        });
+        var visible = all.filter(function (c) {
+          if (state.filter === "open") return !c.resolved;
+          if (state.filter === "resolved") return !!c.resolved;
+          return true;
+        });
+        if (!visible.length) {
+          listEl.innerHTML = '<div class="gbc-empty">No ' + (state.filter === "resolved" ? "resolved" : "open") + ' comments. Use @name to mention someone.</div>';
         } else {
-          var seen = {};
-          items.forEach(function (c) {
-            listEl.appendChild(node(c, false));
-            if (c.author_name && !seen[c.author_name]) {
-              seen[c.author_name] = true;
-              commentAuthors.push({ author_id: c.author_id, author_name: c.author_name });
-            }
-          });
+          visible.forEach(function (c) { listEl.appendChild(node(c, false)); });
         }
         refreshMentionCandidates();
         loadPresence();
@@ -254,6 +275,20 @@
     var body = window.prompt("Reply to comment:");
     if (!body) return;
     addComment(body.trim(), commentId).then(load).catch(function (e) { notify("Reply failed: " + e.message, "error"); });
+  }
+
+  function resolve(commentId, resolved) {
+    req("/comments/" + commentId + "/resolve", { method: "POST", body: JSON.stringify({ resolved: resolved }) })
+      .then(load)
+      .catch(function (e) { notify("Resolve failed: " + e.message, "error"); });
+  }
+
+  function markRead() {
+    if (!state.resourceId) return;
+    req("/comments/read", {
+      method: "POST",
+      body: JSON.stringify({ resource_type: state.resourceType, resource_id: state.resourceId })
+    }).then(function () { if (badgeRefreshFn) badgeRefreshFn(); }).catch(function () {});
   }
 
   function notify(msg, type) {
@@ -367,6 +402,11 @@
         '<span class="gbc-presence" id="gbc-presence"></span>' +
         '<button class="gbc-close" onclick="GBCollabComments.close()" title="Close">\u00D7</button>' +
       "</div>" +
+      '<div class="gbc-filter" id="gbc-filter">' +
+        '<button class="gbc-filter-btn active" data-filter="open">Open</button>' +
+        '<button class="gbc-filter-btn" data-filter="all">All</button>' +
+        '<button class="gbc-filter-btn" data-filter="resolved">Resolved</button>' +
+      "</div>" +
       '<div class="gbc-list" id="gbc-list"></div>' +
       '<div class="gbc-input-row">' +
         '<input class="gbc-input" id="gbc-input" type="text" placeholder="Add a comment\u2026 use @name to mention" autocomplete="off" />' +
@@ -428,7 +468,20 @@
       if (delEl) { del(delEl.dataset.comment); return; }
       var replyEl = e.target.closest(".gbc-reply-btn");
       if (replyEl) { reply(replyEl.dataset.comment); return; }
+      var resolveEl = e.target.closest(".gbc-resolve-btn");
+      if (resolveEl) { resolve(resolveEl.dataset.comment, resolveEl.dataset.resolved !== "1"); return; }
     });
+
+    var filterEl = document.getElementById("gbc-filter");
+    if (filterEl) {
+      filterEl.addEventListener("click", function (e) {
+        var btn = e.target.closest(".gbc-filter-btn");
+        if (!btn) return;
+        state.filter = btn.dataset.filter;
+        filterEl.querySelectorAll(".gbc-filter-btn").forEach(function (b) { b.classList.toggle("active", b === btn); });
+        load();
+      });
+    }
   }
 
   function open(opts) {
@@ -439,10 +492,14 @@
     state.title = opts.title || "Comments";
     state.notify = opts.notify || null;
     state.includeChildren = !!opts.includeChildren;
+    state.filter = "open";
+    var filterEl = document.getElementById("gbc-filter");
+    if (filterEl) filterEl.querySelectorAll(".gbc-filter-btn").forEach(function (b) { b.classList.toggle("active", b.dataset.filter === "open"); });
     document.getElementById("gbc-title").textContent = state.title;
     if (inputEl) inputEl.value = "";
     panel.classList.add("gbc-open");
     load();
+    markRead();
     heartbeat();
   }
 
@@ -467,5 +524,32 @@
     return btn;
   }
 
-  window.GBCollabComments = { open: open, close: close, post: post, mountButton: mountButton };
+  // Bind a live unread-count badge to a button/container. Polls the unread
+  // endpoint and shows a red count pill; opening the panel (markRead) clears it.
+  function bindBadge(container, opts) {
+    if (!container || !opts || !opts.resourceType) return null;
+    if (container.__gbcBadgeBound) return container.__gbcBadgeBound;
+    build();
+    if (container.style && !container.style.position) container.style.position = "relative";
+    var badge = document.createElement("span");
+    badge.className = "gbc-badge";
+    badge.style.cssText = "display:none;position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;border-radius:999px;background:#ef4444;color:#fff;font-size:10px;font-weight:700;line-height:16px;text-align:center;padding:0 4px;pointer-events:none;";
+    container.appendChild(badge);
+    container.__gbcBadgeBound = badge;
+    function refresh() {
+      var qs = "/comments/unread?resource_type=" + encodeURIComponent(opts.resourceType) + "&resource_id=" + encodeURIComponent(opts.resourceId);
+      if (opts.includeChildren) qs += "&include_children=true";
+      req(qs).then(function (r) {
+        var n = (r && r.count) || 0;
+        badge.textContent = n > 99 ? "99+" : String(n);
+        badge.style.display = n > 0 ? "inline-block" : "none";
+      }).catch(function () {});
+    }
+    badgeRefreshFn = refresh;
+    refresh();
+    if (!container.__gbcBadgeTimer) container.__gbcBadgeTimer = setInterval(refresh, 30000);
+    return badge;
+  }
+
+  window.GBCollabComments = { open: open, close: close, post: post, mountButton: mountButton, bindBadge: bindBadge, resolve: resolve };
 })(window);

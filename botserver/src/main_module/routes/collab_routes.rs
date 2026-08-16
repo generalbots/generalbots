@@ -16,7 +16,7 @@ use axum::{
 use botcore::shared::state::AppState;
 use crate::security::auth_api::types::AuthenticatedUser;
 use diesel::prelude::*;
-use diesel::sql_types::{Bool, Nullable, Text, Timestamptz, Uuid as SqlUuid};
+use diesel::sql_types::{BigInt, Bool, Nullable, Text, Timestamptz, Uuid as SqlUuid};
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -122,6 +122,9 @@ pub struct CommentItem {
     pub mentions: Vec<String>,
     pub created_at: String,
     pub updated_at: String,
+    pub resolved: bool,
+    pub resolved_by: Option<String>,
+    pub resolved_at: Option<String>,
     pub reactions: Vec<ReactionItem>,
     pub replies: Vec<CommentItem>,
 }
@@ -156,6 +159,12 @@ struct CommentRow {
     created_at: chrono::DateTime<chrono::Utc>,
     #[diesel(sql_type = Timestamptz)]
     updated_at: chrono::DateTime<chrono::Utc>,
+    #[diesel(sql_type = Bool)]
+    resolved: bool,
+    #[diesel(sql_type = Nullable<Text>)]
+    resolved_by: Option<String>,
+    #[diesel(sql_type = Nullable<Timestamptz>)]
+    resolved_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 #[derive(QueryableByName)]
@@ -225,7 +234,8 @@ pub async fn list_comments(
 
     let rows = diesel::sql_query(
         "SELECT id::text, resource_type, resource_id, author_id, author_name, \
-                parent_id::text, body, mentions, created_at, updated_at \
+                parent_id::text, body, mentions, created_at, updated_at, \
+                resolved, resolved_by, resolved_at \
          FROM collab_comments \
          WHERE deleted = FALSE \
            AND ((resource_type = $1 AND resource_id = $2) \
@@ -276,6 +286,9 @@ pub async fn list_comments(
             mentions: serde_json::from_str(&r.mentions).unwrap_or_default(),
             created_at: r.created_at.to_rfc3339(),
             updated_at: r.updated_at.to_rfc3339(),
+            resolved: r.resolved,
+            resolved_by: r.resolved_by,
+            resolved_at: r.resolved_at.map(|d| d.to_rfc3339()),
             reactions: reactions.remove(&r.id).unwrap_or_default(),
             replies: Vec::new(),
         };
@@ -376,6 +389,9 @@ pub async fn create_comment(
         mentions,
         created_at: created.created_at.to_rfc3339(),
         updated_at: created.created_at.to_rfc3339(),
+        resolved: false,
+        resolved_by: None,
+        resolved_at: None,
         reactions: Vec::new(),
         replies: Vec::new(),
     }))
@@ -466,6 +482,158 @@ pub async fn toggle_reaction(
     Ok(Json(serde_json::json!({ "success": true, "added": added })))
 }
 
+// ---------------------------------------------------------------------------
+// Resolve / read tracking (#863)
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Deserialize)]
+pub struct ResolveBody {
+    pub resolved: bool,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ReadBody {
+    pub resource_type: String,
+    pub resource_id: String,
+}
+
+/// `POST /api/collab/comments/:id/resolve` — resolve or reopen a thread.
+/// The comment author (or an admin) toggles the resolved state; reopening
+/// clears the resolved_by/resolved_at audit fields.
+pub async fn resolve_comment(
+    State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(id): Path<uuid::Uuid>,
+    Json(req): Json<ResolveBody>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    let uid = collab_user_id(&user);
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+
+    let resolved_by: Option<String> = if req.resolved { Some(uid.clone()) } else { None };
+    let resolved_at: Option<chrono::DateTime<chrono::Utc>> =
+        if req.resolved { Some(chrono::Utc::now()) } else { None };
+
+    let changed = if user.is_admin() || user.is_super_admin() {
+        diesel::sql_query(
+            "UPDATE collab_comments \
+             SET resolved = $1, resolved_by = $2, resolved_at = $3, updated_at = NOW() \
+             WHERE id = $4",
+        )
+        .bind::<Bool, _>(req.resolved)
+        .bind::<Nullable<Text>, _>(resolved_by)
+        .bind::<Nullable<Timestamptz>, _>(resolved_at)
+        .bind::<SqlUuid, _>(id)
+        .execute(&mut conn)
+        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?
+    } else {
+        diesel::sql_query(
+            "UPDATE collab_comments \
+             SET resolved = $1, resolved_by = $2, resolved_at = $3, updated_at = NOW() \
+             WHERE id = $4 AND author_id = $5",
+        )
+        .bind::<Bool, _>(req.resolved)
+        .bind::<Nullable<Text>, _>(resolved_by)
+        .bind::<Nullable<Timestamptz>, _>(resolved_at)
+        .bind::<SqlUuid, _>(id)
+        .bind::<Text, _>(&uid)
+        .execute(&mut conn)
+        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?
+    };
+
+    if changed == 0 {
+        return Err(err(StatusCode::NOT_FOUND, "Comment not found or not yours to resolve"));
+    }
+    info!("collab comment {} set resolved={} by {uid}", id, req.resolved);
+    Ok(Json(serde_json::json!({ "success": true, "resolved": req.resolved })))
+}
+
+/// `POST /api/collab/comments/read` — mark a resource's comments as read up to
+/// now, so the unread badge resets when the user opens the panel.
+pub async fn mark_comments_read(
+    State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Json(req): Json<ReadBody>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    if !sanitize_resource(&req.resource_type, &req.resource_id) {
+        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+    }
+    let uid = collab_user_id(&user);
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+
+    diesel::sql_query(
+        "INSERT INTO collab_comment_reads (resource_type, resource_id, user_id, last_read_at) \
+         VALUES ($1, $2, $3, NOW()) \
+         ON CONFLICT (resource_type, resource_id, user_id) DO UPDATE SET last_read_at = NOW()",
+    )
+    .bind::<Text, _>(&req.resource_type)
+    .bind::<Text, _>(&req.resource_id)
+    .bind::<Text, _>(&uid)
+    .execute(&mut conn)
+    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?;
+
+    Ok(Json(serde_json::json!({ "success": true })))
+}
+
+/// `GET /api/collab/comments/unread?resource_type=&resource_id=&include_children=`
+/// — count of non-deleted comments (excluding the reader's own) created since
+/// the reader last marked the resource read.
+pub async fn unread_count(
+    State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Query(params): Query<CommentQuery>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
+    if !sanitize_resource(&params.resource_type, &params.resource_id) {
+        return Err(err(StatusCode::BAD_REQUEST, "Invalid resource_type/resource_id"));
+    }
+    let uid = collab_user_id(&user);
+    let ty_prefix = if params.include_children {
+        format!("{}:%", params.resource_type)
+    } else {
+        String::new()
+    };
+    let id_prefix = if params.include_children {
+        format!("{}:%", params.resource_id)
+    } else {
+        String::new()
+    };
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+
+    #[derive(QueryableByName)]
+    struct CountRow {
+        #[diesel(sql_type = BigInt)]
+        count: i64,
+    }
+
+    let row = diesel::sql_query(
+        "SELECT COUNT(*)::bigint AS count FROM collab_comments c \
+         WHERE c.deleted = FALSE AND c.author_id <> $5 \
+           AND ((c.resource_type = $1 AND c.resource_id = $2) \
+             OR (c.resource_type LIKE $3 AND c.resource_id LIKE $4)) \
+           AND c.created_at > COALESCE( \
+                 (SELECT last_read_at FROM collab_comment_reads \
+                  WHERE resource_type = $1 AND resource_id = $2 AND user_id = $5), \
+                 TIMESTAMPTZ 'epoch')",
+    )
+    .bind::<Text, _>(&params.resource_type)
+    .bind::<Text, _>(&params.resource_id)
+    .bind::<Text, _>(&ty_prefix)
+    .bind::<Text, _>(&id_prefix)
+    .bind::<Text, _>(&uid)
+    .get_result::<CountRow>(&mut conn)
+    .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("db error: {e}")))?;
+
+    Ok(Json(serde_json::json!({ "count": row.count })))
+}
+
 /// `POST /api/collab/presence` — heartbeat with optional typing flag.
 pub async fn update_presence(
     State(state): State<Arc<AppState>>,
@@ -547,9 +715,15 @@ pub fn configure_collab_routes() -> Router<Arc<AppState>> {
         )
         .route("/api/collab/comments/:id", delete(delete_comment))
         .route(
+            "/api/collab/comments/:id/resolve",
+            post(resolve_comment),
+        )
+        .route(
             "/api/collab/comments/:id/reactions",
             post(toggle_reaction),
         )
+        .route("/api/collab/comments/read", post(mark_comments_read))
+        .route("/api/collab/comments/unread", get(unread_count))
         .route(
             "/api/collab/presence",
             get(list_presence).post(update_presence),

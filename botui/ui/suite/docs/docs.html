@@ -138,4 +138,21 @@ function openDocComments() {
         includeChildren: true,
     });
 }
+function bindDocsBadge() {
+    if (!window.GBCollabComments || !window.GBCollabComments.bindBadge) return;
+    var btn = document.getElementById("commentsBtn");
+    var article = document.querySelector("article[contenteditable]");
+    if (!btn || !article) return;
+    var docId = (article.dataset && article.dataset.docId) || "current";
+    window.GBCollabComments.bindBadge(btn, {
+        resourceType: "docs",
+        resourceId: String(docId),
+        includeChildren: true,
+    });
+}
+document.addEventListener("htmx:afterSwap", function (e) {
+    if (e.target.id === "docs-content") setTimeout(bindDocsBadge, 0);
+});
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { setTimeout(bindDocsBadge, 50); });
+else setTimeout(bindDocsBadge, 50);
 </script>
