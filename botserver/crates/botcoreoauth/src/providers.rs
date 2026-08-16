@@ -71,6 +71,14 @@ impl OAuthProvider {
         let endpoints = self.endpoints();
         let scopes = endpoints.scopes.join(" ");
 
+        // RFC 7636: send the S256 challenge whenever a verifier was minted.
+        // The challenge is hoisted to function scope because `params` holds
+        // `&str` borrows that must outlive the `if let` block.
+        let mut pkce_challenge = String::new();
+        if let Some(verifier) = pkce_verifier {
+            pkce_challenge = crate::pkce_s256_challenge(verifier);
+        }
+
         let mut params = vec![
             ("client_id", config.client_id.as_str()),
             ("redirect_uri", config.redirect_uri.as_str()),
@@ -79,9 +87,8 @@ impl OAuthProvider {
             ("scope", &scopes),
         ];
 
-        // RFC 7636: send the S256 challenge whenever a verifier was minted.
-        if let Some(verifier) = pkce_verifier {
-            params.push(("code_challenge", &crate::pkce_s256_challenge(verifier)));
+        if !pkce_challenge.is_empty() {
+            params.push(("code_challenge", &pkce_challenge));
             params.push(("code_challenge_method", "S256"));
         }
 
