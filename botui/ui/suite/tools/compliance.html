@@ -478,6 +478,86 @@
                 overflow-x: auto;
             }
         }
+
+        .compliance-empty-state {
+            text-align: center;
+            padding: 48px 24px;
+        }
+
+        .compliance-empty-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
+        .compliance-empty-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .compliance-empty-desc {
+            font-size: 13px;
+            color: var(--text-tertiary);
+        }
+
+        .compliance-status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: capitalize;
+            background: var(--primary-bg);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .compliance-status-badge.critical {
+            background: rgba(220, 38, 38, 0.1);
+            color: #dc2626;
+            border-color: rgba(220, 38, 38, 0.3);
+        }
+
+        .compliance-status-badge.high {
+            background: rgba(234, 88, 12, 0.1);
+            color: #ea580c;
+            border-color: rgba(234, 88, 12, 0.3);
+        }
+
+        .compliance-status-badge.medium {
+            background: rgba(217, 119, 6, 0.1);
+            color: #d97706;
+            border-color: rgba(217, 119, 6, 0.3);
+        }
+
+        .compliance-status-badge.low {
+            background: rgba(101, 163, 13, 0.1);
+            color: #65a30d;
+            border-color: rgba(101, 163, 13, 0.3);
+        }
+
+        .compliance-status-badge.info {
+            background: rgba(8, 145, 178, 0.1);
+            color: #0891b2;
+            border-color: rgba(8, 145, 178, 0.3);
+        }
+
+        .scan-spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: compliance-spin 0.8s linear infinite;
+        }
+
+        @keyframes compliance-spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
     </style>
 
     <!-- Header -->
@@ -514,8 +594,7 @@
         <div class="compliance-actions">
             <button
                 class="compliance-btn"
-                hx-get="/api/compliance/export"
-                hx-swap="none"
+                onclick="exportComplianceReport()"
             >
                 <svg
                     width="16"
@@ -534,9 +613,7 @@
             <button
                 class="compliance-btn compliance-btn-primary"
                 id="scan-btn"
-                hx-post="/api/compliance/scan"
-                hx-target="#compliance-results-body"
-                hx-indicator="#scan-progress"
+                onclick="runComplianceScan()"
             >
                 <svg
                     width="16"
@@ -648,24 +725,11 @@
                 <option value="all" data-i18n="compliance-filter-all-types">
                     All Types
                 </option>
-                <option value="password" data-i18n="compliance-type-password">
-                    Password in Config
-                </option>
-                <option value="hardcoded" data-i18n="compliance-type-hardcoded">
-                    Hardcoded Secrets
-                </option>
-                <option
-                    value="deprecated"
-                    data-i18n="compliance-type-deprecated"
-                >
-                    Deprecated Keywords
-                </option>
-                <option value="fragile" data-i18n="compliance-type-fragile">
-                    Fragile Code
-                </option>
-                <option value="config" data-i18n="compliance-type-config">
-                    Configuration Issues
-                </option>
+                <option value="gdpr">GDPR</option>
+                <option value="soc2">SOC 2</option>
+                <option value="iso27001">ISO 27001</option>
+                <option value="hipaa">HIPAA</option>
+                <option value="pci_dss">PCI DSS</option>
             </select>
         </div>
         <div class="compliance-filter-spacer"></div>
@@ -689,7 +753,7 @@
                 >Compliance Issues</span
             >
             <span class="compliance-results-count" id="results-count"
-                >5 issues found</span
+                >0 issues found</span
             >
         </div>
 
@@ -704,268 +768,11 @@
                 </tr>
             </thead>
             <tbody id="compliance-results-body">
-                <tr data-severity="critical" data-type="password">
-                    <td>
-                        <span class="compliance-severity critical">
-                            <span class="compliance-severity-dot"></span>
-                            Critical
-                        </span>
-                    </td>
-                    <td>
-                        <div class="compliance-issue-type">
-                            <div class="compliance-issue-icon password">
-                                <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                >
-                                    <rect
-                                        x="3"
-                                        y="11"
-                                        width="18"
-                                        height="11"
-                                        rx="2"
-                                        ry="2"
-                                    />
-                                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                                </svg>
-                            </div>
-                            <div>
-                                <div class="compliance-issue-title">
-                                    Password in Config
-                                </div>
-                                <div class="compliance-issue-category">
-                                    Security
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="compliance-file-path">
-                            marketing.gbai/poster.bas
-                        </div>
-                        <div class="compliance-file-line">Line 12</div>
-                    </td>
-                    <td>
-                        <div class="compliance-description">
-                            Hardcoded password found in BASIC file. Move to
-                            Vault.
-                            <div class="compliance-code-snippet">
-                                POST TO INSTAGRAM username, password, image
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <button class="compliance-action-btn">Fix</button>
-                    </td>
-                </tr>
-                <tr data-severity="high" data-type="hardcoded">
-                    <td>
-                        <span class="compliance-severity high">
-                            <span class="compliance-severity-dot"></span>
-                            High
-                        </span>
-                    </td>
-                    <td>
-                        <div class="compliance-issue-type">
-                            <div class="compliance-issue-icon security">
-                                <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                >
-                                    <path
-                                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-                                    />
-                                    <line x1="12" y1="9" x2="12" y2="13" />
-                                    <line x1="12" y1="17" x2="12.01" y2="17" />
-                                </svg>
-                            </div>
-                            <div>
-                                <div class="compliance-issue-title">
-                                    Hardcoded Secret
-                                </div>
-                                <div class="compliance-issue-category">
-                                    Security
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="compliance-file-path">
-                            api-client.gbai/msft-partner.bas
-                        </div>
-                        <div class="compliance-file-line">Line 7</div>
-                    </td>
-                    <td>
-                        <div class="compliance-description">
-                            Client secret found in source code. Use environment
-                            variables.
-                            <div class="compliance-code-snippet">
-                                client_secret = "abc123..."
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <button class="compliance-action-btn">Fix</button>
-                    </td>
-                </tr>
-                <tr data-severity="medium" data-type="deprecated">
-                    <td>
-                        <span class="compliance-severity medium">
-                            <span class="compliance-severity-dot"></span>
-                            Medium
-                        </span>
-                    </td>
-                    <td>
-                        <div class="compliance-issue-type">
-                            <div class="compliance-issue-icon deprecated">
-                                <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                >
-                                    <circle cx="12" cy="12" r="10" />
-                                    <line x1="12" y1="8" x2="12" y2="12" />
-                                    <line x1="12" y1="16" x2="12.01" y2="16" />
-                                </svg>
-                            </div>
-                            <div>
-                                <div class="compliance-issue-title">
-                                    Deprecated Keyword
-                                </div>
-                                <div class="compliance-issue-category">
-                                    Code Quality
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="compliance-file-path">
-                            default.gbai/start.bas
-                        </div>
-                        <div class="compliance-file-line">Line 45</div>
-                    </td>
-                    <td>
-                        <div class="compliance-description">
-                            Using deprecated IF...input pattern. Use HEAR AS
-                            instead.
-                            <div class="compliance-code-snippet">
-                                IF input = "yes" THEN
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <button class="compliance-action-btn">Fix</button>
-                    </td>
-                </tr>
-                <tr data-severity="low" data-type="fragile">
-                    <td>
-                        <span class="compliance-severity low">
-                            <span class="compliance-severity-dot"></span>
-                            Low
-                        </span>
-                    </td>
-                    <td>
-                        <div class="compliance-issue-type">
-                            <div class="compliance-issue-icon code">
-                                <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                >
-                                    <polyline points="16 18 22 12 16 6" />
-                                    <polyline points="8 6 2 12 8 18" />
-                                </svg>
-                            </div>
-                            <div>
-                                <div class="compliance-issue-title">
-                                    Underscore in Keyword
-                                </div>
-                                <div class="compliance-issue-category">
-                                    Naming Convention
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="compliance-file-path">
-                            crm.gbai/contacts.bas
-                        </div>
-                        <div class="compliance-file-line">Line 23</div>
-                    </td>
-                    <td>
-                        <div class="compliance-description">
-                            Keywords should use spaces not underscores.
-                            <div class="compliance-code-snippet">
-                                GET_BOT_MEMORY → GET BOT MEMORY
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <button class="compliance-action-btn">Fix</button>
-                    </td>
-                </tr>
-                <tr data-severity="info" data-type="config">
-                    <td>
-                        <span class="compliance-severity info">
-                            <span class="compliance-severity-dot"></span>
-                            Info
-                        </span>
-                    </td>
-                    <td>
-                        <div class="compliance-issue-type">
-                            <div class="compliance-issue-icon config">
-                                <svg
-                                    width="16"
-                                    height="16"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                >
-                                    <circle cx="12" cy="12" r="3" />
-                                    <path
-                                        d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"
-                                    />
-                                </svg>
-                            </div>
-                            <div>
-                                <div class="compliance-issue-title">
-                                    Missing Vault Config
-                                </div>
-                                <div class="compliance-issue-category">
-                                    Configuration
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                    <td>
-                        <div class="compliance-file-path">
-                            bank.gbai/config.csv
-                        </div>
-                        <div class="compliance-file-line">-</div>
-                    </td>
-                    <td>
-                        <div class="compliance-description">
-                            Bot is not configured to use Vault for secrets
-                            management. Consider enabling for better security.
-                        </div>
-                    </td>
-                    <td>
-                        <button class="compliance-action-btn">Configure</button>
+                <tr id="compliance-loading-row">
+                    <td colspan="5" class="compliance-empty-state">
+                        <div class="compliance-empty-icon">🔍</div>
+                        <div class="compliance-empty-title">Scanning compliance posture</div>
+                        <div class="compliance-empty-desc">Loading checks from the compliance engine…</div>
                     </td>
                 </tr>
             </tbody>
@@ -974,6 +781,157 @@
 </div>
 
 <script>
+    // Compliance data loading — real data from the compliance engine
+    async function loadComplianceChecks() {
+        const body = document.getElementById("compliance-results-body");
+        if (!body) return;
+        body.innerHTML =
+            '<tr id="compliance-loading-row"><td colspan="5" class="compliance-empty-state">' +
+            '<div class="compliance-empty-icon">🔍</div>' +
+            '<div class="compliance-empty-title">Scanning compliance posture</div>' +
+            '<div class="compliance-empty-desc">Loading checks from the compliance engine…</div>' +
+            "</td></tr>";
+
+        try {
+            const res = await fetch("/api/compliance/checks", {
+                headers: { Accept: "application/json" },
+            });
+            if (!res.ok) {
+                throw new Error(`Compliance API returned ${res.status}`);
+            }
+            const checks = await res.json();
+            renderComplianceChecks(checks);
+        } catch (err) {
+            console.error("Failed to load compliance checks:", err);
+            body.innerHTML =
+                '<tr><td colspan="5" class="compliance-empty-state">' +
+                '<div class="compliance-empty-icon">⚠️</div>' +
+                '<div class="compliance-empty-title">Unable to load compliance checks</div>' +
+                '<div class="compliance-empty-desc">' +
+                String(err.message || err) +
+                "</div></td></tr>";
+        }
+    }
+
+    function statusToSeverity(status) {
+        switch (String(status || "").toLowerCase()) {
+            case "non_compliant":
+            case "fail":
+                return "critical";
+            case "partial_compliance":
+                return "high";
+            case "in_progress":
+            case "pending":
+                return "medium";
+            case "compliant":
+            case "pass":
+                return "low";
+            default:
+                return "info";
+        }
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function renderComplianceChecks(checks) {
+        const body = document.getElementById("compliance-results-body");
+        if (!body) return;
+
+        if (!Array.isArray(checks) || checks.length === 0) {
+            body.innerHTML =
+                '<tr><td colspan="5" class="compliance-empty-state">' +
+                '<div class="compliance-empty-icon">✅</div>' +
+                '<div class="compliance-empty-title">No checks recorded yet</div>' +
+                '<div class="compliance-empty-desc">Run a compliance scan to evaluate your security posture.</div>' +
+                "</td></tr>";
+            updateStats();
+            return;
+        }
+
+        const rows = checks.map((check) => {
+            const severity = statusToSeverity(check.status);
+            const framework = escapeHtml(check.framework || "general");
+            const statusLabel = escapeHtml(
+                String(check.status || "unknown").replace(/_/g, " "),
+            );
+            const controlName = escapeHtml(
+                check.control_name || check.control_id || framework,
+            );
+            const score = Number.isFinite(Number(check.score))
+                ? Number(check.score)
+                : null;
+            const checkedAt = check.checked_at
+                ? new Date(check.checked_at).toLocaleString()
+                : "—";
+            const description = check.notes
+                ? escapeHtml(check.notes)
+                : `Compliance check for framework "${framework}".`;
+            const remediation =
+                check.issues && check.issues.length > 0
+                    ? check.issues
+                          .map((i) => escapeHtml(i.remediation || i.title || ""))
+                          .join("; ")
+                    : null;
+
+            return `<tr data-severity="${severity}" data-type="${framework}">
+                <td>
+                    <span class="compliance-severity ${severity}">
+                        <span class="compliance-severity-dot"></span>
+                        ${severity}
+                    </span>
+                </td>
+                <td>
+                    <div class="compliance-issue-type">
+                        <div class="compliance-issue-icon security">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                                <line x1="12" y1="9" x2="12" y2="13"></line>
+                                <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="compliance-issue-title">${controlName}</div>
+                            <div class="compliance-issue-category">${framework}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <div class="compliance-file-path">${framework}</div>
+                    <div class="compliance-file-line">Checked ${checkedAt}</div>
+                </td>
+                <td>
+                    <div class="compliance-description">
+                        ${description}
+                        ${
+                            score !== null
+                                ? `<div class="compliance-code-snippet">Score: ${score.toFixed(1)}</div>`
+                                : ""
+                        }
+                        ${
+                            remediation
+                                ? `<div class="compliance-code-snippet">Remediation: ${remediation}</div>`
+                                : ""
+                        }
+                    </div>
+                </td>
+                <td>
+                    <span class="compliance-status-badge ${severity}">${statusLabel}</span>
+                </td>
+            </tr>`;
+        });
+
+        body.innerHTML = rows.join("");
+        updateStats();
+        filterResults();
+    }
+
     function filterResults() {
         const severity = document.getElementById("filter-severity").value;
         const type = document.getElementById("filter-type").value;
@@ -1021,7 +979,59 @@
         document.getElementById("stat-medium").textContent = stats.medium;
         document.getElementById("stat-low").textContent = stats.low;
         document.getElementById("stat-info").textContent = stats.info;
+
+        const total =
+            stats.critical + stats.high + stats.medium + stats.low + stats.info;
+        const countEl = document.getElementById("results-count");
+        if (countEl) {
+            countEl.textContent = `${total} issues found`;
+        }
     }
 
-    updateStats();
+    // Run compliance scan via the real backend endpoint
+    async function runComplianceScan() {
+        const btn = document.getElementById("scan-btn");
+        const original = btn ? btn.innerHTML : "";
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML =
+                '<span class="scan-spinner"></span><span>Scanning…</span>';
+        }
+        try {
+            const res = await fetch("/api/compliance/scan", { method: "POST" });
+            if (!res.ok) {
+                throw new Error(`Scan failed with status ${res.status}`);
+            }
+            const result = await res.json();
+            console.log("Compliance scan result:", result);
+            await loadComplianceChecks();
+        } catch (err) {
+            console.error("Compliance scan failed:", err);
+            const body = document.getElementById("compliance-results-body");
+            if (body) {
+                body.innerHTML =
+                    '<tr><td colspan="5" class="compliance-empty-state">' +
+                    '<div class="compliance-empty-icon">⚠️</div>' +
+                    '<div class="compliance-empty-title">Scan failed</div>' +
+                    '<div class="compliance-empty-desc">' +
+                    String(err.message || err) +
+                    "</div></td></tr>";
+            }
+        } finally {
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = original;
+            }
+        }
+    }
+
+    // Export the compliance report (CSV download)
+    function exportComplianceReport() {
+        window.location.href = "/api/compliance/export";
+    }
+
+    // Initialize on page load
+    document.addEventListener("DOMContentLoaded", function () {
+        loadComplianceChecks();
+    });
 </script>
