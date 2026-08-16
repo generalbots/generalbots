@@ -1,4 +1,3 @@
-pub mod database;
 pub mod db;
 pub mod ui_fragments;
 
