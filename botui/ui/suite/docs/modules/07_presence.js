@@ -20,6 +20,7 @@
 (function () {
   const cursors = new Map();     // userId -> { name, color, position }
   const selections = new Map();  // userId -> { name, color, start, end }
+  let onlineUsers = [];          // most recent presence snapshot
   let overlay = null;
   let rafId = null;
 
@@ -180,10 +181,29 @@
     },
 
     sync: function (users) {
-      var active = new Set((users || []).map(function (u) { return u.user_id; }));
+      onlineUsers = users || [];
+      var active = new Set(onlineUsers.map(function (u) { return u.user_id; }));
       cursors.forEach(function (_, id) { if (!active.has(id)) cursors.delete(id); });
       selections.forEach(function (_, id) { if (!active.has(id)) selections.delete(id); });
       scheduleRender();
+    },
+
+    list: function () {
+      return onlineUsers.slice();
+    },
+
+    follow: function (userId) {
+      var info = cursors.get(userId) || selections.get(userId);
+      var article = getArticle();
+      if (!article) return;
+      var position = info ? info.position : null;
+      if (typeof position !== "number" && info && typeof info.start === "number") position = info.start;
+      if (typeof position !== "number") return;
+      var range = resolveRange(article, position, position);
+      if (!range) return;
+      var node = range.startContainer;
+      var el = node && node.nodeType === 3 ? node.parentNode : node;
+      if (el && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "center" });
     },
 
     clearAll: function () {
