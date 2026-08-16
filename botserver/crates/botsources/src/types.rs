@@ -197,6 +197,8 @@ pub struct ConnectorResponse {
     pub connected: bool,
     pub active: bool,
     pub last_sync: Option<String>,
+    pub last_test: Option<String>,
+    pub last_test_status: Option<String>,
     pub records_synced: i64,
 }
 

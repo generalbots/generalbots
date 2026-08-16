@@ -60,7 +60,56 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 <button class="tab active" data-tab="mcp">MCP Servers</button>
 <button class="tab" data-tab="repos">Repositories</button>
 <button class="tab" data-tab="apps">Apps</button>
+<button class="tab" data-tab="connectors">Connectors</button>
 </div>
+<div class="modal-overlay" id="add-source-modal">
+<div class="modal">
+<div class="modal-header">
+<h3>Add Connector</h3>
+<button class="modal-close" onclick="closeAddModal()">&times;</button>
+</div>
+<div class="modal-body">
+<div class="form-group">
+<label>Type</label>
+<select id="connector-type"></select>
+</div>
+<div class="form-group">
+<label>Name</label>
+<input type="text" id="connector-name" placeholder="e.g. Production PostgreSQL">
+</div>
+<div class="form-group">
+<label>Description</label>
+<input type="text" id="connector-desc" placeholder="Optional description">
+</div>
+<div class="form-group" id="auth-fields"></div>
+<div class="form-group">
+<label>Sync schedule (cron)</label>
+<input type="text" id="connector-schedule" placeholder="0 */6 * * *">
+</div>
+<p class="hint">Credentials are stored in Vault and never shown again after saving.</p>
+</div>
+<div class="modal-footer">
+<button class="btn" onclick="closeAddModal()">Cancel</button>
+<button class="btn btn-primary" onclick="saveConnector()">Create Connector</button>
+</div>
+</div>
+</div>
+<style>
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+.modal-overlay.visible { display: flex; }
+.modal { background: white; border-radius: 12px; width: 520px; max-width: 92vw; box-shadow: 0 8px 30px rgba(0,0,0,0.2); }
+.modal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px; border-bottom: 1px solid #e0e0e0; }
+.modal-header h3 { font-size: 16px; }
+.modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: #666; }
+.modal-body { padding: 20px; max-height: 60vh; overflow-y: auto; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 16px 20px; border-top: 1px solid #e0e0e0; }
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; }
+.form-group input, .form-group select { width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; box-sizing: border-box; }
+.hint { font-size: 12px; color: #888; margin-top: 4px; }
+.status-ok { background: #e6f4ea; color: #1e7e34; }
+.status-failed { background: #fce8e6; color: #c5221f; }
+</style>
 <div class="filters">
 <input type="text" class="search-box" placeholder="Search sources..." id="searchInput">
 <select class="filter-select" id="statusFilter">
@@ -94,6 +143,7 @@ try {
 if (currentTab === 'mcp') { await loadMcpServers(); }
 else if (currentTab === 'repos') { await loadRepositories(); }
 else if (currentTab === 'apps') { await loadApps(); }
+else if (currentTab === 'connectors') { await loadConnectors(); }
 } catch (e) {
 console.error('Failed to load sources:', e);
 grid.innerHTML = '<div class="empty-state"><h3>Failed to load sources</h3></div>';
@@ -212,10 +262,176 @@ loadSources();
 } catch (e) { alert('Failed to toggle server: ' + e.message); }
 }
 
+async function loadConnectors() {
+const response = await fetch('/api/integrations/connectors');
+if (!response.ok) { throw new Error('HTTP ' + response.status); }
+const data = await response.json();
+renderConnectors(data.connectors || []);
+}
+
+function renderConnectors(connectors) {
+const grid = document.getElementById('sourceGrid');
+if (!connectors || connectors.length === 0) {
+grid.innerHTML = '<div class="empty-state"><h3>No connectors configured</h3><p>Add a database, API or SaaS source to start syncing data</p></div>';
+return;
+}
+grid.innerHTML = connectors.map(c => `
+<div class="source-card">
+<div class="source-header">
+<div class="source-icon">🔗</div>
+<div>
+<div class="source-name">${escapeHtml(c.name)}</div>
+<span class="source-type">${escapeHtml(c.type || c.connector_type || 'connector')}</span>
+</div>
+</div>
+<div class="source-description">${escapeHtml(c.description || 'No description')}</div>
+<div class="source-meta">
+<span class="source-status ${c.active ? 'status-active' : 'status-inactive'}">${c.active ? 'Active' : 'Inactive'}</span>
+<span class="source-status ${c.last_test_status === 'ok' ? 'status-ok' : c.last_test_status === 'failed' ? 'status-failed' : ''}">${c.last_test_status ? 'Health: ' + c.last_test_status : 'Not tested'}</span>
+<span style="color: #666; font-size: 13px;">Last sync: ${c.last_sync ? new Date(c.last_sync).toLocaleString() : 'never'}</span>
+</div>
+<div class="source-actions" style="margin-top: 12px;">
+<button class="btn btn-sm btn-outline" onclick="testConnector('${c.id}')">Test</button>
+<button class="btn btn-sm btn-outline" onclick="syncConnector('${c.id}')">Sync now</button>
+<button class="btn btn-sm btn-outline" onclick="deleteConnector('${c.id}', '${escapeHtml(c.name)}')">Remove</button>
+</div>
+</div>
+`).join('');
+}
+
+async function testConnector(id) {
+try {
+const response = await fetch('/api/integrations/connectors/' + id + '/test', { method: 'POST' });
+const data = await response.json();
+alert(data.success ? 'Connection OK (' + data.latency_ms + 'ms)' : 'Connection failed: ' + (data.detail || ''));
+loadSources();
+} catch (e) { alert('Failed to test connector: ' + e.message); }
+}
+
+async function syncConnector(id) {
+try {
+const response = await fetch('/api/integrations/connectors/' + id + '/sync', { method: 'POST' });
+if (!response.ok) throw new Error('HTTP ' + response.status);
+alert('Sync triggered');
+loadSources();
+} catch (e) { alert('Failed to sync connector: ' + e.message); }
+}
+
+async function deleteConnector(id, name) {
+if (!confirm('Remove connector "' + name + '"?')) return;
+try {
+const response = await fetch('/api/integrations/connectors/' + id + '/disconnect', { method: 'DELETE' });
+if (!response.ok) throw new Error('HTTP ' + response.status);
+loadSources();
+} catch (e) { alert('Failed to remove connector: ' + e.message); }
+}
+
+let connectorTemplates = [];
+let activeTemplate = null;
+
+async function openAddModal() {
+document.getElementById('add-source-modal').classList.add('visible');
+const select = document.getElementById('connector-type');
+if (connectorTemplates.length === 0) {
+try {
+const response = await fetch('/api/integrations/connectors/templates');
+if (response.ok) {
+const data = await response.json();
+connectorTemplates = data.templates || [];
+}
+} catch (e) { /* fall through to generic types */ }
+if (connectorTemplates.length === 0) {
+connectorTemplates = [
+{ connector_type: 'mysql', name: 'MySQL' },
+{ connector_type: 'postgres', name: 'PostgreSQL' },
+{ connector_type: 'rest_api', name: 'REST API' },
+{ connector_type: 'graphql', name: 'GraphQL' },
+{ connector_type: 'google_sheets', name: 'Google Sheets' },
+{ connector_type: 'csv', name: 'CSV' },
+{ connector_type: 'sharepoint', name: 'SharePoint' }
+];
+}
+}
+select.innerHTML = connectorTemplates.map(t => `<option value="${t.connector_type}">${escapeHtml(t.name)}</option>`).join('');
+select.onchange = renderAuthFields;
+renderAuthFields();
+}
+
+function closeAddModal() {
+document.getElementById('add-source-modal').classList.remove('visible');
+}
+
+function renderAuthFields() {
+const type = document.getElementById('connector-type').value;
+activeTemplate = connectorTemplates.find(t => t.connector_type === type) || null;
+const container = document.getElementById('auth-fields');
+const isDb = type === 'mysql' || type === 'postgres';
+if (isDb) {
+container.innerHTML = `
+<div class="form-group"><label>Host</label><input type="text" id="auth-host" placeholder="db.example.com"></div>
+<div class="form-group"><label>Port</label><input type="text" id="auth-port" placeholder="${type === 'mysql' ? '3306' : '5432'}"></div>
+<div class="form-group"><label>Database</label><input type="text" id="auth-db" placeholder="dbname"></div>
+<div class="form-group"><label>Username</label><input type="text" id="auth-username"></div>
+<div class="form-group"><label>Password</label><input type="password" id="auth-password"></div>
+`;
+} else {
+container.innerHTML = `
+<div class="form-group"><label>Base URL</label><input type="text" id="auth-url" placeholder="https://api.example.com"></div>
+<div class="form-group"><label>API key</label><input type="password" id="auth-api-key" placeholder="Optional"></div>
+<div class="form-group"><label>Username</label><input type="text" id="auth-username" placeholder="Optional"></div>
+<div class="form-group"><label>Password</label><input type="password" id="auth-password" placeholder="Optional"></div>
+`;
+}
+}
+
+async function saveConnector() {
+const name = document.getElementById('connector-name').value.trim();
+if (!name) { alert('Connector name is required'); return; }
+const type = document.getElementById('connector-type').value;
+const auth = { auth_type: 'none' };
+const g = (id) => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+const isDb = type === 'mysql' || type === 'postgres';
+if (isDb) {
+auth.auth_type = 'basic';
+auth.host = g('auth-host');
+auth.port = g('auth-port');
+auth.database = g('auth-db');
+auth.username = g('auth-username');
+auth.password = g('auth-password');
+} else {
+auth.base_url = g('auth-url');
+auth.username = g('auth-username');
+auth.password = g('auth-password');
+auth.api_key = g('auth-api-key');
+}
+try {
+const response = await fetch('/api/integrations/connectors/' + crypto.randomUUID(), {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({
+name,
+connector_type: type,
+description: g('connector-desc') || null,
+auth_config: auth,
+endpoints: [],
+schedule: g('connector-schedule') || null
+})
+});
+if (!response.ok) {
+const err = await response.json().catch(() => ({}));
+throw new Error(err.error || 'HTTP ' + response.status);
+}
+closeAddModal();
+currentTab = 'connectors';
+document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === 'connectors'));
+loadSources();
+} catch (e) { alert('Failed to create connector: ' + e.message); }
+}
+
 function addSource() {
 if (currentTab === 'mcp') { window.location = '/suite/sources/mcp/add'; }
 else if (currentTab === 'repos') { window.location = '/suite/sources/repos/connect'; }
-else { alert('Coming soon!'); }
+else { openAddModal(); }
 }
 
 function escapeHtml(str) {

@@ -70,8 +70,10 @@ pub fn configure_sources_api_routes() -> Router<Arc<AppState>> {
         .route("/accounts/:id/remove", delete(accounts_handlers::handle_delete_account));
 
     let integrations_routes = Router::new()
+        .route("/connectors/templates", get(integrations_handlers::handle_list_connector_templates))
         .route("/connectors", get(integrations_handlers::handle_list_connectors).post(integrations_handlers::handle_connect_connector))
         .route("/connectors/:id/connect", post(integrations_handlers::handle_connect_connector))
+        .route("/connectors/:id/test", post(integrations_handlers::handle_test_connector))
         .route("/connectors/:id/sync", post(integrations_handlers::handle_sync_connector))
         .route("/connectors/:id/disconnect", delete(integrations_handlers::handle_disconnect_connector))
         .route("/etl", get(integrations_handlers::handle_list_etl_jobs).post(integrations_handlers::handle_create_etl_job))
