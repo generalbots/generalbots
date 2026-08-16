@@ -40,6 +40,8 @@ struct TaskRow {
     priority: String,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Integer>)]
     progress: Option<i32>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
+    parent_id: Option<Uuid>,
 }
 
 #[derive(diesel::QueryableByName)]
@@ -81,6 +83,38 @@ fn html_escape(s: &str) -> String {
         .replace('"', "&quot;")
 }
 
+/// Reorders a flat task list so parents come first and their subtasks
+/// (rows with `parent_id`) follow immediately beneath them (issue #878).
+/// Subtasks whose parent is not present in the loaded page are appended at
+/// the end so they are never dropped.
+fn order_tasks_with_subtasks(rows: Vec<TaskRow>) -> Vec<TaskRow> {
+    use std::collections::HashMap;
+
+    let mut children: HashMap<Uuid, Vec<TaskRow>> = HashMap::new();
+    let mut roots: Vec<TaskRow> = Vec::new();
+    for row in rows {
+        match row.parent_id {
+            Some(pid) => children.entry(pid).or_default().push(row),
+            None => roots.push(row),
+        }
+    }
+
+    let child_count: usize = children.values().map(Vec::len).sum();
+    let mut ordered: Vec<TaskRow> = Vec::with_capacity(roots.len() + child_count);
+    for root in roots {
+        let root_id = root.id;
+        ordered.push(root);
+        if let Some(kids) = children.remove(&root_id) {
+            ordered.extend(kids);
+        }
+    }
+
+    // Orphaned subtasks (parent outside the loaded page).
+    let mut leftover: Vec<TaskRow> = children.into_values().flatten().collect();
+    ordered.append(&mut leftover);
+    ordered
+}
+
 fn status_class(status: &str) -> &'static str {
     match status {
         "todo" => "todo",
@@ -103,7 +137,7 @@ pub async fn handle_ui_tasks_list(
 
         let filter = query.filter.as_deref().unwrap_or("all");
         let mut sql = String::from(
-            "SELECT id, title, description, status, priority, progress \
+            "SELECT id, title, description, status, priority, progress, parent_id \
              FROM tasks WHERE branch_id = $1",
         );
         match filter {
@@ -135,6 +169,9 @@ pub async fn handle_ui_tasks_list(
         .into_response();
     }
 
+    // Order parents first, subtasks indented beneath them (issue #878).
+    let result = order_tasks_with_subtasks(result);
+
     let mut html = String::new();
     for task in &result {
         let cls = status_class(&task.status);
@@ -147,8 +184,33 @@ pub async fn handle_ui_tasks_list(
         let progress = task.progress.unwrap_or(0);
         let status_text = html_escape(&task.status);
         let priority = html_escape(&task.priority);
+        let done = matches!(
+            task.status.as_str(),
+            "done" | "complete" | "completed" | "resolved"
+        );
+        let is_subtask = task.parent_id.is_some();
+        let card_class = if is_subtask {
+            format!("task-card task-card-subtask {cls}")
+        } else {
+            format!("task-card {cls}")
+        };
+        let parent_attr = task
+            .parent_id
+            .map(|pid| format!(" data-parent-id=\"{pid}\""))
+            .unwrap_or_default();
+        let complete_action = if done {
+            format!(
+                r#"<button class="task-action-btn" title="Reopen" onclick="event.stopPropagation(); reopenTask('{id}')">↩</button>"#,
+                id = task.id
+            )
+        } else {
+            format!(
+                r#"<button class="task-action-btn" title="Complete" onclick="event.stopPropagation(); completeTask('{id}')">✓</button>"#,
+                id = task.id
+            )
+        };
         html.push_str(&format!(
-            r#"<div class="task-card {cls}" data-task-id="{id}" onclick="selectTask('{id}')">
+            r#"<div class="{card_class}" data-task-id="{id}"{parent_attr} onclick="selectTask('{id}')">
   <div class="task-card-header">
     <span class="task-card-icon">📋</span>
     <span class="task-card-title">{title}</span>
@@ -161,13 +223,21 @@ pub async fn handle_ui_tasks_list(
     <div class="task-progress-bar"><div class="task-progress-fill" style="width:{progress}%"></div></div>
     <span class="task-progress-percent">{progress}%</span>
   </div>
+  <div class="task-card-actions">
+    <button class="task-action-btn" title="Edit" onclick="event.stopPropagation(); editTask('{id}')">✏️</button>
+    {complete_action}
+    <button class="task-action-btn" title="Delete" onclick="event.stopPropagation(); deleteTask('{id}')">🗑</button>
+  </div>
 </div>"#,
             id = task.id,
+            card_class = card_class,
+            parent_attr = parent_attr,
             cls = cls,
             title = title,
             status_text = status_text,
             priority = priority,
             progress = progress,
+            complete_action = complete_action,
         ));
         if !desc.is_empty() {
             html.push_str(&format!(
