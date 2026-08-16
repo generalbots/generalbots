@@ -4,7 +4,12 @@
  * as an interactive force-directed graph using Canvas, plus the
  * runtime capability list from /api/vibe/capabilities/:use_case.
  */
-const VibeGraph = {
+// Guard against double-declaration: the desktop window manager re-injects
+// this script every time the Vibe app opens (HTMX body swap), so a top-level
+// `const` threw 'Identifier VibeGraph has already been declared' on the
+// second open. Assigning to window keeps a single singleton; init() re-binds
+// the canvas from the fresh DOM on each load.
+window.VibeGraph = window.VibeGraph || {
     canvas: null,
     ctx: null,
     nodes: [],
