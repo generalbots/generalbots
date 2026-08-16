@@ -176,8 +176,46 @@ fn internal_error(msg: &str) -> (StatusCode, Json<serde_json::Value>) {
 
 fn extract_bot_id(headers: &HeaderMap) -> Result<uuid::Uuid, (StatusCode, Json<serde_json::Value>)> {
     if let Some(v) = headers.get("X-Bot-Id").and_then(|v| v.to_str().ok()) {
-        return uuid::Uuid::parse_str(v)
-            .map_err(|_| error_response("Invalid X-Bot-Id header"));
+        let bot_id = uuid::Uuid::parse_str(v)
+            .map_err(|_| error_response("Invalid X-Bot-Id header"))?;
+
+        // Tenant isolation (issue #850): a client-supplied X-Bot-Id may only
+        // reference a bot in the caller's branch. The caller branch comes from
+        // the server-minted JWT claim (never client input); when it is present,
+        // reject bots that belong to a different branch. Anonymous/internal
+        // callers (no branch claim) and global (nil-branch) bots are unchanged.
+        if let Some(caller_branch) = botsecurity_core::tenant::branch_from_claims(headers) {
+            let pool = db::pool()
+                .map_err(|(code, msg)| (code, Json(serde_json::json!({"error": msg}))))?;
+            let mut conn = pool
+                .get()
+                .map_err(|e| internal_error(&format!("Main DB connection error: {e}")))?;
+
+            #[derive(QueryableByName)]
+            struct BotBranch {
+                #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
+                branch_id: Option<uuid::Uuid>,
+            }
+
+            let owner: Option<BotBranch> = diesel::sql_query("SELECT branch_id FROM bots WHERE id = $1")
+                .bind::<diesel::sql_types::Uuid, _>(bot_id)
+                .get_result(&mut conn)
+                .optional()
+                .map_err(|e| internal_error(&format!("Bot lookup error: {e}")))?;
+
+            if let Some(b) = owner {
+                if let Some(bot_branch) = b.branch_id {
+                    if bot_branch != caller_branch {
+                        return Err((
+                            StatusCode::FORBIDDEN,
+                            Json(serde_json::json!({"error": "Bot does not belong to your branch"})),
+                        ));
+                    }
+                }
+            }
+        }
+
+        return Ok(bot_id);
     }
 
     // Fall back to the default bot when no header is provided so the
