@@ -367,6 +367,10 @@
             state.run = data;
             renderRunCard();
             if (changed) {
+                // Keep the RUNS list truthful: the dock polls the focused run,
+                // but the list only refreshed on focus/start — so a run that
+                // just completed would stay as a stale "RUNNING 0 calls" entry.
+                loadRuns();
                 if (data.state === "awaiting_approval") {
                     uiMsg("⏸ Run is waiting for approval — see the Run Dock.");
                 } else if (data.state === "completed") {
