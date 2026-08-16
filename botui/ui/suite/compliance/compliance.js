@@ -53,21 +53,13 @@
     function renderDashboard() {
         var frameworks = document.getElementById('frameworks-container');
         if (frameworks) {
-            var fwList = [
-                { name: 'ISO 27001', key: 'iso27001' },
-                { name: 'SOC 2', key: 'soc2' },
-                { name: 'GDPR', key: 'gdpr' },
-                { name: 'LGPD', key: 'lgpd' }
-            ];
+            var fwList = window._complianceFrameworks || [];
             frameworks.innerHTML = fwList.map(function(fw) {
-                var fwChecks = checks.filter(function(c) { return c.framework === fw.key; });
-                var fwPassed = fwChecks.filter(function(c) { return c.status === 'passed'; }).length;
-                var fwTotal = fwChecks.length;
-                var pct = fwTotal > 0 ? Math.round((fwPassed / fwTotal) * 100) : 0;
+                var pct = fw.coverage_percent || 0;
                 var colorClass = pct >= 80 ? 'green' : pct >= 50 ? 'yellow' : 'red';
-                return '<div class="compliance-framework">'
-                    + '<div class="compliance-framework-name">' + fw.name + '</div>'
-                    + '<div class="compliance-framework-score">' + pct + '% compliant (' + fwPassed + '/' + fwTotal + ')</div>'
+                return '<div class="compliance-framework" style="cursor:pointer" onclick="window._compliance.openFramework(\'' + (fw.name || '').replace(/'/g, '') + '\')">'
+                    + '<div class="compliance-framework-name">' + (fw.name || '') + ' <span style="color:var(--text-secondary);font-weight:400;font-size:11px">v' + (fw.version || '1.0.0') + '</span></div>'
+                    + '<div class="compliance-framework-score">' + pct + '% coverage (' + (fw.controls_with_evidence || 0) + '/' + (fw.total_controls || 0) + ' controls)</div>'
                     + '<div class="compliance-framework-bar"><div class="compliance-framework-bar-fill ' + colorClass + '" style="width:' + pct + '%"></div></div>'
                     + '</div>';
             }).join('');
@@ -233,6 +225,48 @@
         if (data) { checks = Array.isArray(data) ? data : []; updateStats(); renderChecks(); }
     }
 
+    async function loadFrameworks() {
+        var data = await apiCall('/api/compliance/frameworks');
+        if (!data) return;
+        window._complianceFrameworks = [];
+        for (var i = 0; i < data.length; i++) {
+            var fw = data[i];
+            var detail = await apiCall('/api/compliance/frameworks/' + fw.id);
+            window._complianceFrameworks.push({
+                id: fw.id,
+                name: fw.name,
+                version: fw.version,
+                coverage_percent: detail ? (detail.coverage_percent || 0) : 0,
+                controls_with_evidence: detail ? (detail.controls_with_evidence || 0) : 0,
+                total_controls: detail ? (detail.total_controls || 0) : (fw.controls_count || 0)
+            });
+        }
+        renderDashboard();
+    }
+
+    async function createFramework() {
+        var name = prompt('Framework name (LGPD, GDPR, SOC 2, ISO 27001, PCI-DSS or custom):');
+        if (!name) return;
+        var version = prompt('Version (default 1.0.0):') || '1.0.0';
+        var data = await apiCall('/api/compliance/frameworks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name: name,
+                version: version,
+                framework_key: name.toLowerCase().replace(/\s+/g, '_')
+            })
+        });
+        if (data) {
+            showFeedback('Framework created', 'success');
+            loadFrameworks();
+        }
+    }
+
+    function openFramework(name) {
+        window.location = '/suite/compliance/framework/' + encodeURIComponent(name);
+    }
+
     async function loadIssues() {
         var data = await apiCall('/api/compliance/issues');
         if (data) { issues = Array.isArray(data) ? data : []; renderIssues(); }
@@ -340,6 +374,7 @@
         loadAuditLog();
         loadRisks();
         loadTraining();
+        loadFrameworks();
     }
 
     document.querySelectorAll('.compliance-tab').forEach(function(tab) {
@@ -354,7 +389,10 @@
         exportReport: exportReport,
         showModal: showModal,
         hideModal: hideModal,
-        loadAll: loadAll
+        loadAll: loadAll,
+        createFramework: createFramework,
+        openFramework: openFramework,
+        loadFrameworks: loadFrameworks
     };
 
     loadAll();

@@ -59,7 +59,10 @@
         <div class="compliance-panel active" id="panel-dashboard">
             <div class="compliance-dashboard-grid">
                 <div class="compliance-dashboard-card">
-                    <h3>Frameworks</h3>
+                    <div style="display:flex;justify-content:space-between;align-items:center">
+                        <h3>Frameworks</h3>
+                        <button class="compliance-btn compliance-btn-primary" style="padding:4px 10px;font-size:12px" onclick="window._compliance.createFramework()">+ New</button>
+                    </div>
                     <div class="compliance-frameworks" id="frameworks-container"></div>
                 </div>
                 <div class="compliance-dashboard-card">

@@ -107,6 +107,16 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
         ApiEndpoint { method: "GET", path: "/api/banking/diagnosis", summary: "Cash-flow diagnosis of the branch" },
         // Billing / payroll
         ApiEndpoint { method: "GET", path: "/api/billing/payroll/months", summary: "Monthly invoice totals as a payroll basis" },
+        // Compliance
+        ApiEndpoint { method: "GET", path: "/api/compliance/frameworks", summary: "List compliance frameworks with control counts" },
+        ApiEndpoint { method: "POST", path: "/api/compliance/frameworks", summary: "Create a compliance framework (LGPD, GDPR, SOC 2, ISO 27001, PCI-DSS, custom)" },
+        ApiEndpoint { method: "GET", path: "/api/compliance/frameworks/:framework_id", summary: "Framework detail with controls, evidence and coverage" },
+        ApiEndpoint { method: "PUT", path: "/api/compliance/frameworks/:framework_id", summary: "Update a compliance framework" },
+        ApiEndpoint { method: "POST", path: "/api/compliance/frameworks/:framework_id/archive", summary: "Archive a compliance framework" },
+        ApiEndpoint { method: "GET", path: "/api/compliance/frameworks/:framework_id/export.csv", summary: "Audit-ready compliance scorecard CSV export" },
+        ApiEndpoint { method: "POST", path: "/api/compliance/controls", summary: "Add a control to a compliance framework" },
+        ApiEndpoint { method: "POST", path: "/api/compliance/evidence/attach", summary: "Attach drive evidence to a control" },
+        ApiEndpoint { method: "POST", path: "/api/compliance/evidence/:evidence_id/approve", summary: "Approve attached evidence" },
         // Search / research
         ApiEndpoint { method: "GET", path: "/api/ui/search", summary: "Unified search across business entities" },
         ApiEndpoint { method: "POST", path: "/api/ui/research/web/search", summary: "Web search (DuckDuckGo)" },

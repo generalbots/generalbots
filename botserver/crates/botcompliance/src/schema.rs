@@ -108,6 +108,56 @@ diesel::table! {
     }
 }
 
+diesel::table! {
+    compliance_frameworks (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        name -> Varchar,
+        version -> Varchar,
+        description -> Nullable<Text>,
+        framework_key -> Varchar,
+        status -> Varchar,
+        created_by -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    compliance_controls (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        framework_id -> Uuid,
+        control_id -> Varchar,
+        title -> Varchar,
+        description -> Nullable<Text>,
+        category -> Nullable<Varchar>,
+        is_mandatory -> Bool,
+        version -> Varchar,
+        status -> Varchar,
+        created_by -> Nullable<Uuid>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    compliance_control_evidence (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        control_id -> Uuid,
+        file_path -> Varchar,
+        description -> Nullable<Text>,
+        evidence_type -> Varchar,
+        status -> Varchar,
+        owner_id -> Nullable<Uuid>,
+        approved_by -> Nullable<Uuid>,
+        approved_at -> Nullable<Timestamptz>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
 diesel::allow_tables_to_appear_in_same_query!(
     compliance_checks,
     compliance_issues,
@@ -116,4 +166,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     compliance_risk_assessments,
     compliance_training_records,
     compliance_access_reviews,
+    compliance_frameworks,
+    compliance_controls,
+    compliance_control_evidence,
 );
