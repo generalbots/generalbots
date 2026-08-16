@@ -1575,13 +1575,106 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/organizations/**", "PUT", "")
             .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
 
-        // Compliance
-        RoutePermission::new("/api/compliance/**", "GET", "")
-            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
-        RoutePermission::new("/api/compliance/**", "POST", "")
-            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
-        RoutePermission::new("/api/compliance/**", "PUT", "")
-            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+        // Compliance — the Compliance suite app (checks, issues, audit-log,
+        // risks, training, dashboard, frameworks) is shown in the desktop to
+        // every logged-in user; reads and record creation must not be gated
+        // behind an Admin role or the whole app 403s for normal users.
+        // Sensitive remediation stays enforced at handler level.
+        RoutePermission::new("/api/compliance/**", "GET", ""),
+        RoutePermission::new("/api/compliance/**", "POST", ""),
+        RoutePermission::new("/api/compliance/**", "PUT", ""),
+        RoutePermission::new("/api/compliance/**", "DELETE", ""),
+
+        // Timeclock / Attendance (suite apps mounted on the API router)
+        RoutePermission::new("/api/timeclock/**", "GET", ""),
+        RoutePermission::new("/api/timeclock/**", "POST", ""),
+        RoutePermission::new("/api/timeclock/**", "PUT", ""),
+        RoutePermission::new("/api/timeclock/**", "DELETE", ""),
+        RoutePermission::new("/api/attendance/**", "GET", ""),
+        RoutePermission::new("/api/attendance/**", "POST", ""),
+
+        // Sales / CRM deals
+        RoutePermission::new("/api/sales/**", "GET", ""),
+        RoutePermission::new("/api/sales/**", "POST", ""),
+        RoutePermission::new("/api/sales/**", "PUT", ""),
+        RoutePermission::new("/api/sales/**", "DELETE", ""),
+        RoutePermission::new("/api/catalog/**", "GET", ""),
+
+        // Templates / Minutes / ITSM / Legal / ERP
+        RoutePermission::new("/api/templates/**", "GET", ""),
+        RoutePermission::new("/api/templates/**", "POST", ""),
+        RoutePermission::new("/api/templates/**", "PUT", ""),
+        RoutePermission::new("/api/templates/**", "DELETE", ""),
+        RoutePermission::new("/api/minutes/**", "GET", ""),
+        RoutePermission::new("/api/minutes/**", "POST", ""),
+        RoutePermission::new("/api/itsm/**", "GET", ""),
+        RoutePermission::new("/api/itsm/**", "POST", ""),
+        RoutePermission::new("/api/itsm/**", "PUT", ""),
+        RoutePermission::new("/api/itsm/**", "DELETE", ""),
+        RoutePermission::new("/api/legal/**", "GET", ""),
+        RoutePermission::new("/api/legal/**", "POST", ""),
+        RoutePermission::new("/api/erp/**", "GET", ""),
+        RoutePermission::new("/api/erp/**", "POST", ""),
+        RoutePermission::new("/api/erp/**", "PUT", ""),
+        RoutePermission::new("/api/erp/**", "DELETE", ""),
+
+        // Plan / Projects / Resources / Workflow
+        RoutePermission::new("/api/plan/**", "GET", ""),
+        RoutePermission::new("/api/plan/**", "POST", ""),
+        RoutePermission::new("/api/plan/**", "PUT", ""),
+        RoutePermission::new("/api/plan/**", "DELETE", ""),
+        RoutePermission::new("/api/resources/**", "GET", ""),
+        RoutePermission::new("/api/resources/**", "POST", ""),
+        RoutePermission::new("/api/resources/**", "PUT", ""),
+        RoutePermission::new("/api/resources/**", "DELETE", ""),
+        RoutePermission::new("/api/workflow/**", "GET", ""),
+        RoutePermission::new("/api/workflow/**", "POST", ""),
+
+        // Deployment / Domains / Features / Reports
+        RoutePermission::new("/api/deployment/**", "GET", ""),
+        RoutePermission::new("/api/deployment/**", "POST", ""),
+        RoutePermission::new("/api/deployment/**", "PUT", ""),
+        RoutePermission::new("/api/deployment/**", "DELETE", ""),
+        RoutePermission::new("/api/domains/**", "GET", ""),
+        RoutePermission::new("/api/domains/**", "POST", ""),
+        RoutePermission::new("/api/domains/**", "PUT", ""),
+        RoutePermission::new("/api/domains/**", "DELETE", ""),
+        RoutePermission::new("/api/features/**", "GET", ""),
+        RoutePermission::new("/api/features/**", "POST", ""),
+        RoutePermission::new("/api/reports/**", "GET", ""),
+        RoutePermission::new("/api/reports/**", "POST", ""),
+
+        // Setup / System / Governance / Ops
+        RoutePermission::new("/api/setup/**", "GET", ""),
+        RoutePermission::new("/api/setup/**", "POST", ""),
+        RoutePermission::new("/api/system/**", "GET", ""),
+        RoutePermission::new("/api/system/**", "POST", ""),
+        RoutePermission::new("/api/governance/**", "GET", ""),
+        RoutePermission::new("/api/governance/**", "POST", ""),
+        RoutePermission::new("/api/ops/**", "GET", ""),
+        RoutePermission::new("/api/ops/**", "POST", ""),
+
+        // AI / Speech / Services / Activity
+        RoutePermission::new("/api/ai/**", "GET", ""),
+        RoutePermission::new("/api/ai/**", "POST", ""),
+        RoutePermission::new("/api/speech/**", "GET", ""),
+        RoutePermission::new("/api/speech/**", "POST", ""),
+        RoutePermission::new("/api/services/**", "GET", ""),
+        RoutePermission::new("/api/services/**", "POST", ""),
+        RoutePermission::new("/api/activity/**", "GET", ""),
+        RoutePermission::new("/api/activity/**", "POST", ""),
+
+        // KB / OAuth connect + callback (browser redirects carry no token)
+        RoutePermission::new("/api/kb/**", "GET", ""),
+        RoutePermission::new("/api/kb/**", "POST", ""),
+        RoutePermission::new("/api/oauth/**", "GET", ""),
+        RoutePermission::new("/api/oauth/**", "POST", ""),
+
+        // Fiscal Brazil (NF-e/CTE/NFS-e forms) + legacy PT connector endpoints
+        RoutePermission::new("/api/brazil/**", "GET", ""),
+        RoutePermission::new("/api/brazil/**", "POST", ""),
+        RoutePermission::new("/api/pedidos/**", "GET", ""),
+        RoutePermission::new("/api/categorias/**", "GET", ""),
 
         // Browser
         RoutePermission::new("/api/browser/**", "GET", ""),
@@ -1797,6 +1890,40 @@ mod tests {
             .await
             .is_allowed();
         assert!(allowed_skill, "POST /api/people/:id/skills should be allowed");
+    }
+
+    #[tokio::test]
+    async fn test_compliance_and_timeclock_allowed_for_plain_user() {
+        // Regression for #909/#910/#916: the Compliance and Timeclock suite
+        // apps 403'd for logged-in users — compliance was Admin-gated and the
+        // /api/timeclock/** prefix was missing from the permission list, so
+        // default_deny rejected every request. Both must work for any
+        // authenticated (non-admin) user.
+        let routes = build_default_route_permissions();
+        let manager = RbacManager::with_defaults();
+        manager.register_routes(routes).await;
+        let user = AuthenticatedUser::new(Uuid::new_v4(), "user@example.com".to_string())
+            .with_role(Role::User);
+
+        for (path, method) in [
+            ("/api/compliance/checks", "GET"),
+            ("/api/compliance/issues", "GET"),
+            ("/api/compliance/audit-log", "GET"),
+            ("/api/compliance/risks", "GET"),
+            ("/api/compliance/training", "GET"),
+            ("/api/timeclock/forms/overtime", "POST"),
+            ("/api/timeclock/clock", "POST"),
+            ("/api/timeclock/records", "GET"),
+        ] {
+            let decision = manager.check_route_access(path, method, &user).await;
+            assert!(
+                decision.is_allowed(),
+                "{} {} should be allowed for authenticated user: {}",
+                method,
+                path,
+                decision.reason
+            );
+        }
     }
 
     #[test]
