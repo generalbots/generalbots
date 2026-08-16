@@ -71,8 +71,18 @@ function initCollab() {
       if (window.SlidesPresence) window.SlidesPresence.clearAll();
     },
     onMessage: function (msg) {
-      if (!msg || !window.SlidesPresence) return;
-      if (msg.msg_type === "cursor") window.SlidesPresence.cursor(msg);
+      if (!msg) return;
+      var t = msg.msg_type;
+      if (t === "cursor") { if (window.SlidesPresence) window.SlidesPresence.cursor(msg); }
+      else if (t === "laser") { if (window.SlidesPresenter) window.SlidesPresenter.laser(msg); }
+      else if (t === "question") { if (window.SlidesPresenter) window.SlidesPresenter.question(msg); }
+      else if (t === "question_upvote" || t === "question_answered") {
+        if (window.SlidesPresenter && window.SlidesPresenter.refreshQa) window.SlidesPresenter.refreshQa();
+      }
+      else if (t === "remote_nav") { if (window.SlidesPresenter) window.SlidesPresenter.remoteNav(msg); }
+      else if (t === "presenter_take" || t === "presenter_assign" || t === "presenter_release") {
+        if (window.SlidesPresenter) window.SlidesPresenter.presenter(msg);
+      }
     },
     onSelection: function (msg) {
       if (window.SlidesPresence) window.SlidesPresence.selection(msg);
@@ -122,6 +132,11 @@ document.addEventListener("htmx:afterSwap", function (e) {
             swap: "innerHTML",
             values: { id: "current", slide: slideId }
           });
+        }
+        // Presenter drives every follower's slide (remote control).
+        if (window.SlidesPresenter && window.SlidesPresenter.isPresenter && window.SlidesPresenter.isPresenter()) {
+          var idx = $$(".sl-thumb").indexOf(thumb);
+          if (idx >= 0 && window.GBCollab) window.GBCollab.send("remote_nav", { slide_index: idx });
         }
       });
     });

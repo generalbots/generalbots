@@ -7,4 +7,7 @@ window.addEventListener("DOMContentLoaded", function () {
   initAuth();
   initCollab();
   window.SlidesCanvas = SlideCanvas;
+  if (window.SlidesPresenter && window.SlidesPresenter.refreshPresenterStatus) {
+    window.SlidesPresenter.refreshPresenterStatus();
+  }
 });

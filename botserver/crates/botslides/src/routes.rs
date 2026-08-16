@@ -1,6 +1,7 @@
 use crate::collaboration::{
-    handle_get_collaborators, handle_get_mentions, handle_get_presence, handle_get_selections,
-    handle_get_typing, handle_slides_websocket,
+    handle_get_collaborators, handle_get_mentions, handle_get_presence,
+    handle_get_presenter_control, handle_get_questions, handle_get_selections, handle_get_typing,
+    handle_slides_websocket,
 };
 use crate::handlers::{
     handle_add_element, handle_add_media, handle_add_slide, handle_apply_theme,
@@ -137,6 +138,14 @@ pub fn configure_slides_routes<D: DriveOps + Send + Sync + 'static>() -> Router<
         .route(
             "/api/slides/mentions/{user_id}",
             get(handle_get_mentions),
+        )
+        .route(
+            "/api/slides/{presentation_id}/questions",
+            get(handle_get_questions),
+        )
+        .route(
+            "/api/slides/{presentation_id}/presenter-control",
+            get(handle_get_presenter_control),
         )
         .route(
             "/ws/slides/{presentation_id}",
