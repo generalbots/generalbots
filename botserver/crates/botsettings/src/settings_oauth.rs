@@ -74,7 +74,7 @@ fn read_oauth_bot_config(state: &Arc<AppState>) -> HashMap<String, String> {
             .enable_all()
             .build();
         let result = if let Ok(rt) = rt {
-            rt.block_on(manager.get_secret(&path_clone).ok())
+            rt.block_on(manager.get_secret(&path_clone)).ok()
         } else {
             None
         };
@@ -310,13 +310,9 @@ pub async fn oauth_accounts_list(
         email: Option<String>,
         #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
         display_name: Option<String>,
-        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
-        avatar_url: Option<String>,
-        #[diesel(sql_type = diesel::sql_types::Timestamptz)]
-        linked_at: chrono::DateTime<chrono::Utc>,
     }
     let rows: Vec<LinkRow> = diesel::sql_query(
-        "SELECT provider, email, display_name, avatar_url, linked_at \
+        "SELECT provider, email, display_name \
          FROM oauth_account_links WHERE user_id = $1 ORDER BY provider",
     )
     .bind::<diesel::sql_types::Uuid, _>(user_id)

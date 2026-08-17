@@ -80,7 +80,6 @@ pub fn truncate(s: &str, max: usize) -> String {
 pub async fn deliver_with_retries(
     state: Arc<AppState>,
     delivery_id: Uuid,
-    webhook_id: Uuid,
     url: String,
     payload: &str,
     secret: &str,

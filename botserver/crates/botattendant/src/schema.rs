@@ -59,7 +59,9 @@ diesel::table! {
         is_internal -> Bool,
         created_at -> Timestamptz,
     }
+}
 
+diesel::table! {
     attendant_attachments (id) {
         id -> Uuid,
         session_id -> Uuid,

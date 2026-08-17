@@ -129,7 +129,7 @@ pub async fn resolve_stripe_customer(
     Ok(customer.id)
 }
 
-fn persist_customer_mapping(
+pub(crate) fn persist_customer_mapping(
     service: &SaasService,
     branch_id: Uuid,
     stripe_customer_id: &str,
@@ -207,11 +207,11 @@ pub async fn list_payment_cards(
 
     let cards: Vec<serde_json::Value> = rows
         .into_iter()
-        .map(|(card_id, pm_id, brand, last, exp_m, exp_y, is_def, cust)| {
+        .map(|(card_id, pm_id, brand_name, last, exp_m, exp_y, is_def, cust)| {
             serde_json::json!({
                 "id": card_id,
                 "stripe_pm_id": pm_id,
-                "brand": brand,
+                "brand": brand_name,
                 "last4": last,
                 "exp_month": exp_m,
                 "exp_year": exp_y,
@@ -303,7 +303,7 @@ pub async fn create_payment_card_setup_intent(
     let intent = service
         .stripe
         .create_setup_intent(botbilling::stripe_integration::CreateSetupIntentParams {
-            customer_id,
+            customer_id: customer_id.clone(),
             usage: "off_session".to_string(),
         })
         .await
@@ -518,7 +518,7 @@ pub async fn sync_payment_method(
     };
 
     let now = chrono::Utc::now();
-    let brand = card.brand.clone();
+    let brand_name = card.brand.clone();
     let last = card.last4.clone();
     let exp_m = card.exp_month as i32;
     let exp_y = card.exp_year as i32;
@@ -529,7 +529,7 @@ pub async fn sync_payment_method(
             pm_branch.eq(branch_id),
             pm_customer.eq(customer_id),
             stripe_pm_id.eq(&pm.id),
-            brand.eq(&brand),
+            brand.eq(&brand_name),
             last4.eq(&last),
             exp_month.eq(exp_m),
             exp_year.eq(exp_y),
@@ -540,7 +540,7 @@ pub async fn sync_payment_method(
         .on_conflict(stripe_pm_id)
         .do_update()
         .set((
-            brand.eq(&brand),
+            brand.eq(&brand_name),
             last4.eq(&last),
             exp_month.eq(exp_m),
             exp_year.eq(exp_y),

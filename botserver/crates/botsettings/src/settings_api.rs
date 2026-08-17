@@ -270,7 +270,12 @@ async fn oauth_connect_handler(
     headers: axum::http::HeaderMap,
     axum::extract::Path(provider_name): axum::extract::Path<String>,
 ) -> axum::response::Response {
-    crate::settings_oauth::oauth_connect(state, headers, provider_name).await
+    crate::settings_oauth::oauth_connect(
+        State(state),
+        headers,
+        axum::extract::Path(provider_name),
+    )
+    .await
 }
 
 #[derive(Deserialize)]

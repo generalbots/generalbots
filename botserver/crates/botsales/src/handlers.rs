@@ -130,25 +130,3 @@ pub async fn list_activities(headers: HeaderMap) -> Result<Json<serde_json::Valu
     Ok(Json(serde_json::json!({"items": items})))
 }
 
-pub async fn get_forecast(headers: HeaderMap) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    ensure_schema_sync()?;
-    let branch = resolve_branch(&headers);
-    let pool = db::pool()?;
-    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
-    #[derive(diesel::QueryableByName)]
-    struct Row {
-        #[diesel(sql_type = diesel::sql_types::Numeric)] total_value: Decimal,
-        #[diesel(sql_type = diesel::sql_types::BigInt)] deal_count: i64,
-    }
-    let stats: Row = diesel::sql_query(
-        "SELECT COALESCE(SUM(value), 0) AS total_value, COUNT(*) AS deal_count
-         FROM sales_deals WHERE status = 'open' AND branch_id = $1",
-    ).bind::<diesel::sql_types::Uuid, _>(branch).get_result(&mut conn).map_err(db::map_diesel_err)?;
-    Ok(Json(serde_json::json!({"items": [{
-        "period": chrono::Utc::now().format("%Y-%m").to_string(),
-        "pipeline_value": stats.total_value.to_string(),
-        "weighted_value": (stats.total_value * Decimal::new(5, 1)).to_string(),
-        "deals_count": stats.deal_count,
-        "expected_close": (chrono::Utc::now() + chrono::Duration::days(30)).to_rfc3339(),
-    }]})))
-}

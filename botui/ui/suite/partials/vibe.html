@@ -42,7 +42,7 @@
 <button class="vibe-ribbon-cmd" onclick="window.VibeMembers && window.VibeMembers.open()"><span class="rc-icon">👥</span><span class="rc-label">Members</span></button>
 </div>
 <div class="vibe-ribbon-group" data-group="monitor">
-<button class="vibe-ribbon-cmd" onclick="VibeGraph && VibeGraph.togglePanel(true)"><span class="rc-icon">📊</span><span class="rc-label">Metrics</span></button>
+<button class="vibe-ribbon-cmd" onclick="VibeMetrics && VibeMetrics.open()"><span class="rc-icon">📊</span><span class="rc-label">Metrics</span></button>
 <button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('deploy', 'Deployments')"><span class="rc-icon">🚀</span><span class="rc-label">Deployments</span></button>
 <button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('terminal', 'Terminal')"><span class="rc-icon">⌨️</span><span class="rc-label">Logs</span></button>
 </div>
@@ -431,6 +431,18 @@ border: none;
   <div id="vibeCapabilities" style="max-height: 120px; overflow-y: auto; border-top: 1px solid var(--border, #333); padding: 8px 12px; font-size: 11px; color: var(--text-muted, #aaa);"></div>
 </div>
 
+<!-- Vibe Metrics Panel (real run telemetry, not the knowledge graph) -->
+<div id="vibeMetricsPanel" style="display: none; position: absolute; right: 24px; bottom: 24px; width: 480px; height: 400px; z-index: 80; border: 1px solid var(--border, #333); border-radius: 10px; overflow: hidden; background: var(--surface, #14142a); box-shadow: 0 12px 40px rgba(0,0,0,0.45); flex-direction: column;">
+  <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; border-bottom: 1px solid var(--border, #333); font-size: 12px; font-weight: 700; color: var(--text, #eee);">
+    <span>📊 VIBE METRICS</span>
+    <span>
+      <button onclick="VibeMetrics && VibeMetrics.refresh()" title="Refresh" style="background: transparent; border: 1px solid var(--border, #333); color: var(--text, #eee); border-radius: 4px; padding: 1px 8px; cursor: pointer; margin-right: 6px;">⟳</button>
+      <button id="vibeMetricsClose" style="background: transparent; border: none; color: var(--text-muted, #888); cursor: pointer; font-size: 14px;">✕</button>
+    </span>
+  </div>
+  <div id="vibeMetricsBody" style="flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px; font-size: 12px; color: var(--text, #eee);"></div>
+</div>
+
 <script src="/suite/vibe/vibe-state.js?v=4"></script>
 <script src="/suite/vibe/vibe-helpers.js?v=4"></script>
 <script src="/suite/vibe/vibe-canvas.js?v=4"></script>
@@ -438,6 +450,7 @@ border: none;
 <script src="/suite/vibe/vibe-websocket.js?v=4"></script>
 <script src="/suite/vibe/vibe-autotask.js"></script>
 <script src="/suite/vibe/vibe-graph.js?v=2"></script>
+<script src="/suite/vibe/vibe-metrics.js?v=1"></script>
 <script src="/suite/vibe/vibe-run.js?v=3"></script>
 <script src="/suite/vibe/vibe-init.js?v=5"></script>
 <script src="/suite/vibe/vibe-deeplink.js"></script>

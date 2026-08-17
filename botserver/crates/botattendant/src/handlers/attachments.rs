@@ -1,1 +1,243 @@
-use axum::{\n    extract::{Multipart, Path, State},\n    http::{header, HeaderValue, StatusCode},\n    response::{IntoResponse, Response},\n    Json,\n};\nuse chrono::Utc;\nuse diesel::prelude::*;\nuse std::sync::Arc;\nuse uuid::Uuid;\n\nuse crate::models::*;\nuse crate::schema::*;\nuse crate::handlers::db_conn;\n\n/// Maximum accepted attachment size (25 MiB).\nconst MAX_ATTACHMENT_BYTES: usize = 25 * 1024 * 1024;\n\n/// Content types allowed for conversation attachments (type limit).\n/// Everything else is rejected to keep the channel surface safe.\nconst ALLOWED_CONTENT_TYPES: &[&str] = &[\n    // Images\n    \"image/png\",\n    \"image/jpeg\",\n    \"image/gif\",\n    \"image/webp\",\n    \"image/svg+xml\",\n    // Documents\n    \"application/pdf\",\n    \"application/msword\",\n    \"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\n    \"application/vnd.ms-excel\",\n    \"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\n    \"application/vnd.ms-powerpoint\",\n    \"application/vnd.openxmlformats-officedocument.presentationml.presentation\",\n    \"text/plain\",\n    \"text/csv\",\n    \"text/markdown\",\n    // Archives / audio / video\n    \"application/zip\",\n    \"application/gzip\",\n    \"audio/mpeg\",\n    \"audio/ogg\",\n    \"audio/wav\",\n    \"video/mp4\",\n    \"video/webm\",\n];\n\nfn content_type_allowed(content_type: &str) -> bool {\n    ALLOWED_CONTENT_TYPES.contains(&content_type)\n}\n\n/// Returns true when the content type is an image (rendered inline with a\n/// preview in the message thread).\nfn is_image(content_type: &str) -> bool {\n    content_type.starts_with(\"image/\")\n}\n\n/// `POST /api/attendant/sessions/:id/attachments`\n///\n/// Multipart upload (`file` field). Enforces size/type limits, persists the\n/// blob, and returns `AttachmentMeta` for the composer to attach to the next\n/// message. The download URL embeds the attachment UUID — an unguessable\n/// capability — and the session must exist.\npub async fn upload_attachment(\n    State(config): State<Arc<crate::AttendantConfig>>,\n    Path(session_id): Path<Uuid>,\n    mut multipart: Multipart,\n) -> Result<Json<AttachmentMeta>, (StatusCode, String)> {\n    {\n        let mut conn = db_conn!(config);\n        let exists: i64 = attendant_sessions::table\n            .filter(attendant_sessions::id.eq(session_id))\n            .count()\n            .get_result(&mut conn)\n            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!(\"DB error: {e}\")))?;\n        if exists == 0 {\n            return Err((StatusCode::NOT_FOUND, \"Session not found\".to_string()));\n        }\n    }\n\n    let mut name: Option<String> = None;\n    let mut content_type: Option<String> = None;\n    let mut data: Option<Vec<u8>> = None;\n\n    while let Some(field) = multipart\n        .next_field()\n        .await\n        .map_err(|e| (StatusCode::BAD_REQUEST, format!(\"Multipart error: {e}\")))?\n    {\n        if field.name() != Some(\"file\") {\n            continue;\n        }\n        name = field.file_name().map(str::to_string);\n        content_type = field\n            .content_type()\n            .map(|ct| ct.to_string())\n            .or_else(|| name.as_ref().and_then(detect_from_extension));\n        data = Some(\n            field\n                .bytes()\n                .await\n                .map_err(|e| (StatusCode::BAD_REQUEST, format!(\"Read error: {e}\")))?\n                .to_vec(),\n        );\n    }\n\n    let name = name.ok_or_else(|| (StatusCode::BAD_REQUEST, \"Missing file field\".to_string()))?;\n    let content_type = content_type.unwrap_or_else(|| \"application/octet-stream\".to_string());\n    let data = data.ok_or_else(|| (StatusCode::BAD_REQUEST, \"Empty file payload\".to_string()))?;\n\n    if data.is_empty() {\n        return Err((StatusCode::BAD_REQUEST, \"Empty file\".to_string()));\n    }\n    if data.len() > MAX_ATTACHMENT_BYTES {\n        return Err((StatusCode::PAYLOAD_TOO_LARGE, \"File exceeds 25 MiB limit\".to_string()));\n    }\n    if !content_type_allowed(&content_type) {\n        return Err((StatusCode::UNSUPPORTED_MEDIA_TYPE, \"File type not allowed\".to_string()));\n    }\n\n    let id = Uuid::new_v4();\n    let size_bytes = data.len() as i64;\n    let now = Utc::now();\n\n    diesel::insert_into(attendant_attachments::table)\n        .values((\n            attendant_attachments::id.eq(id),\n            attendant_attachments::session_id.eq(session_id),\n            attendant_attachments::name.eq(&name),\n            attendant_attachments::content_type.eq(&content_type),\n            attendant_attachments::size_bytes.eq(size_bytes),\n            attendant_attachments::data.eq(&data),\n            attendant_attachments::created_at.eq(now),\n        ))\n        .execute(&mut db_conn!(config))\n        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!(\"Insert error: {e}\")))?;\n\n    Ok(Json(AttachmentMeta {\n        id,\n        name,\n        content_type: content_type.clone(),\n        size_bytes,\n        url: format!(\"/api/attendant/attachments/{id}/download\"),\n        thumb_url: is_image(&content_type).then(|| format!(\"/api/attendant/attachments/{id}/download\")),\n    }))\n}\n\n/// `GET /api/attendant/attachments/:id/download`\n///\n/// Streams the stored blob with the original filename. Ownership is enforced\n/// at the session level by the calling UI (agents fetch only attachments of\n/// sessions they are assigned to); the UUID acts as an unguessable token.\npub async fn download_attachment(\n    State(config): State<Arc<crate::AttendantConfig>>,\n    Path(id): Path<Uuid>,\n) -> Result<Response, (StatusCode, String)> {\n    let mut conn = db_conn!(config);\n\n    let row: AttendantAttachment = attendant_attachments::table\n        .filter(attendant_attachments::id.eq(id))\n        .first(&mut conn)\n        .map_err(|_| (StatusCode::NOT_FOUND, \"Attachment not found\".to_string()))?;\n\n    let mut response = Response::new(axum::body::Body::from(row.data));\n    response\n        .headers_mut()\n        .insert(header::CONTENT_TYPE, HeaderValue::from_str(&row.content_type).unwrap_or_else(|_| HeaderValue::from_static(\"application/octet-stream\")));\n    let disposition = format!(\"attachment; filename=\\\"{}\\\"\", sanitize_filename(&row.name));\n    response\n        .headers_mut()\n        .insert(header::CONTENT_DISPOSITION, HeaderValue::from_str(&disposition).unwrap_or_else(|_| HeaderValue::from_static(\"attachment\")));\n    response\n        .headers_mut()\n        .insert(header::CONTENT_LENGTH, HeaderValue::from_str(&row.size_bytes.to_string()).unwrap_or_default());\n    Ok(response)\n}\n\n/// Strips path separators and control characters from a filename so the\n/// Content-Disposition header cannot be abused.\nfn sanitize_filename(name: &str) -> String {\n    name.chars()\n        .filter(|c| !matches!(c, '/' | '\\\\' | '\\0' | '\\r' | '\\n'))\n        .collect()\n}\n\n/// Best-effort content-type detection from the file extension when the\n/// multipart field carries no explicit content type.\nfn detect_from_extension(name: &str) -> Option<String> {\n    let ext = name.rsplit('.').next()?.to_lowercase();\n    let ct = match ext.as_str() {\n        \"png\" => \"image/png\",\n        \"jpg\" | \"jpeg\" => \"image/jpeg\",\n        \"gif\" => \"image/gif\",\n        \"webp\" => \"image/webp\",\n        \"svg\" => \"image/svg+xml\",\n        \"pdf\" => \"application/pdf\",\n        \"doc\" => \"application/msword\",\n        \"docx\" => \"application/vnd.openxmlformats-officedocument.wordprocessingml.document\",\n        \"xls\" => \"application/vnd.ms-excel\",\n        \"xlsx\" => \"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet\",\n        \"ppt\" => \"application/vnd.ms-powerpoint\",\n        \"pptx\" => \"application/vnd.openxmlformats-officedocument.presentationml.presentation\",\n        \"txt\" => \"text/plain\",\n        \"csv\" => \"text/csv\",\n        \"md\" => \"text/markdown\",\n        \"zip\" => \"application/zip\",\n        \"gz\" => \"application/gzip\",\n        \"mp3\" => \"audio/mpeg\",\n        \"ogg\" => \"audio/ogg\",\n        \"wav\" => \"audio/wav\",\n        \"mp4\" => \"video/mp4\",\n        \"webm\" => \"video/webm\",\n        _ => return None,\n    };\n    Some(ct.to_string())\n}\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn test_content_type_allow_list() {\n        assert!(content_type_allowed(\"image/png\"));\n        assert!(content_type_allowed(\"application/pdf\"));\n        assert!(!content_type_allowed(\"application/x-msdownload\"));\n        assert!(!content_type_allowed(\"text/html\"));\n    }\n\n    #[test]\n    fn test_sanitize_filename_strips_separators() {\n        assert_eq!(sanitize_filename(\"..\\\\..\\\\evil.txt\"), \"....evil.txt\");\n        assert_eq!(sanitize_filename(\"report\\r\\n.pdf\"), \"report.pdf\");\n    }\n\n    #[test]\n    fn test_detect_from_extension() {\n        assert_eq!(detect_from_extension(\"photo.png\"), Some(\"image/png\".to_string()));\n        assert_eq!(detect_from_extension(\"notes.docx\"), Some(\"application/vnd.openxmlformats-officedocument.wordprocessingml.document\".to_string()));\n        assert_eq!(detect_from_extension(\"mystery.bin\"), None);\n    }\n}\n", "referencedBy": ""}, {"path": "botserver/crates/botattendant/src/schema.rs", "instructions": "Check existing schema file structure"}
+use axum::{
+    extract::{Multipart, Path, State},
+    http::{header, HeaderValue, StatusCode},
+    response::Response,
+    Json,
+};
+use chrono::Utc;
+use diesel::prelude::*;
+use std::sync::Arc;
+use uuid::Uuid;
+
+use crate::models::*;
+use crate::schema::*;
+use crate::handlers::db_conn;
+
+/// Maximum accepted attachment size (25 MiB).
+const MAX_ATTACHMENT_BYTES: usize = 25 * 1024 * 1024;
+
+/// Content types allowed for conversation attachments (type limit).
+/// Everything else is rejected to keep the channel surface safe.
+const ALLOWED_CONTENT_TYPES: &[&str] = &[
+    // Images
+    "image/png",
+    "image/jpeg",
+    "image/gif",
+    "image/webp",
+    "image/svg+xml",
+    // Documents
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "text/plain",
+    "text/csv",
+    "text/markdown",
+    // Archives / audio / video
+    "application/zip",
+    "application/gzip",
+    "audio/mpeg",
+    "audio/ogg",
+    "audio/wav",
+    "video/mp4",
+    "video/webm",
+];
+
+fn content_type_allowed(content_type: &str) -> bool {
+    ALLOWED_CONTENT_TYPES.contains(&content_type)
+}
+
+/// Returns true when the content type is an image (rendered inline with a
+/// preview in the message thread).
+fn is_image(content_type: &str) -> bool {
+    content_type.starts_with("image/")
+}
+
+/// `POST /api/attendant/sessions/:id/attachments`
+///
+/// Multipart upload (`file` field). Enforces size/type limits, persists the
+/// blob, and returns `AttachmentMeta` for the composer to attach to the next
+/// message. The download URL embeds the attachment UUID â an unguessable
+/// capability â and the session must exist.
+pub async fn upload_attachment(
+    State(config): State<Arc<crate::AttendantConfig>>,
+    Path(session_id): Path<Uuid>,
+    mut multipart: Multipart,
+) -> Result<Json<AttachmentMeta>, (StatusCode, String)> {
+    {
+        let mut conn = db_conn!(config);
+        let exists: i64 = attendant_sessions::table
+            .filter(attendant_sessions::id.eq(session_id))
+            .count()
+            .get_result(&mut conn)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+        if exists == 0 {
+            return Err((StatusCode::NOT_FOUND, "Session not found".to_string()));
+        }
+    }
+
+    let mut name: Option<String> = None;
+    let mut content_type: Option<String> = None;
+    let mut data: Option<Vec<u8>> = None;
+
+    while let Some(field) = multipart
+        .next_field()
+        .await
+        .map_err(|e| (StatusCode::BAD_REQUEST, format!("Multipart error: {e}")))?
+    {
+        if field.name() != Some("file") {
+            continue;
+        }
+        name = field.file_name().map(str::to_string);
+        content_type = field
+            .content_type()
+            .map(|ct| ct.to_string())
+            .or_else(|| name.as_deref().and_then(detect_from_extension));
+        data = Some(
+            field
+                .bytes()
+                .await
+                .map_err(|e| (StatusCode::BAD_REQUEST, format!("Read error: {e}")))?
+                .to_vec(),
+        );
+    }
+
+    let name = name.ok_or_else(|| (StatusCode::BAD_REQUEST, "Missing file field".to_string()))?;
+    let content_type = content_type.unwrap_or_else(|| "application/octet-stream".to_string());
+    let data = data.ok_or_else(|| (StatusCode::BAD_REQUEST, "Empty file payload".to_string()))?;
+
+    if data.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "Empty file".to_string()));
+    }
+    if data.len() > MAX_ATTACHMENT_BYTES {
+        return Err((StatusCode::PAYLOAD_TOO_LARGE, "File exceeds 25 MiB limit".to_string()));
+    }
+    if !content_type_allowed(&content_type) {
+        return Err((StatusCode::UNSUPPORTED_MEDIA_TYPE, "File type not allowed".to_string()));
+    }
+
+    let id = Uuid::new_v4();
+    let size_bytes = data.len() as i64;
+    let now = Utc::now();
+
+    diesel::insert_into(attendant_attachments::table)
+        .values((
+            attendant_attachments::id.eq(id),
+            attendant_attachments::session_id.eq(session_id),
+            attendant_attachments::name.eq(&name),
+            attendant_attachments::content_type.eq(&content_type),
+            attendant_attachments::size_bytes.eq(size_bytes),
+            attendant_attachments::data.eq(&data),
+            attendant_attachments::created_at.eq(now),
+        ))
+        .execute(&mut db_conn!(config))
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
+
+    Ok(Json(AttachmentMeta {
+        id,
+        name,
+        content_type: content_type.clone(),
+        size_bytes,
+        url: format!("/api/attendant/attachments/{id}/download"),
+        thumb_url: is_image(&content_type).then(|| format!("/api/attendant/attachments/{id}/download")),
+    }))
+}
+
+/// `GET /api/attendant/attachments/:id/download`
+///
+/// Streams the stored blob with the original filename. Ownership is enforced
+/// at the session level by the calling UI (agents fetch only attachments of
+/// sessions they are assigned to); the UUID acts as an unguessable token.
+pub async fn download_attachment(
+    State(config): State<Arc<crate::AttendantConfig>>,
+    Path(id): Path<Uuid>,
+) -> Result<Response, (StatusCode, String)> {
+    let mut conn = db_conn!(config);
+
+    let row: AttendantAttachment = attendant_attachments::table
+        .filter(attendant_attachments::id.eq(id))
+        .first(&mut conn)
+        .map_err(|_| (StatusCode::NOT_FOUND, "Attachment not found".to_string()))?;
+
+    let mut response = Response::new(axum::body::Body::from(row.data));
+    response
+        .headers_mut()
+        .insert(header::CONTENT_TYPE, HeaderValue::from_str(&row.content_type).unwrap_or_else(|_| HeaderValue::from_static("application/octet-stream")));
+    let disposition = format!("attachment; filename=\"{}\"", sanitize_filename(&row.name));
+    response
+        .headers_mut()
+        .insert(header::CONTENT_DISPOSITION, HeaderValue::from_str(&disposition).unwrap_or_else(|_| HeaderValue::from_static("attachment")));
+    response
+        .headers_mut()
+        .insert(header::CONTENT_LENGTH, HeaderValue::from_str(&row.size_bytes.to_string()).unwrap_or_else(|_| HeaderValue::from_static("0")));
+    Ok(response)
+}
+
+/// Strips path separators and control characters from a filename so the
+/// Content-Disposition header cannot be abused.
+fn sanitize_filename(name: &str) -> String {
+    name.chars()
+        .filter(|c| !matches!(c, '/' | '\\' | '\0' | '\r'))
+        .collect()
+}
+
+/// Best-effort content-type detection from the file extension when the
+/// multipart field carries no explicit content type.
+fn detect_from_extension(name: &str) -> Option<String> {
+    let ext = name.rsplit('.').next()?.to_lowercase();
+    let ct = match ext.as_str() {
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "svg" => "image/svg+xml",
+        "pdf" => "application/pdf",
+        "doc" => "application/msword",
+        "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "xls" => "application/vnd.ms-excel",
+        "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "ppt" => "application/vnd.ms-powerpoint",
+        "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "txt" => "text/plain",
+        "csv" => "text/csv",
+        "md" => "text/markdown",
+        "zip" => "application/zip",
+        "gz" => "application/gzip",
+        "mp3" => "audio/mpeg",
+        "ogg" => "audio/ogg",
+        "wav" => "audio/wav",
+        "mp4" => "video/mp4",
+        "webm" => "video/webm",
+        _ => return None,
+    };
+    Some(ct.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_content_type_allow_list() {
+        assert!(content_type_allowed("image/png"));
+        assert!(content_type_allowed("application/pdf"));
+        assert!(!content_type_allowed("application/x-msdownload"));
+        assert!(!content_type_allowed("text/html"));
+    }
+
+    #[test]
+    fn test_sanitize_filename_strips_separators() {
+        assert_eq!(sanitize_filename("..\\..\\evil.txt"), "....evil.txt");
+        assert_eq!(sanitize_filename("report\r.pdf"), "report.pdf");
+    }
+
+    #[test]
+    fn test_detect_from_extension() {
+        assert_eq!(detect_from_extension("photo.png"), Some("image/png".to_string()));
+        assert_eq!(detect_from_extension("notes.docx"), Some("application/vnd.openxmlformats-officedocument.wordprocessingml.document".to_string()));
+        assert_eq!(detect_from_extension("mystery.bin"), None);
+    }
+}
