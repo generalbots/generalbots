@@ -226,11 +226,22 @@ impl AgentLoop {
                     cap_reached = true;
                     break;
                 }
-                if self
+                match self
                     .process_tool_call(run, &mut context, tc, step, max_steps)
                     .await
                 {
-                    step_mutated = true;
+                    ToolStep::Executed => step_mutated = true,
+                    ToolStep::Cancelled => {
+                        // #920 — a cancel is a run-level termination, not a
+                        // skipped tool; stop here so a late approval cannot
+                        // overwrite the cancellation.
+                        run.transition(VibeRunState::Cancelled);
+                        run.error = Some("Run cancelled during tool approval".to_string());
+                        self.telemetry.record_run_completion(run, 0, None, 0.0).await;
+                        self.broadcast_event(run, "cancelled", "Run cancelled", 100);
+                        return;
+                    }
+                    ToolStep::Skipped => {}
                 }
             }
 
@@ -764,7 +775,7 @@ fn last_verdict(response: &str) -> Option<bool> {
         extracted: &ExtractedToolCall,
         step: u32,
         max_steps: u32,
-    ) -> bool {
+    ) -> ToolStep {
         let schema_requires = self
             .tool_executor
             .registry()
@@ -818,25 +829,35 @@ fn last_verdict(response: &str) -> Option<bool> {
                 ((step as f64 / max_steps as f64) * 100.0) as u8,
             );
 
-            let approved = self.wait_for_approval(run.run_id).await;
-            if !approved {
-                tool_call.approved = false;
-                tool_call.result = Some(crate::types::VibeToolResult {
-                    success: false,
-                    data: serde_json::json!({"denied": true}),
-                    error: Some("Approval denied".to_string()),
-                    latency_ms: 0,
-                });
-                run.tool_calls.push(tool_call.clone());
-                context.add_assistant_message(format!(
-                    "Tool {} was denied approval. Continuing.",
-                    tool_call.tool_name
-                ));
-                run.transition(VibeRunState::Running);
-                return false;
+            match self.wait_for_approval(run.run_id).await {
+                crate::pipeline::ApprovalOutcome::Approved => {
+                    tool_call.approved = true;
+                    run.transition(VibeRunState::Running);
+                }
+                crate::pipeline::ApprovalOutcome::Cancelled => {
+                    // #920 — cancel is run-level, not a denied tool.
+                    tool_call.approved = false;
+                    run.tool_calls.push(tool_call.clone());
+                    return ToolStep::Cancelled;
+                }
+                other => {
+                    let reason = other.error_message().unwrap_or("Approval denied");
+                    tool_call.approved = false;
+                    tool_call.result = Some(crate::types::VibeToolResult {
+                        success: false,
+                        data: serde_json::json!({"denied": true}),
+                        error: Some(reason.to_string()),
+                        latency_ms: 0,
+                    });
+                    run.tool_calls.push(tool_call.clone());
+                    context.add_assistant_message(format!(
+                        "Tool {} was denied approval. Continuing.",
+                        tool_call.tool_name
+                    ));
+                    run.transition(VibeRunState::Running);
+                    return ToolStep::Skipped;
+                }
             }
-            tool_call.approved = true;
-            run.transition(VibeRunState::Running);
         } else if requires_approval {
             // Auto-approve: the executor refuses unapproved tools
             // ("Aprovação requerida antes da execução"), so mark the call
@@ -974,10 +995,14 @@ fn last_verdict(response: &str) -> Option<bool> {
         };
 
         run.tool_calls.push(tool_call);
-        executed_ok
+        if executed_ok {
+            ToolStep::Executed
+        } else {
+            ToolStep::Skipped
+        }
     }
 
-    async fn wait_for_approval(&self, run_id: Uuid) -> bool {
+    async fn wait_for_approval(&self, run_id: Uuid) -> crate::pipeline::ApprovalOutcome {
         let approval_timeout = Duration::from_secs(300);
         let start = tokio::time::Instant::now();
 
@@ -989,27 +1014,27 @@ fn last_verdict(response: &str) -> Option<bool> {
             loop {
                 let remaining = if start.elapsed() > approval_timeout {
                     warn!("Approval timeout for run {run_id}");
-                    return false;
+                    return crate::pipeline::ApprovalOutcome::TimedOut;
                 } else {
                     approval_timeout.saturating_sub(start.elapsed())
                 };
                 match tokio::time::timeout(remaining, rx.recv()).await {
                     Ok(Ok(crate::types::VibeRunSignal::Approved(id))) if id == run_id => {
                         info!("Run {run_id} approved; resuming");
-                        return true;
+                        return crate::pipeline::ApprovalOutcome::Approved;
                     }
                     Ok(Ok(crate::types::VibeRunSignal::Cancelled(id))) if id == run_id => {
                         info!("Run {run_id} cancelled while awaiting approval");
-                        return false;
+                        return crate::pipeline::ApprovalOutcome::Cancelled;
                     }
                     Ok(Ok(_)) => continue,
                     Ok(Err(tokio::sync::broadcast::error::RecvError::Lagged(_))) => continue,
                     Ok(Err(tokio::sync::broadcast::error::RecvError::Closed)) => {
-                        return false;
+                        return crate::pipeline::ApprovalOutcome::ChannelClosed;
                     }
                     Err(_) => {
                         warn!("Approval timeout for run {run_id}");
-                        return false;
+                        return crate::pipeline::ApprovalOutcome::TimedOut;
                     }
                 }
             }
@@ -1019,16 +1044,19 @@ fn last_verdict(response: &str) -> Option<bool> {
         loop {
             if start.elapsed() > approval_timeout {
                 warn!("Approval timeout for run {run_id}");
-                return false;
+                return crate::pipeline::ApprovalOutcome::TimedOut;
             }
 
             let runs = self.state.active_runs().read().await;
             if let Some(run) = runs.get(&run_id) {
                 if run.state == VibeRunState::Running {
-                    return true;
+                    return crate::pipeline::ApprovalOutcome::Approved;
                 }
-                if matches!(run.state, VibeRunState::Cancelled | VibeRunState::Failed) {
-                    return false;
+                if run.state == VibeRunState::Cancelled {
+                    return crate::pipeline::ApprovalOutcome::Cancelled;
+                }
+                if run.state == VibeRunState::Failed {
+                    return crate::pipeline::ApprovalOutcome::Cancelled;
                 }
             }
             drop(runs);
@@ -1077,6 +1105,15 @@ fn last_verdict(response: &str) -> Option<bool> {
 struct ExtractedToolCall {
     tool_name: String,
     arguments: serde_json::Value,
+}
+
+/// Outcome of one tool-call step in the agent loop (#920). `Cancelled` is a
+/// run-level termination (the caller must stop the run), unlike `Skipped`
+/// (approval denied or tool failed — keep looping).
+enum ToolStep {
+    Executed,
+    Skipped,
+    Cancelled,
 }
 
 /// True when the response mentions tool-call JSON keys, meaning the model
