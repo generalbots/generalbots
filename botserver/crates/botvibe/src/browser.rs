@@ -9,6 +9,49 @@ fn cdp_base() -> String {
     std::env::var("BROWSER_CDP_URL").unwrap_or_else(|_| "http://127.0.0.1:9222".to_string())
 }
 
+/// #926 — blocks navigation to loopback, private, link-local, multicast and
+/// other non-public destinations so a prompt-injected agent cannot reach
+/// internal applications or the host's own services.
+fn validate_navigation_target(url: &str) -> Result<(), String> {
+    let parsed = reqwest::Url::parse(url).map_err(|e| format!("invalid url: {e}"))?;
+    if parsed.scheme() != "http" && parsed.scheme() != "https" {
+        return Err("url must be http(s)".to_string());
+    }
+    let host = parsed.host_str().unwrap_or_default().to_ascii_lowercase();
+    // Some url versions keep IPv6 brackets in host_str; strip them so the
+    // literal can be parsed by std::net.
+    let host = host.trim_start_matches('[').trim_end_matches(']');
+    if host.is_empty() {
+        return Err("url has no host".to_string());
+    }
+    if let Ok(ipv4) = host.parse::<std::net::Ipv4Addr>() {
+        if ipv4.is_loopback()
+            || ipv4.is_private()
+            || ipv4.is_link_local()
+            || ipv4.is_multicast()
+            || ipv4.is_unspecified()
+        {
+            return Err(format!("navigation to internal address {host} is blocked"));
+        }
+        return Ok(());
+    }
+    if let Ok(ipv6) = host.parse::<std::net::Ipv6Addr>() {
+        if ipv6.is_loopback() || ipv6.is_unspecified() || ipv6.is_multicast() || ipv6.is_unique_local() {
+            return Err(format!("navigation to internal address {host} is blocked"));
+        }
+        return Ok(());
+    }
+    if host == "localhost"
+        || host.ends_with(".localhost")
+        || host.ends_with(".local")
+        || host.ends_with(".internal")
+        || host.ends_with(".localdomain")
+    {
+        return Err(format!("navigation to internal host {host} is blocked"));
+    }
+    Ok(())
+}
+
 fn ok(data: Value) -> VibeToolResult {
     VibeToolResult { success: true, data, error: None, latency_ms: 0 }
 }
@@ -134,8 +177,8 @@ fn browser_navigate() -> ToolHandler {
         let args = args.clone();
         Box::pin(async move {
             let url = args.get("url").and_then(|v| v.as_str()).unwrap_or_default().to_string();
-            if url.is_empty() || !(url.starts_with("http://") || url.starts_with("https://")) {
-                return err("url must be a full http(s) URL".into());
+            if let Err(e) = validate_navigation_target(&url) {
+                return err(e);
             }
             let client = reqwest::Client::new();
             let base = cdp_base();
@@ -356,5 +399,28 @@ mod tests {
         std::env::set_var("BROWSER_CDP_URL", "http://example.com:9223");
         assert_eq!(cdp_base(), "http://example.com:9223");
         std::env::remove_var("BROWSER_CDP_URL");
+    }
+
+    #[test]
+    fn navigation_allows_public_targets() {
+        assert!(validate_navigation_target("https://example.com").is_ok());
+        assert!(validate_navigation_target("http://chat.example.com:8080/").is_ok());
+    }
+
+    #[test]
+    fn navigation_blocks_internal_targets() {
+        for bad in [
+            "http://127.0.0.1/",
+            "http://10.0.0.5/",
+            "http://192.168.1.1/",
+            "http://169.254.169.254/",
+            "http://[::1]/",
+            "http://localhost:3000/",
+            "https://app.internal/",
+            "https://foo.local/",
+            "ftp://example.com",
+        ] {
+            assert!(validate_navigation_target(bad).is_err(), "should block {bad}");
+        }
     }
 }

@@ -67,6 +67,7 @@ const DESTRUCTIVE_LIST: &[&str] = &[
     "issue/close",
     "skill/delete",
     "browser/close",
+    "browser/eval",
 ];
 
 async fn set_permissions(
