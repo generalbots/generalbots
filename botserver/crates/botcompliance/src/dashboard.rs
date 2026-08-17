@@ -328,13 +328,13 @@ async fn handle_audit_log(State(pool): State<Arc<DbPool>>) -> impl IntoResponse 
             id: Uuid,
             #[diesel(sql_type = diesel::sql_types::Text)]
             action: String,
-            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
-            target_type: Option<String>,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            resource_type: String,
             #[diesel(sql_type = diesel::sql_types::Timestamptz)]
             created_at: chrono::DateTime<chrono::Utc>,
         }
         diesel::sql_query(
-            "SELECT id, action, target_type, created_at FROM compliance_audit_log WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 25",
+            "SELECT id, action, resource_type, created_at FROM compliance_audit_log WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 25",
         )
         .bind::<diesel::sql_types::Uuid, _>(branch)
         .load::<Row>(&mut db_conn)
@@ -352,7 +352,7 @@ async fn handle_audit_log(State(pool): State<Arc<DbPool>>) -> impl IntoResponse 
             "<div class=\"log-item\" data-log-id=\"{id}\"><span class=\"log-action\">{action}</span><span class=\"log-target\">{target}</span><span class=\"log-time\">{time}</span></div>",
             id = r.id,
             action = html_escape(&r.action),
-            target = html_escape(r.target_type.as_deref().unwrap_or("-")),
+            target = html_escape(&r.resource_type),
             time = r.created_at.format("%Y-%m-%d %H:%M"),
         ));
     }
