@@ -18,20 +18,19 @@ use super::types::{
 #[diesel(table_name = dashboards)]
 pub struct DbDashboard {
     pub id: Uuid,
-    pub branch_id: Uuid,
-    pub name: String,
-    pub slug: String,
-    pub description: Option<String>,
-    pub config: Option<serde_json::Value>,
-    pub is_default: Option<bool>,
+    pub org_id: Uuid,
+    pub bot_id: Uuid,
     pub owner_id: Uuid,
+    pub name: String,
+    pub description: Option<String>,
     pub layout: serde_json::Value,
     pub refresh_interval: Option<i32>,
     pub is_public: bool,
     pub is_template: bool,
-    pub tags: serde_json::Value,
+    pub tags: Vec<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub branch_id: Uuid,
 }
 
 #[derive(Debug, Clone, Queryable, Insertable, AsChangeset, Serialize, Deserialize)]
@@ -56,17 +55,19 @@ pub struct DbWidget {
 #[diesel(table_name = dashboard_data_sources)]
 pub struct DbDataSource {
     pub id: Uuid,
-    pub branch_id: Uuid,
+    pub org_id: Uuid,
+    pub bot_id: Uuid,
     pub name: String,
-    pub source_type: String,
-    pub config: Option<serde_json::Value>,
     pub description: Option<String>,
-    pub schema_definition: Option<serde_json::Value>,
+    pub source_type: String,
+    pub connection: serde_json::Value,
+    pub schema_definition: serde_json::Value,
     pub refresh_schedule: Option<String>,
     pub last_sync: Option<DateTime<Utc>>,
     pub status: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub branch_id: Uuid,
 }
 
 #[derive(Debug, Clone, Queryable, Insertable, Serialize, Deserialize)]
@@ -87,16 +88,15 @@ pub struct DbFilter {
 #[diesel(table_name = conversational_queries)]
 pub struct DbConversationalQuery {
     pub id: Uuid,
-    pub branch_id: Uuid,
+    pub org_id: Uuid,
+    pub bot_id: Uuid,
     pub dashboard_id: Option<Uuid>,
     pub user_id: Uuid,
-    pub query_text: String,
-    pub result: Option<serde_json::Value>,
+    pub natural_language: String,
     pub generated_query: Option<String>,
-    pub executed_at: DateTime<Utc>,
-    pub execution_ms: Option<i32>,
+    pub result_widget_config: Option<serde_json::Value>,
     pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub branch_id: Uuid,
 }
 
 pub fn db_dashboard_to_dashboard(
@@ -105,7 +105,7 @@ pub fn db_dashboard_to_dashboard(
     filters: Vec<DashboardFilter>,
 ) -> Dashboard {
     let layout: DashboardLayout = serde_json::from_value(db.layout).unwrap_or_default();
-    let tags: Vec<String> = serde_json::from_value(db.tags).unwrap_or_default();
+    let tags: Vec<String> = db.tags;
 
     Dashboard {
         id: db.id,
@@ -173,8 +173,8 @@ pub fn db_data_source_to_data_source(db: DbDataSource) -> DataSource {
         .parse()
         .unwrap_or(DataSourceType::InternalTables);
     let connection: DataSourceConnection =
-        serde_json::from_value(db.config.clone().unwrap_or_default()).unwrap_or_default();
-    let schema: Option<DataSourceSchema> = db.schema_definition.and_then(|v| serde_json::from_value(v).ok());
+        serde_json::from_value(db.connection.clone()).unwrap_or_default();
+    let schema: Option<DataSourceSchema> = serde_json::from_value(db.schema_definition).ok();
     let status: DataSourceStatus = db.status.parse().unwrap_or(DataSourceStatus::Inactive);
 
     DataSource {

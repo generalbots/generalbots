@@ -99,24 +99,22 @@ pub async fn handle_create_dashboard(
 
         let layout = req.layout.unwrap_or_default();
         let layout_json = serde_json::to_value(&layout).unwrap_or_default();
-        let tags_json = serde_json::to_value(req.tags.unwrap_or_default()).unwrap_or_default();
 
         let db_dashboard = DbDashboard {
             id: Uuid::new_v4(),
-            branch_id,
-            name: req.name,
-            slug: Uuid::new_v4().to_string(),
-            description: None,
-            config: None,
-            is_default: None,
+            org_id: Uuid::nil(),
+            bot_id: Uuid::nil(),
             owner_id: Uuid::nil(),
+            name: req.name,
+            description: None,
             layout: layout_json,
             refresh_interval: None,
             is_public: req.is_public.unwrap_or(false),
             is_template: false,
-            tags: tags_json,
+            tags: req.tags.unwrap_or_default(),
             created_at: now,
             updated_at: now,
+            branch_id,
         };
 
         diesel::insert_into(dashboards::table)
@@ -208,7 +206,7 @@ pub async fn handle_update_dashboard(
             db_dash.refresh_interval = Some(refresh_interval);
         }
         if let Some(tags) = req.tags {
-            db_dash.tags = serde_json::to_value(tags).unwrap_or_default();
+            db_dash.tags = tags;
         }
         db_dash.updated_at = Utc::now();
 
