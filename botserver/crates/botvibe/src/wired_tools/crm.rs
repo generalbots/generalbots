@@ -1,5 +1,7 @@
 //! CRM group of wired tools (Issue #796): contacts, opportunities, tickets
-//! and a queued email outbox, all scoped by `bot_id` (nil = global scope).
+//! and a queued email outbox, all scoped by `bot_id`. Every handler fails
+//! closed when no bot scope is supplied — a nil `bot_id` must never degrade
+//! to a cross-tenant global query (#928).
 
 use super::{bot_id_arg, err, handler, ok, opt_str, short_token};
 use crate::tool_executor::{ToolHandler, ToolSchema};
@@ -8,12 +10,13 @@ use diesel::prelude::*;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
-/// Scoped bot filter for CRM queries.
-fn bot_clause(bot_id: &Uuid) -> String {
+/// Rejects a missing/blank bot scope. CRM reads and writes are tenant-scoped
+/// by `bot_id`; a nil value must fail closed instead of querying globally.
+fn require_bot_scope(bot_id: &Uuid) -> Result<(), String> {
     if bot_id.is_nil() {
-        String::new()
+        Err("bot_id is required — CRM data is scoped per bot".to_string())
     } else {
-        format!("AND bot_id = '{}'", bot_id)
+        Ok(())
     }
 }
 
@@ -26,19 +29,20 @@ fn search_contacts() -> ToolHandler {
             if query.trim().is_empty() {
                 return err("missing required argument 'query'".into());
             }
-            let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(10).min(100);
             let bot_id = bot_id_arg(&args);
-            let sql = format!(
+            if let Err(e) = require_bot_scope(&bot_id) {
+                return err(e);
+            }
+            let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(10).min(100);
+            let sql =
                 "SELECT id::text, first_name, last_name, email, phone, org_id::text \
                  FROM crm_contacts \
                  WHERE (first_name ILIKE '%' || $1 || '%' \
                      OR last_name ILIKE '%' || $1 || '%' \
                      OR email ILIKE '%' || $1 || '%' \
-                     OR phone ILIKE '%' || $1 || '%') {clause} \
-                 ORDER BY created_at DESC LIMIT $2",
-                clause = bot_clause(&bot_id),
-            );
-            let contacts = match query_contacts(&pool, &sql, &query, limit as i64) {
+                     OR phone ILIKE '%' || $1 || '%') AND bot_id = $2 \
+                 ORDER BY created_at DESC LIMIT $3";
+            let contacts = match query_contacts(&pool, sql, &query, &bot_id, limit as i64) {
                 Ok(c) => c,
                 Err(e) => return err(e),
             };
@@ -51,11 +55,13 @@ fn query_contacts(
     pool: &DbPool,
     sql: &str,
     query: &str,
+    bot_id: &Uuid,
     limit: i64,
 ) -> Result<Vec<Value>, String> {
     let mut conn = pool.get().map_err(|e| format!("db connection failed: {e}"))?;
     let rows: Vec<ContactRow> = diesel::sql_query(sql)
         .bind::<diesel::sql_types::Text, _>(query)
+        .bind::<diesel::sql_types::Uuid, _>(bot_id)
         .bind::<diesel::sql_types::BigInt, _>(limit)
         .load(&mut conn)
         .map_err(|e| format!("contact search failed: {e}"))?;
@@ -103,16 +109,17 @@ fn get_deals() -> ToolHandler {
         let pool = state.db_pool().clone();
         async move {
             let bot_id = bot_id_arg(&args);
+            if let Err(e) = require_bot_scope(&bot_id) {
+                return err(e);
+            }
             let stage = opt_str(&args, "stage", "");
             let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(20).min(200);
-            let sql = format!(
+            let sql =
                 "SELECT name, stage, value::text AS value, currency, probability, expected_close_date::text \
                  FROM crm_opportunities \
-                 WHERE ($1 = '' OR stage = $1) {clause} \
-                 ORDER BY created_at DESC LIMIT $2",
-                clause = bot_clause(&bot_id),
-            );
-            let deals = match query_deals(&pool, &sql, &stage, limit as i64) {
+                 WHERE ($1 = '' OR stage = $1) AND bot_id = $2 \
+                 ORDER BY created_at DESC LIMIT $3";
+            let deals = match query_deals(&pool, sql, &stage, &bot_id, limit as i64) {
                 Ok(d) => d,
                 Err(e) => return err(e),
             };
@@ -121,10 +128,17 @@ fn get_deals() -> ToolHandler {
     })
 }
 
-fn query_deals(pool: &DbPool, sql: &str, stage: &str, limit: i64) -> Result<Vec<Value>, String> {
+fn query_deals(
+    pool: &DbPool,
+    sql: &str,
+    stage: &str,
+    bot_id: &Uuid,
+    limit: i64,
+) -> Result<Vec<Value>, String> {
     let mut conn = pool.get().map_err(|e| format!("db connection failed: {e}"))?;
     let rows: Vec<DealRow> = diesel::sql_query(sql)
         .bind::<diesel::sql_types::Text, _>(stage)
+        .bind::<diesel::sql_types::Uuid, _>(bot_id)
         .bind::<diesel::sql_types::BigInt, _>(limit)
         .load(&mut conn)
         .map_err(|e| format!("deals query failed: {e}"))?;
@@ -172,6 +186,9 @@ fn create_ticket() -> ToolHandler {
             let description = opt_str(&args, "description", "");
             let priority = opt_str(&args, "priority", "medium");
             let bot_id = bot_id_arg(&args);
+            if let Err(e) = require_bot_scope(&bot_id) {
+                return err(e);
+            }
             let ticket_number = short_token("T", &Uuid::new_v4());
             let result = (|| -> Result<String, String> {
                 let mut conn = pool.get().map_err(|e| format!("db connection failed: {e}"))?;
@@ -274,6 +291,9 @@ fn send_email() -> ToolHandler {
             let subject = opt_str(&args, "subject", "(no subject)");
             let body = opt_str(&args, "body", "");
             let bot_id = bot_id_arg(&args);
+            if let Err(e) = require_bot_scope(&bot_id) {
+                return err(e);
+            }
             let id = Uuid::new_v4();
             let result = (|| -> Result<String, String> {
                 let mut conn = pool.get().map_err(|e| format!("db connection failed: {e}"))?;
@@ -380,10 +400,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn bot_clause_scopes_by_bot() {
-        assert_eq!(bot_clause(&Uuid::nil()), "");
-        let clause = bot_clause(&Uuid::new_v4());
-        assert!(clause.starts_with("AND bot_id = '"));
+    fn require_bot_scope_fails_closed_on_nil() {
+        assert!(require_bot_scope(&Uuid::nil()).is_err());
+        assert!(require_bot_scope(&Uuid::new_v4()).is_ok());
     }
 
     #[test]

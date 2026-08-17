@@ -310,7 +310,9 @@ impl AgentLoop {
     }
 
     /// vibe33 #813 — retries the LLM call with short backoff so transient
-    /// provider failures do not kill the whole run.
+    /// provider failures do not kill the whole run. Deterministic client
+    /// errors (bad key, wrong model, malformed request) fail fast on the
+    /// first attempt instead of wasting the retry budget (#932).
     async fn call_llm_with_retry(
         &self,
         context: &crate::types::VibeContext,
@@ -323,6 +325,13 @@ impl AgentLoop {
                 Ok(response) => return Ok(response),
                 Err(e) => {
                     last_error = e.clone();
+                    if Self::is_non_retryable_llm_error(&e) {
+                        warn!(
+                            "Vibe run {} LLM call rejected (non-retryable): {e}",
+                            run.run_id
+                        );
+                        break;
+                    }
                     if attempt == MAX_LLM_RETRIES {
                         break;
                     }
@@ -620,6 +629,17 @@ impl AgentLoop {
         let payload = self.read_body(resp).await?;
         Self::content_from_payload(&payload)
     }
+
+/// True when the LLM error is a deterministic client rejection (bad key,
+/// wrong model, malformed request) that retrying will not fix. 408 (request
+/// timeout) and 429 (rate limit) remain retryable; 400/401/403/404/422 and
+/// the like are not.
+fn is_non_retryable_llm_error(e: &str) -> bool {
+    if e.contains("LLM returned status 408") || e.contains("LLM returned status 429") {
+        return false;
+    }
+    e.contains("LLM returned status 4")
+}
 
 /// Parses a self-verification reply into a verdict. Reasoning models often
 /// restate earlier failures before the verdict ("the first test FAILED but
@@ -1210,6 +1230,18 @@ mod tests {
     use super::*;
     use serde_json::json;
     use tokio::sync::RwLock;
+
+    #[test]
+    fn classifies_non_retryable_llm_errors() {
+        assert!(AgentLoop::is_non_retryable_llm_error("LLM returned status 401: unauthorized"));
+        assert!(AgentLoop::is_non_retryable_llm_error("LLM returned status 403: forbidden"));
+        assert!(AgentLoop::is_non_retryable_llm_error("LLM returned status 404: model not found"));
+        assert!(AgentLoop::is_non_retryable_llm_error("LLM returned status 422: bad request"));
+        assert!(!AgentLoop::is_non_retryable_llm_error("LLM returned status 429: rate limited"));
+        assert!(!AgentLoop::is_non_retryable_llm_error("LLM returned status 408: timeout"));
+        assert!(!AgentLoop::is_non_retryable_llm_error("LLM returned status 502: bad gateway"));
+        assert!(!AgentLoop::is_non_retryable_llm_error("HTTP request failed: connection reset"));
+    }
 
     #[test]
     fn last_verdict_uses_final_token() {

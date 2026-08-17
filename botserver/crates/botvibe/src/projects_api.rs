@@ -119,16 +119,28 @@ async fn create_project(
     }
     match registry.create(&req) {
         Ok(p) => {
+            // Grant ownership BEFORE seeding: a project the caller cannot
+            // administer must not be visible in their list (#931).
             if let Err(e) = rbac.set_user_role(p.id, user.user_id, ProjectRole::Owner) {
                 log::error!("grant owner on project {} failed: {e}", p.id);
+                if let Err(de) = registry.delete(p.id) {
+                    log::error!("compensating delete for project {} failed: {de}", p.id);
+                }
+                return err_response(format!("grant project ownership failed: {e}"));
             }
             // Vibe owns its starter content: seed the built-in template
             // (calculator for calculator-style projects, README starter
             // otherwise) so the workspace is never empty and nothing depends
             // on a pre-seeded external tree. Never clobbers agent output.
+            // A failed seed must not leave an orphan project row whose
+            // workspace is permanently empty (#931).
             let key = workspace_key(&p);
             if let Err(e) = crate::templates::seed_project_workspace(&key, &p.name) {
-                log::warn!("seed workspace for project {} failed: {e}", p.id);
+                log::error!("seed workspace for project {} failed: {e}", p.id);
+                if let Err(de) = registry.delete(p.id) {
+                    log::error!("compensating delete for project {} failed: {de}", p.id);
+                }
+                return err_response(format!("seed project workspace failed: {e}"));
             }
             ok_project(p)
         }
