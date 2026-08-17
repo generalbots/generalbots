@@ -1,5 +1,6 @@
 use crate::permissions::{PermissionEngineRef, PermissionMode};
 use axum::{Extension, Json, Router};
+use botsecurity_auth::auth_api::types::AuthenticatedUser;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize)]
@@ -70,8 +71,23 @@ const DESTRUCTIVE_LIST: &[&str] = &[
 
 async fn set_permissions(
     Extension(engine): Extension<PermissionEngineRef>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<SetPermissionRequest>,
 ) -> Json<SetPermissionResponse> {
+    // #919 — only an authenticated administrator may change the global
+    // permission mode; a normal user or prompt-injected caller cannot flip
+    // the whole deployment to `bypass`.
+    if !user.is_admin() {
+        log::warn!(
+            "Vibe permissions API: non-admin user {} attempted to set mode",
+            user.user_id
+        );
+        return Json(SetPermissionResponse {
+            success: false,
+            mode: engine.mode().await.to_string(),
+            error: Some("forbidden: only administrators can change the permission mode".into()),
+        });
+    }
     let mode = match req.mode.as_str() {
         "manual" => PermissionMode::Manual,
         "auto" => PermissionMode::Auto,

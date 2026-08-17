@@ -365,7 +365,10 @@ async fn create_run(
     let config = VibeRunConfig {
         use_case,
         lang: req.lang.unwrap_or_else(|| "en".to_string()),
-        auto_approve: req.auto_approve.unwrap_or(false),
+        // #919 — auto_approve is a server-controlled policy, not a trusted
+        // client assertion; only administrators may auto-approve destructive
+        // tools, everyone else falls back to manual approval.
+        auto_approve: req.auto_approve.unwrap_or(false) && user.is_admin(),
         max_tool_calls: req.max_tool_calls.unwrap_or(50).min(MAX_TOOL_CALLS),
         timeout_seconds: req.timeout_seconds.unwrap_or(300).min(MAX_TIMEOUT_SECONDS),
         model: req.model,
