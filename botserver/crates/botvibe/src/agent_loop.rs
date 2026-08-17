@@ -155,11 +155,11 @@ impl AgentLoop {
                 refs
             };
 
-            let llm_response = match self
+            let (llm_response, llm_usage) = match self
                 .call_llm_with_retry(&context, run, &run.intent)
                 .await
             {
-                Ok(response) => response,
+                Ok((response, usage)) => (response, usage),
                 Err(e) => {
                     error!("LLM call failed at step {}: {}", step, e);
                     run.transition(VibeRunState::Failed);
@@ -171,6 +171,25 @@ impl AgentLoop {
                     return;
                 }
             };
+
+            // #923 — record real provider usage so the budget meter and cost
+            // accounting reflect actual spend instead of a hardcoded 0.0.
+            if let Some(usage) = llm_usage {
+                let model = run.config.model.clone().unwrap_or_default();
+                let cost = estimate_llm_cost(&model, usage.prompt_tokens, usage.completion_tokens);
+                self.telemetry
+                    .record_tool_call(ToolCallRecord {
+                        run_id: run.run_id,
+                        use_case: run.use_case,
+                        tool_name: "llm/chat".to_string(),
+                        latency_ms: 0,
+                        tokens: Some(usage.prompt_tokens.saturating_add(usage.completion_tokens)),
+                        cost,
+                        success: true,
+                        error: None,
+                    })
+                    .await;
+            }
 
             let tool_calls = self.parse_tool_calls(&llm_response);
 
@@ -318,7 +337,7 @@ impl AgentLoop {
         context: &crate::types::VibeContext,
         run: &VibeRun,
         user_message: &str,
-    ) -> Result<String, String> {
+    ) -> Result<(String, Option<LlmUsage>), String> {
         let mut last_error = String::new();
         for attempt in 0..=MAX_LLM_RETRIES {
             match self.call_llm(context, run, user_message).await {
@@ -356,7 +375,7 @@ impl AgentLoop {
         context: &crate::types::VibeContext,
         run: &VibeRun,
         user_message: &str,
-    ) -> Result<String, String> {
+    ) -> Result<(String, Option<LlmUsage>), String> {
         let prompt = self.prompt_manager.compose_prompt(context, user_message);
         let system = self.prompt_manager.system_prompt_for(run.use_case, &run.config.lang);
         // Per-bot config (Issue #795): explicit run overrides > config
@@ -381,6 +400,7 @@ impl AgentLoop {
             "tools": tools,
             "tool_choice": "auto",
             "stream": true,
+            "stream_options": {"include_usage": true},
         });
 
         // Native streaming with SSE accumulation (Issue #794); the streamed
@@ -424,8 +444,9 @@ impl AgentLoop {
                     .await;
             }
         };
+        let usage = usage_from_payload(&payload);
         match Self::content_from_payload(&payload) {
-            Ok(content) => Ok(content),
+            Ok(content) => Ok((content, usage)),
             Err(e) if e.contains("truncated") => {
                 // The stream ended mid-tool-argument (e.g. the model hit the
                 // output token cap while writing several large files). Retry
@@ -450,7 +471,7 @@ impl AgentLoop {
         system: &str,
         prompt: &str,
         tools: &[serde_json::Value],
-    ) -> Result<String, String> {
+    ) -> Result<(String, Option<LlmUsage>), String> {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(120))
             .user_agent(LLM_USER_AGENT)
@@ -482,7 +503,8 @@ impl AgentLoop {
             return Err(format!("LLM returned status {status}: {text}"));
         }
         let payload = self.read_body(resp).await?;
-        Self::content_from_payload(&payload)
+        let usage = usage_from_payload(&payload);
+        Self::content_from_payload(&payload).map(|content| (content, usage))
     }
 
     /// OpenAI-style `tools` array derived from the live tool registry.
@@ -598,7 +620,7 @@ impl AgentLoop {
         model: &str,
         system: &str,
         prompt: &str,
-    ) -> Result<String, String> {
+    ) -> Result<(String, Option<LlmUsage>), String> {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(120))
             .user_agent(LLM_USER_AGENT)
@@ -627,7 +649,8 @@ impl AgentLoop {
             return Err(format!("LLM returned status {status}: {text}"));
         }
         let payload = self.read_body(resp).await?;
-        Self::content_from_payload(&payload)
+        let usage = usage_from_payload(&payload);
+        Self::content_from_payload(&payload).map(|content| (content, usage))
     }
 
 /// True when the LLM error is a deterministic client rejection (bad key,
@@ -705,7 +728,7 @@ fn last_verdict(response: &str) -> Option<bool> {
             .call_llm_plain(&api_url, &api_key, &model, &system, &prompt)
             .await
         {
-            Ok(response) => response,
+            Ok((response, _usage)) => response,
             Err(e) => {
                 // Verification is a gate, not a blocker: when the LLM is
                 // unavailable, keep the run going instead of failing work.
@@ -1068,6 +1091,7 @@ fn looks_like_tool_intent(response: &str) -> bool {
 fn parse_sse(body: &str) -> Option<serde_json::Value> {
     let mut message = serde_json::json!({"role": "assistant", "content": "", "tool_calls": []});
     let mut first_seen = false;
+    let mut usage: Option<serde_json::Value> = None;
     for line in body.lines() {
         let Some(data) = line.trim().strip_prefix("data:") else {
             continue;
@@ -1081,6 +1105,9 @@ fn parse_sse(body: &str) -> Option<serde_json::Value> {
             continue;
         };
         first_seen = true;
+        if let Some(u) = event.get("usage").filter(|u| !u.is_null()) {
+            usage = Some(u.clone());
+        }
         let delta = &event["choices"][0]["delta"];
         if let Some(text) = delta["content"].as_str() {
             message["content"] =
@@ -1124,7 +1151,56 @@ fn parse_sse(body: &str) -> Option<serde_json::Value> {
     }
     let mut accumulated = serde_json::Map::new();
     accumulated.insert("choices".to_string(), serde_json::json!([{"message": message}]));
+    if let Some(u) = usage {
+        accumulated.insert("usage".to_string(), u);
+    }
     Some(serde_json::Value::Object(accumulated))
+}
+
+/// Token usage reported by an LLM provider for a single completion attempt.
+#[derive(Debug, Clone, Copy, Default)]
+struct LlmUsage {
+    prompt_tokens: u32,
+    completion_tokens: u32,
+}
+
+/// Extracts provider-reported token usage from an OpenAI-style completion
+/// payload (`usage.prompt_tokens` / `usage.completion_tokens`), if present.
+fn usage_from_payload(payload: &serde_json::Value) -> Option<LlmUsage> {
+    let usage = payload.get("usage")?;
+    Some(LlmUsage {
+        prompt_tokens: usage.get("prompt_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
+        completion_tokens: usage.get("completion_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
+    })
+}
+
+/// USD cost estimate for a model from a small built-in price table (per 1M
+/// tokens). Unknown models fall back to `VIBE_LLM_COST_PER_1M_TOKENS` (default
+/// 0.0) rather than fabricating a price, so a budget is never under-charged.
+fn estimate_llm_cost(model: &str, prompt_tokens: u32, completion_tokens: u32) -> f64 {
+    let m = model.to_ascii_lowercase();
+    let (input, output): (f64, f64) = if m.contains("gpt-4o-mini") {
+        (0.15, 0.60)
+    } else if m.contains("gpt-4o") {
+        (2.50, 10.0)
+    } else if m.contains("gpt-3.5") {
+        (0.50, 1.50)
+    } else if m.contains("claude-3-5") || m.contains("claude-3-7") || m.contains("claude-3.5") || m.contains("claude-3.7") {
+        (3.0, 15.0)
+    } else if m.contains("claude") {
+        (15.0, 75.0)
+    } else if m.contains("llama-3.3") || m.contains("llama-3.1-70b") {
+        (0.59, 0.79)
+    } else if m.contains("llama") {
+        (0.10, 0.30)
+    } else {
+        let fallback = std::env::var("VIBE_LLM_COST_PER_1M_TOKENS")
+            .ok()
+            .and_then(|v| v.parse::<f64>().ok())
+            .unwrap_or(0.0);
+        return (prompt_tokens as f64 + completion_tokens as f64) / 1_000_000.0 * fallback;
+    };
+    (prompt_tokens as f64) / 1_000_000.0 * input + (completion_tokens as f64) / 1_000_000.0 * output
 }
 
 /// Extracts native OpenAI-format tool calls (`message.tool_calls[].function`)
