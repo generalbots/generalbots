@@ -64,10 +64,11 @@ fn vault_vdi_credentials(
 
     let (tx, rx) = std::sync::mpsc::channel();
     let manager_clone = manager.clone();
+    let path_clone = path.clone();
     std::thread::spawn(move || {
         let rt = tokio::runtime::Builder::new_current_thread().enable_all().build();
         let result = match rt {
-            Ok(rt) => rt.block_on(manager_clone.put_secret(&path, secrets)),
+            Ok(rt) => rt.block_on(manager_clone.put_secret(&path_clone, secrets)),
             Err(e) => {
                 warn!("vdi: failed to build runtime for credential storage: {e}");
                 return;
@@ -187,7 +188,7 @@ pub async fn create_connection(
             Json(serde_json::json!({ "success": false, "error": "target_port must be between 1 and 65535" })),
         );
     }
-    if !state.config.is_target_port_allowed(req.target_port) {
+    if !ConnectionConfig::is_target_port_allowed(req.target_port) {
         warn!(
             "Desktop proxy: user {} attempted to proxy to disallowed port {} (allow-list: VNC 5900-5999, RDP 3389)",
             user_id, req.target_port
@@ -321,7 +322,7 @@ pub async fn handle_connect(
             Json(serde_json::json!({ "success": false, "error": "port must be between 1 and 65535" })),
         );
     }
-    if !state.config.is_target_port_allowed(req.port) {
+    if !ConnectionConfig::is_target_port_allowed(req.port) {
         warn!(
             "Desktop proxy: user {} attempted to proxy to disallowed port {} (allow-list: VNC 5900-5999, RDP 3389)",
             user_id, req.port
@@ -503,18 +504,19 @@ pub async fn list_connections(
                 #[diesel(sql_type = diesel::sql_types::Text)]
                 protocol: String,
             }
-            let query = if is_admin {
-                "SELECT id, user_id, name, host, port, protocol FROM desktop_connections ORDER BY name ASC"
-            } else {
-                "SELECT id, user_id, name, host, port, protocol FROM desktop_connections WHERE user_id = $1 ORDER BY name ASC"
-            };
-            let mut query_builder = diesel::sql_query(query);
-            if !is_admin {
-                query_builder = query_builder.bind::<diesel::sql_types::Uuid, _>(user_for_task);
-            }
-            let rows: Vec<SavedRow> = query_builder
+            let rows: Vec<SavedRow> = if is_admin {
+                diesel::sql_query(
+                    "SELECT id, user_id, name, host, port, protocol FROM desktop_connections ORDER BY name ASC",
+                )
                 .load::<SavedRow>(&mut conn)
-                .map_err(|e| format!("load saved vdi connections: {e}"))?;
+            } else {
+                diesel::sql_query(
+                    "SELECT id, user_id, name, host, port, protocol FROM desktop_connections WHERE user_id = $1 ORDER BY name ASC",
+                )
+                .bind::<diesel::sql_types::Uuid, _>(user_for_task)
+                .load::<SavedRow>(&mut conn)
+            }
+            .map_err(|e| format!("load saved vdi connections: {e}"))?;
             Ok(rows
                 .into_iter()
                 .map(|r| {
@@ -537,7 +539,7 @@ pub async fn list_connections(
         }
     }
 
-    Json(serde_json::json!({ "success": true, "data": summaries }))
+    (StatusCode::OK, Json(serde_json::json!({ "success": true, "data": summaries })))
 }
 
 // ---------------------------------------------------------------------------

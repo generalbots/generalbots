@@ -15,7 +15,6 @@ use crate::email_integration::{
     EmailIntegrationService, EmailTracking, EmailTrackingEvent, TrackedEmailRequest,
 };
 use crate::forecast::{DealInput, ForecastService, HistoricalTrend, MonthlyInput, SalesForecast};
-use crate::handlers::{contacts as contacts_handlers, crm as crm_handlers};
 use crate::sales_funnel::{DealStageHistory, PipelineStage, SalesFunnelService};
 use crate::CrateState;
 
@@ -330,15 +329,9 @@ async fn handle_conversion_rates(
 
 pub fn configure_sales_routes() -> Router<Arc<CrateState>> {
     Router::new()
-        .route("/api/sales/deals", get(crm_handlers::list_deals).post(crm_handlers::create_deal))
-        .route(
-            "/api/sales/deals/:id",
-            get(crm_handlers::get_deal)
-                .patch(crm_handlers::update_deal)
-                .delete(crm_handlers::delete_deal),
-        )
-        .route("/api/sales/contacts", get(contacts_handlers::list_contacts))
-        .route("/api/sales/activities", get(crm_handlers::list_activities))
+        // Deal/contact/activity CRUD is owned by the `botsales` crate (#888);
+        // only the forecast/funnel/email surfaces stay here to avoid
+        // overlapping-route panics when both crates are compiled.
         .route("/api/sales/funnel", get(handle_funnel_summary))
         .route("/api/sales/funnel/move", post(handle_move_stage))
         .route("/api/sales/funnel/conversion-rates", get(handle_conversion_rates))

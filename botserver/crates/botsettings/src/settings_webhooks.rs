@@ -12,7 +12,6 @@ use botcore::shared::state::AppState;
 use botcoresecrets::manager::SecretsManager;
 
 use crate::settings_api::{get_conn, random_key, resolve_user_id};
-use crate::webhook_delivery;
 
 // ─────────────────────────── Webhooks ───────────────────────────
 
@@ -116,7 +115,7 @@ pub async fn webhooks_create(
 
     let url = form.url.unwrap_or_default().trim().to_string();
     if let Err(msg) = crate::webhook_delivery::validate_webhook_url(&url) {
-        return (StatusCode::BAD_REQUEST, Html(msg));
+        return (StatusCode::BAD_REQUEST, Html(msg.to_string()));
     }
 
     let webhook_id = Uuid::new_v4();
@@ -306,7 +305,14 @@ pub async fn webhooks_test(
     let payload_clone = payload_str.clone();
     let secret_clone = secret.clone();
     tokio::spawn(async move {
-        deliver_with_retries(state_clone, delivery_id, webhook_id, url_clone, &payload_clone, &secret_clone).await;
+        crate::webhook_delivery::deliver_with_retries(
+            state_clone,
+            delivery_id,
+            url_clone,
+            &payload_clone,
+            &secret_clone,
+        )
+        .await;
     });
 
     (
@@ -333,23 +339,27 @@ pub async fn webhook_deliveries_list(
     };
 
     // Ownership check on the webhook.
-    let owned: Option<Uuid> = diesel::sql_query(
-        "SELECT id FROM webhooks WHERE id = $1 AND user_id = $2",
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct OwnedRow {
+        #[diesel(sql_type = diesel::sql_types::BigInt)]
+        owned: i64,
+    }
+    let owned: OwnedRow = diesel::sql_query(
+        "SELECT COUNT(*)::bigint AS owned FROM webhooks WHERE id = $1 AND user_id = $2",
     )
     .bind::<diesel::sql_types::Uuid, _>(webhook_id)
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .get_result(&mut conn)
-    .ok();
+    .unwrap_or(OwnedRow { owned: 0 });
 
-    if owned.is_none() {
+    if owned.owned == 0 {
         return (StatusCode::NOT_FOUND, Html("Webhook not found".to_string()));
     }
 
     #[derive(diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
     struct DeliveryRow {
-        #[diesel(sql_type = diesel::sql_types::Uuid)]
-        id: Uuid,
         #[diesel(sql_type = diesel::sql_types::Text)]
         event: String,
         #[diesel(sql_type = diesel::sql_types::Text)]
@@ -365,7 +375,7 @@ pub async fn webhook_deliveries_list(
     }
 
     let rows: Vec<DeliveryRow> = diesel::sql_query(
-        "SELECT id, event, status, response_code, attempt, completed_at, error \
+        "SELECT event, status, response_code, attempt, completed_at, error \
          FROM webhook_deliveries WHERE webhook_id = $1 ORDER BY created_at DESC LIMIT 20",
     )
     .bind::<diesel::sql_types::Uuid, _>(webhook_id)
@@ -411,6 +421,3 @@ pub async fn webhook_deliveries_list(
     html.push_str("</tbody></table></div>");
     (StatusCode::OK, Html(html))
 }
-
-/// Delivers a payload with exponential backoff retries, recording every
-/// attempt in `webhook_deliveries`. Runs in a background task.

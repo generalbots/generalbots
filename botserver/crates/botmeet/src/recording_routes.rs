@@ -8,10 +8,9 @@
 use axum::{
     extract::{Path, State},
     http::{header, HeaderValue, StatusCode},
-    response::{IntoResponse, Response},
+    response::Response,
     Json,
 };
-use diesel::result::OptionalExtension;
 use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -60,12 +59,15 @@ fn service_for(state: &Arc<AppState>) -> &'static RecordingService {
 
 /// Resolves the participant role for a room; returns `None` when the user is
 /// not (or no longer) a member of the room.
-fn participant_role(
+async fn participant_role(
     state: &Arc<AppState>,
     target_room: Uuid,
     target_user: Uuid,
 ) -> Result<Option<String>, (StatusCode, Json<serde_json::Value>)> {
-    use botschema::meeting_participants::dsl::*;
+    use diesel::prelude::*;
+    use botschema::meeting_participants::dsl::{
+        meeting_participants, role as role_col, room_id, user_id,
+    };
 
     let pool = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
@@ -75,7 +77,7 @@ fn participant_role(
         meeting_participants
             .filter(room_id.eq(target_room))
             .filter(user_id.eq(target_user))
-            .select(role)
+            .select(role_col)
             .first::<String>(&mut conn)
             .optional()
             .map_err(|e| format!("Failed to query participant role: {e}"))
@@ -96,12 +98,12 @@ fn participant_role(
 }
 
 /// Verifies the caller is a host/co-host of the room; returns 403 otherwise.
-fn require_host(
+async fn require_host(
     state: &Arc<AppState>,
     room_id: Uuid,
     user_id: Uuid,
 ) -> Result<(), (StatusCode, Json<serde_json::Value>)> {
-    match participant_role(state, room_id, user_id)? {
+    match participant_role(state, room_id, user_id).await? {
         Some(role) if HOST_ROLES.contains(&role.as_str()) => Ok(()),
         Some(_) => Err((
             StatusCode::FORBIDDEN,
@@ -130,7 +132,7 @@ pub async fn start_recording(
     Path(room_id): Path<Uuid>,
     Json(body): Json<RecordingControlRequest<StartRecordingRequest>>,
 ) -> Result<Json<WebinarRecording>, (StatusCode, Json<serde_json::Value>)> {
-    require_host(&state, room_id, body.user_id)?;
+    require_host(&state, room_id, body.user_id).await?;
 
     let mut request = body.payload;
     request.webinar_id = room_id;
@@ -147,7 +149,7 @@ pub async fn stop_recording(
     Path(room_id): Path<Uuid>,
     Json(body): Json<RecordingControlRequest<StopRecordingRequest>>,
 ) -> Result<Json<WebinarRecording>, (StatusCode, Json<serde_json::Value>)> {
-    require_host(&state, room_id, body.user_id)?;
+    require_host(&state, room_id, body.user_id).await?;
 
     service_for(&state)
         .stop_recording(body.payload)
@@ -162,7 +164,7 @@ pub async fn pause_recording(
     Path((room_id, recording_id)): Path<(Uuid, Uuid)>,
     Json(body): Json<RecordingControlRequest<serde_json::Value>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    require_host(&state, room_id, body.user_id)?;
+    require_host(&state, room_id, body.user_id).await?;
 
     service_for(&state)
         .pause_recording(recording_id)
@@ -177,7 +179,7 @@ pub async fn resume_recording(
     Path((room_id, recording_id)): Path<(Uuid, Uuid)>,
     Json(body): Json<RecordingControlRequest<serde_json::Value>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
-    require_host(&state, room_id, body.user_id)?;
+    require_host(&state, room_id, body.user_id).await?;
 
     service_for(&state)
         .resume_recording(recording_id)

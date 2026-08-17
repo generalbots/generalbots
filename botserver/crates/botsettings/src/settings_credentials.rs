@@ -12,7 +12,6 @@ use uuid::Uuid;
 use botcore::shared::state::AppState;
 
 use crate::settings_api::{get_conn, random_key, resolve_user_id};
-use crate::webhook_delivery;
 
 const KEY_PREFIX: &str = "gb_";
 
@@ -76,12 +75,10 @@ pub async fn api_keys_list(
         last_used_at: Option<chrono::DateTime<Utc>>,
         #[diesel(sql_type = diesel::sql_types::Bool)]
         is_active: bool,
-        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)]
-        revoked_at: Option<chrono::DateTime<Utc>>,
     }
 
     let rows: Vec<KeyRow> = diesel::sql_query(
-        "SELECT id, name, key_prefix, scopes, expires_at, last_used_at, is_active, revoked_at \
+        "SELECT id, name, key_prefix, scopes, expires_at, last_used_at, is_active \
          FROM api_keys WHERE user_id = $1 ORDER BY created_at DESC",
     )
     .bind::<diesel::sql_types::Uuid, _>(user_id)
@@ -344,7 +341,7 @@ pub fn resolve_api_key(
         expires_at: Option<chrono::DateTime<Utc>>,
     }
 
-    let row: Option<KeyRow> = diesel::sql_query(
+    let row: KeyRow = diesel::sql_query(
         "SELECT user_id, scopes, expires_at FROM api_keys WHERE key_hash = $1 AND is_active = true",
     )
     .bind::<diesel::sql_types::Text, _>(&hash)
