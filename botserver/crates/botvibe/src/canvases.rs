@@ -32,11 +32,15 @@ impl CanvasStore {
     }
 
     /// #816 — constructs the store with write-through persistence so canvases
-    /// survive restarts. Hydration from the database happens on demand (the
-    /// in-memory vec is the live authority, matching `run_store`).
+    /// survive restarts. Hydrates from the database on construction (#921);
+    /// the in-memory vec remains the live authority, matching `run_store`.
     pub fn with_persistence(pool: crate::types::DbPool) -> Self {
+        let canvases = crate::catalog_persistence::load_canvases(&pool).unwrap_or_else(|e| {
+            log::warn!("canvas hydrate failed: {e}");
+            Vec::new()
+        });
         Self {
-            canvases: RwLock::new(Vec::new()),
+            canvases: RwLock::new(canvases),
             pool: Some(pool),
         }
     }

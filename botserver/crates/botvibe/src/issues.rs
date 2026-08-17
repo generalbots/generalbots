@@ -55,9 +55,14 @@ impl IssueStore {
     }
 
     /// #816 — write-through persistence so issues survive restarts.
+    /// Hydrates from the database on construction (#921).
     pub fn with_persistence(pool: crate::types::DbPool) -> Self {
+        let issues = crate::catalog_persistence::load_issues(&pool).unwrap_or_else(|e| {
+            log::warn!("issue hydrate failed: {e}");
+            Vec::new()
+        });
         Self {
-            issues: RwLock::new(Vec::new()),
+            issues: RwLock::new(issues),
             pool: Some(pool),
         }
     }
