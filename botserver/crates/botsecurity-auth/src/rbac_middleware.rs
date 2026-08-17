@@ -1600,6 +1600,15 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/sales/**", "DELETE", ""),
         RoutePermission::new("/api/catalog/**", "GET", ""),
 
+        // Desktop / VDI (VNC + RDP) — handlers enforce authentication and
+        // per-session ownership (can_access_session); the middleware must not
+        // default-deny the whole /api/desktop prefix or the app 403s for
+        // every logged-in user.
+        RoutePermission::new("/api/desktop/**", "GET", ""),
+        RoutePermission::new("/api/desktop/**", "POST", ""),
+        RoutePermission::new("/api/desktop/**", "PUT", ""),
+        RoutePermission::new("/api/desktop/**", "DELETE", ""),
+
         // Templates / Minutes / ITSM / Legal / ERP
         RoutePermission::new("/api/templates/**", "GET", ""),
         RoutePermission::new("/api/templates/**", "POST", ""),
