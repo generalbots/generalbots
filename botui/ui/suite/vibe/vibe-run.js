@@ -461,7 +461,9 @@
             bot_id: (typeof vibeBotId !== "undefined" && vibeBotId && vibeBotId !== "default") ? vibeBotId : null,
             use_case: state.useCase,
             budget_cents: budgetCents,
-            auto_approve: opts.auto_approve !== false,
+            // #919 — default to manual approval for destructive tools; the
+            // server only honors auto_approve for administrators.
+            auto_approve: opts.auto_approve === true,
             project_id: pid,
             project_name: pname,
         };
