@@ -385,9 +385,22 @@ async fn create_run(
         }
         _ => req.intent,
     };
-    let bot_id = req
-        .bot_id
-        .unwrap_or_else(|| resolve_effective_bot_id(api.state.db_pool()));
+    // #918 — a caller may only run against a bot they have access to; only an
+    // administrator may target an arbitrary bot.
+    let bot_id = match req.bot_id {
+        Some(bid) if !bid.is_nil() && !user.is_admin() && !user.bot_access.contains_key(&bid) => {
+            return (
+                StatusCode::FORBIDDEN,
+                Json(serde_json::json!({
+                    "success": false,
+                    "error": "forbidden: no access to the requested bot"
+                })),
+            )
+                .into_response();
+        }
+        Some(bid) => bid,
+        None => resolve_effective_bot_id(api.state.db_pool()),
+    };
     let run = VibeRun::new(bot_id, Uuid::nil(), Uuid::nil(), intent, config);
     let run_id = run.run_id;
     let state_str = run.state.to_string();
