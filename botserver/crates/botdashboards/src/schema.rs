@@ -1,40 +1,40 @@
-// @generated automatically by script from migration SQL for issue #707.
-// Diesel table definitions for branch-scope cleanup.
+// Diesel table definitions for dashboards (migrations 6.0.19 + 6.5.23).
 
 diesel::table! {
     dashboards (id) {
         id -> Uuid,
-        branch_id -> Uuid,
-        name -> Varchar,
-        slug -> Varchar,
-        description -> Nullable<Text>,
-        config -> Nullable<Jsonb>,
-        is_default -> Nullable<Bool>,
+        org_id -> Uuid,
+        bot_id -> Uuid,
         owner_id -> Uuid,
+        name -> Varchar,
+        description -> Nullable<Text>,
         layout -> Jsonb,
         refresh_interval -> Nullable<Int4>,
         is_public -> Bool,
         is_template -> Bool,
-        tags -> Jsonb,
+        tags -> Array<Text>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        branch_id -> Uuid,
     }
 }
 
 diesel::table! {
     dashboard_data_sources (id) {
         id -> Uuid,
-        branch_id -> Uuid,
+        org_id -> Uuid,
+        bot_id -> Uuid,
         name -> Varchar,
-        source_type -> Varchar,
-        config -> Nullable<Jsonb>,
         description -> Nullable<Text>,
-        schema_definition -> Nullable<Jsonb>,
+        source_type -> Varchar,
+        connection -> Jsonb,
+        schema_definition -> Jsonb,
         refresh_schedule -> Nullable<Varchar>,
         last_sync -> Nullable<Timestamptz>,
         status -> Varchar,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        branch_id -> Uuid,
     }
 }
 
@@ -73,16 +73,15 @@ diesel::table! {
 diesel::table! {
     conversational_queries (id) {
         id -> Uuid,
-        branch_id -> Uuid,
+        org_id -> Uuid,
+        bot_id -> Uuid,
         dashboard_id -> Nullable<Uuid>,
         user_id -> Uuid,
-        query_text -> Text,
-        result -> Nullable<Jsonb>,
+        natural_language -> Text,
         generated_query -> Nullable<Text>,
-        executed_at -> Timestamptz,
-        execution_ms -> Nullable<Int4>,
+        result_widget_config -> Nullable<Jsonb>,
         created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+        branch_id -> Uuid,
     }
 }
 

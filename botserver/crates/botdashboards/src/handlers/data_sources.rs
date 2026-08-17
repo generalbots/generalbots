@@ -62,17 +62,19 @@ pub async fn handle_create_data_source(
 
         let db_source = DbDataSource {
             id: Uuid::new_v4(),
-            branch_id,
+            org_id: Uuid::nil(),
+            bot_id: Uuid::nil(),
             name: req.name,
-            source_type: req.source_type.to_string(),
-            config: Some(serde_json::to_value(&req.connection).unwrap_or_default()),
             description: req.description,
-            schema_definition: None,
+            source_type: req.source_type.to_string(),
+            connection: serde_json::to_value(&req.connection).unwrap_or_default(),
+            schema_definition: serde_json::json!({}),
             refresh_schedule: None,
             last_sync: None,
             status: "active".to_string(),
             created_at: now,
             updated_at: now,
+            branch_id,
         };
 
         diesel::insert_into(dashboard_data_sources::table)
@@ -136,17 +138,17 @@ pub async fn handle_test_data_source(
 
         #[derive(diesel::QueryableByName)]
         struct ConfigRow {
-            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Jsonb>)]
-            config: Option<serde_json::Value>,
+            #[diesel(sql_type = diesel::sql_types::Jsonb)]
+            connection: serde_json::Value,
         }
         let row: ConfigRow = diesel::sql_query(
-            "SELECT config FROM dashboard_data_sources WHERE id = $1",
+            "SELECT connection FROM dashboard_data_sources WHERE id = $1",
         )
         .bind::<diesel::sql_types::Uuid, _>(source_id)
         .get_result(&mut conn)
         .map_err(|e: diesel::result::Error| DashboardsError::Database(e.to_string()))?;
 
-        Ok::<Option<serde_json::Value>, DashboardsError>(row.config)
+        Ok::<Option<serde_json::Value>, DashboardsError>(Some(row.connection))
     })
     .await
     .map_err(|e: tokio::task::JoinError| DashboardsError::Internal(e.to_string()))??;
@@ -300,16 +302,15 @@ pub async fn handle_conversational_query(
 
         let db_query = DbConversationalQuery {
             id: Uuid::new_v4(),
-            branch_id,
+            org_id: Uuid::nil(),
+            bot_id: Uuid::nil(),
             dashboard_id: None,
             user_id: Uuid::nil(),
-            query_text: query_text.clone(),
-            result: None,
+            natural_language: query_text.clone(),
             generated_query: None,
-            executed_at: now,
-            execution_ms: None,
+            result_widget_config: None,
             created_at: now,
-            updated_at: now,
+            branch_id,
         };
 
         diesel::insert_into(conversational_queries::table)
@@ -323,7 +324,7 @@ pub async fn handle_conversational_query(
             id: db_query.id,
             dashboard_id: None,
             user_id: db_query.user_id,
-            natural_language: db_query.query_text,
+            natural_language: db_query.natural_language,
             generated_query: None,
             result_widget: None,
             created_at: db_query.created_at,
