@@ -108,6 +108,11 @@ async fn create_project(
     if req.name.trim().is_empty() {
         return err_response("project name must not be empty".into());
     }
+    // #918 — tenant scope comes from the authenticated principal, never from
+    // untrusted request fields; a caller cannot create a project under another
+    // organization.
+    let mut req = req;
+    req.org_id = Some(user.organization_id.unwrap_or_else(Uuid::nil));
     let org_id = req.org_id.unwrap_or_else(Uuid::nil);
     let branch_id = req.branch_id.unwrap_or_else(Uuid::nil);
     if let Err(e) = metering.enforce_project_creation(
