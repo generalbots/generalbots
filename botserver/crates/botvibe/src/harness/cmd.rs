@@ -13,7 +13,9 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
     HashSet::from([
         "ls", "cat", "head", "tail", "grep", "find", "wc", "diff", "stat",
         "git", "mkdir", "touch", "cp", "mv", "rm",
-        "node", "npm", "npx", "cargo", "python3", "python", "sh",
+        // #917 — `sh` is deliberately absent: `sh -c "..."` executes arbitrary
+        // code with no blocked metacharacter, and no harness tool needs it.
+        "node", "npm", "npx", "cargo", "python3", "python",
         "botserver", "botc", "caddy", "incus", "dig", "nslookup",
     ])
 });
@@ -98,52 +100,57 @@ pub fn run(
         .spawn()
         .map_err(|e| GuardError::Spawn(e.to_string()))?;
 
-    let (stdout, stderr) = {
-        let stdout = child.stdout.take();
-        let stderr = child.stderr.take();
-        let stdout_join = stdout.map(|mut o| {
-            std::thread::spawn(move || {
-                let mut buf = Vec::new();
-                use std::io::Read;
-                let _ = o.read_to_end(&mut buf);
-                buf.truncate(MAX_OUTPUT_BYTES);
-                buf
-            })
-        });
-        let stderr_join = stderr.map(|mut o| {
-            std::thread::spawn(move || {
-                let mut buf = Vec::new();
-                use std::io::Read;
-                let _ = o.read_to_end(&mut buf);
-                buf.truncate(MAX_OUTPUT_BYTES);
-                buf
-            })
-        });
-        (
-            stdout_join.map(|j| j.join().map_err(|_| GuardError::Io("stdout thread".into())))
-                .transpose()?.unwrap_or_default(),
-            stderr_join.map(|j| j.join().map_err(|_| GuardError::Io("stderr thread".into())))
-                .transpose()?.unwrap_or_default(),
-        )
-    };
+    // #917 — drain stdout/stderr concurrently with a bounded buffer, then poll
+    // the child with the timeout. The previous code joined the reader threads
+    // *before* polling the child, so a child that never exited (and thus never
+    // closed its pipes) deadlocked the runner and the timeout never fired.
+    let stdout_join = child.stdout.take().map(|o| std::thread::spawn(move || drain_reader(o)));
+    let stderr_join = child.stderr.take().map(|o| std::thread::spawn(move || drain_reader(o)));
 
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(timeout_secs);
-    let exit_code = loop {
+    let mut exit_code: Option<i32> = None;
+    let mut timed_out = false;
+    loop {
         if let Some(status) = child.try_wait().map_err(|e| GuardError::Io(e.to_string()))? {
-            break status.code();
+            exit_code = status.code();
+            break;
         }
         if std::time::Instant::now() > deadline {
             let _ = child.kill();
-            return Err(GuardError::Timeout);
+            let _ = child.wait();
+            timed_out = true;
+            break;
         }
         std::thread::sleep(std::time::Duration::from_millis(20));
-    };
+    }
 
+    let stdout = stdout_join
+        .map(|j| j.join().map_err(|_| GuardError::Io("stdout thread".into())))
+        .transpose()?
+        .unwrap_or_default();
+    let stderr = stderr_join
+        .map(|j| j.join().map_err(|_| GuardError::Io("stderr thread".into())))
+        .transpose()?
+        .unwrap_or_default();
+
+    if timed_out {
+        return Err(GuardError::Timeout);
+    }
     Ok(RunOutput {
         exit_code,
         stdout: String::from_utf8_lossy(&stdout).into_owned(),
         stderr: String::from_utf8_lossy(&stderr).into_owned(),
     })
+}
+
+/// Reads a child's pipe up to `MAX_OUTPUT_BYTES` and truncates, so an
+/// untrusted command cannot exhaust memory by flooding its output (#917).
+fn drain_reader<R: std::io::Read>(reader: R) -> Vec<u8> {
+    use std::io::Read;
+    let mut buf = Vec::new();
+    let _ = reader.take(MAX_OUTPUT_BYTES as u64 + 1).read_to_end(&mut buf);
+    buf.truncate(MAX_OUTPUT_BYTES);
+    buf
 }
 
 #[cfg(test)]
@@ -160,8 +167,13 @@ mod tests {
     #[test]
     fn rejects_shell_metacharacters_in_args() {
         let cwd = std::env::temp_dir();
-        let args = vec!["-c".to_string(), "echo hi; rm -rf /".to_string()];
-        assert!(matches!(run("sh", &args, &cwd, 5), Err(GuardError::ShellInjection(_))));
+        let args = vec!["--help".to_string(), "echo hi; rm -rf /".to_string()];
+        assert!(matches!(run("git", &args, &cwd, 5), Err(GuardError::ShellInjection(_))));
+    }
+
+    #[test]
+    fn sh_is_not_allowlisted() {
+        assert!(!ALLOWED_COMMANDS.contains("sh"), "sh -c is arbitrary code execution");
     }
 
     #[test]
