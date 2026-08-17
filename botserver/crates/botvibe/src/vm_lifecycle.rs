@@ -155,6 +155,11 @@ impl VmLifecycle {
 
     /// Ensure the project has a VM for `env`; if missing, insert the row,
     /// create (or start) the Incus container, and mark it running.
+    ///
+    /// #924 — a lookup error must not be mistaken for "not found" (which would
+    /// attempt a duplicate insert), the insert is idempotent against the
+    /// unique `(project_id, env)` index, and a provisioning failure marks the
+    /// row `failed` with the underlying error instead of leaving it `created`.
     pub fn create_project_vm(
         &self,
         project_id: Uuid,
@@ -165,52 +170,76 @@ impl VmLifecycle {
         let (env, tier) = Self::validate(req)?;
         let container = Self::container_name(project_name, &env, req.runner_enabled);
 
-        match self.lookup(&project_id, &env) {
-            Ok(existing) => {
-                if self.linux_available() {
-                    let state = self.linux_running(&existing.container_name)?;
-                    if !state {
-                        self.linux_start(&existing.container_name)?;
-                    }
-                    self.set_status(&existing.id, "running")?;
-                } else {
-                    self.set_status(&existing.id, "skipped")?;
+        if let Some(existing) = self.lookup_opt(&project_id, &env)? {
+            if self.linux_available() {
+                let state = self.linux_running(&existing.container_name)?;
+                if !state {
+                    self.linux_start(&existing.container_name)?;
                 }
-                Ok(existing)
+                self.set_status(&existing.id, "running")?;
+            } else {
+                self.set_status(&existing.id, "skipped")?;
             }
-            Err(_) => {
-                let mut conn = self.conn()?;
-                diesel::sql_query(
-                    "INSERT INTO vm_instances (project_id, branch_id, project_name, env, tier, status, container_name, runner_enabled, created_at, updated_at)
-                     VALUES ($1, $2, $3, $4, $5, 'created', $6, $7, NOW(), NOW())",
-                )
-                .bind::<diesel::sql_types::Uuid, _>(project_id)
-                .bind::<diesel::sql_types::Uuid, _>(branch_id)
-                .bind::<diesel::sql_types::Text, _>(project_name)
-                .bind::<diesel::sql_types::Text, _>(&env)
-                .bind::<diesel::sql_types::Text, _>(&tier)
-                .bind::<diesel::sql_types::Text, _>(&container)
-                .bind::<diesel::sql_types::Bool, _>(req.runner_enabled)
-                .execute(&mut conn)
-                .map_err(|e| format!("insert vm: {e}"))?;
-
-                if self.linux_available() {
-                    if !self.linux_exists(&container)? {
-                        self.linux_create(&container, &tier)?;
-                    }
-                    if !self.linux_running(&container)? {
-                        self.linux_start(&container)?;
-                    }
-                    let inst = self.lookup(&project_id, &env)?;
-                    self.set_status(&inst.id, "running")?;
-                    Ok(inst)
-                } else {
-                    let inst = self.lookup(&project_id, &env)?;
-                    self.set_status(&inst.id, "skipped")?;
-                    Ok(inst)
-                }
-            }
+            return Ok(existing);
         }
+
+        // Idempotent upsert against the unique `(project_id, env)` index so
+        // concurrent create requests converge on one row instead of racing a
+        // check-then-act insert.
+        let mut conn = self.conn()?;
+        diesel::sql_query(
+            "INSERT INTO vm_instances (project_id, branch_id, project_name, env, tier, status, container_name, runner_enabled, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, 'created', $6, $7, NOW(), NOW())
+             ON CONFLICT (project_id, env) DO NOTHING",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(project_id)
+        .bind::<diesel::sql_types::Uuid, _>(branch_id)
+        .bind::<diesel::sql_types::Text, _>(project_name)
+        .bind::<diesel::sql_types::Text, _>(&env)
+        .bind::<diesel::sql_types::Text, _>(&tier)
+        .bind::<diesel::sql_types::Text, _>(&container)
+        .bind::<diesel::sql_types::Bool, _>(req.runner_enabled)
+        .execute(&mut conn)
+        .map_err(|e| format!("insert vm: {e}"))?;
+
+        let inst = self.lookup(&project_id, &env)?;
+
+        if !self.linux_available() {
+            self.set_status(&inst.id, "skipped")?;
+            return self.lookup(&project_id, &env);
+        }
+
+        if let Err(e) = self.provision_container(&container, &tier) {
+            self.set_failed(&inst.id, &e)?;
+            return Err(e);
+        }
+        self.set_status(&inst.id, "running")?;
+        self.lookup(&project_id, &env)
+    }
+
+    /// Creates and starts the container if it does not already exist/run.
+    fn provision_container(&self, container: &str, tier: &str) -> Result<(), String> {
+        if !self.linux_exists(container)? {
+            self.linux_create(container, tier)?;
+        }
+        if !self.linux_running(container)? {
+            self.linux_start(container)?;
+        }
+        Ok(())
+    }
+
+    /// Marks a VM row `failed` and records the underlying provisioning error
+    /// (#924) so a later request cannot mistake the dead row for a live VM.
+    fn set_failed(&self, id: &Uuid, error: &str) -> Result<(), String> {
+        let mut conn = self.conn()?;
+        diesel::sql_query(
+            "UPDATE vm_instances SET status = 'failed', error = $2, updated_at = NOW() WHERE id = $1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(*id)
+        .bind::<diesel::sql_types::Text, _>(error)
+        .execute(&mut conn)
+        .map_err(|e| format!("mark vm failed: {e}"))?;
+        Ok(())
     }
 
     pub fn stop(&self, vm_id: Uuid) -> Result<VmInstance, String> {
@@ -286,6 +315,25 @@ impl VmLifecycle {
         .get_result::<VmRow>(&mut conn)
         .map_err(|e| format!("lookup vm: {e}"))?;
         Ok(row.into_vm())
+    }
+
+    /// #924 — optional lookup that distinguishes "no row" (Ok(None)) from a
+    /// real database failure (Err), so callers never treat a transient DB
+    /// error as "not found".
+    fn lookup_opt(&self, project_id: &Uuid, env: &str) -> Result<Option<VmInstance>, String> {
+        let mut conn = self.conn()?;
+        let result = diesel::sql_query(
+            "SELECT id, project_id, org_id, branch_id, project_name, env, tier, status, container_name, runner_enabled, error, created_at, updated_at
+             FROM vm_instances WHERE project_id = $1 AND env = $2",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(project_id)
+        .bind::<diesel::sql_types::Text, _>(env)
+        .get_result::<VmRow>(&mut conn);
+        match result {
+            Ok(row) => Ok(Some(row.into_vm())),
+            Err(diesel::result::Error::NotFound) => Ok(None),
+            Err(e) => Err(format!("lookup vm: {e}")),
+        }
     }
 
     fn lookup_by_id(&self, id: &Uuid) -> Result<VmInstance, String> {
