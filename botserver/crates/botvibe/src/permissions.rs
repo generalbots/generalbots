@@ -52,6 +52,7 @@ const DESTRUCTIVE_TOOL_PREFIXES: &[&str] = &[
     "issue/close",
     "skill/delete",
     "browser/close",
+    "browser/eval",
 ];
 
 pub struct PermissionEngine {
