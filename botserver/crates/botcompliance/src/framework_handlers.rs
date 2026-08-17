@@ -89,15 +89,19 @@ fn audit(
     let result = diesel::insert_into(compliance_audit_log::table)
         .values((
             compliance_audit_log::id.eq(Uuid::new_v4()),
+            compliance_audit_log::org_id.eq(Uuid::nil()),
+            compliance_audit_log::bot_id.eq(Uuid::nil()),
             compliance_audit_log::branch_id.eq(branch_id),
+            compliance_audit_log::event_type.eq(action),
+            compliance_audit_log::user_id.eq(actor_id),
+            compliance_audit_log::resource_type.eq(target_type),
+            compliance_audit_log::resource_id.eq(target_id.map(|id| id.to_string()).unwrap_or_default()),
             compliance_audit_log::action.eq(action),
-            compliance_audit_log::actor_id.eq(actor_id),
-            compliance_audit_log::target_type.eq(Some(target_type.to_string())),
-            compliance_audit_log::target_id.eq(target_id),
-            compliance_audit_log::details.eq(Some(details.unwrap_or_else(|| serde_json::json!({})))),
+            compliance_audit_log::result.eq("success"),
             compliance_audit_log::ip_address.eq(Option::<String>::None),
+            compliance_audit_log::user_agent.eq(Option::<String>::None),
+            compliance_audit_log::metadata.eq(details.unwrap_or_else(|| serde_json::json!({}))),
             compliance_audit_log::created_at.eq(now),
-            compliance_audit_log::updated_at.eq(now),
         ))
         .execute(conn);
     if let Err(e) = result {

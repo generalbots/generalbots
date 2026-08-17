@@ -97,6 +97,8 @@ pub async fn handle_run_check(
         for (control_id, control_name, score) in controls {
             let db_check = DbComplianceCheck {
                 id: Uuid::new_v4(),
+                org_id: None,
+                bot_id: None,
                 branch_id,
                 check_type: req.framework.to_string(),
                 status: Some("compliant".to_string()),
@@ -179,7 +181,7 @@ pub async fn handle_list_issues(
         }
 
         if let Some(status) = query.status {
-            db_query = db_query.filter(compliance_issues::status.eq(Some(status)));
+            db_query = db_query.filter(compliance_issues::status.eq(status));
         }
 
         if let Some(assigned_to) = query.assigned_to {
@@ -216,15 +218,20 @@ pub async fn handle_create_issue(
 
         let db_issue = DbComplianceIssue {
             id: Uuid::new_v4(),
+            org_id: Uuid::nil(),
+            bot_id: Uuid::nil(),
+            check_id: req.check_id,
             branch_id,
             title: req.title,
             severity: req.severity.to_string(),
-            status: Some("open".to_string()),
-            description: Some(req.description),
+            status: "open".to_string(),
+            description: req.description,
             assigned_to: req.assigned_to,
             remediation: req.remediation,
-            due_date: req.due_date.map(|dt| dt.date_naive()),
+            due_date: req.due_date,
             resolved_at: None,
+            resolved_by: None,
+            resolution_notes: None,
             created_at: now,
             updated_at: now,
         };
@@ -265,22 +272,22 @@ pub async fn handle_update_issue(
             db_issue.title = title;
         }
         if let Some(description) = req.description {
-            db_issue.description = Some(description);
+            db_issue.description = description;
         }
         if let Some(remediation) = req.remediation {
             db_issue.remediation = Some(remediation);
         }
         if let Some(due_date) = req.due_date {
-            db_issue.due_date = Some(due_date.date_naive());
+            db_issue.due_date = Some(due_date);
         }
         if let Some(assigned_to) = req.assigned_to {
             db_issue.assigned_to = Some(assigned_to);
         }
         if let Some(status) = req.status {
-            db_issue.status = Some(status);
-            if db_issue.status.as_deref() == Some("resolved") {
+            if status == "resolved" {
                 db_issue.resolved_at = Some(now);
             }
+            db_issue.status = status;
         }
         db_issue.updated_at = now;
 
@@ -319,11 +326,11 @@ pub async fn handle_list_audit_logs(
         }
 
         if let Some(actor_id) = query.actor_id {
-            db_query = db_query.filter(compliance_audit_log::actor_id.eq(actor_id));
+            db_query = db_query.filter(compliance_audit_log::user_id.eq(actor_id));
         }
 
         if let Some(target_type) = query.target_type {
-            db_query = db_query.filter(compliance_audit_log::target_type.eq(target_type));
+            db_query = db_query.filter(compliance_audit_log::resource_type.eq(target_type));
         }
 
         if let Some(from_date) = query.from_date {
@@ -361,22 +368,23 @@ pub async fn handle_create_audit_log(
         let now = Utc::now();
         let branch_id = BRANCH_ID_PLACEHOLDER;
 
-        let details = req.metadata.unwrap_or_default();
+        let metadata = serde_json::to_value(&req.metadata.unwrap_or_default()).unwrap_or(serde_json::json!({}));
 
         let db_log = DbAuditLog {
             id: Uuid::new_v4(),
+            org_id: Uuid::nil(),
+            bot_id: Uuid::nil(),
             branch_id,
-            action: req.event_type.to_string(),
-            actor_id: req.actor_id.or(req.user_id),
-            target_type: Some(req.target_type),
-            target_id: req.target_id.or_else(|| {
-                let s = req.resource_id.as_str();
-                Uuid::parse_str(s).ok()
-            }),
-            details: Some(serde_json::to_value(&details).unwrap_or_default()),
+            event_type: req.event_type.to_string(),
+            user_id: req.actor_id.or(req.user_id),
+            resource_type: req.target_type,
+            resource_id: req.resource_id,
+            action: req.action,
+            result: req.result.to_string(),
             ip_address: req.ip_address,
+            user_agent: req.user_agent,
+            metadata,
             created_at: now,
-            updated_at: now,
         };
 
         diesel::insert_into(compliance_audit_log::table)
@@ -405,14 +413,20 @@ pub async fn handle_create_training(
 
         let db_training = DbTrainingRecord {
             id: Uuid::new_v4(),
+            org_id: Uuid::nil(),
+            bot_id: Uuid::nil(),
             branch_id,
-            person_id: Some(req.user_id),
-            course_name: req.training_name.clone(),
-            completed: Some(req.passed),
-            completed_at: Some(now),
-            expires_at: req.valid_until,
+            user_id: req.user_id,
+            training_type: req.training_type.to_string(),
+            training_name: req.training_name.clone(),
+            provider: req.provider.clone(),
+            score: req.score,
+            passed: req.passed,
+            completion_date: now,
+            valid_until: req.valid_until,
+            certificate_url: req.certificate_url.clone(),
+            metadata: serde_json::json!({}),
             created_at: now,
-            updated_at: now,
         };
 
         diesel::insert_into(compliance_training_records::table)
@@ -450,7 +464,7 @@ pub async fn handle_list_training(
 
         let db_records: Vec<DbTrainingRecord> = compliance_training_records::table
             .filter(compliance_training_records::branch_id.eq(branch_id))
-            .order(compliance_training_records::completed_at.desc())
+            .order(compliance_training_records::completion_date.desc())
             .load(&mut conn)
             .map_err(|e| ComplianceError::Database(e.to_string()))?;
 
@@ -458,15 +472,15 @@ pub async fn handle_list_training(
             .into_iter()
             .map(|r| TrainingRecord {
                 id: r.id,
-                user_id: r.person_id.unwrap_or_default(),
-                training_type: TrainingType::SecurityAwareness,
-                training_name: r.course_name,
-                provider: None,
-                score: None,
-                passed: r.completed.unwrap_or(false),
-                completion_date: r.completed_at.unwrap_or(r.created_at),
-                valid_until: r.expires_at,
-                certificate_url: None,
+                user_id: r.user_id,
+                training_type: r.training_type.parse().unwrap_or(TrainingType::SecurityAwareness),
+                training_name: r.training_name,
+                provider: r.provider,
+                score: r.score,
+                passed: r.passed,
+                completion_date: r.completion_date,
+                valid_until: r.valid_until,
+                certificate_url: r.certificate_url,
             })
             .collect();
 

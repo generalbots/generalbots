@@ -1,110 +1,144 @@
-// @generated automatically by script from migration SQL for issue #707.
-// Aligned with 9.23-branch-scope-cleanup migration.
+// @generated from the actual migrations (6.0.21-01-compliance + 9.23-branch-scope-cleanup).
+// Do not edit by hand; keep in sync with migrations/*/up.sql.
 
 diesel::table! {
     compliance_checks (id) {
         id -> Uuid,
-        branch_id -> Uuid,
+        org_id -> Nullable<Uuid>,
+        bot_id -> Nullable<Uuid>,
         check_type -> Varchar,
-        status -> Nullable<Varchar>,
         target_type -> Nullable<Varchar>,
-        target_id -> Nullable<Uuid>,
-        result -> Nullable<Jsonb>,
+        status -> Nullable<Varchar>,
         checked_at -> Nullable<Timestamptz>,
         checked_by -> Nullable<Uuid>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        branch_id -> Uuid,
+        target_id -> Nullable<Uuid>,
+        result -> Nullable<Jsonb>,
     }
 }
 
 diesel::table! {
     compliance_issues (id) {
         id -> Uuid,
-        branch_id -> Uuid,
-        title -> Varchar,
+        org_id -> Uuid,
+        bot_id -> Uuid,
+        check_id -> Nullable<Uuid>,
         severity -> Varchar,
-        status -> Nullable<Varchar>,
-        description -> Nullable<Text>,
-        assigned_to -> Nullable<Uuid>,
+        title -> Varchar,
+        description -> Text,
         remediation -> Nullable<Text>,
-        due_date -> Nullable<Date>,
+        due_date -> Nullable<Timestamptz>,
+        assigned_to -> Nullable<Uuid>,
+        status -> Varchar,
         resolved_at -> Nullable<Timestamptz>,
+        resolved_by -> Nullable<Uuid>,
+        resolution_notes -> Nullable<Text>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        branch_id -> Uuid,
     }
 }
 
 diesel::table! {
     compliance_audit_log (id) {
         id -> Uuid,
-        branch_id -> Uuid,
+        org_id -> Uuid,
+        bot_id -> Uuid,
+        event_type -> Varchar,
+        user_id -> Nullable<Uuid>,
+        resource_type -> Varchar,
+        resource_id -> Varchar,
         action -> Varchar,
-        actor_id -> Nullable<Uuid>,
-        target_type -> Nullable<Varchar>,
-        target_id -> Nullable<Uuid>,
-        details -> Nullable<Jsonb>,
+        result -> Varchar,
         ip_address -> Nullable<Varchar>,
+        user_agent -> Nullable<Text>,
+        metadata -> Jsonb,
         created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+        branch_id -> Uuid,
     }
 }
 
 diesel::table! {
     compliance_evidence (id) {
         id -> Uuid,
-        branch_id -> Uuid,
+        org_id -> Uuid,
+        bot_id -> Uuid,
         check_id -> Nullable<Uuid>,
-        file_path -> Varchar,
+        issue_id -> Nullable<Uuid>,
+        evidence_type -> Varchar,
+        title -> Varchar,
         description -> Nullable<Text>,
-        uploaded_by -> Nullable<Uuid>,
+        file_url -> Nullable<Text>,
+        file_name -> Nullable<Varchar>,
+        file_size -> Nullable<Int4>,
+        mime_type -> Nullable<Varchar>,
+        metadata -> Jsonb,
+        collected_at -> Timestamptz,
+        collected_by -> Nullable<Uuid>,
         created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+        branch_id -> Uuid,
     }
 }
 
 diesel::table! {
     compliance_risk_assessments (id) {
         id -> Uuid,
-        branch_id -> Uuid,
+        org_id -> Uuid,
+        bot_id -> Uuid,
         title -> Varchar,
-        risk_level -> Varchar,
-        probability -> Nullable<Int4>,
-        impact -> Nullable<Int4>,
-        mitigation -> Nullable<Text>,
-        status -> Nullable<Varchar>,
-        assessed_by -> Nullable<Uuid>,
-        assessed_at -> Nullable<Timestamptz>,
+        assessor_id -> Uuid,
+        methodology -> Varchar,
+        overall_risk_score -> Numeric,
+        status -> Varchar,
+        started_at -> Timestamptz,
+        completed_at -> Nullable<Timestamptz>,
+        next_review_date -> Nullable<Date>,
+        notes -> Nullable<Text>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        branch_id -> Uuid,
     }
 }
 
 diesel::table! {
     compliance_training_records (id) {
         id -> Uuid,
-        branch_id -> Uuid,
-        person_id -> Nullable<Uuid>,
-        course_name -> Varchar,
-        completed -> Nullable<Bool>,
-        completed_at -> Nullable<Timestamptz>,
-        expires_at -> Nullable<Timestamptz>,
+        org_id -> Uuid,
+        bot_id -> Uuid,
+        user_id -> Uuid,
+        training_type -> Varchar,
+        training_name -> Varchar,
+        provider -> Nullable<Varchar>,
+        score -> Nullable<Int4>,
+        passed -> Bool,
+        completion_date -> Timestamptz,
+        valid_until -> Nullable<Timestamptz>,
+        certificate_url -> Nullable<Text>,
+        metadata -> Jsonb,
         created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+        branch_id -> Uuid,
     }
 }
 
 diesel::table! {
     compliance_access_reviews (id) {
         id -> Uuid,
-        branch_id -> Uuid,
-        reviewer_id -> Nullable<Uuid>,
-        reviewed_type -> Varchar,
-        reviewed_id -> Uuid,
-        decision -> Nullable<Varchar>,
-        comments -> Nullable<Text>,
-        reviewed_at -> Nullable<Timestamptz>,
+        org_id -> Uuid,
+        bot_id -> Uuid,
+        user_id -> Uuid,
+        reviewer_id -> Uuid,
+        review_date -> Timestamptz,
+        permissions_reviewed -> Jsonb,
+        anomalies -> Jsonb,
+        recommendations -> Jsonb,
+        status -> Varchar,
+        approved_at -> Nullable<Timestamptz>,
+        notes -> Nullable<Text>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
+        branch_id -> Uuid,
     }
 }
 

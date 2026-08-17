@@ -101,14 +101,29 @@ pub fn configure_router() -> Router {
         .nest("/apps", create_apps_router())
         .route("/", get(index))
         .route("/minimal", get(serve_minimal))
-        .route("/suite", get(serve_suite))
-        // Server-generated HTMX fragments live in botserver, not as static
-        // files — proxy them before the static /suite/{dir} ServeDir nests
-        // swallow the path and return 404.
-        .route("/suite/:dir/fragments/*path", any(proxy_api))
-        .route("/suite/:dir/modals/*path", any(proxy_api))
-        .route("/suite/:dir/forms/*path", any(proxy_api))
-        .route("/suite/:dir/partials/*path", any(proxy_api));
+        .route("/suite", get(serve_suite));
+
+    // Server-generated HTMX fragments live in botserver, not as static
+    // files. Register them with an explicit static dir segment so they win
+    // over the /suite/{dir} ServeDir nests — matchit ranks static segments
+    // above the `:dir` param, so the generic param form never matched and
+    // the ServeDir returned 404.
+    #[cfg(not(feature = "embed-ui"))]
+    for dir in SUITE_DIRS {
+        router = router
+            .route(&format!("/suite/{dir}/fragments/*path"), any(proxy_api))
+            .route(&format!("/suite/{dir}/modals/*path"), any(proxy_api))
+            .route(&format!("/suite/{dir}/forms/*path"), any(proxy_api))
+            .route(&format!("/suite/{dir}/partials/*path"), any(proxy_api));
+    }
+    #[cfg(feature = "embed-ui")]
+    {
+        router = router
+            .route("/suite/:dir/fragments/*path", any(proxy_api))
+            .route("/suite/:dir/modals/*path", any(proxy_api))
+            .route("/suite/:dir/forms/*path", any(proxy_api))
+            .route("/suite/:dir/partials/*path", any(proxy_api));
+    }
 
     router = add_static_routes(router, &suite_path);
 
