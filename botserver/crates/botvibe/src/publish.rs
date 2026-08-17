@@ -22,6 +22,18 @@ use crate::vm_lifecycle::{CreateVmRequest, VmLifecycle};
 
 const PUBLISH_DEFAULT_ENV: &str = "production";
 
+/// Env var overriding the maximum total bytes the publish path will read
+/// into memory for a single project archive (#934).
+const PUBLISH_MAX_BYTES_ENV: &str = "VIBE_PUBLISH_MAX_BYTES";
+const PUBLISH_DEFAULT_MAX_BYTES: u64 = 20 * 1024 * 1024;
+
+fn publish_max_bytes() -> u64 {
+    std::env::var(PUBLISH_MAX_BYTES_ENV)
+        .ok()
+        .and_then(|v| v.parse::<u64>().ok())
+        .unwrap_or(PUBLISH_DEFAULT_MAX_BYTES)
+}
+
 pub fn publish_project_tool() -> ToolHandler {
     Arc::new(|args: Value, state: &dyn VibeState| {
         let pool = state.db_pool().clone();
@@ -58,7 +70,7 @@ fn api_base() -> String {
 /// output) so the deployment API can push them to the ALM repo instead of an
 /// empty app. The workspace dir is keyed by the ALM repo slug, falling back
 /// to the raw project id.
-fn collect_workspace_files(project: &Project) -> Vec<Value> {
+fn collect_workspace_files(project: &Project) -> Result<Vec<Value>, String> {
     let candidates = [
         VmLifecycle::alm_repo(&project.name),
         project.id.to_string(),
@@ -69,22 +81,35 @@ fn collect_workspace_files(project: &Project) -> Vec<Value> {
             continue;
         }
         let mut out = Vec::new();
-        if walk_workspace(&dir, &dir, &mut out).is_ok() && !out.is_empty() {
-            log::info!(
-                "Vibe publish: packaged {} files from workspace '{key}'",
-                out.len()
-            );
-            return out;
+        let mut total_bytes = 0u64;
+        match walk_workspace(&dir, &dir, &mut out, &mut total_bytes) {
+            Ok(()) => {
+                if !out.is_empty() {
+                    log::info!(
+                        "Vibe publish: packaged {} files ({total_bytes} bytes) from workspace '{key}'",
+                        out.len()
+                    );
+                    return Ok(out);
+                }
+            }
+            // A size-budget violation is an actionable error, not a reason to
+            // fall through to an empty archive (#934).
+            Err(e) => return Err(e),
         }
     }
     log::warn!(
         "Vibe publish: no workspace files found for project '{}' — deploying empty repo",
         project.name
     );
-    Vec::new()
+    Ok(Vec::new())
 }
 
-fn walk_workspace(dir: &Path, root: &Path, out: &mut Vec<Value>) -> Result<(), String> {
+fn walk_workspace(
+    dir: &Path,
+    root: &Path,
+    out: &mut Vec<Value>,
+    total_bytes: &mut u64,
+) -> Result<(), String> {
     let entries = std::fs::read_dir(dir).map_err(|e| format!("read_dir {dir:?}: {e}"))?;
     for entry in entries {
         let entry = entry.map_err(|e| format!("read_dir entry: {e}"))?;
@@ -98,13 +123,22 @@ fn walk_workspace(dir: &Path, root: &Path, out: &mut Vec<Value>) -> Result<(), S
             continue;
         }
         if path.is_dir() {
-            walk_workspace(&path, root, out)?;
+            walk_workspace(&path, root, out, total_bytes)?;
             continue;
         }
         let rel = path.strip_prefix(root).map_err(|e| format!("strip prefix: {e}"))?;
         let rel = rel.to_string_lossy().replace('\\', "/");
         match std::fs::read(&path) {
-            Ok(bytes) => out.push(serde_json::json!({ "path": rel, "content": bytes })),
+            Ok(bytes) => {
+                *total_bytes += bytes.len() as u64;
+                if *total_bytes > publish_max_bytes() {
+                    return Err(format!(
+                        "workspace exceeds publish size budget ({} bytes)",
+                        publish_max_bytes()
+                    ));
+                }
+                out.push(serde_json::json!({ "path": rel, "content": bytes }));
+            }
             Err(e) => log::warn!("Vibe publish: skip unreadable file {rel}: {e}"),
         }
     }
@@ -166,7 +200,7 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         }),
     };
 
-    let files = collect_workspace_files(&project);
+    let files = collect_workspace_files(&project)?;
     let body = serde_json::json!({
         "app_name": repo_name,
         "org": org,
@@ -271,7 +305,7 @@ mod tests {
         std::fs::write(dir.join("src/main.rs"), b"fn main() {}").expect("write main");
         std::fs::write(dir.join(".git/config"), b"[core]").expect("write git config");
 
-        let files = collect_workspace_files(&project);
+        let files = collect_workspace_files(&project).expect("collect files");
         let paths: Vec<String> = files
             .iter()
             .map(|f| f["path"].as_str().unwrap_or_default().to_string())

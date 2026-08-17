@@ -70,7 +70,8 @@ pub fn short_token(prefix: &str, uuid: &uuid::Uuid) -> String {
     format!("{prefix}-{}", hex[..8].to_uppercase())
 }
 
-/// Common `bot_id` argument used to scope CRM queries (nil = global scope).
+/// Common `bot_id` argument used to scope CRM queries. Handlers must fail
+/// closed on `nil` (no global fallback) — see `crm::require_bot_scope`.
 pub fn bot_id_arg(args: &Value) -> uuid::Uuid {
     args.get("bot_id")
         .and_then(|v| v.as_str())

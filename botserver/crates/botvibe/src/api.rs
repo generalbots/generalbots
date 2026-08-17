@@ -69,6 +69,15 @@ pub struct GetRunResponse {
     pub created_at: String,
     pub completed_at: Option<String>,
     pub error: Option<String>,
+    /// Run budget in cents (from `VibeRunConfig`) so the Run Dock budget
+    /// meter survives a page reload / persisted-run re-focus (#930).
+    pub budget_cents: u64,
+    pub lang: String,
+    pub model: Option<String>,
+    pub max_tool_calls: u32,
+    pub auto_approve: bool,
+    pub project_id: Option<String>,
+    pub project_name: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -525,6 +534,13 @@ async fn get_run(
             created_at: String::new(),
             completed_at: None,
             error: Some("Run not found".to_string()),
+            budget_cents: 0,
+            lang: String::new(),
+            model: None,
+            max_tool_calls: 0,
+            auto_approve: false,
+            project_id: None,
+            project_name: None,
         }),
     }
 }
@@ -541,6 +557,13 @@ fn run_to_response(run: &VibeRun) -> GetRunResponse {
         created_at: run.created_at.to_rfc3339(),
         completed_at: run.completed_at.map(|t| t.to_rfc3339()),
         error: run.error.clone(),
+        budget_cents: run.config.budget_cents,
+        lang: run.config.lang.clone(),
+        model: run.config.model.clone(),
+        max_tool_calls: run.config.max_tool_calls,
+        auto_approve: run.config.auto_approve,
+        project_id: run.config.project_id.clone(),
+        project_name: run.config.project_name.clone(),
     }
 }
 

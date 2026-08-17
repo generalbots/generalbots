@@ -143,6 +143,31 @@ pub enum StageStatus {
     Skipped,
 }
 
+/// How an approval wait resolved (#929). The caller must map each variant to
+/// a distinct, honest user-visible verdict instead of collapsing every
+/// failure into a hardcoded "Approval denied".
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ApprovalOutcome {
+    Approved,
+    Cancelled,
+    TimedOut,
+    ChannelClosed,
+    NotAvailable,
+}
+
+impl ApprovalOutcome {
+    /// User/telemetry-facing reason for the non-approved outcomes.
+    pub fn error_message(self) -> Option<&'static str> {
+        match self {
+            Self::Approved => None,
+            Self::Cancelled => Some("Approval denied"),
+            Self::TimedOut => Some("Approval wait timed out"),
+            Self::ChannelClosed => Some("Approval channel closed"),
+            Self::NotAvailable => Some("Approval channel unavailable"),
+        }
+    }
+}
+
 /// Per-stage result within a pipeline run report.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PipelineStageReport {
@@ -183,32 +208,34 @@ impl PipelineEngine {
         Self { telemetry }
     }
 
-    async fn wait_for_approval(&self, state: &dyn VibeState, run_id: Uuid) -> bool {
+    async fn wait_for_approval(&self, state: &dyn VibeState, run_id: Uuid) -> ApprovalOutcome {
         let approval_timeout = std::time::Duration::from_secs(300);
         let start = tokio::time::Instant::now();
-        if let Some(tx) = state.run_signal_sender() {
-            let mut rx = tx.subscribe();
-            loop {
-                let remaining = if start.elapsed() > approval_timeout {
-                    return false;
-                } else {
-                    approval_timeout.saturating_sub(start.elapsed())
-                };
-                match tokio::time::timeout(remaining, rx.recv()).await {
-                    Ok(Ok(crate::types::VibeRunSignal::Approved(id))) if id == run_id => {
-                        return true;
-                    }
-                    Ok(Ok(crate::types::VibeRunSignal::Cancelled(id))) if id == run_id => {
-                        return false;
-                    }
-                    Ok(Ok(_)) => continue,
-                    Ok(Err(tokio::sync::broadcast::error::RecvError::Lagged(_))) => continue,
-                    Ok(Err(tokio::sync::broadcast::error::RecvError::Closed)) => return false,
-                    Err(_) => return false,
+        let Some(tx) = state.run_signal_sender() else {
+            return ApprovalOutcome::NotAvailable;
+        };
+        let mut rx = tx.subscribe();
+        loop {
+            let remaining = if start.elapsed() > approval_timeout {
+                return ApprovalOutcome::TimedOut;
+            } else {
+                approval_timeout.saturating_sub(start.elapsed())
+            };
+            match tokio::time::timeout(remaining, rx.recv()).await {
+                Ok(Ok(crate::types::VibeRunSignal::Approved(id))) if id == run_id => {
+                    return ApprovalOutcome::Approved;
                 }
+                Ok(Ok(crate::types::VibeRunSignal::Cancelled(id))) if id == run_id => {
+                    return ApprovalOutcome::Cancelled;
+                }
+                Ok(Ok(_)) => continue,
+                Ok(Err(tokio::sync::broadcast::error::RecvError::Lagged(_))) => continue,
+                Ok(Err(tokio::sync::broadcast::error::RecvError::Closed)) => {
+                    return ApprovalOutcome::ChannelClosed;
+                }
+                Err(_) => return ApprovalOutcome::TimedOut,
             }
         }
-        false
     }
 
     pub async fn run(
@@ -269,15 +296,19 @@ impl PipelineEngine {
                 stage.requires_approval,
             );
             if stage.requires_approval {
-                let approved = self.wait_for_approval(state, run_id).await;
-                if !approved {
+                let outcome = self.wait_for_approval(state, run_id).await;
+                if outcome != ApprovalOutcome::Approved {
+                    let error = outcome
+                        .error_message()
+                        .unwrap_or("Approval denied")
+                        .to_string();
                     reports.push(PipelineStageReport {
                         stage_id: stage.id.clone(),
                         stage_name: stage.name.clone(),
                         tool_name: tool_name.to_string(),
                         status: StageStatus::Failed,
                         took_ms: 0,
-                        error: Some("Approval denied".to_string()),
+                        error: Some(error.clone()),
                     });
                     self.telemetry
                         .record_tool_call(ToolCallRecord {
@@ -288,7 +319,7 @@ impl PipelineEngine {
                             tokens: None,
                             cost: 0.0,
                             success: false,
-                            error: Some("Approval denied".to_string()),
+                            error: Some(error),
                         })
                         .await;
                     for rest in &pipeline.stages[reports.len()..] {
@@ -415,6 +446,15 @@ mod tests {
         assert!(pipeline.stages[5].requires_approval);
         assert!(pipeline.stage("domain").unwrap().requires_approval);
         assert_eq!(pipeline.stage("domain").unwrap().name, "Bind domain and TLS");
+    }
+
+    #[test]
+    fn approval_outcome_error_messages_are_distinct() {
+        assert_eq!(ApprovalOutcome::Approved.error_message(), None);
+        assert_eq!(ApprovalOutcome::Cancelled.error_message(), Some("Approval denied"));
+        assert_eq!(ApprovalOutcome::TimedOut.error_message(), Some("Approval wait timed out"));
+        assert_eq!(ApprovalOutcome::ChannelClosed.error_message(), Some("Approval channel closed"));
+        assert_eq!(ApprovalOutcome::NotAvailable.error_message(), Some("Approval channel unavailable"));
     }
 
     #[test]

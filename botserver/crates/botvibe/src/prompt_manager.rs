@@ -3,6 +3,11 @@ use std::collections::HashMap;
 
 pub const FALLBACK_LANG: &str = "en";
 
+/// Languages the platform recognizes (canonical keys). Prompt template files
+/// exist for the subset that has shipped (`en`, `pt-BR`); the rest are
+/// recognized so a request for them is not silently collapsed to English.
+pub const SUPPORTED_LANGS: &[&str] = &["en", "pt-BR", "es", "fr", "de", "ja", "ko", "zh-CN"];
+
 /// One fully-expanded set of prompt fragments for a (use_case, lang) pair.
 #[derive(Debug, Clone)]
 pub struct LoadedTemplate {
@@ -25,21 +30,26 @@ impl LoadedTemplate {
     }
 }
 
-/// Canonical language key used for lookup; the request may carry e.g. "pt-br"
-/// or "pt_BR", both normalized to "pt-BR".
-pub fn normalize_lang(lang: &str) -> String {
-    let trimmed = lang.trim();
-    if trimmed.is_empty() {
-        return FALLBACK_LANG.to_string();
-    }
-    if trimmed.eq_ignore_ascii_case("pt") || trimmed.eq_ignore_ascii_case("pt-br")
-        || trimmed.eq_ignore_ascii_case("pt_br") || trimmed.eq_ignore_ascii_case("ptbr")
-        || trimmed.eq_ignore_ascii_case("por")
-    {
-        "pt-BR".to_string()
-    } else {
-        FALLBACK_LANG.to_string()
-    }
+/// Canonical language key used for lookup. Accepts the request's `lang` in
+/// the spellings the frontend may send (e.g. "pt-br", "pt_BR", "por",
+/// "zh_CN") and returns the canonical key. Returns `None` for input that is
+/// not a recognized platform locale, so callers can surface a real error
+/// instead of silently running in English.
+pub fn normalize_lang(lang: &str) -> Option<String> {
+    let trimmed = lang.trim().to_ascii_lowercase();
+    let canonical = match trimmed.as_str() {
+        "" => return None,
+        "en" | "en-us" | "en_us" | "eng" => "en",
+        "pt" | "pt-br" | "pt_br" | "ptbr" | "por" => "pt-BR",
+        "es" | "es-es" | "es_es" | "spa" => "es",
+        "fr" | "fr-fr" | "fr_fr" | "fra" => "fr",
+        "de" | "de-de" | "de_de" | "deu" | "ger" => "de",
+        "ja" | "ja-jp" | "ja_jp" | "jpn" => "ja",
+        "ko" | "ko-kr" | "ko_kr" | "kor" => "ko",
+        "zh" | "zh-cn" | "zh_cn" | "zhcn" | "zho" => "zh-CN",
+        _ => return None,
+    };
+    Some(canonical.to_string())
 }
 
 fn output_label(lang: &str) -> String {
@@ -137,9 +147,20 @@ impl VibePromptManager {
     }
 
     fn template(&self, use_case: VibeUseCase, lang: &str) -> Option<&LoadedTemplate> {
-        let lang = normalize_lang(lang);
-        if let Some(t) = self.templates.get(&(use_case, lang.clone())) {
+        let canonical = normalize_lang(lang);
+        let requested = canonical.unwrap_or_else(|| {
+            log::warn!(
+                "Vibe: unsupported language '{lang}' — falling back to {FALLBACK_LANG}"
+            );
+            FALLBACK_LANG.to_string()
+        });
+        if let Some(t) = self.templates.get(&(use_case, requested.clone())) {
             return Some(t);
+        }
+        if requested != FALLBACK_LANG {
+            log::warn!(
+                "Vibe: no prompt templates for '{requested}' ({use_case}) — falling back to {FALLBACK_LANG}"
+            );
         }
         self.templates.get(&(use_case, FALLBACK_LANG.to_string()))
     }
@@ -257,13 +278,29 @@ mod tests {
     #[test]
     fn lang_normalization_and_fallback() {
         let pm = VibePromptManager::new();
-        // Unsupported lang falls back to English.
+        // A recognized-but-unshiped locale falls back to English without
+        // panicking (templates for fr have not shipped yet).
         let fr = pm.system_prompt_for(VibeUseCase::CustomerSupport, "fr");
         assert!(fr.contains("Expected output format"));
         // Case/dash variants of Portuguese resolve to pt-BR assets.
         let pt = pm.system_prompt_for(VibeUseCase::CustomerSupport, "pt_br");
         assert!(pt.contains("Formato de saída esperado"));
-        let _ = normalize_lang("en-US");
+    }
+
+    #[test]
+    fn normalize_lang_recognizes_platform_locales_and_rejects_unknown() {
+        assert_eq!(normalize_lang("en-US"), Some("en".to_string()));
+        assert_eq!(normalize_lang("pt"), Some("pt-BR".to_string()));
+        assert_eq!(normalize_lang("pt_br"), Some("pt-BR".to_string()));
+        assert_eq!(normalize_lang("zh_CN"), Some("zh-CN".to_string()));
+        assert_eq!(normalize_lang("es"), Some("es".to_string()));
+        assert_eq!(normalize_lang(""), None);
+        assert_eq!(normalize_lang("   "), None);
+        assert_eq!(normalize_lang("klingon"), None);
+        // Every canonical key is itself a supported platform locale.
+        for lang in SUPPORTED_LANGS {
+            assert_eq!(normalize_lang(lang).as_deref(), Some(*lang));
+        }
     }
 
     #[test]
