@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::extract::{Extension, Path};
+use axum::extract::{Extension, Path, Query};
 use axum::http::StatusCode;
 use axum::routing::post;
 use axum::{Json, Router};
@@ -118,7 +118,17 @@ async fn unbind_domain(
     Extension(user): Extension<AuthenticatedUser>,
     Path((project_id, bind_id)): Path<(Uuid, Uuid)>,
 ) -> ApiResult {
-    match rbac.require_role(user.user_id, project_id, ProjectRole::Admin) {
+    // #922 — authorize against the binding's *actual* project, not the
+    // caller-supplied path segment. An admin of project A must not be able
+    // to delete project B's binding by sending A's path with B's bind_id.
+    let bind = match domains.get(bind_id) {
+        Ok(b) => b,
+        Err(e) => return err(e),
+    };
+    if bind.project_id != project_id {
+        return forbidden("forbidden: binding does not belong to the requested project".into());
+    }
+    match rbac.require_role(user.user_id, bind.project_id, ProjectRole::Admin) {
         Ok(_) => {}
         Err(e) => return forbidden(e),
     }
@@ -154,13 +164,26 @@ async fn update_domain_access(
 
 async fn verify_domain(
     Extension(domains): Extension<ProjectDomainsRef>,
+    Extension(rbac): Extension<ProjectRbac>,
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<VerifyDomainRequest>,
 ) -> ApiResult {
     if user.user_id.is_nil() {
         return forbidden("forbidden: anonymous users cannot verify domains".into());
     }
-    match domains.verify_dns(&req.domain) {
+    let env = req.env.clone().unwrap_or_else(|| "production".to_string());
+    // #922 — resolve the exact binding, require project membership, and only
+    // then run verification (which returns the token + raw DNS). This stops
+    // any authenticated caller from reading another project's verify token.
+    let bind = match domains.get_by_domain_env(&req.domain, &env) {
+        Ok(b) => b,
+        Err(e) => return err(e),
+    };
+    match rbac.require_role(user.user_id, bind.project_id, ProjectRole::Admin) {
+        Ok(_) => {}
+        Err(e) => return forbidden(e),
+    }
+    match domains.verify_dns(&req.domain, &env) {
         Ok(v) => ok_verify(v),
         Err(e) => err(e),
     }
@@ -171,8 +194,10 @@ async fn issue_tls(
     Extension(rbac): Extension<ProjectRbac>,
     Extension(user): Extension<AuthenticatedUser>,
     Path(domain): Path<String>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> ApiResult {
-    let bind = match domain_to_bind(&domains, &domain).await {
+    let env = params.get("env").cloned().unwrap_or_else(|| "production".to_string());
+    let bind = match domain_to_bind(&domains, &domain, &env) {
         Ok(b) => b,
         Err(e) => return err(e),
     };
@@ -186,20 +211,21 @@ async fn issue_tls(
     }
 }
 
-async fn domain_to_bind(
+fn domain_to_bind(
     domains: &ProjectDomainsRef,
     domain: &str,
+    env: &str,
 ) -> Result<crate::domains::DomainBind, String> {
     let d = ProjectDomains::validate_domain(domain)?;
-    let binds = domains
-        .list_for_domain(&d)
-        .map_err(|e| format!("lookup bind: {e}"))?;
-    binds.into_iter().next().ok_or_else(|| format!("no binding for {d}"))
+    domains.get_by_domain_env(&d, env)
 }
 
 #[derive(Debug, serde::Deserialize)]
 pub struct VerifyDomainRequest {
     pub domain: String,
+    /// Environment discriminator (#922); defaults to `production` when absent.
+    #[serde(default)]
+    pub env: Option<String>,
 }
 
 #[derive(Debug, serde::Deserialize)]
