@@ -39,6 +39,7 @@ const MAX_EVENTS: usize = 50000;
 pub struct VibeTelemetry {
     events: RwLock<Vec<VibeTelemetryEvent>>,
     run_metrics: RwLock<HashMap<Uuid, RunMetrics>>,
+    pool: Option<crate::types::DbPool>,
 }
 
 #[derive(Debug, Clone, Default)]
@@ -90,6 +91,24 @@ impl VibeTelemetry {
         Self {
             events: RwLock::new(Vec::new()),
             run_metrics: RwLock::new(HashMap::new()),
+            pool: None,
+        }
+    }
+
+    /// #921 — constructs telemetry with write-through persistence so events
+    /// and dashboards survive a restart. Hydrates the most recent events from
+    /// `vibe_telemetry` on construction; the in-memory vec remains the live
+    /// authority.
+    pub fn with_persistence(pool: crate::types::DbPool) -> Self {
+        let events = crate::catalog_persistence::load_telemetry_events(&pool, MAX_EVENTS as i64)
+            .unwrap_or_else(|e| {
+                log::warn!("telemetry hydrate failed: {e}");
+                Vec::new()
+            });
+        Self {
+            events: RwLock::new(events),
+            run_metrics: RwLock::new(HashMap::new()),
+            pool: Some(pool),
         }
     }
 
@@ -127,9 +146,18 @@ impl VibeTelemetry {
 
         {
             let mut events = self.events.write().await;
-            events.push(event);
+            events.push(event.clone());
             if events.len() > MAX_EVENTS {
                 events.drain(0..5000);
+            }
+        }
+
+        // #921 — write-through persistence. Telemetry is non-critical and the
+        // `vibe_telemetry.run_id` FK may reject an event whose run has not
+        // been persisted yet, so a failed insert is logged (not propagated).
+        if let Some(pool) = &self.pool {
+            if let Err(e) = crate::catalog_persistence::save_telemetry_event(pool, &event) {
+                log::debug!("telemetry persist skipped: {e}");
             }
         }
 

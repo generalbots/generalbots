@@ -7,7 +7,8 @@ use crate::tool_executor::{ToolDescriptor, VibeToolExecutor};
 use crate::types::{VibeProgressEvent, VibeRun, VibeRunConfig, VibeRunState, VibeState, VibeUseCase};
 use axum::{
     extract::{Extension, Path, Query},
-    response::IntoResponse,
+    http::StatusCode,
+    response::{IntoResponse, Response},
     Json,
 };
 use diesel::prelude::*;
@@ -19,6 +20,14 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use botsecurity_auth::auth_api::types::AuthenticatedUser;
+
+/// Upper bound on a single run's intent text (#925). Rejects oversized
+/// requests with 413 instead of feeding unbounded text into prompts/DB JSONB.
+const MAX_INTENT_CHARS: usize = 4000;
+/// Upper bound on tool-call loops per run (#925).
+const MAX_TOOL_CALLS: u32 = 500;
+/// Upper bound on a single run's wall-clock timeout (#925).
+const MAX_TIMEOUT_SECONDS: u64 = 3600;
 
 #[derive(Debug, Deserialize)]
 pub struct CreateRunRequest {
@@ -322,8 +331,25 @@ async fn create_run(
     Extension(api): Extension<Arc<VibeApiInner>>,
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<CreateRunRequest>,
-) -> impl IntoResponse {
-    info!("Vibe create run: {}", &req.intent[..req.intent.len().min(80)]);
+) -> Response {
+    info!("Vibe create run: {}", truncate_chars(&req.intent, 80));
+
+    // #925 — validate intent bounds up front so oversized/empty input returns
+    // a structured error instead of reaching prompts, DB JSONB, or the agent.
+    if req.intent.trim().is_empty() {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "success": false, "error": "intent must not be empty" })),
+        )
+            .into_response();
+    }
+    if req.intent.chars().count() > MAX_INTENT_CHARS {
+        return (
+            StatusCode::PAYLOAD_TOO_LARGE,
+            Json(serde_json::json!({ "success": false, "error": format!("intent exceeds {MAX_INTENT_CHARS} characters") })),
+        )
+            .into_response();
+    }
 
     let use_case = req
         .use_case
@@ -340,8 +366,8 @@ async fn create_run(
         use_case,
         lang: req.lang.unwrap_or_else(|| "en".to_string()),
         auto_approve: req.auto_approve.unwrap_or(false),
-        max_tool_calls: req.max_tool_calls.unwrap_or(50),
-        timeout_seconds: req.timeout_seconds.unwrap_or(300),
+        max_tool_calls: req.max_tool_calls.unwrap_or(50).min(MAX_TOOL_CALLS),
+        timeout_seconds: req.timeout_seconds.unwrap_or(300).min(MAX_TIMEOUT_SECONDS),
         model: req.model,
         llm_key: None,
         llm_url: None,
@@ -363,6 +389,14 @@ async fn create_run(
     let run_id = run.run_id;
     let state_str = run.state.to_string();
     let uc_str = run.use_case.to_string();
+
+    // #921 — persist the run row *before* the first telemetry event so the
+    // `vibe_telemetry.run_id` FK is satisfied and the run stays durable even
+    // if the process dies mid-execution. save_run upserts, so the later
+    // completion snapshot still wins.
+    if let Err(e) = api.runs_store.save_run(&run) {
+        error!("Vibe: persist run {run_id} failed: {e}");
+    }
 
     let ctx = api.prompt_manager.build_context(
         run.use_case,
@@ -509,6 +543,7 @@ async fn create_run(
         system_prompt,
         error: None,
     })
+    .into_response()
 }
 
 async fn get_run(
@@ -932,9 +967,44 @@ fn parse_use_case(s: &str) -> Option<VibeUseCase> {
     }
 }
 
+/// Cuts `text` on a character boundary (not a byte boundary) so logging a
+/// multi-byte UTF-8 intent can never panic (#925).
+fn truncate_chars(text: &str, limit: usize) -> &str {
+    if text.len() <= limit {
+        return text;
+    }
+    let mut end = limit;
+    while !text.is_char_boundary(end) {
+        end -= 1;
+    }
+    &text[..end]
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn truncate_chars_never_panics_on_multibyte_boundary() {
+        // 79 ASCII chars + a 2-byte 'é' at the boundary would panic under
+        // byte slicing; the char-safe cut must not.
+        let s = format!("{}é", "a".repeat(79));
+        let out = truncate_chars(&s, 80);
+        assert!(s.starts_with(out));
+        assert!(out.len() <= 80);
+        assert_eq!(truncate_chars("short", 80), "short");
+        assert_eq!(truncate_chars("", 80), "");
+    }
+
+    #[test]
+    fn truncate_chars_handles_portuguese_and_emoji() {
+        // 'coração' has multi-byte 'ç'/'ã'; '🚀' is a 4-byte emoji. Both must
+        // survive a cut that lands inside them without panicking.
+        let pt = "eu quero agendar um batizado na catedral da sé, coração".repeat(4);
+        assert!(truncate_chars(&pt, 80).len() <= 80);
+        let emoji = format!("{}🚀", "x".repeat(79));
+        assert!(truncate_chars(&emoji, 80).len() <= 80);
+    }
 
     #[test]
     fn derive_project_name_strips_stopwords_and_slugs() {

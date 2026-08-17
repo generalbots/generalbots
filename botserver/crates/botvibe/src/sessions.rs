@@ -37,9 +37,14 @@ impl SessionStore {
     }
 
     /// #816 — write-through persistence so sessions survive restarts.
+    /// Hydrates from the database on construction (#921).
     pub fn with_persistence(pool: crate::types::DbPool) -> Self {
+        let sessions = crate::catalog_persistence::load_sessions(&pool).unwrap_or_else(|e| {
+            log::warn!("session hydrate failed: {e}");
+            Vec::new()
+        });
         Self {
-            sessions: RwLock::new(Vec::new()),
+            sessions: RwLock::new(sessions),
             pool: Some(pool),
         }
     }

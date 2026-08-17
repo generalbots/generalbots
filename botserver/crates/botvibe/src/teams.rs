@@ -45,9 +45,14 @@ impl TeamStore {
     }
 
     /// #816 — write-through persistence so teams survive restarts.
+    /// Hydrates from the database on construction (#921).
     pub fn with_persistence(pool: crate::types::DbPool) -> Self {
+        let teams = crate::catalog_persistence::load_teams(&pool).unwrap_or_else(|e| {
+            log::warn!("team hydrate failed: {e}");
+            Vec::new()
+        });
         Self {
-            teams: RwLock::new(Vec::new()),
+            teams: RwLock::new(teams),
             pool: Some(pool),
         }
     }

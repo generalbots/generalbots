@@ -146,7 +146,7 @@ pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
         info!("Vibe: marked {recovered} orphaned run(s) as failed after restart");
     }
     let tool_executor = Arc::new(VibeToolExecutor::new(tool_registry));
-    let telemetry = Arc::new(VibeTelemetry::new());
+    let telemetry = Arc::new(VibeTelemetry::with_persistence(app_state.conn.clone()));
 
     let vm_ops = Arc::new(VmOps::new(app_state.conn.clone()));
     let backups = Arc::new(Backups::new(app_state.conn.clone()));
