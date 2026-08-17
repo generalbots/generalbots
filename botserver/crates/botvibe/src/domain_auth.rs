@@ -103,10 +103,17 @@ pub async fn domain_auth(
             return (StatusCode::BAD_REQUEST, "missing or invalid 'domain'").into_response();
         }
     };
-    let bind = match domains.get_by_domain(&domain) {
+    // #922 — resolve the binding for the explicit environment (default
+    // production) so multi-environment deployments cannot authorize/proxy the
+    // wrong environment for a domain.
+    let env = params
+        .get("env")
+        .cloned()
+        .unwrap_or_else(|| "production".to_string());
+    let bind = match domains.get_by_domain_env(&domain, &env) {
         Ok(b) => b,
         Err(e) => {
-            log::warn!("domain-auth: no binding for {domain}: {e}");
+            log::warn!("domain-auth: no binding for {domain}/{env}: {e}");
             return (StatusCode::NOT_FOUND, "no binding for domain").into_response();
         }
     };

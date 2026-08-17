@@ -207,8 +207,9 @@ async fn do_domain_security(args: Value, pool: crate::types::DbPool) -> Result<V
         .filter(|s| !s.is_empty())
         .map(String::from);
     let d = ProjectDomains::validate_domain(domain)?;
+    let env = args.get("env").and_then(|v| v.as_str()).unwrap_or("production").to_string();
     let domains = ProjectDomains::new(pool);
-    let bind = domains.get_by_domain(&d)?;
+    let bind = domains.get_by_domain_env(&d, &env)?;
     let updated = domains.update_access(bind.id, access, allowed_emails).await?;
     Ok(serde_json::json!({
         "updated": true,
@@ -224,7 +225,8 @@ async fn do_domain_verify(args: Value, pool: crate::types::DbPool) -> Result<Val
         .get("domain")
         .and_then(|v| v.as_str())
         .ok_or_else(|| "domain/verify requires 'domain'".to_string())?;
-    ProjectDomains::new(pool).verify_dns(domain)
+    let env = args.get("env").and_then(|v| v.as_str()).unwrap_or("production").to_string();
+    ProjectDomains::new(pool).verify_dns(domain, &env)
 }
 
 async fn domain_tls(args: Value, pool: crate::types::DbPool) -> VibeToolResult {
@@ -241,11 +243,9 @@ async fn do_domain_tls(args: Value, pool: crate::types::DbPool) -> Result<Value,
         .and_then(|v| v.as_str())
         .ok_or_else(|| "domain/tls requires 'domain'".to_string())?;
     let d = ProjectDomains::validate_domain(domain)?;
+    let env = args.get("env").and_then(|v| v.as_str()).unwrap_or("production").to_string();
     let domains = ProjectDomains::new(pool);
-    let binds = domains.list_for_domain(&d)?;
-    let bind = binds
-        .into_iter()
-        .next()
-        .ok_or_else(|| format!("no binding for {d}; bind it first with domain/bind"))?;
+    let bind = domains.get_by_domain_env(&d, &env)
+        .map_err(|_| format!("no binding for {d}/{env}; bind it first with domain/bind"))?;
     domains.issue_tls(&bind).await
 }

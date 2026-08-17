@@ -296,18 +296,14 @@ impl ProjectDomains {
         Ok(bind)
     }
 
-    /// Looks up the single binding for a domain (any env) — used by the
-    /// public forward-auth endpoint.
-    pub fn get_by_domain(&self, domain: &str) -> Result<DomainBind, String> {
+    /// Looks up a binding for a domain in a specific environment (#922).
+    /// The schema allows the same domain in multiple environments, so any
+    /// `ORDER BY env LIMIT 1` lookup is ambiguous and can authorize/proxy the
+    /// wrong environment. Callers must pass an explicit env.
+    pub fn get_by_domain_env(&self, domain: &str, env: &str) -> Result<DomainBind, String> {
         let mut conn = self.conn()?;
-        diesel::sql_query(
-            "SELECT id, project_id, org_id, branch_id, domain, env, container, verified, verify_token, tls_status, tls_error, access, allowed_emails, created_at, updated_at
-             FROM project_domains WHERE domain = $1 ORDER BY env LIMIT 1",
-        )
-        .bind::<diesel::sql_types::Text, _>(domain)
-        .get_result::<DomainRow>(&mut conn)
-        .map(|r| r.into_bind())
-        .map_err(|e| format!("domain lookup: {e}"))
+        self.select_by_domain_env(&mut conn, domain, env.trim().to_lowercase().as_str())
+            .map(|r| r.into_bind())
     }
 
     /// Resolves the SaaS JWT secret used to sign cloud-login tokens
@@ -350,19 +346,6 @@ impl ProjectDomains {
         Ok(rows.into_iter().map(|r| r.into_bind()).collect())
     }
 
-    /// All bindings for a domain across environments (upsert/reuse target).
-    pub fn list_for_domain(&self, domain: &str) -> Result<Vec<DomainBind>, String> {
-        let mut conn = self.conn()?;
-        let rows = diesel::sql_query(
-            "SELECT id, project_id, org_id, branch_id, domain, env, container, verified, verify_token, tls_status, tls_error, access, allowed_emails, created_at, updated_at
-             FROM project_domains WHERE domain = $1 ORDER BY env",
-        )
-        .bind::<diesel::sql_types::Text, _>(domain)
-        .load::<DomainRow>(&mut conn)
-        .map_err(|e| format!("list binds by domain: {e}"))?;
-        Ok(rows.into_iter().map(|r| r.into_bind()).collect())
-    }
-
     pub async fn unbind(&self, bind_id: Uuid) -> Result<(), String> {
         let mut conn = self.conn()?;
         let row = diesel::sql_query(
@@ -387,16 +370,14 @@ impl ProjectDomains {
 
     /// #774 — Verify DNS ownership: `_gb-verify.<domain>` TXT must contain
     /// the recorded token. Uses `dig` through the harness command guard.
-    pub fn verify_dns(&self, domain: &str) -> Result<serde_json::Value, String> {
+    ///
+    /// #922 — env-specific: resolves the exact binding for `domain`+`env`
+    /// rather than the first row for the domain.
+    pub fn verify_dns(&self, domain: &str, env: &str) -> Result<serde_json::Value, String> {
         let domain = Self::validate_domain(domain)?;
+        let env = env.trim().to_lowercase();
         let mut conn = self.conn()?;
-        let row = diesel::sql_query(
-            "SELECT id, project_id, org_id, branch_id, domain, env, container, verified, verify_token, tls_status, tls_error, access, allowed_emails, created_at, updated_at
-             FROM project_domains WHERE domain = $1",
-        )
-        .bind::<diesel::sql_types::Text, _>(&domain)
-        .get_result::<DomainRow>(&mut conn)
-        .map_err(|e| format!("lookup bind: {e}"))?;
+        let row = self.select_by_domain_env(&mut conn, &domain, &env)?;
         let expected = row.verify_token.clone().unwrap_or_default();
 
         let records = crate::harness::cmd::run(
@@ -468,6 +449,14 @@ impl ProjectDomains {
     /// HTTPS policy issues the certificate on first request; reports the
     /// proxied configuration state.
     pub async fn issue_tls(&self, bind: &DomainBind) -> Result<serde_json::Value, String> {
+        // #922 — never activate a public route or issue TLS for an unverified
+        // domain; require successful ownership verification first.
+        if !bind.verified {
+            return Err(format!(
+                "domain '{}' is not verified; complete DNS verification before enabling TLS",
+                bind.domain
+            ));
+        }
         let route_applied = caddy::upsert_route(&bind.domain, &bind.container, &bind.access).await;
         let route_state = match &route_applied {
             Ok(CaddyResult { route_id, .. }) => Ok(route_id.clone()),
