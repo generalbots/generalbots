@@ -164,7 +164,7 @@
             }
         };
         try {
-            var resp = await fetch("/api/vibe/projects", {
+            var resp = await vibeAuthFetch("/api/vibe/projects", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
@@ -201,7 +201,7 @@
             runner_enabled: kindId === "custom" && env === "development"
         };
         try {
-            await fetch("/api/vibe/projects/" + project.id + "/vms", {
+            await vibeAuthFetch("/api/vibe/projects/" + project.id + "/vms", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)

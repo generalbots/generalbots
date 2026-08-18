@@ -52,11 +52,14 @@
         spacer.style.flex = "1";
         var probe = D.el("button", "vibe-btn", "🔍 Probe env");
         probe.addEventListener("click", probeEnv);
+        var preview = D.el("button", "vibe-btn", "🌐 Preview App");
+        preview.addEventListener("click", previewApp);
         var deployBtn = D.el("button", "vibe-btn primary", "🚀 Deploy pipeline");
         deployBtn.addEventListener("click", deployPipeline);
         toolbar.appendChild(label);
         toolbar.appendChild(spacer);
         toolbar.appendChild(probe);
+        toolbar.appendChild(preview);
         toolbar.appendChild(deployBtn);
 
         var grid = D.el("div", "vibe-grid");
@@ -287,6 +290,36 @@
             if (grid) grid.innerHTML = html;
         }).catch(function (err) {
             if (grid) grid.innerHTML = '<div class="vibe-empty">Probe error: ' + D.esc(err) + "</div>";
+        });
+    }
+
+    function previewApp() {
+        if (!state.projectId) return;
+        var previewWindow = window.open("about:blank", "_blank");
+        if (!previewWindow) {
+            var grid = document.getElementById("vibeDeployMain");
+            if (grid) grid.innerHTML = '<div class="vibe-empty">Allow pop-ups to open the app preview.</div>';
+            return;
+        }
+        previewWindow.document.body.innerHTML = "<p style='font-family:system-ui;padding:24px'>Resolving project preview…</p>";
+        D.api("/api/vibe/projects/" + encodeURIComponent(state.projectId)).then(function (projectData) {
+            var project = projectData && projectData.project;
+            var env = (project && (project.environment || project.env)) || "development";
+            return D.api("/api/vibe/projects/" + encodeURIComponent(state.projectId) + "/preview?env=" + encodeURIComponent(env));
+        }).then(function (data) {
+            var payload = data && data.data ? data.data : data;
+            var url = payload && payload.preview_url;
+            if (!url || (String(url).indexOf("http://") !== 0 && String(url).indexOf("https://") !== 0)) {
+                previewWindow.close();
+                var grid = document.getElementById("vibeDeployMain");
+                if (grid) grid.innerHTML = '<div class="vibe-empty">No live URL yet. Deploy the project first.</div>';
+                return;
+            }
+            previewWindow.location.href = url;
+        }).catch(function (err) {
+            previewWindow.close();
+            var grid = document.getElementById("vibeDeployMain");
+            if (grid) grid.innerHTML = '<div class="vibe-empty">Preview error: ' + D.esc(err) + "</div>";
         });
     }
 

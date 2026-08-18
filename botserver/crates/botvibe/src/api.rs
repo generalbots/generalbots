@@ -134,8 +134,17 @@ fn resolve_project(
     req: &CreateRunRequest,
 ) -> (Option<String>, Option<String>) {
     match (req.project_id.as_deref(), req.project_name.as_deref()) {
-        (Some(pid), name) => (Some(pid.to_string()), name.map(String::from)),
-        (None, Some(name)) => (None, Some(name.to_string())),
+        (Some(pid), name) => {
+            // The UUID is authoritative. Resolve the canonical registry name
+            // instead of trusting a stale display label from the browser; the
+            // name is the workspace key used by all file/shell tools.
+            let canonical = Uuid::parse_str(pid)
+                .ok()
+                .and_then(|id| registry.get(id).ok().flatten())
+                .map(|project| crate::vm_lifecycle::VmLifecycle::alm_repo(&project.name));
+            (Some(pid.to_string()), canonical.or_else(|| name.map(String::from)))
+        }
+        (None, Some(name)) => (None, Some(crate::vm_lifecycle::VmLifecycle::alm_repo(name))),
         (None, None) => {
             let name = derive_project_name(&req.intent);
             let org_id = user.organization_id.unwrap_or_else(Uuid::nil);
@@ -439,7 +448,11 @@ async fn create_run(
 
     {
         let mut runs = api.runs.write().await;
-        runs.insert(run_id, run);
+        runs.insert(run_id, run.clone());
+    }
+    {
+        let mut runs = api.state.active_runs().write().await;
+        runs.insert(run_id, run.clone());
     }
 
     api.state.broadcast_progress(
@@ -546,8 +559,12 @@ async fn create_run(
             if let Err(e) = api_clone.runs_store.save_run(&run) {
                 error!("Vibe: persist run {run_id} failed: {e}");
             }
+            let final_run = run.clone();
             let mut runs = api_clone.runs.write().await;
             runs.insert(run_id, run);
+            drop(runs);
+            let mut state_runs = api_clone.state.active_runs().write().await;
+            state_runs.insert(run_id, final_run);
         }
     });
 
@@ -566,6 +583,11 @@ async fn get_run(
     Extension(api): Extension<Arc<VibeApiInner>>,
     Path(run_id): Path<Uuid>,
 ) -> impl IntoResponse {
+    let state_runs = api.state.active_runs().read().await;
+    if let Some(run) = state_runs.get(&run_id) {
+        return Json(run_to_response(run));
+    }
+    drop(state_runs);
     let runs = api.runs.read().await;
     if let Some(run) = runs.get(&run_id) {
         return Json(run_to_response(run));
@@ -661,6 +683,12 @@ async fn cancel_run(
         cancel_run_inner(run);
         let snapshot = run.clone();
         drop(runs);
+        {
+            let mut state_runs = api.state.active_runs().write().await;
+            if let Some(state_run) = state_runs.get_mut(&run_id) {
+                cancel_run_inner(state_run);
+            }
+        }
         if let Err(e) = api.runs_store.save_run(&snapshot) {
             error!("Vibe: persist cancelled run {run_id} failed: {e}");
         }
@@ -709,6 +737,12 @@ async fn approve_run(
         info!("Vibe run approved: {run_id}");
         let snapshot = run.clone();
         drop(runs);
+        {
+            let mut state_runs = api.state.active_runs().write().await;
+            if let Some(state_run) = state_runs.get_mut(&run_id) {
+                approve_run_inner(state_run);
+            }
+        }
         if let Err(e) = api.runs_store.save_run(&snapshot) {
             error!("Vibe: persist approved run {run_id} failed: {e}");
         }

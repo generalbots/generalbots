@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::extract::{Extension, Path};
+use axum::extract::{Extension, Path, Query};
 use axum::http::StatusCode;
 use axum::routing::{get, post};
 use axum::{Json, Router};
@@ -31,6 +31,12 @@ pub struct OpsRoutes {
     pub metering: VMeteringRef,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct PreviewQuery {
+    #[serde(default = "default_env")]
+    pub env: String,
+}
+
 #[derive(Deserialize)]
 pub struct BackupCreateRequest {
     #[serde(default = "default_env")]
@@ -45,6 +51,7 @@ pub fn ops_router(routes: OpsRoutes) -> Router {
     Router::new()
         .route("/api/vibe/projects/:project_id/envs/:env/probe", post(probe))
         .route("/api/vibe/projects/:project_id/envs/:env/restart", post(restart))
+        .route("/api/vibe/projects/:project_id/preview", get(preview))
         .route("/api/vibe/projects/:project_id/deployments", get(history))
         .route("/api/vibe/projects/:project_id/deployments/:index/rollback", post(rollback))
         .route("/api/vibe/projects/:project_id/backups", get(list_backups))
@@ -94,6 +101,51 @@ async fn probe(
     match routes.vm_ops.probe_and_recover(pid, &env, auto).await {
         Ok(report) => ok(json!({ "probe": report })),
         Err(e) => err(e),
+    }
+}
+
+/// Resolve the best browser-openable URL for the selected project. A
+/// successful deployment URL is preferred; otherwise the VM probe URL is
+/// returned so the UI can still diagnose the live environment.
+async fn preview(
+    Extension(routes): Extension<OpsRoutes>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(project_id): Path<String>,
+    Query(query): Query<PreviewQuery>,
+) -> ApiResult {
+    let pid = match parse_project_id(&project_id) {
+        Ok(id) => id,
+        Err(r) => return r,
+    };
+    match routes.rbac.require_role(user.user_id, pid, ProjectRole::Viewer) {
+        Ok(_) => {}
+        Err(e) => return forbidden(e),
+    }
+    let deployments = match routes.registry.list_deployments(pid, Some(&query.env)) {
+        Ok(rows) => rows,
+        Err(e) => return err(e),
+    };
+    let deployed_url = deployments.iter().find_map(|row| {
+        row.get("url")
+            .and_then(|value| value.as_str())
+            .filter(|value| !value.trim().is_empty())
+            .map(ToString::to_string)
+    });
+    let probe = routes.vm_ops.probe_and_recover(pid, &query.env, false).await;
+    match probe {
+        Ok(report) => ok(json!({
+            "preview_url": deployed_url.clone().or_else(|| report.url.clone()),
+            "deployed_url": deployed_url,
+            "probe": report,
+            "env": query.env,
+        })),
+        Err(e) => {
+            if let Some(url) = deployed_url {
+                ok(json!({ "preview_url": url, "deployed_url": url, "env": query.env }))
+            } else {
+                err(e)
+            }
+        }
     }
 }
 

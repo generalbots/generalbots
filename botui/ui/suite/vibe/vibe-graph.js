@@ -68,7 +68,7 @@ window.VibeGraph = window.VibeGraph || {
         try {
             const label = document.getElementById('vibeGraphUseCaseLabel');
             if (label) label.textContent = useCase;
-            const resp = await fetch(`/api/vibe/graph/${useCase}`);
+            const resp = await vibeAuthFetch(`/api/vibe/graph/${useCase}`);
             const data = await resp.json();
             if (data.success && data.graph) {
                 const w = Math.max(1, this.canvas.width);
@@ -92,7 +92,7 @@ window.VibeGraph = window.VibeGraph || {
         const target = document.getElementById('vibeCapabilities');
         if (!target) return;
         try {
-            const resp = await fetch(`/api/vibe/capabilities/${useCase}`);
+            const resp = await vibeAuthFetch(`/api/vibe/capabilities/${useCase}`);
             const data = await resp.json();
             if (!data.success) return;
             target.innerHTML = data.capabilities
@@ -259,7 +259,7 @@ window.VibeGraph = window.VibeGraph || {
 
     loadRunGraph: async function(runId) {
         try {
-            const resp = await fetch(`/api/vibe/graph/run/${runId}`);
+            const resp = await vibeAuthFetch(`/api/vibe/graph/run/${runId}`);
             const data = await resp.json();
             if (data.success && data.graph) {
                 this.nodes = data.graph.nodes.map((n, i) => ({
