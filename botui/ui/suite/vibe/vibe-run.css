@@ -16,6 +16,8 @@
     bottom: 24px;
     right: 424px;
     width: 340px;
+    min-width: 220px;
+    min-height: 48px;
     max-height: calc(100% - 96px);
     background: var(--surface);
     border: 1px solid var(--border);
