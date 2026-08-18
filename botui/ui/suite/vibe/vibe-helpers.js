@@ -67,6 +67,104 @@ vibeStreamContent = "";
 vibeStreaming = false;
 }
 
+/* ----------------------------------------------------------------
+ * Floating Vibe windows — drag (header) + resize (corner grip).
+ * Applies to the chat overlay, run dock, graph panel and metrics
+ * panel so every panel is movable/resizable like a desktop window.
+ * ---------------------------------------------------------------- */
+function vibeMakeWindowDraggable(el, handleSel) {
+    if (!el || el.dataset.vibeDrag) return; // already wired
+    el.dataset.vibeDrag = "1";
+    var handle = handleSel ? el.querySelector(handleSel) : el;
+    if (!handle) handle = el;
+    handle.style.cursor = "move";
+    var startX = 0, startY = 0, origLeft = 0, origTop = 0, dragging = false, moved = false;
+    handle.addEventListener("mousedown", function (e) {
+        if (e.button !== 0) return;
+        // Ignore drags that begin on buttons/inputs/links inside the header.
+        if (e.target.closest("button,input,select,a,textarea")) return;
+        dragging = true;
+        moved = false;
+        startX = e.clientX;
+        startY = e.clientY;
+        // Switch to explicit left/top coordinates (panels start at
+        // bottom/right anchored); keep the current position.
+        var rect = el.getBoundingClientRect();
+        origLeft = rect.left;
+        origTop = rect.top;
+        el.style.left = rect.left + "px";
+        el.style.top = rect.top + "px";
+        el.style.right = "auto";
+        el.style.bottom = "auto";
+        e.preventDefault();
+    });
+    document.addEventListener("mousemove", function (e) {
+        if (!dragging) return;
+        var dx = e.clientX - startX;
+        var dy = e.clientY - startY;
+        if (!moved && Math.hypot(dx, dy) > 4) moved = true;
+        if (!moved) return;
+        el.style.left = Math.max(0, origLeft + dx) + "px";
+        el.style.top = Math.max(0, origTop + dy) + "px";
+    });
+    document.addEventListener("mouseup", function () {
+        dragging = false;
+    });
+    // Suppress the click (e.g. the run dock's collapse toggle) after an
+    // actual drag — a drag must not toggle the panel.
+    handle.addEventListener("click", function (e) {
+        if (moved) {
+            e.preventDefault();
+            e.stopPropagation();
+            moved = false;
+        }
+    }, true);
+}
+
+function vibeMakeWindowResizable(el, minW, minH) {
+    if (!el || el.dataset.vibeResize) return; // already wired
+    el.dataset.vibeResize = "1";
+    minW = minW || 240;
+    minH = minH || 160;
+    var grip = document.createElement("div");
+    grip.style.cssText =
+        "position:absolute;right:0;bottom:0;width:16px;height:16px;cursor:se-resize;" +
+        "background:linear-gradient(135deg,transparent 50%,rgba(255,255,255,0.18) 50%);" +
+        "border-bottom-right-radius:10px;z-index:5;";
+    el.style.position = "absolute";
+    el.appendChild(grip);
+    var startX = 0, startY = 0, origW = 0, origH = 0, resizing = false;
+    grip.addEventListener("mousedown", function (e) {
+        if (e.button !== 0) return;
+        resizing = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        origW = el.offsetWidth;
+        origH = el.offsetHeight;
+        e.preventDefault();
+        e.stopPropagation();
+    });
+    document.addEventListener("mousemove", function (e) {
+        if (!resizing) return;
+        el.style.width = Math.max(minW, origW + (e.clientX - startX)) + "px";
+        el.style.height = Math.max(minH, origH + (e.clientY - startY)) + "px";
+    });
+    document.addEventListener("mouseup", function () {
+        resizing = false;
+    });
+}
+
+function vibeWireWindowPanels() {
+    vibeMakeWindowDraggable(document.getElementById("vibeChatOverlay"), ".vibe-chat-header, #vibeChatOverlay > div:first-child");
+    vibeMakeWindowDraggable(document.getElementById("vibeRunDock"), ".vibe-rd-handle");
+    vibeMakeWindowDraggable(document.getElementById("vibeGraphPanel"), "#vibeGraphPanel > div:first-child");
+    vibeMakeWindowDraggable(document.getElementById("vibeMetricsPanel"), "#vibeMetricsPanel > div:first-child");
+    vibeMakeWindowResizable(document.getElementById("vibeChatOverlay"), 300, 240);
+    vibeMakeWindowResizable(document.getElementById("vibeRunDock"), 260, 200);
+    vibeMakeWindowResizable(document.getElementById("vibeGraphPanel"), 320, 240);
+    vibeMakeWindowResizable(document.getElementById("vibeMetricsPanel"), 320, 240);
+}
+
 function setVibeStatus(status) {
 var dot = document.getElementById("vibeChatStatusDot");
 var badge = document.getElementById("vibeChatStatusBadge");

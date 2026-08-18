@@ -87,6 +87,16 @@ function initVibe() {
     var form = document.getElementById("vibeChatForm");
     if (form) form.addEventListener("submit", handleVibeSubmit);
 
+    // Make floating panels (chat, run dock, graph, metrics) draggable and
+    // resizable. The run dock arrives via HTMX after load, so wire again on
+    // swap; vibeWireWindowPanels() is idempotent (per-element data guard).
+    if (typeof vibeWireWindowPanels === "function") vibeWireWindowPanels();
+    if (window.htmx) {
+        document.body.addEventListener("htmx:afterSwap", function () {
+            if (typeof vibeWireWindowPanels === "function") vibeWireWindowPanels();
+        });
+    }
+
     connectVibeWs();
 }
 

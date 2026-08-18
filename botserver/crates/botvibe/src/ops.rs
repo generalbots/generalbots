@@ -22,6 +22,9 @@ pub struct ProbeReport {
     pub env: String,
     pub running: bool,
     pub http_code: Option<u16>,
+    /// The URL the app answers on (container IP:app port) — lets the UI show
+    /// a real "Open app" link instead of an empty deploy screen.
+    pub url: Option<String>,
     pub ok: bool,
     pub error: Option<String>,
     pub checked_at: String,
@@ -35,6 +38,7 @@ impl ProbeReport {
             env: env.to_string(),
             running: false,
             http_code: None,
+            url: None,
             ok: false,
             error: Some(reason),
             checked_at: Utc::now().to_rfc3339(),
@@ -82,6 +86,7 @@ impl VmOps {
             env: vm.env.clone(),
             running,
             http_code: None,
+            url: None,
             ok: false,
             error: None,
             checked_at: Utc::now().to_rfc3339(),
@@ -101,6 +106,7 @@ impl VmOps {
             }
             _ => probe_url(&vm.container_name),
         };
+        report.url = Some(url.clone());
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(5))
             .build()

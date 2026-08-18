@@ -16,6 +16,10 @@ pub struct CreateTerminalRequest {
     pub cwd: Option<String>,
     #[serde(default)]
     pub shell: Option<String>,
+    /// Optional project VM container to exec into (e.g. `calculator-prod`).
+    /// When set the shell runs inside that container via `incus exec`.
+    #[serde(default)]
+    pub container: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -39,7 +43,11 @@ async fn create_terminal(
 ) -> impl IntoResponse {
     let shell = req.shell.unwrap_or_else(default_shell);
     let cwd = sanitize_cwd(req.cwd.as_deref().unwrap_or(""));
-    let result = manager.create_session(shell, cwd);
+    let container = req.container.clone().filter(|c| !c.trim().is_empty());
+    let result = match container {
+        Some(name) => manager.create_session_with_container(shell, cwd, Some(name)),
+        None => manager.create_session(shell, cwd),
+    };
     let (code, body) = match result {
         Ok(session) => (
             axum::http::StatusCode::OK,

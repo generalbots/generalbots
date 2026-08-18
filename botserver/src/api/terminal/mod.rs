@@ -27,6 +27,10 @@ pub struct TerminalSession {
     pub id: String,
     pub shell: String,
     pub cwd: String,
+    /// Optional project VM container to attach to (`incus exec`). When set,
+    /// the shell runs INSIDE that container instead of on the botserver host,
+    /// so the Vibe terminal shows the project's environment, not the server.
+    pub container: Option<String>,
     pub created_at: DateTime<Utc>,
     pub child: Mutex<Option<Box<dyn portable_pty::Child + Send + Sync>>>,
     pub writer: Mutex<Option<Box<dyn Write + Send>>>,
@@ -38,11 +42,16 @@ pub struct TerminalSession {
 
 impl TerminalSession {
     pub fn new(id: String, shell: String, cwd: String) -> Self {
+        Self::new_with_container(id, shell, cwd, None)
+    }
+
+    pub fn new_with_container(id: String, shell: String, cwd: String, container: Option<String>) -> Self {
         let (tx, _) = broadcast::channel(1024);
         Self {
             id,
             shell,
             cwd,
+            container,
             created_at: Utc::now(),
             child: Mutex::new(None),
             writer: Mutex::new(None),
@@ -78,18 +87,36 @@ impl TerminalSession {
             .openpty(portable_pty::PtySize { rows: 24, cols: 80, pixel_width: 0, pixel_height: 0 })
             .map_err(|e| format!("openpty: {e}"))?;
 
-        let mut cmd = portable_pty::CommandBuilder::new(&self.shell);
-        cmd.cwd(&self.cwd);
+        // Attached mode: run the shell inside the project's VM container
+        // (`incus exec <container> -- bash -l`) so the terminal reflects the
+        // project environment, not the botserver host filesystem. The PTY
+        // wraps the incus exec client; the container's own pty handles the
+        // remote side.
+        let mut cmd = if let Some(container) = &self.container {
+            if !container.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+                return Err("Invalid container name".to_string());
+            }
+            let shell_arg = if self.shell.is_empty() { "/bin/bash".to_string() } else { self.shell.clone() };
+            let mut c = portable_pty::CommandBuilder::new("incus");
+            c.args(["exec", container, "--", "env", "TERM=xterm-256color", &shell_arg, "-l"]);
+            c
+        } else {
+            let mut c = portable_pty::CommandBuilder::new(&self.shell);
+            c.cwd(&self.cwd);
+            c
+        };
         cmd.env("TERM", "xterm-256color");
         cmd.env("PS1", "\\u@\\h:\\w \\$ ");
         // HOME must be explicit: the child inherits an empty HOME (the server
         // runs without a passwd entry in the container), so interactive bash
         // sources `/.cargo/env` (empty $HOME) and prints a spurious
         // "No such file or directory" before the prompt.
-        if let Ok(home) = std::env::var("HOME") {
-            cmd.env("HOME", home);
-        } else {
-            cmd.env("HOME", "/root");
+        if self.container.is_none() {
+            if let Ok(home) = std::env::var("HOME") {
+                cmd.env("HOME", home);
+            } else {
+                cmd.env("HOME", "/root");
+            }
         }
 
         let child = pair
@@ -180,8 +207,17 @@ impl TerminalManager {
     }
 
     pub fn create_session(&self, shell: String, cwd: String) -> Result<Arc<TerminalSession>, String> {
+        self.create_session_with_container(shell, cwd, None)
+    }
+
+    pub fn create_session_with_container(
+        &self,
+        shell: String,
+        cwd: String,
+        container: Option<String>,
+    ) -> Result<Arc<TerminalSession>, String> {
         let id = Uuid::new_v4().to_string();
-        let session = Arc::new(TerminalSession::new(id.clone(), shell, cwd));
+        let session = Arc::new(TerminalSession::new_with_container(id.clone(), shell, cwd, container));
         session.spawn().map_err(|e| format!("spawn: {e}"))?;
         self.sessions
             .lock()

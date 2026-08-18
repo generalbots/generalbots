@@ -138,10 +138,17 @@
                 var row = D.el("div", "vibe-sec-row");
                 row.style.cssText = "display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 10px;border-top:1px solid var(--border, #222);";
 
-                var d = D.el("span");
-                d.textContent = b.domain || "?";
+                var d = D.el("a");
+                var proto = location.protocol === "https:" ? "https://" : "http://";
+                d.href = proto + (b.domain || "");
+                d.target = "_blank";
+                d.rel = "noopener";
+                d.textContent = (b.verified ? "🔗 " : "⏳ ") + (b.domain || "?");
                 d.style.flex = "1";
                 d.style.minWidth = "180px";
+                d.style.color = b.verified ? "var(--accent, #84d669)" : "var(--text-muted, #888)";
+                d.style.textDecoration = b.verified ? "underline" : "none";
+                d.title = b.verified ? "Open app (domain " + (b.domain || "") + ")" : "Domain not verified yet";
 
                 var sel = D.el("select", "vibe-select");
                 sel.style.minWidth = "130px";
@@ -261,10 +268,23 @@
             method: "POST",
             body: {},
         }).then(function (data) {
-            if (grid) {
-                grid.innerHTML = '<div class="vibe-diff"><pre>' +
-                    D.esc(JSON.stringify(data || {}, null, 2)) + "</pre></div>";
+            var probe = (data && data.probe) || (data && data.data && data.data.probe) || (data && data.data && data.data.data && data.data.data.probe);
+            var url = probe && probe.url;
+            var html = "";
+            if (url) {
+                // The whole point of deploy: a clickable link to the running app.
+                html += '<div class="vibe-card" style="margin-bottom:10px;padding:12px;border:1px solid var(--accent,#84d669);">' +
+                    '<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">🚀 OPEN YOUR APP</div>' +
+                    '<a href="' + D.esc(url) + '" target="_blank" rel="noopener" style="font-size:14px;font-weight:700;color:var(--accent,#84d669);text-decoration:none;">' +
+                    D.esc(url) + " ↗</a>" +
+                    '<div style="font-size:10px;color:var(--text-muted);margin-top:6px;">env ' + D.esc(env) +
+                    (probe.http_code ? " · http " + probe.http_code : "") +
+                    (probe.ok ? " · UP" : " · down") + "</div></div>";
+            } else if (probe && probe.running === false) {
+                html += '<div class="vibe-empty">Container not running — launch the deploy pipeline.</div>';
             }
+            html += '<div class="vibe-diff"><pre>' + D.esc(JSON.stringify(data || {}, null, 2)) + "</pre></div>";
+            if (grid) grid.innerHTML = html;
         }).catch(function (err) {
             if (grid) grid.innerHTML = '<div class="vibe-empty">Probe error: ' + D.esc(err) + "</div>";
         });

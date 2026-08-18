@@ -2,12 +2,14 @@
  * Vibe Schema dialog — real database browser.
  * Sidebar lists tables from /api/database/schema; main pane shows
  * columns, data grid and a SQL runner (/api/database/query).
+ * Rows are editable inline (PUT row/:id per cell), deletable, and new rows
+ * can be inserted (POST row) — so the DB grid is not read-only.
  */
 (function () {
     "use strict";
 
     var D = window.VibeDialogs;
-    var state = { tables: [], table: null, page: 1, pageSize: 100, cols: [], rows: [] };
+    var state = { tables: [], table: null, page: 1, pageSize: 100, cols: [], rows: [], pk: null };
 
     function sidebar() {
         var box = document.createElement("div");
@@ -41,12 +43,15 @@
         label.id = "vibeDbTableLabel";
         var refresh = D.el("button", "vibe-btn", "↻ Refresh");
         refresh.addEventListener("click", function () { loadSchema(true); });
+        var insert = D.el("button", "vibe-btn", "➕ Insert Row");
+        insert.addEventListener("click", insertRow);
         var spacer = D.el("span");
         spacer.style.flex = "1";
         var exportBtn = D.el("button", "vibe-btn", "Export CSV");
         exportBtn.addEventListener("click", exportCsv);
         toolbar.appendChild(label);
         toolbar.appendChild(spacer);
+        toolbar.appendChild(insert);
         toolbar.appendChild(refresh);
         toolbar.appendChild(exportBtn);
 
@@ -72,15 +77,15 @@
         if (!list) return;
         if (!state.tables.length) {
             list.innerHTML = '<div class="vibe-empty">No tables found.</div>';
-            document.getElementById("vibeDbGrid").innerHTML =
-                '<div class="vibe-empty">The schema is empty.</div>';
+            var grid = document.getElementById("vibeDbGrid");
+            if (grid) grid.innerHTML = '<div class="vibe-empty">The schema is empty.</div>';
             return;
         }
         list.innerHTML = "";
         state.tables.forEach(function (t) {
             var row = D.el("div", "vibe-list-item");
             if (state.table && state.table.name === t.name) row.classList.add("active");
-            row.innerHTML = "<span>" + D.esc(t.name) + "</span>" +
+            row.innerHTML = "<span>🗄️ " + D.esc(t.name) + "</span>" +
                 '<span class="meta">' + t.row_count + " rows</span>";
             row.addEventListener("click", function () {
                 state.table = t;
@@ -89,6 +94,134 @@
                 loadTableData();
             });
             list.appendChild(row);
+        });
+    }
+
+    /* ------------------------------------------------- cell editing */
+
+    function pkValue(row) {
+        // The data grid returns rows keyed by aliased columns c1..cN in order
+        // of `cols`; the backend also reports `pk_column`. Find the pk value
+        // from the position of the pk column, or fall back to the first col.
+        var idx = state.pk ? state.cols.indexOf(state.pk) : -1;
+        if (idx < 0) idx = 0;
+        var key = "c" + (idx + 1);
+        return row[key] != null ? String(row[key]) : "";
+    }
+
+    function cellInput(row, col, current) {
+        var input = document.createElement("input");
+        input.type = "text";
+        input.value = current == null ? "" : String(current);
+        input.className = "vibe-input";
+        input.style.width = "100%";
+        input.style.boxSizing = "border-box";
+        input.dataset.col = col;
+        var pk = pkValue(row);
+        input.dataset.pk = pk;
+        input.dataset.orig = current == null ? "" : String(current);
+        return input;
+    }
+
+    function saveCell(input) {
+        var tableName = state.table ? state.table.name : null;
+        if (!tableName) return;
+        var col = input.dataset.col;
+        var pk = input.dataset.pk;
+        var value = input.value;
+        input.disabled = true;
+        var req = {
+            column: col,
+            value: value === "" ? null : value,
+        };
+        // The row/:id PUT expects a plain column/value body.
+        var url = "/api/database/table/" + encodeURIComponent(tableName) + "/row/" + encodeURIComponent(pk);
+        D.api(url, { method: "PUT", body: req }).then(function (data) {
+            input.disabled = false;
+            if (data && data.success) {
+                input.dataset.orig = value;
+                var status = document.getElementById("vibeDbTableLabel");
+                if (status) {
+                    status.textContent = "saved " + col + " = " + value.substring(0, 40);
+                    status.className = "vibe-status ok";
+                }
+                setTimeout(function () {
+                    if (status && state.table) {
+                        status.textContent = state.table.name + " — " + state.cols.length + " cols";
+                        status.className = "vibe-status ok";
+                    }
+                }, 1800);
+            } else {
+                input.disabled = false;
+                input.value = input.dataset.orig;
+                var status = document.getElementById("vibeDbTableLabel");
+                if (status) {
+                    status.textContent = "save failed: " + ((data && data.error) || "error");
+                    status.className = "vibe-status err";
+                }
+            }
+        }).catch(function (err) {
+            input.disabled = false;
+            input.value = input.dataset.orig;
+            var status = document.getElementById("vibeDbTableLabel");
+            if (status) {
+                status.textContent = "save error: " + err;
+                status.className = "vibe-status err";
+            }
+        });
+    }
+
+    function deleteRow(row) {
+        var tableName = state.table ? state.table.name : null;
+        if (!tableName) return;
+        var pk = pkValue(row);
+        if (!confirm("Delete row with " + (state.pk || "id") + " = " + pk + "?")) return;
+        var url = "/api/database/table/" + encodeURIComponent(tableName) + "/row/" + encodeURIComponent(pk);
+        D.api(url, { method: "DELETE" }).then(function (data) {
+            var status = document.getElementById("vibeDbTableLabel");
+            if (data && data.success) {
+                if (status) { status.textContent = "row deleted"; status.className = "vibe-status ok"; }
+                loadTableData();
+            } else if (status) {
+                status.textContent = "delete failed: " + ((data && data.error) || "error");
+                status.className = "vibe-status err";
+            }
+        }).catch(function (err) {
+            var status = document.getElementById("vibeDbTableLabel");
+            if (status) { status.textContent = "delete error: " + err; status.className = "vibe-status err"; }
+        });
+    }
+
+    function insertRow() {
+        var tableName = state.table ? state.table.name : null;
+        if (!tableName) return;
+        var data = {};
+        state.cols.forEach(function (c) {
+            var v = prompt("Value for " + c + " (blank = NULL):", "");
+            if (v === null) return; // cancelled
+            if (v === "") {
+                data[c] = null;
+            } else {
+                // Best-effort type inference so numbers/bools stay typed.
+                if (/^-?\d+(\.\d+)?$/.test(v) && String(parseFloat(v)) === v) data[c] = parseFloat(v);
+                else if (v === "true") data[c] = true;
+                else if (v === "false") data[c] = false;
+                else data[c] = v;
+            }
+        });
+        var url = "/api/database/table/" + encodeURIComponent(tableName) + "/row";
+        D.api(url, { method: "POST", body: { data: data } }).then(function (res) {
+            var status = document.getElementById("vibeDbTableLabel");
+            if (res && res.success) {
+                if (status) { status.textContent = "row inserted"; status.className = "vibe-status ok"; }
+                loadTableData();
+            } else if (status) {
+                status.textContent = "insert failed: " + ((res && res.error) || "error");
+                status.className = "vibe-status err";
+            }
+        }).catch(function (err) {
+            var status = document.getElementById("vibeDbTableLabel");
+            if (status) { status.textContent = "insert error: " + err; status.className = "vibe-status err"; }
         });
     }
 
@@ -105,19 +238,41 @@
             return;
         }
         var html = '<table class="vibe-table"><thead><tr><th>#</th>';
-        state.cols.forEach(function (c) { html += "<th>" + D.esc(c) + "</th>"; });
-        html += "</tr></thead><tbody>";
+        state.cols.forEach(function (c) {
+            html += "<th>" + D.esc(c) + (state.pk === c ? " 🔑" : "") + "</th>";
+        });
+        html += "<th></th></tr></thead><tbody>";
         state.rows.forEach(function (row, i) {
             html += "<tr><td>" + ((state.page - 1) * state.pageSize + i + 1) + "</td>";
             state.cols.forEach(function (c) {
-                var v = row[c];
-                html += "<td title='" + D.esc(String(v == null ? "" : v)).replace(/'/g, "&#39;") + "'>" +
-                    D.esc(String(v == null ? "NULL" : v).substring(0, 120)) + "</td>";
+                var key = "c" + (state.cols.indexOf(c) + 1);
+                var v = row[key];
+                var display = v == null ? "NULL" : String(v);
+                html += "<td><input class='vibe-input vibe-cell' data-col='" + D.esc(c) +
+                    "' data-pk='" + D.esc(pkValue(row)) +
+                    "' data-orig='" + D.esc(v == null ? "" : String(v)).replace(/'/g, "&#39;") +
+                    "' value='" + D.esc(display).replace(/'/g, "&#39;") + "' style='width:100%;box-sizing:border-box;padding:3px 6px;font-size:11px;background:var(--bg,#0e0e1a);color:" +
+                    (v == null ? "#666" : "var(--text,#ddd)") + ";border:1px solid transparent;border-radius:4px;' " +
+                    "title='" + D.esc(display).replace(/'/g, "&#39;") + "'></td>";
             });
-            html += "</tr>";
+            html += "<td><button class='vibe-btn vibe-del-btn' title='Delete row' style='padding:2px 7px;'>🗑</button></td></tr>";
         });
         html += "</tbody></table>";
         grid.innerHTML = html;
+
+        // Wire cell save (Enter / blur) and row delete.
+        grid.querySelectorAll(".vibe-cell").forEach(function (input) {
+            input.addEventListener("keydown", function (e) {
+                if (e.key === "Enter") { e.preventDefault(); saveCell(input); }
+                if (e.key === "Escape") { input.value = input.dataset.orig; input.blur(); }
+            });
+            input.addEventListener("blur", function () {
+                if (input.value !== input.dataset.orig) saveCell(input);
+            });
+        });
+        grid.querySelectorAll(".vibe-del-btn").forEach(function (btn, i) {
+            btn.addEventListener("click", function () { deleteRow(state.rows[i]); });
+        });
     }
 
     function loadSchema(quiet) {
@@ -149,6 +304,7 @@
             state.cols = data.columns || [];
             state.rows = data.rows || [];
             state.total = data.total_rows || 0;
+            state.pk = data.pk_column || null;
             renderGrid();
             renderPager();
         }).catch(function (err) {
@@ -181,8 +337,6 @@
             method: "POST",
             body: { query: sql.value.trim() },
         }).then(function (data) {
-            // Backend returns {columns, rows, ...} — it has no `success`
-            // field; treat a missing columns array as failure.
             if (!data || data.error || !Array.isArray(data.columns)) {
                 if (grid) grid.innerHTML = '<div class="vibe-empty">Query error: ' + D.esc((data && data.error) || (data && data.message) || "invalid response") + "</div>";
                 return;
@@ -203,7 +357,8 @@
         var lines = [state.cols.join(",")];
         state.rows.forEach(function (row) {
             lines.push(state.cols.map(function (c) {
-                var v = String(row[c] == null ? "" : row[c]);
+                var key = "c" + (state.cols.indexOf(c) + 1);
+                var v = String(row[key] == null ? "" : row[key]);
                 return '"' + v.replace(/"/g, '""') + '"';
             }).join(","));
         });
@@ -230,7 +385,7 @@
             });
         },
         teardown: function () {
-            state = { tables: [], table: null, page: 1, pageSize: 100, cols: [], rows: [] };
+            state = { tables: [], table: null, page: 1, pageSize: 100, cols: [], rows: [], pk: null };
         },
     });
 })();
