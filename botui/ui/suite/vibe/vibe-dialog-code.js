@@ -183,14 +183,89 @@
 
     /* ------------------------------------------------- file ops */
 
-    function fileIcon(path) {
-        // Directories come from the backend with a trailing slash (list_rel).
-        if (/\/$/.test(path)) return "📁"; // yellow folder, Windows-style
-        return "📄"; // document icon for files
+    function displayName(path) {
+        var clean = String(path).replace(/\/+$/, "");
+        var segs = clean.split("/");
+        return segs[segs.length - 1] || clean;
     }
 
-    function displayName(path) {
-        return path.replace(/\/+$/, "");
+    // Build a hierarchical tree from the backend's recursive flat paths
+    // (`src/`, `src/main.py`, `index.js`). Returns a root node whose
+    // `folders` map holds subdirectories and whose `files` array holds the
+    // full relative path of each file leaf.
+    function buildTree(paths) {
+        var root = { folders: {}, files: [] };
+        paths.forEach(function (p) {
+            var isDir = /\/$/.test(p);
+            var clean = String(p).replace(/\/+$/, "");
+            if (!clean) return;
+            var parts = clean.split("/");
+            var node = root;
+            for (var i = 0; i < parts.length; i++) {
+                var part = parts[i];
+                var last = i === parts.length - 1;
+                if (last && !isDir) {
+                    node.files.push({ path: clean, name: part });
+                } else {
+                    if (!node.folders[part]) {
+                        node.folders[part] = { name: part, folders: {}, files: [] };
+                    }
+                    node = node.folders[part];
+                }
+            }
+        });
+        return root;
+    }
+
+    function folderIcon() {
+        return '<span style="color:#eab308;filter:drop-shadow(0 0 2px rgba(234,179,8,0.4))">📁</span>';
+    }
+
+    function fileIconEl() {
+        return '<span style="color:#9aa4b2">📄</span>';
+    }
+
+    function sortTree(node) {
+        var folders = Object.keys(node.folders).sort();
+        node.files.sort(function (a, b) { return a.name.localeCompare(b.name); });
+        folders.forEach(function (k) { sortTree(node.folders[k]); });
+        node._sortedFolders = folders;
+    }
+
+    function renderTree(node, list, depth) {
+        depth = depth || 0;
+        (node._sortedFolders || Object.keys(node.folders).sort()).forEach(function (key) {
+            var child = node.folders[key];
+            var indent = depth * 14;
+            var row = D.el("div", "vibe-code-file vibe-code-folder");
+            row.style.paddingLeft = (6 + indent) + "px";
+            row.innerHTML = '<span class="vibe-arrow">▸</span>' + folderIcon() +
+                '<span class="vibe-file-name">' + D.esc(key) + "</span>";
+            var arrow = row.querySelector(".vibe-arrow");
+            var expanded = false;
+            var childWrap = D.el("div", "vibe-tree-children");
+            childWrap.style.display = "none";
+            row.addEventListener("click", function () {
+                expanded = !expanded;
+                arrow.textContent = expanded ? "▾" : "▸";
+                childWrap.style.display = expanded ? "block" : "none";
+            });
+            list.appendChild(row);
+            list.appendChild(childWrap);
+            // Render the folder's descendants directly into its child block;
+            // collapsing the folder hides the whole block at once.
+            renderTree(child, childWrap, depth + 1);
+        });
+        node.files.forEach(function (f) {
+            var indent = depth * 14;
+            var row = D.el("div", "vibe-code-file");
+            row.style.paddingLeft = (6 + indent + 16) + "px";
+            if (state.current === f.path) row.classList.add("active");
+            row.innerHTML = fileIconEl() +
+                '<span class="vibe-file-name" title="' + D.esc(f.path) + '">' + D.esc(f.name) + "</span>";
+            row.addEventListener("click", function () { openFile(f.path); });
+            list.appendChild(row);
+        });
     }
 
     function loadFiles() {
@@ -209,22 +284,10 @@
                 list.innerHTML = '<div class="vibe-empty">Empty workspace.</div>';
                 return;
             }
-            // Flat list: directories first (yellow folder), then files
-            // (document icon) — no tree, like Windows Explorer.
-            var dirs = state.files.filter(function (f) { return /\/$/.test(f); });
-            var files = state.files.filter(function (f) { return !/\/$/.test(f); });
-            var ordered = dirs.concat(files);
+            var tree = buildTree(state.files);
+            sortTree(tree);
             list.innerHTML = "";
-            ordered.forEach(function (f) {
-                var row = D.el("div", "vibe-code-file");
-                if (state.current === f) row.classList.add("active");
-                row.innerHTML = '<span class="vibe-file-ico" style="' +
-                    (/\/$/.test(f) ? "color:#eab308;filter:drop-shadow(0 0 2px rgba(234,179,8,0.4));" : "color:#9aa4b2;") +
-                    '">' + fileIcon(f) + "</span>" +
-                    '<span class="vibe-file-name" title="' + D.esc(displayName(f)) + '">' + D.esc(displayName(f)) + "</span>";
-                row.addEventListener("click", function () { openFile(f); });
-                list.appendChild(row);
-            });
+            renderTree(tree, list);
         }).catch(function (err) {
             if (list) list.innerHTML = '<div class="vibe-empty">Error: ' + D.esc(err) + "</div>";
         });
