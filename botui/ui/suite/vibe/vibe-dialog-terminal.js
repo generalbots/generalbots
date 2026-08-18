@@ -72,13 +72,43 @@
         }
     }
 
+    // Resolve the selected project's VM container so the terminal execs into
+    // the project environment (the calculator VM) instead of the botserver
+    // host filesystem. Falls back to a host shell when no project/VM exists.
+    function resolveContainer() {
+        var pid =
+            typeof window.currentProjectId !== "undefined" && window.currentProjectId
+                ? window.currentProjectId
+                : null;
+        if (!pid) return Promise.resolve(null);
+        return D.api("/api/vibe/projects/" + encodeURIComponent(pid) + "/vms")
+            .then(function (data) {
+                var vms = (data && (data.vms || (data.success && data.data && data.data.vms))) || [];
+                if (!Array.isArray(vms) || !vms.length) return null;
+                // Prefer a running dev VM; otherwise the first one.
+                var preferred = vms.find(function (v) {
+                    return String(v.env || "").indexOf("development") !== -1 &&
+                        String(v.status || "").indexOf("run") !== -1;
+                }) || vms.find(function (v) {
+                    return String(v.status || "").indexOf("run") !== -1;
+                }) || vms[0];
+                return (preferred && preferred.container_name) ? preferred.container_name : null;
+            })
+            .catch(function () { return null; });
+    }
+
     function connect() {
         if (!term || tornDown) return;
         sessionId = "vibe-" + Date.now() + "-" + Math.random().toString(36).substr(2, 8);
 
-        D.api("/api/terminal/create", {
-            method: "POST",
-            body: { cwd: "/tmp/vibe-workspaces", shell: "/bin/bash" },
+        resolveContainer().then(function (container) {
+            if (tornDown) return;
+            var body = { cwd: "/tmp/vibe-workspaces", shell: "/bin/bash" };
+            if (container) body.container = container;
+            return D.api("/api/terminal/create", {
+                method: "POST",
+                body: body,
+            });
         }).then(function (data) {
             if (data && data.id) sessionId = data.id;
             var proto = location.protocol === "https:" ? "wss:" : "ws:";
