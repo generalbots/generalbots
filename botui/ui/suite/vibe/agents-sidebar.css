@@ -138,6 +138,8 @@
     flex: 1;
     display: flex;
     overflow: hidden;
+    position: relative;
+    min-height: 0;
 }
 
 /* ============================================
