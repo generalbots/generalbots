@@ -1,3 +1,15 @@
+function vibeAuthFetch(path, options) {
+    options = options || {};
+    options.headers = Object.assign({}, options.headers || {});
+    var token =
+        localStorage.getItem("gb-access-token") ||
+        sessionStorage.getItem("gb-access-token") ||
+        localStorage.getItem("management_token") ||
+        "";
+    if (token) options.headers.Authorization = "Bearer " + token;
+    return fetch(path, options);
+}
+
 function esc(text) {
 var d = document.createElement("div");
 d.textContent = text || "";

@@ -201,10 +201,19 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
     };
 
     let files = collect_workspace_files(&project)?;
+    // The Vibe project registry uses the user-facing kinds `custom` and
+    // `website`, while the deployment API accepts `app-*` and `site`.
+    // Translate at the boundary so a calculator/custom app is deployable.
+    let deployment_type = match project.project_type.as_str() {
+        "website" => "site".to_string(),
+        "custom" => format!("app-{}", project.framework.as_deref().unwrap_or("node")),
+        other if other == "site" || other == "bot" || other.starts_with("app-") => other.to_string(),
+        _ => "app-node".to_string(),
+    };
     let body = serde_json::json!({
         "app_name": repo_name,
         "org": org,
-        "project_type": project.project_type,
+        "project_type": deployment_type,
         "environment": env,
         "target": target,
         "project_id": project_id,

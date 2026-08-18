@@ -59,8 +59,14 @@ impl AgentLoop {
         self
     }
 
+    async fn sync_active_run(&self, run: &VibeRun) {
+        let mut runs = self.state.active_runs().write().await;
+        runs.insert(run.run_id, run.clone());
+    }
+
     pub async fn execute_run(&self, run: &mut VibeRun) {
         run.transition(VibeRunState::Running);
+        self.sync_active_run(run).await;
         self.broadcast_event(run, "running", "Autonomous agent loop started", 0);
         let config = run.config.clone();
         let max_steps = config.max_tool_calls.min(DEFAULT_MAX_STEPS);
@@ -77,6 +83,7 @@ impl AgentLoop {
             Err(_) => {
                 run.transition(VibeRunState::Failed);
                 run.error = Some("Agent loop timed out".to_string());
+                self.sync_active_run(run).await;
                 self.telemetry.record_run_completion(run, 0, None, 0.0).await;
                 self.broadcast_event(run, "failed", "Agent loop timed out", 100);
                 warn!(
@@ -96,6 +103,7 @@ impl AgentLoop {
         if run.tool_calls.is_empty() {
             run.transition(VibeRunState::Failed);
             run.error = Some("Agent produced no tool calls — no work was executed".to_string());
+            self.sync_active_run(run).await;
             self.telemetry.record_run_completion(run, 0, None, 0.0).await;
             self.broadcast_event(
                 run,
@@ -105,6 +113,7 @@ impl AgentLoop {
             );
         } else {
             run.transition(VibeRunState::Completed);
+            self.sync_active_run(run).await;
             self.telemetry.record_run_completion(run, 0, None, 0.0).await;
             self.broadcast_event(run, "completed", completed_msg, 100);
         }
@@ -115,6 +124,11 @@ impl AgentLoop {
             .prompt_manager
             .build_context(run.use_case, &run.config.lang, &run.intent, &[]);
         context.run_id = run.run_id;
+        if let Some(project) = run.config.project_name.as_deref() {
+            context.system_prompt.push_str(&format!(
+                "\\n\\nACTIVE VIBE PROJECT: {project}. For every file, shell, git, test, and log tool call, use this exact project value; never use a server path or another project."
+            ));
+        }
 
         let triggered = self.skills.auto_trigger(&run.intent).await;
         let grounding_refs: Vec<String> = triggered
@@ -136,6 +150,7 @@ impl AgentLoop {
                     "Budget cap exceeded ({} cents)",
                     run.config.budget_cents
                 ));
+                self.sync_active_run(run).await;
                 self.telemetry.record_run_completion(run, 0, None, 0.0).await;
                 self.broadcast_event(run, "failed", "Budget cap exceeded", 100);
                 return;
@@ -167,6 +182,7 @@ impl AgentLoop {
                         "LLM call failed at step {step} after {} attempts: {e}",
                         MAX_LLM_RETRIES + 1
                     ));
+                    self.sync_active_run(run).await;
                     self.telemetry.record_run_completion(run, 0, None, 0.0).await;
                     return;
                 }
@@ -237,6 +253,7 @@ impl AgentLoop {
                         // overwrite the cancellation.
                         run.transition(VibeRunState::Cancelled);
                         run.error = Some("Run cancelled during tool approval".to_string());
+                        self.sync_active_run(run).await;
                         self.telemetry.record_run_completion(run, 0, None, 0.0).await;
                         self.broadcast_event(run, "cancelled", "Run cancelled", 100);
                         return;
@@ -249,6 +266,7 @@ impl AgentLoop {
                 // Tool-call budget exhausted: the work requested is bounded,
                 // so finish the run instead of looping into the timeout.
                 run.transition(VibeRunState::Completed);
+                self.sync_active_run(run).await;
                 self.telemetry.record_run_completion(run, 0, None, 0.0).await;
                 self.broadcast_event(
                     run,
@@ -284,6 +302,7 @@ impl AgentLoop {
                             "Self-verification failed repeatedly; run failed (produced artifacts remain in the workspace)."
                                 .to_string(),
                         );
+                        self.sync_active_run(run).await;
                         warn!(
                             "Vibe run {} self-verification failed repeatedly; run failed",
                             run.run_id
@@ -795,7 +814,7 @@ fn last_verdict(response: &str) -> Option<bool> {
         let mut tool_call = VibeToolCall::new(
             run.run_id,
             extracted.tool_name.clone(),
-            extracted.arguments.clone(),
+            project_scoped_arguments(run, extracted),
             requires_approval,
         );
 
@@ -822,6 +841,7 @@ fn last_verdict(response: &str) -> Option<bool> {
 
         if requires_approval && !run.config.auto_approve {
             run.transition(VibeRunState::AwaitingApproval);
+            self.sync_active_run(run).await;
             self.broadcast_event(
                 run,
                 "awaiting_approval",
@@ -833,6 +853,7 @@ fn last_verdict(response: &str) -> Option<bool> {
                 crate::pipeline::ApprovalOutcome::Approved => {
                     tool_call.approved = true;
                     run.transition(VibeRunState::Running);
+                    self.sync_active_run(run).await;
                 }
                 crate::pipeline::ApprovalOutcome::Cancelled => {
                     // #920 — cancel is run-level, not a denied tool.
@@ -863,6 +884,7 @@ fn last_verdict(response: &str) -> Option<bool> {
             // ("Aprovação requerida antes da execução"), so mark the call
             // approved when the run was created with auto_approve=true.
             tool_call.approved = true;
+            self.sync_active_run(run).await;
         }
 
         let start = tokio::time::Instant::now();
@@ -1105,6 +1127,31 @@ fn last_verdict(response: &str) -> Option<bool> {
 struct ExtractedToolCall {
     tool_name: String,
     arguments: serde_json::Value,
+}
+
+/// The browser-selected project is authoritative. LLMs sometimes omit the
+/// project argument or repeat a display label; allowing that value through
+/// would make an "edit calculator" request write to another workspace.
+fn project_scoped_arguments(run: &VibeRun, extracted: &ExtractedToolCall) -> serde_json::Value {
+    let Some(project) = run.config.project_name.as_deref() else {
+        return extracted.arguments.clone();
+    };
+    let mut args = extracted.arguments.as_object().cloned().unwrap_or_default();
+    let tool = extracted.tool_name.as_str();
+    if tool.starts_with("file/")
+        || tool.starts_with("shell/")
+        || tool.starts_with("git/")
+        || tool.starts_with("test/")
+        || tool.starts_with("logs/")
+    {
+        args.insert("project".to_string(), serde_json::Value::String(project.to_string()));
+    }
+    if tool == "publish/project" {
+        if let Some(project_id) = run.config.project_id.as_deref() {
+            args.insert("project_id".to_string(), serde_json::Value::String(project_id.to_string()));
+        }
+    }
+    serde_json::Value::Object(args)
 }
 
 /// Outcome of one tool-call step in the agent loop (#920). `Cancelled` is a
@@ -1506,6 +1553,27 @@ mod tests {
         assert_eq!(calls[0].arguments["path"], "a.txt");
         assert_eq!(calls[1].tool_name, "web/search");
         assert!(agent.parse_tool_calls("no calls").is_empty());
+    }
+
+    #[test]
+    fn project_scope_overrides_model_workspace_arguments() {
+        let mut config = crate::types::VibeRunConfig::default();
+        config.project_id = Some("project-id".to_string());
+        config.project_name = Some("calculator-e2e".to_string());
+        let run = VibeRun::new(Uuid::nil(), Uuid::nil(), Uuid::nil(), "edit".to_string(), config);
+        let extracted = ExtractedToolCall {
+            tool_name: "file/write".to_string(),
+            arguments: serde_json::json!({"project": "wrong-project", "path": "index.js"}),
+        };
+        let args = project_scoped_arguments(&run, &extracted);
+        assert_eq!(args["project"], "calculator-e2e");
+        assert_eq!(args["path"], "index.js");
+
+        let publish = ExtractedToolCall {
+            tool_name: "publish/project".to_string(),
+            arguments: serde_json::json!({"project_id": "wrong-id"}),
+        };
+        assert_eq!(project_scoped_arguments(&run, &publish)["project_id"], "project-id");
     }
 
     struct MockState {

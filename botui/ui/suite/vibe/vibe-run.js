@@ -98,6 +98,13 @@
     }
 
     function api(path, opts) {
+        opts = opts || {};
+        opts.headers = Object.assign({}, opts.headers || {});
+        var token =
+            localStorage.getItem("gb-access-token") ||
+            sessionStorage.getItem("gb-access-token") ||
+            "";
+        if (token) opts.headers.Authorization = "Bearer " + token;
         return fetch(path, opts).then(function (r) {
             return r.json().catch(function () {
                 return { success: false, error: "HTTP " + r.status };
@@ -456,9 +463,18 @@
         if (typeof currentProjectId !== "undefined" && currentProjectId) pid = currentProjectId;
         var pname = null;
         if (typeof currentProject !== "undefined" && currentProject) pname = currentProject;
+        var activeBotName =
+            (typeof vibeBotName !== "undefined" && vibeBotName) ||
+            window.__INITIAL_BOT_NAME__ ||
+            "default";
         var body = {
             intent: intent,
-            bot_id: (typeof vibeBotId !== "undefined" && vibeBotId && vibeBotId !== "default") ? vibeBotId : null,
+            // The default bot is resolved server-side from the authenticated
+            // session. Sending its UUID as an explicit target incorrectly
+            // triggers cross-bot RBAC and blocks legitimate project edits.
+            bot_id: activeBotName !== "default" && typeof vibeBotId !== "undefined" && vibeBotId
+                ? vibeBotId
+                : null,
             use_case: state.useCase,
             budget_cents: budgetCents,
             // #919 — default to manual approval for destructive tools; the
@@ -491,6 +507,42 @@
         if (n < 30) setTimeout(fn, 1000);
     }
     retry.count = {};
+
+    /* ------------------------------------------------- preview */
+
+    function previewProject() {
+        var projectId = typeof currentProjectId !== "undefined" ? currentProjectId : null;
+        if (!projectId) {
+            uiMsg("⚠️ Select a project before opening Preview App.");
+            return;
+        }
+        // Open synchronously so browser popup blockers do not swallow the
+        // preview tab while the authenticated API request is in flight.
+        var previewWindow = window.open("about:blank", "_blank");
+        if (!previewWindow) {
+            uiMsg("⚠️ Allow pop-ups to open the project preview.");
+            return;
+        }
+        previewWindow.document.body.innerHTML = "<p style='font-family:system-ui;padding:24px'>Resolving project preview…</p>";
+        api("/api/vibe/projects/" + encodeURIComponent(projectId)).then(function (projectData) {
+            var project = projectData && projectData.project;
+            var env = (project && project.environment) || "development";
+            return api("/api/vibe/projects/" + encodeURIComponent(projectId) + "/preview?env=" + encodeURIComponent(env));
+        }).then(function (data) {
+            var payload = data && data.data ? data.data : data;
+            var url = payload && payload.preview_url;
+            if (!url || (String(url).indexOf("http://") !== 0 && String(url).indexOf("https://") !== 0)) {
+                previewWindow.close();
+                uiMsg("⚠️ No live preview is available yet. Deploy the project first.");
+                return;
+            }
+            previewWindow.location.href = url;
+            uiMsg("🌐 Preview opened: " + url);
+        }).catch(function (err) {
+            previewWindow.close();
+            uiMsg("⚠️ Preview unavailable: " + err);
+        });
+    }
 
     /* ------------------------------------------------- sessions */
 
@@ -719,6 +771,8 @@
         if (deny) deny.addEventListener("click", denyRun);
         var teamBtn = q("vibeTeamCreateBtn");
         if (teamBtn) teamBtn.addEventListener("click", createTeam);
+        var previewBtn = q("vibePreviewBtn");
+        if (previewBtn) previewBtn.addEventListener("click", previewProject);
         document.addEventListener("gb:vibe-run", function (e) {
             if (e.detail && e.detail.run_id) focus(e.detail.run_id);
         });
@@ -743,5 +797,6 @@
         onProgress: onProgress,
         approve: approveRun,
         deny: denyRun,
+        preview: previewProject,
     };
 })();

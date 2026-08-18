@@ -68,7 +68,7 @@ function connectVibeWs() {
     vibeSafeStatus("connecting");
 
     var botName = window.__INITIAL_BOT_NAME__ || "default";
-    fetch("/api/auth?bot_name=" + encodeURIComponent(botName))
+    vibeAuthFetch("/api/auth?bot_name=" + encodeURIComponent(botName))
         .then(function (r) {
             return r.json();
         })

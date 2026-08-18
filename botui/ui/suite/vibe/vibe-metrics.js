@@ -42,7 +42,7 @@ window.VibeMetrics = window.VibeMetrics || {
     refresh: function () {
         const body = document.getElementById("vibeMetricsBody");
         if (!body) return;
-        fetch("/api/vibe/metrics")
+        vibeAuthFetch("/api/vibe/metrics")
             .then((r) => r.json())
             .then((data) => {
                 const m = data && data.metrics ? data.metrics : null;
