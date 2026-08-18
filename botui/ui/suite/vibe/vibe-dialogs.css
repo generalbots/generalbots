@@ -401,6 +401,29 @@
     color: var(--accent, #4a6cf7);
 }
 
+.vibe-code-file .vibe-arrow {
+    display: inline-block;
+    width: 14px;
+    font-size: 10px;
+    color: var(--text-muted, #888);
+    flex-shrink: 0;
+}
+
+.vibe-code-folder {
+    font-weight: 600;
+}
+
+.vibe-tree-children {
+    display: block;
+}
+
+.vibe-code-file .vibe-file-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+}
+
 .vibe-code-editor {
     flex: 1;
     min-height: 0;
