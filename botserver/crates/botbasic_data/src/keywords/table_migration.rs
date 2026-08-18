@@ -51,6 +51,80 @@ const PROTECTED_COLUMNS: &[&str] = &[
     "tenant_id",
 ];
 
+/// PostgreSQL hard limit on columns per table (attribute slots).
+/// Dropped columns keep their slots forever, so after many ADD/DROP cycles
+/// even a small table hits this cap and rejects new columns.
+const PG_MAX_COLUMNS: i64 = 1600;
+
+/// Safety margin: compact before we are this close to the hard limit,
+/// so a single schema change can never push a table over the edge.
+const PG_COMPACT_THRESHOLD: i64 = 1400;
+
+/// Count total attribute slots (live + dropped) used by a table.
+fn count_attribute_slots(
+    table_name: &str,
+    conn: &mut diesel::PgConnection,
+) -> Result<i64, Box<dyn Error + Send + Sync>> {
+    let query = format!(
+        "SELECT count(*) FROM pg_attribute a
+         JOIN pg_class c ON c.oid = a.attrelid
+         JOIN pg_namespace n ON n.oid = c.relnamespace
+         WHERE c.relname = '{}' AND n.nspname = 'public' AND a.attnum > 0",
+        sanitize_identifier(table_name)
+    );
+
+    #[derive(QueryableByName)]
+    struct SlotRow {
+        #[diesel(sql_type = diesel::sql_types::BigInt)]
+        count: i64,
+    }
+
+    let rows: Vec<SlotRow> = sql_query(&query).load(conn)?;
+    Ok(rows.first().map(|r| r.count).unwrap_or(0))
+}
+
+/// Rebuild a table without its dropped-column slots.
+/// Postgres never reuses dropped attribute slots, so after roughly 1600
+/// ADD/DROP cycles `ALTER TABLE ... ADD COLUMN` fails with
+/// "tables can have at most 1600 columns". Creating a fresh table with
+/// `LIKE ... INCLUDING ALL` copies only the live columns (resetting attnum)
+/// along with indexes, constraints and defaults, then we move the data over.
+fn compact_table(
+    table_name: &str,
+    conn: &mut diesel::PgConnection,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let safe = sanitize_identifier(table_name);
+    let tmp = format!("{}__compact", safe);
+
+    info!("Compacting table {} to reclaim dropped-column slots", table_name);
+
+    // Run the whole swap atomically so a failure mid-way cannot leave the
+    // table missing or half-migrated.
+    conn.transaction(|conn| {
+        // Copy schema (live columns only, fresh attnum) plus indexes/constraints.
+        sql_query(format!("CREATE TABLE {} (LIKE {} INCLUDING ALL)", tmp, safe))
+            .execute(conn)
+            .map_err(|e| format!("Failed to create compact table {}: {}", tmp, e))?;
+
+        // Move the data (column order matches: LIKE preserves live column order).
+        sql_query(format!("INSERT INTO {} SELECT * FROM {}", tmp, safe))
+            .execute(conn)
+            .map_err(|e| format!("Failed to copy data while compacting {}: {}", table_name, e))?;
+
+        // Swap tables.
+        sql_query(format!("DROP TABLE {}", safe))
+            .execute(conn)
+            .map_err(|e| format!("Failed to drop old {} during compaction: {}", table_name, e))?;
+        sql_query(format!("ALTER TABLE {} RENAME TO {}", tmp, safe))
+            .execute(conn)
+            .map_err(|e| format!("Failed to rename compact table to {}: {}", table_name, e))?;
+        Ok::<(), Box<dyn Error + Send + Sync>>(())
+    })?;
+
+    info!("Compaction of {} complete", table_name);
+    Ok(())
+}
+
 /// Compare and sync table schema with definition
 pub fn sync_table_schema(
     table: &TableDefinition,
@@ -90,6 +164,22 @@ pub fn sync_table_schema(
             table.name,
             missing_columns.len()
         );
+
+        // PostgreSQL never reuses dropped-column slots. If this table has been
+        // through many ADD/DROP cycles it may be close to the 1600 hard cap,
+        // in which case the ALTERs below would fail. Compact it first so the
+        // rebuilt table has a fresh attnum sequence and room for new columns.
+        let slots = count_attribute_slots(&table_name, conn)?;
+        if slots + missing_columns.len() as i64 > PG_COMPACT_THRESHOLD {
+            warn!(
+                "Table {} uses {} attribute slots (near the {} cap); compacting before adding {} columns",
+                table.name,
+                slots,
+                PG_MAX_COLUMNS,
+                missing_columns.len()
+            );
+            compact_table(&table_name, conn)?;
+        }
 
         for field in &missing_columns {
             let sql_type = map_type_to_sql(field, "postgres");
