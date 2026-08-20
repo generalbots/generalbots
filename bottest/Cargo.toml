@@ -39,10 +39,6 @@ chrono = { workspace = true, features = ["serde"] }
 which = { workspace = true }
 regex = { workspace = true }
 
-# Process management for services
-[target.'cfg(unix)'.dependencies]
-nix = { workspace = true }
-
 # Archive extraction
 zip = { workspace = true }
 
@@ -85,6 +81,10 @@ required-features = ["e2e"]
 [[bin]]
 name = "bottest"
 path = "src/main.rs"
+
+# Process management for services (Unix only)
+[target.'cfg(unix)'.dependencies]
+nix = { workspace = true }
 
 [lints]
 workspace = true

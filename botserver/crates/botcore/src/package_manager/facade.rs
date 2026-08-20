@@ -1344,14 +1344,17 @@ Store credentials in Vault:
                 .replace("{{DATA_PATH}}", &data_path.to_string_lossy())
                 .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
                 .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy())
+                .replace("{{STACK_PATH}}", &self.base_path.to_string_lossy())
+                .replace("{{DATA_PATH_FWD}}", &data_path.to_string_lossy().replace('\\', "/"))
                 .replace("{{DB_PASSWORD}}", &db_password);
             if target == "local" {
                 trace!("Executing command: {}", rendered_cmd);
                 #[cfg(target_os = "windows")]
                 let cmd_result = {
+                    let wrapped = format!("\"{rendered_cmd}\"");
                     let cmd = SafeCommand::new("cmd")
                         .and_then(|c| c.arg("/C"))
-                        .and_then(|c| c.trusted_shell_script_arg(&rendered_cmd))
+                        .and_then(|c| c.raw_shell_script_arg(&wrapped))
                         .and_then(|c| c.working_dir(&bin_path))
                         .map_err(|e| anyhow::anyhow!("Failed to build cmd command: {}", e))?;
                     let output = cmd.execute().with_context(|| {

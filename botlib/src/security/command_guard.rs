@@ -30,6 +30,7 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
 pub struct SafeCommand {
     command: String,
     args: Vec<String>,
+    raw_args: HashSet<usize>,
     working_dir: Option<PathBuf>,
     allowed_paths: Vec<PathBuf>,
     envs: HashMap<String, String>,
@@ -51,6 +52,7 @@ impl SafeCommand {
         Ok(Self {
             command: command.to_string(),
             args: Vec::new(),
+            raw_args: HashSet::new(),
             working_dir: None,
             allowed_paths: vec![
                 PathBuf::from("/tmp"),
@@ -137,12 +139,29 @@ impl SafeCommand {
         Ok(self)
     }
 
-    pub fn trusted_shell_script_arg(mut self, script: &str) -> Result<Self, CommandGuardError> {
+    pub fn trusted_shell_script_arg(self, script: &str) -> Result<Self, CommandGuardError> {
+        self.shell_script_arg_internal(script, true)
+    }
+
+    /// Same as [`trusted_shell_script_arg`], but the script argument is passed
+    /// verbatim to the shell without Rust's Windows quoting/escaping. Required
+    /// for `cmd /C` scripts that contain embedded quotes (e.g. `"C:\path\prog"`),
+    /// which Rust's default argument encoding would otherwise escape as `\"`.
+    pub fn raw_shell_script_arg(self, script: &str) -> Result<Self, CommandGuardError> {
+        self.shell_script_arg_internal(script, true)?
+            .mark_last_arg_raw()
+    }
+
+    fn shell_script_arg_internal(
+        mut self,
+        script: &str,
+        trusted: bool,
+    ) -> Result<Self, CommandGuardError> {
         let is_unix_shell = self.command == "bash" || self.command == "sh";
         let is_windows_cmd = self.command == "cmd";
         if !is_unix_shell && !is_windows_cmd {
             return Err(CommandGuardError::InvalidArgument(
-                "trusted_shell_script_arg only allowed for bash/sh/cmd commands".to_string(),
+                "shell_script_arg only allowed for bash/sh/cmd commands".to_string(),
             ));
         }
         let valid_flag = if is_unix_shell {
@@ -152,7 +171,7 @@ impl SafeCommand {
         };
         if !valid_flag {
             return Err(CommandGuardError::InvalidArgument(
-                "trusted_shell_script_arg requires -c (unix) or /C (windows) flag to be set first"
+                "shell_script_arg requires -c (unix) or /C (windows) flag to be set first"
                     .to_string(),
             ));
         }
@@ -161,12 +180,48 @@ impl SafeCommand {
                 "Empty script".to_string(),
             ));
         }
-        if script.len() > 16384 {
+        let limit = if trusted { 16384 } else { 8192 };
+        if script.len() > limit {
             return Err(CommandGuardError::InvalidArgument(
                 "Script too long".to_string(),
             ));
         }
+        if !trusted {
+            let forbidden_patterns = ["$(", "`", ".."];
+            for pattern in forbidden_patterns {
+                if script.contains(pattern) {
+                    return Err(CommandGuardError::ShellInjectionAttempt(format!(
+                        "Dangerous pattern '{}' in shell script",
+                        pattern
+                    )));
+                }
+            }
+        }
         self.args.push(script.to_string());
+        Ok(self)
+    }
+
+    fn append_args(&self, cmd: &mut std::process::Command) {
+        for (idx, arg) in self.args.iter().enumerate() {
+            #[cfg(target_os = "windows")]
+            {
+                use std::os::windows::process::CommandExt;
+                if self.raw_args.contains(&idx) {
+                    cmd.raw_arg(arg);
+                    continue;
+                }
+            }
+            cmd.arg(arg);
+        }
+    }
+
+    fn mark_last_arg_raw(mut self) -> Result<Self, CommandGuardError> {
+        let idx = self
+            .args
+            .len()
+            .checked_sub(1)
+            .ok_or(CommandGuardError::InvalidArgument("No args".to_string()))?;
+        self.raw_args.insert(idx);
         Ok(self)
     }
 
@@ -297,7 +352,7 @@ impl SafeCommand {
 
     pub fn execute(&self) -> Result<Output, CommandGuardError> {
         let mut cmd = std::process::Command::new(&self.command);
-        cmd.args(&self.args);
+        self.append_args(&mut cmd);
 
         if let Some(ref dir) = self.working_dir {
             cmd.current_dir(dir);
@@ -311,7 +366,7 @@ impl SafeCommand {
 
     pub async fn execute_async(&self) -> Result<Output, CommandGuardError> {
         let mut cmd = std::process::Command::new(&self.command);
-        cmd.args(&self.args);
+        self.append_args(&mut cmd);
 
         if let Some(ref dir) = self.working_dir {
             cmd.current_dir(dir);
@@ -325,7 +380,7 @@ impl SafeCommand {
 
     pub fn spawn(&mut self) -> Result<Child, CommandGuardError> {
         let mut cmd = std::process::Command::new(&self.command);
-        cmd.args(&self.args);
+        self.append_args(&mut cmd);
 
         if let Some(ref dir) = self.working_dir {
             cmd.current_dir(dir);
@@ -350,7 +405,7 @@ impl SafeCommand {
         envs: &HashMap<String, String>,
     ) -> Result<Child, CommandGuardError> {
         let mut cmd = std::process::Command::new(&self.command);
-        cmd.args(&self.args);
+        self.append_args(&mut cmd);
 
         if let Some(ref dir) = self.working_dir {
             cmd.current_dir(dir);

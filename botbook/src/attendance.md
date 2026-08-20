@@ -213,7 +213,7 @@ O WhatsApp suporta **chamadas de voz** com STT (Speech-to-Text) e TTS (Text-to-S
 │                                    ┌──────────────────┐                    │
 │                                    │  Voice Handler   │                    │
 │                                    │  ┌────────────┐  │                    │
-│                                    │  │ STT (Whisper)│ │ ──► Texto        │
+│                                    │  │ STT (Groq/OpenAI)│ │ ──► Texto        │
 │                                    │  └────────────┘  │                    │
 │                                    └────────┬─────────┘                    │
 │                                             │                              │
@@ -227,7 +227,7 @@ O WhatsApp suporta **chamadas de voz** com STT (Speech-to-Text) e TTS (Text-to-S
 │                                    ┌──────────────────┐                    │
 │                                    │  TTS (BotModels) │                    │
 │                                    │  ┌────────────┐  │                    │
-│                                    │  │Coqui/OpenAI│ │ ──► Áudio         │
+│                                    │  │OpenAI/Google│ │ ──► Áudio         │
 │                                    │  └────────────┘  │                    │
 │                                    └────────┬─────────┘                    │
 │                                             │                              │
@@ -255,12 +255,12 @@ O sistema usa `botmodels` para processamento de voz:
 
 class SpeechService:
     def stt(self, audio_url: str) -> str:
-        # Whisper para transcrição
-        # Groq como fallback rápido
+        # Transcrição via API Groq/OpenAI
+        # Groq/OpenAI (external, no local model)
         pass
     
     def tts(self, text: str, voice: str = "alloy") -> str:
-        # Coqui TTS (local)
+        # OpenAI TTS / Google Translate TTS (fallback)
         # OpenAI TTS
         # Google Translate TTS (fallback)
         pass

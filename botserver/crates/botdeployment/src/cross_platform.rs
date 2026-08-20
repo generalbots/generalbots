@@ -3,11 +3,6 @@
 //! feature-gated submodules so the workspace builds on Linux, macOS, and
 //! Windows without forcing every developer to install all toolchains.
 
-#[cfg(target_os = "macos")]
-pub mod macos;
-#[cfg(target_os = "windows")]
-pub mod windows;
-
 #[cfg(target_os = "linux")]
 pub use linux as platform;
 #[cfg(target_os = "macos")]

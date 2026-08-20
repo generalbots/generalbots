@@ -5,66 +5,15 @@ use anyhow::{Context, Result};
 use log::{info, trace, warn};
 use std::io::Write;
 
-#[derive(Deserialize, Debug)]
-struct ComponentEntry {
-    url: String,
-    #[serde(default)]
-    url_win: Option<String>,
-}
-
-#[derive(Deserialize, Debug)]
-struct ThirdPartyConfig {
-    components: HashMap<String, ComponentEntry>,
-    #[serde(default)]
-    models: HashMap<String, ComponentEntry>,
-}
-
-static THIRDPARTY_CONFIG: std::sync::OnceLock<ThirdPartyConfig> = std::sync::OnceLock::new();
-
-fn get_thirdparty_config() -> &'static ThirdPartyConfig {
-    THIRDPARTY_CONFIG.get_or_init(|| {
-        let toml_str = include_str!("../../../../3rdparty.toml");
-        match toml::from_str::<ThirdPartyConfig>(toml_str) {
-            Ok(config) => config,
-            Err(e) => {
-                log::error!("CRITICAL: Failed to parse embedded 3rdparty.toml: {e}");
-                ThirdPartyConfig {
-                    components: HashMap::new(),
-                    models: HashMap::new(),
-                }
-            }
-        }
-    })
-}
-
-fn get_component_url(name: &str) -> Option<String> {
-    get_thirdparty_config()
-        .components
-        .get(name)
-        .map(|c| c.url.clone())
-}
-
-fn get_model_url(name: &str) -> Option<String> {
-    get_thirdparty_config()
-        .models
-        .get(name)
-        .map(|c| c.url.clone())
-}
-
-#[cfg(target_os = "windows")]
-fn safe_nvcc_version() -> Option<std::process::Output> {
-    SafeCommand::new("nvcc")
-        .and_then(|c| c.arg("--version"))
-        .ok()
-        .and_then(|cmd| cmd.execute().ok())
-}
 
 fn safe_sh_command(script: &str) -> Option<std::process::Output> {
     let abs = crate::os_abstraction::get_abstraction();
     let (shell, flag) = abs.shell_command();
+    #[cfg(target_os = "windows")]
+    let script = &format!("\"{script}\"");
     SafeCommand::new(shell)
         .and_then(|c| c.arg(flag))
-        .and_then(|c| c.trusted_shell_script_arg(script))
+        .and_then(|c| c.raw_shell_script_arg(script))
         .ok()
         .and_then(|cmd| cmd.execute().ok())
 }
@@ -78,94 +27,6 @@ fn safe_pgrep(args: &[&str]) -> Option<std::process::Output> {
         .and_then(|cmd| cmd.execute().ok())
 }
 
-const LLAMA_CPP_VERSION: &str = "b7345";
-
-fn get_llama_cpp_url() -> Option<String> {
-    #[cfg(target_os = "linux")]
-    {
-        #[cfg(target_arch = "x86_64")]
-        {
-            if std::path::Path::new("/usr/local/cuda").exists()
-                || std::path::Path::new("/opt/cuda").exists()
-                || std::env::var("CUDA_HOME").is_ok()
-            {
-                // CUDA versions not currently in 3rdparty.toml for Linux, falling back to Vulkan or CPU if not added
-                // Or if we had them: get_component_url_by_os("llm_linux_cuda12")
-            }
-
-            if std::path::Path::new("/usr/share/vulkan").exists()
-                || std::env::var("VULKAN_SDK").is_ok()
-            {
-                info!("Detected Vulkan - using Vulkan build");
-                return get_component_url_by_os("llm_linux_vulkan");
-            }
-
-            info!("Using standard Ubuntu x64 build (CPU)");
-            get_component_url_by_os("llm")
-        }
-
-        #[cfg(target_arch = "s390x")]
-        {
-            info!("Detected s390x architecture");
-            return get_component_url_by_os("llm_linux_s390x");
-        }
-
-        #[cfg(target_arch = "aarch64")]
-        {
-            info!("Detected ARM64 architecture on Linux");
-            warn!("No pre-built llama.cpp for Linux ARM64 - LLM will not be available");
-            return None;
-        }
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        #[cfg(target_arch = "aarch64")]
-        {
-            info!("Detected macOS ARM64 (Apple Silicon)");
-            return get_component_url_by_os("llm_macos_arm64");
-        }
-
-        #[cfg(target_arch = "x86_64")]
-        {
-            info!("Detected macOS x64 (Intel)");
-            return get_component_url_by_os("llm_macos_x64");
-        }
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        #[cfg(target_arch = "x86_64")]
-        {
-            if std::env::var("CUDA_PATH").is_ok() {
-                if let Some(output) = safe_nvcc_version() {
-                    let version_str = String::from_utf8_lossy(&output.stdout);
-                    if version_str.contains("13.") {
-                        info!("Detected CUDA 13.x on Windows");
-                        return get_component_url_by_os("llm_win_cuda13");
-                    } else if version_str.contains("12.") {
-                        info!("Detected CUDA 12.x on Windows");
-                        return get_component_url_by_os("llm_win_cuda12");
-                    }
-                }
-            }
-
-            if std::env::var("VULKAN_SDK").is_ok() {
-                info!("Detected Vulkan SDK on Windows");
-                return get_component_url_by_os("llm_win_vulkan");
-            }
-
-            info!("Using standard Windows x64 CPU build");
-            return get_component_url_by_os("llm_win_cpu_x64");
-        }
-
-        #[cfg(target_arch = "aarch64")]
-        {
-            info!("Detected Windows ARM64");
-            return get_component_url_by_os("llm_win_cpu_arm64");
-        }
-    }
-}
 
 #[derive(Debug)]
 pub struct PackageManager {
@@ -219,987 +80,8 @@ impl PackageManager {
     }
 
     fn register_components(&mut self) {
-        self.register_vault();
-        self.register_tables();
-        self.register_cache();
-        self.register_drive();
-        self.register_llm();
-        self.register_email();
-        self.register_proxy();
-        self.register_dns();
-        self.register_directory();
-        self.register_alm();
-        self.register_alm_ci();
-        self.register_meeting();
-        self.register_remote_terminal();
-        self.register_devtools();
-        self.register_vector_db();
-        self.register_timeseries_db();
-        self.register_observability();
-        self.register_host();
-        self.register_webmail();
-        self.register_table_editor();
-        self.register_doc_editor();
+        self.components = botcorepkg::installer::PackageManager::all_components();
     }
-
-    fn register_drive(&mut self) {
-        self.components.insert(
-            "drive".to_string(),
-            ComponentConfig {
-                name: "drive".to_string(),
-                ports: vec![9100, 9101],
-                dependencies: vec![],
-                linux_packages: vec![],
-                macos_packages: vec![],
-                windows_packages: vec![],
-                download_url: get_component_url_by_os("drive"),
-                binary_name: Some("minio".to_string()),
-                pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![
-                    "cp {{DATA_PATH}}/mc {{BIN_PATH}}/mc && chmod +x {{BIN_PATH}}/mc".to_string(),
-                ],
-                pre_install_cmds_macos: vec![],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: HashMap::from([
-                    ("MINIO_ROOT_USER".to_string(), "$DRIVE_ACCESSKEY".to_string()),
-                    ("MINIO_ROOT_PASSWORD".to_string(), "$DRIVE_SECRET".to_string()),
-                ]),
-                data_download_list: get_component_url_by_os("mc").map(|url| vec![url]).unwrap_or_default(),
-                exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address 127.0.0.1:9100 --console-address 127.0.0.1:9101 --certs-dir {{CONF_PATH}}/drive/certs > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
-                check_cmd: "curl -sf --cacert {{CONF_PATH}}/drive/certs/CAs/ca.crt https://127.0.0.1:9100/minio/health/live >/dev/null 2>&1".to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
-
-    fn register_tables(&mut self) {
-        self.components.insert(
-            "tables".to_string(),
-            ComponentConfig {
-                name: "tables".to_string(),
-                ports: vec![5432],
-                dependencies: vec![],
-                linux_packages: vec![],
-                macos_packages: vec![],
-                windows_packages: vec![],
-                download_url: get_component_url_by_os("tables"),
-                binary_name: Some("postgres".to_string()),
-                pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![
-                    "chmod +x ./bin/*".to_string(),
-                    "if [ $(id -u) -eq 0 ]; then id postgres 2>/dev/null || useradd -r -s /bin/false postgres; chown -R postgres:postgres {{DATA_PATH}} {{LOGS_PATH}} 2>/dev/null; fi".to_string(),
-                    "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then PG_PASSWORD='{{DB_PASSWORD}}'; if [ $(id -u) -eq 0 ]; then su -s /bin/bash postgres -c \"cd {{BIN_PATH}} && ./bin/initdb -D {{DATA_PATH}}/pgdata -U gbuser --pwfile=<(echo \\\"$PG_PASSWORD\\\")\"; else cd {{BIN_PATH}} && ./bin/initdb -D {{DATA_PATH}}/pgdata -U gbuser --pwfile=<(echo \"$PG_PASSWORD\"); fi; fi".to_string(),
-                    "echo \"data_directory = '{{DATA_PATH}}/pgdata'\" > {{CONF_PATH}}/postgresql.conf".to_string(),
-                    "echo \"ident_file = '{{CONF_PATH}}/pg_ident.conf'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
-                    "echo \"port = 5432\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
-                    "echo \"listen_addresses = '*'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
-                    "echo \"ssl = on\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
-                    "echo \"ssl_cert_file = '{{CONF_PATH}}/system/certificates/tables/server.crt'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
-                    "echo \"ssl_key_file = '{{CONF_PATH}}/system/certificates/tables/server.key'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
-                    "echo \"ssl_ca_file = '{{CONF_PATH}}/system/certificates/ca/ca.crt'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
-                    "echo \"log_directory = '{{LOGS_PATH}}'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
-                    "echo \"logging_collector = on\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
-                    "echo \"hostssl all all all md5\" > {{CONF_PATH}}/pg_hba.conf".to_string(),
-                    "touch {{CONF_PATH}}/pg_ident.conf".to_string(),
-                    "if [ $(id -u) -eq 0 ]; then su -s /bin/bash postgres -c \"cd {{BIN_PATH}} && ./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start -w -t 30\"; else cd {{BIN_PATH}} && ./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start -w -t 30; fi".to_string(),
-                    "sleep 5".to_string(),
-                    "for i in $(seq 1 30); do (if [ $(id -u) -eq 0 ]; then su -s /bin/bash postgres -c \"cd {{BIN_PATH}} && ./bin/pg_isready -h localhost -p 5432 -d postgres\"; else cd {{BIN_PATH}} && ./bin/pg_isready -h localhost -p 5432 -d postgres; fi) >/dev/null 2>&1 && echo 'PostgreSQL is ready' && break || echo \"Waiting for PostgreSQL... attempt $i/30\" >&2; sleep 2; done".to_string(),
-                    "if [ $(id -u) -eq 0 ]; then su -s /bin/bash postgres -c \"cd {{BIN_PATH}} && ./bin/pg_isready -h localhost -p 5432 -d postgres\"; else cd {{BIN_PATH}} && ./bin/pg_isready -h localhost -p 5432 -d postgres; fi || { echo 'ERROR: PostgreSQL failed to start properly' >&2; cat {{LOGS_PATH}}/postgres.log >&2; exit 1; }".to_string(),
-                    "if [ $(id -u) -eq 0 ]; then PGPASSWORD='{{DB_PASSWORD}}' su -s /bin/bash postgres -c \"cd {{BIN_PATH}} && PGPASSWORD='{{DB_PASSWORD}}' ./bin/psql -h localhost -p 5432 -U gbuser -d postgres -c \\\"CREATE DATABASE botserver WITH OWNER gbuser\\\"\"; else cd {{BIN_PATH}} && PGPASSWORD='{{DB_PASSWORD}}' ./bin/psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE DATABASE botserver WITH OWNER gbuser\"; fi 2>&1 | grep -v 'already exists' || true".to_string(),
-                ],
-                pre_install_cmds_macos: vec![],
-                post_install_cmds_macos: vec![
-                    "chmod +x ./bin/*".to_string(),
-                    "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./bin/initdb -A -D {{DATA_PATH}}/pgdata -U postgres; fi".to_string(),
-                ],
-                pre_install_cmds_windows: vec![
-                    "taskkill /F /IM postgres.exe 2> nul || ver > nul".to_string(),
-                ],
-                post_install_cmds_windows: vec![
-                    "if not exist {{DATA_PATH}}\\pgdata ( .\\bin\\initdb.exe --no-locale -D {{DATA_PATH}}\\pgdata -U gbuser --auth=trust )".to_string(),
-                    "echo data_directory = '{{DATA_PATH}}\\pgdata' > {{CONF_PATH}}\\postgresql.conf".to_string(),
-                    "echo ident_file = '{{CONF_PATH}}\\pg_ident.conf' >> {{CONF_PATH}}\\postgresql.conf".to_string(),
-                    "echo port = 5432 >> {{CONF_PATH}}\\postgresql.conf".to_string(),
-                    "echo listen_addresses = '*' >> {{CONF_PATH}}\\postgresql.conf".to_string(),
-                    "echo ssl = off >> {{CONF_PATH}}\\postgresql.conf".to_string(),
-                    "echo log_directory = '{{LOGS_PATH}}' >> {{CONF_PATH}}\\postgresql.conf".to_string(),
-                    "echo logging_collector = on >> {{CONF_PATH}}\\postgresql.conf".to_string(),
-                    "echo host all all all trust > {{CONF_PATH}}\\pg_hba.conf".to_string(),
-                    "type nul > {{CONF_PATH}}\\pg_ident.conf".to_string(),
-                    ".\\bin\\pg_ctl.exe -D {{DATA_PATH}}\\pgdata -l {{LOGS_PATH}}\\postgres.log start".to_string(),
-                ],
-                env_vars: HashMap::new(),
-                data_download_list: Vec::new(),
-                exec_cmd: "if [ $(id -u) -eq 0 ]; then id postgres 2>/dev/null || useradd -r -s /bin/false postgres; chown -R postgres:postgres {{DATA_PATH}} {{LOGS_PATH}} 2>/dev/null; su -s /bin/bash postgres -c \"cd {{BIN_PATH}} && ./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start -w -t 30\"; else cd {{BIN_PATH}} && ./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start -w -t 30; fi > {{LOGS_PATH}}/stdout.log 2>&1 &".to_string(),
-                check_cmd: "if [ $(id -u) -eq 0 ]; then su -s /bin/bash postgres -c \"{{BIN_PATH}}/bin/pg_isready -h localhost -p 5432 -d postgres\"; else {{BIN_PATH}}/bin/pg_isready -h localhost -p 5432 -d postgres; fi >/dev/null 2>&1".to_string(),
-                exec_cmd_windows: Some(".\\bin\\pg_ctl.exe -D {{DATA_PATH}}\\pgdata -l {{LOGS_PATH}}\\postgres.log start".to_string()),
-                check_cmd_windows: Some("{{BIN_PATH}}\\pg_isready.exe -h 127.0.0.1 -p 5432 -d postgres > nul 2>&1".to_string()),
-                container: None,
-        },
-    );
-}
-
-    fn register_cache(&mut self) {
-        self.components.insert(
-            "cache".to_string(),
-            ComponentConfig {
-                name: "cache".to_string(),
-                ports: vec![6379],
-                dependencies: vec![],
-                linux_packages: vec![],
-                macos_packages: vec![],
-                windows_packages: vec![],
-                download_url: get_component_url_by_os("cache"),
-                binary_name: Some("valkey-server".to_string()),
-                pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![
-                    "mkdir -p {{BIN_PATH}}/bin && cd {{BIN_PATH}}/bin && tar -xzf {{CACHE_FILE}} --strip-components=1 -C {{BIN_PATH}}/bin 2>/dev/null || true".to_string(),
-                    "chmod +x {{BIN_PATH}}/bin/valkey-server 2>/dev/null || true".to_string(),
-                    "chmod +x {{BIN_PATH}}/bin/valkey-cli 2>/dev/null || true".to_string(),
-                    "chmod +x {{BIN_PATH}}/bin/valkey-benchmark 2>/dev/null || true".to_string(),
-                    "chmod +x {{BIN_PATH}}/bin/valkey-check-aof 2>/dev/null || true".to_string(),
-                    "chmod +x {{BIN_PATH}}/bin/valkey-check-rdb 2>/dev/null || true".to_string(),
-                    "chmod +x {{BIN_PATH}}/bin/valkey-sentinel 2>/dev/null || true".to_string(),
-                ],
-                pre_install_cmds_macos: vec![],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: HashMap::new(),
-                data_download_list: Vec::new(),
-                exec_cmd: "nohup {{BIN_PATH}}/bin/valkey-server --port 6379 --bind 127.0.0.1 --dir {{DATA_PATH}} --logfile {{LOGS_PATH}}/valkey.log --daemonize yes > {{LOGS_PATH}}/valkey-startup.log 2>&1".to_string(),
-                check_cmd: "tasklist  >/dev/null 2>&1".to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
-
-    fn register_llm(&mut self) {
-        let download_url = get_llama_cpp_url();
-
-        if download_url.is_none() {
-            warn!("No llama.cpp binary available for this platform");
-            warn!("Local LLM will not be available - use external API instead");
-        }
-
-        info!(
-            "LLM component using llama.cpp {} for this platform",
-            LLAMA_CPP_VERSION
-        );
-
-        self.components.insert(
-            "llm".to_string(),
-            ComponentConfig {
-                name: "llm".to_string(),
-                ports: vec![8081, 8082],
-                dependencies: vec![],
-                linux_packages: vec![],
-                macos_packages: vec![],
-                windows_packages: vec![],
-                download_url,
-                binary_name: Some("llama-server".to_string()),
-                pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![],
-                pre_install_cmds_macos: vec![],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: HashMap::new(),
-                data_download_list: vec![
-                    get_model_url("deepseek_small").unwrap_or_default(),
-                    get_model_url("bge_embedding").unwrap_or_default(),
-                ],
-                exec_cmd: "nohup {{BIN_PATH}}/build/bin/llama-server --port 8081 --ssl-key-file {{CONF_PATH}}/system/certificates/llm/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/llm/server.crt -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf --ubatch-size 512 > {{LOGS_PATH}}/llm.log 2>&1 & nohup {{BIN_PATH}}/build/bin/llama-server --port 8082 --ssl-key-file {{CONF_PATH}}/system/certificates/embedding/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/embedding/server.crt -m {{DATA_PATH}}/bge-small-en-v1.5-f32.gguf --embeddings --pooling mean --n-gpu-layers 0 --ctx-size 512 --ubatch-size 512 > {{LOGS_PATH}}/embedding.log 2>&1 &".to_string(),
-                check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:8081/health >/dev/null 2>&1 && curl -f -k --connect-timeout 2 -m 5 https://localhost:8082/health >/dev/null 2>&1".to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
-
-    fn register_email(&mut self) {
-        self.components.insert(
-            "email".to_string(),
-            ComponentConfig {
-                name: "email".to_string(),
-                ports: vec![25, 143, 465, 993, 8025],
-                dependencies: vec![],
-                linux_packages: vec![],
-                macos_packages: vec![],
-                windows_packages: vec![],
-                download_url: get_component_url_by_os("email"),
-                binary_name: Some("stalwart-mail".to_string()),
-                pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![],
-                pre_install_cmds_macos: vec![],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: HashMap::from([
-                    ("STALWART_TLS_ENABLE".to_string(), "true".to_string()),
-                    ("STALWART_TLS_CERT".to_string(), "{{CONF_PATH}}/system/certificates/email/server.crt".to_string()),
-                    ("STALWART_TLS_KEY".to_string(), "{{CONF_PATH}}/system/certificates/email/server.key".to_string()),
-                ]),
-                data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/stalwart-mail --config {{CONF_PATH}}/email/config.toml".to_string(),
-                check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:8025/health >/dev/null 2>&1".to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
-
-    fn register_proxy(&mut self) {
-        self.components.insert(
-            "proxy".to_string(),
-            ComponentConfig {
-                name: "proxy".to_string(),
-                ports: vec![80, 443],
-                dependencies: vec![],
-                linux_packages: vec![],
-                macos_packages: vec![],
-                windows_packages: vec![],
-                download_url: get_component_url_by_os("proxy"),
-                binary_name: Some("caddy".to_string()),
-                pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![
-                    "setcap 'cap_net_bind_service=+ep' {{BIN_PATH}}/caddy".to_string(),
-                ],
-                pre_install_cmds_macos: vec![],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: HashMap::from([(
-                    "XDG_DATA_HOME".to_string(),
-                    "{{DATA_PATH}}".to_string(),
-                )]),
-                data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/caddy run --config {{CONF_PATH}}/Caddyfile".to_string(),
-                check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost >/dev/null 2>&1"
-                    .to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
-
-    fn register_directory(&mut self) {
-        self.components.insert(
-            "directory".to_string(),
-            ComponentConfig {
-                name: "directory".to_string(),
-                ports: vec![8300],
-                dependencies: vec!["tables".to_string()],
-                linux_packages: vec![],
-                macos_packages: vec![],
-                windows_packages: vec![],
-                download_url: get_component_url_by_os("directory"),
-                binary_name: Some("zitadel".to_string()),
-                pre_install_cmds_linux: vec![
-                    "mkdir -p {{CONF_PATH}}/directory".to_string(),
-                    "mkdir -p {{LOGS_PATH}}".to_string(),
-                    // Create Zitadel steps YAML: configures a machine user (service account)
-                    // with IAM_OWNER role and writes a PAT file for API bootstrap
-                    concat!(
-                        "cat > {{CONF_PATH}}/directory/zitadel-init-steps.yaml << 'STEPSEOF'\n",
-                        "FirstInstance:\n",
-                        "  Org:\n",
-                        "    Machine:\n",
-                        "      Machine:\n",
-                        "        Username: gb-service-account\n",
-                        "        Name: General Bots Service Account\n",
-                        "      MachineKey:\n",
-                        "        Type: 1\n",
-                        "      Pat:\n",
-                        "        ExpirationDate: '2099-01-01T00:00:00Z'\n",
-                        "    PatPath: {{CONF_PATH}}/directory/admin-pat.txt\n",
-                        "    MachineKeyPath: {{CONF_PATH}}/directory/machine-key.json\n",
-                        "STEPSEOF",
-                    ).to_string(),
-                ],
-                post_install_cmds_linux: vec![
-                    // Create zitadel DB user before start-from-init
-                    "PGPASSWORD='{{DB_PASSWORD}}' {{STACK_PATH}}/bin/tables/bin/psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE ROLE zitadel WITH LOGIN PASSWORD 'zitadel'\" 2>&1 | grep -v 'already exists' || true".to_string(),
-                    "PGPASSWORD='{{DB_PASSWORD}}' {{STACK_PATH}}/bin/tables/bin/psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE DATABASE zitadel WITH OWNER zitadel\" 2>&1 | grep -v 'already exists' || true".to_string(),
-                    "PGPASSWORD='{{DB_PASSWORD}}' {{STACK_PATH}}/bin/tables/bin/psql -h localhost -p 5432 -U gbuser -d postgres -c \"GRANT ALL PRIVILEGES ON DATABASE zitadel TO zitadel\" 2>&1 || true".to_string(),
-                    // Start Zitadel with --steps pointing to our init file (creates machine user + PAT)
-                    concat!(
-                        "ZITADEL_PORT=8300 ",
-                        "ZITADEL_DATABASE_POSTGRES_HOST=localhost ",
-                        "ZITADEL_DATABASE_POSTGRES_PORT=5432 ",
-                        "ZITADEL_DATABASE_POSTGRES_DATABASE=zitadel ",
-                        "ZITADEL_DATABASE_POSTGRES_USER_USERNAME=zitadel ",
-                        "ZITADEL_DATABASE_POSTGRES_USER_PASSWORD=zitadel ",
-                        "ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE=disable ",
-                        "ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME=gbuser ",
-                        "ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD={{DB_PASSWORD}} ",
-                        "ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE=disable ",
-                        "ZITADEL_EXTERNALSECURE=false ",
-                        "ZITADEL_EXTERNALDOMAIN=localhost ",
-                        "ZITADEL_EXTERNALPORT=8300 ",
-                        "ZITADEL_TLS_ENABLED=false ",
-                        "nohup {{BIN_PATH}}/zitadel start-from-init ",
-                        "--masterkey MasterkeyNeedsToHave32Characters ",
-                        "--tlsMode disabled ",
-                        "--steps {{CONF_PATH}}/directory/zitadel-init-steps.yaml ",
-                        "> {{LOGS_PATH}}/zitadel.log 2>&1 &",
-                    ).to_string(),
-                    // Wait for Zitadel to be ready
-                    "for i in $(seq 1 120); do curl -sf http://localhost:8300/debug/healthz && echo 'Zitadel is ready!' && break || sleep 2; done".to_string(),
-                    // Wait for PAT token to be written to logs with retry loop
-                    // Zitadel may take several seconds to write the PAT after health check passes
-                    "echo 'Waiting for PAT token in logs...'; for i in $(seq 1 30); do sync; if grep -q -E '^[A-Za-z0-9_-]{40,}$' {{LOGS_PATH}}/zitadel.log 2>/dev/null; then echo \"PAT token found in logs after $((i*2)) seconds\"; break; fi; sleep 2; done".to_string(),
-                    // Extract PAT token from logs if Zitadel printed it to stdout instead of file
-                    // The PAT appears as a standalone line (alphanumeric with hyphens/underscores) after machine key JSON
-                    "if [ ! -f '{{CONF_PATH}}/directory/admin-pat.txt' ]; then grep -E '^[A-Za-z0-9_-]{40,}$' {{LOGS_PATH}}/zitadel.log 2>/dev/null | head -1 > {{CONF_PATH}}/directory/admin-pat.txt && echo 'PAT extracted from logs' || echo 'Could not extract PAT from logs'; fi".to_string(),
-                    // Verify PAT file was created and is not empty
-                    "sync; sleep 1; if [ -f '{{CONF_PATH}}/directory/admin-pat.txt' ] && [ -s '{{CONF_PATH}}/directory/admin-pat.txt' ]; then echo 'PAT token created successfully'; cat {{CONF_PATH}}/directory/admin-pat.txt; else echo 'WARNING: PAT file not found or empty'; fi".to_string(),
-                ],
-                pre_install_cmds_macos: vec![
-                    "mkdir -p {{CONF_PATH}}/directory".to_string(),
-                ],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: HashMap::from([
-                    ("ZITADEL_PORT".to_string(), "8300".to_string()),
-                    ("ZITADEL_EXTERNALSECURE".to_string(), "false".to_string()),
-                    ("ZITADEL_EXTERNALDOMAIN".to_string(), "localhost".to_string()),
-                    ("ZITADEL_EXTERNALPORT".to_string(), "8300".to_string()),
-                    ("ZITADEL_TLS_ENABLED".to_string(), "false".to_string()),
-                    ("ZITADEL_DATABASE_POSTGRES_HOST".to_string(), "localhost".to_string()),
-                    ("ZITADEL_DATABASE_POSTGRES_PORT".to_string(), "5432".to_string()),
-                    ("ZITADEL_DATABASE_POSTGRES_DATABASE".to_string(), "zitadel".to_string()),
-                    ("ZITADEL_DATABASE_POSTGRES_USER_USERNAME".to_string(), "zitadel".to_string()),
-                    ("ZITADEL_DATABASE_POSTGRES_USER_PASSWORD".to_string(), "zitadel".to_string()),
-                    ("ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE".to_string(), "disable".to_string()),
-                    ("ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME".to_string(), "gbuser".to_string()),
-                    ("ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD".to_string(), "$DB_PASSWORD".to_string()),
-                    ("ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE".to_string(), "disable".to_string()),
-                ]),
-                data_download_list: Vec::new(),
-                exec_cmd: concat!(
-                    "if [ -f {{CONF_PATH}}/directory/admin-pat.txt ]; then ",
-                    "nohup {{BIN_PATH}}/zitadel start ",
-                    "--masterkey MasterkeyNeedsToHave32Characters ",
-                    "--tlsMode disabled ",
-                    "> {{LOGS_PATH}}/zitadel.log 2>&1 & ",
-                    "else ",
-                    "ZITADEL_PORT=8300 ",
-                    "ZITADEL_DATABASE_POSTGRES_HOST=localhost ",
-                    "ZITADEL_DATABASE_POSTGRES_PORT=5432 ",
-                    "ZITADEL_DATABASE_POSTGRES_DATABASE=zitadel ",
-                    "ZITADEL_DATABASE_POSTGRES_USER_USERNAME=zitadel ",
-                    "ZITADEL_DATABASE_POSTGRES_USER_PASSWORD=zitadel ",
-                    "ZITADEL_DATABASE_POSTGRES_USER_SSL_MODE=disable ",
-                    "ZITADEL_DATABASE_POSTGRES_ADMIN_USERNAME=gbuser ",
-                    "ZITADEL_DATABASE_POSTGRES_ADMIN_PASSWORD={{DB_PASSWORD}} ",
-                    "ZITADEL_DATABASE_POSTGRES_ADMIN_SSL_MODE=disable ",
-                    "ZITADEL_EXTERNALSECURE=false ",
-                    "ZITADEL_EXTERNALDOMAIN=localhost ",
-                    "ZITADEL_EXTERNALPORT=8300 ",
-                    "ZITADEL_TLS_ENABLED=false ",
-                    "nohup {{BIN_PATH}}/zitadel start-from-init ",
-                    "--masterkey MasterkeyNeedsToHave32Characters ",
-                    "--tlsMode disabled ",
-                    "--steps {{CONF_PATH}}/directory/zitadel-init-steps.yaml ",
-                    "> {{LOGS_PATH}}/zitadel.log 2>&1 & ",
-                    "fi",
-                ).to_string(),
-                check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost:8300/debug/healthz >/dev/null 2>&1".to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
-
-    fn register_alm(&mut self) {
-        self.components.insert(
-            "alm".to_string(),
-            ComponentConfig {
-                name: "alm".to_string(),
-                ports: vec![4747],
-                dependencies: vec![],
-                linux_packages: vec![],
-                macos_packages: vec![],
-                windows_packages: vec![],
-                download_url: get_component_url_by_os("alm"),
-                binary_name: Some("forgejo".to_string()),
-                pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![],
-                pre_install_cmds_macos: vec![],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: HashMap::from([
-                    ("FORGEJO_RUN_USER".to_string(), "$USER".to_string()),
-                    ("HOME".to_string(), "{{DATA_PATH}}".to_string()),
-                ]),
-                data_download_list: Vec::new(),
-                exec_cmd: "nohup {{BIN_PATH}}/forgejo web --work-path {{DATA_PATH}} --port 4747 > {{LOGS_PATH}}/forgejo.log 2>&1 &".to_string(),
-                check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost:4747 >/dev/null 2>&1".to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-    }
-
-    fn register_alm_ci(&mut self) {
-        self.components.insert(
-            "alm-ci".to_string(),
-            ComponentConfig {
-                name: "alm-ci".to_string(),
-
-                ports: vec![],
-                dependencies: vec!["alm".to_string()],
-                linux_packages: vec![],
-                macos_packages: vec!["git".to_string(), "node".to_string()],
-                windows_packages: vec![],
-                download_url: get_component_url_by_os("alm_ci"),
-                binary_name: Some("forgejo-runner".to_string()),
-                pre_install_cmds_linux: vec![
-                    "mkdir -p {{CONF_PATH}}/alm-ci".to_string(),
-                ],
-                post_install_cmds_linux: vec![
-
-
-                    "echo 'To register the runner, run:'".to_string(),
-                    "echo '{{BIN_PATH}}/forgejo-runner register --instance $ALM_URL --token $ALM_RUNNER_TOKEN --name gbo --labels ubuntu-latest:docker://node:20-bookworm'".to_string(),
-                    "echo 'Then start with: {{BIN_PATH}}/forgejo-runner daemon --config {{CONF_PATH}}/alm-ci/config.yaml'".to_string(),
-                ],
-                pre_install_cmds_macos: vec![],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: {
-                    let mut env = HashMap::new();
-                    env.insert("ALM_URL".to_string(), "$ALM_URL".to_string());
-                    env.insert("ALM_RUNNER_TOKEN".to_string(), "$ALM_RUNNER_TOKEN".to_string());
-                    env
-                },
-                data_download_list: Vec::new(),
-                exec_cmd: "nohup {{BIN_PATH}}/forgejo-runner daemon --config {{CONF_PATH}}/alm-ci/config.yaml > {{LOGS_PATH}}/forgejo-runner.log 2>&1 &".to_string(),
-                check_cmd: "ps -ef | grep forgejo-runner | grep -v grep | grep {{BIN_PATH}} >/dev/null 2>&1".to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
-
-    fn register_dns(&mut self) {
-        self.components.insert(
-            "dns".to_string(),
-            ComponentConfig {
-                name: "dns".to_string(),
-                ports: vec![53],
-                dependencies: vec![],
-                linux_packages: vec![],
-                macos_packages: vec![],
-                windows_packages: vec![],
-                download_url: get_component_url_by_os("dns"),
-                binary_name: Some("coredns".to_string()),
-                pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![],
-                pre_install_cmds_macos: vec![],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: HashMap::new(),
-                data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/coredns -conf {{CONF_PATH}}/dns/Corefile".to_string(),
-                check_cmd: "dig @localhost botserver.local >/dev/null 2>&1".to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
-
-    fn register_webmail(&mut self) {
-        self.components.insert(
-            "webmail".to_string(),
-            ComponentConfig {
-                name: "webmail".to_string(),
-
-                ports: vec![8300],
-                dependencies: vec!["email".to_string()],
-                linux_packages: vec![
-                    "ca-certificates".to_string(),
-                    "apt-transport-https".to_string(),
-                    "php8.1".to_string(),
-                    "php8.1-fpm".to_string(),
-                ],
-                macos_packages: vec!["php".to_string()],
-                windows_packages: vec![],
-                download_url: get_component_url_by_os("webmail"),
-                binary_name: None,
-                pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![],
-                pre_install_cmds_macos: vec![],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: HashMap::new(),
-                data_download_list: Vec::new(),
-                exec_cmd: "php -S 0.0.0.0:9000 -t {{DATA_PATH}}/roundcubemail".to_string(),
-                check_cmd:
-                    "curl -f -k --connect-timeout 2 -m 5 https://localhost:8300 >/dev/null 2>&1"
-                        .to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
-
-    fn register_meeting(&mut self) {
-        self.components.insert(
-            "meet".to_string(),
-            ComponentConfig {
-                name: "meet".to_string(),
-                ports: vec![7880],
-                dependencies: vec![],
-                linux_packages: vec![],
-                macos_packages: vec![],
-                windows_packages: vec![],
-                download_url: get_component_url_by_os("meet"),
-                binary_name: Some("livekit-server".to_string()),
-                pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![],
-                pre_install_cmds_macos: vec![],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: HashMap::new(),
-                data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/livekit-server --config {{CONF_PATH}}/meet/config.yaml --key-file {{CONF_PATH}}/system/certificates/meet/server.key --cert-file {{CONF_PATH}}/system/certificates/meet/server.crt".to_string(),
-                check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:7880 >/dev/null 2>&1".to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
-
-    fn register_table_editor(&mut self) {
-        self.components.insert(
-            "table_editor".to_string(),
-            ComponentConfig {
-                name: "table_editor".to_string(),
-
-                ports: vec![5757],
-                dependencies: vec!["tables".to_string()],
-                linux_packages: vec![],
-                macos_packages: vec![],
-                windows_packages: vec![],
-                download_url: get_component_url_by_os("table_editor"),
-                binary_name: Some("nocodb".to_string()),
-                pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![],
-                pre_install_cmds_macos: vec![],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: HashMap::new(),
-                data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/nocodb".to_string(),
-                check_cmd:
-                    "curl -f -k --connect-timeout 2 -m 5 https://localhost:5757 >/dev/null 2>&1"
-                        .to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
-
-    fn register_doc_editor(&mut self) {
-        self.components.insert(
-            "doc_editor".to_string(),
-            ComponentConfig {
-                name: "doc_editor".to_string(),
-
-                ports: vec![9980],
-                dependencies: vec![],
-                linux_packages: vec![],
-                macos_packages: vec![],
-                windows_packages: vec![],
-                download_url: None,
-                binary_name: Some("coolwsd".to_string()),
-                pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![],
-                pre_install_cmds_macos: vec![],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: HashMap::new(),
-                data_download_list: Vec::new(),
-                exec_cmd: "coolwsd --config-file={{CONF_PATH}}/coolwsd.xml".to_string(),
-                check_cmd:
-                    "curl -f -k --connect-timeout 2 -m 5 https://localhost:9980 >/dev/null 2>&1"
-                        .to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
-
-    fn register_remote_terminal(&mut self) {
-        self.components.insert(
-            "remote_terminal".to_string(),
-            ComponentConfig {
-                name: "remote_terminal".to_string(),
-
-                ports: vec![3389],
-                dependencies: vec![],
-                linux_packages: vec!["xvfb".to_string(), "xrdp".to_string(), "xfce4".to_string()],
-                macos_packages: vec![],
-                windows_packages: vec![],
-                download_url: None,
-                binary_name: None,
-                pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![],
-                pre_install_cmds_macos: vec![],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: HashMap::new(),
-                data_download_list: Vec::new(),
-                exec_cmd: "xrdp --nodaemon".to_string(),
-                check_cmd: "netstat -tln | grep :3389 >/dev/null 2>&1".to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
-
-    fn register_devtools(&mut self) {
-        self.components.insert(
-            "devtools".to_string(),
-            ComponentConfig {
-                name: "devtools".to_string(),
-
-                ports: vec![],
-                dependencies: vec![],
-                linux_packages: vec![],
-                macos_packages: vec![],
-                windows_packages: vec![],
-                download_url: None,
-                binary_name: None,
-                pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![],
-                pre_install_cmds_macos: vec![],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: HashMap::new(),
-                data_download_list: Vec::new(),
-                exec_cmd: "".to_string(),
-                check_cmd: "".to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
-
-    fn _register_botserver(&mut self) {
-        self.components.insert(
-            "system".to_string(),
-            ComponentConfig {
-                name: "system".to_string(),
-
-                ports: vec![8000],
-                dependencies: vec![],
-                linux_packages: vec!["curl".to_string(), "unzip".to_string(), "git".to_string()],
-                macos_packages: vec![],
-                windows_packages: vec![],
-                download_url: None,
-                binary_name: None,
-                pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![],
-                pre_install_cmds_macos: vec![],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: HashMap::new(),
-                data_download_list: Vec::new(),
-                exec_cmd: "".to_string(),
-                check_cmd: "".to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
-
-    fn register_vector_db(&mut self) {
-        self.components.insert(
-            "vector_db".to_string(),
-            ComponentConfig {
-                name: "vector_db".to_string(),
-
-                ports: vec![6334],
-                dependencies: vec![],
-                linux_packages: vec![],
-                macos_packages: vec![],
-                windows_packages: vec![],
-                download_url: get_component_url_by_os("vector_db"),
-                binary_name: Some("qdrant".to_string()),
-                pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![],
-                pre_install_cmds_macos: vec![],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: HashMap::new(),
-                data_download_list: Vec::new(),
-                exec_cmd: "nohup {{BIN_PATH}}/qdrant --config-path {{CONF_PATH}}/vector_db/config.yaml > {{LOGS_PATH}}/qdrant.log 2>&1 &".to_string(),
-                check_cmd: "tasklist  >/dev/null 2>&1".to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
-
-    fn register_timeseries_db(&mut self) {
-        self.components.insert(
-            "timeseries_db".to_string(),
-            ComponentConfig {
-                name: "timeseries_db".to_string(),
-                ports: vec![8086, 8083],
-                dependencies: vec![],
-                linux_packages: vec![],
-                macos_packages: vec![],
-                windows_packages: vec![],
-                download_url: get_component_url_by_os("timeseries_db"),
-                binary_name: Some("influxd".to_string()),
-                pre_install_cmds_linux: vec![
-                    "mkdir -p {{DATA_PATH}}/influxdb".to_string(),
-                    "mkdir -p {{CONF_PATH}}/influxdb".to_string(),
-                ],
-                post_install_cmds_linux: vec![
-                    "{{BIN_PATH}}/influx setup --org system --bucket metrics --username admin --password {{GENERATED_PASSWORD}} --force".to_string(),
-                ],
-                pre_install_cmds_macos: vec![
-                    "mkdir -p {{DATA_PATH}}/influxdb".to_string(),
-                ],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: {
-                    let mut env = HashMap::new();
-                    env.insert("INFLUXD_ENGINE_PATH".to_string(), "{{DATA_PATH}}/influxdb/engine".to_string());
-                    env.insert("INFLUXD_BOLT_PATH".to_string(), "{{DATA_PATH}}/influxdb/influxd.bolt".to_string());
-                    env.insert("INFLUXD_HTTP_BIND_ADDRESS".to_string(), ":8086".to_string());
-                    env.insert("INFLUXD_REPORTING_DISABLED".to_string(), "true".to_string());
-                    env
-                },
-                data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/influxd --bolt-path={{DATA_PATH}}/influxdb/influxd.bolt --engine-path={{DATA_PATH}}/influxdb/engine --http-bind-address=:8086".to_string(),
-                check_cmd: "curl -f --connect-timeout 2 -m 5 /health >/dev/null 2>&1".to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
-
-    fn register_vault(&mut self) {
-        self.components.insert(
-            "vault".to_string(),
-            ComponentConfig {
-                name: "vault".to_string(),
-                ports: vec![8200],
-                dependencies: vec![],
-                linux_packages: vec![],
-                macos_packages: vec![],
-                windows_packages: vec![],
-                download_url: get_component_url_by_os("vault"),
-                binary_name: Some("vault".to_string()),
-                pre_install_cmds_linux: vec![
-                    "mkdir -p {{DATA_PATH}}/vault".to_string(),
-                    "mkdir -p {{CONF_PATH}}/vault".to_string(),
-                    "mkdir -p {{LOGS_PATH}}".to_string(),
-                    r#"cat > {{CONF_PATH}}/vault/config.hcl << 'EOF'
-storage "file" {
-  path = "{{DATA_PATH}}/vault"
-}
-
-listener "tcp" {
-  address       = "0.0.0.0:8200"
-  tls_disable   = false
-  tls_cert_file = "{{CONF_PATH}}/system/certificates/vault/server.crt"
-  tls_key_file  = "{{CONF_PATH}}/system/certificates/vault/server.key"
-  tls_client_ca_file = "{{CONF_PATH}}/system/certificates/ca/ca.crt"
-}
-
-api_addr = "https://127.0.0.1:8200"
-cluster_addr = "https://127.0.0.1:8201"
-ui = true
-disable_mlock = true
-EOF"#.to_string(),
-                ],
-
-                post_install_cmds_linux: vec![
-                    "mkdir -p {{CONF_PATH}}/system/certificates/ca".to_string(),
-                    "mkdir -p {{CONF_PATH}}/system/certificates/vault".to_string(),
-                    "mkdir -p {{CONF_PATH}}/system/certificates/botserver".to_string(),
-                    "mkdir -p {{CONF_PATH}}/system/certificates/tables".to_string(),
-                    "openssl genrsa -out {{CONF_PATH}}/system/certificates/ca/ca.key 4096 2>/dev/null".to_string(),
-                    "openssl req -new -x509 -days 3650 -key {{CONF_PATH}}/system/certificates/ca/ca.key -out {{CONF_PATH}}/system/certificates/ca/ca.crt -subj '/C=BR/ST=SP/L=São Paulo/O=BotServer Internal CA/CN=BotServer CA' 2>/dev/null".to_string(),
-                    "openssl genrsa -out {{CONF_PATH}}/system/certificates/vault/server.key 4096 2>/dev/null".to_string(),
-                    "openssl req -new -key {{CONF_PATH}}/system/certificates/vault/server.key -out {{CONF_PATH}}/system/certificates/vault/server.csr -subj '/C=BR/ST=SP/L=São Paulo/O=BotServer/CN=localhost' 2>/dev/null".to_string(),
-                    "echo -e 'subjectAltName = DNS:localhost,IP:127.0.0.1\\nkeyUsage = digitalSignature,keyEncipherment\\nextendedKeyUsage = serverAuth' > {{CONF_PATH}}/system/certificates/vault/server.ext".to_string(),
-                    "openssl x509 -req -days 3650 -in {{CONF_PATH}}/system/certificates/vault/server.csr -CA {{CONF_PATH}}/system/certificates/ca/ca.crt -CAkey {{CONF_PATH}}/system/certificates/ca/ca.key -CAcreateserial -out {{CONF_PATH}}/system/certificates/vault/server.crt -extfile {{CONF_PATH}}/system/certificates/vault/server.ext 2>/dev/null".to_string(),
-                    "openssl genrsa -out {{CONF_PATH}}/system/certificates/botserver/client.key 4096 2>/dev/null".to_string(),
-                    "openssl req -new -key {{CONF_PATH}}/system/certificates/botserver/client.key -out {{CONF_PATH}}/system/certificates/botserver/client.csr -subj '/C=BR/ST=SP/L=São Paulo/O=BotServer/CN=botserver' 2>/dev/null".to_string(),
-                    "openssl x509 -req -days 3650 -in {{CONF_PATH}}/system/certificates/botserver/client.csr -CA {{CONF_PATH}}/system/certificates/ca/ca.crt -CAkey {{CONF_PATH}}/system/certificates/ca/ca.key -CAcreateserial -out {{CONF_PATH}}/system/certificates/botserver/client.crt 2>/dev/null".to_string(),
-                    "openssl genrsa -out {{CONF_PATH}}/system/certificates/tables/server.key 4096 2>/dev/null".to_string(),
-                    "openssl req -new -key {{CONF_PATH}}/system/certificates/tables/server.key -out {{CONF_PATH}}/system/certificates/tables/server.csr -subj '/C=BR/ST=SP/L=São Paulo/O=BotServer/CN=localhost' 2>/dev/null".to_string(),
-                    "echo -e 'subjectAltName = DNS:localhost,IP:127.0.0.1\\nkeyUsage = digitalSignature,keyEncipherment\\nextendedKeyUsage = serverAuth' > {{CONF_PATH}}/system/certificates/tables/server.ext".to_string(),
-                    "openssl x509 -req -days 3650 -in {{CONF_PATH}}/system/certificates/tables/server.csr -CA {{CONF_PATH}}/system/certificates/ca/ca.crt -CAkey {{CONF_PATH}}/system/certificates/ca/ca.key -CAcreateserial -out {{CONF_PATH}}/system/certificates/tables/server.crt -extfile {{CONF_PATH}}/system/certificates/tables/server.ext 2>/dev/null".to_string(),
-                    "echo 'Certificates generated successfully'".to_string(),
-                ],
-                pre_install_cmds_macos: vec![
-                    "mkdir -p {{DATA_PATH}}/vault".to_string(),
-                    "mkdir -p {{CONF_PATH}}/vault".to_string(),
-                    "mkdir -p {{LOGS_PATH}}".to_string(),
-                    r#"cat > {{CONF_PATH}}/vault/config.hcl << 'EOF'
-storage "file" {
-  path = "{{DATA_PATH}}/vault"
-}
-
-listener "tcp" {
-  address       = "0.0.0.0:8200"
-  tls_disable   = false
-  tls_cert_file = "{{CONF_PATH}}/system/certificates/vault/server.crt"
-  tls_key_file  = "{{CONF_PATH}}/system/certificates/vault/server.key"
-  tls_client_ca_file = "{{CONF_PATH}}/system/certificates/ca/ca.crt"
-}
-
-api_addr = "https://127.0.0.1:8200"
-cluster_addr = "https://127.0.0.1:8201"
-ui = true
-disable_mlock = true
-EOF"#.to_string(),
-                ],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: {
-                    let mut env = HashMap::new();
-                    env.insert(
-                        "VAULT_ADDR".to_string(),
-                        "https://127.0.0.1:8200".to_string(),
-                    );
-                    env.insert(
-                        "VAULT_CACERT".to_string(),
-                        format!("{}/conf/system/certificates/ca/ca.crt", get_stack_path()),
-                    );
-                    env
-                },
-                data_download_list: Vec::new(),
-                exec_cmd: "nohup {{BIN_PATH}}/vault server -config={{CONF_PATH}}/vault/config.hcl > {{LOGS_PATH}}/vault.log 2>&1 &"
-                    .to_string(),
-                check_cmd: "if [ -f {{CONF_PATH}}/system/certificates/botserver/client.crt ]; then curl -f -sk --connect-timeout 2 -m 5 --cert {{CONF_PATH}}/system/certificates/botserver/client.crt --key {{CONF_PATH}}/system/certificates/botserver/client.key \"${VAULT_ADDR}/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200\" >/dev/null 2>&1; else curl -f -sk --connect-timeout 2 -m 5 \"${VAULT_ADDR}/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200\" >/dev/null 2>&1; fi"
-                    .to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
-
-    fn register_observability(&mut self) {
-        self.components.insert(
-            "observability".to_string(),
-            ComponentConfig {
-                name: "observability".to_string(),
-                ports: vec![8686],
-                dependencies: vec!["timeseries_db".to_string()],
-                linux_packages: vec![],
-                macos_packages: vec![],
-                windows_packages: vec![],
-                download_url: get_component_url_by_os("observability"),
-                binary_name: Some("vector".to_string()),
-                pre_install_cmds_linux: vec![
-                    "mkdir -p {{CONF_PATH}}/monitoring".to_string(),
-                    "mkdir -p {{DATA_PATH}}/vector".to_string(),
-                ],
-                post_install_cmds_linux: vec![],
-                pre_install_cmds_macos: vec![
-                    "mkdir -p {{CONF_PATH}}/monitoring".to_string(),
-                    "mkdir -p {{DATA_PATH}}/vector".to_string(),
-                ],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: HashMap::new(),
-                data_download_list: Vec::new(),
-
-                exec_cmd: "{{BIN_PATH}}/vector --config {{CONF_PATH}}/monitoring/vector.toml"
-                    .to_string(),
-                check_cmd: "curl -f --connect-timeout 2 -m 5 /health >/dev/null 2>&1".to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
-
-    fn register_host(&mut self) {
-        self.components.insert(
-            "host".to_string(),
-            ComponentConfig {
-                name: "host".to_string(),
-
-                ports: vec![],
-                dependencies: vec![],
-                linux_packages: vec![],
-                macos_packages: vec![],
-                windows_packages: vec![],
-                download_url: None,
-                binary_name: None,
-                pre_install_cmds_linux: vec![
-                    "echo 'net.ipv4.ip_forward=1' | tee -a /etc/sysctl.conf".to_string(),
-                    "sysctl -p".to_string(),
-                ],
-                post_install_cmds_linux: vec![
-                    "lxd init --dump >/dev/null 2>&1 || lxd init --auto".to_string(),
-                    "lxc storage show default >/dev/null 2>&1 || lxc storage create default dir".to_string(),
-                    "lxc profile device include default root >/dev/null 2>&1 || lxc profile device add default root disk path=/ pool=default".to_string(),
-                    "lxc profile device show default | grep lxd-sock >/dev/null 2>&1 || lxc profile device add default lxd-sock proxy connect=unix:/var/lib/lxd/unix.socket listen=unix:/tmp/lxd.sock bind=container uid=0 gid=0 mode=0660".to_string(),
-                ],
-                pre_install_cmds_macos: vec![],
-                post_install_cmds_macos: vec![],
-                pre_install_cmds_windows: vec![],
-                post_install_cmds_windows: vec![],
-                env_vars: HashMap::new(),
-                data_download_list: Vec::new(),
-                exec_cmd: "".to_string(),
-                check_cmd: "".to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
 
     pub fn start(&self, component: &str) -> Result<std::process::Child> {
         if let Some(component) = self.components.get(component) {
@@ -1296,9 +178,15 @@ EOF"#.to_string(),
             trace!("Working dir: {}", bin_path.display());
             let abs = crate::os_abstraction::get_abstraction();
             let (shell, flag) = abs.shell_command();
+            #[cfg(target_os = "windows")]
+            let wrapped_cmd = format!("\"{rendered_cmd}\"");
+            #[cfg(target_os = "windows")]
+            let script_arg: &str = &wrapped_cmd;
+            #[cfg(not(target_os = "windows"))]
+            let script_arg: &str = &rendered_cmd;
             let child = SafeCommand::new(shell)
                 .and_then(|c| c.arg(flag))
-                .and_then(|c| c.trusted_shell_script_arg(&rendered_cmd))
+                .and_then(|c| c.raw_shell_script_arg(script_arg))
                 .and_then(|c| c.working_dir(&bin_path))
                 .and_then(|cmd| cmd.spawn_with_envs(&evaluated_envs));
 
@@ -1401,6 +289,9 @@ EOF"#.to_string(),
             return credentials;
         }
 
+        #[cfg(target_os = "windows")]
+        let vault_bin = base_path.join("bin/vault/vault.exe");
+        #[cfg(not(target_os = "windows"))]
         let vault_bin = base_path.join("bin/vault/vault");
         let ca_cert_path = std::env::var("VAULT_CACERT").unwrap_or_else(|_| {
             base_path
@@ -1424,9 +315,13 @@ EOF"#.to_string(),
         for (service_name, vault_path) in &services {
             let result = SafeCommand::new(vault_bin.to_str().unwrap_or("vault"))
                 .and_then(|c| {
-                    c.env("VAULT_ADDR", &vault_addr)
-                        .and_then(|c| c.env("VAULT_TOKEN", &vault_token))
-                        .and_then(|c| c.env("VAULT_CACERT", &ca_cert_path))
+                    let mut command = c
+                        .env("VAULT_ADDR", &vault_addr)?
+                        .env("VAULT_TOKEN", &vault_token)?;
+                    if std::path::Path::new(&ca_cert_path).is_file() {
+                        command = command.env("VAULT_CACERT", &ca_cert_path)?;
+                    }
+                    Ok(command)
                 })
                 .and_then(|c| {
                     c.args(&["kv", "get", "-format=json", "-tls-skip-verify", vault_path])
@@ -1473,6 +368,9 @@ EOF"#.to_string(),
 
         let bin_path = self.base_path.join("bin/vault");
         let conf_path = self.base_path.join("conf");
+        #[cfg(target_os = "windows")]
+        let vault_bin = bin_path.join("vault.exe");
+        #[cfg(not(target_os = "windows"))]
         let vault_bin = bin_path.join("vault");
         let vault_data = self.base_path.join("data/vault");
 
@@ -1539,10 +437,11 @@ EOF"#.to_string(),
             vault_addr
         );
 
-        // Wait for Vault to be ready (up to 30s, polling every 2s)
+        // Wait for Vault to be ready (up to 120s, polling every 2s). Windows
+        // first-launch of the ~112MB binary can exceed 30s under AV scanning.
         info!("Waiting for Vault to be ready on {}...", vault_addr);
         let vault_ready = 'wait: {
-            for i in 1..=15 {
+            for i in 1..=60 {
                 // Use curl without -f (health returns 503 when sealed, which is fine)
                 let check_cmd = format!(
                     "curl -sk --connect-timeout 2 --max-time 4 -o /dev/null -w '%{{http_code}}' {}/v1/sys/health",
@@ -1550,7 +449,12 @@ EOF"#.to_string(),
                 );
                 if let Some(output) = safe_sh_command(&check_cmd) {
                     let stdout = String::from_utf8_lossy(&output.stdout);
-                    if output.status.success() || stdout.contains("503") || stdout.contains("200") {
+                    // 501 = uninitialized (still ready for `operator init`); 503 = sealed
+                    if output.status.success()
+                        || stdout.contains("501")
+                        || stdout.contains("503")
+                        || stdout.contains("200")
+                    {
                         break 'wait true;
                     }
                 }
@@ -1670,15 +574,14 @@ VAULT_CACERT={}
 
         // Enable KV2 secrets engine at 'secret/' path
         info!("Enabling KV2 secrets engine at 'secret/'...");
-        let enable_kv2_cmd = format!(
-            "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} secrets enable -path=secret kv-v2",
-            vault_addr,
-            root_token,
-            ca_cert.display(),
-            vault_bin.display()
-        );
-        match safe_sh_command(&enable_kv2_cmd) {
-            Some(output) => {
+        let enable_result = SafeCommand::new(vault_bin.to_str().unwrap_or("vault"))
+            .and_then(|c| c.env("VAULT_ADDR", vault_addr.as_str()))
+            .and_then(|c| c.env("VAULT_TOKEN", root_token.as_str()))
+            .and_then(|c| c.env("VAULT_CACERT", ca_cert.to_str().unwrap_or("")))
+            .and_then(|c| c.args(&["secrets", "enable", "-path=secret", "kv-v2"]))
+            .and_then(|c| c.execute());
+        match enable_result {
+            Ok(output) => {
                 if output.status.success() {
                     info!("KV2 secrets engine enabled at 'secret/'");
                 } else {
@@ -1690,8 +593,8 @@ VAULT_CACERT={}
                     }
                 }
             }
-            None => {
-                warn!("Failed to execute KV2 enable command");
+            Err(e) => {
+                warn!("Failed to execute KV2 enable command: {e}");
             }
         }
 
@@ -1727,9 +630,13 @@ VAULT_CACERT={}
                 Ok(cmd)
             })
             .and_then(|c| {
-                c.env("VAULT_ADDR", vault_addr)
-                    .and_then(|c| c.env("VAULT_TOKEN", root_token))
-                    .and_then(|c| c.env("VAULT_CACERT", ca_cert.to_str().unwrap_or("")))
+                let mut command = c
+                    .env("VAULT_ADDR", vault_addr)?
+                    .env("VAULT_TOKEN", root_token)?;
+                if ca_cert.is_file() {
+                    command = command.env("VAULT_CACERT", ca_cert.to_str().unwrap_or(""))?;
+                }
+                Ok(command)
             })
             .and_then(|c| c.execute());
 
@@ -1895,9 +802,13 @@ VAULT_CACERT={}
                     Ok(cmd)
                 })
                 .and_then(|c| {
-                    c.env("VAULT_ADDR", vault_addr)
-                        .and_then(|c| c.env("VAULT_TOKEN", root_token))
-                        .and_then(|c| c.env("VAULT_CACERT", ca_cert.to_str().unwrap_or("")))
+                    let mut command = c
+                        .env("VAULT_ADDR", vault_addr)?
+                        .env("VAULT_TOKEN", root_token)?;
+                    if ca_cert.is_file() {
+                        command = command.env("VAULT_CACERT", ca_cert.to_str().unwrap_or(""))?;
+                    }
+                    Ok(command)
                 })
                 .and_then(|c| c.execute());
 
@@ -1931,6 +842,9 @@ VAULT_CACERT={}
             .filter(|a| !a.is_empty())
             .ok_or_else(|| anyhow::anyhow!("VAULT_ADDR must be set in .env or environment"))?;
         let ca_cert = self.base_path.join("conf/system/certificates/ca/ca.crt");
+        #[cfg(target_os = "windows")]
+        let vault_bin = self.base_path.join("bin/vault/vault.exe");
+        #[cfg(not(target_os = "windows"))]
         let vault_bin = self.base_path.join("bin/vault/vault");
 
         // Try to read existing unseal keys
@@ -1950,20 +864,23 @@ VAULT_CACERT={}
             Vec::new()
         };
 
-        // Try to read existing init.json for root token
+        // Prefer a token supplied by the launcher (for example a token kept
+        // outside the repository), then fall back to the original init data.
         let init_json = self.base_path.join("conf/vault/init.json");
-        let root_token = if init_json.exists() {
-            let content = std::fs::read_to_string(&init_json)?;
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-                json.get("root_token")
-                    .and_then(|v| v.as_str())
-                    .map(String::from)
-            } else {
-                None
-            }
-        } else {
-            None
-        };
+        let root_token = std::env::var("VAULT_TOKEN")
+            .ok()
+            .filter(|token| !token.trim().is_empty())
+            .or_else(|| {
+                if init_json.exists() {
+                    let content = std::fs::read_to_string(&init_json).ok()?;
+                    let json = serde_json::from_str::<serde_json::Value>(&content).ok()?;
+                    json.get("root_token")
+                        .and_then(|value| value.as_str())
+                        .map(String::from)
+                } else {
+                    None
+                }
+            });
 
         // Unseal if we have keys
         if !unseal_keys.is_empty() {
@@ -2110,20 +1027,6 @@ VAULT_CACERT={}
     }
 }
 
-use crate::shared::utils::get_stack_path;
 use botlib::security::command_guard::SafeCommand;
-use serde::Deserialize;
 use std::collections::HashMap;
 use std::path::PathBuf;
-
-fn get_component_url_by_os(name: &str) -> Option<String> {
-    let os = detect_os();
-    match os {
-        OsType::Windows => get_thirdparty_config()
-            .components
-            .get(name)
-            .and_then(|c| c.url_win.clone())
-            .or_else(|| get_component_url(name)),
-        _ => get_component_url(name),
-    }
-}

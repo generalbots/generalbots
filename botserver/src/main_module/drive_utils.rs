@@ -18,7 +18,15 @@ pub async fn ensure_vendor_files_in_minio(drive: &crate::drive::s3_repository::S
 
     if let Some(content) = htmx_content {
         let key = "default.gbai/default.gblib/vendor/htmx.min.js";
-        match drive.put_object_direct("default.gborg", key, content, Some("application/javascript")).await {
+        match drive
+            .put_object_direct(
+                "default.gborg",
+                key,
+                content,
+                Some("application/javascript"),
+            )
+            .await
+        {
             Ok(_) => info!("Uploaded vendor file to MinIO: s3://default.gborg/{}", key),
             Err(e) => warn!("Failed to upload vendor file to MinIO: {}", e),
         }
@@ -31,7 +39,7 @@ pub async fn ensure_vendor_files_in_minio(drive: &crate::drive::s3_repository::S
 
 #[cfg(feature = "drive")]
 async fn upload_bot_files_to_drive(drive: &crate::drive::s3_repository::S3Repository) {
-    use log::{info, warn, debug};
+    use log::{debug, info, warn};
     use std::path::Path;
 
     // Tenta localizar o diretorio de templates em varios locais relativos
@@ -49,10 +57,17 @@ async fn upload_bot_files_to_drive(drive: &crate::drive::s3_repository::S3Reposi
 
     // Tenta criar /opt/gbo/data/ como fallback (best-effort) para que
     // o drive_monitor tambem encontre localmente se o diretorio existir
-    let bot_dir = Path::new("/opt/gbo/data/default.gbai");
-    if !bot_dir.exists() && source.to_str() != Some("/opt/gbo/data/default.gbai") {
-        if let Err(e) = copy_dir_recursive(source, bot_dir).await {
-            debug!("Could not copy templates to {} (non-critical): {}", bot_dir.display(), e);
+    #[cfg(target_os = "linux")]
+    {
+        let bot_dir = Path::new("/opt/gbo/data/default.gbai");
+        if !bot_dir.exists() && source.to_str() != Some("/opt/gbo/data/default.gbai") {
+            if let Err(e) = copy_dir_recursive(source, bot_dir).await {
+                debug!(
+                    "Could not copy templates to {} (non-critical): {}",
+                    bot_dir.display(),
+                    e
+                );
+            }
         }
     }
 
@@ -75,7 +90,8 @@ async fn upload_bot_files_to_drive(drive: &crate::drive::s3_repository::S3Reposi
                 stack.push(path);
             } else if path.is_file() {
                 let rel = path.strip_prefix(source).unwrap_or(&path);
-                let key = format!("default.gbai/{}", rel.to_str().unwrap_or(""));
+                let rel_key = rel.to_str().unwrap_or("").replace('\\', "/");
+                let key = format!("default.gbai/{rel_key}");
                 let data = match tokio::fs::read(&path).await {
                     Ok(d) => d,
                     Err(e) => {
@@ -83,7 +99,10 @@ async fn upload_bot_files_to_drive(drive: &crate::drive::s3_repository::S3Reposi
                         continue;
                     }
                 };
-                match drive.put_object_direct("default.gborg", &key, data, None).await {
+                match drive
+                    .put_object_direct("default.gborg", &key, data, None)
+                    .await
+                {
                     Ok(_) => {
                         count += 1;
                         debug!("Uploaded bot file: s3://default.gborg/{}", key);
@@ -99,7 +118,7 @@ async fn upload_bot_files_to_drive(drive: &crate::drive::s3_repository::S3Reposi
     }
 }
 
-#[cfg(feature = "drive")]
+#[cfg(all(feature = "drive", target_os = "linux"))]
 async fn copy_dir_recursive(src: &std::path::Path, dst: &std::path::Path) -> std::io::Result<()> {
     use tokio::fs;
 

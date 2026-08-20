@@ -48,11 +48,21 @@ impl SecretsManager {
 
         let stack_path = get_stack_path();
         let ca_cert = env::var("VAULT_CACERT")
-            .unwrap_or_else(|_| format!("{}/conf/system/certificates/ca/ca.crt", stack_path));
+            .ok()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| format!("{}/conf/system/certificates/ca/ca.crt", stack_path));
         let client_cert = env::var("VAULT_CLIENT_CERT")
-            .unwrap_or_else(|_| format!("{}/conf/system/certificates/botserver/client.crt", stack_path));
+            .ok()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| {
+                format!("{}/conf/system/certificates/botserver/client.crt", stack_path)
+            });
         let client_key = env::var("VAULT_CLIENT_KEY")
-            .unwrap_or_else(|_| format!("{}/conf/system/certificates/botserver/client.key", stack_path));
+            .ok()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| {
+                format!("{}/conf/system/certificates/botserver/client.key", stack_path)
+            });
 
         let enabled = !token.is_empty() && !addr.is_empty();
 
@@ -71,7 +81,13 @@ impl SecretsManager {
         let key_path = PathBuf::from(&client_key);
 
         let mut settings_builder = VaultClientSettingsBuilder::default();
-        settings_builder.address(&addr).token(&token);
+        // Do not let vaultrs re-read a blank VAULT_CACERT through its own
+        // defaults. An empty path resolves to the current directory on
+        // Windows and is then opened as though it were a PEM file.
+        settings_builder
+            .address(&addr)
+            .token(&token)
+            .ca_certs(Vec::<String>::new());
 
         let is_https = addr.starts_with("https://");
         if skip_verify {
@@ -81,13 +97,13 @@ impl SecretsManager {
             settings_builder.verify(false);
         } else {
             settings_builder.verify(true);
-            if ca_path.exists() {
+            if ca_path.is_file() {
                 debug!("Using CA certificate for Vault: {}", ca_cert);
                 settings_builder.ca_certs(vec![ca_cert]);
             }
         }
 
-        if cert_path.exists() && key_path.exists() && !skip_verify {
+        if cert_path.is_file() && key_path.is_file() && !skip_verify {
             debug!("Using mTLS client certificate for Vault: {}", client_cert);
         }
 

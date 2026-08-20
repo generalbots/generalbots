@@ -80,16 +80,36 @@ pub struct VmResult {
 
 impl VmResult {
     pub fn ok(vm: VmInstance) -> Self {
-        Self { success: true, vm: Some(vm), vms: None, error: None }
+        Self {
+            success: true,
+            vm: Some(vm),
+            vms: None,
+            error: None,
+        }
     }
     pub fn ok_list(vms: Vec<VmInstance>) -> Self {
-        Self { success: true, vm: None, vms: Some(vms), error: None }
+        Self {
+            success: true,
+            vm: None,
+            vms: Some(vms),
+            error: None,
+        }
     }
     pub fn err(msg: String) -> Self {
-        Self { success: false, vm: None, vms: None, error: Some(msg) }
+        Self {
+            success: false,
+            vm: None,
+            vms: None,
+            error: Some(msg),
+        }
     }
     pub fn deleted() -> Self {
-        Self { success: true, vm: None, vms: None, error: None }
+        Self {
+            success: true,
+            vm: None,
+            vms: None,
+            error: None,
+        }
     }
 }
 
@@ -106,8 +126,10 @@ impl VmLifecycle {
 
     fn conn(
         &self,
-    ) -> Result<diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>, String>
-    {
+    ) -> Result<
+        diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
+        String,
+    > {
         self.pool.get().map_err(|e| format!("db pool: {e}"))
     }
 
@@ -120,11 +142,17 @@ impl VmLifecycle {
     pub fn validate(req: &CreateVmRequest) -> Result<(String, String), String> {
         let env = req.env.trim().to_lowercase();
         if !VALID_ENVS.contains(&env.as_str()) {
-            return Err(format!("invalid env '{env}', expected {}", VALID_ENVS.join("/")));
+            return Err(format!(
+                "invalid env '{env}', expected {}",
+                VALID_ENVS.join("/")
+            ));
         }
         let tier = req.tier.trim().to_lowercase();
         if !VALID_TIERS.contains(&tier.as_str()) {
-            return Err(format!("invalid tier '{tier}', expected {}", VALID_TIERS.join("/")));
+            return Err(format!(
+                "invalid tier '{tier}', expected {}",
+                VALID_TIERS.join("/")
+            ));
         }
         Ok((env, tier))
     }
@@ -172,15 +200,16 @@ impl VmLifecycle {
 
         if let Some(existing) = self.lookup_opt(&project_id, &env)? {
             if self.linux_available() {
-                let state = self.linux_running(&existing.container_name)?;
-                if !state {
+                if !self.linux_exists(&existing.container_name)? {
+                    self.provision_container(&existing.container_name, &existing.tier)?;
+                } else if !self.linux_running(&existing.container_name)? {
                     self.linux_start(&existing.container_name)?;
                 }
                 self.set_status(&existing.id, "running")?;
             } else {
                 self.set_status(&existing.id, "skipped")?;
             }
-            return Ok(existing);
+            return self.lookup(&project_id, &env);
         }
 
         // Idempotent upsert against the unique `(project_id, env)` index so
@@ -248,7 +277,10 @@ impl VmLifecycle {
             self.linux_stop(&inst.container_name)?;
         }
         self.set_status(&inst.id, "stopped")?;
-        Ok(VmInstance { status: "stopped".into(), ..inst })
+        Ok(VmInstance {
+            status: "stopped".into(),
+            ..inst
+        })
     }
 
     pub fn delete(&self, vm_id: Uuid) -> Result<(), String> {
@@ -296,11 +328,13 @@ impl VmLifecycle {
 
     fn set_status(&self, id: &Uuid, status: &str) -> Result<(), String> {
         let mut conn = self.conn()?;
-        diesel::sql_query("UPDATE vm_instances SET status = $2, error = NULL, updated_at = NOW() WHERE id = $1")
-            .bind::<diesel::sql_types::Uuid, _>(*id)
-            .bind::<diesel::sql_types::Text, _>(status)
-            .execute(&mut conn)
-            .map_err(|e| format!("update vm: {e}"))?;
+        diesel::sql_query(
+            "UPDATE vm_instances SET status = $2, error = NULL, updated_at = NOW() WHERE id = $1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(*id)
+        .bind::<diesel::sql_types::Text, _>(status)
+        .execute(&mut conn)
+        .map_err(|e| format!("update vm: {e}"))?;
         Ok(())
     }
 
@@ -347,7 +381,6 @@ impl VmLifecycle {
         .map_err(|e| format!("vm lookup: {e}"))?;
         Ok(row.into_vm())
     }
-
 }
 
 #[derive(diesel::QueryableByName)]
@@ -427,18 +460,39 @@ mod tests {
 
     #[test]
     fn container_names_are_env_scoped() {
-        assert_eq!(VmLifecycle::container_name("My App", "development", false), "my-app-development");
-        assert_eq!(VmLifecycle::container_name("My App", "production", false), "my-app-prod");
-        assert_eq!(VmLifecycle::container_name("Web", "development", true), "web-development-runner");
+        assert_eq!(
+            VmLifecycle::container_name("My App", "development", false),
+            "my-app-development"
+        );
+        assert_eq!(
+            VmLifecycle::container_name("My App", "production", false),
+            "my-app-prod"
+        );
+        assert_eq!(
+            VmLifecycle::container_name("Web", "development", true),
+            "web-development-runner"
+        );
     }
 
     #[test]
     fn validate_accepts_known_envs_and_tiers() {
-        let ok_req = CreateVmRequest { env: "production".into(), tier: "medium".into(), runner_enabled: false };
+        let ok_req = CreateVmRequest {
+            env: "production".into(),
+            tier: "medium".into(),
+            runner_enabled: false,
+        };
         assert!(VmLifecycle::validate(&ok_req).is_ok());
-        let bad = CreateVmRequest { env: "moon".into(), tier: "small".into(), runner_enabled: false };
+        let bad = CreateVmRequest {
+            env: "moon".into(),
+            tier: "small".into(),
+            runner_enabled: false,
+        };
         assert!(VmLifecycle::validate(&bad).is_err());
-        let bad_tier = CreateVmRequest { env: "dev".into(), tier: "huge".into(), runner_enabled: false };
+        let bad_tier = CreateVmRequest {
+            env: "dev".into(),
+            tier: "huge".into(),
+            runner_enabled: false,
+        };
         assert!(VmLifecycle::validate(&bad_tier).is_err());
     }
 

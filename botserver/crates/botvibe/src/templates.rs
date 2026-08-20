@@ -84,10 +84,26 @@ function respond(res, code, body) {
   res.end(JSON.stringify(body));
 }
 
+const page = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vibe Calculator</title><style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0d1117;color:#e6edf3;font:16px system-ui,sans-serif}
+main{width:min(92vw,420px);padding:28px;border:1px solid #30363d;border-radius:18px;background:#161b22;box-shadow:0 24px 70px #0008}
+h1{margin:0 0 6px;color:#84d669}p{color:#8b949e;margin:0 0 20px}form{display:flex;gap:10px}input{min-width:0;flex:1;padding:14px;border:1px solid #484f58;border-radius:10px;background:#0d1117;color:#fff;font-size:18px}
+button{border:0;border-radius:10px;padding:0 18px;background:#84d669;color:#10220b;font-weight:800;cursor:pointer}output{display:block;min-height:72px;margin-top:18px;padding:18px;border-radius:12px;background:#0d1117;font-size:28px;font-weight:800}
+</style></head><body><main><h1>Vibe Calculator</h1><p>Published locally with Windows + WSL + Incus</p>
+<form id="calc"><input id="expr" aria-label="Expression" value="(12 + 8) * 3" autofocus><button>Calculate</button></form><output id="result">Ready</output>
+<script>document.getElementById('calc').addEventListener('submit',async e=>{e.preventDefault();const q=document.getElementById('expr').value;const out=document.getElementById('result');out.textContent='…';try{const r=await fetch('/api/calculate?expr='+encodeURIComponent(q));const d=await r.json();out.textContent=r.ok?d.result:d.error}catch(err){out.textContent=err.message}})</script>
+</main></body></html>`;
+
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (url.pathname === '/health') return respond(res, 200, { status: 'ok' });
-  if (url.pathname !== '/' || req.method !== 'GET') return respond(res, 404, { error: 'not found' });
+  if (url.pathname === '/' && req.method === 'GET' && !url.searchParams.has('expr')) {
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    return res.end(page);
+  }
+  if (!['/', '/api/calculate'].includes(url.pathname) || req.method !== 'GET') return respond(res, 404, { error: 'not found' });
   const expr = url.searchParams.get('expr') || '';
   try {
     const result = evaluate(expr);
@@ -218,16 +234,27 @@ mod tests {
 
     #[test]
     fn seed_seeds_calculator_and_never_clobbers() {
-        let tmp = std::env::temp_dir().join(format!("vibe-templates-test-{}", uuid::Uuid::new_v4()));
+        let tmp =
+            std::env::temp_dir().join(format!("vibe-templates-test-{}", uuid::Uuid::new_v4()));
         std::env::set_var("VIBE_WORKSPACE_ROOT", &tmp);
         let key = "calculator";
 
         seed_project_workspace(key, "Calculator").expect("seed");
         let entries = crate::harness::list_rel(key, "", 0).expect("list");
-        for want in ["calc.js", "index.js", "test.js", "package.json", "README.md"] {
-            assert!(entries.iter().any(|e| e == want), "missing {want}: {entries:?}");
+        for want in [
+            "calc.js",
+            "index.js",
+            "test.js",
+            "package.json",
+            "README.md",
+        ] {
+            assert!(
+                entries.iter().any(|e| e == want),
+                "missing {want}: {entries:?}"
+            );
         }
-        let calc = crate::harness::read_rel_file(key, "calc.js", 1024 * 1024).expect("read calc.js");
+        let calc =
+            crate::harness::read_rel_file(key, "calc.js", 1024 * 1024).expect("read calc.js");
         let calc = String::from_utf8(calc).expect("utf8");
         assert!(calc.contains("evaluate"), "calc.js must export evaluate");
 
@@ -241,7 +268,8 @@ mod tests {
 
     #[test]
     fn seed_starter_for_non_calculator() {
-        let tmp = std::env::temp_dir().join(format!("vibe-templates-test-{}", uuid::Uuid::new_v4()));
+        let tmp =
+            std::env::temp_dir().join(format!("vibe-templates-test-{}", uuid::Uuid::new_v4()));
         std::env::set_var("VIBE_WORKSPACE_ROOT", &tmp);
         let key = "landing";
 

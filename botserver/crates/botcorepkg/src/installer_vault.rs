@@ -63,6 +63,9 @@ pub fn fetch_vault_credentials_impl() -> HashMap<String, String> {
         return credentials;
     }
 
+    #[cfg(target_os = "windows")]
+    let vault_bin = base_path.join("bin/vault/vault.exe");
+    #[cfg(not(target_os = "windows"))]
     let vault_bin = base_path.join("bin/vault/vault");
     let ca_cert_path = std::env::var("VAULT_CACERT").unwrap_or_else(|_| {
         base_path
@@ -275,10 +278,6 @@ VAULT_CACERT={}
         let _ = botlib::os::fs::get_permissions_manager().set_readonly_owner(&unseal_keys_file);
     }
 
-    #[cfg(not(unix))]
-    {
-        let _ = (&unseal_keys_file);
-    }
     info!("Created {} (chmod 600)", unseal_keys_file.display());
 
     installer_vault2::unseal_vault(base_path, &vault_bin, &vault_addr)?;

@@ -103,4 +103,9 @@ impl ContainerSettings {
         self.internal_ports = ports;
         self
     }
+
+    pub fn with_external_port(mut self, port: u16) -> Self {
+        self.external_port = Some(port);
+        self
+    }
 }

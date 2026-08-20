@@ -15,12 +15,10 @@ torchaudio>=2.5.0
 torchvision>=0.20.0
 transformers>=5.0.0rc3
 accelerate==1.1.1
-safetensors==0.4.5
+safetensors>=0.8.0
 Pillow>=12.2.0
 
 # Audio Generation & Processing
-openai-whisper==20231117
-TTS==0.22.0
 scipy==1.14.1
 librosa==0.10.2.post1
 

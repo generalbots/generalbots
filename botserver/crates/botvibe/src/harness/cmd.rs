@@ -11,12 +11,36 @@ use std::sync::LazyLock;
 
 static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
     HashSet::from([
-        "ls", "cat", "head", "tail", "grep", "find", "wc", "diff", "stat",
-        "git", "mkdir", "touch", "cp", "mv", "rm",
+        "ls",
+        "cat",
+        "head",
+        "tail",
+        "grep",
+        "find",
+        "wc",
+        "diff",
+        "stat",
+        "git",
+        "mkdir",
+        "touch",
+        "cp",
+        "mv",
+        "rm",
         // #917 — `sh` is deliberately absent: `sh -c "..."` executes arbitrary
         // code with no blocked metacharacter, and no harness tool needs it.
-        "node", "npm", "npx", "cargo", "python3", "python",
-        "botserver", "botc", "caddy", "incus", "dig", "nslookup",
+        "node",
+        "npm",
+        "npx",
+        "cargo",
+        "python3",
+        "python",
+        "botserver",
+        "botc",
+        "caddy",
+        "incus",
+        "wsl",
+        "dig",
+        "nslookup",
     ])
 });
 
@@ -54,6 +78,64 @@ pub struct RunOutput {
     pub stderr: String,
 }
 
+fn prepare_command(
+    program: &str,
+    args: &[String],
+    cwd: &std::path::Path,
+) -> Result<std::process::Command, GuardError> {
+    if !ALLOWED_COMMANDS.contains(program) {
+        return Err(GuardError::CommandNotAllowed(program.into()));
+    }
+    if args.len() > MAX_ARGS {
+        return Err(GuardError::InvalidArgument("too many arguments".into()));
+    }
+    for arg in args {
+        validate_arg(arg)?;
+    }
+
+    #[cfg(target_os = "windows")]
+    let mut command = {
+        let node_root = std::env::var_os("ProgramFiles")
+            .map(std::path::PathBuf::from)
+            .map(|root| root.join("nodejs"));
+        let npm_cli = match program {
+            "npm" => Some("npm-cli.js"),
+            "npx" => Some("npx-cli.js"),
+            _ => None,
+        };
+        match (node_root, npm_cli) {
+            (Some(root), Some(cli)) if root.join("node.exe").is_file() => {
+                let mut command = std::process::Command::new(root.join("node.exe"));
+                command.arg(root.join("node_modules").join("npm").join("bin").join(cli));
+                command
+            }
+            _ => std::process::Command::new(program),
+        }
+    };
+    #[cfg(not(target_os = "windows"))]
+    let mut command = std::process::Command::new(program);
+
+    command.args(args).current_dir(cwd).env_clear();
+
+    #[cfg(target_os = "windows")]
+    for key in [
+        "SystemRoot",
+        "WINDIR",
+        "COMSPEC",
+        "PATH",
+        "PATHEXT",
+        "ProgramFiles",
+        "USERPROFILE",
+        "TEMP",
+        "TMP",
+    ] {
+        if let Some(value) = std::env::var_os(key) {
+            command.env(key, value);
+        }
+    }
+    Ok(command)
+}
+
 /// Validate a single argument: no shell metacharacters, bounded length this
 /// shell-char check mirrors `command_guard` semantics without needing the
 /// botcore crate.
@@ -66,7 +148,9 @@ fn validate_arg(arg: &str) -> Result<(), GuardError> {
     }
     for ch in arg.chars() {
         if FORBIDDEN_SHELL_CHARS.contains(&ch) {
-            return Err(GuardError::ShellInjection(format!("forbidden character '{ch}' in argument")));
+            return Err(GuardError::ShellInjection(format!(
+                "forbidden character '{ch}' in argument"
+            )));
         }
     }
     Ok(())
@@ -80,23 +164,13 @@ pub fn run(
     cwd: &std::path::Path,
     timeout_secs: u64,
 ) -> Result<RunOutput, GuardError> {
-    if !ALLOWED_COMMANDS.contains(program) {
-        return Err(GuardError::CommandNotAllowed(program.into()));
-    }
-    if args.len() > MAX_ARGS {
-        return Err(GuardError::InvalidArgument("too many arguments".into()));
-    }
-    for arg in args {
-        validate_arg(arg)?;
-    }
-
-    let mut child = std::process::Command::new(program)
-        .args(args)
-        .current_dir(cwd)
-        .env_clear()
+    let mut command = prepare_command(program, args, cwd)?;
+    command
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stderr(Stdio::piped());
+
+    let mut child = command
         .spawn()
         .map_err(|e| GuardError::Spawn(e.to_string()))?;
 
@@ -104,14 +178,23 @@ pub fn run(
     // the child with the timeout. The previous code joined the reader threads
     // *before* polling the child, so a child that never exited (and thus never
     // closed its pipes) deadlocked the runner and the timeout never fired.
-    let stdout_join = child.stdout.take().map(|o| std::thread::spawn(move || drain_reader(o)));
-    let stderr_join = child.stderr.take().map(|o| std::thread::spawn(move || drain_reader(o)));
+    let stdout_join = child
+        .stdout
+        .take()
+        .map(|o| std::thread::spawn(move || drain_reader(o)));
+    let stderr_join = child
+        .stderr
+        .take()
+        .map(|o| std::thread::spawn(move || drain_reader(o)));
 
     let deadline = std::time::Instant::now() + std::time::Duration::from_secs(timeout_secs);
     let mut exit_code: Option<i32> = None;
     let mut timed_out = false;
     loop {
-        if let Some(status) = child.try_wait().map_err(|e| GuardError::Io(e.to_string()))? {
+        if let Some(status) = child
+            .try_wait()
+            .map_err(|e| GuardError::Io(e.to_string()))?
+        {
             exit_code = status.code();
             break;
         }
@@ -143,12 +226,29 @@ pub fn run(
     })
 }
 
+/// Spawn a validated long-lived child without a command shell. The caller
+/// owns the child handle and is responsible for monitoring its lifetime.
+pub fn spawn_persistent(
+    program: &str,
+    args: &[String],
+    cwd: &std::path::Path,
+) -> Result<std::process::Child, GuardError> {
+    prepare_command(program, args, cwd)?
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .spawn()
+        .map_err(|e| GuardError::Spawn(e.to_string()))
+}
+
 /// Reads a child's pipe up to `MAX_OUTPUT_BYTES` and truncates, so an
 /// untrusted command cannot exhaust memory by flooding its output (#917).
 fn drain_reader<R: std::io::Read>(reader: R) -> Vec<u8> {
     use std::io::Read;
     let mut buf = Vec::new();
-    let _ = reader.take(MAX_OUTPUT_BYTES as u64 + 1).read_to_end(&mut buf);
+    let _ = reader
+        .take(MAX_OUTPUT_BYTES as u64 + 1)
+        .read_to_end(&mut buf);
     buf.truncate(MAX_OUTPUT_BYTES);
     buf
 }
@@ -168,12 +268,18 @@ mod tests {
     fn rejects_shell_metacharacters_in_args() {
         let cwd = std::env::temp_dir();
         let args = vec!["--help".to_string(), "echo hi; rm -rf /".to_string()];
-        assert!(matches!(run("git", &args, &cwd, 5), Err(GuardError::ShellInjection(_))));
+        assert!(matches!(
+            run("git", &args, &cwd, 5),
+            Err(GuardError::ShellInjection(_))
+        ));
     }
 
     #[test]
     fn sh_is_not_allowlisted() {
-        assert!(!ALLOWED_COMMANDS.contains("sh"), "sh -c is arbitrary code execution");
+        assert!(
+            !ALLOWED_COMMANDS.contains("sh"),
+            "sh -c is arbitrary code execution"
+        );
     }
 
     #[test]
@@ -191,6 +297,16 @@ mod tests {
             assert!(ALLOWED_COMMANDS.contains(cmd), "{cmd} must be allowlisted");
         }
     }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn runs_npm_without_a_command_shell() {
+        let cwd = std::env::temp_dir();
+        let out = run("npm", &["--version".to_string()], &cwd, 30)
+            .expect("npm should run through node.exe");
+        assert_eq!(out.exit_code, Some(0));
+        assert!(!out.stdout.trim().is_empty());
+    }
 }
 #[cfg(test)]
 mod harness_cmd_tests {
@@ -203,7 +319,12 @@ mod harness_cmd_tests {
         let dir = std::env::temp_dir().join(format!("vibe-cmd-test-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         std::fs::write(dir.join("index.js"), "console.log(eval(process.argv[2]));").unwrap();
-        let out = run("node", &["index.js".to_string(), "2+3".to_string()], &dir, 10);
+        let out = run(
+            "node",
+            &["index.js".to_string(), "2+3".to_string()],
+            &dir,
+            10,
+        );
         let _ = std::fs::remove_dir_all(&dir);
         match out {
             Ok(o) => {

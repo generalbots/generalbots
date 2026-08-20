@@ -244,7 +244,7 @@ TALK "Send a voice message:"
 HEAR transcription AS AUDIO
 ```
 
-Uses Whisper for transcription. Returns text.
+Uses the external Whisper transcription API (Groq/OpenAI). Returns text.
 
 **VIDEO** analyzes video content:
 

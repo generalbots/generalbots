@@ -335,7 +335,7 @@ pub fn export_to_pptx(presentation: &Presentation) -> Result<Vec<u8>, String> {
         let mut zip = ZipWriter::new(&mut buf);
         let opts = SimpleFileOptions::default().compression_method(zip::CompressionMethod::Deflated);
 
-        let mut write_part = |zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>, name: &str, data: &str| -> Result<(), String> {
+        let write_part = |zip: &mut ZipWriter<&mut Cursor<Vec<u8>>>, name: &str, data: &str| -> Result<(), String> {
             zip.start_file(name, opts).map_err(|e| format!("zip start {name}: {e}"))?;
             zip.write_all(data.as_bytes()).map_err(|e| format!("zip write {name}: {e}"))?;
             Ok(())

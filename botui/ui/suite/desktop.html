@@ -285,7 +285,12 @@
 
                 // Get bot name from URL path
                 const pathParts = window.location.pathname.split('/');
-                const botName = pathParts[1] || 'default';
+                const routeName = pathParts[1] || '';
+                const routeApp = (window.APPS_REGISTRY || []).find(
+                    (app) => app.id === routeName,
+                );
+                const botName = window.__INITIAL_BOT_NAME__ ||
+                    (routeApp ? 'default' : routeName) || 'default';
 
                 // Check if bot is public → hide sidebar, maximize chat
                 // If private and not authenticated → redirect to login
@@ -316,18 +321,26 @@
                     }
                 })();
                 
-                // Auto-open Chat window maximized for all bots
+                // Open a routed suite app inside the desktop shell; bot routes
+                // continue to open Chat as before.
                 if (window.wm) {
                     try {
-                        const response = await fetch(
-                            "/suite/partials/chat.html",
-                        );
+                        const initialApp = routeApp || {
+                            id: "chat",
+                            title: "Chat",
+                            hxGet: "/suite/partials/chat.html",
+                        };
+                        const response = await fetch(initialApp.hxGet);
                         if (response.ok) {
                             const htmlContent = await response.text();
-                            window.wm.open("chat", "Chat", htmlContent);
+                            window.wm.open(
+                                initialApp.id,
+                                initialApp.title,
+                                htmlContent,
+                            );
                         }
                     } catch (err) {
-                        console.error("Failed to auto-open chat:", err);
+                        console.error("Failed to auto-open suite app:", err);
                     }
                 }
             });
