@@ -434,13 +434,18 @@ pub fn run_commands_with_password(
             .replace("{{DATA_PATH}}", &data_path.to_string_lossy())
             .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
             .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy())
+            .replace("{{STACK_PATH}}", &base_path.to_string_lossy())
+            .replace("{{DATA_PATH_FWD}}", &data_path.to_string_lossy().replace('\\', "/"))
             .replace("{{DB_PASSWORD}}", &db_password);
         if target == "local" {
             trace!("Executing command: {}", rendered_cmd);
             #[cfg(target_os = "windows")]
             let cmd_result = {
+                use std::os::windows::process::CommandExt;
+                let wrapped = format!("\"{rendered_cmd}\"");
                 let output = std::process::Command::new("cmd")
-                    .args(["/C", &rendered_cmd])
+                    .arg("/C")
+                    .raw_arg(&wrapped)
                     .current_dir(&bin_path)
                     .output()
                     .with_context(|| {

@@ -9,6 +9,7 @@ botschema = { workspace = true }
 botlib = { workspace = true, features = ["database"] }
 botsecurity-crypto = { workspace = true }
 # botsecurity removed to break circular dep — use botlib::security:: instead
+botcorepkg = { workspace = true }
 botcoresecrets = { path = "../botcoresecrets" }
 botsecurity-core = { path = "../botsecurity-core" }
 base64 = { workspace = true }

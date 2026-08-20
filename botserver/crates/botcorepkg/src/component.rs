@@ -60,7 +60,7 @@ pub struct ComponentConfig {
 impl ComponentConfig {
     pub fn effective_exec_cmd(&self) -> &str {
         if cfg!(target_os = "windows") {
-            self.exec_cmd_windows.as_deref().unwrap_or(&self.exec_cmd)
+            self.exec_cmd_windows.as_deref().unwrap_or("")
         } else {
             &self.exec_cmd
         }
@@ -68,7 +68,7 @@ impl ComponentConfig {
 
     pub fn effective_check_cmd(&self) -> &str {
         if cfg!(target_os = "windows") {
-            self.check_cmd_windows.as_deref().unwrap_or(&self.check_cmd)
+            self.check_cmd_windows.as_deref().unwrap_or("")
         } else {
             &self.check_cmd
         }

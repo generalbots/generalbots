@@ -83,6 +83,7 @@
         secBox.appendChild(secHint);
         secBox.appendChild(secBody);
 
+        box.appendChild(toolbar);
         box.appendChild(grid);
         box.appendChild(secBox);
         return box;

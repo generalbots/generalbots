@@ -43,14 +43,8 @@ class Settings(BaseSettings):
     video_gpu_layers: int = 15
     video_batch_size: int = 1
 
-    # Speech/TTS model
-    speech_model_path: str = "./models/tts"
-
     # Vision model (BLIP2 for captioning)
     vision_model_path: str = "./models/blip2"
-
-    # Whisper model for speech-to-text
-    whisper_model_path: str = "./models/whisper"
 
     # Real-time Audio model for speech-to-speech
     realtime_audio_model_path: str = "./models/realtime_audio"

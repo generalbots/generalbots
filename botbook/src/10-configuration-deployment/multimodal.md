@@ -15,7 +15,7 @@ General Bots integrates with botmodels—a Python service for multimodal AI task
       │ BASIC Keywords               │ AI Models
       │ - IMAGE                      │ - Stable Diffusion
       │ - VIDEO                      │ - Zeroscope
-      │ - AUDIO                      │ - TTS/Whisper
+      │ - AUDIO                      │ - TTS (OpenAI/Google) / STT (Groq/OpenAI API)
       │ - SEE                        │ - BLIP2
 ```
 
@@ -175,8 +175,6 @@ data/
 │   └── zeroscope_v2_576w/         # Zeroscope video
 ├── tts/
 │   └── model.onnx                 # Text-to-speech
-├── whisper/
-│   └── model.bin                  # Speech-to-text
 └── vision/
     └── blip2/                     # Vision model
 ```

@@ -207,6 +207,20 @@ pub fn cache_health_check() -> bool {
         }
     }
 
+    if cfg!(target_os = "windows") {
+        if let Ok(output) = SafeCommand::new("netstat")
+            .and_then(|c| c.args(&["-ano"]))
+            .and_then(|c| c.execute())
+        {
+            if output.status.success() {
+                let stdout = String::from_utf8_lossy(&output.stdout);
+                if stdout.contains(":6379") {
+                    return true;
+                }
+            }
+        }
+    }
+
     false
 }
 

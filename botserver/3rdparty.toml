@@ -1,4 +1,4 @@
-# Third-Party Dependencies Configuration
+﻿# Third-Party Dependencies Configuration
 # ======================================
 # This file lists all external downloads required by botserver.
 #
@@ -91,8 +91,8 @@ sha256 = ""
 name = "Zitadel Identity Provider"
 url = "https://github.com/zitadel/zitadel/releases/download/v2.44.0/zitadel-linux-amd64.tar.gz"
 filename = "zitadel-linux-amd64.tar.gz"
-url_win = "https://github.com/zitadel/zitadel/releases/download/v2.44.0/zitadel-windows-amd64.zip"
-filename_win = "zitadel-windows-amd64.zip"
+url_win = "https://github.com/zitadel/zitadel/releases/download/v2.44.0/zitadel-windows-amd64.tar.gz"
+filename_win = "zitadel-windows-amd64.tar.gz"
 sha256 = ""
 
 [components.alm]

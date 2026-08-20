@@ -4,6 +4,7 @@
 
 use anyhow::Result;
 use std::env;
+#[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::process::ExitCode;

@@ -1,17 +1,16 @@
 //! state_builder - extracted from bootstrap.rs
 
-use botcore::config::ConfigManager;
-use botcore::shared::state::AppState;
 use crate::core::bot::channels::{VoiceAdapter, WebChannelAdapter};
 use crate::core::bot_database::BotDatabaseManager;
 use crate::core::config::AppConfig;
 use crate::drive::s3_repository::S3Repository;
+use botcore::config::ConfigManager;
+use botcore::shared::state::AppState;
 use log::{error, info, warn};
 use std::sync::Arc;
 
-use super::directory_setup::{init_directory_service, bootstrap_directory_admin};
+use super::directory_setup::{bootstrap_directory_admin, init_directory_service};
 use super::llm_setup::init_llm_provider;
-
 
 pub async fn create_app_state(
     cfg: AppConfig,
@@ -30,13 +29,19 @@ pub async fn create_app_state(
 
     #[cfg(feature = "drive")]
     let drive_initialized = if cfg.drive.is_valid() {
-        match S3Repository::new(&cfg.drive.endpoint, &cfg.drive.access_key, &cfg.drive.secret_key, &cfg.drive.bucket) {
+        match S3Repository::new(
+            &cfg.drive.endpoint,
+            &cfg.drive.access_key,
+            &cfg.drive.secret_key,
+            &cfg.drive.bucket,
+        ) {
             Ok(client) => {
                 if let Err(e) = client.create_bucket_if_not_exists("default.gborg").await {
                     warn!("Failed to create default.gborg bucket: {}", e);
                 }
                 super::ensure_vendor_files_in_minio(&client).await;
-                Some(std::sync::Arc::new(client) as std::sync::Arc<dyn botlib::traits::DriveRepository>)
+                Some(std::sync::Arc::new(client)
+                    as std::sync::Arc<dyn botlib::traits::DriveRepository>)
             }
             Err(e) => {
                 warn!("Failed to initialize S3 client: {}", e);
@@ -48,11 +53,12 @@ pub async fn create_app_state(
         None
     };
 
-    let session_manager_inner = crate::core::session::LocalSessionManager(botcoresession::SessionManager::new(
-        pool.clone(),
-        #[cfg(feature = "cache")]
-        redis_client.clone(),
-    ));
+    let session_manager_inner =
+        crate::core::session::LocalSessionManager(botcoresession::SessionManager::new(
+            pool.clone(),
+            #[cfg(feature = "cache")]
+            redis_client.clone(),
+        ));
     let session_manager: Arc<tokio::sync::Mutex<dyn botlib::traits::SessionManagerService>> =
         Arc::new(tokio::sync::Mutex::new(session_manager_inner));
 
@@ -60,11 +66,23 @@ pub async fn create_app_state(
     let (auth_service, zitadel_config) = init_directory_service()?;
 
     #[cfg(feature = "directory")]
-    bootstrap_directory_admin(&zitadel_config).await;
+    {
+        let skip_local_directory = cfg!(windows)
+            && std::env::var("GBO_SKIP_LOCAL_DIRECTORY")
+                .map(|value| value == "1" || value.eq_ignore_ascii_case("true"))
+                .unwrap_or(false);
+        if skip_local_directory {
+            info!("Skipping local directory bootstrap for this Windows development run");
+        } else {
+            bootstrap_directory_admin(&zitadel_config).await;
+        }
+    }
 
     let config_manager = ConfigManager::new(pool.clone());
 
-    let _ = pool.get().map_err(|e| std::io::Error::other(format!("Failed to get database connection: {}", e)))?;
+    let _ = pool
+        .get()
+        .map_err(|e| std::io::Error::other(format!("Failed to get database connection: {}", e)))?;
     let (default_bot_id_str, default_bot_name) = crate::core::bot::get_default_bot();
     let default_bot_id = uuid::Uuid::parse_str(&default_bot_id_str).unwrap_or_default();
     info!(
@@ -110,7 +128,9 @@ pub async fn create_app_state(
     let llm_url = if llm_key.is_empty()
         && !llm_url.contains("localhost")
         && !llm_url.contains("127.0.0.1")
-        && (llm_url.contains("api.z.ai") || llm_url.contains("openai.com") || llm_url.contains("anthropic.com"))
+        && (llm_url.contains("api.z.ai")
+            || llm_url.contains("openai.com")
+            || llm_url.contains("anthropic.com"))
     {
         warn!("External LLM URL configured ({}), but no API key provided. Falling back to local LLM at ", llm_url);
         "".to_string()
@@ -147,17 +167,29 @@ pub async fn create_app_state(
         // Ensure the DynamicLLMProvider is initialized with the correct config from database
         // This makes the system robust: even if the URL was set before server startup,
         // the provider will use the correct configuration
-        info!("Initializing DynamicLLMProvider with config: URL={}, Model={}, Endpoint={}",
-              llm_url,
-              if llm_model.is_empty() { "(default)" } else { &llm_model },
-              llm_endpoint_path.clone());
+        info!(
+            "Initializing DynamicLLMProvider with config: URL={}, Model={}, Endpoint={}",
+            llm_url,
+            if llm_model.is_empty() {
+                "(default)"
+            } else {
+                &llm_model
+            },
+            llm_endpoint_path.clone()
+        );
         #[cfg(feature = "llm")]
-        dynamic_llm_provider.update_from_config(
-            &llm_url,
-            if llm_model.is_empty() { None } else { Some(llm_model.clone()) },
-            Some(llm_endpoint_path),
-            None,
-        ).await;
+        dynamic_llm_provider
+            .update_from_config(
+                &llm_url,
+                if llm_model.is_empty() {
+                    None
+                } else {
+                    Some(llm_model.clone())
+                },
+                Some(llm_endpoint_path),
+                None,
+            )
+            .await;
         info!("DynamicLLMProvider initialized successfully");
     }
 
@@ -171,7 +203,11 @@ pub async fn create_app_state(
     );
 
     #[cfg(any(feature = "research", feature = "llm"))]
-    let kb_manager = Arc::new(crate::core::kb::KnowledgeBaseManager::with_bot_config("work", pool.clone(), default_bot_id));
+    let kb_manager = Arc::new(crate::core::kb::KnowledgeBaseManager::with_bot_config(
+        "work",
+        pool.clone(),
+        default_bot_id,
+    ));
 
     let metrics_collector = botcore::shared::analytics::MetricsCollector::new();
 
@@ -226,34 +262,40 @@ pub async fn create_app_state(
         cache: redis_client.clone(),
         session_manager,
         metrics_collector,
-    #[cfg(feature = "tasks")]
-    task_scheduler,
-    #[cfg(not(feature = "tasks"))]
-    task_scheduler: None,
-    #[cfg(feature = "llm")]
-        llm_provider: Some(Arc::new(crate::llm::BotlibLLMProviderWrapper::new(llm_provider.clone(), String::new(), String::new())) as Arc<dyn botlib::traits::LLMProvider>),
+        #[cfg(feature = "tasks")]
+        task_scheduler,
+        #[cfg(not(feature = "tasks"))]
+        task_scheduler: None,
+        #[cfg(feature = "llm")]
+        llm_provider: Some(Arc::new(crate::llm::BotlibLLMProviderWrapper::new(
+            llm_provider.clone(),
+            String::new(),
+            String::new(),
+        )) as Arc<dyn botlib::traits::LLMProvider>),
         #[cfg(feature = "llm")]
         dynamic_llm_provider: Some(dynamic_llm_provider.clone()),
         #[cfg(feature = "directory")]
-        auth_service: Some(auth_service.clone() as Arc<tokio::sync::Mutex<dyn botlib::traits::AuthServiceTrait>>),
-            channels: Arc::new(tokio::sync::Mutex::new({
-                let mut map = HashMap::new();
-                map.insert(
-                    "web".to_string(),
-                    web_adapter.clone() as Arc<dyn crate::core::bot::channels::ChannelAdapter>,
-                );
-                map
-            })),
-            response_channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
-            active_streams: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
-            hear_channels: Arc::new(std::sync::Mutex::new(HashMap::new())),
+        auth_service: Some(
+            auth_service.clone() as Arc<tokio::sync::Mutex<dyn botlib::traits::AuthServiceTrait>>
+        ),
+        channels: Arc::new(tokio::sync::Mutex::new({
+            let mut map = HashMap::new();
+            map.insert(
+                "web".to_string(),
+                web_adapter.clone() as Arc<dyn crate::core::bot::channels::ChannelAdapter>,
+            );
+            map
+        })),
+        response_channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
+        active_streams: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
+        hear_channels: Arc::new(std::sync::Mutex::new(HashMap::new())),
         web_adapter: web_adapter.clone(),
         voice_adapter: voice_adapter.clone(),
-#[cfg(any(feature = "research", feature = "llm"))]
-kb_manager: Some(kb_manager.clone() as std::sync::Arc<dyn botlib::traits::KnowledgeBase>),
-#[cfg(not(any(feature = "research", feature = "llm")))]
-kb_manager: None,
-task_engine: None,
+        #[cfg(any(feature = "research", feature = "llm"))]
+        kb_manager: Some(kb_manager.clone() as std::sync::Arc<dyn botlib::traits::KnowledgeBase>),
+        #[cfg(not(any(feature = "research", feature = "llm")))]
+        kb_manager: None,
+        task_engine: None,
         extensions: {
             let ext = botcore::shared::state::Extensions::new();
             #[cfg(feature = "llm")]
@@ -266,18 +308,24 @@ task_engine: None,
         task_progress_broadcast: Some(task_progress_tx),
         billing_alert_broadcast: None,
         task_manifests: Arc::new(std::sync::RwLock::new(HashMap::new())),
-#[cfg(feature = "terminal")]
-terminal_manager: Some(Arc::new(crate::api::terminal::TerminalManager::new()) as botcore::shared::state::UnresolvedService),
-#[cfg(not(feature = "terminal"))]
-terminal_manager: None,
-#[cfg(feature = "project")]
-project_service: Some(Arc::new(tokio::sync::RwLock::new(crate::project::ProjectService::new())) as botcore::shared::state::UnresolvedService),
-#[cfg(not(feature = "project"))]
-project_service: None,
-#[cfg(feature = "compliance")]
-legal_service: Some(Arc::new(tokio::sync::RwLock::new(crate::legal::LegalService::new())) as botcore::shared::state::UnresolvedService),
-#[cfg(not(feature = "compliance"))]
-legal_service: None,
+        #[cfg(feature = "terminal")]
+        terminal_manager: Some(Arc::new(crate::api::terminal::TerminalManager::new())
+            as botcore::shared::state::UnresolvedService),
+        #[cfg(not(feature = "terminal"))]
+        terminal_manager: None,
+        #[cfg(feature = "project")]
+        project_service: Some(Arc::new(tokio::sync::RwLock::new(
+            crate::project::ProjectService::new(),
+        )) as botcore::shared::state::UnresolvedService),
+        #[cfg(not(feature = "project"))]
+        project_service: None,
+        #[cfg(feature = "compliance")]
+        legal_service: Some(
+            Arc::new(tokio::sync::RwLock::new(crate::legal::LegalService::new()))
+                as botcore::shared::state::UnresolvedService,
+        ),
+        #[cfg(not(feature = "compliance"))]
+        legal_service: None,
         jwt_manager: None,
         auth_provider_registry: None,
         rbac_manager: None,

@@ -1,11 +1,11 @@
-use std::path::Path;
-use std::sync::Arc;
 use axum::extract::ws::WebSocketUpgrade;
 use axum::extract::{Query, State};
 use axum::response::IntoResponse;
 use botcore::shared::state::AppState;
 use log::{info, warn};
 use serde::Deserialize;
+use std::path::Path;
+use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::security::code_scan_fixes::is_safe_path;
@@ -89,9 +89,19 @@ pub async fn websocket_handler(
     State(state): State<Arc<AppState>>,
     Query(params): Query<WsQuery>,
 ) -> axum::response::Response {
-    let session_id = params.session_id.and_then(|s| Uuid::parse_str(&s).ok()).unwrap_or_else(Uuid::new_v4);
-    let user_id = params.user_id.as_deref().map(crate::security::user_role::derive_stable_user_uuid).unwrap_or_else(Uuid::new_v4);
-    let raw_bot_name = params.bot_name.clone().unwrap_or_else(|| "default".to_string());
+    let session_id = params
+        .session_id
+        .and_then(|s| Uuid::parse_str(&s).ok())
+        .unwrap_or_else(Uuid::new_v4);
+    let user_id = params
+        .user_id
+        .as_deref()
+        .map(crate::security::user_role::derive_stable_user_uuid)
+        .unwrap_or_else(Uuid::new_v4);
+    let raw_bot_name = params
+        .bot_name
+        .clone()
+        .unwrap_or_else(|| "default".to_string());
     let bot_name = match validate_bot_name(&raw_bot_name) {
         Ok(name) => name,
         Err(e) => {
@@ -100,14 +110,22 @@ pub async fn websocket_handler(
         }
     };
 
-    if let Err(e) = check_bot_access(&state, &bot_name, user_id).await {
-        warn!("WS access denied for bot {}: {}", bot_name, e);
-        return axum::http::StatusCode::FORBIDDEN.into_response();
+    if bot_name != "default" {
+        if let Err(e) = check_bot_access(&state, &bot_name, user_id).await {
+            warn!("WS access denied for bot {}: {}", bot_name, e);
+            return axum::http::StatusCode::FORBIDDEN.into_response();
+        }
     }
 
     let bot_uuid = lookup_bot_id(&state, &bot_name);
-    info!("WebSocket: bot={}, session={}, user={}", bot_name, session_id, user_id);
-    ws.on_upgrade(move |socket| super::session::handle_ws(socket, state, session_id, user_id, bot_uuid, bot_name)).into_response()
+    info!(
+        "WebSocket: bot={}, session={}, user={}",
+        bot_name, session_id, user_id
+    );
+    ws.on_upgrade(move |socket| {
+        super::session::handle_ws(socket, state, session_id, user_id, bot_uuid, bot_name)
+    })
+    .into_response()
 }
 
 pub async fn websocket_handler_with_bot(
@@ -117,7 +135,10 @@ pub async fn websocket_handler_with_bot(
     Query(mut params): Query<WsQuery>,
 ) -> axum::response::Response {
     let raw_bot_name = if bot_name.is_empty() {
-        params.bot_name.clone().unwrap_or_else(|| "default".to_string())
+        params
+            .bot_name
+            .clone()
+            .unwrap_or_else(|| "default".to_string())
     } else {
         bot_name
     };
@@ -130,11 +151,17 @@ pub async fn websocket_handler_with_bot(
     };
     params.bot_name = Some(bot_name.clone());
 
-    let user_id = params.user_id.as_deref().map(crate::security::user_role::derive_stable_user_uuid).unwrap_or_else(Uuid::new_v4);
+    let user_id = params
+        .user_id
+        .as_deref()
+        .map(crate::security::user_role::derive_stable_user_uuid)
+        .unwrap_or_else(Uuid::new_v4);
 
-    if let Err(e) = check_bot_access(&state, &bot_name, user_id).await {
-        warn!("WS access denied for bot {}: {}", bot_name, e);
-        return axum::http::StatusCode::FORBIDDEN.into_response();
+    if bot_name != "default" {
+        if let Err(e) = check_bot_access(&state, &bot_name, user_id).await {
+            warn!("WS access denied for bot {}: {}", bot_name, e);
+            return axum::http::StatusCode::FORBIDDEN.into_response();
+        }
     }
 
     websocket_handler(ws, State(state), Query(params)).await

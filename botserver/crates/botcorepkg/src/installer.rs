@@ -258,28 +258,34 @@ impl PackageManager {
         Ok(pm)
     }
 
+    /// Build the full component registry (single source of truth, shared
+    /// with `botcore`'s runtime PackageManager).
+    pub fn all_components() -> HashMap<String, ComponentConfig> {
+        let mut components = HashMap::new();
+        installer_regs::register_drive(&mut components);
+        installer_regs::register_tables(&mut components);
+        installer_regs::register_cache(&mut components);
+        installer_regs::register_llm(&mut components);
+        installer_regs::register_email(&mut components);
+        installer_regs::register_proxy(&mut components);
+        installer_regs::register_directory(&mut components);
+        installer_regs::register_alm(&mut components);
+        installer_regs::register_alm_ci(&mut components);
+        installer_regs::register_dns(&mut components);
+        installer_regs::register_meeting(&mut components);
+        installer_regs2::register_table_editor(&mut components);
+        installer_regs2::register_remote_terminal(&mut components);
+        installer_regs2::register_devtools(&mut components);
+        installer_regs2::register_vector_db(&mut components);
+        installer_regs2::register_timeseries_db(&mut components);
+        installer_regs2::register_vault(&mut components);
+        installer_regs2::register_observability(&mut components);
+        installer_regs2::register_host(&mut components);
+        components
+    }
+
     fn register_components(&mut self) {
-        installer_regs::register_drive(&mut self.components);
-        installer_regs::register_tables(&mut self.components);
-        installer_regs::register_cache(&mut self.components);
-        installer_regs::register_llm(&mut self.components);
-        installer_regs::register_email(&mut self.components);
-        installer_regs::register_proxy(&mut self.components);
-        installer_regs::register_directory(&mut self.components);
-        installer_regs::register_alm(&mut self.components);
-        installer_regs::register_alm_ci(&mut self.components);
-        installer_regs::register_dns(&mut self.components);
-        installer_regs::register_meeting(&mut self.components);
-        installer_regs::register_webmail(&mut self.components);
-        installer_regs2::register_table_editor(&mut self.components);
-        installer_regs2::register_doc_editor(&mut self.components);
-        installer_regs2::register_remote_terminal(&mut self.components);
-        installer_regs2::register_devtools(&mut self.components);
-        installer_regs2::register_vector_db(&mut self.components);
-        installer_regs2::register_timeseries_db(&mut self.components);
-        installer_regs2::register_vault(&mut self.components);
-        installer_regs2::register_observability(&mut self.components);
-        installer_regs2::register_host(&mut self.components);
+        self.components = Self::all_components();
     }
 
     pub fn start(&self, component: &str) -> Result<std::process::Child> {

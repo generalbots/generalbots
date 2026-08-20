@@ -34,37 +34,6 @@ pub fn register_table_editor(components: &mut HashMap<String, ComponentConfig>) 
     );
 }
 
-pub fn register_doc_editor(components: &mut HashMap<String, ComponentConfig>) {
-    components.insert(
-        "doc_editor".to_string(),
-        ComponentConfig {
-            name: "doc_editor".to_string(),
-            ports: vec![9980],
-            dependencies: vec![],
-            linux_packages: vec![],
-            macos_packages: vec![],
-            windows_packages: vec![],
-            download_url: None,
-            binary_name: Some("coolwsd".to_string()),
-            pre_install_cmds_linux: vec![],
-            post_install_cmds_linux: vec![],
-            pre_install_cmds_macos: vec![],
-            post_install_cmds_macos: vec![],
-            pre_install_cmds_windows: vec![],
-            post_install_cmds_windows: vec![],
-            env_vars: HashMap::new(),
-            data_download_list: Vec::new(),
-            exec_cmd: "coolwsd --config-file={{CONF_PATH}}/coolwsd.xml".to_string(),
-            check_cmd:
-                "curl -f -k --connect-timeout 2 -m 5 https://localhost:9980 >/dev/null 2>&1"
-                    .to_string(),
-            exec_cmd_windows: None,
-            check_cmd_windows: None,
-            container: None,
-        },
-    );
-}
-
 pub fn register_remote_terminal(components: &mut HashMap<String, ComponentConfig>) {
     components.insert(
         "remote_terminal".to_string(),
@@ -88,7 +57,7 @@ pub fn register_remote_terminal(components: &mut HashMap<String, ComponentConfig
             exec_cmd: "xrdp --nodaemon".to_string(),
             check_cmd: "netstat -tln | grep :3389 >/dev/null 2>&1".to_string(),
             exec_cmd_windows: None,
-            check_cmd_windows: None,
+            check_cmd_windows: Some("netstat -ano | findstr :3389 >NUL 2>&1".to_string()),
             container: None,
         },
     );
@@ -274,13 +243,34 @@ disable_mlock = true
 EOF"#.to_string(),
             ],
             post_install_cmds_macos: vec![],
-            pre_install_cmds_windows: vec![],
+            pre_install_cmds_windows: vec![
+                "if not exist {{DATA_PATH}}\\vault mkdir {{DATA_PATH}}\\vault".to_string(),
+                "if not exist {{CONF_PATH}}\\vault mkdir {{CONF_PATH}}\\vault".to_string(),
+                "if not exist {{LOGS_PATH}}\\vault mkdir {{LOGS_PATH}}\\vault".to_string(),
+                "echo storage \"file\" { > {{CONF_PATH}}\\vault\\config.hcl".to_string(),
+                "echo   path = \"{{DATA_PATH_FWD}}\" >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
+                "echo } >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
+                "echo. >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
+                "echo listener \"tcp\" { >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
+                "echo   address = \"0.0.0.0:8200\" >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
+                "echo   tls_disable = true >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
+                "echo } >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
+                "echo. >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
+                "echo api_addr = \"http://127.0.0.1:8200\" >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
+                "echo cluster_addr = \"http://127.0.0.1:8201\" >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
+                "echo ui = true >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
+                "echo disable_mlock = true >> {{CONF_PATH}}\\vault\\config.hcl".to_string(),
+            ],
             post_install_cmds_windows: vec![],
             env_vars: {
                 let mut env = HashMap::new();
                 env.insert(
                     "VAULT_ADDR".to_string(),
-                    "https://127.0.0.1:8200".to_string(),
+                    if cfg!(target_os = "windows") {
+                        "http://127.0.0.1:8200".to_string()
+                    } else {
+                        "https://127.0.0.1:8200".to_string()
+                    },
                 );
                 env.insert(
                     "VAULT_CACERT".to_string(),

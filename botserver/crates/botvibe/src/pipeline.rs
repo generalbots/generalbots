@@ -93,17 +93,24 @@ impl RunPipeline {
     /// Orchestrated build-test-publish pipeline (Issue #805). The last three
     /// stages mutate external state and require per-step human approval.
     pub fn deploy_pipeline(use_case: VibeUseCase) -> Self {
+        #[cfg(target_os = "windows")]
+        let stages = vec![
+            stage_approval("build_test", PipelineStageKind::BuildTest, 300, false),
+            stage_approval("publish", PipelineStageKind::PublishApp, 300, true),
+        ];
+        #[cfg(not(target_os = "windows"))]
+        let stages = vec![
+            stage("intent", PipelineStageKind::ClassifyIntent, 30),
+            stage("plan", PipelineStageKind::CompilePlan, 30),
+            stage_approval("build_test", PipelineStageKind::BuildTest, 300, false),
+            stage_approval("commit_push", PipelineStageKind::CommitPush, 60, true),
+            stage_approval("publish", PipelineStageKind::PublishApp, 300, true),
+            stage_approval("domain", PipelineStageKind::BindDomain, 60, true),
+        ];
         Self {
             pipeline_id: format!("deploy/{}", use_case_str(use_case)),
             use_case,
-            stages: vec![
-                stage("intent", PipelineStageKind::ClassifyIntent, 30),
-                stage("plan", PipelineStageKind::CompilePlan, 30),
-                stage_approval("build_test", PipelineStageKind::BuildTest, 300, false),
-                stage_approval("commit_push", PipelineStageKind::CommitPush, 60, true),
-                stage_approval("publish", PipelineStageKind::PublishApp, 300, true),
-                stage_approval("domain", PipelineStageKind::BindDomain, 60, true),
-            ],
+            stages,
         }
     }
 
@@ -340,7 +347,11 @@ impl PipelineEngine {
             tool_call.approved = true;
             let outcome = executor.execute(&mut tool_call, use_case, state).await;
             let took_ms = start.elapsed().as_millis() as u64;
-            let (status, error) = stage_outcome(&outcome, tool_call.result.as_ref().map(|r| r.success), tool_call.result.as_ref().and_then(|r| r.error.clone()));
+            let (status, error) = stage_outcome(
+                &outcome,
+                tool_call.result.as_ref().map(|r| r.success),
+                tool_call.result.as_ref().and_then(|r| r.error.clone()),
+            );
             if status == StageStatus::Failed && !stage.continue_on_failure {
                 reports.push(PipelineStageReport {
                     stage_id: stage.id.clone(),
@@ -435,26 +446,52 @@ mod tests {
     #[test]
     fn deploy_pipeline_has_mutation_gates() {
         let pipeline = RunPipeline::deploy_pipeline(VibeUseCase::SoftwareDevelopment);
-        assert_eq!(pipeline.stages.len(), 6);
         assert!(pipeline.pipeline_id.starts_with("deploy/"));
-        assert_eq!(pipeline.stages[2].kind, PipelineStageKind::BuildTest);
-        assert_eq!(pipeline.stages[3].kind, PipelineStageKind::CommitPush);
-        assert_eq!(pipeline.stages[4].kind, PipelineStageKind::PublishApp);
-        assert!(pipeline.stages[0].requires_approval == false);
-        assert!(pipeline.stages[2].requires_approval == false);
-        assert!(pipeline.stages[3].requires_approval);
-        assert!(pipeline.stages[5].requires_approval);
-        assert!(pipeline.stage("domain").unwrap().requires_approval);
-        assert_eq!(pipeline.stage("domain").unwrap().name, "Bind domain and TLS");
+        #[cfg(target_os = "windows")]
+        {
+            assert_eq!(pipeline.stages.len(), 2);
+            assert_eq!(pipeline.stages[0].kind, PipelineStageKind::BuildTest);
+            assert_eq!(pipeline.stages[1].kind, PipelineStageKind::PublishApp);
+            assert!(!pipeline.stages[0].requires_approval);
+            assert!(pipeline.stages[1].requires_approval);
+            assert!(pipeline.stage("commit_push").is_none());
+            assert!(pipeline.stage("domain").is_none());
+        }
+        #[cfg(not(target_os = "windows"))]
+        {
+            assert_eq!(pipeline.stages.len(), 6);
+            assert_eq!(pipeline.stages[2].kind, PipelineStageKind::BuildTest);
+            assert_eq!(pipeline.stages[3].kind, PipelineStageKind::CommitPush);
+            assert_eq!(pipeline.stages[4].kind, PipelineStageKind::PublishApp);
+            assert!(pipeline.stages[3].requires_approval);
+            assert!(pipeline.stages[5].requires_approval);
+            assert!(pipeline.stage("domain").unwrap().requires_approval);
+            assert_eq!(
+                pipeline.stage("domain").unwrap().name,
+                "Bind domain and TLS"
+            );
+        }
     }
 
     #[test]
     fn approval_outcome_error_messages_are_distinct() {
         assert_eq!(ApprovalOutcome::Approved.error_message(), None);
-        assert_eq!(ApprovalOutcome::Cancelled.error_message(), Some("Approval denied"));
-        assert_eq!(ApprovalOutcome::TimedOut.error_message(), Some("Approval wait timed out"));
-        assert_eq!(ApprovalOutcome::ChannelClosed.error_message(), Some("Approval channel closed"));
-        assert_eq!(ApprovalOutcome::NotAvailable.error_message(), Some("Approval channel unavailable"));
+        assert_eq!(
+            ApprovalOutcome::Cancelled.error_message(),
+            Some("Approval denied")
+        );
+        assert_eq!(
+            ApprovalOutcome::TimedOut.error_message(),
+            Some("Approval wait timed out")
+        );
+        assert_eq!(
+            ApprovalOutcome::ChannelClosed.error_message(),
+            Some("Approval channel closed")
+        );
+        assert_eq!(
+            ApprovalOutcome::NotAvailable.error_message(),
+            Some("Approval channel unavailable")
+        );
     }
 
     #[test]
@@ -477,7 +514,10 @@ mod tests {
             assert_eq!(pipeline.stages[0].id, "intent");
             assert_eq!(pipeline.stages[1].kind, PipelineStageKind::CompilePlan);
             assert_eq!(pipeline.stages[2].kind, PipelineStageKind::ExecutePlan);
-            assert_eq!(pipeline.stage("plan").expect("stage found").name, "Plan compilation");
+            assert_eq!(
+                pipeline.stage("plan").expect("stage found").name,
+                "Plan compilation"
+            );
             assert!(pipeline.stage("missing").is_none());
             assert!(pipeline.pipeline_id.contains(use_case_str(use_case)));
         }
@@ -485,7 +525,10 @@ mod tests {
 
     #[test]
     fn stage_outcome_maps_execution_results() {
-        assert_eq!(stage_outcome(&Err("rejected".into()), None, None).0, StageStatus::Failed);
+        assert_eq!(
+            stage_outcome(&Err("rejected".into()), None, None).0,
+            StageStatus::Failed
+        );
         let (status, error) = stage_outcome(&Ok(()), Some(true), None);
         assert_eq!(status, StageStatus::Completed);
         assert!(error.is_none());
@@ -502,7 +545,9 @@ mod tests {
 
     impl MockState {
         fn new() -> Self {
-            Self { runs: Arc::new(RwLock::new(HashMap::new())) }
+            Self {
+                runs: Arc::new(RwLock::new(HashMap::new())),
+            }
         }
     }
 
@@ -511,13 +556,17 @@ mod tests {
             unreachable!("db_pool not exercised in pipeline tests")
         }
         fn broadcast_progress(&self, _event: crate::types::VibeProgressEvent) {}
-        fn progress_sender(&self) -> Option<&tokio::sync::broadcast::Sender<crate::types::VibeProgressEvent>> {
+        fn progress_sender(
+            &self,
+        ) -> Option<&tokio::sync::broadcast::Sender<crate::types::VibeProgressEvent>> {
             None
         }
         fn active_runs(&self) -> &Arc<RwLock<HashMap<Uuid, crate::types::VibeRun>>> {
             &self.runs
         }
-        fn run_signal_sender(&self) -> Option<&tokio::sync::broadcast::Sender<crate::types::VibeRunSignal>> {
+        fn run_signal_sender(
+            &self,
+        ) -> Option<&tokio::sync::broadcast::Sender<crate::types::VibeRunSignal>> {
             None
         }
         fn llm_config(&self, _bot_id: &uuid::Uuid) -> Option<crate::types::LlmConfig> {
@@ -528,7 +577,9 @@ mod tests {
     #[tokio::test]
     async fn engine_fails_fast_and_skips_remaining_stages() {
         let telemetry = Arc::new(VibeTelemetry::new());
-        let executor = Arc::new(VibeToolExecutor::new(Arc::new(crate::tool_executor::ToolRegistry::new())));
+        let executor = Arc::new(VibeToolExecutor::new(Arc::new(
+            crate::tool_executor::ToolRegistry::new(),
+        )));
         let engine = PipelineEngine::new(telemetry.clone());
         let pipeline = RunPipeline::for_use_case(VibeUseCase::SoftwareDevelopment);
         let run_id = Uuid::new_v4();
@@ -564,7 +615,10 @@ mod tests {
                 report.stages
             );
         }
-        let metrics = telemetry.get_run_metrics(run_id).await.expect("metrics recorded");
+        let metrics = telemetry
+            .get_run_metrics(run_id)
+            .await
+            .expect("metrics recorded");
         assert_eq!(report.stages.len(), 3);
         assert!(metrics.total_tool_calls >= 1 && metrics.total_tool_calls <= 3);
     }
