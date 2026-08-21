@@ -234,6 +234,10 @@ mod tests {
 
     #[test]
     fn seed_seeds_calculator_and_never_clobbers() {
+        let _guard = crate::harness::WORKSPACE_ENV_LOCK
+            .lock()
+            .expect("workspace env lock");
+        let previous = std::env::var_os("VIBE_WORKSPACE_ROOT");
         let tmp =
             std::env::temp_dir().join(format!("vibe-templates-test-{}", uuid::Uuid::new_v4()));
         std::env::set_var("VIBE_WORKSPACE_ROOT", &tmp);
@@ -264,10 +268,15 @@ mod tests {
         assert_eq!(after.len(), entries.len());
 
         let _ = std::fs::remove_dir_all(&tmp);
+        crate::harness::restore_workspace_root(previous);
     }
 
     #[test]
     fn seed_starter_for_non_calculator() {
+        let _guard = crate::harness::WORKSPACE_ENV_LOCK
+            .lock()
+            .expect("workspace env lock");
+        let previous = std::env::var_os("VIBE_WORKSPACE_ROOT");
         let tmp =
             std::env::temp_dir().join(format!("vibe-templates-test-{}", uuid::Uuid::new_v4()));
         std::env::set_var("VIBE_WORKSPACE_ROOT", &tmp);
@@ -279,5 +288,6 @@ mod tests {
         assert!(!entries.iter().any(|e| e == "calc.js"));
 
         let _ = std::fs::remove_dir_all(&tmp);
+        crate::harness::restore_workspace_root(previous);
     }
 }

@@ -8,8 +8,8 @@
 //! - `logs_*`: read/tail the project runtime logs
 //! - `project_test`: run the project test suite
 //!
-//! All filesystem access is rooted at `VIBE_WORKSPACE_ROOT` (default
-//! `/opt/gbo/data/vibe-workspaces`) and confined per project; commands go
+//! All filesystem access is rooted at `VIBE_WORKSPACE_ROOT` (defaulting to
+//! the platform stack data directory) and confined per project; commands go
 //! through `cmd::run` which enforces the same discipline as
 //! `botcore`'s SafeCommand (allowlist + forbidden shell metacharacters).
 
@@ -22,11 +22,41 @@ pub mod test_tools;
 
 use std::path::{Path, PathBuf};
 
+#[cfg(test)]
+pub(crate) static WORKSPACE_ENV_LOCK: std::sync::Mutex<()> = std::sync::Mutex::new(());
+
+#[cfg(test)]
+pub(crate) fn restore_workspace_root(previous: Option<std::ffi::OsString>) {
+    match previous {
+        Some(value) => std::env::set_var("VIBE_WORKSPACE_ROOT", value),
+        None => std::env::remove_var("VIBE_WORKSPACE_ROOT"),
+    }
+}
+
 /// Root that hosts every project workspace subdirectory.
 pub fn workspace_root() -> PathBuf {
     std::env::var("VIBE_WORKSPACE_ROOT")
         .map(PathBuf::from)
-        .unwrap_or_else(|_| PathBuf::from("/opt/gbo/data/vibe-workspaces"))
+        .unwrap_or_else(|_| default_workspace_root())
+}
+
+#[cfg(target_os = "windows")]
+fn default_workspace_root() -> PathBuf {
+    // Preserve projects created before the stack-relative Windows default was
+    // introduced. New installations use the packaged stack data directory.
+    let legacy = PathBuf::from(r"C:\opt\gbo\data\vibe-workspaces");
+    if legacy.exists() {
+        return legacy;
+    }
+
+    PathBuf::from(botlib::security::get_stack_path())
+        .join("data")
+        .join("vibe-workspaces")
+}
+
+#[cfg(not(target_os = "windows"))]
+fn default_workspace_root() -> PathBuf {
+    PathBuf::from("/opt/gbo/data/vibe-workspaces")
 }
 
 /// Validate a project id: alphanumerics, dash, underscore, dot — no path
@@ -35,7 +65,10 @@ pub fn sanitize_project_id(project: &str) -> Result<String, String> {
     if project.is_empty() || project.len() > 128 || project == "." || project == ".." {
         return Err("invalid project id: empty or too long".into());
     }
-    if project.chars().any(|c| !(c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.')) {
+    if project
+        .chars()
+        .any(|c| !(c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.'))
+    {
         return Err(format!("invalid project id: {project}"));
     }
     Ok(project.to_string())
@@ -48,6 +81,24 @@ pub fn resolve_workspace_path(project: &str, rel: &str) -> Result<PathBuf, Strin
     if rel.contains('\0') {
         return Err("path contains NUL byte".into());
     }
+
+    #[cfg(target_os = "windows")]
+    let rel = {
+        let trimmed = rel.trim();
+        if trimmed.starts_with("//") || trimmed.starts_with("\\\\") {
+            return Err(format!("network paths are not allowed: {trimmed}"));
+        }
+        // Small local models commonly spell workspace-relative paths as
+        // `/index.js`. On Windows that is rooted at the current drive, so
+        // normalize one leading separator while still rejecting UNC paths.
+        trimmed
+            .strip_prefix('/')
+            .or_else(|| trimmed.strip_prefix('\\'))
+            .unwrap_or(trimmed)
+    };
+    #[cfg(not(target_os = "windows"))]
+    let rel = rel;
+
     for seg in rel.split(['/', '\\']) {
         if seg == ".." {
             return Err(format!("path escapes workspace: {rel}"));
@@ -109,7 +160,9 @@ fn walk(dir: &Path, root: &Path, depth: u8, out: &mut Vec<String>) -> Result<(),
     for entry in entries {
         let entry = entry.map_err(|e| format!("read_dir entry: {e}"))?;
         let path = entry.path();
-        let rel = path.strip_prefix(root).map_err(|e| format!("strip prefix: {e}"))?;
+        let rel = path
+            .strip_prefix(root)
+            .map_err(|e| format!("strip prefix: {e}"))?;
         let rel = rel.to_string_lossy().to_string();
         let is_dir = path.is_dir();
         out.push(if is_dir { format!("{rel}/") } else { rel });
@@ -140,8 +193,19 @@ mod tests {
         assert!(resolve_workspace_path("proj", "src/main.rs").is_ok());
     }
 
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn resolve_normalizes_model_style_rooted_path_on_windows() {
+        let resolved = resolve_workspace_path("proj", "/index.js").expect("relative path");
+        assert!(resolved.ends_with(std::path::Path::new("proj").join("index.js")));
+        assert!(resolve_workspace_path("proj", r"\\server\share\index.js").is_err());
+        assert!(resolve_workspace_path("proj", r"C:\index.js").is_err());
+    }
+
     #[test]
     fn write_read_list_roundtrip() {
+        let _guard = WORKSPACE_ENV_LOCK.lock().expect("workspace env lock");
+        let previous = std::env::var_os("VIBE_WORKSPACE_ROOT");
         let tmp = std::env::temp_dir().join(format!("vibe-harness-test-{}", uuid::Uuid::new_v4()));
         std::env::set_var("VIBE_WORKSPACE_ROOT", &tmp);
         let project = "proj-a";
@@ -158,10 +222,13 @@ mod tests {
         assert!(entries.iter().any(|e| e == "README.md"));
 
         let _ = std::fs::remove_dir_all(&tmp);
+        restore_workspace_root(previous);
     }
 
     #[test]
     fn read_rejects_oversize() {
+        let _guard = WORKSPACE_ENV_LOCK.lock().expect("workspace env lock");
+        let previous = std::env::var_os("VIBE_WORKSPACE_ROOT");
         let tmp = std::env::temp_dir().join(format!("vibe-harness-test-{}", uuid::Uuid::new_v4()));
         std::env::set_var("VIBE_WORKSPACE_ROOT", &tmp);
         let project = "proj-b";
@@ -169,5 +236,6 @@ mod tests {
         write_rel_file(project, "big.bin", &vec![0u8; 4096]).expect("write");
         assert!(read_rel_file(project, "big.bin", 1024).is_err());
         let _ = std::fs::remove_dir_all(&tmp);
+        restore_workspace_root(previous);
     }
 }

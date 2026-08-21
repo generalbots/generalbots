@@ -53,7 +53,9 @@ fn tool_schema_new_and_builders() {
     assert_eq!(schema.parameters["type"], "object");
 
     let schema = ToolSchema::new("echo", "Echo")
-        .with_parameters(serde_json::json!({"type": "object", "properties": {"x": {"type": "string"}}}))
+        .with_parameters(
+            serde_json::json!({"type": "object", "properties": {"x": {"type": "string"}}}),
+        )
         .with_approval()
         .with_use_cases(vec![VibeUseCase::SoftwareDevelopment]);
     assert!(schema.requires_approval);
@@ -88,6 +90,7 @@ async fn registry_registers_builtin_and_harness_tools() {
         "domain/tls",
         "file/read",
         "file/write",
+        "file/replace",
         "shell/run",
         "git/status",
         "logs/read",
@@ -95,17 +98,31 @@ async fn registry_registers_builtin_and_harness_tools() {
         "search_contacts",
         "fetch_market_data",
     ] {
-        assert!(names.contains(&expected.to_string()), "missing tool {expected}");
+        assert!(
+            names.contains(&expected.to_string()),
+            "missing tool {expected}"
+        );
     }
 
     let file_tool = tools.iter().find(|t| t.schema.name == "file/read").unwrap();
     assert_eq!(file_tool.category, ToolCategory::File);
     assert!(!file_tool.schema.requires_approval);
 
-    let write_tool = tools.iter().find(|t| t.schema.name == "file/write").unwrap();
+    let write_tool = tools
+        .iter()
+        .find(|t| t.schema.name == "file/write")
+        .unwrap();
     assert!(write_tool.schema.requires_approval);
+    let replace_tool = tools
+        .iter()
+        .find(|t| t.schema.name == "file/replace")
+        .unwrap();
+    assert!(replace_tool.schema.requires_approval);
 
-    let deploy_tool = tools.iter().find(|t| t.schema.name == "deploy_app").unwrap();
+    let deploy_tool = tools
+        .iter()
+        .find(|t| t.schema.name == "deploy_app")
+        .unwrap();
     assert_eq!(deploy_tool.category, ToolCategory::Deployment);
     assert!(deploy_tool.schema.requires_approval);
 }
@@ -113,14 +130,21 @@ async fn registry_registers_builtin_and_harness_tools() {
 #[tokio::test]
 async fn registry_lists_tools_for_use_case() {
     let registry = ToolRegistry::new();
-    let dev_tools = registry.list_tools_for_use_case(VibeUseCase::SoftwareDevelopment).await;
+    let dev_tools = registry
+        .list_tools_for_use_case(VibeUseCase::SoftwareDevelopment)
+        .await;
     let dev_names: Vec<&str> = dev_tools.iter().map(|t| t.schema.name.as_str()).collect();
     assert!(dev_names.contains(&"file/read"));
     assert!(dev_names.contains(&"deploy_app"));
     assert!(!dev_names.contains(&"fetch_market_data"));
 
-    let finance_tools = registry.list_tools_for_use_case(VibeUseCase::FinancialAnalysis).await;
-    let finance_names: Vec<&str> = finance_tools.iter().map(|t| t.schema.name.as_str()).collect();
+    let finance_tools = registry
+        .list_tools_for_use_case(VibeUseCase::FinancialAnalysis)
+        .await;
+    let finance_names: Vec<&str> = finance_tools
+        .iter()
+        .map(|t| t.schema.name.as_str())
+        .collect();
     assert!(finance_names.contains(&"fetch_market_data"));
     assert!(finance_names.contains(&"analyze_sentiment"));
     assert!(!finance_names.contains(&"file/read"));
@@ -153,8 +177,30 @@ async fn validate_arguments_enforces_required_and_unknown() {
     assert!(unknown.is_err());
     assert!(unknown.unwrap_err().contains("bogus"));
 
-    let unknown_tool = registry.validate_arguments("nope", &serde_json::json!({})).await;
+    let unknown_tool = registry
+        .validate_arguments("nope", &serde_json::json!({}))
+        .await;
     assert!(unknown_tool.is_err());
+
+    let empty_path = registry
+        .validate_arguments(
+            "file/replace",
+            &serde_json::json!({"project": "demo", "path": "", "old": "a", "new": "b"}),
+        )
+        .await;
+    assert!(empty_path.is_err());
+    assert!(empty_path.unwrap_err().contains("path"));
+
+    let placeholder_path = registry
+        .validate_arguments(
+            "file/replace",
+            &serde_json::json!({"project": "demo", "path": "...", "old": "a", "new": "b"}),
+        )
+        .await;
+    assert!(placeholder_path.is_err());
+    assert!(placeholder_path
+        .unwrap_err()
+        .contains("real project-relative file"));
 }
 
 #[tokio::test]
@@ -168,7 +214,11 @@ async fn executor_rejects_unregistered_tool() {
         false,
     );
     let err = executor
-        .execute(&mut call, VibeUseCase::SoftwareDevelopment, &MockState::new())
+        .execute(
+            &mut call,
+            VibeUseCase::SoftwareDevelopment,
+            &MockState::new(),
+        )
         .await;
     assert!(err.is_err());
     assert!(err.unwrap_err().contains("não registrada"));
@@ -202,7 +252,11 @@ async fn executor_requires_approval_before_execution() {
         false,
     );
     let err = executor
-        .execute(&mut call, VibeUseCase::SoftwareDevelopment, &MockState::new())
+        .execute(
+            &mut call,
+            VibeUseCase::SoftwareDevelopment,
+            &MockState::new(),
+        )
         .await;
     assert!(err.is_err());
     assert!(err.unwrap_err().contains("Aprovação"));
@@ -220,7 +274,11 @@ async fn executor_marks_missing_required_parameter() {
         false,
     );
     let err = executor
-        .execute(&mut call, VibeUseCase::SoftwareDevelopment, &MockState::new())
+        .execute(
+            &mut call,
+            VibeUseCase::SoftwareDevelopment,
+            &MockState::new(),
+        )
         .await;
     assert!(err.is_err());
     assert!(err.unwrap_err().contains("project"));
@@ -258,7 +316,11 @@ async fn executor_records_result_after_successful_custom_tool() {
         false,
     );
     let result = executor
-        .execute(&mut call, VibeUseCase::SoftwareDevelopment, &MockState::new())
+        .execute(
+            &mut call,
+            VibeUseCase::SoftwareDevelopment,
+            &MockState::new(),
+        )
         .await;
     assert!(result.is_ok());
     let out = call.result.expect("result recorded after execution");

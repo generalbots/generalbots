@@ -635,6 +635,13 @@
                     focus(el.getAttribute("data-run"));
                 });
             });
+            if (!state.runId) {
+                var active = runs.find(function (run) {
+                    var runState = String(run.state || "").toLowerCase();
+                    return runState === "running" || runState === "awaiting_approval";
+                });
+                if (active && active.run_id) focus(active.run_id);
+            }
         });
     }
 
@@ -765,10 +772,18 @@
                 q("vibeRunDockArrow").textContent = collapsed ? "▸" : "▾";
             });
         }
-        var approve = q("vibeApproveBtn");
-        if (approve) approve.addEventListener("click", approveRun);
-        var deny = q("vibeDenyBtn");
-        if (deny) deny.addEventListener("click", denyRun);
+        if (!document.documentElement.dataset.vibeRunApprovalWired) {
+            document.documentElement.dataset.vibeRunApprovalWired = "true";
+            document.addEventListener("click", function (event) {
+                var target = event.target;
+                if (!target || typeof target.closest !== "function") return;
+                if (target.closest("#vibeApproveBtn")) {
+                    approveRun();
+                } else if (target.closest("#vibeDenyBtn")) {
+                    denyRun();
+                }
+            });
+        }
         var teamBtn = q("vibeTeamCreateBtn");
         if (teamBtn) teamBtn.addEventListener("click", createTeam);
         var previewBtn = q("vibePreviewBtn");

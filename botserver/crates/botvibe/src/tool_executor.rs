@@ -83,18 +83,21 @@ impl ToolRegistry {
     }
 
     fn register_builtin_tools(tools: &mut HashMap<String, RegisteredTool>) {
-
         // #796 — wired tools: real implementations (autotask, CRM, analysis).
         for (name, schema, handler) in crate::wired_tools::autotask::autotask_tools() {
-            tools.insert(name.clone(), RegisteredTool {
-                descriptor: ToolDescriptor { schema, category: ToolCategory::Autotask },
-                handler,
-            });
+            tools.insert(
+                name.clone(),
+                RegisteredTool {
+                    descriptor: ToolDescriptor {
+                        schema,
+                        category: ToolCategory::Autotask,
+                    },
+                    handler,
+                },
+            );
         }
 
-        let deploy_tools = vec![
-            ("deploy_app", "Realiza deploy de aplicação gerada", true),
-        ];
+        let deploy_tools = vec![("deploy_app", "Realiza deploy de aplicação gerada", true)];
 
         for (name, desc, approval) in deploy_tools {
             let schema = ToolSchema::new(name, desc)
@@ -113,60 +116,103 @@ impl ToolRegistry {
                 }))
                 .with_approval_if(approval)
                 .with_use_cases(vec![VibeUseCase::SoftwareDevelopment]);
-            tools.insert(name.to_string(), RegisteredTool {
-                descriptor: ToolDescriptor { schema, category: ToolCategory::Deployment },
-                handler: Arc::new(deploy_app_handler()),
-            });
+            tools.insert(
+                name.to_string(),
+                RegisteredTool {
+                    descriptor: ToolDescriptor {
+                        schema,
+                        category: ToolCategory::Deployment,
+                    },
+                    handler: Arc::new(deploy_app_handler()),
+                },
+            );
         }
 
         let publish_schema = crate::publish::publish_project_schema();
-        tools.insert("publish/project".to_string(), RegisteredTool {
-            descriptor: ToolDescriptor {
-                schema: publish_schema,
-                category: ToolCategory::Deployment,
-            },
-            handler: crate::publish::publish_project_tool(),
-        });
-
-        for (name, schema, handler) in [
-            ("domain/bind", crate::domains_tool::domain_bind_schema(), crate::domains_tool::domain_bind_tool()),
-            ("domain/security", crate::domains_tool::domain_security_schema(), crate::domains_tool::domain_security_tool()),
-            ("domain/verify", crate::domains_tool::domain_verify_schema(), crate::domains_tool::domain_verify_tool()),
-            ("domain/tls", crate::domains_tool::domain_tls_schema(), crate::domains_tool::domain_tls_tool()),
-        ] {
-            tools.insert(name.to_string(), RegisteredTool {
+        tools.insert(
+            "publish/project".to_string(),
+            RegisteredTool {
                 descriptor: ToolDescriptor {
-                    schema,
+                    schema: publish_schema,
                     category: ToolCategory::Deployment,
                 },
-                handler,
-            });
+                handler: crate::publish::publish_project_tool(),
+            },
+        );
+
+        for (name, schema, handler) in [
+            (
+                "domain/bind",
+                crate::domains_tool::domain_bind_schema(),
+                crate::domains_tool::domain_bind_tool(),
+            ),
+            (
+                "domain/security",
+                crate::domains_tool::domain_security_schema(),
+                crate::domains_tool::domain_security_tool(),
+            ),
+            (
+                "domain/verify",
+                crate::domains_tool::domain_verify_schema(),
+                crate::domains_tool::domain_verify_tool(),
+            ),
+            (
+                "domain/tls",
+                crate::domains_tool::domain_tls_schema(),
+                crate::domains_tool::domain_tls_tool(),
+            ),
+        ] {
+            tools.insert(
+                name.to_string(),
+                RegisteredTool {
+                    descriptor: ToolDescriptor {
+                        schema,
+                        category: ToolCategory::Deployment,
+                    },
+                    handler,
+                },
+            );
         }
 
         for (name, schema, handler) in crate::ops_tools::ops_tools() {
-            tools.insert(name.to_string(), RegisteredTool {
-                descriptor: ToolDescriptor {
-                    schema,
-                    category: ToolCategory::Deployment,
+            tools.insert(
+                name.to_string(),
+                RegisteredTool {
+                    descriptor: ToolDescriptor {
+                        schema,
+                        category: ToolCategory::Deployment,
+                    },
+                    handler,
                 },
-                handler,
-            });
+            );
         }
 
         // #796 — CRM tools: contacts, deals, tickets, queued email.
         for (name, schema, handler) in crate::wired_tools::crm::crm_tools() {
-            tools.insert(name.clone(), RegisteredTool {
-                descriptor: ToolDescriptor { schema, category: ToolCategory::Crm },
-                handler,
-            });
+            tools.insert(
+                name.clone(),
+                RegisteredTool {
+                    descriptor: ToolDescriptor {
+                        schema,
+                        category: ToolCategory::Crm,
+                    },
+                    handler,
+                },
+            );
         }
 
         // #796 — analysis tools: market data, sentiment, reports, anomalies.
         for (name, schema, handler) in crate::wired_tools::analysis::analysis_tools() {
-            tools.insert(name.clone(), RegisteredTool {
-                descriptor: ToolDescriptor { schema, category: ToolCategory::Analysis },
-                handler,
-            });
+            tools.insert(
+                name.clone(),
+                RegisteredTool {
+                    descriptor: ToolDescriptor {
+                        schema,
+                        category: ToolCategory::Analysis,
+                    },
+                    handler,
+                },
+            );
         }
     }
 
@@ -175,54 +221,183 @@ impl ToolRegistry {
     fn register_harness_tools(tools: &mut HashMap<String, RegisteredTool>) {
         use crate::harness;
 
+        let set_title_schema = ToolSchema::new(
+            "file/set-title",
+            "Set the HTML document title in a project workspace",
+        )
+        .with_parameters(serde_json::json!({
+            "type": "object",
+            "properties": {
+                "project": {"type": "string", "minLength": 1, "description": "Vibe project id (name)"},
+                "title": {"type": "string", "minLength": 1, "description": "New browser document title"}
+            },
+            "required": ["project", "title"]
+        }))
+        .with_approval()
+        .with_use_cases(vec![VibeUseCase::SoftwareDevelopment]);
+        tools.insert(
+            "file/set-title".to_string(),
+            RegisteredTool {
+                descriptor: ToolDescriptor {
+                    schema: set_title_schema,
+                    category: ToolCategory::File,
+                },
+                handler: harness::file_tools::file_set_title(),
+            },
+        );
+
         let entries: Vec<(String, String, bool, ToolHandler)> = vec![
-            ("file/read".into(), "Read a file from the project workspace".into(), false, harness::file_tools::file_read()),
-            ("file/write".into(), "Write a file into the project workspace".into(), true, harness::file_tools::file_write()),
-            ("file/list".into(), "List files in the project workspace".into(), false, harness::file_tools::file_list()),
-            ("file/delete".into(), "Delete a file from the project workspace".into(), true, harness::file_tools::file_delete()),
-            ("file/exists".into(), "Check whether a workspace path exists".into(), false, harness::file_tools::file_exists()),
-            ("shell/run".into(), "Run an allowlisted command inside the project workspace".into(), true, harness::run_tools::run_command()),
-            ("git/status".into(), "Show git status of the project workspace".into(), false, harness::git_tools::git_status()),
-            ("git/log".into(), "Show recent commits of the project".into(), false, harness::git_tools::git_log_tool()),
-            ("git/diff".into(), "Show the working tree diff of the project".into(), false, harness::git_tools::git_diff_tool()),
-            ("git/commit".into(), "Stage all changes and commit in the project".into(), true, harness::git_tools::git_commit_tool()),
-            ("git/init".into(), "Initialize or clone the project repository into the workspace".into(), true, harness::git_tools::git_init_tool()),
-            ("logs/read".into(), "Read the tail of a project log file".into(), false, harness::log_tools::logs_read()),
-            ("logs/list".into(), "List available project log files".into(), false, harness::log_tools::logs_list()),
-            ("test/run".into(), "Run the project test suite".into(), true, harness::test_tools::test_run()),
-            ("test/list".into(), "Detect the test frameworks present in the project".into(), false, harness::test_tools::test_list()),
+            (
+                "file/read".into(),
+                "Read a file from the project workspace".into(),
+                false,
+                harness::file_tools::file_read(),
+            ),
+            (
+                "file/write".into(),
+                "Write complete file content into the project workspace; path must be a real project-relative file name".into(),
+                true,
+                harness::file_tools::file_write(),
+            ),
+            (
+                "file/replace".into(),
+                "Replace exact text in an existing project file; use this for focused edits instead of rewriting the whole file".into(),
+                true,
+                harness::file_tools::file_replace(),
+            ),
+            (
+                "file/list".into(),
+                "List files in the project workspace".into(),
+                false,
+                harness::file_tools::file_list(),
+            ),
+            (
+                "file/delete".into(),
+                "Delete a file from the project workspace".into(),
+                true,
+                harness::file_tools::file_delete(),
+            ),
+            (
+                "file/exists".into(),
+                "Check whether a workspace path exists".into(),
+                false,
+                harness::file_tools::file_exists(),
+            ),
+            (
+                "shell/run".into(),
+                "Run an allowlisted command inside the project workspace".into(),
+                true,
+                harness::run_tools::run_command(),
+            ),
+            (
+                "git/status".into(),
+                "Show git status of the project workspace".into(),
+                false,
+                harness::git_tools::git_status(),
+            ),
+            (
+                "git/log".into(),
+                "Show recent commits of the project".into(),
+                false,
+                harness::git_tools::git_log_tool(),
+            ),
+            (
+                "git/diff".into(),
+                "Show the working tree diff of the project".into(),
+                false,
+                harness::git_tools::git_diff_tool(),
+            ),
+            (
+                "git/commit".into(),
+                "Stage all changes and commit in the project".into(),
+                true,
+                harness::git_tools::git_commit_tool(),
+            ),
+            (
+                "git/init".into(),
+                "Initialize or clone the project repository into the workspace".into(),
+                true,
+                harness::git_tools::git_init_tool(),
+            ),
+            (
+                "logs/read".into(),
+                "Read the tail of a project log file".into(),
+                false,
+                harness::log_tools::logs_read(),
+            ),
+            (
+                "logs/list".into(),
+                "List available project log files".into(),
+                false,
+                harness::log_tools::logs_list(),
+            ),
+            (
+                "test/run".into(),
+                "Run the project test suite".into(),
+                true,
+                harness::test_tools::test_run(),
+            ),
+            (
+                "test/list".into(),
+                "Detect the test frameworks present in the project".into(),
+                false,
+                harness::test_tools::test_list(),
+            ),
         ];
 
         for (name, description, requires_approval, handler) in entries {
+            let required = match name.as_str() {
+                "file/read" | "file/delete" | "file/exists" => vec!["project", "path"],
+                "file/write" => vec!["project", "path", "content"],
+                "file/replace" => vec!["project", "path", "old", "new"],
+                "shell/run" => vec!["project", "command"],
+                "git/commit" => vec!["project", "message"],
+                _ => vec!["project"],
+            };
             let tool_schema = ToolSchema::new(name.clone(), description)
                 .with_parameters(serde_json::json!({
                     "type": "object",
                     "properties": {
-                        "project": {"type": "string", "description": "Vibe project id (name)"},
+                        "project": {"type": "string", "minLength": 1, "description": "Vibe project id (name)"},
                         "project_id": {"type": "string", "description": "Vibe project UUID (injected by the deploy pipeline)"},
-                        "path": {"type": "string", "description": "Path relative to the project workspace"},
-                        "content": {"type": "string", "description": "File content"},
+                        "path": {"type": "string", "minLength": 1, "description": "Required project-relative path such as index.js; never use an absolute path or placeholder such as ..."},
+                        "content": {"type": "string", "description": "Complete replacement file content, not a patch or isolated value"},
+                        "old": {"type": "string", "minLength": 1, "description": "Exact existing text to replace"},
+                        "new": {"type": "string", "description": "Replacement text; may be empty to remove old text"},
+                        "all": {"type": "boolean", "description": "Replace every occurrence when true; defaults to false"},
                         "command": {"type": "string", "description": "Allowlisted command to run"},
                         "args": {"type": "array", "items": {"type": "string"}, "description": "Command arguments"},
                         "message": {"type": "string", "description": "Commit message"},
                         "limit": {"type": "integer", "description": "Line/commit limit"},
                         "timeout_secs": {"type": "integer", "description": "Command timeout in seconds"}
                     },
-                    "required": ["project"]
+                    "required": required
                 }))
                 .with_approval_if(requires_approval)
                 .with_use_cases(vec![VibeUseCase::SoftwareDevelopment]);
-            tools.insert(name, RegisteredTool {
-                descriptor: ToolDescriptor { schema: tool_schema, category: ToolCategory::File },
-                handler,
-            });
+            tools.insert(
+                name,
+                RegisteredTool {
+                    descriptor: ToolDescriptor {
+                        schema: tool_schema,
+                        category: ToolCategory::File,
+                    },
+                    handler,
+                },
+            );
         }
     }
 
     pub async fn register(&self, descriptor: ToolDescriptor, handler: ToolHandler) {
         let name = descriptor.schema.name.clone();
         let mut tools = self.tools.write().await;
-        tools.insert(name, RegisteredTool { descriptor, handler });
+        tools.insert(
+            name,
+            RegisteredTool {
+                descriptor,
+                handler,
+            },
+        );
     }
 
     pub async fn register_m5_tools(
@@ -243,10 +418,16 @@ impl ToolRegistry {
             .collect();
 
         for (name, schema, handler) in entries {
-            tools.insert(name.clone(), RegisteredTool {
-                descriptor: ToolDescriptor { schema, category: ToolCategory::Deployment },
-                handler,
-            });
+            tools.insert(
+                name.clone(),
+                RegisteredTool {
+                    descriptor: ToolDescriptor {
+                        schema,
+                        category: ToolCategory::Deployment,
+                    },
+                    handler,
+                },
+            );
         }
         Ok(tools.len())
     }
@@ -263,7 +444,8 @@ impl ToolRegistry {
 
     pub async fn list_tools_for_use_case(&self, use_case: VibeUseCase) -> Vec<ToolDescriptor> {
         let tools = self.tools.read().await;
-        tools.values()
+        tools
+            .values()
             .filter(|t| {
                 t.descriptor.schema.allowed_use_cases.is_empty()
                     || t.descriptor.schema.allowed_use_cases.contains(&use_case)
@@ -272,28 +454,77 @@ impl ToolRegistry {
             .collect()
     }
 
-    pub async fn validate_arguments(&self, tool_name: &str, arguments: &serde_json::Value) -> Result<(), String> {
+    pub async fn validate_arguments(
+        &self,
+        tool_name: &str,
+        arguments: &serde_json::Value,
+    ) -> Result<(), String> {
         let tools = self.tools.read().await;
-        let tool = tools.get(tool_name).ok_or_else(|| format!("Ferramenta '{tool_name}' não encontrada"))?;
+        let tool = tools
+            .get(tool_name)
+            .ok_or_else(|| format!("Ferramenta '{tool_name}' não encontrada"))?;
 
-        if tool.descriptor.schema.parameters.get("properties").is_none() {
+        if tool
+            .descriptor
+            .schema
+            .parameters
+            .get("properties")
+            .is_none()
+        {
             return Ok(());
         }
 
-        if let Some(props) = tool.descriptor.schema.parameters.get("properties").and_then(|p| p.as_object()) {
+        if let Some(props) = tool
+            .descriptor
+            .schema
+            .parameters
+            .get("properties")
+            .and_then(|p| p.as_object())
+        {
             let empty_map = serde_json::Map::new();
             let args_map = arguments.as_object().unwrap_or(&empty_map);
-            if let Some(required) = tool.descriptor.schema.parameters.get("required").and_then(|r| r.as_array()) {
+            if let Some(required) = tool
+                .descriptor
+                .schema
+                .parameters
+                .get("required")
+                .and_then(|r| r.as_array())
+            {
                 for req in required {
                     let key = req.as_str().unwrap_or("");
-                    if !args_map.contains_key(key) {
+                    let Some(value) = args_map.get(key) else {
                         return Err(format!("Parâmetro obrigatório ausente: '{key}'"));
+                    };
+                    if value.is_null() {
+                        return Err(format!("Required argument '{key}' cannot be null"));
                     }
                 }
             }
             for key in args_map.keys() {
                 if !props.contains_key(key) {
                     return Err(format!("Parâmetro desconhecido: '{key}'"));
+                }
+            }
+            for (key, value) in args_map {
+                let Some(spec) = props.get(key) else {
+                    continue;
+                };
+                if spec.get("type").and_then(|value| value.as_str()) == Some("string") {
+                    let Some(text) = value.as_str() else {
+                        return Err(format!("Argument '{key}' must be a string"));
+                    };
+                    let min_length = spec
+                        .get("minLength")
+                        .and_then(|value| value.as_u64())
+                        .unwrap_or(0) as usize;
+                    if text.trim().chars().count() < min_length {
+                        return Err(format!("Argument '{key}' must not be empty"));
+                    }
+                    if key == "path" && matches!(text.trim(), "..." | "…") {
+                        return Err(
+                            "Argument 'path' must name a real project-relative file".to_string()
+                        );
+                    }
                 }
             }
         }
@@ -319,42 +550,60 @@ impl ToolSchemaExt for ToolSchema {
     }
 }
 
-fn deploy_app_handler() -> impl Fn(serde_json::Value, &dyn VibeState) -> ToolFuture + Send + Sync + 'static {
+fn deploy_app_handler(
+) -> impl Fn(serde_json::Value, &dyn VibeState) -> ToolFuture + Send + Sync + 'static {
     move |args: serde_json::Value, _state: &dyn VibeState| {
         let args = args.clone();
         Box::pin(async move {
-            let app_name = args.get("app_name")
+            let app_name = args
+                .get("app_name")
                 .and_then(|v| v.as_str())
                 .unwrap_or_default()
                 .to_string();
-            let org = args.get("org")
+            let org = args
+                .get("org")
                 .and_then(|v| v.as_str())
                 .unwrap_or_default()
                 .to_string();
-            let project_type = args.get("project_type")
+            let project_type = args
+                .get("project_type")
                 .and_then(|v| v.as_str())
                 .unwrap_or("bot")
                 .to_string();
-            let environment = args.get("environment")
+            let environment = args
+                .get("environment")
                 .and_then(|v| v.as_str())
                 .unwrap_or("development")
                 .to_string();
-            let framework = args.get("framework")
+            let framework = args
+                .get("framework")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
-            let custom_domain = args.get("custom_domain")
+            let custom_domain = args
+                .get("custom_domain")
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
 
             let (forgejo_url, alm_token, _org) = botcoresecrets::alm_config();
-            let forgejo_token = if alm_token.is_empty() { None } else { Some(alm_token) };
+            let forgejo_token = if alm_token.is_empty() {
+                None
+            } else {
+                Some(alm_token)
+            };
 
             let (pt, dt) = match project_type.as_str() {
-                "bot" => (botdeployment::ProjectType::Bot, botdeployment::DeployTarget::None),
-                "site" => (botdeployment::ProjectType::Site, botdeployment::DeployTarget::CaddyStatic),
+                "bot" => (
+                    botdeployment::ProjectType::Bot,
+                    botdeployment::DeployTarget::None,
+                ),
+                "site" => (
+                    botdeployment::ProjectType::Site,
+                    botdeployment::DeployTarget::CaddyStatic,
+                ),
                 app_pt if app_pt.starts_with("app-") => {
-                    let fw = framework.clone()
-                        .unwrap_or_else(|| app_pt.strip_prefix("app-").unwrap_or("unknown").to_string());
+                    let fw = framework.clone().unwrap_or_else(|| {
+                        app_pt.strip_prefix("app-").unwrap_or("unknown").to_string()
+                    });
                     let pt = botdeployment::ProjectType::App {
                         framework: fw,
                         node_version: None,
@@ -381,7 +630,11 @@ fn deploy_app_handler() -> impl Fn(serde_json::Value, &dyn VibeState) -> ToolFut
             };
 
             let config = botdeployment::DeploymentConfig {
-                organization: if org.is_empty() { "generalbots".to_string() } else { org },
+                organization: if org.is_empty() {
+                    "generalbots".to_string()
+                } else {
+                    org
+                },
                 app_name,
                 project_type: pt,
                 deploy_target: dt,
@@ -433,17 +686,26 @@ impl VibeToolExecutor {
         &self,
         tool_call: &mut VibeToolCall,
         use_case: VibeUseCase,
-    state: &dyn VibeState,
+        state: &dyn VibeState,
     ) -> Result<(), String> {
-        let descriptor = self.registry.get_descriptor(&tool_call.tool_name).await
+        let descriptor = self
+            .registry
+            .get_descriptor(&tool_call.tool_name)
+            .await
             .ok_or_else(|| format!("Ferramenta '{}' não registrada", tool_call.tool_name))?;
 
         if !descriptor.schema.allowed_use_cases.is_empty()
-            && !descriptor.schema.allowed_use_cases.contains(&use_case) {
-            return Err(format!("Ferramenta '{}' não disponível para caso de uso {}", tool_call.tool_name, use_case));
+            && !descriptor.schema.allowed_use_cases.contains(&use_case)
+        {
+            return Err(format!(
+                "Ferramenta '{}' não disponível para caso de uso {}",
+                tool_call.tool_name, use_case
+            ));
         }
 
-        self.registry.validate_arguments(&tool_call.tool_name, &tool_call.arguments).await?;
+        self.registry
+            .validate_arguments(&tool_call.tool_name, &tool_call.arguments)
+            .await?;
 
         if descriptor.schema.requires_approval && !tool_call.approved {
             tool_call.requires_approval = true;
@@ -461,7 +723,10 @@ impl VibeToolExecutor {
             VibeToolResult {
                 success: false,
                 data: serde_json::Value::Null,
-                error: Some(format!("Ferramenta '{}' não encontrada", tool_call.tool_name)),
+                error: Some(format!(
+                    "Ferramenta '{}' não encontrada",
+                    tool_call.tool_name
+                )),
                 latency_ms: 0,
             }
         };

@@ -29,6 +29,8 @@ impl std::fmt::Display for PermissionMode {
 const DESTRUCTIVE_TOOL_PREFIXES: &[&str] = &[
     "file/delete",
     "file/write",
+    "file/replace",
+    "file/set-title",
     "shell/run",
     "git/commit",
     "git/init",
@@ -80,7 +82,12 @@ impl PermissionEngine {
             .any(|prefix| tool_name.starts_with(prefix))
     }
 
-    pub fn requires_approval(&self, schema_requires: bool, tool_name: &str, mode: PermissionMode) -> bool {
+    pub fn requires_approval(
+        &self,
+        schema_requires: bool,
+        tool_name: &str,
+        mode: PermissionMode,
+    ) -> bool {
         match mode {
             PermissionMode::Manual => schema_requires || self.is_destructive(tool_name),
             PermissionMode::Auto => self.is_destructive(tool_name),
@@ -154,6 +161,9 @@ mod tests {
         assert_eq!(engine.mode().await, PermissionMode::Manual);
         engine.set_mode(PermissionMode::Bypass).await;
         assert_eq!(engine.mode().await, PermissionMode::Bypass);
-        assert_eq!(PermissionEngine::default().mode().await, PermissionMode::Manual);
+        assert_eq!(
+            PermissionEngine::default().mode().await,
+            PermissionMode::Manual
+        );
     }
 }
