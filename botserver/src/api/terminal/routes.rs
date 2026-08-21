@@ -5,10 +5,10 @@ use axum::extract::{Query, State};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use serde::Deserialize;
 use futures_util::StreamExt;
+use serde::Deserialize;
 
-use super::{TerminalManager, default_shell, sanitize_cwd};
+use super::{default_shell, sanitize_cwd, TerminalManager};
 
 #[derive(Deserialize)]
 pub struct CreateTerminalRequest {
@@ -41,9 +41,15 @@ async fn create_terminal(
     State(manager): State<Arc<TerminalManager>>,
     Json(req): Json<CreateTerminalRequest>,
 ) -> impl IntoResponse {
-    let shell = req.shell.unwrap_or_else(default_shell);
-    let cwd = sanitize_cwd(req.cwd.as_deref().unwrap_or(""));
     let container = req.container.clone().filter(|c| !c.trim().is_empty());
+    let shell = req.shell.unwrap_or_else(|| {
+        if container.is_some() {
+            "/bin/bash".to_string()
+        } else {
+            default_shell()
+        }
+    });
+    let cwd = sanitize_cwd(req.cwd.as_deref().unwrap_or(""));
     let result = match container {
         Some(name) => manager.create_session_with_container(shell, cwd, Some(name)),
         None => manager.create_session(shell, cwd),
@@ -55,6 +61,8 @@ async fn create_terminal(
                 "id": session.id,
                 "shell": session.shell,
                 "cwd": session.cwd,
+                "container": session.container,
+                "transport": if session.container.is_some() && cfg!(target_os = "windows") { "wsl-incus" } else if session.container.is_some() { "incus" } else { "local" },
                 "created_at": session.created_at,
                 "ws_url": format!("/api/terminal/ws?id={}", session.id),
             })),
@@ -173,7 +181,11 @@ fn parse_resize(text: &str) -> Option<(u16, u16)> {
 async fn send_history(session: &Arc<super::TerminalSession>, socket: &mut WebSocket) {
     for line in session.history() {
         let payload = serde_json::json!({ "type": "output", "data": line.data });
-        if socket.send(Message::Text(payload.to_string())).await.is_err() {
+        if socket
+            .send(Message::Text(payload.to_string()))
+            .await
+            .is_err()
+        {
             break;
         }
     }

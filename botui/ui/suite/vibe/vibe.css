@@ -109,6 +109,8 @@ border-bottom: 1px solid var(--border);
 background: var(--surface);
 opacity: 0.95;
 backdrop-filter: blur(4px);
+position: relative;
+z-index: 101;
 }
 
 .vibe-canvas-header-right {
@@ -168,6 +170,111 @@ justify-content: center;
 gap: 16px;
 padding: 60px;
 text-align: center;
+}
+
+.vibe-canvas-toolbar {
+display: flex;
+align-items: center;
+gap: 6px;
+min-height: 38px;
+padding: 6px 14px;
+background: #fff;
+border-bottom: 1px solid #d8dee9;
+color: #334155;
+position: relative;
+z-index: 101;
+}
+
+/* Drawing needs the entire workbench. Floating run/chat panels otherwise
+   intercept pointer input on narrower desktop windows. */
+.vibe-design-mode #vibeRunDockHost,
+.vibe-design-mode #vibeChatOverlay {
+display: none !important;
+}
+
+.vibe-canvas-toolbar button {
+border: 1px solid #cbd5e1;
+background: #fff;
+color: #334155;
+border-radius: 5px;
+padding: 5px 9px;
+font: 600 11px "Fira Code", monospace;
+cursor: pointer;
+}
+
+.vibe-canvas-toolbar button:hover,
+.vibe-canvas-toolbar button.active {
+border-color: #2563eb;
+background: #eff6ff;
+color: #1d4ed8;
+}
+
+.vibe-toolbar-separator {
+width: 1px;
+height: 20px;
+background: #e2e8f0;
+margin: 0 2px;
+}
+
+.vibe-canvas-save-state {
+margin-left: auto;
+font: 10px "Fira Code", monospace;
+color: #64748b;
+}
+
+.vibe-design-surface {
+display: none;
+position: relative;
+flex: 1;
+min-height: 720px;
+transform-origin: 0 0;
+overflow: hidden;
+cursor: default;
+}
+
+.vibe-design-surface.active { display: block; }
+.vibe-design-surface[data-tool="rectangle"],
+.vibe-design-surface[data-tool="connector"] { cursor: crosshair; }
+.vibe-design-surface[data-tool="text"] { cursor: text; }
+
+.vibe-design-elements,
+.vibe-design-connectors {
+position: absolute;
+inset: 0;
+width: 100%;
+height: 100%;
+}
+
+.vibe-design-connectors { pointer-events: none; overflow: visible; }
+
+.vibe-design-element {
+position: absolute;
+box-sizing: border-box;
+min-width: 24px;
+min-height: 20px;
+color: #0f172a;
+user-select: none;
+}
+
+.vibe-design-element.rectangle {
+background: #fff;
+border: 2px solid #2563eb;
+box-shadow: 0 2px 8px rgba(15, 23, 42, .08);
+}
+
+.vibe-design-element.text {
+padding: 4px 6px;
+font: 600 15px Inter, system-ui, sans-serif;
+white-space: pre-wrap;
+}
+
+.vibe-design-element.selected { outline: 2px solid #0ea5e9; outline-offset: 3px; }
+
+.vibe-design-connector {
+stroke: #2563eb;
+stroke-width: 2;
+fill: none;
+marker-end: url(#vibeArrowhead);
 }
 
 .vibe-empty-icon {

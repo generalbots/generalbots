@@ -251,7 +251,7 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         let host_port = std::env::var("VIBE_WSL_APP_PORT")
             .ok()
             .and_then(|value| value.parse::<u16>().ok())
-            .unwrap_or(39000);
+            .unwrap_or(80);
         let url = VmLifecycle::new(pool.clone()).deploy_node_files(
             &vm.container_name,
             &files,

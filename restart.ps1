@@ -31,11 +31,47 @@ function Test-LocalPort {
     }
 }
 
+function Reset-SaturatedLocalPostgres {
+    param([Parameter(Mandatory = $true)][string]$StackPath)
+
+    $postgresProcesses = @(Get-CimInstance Win32_Process -Filter "Name='postgres.exe'" -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandLine -and $_.CommandLine.Replace("/", "\").Contains($StackPath) })
+    # PostgreSQL defaults to 100 connections. A forced botserver stop can
+    # leave Windows socket backends alive until keepalive expiry, preventing
+    # the next process from obtaining even its initial pool connection.
+    $staleSockets = @(Get-NetTCPConnection -LocalPort 5432 -State CloseWait -ErrorAction SilentlyContinue).Count
+    if ($postgresProcesses.Count -lt 80 -and $staleSockets -lt 80) {
+        return
+    }
+
+    $pgCtl = Join-Path $StackPath "bin\tables\bin\pg_ctl.exe"
+    $pgData = Join-Path $StackPath "data\tables\pgdata"
+    $pgLog = Join-Path $StackPath "logs\tables\postgresql.log"
+    if (-not (Test-Path -LiteralPath $pgCtl) -or -not (Test-Path -LiteralPath $pgData)) {
+        Write-Host "  WARNING: PostgreSQL is saturated but pg_ctl or pgdata was not found"
+        return
+    }
+
+    Write-Host "Recovering saturated local PostgreSQL ($($postgresProcesses.Count) processes, $staleSockets stale sockets)..."
+    & $pgCtl restart -D $pgData -m fast -w -l $pgLog
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "  WARNING: local PostgreSQL restart failed"
+    }
+}
+
 Write-Host "Stopping..."
 Stop-Process -Name "botserver" -Force -ErrorAction SilentlyContinue
 Stop-Process -Name "botui" -Force -ErrorAction SilentlyContinue
+# botserver launches llama.cpp as detached child processes. Stop them during
+# a Windows development restart so newly built context/model settings replace
+# stale children instead of silently reusing them.
+Stop-Process -Name "llama-server" -Force -ErrorAction SilentlyContinue
+# Windows development skips the local directory service. Stop any stale
+# instance so it cannot keep PostgreSQL sockets open across restarts.
+Stop-Process -Name "zitadel" -Force -ErrorAction SilentlyContinue
 Stop-Process -Name "rustc" -Force -ErrorAction SilentlyContinue
 Start-Sleep -Seconds 1
+Reset-SaturatedLocalPostgres -StackPath $stackRoot
 
 Write-Host "Cleaning..."
 Remove-Item -Path "botserver.log", "botui.log", "botmodels.log" -Force -ErrorAction SilentlyContinue
@@ -125,7 +161,7 @@ $env:GBO_SKIP_LOCAL_DIRECTORY = "1"
 $env:GBO_WSL_DISTRO = "Debian"
 $env:SAAS_DISABLE_CAPACITY_CHECK = "1"
 $env:VIBE_VM_IMAGE = "images:debian/13"
-$env:VIBE_WSL_APP_PORT = "39000"
+$env:VIBE_WSL_APP_PORT = "80"
 
 $vaultBin = Join-Path $stackRoot "bin\vault\vault.exe"
 $vaultAddr = if ($env:VAULT_ADDR) { $env:VAULT_ADDR } else { "http://127.0.0.1:8200" }
@@ -163,6 +199,23 @@ $env:BOTSERVER_URL = "http://localhost:8080"
 $env:PORT = "3000"
 $botuiProcess = Start-Process -PassThru -NoNewWindow -FilePath ".\target\debug\botui.exe" -RedirectStandardOutput "botui.log" -RedirectStandardError "botui-err.log"
 Write-Host "  PID: $($botuiProcess.Id)"
+
+$botserverReady = $false
+for ($i = 1; $i -le 180; $i++) {
+    if ($botserverProcess.HasExited) {
+        Write-Host "Failed to start botserver (exit code $($botserverProcess.ExitCode))"
+        exit 1
+    }
+    if (Test-LocalPort -Port 8080) {
+        $botserverReady = $true
+        break
+    }
+    Start-Sleep -Seconds 1
+}
+if (-not $botserverReady) {
+    Write-Host "Failed to start botserver: port 8080 was not ready within 180s"
+    exit 1
+}
 
 Write-Host "Done. botserver=$($botserverProcess.Id) botui=$($botuiProcess.Id) botmodels=$($botmodelsProcess.Id)"
 Write-Host "Logs: botserver.log, botui.log, botmodels.log"

@@ -197,21 +197,8 @@
         '</div>';
     }).join('');
 
-    // Load saved keys
-    const saved = localStorage.getItem('gb_byok_keys');
-    if (saved) {
-      try {
-        const keys = JSON.parse(saved);
-        providers.forEach(p => {
-          const input = document.getElementById('byok-' + p.id);
-          if (input && keys[p.id]) {
-            input.value = keys[p.id];
-            const status = document.getElementById('byok-status-' + p.id);
-            if (status) { status.className = 'byok-status active'; status.innerHTML = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg> Saved'; }
-          }
-        });
-      } catch(e) {}
-    }
+    // API keys are never loaded back into the browser. Vault is the only
+    // credential store; the input intentionally stays blank after saving.
   }
 
   window.saveByokKeys = async function() {
@@ -239,17 +226,12 @@
         } else {
           const err = await res.json().catch(() => ({ error: 'Unknown error' }));
           showToast('Server save failed: ' + (err.error || 'Unknown'), 'error');
-          // Fallback: save locally
-          localStorage.setItem('gb_byok_keys', JSON.stringify(keys));
-          showToast('Keys saved locally as fallback.', 'info');
         }
       } catch (e) {
-        localStorage.setItem('gb_byok_keys', JSON.stringify(keys));
-        showToast('Server unavailable. Keys saved locally.', 'info');
+        showToast('Server unavailable. Keys were not stored.', 'error');
       }
     } else {
-      localStorage.setItem('gb_byok_keys', JSON.stringify(keys));
-      showToast('Keys saved locally.', 'info');
+      showToast('Sign in before saving provider keys.', 'error');
     }
 
     // Update status indicators

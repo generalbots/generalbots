@@ -46,6 +46,19 @@
     .filter-btn { font-size: .78rem; padding: .35rem .85rem; border-radius: 99px; border: 1px solid var(--border); background: var(--card); color: var(--muted); cursor: pointer; transition: all .2s; }
     .filter-btn:hover { border-color: var(--border-hover); color: var(--text); }
     .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    .provider-connect { display:flex; gap:.4rem; align-items:center; }
+    .connect-btn { border:1px solid var(--border); background:var(--card); color:var(--text); border-radius:7px; padding:.42rem .68rem; font-size:.72rem; font-weight:700; cursor:pointer; }
+    .connect-btn:hover { border-color:var(--accent); color:var(--accent2); }
+    .llm-connect-mask { display:none; position:fixed; inset:0; z-index:1000; background:rgba(15,23,42,.5); align-items:center; justify-content:center; padding:1rem; }
+    .llm-connect-mask.open { display:flex; }
+    .llm-connect-dialog { width:min(480px,100%); background:var(--card); border:1px solid var(--border); border-radius:12px; box-shadow:0 24px 80px rgba(0,0,0,.28); padding:1.25rem; }
+    .llm-connect-dialog h2 { margin:0 0 .35rem; font-size:1.05rem; }
+    .llm-connect-dialog p { color:var(--muted); font-size:.78rem; line-height:1.5; }
+    .llm-connect-tabs { display:flex; gap:.45rem; margin:1rem 0; }
+    .llm-connect-panel { display:none; }
+    .llm-connect-panel.active { display:block; }
+    .llm-connect-input { width:100%; box-sizing:border-box; padding:.72rem; border:1px solid var(--border); background:var(--bg3); color:var(--text); border-radius:7px; }
+    .llm-connect-actions { display:flex; justify-content:flex-end; gap:.5rem; margin-top:1rem; }
     @media (prefers-color-scheme: dark) {
       .filter-btn.active { color: #000; }
     }
@@ -80,6 +93,28 @@
   </main>
 </div>
 
+<div id="llm-connect-mask" class="llm-connect-mask" role="dialog" aria-modal="true" aria-labelledby="llm-connect-title">
+  <div class="llm-connect-dialog">
+    <h2 id="llm-connect-title">Connect provider</h2>
+    <p>Choose how this Cloud workspace authenticates with the provider. Secrets are stored server-side in Vault.</p>
+    <div class="llm-connect-tabs">
+      <button class="connect-btn" data-connect-tab="key">API key</button>
+      <button class="connect-btn" data-connect-tab="oauth">OAuth</button>
+    </div>
+    <div class="llm-connect-panel active" data-connect-panel="key">
+      <label for="llm-connect-key" style="display:block;font-size:.75rem;font-weight:700;margin-bottom:.35rem">Provider API key</label>
+      <input id="llm-connect-key" class="llm-connect-input" type="password" autocomplete="off" spellcheck="false" placeholder="Paste API key">
+      <button id="llm-save-key" class="connect-btn" style="margin-top:.7rem">Save encrypted key</button>
+    </div>
+    <div class="llm-connect-panel" data-connect-panel="oauth">
+      <p id="llm-oauth-help">OAuth is available when the provider exposes account authorization and an administrator configured its OAuth client.</p>
+      <button id="llm-start-oauth" class="connect-btn">Continue with OAuth</button>
+    </div>
+    <div id="llm-connect-status" style="min-height:1.2rem;margin-top:.75rem;font-size:.75rem;color:var(--muted)"></div>
+    <div class="llm-connect-actions"><button id="llm-connect-close" class="connect-btn">Close</button></div>
+  </div>
+</div>
+
 <script src="/cloud/js/cloud.js"></script>
 <script>
 (async function() {
@@ -112,6 +147,7 @@
 
   let allProviders = [];
   let activeFilter = 'all';
+  let connectProvider = null;
 
   async function loadData() {
     try {
@@ -181,6 +217,8 @@
         '</div>';
     }).join('');
 
+    const connect = prov.id === 'generalbots' ? '' : '<div class="provider-connect">' +
+      '<button class="connect-btn" data-connect-provider="' + prov.id + '" data-connect-name="' + prov.name.replace(/&/g, '&amp;').replace(/"/g, '&quot;') + '">Connect</button></div>';
     return '<div class="provider-section" data-provider-id="' + prov.id + '">' +
       '<div class="provider-header" onclick="this.classList.toggle(\'open\')">' +
       '<div class="provider-icon" style="background:' + icon.bg + '">' + icon.label + '</div>' +
@@ -189,6 +227,7 @@
       '<div class="provider-desc">' + (prov.description || '') + '</div>' +
       '</div>' +
       badge +
+      connect +
       '<div class="provider-arrow"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg></div>' +
       '</div>' +
       '<div class="models-grid">' + modelsHtml + '</div>' +
@@ -220,6 +259,58 @@
   document.getElementById('filter-bar').addEventListener('click', e => {
     const btn = e.target.closest('.filter-btn');
     if (btn) applyFilter(btn.dataset.filter);
+  });
+
+  function showConnect(provider, name) {
+    if (!token) { window.location.href = (window.GB_LOGIN_URL || 'http://localhost:5000') + '/login'; return; }
+    connectProvider = provider;
+    document.getElementById('llm-connect-title').textContent = 'Connect ' + name;
+    document.getElementById('llm-connect-key').value = '';
+    document.getElementById('llm-connect-status').textContent = '';
+    document.getElementById('llm-start-oauth').disabled = provider !== 'google';
+    document.getElementById('llm-oauth-help').textContent = provider === 'google'
+      ? 'Authorize Gemini API access with Google OAuth. Access and refresh credentials are encrypted per workspace in Vault.'
+      : 'This provider currently authenticates API access with a key. OAuth is not exposed by this provider.';
+    document.getElementById('llm-connect-mask').classList.add('open');
+  }
+
+  document.getElementById('providers-container').addEventListener('click', e => {
+    const button = e.target.closest('[data-connect-provider]');
+    if (!button) return;
+    e.stopPropagation();
+    showConnect(button.dataset.connectProvider, button.dataset.connectName);
+  });
+  document.querySelectorAll('[data-connect-tab]').forEach(button => button.addEventListener('click', () => {
+    document.querySelectorAll('[data-connect-panel]').forEach(panel => panel.classList.toggle('active', panel.dataset.connectPanel === button.dataset.connectTab));
+  }));
+  document.getElementById('llm-connect-close').addEventListener('click', () => document.getElementById('llm-connect-mask').classList.remove('open'));
+  document.getElementById('llm-save-key').addEventListener('click', async () => {
+    const key = document.getElementById('llm-connect-key').value.trim();
+    const status = document.getElementById('llm-connect-status');
+    if (!key || !connectProvider) { status.textContent = 'Enter an API key.'; return; }
+    status.textContent = 'Saving…';
+    try {
+      const response = await fetch('/api/cloud/tenant/settings/byok', { method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+token}, body:JSON.stringify({keys:{[connectProvider]:key}}) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || 'Save failed');
+      document.getElementById('llm-connect-key').value = '';
+      status.textContent = 'API key saved securely.';
+    } catch (error) { status.textContent = error.message || String(error); }
+  });
+  document.getElementById('llm-start-oauth').addEventListener('click', async () => {
+    if (connectProvider !== 'google') return;
+    const status = document.getElementById('llm-connect-status');
+    status.textContent = 'Preparing secure Google authorization…';
+    try {
+      const response = await fetch('/api/cloud/tenant/settings/oauth/google/start', {
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.authorization_url) throw new Error(data.error || data.message || 'OAuth is not configured');
+      window.location.href = data.authorization_url;
+    } catch (error) {
+      status.textContent = error.message || String(error);
+    }
   });
 
   allProviders = await loadData();
