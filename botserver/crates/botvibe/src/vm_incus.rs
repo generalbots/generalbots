@@ -501,7 +501,11 @@ impl VmLifecycle {
             )
             .map_err(|e| format!("expose application port: {e}"))?;
 
-            Ok(format!("http://localhost:{host_port}"))
+            if host_port == 80 {
+                Ok("http://localhost".to_string())
+            } else {
+                Ok(format!("http://localhost:{host_port}"))
+            }
         })();
 
         if let Err(e) = std::fs::remove_dir_all(&temp) {

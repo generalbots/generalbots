@@ -64,6 +64,13 @@ pub async fn proxy_api(
         .unwrap_or_else(|_| reqwest::Client::new());
     let mut proxy_req = client.request(method.clone(), &target_url);
 
+    if let Some(host) = headers.get("host").and_then(|value| value.to_str().ok()) {
+        proxy_req = proxy_req.header("x-forwarded-host", host);
+    }
+    if !headers.contains_key("x-forwarded-proto") {
+        proxy_req = proxy_req.header("x-forwarded-proto", "http");
+    }
+
     for (name, value) in &headers {
         if name != "host" {
             if let Ok(v) = value.to_str() {

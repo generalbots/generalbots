@@ -7,7 +7,7 @@
     "use strict";
 
     var D = window.VibeDialogs;
-    var state = { sessionId: null, url: "http://localhost:3000/", busy: false };
+    var state = { sessionId: null, url: "", busy: false };
     var refreshTimer = null;
 
     function main() {
@@ -25,6 +25,10 @@
         });
         var go = D.el("button", "vibe-btn primary", "Go");
         go.addEventListener("click", navigate);
+        var open = D.el("button", "vibe-btn", "Open app ↗");
+        open.addEventListener("click", function () {
+            if (state.url) window.open(state.url, "_blank", "noopener");
+        });
         var shot = D.el("button", "vibe-btn", "📸 Screenshot");
         shot.addEventListener("click", screenshot);
 
@@ -37,6 +41,7 @@
 
         toolbar.appendChild(url);
         toolbar.appendChild(go);
+        toolbar.appendChild(open);
         toolbar.appendChild(shot);
         box.appendChild(toolbar);
         box.appendChild(frame);
@@ -115,6 +120,27 @@
         });
     }
 
+    function resolveProjectUrl() {
+        var pid = typeof window.currentProjectId !== "undefined" ? window.currentProjectId : null;
+        if (!pid) return Promise.reject(new Error("Select a project first"));
+        return D.api("/api/vibe/projects/" + encodeURIComponent(pid)).then(function (projectData) {
+            if (projectData && projectData.success === false) throw new Error(projectData.error || "Project lookup failed");
+            var project = projectData && projectData.project;
+            var env = (project && (project.environment || project.env)) || "production";
+            return D.api("/api/vibe/projects/" + encodeURIComponent(pid) + "/preview?env=" + encodeURIComponent(env));
+        }).then(function (data) {
+            if (data && data.success === false) throw new Error(data.error || "No preview is available");
+            var payload = data && data.data ? data.data : data;
+            var preview = payload && payload.preview_url;
+            if (!preview || !/^https?:\/\//i.test(preview)) throw new Error("Publish the project to create its app URL");
+            state.url = preview;
+            var input = document.getElementById("vibeBrowserUrl");
+            if (input) input.value = preview;
+            logLine("app preview resolved: " + preview, "ok");
+            return preview;
+        });
+    }
+
     function navigate() {
         if (!state.sessionId) return createSession();
         var url = document.getElementById("vibeBrowserUrl");
@@ -183,6 +209,13 @@
         build: function (body) {
             body.appendChild(sidebar());
             body.appendChild(main());
+            resolveProjectUrl().then(function () {
+                createSession();
+            }).catch(function (error) {
+                var frame = document.getElementById("vibeBrowserFrame");
+                if (frame) frame.innerHTML = '<div class="vibe-empty">' + D.esc(error.message || error) + '</div>';
+                logLine(error.message || String(error), "err");
+            });
         },
         teardown: function () {
             if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }

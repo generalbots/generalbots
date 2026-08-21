@@ -9,7 +9,7 @@
 // `const` threw 'Identifier VibeGraph has already been declared' on the
 // second open. Assigning to window keeps a single singleton; init() re-binds
 // the canvas from the fresh DOM on each load.
-window.VibeGraph = window.VibeGraph || {
+window.VibeGraph = {
     canvas: null,
     ctx: null,
     nodes: [],
@@ -62,6 +62,8 @@ window.VibeGraph = window.VibeGraph || {
         const rect = this.canvas.parentElement.getBoundingClientRect();
         this.canvas.width = Math.max(1, rect.width);
         this.canvas.height = Math.max(1, rect.height);
+        this.layoutGraph();
+        this.render();
     },
 
     loadGraph: async function(useCase) {
@@ -73,15 +75,15 @@ window.VibeGraph = window.VibeGraph || {
             if (data.success && data.graph) {
                 const w = Math.max(1, this.canvas.width);
                 const h = Math.max(1, this.canvas.height);
-                this.nodes = data.graph.nodes.map((n, i) => ({
+                this.nodes = data.graph.nodes.map((n) => ({
                     ...n,
-                    x: 40 + (i % 6) * (w / 6),
-                    y: 40 + Math.floor(i / 6) * (h / Math.max(1, Math.ceil(data.graph.nodes.length / 6))),
-                    vx: 0, vy: 0,
-                    radius: n.node_type === 'use_case' ? 30 : n.node_type === 'run' ? 18 : 14,
+                    x: w / 2, y: h / 2,
+                    width: n.node_type === 'use_case' ? 180 : 160,
+                    height: 54,
                 }));
                 this.edges = data.graph.edges;
-                this.startSimulation();
+                this.layoutGraph();
+                this.render();
             }
         } catch (e) {
             console.error('Failed to load graph:', e);
@@ -112,23 +114,18 @@ window.VibeGraph = window.VibeGraph || {
     },
 
     startSimulation: function() {
-        if (this.animationId) cancelAnimationFrame(this.animationId);
-        const simulate = () => {
-            this.updatePhysics();
-            this.render();
-            this.animationId = requestAnimationFrame(simulate);
-        };
-        simulate();
+        this.layoutGraph();
+        this.render();
     },
 
     nodeColor: function(node) {
-        if (node.node_type === 'use_case') return '#84d669';
-        if (node.node_type === 'tool') return '#f5a623';
+        if (node.node_type === 'use_case') return '#2563eb';
+        if (node.node_type === 'tool') return '#d97706';
         const state = node.properties && node.properties.state;
         if (state === 'failed') return '#f77';
         if (state === 'awaiting_approval') return '#f7b500';
-        if (state === 'completed') return '#4a9eff';
-        return '#9a6cff';
+        if (state === 'completed') return '#059669';
+        return '#7c3aed';
     },
 
     nodeLabel: function(node) {
@@ -143,51 +140,20 @@ window.VibeGraph = window.VibeGraph || {
         return node.label.substring(0, 20);
     },
 
-    updatePhysics: function() {
-        const repulsion = 5000;
-        const attraction = 0.005;
-        const damping = 0.9;
-
-        for (let i = 0; i < this.nodes.length; i++) {
-            for (let j = i + 1; j < this.nodes.length; j++) {
-                const dx = this.nodes[j].x - this.nodes[i].x;
-                const dy = this.nodes[j].y - this.nodes[i].y;
-                const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-                const force = repulsion / (dist * dist);
-                const fx = (dx / dist) * force;
-                const fy = (dy / dist) * force;
-                this.nodes[i].vx -= fx;
-                this.nodes[i].vy -= fy;
-                this.nodes[j].vx += fx;
-                this.nodes[j].vy += fy;
-            }
-        }
-
-        for (const edge of this.edges) {
-            const source = this.nodes.find(n => n.id === edge.source);
-            const target = this.nodes.find(n => n.id === edge.target);
-            if (!source || !target) continue;
-            const dx = target.x - source.x;
-            const dy = target.y - source.y;
-            const dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-            const force = (dist - 150) * attraction;
-            const fx = (dx / dist) * force;
-            const fy = (dy / dist) * force;
-            source.vx += fx;
-            source.vy += fy;
-            target.vx -= fx;
-            target.vy -= fy;
-        }
-
-        for (const node of this.nodes) {
-            if (node === this.dragNode) continue;
-            node.vx *= damping;
-            node.vy *= damping;
-            node.x += node.vx;
-            node.y += node.vy;
-            node.x = Math.max(node.radius, Math.min(this.canvas.width - node.radius, node.x));
-            node.y = Math.max(node.radius, Math.min(this.canvas.height - node.radius, node.y));
-        }
+    layoutGraph: function() {
+        if (!this.canvas || !this.nodes.length) return;
+        const lanes = ['use_case', 'run', 'tool'];
+        const margin = 110;
+        const usable = Math.max(240, this.canvas.width - margin * 2);
+        lanes.forEach((type, laneIndex) => {
+            const laneNodes = this.nodes.filter(n => n.node_type === type);
+            const x = margin + laneIndex * (usable / Math.max(1, lanes.length - 1));
+            const gap = this.canvas.height / (laneNodes.length + 1);
+            laneNodes.forEach((node, index) => {
+                node.x = x;
+                node.y = Math.max(38, gap * (index + 1));
+            });
+        });
     },
 
     render: function() {
@@ -199,27 +165,32 @@ window.VibeGraph = window.VibeGraph || {
             const target = this.nodes.find(n => n.id === edge.target);
             if (!source || !target) continue;
             ctx.beginPath();
-            ctx.moveTo(source.x, source.y);
-            ctx.lineTo(target.x, target.y);
-            ctx.strokeStyle = edge.relationship === 'triggered' ? 'rgba(245, 166, 35, 0.4)' : 'rgba(132, 214, 105, 0.4)';
+            ctx.moveTo(source.x + source.width / 2, source.y);
+            ctx.lineTo(target.x - target.width / 2, target.y);
+            ctx.strokeStyle = edge.relationship === 'triggered' ? 'rgba(217, 119, 6, 0.45)' : 'rgba(37, 99, 235, 0.4)';
             ctx.lineWidth = Math.max(1, edge.weight * 3 || 1);
             ctx.stroke();
         }
 
         for (const node of this.nodes) {
+            const x = node.x - node.width / 2;
+            const y = node.y - node.height / 2;
             ctx.beginPath();
-            ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+            ctx.roundRect(x, y, node.width, node.height, 7);
             ctx.fillStyle = this.nodeColor(node);
             ctx.fill();
-            ctx.strokeStyle = '#fff';
-            ctx.lineWidth = 2;
+            ctx.strokeStyle = 'rgba(255,255,255,.75)';
+            ctx.lineWidth = 1;
             ctx.stroke();
 
             ctx.fillStyle = '#fff';
-            ctx.font = '11px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(this.nodeLabel(node), node.x, node.y);
+            ctx.font = '600 11px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'alphabetic';
+            ctx.fillText(this.nodeLabel(node), x + 10, y + 22, node.width - 20);
+            ctx.fillStyle = 'rgba(255,255,255,.82)';
+            ctx.font = '9px monospace';
+            ctx.fillText(node.node_type.replace('_', ' ').toUpperCase(), x + 10, y + 40);
         }
     },
 
@@ -227,9 +198,7 @@ window.VibeGraph = window.VibeGraph || {
         const rect = this.canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
-        this.dragNode = this.nodes.find(n =>
-            Math.hypot(n.x - mx, n.y - my) < n.radius
-        ) || null;
+        this.dragNode = this.nodes.find(n => this.hitNode(n, mx, my)) || null;
         if (this.dragNode) this.isDragging = true;
     },
 
@@ -238,6 +207,7 @@ window.VibeGraph = window.VibeGraph || {
         const rect = this.canvas.getBoundingClientRect();
         this.dragNode.x = e.clientX - rect.left;
         this.dragNode.y = e.clientY - rect.top;
+        this.render();
     },
 
     onMouseUp: function() {
@@ -245,13 +215,16 @@ window.VibeGraph = window.VibeGraph || {
         this.dragNode = null;
     },
 
+    hitNode: function(node, x, y) {
+        return x >= node.x - node.width / 2 && x <= node.x + node.width / 2 &&
+            y >= node.y - node.height / 2 && y <= node.y + node.height / 2;
+    },
+
     onDoubleClick: function(e) {
         const rect = this.canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
-        const node = this.nodes.find(n =>
-            Math.hypot(n.x - mx, n.y - my) < n.radius
-        );
+        const node = this.nodes.find(n => this.hitNode(n, mx, my));
         if (node && node.node_type === 'run') {
             this.loadRunGraph(node.id.replace(/^run:/, ''));
         }
@@ -262,18 +235,19 @@ window.VibeGraph = window.VibeGraph || {
             const resp = await vibeAuthFetch(`/api/vibe/graph/run/${runId}`);
             const data = await resp.json();
             if (data.success && data.graph) {
-                this.nodes = data.graph.nodes.map((n, i) => ({
+                this.nodes = data.graph.nodes.map((n) => ({
                     ...n,
-                    x: 60 + i * 90,
+                    x: 0,
                     y: this.canvas.height / 2,
-                    vx: 0, vy: 0,
-                    radius: n.node_type === 'run' ? 18 : 14,
+                    width: n.node_type === 'run' ? 180 : 160,
+                    height: 54,
                 }));
                 this.edges = data.graph.edges;
                 this.useCase = data.graph.nodes.length
                     ? (window.VibeGraphUseCase || this.useCase)
                     : this.useCase;
-                this.startSimulation();
+                this.layoutGraph();
+                this.render();
             }
         } catch (e) {
             console.error('Failed to load run graph:', e);

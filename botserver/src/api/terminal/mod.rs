@@ -45,7 +45,12 @@ impl TerminalSession {
         Self::new_with_container(id, shell, cwd, None)
     }
 
-    pub fn new_with_container(id: String, shell: String, cwd: String, container: Option<String>) -> Self {
+    pub fn new_with_container(
+        id: String,
+        shell: String,
+        cwd: String,
+        container: Option<String>,
+    ) -> Self {
         let (tx, _) = broadcast::channel(1024);
         Self {
             id,
@@ -67,7 +72,10 @@ impl TerminalSession {
     }
 
     pub fn history(&self) -> Vec<TerminalLine> {
-        self.buffer.lock().map(|b| b.iter().cloned().collect()).unwrap_or_default()
+        self.buffer
+            .lock()
+            .map(|b| b.iter().cloned().collect())
+            .unwrap_or_default()
     }
 
     fn append_output(&self, data: String) {
@@ -75,7 +83,10 @@ impl TerminalSession {
             if buf.len() >= TERMINAL_BUFFER_LINES {
                 buf.pop_front();
             }
-            buf.push_back(TerminalLine { data: data.clone(), at: Utc::now() });
+            buf.push_back(TerminalLine {
+                data: data.clone(),
+                at: Utc::now(),
+            });
         }
         let _ = self.events.send(data);
     }
@@ -84,7 +95,12 @@ impl TerminalSession {
     pub fn spawn(self: &Arc<Self>) -> Result<(), String> {
         let pty_system = portable_pty::native_pty_system();
         let pair = pty_system
-            .openpty(portable_pty::PtySize { rows: 24, cols: 80, pixel_width: 0, pixel_height: 0 })
+            .openpty(portable_pty::PtySize {
+                rows: 24,
+                cols: 80,
+                pixel_width: 0,
+                pixel_height: 0,
+            })
             .map_err(|e| format!("openpty: {e}"))?;
 
         // Attached mode: run the shell inside the project's VM container
@@ -93,12 +109,60 @@ impl TerminalSession {
         // wraps the incus exec client; the container's own pty handles the
         // remote side.
         let mut cmd = if let Some(container) = &self.container {
-            if !container.chars().all(|c| c.is_ascii_alphanumeric() || c == '-') {
+            if !container
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-')
+            {
                 return Err("Invalid container name".to_string());
             }
-            let shell_arg = if self.shell.is_empty() { "/bin/bash".to_string() } else { self.shell.clone() };
-            let mut c = portable_pty::CommandBuilder::new("incus");
-            c.args(["exec", container, "--", "env", "TERM=xterm-256color", &shell_arg, "-l"]);
+            let shell_arg = if self.shell.is_empty() {
+                "/bin/bash".to_string()
+            } else {
+                self.shell.clone()
+            };
+            #[cfg(target_os = "windows")]
+            let c = {
+                let distro = std::env::var("GBO_WSL_DISTRO")
+                    .ok()
+                    .map(|value| value.trim().to_string())
+                    .filter(|value| !value.is_empty())
+                    .unwrap_or_else(|| "Debian".to_string());
+                let mut command = portable_pty::CommandBuilder::new("wsl.exe");
+                command.args([
+                    "-d",
+                    &distro,
+                    "-u",
+                    "root",
+                    "--",
+                    "incus",
+                    "exec",
+                    container,
+                    "--cwd",
+                    "/opt/vibe/app",
+                    "--",
+                    "env",
+                    "TERM=xterm-256color",
+                    &shell_arg,
+                    "-l",
+                ]);
+                command
+            };
+            #[cfg(not(target_os = "windows"))]
+            let c = {
+                let mut command = portable_pty::CommandBuilder::new("incus");
+                command.args([
+                    "exec",
+                    container,
+                    "--cwd",
+                    "/opt/vibe/app",
+                    "--",
+                    "env",
+                    "TERM=xterm-256color",
+                    &shell_arg,
+                    "-l",
+                ]);
+                command
+            };
             c
         } else {
             let mut c = portable_pty::CommandBuilder::new(&self.shell);
@@ -112,9 +176,14 @@ impl TerminalSession {
         // sources `/.cargo/env` (empty $HOME) and prints a spurious
         // "No such file or directory" before the prompt.
         if self.container.is_none() {
-            if let Ok(home) = std::env::var("HOME") {
-                cmd.env("HOME", home);
+            let home = if cfg!(target_os = "windows") {
+                std::env::var("USERPROFILE")
             } else {
+                std::env::var("HOME")
+            };
+            if let Ok(home) = home {
+                cmd.env("HOME", home);
+            } else if !cfg!(target_os = "windows") {
                 cmd.env("HOME", "/root");
             }
         }
@@ -126,13 +195,29 @@ impl TerminalSession {
         drop(pair.slave);
 
         let master = pair.master;
-        let mut reader = master.try_clone_reader().map_err(|e| format!("clone reader: {e}"))?;
-        let writer = master.take_writer().map_err(|e| format!("take writer: {e}"))?;
+        let mut reader = master
+            .try_clone_reader()
+            .map_err(|e| format!("clone reader: {e}"))?;
+        let writer = master
+            .take_writer()
+            .map_err(|e| format!("take writer: {e}"))?;
 
-        *self.child.lock().map_err(|_| "child lock poisoned".to_string())? = Some(child);
-        *self.writer.lock().map_err(|_| "writer lock poisoned".to_string())? = Some(writer);
-        *self.master.lock().map_err(|_| "master lock poisoned".to_string())? = Some(master);
-        *self.exit_code.lock().map_err(|_| "exit lock poisoned".to_string())? = None;
+        *self
+            .child
+            .lock()
+            .map_err(|_| "child lock poisoned".to_string())? = Some(child);
+        *self
+            .writer
+            .lock()
+            .map_err(|_| "writer lock poisoned".to_string())? = Some(writer);
+        *self
+            .master
+            .lock()
+            .map_err(|_| "master lock poisoned".to_string())? = Some(master);
+        *self
+            .exit_code
+            .lock()
+            .map_err(|_| "exit lock poisoned".to_string())? = None;
 
         let st = self.clone();
         std::thread::spawn(move || {
@@ -163,9 +248,13 @@ impl TerminalSession {
     }
 
     pub fn write(&self, data: &str) -> Result<(), String> {
-        let mut guard = self.writer.lock().map_err(|_| "writer lock poisoned".to_string())?;
+        let mut guard = self
+            .writer
+            .lock()
+            .map_err(|_| "writer lock poisoned".to_string())?;
         if let Some(w) = guard.as_mut() {
-            w.write_all(data.as_bytes()).map_err(|e| format!("pty write: {e}"))?;
+            w.write_all(data.as_bytes())
+                .map_err(|e| format!("pty write: {e}"))?;
             let _ = w.flush();
         }
         Ok(())
@@ -175,7 +264,12 @@ impl TerminalSession {
     pub fn resize(&self, cols: u16, rows: u16) {
         if let Ok(guard) = self.master.lock() {
             if let Some(m) = guard.as_ref() {
-                let _ = m.resize(portable_pty::PtySize { rows, cols, pixel_width: 0, pixel_height: 0 });
+                let _ = m.resize(portable_pty::PtySize {
+                    rows,
+                    cols,
+                    pixel_width: 0,
+                    pixel_height: 0,
+                });
             }
         }
     }
@@ -203,10 +297,16 @@ impl Default for TerminalManager {
 
 impl TerminalManager {
     pub fn new() -> Self {
-        Self { sessions: Mutex::new(HashMap::new()) }
+        Self {
+            sessions: Mutex::new(HashMap::new()),
+        }
     }
 
-    pub fn create_session(&self, shell: String, cwd: String) -> Result<Arc<TerminalSession>, String> {
+    pub fn create_session(
+        &self,
+        shell: String,
+        cwd: String,
+    ) -> Result<Arc<TerminalSession>, String> {
         self.create_session_with_container(shell, cwd, None)
     }
 
@@ -217,7 +317,12 @@ impl TerminalManager {
         container: Option<String>,
     ) -> Result<Arc<TerminalSession>, String> {
         let id = Uuid::new_v4().to_string();
-        let session = Arc::new(TerminalSession::new_with_container(id.clone(), shell, cwd, container));
+        let session = Arc::new(TerminalSession::new_with_container(
+            id.clone(),
+            shell,
+            cwd,
+            container,
+        ));
         session.spawn().map_err(|e| format!("spawn: {e}"))?;
         self.sessions
             .lock()
@@ -251,9 +356,14 @@ impl TerminalManager {
     }
 
     pub async fn kill_session(&self, id: &str) -> Result<(), String> {
-        let session = self.get_session(id).ok_or_else(|| format!("session {id} not found"))?;
+        let session = self
+            .get_session(id)
+            .ok_or_else(|| format!("session {id} not found"))?;
         {
-            let mut guard = session.child.lock().map_err(|_| "child lock poisoned".to_string())?;
+            let mut guard = session
+                .child
+                .lock()
+                .map_err(|_| "child lock poisoned".to_string())?;
             if let Some(child) = guard.as_mut() {
                 let _ = child.kill();
             }
@@ -261,14 +371,21 @@ impl TerminalManager {
         if let Ok(mut exit) = session.exit_code.lock() {
             *exit = Some(137);
         }
-        self.sessions.lock().map_err(|_| "sessions lock poisoned".to_string())?.remove(id);
+        self.sessions
+            .lock()
+            .map_err(|_| "sessions lock poisoned".to_string())?
+            .remove(id);
         Ok(())
     }
 
     pub fn reap(&self) {
         let mut guard = self.sessions.lock().ok();
         if let Some(m) = guard.as_mut() {
-            let dead: Vec<String> = m.iter().filter(|(_, s)| !s.is_running()).map(|(id, _)| id.clone()).collect();
+            let dead: Vec<String> = m
+                .iter()
+                .filter(|(_, s)| !s.is_running())
+                .map(|(id, _)| id.clone())
+                .collect();
             for id in dead {
                 m.remove(&id);
             }
@@ -280,14 +397,18 @@ pub fn sanitize_cwd(cwd: &str) -> String {
     if cwd.is_empty() || !std::path::Path::new(cwd).is_dir() {
         std::env::current_dir()
             .map(|d| d.to_string_lossy().to_string())
-            .unwrap_or_else(|_| "/".to_string())
+            .unwrap_or_else(|_| std::env::temp_dir().to_string_lossy().into_owned())
     } else {
         cwd.to_string()
     }
 }
 
 pub fn default_shell() -> String {
-    std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string())
+    if cfg!(target_os = "windows") {
+        std::env::var("COMSPEC").unwrap_or_else(|_| "powershell.exe".to_string())
+    } else {
+        std::env::var("SHELL").unwrap_or_else(|_| "/bin/bash".to_string())
+    }
 }
 
 #[cfg(test)]
@@ -299,7 +420,10 @@ mod tests {
         let cwd = sanitize_cwd("/definitely/not/a/dir/xyz");
         assert!(std::path::Path::new(&cwd).is_dir());
         let tmp = std::env::temp_dir();
-        assert_eq!(sanitize_cwd(tmp.to_str().unwrap()), tmp.to_str().unwrap().to_string());
+        assert_eq!(
+            sanitize_cwd(tmp.to_str().unwrap()),
+            tmp.to_str().unwrap().to_string()
+        );
     }
 
     #[test]

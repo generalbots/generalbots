@@ -218,6 +218,12 @@ pub struct CreateCanvasRequest {
     pub content: Option<Value>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct UpdateCanvasRequest {
+    pub title: Option<String>,
+    pub content: Option<Value>,
+}
+
 #[derive(Debug, Serialize)]
 struct CanvasResponse {
     success: bool,
@@ -236,6 +242,7 @@ pub fn canvases_router(store: Arc<CanvasStore>) -> Router {
         .route("/api/vibe/canvases", axum::routing::get(list_canvases))
         .route("/api/vibe/canvases", axum::routing::post(create_canvas))
         .route("/api/vibe/canvases/:canvas_id", axum::routing::get(get_canvas))
+        .route("/api/vibe/canvases/:canvas_id", axum::routing::put(update_canvas))
         .route("/api/vibe/canvases/:canvas_id", axum::routing::delete(delete_canvas))
         .route("/api/vibe/canvases/share/:token", axum::routing::get(share_canvas))
         .layer(Extension(store))
@@ -258,6 +265,24 @@ async fn get_canvas(
     axum::extract::Path(canvas_id): axum::extract::Path<Uuid>,
 ) -> Json<CanvasResponse> {
     match store.get(canvas_id).await {
+        Some(canvas) => Json(CanvasResponse { success: true, canvas: Some(canvas), error: None }),
+        None => Json(CanvasResponse { success: false, canvas: None, error: Some("Canvas not found".into()) }),
+    }
+}
+
+async fn update_canvas(
+    Extension(store): Extension<Arc<CanvasStore>>,
+    axum::extract::Path(canvas_id): axum::extract::Path<Uuid>,
+    Json(req): Json<UpdateCanvasRequest>,
+) -> Json<CanvasResponse> {
+    if req.title.is_none() && req.content.is_none() {
+        return Json(CanvasResponse {
+            success: false,
+            canvas: None,
+            error: Some("title or content is required".into()),
+        });
+    }
+    match store.update(canvas_id, req.title, req.content).await {
         Some(canvas) => Json(CanvasResponse { success: true, canvas: Some(canvas), error: None }),
         None => Json(CanvasResponse { success: false, canvas: None, error: Some("Canvas not found".into()) }),
     }

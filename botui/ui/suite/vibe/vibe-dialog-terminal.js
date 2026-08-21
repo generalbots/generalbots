@@ -83,8 +83,9 @@
         if (!pid) return Promise.resolve(null);
         return D.api("/api/vibe/projects/" + encodeURIComponent(pid) + "/vms")
             .then(function (data) {
+                if (data && data.success === false) throw new Error(data.error || "VM lookup failed");
                 var vms = (data && (data.vms || (data.success && data.data && data.data.vms))) || [];
-                if (!Array.isArray(vms) || !vms.length) return null;
+                if (!Array.isArray(vms) || !vms.length) throw new Error("This project has no VM yet. Publish it first.");
                 // Prefer a running dev VM; otherwise the first one.
                 var preferred = vms.find(function (v) {
                     return String(v.env || "").indexOf("development") !== -1 &&
@@ -94,7 +95,9 @@
                 }) || vms[0];
                 return (preferred && preferred.container_name) ? preferred.container_name : null;
             })
-            .catch(function () { return null; });
+            .catch(function (error) {
+                throw new Error("Could not resolve the project VM: " + (error && error.message ? error.message : error));
+            });
     }
 
     function connect() {
@@ -103,14 +106,20 @@
 
         resolveContainer().then(function (container) {
             if (tornDown) return;
-            var body = { cwd: "/tmp/vibe-workspaces", shell: "/bin/bash" };
+            // Let botserver choose the host-native shell and working directory.
+            // When attached to an Incus project VM, botserver selects bash in
+            // the Debian container and routes the command through WSL on Windows.
+            var body = {};
             if (container) body.container = container;
             return D.api("/api/terminal/create", {
                 method: "POST",
                 body: body,
             });
         }).then(function (data) {
-            if (data && data.id) sessionId = data.id;
+            if (!data || !data.id) {
+                throw new Error((data && data.error) || "The terminal backend did not create a session");
+            }
+            sessionId = data.id;
             var proto = location.protocol === "https:" ? "wss:" : "ws:";
             var token =
                 localStorage.getItem("gb-access-token") ||
@@ -126,7 +135,7 @@
                 if (!term) return;
                 // The PTY shell prints its own prompt — no client-side prompt
                 // is needed (a fake prompt would double up with the real one).
-                writeTerm("\x1b[32m✓ connected — vibe workspace shell\x1b[0m\r\n");
+                writeTerm("\x1b[32mconnected — project WSL/Incus workspace\x1b[0m\r\n");
                 // Grab focus so the user can type immediately after the
                 // dialog opens — without it, keystrokes go nowhere until
                 // the terminal is clicked once.
@@ -158,8 +167,8 @@
                     if (!tornDown) connect();
                 }, 3000);
             };
-        }).catch(function () {
-            writeTerm("\r\n\x1b[31mterminal backend unavailable\x1b[0m\r\n");
+        }).catch(function (error) {
+            writeTerm("\r\n\x1b[31mterminal unavailable: " + (error && error.message ? error.message : error) + "\x1b[0m\r\n");
         });
     }
 
