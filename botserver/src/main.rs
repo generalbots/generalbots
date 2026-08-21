@@ -32,6 +32,7 @@ pub mod billing;
 #[cfg(feature = "saas")]
 pub mod management;
 pub mod botmodels;
+pub mod jukebox;
 #[cfg(feature = "canvas")]
 pub mod canvas;
 #[cfg(feature = "social")]

@@ -1,0 +1,74 @@
+<link rel="stylesheet" href="/suite/jukebox/jukebox.css?v=4" />
+
+<div class="jukebox-app" id="jukeboxApp">
+    <header class="jukebox-titlebar">
+        <div class="jukebox-brand">
+            <span class="jukebox-brand-mark" aria-hidden="true">JB</span>
+            <div><strong>JukeBox</strong><span>Instrumental radio</span></div>
+        </div>
+        <div class="jukebox-engine" id="jukeboxEngine" data-state="checking">
+            <i aria-hidden="true"></i><span id="jukeboxEngineLabel">CHECK</span>
+        </div>
+    </header>
+
+    <main class="jukebox-console">
+        <section class="jukebox-display" aria-live="polite">
+            <div class="jukebox-display-top">
+                <span id="jukeboxStationLabel">AMBIENT</span>
+                <span id="jukeboxClock">00:00</span>
+            </div>
+            <strong id="jukeboxTrackTitle">SELECT A GENRE</strong>
+            <span id="jukeboxTrackStatus">PRESS PLAY TO START THE STATION</span>
+            <div class="jukebox-spectrum" id="jukeboxSpectrum" aria-hidden="true">
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+                <i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i>
+            </div>
+            <div class="jukebox-progress"><span id="jukeboxProgress"></span></div>
+        </section>
+
+        <section class="jukebox-station" aria-label="Music station">
+            <span class="jukebox-control-label">GENRE STATION</span>
+            <div class="jukebox-genre" id="jukeboxGenre">
+                <button class="jukebox-genre-trigger" id="jukeboxGenreTrigger" type="button" aria-haspopup="listbox" aria-expanded="false">
+                    <span id="jukeboxGenreValue">Ambient</span><i aria-hidden="true"></i>
+                </button>
+                <div class="jukebox-genre-menu" id="jukeboxGenreMenu" role="listbox" hidden>
+                    <button type="button" role="option" data-genre="ambient" aria-selected="true">Ambient</button>
+                    <button type="button" role="option" data-genre="lofi">Lo-fi Hip Hop</button>
+                    <button type="button" role="option" data-genre="jazz">Jazz</button>
+                    <button type="button" role="option" data-genre="classical">Classical</button>
+                    <button type="button" role="option" data-genre="electronic">Electronic</button>
+                    <button type="button" role="option" data-genre="synthwave">Synthwave</button>
+                    <button type="button" role="option" data-genre="bossa">Brazilian Bossa</button>
+                    <button type="button" role="option" data-genre="cinematic">Cinematic</button>
+                    <button type="button" role="option" data-genre="acoustic">Acoustic</button>
+                    <button type="button" role="option" data-genre="chillhouse">Chill House</button>
+                </div>
+            </div>
+            <div class="jukebox-transport">
+                <button class="jukebox-play" id="jukeboxPlay" type="button" aria-label="Start instrumental station">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12-7.5z" /></svg><span>PLAY</span>
+                </button>
+                <button class="jukebox-stop" id="jukeboxStop" type="button" aria-label="Stop instrumental station" disabled>
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6h12v12H6z" /></svg><span>STOP</span>
+                </button>
+                <div class="jukebox-mode-lock" title="Every song is generated without vocals">
+                    <span>INST</span><i aria-hidden="true"></i>
+                </div>
+            </div>
+        </section>
+
+        <section class="jukebox-tape" aria-labelledby="jukeboxQueueTitle">
+            <div class="jukebox-tape-head">
+                <span id="jukeboxQueueTitle">PLAYLIST TAPE</span>
+                <span id="jukeboxQueueCount">0 READY</span>
+            </div>
+            <ol id="jukeboxQueue" class="jukebox-queue"></ol>
+        </section>
+
+        <div class="jukebox-message" id="jukeboxMessage" role="alert" hidden></div>
+        <audio id="jukeboxAudio" preload="auto"></audio>
+    </main>
+</div>
+
+<script src="/suite/jukebox/jukebox.js?v=4"></script>
