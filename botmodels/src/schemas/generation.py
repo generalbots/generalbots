@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class GenerationRequest(BaseModel):
@@ -25,6 +25,76 @@ class VideoGenerateRequest(GenerationRequest):
 class SpeechGenerateRequest(GenerationRequest):
     voice: Optional[str] = Field("default", description="Voice model")
     language: Optional[str] = Field("en", description="Language code")
+
+
+class MusicGenerateRequest(BaseModel):
+    """Validated ACE-Step music generation request."""
+
+    title: str = Field("Untitled song", min_length=1, max_length=160)
+    prompt: str = Field("", max_length=4000)
+    description: str = Field("", max_length=4000)
+    lyrics: str = Field("", max_length=20000)
+    simple_mode: bool = True
+    instrumental: bool = False
+    vocal_language: str = Field("en", min_length=2, max_length=16)
+    duration: Optional[float] = Field(60, ge=10, le=600)
+    bpm: Optional[int] = Field(None, ge=30, le=300)
+    key_scale: str = Field("", max_length=32)
+    time_signature: str = Field("", max_length=8)
+    inference_steps: int = Field(8, ge=1, le=200)
+    guidance_scale: float = Field(7.0, ge=0.0, le=30.0)
+    batch_size: int = Field(2, ge=1, le=8)
+    seed: Optional[int] = Field(None, ge=0)
+    thinking: bool = True
+    enhance: bool = True
+    audio_format: Literal["mp3", "flac", "wav", "opus", "aac"] = "mp3"
+    model: Optional[str] = Field(None, max_length=120)
+
+    @model_validator(mode="after")
+    def validate_music_brief(self):
+        if self.simple_mode and not self.description.strip():
+            raise ValueError("description is required in simple mode")
+        if not self.simple_mode and not self.prompt.strip():
+            raise ValueError("prompt is required in custom mode")
+        if self.instrumental:
+            self.lyrics = ""
+        return self
+
+
+class MusicFormatRequest(BaseModel):
+    prompt: str = Field(..., min_length=1, max_length=4000)
+    lyrics: str = Field("", max_length=20000)
+    duration: Optional[float] = Field(None, ge=10, le=600)
+    bpm: Optional[int] = Field(None, ge=30, le=300)
+    key_scale: str = Field("", max_length=32)
+    time_signature: str = Field("", max_length=8)
+
+
+class MusicJobCreated(BaseModel):
+    job_id: str
+    status: str = "queued"
+    queue_position: Optional[int] = None
+
+
+class MusicTrack(BaseModel):
+    audio_path: str
+    prompt: str = ""
+    lyrics: str = ""
+    duration: Optional[float] = None
+    bpm: Optional[int] = None
+    key_scale: Optional[str] = None
+    time_signature: Optional[str] = None
+    seed: Optional[str] = None
+    model: Optional[str] = None
+
+
+class MusicJobStatus(BaseModel):
+    job_id: str
+    status: Literal["queued", "running", "succeeded", "failed"]
+    queue_position: Optional[int] = None
+    progress: Optional[float] = None
+    tracks: List[MusicTrack] = Field(default_factory=list)
+    error: Optional[str] = None
 
 
 class GenerationResponse(BaseModel):

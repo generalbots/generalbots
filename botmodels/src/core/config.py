@@ -49,6 +49,12 @@ class Settings(BaseSettings):
     # Real-time Audio model for speech-to-speech
     realtime_audio_model_path: str = "./models/realtime_audio"
 
+    # ACE-Step 1.5 music generation API
+    acestep_api_url: str = "http://127.0.0.1:8001"
+    acestep_api_key: Optional[str] = None
+    acestep_request_timeout: float = 30.0
+    acestep_audio_timeout: float = 300.0
+
     # Device configuration
     device: str = "cuda"
 

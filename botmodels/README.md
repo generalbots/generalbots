@@ -22,6 +22,7 @@ For comprehensive documentation, see **[docs.pragmatismo.com.br](https://docs.pr
 - **Speech Synthesis**: Text-to-speech using Coqui TTS
 - **Speech Recognition**: Audio transcription using OpenAI Whisper
 - **Vision/Captioning**: Image and video description using BLIP2
+- **Music Generation**: Full songs, vocals, lyrics and variations using ACE-Step 1.5
 
 ---
 
@@ -61,6 +62,9 @@ DEVICE=cuda
 IMAGE_MODEL_PATH=./models/stable-diffusion-v1-5
 VIDEO_MODEL_PATH=./models/zeroscope-v2
 VISION_MODEL_PATH=./models/blip2
+ACESTEP_API_URL=http://127.0.0.1:8001
+# Set when ACE-Step is started with ACESTEP_API_KEY
+ACESTEP_API_KEY=
 ```
 
 ### Running the Server
@@ -138,6 +142,30 @@ X-API-Key: your-api-key
   "steps": 50
 }
 ```
+
+### Music Generation (ACE-Step 1.5)
+
+Start the official ACE-Step API on port 8001, then submit and poll through
+BotModels. BotModels keeps the ACE-Step service and its optional key private.
+
+```http
+POST /api/music/generate
+Content-Type: application/json
+X-API-Key: your-api-key
+
+{
+  "title": "City After Rain",
+  "simple_mode": true,
+  "description": "late-night Brazilian soul with warm Rhodes and intimate vocals",
+  "duration": 90,
+  "batch_size": 2,
+  "thinking": true
+}
+```
+
+The response contains `job_id`. Poll `GET /api/music/jobs/{job_id}` until the
+status is `succeeded`, then stream each returned `audio_path` through
+`GET /api/music/audio?path=...`.
 
 ### Speech Generation (TTS)
 

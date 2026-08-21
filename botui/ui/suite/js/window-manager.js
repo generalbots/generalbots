@@ -66,6 +66,8 @@ if (typeof window.WindowManager === "undefined") {
       icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>' },
     { id: "video", title: "Video AI", category: "ai", color: "#ef4444", hxGet: "/suite/video/video.html",
       icon: '<path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>' },
+    { id: "jukebox", title: "JukeBox", category: "ai", color: "#f59e0b", hxGet: "/suite/jukebox/jukebox.html",
+      icon: '<path d="M3 12h2l2-7 4 14 4-14 2 7h4"/>' },
     { id: "vision", title: "Vision", category: "ai", color: "#06b6d4", hxGet: "/suite/vision/vision.html",
       icon: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>' },
     { id: "fraud", title: "Anti-Fraud", category: "business", color: "#ef4444", hxGet: "/suite/fraud/fraud.html",
