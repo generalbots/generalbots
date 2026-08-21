@@ -29,21 +29,22 @@ pub fn permissions_router(engine: PermissionEngineRef) -> Router {
         .layer(Extension(engine))
 }
 
-async fn get_permissions(Extension(engine): Extension<PermissionEngineRef>) -> Json<PermissionResponse> {
+async fn get_permissions(
+    Extension(engine): Extension<PermissionEngineRef>,
+) -> Json<PermissionResponse> {
     let mode = engine.mode().await;
     Json(PermissionResponse {
         success: true,
         mode: mode.to_string(),
-        destructive_tools: DESTRUCTIVE_LIST
-            .iter()
-            .map(|s| s.to_string())
-            .collect(),
+        destructive_tools: DESTRUCTIVE_LIST.iter().map(|s| s.to_string()).collect(),
     })
 }
 
 const DESTRUCTIVE_LIST: &[&str] = &[
     "file/delete",
     "file/write",
+    "file/replace",
+    "file/set-title",
     "shell/run",
     "git/commit",
     "git/init",

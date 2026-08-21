@@ -3,7 +3,9 @@ use crate::prompt_manager::VibePromptManager;
 use crate::skills::SkillStore;
 use crate::telemetry::{ToolCallRecord, VibeTelemetry};
 use crate::tool_executor::VibeToolExecutor;
-use crate::types::{VibeProgressEvent, VibeRun, VibeRunState, VibeState, VibeToolCall, VibeUseCase};
+use crate::types::{
+    VibeProgressEvent, VibeRun, VibeRunState, VibeState, VibeToolCall, VibeUseCase,
+};
 use log::{error, info, warn};
 use std::sync::Arc;
 use tokio::time::{timeout, Duration};
@@ -70,21 +72,25 @@ impl AgentLoop {
         self.broadcast_event(run, "running", "Autonomous agent loop started", 0);
         let config = run.config.clone();
         let max_steps = config.max_tool_calls.min(DEFAULT_MAX_STEPS);
-        let timeout_duration = Duration::from_secs(config.timeout_seconds.min(DEFAULT_TIMEOUT_SECS));
+        let timeout_duration =
+            Duration::from_secs(config.timeout_seconds.min(DEFAULT_TIMEOUT_SECS));
 
         let result = timeout(timeout_duration, self.run_loop(run, max_steps)).await;
 
         match result {
             Ok(()) => {
                 if run.state == VibeRunState::Running {
-                    self.finish_truthfully(run, "Agent loop completed successfully").await;
+                    self.finish_truthfully(run, "Agent loop completed successfully")
+                        .await;
                 }
             }
             Err(_) => {
                 run.transition(VibeRunState::Failed);
                 run.error = Some("Agent loop timed out".to_string());
                 self.sync_active_run(run).await;
-                self.telemetry.record_run_completion(run, 0, None, 0.0).await;
+                self.telemetry
+                    .record_run_completion(run, 0, None, 0.0)
+                    .await;
                 self.broadcast_event(run, "failed", "Agent loop timed out", 100);
                 warn!(
                     "Vibe run {} timed out after {}s",
@@ -100,29 +106,71 @@ impl AgentLoop {
     /// This terminal helper fails the run with an honest verdict when no tool
     /// ever ran, and otherwise completes it normally.
     async fn finish_truthfully(&self, run: &mut VibeRun, completed_msg: &str) {
-        if run.tool_calls.is_empty() {
+        let intent = run.intent.to_ascii_lowercase();
+        let requires_mutation = [
+            "change",
+            "edit",
+            "modify",
+            "rename",
+            "update",
+            "make",
+            "set ",
+            "title",
+            "color",
+            "colour",
+            "theme",
+            "background",
+            "publish",
+            "deploy",
+        ]
+        .iter()
+        .any(|word| intent.contains(word));
+        let successful_mutation = run.tool_calls.iter().any(|call| {
+            matches!(
+                call.tool_name.as_str(),
+                "file/write"
+                    | "file/replace"
+                    | "file/delete"
+                    | "file/set-title"
+                    | "shell/run"
+                    | "git/commit"
+                    | "publish/project"
+            ) && call.result.as_ref().is_some_and(|result| result.success)
+        });
+        let failure = if run.tool_calls.is_empty() {
+            Some("Agent produced no tool calls — no work was executed")
+        } else if requires_mutation && !successful_mutation {
+            Some("Agent did not complete a successful mutation — requested edit was not applied")
+        } else {
+            None
+        };
+        if let Some(error) = failure {
             run.transition(VibeRunState::Failed);
-            run.error = Some("Agent produced no tool calls — no work was executed".to_string());
+            run.error = Some(error.to_string());
             self.sync_active_run(run).await;
-            self.telemetry.record_run_completion(run, 0, None, 0.0).await;
+            self.telemetry
+                .record_run_completion(run, 0, None, 0.0)
+                .await;
             self.broadcast_event(
                 run,
                 "failed",
-                "No tool calls executed — run performed no work",
+                "Requested work was not successfully applied",
                 100,
             );
         } else {
             run.transition(VibeRunState::Completed);
             self.sync_active_run(run).await;
-            self.telemetry.record_run_completion(run, 0, None, 0.0).await;
+            self.telemetry
+                .record_run_completion(run, 0, None, 0.0)
+                .await;
             self.broadcast_event(run, "completed", completed_msg, 100);
         }
     }
 
     async fn run_loop(&self, run: &mut VibeRun, max_steps: u32) {
-        let mut context = self
-            .prompt_manager
-            .build_context(run.use_case, &run.config.lang, &run.intent, &[]);
+        let mut context =
+            self.prompt_manager
+                .build_context(run.use_case, &run.config.lang, &run.intent, &[]);
         context.run_id = run.run_id;
         if let Some(project) = run.config.project_name.as_deref() {
             context.system_prompt.push_str(&format!(
@@ -130,11 +178,40 @@ impl AgentLoop {
             ));
         }
 
+        // Unambiguous local Windows maintenance actions must not wait for
+        // skill grounding or depend on a small model producing valid JSON.
+        // They still pass through process_tool_call, which enforces project
+        // scoping, approval, permissions, telemetry, and tool result checks.
+        let local_tool_call = {
+            let (_, _, api_url) = self.resolve_llm(run);
+            Self::local_deterministic_tool_response(&api_url, run)
+                .and_then(|response| self.parse_tool_calls(&response).into_iter().next())
+        };
+        if let Some(tool_call) = local_tool_call {
+            self.broadcast_event(run, "thinking", "Preparing local project action", 5);
+            match self
+                .process_tool_call(run, &mut context, &tool_call, 0, max_steps)
+                .await
+            {
+                ToolStep::Executed | ToolStep::Skipped => {
+                    self.finish_truthfully(run, "Local project action completed")
+                        .await;
+                }
+                ToolStep::Cancelled => {
+                    run.transition(VibeRunState::Cancelled);
+                    run.error = Some("Run cancelled during tool approval".to_string());
+                    self.sync_active_run(run).await;
+                    self.telemetry
+                        .record_run_completion(run, 0, None, 0.0)
+                        .await;
+                    self.broadcast_event(run, "cancelled", "Run cancelled", 100);
+                }
+            }
+            return;
+        }
+
         let triggered = self.skills.auto_trigger(&run.intent).await;
-        let grounding_refs: Vec<String> = triggered
-            .iter()
-            .map(|s| s.content.clone())
-            .collect();
+        let grounding_refs: Vec<String> = triggered.iter().map(|s| s.content.clone()).collect();
 
         let mut empty_parse_rounds: u32 = 0;
         let mut verify_failures: u32 = 0;
@@ -151,7 +228,9 @@ impl AgentLoop {
                     run.config.budget_cents
                 ));
                 self.sync_active_run(run).await;
-                self.telemetry.record_run_completion(run, 0, None, 0.0).await;
+                self.telemetry
+                    .record_run_completion(run, 0, None, 0.0)
+                    .await;
                 self.broadcast_event(run, "failed", "Budget cap exceeded", 100);
                 return;
             }
@@ -170,23 +249,23 @@ impl AgentLoop {
                 refs
             };
 
-            let (llm_response, llm_usage) = match self
-                .call_llm_with_retry(&context, run, &run.intent)
-                .await
-            {
-                Ok((response, usage)) => (response, usage),
-                Err(e) => {
-                    error!("LLM call failed at step {}: {}", step, e);
-                    run.transition(VibeRunState::Failed);
-                    run.error = Some(format!(
-                        "LLM call failed at step {step} after {} attempts: {e}",
-                        MAX_LLM_RETRIES + 1
-                    ));
-                    self.sync_active_run(run).await;
-                    self.telemetry.record_run_completion(run, 0, None, 0.0).await;
-                    return;
-                }
-            };
+            let (llm_response, llm_usage) =
+                match self.call_llm_with_retry(&context, run, &run.intent).await {
+                    Ok((response, usage)) => (response, usage),
+                    Err(e) => {
+                        error!("LLM call failed at step {}: {}", step, e);
+                        run.transition(VibeRunState::Failed);
+                        run.error = Some(format!(
+                            "LLM call failed at step {step} after {} attempts: {e}",
+                            MAX_LLM_RETRIES + 1
+                        ));
+                        self.sync_active_run(run).await;
+                        self.telemetry
+                            .record_run_completion(run, 0, None, 0.0)
+                            .await;
+                        return;
+                    }
+                };
 
             // #923 — record real provider usage so the budget meter and cost
             // accounting reflect actual spend instead of a hardcoded 0.0.
@@ -214,7 +293,8 @@ impl AgentLoop {
                     || empty_parse_rounds + 1 >= MAX_EMPTY_PARSE_RETRIES
                 {
                     context.add_assistant_message(llm_response);
-                    self.finish_truthfully(run, "Agent finished — no more tool calls").await;
+                    self.finish_truthfully(run, "Agent finished — no more tool calls")
+                        .await;
                     return;
                 }
                 empty_parse_rounds += 1;
@@ -254,7 +334,9 @@ impl AgentLoop {
                         run.transition(VibeRunState::Cancelled);
                         run.error = Some("Run cancelled during tool approval".to_string());
                         self.sync_active_run(run).await;
-                        self.telemetry.record_run_completion(run, 0, None, 0.0).await;
+                        self.telemetry
+                            .record_run_completion(run, 0, None, 0.0)
+                            .await;
                         self.broadcast_event(run, "cancelled", "Run cancelled", 100);
                         return;
                     }
@@ -267,7 +349,9 @@ impl AgentLoop {
                 // so finish the run instead of looping into the timeout.
                 run.transition(VibeRunState::Completed);
                 self.sync_active_run(run).await;
-                self.telemetry.record_run_completion(run, 0, None, 0.0).await;
+                self.telemetry
+                    .record_run_completion(run, 0, None, 0.0)
+                    .await;
                 self.broadcast_event(
                     run,
                     "completed",
@@ -278,12 +362,7 @@ impl AgentLoop {
             }
 
             if step_mutated {
-                self.broadcast_event(
-                    run,
-                    "verifying",
-                    "Self-verifying latest changes",
-                    progress,
-                );
+                self.broadcast_event(run, "verifying", "Self-verifying latest changes", progress);
                 let verified = self.verify_latest(&mut context, run).await;
                 if !verified {
                     verify_failures += 1;
@@ -307,7 +386,9 @@ impl AgentLoop {
                             "Vibe run {} self-verification failed repeatedly; run failed",
                             run.run_id
                         );
-                        self.telemetry.record_run_completion(run, 0, None, 0.0).await;
+                        self.telemetry
+                            .record_run_completion(run, 0, None, 0.0)
+                            .await;
                         self.broadcast_event(
                             run,
                             "failed",
@@ -325,7 +406,8 @@ impl AgentLoop {
         }
 
         if run.state == VibeRunState::Running {
-            self.finish_truthfully(run, "Max steps reached — loop completed").await;
+            self.finish_truthfully(run, "Max steps reached — loop completed")
+                .await;
         }
     }
 
@@ -407,18 +489,40 @@ impl AgentLoop {
         user_message: &str,
     ) -> Result<(String, Option<LlmUsage>), String> {
         let prompt = self.prompt_manager.compose_prompt(context, user_message);
-        let system = self.prompt_manager.system_prompt_for(run.use_case, &run.config.lang);
+        let system = self
+            .prompt_manager
+            .system_prompt_for(run.use_case, &run.config.lang);
         // Per-bot config (Issue #795): explicit run overrides > config
         // (Vault for secrets, Drive config.csv for the rest) via the state
         // > environment > built-in defaults.
         let (model, api_key, api_url) = self.resolve_llm(run);
+
+        // The bundled Windows model is intentionally small and can emit
+        // malformed function-call JSON even when a single tool is required.
+        // For unambiguous local maintenance intents, build the registered
+        // tool call deterministically; execution still goes through normal
+        // permissions, approval, telemetry, and project scoping.
+        if let Some(response) = Self::local_deterministic_tool_response(&api_url, run) {
+            return Ok((response, None));
+        }
 
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(120))
             .user_agent(LLM_USER_AGENT)
             .build()
             .map_err(|e| format!("http client: {e}"))?;
-        let tools = self.tool_schemas_for(run.use_case).await;
+        let mut tools = self.tool_schemas_for(run.use_case).await;
+        let forced_tool = Self::local_forced_tool(&api_url, run);
+        if let Some(name) = forced_tool {
+            tools.retain(|tool| tool["function"]["name"].as_str() == Some(name));
+        }
+        let tool_choice = if forced_tool.is_some()
+            || (Self::is_local_windows_llm(&api_url) && run.tool_calls.is_empty())
+        {
+            "required"
+        } else {
+            "auto"
+        };
         let body = serde_json::json!({
             "model": model,
             "messages": [
@@ -428,7 +532,7 @@ impl AgentLoop {
             "temperature": 0.3,
             "max_tokens": 4096,
             "tools": tools,
-            "tool_choice": "auto",
+            "tool_choice": tool_choice,
             "stream": true,
             "stream_options": {"include_usage": true},
         });
@@ -470,7 +574,15 @@ impl AgentLoop {
                 // calling still works instead of failing the run.
                 warn!("LLM streaming read failed ({e}); retrying non-streaming");
                 return self
-                    .call_llm_nonstream(&api_url, &api_key, &model, &system, &prompt, &tools)
+                    .call_llm_nonstream(
+                        &api_url,
+                        &api_key,
+                        &model,
+                        &system,
+                        &prompt,
+                        &tools,
+                        tool_choice,
+                    )
                     .await;
             }
         };
@@ -483,8 +595,16 @@ impl AgentLoop {
                 // non-streaming so a complete arguments document is returned
                 // instead of silently writing an empty/corrupt file.
                 warn!("LLM streaming truncated tool-call arguments ({e}); retrying non-streaming");
-                self.call_llm_nonstream(&api_url, &api_key, &model, &system, &prompt, &tools)
-                    .await
+                self.call_llm_nonstream(
+                    &api_url,
+                    &api_key,
+                    &model,
+                    &system,
+                    &prompt,
+                    &tools,
+                    tool_choice,
+                )
+                .await
             }
             Err(e) => Err(e),
         }
@@ -501,6 +621,7 @@ impl AgentLoop {
         system: &str,
         prompt: &str,
         tools: &[serde_json::Value],
+        tool_choice: &str,
     ) -> Result<(String, Option<LlmUsage>), String> {
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(120))
@@ -516,7 +637,7 @@ impl AgentLoop {
             "temperature": 0.3,
             "max_tokens": 4096,
             "tools": tools,
-            "tool_choice": "auto",
+            "tool_choice": tool_choice,
             "stream": false,
         });
         let resp = client
@@ -575,9 +696,7 @@ impl AgentLoop {
                 if !args_raw.is_empty()
                     && serde_json::from_str::<serde_json::Value>(args_raw).is_err()
                 {
-                    return Err(
-                        "LLM tool-call arguments were truncated (invalid JSON)".to_string(),
-                    );
+                    return Err("LLM tool-call arguments were truncated (invalid JSON)".to_string());
                 }
             }
             if has_call {
@@ -602,12 +721,9 @@ impl AgentLoop {
     /// fast instead of hanging the whole run until the run-level timeout.
     async fn read_body(&self, mut resp: reqwest::Response) -> Result<serde_json::Value, String> {
         let read_timeout = Duration::from_secs(120);
-        let result = timeout(
-            read_timeout,
-            Self::read_body_inner(&mut resp),
-        )
-        .await
-        .map_err(|_| "LLM response body read timed out".to_string());
+        let result = timeout(read_timeout, Self::read_body_inner(&mut resp))
+            .await
+            .map_err(|_| "LLM response body read timed out".to_string());
         match result {
             Ok(inner) => inner,
             Err(e) => {
@@ -636,8 +752,7 @@ impl AgentLoop {
         if content_type.contains("text/event-stream") || text.contains("data:") {
             parse_sse(&text).ok_or_else(|| "LLM returned malformed SSE stream".to_string())
         } else {
-            serde_json::from_str(&text)
-                .map_err(|e| format!("Failed to parse LLM response: {e}"))
+            serde_json::from_str(&text).map_err(|e| format!("Failed to parse LLM response: {e}"))
         }
     }
 
@@ -683,35 +798,141 @@ impl AgentLoop {
         Self::content_from_payload(&payload).map(|content| (content, usage))
     }
 
-/// True when the LLM error is a deterministic client rejection (bad key,
-/// wrong model, malformed request) that retrying will not fix. 408 (request
-/// timeout) and 429 (rate limit) remain retryable; 400/401/403/404/422 and
-/// the like are not.
-fn is_non_retryable_llm_error(e: &str) -> bool {
-    if e.contains("LLM returned status 408") || e.contains("LLM returned status 429") {
-        return false;
+    fn is_local_windows_llm(api_url: &str) -> bool {
+        if !cfg!(windows) {
+            return false;
+        }
+        let is_loopback = reqwest::Url::parse(api_url)
+            .ok()
+            .and_then(|url| url.host_str().map(str::to_string))
+            .is_some_and(|host| matches!(host.as_str(), "localhost" | "127.0.0.1" | "::1"));
+        is_loopback
     }
-    e.contains("LLM returned status 4")
-}
 
-/// Parses a self-verification reply into a verdict. Reasoning models often
-/// restate earlier failures before the verdict ("the first test FAILED but
-/// was corrected"); a naive `contains()` would read the historical mention
-/// as the verdict and condemn real executed work. The LAST verdict token in
-/// the reply wins, so a trailing "VERIFIED" after a historical "FAILED" is
-/// respected (and vice versa). Returns `None` when no explicit verdict token
-/// is present.
-fn last_verdict(response: &str) -> Option<bool> {
-    let last_failed = response.rfind("FAILED");
-    let last_verified = response.rfind("VERIFIED");
-    match (last_failed, last_verified) {
-        // VERIFIED appearing after FAILED (or only VERIFIED present) -> pass.
-        (Some(f), Some(v)) => Some(v > f),
-        (Some(_), None) => Some(false),
-        (None, Some(_)) => Some(true),
-        (None, None) => None,
+    fn local_forced_tool(api_url: &str, run: &VibeRun) -> Option<&'static str> {
+        if !Self::is_local_windows_llm(api_url) {
+            return None;
+        }
+
+        let intent = run.intent.to_ascii_lowercase();
+        if intent.contains("publish") || intent.contains("deploy") {
+            return if run
+                .tool_calls
+                .iter()
+                .any(|call| call.tool_name == "publish/project")
+            {
+                None
+            } else {
+                Some("publish/project")
+            };
+        }
+        if intent.contains("title") {
+            return if run
+                .tool_calls
+                .iter()
+                .any(|call| call.tool_name == "file/set-title")
+            {
+                None
+            } else {
+                Some("file/set-title")
+            };
+        }
+        let is_file_edit = [
+            "change",
+            "edit",
+            "modify",
+            "rename",
+            "update",
+            "make",
+            "set ",
+            "title",
+            "color",
+            "colour",
+            "theme",
+            "background",
+        ]
+        .iter()
+        .any(|word| intent.contains(word));
+        if is_file_edit {
+            for tool in ["file/list", "file/read", "file/replace"] {
+                if !run.tool_calls.iter().any(|call| call.tool_name == tool) {
+                    return Some(tool);
+                }
+            }
+        }
+        None
     }
-}
+
+    fn requested_title(intent: &str) -> Option<String> {
+        let lower = intent.to_ascii_lowercase();
+        let marker = ["title to ", "title as "]
+            .iter()
+            .find_map(|candidate| lower.rfind(candidate).map(|index| (index, *candidate)))?;
+        let raw = intent[marker.0 + marker.1.len()..].trim();
+        let title = raw
+            .trim_end_matches(['.', '!', '?'])
+            .trim()
+            .trim_matches(['\'', '"', '`'])
+            .trim();
+        (!title.is_empty()).then(|| title.to_string())
+    }
+
+    fn local_deterministic_tool_response(api_url: &str, run: &VibeRun) -> Option<String> {
+        match Self::local_forced_tool(api_url, run)? {
+            "file/set-title" => {
+                let title = Self::requested_title(&run.intent)?;
+                Some(
+                    serde_json::json!({
+                        "tool_calls": [{
+                            "tool_name": "file/set-title",
+                            "arguments": {"title": title}
+                        }]
+                    })
+                    .to_string(),
+                )
+            }
+            "publish/project" => Some(
+                serde_json::json!({
+                    "tool_calls": [{
+                        "tool_name": "publish/project",
+                        "arguments": {"env": "production"}
+                    }]
+                })
+                .to_string(),
+            ),
+            _ => None,
+        }
+    }
+
+    /// True when the LLM error is a deterministic client rejection (bad key,
+    /// wrong model, malformed request) that retrying will not fix. 408 (request
+    /// timeout) and 429 (rate limit) remain retryable; 400/401/403/404/422 and
+    /// the like are not.
+    fn is_non_retryable_llm_error(e: &str) -> bool {
+        if e.contains("LLM returned status 408") || e.contains("LLM returned status 429") {
+            return false;
+        }
+        e.contains("LLM returned status 4")
+    }
+
+    /// Parses a self-verification reply into a verdict. Reasoning models often
+    /// restate earlier failures before the verdict ("the first test FAILED but
+    /// was corrected"); a naive `contains()` would read the historical mention
+    /// as the verdict and condemn real executed work. The LAST verdict token in
+    /// the reply wins, so a trailing "VERIFIED" after a historical "FAILED" is
+    /// respected (and vice versa). Returns `None` when no explicit verdict token
+    /// is present.
+    fn last_verdict(response: &str) -> Option<bool> {
+        let last_failed = response.rfind("FAILED");
+        let last_verified = response.rfind("VERIFIED");
+        match (last_failed, last_verified) {
+            // VERIFIED appearing after FAILED (or only VERIFIED present) -> pass.
+            (Some(f), Some(v)) => Some(v > f),
+            (Some(_), None) => Some(false),
+            (None, Some(_)) => Some(true),
+            (None, None) => None,
+        }
+    }
 
     fn parse_tool_calls(&self, llm_response: &str) -> Vec<ExtractedToolCall> {
         if let Some(json_start) = llm_response.find('{') {
@@ -742,15 +963,13 @@ fn last_verdict(response: &str) -> Option<bool> {
         Vec::new()
     }
 
-    async fn verify_latest(
-        &self,
-        context: &mut crate::types::VibeContext,
-        run: &VibeRun,
-    ) -> bool {
+    async fn verify_latest(&self, context: &mut crate::types::VibeContext, run: &VibeRun) -> bool {
         let question = "Verify the latest tool results above are consistent and complete. Reply with exactly VERIFIED or FAILED.";
         context.add_user_message(question.to_string());
         let (model, api_key, api_url) = self.resolve_llm(run);
-        let system = self.prompt_manager.system_prompt_for(run.use_case, &run.config.lang);
+        let system = self
+            .prompt_manager
+            .system_prompt_for(run.use_case, &run.config.lang);
         let prompt = self.prompt_manager.compose_prompt(context, question);
         // Use the plain (no-tools) call so the model replies with text
         // (VERIFIED/FAILED) instead of a tool-call JSON envelope.
@@ -820,6 +1039,48 @@ fn last_verdict(response: &str) -> Option<bool> {
 
         if matches!(mode, PermissionMode::Bypass) {
             tool_call.approved = true;
+        }
+
+        // Reject malformed model output before asking the user to approve it.
+        // Feed the validation error back into the conversation so the next
+        // model step can repair the call instead of waiting on useless input.
+        if let Err(validation_error) = self
+            .tool_executor
+            .registry()
+            .validate_arguments(&tool_call.tool_name, &tool_call.arguments)
+            .await
+        {
+            tool_call.result = Some(crate::types::VibeToolResult {
+                success: false,
+                data: serde_json::Value::Null,
+                error: Some(validation_error.clone()),
+                latency_ms: 0,
+            });
+            context.add_assistant_message(format!(
+                "Tool {} arguments were invalid: {validation_error}. Correct every required argument and retry.",
+                tool_call.tool_name
+            ));
+            self.telemetry
+                .record_tool_call(ToolCallRecord {
+                    run_id: run.run_id,
+                    use_case: run.use_case,
+                    tool_name: tool_call.tool_name.clone(),
+                    latency_ms: 0,
+                    tokens: None,
+                    cost: 0.0,
+                    success: false,
+                    error: Some(validation_error.clone()),
+                })
+                .await;
+            run.tool_calls.push(tool_call);
+            self.sync_active_run(run).await;
+            self.broadcast_event(
+                run,
+                "tool_validation_failed",
+                &format!("Invalid tool arguments: {validation_error}"),
+                ((step as f64 / max_steps as f64) * 100.0) as u8,
+            );
+            return ToolStep::Skipped;
         }
 
         // NOTE: no placeholder ToolCallFailed record here — the real outcome
@@ -940,10 +1201,7 @@ fn last_verdict(response: &str) -> Option<bool> {
                         tokens: None,
                         cost: 0.0,
                         success,
-                        error: tool_call
-                            .result
-                            .as_ref()
-                            .and_then(|r| r.error.clone()),
+                        error: tool_call.result.as_ref().and_then(|r| r.error.clone()),
                     })
                     .await;
 
@@ -1144,14 +1402,106 @@ fn project_scoped_arguments(run: &VibeRun, extracted: &ExtractedToolCall) -> ser
         || tool.starts_with("test/")
         || tool.starts_with("logs/")
     {
-        args.insert("project".to_string(), serde_json::Value::String(project.to_string()));
+        args.insert(
+            "project".to_string(),
+            serde_json::Value::String(project.to_string()),
+        );
+    }
+    #[cfg(target_os = "windows")]
+    if matches!(tool, "file/read" | "file/replace")
+        && args
+            .get("path")
+            .and_then(|value| value.as_str())
+            .is_none_or(path_requires_repair)
+    {
+        let previous_read = run.tool_calls.iter().rev().find_map(|call| {
+            (call.tool_name == "file/read"
+                && call.result.as_ref().is_some_and(|result| result.success))
+            .then(|| call.arguments.get("path").and_then(|value| value.as_str()))
+            .flatten()
+            .filter(|path| !path_requires_repair(path))
+            .map(str::to_string)
+        });
+        let inferred = previous_read.or_else(|| {
+            crate::harness::list_rel(project, "", 0)
+                .ok()
+                .and_then(|entries| preferred_source_path(&entries, &run.intent))
+        });
+        if let Some(path) = inferred {
+            args.insert("path".to_string(), serde_json::Value::String(path));
+        }
     }
     if tool == "publish/project" {
         if let Some(project_id) = run.config.project_id.as_deref() {
-            args.insert("project_id".to_string(), serde_json::Value::String(project_id.to_string()));
+            args.insert(
+                "project_id".to_string(),
+                serde_json::Value::String(project_id.to_string()),
+            );
         }
     }
     serde_json::Value::Object(args)
+}
+
+#[cfg(target_os = "windows")]
+fn path_requires_repair(path: &str) -> bool {
+    matches!(
+        path.trim(),
+        "" | "." | "./" | ".\\" | "/" | "\\" | "..." | "…"
+    )
+}
+
+#[cfg(target_os = "windows")]
+fn preferred_source_path(entries: &[String], intent: &str) -> Option<String> {
+    let intent = intent.to_ascii_lowercase();
+    entries
+        .iter()
+        .filter(|path| !path.ends_with('/'))
+        .filter_map(|path| {
+            let lower = path.to_ascii_lowercase();
+            let extension = std::path::Path::new(path)
+                .extension()
+                .and_then(|value| value.to_str())
+                .unwrap_or_default()
+                .to_ascii_lowercase();
+            let mut score: u16 = match extension.as_str() {
+                "html" | "htm" => 160,
+                "css" | "scss" | "sass" => 150,
+                "js" | "jsx" | "ts" | "tsx" | "vue" | "svelte" => 120,
+                "py" | "rs" | "go" | "java" => 80,
+                _ => 0,
+            };
+            if score == 0 {
+                return None;
+            }
+            if intent.contains(&lower) {
+                score += 1000;
+            }
+            let stem = std::path::Path::new(path)
+                .file_stem()
+                .and_then(|value| value.to_str())
+                .unwrap_or_default()
+                .to_ascii_lowercase();
+            if matches!(stem.as_str(), "index" | "app" | "main") {
+                score += 100;
+            }
+            if lower.contains("style")
+                && ["color", "colour", "theme", "background", "font", "layout"]
+                    .iter()
+                    .any(|word| intent.contains(word))
+            {
+                score += 120;
+            }
+            if lower.contains("test") || lower.contains("spec") {
+                score = score.saturating_sub(100);
+            }
+            Some((score, path.clone()))
+        })
+        .max_by(|(left_score, left_path), (right_score, right_path)| {
+            left_score
+                .cmp(right_score)
+                .then_with(|| right_path.cmp(left_path))
+        })
+        .map(|(_, path)| path)
 }
 
 /// Outcome of one tool-call step in the agent loop (#920). `Cancelled` is a
@@ -1194,8 +1544,9 @@ fn parse_sse(body: &str) -> Option<serde_json::Value> {
         }
         let delta = &event["choices"][0]["delta"];
         if let Some(text) = delta["content"].as_str() {
-            message["content"] =
-                serde_json::Value::String(message["content"].as_str().unwrap_or_default().to_string() + text);
+            message["content"] = serde_json::Value::String(
+                message["content"].as_str().unwrap_or_default().to_string() + text,
+            );
         }
         if let Some(deltas) = delta["tool_calls"].as_array() {
             let Some(calls) = message["tool_calls"].as_array_mut() else {
@@ -1234,7 +1585,10 @@ fn parse_sse(body: &str) -> Option<serde_json::Value> {
         return None;
     }
     let mut accumulated = serde_json::Map::new();
-    accumulated.insert("choices".to_string(), serde_json::json!([{"message": message}]));
+    accumulated.insert(
+        "choices".to_string(),
+        serde_json::json!([{"message": message}]),
+    );
     if let Some(u) = usage {
         accumulated.insert("usage".to_string(), u);
     }
@@ -1253,8 +1607,14 @@ struct LlmUsage {
 fn usage_from_payload(payload: &serde_json::Value) -> Option<LlmUsage> {
     let usage = payload.get("usage")?;
     Some(LlmUsage {
-        prompt_tokens: usage.get("prompt_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
-        completion_tokens: usage.get("completion_tokens").and_then(|v| v.as_u64()).unwrap_or(0) as u32,
+        prompt_tokens: usage
+            .get("prompt_tokens")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0) as u32,
+        completion_tokens: usage
+            .get("completion_tokens")
+            .and_then(|v| v.as_u64())
+            .unwrap_or(0) as u32,
     })
 }
 
@@ -1269,7 +1629,11 @@ fn estimate_llm_cost(model: &str, prompt_tokens: u32, completion_tokens: u32) ->
         (2.50, 10.0)
     } else if m.contains("gpt-3.5") {
         (0.50, 1.50)
-    } else if m.contains("claude-3-5") || m.contains("claude-3-7") || m.contains("claude-3.5") || m.contains("claude-3.7") {
+    } else if m.contains("claude-3-5")
+        || m.contains("claude-3-7")
+        || m.contains("claude-3.5")
+        || m.contains("claude-3.7")
+    {
         (3.0, 15.0)
     } else if m.contains("claude") {
         (15.0, 75.0)
@@ -1388,28 +1752,164 @@ fn extract_json_object(s: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::VibeRunConfig;
     use serde_json::json;
     use tokio::sync::RwLock;
 
     #[test]
     fn classifies_non_retryable_llm_errors() {
-        assert!(AgentLoop::is_non_retryable_llm_error("LLM returned status 401: unauthorized"));
-        assert!(AgentLoop::is_non_retryable_llm_error("LLM returned status 403: forbidden"));
-        assert!(AgentLoop::is_non_retryable_llm_error("LLM returned status 404: model not found"));
-        assert!(AgentLoop::is_non_retryable_llm_error("LLM returned status 422: bad request"));
-        assert!(!AgentLoop::is_non_retryable_llm_error("LLM returned status 429: rate limited"));
-        assert!(!AgentLoop::is_non_retryable_llm_error("LLM returned status 408: timeout"));
-        assert!(!AgentLoop::is_non_retryable_llm_error("LLM returned status 502: bad gateway"));
-        assert!(!AgentLoop::is_non_retryable_llm_error("HTTP request failed: connection reset"));
+        assert!(AgentLoop::is_non_retryable_llm_error(
+            "LLM returned status 401: unauthorized"
+        ));
+        assert!(AgentLoop::is_non_retryable_llm_error(
+            "LLM returned status 403: forbidden"
+        ));
+        assert!(AgentLoop::is_non_retryable_llm_error(
+            "LLM returned status 404: model not found"
+        ));
+        assert!(AgentLoop::is_non_retryable_llm_error(
+            "LLM returned status 422: bad request"
+        ));
+        assert!(!AgentLoop::is_non_retryable_llm_error(
+            "LLM returned status 429: rate limited"
+        ));
+        assert!(!AgentLoop::is_non_retryable_llm_error(
+            "LLM returned status 408: timeout"
+        ));
+        assert!(!AgentLoop::is_non_retryable_llm_error(
+            "LLM returned status 502: bad gateway"
+        ));
+        assert!(!AgentLoop::is_non_retryable_llm_error(
+            "HTTP request failed: connection reset"
+        ));
+    }
+
+    #[test]
+    fn local_windows_requires_the_initial_registered_tool_call() {
+        let mut run = VibeRun::new(
+            Uuid::nil(),
+            Uuid::nil(),
+            Uuid::nil(),
+            "Change the page title".to_string(),
+            VibeRunConfig::default(),
+        );
+        let choice =
+            AgentLoop::local_forced_tool("http://localhost:8081/v1/chat/completions", &run);
+        assert_eq!(
+            choice,
+            if cfg!(windows) {
+                Some("file/set-title")
+            } else {
+                None
+            }
+        );
+        run.tool_calls.push(VibeToolCall::new(
+            run.run_id,
+            "file/set-title".to_string(),
+            json!({}),
+            true,
+        ));
+        let next = AgentLoop::local_forced_tool("http://localhost:8081/v1/chat/completions", &run);
+        assert_eq!(next, None);
+        assert_eq!(
+            AgentLoop::local_forced_tool("https://api.openai.com/v1/chat/completions", &run),
+            None
+        );
+    }
+
+    #[test]
+    fn local_windows_uses_focused_replace_for_existing_file_edits() {
+        let mut run = VibeRun::new(
+            Uuid::nil(),
+            Uuid::nil(),
+            Uuid::nil(),
+            "Blue theme for the calculator".to_string(),
+            VibeRunConfig::default(),
+        );
+        let api_url = "http://localhost:8081/v1/chat/completions";
+        let expected = if cfg!(windows) {
+            Some("file/list")
+        } else {
+            None
+        };
+        assert_eq!(AgentLoop::local_forced_tool(api_url, &run), expected);
+        if !cfg!(windows) {
+            return;
+        }
+
+        for (completed, next) in [
+            ("file/list", Some("file/read")),
+            ("file/read", Some("file/replace")),
+            ("file/replace", None),
+        ] {
+            run.tool_calls.push(VibeToolCall::new(
+                run.run_id,
+                completed.to_string(),
+                json!({}),
+                false,
+            ));
+            assert_eq!(AgentLoop::local_forced_tool(api_url, &run), next);
+        }
+    }
+
+    #[test]
+    fn local_windows_requires_publish_tool_for_deployment_intent() {
+        let run = VibeRun::new(
+            Uuid::nil(),
+            Uuid::nil(),
+            Uuid::nil(),
+            "Publish the calculator project".to_string(),
+            VibeRunConfig::default(),
+        );
+        assert_eq!(
+            AgentLoop::local_forced_tool("http://127.0.0.1:8081/v1/chat/completions", &run),
+            if cfg!(windows) {
+                Some("publish/project")
+            } else {
+                None
+            }
+        );
+    }
+
+    #[test]
+    fn local_windows_builds_exact_title_tool_arguments() {
+        let run = VibeRun::new(
+            Uuid::nil(),
+            Uuid::nil(),
+            Uuid::nil(),
+            "In project calculator-custom: Change the calculator page title to XCalculator."
+                .to_string(),
+            VibeRunConfig::default(),
+        );
+        let response = AgentLoop::local_deterministic_tool_response(
+            "http://localhost:8081/v1/chat/completions",
+            &run,
+        );
+        if cfg!(windows) {
+            let parsed: serde_json::Value =
+                serde_json::from_str(response.as_deref().unwrap_or_default()).unwrap_or_default();
+            assert_eq!(parsed["tool_calls"][0]["arguments"]["title"], "XCalculator");
+        } else {
+            assert!(response.is_none());
+        }
     }
 
     #[test]
     fn last_verdict_uses_final_token() {
         // Historical FAILED mention must not override a trailing VERIFIED.
-        assert_eq!(AgentLoop::last_verdict("The first test FAILED but was corrected. VERIFIED"), Some(true));
+        assert_eq!(
+            AgentLoop::last_verdict("The first test FAILED but was corrected. VERIFIED"),
+            Some(true)
+        );
         assert_eq!(AgentLoop::last_verdict("Looks good. VERIFIED"), Some(true));
-        assert_eq!(AgentLoop::last_verdict("FAILED: server.js still missing"), Some(false));
-        assert_eq!(AgentLoop::last_verdict("Everything passed: VERIFIED. Wait, no — FAILED"), Some(false));
+        assert_eq!(
+            AgentLoop::last_verdict("FAILED: server.js still missing"),
+            Some(false)
+        );
+        assert_eq!(
+            AgentLoop::last_verdict("Everything passed: VERIFIED. Wait, no — FAILED"),
+            Some(false)
+        );
         assert_eq!(AgentLoop::last_verdict("No explicit verdict here"), None);
         assert_eq!(AgentLoop::last_verdict(""), None);
     }
@@ -1467,10 +1967,10 @@ mod tests {
         assert_eq!(calls.len(), 1);
         assert_eq!(calls[0].tool_name, "read_file");
         assert_eq!(calls[0].arguments["path"], "a.txt");
-        assert!(
-            native_tool_calls_from_value(&serde_json::json!({"choices": [{"message": {"content": "hi"}}]}))
-                .is_none()
-        );
+        assert!(native_tool_calls_from_value(
+            &serde_json::json!({"choices": [{"message": {"content": "hi"}}]})
+        )
+        .is_none());
     }
 
     #[test]
@@ -1485,7 +1985,10 @@ mod tests {
             ]}}]
         });
         let err = AgentLoop::content_from_payload(&truncated).expect_err("must fail on truncation");
-        assert!(err.contains("truncated"), "error should flag truncation: {err}");
+        assert!(
+            err.contains("truncated"),
+            "error should flag truncation: {err}"
+        );
 
         // A complete call with valid JSON arguments parses normally.
         let valid = serde_json::json!({
@@ -1542,7 +2045,9 @@ mod tests {
     fn parse_tool_calls_from_llm_response() {
         let agent = AgentLoop::new(
             Arc::new(VibePromptManager::new()),
-            Arc::new(VibeToolExecutor::new(Arc::new(crate::tool_executor::ToolRegistry::new()))),
+            Arc::new(VibeToolExecutor::new(Arc::new(
+                crate::tool_executor::ToolRegistry::new(),
+            ))),
             Arc::new(VibeTelemetry::new()),
             Arc::new(MockState::new()),
         );
@@ -1560,7 +2065,13 @@ mod tests {
         let mut config = crate::types::VibeRunConfig::default();
         config.project_id = Some("project-id".to_string());
         config.project_name = Some("calculator-e2e".to_string());
-        let run = VibeRun::new(Uuid::nil(), Uuid::nil(), Uuid::nil(), "edit".to_string(), config);
+        let run = VibeRun::new(
+            Uuid::nil(),
+            Uuid::nil(),
+            Uuid::nil(),
+            "edit".to_string(),
+            config,
+        );
         let extracted = ExtractedToolCall {
             tool_name: "file/write".to_string(),
             arguments: serde_json::json!({"project": "wrong-project", "path": "index.js"}),
@@ -1573,7 +2084,28 @@ mod tests {
             tool_name: "publish/project".to_string(),
             arguments: serde_json::json!({"project_id": "wrong-id"}),
         };
-        assert_eq!(project_scoped_arguments(&run, &publish)["project_id"], "project-id");
+        assert_eq!(
+            project_scoped_arguments(&run, &publish)["project_id"],
+            "project-id"
+        );
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn ambiguous_windows_edit_path_prefers_main_source_file() {
+        let entries = vec![
+            "README.md".to_string(),
+            "calc.js".to_string(),
+            "index.js".to_string(),
+            "package.json".to_string(),
+            "test.js".to_string(),
+        ];
+        assert!(path_requires_repair("."));
+        assert!(path_requires_repair("/"));
+        assert_eq!(
+            preferred_source_path(&entries, "Change the calculator button background to blue"),
+            Some("index.js".to_string())
+        );
     }
 
     struct MockState {
@@ -1582,7 +2114,9 @@ mod tests {
 
     impl MockState {
         fn new() -> Self {
-            Self { runs: Arc::new(RwLock::new(std::collections::HashMap::new())) }
+            Self {
+                runs: Arc::new(RwLock::new(std::collections::HashMap::new())),
+            }
         }
     }
 
@@ -1597,7 +2131,9 @@ mod tests {
         fn active_runs(&self) -> &Arc<RwLock<std::collections::HashMap<Uuid, VibeRun>>> {
             &self.runs
         }
-        fn run_signal_sender(&self) -> Option<&tokio::sync::broadcast::Sender<crate::types::VibeRunSignal>> {
+        fn run_signal_sender(
+            &self,
+        ) -> Option<&tokio::sync::broadcast::Sender<crate::types::VibeRunSignal>> {
             None
         }
         fn llm_config(&self, _bot_id: &uuid::Uuid) -> Option<crate::types::LlmConfig> {

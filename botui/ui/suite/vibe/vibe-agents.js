@@ -41,6 +41,27 @@ function esc(s) {
     return d.innerHTML;
 }
 
+function applyProjectSelection(p, persist) {
+    if (!p) return;
+    var id = p.project_id || p.id;
+    var name = p.name || "Unnamed project";
+    if (typeof currentProject !== "undefined") currentProject = name;
+    if (typeof currentProjectId !== "undefined") currentProjectId = id;
+    if (persist !== false) {
+        try {
+            sessionStorage.setItem("gb-vibe-project-id", String(id || ""));
+            sessionStorage.setItem("gb-vibe-project-name", String(name));
+        } catch (_) {
+            // Storage can be disabled; the in-memory selection remains valid.
+        }
+    }
+    var trail = document.querySelector(".vibe-trail");
+    if (trail) trail.textContent = "// " + String(name).toUpperCase();
+    document.dispatchEvent(
+        new CustomEvent("gb:vibe-project", { detail: { id: id, project: name } }),
+    );
+}
+
 function loadVibeProjects() {
     var list = document.getElementById("asProjectList");
     if (!list) return;
@@ -57,6 +78,24 @@ function loadVibeProjects() {
                     '<div class="vibe-rd-empty" style="padding: 8px 12px; font-size: 12px;">' +
                     "No projects yet — create one to start building.</div>";
                 return;
+            }
+            if (typeof currentProjectId !== "undefined" && !currentProjectId) {
+                var storedId = "";
+                try {
+                    storedId = sessionStorage.getItem("gb-vibe-project-id") || "";
+                } catch (_) {
+                    storedId = "";
+                }
+                var preferred = projects.find(function (p) {
+                    var id = p.project_id || p.id;
+                    return storedId && String(id) === String(storedId);
+                });
+                if (!preferred) {
+                    preferred = projects.find(function (p) {
+                        return String(p.status || "").toLowerCase() === "active";
+                    });
+                }
+                applyProjectSelection(preferred || projects[0], false);
             }
             list.innerHTML = "";
             projects.forEach(function (p) {
@@ -102,15 +141,7 @@ function loadVibeProjects() {
 }
 
 function selectProject(p) {
-    var id = p.project_id || p.id;
-    var name = p.name || "Unnamed project";
-    if (typeof currentProject !== "undefined") currentProject = name;
-    if (typeof currentProjectId !== "undefined") currentProjectId = id;
-    var trail = document.querySelector(".vibe-trail");
-    if (trail) trail.textContent = "// " + String(name).toUpperCase();
-    document.dispatchEvent(
-        new CustomEvent("gb:vibe-project", { detail: { id: id, project: name } }),
-    );
+    applyProjectSelection(p, true);
     loadVibeProjects();
 }
 

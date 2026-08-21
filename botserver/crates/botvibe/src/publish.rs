@@ -388,6 +388,10 @@ mod tests {
 
     #[test]
     fn collect_workspace_files_packages_source_and_skips_vcs() {
+        let _guard = harness::WORKSPACE_ENV_LOCK
+            .lock()
+            .expect("workspace env lock");
+        let previous = std::env::var_os("VIBE_WORKSPACE_ROOT");
         let tmp = std::env::temp_dir().join(format!("vibe-publish-test-{}", Uuid::new_v4()));
         std::env::set_var("VIBE_WORKSPACE_ROOT", &tmp);
         let project = test_project("My Web App");
@@ -422,5 +426,6 @@ mod tests {
         assert_eq!(content, b"fn main() {}");
 
         let _ = std::fs::remove_dir_all(&tmp);
+        harness::restore_workspace_root(previous);
     }
 }

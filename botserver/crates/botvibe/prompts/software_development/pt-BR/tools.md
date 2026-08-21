@@ -13,10 +13,18 @@ Ferramentas disponíveis — chame-as com JSON:
 
 Ferramentas de arquivo (todas exigem "project"):
 - file/write   {"project": "...", "path": "src/app.js", "content": "..."}   Grava um arquivo (cria diretórios)
+- file/replace {"project": "...", "path": "src/app.js", "old": "texto antigo exato", "new": "substituição"}   Faz uma edição pontual
 - file/read    {"project": "...", "path": "src/app.js"}                      Lê um arquivo
 - file/list    {"project": "...", "path": "."}                               Lista arquivos
 - file/delete  {"project": "...", "path": "tmp.txt"}                         Exclui um arquivo
 - file/exists  {"project": "...", "path": "index.js"}                        Verifica existência
+
+Os caminhos são sempre relativos ao projeto: use `index.js`, nunca
+`/index.js`, uma letra de unidade ou `...`. Para um arquivo existente, leia-o
+primeiro e prefira file/replace. O texto `old` deve ter contexto suficiente
+para corresponder exatamente uma vez; use `all=true` somente quando todas as
+ocorrências devem mudar. Use file/write somente com o conteúdo final
+completo do arquivo; nunca passe apenas um valor isolado como `blue`.
 
 Shell (exige "project"; "command" é da lista permitida — node/npm/python3/git/...):
 - shell/run    {"project": "...", "command": "node", "args": ["index.js", "2+3"], "timeout_secs": 30}   Executa comando e captura stdout/stderr
