@@ -2,10 +2,103 @@
 
 (function (namespace) {
     function announce(root, message) {
-        var live = root.querySelector("[data-global-live]");
-        live.textContent = "";
-        window.requestAnimationFrame(function () { live.textContent = message; });
+        namespace.announce(root, message);
     }
+
+    function testFailureMessage(error) {
+        var status = error && typeof error.status === "number" ? error.status : 0;
+        if (status === 503) {
+            return "Connection test failed: credential vault unavailable";
+        }
+        if (status === 404) {
+            return "Connection test failed: connection no longer exists";
+        }
+        return "Connection test failed";
+    }
+
+    function revokeFailureMessage(error) {
+        var status = error && typeof error.status === "number" ? error.status : 0;
+        if (status === 503) {
+            return "Revoke incomplete: credential vault unavailable";
+        }
+        if (status === 404) {
+            return "Revoke skipped: connection no longer exists";
+        }
+        return "Revoke failed; the connection was left unchanged";
+    }
+
+    namespace.loadConnected = async function (root) {
+        var state = namespace.getState(root);
+        state.connectedRequest += 1;
+        var requestId = state.connectedRequest;
+        state.connectedStatus = "loading";
+        namespace.renderConnectedLoading(root);
+        await namespace.fetchContext(root);
+        var url = namespace.connectionsUrl();
+        if (requestId !== state.connectedRequest) {
+            return;
+        }
+        if (!url) {
+            state.connectors = [];
+            state.connectedStatus = "error";
+            namespace.renderConnectedUnavailable(root);
+            return;
+        }
+        try {
+            var payload = await namespace.fetchJson(url);
+            if (requestId !== state.connectedRequest) {
+                return;
+            }
+            state.connectors = namespace.normalizeConnections(payload);
+            state.connectedStatus = "ready";
+            namespace.renderConnected(root);
+        } catch (error) {
+            if (requestId === state.connectedRequest) {
+                state.connectors = [];
+                state.connectedStatus = "error";
+                namespace.renderConnectedError(root);
+            }
+        }
+    };
+
+    namespace.testConnection = async function (root, connectionId, button) {
+        var url = namespace.connectionActionUrl(connectionId, "/test");
+        if (!url) {
+            announce(root, "Connection test needs a workspace context");
+            return;
+        }
+        var originalLabel = button.textContent;
+        button.disabled = true;
+        button.textContent = "Testing...";
+        try {
+            var outcome = await namespace.fetchJson(url, { method: "POST", body: {} });
+            announce(root, "Test finished: " + namespace.text(outcome.outcome, "unknown"));
+        } catch (error) {
+            announce(root, testFailureMessage(error));
+        } finally {
+            button.disabled = false;
+            button.textContent = originalLabel;
+            namespace.loadConnected(root);
+        }
+    };
+
+    namespace.revokeConnection = async function (root, connectionId) {
+        var url = namespace.connectionActionUrl(connectionId, "");
+        if (!url) {
+            announce(root, "Revoke needs a workspace context");
+            return;
+        }
+        if (!window.confirm("Revoke this connection? Its stored credentials will be deleted.")) {
+            return;
+        }
+        try {
+            await namespace.fetchJson(url, { method: "DELETE" });
+            announce(root, "Connection revoked");
+        } catch (error) {
+            announce(root, revokeFailureMessage(error));
+        }
+        namespace.loadConnected(root);
+    };
 
     namespace.loadCatalog = async function (root) {
         var state = namespace.getState(root);
@@ -36,28 +129,6 @@
                 state.catalogStatus = "error";
                 namespace.renderCatalogError(root);
                 announce(root, "Integration catalog could not be loaded");
-            }
-        }
-    };
-
-    namespace.loadConnected = async function (root) {
-        var state = namespace.getState(root);
-        state.connectedRequest += 1;
-        var requestId = state.connectedRequest;
-        state.connectedStatus = "loading";
-        namespace.renderConnectedLoading(root);
-        try {
-            var payload = await namespace.fetchJson(namespace.connectedUrl);
-            if (requestId !== state.connectedRequest) {
-                return;
-            }
-            state.connectors = namespace.normalizeConnectors(payload);
-            state.connectedStatus = "ready";
-            namespace.renderConnected(root);
-        } catch (error) {
-            if (requestId === state.connectedRequest) {
-                state.connectedStatus = "error";
-                namespace.renderConnectedError(root);
             }
         }
     };
@@ -107,7 +178,7 @@
         }
     }
 
-    function handleAction(root, action) {
+    function handleAction(root, action, button) {
         var state = namespace.getState(root);
         if (action === "refresh") {
             if (state.activeTab === "connected") {
@@ -127,6 +198,10 @@
             namespace.closeDetails(root);
         } else if (action === "retry-detail" && state.selectedProviderId) {
             namespace.openDetails(root, state.selectedProviderId);
+        } else if (action === "test-connection" && button && button.dataset.connectionId) {
+            namespace.testConnection(root, button.dataset.connectionId, button);
+        } else if (action === "revoke-connection" && button && button.dataset.connectionId) {
+            namespace.revokeConnection(root, button.dataset.connectionId);
         }
     }
 
@@ -138,7 +213,7 @@
         }
         var actionButton = event.target.closest("[data-action]");
         if (actionButton && root.contains(actionButton)) {
-            handleAction(root, actionButton.dataset.action);
+            handleAction(root, actionButton.dataset.action, actionButton);
             return;
         }
         var status = event.target.closest("[data-status]");
@@ -256,6 +331,12 @@
         configureAria(root, state);
         root.addEventListener("click", function (event) { handleClick(root, event); });
         root.addEventListener("input", function (event) { handleInput(root, event); });
+        root.addEventListener("submit", function (event) {
+            if (event.target.matches("[data-connect-form]")) {
+                event.preventDefault();
+                namespace.submitConnectForm(root, event.target);
+            }
+        });
         root.addEventListener("keydown", function (event) {
             namespace.trapDetailFocus(root, event);
             handleTabKeys(root, event);
@@ -266,6 +347,6 @@
         });
         namespace.renderConnectedLoading(root);
         namespace.loadCatalog(root);
-        namespace.loadConnected(root);
+        namespace.fetchContext(root).then(function () { namespace.loadConnected(root); });
     };
 })(window.GBIntegrationsCatalog = window.GBIntegrationsCatalog || {});

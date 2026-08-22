@@ -210,13 +210,11 @@
         return new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" }).format(date);
     }
 
-    function healthFor(connector) {
-        var raw = namespace.text(connector.health || connector.last_test_status || connector.test_status || connector.status,
-            connector.active === true ? "healthy" : "not reported");
-        var key = raw.toLowerCase();
-        var className = ["healthy", "ok", "active", "connected", "passing"].indexOf(key) !== -1 ? "is-healthy" :
-            (["failed", "error", "unhealthy", "offline"].indexOf(key) !== -1 ? "is-error" : "is-warning");
-        return { label: namespace.titleCase(raw), className: className };
+    function statusBadge(value) {
+        var key = String(value).toLowerCase();
+        var className = ["active", "healthy", "ok", "connected"].indexOf(key) !== -1 ? "is-healthy" :
+            (["revoked", "failed", "error", "unhealthy", "expired"].indexOf(key) !== -1 ? "is-error" : "is-warning");
+        return '<span class="integrations-health-badge ' + className + '">' + namespace.escapeHtml(namespace.titleCase(value, "Unknown")) + '</span>';
     }
 
     namespace.renderConnectedLoading = function (root) {
@@ -226,37 +224,57 @@
         view.innerHTML = '<div class="integrations-skeleton-grid" aria-hidden="true">' + skeletonCards(3) + '</div>';
     };
 
+    function testCell(row) {
+        if (!row.last_test_status) {
+            return '<span class="integrations-faint-text">Not tested</span>';
+        }
+        return statusBadge(row.last_test_status) +
+            '<span class="integrations-cell-subtext">' + namespace.escapeHtml(formatDate(row.last_tested_at)) + '</span>';
+    }
+
+    function connectionRow(row) {
+        var name = row.display_name || namespace.titleCase(row.provider_slug, "Connection");
+        var expires = row.expires_at ? formatDate(row.expires_at) : "No expiry";
+        var actions = '<div class="integrations-row-actions">' +
+            '<button class="integrations-button integrations-button-subtle" type="button" data-action="test-connection" data-connection-id="' + namespace.escapeHtml(row.id) + '">Test</button>' +
+            '<button class="integrations-button integrations-button-subtle" type="button" data-action="revoke-connection" data-connection-id="' + namespace.escapeHtml(row.id) + '">Revoke</button>' +
+            '</div>';
+        return '<tr><td data-label="Service"><span class="integrations-connected-name">' + namespace.escapeHtml(name) + '</span>' +
+            '<span class="integrations-connected-type">' + namespace.escapeHtml(namespace.titleCase(row.provider_slug, "Provider")) + ' / ' + namespace.escapeHtml(namespace.titleCase(row.auth_kind, "Auth")) + '</span></td>' +
+            '<td data-label="Status">' + statusBadge(row.status) + '</td>' +
+            '<td data-label="Last test">' + testCell(row) + '</td>' +
+            '<td data-label="Credential">v' + namespace.escapeHtml(String(row.credential_version)) + '</td>' +
+            '<td data-label="Expires">' + namespace.escapeHtml(expires) + '</td>' +
+            '<td data-label="Actions">' + actions + '</td></tr>';
+    }
+
     namespace.renderConnected = function (root) {
         var state = namespace.getState(root);
         var view = query(root, "[data-connected-view]");
         query(root, "[data-connected-status]").textContent = state.connectors.length + " connected service" + (state.connectors.length === 1 ? "" : "s");
         view.setAttribute("aria-busy", "false");
         if (!state.connectors.length) {
-            view.innerHTML = stateView("0", "No connected services yet", "Explore the catalog to review providers. Secure connection setup becomes available only through a documented adapter.", "show-explore", "Explore providers", false);
+            view.innerHTML = stateView("0", "No connected services yet", "Open an available provider in Explore and use Connect to store its credentials in the secure vault.", "show-explore", "Explore providers", false);
             return;
         }
-        var rows = state.connectors.map(function (connector) {
-            var health = healthFor(connector);
-            var name = namespace.text(connector.name, "Unnamed connector");
-            var type = namespace.text(connector.type || connector.kind || connector.connector_type || connector.provider, "Connector");
-            var lastSync = connector.last_sync || connector.last_synced_at || connector.last_sync_at;
-            var lastTest = connector.last_test || connector.last_test_at || connector.tested_at;
-            return '<tr><td data-label="Service"><span class="integrations-connected-name">' + namespace.escapeHtml(name) + '</span>' +
-                '<span class="integrations-connected-type">' + namespace.escapeHtml(namespace.titleCase(type)) + '</span></td>' +
-                '<td data-label="Health"><span class="integrations-health-badge ' + health.className + '">' + namespace.escapeHtml(health.label) + '</span></td>' +
-                '<td data-label="Last sync">' + namespace.escapeHtml(formatDate(lastSync)) + '</td>' +
-                '<td data-label="Last test">' + namespace.escapeHtml(formatDate(lastTest)) + '</td></tr>';
-        }).join("");
+        var rows = state.connectors.map(connectionRow).join("");
         view.innerHTML = '<div class="integrations-table-wrap"><table class="integrations-connected-table">' +
-            '<thead><tr><th>Service</th><th>Health</th><th>Last sync</th><th>Last test</th></tr></thead>' +
+            '<thead><tr><th>Service</th><th>Status</th><th>Last test</th><th>Credential</th><th>Expires</th><th>Actions</th></tr></thead>' +
             '<tbody>' + rows + '</tbody></table></div>' +
-            '<p class="integrations-readonly-note">Connection management is read-only here because no reliable write-action contract is exposed to this view.</p>';
+            '<p class="integrations-readonly-note">Credentials stay in the server-side vault; this inventory only shows sanitized metadata.</p>';
+    };
+
+    namespace.renderConnectedUnavailable = function (root) {
+        var view = query(root, "[data-connected-view]");
+        query(root, "[data-connected-status]").textContent = "Connected services unavailable";
+        view.setAttribute("aria-busy", "false");
+        view.innerHTML = stateView("!", "Secure connection control plane unavailable", "The workspace context service did not respond, so connections cannot be listed. The provider catalog in Explore remains available.", "retry-connected", "Try again", true);
     };
 
     namespace.renderConnectedError = function (root) {
         var view = query(root, "[data-connected-view]");
         query(root, "[data-connected-status]").textContent = "Connected services unavailable";
         view.setAttribute("aria-busy", "false");
-        view.innerHTML = stateView("!", "Connected services could not be loaded", "This is a local connector-service error. The provider catalog in Explore is still available.", "retry-connected", "Try again", true);
+        view.innerHTML = stateView("!", "Connected services could not be loaded", "This is a local connection-control-plane error. The provider catalog in Explore is still available.", "retry-connected", "Try again", true);
     };
 })(window.GBIntegrationsCatalog = window.GBIntegrationsCatalog || {});

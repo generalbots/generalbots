@@ -2,7 +2,9 @@
 
 (function (namespace) {
     namespace.catalogUrl = "/api/apps/integrations/catalog";
-    namespace.connectedUrl = "/api/integrations/connectors";
+    namespace.contextUrl = "/api/apps/integrations/context";
+    namespace.context = namespace.context || { botId: "", botName: "", loaded: false, error: "" };
+    namespace.allowedAuthKinds = ["api_key", "basic", "token", "access_key", "oauth2", "protocol"];
     namespace.states = namespace.states || new WeakMap();
     namespace.instanceCount = namespace.instanceCount || 0;
     namespace.categoryOrder = [
@@ -54,13 +56,33 @@
         }
     };
 
-    namespace.fetchJson = async function (url) {
+    namespace.authHeaders = function (extra) {
+        var token = localStorage.getItem("gb-access-token") ||
+            sessionStorage.getItem("gb-access-token") ||
+            localStorage.getItem("management_token") || "";
+        var headers = { "Accept": "application/json" };
+        if (token) {
+            headers["Authorization"] = "Bearer " + token;
+        }
+        return Object.assign(headers, extra && typeof extra === "object" ? extra : {});
+    };
+
+    namespace.fetchJson = async function (url, options) {
+        var config = options && typeof options === "object" ? options : {};
+        var headers = namespace.authHeaders(config.headers);
+        if (config.body !== undefined) {
+            headers["Content-Type"] = "application/json";
+        }
         var response = await fetch(url, {
+            method: config.method || "GET",
             credentials: "same-origin",
-            headers: { "Accept": "application/json" }
+            headers: headers,
+            body: config.body === undefined ? undefined : JSON.stringify(config.body)
         });
         if (!response.ok) {
-            throw new Error("Request failed with status " + response.status);
+            var failure = new Error("Request failed with status " + response.status);
+            failure.status = response.status;
+            throw failure;
         }
         var payload = await response.json();
         if (!payload || typeof payload !== "object") {
@@ -145,12 +167,33 @@
         };
     };
 
-    namespace.normalizeConnectors = function (payload) {
-        var items = Array.isArray(payload.connectors) ? payload.connectors : payload.items;
-        if (!Array.isArray(items)) {
-            throw new Error("Connector list is unavailable");
+    namespace.normalizeConnections = function (payload) {
+        var items = Array.isArray(payload.items) ? payload.items : [];
+        return items.filter(function (item) { return item && typeof item === "object"; })
+            .map(function (record) {
+                var version = Number(record.credential_version);
+                return {
+                    id: namespace.text(record.id, ""),
+                    provider_slug: namespace.text(record.provider_slug, ""),
+                    display_name: namespace.text(record.display_name, ""),
+                    auth_kind: namespace.text(record.auth_kind, ""),
+                    status: namespace.text(record.status, ""),
+                    credential_version: Number.isFinite(version) ? version : 0,
+                    last_test_status: namespace.text(record.last_test_status, ""),
+                    last_tested_at: namespace.text(record.last_tested_at, ""),
+                    expires_at: namespace.text(record.expires_at, "")
+                };
+            })
+            .filter(function (row) { return row.id; });
+    };
+
+    namespace.announce = function (root, message) {
+        var live = root.querySelector("[data-global-live]");
+        if (!live) {
+            return;
         }
-        return items.filter(function (item) { return item && typeof item === "object"; });
+        live.textContent = "";
+        window.requestAnimationFrame(function () { live.textContent = message; });
     };
 
     namespace.createState = function (root) {
@@ -166,6 +209,7 @@
             connectors: [],
             catalogStatus: "loading",
             connectedStatus: "loading",
+            contextStatus: "idle",
             search: "",
             category: "all",
             statusFilter: "all",
@@ -184,5 +228,39 @@
 
     namespace.getState = function (root) {
         return namespace.states.get(root);
+    };
+
+    namespace.fetchContext = async function (root) {
+        var state = namespace.getState(root);
+        if (!state || state.contextStatus === "loading" || state.contextStatus === "ready") {
+            return namespace.context;
+        }
+        state.contextStatus = "loading";
+        try {
+            var payload = await namespace.fetchJson(namespace.contextUrl);
+            namespace.context.botId = namespace.text(payload.bot_id, "");
+            namespace.context.botName = namespace.text(payload.bot_name, "");
+            namespace.context.loaded = !!namespace.context.botId;
+            namespace.context.error = "";
+            state.contextStatus = "ready";
+        } catch (error) {
+            namespace.context.botId = "";
+            namespace.context.botName = "";
+            namespace.context.loaded = false;
+            namespace.context.error = error && error.message ? error.message : "context unavailable";
+            state.contextStatus = "error";
+        }
+        return namespace.context;
+    };
+
+    namespace.connectionsUrl = function () {
+        var botId = namespace.text(namespace.context.botId, "");
+        return botId ? "/api/bots/" + encodeURIComponent(botId) + "/integration-connections" : "";
+    };
+
+    namespace.connectionActionUrl = function (connectionId, suffix) {
+        var base = namespace.connectionsUrl();
+        var id = namespace.text(connectionId, "");
+        return base && id ? base + "/" + encodeURIComponent(id) + (suffix || "") : "";
     };
 })(window.GBIntegrationsCatalog = window.GBIntegrationsCatalog || {});

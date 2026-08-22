@@ -133,6 +133,7 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
         ApiEndpoint { method: "POST", path: "/api/bots/:bot_id/integration-connections/:connection_id/rotate", summary: "Rotate connection credentials in Vault and increment credential_version" },
         ApiEndpoint { method: "GET", path: "/api/bots/:bot_id/integration-connections/:connection_id/events", summary: "List the sanitized audit event trail of an integration connection" },
         ApiEndpoint { method: "POST", path: "/api/bots/:bot_id/integration-actions/invoke", summary: "Execute an implemented provider action (provider, action, params); credentials load from Vault and never return" },
+        ApiEndpoint { method: "GET", path: "/api/apps/integrations/context", summary: "Resolve the default active bot id, name and integration-connections base URL for suite apps" },
 
         // Learning / LMS
         ApiEndpoint { method: "GET", path: "/api/learn/courses", summary: "List published courses with filters (category, difficulty, search)" },
