@@ -15,7 +15,12 @@ pub fn pool() -> Result<&'static DbPool, (StatusCode, String)> {
 
 pub fn map_diesel_err(e: diesel::result::Error) -> (StatusCode, String) {
     match e {
-        diesel::result::Error::NotFound => (StatusCode::NOT_FOUND, "Resource not found".to_string()),
-        other => (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {other}")),
+        diesel::result::Error::NotFound => {
+            (StatusCode::NOT_FOUND, "Resource not found".to_string())
+        }
+        other => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("DB error: {other}"),
+        ),
     }
 }

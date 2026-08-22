@@ -56,6 +56,27 @@ async fn inner_build_sub_router(
     #[cfg(all(feature = "integrations", not(feature = "sources")))]
     { *api_router = api_router.clone().merge(botintegrations::configure()); }
 
+    // Canonical tenant-scoped integration connection control plane (#939).
+    // Mounted only when the secrets manager initializes; a Vault outage skips
+    // the mount (fail closed) while the rest of the API keeps serving.
+    #[cfg(feature = "integrations")]
+    match botcoresecrets::SecretsManager::get_clone() {
+        Ok(secrets_manager) => {
+            let connections_state = std::sync::Arc::new(botintegrations::IntegrationState::new(
+                app_state.conn.clone(),
+                botintegrations::secrets::ConnectionVault::new(secrets_manager),
+            ));
+            *api_router = api_router
+                .clone()
+                .merge(botintegrations::configure_connection_routes().with_state(connections_state));
+        }
+        Err(error) => {
+            log::error!(
+                "integration connection control plane not mounted (secrets manager init failed): {error}"
+            );
+        }
+    }
+
     #[cfg(feature = "hr")]
     { *api_router = api_router.clone().merge(bothr::configure()); }
 

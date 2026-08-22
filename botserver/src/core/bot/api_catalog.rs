@@ -124,6 +124,14 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
         ApiEndpoint { method: "POST", path: "/api/integrations/connectors/:id/sync", summary: "Trigger an immediate sync for a data connector" },
         ApiEndpoint { method: "DELETE", path: "/api/integrations/connectors/:id/disconnect", summary: "Remove a data connector and its vaulted credentials" },
         ApiEndpoint { method: "GET", path: "/api/integrations/connectors/templates", summary: "Connector type catalog for typed configuration forms" },
+        // Integrations: tenant-scoped connection control plane (#939)
+        ApiEndpoint { method: "GET", path: "/api/bots/:bot_id/integration-connections", summary: "List integration connections for a bot; credentials stay in Vault" },
+        ApiEndpoint { method: "POST", path: "/api/bots/:bot_id/integration-connections", summary: "Create an integration connection (provider_slug, display_name, auth_kind); secret keys are stored in Vault only" },
+        ApiEndpoint { method: "GET", path: "/api/bots/:bot_id/integration-connections/:connection_id", summary: "Get one integration connection; never returns vault path or credential material" },
+        ApiEndpoint { method: "DELETE", path: "/api/bots/:bot_id/integration-connections/:connection_id", summary: "Delete an integration connection and purge its Vault credentials" },
+        ApiEndpoint { method: "POST", path: "/api/bots/:bot_id/integration-connections/:connection_id/test", summary: "Validate stored credentials shape (no outbound call); outcome is recorded as unverified" },
+        ApiEndpoint { method: "POST", path: "/api/bots/:bot_id/integration-connections/:connection_id/rotate", summary: "Rotate connection credentials in Vault and increment credential_version" },
+        ApiEndpoint { method: "GET", path: "/api/bots/:bot_id/integration-connections/:connection_id/events", summary: "List the sanitized audit event trail of an integration connection" },
 
         // Learning / LMS
         ApiEndpoint { method: "GET", path: "/api/learn/courses", summary: "List published courses with filters (category, difficulty, search)" },
