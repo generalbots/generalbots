@@ -9,21 +9,34 @@ pub use types::{CatalogResponse, LlmAction, LlmProviderSummary, ProviderItem};
 use axum::Router;
 
 use types::{
-    ActionTemplate, CatalogTotals, Category, CategorySummary, ProviderAction, ProviderSeed, Risk,
-    Status,
+    ActionTemplate, CatalogTotals, Category, CategorySummary, ProviderAction, ProviderSeed,
 };
 
 pub fn register<S: Clone + Send + Sync + 'static>(router: Router<S>) -> Router<S> {
     routes::register(router)
 }
 
+/// Truthful implementation flag (#950): an action is implemented only when
+/// the provider seed is LLM-available AND a live adapter in the
+/// botintegrations registry advertises the exact action key. The catalog can
+/// therefore never advertise an action that would fail with
+/// `action_not_available`.
 fn action_is_implemented(seed: &ProviderSeed, action: &ActionTemplate) -> bool {
-    seed.llm_available
-        && match seed.status {
-            Status::Built => true,
-            Status::Partial => action.risk == Risk::Low && !action.requires_approval,
-            Status::Planned | Status::Unsupported => false,
-        }
+    seed.llm_available && registry_action_names(seed.id).contains(&action.key)
+}
+
+/// Action keys backed by a live adapter, keyed by provider id.
+#[cfg(feature = "integrations")]
+fn registry_action_names(provider_id: &str) -> Vec<&'static str> {
+    botintegrations::providers::implemented_action_names(provider_id).to_vec()
+}
+
+/// Without the `integrations` feature no adapter is compiled in, so no
+/// catalog action may advertise itself as implemented.
+#[cfg(not(feature = "integrations"))]
+fn registry_action_names(provider_id: &str) -> Vec<&'static str> {
+    log::debug!("adapter registry unavailable in this build for {provider_id}");
+    Vec::new()
 }
 
 fn expand(seed: &ProviderSeed) -> ProviderItem {

@@ -13,6 +13,12 @@ fn provider_ids_and_names_are_unique() {
     assert_eq!(catalog.categories.len(), 8);
     assert_eq!(catalog.totals.providers, 129);
     assert_eq!(catalog.totals.actions, 693);
+    // Slice 1 (#950): AWS is the only provider with a live adapter; all
+    // thirteen of its catalog actions are implemented when the integrations
+    // feature compiles the registry in, and none otherwise.
+    #[cfg(feature = "integrations")]
+    assert_eq!(catalog.totals.implemented_actions, 13);
+    #[cfg(not(feature = "integrations"))]
     assert_eq!(catalog.totals.implemented_actions, 0);
     let mut ids = HashSet::new();
     let mut names = HashSet::new();
@@ -43,8 +49,18 @@ fn aws_auth_and_actions_are_explicit_and_guarded() {
     };
     assert_eq!(aws.auth.method, AuthMethod::AccessKey);
     assert!(aws.official_docs.is_some());
-    assert!(!aws.llm_available);
-    assert!(aws.actions.iter().all(|action| !action.implemented));
+    assert!(aws.llm_available);
+    // Slice 1 (#950): the implemented flags mirror
+    // botintegrations::providers::registry exactly for this build.
+    let implemented_count = aws
+        .actions
+        .iter()
+        .filter(|action| action.implemented)
+        .count();
+    #[cfg(feature = "integrations")]
+    assert_eq!(implemented_count, 13);
+    #[cfg(not(feature = "integrations"))]
+    assert_eq!(implemented_count, 0);
 
     for key in ["access_key_id", "secret_access_key"] {
         let field = aws.auth.fields.iter().find(|field| field.key == key);

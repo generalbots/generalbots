@@ -4,6 +4,7 @@ use axum::routing::{get, post};
 use axum::Router;
 
 use crate::handlers;
+use crate::handlers_actions;
 use crate::handlers_connections;
 use crate::handlers_lifecycle;
 use crate::state::IntegrationState;
@@ -51,5 +52,9 @@ pub fn configure_connection_routes() -> Router<Arc<IntegrationState>> {
         .route(
             "/api/bots/:bot_id/integration-connections/:connection_id/events",
             get(handlers_lifecycle::list_events),
+        )
+        .route(
+            "/api/bots/:bot_id/integration-actions/invoke",
+            post(handlers_actions::invoke_action),
         )
 }

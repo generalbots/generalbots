@@ -1,9 +1,9 @@
-/// Allowlist sanitizer for integration connection event metadata (#939).
-///
-/// Event metadata is audit data, never credential storage. Unknown keys are
-/// stripped recursively, keys whose names look secret-ish are always dropped,
-/// long strings are truncated, oversized arrays are discarded and recursion
-/// depth is capped so hostile payloads cannot bloat the audit trail.
+//! Allowlist sanitizer for integration connection event metadata (#939).
+//!
+//! Event metadata is audit data, never credential storage. Unknown keys are
+//! stripped recursively, keys whose names look secret-ish are always dropped,
+//! long strings are truncated, oversized arrays are discarded and recursion
+//! depth is capped so hostile payloads cannot bloat the audit trail.
 
 /// Maximum recursion depth accepted for event metadata payloads.
 pub const MAX_METADATA_DEPTH: usize = 4;

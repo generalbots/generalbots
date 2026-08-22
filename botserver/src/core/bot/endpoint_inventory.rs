@@ -153,6 +153,7 @@ pub const ALL_ROUTES: &[ApiEndpoint] = &[
     ApiEndpoint { method: "POST", path: "/api/bots/:bot_id/integration-connections/:connection_id/test", summary: "registered in crates/botintegrations/src/routes.rs; shape check only, no outbound call" },
     ApiEndpoint { method: "POST", path: "/api/bots/:bot_id/integration-connections/:connection_id/rotate", summary: "registered in crates/botintegrations/src/routes.rs; writes Vault and bumps credential_version" },
     ApiEndpoint { method: "GET", path: "/api/bots/:bot_id/integration-connections/:connection_id/events", summary: "registered in crates/botintegrations/src/routes.rs; sanitized audit trail" },
+    ApiEndpoint { method: "POST", path: "/api/bots/:bot_id/integration-actions/invoke", summary: "registered in crates/botintegrations/src/routes.rs; executes a registered provider action with Vault-only credentials" },
     ApiEndpoint { method: "POST", path: "/api/bots", summary: "registered in src/main_module/routes/bot_tree.rs" },
     ApiEndpoint { method: "POST", path: "/api/brazil/forms/cte", summary: "registered in crates/botuifragments/src/ui_fragments/brazil.rs" },
     ApiEndpoint { method: "POST", path: "/api/brazil/forms/nfe", summary: "registered in crates/botuifragments/src/ui_fragments/brazil.rs" },

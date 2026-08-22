@@ -32,18 +32,26 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         &API_KEY,
         AI_PLATFORM_ACTIONS,
     ),
-    provider(
-        "aws",
-        "AWS",
-        Category::Developer,
-        Strategy::Integrate,
-        Status::Planned,
-        Priority::Must,
-        Some("botintegrations"),
-        Some("https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html"),
-        &AWS,
-        AWS_ACTIONS,
-    ),
+    // AWS is the first provider with a live adapter (#950 slice 1); the
+    // seed flips llm_available while `action_is_implemented` keeps the
+    // per-action truth in sync with botintegrations::providers::registry.
+    ProviderSeed {
+        llm_available: true,
+        ..provider(
+            "aws",
+            "AWS",
+            Category::Developer,
+            Strategy::Integrate,
+            Status::Planned,
+            Priority::Must,
+            Some("botintegrations"),
+            Some(
+                "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_access-keys.html",
+            ),
+            &AWS,
+            AWS_ACTIONS,
+        )
+    },
     provider(
         "google_cloud",
         "Google Cloud",
