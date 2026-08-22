@@ -183,6 +183,28 @@ impl SecretsManager {
             .ok_or_else(|| anyhow!("Key '{}' not found in '{}'", key, path))
     }
 
+    /// Reads a secret strictly from Vault - never falls back to environment
+    /// variables and never serves env-derived cache entries. Callers that
+    /// must fail closed (e.g. integration connection envelopes) use this.
+    pub async fn get_secret_strict(&self, path: &str) -> Result<HashMap<String, String>> {
+        if !self.enabled {
+            return Err(anyhow!("Vault is not enabled"));
+        }
+
+        let client = self
+            .client
+            .as_ref()
+            .ok_or_else(|| anyhow!("No Vault client"))?;
+
+        let data: HashMap<String, String> = kv2::read(client.as_ref(), "secret", path).await?;
+
+        if self.cache_ttl > 0 {
+            self.cache_secret(path, data.clone()).await;
+        }
+
+        Ok(data)
+    }
+
     pub fn get_value_blocking(&self, path: &str, key: &str, default: &str) -> String {
         if let Ok(secrets) = get_from_env(path) {
             if let Some(value) = secrets.get(key) {
