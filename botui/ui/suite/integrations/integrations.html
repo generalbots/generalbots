@@ -1,83 +1,122 @@
 <link rel="stylesheet" href="/suite/integrations/integrations.css">
-<div class="int-app">
-<header class="app-header">
-<h1>Integration Platform</h1>
-<button class="btn-refresh" id="refreshBtn">&#8635;</button>
-</header>
-<nav class="tab-bar">
-<button class="tab active" data-tab="available">Available</button>
-<button class="tab" data-tab="connected">Connected</button>
-<button class="tab" data-tab="etl">ETL Jobs</button>
-</nav>
-<main class="tab-content">
-<section class="tab-panel active" id="panel-available">
-<div class="search-bar">
-<input type="text" class="search-input" id="connectorSearch" placeholder="Search connectors...">
+<link rel="stylesheet" href="/suite/integrations/integrations-controls.css">
+<link rel="stylesheet" href="/suite/integrations/integrations-catalog.css">
+<link rel="stylesheet" href="/suite/integrations/integrations-panel.css">
+<link rel="stylesheet" href="/suite/integrations/integrations-detail-content.css">
+<link rel="stylesheet" href="/suite/integrations/integrations-responsive.css">
+
+<div class="integrations-app" data-integrations-app>
+    <div class="integrations-shell">
+        <header class="integrations-header">
+            <div class="integrations-heading">
+                <p class="integrations-eyebrow">Connection catalog</p>
+                <h1>Integrations</h1>
+                <p class="integrations-intro">
+                    Review trusted connections that can power chat and other apps. Inspect every
+                    capability and permission before an adapter is configured.
+                </p>
+            </div>
+            <div class="integrations-header-actions">
+                <span class="integrations-catalog-health" data-catalog-health role="status" aria-live="polite">
+                    <span class="integrations-health-dot" aria-hidden="true"></span>
+                    <span data-catalog-health-text>Loading catalog</span>
+                </span>
+                <button class="integrations-button integrations-button-subtle" type="button" data-action="refresh">
+                    Refresh
+                </button>
+            </div>
+        </header>
+
+        <nav class="integrations-navigation" aria-label="Integration views">
+            <div class="integrations-tabs" role="tablist" aria-label="Integration views">
+                <button class="integrations-tab" type="button" role="tab" data-tab="explore"
+                    aria-selected="true" tabindex="0">Explore</button>
+                <button class="integrations-tab" type="button" role="tab" data-tab="connected"
+                    aria-selected="false" tabindex="-1">Connected</button>
+            </div>
+        </nav>
+
+        <main class="integrations-main">
+            <section class="integrations-panel" role="tabpanel" data-panel="explore">
+                <div class="integrations-toolbar">
+                    <label class="integrations-search">
+                        <span class="integrations-control-label">Search providers and actions</span>
+                        <span class="integrations-search-control">
+                            <span class="integrations-search-mark" aria-hidden="true"></span>
+                            <input type="search" data-search autocomplete="off"
+                                placeholder="Search AWS, messaging, storage..."
+                                aria-label="Search integration providers and actions">
+                        </span>
+                    </label>
+
+                    <fieldset class="integrations-filter-group">
+                        <legend>Availability</legend>
+                        <div class="integrations-segments" aria-label="Filter by availability">
+                            <button type="button" data-status="all" aria-pressed="true">All</button>
+                            <button type="button" data-status="must" aria-pressed="false">Must</button>
+                            <button type="button" data-status="available" aria-pressed="false">Available</button>
+                        </div>
+                    </fieldset>
+                </div>
+
+                <div class="integrations-category-row" data-category-filters role="tablist"
+                    aria-label="Integration categories" aria-busy="true"></div>
+
+                <div data-category-panel role="tabpanel">
+                    <div class="integrations-results-bar">
+                        <p class="integrations-result-status" data-result-status role="status" aria-live="polite">
+                            Loading providers
+                        </p>
+                        <div class="integrations-view-toggle" role="group" aria-label="Catalog layout">
+                            <button type="button" data-view="grid" aria-pressed="true">Cards</button>
+                            <button type="button" data-view="list" aria-pressed="false">List</button>
+                        </div>
+                    </div>
+
+                    <div data-explore-notice></div>
+                    <div class="integrations-catalog" data-catalog-view aria-busy="true"></div>
+                </div>
+            </section>
+
+            <section class="integrations-panel" role="tabpanel" data-panel="connected" hidden>
+                <div class="integrations-section-heading">
+                    <div>
+                        <p class="integrations-eyebrow">Runtime inventory</p>
+                        <h2>Connected services</h2>
+                        <p>Health and recent activity reported by the connector service.</p>
+                    </div>
+                    <button class="integrations-button integrations-button-subtle" type="button"
+                        data-action="refresh-connected">Refresh connected</button>
+                </div>
+                <p class="integrations-result-status" data-connected-status role="status" aria-live="polite">
+                    Loading connected services
+                </p>
+                <div class="integrations-connected" data-connected-view aria-busy="true"></div>
+            </section>
+        </main>
+    </div>
+
+    <div class="integrations-detail-layer" data-detail-layer hidden aria-hidden="true">
+        <button class="integrations-detail-backdrop" type="button" data-action="close-details"
+            tabindex="-1" aria-hidden="true"></button>
+        <aside class="integrations-detail-panel" data-detail-panel role="dialog" aria-modal="true" tabindex="-1">
+            <header class="integrations-detail-header">
+                <div>
+                    <p class="integrations-eyebrow">Provider detail</p>
+                    <h2 data-detail-title>Integration details</h2>
+                </div>
+                <button class="integrations-close-button" type="button" data-action="close-details"
+                    aria-label="Close integration details">Close</button>
+            </header>
+            <div class="integrations-detail-body" data-detail-body></div>
+        </aside>
+    </div>
+
+    <div class="integrations-visually-hidden" data-global-live aria-live="polite" aria-atomic="true"></div>
 </div>
-<div class="connector-grid" id="connectorGrid"></div>
-</section>
-<section class="tab-panel" id="panel-connected">
-<div class="table-section">
-<h2>Active Connectors</h2>
-<table class="data-table" id="connectedTable">
-<thead><tr><th>Connector</th><th>Type</th><th>Status</th><th>Last Sync</th><th>Records</th><th>Actions</th></tr></thead>
-<tbody></tbody>
-</table>
-</div>
-</section>
-<section class="tab-panel" id="panel-etl">
-<div class="section-header">
-<h2>ETL Jobs</h2>
-<button class="btn-primary" id="createJobBtn">Create Job</button>
-</div>
-<div class="table-section">
-<table class="data-table" id="etlTable">
-<thead><tr><th>Job Name</th><th>Source</th><th>Destination</th><th>Schedule</th><th>Last Run</th><th>Status</th><th>Actions</th></tr></thead>
-<tbody></tbody>
-</table>
-</div>
-<div class="modal-overlay" id="etlModal">
-<div class="modal">
-<div class="modal-header">
-<h3>Create ETL Job</h3>
-<button class="modal-close" id="closeEtlModal">&times;</button>
-</div>
-<form id="etlForm">
-<div class="form-group">
-<label>Job Name</label>
-<input type="text" id="jobName" required>
-</div>
-<div class="form-row">
-<div class="form-group">
-<label>Source</label>
-<select id="jobSource" required></select>
-</div>
-<div class="form-group">
-<label>Destination</label>
-<select id="jobDest" required></select>
-</div>
-</div>
-<div class="form-group">
-<label>Schedule</label>
-<select id="jobSchedule" required>
-<option value="manual">Manual</option>
-<option value="hourly">Hourly</option>
-<option value="daily">Daily</option>
-<option value="weekly">Weekly</option>
-</select>
-</div>
-<div class="form-group">
-<label>Transform Rule (optional)</label>
-<textarea id="jobTransform" rows="3" placeholder="JSON transform configuration"></textarea>
-</div>
-<div class="form-actions">
-<button type="button" class="btn-secondary" id="cancelEtlBtn">Cancel</button>
-<button type="submit" class="btn-primary">Create</button>
-</div>
-</form>
-</div>
-</div>
-</section>
-</main>
-</div>
-<script src="/suite/integrations/integrations.js"></script>
+
+<script src="/suite/integrations/modules/01_state.js"></script>
+<script src="/suite/integrations/modules/02_render.js"></script>
+<script src="/suite/integrations/modules/03_details.js"></script>
+<script src="/suite/integrations/modules/04_events.js"></script>
+<script src="/suite/integrations/modules/99_init.js"></script>

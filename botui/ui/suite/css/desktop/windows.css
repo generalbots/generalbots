@@ -1,5 +1,3 @@
-"use strict";
-
 /* ============================================ */
 /* GB FLUENT — Window Chrome                    */
 /* Design token contract + visible borders      */
@@ -9,12 +7,14 @@
 /* Fallbacks cascade: new token → glass token → sentient → system defaults */
 
 :root {
+  --gb-bg: var(--bg-primary, var(--bg, var(--surface, #ffffff)));
+  --app-bg: var(--gb-bg);
   --win-bg: var(--glass-bg, var(--surface, #161616));
   --win-blur: var(--glass-backdrop, blur(16px) saturate(150%));
   --win-radius: 14px;
   --win-border-width: 1.5px;
   --win-border-color: var(--glass-border-color, rgba(80,80,90,0.35));
-  --win-border-active: var(--primary, var(--accent, #84d669));
+  --win-border-active: var(--accent-color, var(--gb-accent, #84d669));
   --win-shadow:
     0 1px 2px rgba(0,0,0,.18),
     0 6px 16px rgba(0,0,0,.16),
@@ -38,8 +38,6 @@
 
 .window-element-glass {
   position: absolute;
-  width: 1000px;
-  height: 500px;
   background: var(--win-bg);
   backdrop-filter: var(--win-blur);
   -webkit-backdrop-filter: var(--win-blur);
@@ -87,8 +85,6 @@
 
 .window-element {
   position: absolute;
-  width: 1000px;
-  height: 500px;
   background: var(--surface, #ffffff);
   border-radius: var(--win-radius);
   box-shadow: var(--win-shadow);
@@ -111,6 +107,15 @@
 
 .window-element:not(.window-focused) {
   filter: brightness(0.96) saturate(0.92);
+}
+
+.window-element-glass,
+.window-element {
+  width: clamp(320px, 78vw, 1000px);
+  height: clamp(320px, 62vh, 500px);
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 72px);
+  max-height: calc(100dvh - 72px);
 }
 
 
@@ -213,7 +218,7 @@
 .window-body-glass {
   flex: 1;
   overflow-y: auto;
-  background: var(--win-bg);
+  background: var(--app-bg, var(--gb-bg, var(--surface, #ffffff)));
   padding: 0;
   position: relative;
 }
@@ -253,6 +258,30 @@ body.window-maximized .window-element {
     linear-gradient(135deg, transparent 30%, var(--win-border-color) 30%, var(--win-border-color) 40%, transparent 40%),
     linear-gradient(135deg, transparent 48%, var(--win-border-color) 48%, var(--win-border-color) 58%, transparent 58%),
     linear-gradient(135deg, transparent 66%, var(--win-border-color) 66%, var(--win-border-color) 76%, transparent 76%);
+}
+
+@media (max-width: 640px) {
+  .window-element-glass,
+  .window-element {
+    top: 8px !important;
+    left: 8px !important;
+    width: calc(100vw - 16px);
+    height: calc(100vh - 80px);
+    height: calc(100dvh - 80px);
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 80px);
+    max-height: calc(100dvh - 80px);
+    border-radius: min(var(--win-radius), 12px);
+  }
+
+  .window-header-glass,
+  .window-header {
+    padding-inline: 10px;
+  }
+
+  .window-body {
+    padding: 12px;
+  }
 }
 
 /* ── Reduced motion ── */
@@ -307,8 +336,8 @@ body.window-maximized .window-element {
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: var(--accent, #d4f505);
-  box-shadow: 0 0 4px var(--accent, #d4f505);
+  background: var(--accent-color, var(--gb-accent, #d4f505));
+  box-shadow: 0 0 4px var(--accent-color, var(--gb-accent, #d4f505));
 }
 
 .statusbar-item[data-state="warn"]::before,
@@ -319,8 +348,8 @@ body.window-maximized .window-element {
 
 .statusbar-item[data-state="error"]::before,
 .status-item[data-state="error"]::before {
-  background: #ef4444;
-  box-shadow: 0 0 4px #ef4444;
+  background: var(--error-color, #ef4444);
+  box-shadow: 0 0 4px var(--error-color, #ef4444);
 }
 
 /* Tooltips: any element carrying the data-tooltip attribute inside an app

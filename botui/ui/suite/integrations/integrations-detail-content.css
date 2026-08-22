@@ -1,0 +1,182 @@
+.integrations-app .integrations-detail-section {
+    padding: 21px 0;
+    border-top: 1px solid var(--integrations-border-soft);
+}
+
+.integrations-app .integrations-detail-section:first-of-type {
+    border-top: 0;
+}
+
+.integrations-app .integrations-detail-section-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.integrations-app .integrations-detail-section h4 {
+    margin: 0;
+    font-size: 14px;
+    letter-spacing: -.01em;
+}
+
+.integrations-app .integrations-detail-section-head span {
+    color: var(--integrations-faint);
+    font-size: 10px;
+}
+
+.integrations-app .integrations-guidance {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--integrations-muted);
+    font-size: 12px;
+}
+
+.integrations-app .integrations-guidance li + li {
+    margin-top: 7px;
+}
+
+.integrations-app .integrations-field-list {
+    display: grid;
+    gap: 12px;
+}
+
+.integrations-app .integrations-field {
+    display: grid;
+    gap: 7px;
+}
+
+.integrations-app .integrations-field-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--integrations-text);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.integrations-app .integrations-field-meta {
+    display: inline-flex;
+    gap: 5px;
+    color: var(--integrations-faint);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.integrations-app .integrations-field input {
+    width: 100%;
+    min-height: 42px;
+    padding: 9px 12px;
+    border: 1px solid var(--integrations-border);
+    border-radius: var(--integrations-radius-sm);
+    color: var(--integrations-muted);
+    background: var(--integrations-soft);
+    opacity: 1;
+}
+
+.integrations-app .integrations-field input:disabled {
+    cursor: not-allowed;
+}
+
+.integrations-app .integrations-field-help {
+    margin: -2px 0 0;
+    color: var(--integrations-faint);
+    font-size: 10px;
+}
+
+.integrations-app .integrations-action-list {
+    display: grid;
+    gap: 10px;
+}
+
+.integrations-app .integrations-action {
+    padding: 14px;
+    border: 1px solid var(--integrations-border);
+    border-radius: var(--integrations-radius);
+    background: var(--integrations-surface);
+}
+
+.integrations-app .integrations-action-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.integrations-app .integrations-action-title {
+    min-width: 0;
+}
+
+.integrations-app .integrations-action-title strong {
+    display: block;
+    font-size: 12px;
+}
+
+.integrations-app .integrations-action-verb {
+    display: inline-block;
+    margin-bottom: 4px;
+    color: var(--integrations-accent);
+    font-family: ui-monospace, "SFMono-Regular", Consolas, monospace;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .05em;
+}
+
+.integrations-app .integrations-action p {
+    margin: 8px 0 0;
+    color: var(--integrations-muted);
+    font-size: 11px;
+}
+
+.integrations-app .integrations-action-details {
+    margin-top: 10px;
+    color: var(--integrations-muted);
+    font-size: 10px;
+}
+
+.integrations-app .integrations-action-details summary {
+    min-height: 44px;
+    padding: 7px 0;
+    color: var(--integrations-accent);
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.integrations-app .integrations-param-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 5px;
+}
+
+.integrations-app .integrations-docs-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 9px 14px;
+    border: 1px solid var(--integrations-accent);
+    border-radius: var(--integrations-radius-sm);
+    color: var(--integrations-accent);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 750;
+}
+
+.integrations-app .integrations-docs-link:hover {
+    background: var(--integrations-accent-soft);
+}
+
+.integrations-app .integrations-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}

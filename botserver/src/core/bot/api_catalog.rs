@@ -177,6 +177,8 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
         ApiEndpoint { method: "GET", path: "/api/ui/research/web/instant", summary: "Instant answer from the web" },
         // Catalog / apps
         ApiEndpoint { method: "GET", path: "/api/apps/catalog", summary: "Suite application catalog" },
+        ApiEndpoint { method: "GET", path: "/api/apps/integrations/catalog", summary: "Search the integration provider and action catalog" },
+        ApiEndpoint { method: "GET", path: "/api/apps/integrations/catalog/:provider", summary: "Get one integration provider and its action catalog" },
         ApiEndpoint { method: "GET", path: "/api/catalog/products", summary: "Public product catalog" },
         ApiEndpoint { method: "GET", path: "/api/catalog/plans", summary: "Public plans catalog" },
         ApiEndpoint { method: "GET", path: "/api/catalog/prices.json", summary: "Price list (JSON-LD)" },
@@ -261,7 +263,7 @@ pub fn api_command_instructions(role: &str) -> String {
 
     // Only the most common commands are named explicitly to avoid prompt bloat.
     lines.push("Common commands you may call directly:".to_string());
-    for name in ["apps.find", "api.find", "api.exec", "service.tax", "banking.diagnosis", "drive.list"] {
+    for name in ["apps.find", "api.find", "api.exec", "integrations.actions.list", "service.tax", "banking.diagnosis", "drive.list"] {
         if let Some(cmd) = command_by_name(name) {
             let params = cmd
                 .params
@@ -519,6 +521,25 @@ pub async fn execute_command(
         }
         "apps.find" => Ok(json!({ "apps": find_apps(str_of("query").unwrap_or_default().as_str()) })),
         "api.find" => Ok(json!({ "matches": find_api_entries(state, user_id, str_of("query").unwrap_or_default().as_str()) })),
+        "integrations.catalog.search" => {
+            let providers = crate::apps::integration_catalog::llm_search(
+                str_of("q").as_deref(),
+                str_of("category").as_deref(),
+                str_of("status").as_deref(),
+            );
+            Ok(json!({ "provider_count": providers.len(), "providers": providers }))
+        }
+        "integrations.actions.list" => {
+            let provider = str_of("provider")
+                .ok_or_else(|| "params.provider is required".to_string())?;
+            let actions = crate::apps::integration_catalog::llm_actions(&provider)
+                .ok_or_else(|| "integration provider not found".to_string())?;
+            Ok(json!({
+                "provider": provider,
+                "action_count": actions.len(),
+                "actions": actions,
+            }))
+        }
         "api.exec" => {
             let method = str_of("method").ok_or_else(|| "params.method is required".to_string())?;
             let path = str_of("path").ok_or_else(|| "params.path is required".to_string())?;

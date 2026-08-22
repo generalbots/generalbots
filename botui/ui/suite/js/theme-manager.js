@@ -1,12 +1,12 @@
 // Unified Theme Manager - Dropdown only, no light/dark toggle
 const ThemeManager = (() => {
-  let currentThemeId = "default";
+  let currentThemeId = "mindfulness";
   let subscribers = [];
 
   // Bot ID to theme mapping (configured via config.csv theme-base field)
   const botThemeMap = {
-    // Default bot uses light theme with brown accents
-    default: "aurora",
+    // Default bot uses the recommended calm workspace theme
+    default: "mindfulness",
     // Cristo bot uses typewriter theme (classic typewriter style)
     cristo: "typewriter",
     // Salesianos bot uses light theme with blue accents
@@ -25,6 +25,12 @@ const ThemeManager = (() => {
   }
 
   const themes = [
+    {
+      id: "mindfulness",
+      name: "Mindfulness",
+      file: "mindfulness.css",
+      category: "recommended",
+    },
     { id: "aurora", name: "🌌 Aurora", file: "aurora.css", category: "fluent" },
     { id: "mica", name: "🪟 Mica", file: "mica.css", category: "fluent" },
     { id: "sonoma", name: "🍏 Sonoma", file: "sonoma.css", category: "fluent" },
@@ -72,15 +78,16 @@ const ThemeManager = (() => {
       return;
     }
 
+    document.documentElement.setAttribute("data-theme", id);
+
     const old = document.getElementById("theme-css");
     if (old) old.remove();
 
     if (!theme.file) {
-      currentThemeId = "default";
+      currentThemeId = theme.id;
       const botId = getCurrentBotId();
-      localStorage.setItem(`gb-theme-${botId}`, "default");
-      // Re-enable sentient theme for default
-      document.documentElement.setAttribute("data-theme", "sentient");
+      localStorage.setItem(`gb-theme-${botId}`, theme.id);
+      document.documentElement.setAttribute("data-theme", theme.id);
       updateDropdown();
       return;
     }
@@ -90,16 +97,13 @@ const ThemeManager = (() => {
     link.rel = "stylesheet";
     link.href = `/suite/public/themes/${theme.file}`;
     link.onload = () => {
+      if (document.getElementById("theme-css") !== link) return;
       console.log("✓ Theme loaded:", theme.name);
       currentThemeId = id;
       const botId = getCurrentBotId();
       localStorage.setItem(`gb-theme-${botId}`, id);
 
-      // Keep data-theme="sentient" on html so CSS selectors work
-      // The inline styles will override the colors
-      if (!document.documentElement.getAttribute("data-theme")) {
-        document.documentElement.setAttribute("data-theme", "sentient");
-      }
+      document.documentElement.setAttribute("data-theme", id);
 
       // Remove data-theme from body to prevent base.css theme rules from overriding
       document.body.removeAttribute("data-theme");
@@ -114,6 +118,8 @@ const ThemeManager = (() => {
           rootStyle.getPropertyValue("--background")?.trim() || "0 0% 100%";
         const foreground =
           rootStyle.getPropertyValue("--foreground")?.trim() || "222 47% 11%";
+        const mutedForeground =
+          rootStyle.getPropertyValue("--muted-foreground")?.trim() || foreground;
         const card = rootStyle.getPropertyValue("--card")?.trim() || "0 0% 98%";
         const border =
           rootStyle.getPropertyValue("--border")?.trim() || "214 32% 91%";
@@ -136,7 +142,9 @@ const ThemeManager = (() => {
           if (!hslStr) return null;
           const match = hslStr
             .trim()
-            .match(/([0-9.]+)\s+([0-9.]+)%\s+([0-9.]+)%/);
+            .match(
+              /^(-?[0-9.]+)\s+([0-9.]+)%\s+([0-9.]+)%(?:\s*\/\s*[0-9.]+%?)?$/,
+            );
           if (match) {
             return [
               parseFloat(match[1]),
@@ -145,6 +153,12 @@ const ThemeManager = (() => {
             ];
           }
           return null;
+        };
+
+        const toCssColor = (value, fallback) => {
+          const normalized = value?.trim();
+          if (!normalized) return fallback;
+          return parseHsl(normalized) ? `hsl(${normalized})` : normalized;
         };
 
         const getContrastYIQ = (hexcolor) => {
@@ -166,76 +180,46 @@ const ThemeManager = (() => {
 
         const bgHsl = parseHsl(background);
         const fgHsl = parseHsl(foreground);
-        const cardHsl = parseHsl(card);
-        const borderHsl = parseHsl(border);
+        const bgColor = toCssColor(background, "#ffffff");
+        const primaryColor = toCssColor(primary, "#3b82f6");
+        const cardColor = toCssColor(card, "#fafafa");
+        const secondaryBgColor = rootStyle.getPropertyValue("--gb-bg-secondary")?.trim()
+          || cardColor;
+        const surfaceColor = rootStyle.getPropertyValue("--gb-surface")?.trim()
+          || cardColor;
+        const borderColor = toCssColor(border, "#e2e8f0");
+        const borderLightColor = rootStyle.getPropertyValue("--gb-border-light")?.trim()
+          || borderColor;
+        const hoverColor = rootStyle.getPropertyValue("--gb-surface-hover")?.trim()
+          || `color-mix(in srgb, ${surfaceColor} 94%, ${primaryColor})`;
+        const activeColor = rootStyle.getPropertyValue("--gb-surface-active")?.trim()
+          || `color-mix(in srgb, ${surfaceColor} 86%, ${primaryColor})`;
+        const calculatedText = bgHsl
+          ? getContrastYIQ(hslToHex(...bgHsl))
+          : getContrastYIQ(bgColor);
+        const textColor = fgHsl
+          ? hslToHex(...fgHsl)
+          : toCssColor(foreground, calculatedText);
+        const secondaryTextColor = toCssColor(mutedForeground, textColor);
+        const mutedTextColor = rootStyle.getPropertyValue("--gb-text-muted")?.trim()
+          || secondaryTextColor;
 
-        let calculatedTextHex = "#ffffff";
-
-        if (bgHsl) {
-          const bgHex = hslToHex(...bgHsl);
-          document.documentElement.style.setProperty("--bg", bgHex);
-          document.documentElement.style.setProperty("--bg-secondary", bgHex);
-          document.documentElement.style.setProperty(
-            "--primary-bg",
-            `hsl(${background})`,
-          );
-          document.documentElement.style.setProperty("--header-bg", bgHex);
-          document.documentElement.style.setProperty("--glass-bg", bgHex);
-          document.documentElement.style.setProperty("--sidebar-bg", bgHex);
-          calculatedTextHex = getContrastYIQ(bgHex);
-        }
-        if (fgHsl) {
-          const textHex = hslToHex(...fgHsl);
-          document.documentElement.style.setProperty("--text", textHex);
-          document.documentElement.style.setProperty("--text-primary", textHex);
-          document.documentElement.style.setProperty(
-            "--text-secondary",
-            textHex,
-          );
-          document.documentElement.style.setProperty("--text-muted", textHex);
-          document.documentElement.style.setProperty(
-            "--primary-fg",
-            `hsl(${foreground})`,
-          );
-        } else if (bgHsl) {
-          document.documentElement.style.setProperty(
-            "--text",
-            calculatedTextHex,
-          );
-          document.documentElement.style.setProperty(
-            "--text-primary",
-            calculatedTextHex,
-          );
-          document.documentElement.style.setProperty(
-            "--text-secondary",
-            calculatedTextHex,
-          );
-          document.documentElement.style.setProperty(
-            "--text-muted",
-            calculatedTextHex,
-          );
-        }
-        if (cardHsl) {
-          const surfaceHex = hslToHex(...cardHsl);
-          document.documentElement.style.setProperty("--surface", surfaceHex);
-          document.documentElement.style.setProperty(
-            "--surface-hover",
-            surfaceHex,
-          );
-          document.documentElement.style.setProperty(
-            "--surface-active",
-            surfaceHex,
-          );
-          document.documentElement.style.setProperty("--card-bg", surfaceHex);
-        }
-        if (borderHsl) {
-          const borderHex = hslToHex(...borderHsl);
-          document.documentElement.style.setProperty("--border", borderHex);
-          document.documentElement.style.setProperty(
-            "--border-light",
-            borderHex,
-          );
-        }
+        document.documentElement.style.setProperty("--bg", bgColor);
+        document.documentElement.style.setProperty("--bg-primary", bgColor);
+        document.documentElement.style.setProperty("--bg-secondary", secondaryBgColor);
+        document.documentElement.style.setProperty("--bg-card", cardColor);
+        document.documentElement.style.setProperty("--primary-bg", bgColor);
+        document.documentElement.style.setProperty("--primary-fg", textColor);
+        document.documentElement.style.setProperty("--text", textColor);
+        document.documentElement.style.setProperty("--text-primary", textColor);
+        document.documentElement.style.setProperty("--text-secondary", secondaryTextColor);
+        document.documentElement.style.setProperty("--text-muted", mutedTextColor);
+        document.documentElement.style.setProperty("--surface", surfaceColor);
+        document.documentElement.style.setProperty("--surface-hover", hoverColor);
+        document.documentElement.style.setProperty("--surface-active", activeColor);
+        document.documentElement.style.setProperty("--card-bg", cardColor);
+        document.documentElement.style.setProperty("--border-color", borderColor);
+        document.documentElement.style.setProperty("--border-light", borderLightColor);
         // Check if config.csv already set the primary color, we shouldn't wipe it
         // Only update color and suggestion variables if they aren't marked as bot-config
         if (
@@ -244,27 +228,27 @@ const ThemeManager = (() => {
         ) {
           document.documentElement.style.setProperty(
             "--chat-color1",
-            `hsl(${primary})`,
+            primaryColor,
           );
           document.documentElement.style.setProperty(
             "--chat-color2",
-            `hsl(${card})`,
+            surfaceColor,
           );
           document.documentElement.style.setProperty(
             "--suggestion-color",
-            `hsl(${primary})`,
+            primaryColor,
           );
           document.documentElement.style.setProperty(
             "--suggestion-bg",
-            `hsl(${card})`,
+            surfaceColor,
           );
           document.documentElement.style.setProperty(
             "--color1",
-            `hsl(${primary})`,
+            primaryColor,
           );
           document.documentElement.style.setProperty(
             "--color2",
-            `hsl(${card})`,
+            surfaceColor,
           );
         }
 
@@ -289,7 +273,9 @@ const ThemeManager = (() => {
           }
         }
 
-        subscribers.forEach((cb) => cb({ themeId: id, themeName: theme.name }));
+        const detail = { themeId: id, themeName: theme.name };
+        window.dispatchEvent(new CustomEvent("gb:themechange", { detail }));
+        subscribers.forEach((cb) => cb(detail));
       }, 50);
     };
     link.onerror = () => console.error("✗ Failed:", theme.name);
@@ -319,7 +305,7 @@ const ThemeManager = (() => {
   function init() {
     // Ensure data-theme is set on html element so CSS selectors work
     if (!document.documentElement.getAttribute("data-theme")) {
-      document.documentElement.setAttribute("data-theme", "sentient");
+      document.documentElement.setAttribute("data-theme", currentThemeId);
     }
 
     // First, load saved bot theme from config.csv (if available)
@@ -331,11 +317,11 @@ const ThemeManager = (() => {
     let saved = localStorage.getItem(`gb-theme-${botId}`);
     if (!saved || !themes.find((t) => t.id === saved)) {
       // No user preference, try bot-specific theme
-      saved = botThemeMap[botId] || "aurora";
+      saved = botThemeMap[botId] || "mindfulness";
       // Save to localStorage so it persists
       localStorage.setItem(`gb-theme-${botId}`, saved);
     }
-    if (!themes.find((t) => t.id === saved)) saved = "default";
+    if (!themes.find((t) => t.id === saved)) saved = "mindfulness";
     currentThemeId = saved;
     loadTheme(saved);
 

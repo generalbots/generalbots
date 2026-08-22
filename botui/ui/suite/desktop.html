@@ -285,7 +285,7 @@
 
                 // Get bot name from URL path
                 const pathParts = window.location.pathname.split('/');
-                const routeName = pathParts[1] || '';
+                const routeName = pathParts[1] === 'sources' ? 'integrations' : (pathParts[1] || '');
                 const routeApp = (window.APPS_REGISTRY || []).find(
                     (app) => app.id === routeName,
                 );

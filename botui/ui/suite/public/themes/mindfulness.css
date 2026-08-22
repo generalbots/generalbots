@@ -1,0 +1,272 @@
+:root {
+  color-scheme: light;
+
+  /* Canonical raw HSL tokens consumed through hsl(var(--token)). */
+  --background: 43 29% 93%;
+  --foreground: 157 18% 18%;
+  --card: 45 33% 98%;
+  --card-foreground: 157 18% 18%;
+  --popover: 45 33% 98%;
+  --popover-foreground: 157 18% 18%;
+  --primary: 155 25% 33%;
+  --primary-foreground: 45 33% 98%;
+  --secondary: 132 14% 88%;
+  --secondary-foreground: 157 18% 22%;
+  --muted: 43 17% 89%;
+  --muted-foreground: 153 10% 36%;
+  --accent: 158 22% 82%;
+  --accent-foreground: 157 22% 22%;
+  --destructive: 0 43% 43%;
+  --destructive-foreground: 45 33% 98%;
+  --border: 116 10% 79%;
+  --input: 45 29% 97%;
+  --ring: 155 25% 33%;
+  --radius: 0.75rem;
+  --chart-1: 155 25% 33%;
+  --chart-2: 181 25% 39%;
+  --chart-3: 39 48% 43%;
+  --chart-4: 203 24% 42%;
+  --chart-5: 8 34% 48%;
+
+  /* Canonical direct-use GeneralBots aliases. */
+  --gb-background: hsl(var(--background));
+  --gb-foreground: hsl(var(--foreground));
+  --gb-card: hsl(var(--card));
+  --gb-card-foreground: hsl(var(--card-foreground));
+  --gb-popover: hsl(var(--popover));
+  --gb-popover-foreground: hsl(var(--popover-foreground));
+  --gb-bg: hsl(var(--background));
+  --gb-bg-primary: hsl(var(--background));
+  --gb-bg-secondary: hsl(var(--muted));
+  --gb-bg-card: hsl(var(--card));
+  --gb-surface: hsl(var(--card));
+  --gb-surface-hover: hsl(137 17% 94%);
+  --gb-surface-active: hsl(139 17% 89%);
+  --gb-surface-elevated: hsl(var(--popover));
+  --gb-text: hsl(var(--foreground));
+  --gb-text-primary: hsl(var(--foreground));
+  --gb-text-secondary: hsl(var(--muted-foreground));
+  --gb-text-muted: hsl(150 8% 40%);
+  --gb-primary: hsl(var(--primary));
+  --gb-primary-hover: hsl(155 27% 28%);
+  --gb-primary-active: hsl(155 29% 24%);
+  --gb-primary-foreground: hsl(var(--primary-foreground));
+  --gb-secondary: hsl(var(--secondary));
+  --gb-secondary-foreground: hsl(var(--secondary-foreground));
+  --gb-muted: hsl(var(--muted));
+  --gb-muted-foreground: hsl(var(--muted-foreground));
+  --gb-accent: hsl(var(--primary));
+  --gb-accent-soft: hsl(var(--accent));
+  --gb-accent-foreground: hsl(var(--accent-foreground));
+  --gb-destructive: hsl(var(--destructive));
+  --gb-destructive-foreground: hsl(var(--destructive-foreground));
+  --gb-border: hsl(var(--border));
+  --gb-border-light: hsl(110 12% 87%);
+  --gb-border-hover: hsl(150 15% 58%);
+  --gb-border-dark: hsl(151 10% 52%);
+  --gb-input: hsl(var(--input));
+  --gb-ring: hsl(var(--ring));
+
+  /* Semantic colors retain readable contrast on the light surfaces. */
+  --gb-success: hsl(151 38% 30%);
+  --gb-success-bg: hsl(145 28% 91%);
+  --gb-warning: hsl(37 71% 30%);
+  --gb-warning-bg: hsl(40 60% 91%);
+  --gb-error: hsl(0 43% 42%);
+  --gb-error-bg: hsl(2 45% 93%);
+  --gb-info: hsl(190 38% 32%);
+  --gb-info-bg: hsl(186 29% 91%);
+  --success: var(--gb-success);
+  --success-color: var(--gb-success);
+  --success-bg: var(--gb-success-bg);
+  --warning: var(--gb-warning);
+  --warning-color: var(--gb-warning);
+  --warning-bg: var(--gb-warning-bg);
+  --error: var(--gb-error);
+  --error-color: var(--gb-error);
+  --error-bg: var(--gb-error-bg);
+  --info: var(--gb-info);
+  --info-color: var(--gb-info);
+  --info-bg: var(--gb-info-bg);
+
+  /* Legacy application bridge. Raw HSL names above stay raw. */
+  --bg: var(--gb-bg);
+  --bg-primary: var(--gb-bg-primary);
+  --bg-secondary: var(--gb-bg-secondary);
+  --bg-card: var(--gb-bg-card);
+  --primary-bg: var(--gb-bg-primary);
+  --primary-fg: var(--gb-text-primary);
+  --secondary-bg: var(--gb-bg-card);
+  --secondary-fg: var(--gb-text-secondary);
+  --surface: var(--gb-surface);
+  --surface-hover: var(--gb-surface-hover);
+  --surface-active: var(--gb-surface-active);
+  --surface-elevated: var(--gb-surface-elevated);
+  --card-bg: var(--gb-bg-card);
+  --bg-hover: var(--gb-surface-hover);
+  --bg-active: var(--gb-surface-active);
+  --bg-disabled: hsl(var(--muted));
+  --hover-bg: var(--gb-surface-hover);
+  --active-bg: var(--gb-surface-active);
+  --text: var(--gb-text);
+  --text-primary: var(--gb-text-primary);
+  --text-secondary: var(--gb-text-secondary);
+  --text-tertiary: var(--gb-text-muted);
+  --text-muted: var(--gb-text-muted);
+  --border-color: var(--gb-border);
+  --border-light: var(--gb-border-light);
+  --border-hover: var(--gb-border-hover);
+  --border-dark: var(--gb-border-dark);
+  --accent-color: var(--gb-accent);
+  --accent-hover: var(--gb-primary-hover);
+  --accent-active: var(--gb-primary-active);
+  --accent-light: var(--gb-accent-soft);
+  --accent-dark: var(--gb-primary-active);
+  --accent-gradient: var(--gb-accent);
+  --primary-color: var(--gb-primary);
+
+  /* Sentient compatibility bridge used by office and shared apps. */
+  --sentient-bg-primary: var(--gb-bg-primary);
+  --sentient-bg-secondary: var(--gb-bg-card);
+  --sentient-bg-tertiary: var(--gb-bg-secondary);
+  --sentient-bg-hover: var(--gb-surface-hover);
+  --sentient-bg-active: var(--gb-surface-active);
+  --sentient-text-primary: var(--gb-text-primary);
+  --sentient-text-secondary: var(--gb-text-secondary);
+  --sentient-text-tertiary: var(--gb-text-muted);
+  --sentient-text-muted: var(--gb-text-muted);
+  --sentient-accent: var(--gb-accent);
+  --sentient-accent-hover: var(--gb-primary-hover);
+  --sentient-accent-light: var(--gb-accent-soft);
+  --sentient-accent-dark: var(--gb-primary-active);
+  --sentient-border: var(--gb-border);
+  --sentient-border-light: var(--gb-border-light);
+  --sentient-border-accent: hsl(155 25% 33% / 0.35);
+  --sentient-surface: var(--gb-surface);
+  --sentient-surface-hover: var(--gb-surface-hover);
+  --sentient-surface-active: var(--gb-surface-active);
+  --sentient-surface-elevated: var(--gb-surface-elevated);
+  --sentient-input-bg: var(--gb-input);
+  --sentient-input-border: var(--gb-border);
+  --sentient-input-focus: var(--gb-ring);
+  --sentient-success: var(--gb-success);
+  --sentient-success-bg: var(--gb-success-bg);
+  --sentient-warning: var(--gb-warning);
+  --sentient-warning-bg: var(--gb-warning-bg);
+  --sentient-error: var(--gb-error);
+  --sentient-error-bg: var(--gb-error-bg);
+  --sentient-info: var(--gb-info);
+  --sentient-info-bg: var(--gb-info-bg);
+  --sentient-font-family: Inter, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Inputs, overlays, and structural surfaces. */
+  --input-bg: var(--gb-input);
+  --input-border: var(--gb-border);
+  --input-focus-border: var(--gb-ring);
+  --input-placeholder: var(--gb-text-muted);
+  --input-text: var(--gb-text-primary);
+  --modal-bg: var(--gb-surface-elevated);
+  --modal-overlay: hsl(157 18% 18% / 0.42);
+  --modal-border: var(--gb-border);
+  --modal-text: var(--gb-text-primary);
+  --modal-header-bg: var(--gb-bg-secondary);
+  --header-bg: hsl(45 33% 98% / 0.96);
+  --header-border: var(--gb-border);
+  --header-text: var(--gb-text-primary);
+  --header-hover: var(--gb-surface-hover);
+  --sidebar-bg: hsl(45 25% 96%);
+  --sidebar-border: var(--gb-border);
+  --sidebar-item-hover: var(--gb-surface-hover);
+  --sidebar-item-active: hsl(var(--accent));
+  --sidebar-text: var(--gb-text-primary);
+  --sidebar-text-muted: var(--gb-text-muted);
+
+  /* Opaque app canvas and restrained glass for desktop chrome only. */
+  --app-bg: hsl(var(--card));
+  --glass-opacity: 0.82;
+  --glass-blur: 16px;
+  --glass-bg: hsl(43 24% 92% / 0.82);
+  --glass-border: hsl(150 12% 62% / 0.42);
+  --glass-border-color: hsl(150 12% 62% / 0.42);
+  --glass-highlight: hsl(45 33% 100% / 0.56);
+  --glass-shadow: 0 10px 30px hsl(157 18% 18% / 0.12);
+  --glass-backdrop: blur(16px) saturate(115%);
+
+  --win-bg: var(--glass-bg);
+  --win-body-bg: var(--app-bg);
+  --win-blur: var(--glass-backdrop);
+  --win-radius: 14px;
+  --win-border-width: 1px;
+  --win-border-color: hsl(150 12% 54% / 0.55);
+  --win-border-active: var(--gb-primary);
+  --win-titlebar-bg: hsl(43 24% 92% / 0.88);
+  --win-titlebar-text: var(--gb-text-secondary);
+  --win-titlebar-sep: hsl(150 12% 62% / 0.45);
+  --win-caption-hover: hsl(155 25% 33% / 0.09);
+
+  --shell-bg: hsl(43 24% 92% / 0.84);
+  --shell-border: hsl(150 12% 62% / 0.46);
+  --shell-radius: 16px;
+  --shell-margin: 10px;
+  --shell-blur: blur(18px) saturate(112%);
+  --taskbar-bg: var(--shell-bg);
+  --taskbar-border: var(--shell-border);
+  --taskbar-text: var(--gb-text-primary);
+  --taskbar-hover: var(--gb-surface-hover);
+  --taskbar-active: var(--gb-surface-active);
+
+  /* Quiet contour lines meet a low sea-glass horizon. */
+  --wall:
+    radial-gradient(80% 34% at 12% 105%, transparent 68%, hsl(154 18% 45% / 0.10) 68.5%, transparent 69.2%),
+    radial-gradient(72% 30% at 86% 104%, transparent 64%, hsl(181 21% 47% / 0.09) 64.5%, transparent 65.3%),
+    linear-gradient(180deg, hsl(43 29% 93%) 0 61%, hsl(144 17% 89%) 61.4% 62%, hsl(151 18% 91%) 62.4% 100%);
+  --wall-vignette:
+    repeating-radial-gradient(ellipse 76% 38% at 50% 112%, transparent 0 38px, hsl(154 18% 45% / 0.055) 39px 40px, transparent 41px 68px);
+  --wallpaper-bg: var(--wall);
+  --wallpaper-overlay: var(--wall-vignette);
+
+  /* Geometry and elevation. */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+  --gb-radius-sm: var(--radius-sm);
+  --gb-radius-md: var(--radius-md);
+  --gb-radius-lg: var(--radius-lg);
+  --shadow-sm: 0 1px 2px hsl(157 18% 18% / 0.07);
+  --shadow-md: 0 5px 16px hsl(157 18% 18% / 0.09);
+  --shadow-lg: 0 12px 32px hsl(157 18% 18% / 0.12);
+  --shadow-xl: 0 22px 52px hsl(157 18% 18% / 0.15);
+  --gb-shadow-sm: var(--shadow-sm);
+  --gb-shadow-md: var(--shadow-md);
+  --gb-shadow-lg: var(--shadow-lg);
+  --sentient-shadow-sm: var(--shadow-sm);
+  --sentient-shadow-md: var(--shadow-md);
+  --sentient-shadow-lg: var(--shadow-lg);
+  --sentient-radius: var(--radius-md);
+  --sentient-radius-sm: var(--radius-sm);
+  --sentient-radius-md: var(--radius-md);
+  --sentient-radius-lg: var(--radius-lg);
+  --sentient-radius-xl: var(--radius-xl);
+  --modal-shadow: var(--shadow-xl);
+  --win-shadow: 0 4px 14px hsl(157 18% 18% / 0.10), 0 18px 46px hsl(157 18% 18% / 0.13);
+  --win-shadow-active: 0 6px 18px hsl(157 18% 18% / 0.12), 0 24px 60px hsl(157 18% 18% / 0.16);
+
+  --scrollbar-track: hsl(var(--muted));
+  --scrollbar-thumb: hsl(151 10% 52% / 0.55);
+  --scrollbar-thumb-hover: hsl(151 12% 44% / 0.72);
+  --transition-fast: 140ms ease;
+  --transition-smooth: 240ms ease;
+  --transition-slow: 400ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transition-fast: 0ms;
+    --transition-smooth: 0ms;
+    --transition-slow: 0ms;
+    --win-open-dur: 0ms;
+  }
+}

@@ -1,0 +1,258 @@
+.integrations-app .integrations-section-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 14px;
+}
+
+.integrations-app .integrations-section-heading h2 {
+    font-size: 24px;
+}
+
+.integrations-app .integrations-section-heading p:not(.integrations-eyebrow) {
+    margin: 6px 0 0;
+    color: var(--integrations-muted);
+    font-size: 13px;
+}
+
+.integrations-app .integrations-connected {
+    margin-top: 16px;
+}
+
+.integrations-app .integrations-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--integrations-border);
+    border-radius: var(--integrations-radius-lg);
+    background: var(--integrations-surface);
+    box-shadow: var(--integrations-shadow);
+}
+
+.integrations-app .integrations-connected-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.integrations-app .integrations-connected-table th {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--integrations-border);
+    color: var(--integrations-faint);
+    background: var(--integrations-soft);
+    font-size: 10px;
+    font-weight: 750;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.integrations-app .integrations-connected-table td {
+    padding: 15px 16px;
+    border-bottom: 1px solid var(--integrations-border-soft);
+    color: var(--integrations-muted);
+    font-size: 12px;
+    vertical-align: middle;
+}
+
+.integrations-app .integrations-connected-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.integrations-app .integrations-connected-name {
+    display: block;
+    color: var(--integrations-text);
+    font-size: 13px;
+    font-weight: 680;
+}
+
+.integrations-app .integrations-connected-type {
+    display: block;
+    margin-top: 2px;
+    color: var(--integrations-faint);
+    font-size: 11px;
+}
+
+.integrations-app .integrations-health-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    color: var(--integrations-muted);
+    background: var(--integrations-soft);
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.integrations-app .integrations-health-badge::before {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--integrations-faint);
+    content: "";
+}
+
+.integrations-app .integrations-health-badge.is-healthy::before { background: var(--integrations-success); }
+.integrations-app .integrations-health-badge.is-warning::before { background: var(--integrations-warning); }
+.integrations-app .integrations-health-badge.is-error::before { background: var(--integrations-error); }
+
+.integrations-app .integrations-readonly-note {
+    margin: 14px 2px 0;
+    color: var(--integrations-faint);
+    font-size: 11px;
+}
+
+.integrations-app .integrations-detail-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: 1fr minmax(420px, 620px);
+}
+
+.integrations-app .integrations-detail-layer[hidden] {
+    display: none;
+}
+
+.integrations-app .integrations-detail-backdrop {
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    background: rgba(12, 19, 15, .48);
+    cursor: default;
+    backdrop-filter: blur(3px);
+}
+
+.integrations-app .integrations-detail-panel {
+    display: flex;
+    min-width: 0;
+    height: 100%;
+    flex-direction: column;
+    border-left: 1px solid var(--integrations-border);
+    color: var(--integrations-text);
+    background: var(--integrations-elevated);
+    box-shadow: -18px 0 50px rgba(12, 19, 15, .16);
+    animation: integrations-panel-in 180ms ease-out;
+}
+
+.integrations-app .integrations-detail-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 22px 24px;
+    border-bottom: 1px solid var(--integrations-border);
+}
+
+.integrations-app .integrations-detail-header h2 {
+    margin: 0;
+    font-size: 20px;
+    letter-spacing: -.02em;
+}
+
+.integrations-app .integrations-close-button {
+    flex: 0 0 auto;
+}
+
+.integrations-app .integrations-detail-body {
+    flex: 1;
+    min-height: 0;
+    padding: 24px;
+    overflow-y: auto;
+    scrollbar-color: var(--integrations-faint) transparent;
+}
+
+.integrations-app .integrations-detail-summary {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.integrations-app .integrations-detail-summary .integrations-provider-mark {
+    width: 54px;
+    height: 54px;
+    font-size: 15px;
+}
+
+.integrations-app .integrations-detail-summary h3 {
+    margin: 0;
+    font-size: 22px;
+    letter-spacing: -.02em;
+}
+
+.integrations-app .integrations-detail-summary p {
+    margin: 4px 0 0;
+    color: var(--integrations-muted);
+    font-size: 12px;
+}
+
+.integrations-app .integrations-detail-meta {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin: 0 0 22px;
+}
+
+.integrations-app .integrations-detail-meta div {
+    min-width: 0;
+    padding: 10px;
+    border: 1px solid var(--integrations-border-soft);
+    border-radius: var(--integrations-radius-sm);
+    background: var(--integrations-soft);
+}
+
+.integrations-app .integrations-detail-meta dt {
+    color: var(--integrations-faint);
+    font-size: 9px;
+    font-weight: 750;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.integrations-app .integrations-detail-meta dd {
+    margin: 4px 0 0;
+    overflow: hidden;
+    font-size: 11px;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.integrations-app .integrations-adapter-state,
+.integrations-app .integrations-inline-warning {
+    margin-bottom: 20px;
+    padding: 14px 16px;
+    border: 1px solid var(--integrations-border);
+    border-radius: var(--integrations-radius);
+    background: var(--integrations-accent-soft);
+}
+
+.integrations-app .integrations-adapter-state strong,
+.integrations-app .integrations-inline-warning strong {
+    display: block;
+    margin-bottom: 3px;
+    font-size: 12px;
+}
+
+.integrations-app .integrations-adapter-state p,
+.integrations-app .integrations-inline-warning p {
+    margin: 0;
+    color: var(--integrations-muted);
+    font-size: 11px;
+}
+
+.integrations-app .integrations-inline-warning {
+    border-color: var(--integrations-warning);
+    background: var(--integrations-warning-bg);
+}
+
+.integrations-app .integrations-inline-warning .integrations-button {
+    margin-top: 10px;
+}
+
+@keyframes integrations-panel-in {
+    from { opacity: 0; transform: translateX(24px); }
+    to { opacity: 1; transform: translateX(0); }
+}
