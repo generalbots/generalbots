@@ -1,7 +1,18 @@
 pub mod db;
+pub mod error;
 pub mod handlers;
+pub mod handlers_connections;
+pub mod handlers_lifecycle;
+pub mod metadata;
 pub mod models;
+pub mod repository;
+pub mod request;
 pub mod routes;
+pub mod rows;
+pub mod scope;
+pub mod secrets;
+pub mod state;
 pub mod storage;
 
-pub use routes::configure;
+pub use routes::{configure, configure_connection_routes};
+pub use state::IntegrationState;

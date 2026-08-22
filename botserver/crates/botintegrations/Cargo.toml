@@ -6,6 +6,8 @@ edition = "2021"
 [dependencies]
 axum = { workspace = true }
 botcore = { workspace = true }
+botcoresecrets = { workspace = true }
+botsecurity-auth = { workspace = true }
 chrono = { workspace = true, features = ["serde", "clock"] }
 diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }
 rust_decimal = { workspace = true, features = ["serde-with-str", "db-diesel2-postgres"] }
@@ -14,3 +16,4 @@ serde_json = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
 uuid = { workspace = true, features = ["v4", "serde"] }
 log = { workspace = true }
+thiserror = { workspace = true }
