@@ -5,6 +5,7 @@ pub mod handlers_actions;
 pub mod handlers_connections;
 pub mod handlers_context;
 pub mod handlers_lifecycle;
+pub mod handlers_mentions;
 pub mod metadata;
 pub mod models;
 pub mod providers;

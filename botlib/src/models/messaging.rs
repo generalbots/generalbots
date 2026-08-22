@@ -3,6 +3,21 @@ use serde::{Deserialize, Serialize};
 
 use crate::message_types::MessageType;
 
+/// A lightweight @-mention reference carried on a chat message (#939).
+///
+/// `kind` selects the entity plane - `"integration"` resolves against the
+/// connection control plane; other kinds are reserved for future surfaces.
+/// Both fields default through serde so payloads written before mentions
+/// existed deserialize unchanged, and unknown extra members are ignored.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MentionRef {
+    pub kind: String,
+    #[serde(default)]
+    pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserMessage {
     pub bot_id: String,
@@ -18,6 +33,8 @@ pub struct UserMessage {
     pub context_name: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub active_switchers: Vec<String>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub mentions: Vec<MentionRef>,
 }
 
 impl UserMessage {
@@ -40,6 +57,7 @@ impl UserMessage {
             timestamp: Utc::now(),
             context_name: None,
             active_switchers: Vec::new(),
+            mentions: Vec::new(),
         }
     }
 
@@ -276,6 +294,71 @@ impl BotResponse {
     #[must_use]
     pub const fn has_suggestions(&self) -> bool {
         !self.suggestions.is_empty()
+    }
+}
+
+#[cfg(test)]
+mod mention_tests {
+    use super::*;
+
+    #[test]
+    fn payload_without_mentions_deserializes_with_empty_vec() {
+        let legacy = serde_json::json!({
+            "bot_id": "bot",
+            "user_id": "user",
+            "session_id": "session",
+            "channel": "web",
+            "content": "hello",
+            "message_type": 1,
+            "timestamp": "2026-01-01T00:00:00Z"
+        });
+        let parsed: UserMessage = serde_json::from_value(legacy).expect("legacy payload in tests");
+        assert!(parsed.mentions.is_empty());
+    }
+
+    #[test]
+    fn mentions_round_trip_and_skip_serialization_when_empty() {
+        let message = UserMessage::text("bot", "user", "sess", "web", "use @integration:aws");
+        assert_eq!(message.mentions.len(), 0);
+        let without = serde_json::to_string(&message).expect("serialize in tests");
+        assert!(!without.contains("\"mentions\""));
+
+        let referenced = UserMessage {
+            mentions: vec![MentionRef {
+                kind: "integration".to_string(),
+                id: "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0".to_string(),
+                label: Some("AWS".to_string()),
+            }],
+            ..UserMessage::text("bot", "user", "sess", "web", "use @integration:aws")
+        };
+        let serialized = serde_json::to_string(&referenced).expect("serialize in tests");
+        let parsed: UserMessage = serde_json::from_str(&serialized).expect("round trip in tests");
+        assert_eq!(parsed.mentions.len(), 1);
+        assert_eq!(parsed.mentions[0].kind, "integration");
+        assert_eq!(
+            parsed.mentions[0].id,
+            "0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0"
+        );
+        assert_eq!(parsed.mentions[0].label.as_deref(), Some("AWS"));
+    }
+
+    #[test]
+    fn partial_mention_entries_fill_defaults() {
+        let lenient = serde_json::json!({
+            "bot_id": "bot",
+            "user_id": "user",
+            "session_id": "session",
+            "channel": "web",
+            "content": "hi",
+            "message_type": 1,
+            "timestamp": "2026-01-01T00:00:00Z",
+            "mentions": [{ "kind": "integration" }]
+        });
+        let parsed: UserMessage = serde_json::from_value(lenient).expect("lenient payload");
+        assert_eq!(parsed.mentions.len(), 1);
+        assert_eq!(parsed.mentions[0].kind, "integration");
+        assert_eq!(parsed.mentions[0].id, "");
+        assert!(parsed.mentions[0].label.is_none());
     }
 }
 

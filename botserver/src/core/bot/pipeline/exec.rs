@@ -11,7 +11,8 @@ pub type PipelineFn = std::sync::Arc<
     dyn Fn(
             botlib::models::UserMessage,
             tokio::sync::mpsc::Sender<botlib::models::BotResponse>,
-        ) -> std::pin::Pin<Box<dyn std::future::Future<Output = PipelineResult<()>> + Send>>
+        )
+            -> std::pin::Pin<Box<dyn std::future::Future<Output = PipelineResult<()>> + Send>>
         + Send
         + Sync,
 >;
@@ -28,15 +29,30 @@ pub async fn process_message_internal(
     text: &str,
 ) -> PipelineResult<()> {
     let parsed: serde_json::Value = serde_json::from_str(text).unwrap_or_default();
-    let mut user_text = parsed.get("text")
+    let mut user_text = parsed
+        .get("text")
         .and_then(|v| v.as_str())
         .or_else(|| parsed.get("content").and_then(|v| v.as_str()))
-        .unwrap_or("").to_string();
-    let mut msg_type = parsed.get("message_type").and_then(|v| v.as_i64()).unwrap_or(1);
-    let active_switchers: Vec<String> = parsed.get("active_switchers")
+        .unwrap_or("")
+        .to_string();
+    let mut msg_type = parsed
+        .get("message_type")
+        .and_then(|v| v.as_i64())
+        .unwrap_or(1);
+    let active_switchers: Vec<String> = parsed
+        .get("active_switchers")
         .and_then(|v| v.as_array())
-        .map(|arr| arr.iter().filter_map(|v| v.as_str().map(|s| s.to_string())).collect())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect()
+        })
         .unwrap_or_default();
+    // @-mentions selected in the composer (#939 phase D); resolved against
+    // the connection control plane only when the integrations feature is
+    // compiled in, exactly like the `integrations.invoke` command arm.
+    #[cfg(feature = "integrations")]
+    let mentions = super::mentions::parse_lenient_mentions(&parsed);
 
     {
         let mut sm = state.session_manager.lock().await;
@@ -51,8 +67,14 @@ pub async fn process_message_internal(
     if msg_type == 8 {
         let last_user_msg = {
             let mut sm = state.session_manager.lock().await;
-            let history = sm.get_conversation_history(session_id, user_id, Some(1)).ok();
-            history.and_then(|h| h.into_iter().find(|(role, _)| role == "user").map(|(_, c)| c))
+            let history = sm
+                .get_conversation_history(session_id, user_id, Some(1))
+                .ok();
+            history.and_then(|h| {
+                h.into_iter()
+                    .find(|(role, _)| role == "user")
+                    .map(|(_, c)| c)
+            })
         };
         if let Some(last_content) = last_user_msg {
             user_text = last_content;
@@ -66,13 +88,23 @@ pub async fn process_message_internal(
     // Optional chat file attachment (base64) -> stored under inbox/ so the
     // catalog `drive.file` command can organize it into the right folder.
     if let Some(file) = parsed.get("file").and_then(|v| v.as_object()) {
-        let fname = file.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-        let b64 = file.get("content_base64").and_then(|v| v.as_str()).unwrap_or("");
+        let fname = file
+            .get("name")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let b64 = file
+            .get("content_base64")
+            .and_then(|v| v.as_str())
+            .unwrap_or("");
         if !fname.is_empty() && !b64.is_empty() {
             if let Some(drive) = state.drive.as_ref() {
                 if let Ok(data) = base64::engine::general_purpose::STANDARD.decode(b64) {
                     let key = format!("{bot_name}.gbdrive/inbox/{fname}");
-                    match drive.put_object(&format!("{bot_name}.gbai"), &key, data, None).await {
+                    match drive
+                        .put_object(&format!("{bot_name}.gbai"), &key, data, None)
+                        .await
+                    {
                         Ok(()) => {
                             log::info!("stored chat attachment: {key}");
                             user_text = format!(
@@ -91,9 +123,11 @@ pub async fn process_message_internal(
         let tool_name = user_text.trim_start_matches("__TOOL__:").trim().to_string();
         if !tool_name.is_empty() {
             let resp = botlib::models::BotResponse::new(
-                bot_uuid.to_string(), session_id.to_string(),
+                bot_uuid.to_string(),
+                session_id.to_string(),
                 user_id.to_string(),
-                format!("Tool '{tool_name}' not implemented via legacy path"), "web",
+                format!("Tool '{tool_name}' not implemented via legacy path"),
+                "web",
             );
             let _ = sink.send_bot_response(&resp).await;
         }
@@ -107,9 +141,11 @@ pub async fn process_message_internal(
             Err(e) => {
                 log::warn!("TOOL_EXEC: invalid tool name '{}': {}", raw_tool_name, e);
                 let resp = botlib::models::BotResponse::new(
-                    bot_uuid.to_string(), session_id.to_string(),
+                    bot_uuid.to_string(),
+                    session_id.to_string(),
                     user_id.to_string(),
-                    format!("<p>Invalid tool name: {raw_tool_name}</p>"), "web",
+                    format!("<p>Invalid tool name: {raw_tool_name}</p>"),
+                    "web",
                 );
                 let _ = sink.send_bot_response(&resp).await;
                 return Ok(());
@@ -118,8 +154,15 @@ pub async fn process_message_internal(
 
         if !tool_name.is_empty() {
             super::tool_exec::run_tool_exec(
-                state, bot_uuid, session_id, user_id, bot_name, &tool_name, sink.channel_type(),
-            ).await;
+                state,
+                bot_uuid,
+                session_id,
+                user_id,
+                bot_name,
+                &tool_name,
+                sink.channel_type(),
+            )
+            .await;
         }
         return Ok(());
     }
@@ -127,7 +170,9 @@ pub async fn process_message_internal(
     let runtime: Arc<dyn botbasic_types::BasicRuntime> =
         Arc::new(crate::basic::AppStateBasicRuntime(state.clone()));
     let delivered = crate::basic::keywords::hearing::deliver_hear_input(
-        &runtime, session_id, user_text.clone(),
+        &runtime,
+        session_id,
+        user_text.clone(),
     );
     if delivered {
         return Ok(());
@@ -139,7 +184,9 @@ pub async fn process_message_internal(
             drop(guards);
             *start_bas_ran = super::start_bas::run_start_bas(
                 sink, state, bot_uuid, session_id, user_id, bot_name, rx,
-            ).await.unwrap_or(false);
+            )
+            .await
+            .unwrap_or(false);
         }
     }
     let mut guards = state.start_bas_guards.lock().await;
@@ -179,8 +226,10 @@ pub async fn process_message_internal(
             message_type: botlib::message_types::MessageType::BOT_RESPONSE,
             stream_token: None,
             is_complete: true,
-            suggestions: post_start_suggestions.into_iter()
-                .map(|s| botlib::models::Suggestion::new(s.text)).collect(),
+            suggestions: post_start_suggestions
+                .into_iter()
+                .map(|s| botlib::models::Suggestion::new(s.text))
+                .collect(),
             switchers: post_start_switchers,
             context_name: None,
             context_length: 0,
@@ -190,25 +239,28 @@ pub async fn process_message_internal(
         let _ = sink.send_bot_response(&resp).await;
     }
 
-    let _ = sink.send_bot_response(&botlib::models::BotResponse {
-        bot_id: bot_uuid.to_string(),
-        user_id: user_id.to_string(),
-        session_id: session_id.to_string(),
-        channel: "web".to_string(),
-        content: String::new(),
-        message_type: botlib::message_types::MessageType::BOT_RESPONSE,
-        stream_token: None,
-        is_complete: false,
-        suggestions: Vec::new(),
-        switchers: Vec::new(),
-        context_name: None,
-        context_length: 0,
-        context_max_length: 0,
-        reasoning: String::new(),
-    }).await;
+    let _ = sink
+        .send_bot_response(&botlib::models::BotResponse {
+            bot_id: bot_uuid.to_string(),
+            user_id: user_id.to_string(),
+            session_id: session_id.to_string(),
+            channel: "web".to_string(),
+            content: String::new(),
+            message_type: botlib::message_types::MessageType::BOT_RESPONSE,
+            stream_token: None,
+            is_complete: false,
+            suggestions: Vec::new(),
+            switchers: Vec::new(),
+            context_name: None,
+            context_length: 0,
+            context_max_length: 0,
+            reasoning: String::new(),
+        })
+        .await;
 
     let channel = sink.channel_type();
-    let base_system_prompt = crate::core::bot::ws::message::load_system_prompt_for_channel(bot_name, channel);
+    let base_system_prompt =
+        crate::core::bot::ws::message::load_system_prompt_for_channel(bot_name, channel);
     let system_prompt = if !active_switchers.is_empty() {
         let switcher_prompts = crate::basic::keywords::switcher::resolve_active_switchers(
             state.cache.as_ref(),
@@ -245,12 +297,13 @@ pub async fn process_message_internal(
 
     let session_context = {
         let sm = state.session_manager.lock().await;
-        sm.get_session_context_data(&session_id, &user_id).ok().unwrap_or_default()
+        sm.get_session_context_data(&session_id, &user_id)
+            .ok()
+            .unwrap_or_default()
     };
 
-    let mut messages = vec![
-        serde_json::json!({"role": "system", "content": system_prompt.clone()})
-    ];
+    let mut messages =
+        vec![serde_json::json!({"role": "system", "content": system_prompt.clone()})];
 
     if !session_context.is_empty() {
         messages.push(serde_json::json!({
@@ -263,7 +316,9 @@ pub async fn process_message_internal(
         use botcore::config::ConfigManager;
         let cfg = ConfigManager::new(state.conn.clone());
         cfg.get_config(&bot_uuid, "history-limit", Some("10"))
-            .ok().and_then(|v| v.parse().ok()).unwrap_or(10)
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(10)
     };
 
     {
@@ -283,33 +338,57 @@ pub async fn process_message_internal(
         }
     }
 
-    let _ = sink.send_bot_response(&botlib::models::BotResponse {
-        bot_id: bot_uuid.to_string(),
-        user_id: user_id.to_string(),
-        session_id: session_id.to_string(),
-        channel: "web".to_string(),
-        content: String::new(),
-        message_type: botlib::message_types::MessageType::BOT_RESPONSE,
-        stream_token: None,
-        is_complete: false,
-        suggestions: Vec::new(),
-        switchers: Vec::new(),
-        context_name: None,
-        context_length: 0,
-        context_max_length: 0,
-        reasoning: String::new(),
-    }).await;
+    let _ = sink
+        .send_bot_response(&botlib::models::BotResponse {
+            bot_id: bot_uuid.to_string(),
+            user_id: user_id.to_string(),
+            session_id: session_id.to_string(),
+            channel: "web".to_string(),
+            content: String::new(),
+            message_type: botlib::message_types::MessageType::BOT_RESPONSE,
+            stream_token: None,
+            is_complete: false,
+            suggestions: Vec::new(),
+            switchers: Vec::new(),
+            context_name: None,
+            context_length: 0,
+            context_max_length: 0,
+            reasoning: String::new(),
+        })
+        .await;
 
     let user_query = user_text.clone();
     let mut messages_val = serde_json::Value::Array(messages.clone());
     if tokio::time::timeout(
         std::time::Duration::from_secs(30),
         super::kb::inject_kb(
-            state, bot_uuid, session_id, user_id, bot_name,
-            &user_query, &mut messages_val,
+            state,
+            bot_uuid,
+            session_id,
+            user_id,
+            bot_name,
+            &user_query,
+            &mut messages_val,
         ),
-    ).await.is_err() {
+    )
+    .await
+    .is_err()
+    {
         log::warn!("ws_handler: inject_kb_context TIMEOUT after 30s for session {session_id}");
+    }
+
+    // Mention system blocks land right before the user turn so the LLM sees
+    // the advertised integration surface adjacent to the request it enables.
+    #[cfg(feature = "integrations")]
+    if !mentions.is_empty() {
+        super::mentions::append_integration_mention_blocks(
+            state,
+            bot_uuid,
+            user_id,
+            &mentions,
+            &mut messages_val,
+        )
+        .await;
     }
 
     if !is_switcher_replay {
@@ -327,74 +406,22 @@ pub async fn process_message_internal(
     if tokio::time::timeout(
         std::time::Duration::from_secs(300),
         super::llm::stream_llm_response(
-            sink, rx, state, bot_uuid, session_id, user_id, bot_name,
-            &messages_val, &user_query,
+            sink,
+            rx,
+            state,
+            bot_uuid,
+            session_id,
+            user_id,
+            bot_name,
+            &messages_val,
+            &user_query,
         ),
-    ).await.is_err() {
+    )
+    .await
+    .is_err()
+    {
         log::warn!("stream_llm_response TIMEOUT after 300s for session {session_id}");
     }
 
     Ok(())
-}
-
-pub async fn run_pipeline_for_channel(
-    state: &Arc<AppState>,
-    msg: &botlib::models::UserMessage,
-    sink: &dyn ChannelSink,
-) -> PipelineResult<()> {
-    let bot_name = msg.bot_id.clone();
-    let user_text = msg.content.clone();
-    let session_id = Uuid::parse_str(&msg.session_id).unwrap_or_else(|_| Uuid::new_v4());
-    let user_id = Uuid::parse_str(&msg.user_id).unwrap_or_else(|_| Uuid::nil());
-
-    let bot_uuid = resolve_bot_uuid(&state.conn, &bot_name).await;
-
-    let response_key = format!("{}_{}", session_id, Uuid::new_v4());
-    let (tx_internal, mut rx_internal) = tokio::sync::mpsc::channel::<botlib::models::BotResponse>(100);
-    {
-        let mut channels = state.response_channels.lock().await;
-        channels.insert(response_key.clone(), tx_internal);
-    }
-
-    let json_msg = serde_json::json!({
-        "text": user_text,
-        "content": user_text,
-        "message_type": i32::from(msg.message_type),
-    }).to_string();
-
-    let mut start_bas_ran = false;
-    let result = process_message_internal(
-        sink, &mut rx_internal, state,
-        session_id, user_id, bot_uuid, &bot_name,
-        &mut start_bas_ran, &json_msg,
-    ).await;
-
-    {
-        let mut channels = state.response_channels.lock().await;
-        channels.remove(&response_key);
-    }
-
-    result
-}
-
-async fn resolve_bot_uuid(pool: &botcore::shared::utils::DbPool, bot_name: &str) -> uuid::Uuid {
-    if let Ok(uuid) = uuid::Uuid::parse_str(bot_name) {
-        return uuid;
-    }
-    use diesel::RunQueryDsl;
-    if let Ok(mut conn) = pool.get_timeout(std::time::Duration::from_secs(3)) {
-        #[derive(diesel::QueryableByName)]
-        struct BotId {
-            #[diesel(sql_type = diesel::sql_types::Uuid)]
-            id: uuid::Uuid,
-        }
-        diesel::sql_query("SELECT id FROM bots WHERE name = $1 AND is_active = true LIMIT 1")
-            .bind::<diesel::sql_types::Text, _>(bot_name)
-            .get_result::<BotId>(&mut conn)
-            .ok()
-            .map(|r| r.id)
-            .unwrap_or_default()
-    } else {
-        uuid::Uuid::nil()
-    }
 }

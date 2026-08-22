@@ -6,7 +6,7 @@ pub mod workflow;
 
 pub use api::ApiResponse;
 pub use attachment::{Attachment, AttachmentType};
-pub use messaging::{BotResponse, Suggestion, Switcher, UserMessage};
+pub use messaging::{BotResponse, MentionRef, Suggestion, Switcher, UserMessage};
 pub use session::{Session, UserSession};
 pub use workflow::{TriggerKind, WorkflowExecution};
 

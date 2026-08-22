@@ -22,6 +22,9 @@ function sendMessage(messageContent) {
 
   addMessage("user", content || ("📎 " + file.name));
 
+  var selectedMentions = Array.isArray(ChatState.selectedMentions) ? ChatState.selectedMentions : [];
+  ChatState.selectedMentions = [];
+
   var payload = {
     bot_id: ChatState.currentBotId,
     user_id: ChatState.currentUserId,
@@ -30,6 +33,9 @@ function sendMessage(messageContent) {
     content: content,
     message_type: MessageType.USER,
     active_switchers: Array.from(ChatState.activeSwitchers),
+    mentions: selectedMentions.map(function (mention) {
+      return { kind: mention.kind, id: mention.id, label: mention.name };
+    }),
     timestamp: new Date().toISOString(),
   };
 

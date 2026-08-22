@@ -60,6 +60,7 @@ impl ChatPanel {
             active_switchers: vec![],
             timestamp: chrono::Utc::now(),
             context_name: None,
+            mentions: Vec::new(),
         };
         let (tx, rx) = mpsc::channel::<BotResponse>(100);
         self.response_rx = Some(rx);

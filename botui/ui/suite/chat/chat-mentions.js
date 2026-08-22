@@ -44,11 +44,22 @@ function searchEntities(query) {
   renderMentionResults(filteredTypes);
 }
 
+function normalizeListResponse(data) {
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.results)) return data.results;
+  if (data && Array.isArray(data.items)) return data.items;
+  return [];
+}
+
 function fetchEntitiesOfType(type, searchTerm) {
+  if (type === "integration") {
+    fetchIntegrationMentions(searchTerm);
+    return;
+  }
   fetch("/api/search/entities?type=" + encodeURIComponent(type) + "&q=" + encodeURIComponent(searchTerm || ""))
     .then(function (r) { return r.json(); })
     .then(function (data) {
-      var results = (data.results || []).map(function (item) {
+      var results = normalizeListResponse(data).map(function (item) {
         return {
           type: type, name: item.name || item.title || item.number,
           id: item.id, icon: EntityTypes[type].icon,
@@ -62,6 +73,32 @@ function fetchEntitiesOfType(type, searchTerm) {
     })
     .catch(function () {
       renderMentionResults([{ type: type, name: "Search unavailable", icon: "\u26A0\uFE0F", isTypeHint: false, disabled: true }]);
+    });
+}
+
+function fetchIntegrationMentions(searchTerm) {
+  var term = searchTerm || "";
+  fetch("/api/apps/integrations/mentions?q=" + encodeURIComponent(term))
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      var results = normalizeListResponse(data).map(function (item) {
+        return {
+          type: "integration",
+          name: item.label || item.name || item.provider,
+          id: item.id,
+          icon: EntityTypes.integration.icon,
+          subtitle: item.provider || "",
+          details: item.provider,
+          isTypeHint: false,
+        };
+      });
+      if (results.length === 0) {
+        results = [{ type: "integration", name: "No connected integrations for '" + term + "'", icon: "\u274C", isTypeHint: false, disabled: true }];
+      }
+      renderMentionResults(results);
+    })
+    .catch(function () {
+      renderMentionResults([{ type: "integration", name: "Search unavailable", icon: "\u26A0\uFE0F", isTypeHint: false, disabled: true }]);
     });
 }
 
@@ -118,6 +155,15 @@ function selectMentionItem(index) {
     input.value = beforeMention + insertText + afterMention;
     input.setSelectionRange(beforeMention.length + insertText.length, beforeMention.length + insertText.length);
     hideMentionDropdown();
+    // Remember the selection so sendMessage can attach structured mentions
+    // (#939): only integrations carry the connection id - other entity kinds
+    // keep an empty id to avoid changing their behavior.
+    if (!ChatState.selectedMentions) ChatState.selectedMentions = [];
+    ChatState.selectedMentions.push({
+      kind: item.type,
+      id: item.type === "integration" && item.id ? String(item.id) : "",
+      name: item.name,
+    });
   }
   input.focus();
 }
