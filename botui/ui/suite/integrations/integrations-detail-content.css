@@ -180,3 +180,68 @@
     white-space: nowrap;
     border: 0;
 }
+
+.integrations-app .integrations-connect-form {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--integrations-border);
+    border-radius: var(--integrations-radius);
+    background: var(--integrations-surface);
+}
+
+.integrations-app .integrations-connect-help {
+    margin: 0;
+    color: var(--integrations-muted);
+    font-size: 11px;
+}
+
+.integrations-app .integrations-connect-form .integrations-field input {
+    color: var(--integrations-text);
+    background: var(--integrations-surface);
+}
+
+.integrations-app .integrations-connect-form .integrations-field input:focus {
+    border-color: var(--integrations-focus);
+    outline: none;
+}
+
+.integrations-app .integrations-connect-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.integrations-app .integrations-inline-progress,
+.integrations-app .integrations-connect-success {
+    margin: 0;
+    color: var(--integrations-success);
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.integrations-app .integrations-inline-error {
+    margin: 0;
+    padding: 8px 10px;
+    border-radius: var(--integrations-radius-sm);
+    color: var(--integrations-error);
+    background: var(--integrations-error-bg);
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.integrations-app .integrations-row-actions {
+    display: inline-flex;
+    gap: 6px;
+}
+
+.integrations-app .integrations-cell-subtext {
+    display: block;
+    margin-top: 3px;
+    color: var(--integrations-faint);
+    font-size: 10px;
+}
+
+.integrations-app .integrations-faint-text {
+    color: var(--integrations-faint);
+    font-size: 11px;
+}

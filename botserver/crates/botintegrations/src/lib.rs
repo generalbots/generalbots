@@ -3,6 +3,7 @@ pub mod error;
 pub mod handlers;
 pub mod handlers_actions;
 pub mod handlers_connections;
+pub mod handlers_context;
 pub mod handlers_lifecycle;
 pub mod metadata;
 pub mod models;

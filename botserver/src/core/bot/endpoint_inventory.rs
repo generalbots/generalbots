@@ -56,6 +56,7 @@ pub const ALL_ROUTES: &[ApiEndpoint] = &[
     ApiEndpoint { method: "GET", path: "/api/apps/catalog", summary: "registered in src/apps/mod.rs" },
     ApiEndpoint { method: "GET", path: "/api/apps/integrations/catalog", summary: "registered in src/apps/integration_catalog/routes.rs" },
     ApiEndpoint { method: "GET", path: "/api/apps/integrations/catalog/:provider", summary: "registered in src/apps/integration_catalog/routes.rs" },
+    ApiEndpoint { method: "GET", path: "/api/apps/integrations/context", summary: "registered in crates/botintegrations/src/routes.rs; default active bot plus integration-connections base URL" },
     ApiEndpoint { method: "POST", path: "/api/attendance/assign", summary: "registered in crates/botattendance/src/routes.rs" },
     ApiEndpoint { method: "POST", path: "/api/attendance/assign-by-skill", summary: "registered in crates/botattendance/src/routes.rs" },
     ApiEndpoint { method: "GET", path: "/api/attendance/attendants", summary: "registered in crates/botattendance/src/routes.rs" },

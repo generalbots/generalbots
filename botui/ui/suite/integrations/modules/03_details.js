@@ -169,6 +169,143 @@
         return '<span class="integrations-provider-mark" aria-hidden="true">' + namespace.escapeHtml(mark) + '</span>';
     }
 
+    function authKindFor(provider) {
+        var method = String(provider.auth.method || "").toLowerCase();
+        return namespace.allowedAuthKinds.indexOf(method) !== -1 ? method : "";
+    }
+
+    function connectInputs(provider, uid) {
+        return fieldSource(provider).map(function (field) { return normalizeField(field, provider); })
+            .map(function (field, index) {
+                var type = field.secret ? "password" : "text";
+                var inputId = uid + "-connect-" + index;
+                var metadata = (field.secret ? "<span>Secret</span>" : "<span>Configuration</span>") +
+                    '<span>' + (field.required ? "Required" : "Optional") + '</span>';
+                var placeholder = field.secret ? "Stored in the secrets vault" : "Value stored with the connection";
+                return '<label class="integrations-field"><span class="integrations-field-label"><span>' + namespace.escapeHtml(field.label) + '</span>' +
+                    '<span class="integrations-field-meta">' + metadata + '</span></span>' +
+                    '<input type="' + type + '" id="' + namespace.escapeHtml(inputId) + '" name="' + namespace.escapeHtml(field.key) + '"' +
+                    (field.required ? " required" : "") + ' autocomplete="' + (field.secret ? "new-password" : "off") + '"' +
+                    ' placeholder="' + namespace.escapeHtml(placeholder) + '"' +
+                    ' aria-label="' + namespace.escapeHtml(field.label + ", " + (field.secret ? "secret, " : "") + (field.required ? "required" : "optional")) + '">' +
+                    (field.description ? '<span class="integrations-field-help">' + namespace.escapeHtml(field.description) + '</span>' : '') + '</label>';
+            }).join("");
+    }
+
+    function renderConnectSection(provider, uid) {
+        var authKind = authKindFor(provider);
+        if (!authKind || !connectInputs(provider, uid)) {
+            return null;
+        }
+        return '<section class="integrations-detail-section"><div class="integrations-detail-section-head"><h4>Connect securely</h4>' +
+            '<span>Vault-backed</span></div>' +
+            '<form class="integrations-connect-form" data-connect-form novalidate>' +
+            '<p class="integrations-connect-help">Values travel once over an authenticated request; secret keys are written to the server-side vault and never displayed again.</p>' +
+            '<label class="integrations-field"><span class="integrations-field-label"><span>Display name</span>' +
+            '<span class="integrations-field-meta"><span>Required</span></span></span>' +
+            '<input type="text" name="display_name" required maxlength="255" autocomplete="off" value="' +
+            namespace.escapeHtml(provider.name + " connection") + '" aria-label="Display name, required"></label>' +
+            connectInputs(provider, uid) +
+            '<p class="integrations-inline-progress" data-connect-progress hidden role="status">Storing credentials...</p>' +
+            '<p class="integrations-inline-error" data-connect-error hidden role="alert"></p>' +
+            '<p class="integrations-connect-success" data-connect-success hidden role="status"></p>' +
+            '<div class="integrations-connect-actions">' +
+            '<button class="integrations-button" type="submit" data-action="connect-provider">Connect</button>' +
+            '</div></form></section>';
+    }
+
+    function collectFieldValues(provider, form, secrets, configuration) {
+        fieldSource(provider).forEach(function (rawField) {
+            var field = normalizeField(rawField, provider);
+            var input = form.elements[field.key];
+            if (!input || !String(input.value).trim()) {
+                return;
+            }
+            if (field.secret) {
+                secrets[field.key] = String(input.value);
+            } else {
+                configuration[field.key] = String(input.value);
+            }
+        });
+    }
+
+    function clearFormInputs(form) {
+        Array.prototype.forEach.call(form.querySelectorAll("input"), function (input) {
+            input.value = "";
+        });
+        form.reset();
+    }
+
+    function connectErrorMessage(error) {
+        var status = error && typeof error.status === "number" ? error.status : 0;
+        if (status === 409) {
+            return "An active connection for this provider already exists.";
+        }
+        if (status === 401 || status === 403) {
+            return "Your session could not be authorized for this workspace. Sign in again or ask an administrator for access.";
+        }
+        if (status === 503) {
+            return "Credential vault unavailable. Nothing was stored; try again shortly.";
+        }
+        if (status === 400) {
+            return "Some values were rejected by the control plane. Review the fields and try again.";
+        }
+        return "Connection could not be created. The control plane may be unreachable; try again.";
+    }
+
+    namespace.submitConnectForm = async function (root, form) {
+        var state = namespace.getState(root);
+        var provider = state.providerMap.get(state.selectedProviderId);
+        if (!provider || !provider.llm_available || !form.matches("[data-connect-form]")) {
+            return;
+        }
+        var progress = form.querySelector("[data-connect-progress]");
+        var errorLine = form.querySelector("[data-connect-error]");
+        var successLine = form.querySelector("[data-connect-success]");
+        var submitButton = form.querySelector('button[type="submit"]');
+        errorLine.hidden = true;
+        successLine.hidden = true;
+        progress.hidden = false;
+        if (submitButton) {
+            submitButton.disabled = true;
+        }
+        var displayName = namespace.text(form.elements.display_name ? form.elements.display_name.value : "", "");
+        var secrets = {};
+        var configuration = {};
+        collectFieldValues(provider, form, secrets, configuration);
+        try {
+            var payload = await namespace.fetchJson(namespace.connectionsUrl(), {
+                method: "POST",
+                body: {
+                    provider_slug: provider.id,
+                    display_name: displayName,
+                    auth_kind: authKindFor(provider),
+                    secrets: secrets,
+                    configuration: configuration,
+                    granted_scopes: []
+                }
+            });
+            clearFormInputs(form);
+            progress.hidden = true;
+            successLine.textContent = "Connected. Connection " + namespace.text(payload.id, "(id pending)") + " is active.";
+            successLine.hidden = false;
+            namespace.announce(root, provider.name + " connected");
+            if (typeof namespace.loadConnected === "function") {
+                namespace.loadConnected(root);
+            }
+        } catch (error) {
+            clearFormInputs(form);
+            progress.hidden = true;
+            errorLine.textContent = connectErrorMessage(error);
+            errorLine.hidden = false;
+            namespace.announce(root, provider.name + " connection failed");
+        } finally {
+            if (submitButton) {
+                submitButton.disabled = false;
+            }
+        }
+    };
+
     namespace.renderDetails = function (root) {
         var state = namespace.getState(root);
         var provider = state.providerMap.get(state.selectedProviderId);
@@ -186,10 +323,12 @@
             leastPrivilege.push(leastPrivilegeFallback);
         }
         var docsUrl = namespace.safeUrl(provider.official_docs);
-        var adapterTitle = provider.llm_available ? "Available to assistants" : "Configuration requires adapter";
-        var adapterCopy = provider.llm_available ?
-            "The language model can use implemented actions. Credential setup remains read-only until a secure save endpoint is documented." :
-            "Planned setup only. This control plane does not submit or persist credentials.";
+        var adapterTitle = "Configuration requires adapter";
+        var adapterCopy = "Planned setup only. This control plane does not submit or persist credentials.";
+        var adapterBlock = provider.llm_available ?
+            (renderConnectSection(provider, state.uid) ||
+                '<div class="integrations-adapter-state"><strong>Available to assistants</strong><p>The language model can use implemented actions, but this provider declares no connectable fields yet.</p></div>') :
+            '<div class="integrations-adapter-state"><strong>' + namespace.escapeHtml(adapterTitle) + '</strong><p>' + namespace.escapeHtml(adapterCopy) + '</p></div>';
         var warning = state.detailStatus === "error" ? '<div class="integrations-inline-warning"><strong>Latest detail could not be loaded</strong>' +
             '<p>Showing the provider information already available from the catalog.</p><button class="integrations-button" type="button" data-action="retry-detail">Try detail again</button></div>' :
             (state.detailStatus === "loading" ? '<p class="integrations-readonly-note" role="status">Refreshing provider detail...</p>' : '');
@@ -198,7 +337,7 @@
             '<dl class="integrations-detail-meta"><div><dt>Category</dt><dd>' + namespace.escapeHtml(namespace.titleCase(provider.category)) + '</dd></div>' +
             '<div><dt>Priority</dt><dd>' + namespace.escapeHtml(namespace.titleCase(provider.priority)) + '</dd></div>' +
             '<div><dt>Module</dt><dd>' + namespace.escapeHtml(provider.module) + '</dd></div></dl>' + warning +
-            '<div class="integrations-adapter-state"><strong>' + namespace.escapeHtml(adapterTitle) + '</strong><p>' + namespace.escapeHtml(adapterCopy) + '</p></div>' +
+            adapterBlock +
             '<section class="integrations-detail-section"><div class="integrations-detail-section-head"><h4>Authentication</h4>' +
             '<span>' + namespace.escapeHtml(namespace.titleCase(provider.auth.method, "Not specified")) + '</span></div>' + renderFields(provider) + '</section>' +
             '<section class="integrations-detail-section"><div class="integrations-detail-section-head"><h4>Setup guidance</h4><span>Read only</span></div>' +
@@ -280,7 +419,7 @@
         if (event.key !== "Tab") {
             return;
         }
-        var focusable = Array.from(root.querySelectorAll("[data-detail-panel] button:not([disabled]), [data-detail-panel] a[href], [data-detail-panel] summary, [data-detail-panel][tabindex]"));
+        var focusable = Array.from(root.querySelectorAll("[data-detail-panel] button:not([disabled]), [data-detail-panel] a[href], [data-detail-panel] summary, [data-detail-panel] input:not([disabled]), [data-detail-panel][tabindex]"));
         if (!focusable.length) {
             event.preventDefault();
             return;
