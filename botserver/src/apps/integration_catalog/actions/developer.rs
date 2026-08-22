@@ -1,7 +1,7 @@
 use super::super::types::{ActionTemplate, Parameter, ParameterType};
 use super::{
     destructive, param, read, write, CREATE_PARAMS, DELETE_PARAMS, GET_PARAMS, LIST_PARAMS,
-    SEARCH_PARAMS, UPDATE_PARAMS,
+    SEARCH_PARAMS,
 };
 
 const REPOSITORY_GET: &[Parameter] = &[param(
@@ -18,6 +18,18 @@ const ISSUE_SEARCH: &[Parameter] = &[
         "Repository owner and name",
     ),
     param("query", ParameterType::String, true, "Issue search query"),
+];
+// GitHub issue updates address the issue number plus its owner/repo slug,
+// so the generic update shape gains one required locator parameter.
+const GITHUB_ISSUE_UPDATE: &[Parameter] = &[
+    param("resource_id", ParameterType::String, true, "Issue number"),
+    param("changes", ParameterType::Json, true, "Fields to update"),
+    param(
+        "repository",
+        ParameterType::String,
+        true,
+        "Repository owner and name",
+    ),
 ];
 const METRIC_QUERY: &[Parameter] = &[
     param(
@@ -58,10 +70,24 @@ pub(crate) const REPOSITORY_ACTIONS: &[ActionTemplate] = &[
         LIST_PARAMS,
     ),
     read(
+        "repositories.search",
+        "search",
+        "Search repositories",
+        "Search repositories.",
+        SEARCH_PARAMS,
+    ),
+    read(
         "repositories.get",
         "get",
         "Get repository",
         "Read repository metadata.",
+        REPOSITORY_GET,
+    ),
+    read(
+        "issues.list",
+        "list",
+        "List issues",
+        "List open repository issues.",
         REPOSITORY_GET,
     ),
     read(
@@ -70,13 +96,6 @@ pub(crate) const REPOSITORY_ACTIONS: &[ActionTemplate] = &[
         "Search issues",
         "Search repository issues.",
         ISSUE_SEARCH,
-    ),
-    read(
-        "pull_requests.list",
-        "list",
-        "List pull requests",
-        "List repository pull requests.",
-        REPOSITORY_GET,
     ),
     write(
         "issues.create",
@@ -90,7 +109,21 @@ pub(crate) const REPOSITORY_ACTIONS: &[ActionTemplate] = &[
         "update",
         "Update issue",
         "Update a repository issue.",
-        UPDATE_PARAMS,
+        GITHUB_ISSUE_UPDATE,
+    ),
+    read(
+        "pull_requests.list",
+        "list",
+        "List pull requests",
+        "List repository pull requests.",
+        REPOSITORY_GET,
+    ),
+    read(
+        "actions.runs.list",
+        "list",
+        "List workflow runs",
+        "List workflow runs for a repository.",
+        REPOSITORY_GET,
     ),
 ];
 

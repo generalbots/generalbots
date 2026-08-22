@@ -24,6 +24,9 @@ use crate::scope::ConnectionScope;
 use crate::state::IntegrationState;
 
 pub mod aws;
+pub mod github;
+pub mod rest_client;
+pub mod stripe;
 
 /// Unknown provider or action name; maps to HTTP 404.
 pub const ERR_UNKNOWN_ACTION: &str = "unknown_action";
@@ -100,6 +103,8 @@ fn outcome_key_is_sensitive(key: &str) -> bool {
         "access_key",
         "secret",
         "session_token",
+        "token",
+        "api_key",
         "password",
         "authorization",
     ]
@@ -107,9 +112,79 @@ fn outcome_key_is_sensitive(key: &str) -> bool {
     .any(|fragment| lower.contains(fragment))
 }
 
-/// Recursively strips keys whose names look like credential material so a
-/// hostile provider response can never smuggle secrets into chat or API
-/// payloads. S3 object keys are legitimate outcome data and are preserved.
+/// Token-shaped value prefixes that must never survive into outcomes even
+/// when a hostile provider echoes credential material inside ordinary
+/// string fields. GitHub personal access tokens and Stripe secret keys use
+/// these well-known markers.
+const VALUE_TOKEN_PREFIXES: &[&str] = &[
+    "github_pat_",
+    "sk_live_",
+    "sk_test_",
+    "rk_live_",
+    "rk_test_",
+    "whsec_",
+    "ghp_",
+    "gho_",
+    "ghu_",
+    "ghs_",
+    "ghr_",
+];
+
+/// Minimum number of body characters after a token prefix before the value
+/// is treated as live credential material rather than prose.
+const MIN_TOKEN_BODY_LEN: usize = 8;
+
+/// Replaces embedded token-shaped substrings (for example `sk_test_...` or
+/// `ghp_...` values echoed by a provider) with a fixed marker so raw
+/// credential material can never reach chat or API payloads.
+fn scrub_embedded_tokens(text: &str) -> String {
+    let mut result = String::with_capacity(text.len());
+    let mut rest = text;
+    loop {
+        let mut replaced = false;
+        for start in 0..rest.len() {
+            if !rest.is_char_boundary(start) {
+                continue;
+            }
+            for prefix in VALUE_TOKEN_PREFIXES {
+                if !rest[start..].starts_with(prefix) {
+                    continue;
+                }
+                let after_prefix = &rest[start + prefix.len()..];
+                let body_len: usize = after_prefix
+                    .chars()
+                    .take_while(|c| c.is_ascii_alphanumeric() || *c == '_' || *c == '-')
+                    .map(char::len_utf8)
+                    .sum();
+                if body_len < MIN_TOKEN_BODY_LEN {
+                    continue;
+                }
+                result.push_str(&rest[..start]);
+                result.push_str("[redacted]");
+                rest = &after_prefix[body_len..];
+                replaced = true;
+                break;
+            }
+            if replaced {
+                break;
+            }
+        }
+        if !replaced {
+            break;
+        }
+    }
+    result.push_str(rest);
+    result
+}
+
+fn redact_string_value(value: &str) -> Value {
+    Value::String(scrub_embedded_tokens(value))
+}
+
+/// Recursively strips keys whose names look like credential material and
+/// scrubs embedded token-shaped values, so a hostile provider response can
+/// never smuggle secrets into chat or API payloads. S3 object keys are
+/// legitimate outcome data and are preserved.
 pub fn redact_credentials(value: &Value) -> Value {
     match value {
         Value::Object(map) => {
@@ -123,13 +198,19 @@ pub fn redact_credentials(value: &Value) -> Value {
             Value::Object(cleaned)
         }
         Value::Array(items) => Value::Array(items.iter().map(redact_credentials).collect()),
+        Value::String(text) => redact_string_value(text),
         other => other.clone(),
     }
 }
 
-/// Adapters available in this build. Slice 1 ships AWS only.
+/// Adapters available in this build. Slice 1 shipped AWS; slice 2 adds the
+/// GitHub and Stripe JSON REST adapters sharing `rest_client`.
 pub fn registry() -> Vec<Arc<dyn ProviderAdapter>> {
-    vec![Arc::new(aws::AwsAdapter)]
+    vec![
+        Arc::new(aws::AwsAdapter),
+        Arc::new(github::GithubAdapter),
+        Arc::new(stripe::StripeAdapter),
+    ]
 }
 
 /// Implemented action keys for `provider`, or an empty slice when the
@@ -258,6 +339,58 @@ mod tests {
     }
 
     #[test]
+    fn registry_exposes_github_and_stripe_action_sets() {
+        let github_names = implemented_action_names("github");
+        assert_eq!(
+            github_names,
+            crate::providers::github::GITHUB_IMPLEMENTED_ACTIONS
+        );
+        assert_eq!(github_names.len(), 9);
+
+        let stripe_names = implemented_action_names("stripe");
+        assert_eq!(
+            stripe_names,
+            crate::providers::stripe::STRIPE_IMPLEMENTED_ACTIONS
+        );
+        assert_eq!(stripe_names.len(), 10);
+    }
+
+    #[test]
+    fn embedded_token_values_are_scrubbed_from_outcomes() {
+        // Synthetic fixtures are assembled from fragments so the source file
+        // never contains a contiguous credential-shaped literal (GitHub push
+        // protection scans committed text, not runtime values).
+        let sk_test = concat!("sk_", "test_51AbcdefGhijklMn");
+        let ghp = concat!("ghp_", "ABCDEFGHIJKLMNOPQRSTUVWXYZ12");
+        let whsec = concat!("whsec_", "0123456789abcdef");
+        let github_pat = concat!("github_pat_", "11AAAAAAA0bbbbbbbbbbCCCCCCCCCC");
+        let sk_live = ["sk_", "live_9f8e7d6c5b4a3210fedcba98"].concat();
+        let hostile = json!({
+            "note": format!("leaked {sk_test} and {ghp}"),
+            "webhook": whsec,
+            "nested": { "field": format!("prefix {github_pat}") },
+            "list": [sk_live],
+            "clean": "the quick brown fox"
+        });
+        let rendered = redact_credentials(&hostile).to_string();
+        for fragment in [
+            "sk_test_",
+            "sk_live_",
+            "ghp_",
+            "whsec_",
+            "github_pat_",
+            "[redacted]",
+        ] {
+            if fragment == "[redacted]" {
+                assert!(rendered.contains(fragment));
+            } else {
+                assert!(!rendered.contains(fragment), "leaked {fragment}");
+            }
+        }
+        assert!(rendered.contains("the quick brown fox"));
+    }
+
+    #[test]
     fn unknown_action_is_rejected_before_any_lookup() {
         // Registry-level gating is pure: an unimplemented action key never
         // reaches connection resolution or Vault. Verified through the same
@@ -269,29 +402,34 @@ mod tests {
 
     #[test]
     fn llm_safe_actions_cover_implemented_surface_without_secret_material() {
-        let actions = llm_safe_actions("aws");
-        let names: Vec<&str> = actions.iter().map(|a| a.name.as_str()).collect();
-        assert_eq!(names.len(), implemented_action_names("aws").len());
-        for key in implemented_action_names("aws") {
-            assert!(names.contains(key), "missing chat-safe metadata for {key}");
-        }
-        assert!(names.contains(&"s3.objects.list"));
-
-        let rendered = serde_json::to_string(&actions).expect("serialize in tests");
-        for banned in [
-            "secret",
-            "token",
-            "vault",
-            "access_key",
-            "password",
-            "authorization",
-        ] {
-            assert!(
-                !rendered.to_lowercase().contains(banned),
-                "chat-safe metadata leaked {banned}"
+        for provider in ["aws", "github", "stripe"] {
+            let actions = llm_safe_actions(provider);
+            let names: Vec<&str> = actions.iter().map(|a| a.name.as_str()).collect();
+            assert_eq!(
+                names.len(),
+                implemented_action_names(provider).len(),
+                "chat-safe metadata count mismatch for {provider}"
             );
-        }
+            for key in implemented_action_names(provider) {
+                assert!(names.contains(key), "missing chat-safe metadata for {key}");
+            }
 
+            let rendered = serde_json::to_string(&actions).expect("serialize in tests");
+            for banned in [
+                "secret",
+                "token",
+                "vault",
+                "access_key",
+                "api_key",
+                "password",
+                "authorization",
+            ] {
+                assert!(
+                    !rendered.to_lowercase().contains(banned),
+                    "chat-safe metadata leaked {banned} for {provider}"
+                );
+            }
+        }
         assert!(llm_safe_actions("nonexistent").is_empty());
     }
 }
