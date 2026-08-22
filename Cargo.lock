@@ -1174,7 +1174,6 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "botcore",
- "botlib",
  "botsecurity",
  "chrono",
  "diesel",
@@ -1534,7 +1533,6 @@ dependencies = [
  "anyhow",
  "axum",
  "base64 0.22.1",
- "botcoresecrets",
  "chromiumoxide",
  "chrono",
  "futures-util",
@@ -1552,7 +1550,6 @@ name = "botcalendar"
 version = "6.3.1"
 dependencies = [
  "axum",
- "botcoresecrets",
  "botsecurity-core",
  "chrono",
  "diesel",
@@ -1571,12 +1568,9 @@ name = "botcanvas"
 version = "6.3.1"
 dependencies = [
  "axum",
- "botcoresecrets",
  "chrono",
  "diesel",
- "log",
  "r2d2",
- "reqwest 0.12.28",
  "serde",
  "serde_json",
  "uuid",
@@ -1865,7 +1859,6 @@ name = "botcoresecrets"
 version = "6.3.1"
 dependencies = [
  "anyhow",
- "botlib",
  "diesel",
  "log",
  "serde",
@@ -1933,7 +1926,6 @@ version = "6.3.1"
 dependencies = [
  "axum",
  "botcoresecrets",
- "botlib",
  "botsecurity-auth",
  "chrono",
  "diesel",
@@ -1989,7 +1981,6 @@ name = "botdocs"
 version = "6.3.1"
 dependencies = [
  "axum",
- "botcoresecrets",
  "botlib",
  "chrono",
  "diesel",
@@ -2066,7 +2057,6 @@ dependencies = [
  "axum",
  "axum-extra",
  "base64 0.22.1",
- "botcoresecrets",
  "botlib",
  "botsecurity-core",
  "chrono",
@@ -2446,7 +2436,6 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "botcore",
- "botcoresecrets",
  "botlib",
  "botschema",
  "botsecurity",
@@ -2504,7 +2493,6 @@ name = "botmonitoring"
 version = "6.3.1"
 dependencies = [
  "axum",
- "botcoresecrets",
  "chrono",
  "hex",
  "log",

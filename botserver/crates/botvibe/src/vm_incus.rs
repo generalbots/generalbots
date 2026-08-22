@@ -8,9 +8,12 @@
 //! provisioning of WSL2 + Debian + the Incus package. Set
 //! `GBO_WSL_DISTRO` to select another installed distro.
 
+#[cfg(target_os = "windows")]
 use std::sync::OnceLock;
 
-use crate::harness::cmd::{run, spawn_persistent, GuardError, RunOutput};
+use crate::harness::cmd::{run, GuardError, RunOutput};
+#[cfg(target_os = "windows")]
+use crate::harness::cmd::spawn_persistent;
 use crate::vm_lifecycle::VmLifecycle;
 
 const VM_UNAVAILABLE: &str = "vm-skip: incus binary unavailable";
@@ -123,6 +126,7 @@ impl VmLifecycle {
     }
 
     /// Provision WSL2 + the selected distro + Incus automatically (Windows only).
+    #[cfg(target_os = "windows")]
     fn ensure_incus_wsl(&self) -> Result<(), String> {
         let cwd = driver_cwd();
         let distro = wsl_distro();

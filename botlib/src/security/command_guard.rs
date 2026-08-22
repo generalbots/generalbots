@@ -202,15 +202,17 @@ impl SafeCommand {
     }
 
     fn append_args(&self, cmd: &mut std::process::Command) {
+        #[cfg(target_os = "windows")]
         for (idx, arg) in self.args.iter().enumerate() {
-            #[cfg(target_os = "windows")]
-            {
-                use std::os::windows::process::CommandExt;
-                if self.raw_args.contains(&idx) {
-                    cmd.raw_arg(arg);
-                    continue;
-                }
+            use std::os::windows::process::CommandExt;
+            if self.raw_args.contains(&idx) {
+                cmd.raw_arg(arg);
+                continue;
             }
+            cmd.arg(arg);
+        }
+        #[cfg(not(target_os = "windows"))]
+        for arg in self.args.iter() {
             cmd.arg(arg);
         }
     }
