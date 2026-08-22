@@ -140,6 +140,100 @@ pub(crate) const PAYMENT_ACTIONS: &[ActionTemplate] = &[
     ),
 ];
 
+// Stripe concrete action profile (#950 slice 2): PAYMENT_ACTIONS stays
+// generic for providers without a live adapter, while Stripe carries its own
+// keys mirroring botintegrations::providers::stripe::STRIPE_IMPLEMENTED_ACTIONS
+// exactly.
+const STRIPE_REFUND: &[Parameter] = &[
+    param(
+        "payment_intent",
+        ParameterType::String,
+        true,
+        "Payment intent identifier",
+    ),
+    param(
+        "amount",
+        ParameterType::Integer,
+        false,
+        "Optional partial refund amount",
+    ),
+    param("reason", ParameterType::String, false, "Refund reason"),
+];
+const NO_PARAMS: &[Parameter] = &[];
+
+pub(crate) const STRIPE_ACTIONS: &[ActionTemplate] = &[
+    read(
+        "balance.retrieve",
+        "get",
+        "Get balance",
+        "Read the Stripe account balance.",
+        NO_PARAMS,
+    ),
+    read(
+        "customers.list",
+        "list",
+        "List customers",
+        "List payment customers.",
+        LIST_PARAMS,
+    ),
+    read(
+        "customers.search",
+        "search",
+        "Search customers",
+        "Search payment customers.",
+        SEARCH_PARAMS,
+    ),
+    write(
+        "customers.create",
+        "create",
+        "Create customer",
+        "Create a payment customer.",
+        CREATE_PARAMS,
+    ),
+    read(
+        "payment_intents.list",
+        "list",
+        "List payments",
+        "List payments.",
+        LIST_PARAMS,
+    ),
+    read(
+        "payment_intents.get",
+        "get",
+        "Get payment",
+        "Read payment details.",
+        GET_PARAMS,
+    ),
+    write(
+        "payment_intents.create",
+        "create",
+        "Create payment",
+        "Create or authorize a payment.",
+        CREATE_PARAMS,
+    ),
+    read(
+        "prices.list",
+        "list",
+        "List prices",
+        "List active prices.",
+        LIST_PARAMS,
+    ),
+    destructive(
+        "refunds.create",
+        "create",
+        "Refund payment",
+        "Refund a payment.",
+        STRIPE_REFUND,
+    ),
+    read(
+        "subscriptions.list",
+        "list",
+        "List subscriptions",
+        "List subscriptions.",
+        LIST_PARAMS,
+    ),
+];
+
 pub(crate) const CRYPTO_ACTIONS: &[ActionTemplate] = &[
     read(
         "accounts.list",

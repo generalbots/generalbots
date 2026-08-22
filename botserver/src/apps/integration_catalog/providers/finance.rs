@@ -1,23 +1,30 @@
 use super::super::actions::{
-    BANKING_ACTIONS, CRYPTO_ACTIONS, FINANCE_OPERATIONS_ACTIONS, PAYMENT_ACTIONS,
+    BANKING_ACTIONS, CRYPTO_ACTIONS, FINANCE_OPERATIONS_ACTIONS, PAYMENT_ACTIONS, STRIPE_ACTIONS,
 };
 use super::super::auth::{API_KEY, OAUTH2, TOKEN, UNKNOWN, UNSUPPORTED};
 use super::super::types::{Category, Priority, ProviderSeed, Status, Strategy};
 use super::provider;
 
 pub(super) const PROVIDERS: &[ProviderSeed] = &[
-    provider(
-        "stripe",
-        "Stripe",
-        Category::Finance,
-        Strategy::Improve,
-        Status::Built,
-        Priority::Must,
-        Some("botbilling"),
-        Some("https://docs.stripe.com/api"),
-        &API_KEY,
-        PAYMENT_ACTIONS,
-    ),
+    // Stripe is a live adapter (#950 slice 2); the seed flips
+    // llm_available and points at the concrete STRIPE_ACTIONS profile while
+    // `action_is_implemented` keeps the per-action truth in sync with
+    // botintegrations::providers::registry.
+    ProviderSeed {
+        llm_available: true,
+        ..provider(
+            "stripe",
+            "Stripe",
+            Category::Finance,
+            Strategy::Improve,
+            Status::Built,
+            Priority::Must,
+            Some("botbilling"),
+            Some("https://docs.stripe.com/api"),
+            &API_KEY,
+            STRIPE_ACTIONS,
+        )
+    },
     provider(
         "paypal",
         "PayPal",

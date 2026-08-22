@@ -2,22 +2,22 @@ use std::collections::HashSet;
 
 use serde_json::Value;
 
-use super::types::{AuthMethod, InputType, Risk};
+use super::types::{AuthMethod, InputType, Risk, Status};
 use super::{llm_actions, provider_by_id, search};
 
 #[test]
 fn provider_ids_and_names_are_unique() {
     let catalog = search(None, None, None);
     assert_eq!(catalog.provider_count, 129);
-    assert_eq!(catalog.action_count, 693);
+    assert_eq!(catalog.action_count, 701);
     assert_eq!(catalog.categories.len(), 8);
     assert_eq!(catalog.totals.providers, 129);
-    assert_eq!(catalog.totals.actions, 693);
-    // Slice 1 (#950): AWS is the only provider with a live adapter; all
-    // thirteen of its catalog actions are implemented when the integrations
-    // feature compiles the registry in, and none otherwise.
+    assert_eq!(catalog.totals.actions, 701);
+    // Slices 1-2 (#950): AWS, GitHub and Stripe have live adapters; all of
+    // their catalog actions are implemented when the integrations feature
+    // compiles the registry in (13 + 9 + 10), and none otherwise.
     #[cfg(feature = "integrations")]
-    assert_eq!(catalog.totals.implemented_actions, 13);
+    assert_eq!(catalog.totals.implemented_actions, 32);
     #[cfg(not(feature = "integrations"))]
     assert_eq!(catalog.totals.implemented_actions, 0);
     let mut ids = HashSet::new();
@@ -25,6 +25,74 @@ fn provider_ids_and_names_are_unique() {
     for provider in &catalog.providers {
         assert!(ids.insert(provider.id));
         assert!(names.insert(provider.name));
+    }
+}
+
+#[test]
+fn github_and_stripe_flip_llm_available_without_status_drift() {
+    let expectations = [("github", Status::Partial), ("stripe", Status::Built)];
+    for (id, status) in expectations {
+        let Some(provider) = provider_by_id(id) else {
+            assert!(false, "{id} provider is missing");
+            return;
+        };
+        assert!(
+            provider.llm_available,
+            "{id} must advertise LLM availability"
+        );
+        assert_eq!(provider.status, status, "{id} status must not drift");
+    }
+}
+
+#[cfg(feature = "integrations")]
+#[test]
+fn github_and_stripe_registered_actions_match_catalog_exactly() {
+    let cases = [
+        (
+            "github",
+            botintegrations::providers::github::GITHUB_IMPLEMENTED_ACTIONS,
+        ),
+        (
+            "stripe",
+            botintegrations::providers::stripe::STRIPE_IMPLEMENTED_ACTIONS,
+        ),
+    ];
+    for (id, registered) in cases {
+        let Some(provider) = provider_by_id(id) else {
+            assert!(false, "{id} provider is missing");
+            return;
+        };
+        let registered_names: HashSet<String> =
+            registered.iter().map(|key| format!("{id}.{key}")).collect();
+        let registered_refs: HashSet<&str> = registered_names.iter().map(String::as_str).collect();
+        let implemented: HashSet<&str> = provider
+            .actions
+            .iter()
+            .filter(|action| action.implemented)
+            .map(|action| action.name.as_str())
+            .collect();
+        assert_eq!(
+            implemented, registered_refs,
+            "{id} catalog profile and adapter registry diverge"
+        );
+        assert_eq!(
+            provider.actions.len(),
+            registered.len(),
+            "{id} must not carry catalog-only actions without an adapter"
+        );
+    }
+}
+
+#[cfg(not(feature = "integrations"))]
+#[test]
+fn github_and_stripe_advertise_no_implemented_actions_without_the_registry() {
+    for id in ["github", "stripe"] {
+        let Some(provider) = provider_by_id(id) else {
+            assert!(false, "{id} provider is missing");
+            return;
+        };
+        assert!(!provider.llm_available);
+        assert!(provider.actions.iter().all(|action| !action.implemented));
     }
 }
 

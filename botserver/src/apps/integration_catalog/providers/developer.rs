@@ -8,18 +8,25 @@ use super::super::types::{Category, Priority, ProviderSeed, Status, Strategy};
 use super::provider;
 
 pub(super) const PROVIDERS: &[ProviderSeed] = &[
-    provider(
-        "github",
-        "GitHub",
-        Category::Developer,
-        Strategy::Improve,
-        Status::Partial,
-        Priority::Must,
-        Some("botgit"),
-        Some("https://docs.github.com/en/rest"),
-        &TOKEN,
-        REPOSITORY_ACTIONS,
-    ),
+    // GitHub is a live adapter (#950 slice 2); the seed flips
+    // llm_available while `action_is_implemented` keeps the per-action truth
+    // in sync with botintegrations::providers::registry. Status stays
+    // Partial because only the repository action subset is implemented.
+    ProviderSeed {
+        llm_available: true,
+        ..provider(
+            "github",
+            "GitHub",
+            Category::Developer,
+            Strategy::Improve,
+            Status::Partial,
+            Priority::Must,
+            Some("botgit"),
+            Some("https://docs.github.com/en/rest"),
+            &TOKEN,
+            REPOSITORY_ACTIONS,
+        )
+    },
     provider(
         "cursor",
         "Cursor",
