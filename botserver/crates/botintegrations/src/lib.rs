@@ -1,10 +1,12 @@
 pub mod db;
 pub mod error;
 pub mod handlers;
+pub mod handlers_actions;
 pub mod handlers_connections;
 pub mod handlers_lifecycle;
 pub mod metadata;
 pub mod models;
+pub mod providers;
 pub mod repository;
 pub mod request;
 pub mod routes;

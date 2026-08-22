@@ -132,6 +132,7 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
         ApiEndpoint { method: "POST", path: "/api/bots/:bot_id/integration-connections/:connection_id/test", summary: "Validate stored credentials shape (no outbound call); outcome is recorded as unverified" },
         ApiEndpoint { method: "POST", path: "/api/bots/:bot_id/integration-connections/:connection_id/rotate", summary: "Rotate connection credentials in Vault and increment credential_version" },
         ApiEndpoint { method: "GET", path: "/api/bots/:bot_id/integration-connections/:connection_id/events", summary: "List the sanitized audit event trail of an integration connection" },
+        ApiEndpoint { method: "POST", path: "/api/bots/:bot_id/integration-actions/invoke", summary: "Execute an implemented provider action (provider, action, params); credentials load from Vault and never return" },
 
         // Learning / LMS
         ApiEndpoint { method: "GET", path: "/api/learn/courses", summary: "List published courses with filters (category, difficulty, search)" },
@@ -548,6 +549,32 @@ pub async fn execute_command(
                 "actions": actions,
             }))
         }
+        "integrations.invoke" => {
+            #[cfg(feature = "integrations")]
+            {
+                let provider = str_of("provider")
+                    .ok_or_else(|| "params.provider is required".to_string())?;
+                let action =
+                    str_of("action").ok_or_else(|| "params.action is required".to_string())?;
+                let mut action_params = serde_json::Map::new();
+                if let Some(Value::Object(map)) = obj.get("params") {
+                    action_params = map.clone();
+                }
+                integrations_invoke(
+                    state,
+                    bot_uuid,
+                    user_id,
+                    &provider,
+                    &action,
+                    &Value::Object(action_params),
+                )
+                .await
+            }
+            #[cfg(not(feature = "integrations"))]
+            {
+                Err("integration actions are not available in this build".to_string())
+            }
+        }
         "api.exec" => {
             let method = str_of("method").ok_or_else(|| "params.method is required".to_string())?;
             let path = str_of("path").ok_or_else(|| "params.path is required".to_string())?;
@@ -597,6 +624,52 @@ fn branch_scope(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Uuid, String> 
     botbanking::cashflow::resolve_bot_scope(&state.conn, bot_uuid, None)
         .map(|s| s.branch_id)
         .ok_or_else(|| "bot not found".to_string())
+}
+
+/// Executes one registered provider action from the chat command path (#950).
+///
+/// The chat session is server-side and bot-bound: the tenant scope derives
+/// exclusively from the `bots` row via `resolve_scope_parts` (see the
+/// trade-off documented there), while the actor stays the authenticated
+/// `user_id`. Credentials load strictly from Vault inside
+/// `invoke_registered` and are stripped from every response.
+#[cfg(feature = "integrations")]
+async fn integrations_invoke(
+    state: &Arc<AppState>,
+    bot_uuid: Uuid,
+    user_id: Uuid,
+    provider: &str,
+    action: &str,
+    params: &Value,
+) -> Result<Value, String> {
+    let scope = botintegrations::scope::resolve_scope_parts(&state.conn, user_id, bot_uuid)
+        .map_err(|error| match error {
+            botintegrations::error::IntegrationError::NotFound => {
+                "integration provider requires an active bot".to_string()
+            }
+            other => format!("integration scope rejected: {other}"),
+        })?;
+    let secrets_manager = botcoresecrets::SecretsManager::get_clone()
+        .map_err(|_| "credential store unavailable; request rejected".to_string())?;
+    let integration_state = botintegrations::IntegrationState::new(
+        state.conn.clone(),
+        botintegrations::secrets::ConnectionVault::new(secrets_manager),
+    );
+    let outcome = botintegrations::providers::invoke_registered(
+        &integration_state,
+        &scope,
+        provider,
+        action,
+        params,
+    )
+    .await?;
+    Ok(json!({
+        "provider": provider,
+        "action": action,
+        "summary": outcome.summary,
+        "data": outcome.data,
+        "truncated": outcome.truncated,
+    }))
 }
 
 #[derive(diesel::QueryableByName)]

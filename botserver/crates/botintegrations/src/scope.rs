@@ -35,6 +35,21 @@ struct BotScopeRow {
     branch_id: Uuid,
 }
 
+fn load_bot_scope_row(pool: &DbPool, bot_id: Uuid) -> Result<BotScopeRow, IntegrationError> {
+    let mut conn = pool.get()?;
+    diesel::sql_query(
+        "SELECT b.id AS bot_id, b.org_id, b.branch_id \
+         FROM bots b \
+         INNER JOIN branches br ON br.id = b.branch_id AND br.is_active = TRUE AND br.org_id = b.org_id \
+         WHERE b.id = $1 AND b.is_active = TRUE \
+         LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(bot_id)
+    .get_result(&mut conn)
+    .optional()?
+    .ok_or(IntegrationError::NotFound)
+}
+
 /// Resolves the tenant scope for `bot_id` from the database and validates it
 /// against the authenticated caller.
 ///
@@ -53,18 +68,7 @@ pub fn resolve_scope(
         .filter(|org| *org != Uuid::nil())
         .ok_or(IntegrationError::UnauthorizedScope)?;
 
-    let mut conn = pool.get()?;
-    let row: BotScopeRow = diesel::sql_query(
-        "SELECT b.id AS bot_id, b.org_id, b.branch_id \
-         FROM bots b \
-         INNER JOIN branches br ON br.id = b.branch_id AND br.is_active = TRUE AND br.org_id = b.org_id \
-         WHERE b.id = $1 AND b.is_active = TRUE \
-         LIMIT 1",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(bot_id)
-    .get_result(&mut conn)
-    .optional()?
-    .ok_or(IntegrationError::NotFound)?;
+    let row = load_bot_scope_row(pool, bot_id)?;
 
     if row.org_id != caller_org {
         return Err(IntegrationError::UnauthorizedScope);
@@ -72,6 +76,30 @@ pub fn resolve_scope(
 
     Ok(ConnectionScope {
         user_id: authenticated_user.user_id,
+        org_id: row.org_id,
+        branch_id: row.branch_id,
+        bot_id: row.bot_id,
+    })
+}
+
+/// Resolves the tenant scope for the in-process chat command path (#950).
+///
+/// Trade-off versus [`resolve_scope`]: the HTTP control plane validates the
+/// caller organization against the bot organization because the caller could
+/// be reaching across tenants; chat commands execute inside a server-side,
+/// bot-bound session where the resolved user context has no organization
+/// claim to compare against. The organization is therefore derived exclusively
+/// from the same validated `bots`/`branches` rows (bot and branch must be
+/// active and consistent); no client-supplied scope component is trusted.
+/// The actor remains the authenticated platform `user_id`.
+pub fn resolve_scope_parts(
+    pool: &DbPool,
+    user_id: Uuid,
+    bot_id: Uuid,
+) -> Result<ConnectionScope, IntegrationError> {
+    let row = load_bot_scope_row(pool, bot_id)?;
+    Ok(ConnectionScope {
+        user_id,
         org_id: row.org_id,
         branch_id: row.branch_id,
         bot_id: row.bot_id,
