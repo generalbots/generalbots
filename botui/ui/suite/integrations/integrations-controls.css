@@ -1,0 +1,212 @@
+.integrations-app .integrations-toolbar {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) auto;
+    align-items: end;
+    gap: 18px;
+}
+
+.integrations-app .integrations-search {
+    display: grid;
+    gap: 7px;
+    max-width: 620px;
+}
+
+.integrations-app .integrations-control-label,
+.integrations-app .integrations-filter-group legend {
+    color: var(--integrations-muted);
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.integrations-app .integrations-search-control {
+    position: relative;
+    display: block;
+}
+
+.integrations-app .integrations-search-mark {
+    position: absolute;
+    top: 50%;
+    left: 16px;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--integrations-faint);
+    border-radius: 50%;
+    transform: translateY(-58%);
+    pointer-events: none;
+}
+
+.integrations-app .integrations-search-mark::after {
+    position: absolute;
+    right: -5px;
+    bottom: -3px;
+    width: 6px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--integrations-faint);
+    content: "";
+    transform: rotate(45deg);
+}
+
+.integrations-app .integrations-search input {
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 16px 10px 44px;
+    border: 1px solid var(--integrations-border);
+    border-radius: var(--integrations-radius);
+    color: var(--integrations-text);
+    background: var(--integrations-surface);
+    box-shadow: var(--integrations-shadow);
+}
+
+.integrations-app .integrations-search input::placeholder {
+    color: var(--integrations-faint);
+}
+
+.integrations-app .integrations-filter-group {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+}
+
+.integrations-app .integrations-filter-group legend {
+    margin-bottom: 7px;
+}
+
+.integrations-app .integrations-segments,
+.integrations-app .integrations-view-toggle {
+    display: inline-flex;
+    gap: 3px;
+    padding: 3px;
+    border: 1px solid var(--integrations-border);
+    border-radius: var(--integrations-radius);
+    background: var(--integrations-soft);
+}
+
+.integrations-app .integrations-segments button,
+.integrations-app .integrations-view-toggle button {
+    min-height: 44px;
+    padding: 7px 13px;
+    border: 1px solid transparent;
+    border-radius: calc(var(--integrations-radius-sm) - 2px);
+    color: var(--integrations-muted);
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 650;
+}
+
+.integrations-app .integrations-segments button:hover,
+.integrations-app .integrations-view-toggle button:hover {
+    color: var(--integrations-text);
+}
+
+.integrations-app .integrations-segments button[aria-pressed="true"],
+.integrations-app .integrations-view-toggle button[aria-pressed="true"] {
+    border-color: var(--integrations-border);
+    color: var(--integrations-text);
+    background: var(--integrations-surface);
+    box-shadow: var(--integrations-shadow);
+}
+
+.integrations-app .integrations-category-row {
+    display: flex;
+    gap: 4px;
+    margin: 22px 0 0;
+    padding: 0 2px 7px;
+    border-bottom: 1px solid var(--integrations-border);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+}
+
+.integrations-app .integrations-category-row button {
+    position: relative;
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 8px 14px;
+    border: 0;
+    border-radius: var(--integrations-radius-sm) var(--integrations-radius-sm) 0 0;
+    color: var(--integrations-muted);
+    background: transparent;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 650;
+    white-space: nowrap;
+}
+
+.integrations-app .integrations-category-row button:hover {
+    color: var(--integrations-text);
+    background: var(--integrations-soft);
+}
+
+.integrations-app .integrations-category-row button[aria-selected="true"] {
+    color: var(--integrations-text);
+    background: var(--integrations-accent-soft);
+}
+
+.integrations-app .integrations-category-row button[aria-selected="true"]::after {
+    position: absolute;
+    right: 10px;
+    bottom: -8px;
+    left: 10px;
+    height: 3px;
+    border-radius: 3px 3px 0 0;
+    background: var(--integrations-accent);
+    content: "";
+}
+
+.integrations-app .integrations-results-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 54px;
+    margin-top: 8px;
+}
+
+.integrations-app .integrations-result-status {
+    margin: 0;
+    color: var(--integrations-muted);
+    font-size: 12px;
+}
+
+.integrations-app .integrations-view-toggle button {
+    min-height: 44px;
+    padding: 5px 10px;
+}
+
+.integrations-app .integrations-guide {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 14px;
+    margin: 0 0 18px;
+    padding: 16px 18px;
+    border: 1px solid var(--integrations-border);
+    border-radius: var(--integrations-radius-lg);
+    background: var(--integrations-accent-soft);
+}
+
+.integrations-app .integrations-guide-mark {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--integrations-accent);
+    border-radius: 50%;
+    color: var(--integrations-accent);
+    font-size: 13px;
+    font-weight: 750;
+}
+
+.integrations-app .integrations-guide strong {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 13px;
+}
+
+.integrations-app .integrations-guide p {
+    margin: 0;
+    color: var(--integrations-muted);
+    font-size: 12px;
+}

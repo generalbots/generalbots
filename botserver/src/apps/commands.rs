@@ -70,58 +70,436 @@ const fn cmd(
 
 /// Deep-link params declared per app id.
 pub static APP_DEEP_LINKS: &[(&str, &[DeepLinkParam])] = &[
-    ("chat", &[DeepLinkParam { key: "q", description: "prefilled prompt", example: "resume my last conversation" }]),
-    ("vibe", &[DeepLinkParam { key: "run_id", description: "assistant run id", example: "123e4567-e89b-12d3-a456-426614174000" }]),
-    ("research", &[DeepLinkParam { key: "q", description: "search query", example: "market size 2026" }]),
-    ("video", &[DeepLinkParam { key: "project_id", description: "video project id", example: "123e4567-e89b-12d3-a456-426614174000" }]),
-    ("vision", &[DeepLinkParam { key: "image_id", description: "analysis id", example: "analysis-1" }]),
-    ("learn", &[DeepLinkParam { key: "course_id", description: "course id", example: "course-42" }]),
-    ("mail", &[DeepLinkParam { key: "message_id", description: "email message id", example: "msg-91" }]),
-    ("calendar", &[DeepLinkParam { key: "event_id", description: "calendar event id", example: "evt-7" }]),
-    ("meet", &[DeepLinkParam { key: "meeting_id", description: "meeting id", example: "room-3" }]),
-    ("docs", &[DeepLinkParam { key: "file", description: "drive file", example: "proposta/contrato.docx" }]),
-    ("sheet", &[DeepLinkParam { key: "file_id", description: "spreadsheet id", example: "fluxo-2026-08" }]),
-    ("slides", &[DeepLinkParam { key: "deck_id", description: "presentation id", example: "deck-12" }]),
-    ("paper", &[DeepLinkParam { key: "note_id", description: "note id", example: "note-5" }]),
-    ("tasks", &[DeepLinkParam { key: "task_id", description: "task id", example: "123e4567-e89b-12d3-a456-426614174000" }]),
-    ("plan", &[DeepLinkParam { key: "plan_id", description: "plan/roadmap id", example: "plan-2" }]),
-    ("goals", &[DeepLinkParam { key: "okr_id", description: "OKR id", example: "okr-1" }]),
-    ("minutes", &[DeepLinkParam { key: "minutes_id", description: "meeting minutes id", example: "123e4567-e89b-12d3-a456-426614174000" }]),
-    ("timeclock", &[DeepLinkParam { key: "entry_id", description: "time entry id", example: "entry-9" }]),
-    ("templates", &[DeepLinkParam { key: "template_id", description: "template id", example: "tpl-4" }]),
-    ("designer", &[DeepLinkParam { key: "page_id", description: "designer page id", example: "pg-8" }]),
-    ("crm", &[DeepLinkParam { key: "person_id", description: "person/contact id", example: "123e4567-e89b-12d3-a456-426614174000" }]),
-    ("people", &[DeepLinkParam { key: "person_id", description: "person/lead id", example: "123e4567-e89b-12d3-a456-426614174000" }]),
-    ("campaigns", &[DeepLinkParam { key: "campaign_id", description: "campaign id", example: "cmp-3" }]),
-    ("lists", &[DeepLinkParam { key: "list_id", description: "structured list id", example: "lst-1" }]),
-    ("billing", &[DeepLinkParam { key: "invoice_id", description: "invoice id", example: "123e4567-e89b-12d3-a456-426614174000" }]),
-    ("products", &[DeepLinkParam { key: "product_id", description: "product/service id", example: "123e4567-e89b-12d3-a456-426614174000" }]),
-    ("tickets", &[DeepLinkParam { key: "ticket_id", description: "support ticket id", example: "123-55" }]),
-    ("hr", &[DeepLinkParam { key: "employee_id", description: "employee id", example: "emp-21" }]),
-    ("banking", &[DeepLinkParam { key: "transaction_id", description: "bank transaction id", example: "123e4567-e89b-12d3-a456-426614174000" }]),
-    ("sales", &[DeepLinkParam { key: "deal_id", description: "sales deal id", example: "deal-9" }]),
-    ("pos", &[DeepLinkParam { key: "order_id", description: "POS order id", example: "ord-77" }]),
-    ("retail", &[DeepLinkParam { key: "product_id", description: "stock item id", example: "sku-100" }]),
-    ("handoff", &[DeepLinkParam { key: "handoff_id", description: "handoff session id", example: "hd-6" }]),
-    ("kyc", &[DeepLinkParam { key: "verification_id", description: "KYC verification id", example: "vrf-3" }]),
-    ("fraud", &[DeepLinkParam { key: "case_id", description: "fraud case id", example: "case-12" }]),
-    ("compliance", &[DeepLinkParam { key: "audit_id", description: "audit log id", example: "aud-9" }, DeepLinkParam { key: "framework_id", description: "compliance framework id", example: "123e4567-e89b-12d3-a456-426614174000" }]),
-    ("tax", &[DeepLinkParam { key: "doc_id", description: "tax document id", example: "nfe-55" }]),
-    ("social", &[DeepLinkParam { key: "post_id", description: "social post id", example: "post-2" }]),
-    ("attendant", &[DeepLinkParam { key: "queue_id", description: "attendant queue id", example: "q-4" }]),
-    ("editor", &[DeepLinkParam { key: "file_id", description: "file path", example: "src/main.rs" }]),
-    ("bas-editor", &[DeepLinkParam { key: "script_id", description: "BASIC script path", example: "start.bas" }]),
-    ("database", &[DeepLinkParam { key: "table", description: "table name", example: "customers" }]),
-    ("browser", &[DeepLinkParam { key: "url", description: "page url", example: "https://generalbots.org" }]),
-    ("integrations", &[DeepLinkParam { key: "connector_id", description: "connector id", example: "conn-5" }]),
-    ("sources", &[DeepLinkParam { key: "source_id", description: "data source id", example: "src-8" }]),
-    ("canvas", &[DeepLinkParam { key: "canvas_id", description: "canvas/wboard id", example: "cv-2" }]),
-    ("workspace", &[DeepLinkParam { key: "page_id", description: "workspace page id", example: "pg-11" }]),
-    ("project", &[DeepLinkParam { key: "project_id", description: "project id", example: "123e4567-e89b-12d3-a456-426614174000" }]),
-    ("analytics", &[DeepLinkParam { key: "report_id", description: "report id", example: "rpt-3" }]),
-    ("drive", &[DeepLinkParam { key: "path", description: "drive folder/file path", example: "faturas%2F2026-08" }]),
-    ("player", &[DeepLinkParam { key: "media_id", description: "media stream id", example: "cam-1" }]),
-    ("itsm", &[DeepLinkParam { key: "incident_id", description: "incident id", example: "inc-15" }]),
+    (
+        "chat",
+        &[DeepLinkParam {
+            key: "q",
+            description: "prefilled prompt",
+            example: "resume my last conversation",
+        }],
+    ),
+    (
+        "vibe",
+        &[DeepLinkParam {
+            key: "run_id",
+            description: "assistant run id",
+            example: "123e4567-e89b-12d3-a456-426614174000",
+        }],
+    ),
+    (
+        "research",
+        &[DeepLinkParam {
+            key: "q",
+            description: "search query",
+            example: "market size 2026",
+        }],
+    ),
+    (
+        "video",
+        &[DeepLinkParam {
+            key: "project_id",
+            description: "video project id",
+            example: "123e4567-e89b-12d3-a456-426614174000",
+        }],
+    ),
+    (
+        "jukebox",
+        &[DeepLinkParam {
+            key: "job_id",
+            description: "music generation job id",
+            example: "music-job-42",
+        }],
+    ),
+    (
+        "vision",
+        &[DeepLinkParam {
+            key: "image_id",
+            description: "analysis id",
+            example: "analysis-1",
+        }],
+    ),
+    (
+        "learn",
+        &[DeepLinkParam {
+            key: "course_id",
+            description: "course id",
+            example: "course-42",
+        }],
+    ),
+    (
+        "mail",
+        &[DeepLinkParam {
+            key: "message_id",
+            description: "email message id",
+            example: "msg-91",
+        }],
+    ),
+    (
+        "calendar",
+        &[DeepLinkParam {
+            key: "event_id",
+            description: "calendar event id",
+            example: "evt-7",
+        }],
+    ),
+    (
+        "meet",
+        &[DeepLinkParam {
+            key: "meeting_id",
+            description: "meeting id",
+            example: "room-3",
+        }],
+    ),
+    (
+        "docs",
+        &[DeepLinkParam {
+            key: "file",
+            description: "drive file",
+            example: "proposta/contrato.docx",
+        }],
+    ),
+    (
+        "sheet",
+        &[DeepLinkParam {
+            key: "file_id",
+            description: "spreadsheet id",
+            example: "fluxo-2026-08",
+        }],
+    ),
+    (
+        "slides",
+        &[DeepLinkParam {
+            key: "deck_id",
+            description: "presentation id",
+            example: "deck-12",
+        }],
+    ),
+    (
+        "paper",
+        &[DeepLinkParam {
+            key: "note_id",
+            description: "note id",
+            example: "note-5",
+        }],
+    ),
+    (
+        "tasks",
+        &[DeepLinkParam {
+            key: "task_id",
+            description: "task id",
+            example: "123e4567-e89b-12d3-a456-426614174000",
+        }],
+    ),
+    (
+        "plan",
+        &[DeepLinkParam {
+            key: "plan_id",
+            description: "plan/roadmap id",
+            example: "plan-2",
+        }],
+    ),
+    (
+        "goals",
+        &[DeepLinkParam {
+            key: "okr_id",
+            description: "OKR id",
+            example: "okr-1",
+        }],
+    ),
+    (
+        "minutes",
+        &[DeepLinkParam {
+            key: "minutes_id",
+            description: "meeting minutes id",
+            example: "123e4567-e89b-12d3-a456-426614174000",
+        }],
+    ),
+    (
+        "timeclock",
+        &[DeepLinkParam {
+            key: "entry_id",
+            description: "time entry id",
+            example: "entry-9",
+        }],
+    ),
+    (
+        "templates",
+        &[DeepLinkParam {
+            key: "template_id",
+            description: "template id",
+            example: "tpl-4",
+        }],
+    ),
+    (
+        "designer",
+        &[DeepLinkParam {
+            key: "page_id",
+            description: "designer page id",
+            example: "pg-8",
+        }],
+    ),
+    (
+        "crm",
+        &[DeepLinkParam {
+            key: "person_id",
+            description: "person/contact id",
+            example: "123e4567-e89b-12d3-a456-426614174000",
+        }],
+    ),
+    (
+        "people",
+        &[DeepLinkParam {
+            key: "person_id",
+            description: "person/lead id",
+            example: "123e4567-e89b-12d3-a456-426614174000",
+        }],
+    ),
+    (
+        "campaigns",
+        &[DeepLinkParam {
+            key: "campaign_id",
+            description: "campaign id",
+            example: "cmp-3",
+        }],
+    ),
+    (
+        "lists",
+        &[DeepLinkParam {
+            key: "list_id",
+            description: "structured list id",
+            example: "lst-1",
+        }],
+    ),
+    (
+        "billing",
+        &[DeepLinkParam {
+            key: "invoice_id",
+            description: "invoice id",
+            example: "123e4567-e89b-12d3-a456-426614174000",
+        }],
+    ),
+    (
+        "products",
+        &[DeepLinkParam {
+            key: "product_id",
+            description: "product/service id",
+            example: "123e4567-e89b-12d3-a456-426614174000",
+        }],
+    ),
+    (
+        "tickets",
+        &[DeepLinkParam {
+            key: "ticket_id",
+            description: "support ticket id",
+            example: "123-55",
+        }],
+    ),
+    (
+        "hr",
+        &[DeepLinkParam {
+            key: "employee_id",
+            description: "employee id",
+            example: "emp-21",
+        }],
+    ),
+    (
+        "banking",
+        &[DeepLinkParam {
+            key: "transaction_id",
+            description: "bank transaction id",
+            example: "123e4567-e89b-12d3-a456-426614174000",
+        }],
+    ),
+    (
+        "sales",
+        &[DeepLinkParam {
+            key: "deal_id",
+            description: "sales deal id",
+            example: "deal-9",
+        }],
+    ),
+    (
+        "pos",
+        &[DeepLinkParam {
+            key: "order_id",
+            description: "POS order id",
+            example: "ord-77",
+        }],
+    ),
+    (
+        "retail",
+        &[DeepLinkParam {
+            key: "product_id",
+            description: "stock item id",
+            example: "sku-100",
+        }],
+    ),
+    (
+        "handoff",
+        &[DeepLinkParam {
+            key: "handoff_id",
+            description: "handoff session id",
+            example: "hd-6",
+        }],
+    ),
+    (
+        "kyc",
+        &[DeepLinkParam {
+            key: "verification_id",
+            description: "KYC verification id",
+            example: "vrf-3",
+        }],
+    ),
+    (
+        "fraud",
+        &[DeepLinkParam {
+            key: "case_id",
+            description: "fraud case id",
+            example: "case-12",
+        }],
+    ),
+    (
+        "compliance",
+        &[
+            DeepLinkParam {
+                key: "audit_id",
+                description: "audit log id",
+                example: "aud-9",
+            },
+            DeepLinkParam {
+                key: "framework_id",
+                description: "compliance framework id",
+                example: "123e4567-e89b-12d3-a456-426614174000",
+            },
+        ],
+    ),
+    (
+        "tax",
+        &[DeepLinkParam {
+            key: "doc_id",
+            description: "tax document id",
+            example: "nfe-55",
+        }],
+    ),
+    (
+        "social",
+        &[DeepLinkParam {
+            key: "post_id",
+            description: "social post id",
+            example: "post-2",
+        }],
+    ),
+    (
+        "attendant",
+        &[DeepLinkParam {
+            key: "queue_id",
+            description: "attendant queue id",
+            example: "q-4",
+        }],
+    ),
+    (
+        "editor",
+        &[DeepLinkParam {
+            key: "file_id",
+            description: "file path",
+            example: "src/main.rs",
+        }],
+    ),
+    (
+        "bas-editor",
+        &[DeepLinkParam {
+            key: "script_id",
+            description: "BASIC script path",
+            example: "start.bas",
+        }],
+    ),
+    (
+        "database",
+        &[DeepLinkParam {
+            key: "table",
+            description: "table name",
+            example: "customers",
+        }],
+    ),
+    (
+        "browser",
+        &[DeepLinkParam {
+            key: "url",
+            description: "page url",
+            example: "https://generalbots.org",
+        }],
+    ),
+    (
+        "integrations",
+        &[
+            DeepLinkParam {
+                key: "provider",
+                description: "provider catalog id",
+                example: "aws",
+            },
+            DeepLinkParam {
+                key: "connector_id",
+                description: "configured connection id",
+                example: "conn-5",
+            },
+        ],
+    ),
+    (
+        "canvas",
+        &[DeepLinkParam {
+            key: "canvas_id",
+            description: "canvas/wboard id",
+            example: "cv-2",
+        }],
+    ),
+    (
+        "workspace",
+        &[DeepLinkParam {
+            key: "page_id",
+            description: "workspace page id",
+            example: "pg-11",
+        }],
+    ),
+    (
+        "project",
+        &[DeepLinkParam {
+            key: "project_id",
+            description: "project id",
+            example: "123e4567-e89b-12d3-a456-426614174000",
+        }],
+    ),
+    (
+        "analytics",
+        &[DeepLinkParam {
+            key: "report_id",
+            description: "report id",
+            example: "rpt-3",
+        }],
+    ),
+    (
+        "drive",
+        &[DeepLinkParam {
+            key: "path",
+            description: "drive folder/file path",
+            example: "faturas%2F2026-08",
+        }],
+    ),
+    (
+        "player",
+        &[DeepLinkParam {
+            key: "media_id",
+            description: "media stream id",
+            example: "cam-1",
+        }],
+    ),
+    (
+        "itsm",
+        &[DeepLinkParam {
+            key: "incident_id",
+            description: "incident id",
+            example: "inc-15",
+        }],
+    ),
 ];
 
 /// Deep-link params for an app id (empty when none are declared).
@@ -141,6 +519,7 @@ pub static ALL_COMMANDS: &[AppCommand] = &[
     cmd("research", "research.web.search", "Search the web", "Search the web (DuckDuckGo) for current facts, news or prices.", &[("query", "the search terms"), ("max_results", "optional 1-25")], Some("app://research?q={query}"), false),
     cmd("research", "research.discover", "Deep research", "Performs deep research on a topic across web and knowledge bases.", &[("topic", "the topic")], None, false),
     cmd("video", "video.projects.list", "List video projects", "List AI video editing/generation projects.", &[], Some("app://video?project_id={project_id}"), false),
+    cmd("jukebox", "jukebox.generate", "Create a song", "Create a complete song or instrumental from a description, style and optional lyrics.", &[("description", "the song brief"), ("lyrics", "optional structured lyrics"), ("duration", "10-600 seconds")], Some("app://jukebox?job_id={job_id}"), false),
     cmd("vision", "vision.analyze", "Analyze an image", "Run computer vision analysis on an image (labels, QR codes, description).", &[("image", "image url or key")], None, false),
     cmd("learn", "learn.courses.list", "List courses", "List available learning courses and assessments.", &[], Some("app://learn?course_id={course_id}"), false),
     // ——— Office ———
@@ -210,6 +589,12 @@ pub static ALL_COMMANDS: &[AppCommand] = &[
     cmd("database", "database.query", "Run read-only query", "Run a read-only SQL query against a table.", &[("table", "table name"), ("limit", "optional")], None, true),
     cmd("browser", "browser.session.open", "Open browser", "Open an embedded browser session to a URL.", &[("url", "the url")], Some("app://browser?url={url}"), false),
     cmd("integrations", "integrations.connectors.list", "List connectors", "List external system connectors and webhooks.", &[], Some("app://integrations?connector_id={connector_id}"), false),
+    cmd("integrations", "integrations.catalog.search", "Search integration catalog", "Search integration providers by text, category, or implementation status.", &[("q", "optional provider or capability query"), ("category", "optional category"), ("status", "optional built/partial/planned/unsupported status")], None, false),
+    cmd("integrations", "integrations.actions.list", "List provider actions", "List safe action metadata for an integration provider without exposing authentication metadata.", &[("provider", "provider id, e.g. aws or zendesk")], None, false),
+    cmd("integrations", "integrations.sources.list", "List integration sources", "List connected data sources, models and MCP servers.", &[], Some("app://integrations"), false),
+    cmd("integrations", "integrations.connectors.test", "Test connector", "Run a live connectivity check on a configured connector.", &[("connector_id", "connector uuid")], None, false),
+    cmd("integrations", "integrations.connectors.sync", "Sync connector", "Trigger an immediate sync for a configured connector.", &[("connector_id", "connector uuid")], None, false),
+    cmd("integrations", "integrations.connectors.create", "Create connector", "Create a provider connection after its secure adapter is available.", &[("provider", "provider catalog id"), ("name", "connection name")], None, false),
     cmd("integrations", "integrations.api-keys.list", "List API keys", "List API keys with scopes, expiry and last-used time.", &[], None, false),
     cmd("integrations", "integrations.api-keys.create", "Create API key", "Create an API key with name, optional comma-separated scopes and optional expiry in days.", &[("name", "key name"), ("scopes", "optional comma-separated scopes"), ("expires_in_days", "optional expiry in days")], None, false),
     cmd("integrations", "integrations.api-keys.revoke", "Revoke API key", "Revoke an API key by id.", &[("key_id", "api key uuid")], None, true),
@@ -217,14 +602,9 @@ pub static ALL_COMMANDS: &[AppCommand] = &[
     cmd("integrations", "integrations.webhooks.create", "Add webhook", "Register a webhook endpoint with URL and optional comma-separated events.", &[("url", "https endpoint"), ("events", "optional comma-separated events")], None, false),
     cmd("integrations", "integrations.webhooks.test", "Test webhook", "Send a signed test event to a webhook endpoint.", &[("webhook_id", "webhook uuid")], None, false),
     cmd("integrations", "integrations.webhooks.deliveries", "Webhook deliveries", "List the delivery history of a webhook endpoint.", &[("webhook_id", "webhook uuid")], None, false),
-    cmd("sources", "sources.list", "List sources", "List connected data sources and MCP servers.", &[], Some("app://sources?source_id={source_id}"), false),
-    cmd("sources", "sources.connectors.list", "List connectors", "List data connectors with type, health status and last sync.", &[], Some("app://sources?source_id={source_id}"), false),
-    cmd("sources", "sources.connectors.test", "Test connector", "Run a live connectivity check on a data connector.", &[("connector_id", "connector uuid")], None, false),
     cmd("vdi", "vdi.list", "List remote desktops", "List saved remote desktop (VNC/RDP) connections for the user.", &[], None, false),
     cmd("vdi", "vdi.connect", "Connect to remote desktop", "Register and open a VNC or RDP remote desktop session to a host.", &[("host", "target host"), ("port", "target port"), ("protocol", "vnc or rdp")], Some("app://desktop/vdi.html"), false),
     cmd("vdi", "vdi.health.rdp", "Probe RDP server", "Check whether an RDP server is listening on host:port.", &[("host", "target host"), ("port", "target port")], None, false),
-    cmd("sources", "sources.connectors.sync", "Sync connector", "Trigger an immediate sync for a data connector.", &[("connector_id", "connector uuid")], None, false),
-    cmd("sources", "sources.connectors.create", "Create connector", "Create a data connector (database, API or SaaS source).", &[("name", "connector name"), ("connector_type", "mysql, postgres, rest_api, graphql, google_sheets, csv, sharepoint")], None, false),
     cmd("workspace", "workspace.pages.list", "List pages", "List workspace pages.", &[], Some("app://workspace?page_id={page_id}"), false),
     cmd("admin", "admin.users.list", "List users", "List organization users, roles and groups.", &[], None, true),
     cmd("settings", "settings.read", "Read settings", "Read user and workspace settings.", &[], None, false),
@@ -255,10 +635,7 @@ pub static ALL_COMMANDS: &[AppCommand] = &[
 
 /// Commands declared for an app id (ordered by declaration).
 pub fn commands_for_app(app_id: &str) -> Vec<&'static AppCommand> {
-    ALL_COMMANDS
-        .iter()
-        .filter(|c| c.app == app_id)
-        .collect()
+    ALL_COMMANDS.iter().filter(|c| c.app == app_id).collect()
 }
 
 /// ALL commands (the catalogued LLM surface).
@@ -302,8 +679,7 @@ pub static UI_SEQUENCE_HINTS: &[(&str, &str)] = &[
     ("campaigns", "open → campaigns list loads → filter views or open a campaign modal"),
     ("pos", "open → product grid renders → add to cart → checkout"),
     ("retail", "open → tabs load → filter by branch → view stock"),
-    ("integrations", "open → connector list loads → manage connectors/webhooks"),
-    ("sources", "open → sources load → manage data sources/MCP"),
+    ("integrations", "open -> explore providers and action verbs -> inspect authentication and least-privilege guidance -> review connected services"),
     ("workspace", "open → pages list loads → open a page"),
     ("editor", "open → file tree → open a file"),
     ("vibe", "open → runs list → run/inspect an assistant run"),

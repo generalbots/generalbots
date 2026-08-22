@@ -10,10 +10,10 @@ name=General Bots
 
 # Active apps (comma-separated list)
 # Available apps: chat, mail, calendar, drive, tasks, docs, paper, sheet, slides,
-#                 meet, research, sources, analytics, admin, monitoring, settings,
+#                 meet, research, integrations, analytics, admin, monitoring, settings,
 #                 products, billing, people, tickets, social, compliance
 # Only listed apps will be visible in the UI and have their APIs enabled.
-apps=chat,mail,calendar,drive,tasks,paper,sheet,meet,research,sources,analytics,admin,monitoring,settings,attendant,tools,video,player,canvas,social,people,crm,tickets,billing,products,designer,workspace,project,goals,editor,learn,vibe,campaigns,lists,templates,terminal,browser,database,plan,compliance,tax,vision,fraud,integrations,hr,banking,sales,pos,retail,handoff,kyc,biometry,timeclock,o365,minutes
+apps=chat,mail,calendar,drive,tasks,paper,sheet,meet,research,analytics,admin,monitoring,settings,attendant,tools,video,jukebox,player,canvas,social,people,crm,tickets,billing,products,designer,workspace,project,goals,editor,learn,vibe,campaigns,lists,templates,terminal,browser,database,plan,compliance,tax,vision,fraud,integrations,hr,banking,sales,pos,retail,handoff,kyc,biometry,timeclock,o365,minutes
 
 
 # Sidebar visibility

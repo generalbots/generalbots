@@ -4,6 +4,7 @@
 //! drives every launcher (start menu, apps menu) in the frontend.
 
 pub mod commands;
+pub mod integration_catalog;
 pub mod registry;
 
 pub use botuifragments::*;
@@ -15,8 +16,10 @@ use serde_json::json;
 const CORE_APPS: &[&str] = &["settings", "auth", "admin"];
 
 pub fn register<S: Clone + Send + Sync + 'static>(r: Router<S>) -> Router<S> {
-    r.merge(botuifragments::register(Router::new()))
-        .route("/api/apps/catalog", get(catalog_handler))
+    let router = r
+        .merge(botuifragments::register(Router::new()))
+        .route("/api/apps/catalog", get(catalog_handler));
+    integration_catalog::register(router)
 }
 
 /// Returns the complete application catalog with per-app `enabled` and
@@ -37,6 +40,7 @@ fn is_app_compiled(id: &str) -> bool {
         "vibe" => cfg!(feature = "vibe"),
         "research" => cfg!(feature = "research"),
         "video" => cfg!(feature = "video"),
+        "jukebox" => true,
         "vision" => cfg!(feature = "vision"),
         "learn" => cfg!(feature = "learn"),
         "mail" => cfg!(feature = "mail"),
