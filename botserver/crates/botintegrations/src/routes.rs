@@ -8,6 +8,7 @@ use crate::handlers_actions;
 use crate::handlers_connections;
 use crate::handlers_context;
 use crate::handlers_lifecycle;
+use crate::handlers_mentions;
 use crate::state::IntegrationState;
 
 pub fn configure<S: Clone + Send + Sync + 'static>() -> Router<S> {
@@ -61,5 +62,9 @@ pub fn configure_connection_routes() -> Router<Arc<IntegrationState>> {
         .route(
             "/api/apps/integrations/context",
             get(handlers_context::context),
+        )
+        .route(
+            "/api/apps/integrations/mentions",
+            get(handlers_mentions::mentions),
         )
 }

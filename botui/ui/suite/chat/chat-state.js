@@ -24,6 +24,7 @@ var ChatState = {
     selectedIndex: 0,
     results: [],
   },
+  selectedMentions: [],
 };
 
 var WS_BASE_URL =
@@ -91,6 +92,12 @@ var EntityTypes = {
     color: "#00BCD4",
     label: "Service",
     route: "products",
+  },
+  integration: {
+    icon: "\u{1F50C}",
+    color: "#009688",
+    label: "Integrations",
+    route: "apps",
   },
 };
 

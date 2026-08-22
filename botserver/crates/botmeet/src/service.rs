@@ -418,6 +418,7 @@ impl MeetingService {
                 timestamp: chrono::Utc::now(),
                 context_name: None,
                 active_switchers: Vec::new(),
+                mentions: Vec::new(),
             };
 
             if let Ok(response) = Self::process_with_bot(user_message) {

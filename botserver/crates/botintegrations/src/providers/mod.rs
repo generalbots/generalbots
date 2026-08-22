@@ -46,11 +46,45 @@ pub struct ActionOutcome {
     pub truncated: bool,
 }
 
+/// One parameter of an LLM-safe action. Names and types only - parameter
+/// values never appear here, so nothing credential-shaped can leak.
+#[derive(Debug, Clone, Serialize)]
+pub struct LlmSafeParam {
+    pub name: String,
+    #[serde(rename = "type")]
+    pub kind: String,
+    pub required: bool,
+}
+
+/// Chat-safe action metadata for @integration mention blocks (#939 phase D).
+///
+/// Mirrors the catalog's `LlmAction` shape without any authentication
+/// fields: no auth method, field or Vault path ever enters this struct,
+/// because it is rendered verbatim into LLM system prompts.
+#[derive(Debug, Clone, Serialize)]
+pub struct LlmSafeAction {
+    pub name: String,
+    pub summary: String,
+    pub params: Vec<LlmSafeParam>,
+    pub risk: String,
+    pub requires_approval: bool,
+}
+
 /// A provider adapter executing actions against a live external service.
 pub trait ProviderAdapter: Send + Sync {
     fn provider(&self) -> &'static str;
 
     fn implemented_actions(&self) -> &'static [&'static str];
+
+    /// Chat-surface action metadata used by the @integration mention prompt
+    /// block. Every entry must be simultaneously implemented by this adapter
+    /// and exposed on the chat surface (catalog `surfaces` contains Chat), so
+    /// the "implemented && chat-executable" filter is enforced at declaration
+    /// time rather than at render time. Adapters that have not opted into the
+    /// chat surface return an empty vector via the default implementation.
+    fn safe_action_catalog(&self) -> Vec<LlmSafeAction> {
+        Vec::new()
+    }
 
     fn invoke<'a>(
         &'a self,
@@ -107,6 +141,19 @@ pub fn implemented_action_names(provider: &str) -> &'static [&'static str] {
         .find(|adapter| adapter.provider() == provider)
         .map(|adapter| adapter.implemented_actions())
         .unwrap_or(&[])
+}
+
+/// LLM-safe action metadata for `provider`, filtered to actions that are
+/// both implemented and chat-executable (see
+/// [`ProviderAdapter::safe_action_catalog`]). Names use the exact catalog
+/// action key accepted by the `integrations.invoke` command, so the block is
+/// directly actionable. Returns an empty vector for unknown providers.
+pub fn llm_safe_actions(provider: &str) -> Vec<LlmSafeAction> {
+    registry()
+        .into_iter()
+        .find(|adapter| adapter.provider() == provider)
+        .map(|adapter| adapter.safe_action_catalog())
+        .unwrap_or_default()
 }
 
 /// Resolves the active connection, loads its credentials strictly from Vault
@@ -218,5 +265,33 @@ mod tests {
         let names = implemented_action_names("aws");
         assert!(!names.contains(&"s3.buckets.delete"));
         assert!(names.contains(&"sts.caller_identity.get"));
+    }
+
+    #[test]
+    fn llm_safe_actions_cover_implemented_surface_without_secret_material() {
+        let actions = llm_safe_actions("aws");
+        let names: Vec<&str> = actions.iter().map(|a| a.name.as_str()).collect();
+        assert_eq!(names.len(), implemented_action_names("aws").len());
+        for key in implemented_action_names("aws") {
+            assert!(names.contains(key), "missing chat-safe metadata for {key}");
+        }
+        assert!(names.contains(&"s3.objects.list"));
+
+        let rendered = serde_json::to_string(&actions).expect("serialize in tests");
+        for banned in [
+            "secret",
+            "token",
+            "vault",
+            "access_key",
+            "password",
+            "authorization",
+        ] {
+            assert!(
+                !rendered.to_lowercase().contains(banned),
+                "chat-safe metadata leaked {banned}"
+            );
+        }
+
+        assert!(llm_safe_actions("nonexistent").is_empty());
     }
 }
