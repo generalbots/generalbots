@@ -5,6 +5,7 @@ use axum::Router;
 
 use crate::handlers;
 use crate::handlers_actions;
+use crate::handlers_automations;
 use crate::handlers_connections;
 use crate::handlers_context;
 use crate::handlers_lifecycle;
@@ -70,6 +71,15 @@ pub fn configure_connection_routes() -> Router<Arc<IntegrationState>> {
         .route(
             "/api/bots/:bot_id/integrations/oauth/:provider/callback",
             get(crate::oauth::callback),
+        )
+        .route(
+            "/api/bots/:bot_id/integration-automations",
+            get(handlers_automations::list).post(handlers_automations::create),
+        )
+        .route(
+            "/api/bots/:bot_id/integration-automations/:automation_id",
+            axum::routing::delete(handlers_automations::remove)
+                .patch(handlers_automations::toggle),
         )
         .route(
             "/api/apps/integrations/mentions",

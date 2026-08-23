@@ -69,6 +69,7 @@ async fn inner_build_sub_router(
             *api_router = api_router
                 .clone()
                 .merge(botintegrations::configure_connection_routes().with_state(connections_state));
+            botintegrations::automations::spawn(connections_state.clone());
         }
         Err(error) => {
             log::error!(

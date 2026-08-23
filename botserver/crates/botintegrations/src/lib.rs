@@ -8,6 +8,8 @@ pub mod handlers_lifecycle;
 pub mod handlers_mentions;
 pub mod metadata;
 pub mod models;
+pub mod automations;
+pub mod handlers_automations;
 pub mod oauth;
 pub mod providers;
 pub mod repository;
