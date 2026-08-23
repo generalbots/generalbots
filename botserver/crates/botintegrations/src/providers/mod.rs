@@ -329,6 +329,7 @@ pub fn registry() -> Vec<Arc<dyn ProviderAdapter>> {
         Arc::new(generic::GenericAdapter::new(&generic::community::EIGHT_SLEEP_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::community::MOLTBOOK_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::community::ARENA_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::finplatform::RIPPLING_SPEC)),
         Arc::new(plain::PlainAdapter),
         Arc::new(ashby::AshbyAdapter),
         Arc::new(bluesky::BlueskyAdapter),
