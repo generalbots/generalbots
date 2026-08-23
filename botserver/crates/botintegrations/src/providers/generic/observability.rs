@@ -225,3 +225,33 @@ pub const SPLUNK_SPEC: ProviderSpec = ProviderSpec {
     actions: SPLUNK_ACTIONS,
     action_keys: SPLUNK_KEYS,
 };
+
+const YT_ANALYTICS_ACTIONS: &[ActionSpec] = &[ActionSpec {
+    key: "youtube_analytics.reports.get",
+    method: "GET",
+    path: "/v2/reports",
+    summary: "Fetched YouTube Analytics report.",
+    path_params: &[],
+    query: &[
+        ("ids", "ids"),
+        ("startDate", "start_date"),
+        ("endDate", "end_date"),
+        ("metrics", "metrics"),
+    ],
+    body_param: None,
+    body_wrapper: None,
+    risk: Risk::Low,
+    params: &[s_req("ids"), s_req("start_date"), s_req("end_date"), s("metrics")],
+}];
+
+const YT_ANALYTICS_KEYS: &[&str] = &["youtube_analytics.reports.get"];
+
+pub const YOUTUBE_ANALYTICS_SPEC: ProviderSpec = ProviderSpec {
+    slug: "youtube_analytics",
+    origin: Origin::Static("https://youtubeanalytics.googleapis.com"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: YT_ANALYTICS_ACTIONS,
+    action_keys: YT_ANALYTICS_KEYS,
+};

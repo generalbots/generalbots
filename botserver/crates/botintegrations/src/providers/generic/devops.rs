@@ -361,3 +361,43 @@ pub const NETLIFY_SPEC: ProviderSpec = ProviderSpec {
     actions: NETLIFY_ACTIONS,
     action_keys: NETLIFY_KEYS,
 };
+
+const WEBFLOW_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "webflow.content.list",
+        method: "GET",
+        path: "/v2/sites",
+        summary: "Listed Webflow sites.",
+        path_params: &[],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[],
+    },
+    ActionSpec {
+        key: "webflow.content.get",
+        method: "GET",
+        path: "/v2/sites/{resource_id}",
+        summary: "Read a Webflow site.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &resource_id(),
+    },
+];
+
+const WEBFLOW_KEYS: &[&str] = &["webflow.content.list", "webflow.content.get"];
+
+pub const WEBFLOW_SPEC: ProviderSpec = ProviderSpec {
+    slug: "webflow",
+    origin: Origin::Static("https://api.webflow.com/v2"),
+    auth: AuthStyle::BearerHeaders {
+        token_field: "token",
+        headers: &[("accept-version", "2.0.0")],
+    },
+    actions: WEBFLOW_ACTIONS,
+    action_keys: WEBFLOW_KEYS,
+};

@@ -78,19 +78,39 @@ impl RestResponse {
 }
 
 /// Sends one plain HTTPS request and returns status plus capped body.
-pub(crate) async fn send(request: RestRequest) -> Result<RestResponse, String> {
+async fn send_once(request: &RestRequest) -> Result<(u16, reqwest::Response), String> {
     let mut outgoing = shared_client()?.request(request.method.clone(), &request.url);
     for (name, value) in &request.headers {
         outgoing = outgoing.header(*name, value);
     }
-    if let Some(body) = request.body {
-        outgoing = outgoing.body(body);
+    if let Some(body) = &request.body {
+        outgoing = outgoing.body(body.clone());
     }
     let response = outgoing.send().await.map_err(|error| {
         log::warn!("REST provider request failed: {error}");
         ERR_NETWORK.to_string()
     })?;
-    let status = response.status().as_u16();
+    Ok((response.status().as_u16(), response))
+}
+
+/// Sends one request, honoring a single `Retry-After` when the provider
+/// answers 429 so short rate-limit windows do not surface as failures to
+/// chat. Wait time is capped at twenty seconds.
+pub(crate) async fn send(request: RestRequest) -> Result<RestResponse, String> {
+    let (status, response) = send_once(&request).await?;
+    if status != 429 {
+        return Ok(RestResponse { status, body: read_capped(response, request.response_cap).await? });
+    }
+    let wait = response
+        .headers()
+        .get(reqwest::header::RETRY_AFTER)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.parse::<u64>().ok())
+        .unwrap_or(5)
+        .min(20);
+    log::info!("provider answered 429; retrying once after {wait}s");
+    tokio::time::sleep(Duration::from_secs(wait)).await;
+    let (status, response) = send_once(&request).await?;
     let body = read_capped(response, request.response_cap).await?;
     Ok(RestResponse { status, body })
 }

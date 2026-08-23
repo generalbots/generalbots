@@ -245,3 +245,139 @@ pub const DROPBOX_SPEC: ProviderSpec = ProviderSpec {
     actions: DROPBOX_ACTIONS,
     action_keys: DROPBOX_KEYS,
 };
+
+const BOX_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "box.files.search",
+        method: "GET",
+        path: "/2.0/search",
+        summary: "Searched Box content.",
+        path_params: &[],
+        query: &[("query", "query"), ("limit", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("query"), s("limit")],
+    },
+    ActionSpec {
+        key: "box.files.list",
+        method: "GET",
+        path: "/2.0/folders/{folder_id}/items",
+        summary: "Listed Box folder items.",
+        path_params: &["folder_id"],
+        query: &[("limit", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("folder_id"), s("limit")],
+    },
+    ActionSpec {
+        key: "box.files.get",
+        method: "GET",
+        path: "/2.0/files/{resource_id}",
+        summary: "Read a Box file.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &resource_id(),
+    },
+    ActionSpec {
+        key: "box.files.delete",
+        method: "DELETE",
+        path: "/2.0/files/{resource_id}",
+        summary: "Deleted a Box file.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::High,
+        params: &resource_id(),
+    },
+];
+
+const BOX_KEYS: &[&str] = &[
+    "box.files.search",
+    "box.files.list",
+    "box.files.get",
+    "box.files.delete",
+];
+
+pub const BOX_SPEC: ProviderSpec = ProviderSpec {
+    slug: "box",
+    origin: Origin::Static("https://api.box.com"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: BOX_ACTIONS,
+    action_keys: BOX_KEYS,
+};
+
+const AIRTABLE_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "airtable.spreadsheets.list",
+        method: "GET",
+        path: "/v0/meta/bases",
+        summary: "Listed Airtable bases.",
+        path_params: &[],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[],
+    },
+    ActionSpec {
+        key: "airtable.records.list",
+        method: "GET",
+        path: "/v0/{base_id}/{table_name}",
+        summary: "Listed Airtable records.",
+        path_params: &["base_id", "table_name"],
+        query: &[("pageSize", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("base_id"), s_req("table_name"), s("limit")],
+    },
+    ActionSpec {
+        key: "airtable.values.update",
+        method: "PATCH",
+        path: "/v0/{base_id}/{table_name}/{resource_id}",
+        summary: "Updated an Airtable record.",
+        path_params: &["base_id", "table_name", "record_id"],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[s_req("base_id"), s_req("table_name"), s_req("record_id"), json("data", true)],
+    },
+    ActionSpec {
+        key: "airtable.rows.append",
+        method: "POST",
+        path: "/v0/{base_id}/{table_name}",
+        summary: "Created an Airtable record.",
+        path_params: &["base_id", "table_name"],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[s_req("base_id"), s_req("table_name"), json("data", true)],
+    },
+];
+
+const AIRTABLE_KEYS: &[&str] = &[
+    "airtable.spreadsheets.list",
+    "airtable.records.list",
+    "airtable.values.update",
+    "airtable.rows.append",
+];
+
+pub const AIRTABLE_SPEC: ProviderSpec = ProviderSpec {
+    slug: "airtable",
+    origin: Origin::Static("https://api.airtable.com"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: AIRTABLE_ACTIONS,
+    action_keys: AIRTABLE_KEYS,
+};

@@ -300,3 +300,45 @@ pub const WISE_SPEC: ProviderSpec = ProviderSpec {
     actions: WISE_ACTIONS,
     action_keys: WISE_KEYS,
 };
+
+const QUICKBOOKS_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "quickbooks.invoices.search",
+        method: "POST",
+        path: "/v3/company/{realm_id}/query",
+        summary: "Queried QuickBooks invoices with SQL.",
+        path_params: &["realm_id"],
+        query: &[("query", "query")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("realm_id"), s_req("query")],
+    },
+    ActionSpec {
+        key: "quickbooks.reports.get",
+        method: "GET",
+        path: "/v3/company/{realm_id}/companyinfo/{realm_id}",
+        summary: "Read QuickBooks company information.",
+        path_params: &["realm_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("realm_id")],
+    },
+];
+
+const QUICKBOOKS_KEYS: &[&str] = &[
+    "quickbooks.invoices.search",
+    "quickbooks.reports.get",
+];
+
+pub const QUICKBOOKS_SPEC: ProviderSpec = ProviderSpec {
+    slug: "quickbooks",
+    origin: Origin::Static("https://sandbox-quickbooks.api.intuit.com"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: QUICKBOOKS_ACTIONS,
+    action_keys: QUICKBOOKS_KEYS,
+};

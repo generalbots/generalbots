@@ -354,6 +354,17 @@ window.DriveModule = {
     loadRootTab: loadRootTab,
 };
 
+// Deep-link from a desktop shortcut: jump straight to the file's folder
+// once the module is ready (window.__gbAppParams__.path, set by the shell).
+var __deepPath = (window.__gbAppParams__ || {}).path;
+if (__deepPath) {
+    var __origInit = init;
+    init = async function () {
+        await __origInit();
+        try { await loadFiles(__deepPath); } catch (e) { /* default listing */ }
+    };
+}
+
 if (document.readyState === "loading") {
     (function(){ var __cb = init; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 } else {
