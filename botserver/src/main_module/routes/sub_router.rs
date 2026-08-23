@@ -68,7 +68,7 @@ async fn inner_build_sub_router(
             ));
             *api_router = api_router
                 .clone()
-                .merge(botintegrations::configure_connection_routes().with_state(connections_state));
+                .merge(botintegrations::configure_connection_routes().with_state(connections_state.clone()));
             botintegrations::automations::spawn(connections_state.clone());
             botintegrations::token_refresh::spawn(connections_state.clone());
         }
