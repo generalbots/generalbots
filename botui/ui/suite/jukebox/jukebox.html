@@ -1,6 +1,6 @@
-<link rel="stylesheet" href="/suite/jukebox/jukebox.css?v=4" />
+<link rel="stylesheet" href="/suite/jukebox/jukebox.css?v=5" />
 
-<div class="jukebox-app" id="jukeboxApp">
+<div class="jukebox-app gb-app" id="jukeboxApp" data-gb-app="jukebox">
     <header class="jukebox-titlebar">
         <div class="jukebox-brand">
             <span class="jukebox-brand-mark" aria-hidden="true">JB</span>
@@ -64,6 +64,7 @@
                 <span id="jukeboxQueueCount">0 READY</span>
             </div>
             <ol id="jukeboxQueue" class="jukebox-queue"></ol>
+            <div class="gb-state gb-state-empty"><span class="gb-state-msg">Queue is empty — pick a station to start</span></div>
         </section>
 
         <div class="jukebox-message" id="jukeboxMessage" role="alert" hidden></div>
@@ -71,4 +72,4 @@
     </main>
 </div>
 
-<script src="/suite/jukebox/jukebox.js?v=4"></script>
+<script src="/suite/jukebox/jukebox.js?v=5"></script>
