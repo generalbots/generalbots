@@ -1,12 +1,16 @@
 <!-- CRM - Customer Relationship Management -->
 <!-- Dynamics nomenclature: Lead → Opportunity → Account/Contact -->
 
-<link rel="stylesheet" href="/suite/crm/crm.css">
+<link rel="stylesheet" href="/suite/crm/crm.p1.css?v=1">
+<link rel="stylesheet" href="/suite/crm/crm.p2.css?v=1">
+<link rel="stylesheet" href="/suite/crm/crm.p3.css?v=1">
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script src="/suite/js/vendor/htmx.min.js"></script>
 <script src="/suite/js/vendor/htmx-json-enc.js"></script>
 <script src="/suite/js/security-bootstrap.js"></script>
 
-<div class="crm-container">
+<div class="crm-container gb-app" data-gb-app="crm">
     <!-- Header -->
     <header class="crm-header">
         <div class="crm-header-left">
