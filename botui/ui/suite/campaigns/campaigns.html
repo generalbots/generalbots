@@ -1,6 +1,11 @@
 <!-- Marketing Campaign Studio - Multi-Channel Campaigns (WYSIWYG + unified monitor) -->
-<link rel="stylesheet" href="/suite/crm/crm.css">
-<link rel="stylesheet" href="/suite/campaigns/campaigns.css">
+<link rel="stylesheet" href="/suite/campaigns/campaigns.p1.css?v=1" />
+<link rel="stylesheet" href="/suite/campaigns/campaigns.p2.css?v=1" />
+<link rel="stylesheet" href="/suite/campaigns/campaigns.p1.css?v=1" />
+<link rel="stylesheet" href="/suite/campaigns/campaigns.p2.css?v=1" />
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading campaigns…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Campaigns unavailable</span></div>
+<script src="/suite/campaigns/campaigns-templates.js?v=1"></script>
 <script src="/suite/js/vendor/htmx.min.js"></script>
 <script src="/suite/js/vendor/htmx-json-enc.js"></script>
 <script src="/suite/js/security-bootstrap.js"></script>
@@ -13,7 +18,7 @@
 <script src="/suite/js/campaigns/07_media.js"></script>
 <script src="/suite/js/campaigns/99_init.js"></script>
 
-<div class="crm-container">
+<div class="gb-app crm-container" data-gb-app="campaigns">
     <!-- Header -->
     <header class="crm-header">
         <div class="crm-header-left">
@@ -106,94 +111,7 @@
 <!-- Create/Edit Campaign Modal -->
 <div id="campaign-modal" class="crm-modal" style="display: none;">
     <div class="crm-modal-overlay" onclick="hideCampaignModal()"></div>
-    <div class="crm-modal-content studio-modal-content">
-        <div class="crm-modal-header">
-            <h2 id="campaign-modal-title" data-i18n="campaign-create">Create Campaign</h2>
-            <button class="crm-modal-close" onclick="hideCampaignModal()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-            </button>
-        </div>
-        <form id="campaign-form">
-            <div class="crm-form-group">
-                <label for="campaign-name" data-i18n="campaign-name">Campaign Name</label>
-                <input type="text" id="campaign-name" name="name" required
-                       placeholder="e.g., Welcome Series">
-            </div>
-            <div class="crm-form-row">
-                <div class="crm-form-group">
-                    <label for="campaign-channel" data-i18n="campaign-channel">Channel</label>
-                    <select id="campaign-channel" name="channel" required>
-                        <option value="email">📧 Email</option>
-                        <option value="whatsapp">💬 WhatsApp</option>
-                        <option value="instagram">📸 Instagram</option>
-                        <option value="facebook">📘 Facebook</option>
-                        <option value="sms">✉️ SMS</option>
-                        <option value="multi">🔄 Multi-Channel</option>
-                    </select>
-                </div>
-                <div class="crm-form-group">
-                    <label for="campaign-budget" data-i18n="campaign-budget">Budget (optional)</label>
-                    <input type="number" id="campaign-budget" name="budget" step="0.01" placeholder="0.00">
-                </div>
-                <div class="crm-form-group">
-                    <label for="campaign-schedule" data-i18n="campaign-schedule">Schedule (optional)</label>
-                    <input type="datetime-local" id="campaign-schedule" name="scheduled_at">
-                </div>
-            </div>
-            <div class="crm-form-group" id="campaign-subject-row">
-                <label for="campaign-subject">Subject</label>
-                <input type="text" id="campaign-subject" placeholder="e.g., Special offer inside — {{name}}">
-            </div>
-
-            <div class="studio-editor-area">
-                <div class="studio-editor-toolbar">
-                    <button type="button" class="studio-tool-btn" data-editor-cmd="bold" title="Bold"><b>B</b></button>
-                    <button type="button" class="studio-tool-btn" data-editor-cmd="italic" title="Italic"><i>I</i></button>
-                    <button type="button" class="studio-tool-btn" data-editor-cmd="underline" title="Underline"><u>U</u></button>
-                    <span class="studio-tool-sep"></span>
-                    <button type="button" class="studio-tool-btn" data-editor-cmd="formatBlock" data-editor-value="h2" title="Heading">H2</button>
-                    <button type="button" class="studio-tool-btn" data-editor-cmd="formatBlock" data-editor-value="h3" title="Subheading">H3</button>
-                    <span class="studio-tool-sep"></span>
-                    <button type="button" class="studio-tool-btn" data-editor-cmd="insertUnorderedList" title="Bullets">• List</button>
-                    <button type="button" class="studio-tool-btn" data-editor-cmd="insertOrderedList" title="Numbers">1. List</button>
-                    <button type="button" class="studio-tool-btn" data-editor-cmd="createLink" title="Link" data-editor-value="https://">🔗</button>
-                    <button type="button" class="studio-tool-btn" data-editor-cmd="removeFormat" title="Clear formatting">⌫</button>
-                    <span class="studio-tool-sep"></span>
-                    <button type="button" class="studio-tool-btn studio-ai-tool-btn" id="studio-ai-btn" title="Generate with AI">✨ AI Write</button>
-                    <button type="button" class="studio-tool-btn studio-img-tool-btn" id="studio-img-btn" title="Generate image">🖼 AI Image</button>
-                    <span class="studio-tool-sep"></span>
-                    <span class="studio-var-label">Variables:</span>
-                    <button type="button" class="studio-var-btn" data-var="{{name}}">{{name}}</button>
-                    <button type="button" class="studio-var-btn" data-var="{{company}}">{{company}}</button>
-                    <button type="button" class="studio-var-btn" data-var="{{email}}">{{email}}</button>
-                </div>
-                <div class="studio-editor" id="studio-editor" contenteditable="true"
-                     data-placeholder="Write your message here…"></div>
-            </div>
-
-            <div class="studio-preview-area">
-                <div class="studio-preview-header">
-                    <span class="studio-preview-title">📺 Channel preview</span>
-                    <button type="button" class="btn-secondary studio-device-btn" id="studio-device-toggle">🖥 Desktop</button>
-                    <button type="button" class="btn-secondary studio-device-btn" id="studio-social-btn" style="display:none;">🚀 Publish to IG</button>
-                </div>
-                <div class="studio-preview-frame" id="studio-preview-frame">
-                    <div style="padding:24px;color:var(--text-secondary,#888);text-align:center;">Your preview appears here</div>
-                </div>
-            </div>
-
-            <div class="studio-media-strip" id="studio-media-strip">
-                    <span class="studio-media-empty">No images yet — click 🖼 AI Image.</span>
-                </div>
-
-            <div class="crm-form-actions">
-                <button type="button" class="btn-secondary" onclick="hideCampaignModal()" data-i18n="cancel">Cancel</button>
-                <button type="submit" class="btn-primary" data-i18n="campaign-save">Save Campaign</button>
-            </div>
-        </form>
-    </div>
+<div id="campaignsTplSlot1"></div>
 </div>
 
 <!-- Publish (multi-channel fan-out) Dialog -->
@@ -352,41 +270,7 @@
 
 <!-- Create Template Modal -->
 <div id="template-modal" class="crm-modal" style="display: none;">
-    <div class="crm-modal-overlay" onclick="closeTemplateModal()"></div>
-    <div class="crm-modal-content" style="max-width:520px;">
-        <div class="crm-modal-header">
-            <h2 id="template-modal-title">New Template</h2>
-            <button class="crm-modal-close" onclick="closeTemplateModal()">×</button>
-        </div>
-        <form id="template-form">
-            <div class="crm-form-group">
-                <label for="template-name">Template Name</label>
-                <input type="text" id="template-name" required placeholder="e.g., Welcome email">
-            </div>
-            <div class="crm-form-group">
-                <label for="template-channel">Channel</label>
-                <select id="template-channel">
-                    <option value="email">📧 Email</option>
-                    <option value="whatsapp">💬 WhatsApp</option>
-                    <option value="instagram">📸 Instagram</option>
-                    <option value="facebook">📘 Facebook</option>
-                    <option value="sms">✉️ SMS</option>
-                </select>
-            </div>
-            <div class="crm-form-group">
-                <label for="template-subject">Subject (email)</label>
-                <input type="text" id="template-subject" placeholder="e.g., Special offer inside — {{name}}">
-            </div>
-            <div class="crm-form-group">
-                <label for="template-body">Body</label>
-                <textarea id="template-body" rows="6" placeholder="Write your message… supports {{name}}, {{company}}, {{email}}"></textarea>
-            </div>
-            <div class="crm-form-actions">
-                <button type="button" class="btn-secondary" onclick="closeTemplateModal()">Cancel</button>
-                <button type="button" class="btn-primary" onclick="saveTemplate()">Create Template</button>
-            </div>
-        </form>
-    </div>
+<div id="campaignsTplSlot9"></div>
 </div>
 
 <script>
