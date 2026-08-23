@@ -20,6 +20,7 @@ use crate::providers::rest_client::{self, RestRequest, MAX_RESPONSE_BYTES};
 use crate::providers::{ActionOutcome, LlmSafeAction, LlmSafeParam, ProviderAdapter};
 
 pub mod commerce;
+pub mod community;
 pub mod crm_ops;
 pub mod developer;
 pub mod devops;
