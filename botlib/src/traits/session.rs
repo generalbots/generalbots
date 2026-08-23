@@ -92,6 +92,11 @@ pub trait SessionManagerService: Send + Debug {
         limit: Option<i64>,
     ) -> Result<Vec<(String, String)>, String>;
 
+    /// Returns the first user message of a conversation (decrypted) — used as
+    /// the human-readable title in chat history listings. `None` when the
+    /// session has no user messages yet.
+    fn get_first_user_message(&mut self, session_id: uuid::Uuid) -> Result<Option<String>, String>;
+
     fn get_session_context_data(
         &self,
         session_id: &uuid::Uuid,

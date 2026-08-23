@@ -1,5 +1,7 @@
 /* ============================================ */
-/* GB FLUENT — Chat Sidebar                      */
+/* GB FLUENT — Sidebar v16                       */
+/* Claude/zo.computer style: principal app links */
+/* on top, conversation history below.           */
 /* ============================================ */
 
 .chat-sidebar {
@@ -29,7 +31,6 @@
   justify-content: center;
   cursor: pointer;
   transition: all 180ms;
-  border-bottom: 1px solid var(--shell-border, var(--glass-border-color, rgba(255,255,255,0.10)));
   flex-shrink: 0;
 }
 
@@ -38,8 +39,8 @@
 }
 
 .chat-sidebar-toggle svg {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   stroke: var(--text-secondary, #888);
   transition: all 300ms;
 }
@@ -59,20 +60,27 @@
   display: none;
 }
 
-/* Header */
+/* ── Brand header ── */
 .chat-sidebar-header {
   padding: 14px 16px 10px;
-  border-bottom: 1px solid var(--shell-border, var(--glass-border-color, rgba(255,255,255,0.10)));
 }
 
-.chat-sidebar-title {
+.chat-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.chat-sidebar-brand-name {
   font-family: Inter, system-ui, -apple-system, sans-serif;
   font-size: 14px;
   font-weight: 700;
+  letter-spacing: -0.01em;
   color: var(--text, #eee);
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .glow-dot {
@@ -82,6 +90,7 @@
   background: var(--primary, var(--accent, #84d669));
   box-shadow: 0 0 8px var(--primary, var(--accent, #84d669));
   animation: chatDotPulse 2s ease-in-out infinite;
+  flex-shrink: 0;
 }
 
 @keyframes chatDotPulse {
@@ -89,23 +98,110 @@
   50%      { opacity: 0.5; transform: scale(1.3); }
 }
 
-/* Conversations */
+/* ── New conversation ── */
+.chat-sidebar-new-chat {
+  margin: 4px 12px 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text, #eee);
+  background: var(--surface-hover, rgba(255,255,255,0.07));
+  transition: all 180ms;
+  flex-shrink: 0;
+}
+
+.chat-sidebar-new-chat:hover {
+  background: var(--primary, var(--accent, #84d669));
+  color: #111;
+}
+
+/* ── Principal app links ── */
+.chat-sidebar-apps {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 8px 10px;
+  border-bottom: 1px solid var(--shell-border, var(--glass-border-color, rgba(255,255,255,0.08)));
+  flex-shrink: 0;
+}
+
+.sidebar-app-link {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text, #ddd);
+  transition: background 150ms;
+  user-select: none;
+}
+
+.sidebar-app-link:hover {
+  background: var(--win-caption-hover, rgba(255,255,255,0.07));
+}
+
+.sidebar-app-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--text-secondary, #999);
+  transition: color 150ms;
+}
+
+.sidebar-app-icon svg {
+  width: 17px;
+  height: 17px;
+}
+
+.sidebar-app-link:hover .sidebar-app-icon {
+  color: var(--primary, var(--accent, #84d669));
+}
+
+.sidebar-app-label {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── History section ── */
+.chat-sidebar-section-label {
+  padding: 14px 18px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary, #777);
+  flex-shrink: 0;
+}
+
 .chat-sidebar-conversations {
   flex: 1;
   overflow-y: auto;
-  padding: 8px;
+  padding: 0 8px 8px;
 }
 
 .chat-sidebar-conv-item {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 10px;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: all 150ms;
-  margin-bottom: 2px;
-  border: 1px solid transparent;
+  transition: background 150ms;
+  margin-bottom: 1px;
 }
 
 .chat-sidebar-conv-item:hover {
@@ -113,25 +209,7 @@
 }
 
 .chat-sidebar-conv-item.active {
-  background: rgba(255,255,255,0.1);
-  border: 1px solid var(--shell-border, rgba(255,255,255,0.10));
-}
-
-.chat-sidebar-conv-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: var(--primary, var(--accent, #84d669));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.chat-sidebar-conv-icon svg {
-  width: 16px;
-  height: 16px;
-  stroke: #111;
+  background: var(--surface-active, rgba(255,255,255,0.10));
 }
 
 .chat-sidebar-conv-info {
@@ -141,20 +219,15 @@
 
 .chat-sidebar-conv-name {
   font-size: 13px;
-  font-weight: 600;
-  color: var(--text, #eee);
+  color: var(--text, #ccc);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.chat-sidebar-conv-preview {
-  font-size: 11px;
-  color: var(--text-secondary, #777);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-top: 2px;
+.chat-sidebar-conv-item.active .chat-sidebar-conv-name {
+  color: var(--text, #eee);
+  font-weight: 600;
 }
 
 .chat-sidebar-conv-time {
@@ -163,29 +236,28 @@
   flex-shrink: 0;
 }
 
-/* New chat button */
-.chat-sidebar-new-chat {
-  margin: 8px;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px dashed var(--shell-border, rgba(255,255,255,0.1));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  cursor: pointer;
-  color: var(--text-secondary, #888);
-  font-size: 13px;
-  transition: all 180ms;
+.chat-sidebar-history-empty,
+.chat-sidebar-signin-hint {
+  margin: 6px 4px;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--text-secondary, #777);
+  text-align: center;
 }
 
-.chat-sidebar-new-chat:hover {
+.chat-sidebar-signin-hint {
+  border: 1px dashed var(--shell-border, rgba(255,255,255,0.15));
+  cursor: pointer;
+  transition: all 150ms;
+}
+
+.chat-sidebar-signin-hint:hover {
   border-color: var(--primary, var(--accent, #84d669));
   color: var(--primary, var(--accent, #84d669));
-  background: var(--win-caption-hover, rgba(255,255,255,0.04));
 }
 
-/* Collapsed icons */
+/* ── Collapsed icons ── */
 .chat-sidebar-collapsed-icons {
   display: none;
   flex-direction: column;
@@ -221,7 +293,7 @@
   stroke: currentColor;
 }
 
-/* ── Public mode sidebar hide ── */
+/* ── Public mode / fullscreen sidebar hide ── */
 body.public-mode .chat-sidebar {
   display: none !important;
 }

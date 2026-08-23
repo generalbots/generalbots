@@ -58,6 +58,9 @@ impl botlib::traits::SessionManagerService for LocalSessionManager {
     fn get_conversation_history(&mut self, session_id: uuid::Uuid, user_id: uuid::Uuid, limit: Option<i64>) -> Result<Vec<(String, String)>, String> {
         self.0.get_conversation_history(session_id, user_id, limit).map_err(|e| e.to_string())
     }
+    fn get_first_user_message(&mut self, session_id: uuid::Uuid) -> Result<Option<String>, String> {
+        self.0.get_first_user_message(session_id).map_err(|e| e.to_string())
+    }
     fn get_session_context_data(&self, session_id: &uuid::Uuid, user_id: &uuid::Uuid) -> Result<String, String> {
         self.0.get_session_context_data(session_id, user_id).map(|v| v.to_string()).map_err(|e| e.to_string())
     }

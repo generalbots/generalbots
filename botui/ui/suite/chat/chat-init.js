@@ -44,6 +44,9 @@ function sendMessage(messageContent) {
     if (fileInput) { fileInput.value = ""; }
     var chip = document.getElementById("fileChip");
     if (chip) { chip.style.display = "none"; chip.textContent = ""; }
+    window.dispatchEvent(new CustomEvent("gb-chat-message-sent", {
+      detail: { session_id: ChatState.currentSessionId },
+    }));
   };
 
   if (file && ChatState.ws && ChatState.ws.readyState === WebSocket.OPEN) {
@@ -92,9 +95,57 @@ window.getChatSessionInfo = function () {
   };
 };
 
+  // Sidebar deep-link payload (?session=… or __gbAppParams__.session) —
+  // reopening an existing conversation from the desktop sidebar.
+  function readRequestedSession() {
+    try {
+      if (window.__gbAppParams__ && window.__gbAppParams__.session) {
+        var sid = String(window.__gbAppParams__.session);
+        delete window.__gbAppParams__.session;
+        return sid;
+      }
+      return new URLSearchParams(window.location.search).get("session") || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  // Replays a stored conversation into #messages before the WebSocket opens,
+  // so the user sees prior turns when opening a conversation from history.
+  function loadSessionHistory(sessionId) {
+    var headers = {};
+    var tok = window.getGBAccessToken ? window.getGBAccessToken()
+      : (localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || localStorage.getItem("management_token"));
+    if (tok) headers["Authorization"] = "Bearer " + tok;
+    return fetch("/api/chat/history/sessions/" + encodeURIComponent(sessionId) + "/messages", { headers: headers })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || !Array.isArray(data.messages)) return;
+        var pane = document.getElementById("messages");
+        if (pane) pane.innerHTML = "";
+        data.messages.forEach(function (m) {
+          addMessage(m.role === "user" ? "user" : "bot", m.content);
+        });
+        scrollToBottom(false);
+      })
+      .catch(function () { /* history replay is best-effort */ });
+  }
+
 function proceedWithChatInit() {
+  // Re-entry guard (deep-link relaunch): drop any previous socket so two
+  // WebSockets never fight over the same chat window.
+  try {
+    if (ChatState.ws) {
+      ChatState.ws.onclose = null;
+      ChatState.ws.onerror = null;
+      ChatState.ws.onmessage = null;
+      ChatState.ws.close();
+    }
+  } catch (e) {}
+
   var botName = window.__INITIAL_BOT_NAME__ || "default";
   var storageKey = "gb_chat_" + botName;
+  var requestedSession = readRequestedSession();
 
   // #753 — cross-surface deeplinks: ?vibe= / ?run_id= open the Vibe app
   // (desktop shell) or mark the chat tab for the Vibe surface.
@@ -133,6 +184,9 @@ function proceedWithChatInit() {
   } catch (e) {}
 
   var authUrl = "/api/auth?bot_name=" + encodeURIComponent(botName);
+  if (requestedSession) {
+    authUrl += "&session_id=" + encodeURIComponent(requestedSession);
+  }
 
   var authHeaders = {};
   var gbToken = window.getGBAccessToken ? window.getGBAccessToken() : (localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || localStorage.getItem("management_token"));
@@ -162,7 +216,16 @@ function proceedWithChatInit() {
       try {
         localStorage.setItem(storageKey, JSON.stringify({ user_id: auth.user_id }));
       } catch (e) {}
-      
+
+      window.dispatchEvent(new CustomEvent("gb-chat-session-changed", {
+        detail: { session_id: auth.session_id },
+      }));
+
+      var readyToConnect = requestedSession
+        ? loadSessionHistory(requestedSession)
+        : Promise.resolve();
+      readyToConnect.then(function () {
+
       // Check bot visibility — redirect private bots to login if not authenticated
       fetch("/api/bot/public?bot_name=" + encodeURIComponent(botName))
         .then(function (r) { return r.json(); })
@@ -177,6 +240,8 @@ function proceedWithChatInit() {
           connectWebSocket();
         })
         .catch(function () { connectWebSocket(); });
+
+      });
     })
     .catch(function () {
       notify("Failed to connect to chat server", "error");

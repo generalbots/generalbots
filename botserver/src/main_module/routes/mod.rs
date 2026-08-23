@@ -2,6 +2,7 @@ pub mod anonymous_auth;
 pub mod api_setup;
 pub mod bot_tree;
 pub mod chat_handlers;
+pub mod chat_history;
 pub mod misc_handlers;
 pub mod cloud_sso_handler;
 pub mod catalog;

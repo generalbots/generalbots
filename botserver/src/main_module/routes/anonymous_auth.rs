@@ -28,16 +28,7 @@ pub async fn anonymous_auth_handler(
         Ok(uuid) => uuid,
         Err(_) => uuid::Uuid::new_v4(),
     };
-    let user_uuid = if let Ok(uuid) = uuid::Uuid::parse_str(&user_id) {
-        uuid
-    } else {
-        // Deterministic UUID derived from non-UUID user identifiers
-        // (e.g. Zitadel numeric user_id / sub claim).
-        uuid::Uuid::new_v5(
-            &uuid::Uuid::NAMESPACE_DNS,
-            format!("zitadel:{}", user_id).as_bytes(),
-        )
-    };
+    let user_uuid = resolve_chat_user_uuid(&user_id);
 
     let found_bot_id = {
         let conn = state.conn.get().ok();
@@ -88,10 +79,22 @@ pub async fn anonymous_auth_handler(
     )
 }
 
-fn resolve_session_user(
+/// Resolves the chat user UUID from a raw user identifier: parses it as a
+/// UUID when possible, otherwise derives a deterministic UUID from non-UUID
+/// identifiers (e.g. Zitadel numeric user_id / sub claim).
+pub(crate) fn resolve_chat_user_uuid(user_id: &str) -> uuid::Uuid {
+    if let Ok(uuid) = uuid::Uuid::parse_str(user_id) {
+        return uuid;
+    }
+    uuid::Uuid::new_v5(
+        &uuid::Uuid::NAMESPACE_DNS,
+        format!("zitadel:{user_id}").as_bytes(),
+    )
+}
+
+pub(crate) fn resolve_session_user(
     request: &axum::extract::Request,
-) -> (String, Vec<String>, bool) {
-    let token = request
+) -> (String, Vec<String>, bool) {    let token = request
         .headers()
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
