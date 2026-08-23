@@ -20,6 +20,7 @@ pub mod scope;
 pub mod secrets;
 pub mod state;
 pub mod storage;
+pub mod token_refresh;
 
 pub use routes::{configure, configure_connection_routes};
 pub use state::IntegrationState;
