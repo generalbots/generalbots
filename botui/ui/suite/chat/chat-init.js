@@ -143,7 +143,9 @@ function proceedWithChatInit() {
     }
   } catch (e) {}
 
-  var botName = window.__INITIAL_BOT_NAME__ || "default";
+  var botName = (typeof window.GBResolveActiveBot === "function")
+    ? window.GBResolveActiveBot()
+    : (window.__INITIAL_BOT_NAME__ || "default");
   var storageKey = "gb_chat_" + botName;
   var requestedSession = readRequestedSession();
 
