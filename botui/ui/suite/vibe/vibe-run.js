@@ -351,8 +351,9 @@
     /* ------------------------------------------------- polling */
 
     function startPolling() {
+        if (window.GBAppLifecycle) GBAppLifecycle.begin("vibe");
         stopPolling();
-        state.pollTimer = setInterval(loadAll, 1500);
+        state.pollTimer = (window.GBAppLifecycle ? GBAppLifecycle.interval("vibe", loadAll, 1500) : setInterval(loadAll, 1500));
     }
 
     function stopPolling() {
@@ -413,13 +414,16 @@
 
     function startTicker() {
         if (state.tickTimer) clearInterval(state.tickTimer);
-        state.tickTimer = setInterval(function () {
+        var tick = function () {
             if (!state.run || !state.run.created_at) return;
             var start = new Date(state.run.created_at).getTime();
             if (isNaN(start)) return;
             var s = Math.max(0, Math.floor((Date.now() - start) / 1000));
             setText("vibeRunElapsed", s + "s");
-        }, 1000);
+        };
+        state.tickTimer = window.GBAppLifecycle
+            ? GBAppLifecycle.interval("vibe", tick, 1000)
+            : setInterval(tick, 1000);
     }
 
     /* ------------------------------------------------- focus */
