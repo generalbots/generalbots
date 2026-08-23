@@ -19,6 +19,7 @@ use serde_json::Value;
 use crate::providers::rest_client::{self, RestRequest, MAX_RESPONSE_BYTES};
 use crate::providers::{ActionOutcome, LlmSafeAction, LlmSafeParam, ProviderAdapter};
 
+pub mod batch2;
 pub mod simple;
 
 use base64::Engine as _;
@@ -87,6 +88,11 @@ pub enum AuthStyle {
     /// Credentials appended as query parameters (Trello `key`/`token`).
     QueryPairs {
         pairs: &'static [(&'static str, &'static str)],
+    },
+    /// Credential injected as a top-level JSON body field on every call;
+    /// all declared parameters flatten into the same body (Canny style).
+    BodyField {
+        field: &'static str,
     },
 }
 
@@ -243,6 +249,10 @@ fn auth_headers_and_query(
                 query.push(((*name).to_string(), value.to_string()));
             }
         }
+        AuthStyle::BodyField { .. } => {
+            // Credential material is injected into the JSON body by
+            // `flat_body` at invocation time; nothing enters headers.
+        }
     }
     headers.push(("user-agent", "generalbots-botintegrations".to_string()));
     Ok((headers, query))
@@ -283,6 +293,34 @@ fn build_body(action: &ActionSpec, params: &Value) -> Result<Option<Vec<u8>>, St
         None => payload,
     };
     Ok(Some(payload.to_string().into_bytes()))
+}
+
+/// Builds the flat credential-signed body used by `AuthStyle::BodyField`
+/// providers: every declared parameter present in `params` becomes a
+/// top-level key alongside the credential field.
+fn flat_body(
+    credentials: &Value,
+    field: &str,
+    action: &ActionSpec,
+    params: &Value,
+) -> Result<Vec<u8>, String> {
+    let mut body = serde_json::Map::new();
+    body.insert(
+        field.to_string(),
+        Value::String(cred_str(credentials, field)?.to_string()),
+    );
+    for param in action.params {
+        if let Some(value) = params.get(param.name) {
+            match value {
+                Value::Null => {}
+                Value::String(text) if text.trim().is_empty() => {}
+                other => {
+                    body.insert((*param.name).to_string(), other.clone());
+                }
+            }
+        }
+    }
+    Ok(Value::Object(body).to_string().into_bytes())
 }
 
 fn shape_outcome(action: &ActionSpec, status: u16, body: &[u8]) -> ActionOutcome {
@@ -393,21 +431,29 @@ impl ProviderAdapter for GenericAdapter {
                 }
             }
             let url = build_url_from_parts(&origin, spec, params, query)?;
-            if spec.method != "GET" {
-                if let Some(body) = build_body(spec, params)? {
-                    headers.push(("content-type", "application/json".to_string()));
-                    let response = rest_client::send(RestRequest {
-                        method: reqwest::Method::from_bytes(spec.method.as_bytes())
-                            .map_err(|_| invalid("unsupported method".to_string()))?,
-                        url,
-                        headers,
-                        body: Some(body),
-                        response_cap: MAX_RESPONSE_BYTES,
-                    })
-                    .await?;
-                    response.require_success(spec.summary)?;
-                    return Ok(shape_outcome(spec, response.status, &response.body));
+            let credential_body = match &self.spec.auth {
+                AuthStyle::BodyField { field } => {
+                    Some(flat_body(credentials, field, spec, params)?)
                 }
+                _ => None,
+            };
+            if credential_body.is_some() || (spec.method != "GET" && build_body(spec, params)?.is_some()) {
+                let body = match credential_body {
+                    Some(body) => body,
+                    None => build_body(spec, params)?.unwrap_or_default(),
+                };
+                headers.push(("content-type", "application/json".to_string()));
+                let response = rest_client::send(RestRequest {
+                    method: reqwest::Method::from_bytes(spec.method.as_bytes())
+                        .map_err(|_| invalid("unsupported method".to_string()))?,
+                    url,
+                    headers,
+                    body: Some(body),
+                    response_cap: MAX_RESPONSE_BYTES,
+                })
+                .await?;
+                response.require_success(spec.summary)?;
+                return Ok(shape_outcome(spec, response.status, &response.body));
             }
             let response = rest_client::send(RestRequest {
                 method: reqwest::Method::from_bytes(spec.method.as_bytes())
