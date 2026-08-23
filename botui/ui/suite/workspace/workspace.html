@@ -3,7 +3,7 @@
      Respects Theme Manager - No hardcoded theme
      ============================================================================= -->
 
-<div class="workspace-app">
+<div class="gb-app workspace-app" data-gb-app="workspace">
     <!-- Sidebar -->
     <aside class="workspace-sidebar">
         <div class="sidebar-header">
@@ -513,6 +513,8 @@
     }
 </style>
 
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script>
     function toggleMembersPanel() {
         const panel = document.getElementById("members-panel");
