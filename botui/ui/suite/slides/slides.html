@@ -1,7 +1,7 @@
 <link rel="stylesheet" href="/suite/css/suite.css" />
 <link rel="stylesheet" href="/suite/css/collab.css" />
 
-<div class="slides-app" id="slides-app" data-touch-target="self">
+<div class="gb-app slides-app" id="slides-app" data-touch-target="self" data-gb-app="slides">
     <div class="slides-toolbar">
         <div class="toolbar-left">
             <input type="text" class="slides-title-input" id="presTitle" value="Untitled Presentation" spellcheck="false" hx-post="/api/slides/save" hx-trigger="blur changed" hx-vals='{"id":"current","action":"rename"}' hx-swap="none" />
@@ -119,6 +119,8 @@
     <div class="modal-host" id="modal-container"></div>
 </div>
 
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script>
 if (typeof htmx === 'undefined') {
     var s = document.createElement('script');

@@ -1,5 +1,3 @@
-"use strict";
-/* slides shell — sidebar tab switching + canvas pointer (drag/resize/rotate/select) + WS coord broadcast */
 
 (function () {
   const SIDEBAR_TAB_KEY = "slides_sidebar_tab";
