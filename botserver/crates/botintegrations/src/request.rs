@@ -153,6 +153,23 @@ pub fn split_request(body: &Value) -> Result<models::NewConnection, IntegrationE
         }
     };
 
+    let visibility = match object.get("visibility") {
+        None | Some(Value::Null) => "private".to_string(),
+        Some(Value::String(raw)) => {
+            if raw != "private" && raw != "branch" {
+                return Err(IntegrationError::Validation(
+                    "visibility must be private or branch".to_string(),
+                ));
+            }
+            raw.clone()
+        }
+        Some(_) => {
+            return Err(IntegrationError::Validation(
+                "visibility must be a string".to_string(),
+            ))
+        }
+    };
+
     let mut secrets = serde_json::Map::new();
     let mut configuration = serde_json::Map::new();
     collect_members(object, &mut secrets, &mut configuration)?;
@@ -171,6 +188,7 @@ pub fn split_request(body: &Value) -> Result<models::NewConnection, IntegrationE
         secrets: Value::Object(secrets),
         configuration: redact_secret_values(&Value::Object(configuration)),
         granted_scopes,
+        visibility,
         expires_at,
     })
 }

@@ -375,6 +375,7 @@ pub async fn callback(
             auth_kind: "oauth2",
             vault_path: &stored_path,
             granted_scopes: &granted_scopes,
+            visibility: "private",
             configuration: &json!({"via": "authorization-code"}),
             expires_at: expires_in.and_then(|seconds| {
                 chrono::Duration::try_seconds(seconds).map(|duration| chrono::Utc::now() + duration)
