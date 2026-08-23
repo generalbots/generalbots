@@ -1,0 +1,190 @@
+
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    background: hsl(var(--background));
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.btn-secondary:hover {
+    background: var(--bg-hover);
+}
+
+.btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.btn-cancel {
+    padding: 0.5rem 1rem;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.btn-cancel:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.row-comment-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9rem;
+    padding: 2px 4px;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.row-comment-btn:hover {
+    opacity: 1;
+}
+
+/* ---- Modal + forms ------------------------------------------------------------ */
+
+.modal-container:empty {
+    display: none;
+}
+
+.modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: hsla(var(--foreground) / 0.4);
+    backdrop-filter: blur(2px);
+}
+
+.modal-content {
+    position: relative;
+    background: hsl(var(--card));
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md, 8px);
+    padding: 1.5rem;
+    width: 100%;
+    box-shadow: var(--sentient-shadow-lg, 0 10px 15px -3px hsla(var(--foreground) / 0.1));
+}
+
+.form-group {
+    margin-bottom: 0.875rem;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.form-row {
+    display: flex;
+    gap: 0.75rem;
+}
+
+.form-row .form-group {
+    flex: 1;
+}
+
+.form-input,
+.form-textarea,
+.status-select {
+    width: 100%;
+    padding: 0.5rem 0.7rem;
+    background: hsl(var(--background));
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    font-size: 0.875rem;
+    outline: none;
+}
+
+.form-input:focus,
+.form-textarea:focus,
+.status-select:focus {
+    border-color: var(--accent-color);
+}
+
+.form-textarea {
+    resize: vertical;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+/* ---- Misc ------------------------------------------------------------------------ */
+
+.loading-placeholder {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    padding: 1rem;
+    text-align: center;
+}
+
+/* ---- Responsive ------------------------------------------------------------------ */
+
+@media (max-width: 1024px) {
+    .gantt-table {
+        width: 300px;
+        min-width: 300px;
+    }
+
+    .gantt-table-header,
+    .gantt-table-row {
+        grid-template-columns: minmax(120px, 1fr) 80px 80px 60px;
+    }
+
+    .gantt-table-header .col-progress,
+    .gantt-table-header .col-assignee,
+    .gantt-table-row .col-progress,
+    .gantt-table-row .col-assignee {
+        display: none;
+    }
+}
+
+@media (max-width: 768px) {
+    .project-sidebar {
+        position: absolute;
+        left: -260px;
+        height: 100%;
+        z-index: 50;
+        transition: left 0.2s;
+    }
+
+    .project-sidebar.open {
+        left: 0;
+    }
+
+    /* The details panel (task info + dependency management) stays visible even
+       in narrow windows — this is a desktop window-manager app, not a mobile
+       page, so hiding it made dependency linking unreachable. */
+    .details-panel {
+        min-width: 260px;
+    }
+
+    .view-toggle {
+        width: 100%;
+    }
+}

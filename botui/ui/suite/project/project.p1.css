@@ -1,0 +1,443 @@
+/* =============================================================================
+   PROJECT APP - Project Management (Gantt / Timeline / List / Board / Resources)
+   Themed via the universal suite tokens (app.css): --background/--card (HSL
+   triples), --text-*, --accent-*, --border-color, --success/warning/error-color.
+   No per-theme colors are hardcoded, so every theme in the desktop works.
+   ============================================================================= */
+
+/* ---- Layout shell -------------------------------------------------------- */
+
+.project-app {
+    display: flex;
+    height: 100%;
+    min-height: 0;
+    background: hsl(var(--background));
+    color: var(--text-primary);
+    overflow: hidden;
+}
+
+.project-sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: hsl(var(--card));
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.sidebar-header h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.sidebar-search {
+    padding: 0.625rem 0.875rem;
+}
+
+.sidebar-search input {
+    width: 100%;
+    padding: 0.5rem 0.7rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    background: hsl(var(--background));
+    color: var(--text-primary);
+    font-size: 0.875rem;
+    outline: none;
+}
+
+.sidebar-search input:focus {
+    border-color: var(--accent-color);
+}
+
+.sidebar-nav {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.5rem;
+}
+
+.project-list-item {
+    padding: 0.625rem 0.75rem;
+    border-radius: var(--radius-sm, 6px);
+    cursor: pointer;
+    transition: background 0.15s;
+    margin-bottom: 0.25rem;
+    border: 1px solid transparent;
+}
+
+.project-list-item:hover {
+    background: var(--bg-hover);
+}
+
+.project-item-name {
+    font-weight: 500;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+.project-item-meta {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.125rem;
+}
+
+/* ---- Main column + header ------------------------------------------------ */
+
+.project-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.project-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid var(--border-color);
+    background: hsl(var(--card));
+}
+
+.project-info h1 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem 0;
+    color: var(--text-primary);
+}
+
+.project-meta {
+    display: flex;
+    gap: 1.25rem;
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    align-items: center;
+}
+
+.meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    margin-right: 0.375rem;
+}
+
+.project-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.view-toggle {
+    display: flex;
+    background: hsl(var(--background));
+    border-radius: var(--radius-sm, 6px);
+    padding: 2px;
+    border: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+.view-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.4rem 0.7rem;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.15s;
+    white-space: nowrap;
+}
+
+.view-btn:hover {
+    color: var(--text-primary);
+    background: var(--bg-hover);
+}
+
+.view-btn.active {
+    background: var(--accent-color);
+    color: hsl(var(--accent-foreground));
+}
+
+/* ---- View containers ----------------------------------------------------- */
+
+.project-views {
+    flex: 1;
+    overflow: hidden;
+    position: relative;
+    min-height: 0;
+}
+
+.view-container {
+    display: none;
+    height: 100%;
+    overflow: auto;
+}
+
+.view-container.active {
+    display: flex;
+    flex-direction: column;
+}
+
+/* ---- Gantt --------------------------------------------------------------- */
+
+.gantt-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    padding: 0.625rem 1rem;
+    background: hsl(var(--card));
+    border-bottom: 1px solid var(--border-color);
+}
+
+.gantt-zoom {
+    display: flex;
+    gap: 0.25rem;
+}
+
+.zoom-btn {
+    padding: 0.3rem 0.625rem;
+    border: 1px solid var(--border-color);
+    background: hsl(var(--background));
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.zoom-btn:hover {
+    color: var(--text-primary);
+}
+
+.zoom-btn.active {
+    background: var(--accent-color);
+    color: hsl(var(--accent-foreground));
+    border-color: var(--accent-color);
+}
+
+.gantt-filters {
+    display: flex;
+    gap: 1rem;
+}
+
+.gantt-filters label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.gantt-filters input[type="checkbox"] {
+    accent-color: hsl(var(--primary));
+}
+
+.gantt-container {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    min-height: 0;
+}
+
+.gantt-table {
+    width: 420px;
+    min-width: 420px;
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.gantt-table-header,
+.gantt-table-row {
+    display: grid;
+    grid-template-columns: minmax(140px, 1fr) 88px 88px 64px 80px 92px;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.gantt-table-header {
+    padding: 0.625rem 0.625rem;
+    background: hsl(var(--card));
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.gantt-table-row {
+    padding: 0 0.625rem;
+    height: 36px;
+    box-sizing: border-box;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.8125rem;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.gantt-table-row:hover {
+    background: var(--bg-hover);
+}
+
+.gantt-table-row .col-name {
+    color: var(--text-primary);
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gantt-table-row .col-start,
+.gantt-table-row .col-end,
+.gantt-table-row .col-duration {
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+}
+
+.progress-bar {
+    height: 6px;
+    background: var(--bg-hover);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--accent-color);
+    border-radius: 999px;
+}
+
+.gantt-chart {
+    flex: 1;
+    overflow: auto;
+    position: relative;
+    min-width: 0;
+}
+
+.gantt-timeline-header {
+    display: flex;
+    background: hsl(var(--card));
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    min-width: max-content;
+}
+
+.gantt-chart-body {
+    position: relative;
+    min-height: 200px;
+    padding: 0;
+}
+
+.gantt-row {
+    display: flex;
+    align-items: center;
+}
+
+.gantt-bar {
+    position: absolute;
+    display: flex;
+    align-items: center;
+    top: 50%;
+    transform: translateY(-50%);
+    height: 22px;
+    border-radius: 6px;
+    background: var(--accent-color);
+    color: hsl(var(--accent-foreground));
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+    box-shadow: var(--sentient-shadow-sm, 0 1px 2px hsla(var(--foreground) / 0.05));
+    z-index: 2;
+}
+
+.gantt-bar.critical {
+    background: var(--error-color);
+    color: hsl(var(--destructive-foreground));
+}
+
+.gantt-bar.summary {
+    background: var(--warning-color);
+    color: hsl(var(--accent-foreground));
+}
+
+.gantt-bar-fill {
+    position: absolute;
+    inset: 0;
+    background: hsla(var(--foreground) / 0.18);
+    border-radius: inherit;
+    z-index: 0;
+}
+
+.gantt-bar-label {
+    position: relative;
+    z-index: 1;
+    padding: 0 0.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gantt-milestone {
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 0;
+    height: 0;
+    border-left: 9px solid transparent;
+    border-right: 9px solid transparent;
+    border-bottom: 14px solid var(--warning-color);
+    z-index: 2;
+}
+
+.gantt-milestone.critical {
+    border-bottom-color: var(--error-color);
+}
+
+.gantt-arrows {
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 3;
+    color: var(--text-muted);
+}
+
+.gantt-arrows path {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+}
