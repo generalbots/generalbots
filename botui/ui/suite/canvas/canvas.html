@@ -2,8 +2,9 @@
      CANVAS APP - Collaborative Whiteboard & Drawing
      Respects Theme Manager - No hardcoded theme
      ============================================================================= -->
-<link rel="stylesheet" href="/suite/canvas/canvas.css" />
-<div class="canvas-root" id="canvas-app-root">
+<link href="/suite/canvas/canvas.p1.css?v=1" />
+<link href="/suite/canvas/canvas.p2.css?v=1" />
+<div class="gb-app canvas-root" id="canvas-app-root" data-gb-app="canvas">
     <div hx-get="/suite/canvas/partials/01_app_open.html" hx-trigger="load" hx-swap="outerHTML"></div>
     <div hx-get="/suite/canvas/partials/02_toolbar.html" hx-trigger="load" hx-swap="outerHTML"></div>
     <div hx-get="/suite/canvas/partials/03_header.html" hx-trigger="load" hx-swap="outerHTML"></div>
@@ -12,6 +13,8 @@
     <div hx-get="/suite/canvas/partials/06_export_modal.html" hx-trigger="load" hx-swap="outerHTML"></div>
 </div>
 
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading canvas…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Canvas unavailable</span></div>
 <script>
 (function () {
     "use strict";
