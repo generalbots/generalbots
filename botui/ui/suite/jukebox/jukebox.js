@@ -1,6 +1,7 @@
 (function () {
     "use strict";
 
+    if (window.GBAppLifecycle) GBAppLifecycle.begin("jukebox");
     var root = document.getElementById("jukeboxApp");
     if (!root) return;
 
@@ -370,11 +371,18 @@
         if (state.stationActive) playNext(); else setControls();
     });
 
-    clearInterval(window.__jukeboxPollTimer);
-    window.__jukeboxPollTimer = setInterval(function () {
-        if (!document.getElementById("jukeboxApp")) { clearInterval(window.__jukeboxPollTimer); return; }
-        pollPending();
-    }, 3500);
+    if (window.GBAppLifecycle) {
+        GBAppLifecycle.interval("jukebox", function () {
+            if (!document.getElementById("jukeboxApp")) return;
+            pollPending();
+        }, 3500);
+    } else {
+        clearInterval(window.__jukeboxPollTimer);
+        window.__jukeboxPollTimer = setInterval(function () {
+            if (!document.getElementById("jukeboxApp")) { clearInterval(window.__jukeboxPollTimer); return; }
+            pollPending();
+        }, 3500);
+    }
 
     resizeHostWindow();
     updateGenreDisplay();
