@@ -1,3 +1,4 @@
+if (window.GBAppLifecycle) GBAppLifecycle.begin("vision");
 (function() {
 'use strict';
 const API_BASE = '/api/vision';
