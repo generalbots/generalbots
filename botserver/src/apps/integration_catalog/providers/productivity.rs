@@ -313,7 +313,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "IMAP",
         Category::Productivity,
         Strategy::Improve,
-        Status::Built,
+        Status::Unsupported,
         Priority::Must,
         Some("botemail"),
         Some("https://www.rfc-editor.org/rfc/rfc9051"),
