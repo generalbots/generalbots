@@ -1,3 +1,4 @@
+if (window.GBAppLifecycle) GBAppLifecycle.begin("monitoring");
 /* Alerts page JavaScript */
 
 function switchTab(tab, btn) {

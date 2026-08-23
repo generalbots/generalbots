@@ -1,0 +1,93 @@
+
+.interface-name {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text);
+    font-family: "SF Mono", "Monaco", "Inconsolata", monospace;
+}
+
+.interface-ip {
+    font-size: 0.6875rem;
+    color: var(--text-secondary);
+}
+
+.interface-stats {
+    display: flex;
+    gap: 1rem;
+}
+
+.stat-in,
+.stat-out {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.75rem;
+    font-family: "SF Mono", "Monaco", "Inconsolata", monospace;
+    color: var(--text);
+}
+
+.stat-in svg {
+    color: var(--success);
+}
+.stat-out svg {
+    color: var(--error);
+}
+
+/* System Info */
+.system-info .info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.625rem 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.system-info .info-row:last-child {
+    border-bottom: none;
+}
+
+.info-label {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+
+.info-value {
+    font-size: 0.8125rem;
+    color: var(--text);
+    font-family: "SF Mono", "Monaco", "Inconsolata", monospace;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .charts-section {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .resource-cards {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .detailed-section {
+        grid-template-columns: 1fr;
+    }
+
+    .partition-usage {
+        max-width: 150px;
+    }
+}
+
+@media (max-width: 480px) {
+    .resource-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .resource-card {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .card-icon {
+        margin: 0 auto;
+    }
+}

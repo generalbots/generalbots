@@ -1,0 +1,45 @@
+
+@media (max-width: 768px) {
+    .log-stats {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+
+    .stat-separator {
+        display: none;
+    }
+
+    .connection-status {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .log-entry {
+        flex-wrap: wrap;
+    }
+
+    .log-timestamp {
+        order: 1;
+        width: 100%;
+        margin-bottom: 0.25rem;
+    }
+
+    .log-level {
+        order: 2;
+    }
+
+    .log-service {
+        order: 3;
+    }
+
+    .log-message {
+        order: 5;
+        width: 100%;
+        margin-top: 0.25rem;
+    }
+
+    .log-expand {
+        order: 4;
+        opacity: 1;
+    }
+}

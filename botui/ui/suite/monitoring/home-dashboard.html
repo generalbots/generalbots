@@ -1,4 +1,4 @@
-<div class="monitoring-home" id="monitoring-home" style="background: var(--bg); border-radius: 12px; overflow: hidden;">
+<div class="gb-app monitoring-home" id="monitoring-home" style="background: var(--bg); border-radius: 12px; overflow: hidden;" data-gb-app="monitoring">
     <!-- Live System Visualization -->
     <div class="live-visualization">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" class="live-svg">
@@ -494,7 +494,9 @@
         }
     </style>
 
-    <script>
+    <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<script>
         // Update service status dots based on API response
         document.body.addEventListener('htmx:afterSwap', function(event) {
             if (event.detail.target.id === 'service-status-container') {
