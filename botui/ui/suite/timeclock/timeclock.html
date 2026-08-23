@@ -1,8 +1,10 @@
 <link rel="stylesheet" href="/suite/timeclock/timeclock.css">
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script src="/suite/js/vendor/htmx.min.js"></script>
 <script src="/suite/js/vendor/htmx-json-enc.js"></script>
 
-<div class="tc-container">
+<div class="gb-app tc-container" data-gb-app="timeclock">
     <header class="tc-header">
         <h1>Electronic Time Clock</h1>
         <div class="tc-header-actions">
