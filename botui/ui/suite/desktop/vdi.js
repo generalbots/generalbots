@@ -1,5 +1,6 @@
 (function() {
 'use strict';
+if (window.GBAppLifecycle) GBAppLifecycle.begin("vdi");
 var activeSessions = new Map();
     var MAX_SESSIONS = 3;
     var CONNECTIONS = [];
