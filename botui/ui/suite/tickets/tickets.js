@@ -1,3 +1,4 @@
+if (window.GBAppLifecycle) GBAppLifecycle.begin("tickets");
 (function () {
     document.querySelectorAll(".tickets-tab").forEach((tab) => {
         tab.addEventListener("click", function () {

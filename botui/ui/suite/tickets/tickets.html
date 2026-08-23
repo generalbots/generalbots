@@ -1,9 +1,11 @@
 <!-- Tickets - AI-Assisted Support Cases -->
 <!-- Dynamics nomenclature: Case, Resolution, Activity -->
 
-<link rel="stylesheet" href="/suite/tickets/tickets.css" />
+<link href="/suite/tickets/tickets.p1.css?v=1" />
+<link href="/suite/tickets/tickets.p2.css?v=1" />
+<link href="/suite/tickets/tickets.p3.css?v=1" />
 
-<div class="tickets-container">
+<div class="gb-app tickets-container" data-gb-app="tickets">
     <!-- Header -->
     <header class="tickets-header">
         <div class="tickets-header-left">
@@ -339,4 +341,6 @@
 <!-- Modal loaded via HTMX -->
 <div hx-get="/suite/tickets/partials/new-ticket-modal.html" hx-trigger="load" hx-swap="none" id="tickets-modal-container"></div>
 
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script src="/suite/tickets/tickets.js"></script>
