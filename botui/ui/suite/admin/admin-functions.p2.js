@@ -1,7 +1,3 @@
-/* =============================================================================
-   ADMIN MODULE - Missing Function Handlers
-   These functions are called by onclick handlers in admin HTML files
-   ============================================================================= */
 
 (function () {
   "use strict";

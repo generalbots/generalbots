@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contacts - General Bots Suite</title>
-    <link rel="stylesheet" href="/suite/admin/admin.css">
-    <script src="/suite/js/vendor/htmx.min.js"></script>
+    <link href="/suite/admin/admin.p1.css?v=1" />
+<link href="/suite/admin/admin.p2.css?v=1" />
+    <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<script src="/suite/js/vendor/htmx.min.js"></script>
     <style>
         .contacts-container {
             display: flex;
@@ -1088,7 +1091,7 @@
     </style>
 </head>
 <body>
-    <div class="contacts-container">
+    <div class="gb-app contacts-container" data-gb-app="adminpanel">
         <!-- Sidebar -->
         <aside class="contacts-sidebar">
             <div class="sidebar-header">
