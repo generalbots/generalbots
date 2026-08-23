@@ -1,0 +1,435 @@
+
+        .node-field-select {
+            width: 100%;
+            background: var(--surface-hover, #334155);
+            border: 1px solid var(--border, #334155);
+            border-radius: 4px;
+            padding: 6px 8px;
+            color: var(--text, #f8fafc);
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        /* Connection Ports */
+        .node-port {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: var(--surface-hover, #334155);
+            border: 2px solid var(--border, #334155);
+            border-radius: 50%;
+            cursor: crosshair;
+            transition: all 0.15s;
+        }
+
+        .node-port:hover {
+            background: var(--primary, #3b82f6);
+            border-color: var(--primary, #3b82f6);
+            transform: scale(1.3);
+        }
+
+        .node-port.input {
+            left: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .node-port.output {
+            right: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+
+        .node-port.output-true {
+            right: -6px;
+            top: 35%;
+            background: var(--success, #22c55e);
+            border-color: var(--success, #22c55e);
+        }
+
+        .node-port.output-false {
+            right: -6px;
+            top: 65%;
+            background: var(--error, #ef4444);
+            border-color: var(--error, #ef4444);
+        }
+
+        /* Connections SVG */
+        .connections-layer {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            overflow: visible;
+        }
+
+        .connection {
+            fill: none;
+            stroke: var(--border, #334155);
+            stroke-width: 2;
+            pointer-events: stroke;
+            cursor: pointer;
+        }
+
+        .connection:hover {
+            stroke: var(--primary, #3b82f6);
+            stroke-width: 3;
+        }
+
+        .connection.drawing {
+            stroke: var(--primary, #3b82f6);
+            stroke-dasharray: 5, 5;
+        }
+
+        /* Properties Panel */
+        .properties-panel {
+            background: var(--surface, #1e293b);
+            border-left: 1px solid var(--border, #334155);
+            overflow-y: auto;
+        }
+
+        .properties-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border, #334155);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .properties-header svg {
+            width: 16px;
+            height: 16px;
+            color: var(--primary, #3b82f6);
+        }
+
+        .properties-empty {
+            padding: 24px 16px;
+            text-align: center;
+            color: var(--text-secondary, #94a3b8);
+            font-size: 13px;
+        }
+
+        .properties-content {
+            padding: 16px;
+        }
+
+        .property-group {
+            margin-bottom: 16px;
+        }
+
+        .property-group-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary, #94a3b8);
+            margin-bottom: 12px;
+        }
+
+        .property-field {
+            margin-bottom: 12px;
+        }
+
+        .property-label {
+            font-size: 12px;
+            margin-bottom: 4px;
+            color: var(--text, #f8fafc);
+        }
+
+        .property-input {
+            width: 100%;
+            background: var(--surface-hover, #334155);
+            border: 1px solid var(--border, #334155);
+            border-radius: 4px;
+            padding: 8px 10px;
+            color: var(--text, #f8fafc);
+            font-size: 13px;
+        }
+
+        .property-input:focus {
+            outline: none;
+            border-color: var(--primary, #3b82f6);
+        }
+
+        .property-textarea {
+            min-height: 80px;
+            resize: vertical;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .property-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .property-checkbox input {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--primary, #3b82f6);
+        }
+
+        /* Status Bar */
+        .status-bar {
+            grid-column: 1 / -1;
+            background: var(--surface, #1e293b);
+            border-top: 1px solid var(--border, #334155);
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            font-size: 12px;
+            color: var(--text-secondary, #94a3b8);
+            gap: 16px;
+        }
+
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-item svg {
+            width: 14px;
+            height: 14px;
+            color: var(--text-secondary, #94a3b8);
+        }
+
+        .status-spacer {
+            flex: 1;
+        }
+
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .zoom-btn {
+            background: var(--surface-hover, #334155);
+            border: 1px solid var(--border, #334155);
+            color: var(--text, #f8fafc);
+            width: 24px;
+            height: 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .zoom-btn:hover {
+            background: var(--border, #334155);
+        }
+
+        .zoom-value {
+            min-width: 40px;
+            text-align: center;
+        }
+
+        /* Context Menu */
+        .context-menu {
+            position: fixed;
+            background: var(--surface, #1e293b);
+            border: 1px solid var(--border, #334155);
+            border-radius: 8px;
+            padding: 8px 0;
+            min-width: 160px;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            display: none;
+        }
+
+        .context-menu.visible {
+            display: block;
+        }
+
+        .context-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .context-menu-item:hover {
+            background: var(--surface-hover, #334155);
+        }
+
+        .context-menu-item.danger {
+            color: var(--error, #ef4444);
+        }
+
+        .context-menu-separator {
+            height: 1px;
+            background: var(--border, #334155);
+            margin: 4px 8px;
+        }
+
+        /* File Browser Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.show {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--surface, #1e293b);
+            border: 1px solid var(--border, #334155);
+            border-radius: 12px;
+            width: 100%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border, #334155);
+        }
+
+        .magic-panel-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border, #334155);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary, #94a3b8);
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .modal-close:hover {
+            color: var(--text, #f8fafc);
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            max-height: 400px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 16px 20px;
+            border-top: 1px solid var(--border, #334155);
+        }
+
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+
+        .file-item:hover {
+            background: var(--surface-hover, #334155);
+        }
+
+        .file-item.selected {
+            background: var(--primary, #3b82f6);
+            color: var(--bg, #0f172a);
+        }
+
+        .file-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .file-name {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .file-path {
+            font-size: 11px;
+            color: var(--text-secondary, #94a3b8);
+        }
+
+        .file-item.selected .file-path {
+            color: var(--surface-hover, #334155);
+        }
+
+        /* HTMX indicators */
+        .htmx-indicator {
+            display: none;
+        }
+
+        .htmx-request .htmx-indicator {
+            display: inline-block;
+        }
+
+        .htmx-request.htmx-indicator {
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid var(--border, #334155);
+            border-top-color: var(--primary, #3b82f6);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        /* Minimap */
+        .minimap {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            width: 150px;
+            height: 100px;
+            background: var(--surface, #1e293b);
+            border: 1px solid var(--border, #334155);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .minimap-viewport {
+            position: absolute;
+            border: 1px solid var(--primary, #3b82f6);
+            background: rgba(137, 180, 250, 0.1);
+        }
+
+        .minimap-node {
+            position: absolute;
+            background: var(--primary, #3b82f6);
+            border-radius: 1px;
+        }
