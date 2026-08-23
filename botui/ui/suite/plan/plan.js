@@ -1,4 +1,5 @@
-"use strict";
+"if (window.GBAppLifecycle) GBAppLifecycle.begin("plan");
+use strict";
 /* plan shell — Kanban + Gantt + List hybrid project planner with real-time collab */
 
 (function () {
