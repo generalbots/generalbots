@@ -1,5 +1,6 @@
 (function() {
     'use strict';
+if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
 
     const MAX_TABS = 10;
     const SCROLLBACK = 10000;
