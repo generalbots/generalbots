@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="/suite/css/browser.css">
 
-<div class="browser-root">
+<div class="gb-app browser-root" data-gb-app="browser">
     <div class="browser-toolbar">
         <div class="browser-nav-group">
             <button class="browser-nav-btn" id="btn-back" title="Back" disabled>&#8592;</button>
@@ -72,6 +72,8 @@
     </div>
 </div>
 
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script>
 (function() {
     'use strict';
