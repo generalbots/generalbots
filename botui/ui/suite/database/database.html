@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="/suite/css/database.css">
 
-<div class="db-root">
+<div class="gb-app db-root" data-gb-app="database">
     <div class="db-layout">
         <!-- Schema Browser (Left Panel) -->
         <aside class="db-sidebar" id="db-sidebar">
@@ -178,6 +178,8 @@
     </div>
 </div>
 
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script>
 // Sequential module loader — ensures scripts execute in order
 (function() {
