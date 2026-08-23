@@ -885,13 +885,14 @@ async fn handle_login(
                     let mut user_id: Option<String> = None;
 
                     for login_name in &login_names {
+                        // This Zitadel build verifies credentials only via
+                        // the flat v2 shape; the checks{} wrapper is
+                        // rejected with COMMAND-3M0fs even for valid users.
                         let mut rb = c.post(format!("{dir_url}/v2/sessions"))
                             .header("Authorization", format!("Bearer {dir_token}"))
                             .json(&serde_json::json!({
-                                "checks": {
-                                    "user": { "loginName": login_name },
-                                    "password": { "password": body.password }
-                                }
+                                "loginName": login_name,
+                                "password": body.password
                             }));
                         if let Some(host) = &service.config.directory_external_domain {
                             rb = rb.header("Host", host);
