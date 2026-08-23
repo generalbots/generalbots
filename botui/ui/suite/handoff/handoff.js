@@ -1,5 +1,6 @@
 (function() {
 'use strict';
+if (window.GBAppLifecycle) GBAppLifecycle.begin("handoff");
 const HandoffApp = {
     state: { queue: [], analytics: {}, channels: [], csat: {} },
 
