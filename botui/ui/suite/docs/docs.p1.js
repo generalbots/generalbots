@@ -1,5 +1,3 @@
-"use strict";
-/* docs shell — sidebar tab switching + contenteditable doc surface + auto-save (debounced) */
 
 (function () {
   const SIDEBAR_TAB_KEY = "docs_sidebar_tab";

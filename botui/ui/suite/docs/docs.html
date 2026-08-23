@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="/suite/css/suite.css" />
 
-<div class="docs-app" id="docs-app" data-touch-target="self">
+<div class="gb-app docs-app" id="docs-app" data-touch-target="self" data-gb-app="docs">
     <div class="docs-toolbar">
         <div class="toolbar-left">
             <input type="text" class="docs-title-input" id="docTitle" value="Untitled Document" spellcheck="false" hx-post="/api/docs/save" hx-trigger="blur changed" hx-vals='{"id":"current","action":"rename"}' hx-swap="none" />
@@ -122,6 +122,8 @@
     <div class="modal-host" id="modal-container"></div>
 </div>
 
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script>
 if (typeof htmx === 'undefined') {
     var s = document.createElement('script');
@@ -236,3 +238,5 @@ document.addEventListener("htmx:afterSwap", function (e) {
 if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", function () { setTimeout(bindDocsBadge, 50); setTimeout(startDocConflictWatch, 50); });
 else setTimeout(bindDocsBadge, 50);
 </script>
+
+<script src="/suite/docs/docs.p1.js?v=1"></script>
