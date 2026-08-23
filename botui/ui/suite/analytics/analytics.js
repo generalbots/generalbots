@@ -3,6 +3,8 @@
  * Dashboard functionality, AI chat, time range, and chart controls
  */
 
+if (window.GBAppLifecycle) GBAppLifecycle.begin("analytics");
+
 // Time range management
 let currentTimeRange = "24h";
 
