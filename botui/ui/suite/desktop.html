@@ -16,7 +16,7 @@
         <link rel="stylesheet" href="/suite/css/desktop/windows.css?v=1" />
         <link rel="stylesheet" href="/suite/css/desktop/wallpaper.css?v=2" />
         <link rel="stylesheet" href="/suite/css/desktop/taskbar.css?v=1" />
-        <link rel="stylesheet" href="/suite/css/desktop/sidebar.css?v=2" />
+        <link rel="stylesheet" href="/suite/css/desktop/sidebar.css?v=3" />
         <link rel="stylesheet" href="/suite/css/desktop/start-menu.css?v=1" />
 
         <!-- Local JS requirements per AGENTS.md / UI.md -->
@@ -29,7 +29,7 @@
         <script src="/suite/js/vibe-bridge.js?v=1"></script>
         <script src="/suite/js/theme-manager.js"></script>
         <script src="/suite/js/command-palette.js?v=1"></script>
-        <script src="/suite/js/sidebar.js?v=1"></script>
+        <script src="/suite/js/sidebar.js?v=2"></script>
         <link rel="stylesheet" href="/suite/css/gb-palette.css?v=1" />
 
         <style>
@@ -176,6 +176,7 @@
                             <span class="glow-dot"></span>
                             <span class="chat-sidebar-brand-name">General Bots</span>
                         </div>
+                        <div class="chat-sidebar-botselect-wrap" id="sidebarBotSelectWrap"></div>
                     </div>
                     <button class="chat-sidebar-new-chat" id="sidebarNewChatBtn">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -184,6 +185,7 @@
                     <nav class="chat-sidebar-apps" id="sidebarAppsNav" aria-label="Main apps"></nav>
                     <div class="chat-sidebar-section-label">Conversations</div>
                     <div class="chat-sidebar-conversations" id="chatConversations"></div>
+                    <div class="chat-sidebar-user" id="sidebarUser"></div>
                 </div>
                 <div class="chat-sidebar-collapsed-icons">
                     <div class="chat-sidebar-collapsed-icon" title="Home" onclick="if(window.openHomeWindow) window.openHomeWindow();">
@@ -198,6 +200,7 @@
                     <div class="chat-sidebar-collapsed-icon" title="Settings" onclick="fetch('/suite/admin/organization-settings.html').then(r=>r.text()).then(html=>{window.WindowManager.open('settings','Settings',html);});">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     </div>
+                    <div class="chat-sidebar-collapsed-icon" id="sidebarUserCollapsed" title="Account"></div>
                 </div>
             </aside>
 
@@ -222,10 +225,6 @@
                     </div>
                     <div class="taskbar-right">
                         <div id="themeSelectorContainer" style="margin-right:2px;"></div>
-                        <button id="loginBtn" class="taskbar-widget" title="Entrar"
-                            onclick="window.location.href=(window.GB_LOGIN_URL||'/login')">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        </button>
                         <div class="taskbar-clock">
                             <div id="clock-time">00:00</div>
                             <div id="clock-date">01/01/2026</div>
@@ -363,110 +362,8 @@
                 }
             });
 
-            // Update login button based on auth state
-            function setLoginSignIn(btn) {
-                var isPublic = window.__BOT_IS_PUBLIC__ === true;
-                var botName = window.__INITIAL_BOT_NAME__ || '';
-                var currentUrl = encodeURIComponent(window.location.href);
-                if (isPublic) {
-                    btn.title = "Entrar / Criar conta gratuita";
-                    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg><span style="font-size:11px;margin-left:4px;">Entrar</span>';
-                    btn.style.gap = "2px";
-                    btn.onclick = function () {
-                        window.location.href = (window.GB_LOGIN_URL || '/login') + '?redirect=' + currentUrl + '&signup=1&bot=' + encodeURIComponent(botName);
-                    };
-                } else {
-                    btn.title = "Entrar";
-                    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
-                    btn.style.gap = "";
-                    btn.onclick = function () {
-                        window.location.href = (window.GB_LOGIN_URL || '/login') + '?redirect=' + currentUrl;
-                    };
-                }
-            }
-
-            function updateLoginButton() {
-                var loginBtn = document.getElementById("loginBtn");
-                if (!loginBtn) return;
-                var token = window.getGBAccessToken && window.getGBAccessToken();
-                if (!token) {
-                    setLoginSignIn(loginBtn);
-                    return;
-                }
-                fetch("/api/auth/me", {
-                    headers: { Authorization: "Bearer " + token }
-                })
-                .then(function (resp) {
-                    if (!resp.ok) throw new Error("Not authenticated");
-                    return resp.json();
-                })
-                .then(function (user) {
-                    var displayName = user.display_name || user.first_name || user.username || "User";
-                    var initial = displayName.charAt(0).toUpperCase();
-                    loginBtn.title = displayName;
-                    loginBtn.innerHTML = '<span class="user-avatar" style="display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--primary,#84d669);color:#fff;font-size:11px;line-height:22px;text-align:center;font-weight:700;flex-shrink:0">' + initial + '</span><span class="user-name" style="font-size:12px;max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + displayName + '</span><span class="user-chevron" style="font-size:10px;opacity:0.6">▾</span>';
-                    loginBtn.style.gap = "4px";
-                    loginBtn.style.display = "inline-flex";
-                    loginBtn.style.alignItems = "center";
-                    loginBtn.onclick = function (e) {
-                        e.stopPropagation();
-                        var m = document.getElementById('user-menu');
-                        if (m) { m.remove(); return; }
-                        var menu = document.createElement('div');
-                        menu.id = 'user-menu';
-                        menu.style.cssText = 'position:fixed;bottom:50px;right:10px;background:var(--surface,#1a1a24);border:1px solid var(--border,#333);border-radius:10px;padding:4px 0;min-width:180px;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,0.5)';
-                        menu.innerHTML =
-                            '<div style="padding:10px 14px;font-size:12px;color:var(--text-secondary,#888);border-bottom:1px solid var(--border,#333)">' + displayName + '<br><span style="font-size:11px;color:var(--muted,#666)">' + (user.email || '') + '</span></div>' +
-                            '<div onclick="fetch(\'/suite/admin/organization-settings.html\').then(function(r){return r.text()}).then(function(html){var m2=document.getElementById(\'user-menu\');if(m2)m2.remove();if(window.WindowManager)window.WindowManager.open(\'settings\',\'Settings\',html)})" style="padding:8px 14px;cursor:pointer;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</div>' +
-                            '<div onclick="var m2=document.getElementById(\'user-menu\');if(m2)m2.remove();if(window.WindowManager)window.WindowManager.open(\'about\',\'About\',\'<div style=\\\\\'padding:32px;text-align:center\\\\\'><div style=\\\\\'font-size:48px;margin-bottom:12px\\\\\'>🤖</div><h2 style=\\\\\'font-size:20px;color:var(--text);margin-bottom:4px\\\\\'>General Bots</h2><p style=\\\\\'font-size:13px;color:var(--text-secondary);margin-bottom:16px\\\\\'>v6.3.1 — Production</p><p style=\\\\\'font-size:12px;color:var(--muted)\\\\\'>Pragmatismo Cloud Platform<br>Documentation: docs.pragmatismo.com.br</p></div>\')" style="padding:8px 14px;cursor:pointer;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>About</div>' +
-                            '<div style="border-top:1px solid var(--border,#333)"></div>' +
-                            '<div onclick="sessionStorage.setItem(\'gb-signed-out\',\'true\');fetch(\'/api/auth/logout\',{method:\'POST\'}).finally(function(){localStorage.removeItem(\'gb-access-token\');sessionStorage.removeItem(\'gb-access-token\');localStorage.removeItem(\'management_token\');localStorage.removeItem(\'management_email\');localStorage.removeItem(\'management_name\');localStorage.removeItem(\'management_is_admin\');var i=0,keys=[];for(i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf(\'gb_chat_\')===0)keys.push(k);}keys.forEach(function(k){localStorage.removeItem(k);});if(window.GBSecurity&&window.GBSecurity.broadcastLogout)window.GBSecurity.broadcastLogout();var m3=document.getElementById(\'user-menu\');if(m3)m3.remove();window.location.href=window.GB_LOGIN_URL||\'/login\';})" style="padding:8px 14px;cursor:pointer;font-size:13px;color:#ef4444;display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Logout</div>';
-                        document.body.appendChild(menu);
-                        setTimeout(function() {
-                            document.addEventListener('click', function closeMenu(ev) {
-                                document.removeEventListener('click', closeMenu);
-                                var m2 = document.getElementById('user-menu');
-                                if (m2) m2.remove();
-                            }, { once: true });
-                        }, 10);
-                    };
-                })
-                .catch(function () {
-                    setLoginSignIn(loginBtn);
-                });
-            }
-
-            function getActiveUsername() {
-                try {
-                    var token = window.getGBAccessToken && window.getGBAccessToken();
-                    if (token) {
-                        var parts = token.split('.');
-                        if (parts.length === 3) {
-                            var payload = JSON.parse(atob(parts[1]));
-                            if (payload.username) return payload.username;
-                            if (payload.name) return payload.name;
-                            if (payload.sub) return payload.sub;
-                        }
-                    }
-                } catch(e) {
-                    console.warn("Failed to parse access token for username:", e);
-                }
-                return "Username";
-            }
-
-            function openHomeWindow() {
-                if (!window.wm) return;
-                var name = getActiveUsername();
-                window.wm.open('home', 'Home',
-                    '<div style="padding:32px;text-align:center;">' +
-                    '<h2 style="font-size:22px;color:var(--text);margin-bottom:8px;">Welcome, ' + name + '</h2>' +
-                    '<p style="font-size:15px;color:var(--text-secondary);">General Bots OS v15</p>' +
-                    '<p style="font-size:13px;color:var(--text-secondary);margin-top:16px;">Press <kbd style="background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:4px;">Ctrl+K</kbd> to open Start Menu</p>' +
-                    '</div>'
-                );
-            }
-
-            window.openHomeWindow = openHomeWindow;
+            // Auth UI (sign-in / user menu) lives in js/sidebar.js — it renders
+            // into the sidebar footer instead of the taskbar tray.
 
             // Desktop wallpaper: restore the user's saved choice and provide a
             // right-click popup with a Settings command (opens in a background tab).
@@ -544,12 +441,15 @@
 
             // Listen for auth state changes
             function initAuthUI() {
-                updateLoginButton();
-                window.addEventListener("gb:auth:login", updateLoginButton);
-                window.addEventListener("gb:auth:logout", updateLoginButton);
+                if (typeof updateLoginButton === "function") updateLoginButton();
+                window.addEventListener("gb:auth:login", function () {
+                    if (typeof updateLoginButton === "function") updateLoginButton();
+                });
+                window.addEventListener("gb:auth:logout", function () {
+                    if (typeof updateLoginButton === "function") updateLoginButton();
+                });
                 window.addEventListener("gb:auth:expired", function () {
-                    var btn = document.getElementById("loginBtn");
-                    if (btn) setLoginSignIn(btn);
+                    if (typeof updateLoginButton === "function") updateLoginButton();
                 });
             }
 
