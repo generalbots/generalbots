@@ -1,0 +1,441 @@
+/* Projector Overlay */
+    .projector-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.8);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        animation: fadeIn 0.2s ease;
+    }
+
+    .projector-overlay.hidden {
+        display: none;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    /* Container */
+    .projector-container {
+        width: 95%;
+        max-width: 1400px;
+        height: 90%;
+        max-height: 900px;
+        background: var(--bg, #1a1a1a);
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .projector-container.fullscreen {
+        width: 100%;
+        max-width: none;
+        height: 100%;
+        max-height: none;
+        border-radius: 0;
+    }
+
+    /* Header */
+    .projector-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 20px;
+        background: var(--surface, #252525);
+        border-bottom: 1px solid var(--border, #333);
+    }
+
+    .projector-title-section {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .projector-icon {
+        font-size: 20px;
+    }
+
+    .projector-title {
+        color: var(--text, #fff);
+        font-size: 16px;
+        font-weight: 500;
+        max-width: 400px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .projector-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .projector-btn {
+        background: transparent;
+        border: none;
+        color: var(--text-muted, #aaa);
+        font-size: 18px;
+        padding: 8px;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+
+    .projector-btn:hover {
+        background: var(--surface-hover, #333);
+        color: var(--text, #fff);
+    }
+
+    .projector-btn.close-btn:hover {
+        background: var(--error, #e74c3c);
+        color: var(--text, #fff);
+    }
+
+    /* Content Area */
+    .projector-content {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: relative;
+        background: var(--bg, #000);
+    }
+
+    /* Loading */
+    .projector-loading {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        color: var(--text-muted, #888);
+    }
+
+    .projector-loading.hidden {
+        display: none;
+    }
+
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--surface-hover, #333);
+        border-top-color: var(--accent, #667eea);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* Video Player */
+    .projector-video {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+    }
+
+    /* Audio Player */
+    .projector-audio {
+        width: 80%;
+        max-width: 600px;
+    }
+
+    .audio-visualizer {
+        width: 100%;
+        height: 200px;
+        background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    /* Image Viewer */
+    .projector-image {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+        transition: transform 0.3s ease;
+    }
+
+    /* PDF Viewer */
+    .projector-pdf {
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+
+    /* Code Viewer */
+    .projector-code {
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background: var(--bg, #1e1e1e);
+        padding: 20px;
+    }
+
+    .projector-code pre {
+        margin: 0;
+        font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--text, #d4d4d4);
+    }
+
+    .projector-code.line-numbers pre {
+        counter-reset: line;
+    }
+
+    .projector-code.line-numbers pre .line::before {
+        counter-increment: line;
+        content: counter(line);
+        display: inline-block;
+        width: 40px;
+        padding-right: 20px;
+        color: var(--text-muted, #666);
+        text-align: right;
+    }
+
+    /* Presentation Viewer */
+    .projector-presentation {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .slide-container {
+        background: var(--bg, #fff);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        aspect-ratio: 16/9;
+        max-width: 90%;
+        max-height: 90%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .slide-content {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+    /* Iframe Viewer */
+    .projector-iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        background: var(--bg, #fff);
+    }
+
+    /* Markdown Viewer */
+    .projector-markdown {
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        padding: 40px;
+        background: var(--bg, #fff);
+        color: var(--text, #333);
+    }
+
+    .projector-markdown h1,
+    .projector-markdown h2,
+    .projector-markdown h3 {
+        color: var(--text, #1a1a1a);
+        margin-top: 24px;
+        margin-bottom: 12px;
+    }
+
+    .projector-markdown code {
+        background: var(--surface, #f0f0f0);
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: monospace;
+    }
+
+    .projector-markdown pre code {
+        display: block;
+        padding: 16px;
+        overflow-x: auto;
+    }
+
+    /* Controls */
+    .projector-controls {
+        padding: 12px 20px;
+        background: var(--surface, #252525);
+        border-top: 1px solid var(--border, #333);
+    }
+
+    .media-controls,
+    .slide-controls,
+    .image-controls,
+    .code-controls {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .media-controls.hidden,
+    .slide-controls.hidden,
+    .image-controls.hidden,
+    .code-controls.hidden {
+        display: none;
+    }
+
+    .control-btn {
+        background: var(--surface-hover, #333);
+        border: none;
+        color: var(--text, #fff);
+        padding: 8px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px;
+        transition: all 0.2s ease;
+    }
+
+    .control-btn:hover {
+        background: var(--surface-active, #444);
+    }
+
+    .control-btn.active {
+        background: var(--accent, #667eea);
+    }
+
+    .play-btn {
+        font-size: 20px;
+        padding: 8px 16px;
+    }
+
+    /* Progress Bar */
+    .progress-container {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        min-width: 200px;
+    }
+
+    .progress-bar {
+        flex: 1;
+        height: 6px;
+        -webkit-appearance: none;
+        appearance: none;
+        background: var(--surface-active, #444);
+        border-radius: 3px;
+        cursor: pointer;
+    }
+
+    .progress-bar::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 14px;
+        height: 14px;
+        background: var(--accent, #667eea);
+        border-radius: 50%;
+        cursor: pointer;
+    }
+
+    .progress-bar::-moz-range-thumb {
+        width: 14px;
+        height: 14px;
+        background: var(--accent, #667eea);
+        border-radius: 50%;
+        cursor: pointer;
+        border: none;
+    }
+
+    .time-display {
+        color: var(--text-muted, #888);
+        font-size: 12px;
+        min-width: 100px;
+        text-align: right;
+    }
+
+    /* Volume */
+    .volume-slider {
+        width: 80px;
+        height: 4px;
+        -webkit-appearance: none;
+        appearance: none;
+        background: var(--surface-active, #444);
+        border-radius: 2px;
+        cursor: pointer;
+    }
+
+    .volume-slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 12px;
+        height: 12px;
+        background: var(--bg, #fff);
+        border-radius: 50%;
+        cursor: pointer;
+    }
+
+    /* Speed/Theme Select */
+    .speed-select,
+    .theme-select {
+        background: var(--surface-hover, #333);
+        color: var(--text, #fff);
+        border: none;
+        padding: 6px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+    /* Slide Info */
+    .slide-info,
+    .image-info,
+    .code-info,
+    .zoom-level {
+        color: var(--text-muted, #888);
+        font-size: 14px;
+    }
+
+    .slide-nav input {
+        width: 50px;
+        background: var(--surface-hover, #333);
+        border: none;
+        color: var(--text, #fff);
+        padding: 6px;
+        border-radius: 4px;
+        text-align: center;
+    }
+
+    /* Error State */
+    .projector-error {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        color: var(--error, #e74c3c);
+    }
+
+    .projector-error-icon {
+        font-size: 48px;
+    }
+
+    .projector-error-message {
+        font-size: 16px;
+        color: var(--text-muted, #888);
+    }
+
+    /* Responsive */

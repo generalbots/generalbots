@@ -1,0 +1,450 @@
+
+.mention-results::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.mention-results::-webkit-scrollbar-thumb {
+    background: var(--accent, #2563eb);
+    border-radius: 3px;
+}
+
+.mention-results::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-hover, #1d4ed8);
+}
+
+.mention-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.mention-item:hover,
+.mention-item.selected {
+    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+}
+
+.mention-item.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.mention-item-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--accent, #2563eb);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.mention-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.mention-item-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text, #e5e5e5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mention-item-subtitle {
+    font-size: 12px;
+    color: var(--text-secondary, #888);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mention-item-hint {
+    font-size: 12px;
+    color: var(--text-secondary, #888);
+    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+/* Mention tag in input */
+.mention-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--accent, #2563eb);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 13px;
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+.mention-tag:hover {
+    background: var(--accent-hover, #1d4ed8);
+}
+
+.mention-icon {
+    font-size: 12px;
+}
+
+.mention-text {
+    font-weight: 500;
+}
+
+/* Entity Card Tooltip */
+.entity-card-tooltip {
+    position: fixed;
+    background: var(--surface, var(--card, #1a1a24));
+    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border-radius: 12px;
+    padding: 16px;
+    min-width: 280px;
+    max-width: 350px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+    z-index: 10000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.entity-card-tooltip.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.entity-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.entity-card-type {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: var(--accent, #2563eb);
+    color: white;
+}
+
+.entity-card-status {
+    font-size: 11px;
+    color: var(--success, #22c55e);
+}
+
+.entity-card-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text, #e5e5e5);
+    margin-bottom: 8px;
+}
+
+.entity-card-details {
+    font-size: 13px;
+    color: var(--text-secondary, #888);
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+
+.entity-card-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.entity-card-btn {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    color: var(--text, #e5e5e5);
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.entity-card-btn:hover {
+    background: var(--accent, #2563eb);
+    border-color: var(--accent, #2563eb);
+    color: white;
+}
+
+/* Suggestions */
+/* Switchers Container - Response Format Modifiers */
+.switchers-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 16px;
+    flex-wrap: wrap;
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    margin-left: auto; /* Push to right side */
+}
+
+.switchers-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.switchers-chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.switcher-chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 20px;
+    border: 2px solid var(--switcher-color, #888);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: color-mix(in srgb, var(--switcher-color, #888) 10%, transparent);
+    color: var(--switcher-color, #555);
+    user-select: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    opacity: 0.7;
+}
+
+.switcher-chip:hover {
+    opacity: 1;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.switcher-chip.active {
+    opacity: 1;
+    border-color: var(--switcher-color, currentColor);
+    background: var(--switcher-color, currentColor);
+    color: white;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), 0 0 12px var(--switcher-color, currentColor);
+    transform: translateY(-1px);
+}
+
+.switcher-chip-icon {
+    font-size: 13px;
+}
+
+/* Suggestions Container */
+.suggestions-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-height: 100px;
+    overflow-y: auto;
+    position: relative;
+    z-index: 0;
+    flex: 1; /* Take available space */
+}
+
+.suggestion-chip,
+.suggestion-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, var(--border-color, #d0d0d0));
+  border-radius: 16px;
+  color: #333;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: visible;
+  flex-shrink: 0;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.suggestion-chip:hover,
+.suggestion-button:hover {
+  border-color: var(--accent, #2563eb);
+  z-index: 100;
+}
+
+/* Dark theme suggestion buttons */
+[data-theme="dark"] .suggestion-chip,
+[data-theme="dark"] .suggestion-button,
+[data-theme="sentient"] .suggestion-chip,
+[data-theme="sentient"] .suggestion-button {
+    background: var(--surface, #1a1a24);
+    border-color: var(--border, #2a2a2a);
+    color: var(--text, #e5e5e5);
+}
+
+[data-theme="dark"] .suggestion-chip:hover,
+[data-theme="sentient"] .suggestion-chip:hover {
+}
+
+.suggestion-chip::before,
+.suggestion-button::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--accent, #2563eb);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.suggestion-chip:hover::before,
+.suggestion-button:hover::before {
+    opacity: 0.1;
+}
+
+.suggestion-chip:active,
+.suggestion-button:active {
+    transform: translateY(0);
+}
+
+/* Hide initial suggestion buttons when dynamic suggestions are displayed */
+footer.has-suggestions .quick-action-chip {
+    display: none !important;
+}
+
+/* Input Container */
+.input-container,
+form.input-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: transparent;
+    border: 1px solid var(--border, var(--border-color, #d0d0d0));
+    border-radius: 24px;
+    padding: 8px 16px;
+    transition:
+        border-color 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.input-container:focus-within {
+    border-color: var(--accent, #2563eb);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+#messageInput {
+    flex: 1;
+    background: none;
+    border: none;
+    color: var(--text, #e5e5e5);
+    font-size: 14px;
+    outline: none;
+    padding: 4px 0;
+}
+
+#messageInput:focus {
+    outline: none;
+}
+
+#messageInput::placeholder {
+    color: var(--text-secondary, #888);
+}
+
+#voiceBtn,
+#sendBtn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 16px;
+}
+
+#sendBtn {
+    background: var(--accent, #2563eb);
+    color: white;
+}
+
+#voiceBtn {
+    background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+    color: var(--text-secondary, #888);
+}
+
+#voiceBtn:hover,
+#sendBtn:hover {
+    transform: scale(1.05);
+}
+
+#sendBtn:hover {
+    background: var(--accent-hover, #1d4ed8);
+}
+
+#voiceBtn:active,
+#sendBtn:active {
+    transform: scale(0.95);
+}
+
+[data-theme="dark"] #sendBtn,
+[data-theme="sentient"] #sendBtn {
+    background: var(--accent, #2563eb);
+}
+
+[data-theme="dark"] #voiceBtn,
+[data-theme="sentient"] #voiceBtn {
+    background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+}
+
+/* Scroll to Bottom Button */
+.scroll-to-bottom {
+    position: absolute;
+    bottom: 100px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--surface, var(--card, #1a1a24));
+    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    color: var(--text, #e5e5e5);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 50;
+}
+
+.scroll-to-bottom.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.scroll-to-bottom:hover {
+    background: var(--accent, #2563eb);
+    border-color: var(--accent, #2563eb);
+    transform: translateY(-2px);
+}
+
+.scroll-to-bottom:active {
+    transform: translateY(0);
+}

@@ -19,14 +19,17 @@ function updateConnectionStatus(status) {
       case "connected":
         statusText.textContent = "Connected";
         statusEl.style.display = "none";
+        if (window.GBAppLifecycle) GBAppLifecycle.setState(null);
         break;
       case "disconnected":
         statusText.textContent = "Disconnected";
         statusEl.style.display = "flex";
+        if (window.GBAppLifecycle) GBAppLifecycle.setState("error", "Disconnected from server. Reconnecting…");
         break;
       case "connecting":
         statusText.textContent = "Connecting...";
         statusEl.style.display = "flex";
+        if (window.GBAppLifecycle) GBAppLifecycle.setState("loading", "Connecting…");
         break;
     }
   }
@@ -42,6 +45,7 @@ function connectWebSocket() {
     "&bot_name=" + ChatState.currentBotName;
 
   ChatState.ws = new WebSocket(url);
+  if (window.GBAppLifecycle) GBAppLifecycle.socket("chat", ChatState.ws);
 
 ChatState.ws.onopen = function () {
   ChatState.disconnectNotified = false;

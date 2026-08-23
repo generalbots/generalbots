@@ -1,14 +1,21 @@
-<link rel="stylesheet" href="/suite/chat/chat.css?v=5" />
+<link rel="stylesheet" href="/suite/chat/chat.p1.css?v=1" />
+<link rel="stylesheet" href="/suite/chat/chat.p2.css?v=1" />
+<link rel="stylesheet" href="/suite/chat/chat.p3.css?v=1" />
+<link rel="stylesheet" href="/suite/chat/chat.p4.css?v=1" />
+<link rel="stylesheet" href="/suite/chat/chat.p5.css?v=1" />
 <link rel="stylesheet" href="/suite/css/markdown-message.css?v=1" />
 <link rel="stylesheet" href="/suite/css/chat-agent-mode.css" />
-<div class="chat-layout" id="chat-app" style="opacity: 1; visibility: visible;">
+<div class="chat-layout gb-app" id="chat-app" data-gb-app="chat" style="opacity: 1; visibility: visible;">
     <div class="chat-content-wrapper" id="chatContentWrapper">
         <div class="connection-status connecting" id="connectionStatus" style="display: none">
             <span class="connection-status-dot"></span>
             <span class="connection-text">Connecting...</span>
         </div>
 
-        <main id="messages"></main>
+        <main id="messages">
+            <div class="gb-state gb-state-loading"><span class="gb-state-msg">Connecting…</span></div>
+            <div class="gb-state gb-state-error"><span class="gb-state-msg">Connection failed</span></div>
+        </main>
 
         <footer>
             <div class="chat-footer-content">
