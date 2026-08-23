@@ -1,6 +1,7 @@
 <!-- Health partial -->
-<link rel="stylesheet" href="/suite/monitoring/health.css">
-<div class="health-container">
+<link href="/suite/monitoring/health.p1.css?v=1" />
+<link href="/suite/monitoring/health.p2.css?v=1" />
+<div class="gb-app health-container" data-gb-app="monitoring">
     <!-- Health Overview -->
     <div class="health-overview"
          hx-get="/api/monitoring/health/overview"
@@ -334,4 +335,6 @@
     </div>
 </div>
 
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script src="/suite/monitoring/health.js"></script>
