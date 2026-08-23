@@ -1,5 +1,6 @@
 (function () {
   "use strict";
+  if (window.GBAppLifecycle) GBAppLifecycle.begin("mail");
 
   var selectedEmails = new Set();
   var currentFolder = "inbox";
