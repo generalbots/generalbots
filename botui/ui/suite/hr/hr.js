@@ -1,5 +1,6 @@
 (function() {
 'use strict';
+if (window.GBAppLifecycle) GBAppLifecycle.begin("hr");
 const API_BASE = '/api/hr';
 let currentTab = 'employees';
 let employeesData = [];
