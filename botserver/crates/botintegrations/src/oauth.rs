@@ -20,14 +20,14 @@ use crate::state::IntegrationState;
 
 const STATE_MAX_AGE_SECS: i64 = 600;
 
-struct OAuthProviderConfig {
-    authorize_url: &'static str,
-    token_url: &'static str,
-    scopes: &'static str,
-    basic_client_auth: bool,
+pub(crate) struct OAuthProviderConfig {
+    pub(crate) authorize_url: &'static str,
+    pub(crate) token_url: &'static str,
+    pub(crate) scopes: &'static str,
+    pub(crate) basic_client_auth: bool,
 }
 
-fn provider_config(slug: &str) -> Option<OAuthProviderConfig> {
+pub(crate) fn provider_config(slug: &str) -> Option<OAuthProviderConfig> {
     let (authorize_url, token_url, scopes, basic_client_auth) = match slug {
         "hubspot" => (
             "https://app.hubspot.com/oauth/authorize",
