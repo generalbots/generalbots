@@ -1,4 +1,4 @@
-<div class="dns-view">
+<div class="gb-app dns-view" data-gb-app="adminpanel">
     <div class="page-header">
         <div class="header-left">
             <h1 data-i18n="admin-dns-title">DNS Management</h1>
@@ -451,6 +451,8 @@
     </div>
 </dialog>
 
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script>
     function updateTargetPlaceholder() {
         const recordType = document.getElementById("record-type").value;

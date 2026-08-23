@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Organization Switcher - General Bots</title>
     <link rel="stylesheet" href="/suite/css/config-colors.css">
-    <link rel="stylesheet" href="/suite/admin/admin.css">
+    <link href="/suite/admin/admin.p1.css?v=1" />
+<link href="/suite/admin/admin.p2.css?v=1" />
     <style>
         .org-switcher-container {
             position: relative;
@@ -361,7 +362,7 @@
     </style>
 </head>
 <body>
-    <div id="org-switcher" class="org-switcher-container">
+    <div id="org-switcher" class="gb-app org-switcher-container" data-gb-app="adminpanel">
         <button class="org-switcher-trigger" id="org-trigger" aria-haspopup="true" aria-expanded="false">
             <div class="org-avatar" id="current-org-avatar">A</div>
             <div class="org-info">
@@ -441,7 +442,9 @@
         </div>
     </div>
 
-    <script>
+    <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<script>
         const OrganizationSwitcher = {
             currentOrg: null,
             organizations: [],

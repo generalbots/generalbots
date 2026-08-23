@@ -1,4 +1,4 @@
-<div class="groups-view">
+<div class="gb-app groups-view" data-gb-app="adminpanel">
     <div class="page-header">
         <div class="header-left">
             <h1>Group Management</h1>
@@ -1017,6 +1017,8 @@
 }
 </style>
 
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script></script>
     function setView(view, btn) {
         const grid = document.getElementById('groups-grid');

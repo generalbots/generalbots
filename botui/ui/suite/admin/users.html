@@ -1,4 +1,4 @@
-<div class="users-view">
+<div class="gb-app users-view" data-gb-app="adminpanel">
     <div class="page-header">
         <div class="header-left">
             <h1>User Management</h1>
@@ -831,6 +831,8 @@
 }
 </style>
 
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script></script>
     function toggleSelectAll(checkbox) {
         const checkboxes = document.querySelectorAll('#users-table-body input[type="checkbox"]');

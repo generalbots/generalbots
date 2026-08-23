@@ -4,7 +4,8 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>Search Settings - General Bots</title>
-        <link rel="stylesheet" href="/suite/admin/admin.css" />
+        <link href="/suite/admin/admin.p1.css?v=1" />
+<link href="/suite/admin/admin.p2.css?v=1" />
         <style>
             .search-settings {
                 max-width: 1200px;
@@ -562,7 +563,7 @@
         </style>
     </head>
     <body>
-        <div class="search-settings">
+        <div class="gb-app search-settings" data-gb-app="adminpanel">
             <div class="settings-header">
                 <div>
                     <h1>Search Settings</h1>
@@ -1116,7 +1117,9 @@
             </div>
         </div>
 
-        <script>
+        <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<script>
             function openReindexModal() {
                 document
                     .getElementById("reindex-modal")

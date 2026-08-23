@@ -1,5 +1,5 @@
 <section class="admin-dashboard">
-    <div class="dashboard-header">
+    <div class="gb-app dashboard-header" data-gb-app="adminpanel">
         <div class="header-title">
             <h1>Organization Dashboard</h1>
             <p>Overview of your organization's activity, members, and system health</p>
@@ -504,7 +504,9 @@
             </div>
         </dialog>
 
-        <script src="/suite/admin/admin-functions.js"></script>
+        <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<script src="/suite/admin/admin-functions.js"></script>
 
         <div class="card quick-actions">
             <div class="card-header">
