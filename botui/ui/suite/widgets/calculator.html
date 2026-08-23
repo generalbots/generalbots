@@ -1,0 +1,142 @@
+<div class="gb-system-widget" data-gb-widget="calculator">
+  <div class="gb-wcalc" tabindex="0" aria-label="Calculator widget">
+    <div class="gb-wcalc-screen">
+      <input class="gb-wcalc-expr" type="text" inputmode="none" aria-label="Expression" autocomplete="off" spellcheck="false" />
+      <div class="gb-wcalc-preview">&nbsp;</div>
+    </div>
+    <div class="gb-wcalc-pad"></div>
+  </div>
+</div>
+
+<script src="/suite/js/calculator-engine.js?v=1"></script>
+<script>
+(function () {
+  "use strict";
+
+  var root = document.currentScript
+    ? document.currentScript.closest(".gb-widget")
+    : null;
+
+  var KEYS = [
+    ["C", "(", ")", "⌫", "/"],
+    ["7", "8", "9", "*", "e"],
+    ["4", "5", "6", "-", "^"],
+    ["1", "2", "3", "+", "sqrt("],
+    ["0", ".", "%", "π", "="],
+  ];
+
+  var expr = "";
+  var engine = window.GBCalcEngine || null;
+
+  function host() {
+    return root || document.querySelector(".gb-widget");
+  }
+
+  function renderScreen() {
+    var box = host();
+    if (!box) return;
+    var input = box.querySelector(".gb-wcalc-expr");
+    var preview = box.querySelector(".gb-wcalc-preview");
+    if (!input) return;
+    input.value = expr;
+    if (preview) {
+      if (expr && engine) {
+        try {
+          preview.textContent = "= " + engine.format(engine.evaluate(expr));
+        } catch (e) {
+          preview.innerHTML = "&nbsp;";
+        }
+      } else {
+        preview.innerHTML = "&nbsp;";
+      }
+    }
+  }
+
+  function press(key) {
+    if (key === "C") {
+      expr = "";
+    } else if (key === "⌫") {
+      expr = expr.slice(0, -1);
+    } else if (key === "=") {
+      if (!engine) return;
+      try {
+        expr = engine.format(engine.evaluate(expr));
+      } catch (e) {
+        renderScreen();
+        return;
+      }
+    } else {
+      expr += key;
+    }
+    renderScreen();
+  }
+
+  function buildPad() {
+    var box = host();
+    var pad = box ? box.querySelector(".gb-wcalc-pad") : null;
+    if (!pad) return;
+    pad.innerHTML = "";
+    KEYS.forEach(function (row) {
+      row.forEach(function (key) {
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "gb-wcalc-key";
+        btn.textContent =
+          key === "*" ? "×"
+          : key === "/" ? "÷"
+          : key === "^" ? "xʸ"
+          : key === "sqrt(" ? "√"
+          : key;
+        btn.setAttribute("data-key", key);
+        btn.addEventListener("click", function () {
+          press(key);
+        });
+        pad.appendChild(btn);
+      });
+    });
+  }
+
+  function bindKeyboard() {
+    var box = host();
+    var wrap = box ? box.querySelector(".gb-wcalc") : null;
+    if (!wrap) return;
+    wrap.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === "=") {
+        e.preventDefault();
+        press("=");
+      } else if (e.key === "Backspace") {
+        e.preventDefault();
+        press("⌫");
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        press("C");
+      } else if (/^[0-9+\-*/.()%^]$/.test(e.key)) {
+        e.preventDefault();
+        press(e.key);
+      }
+    });
+  }
+
+  function boot() {
+    buildPad();
+    bindKeyboard();
+    renderScreen();
+  }
+
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    boot();
+  } else {
+    document.addEventListener("DOMContentLoaded", boot);
+  }
+
+  if (root) {
+    root.addEventListener(
+      "gb-widget-remove",
+      function () {
+        document.removeEventListener("DOMContentLoaded", boot);
+      },
+      { once: true }
+    );
+  }
+})();
+</script>

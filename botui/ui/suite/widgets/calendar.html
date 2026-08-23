@@ -1,0 +1,133 @@
+<div class="gb-system-widget" data-gb-widget="calendar">
+  <div style="font-size: 13px; font-weight: 700" id="gb-widget-cal-head"></div>
+  <div class="gb-widget-calendar-grid" id="gb-widget-cal-grid"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var root = document.currentScript
+    ? document.currentScript.closest(".gb-widget")
+    : null;
+
+  var WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+  var MONTHS = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ];
+
+  var view = new Date();
+  var today = new Date();
+
+  function render() {
+    var host = root || document.querySelector(".gb-widget");
+    if (!host) return;
+    var head = host.querySelector("#gb-widget-cal-head");
+    var grid = host.querySelector("#gb-widget-cal-grid");
+    if (!head || !grid) return;
+
+    head.textContent = MONTHS[view.getMonth()] + " " + view.getFullYear();
+    grid.innerHTML = "";
+
+    WEEKDAYS.forEach(function (label) {
+      var cell = document.createElement("div");
+      cell.className = "gb-widget-calendar-cell";
+      cell.style.fontWeight = "600";
+      cell.style.fontSize = "10px";
+      cell.style.color = "var(--text-secondary, #999)";
+      cell.textContent = label;
+      grid.appendChild(cell);
+    });
+
+    var first = new Date(view.getFullYear(), view.getMonth(), 1);
+    var daysInMonth = new Date(view.getFullYear(), view.getMonth() + 1, 0).getDate();
+    var offset = first.getDay();
+
+    for (var i = 0; i < offset; i++) {
+      var blank = document.createElement("div");
+      blank.className = "gb-widget-calendar-cell other";
+      blank.textContent = "";
+      grid.appendChild(blank);
+    }
+
+    for (var day = 1; day <= daysInMonth; day++) {
+      (function (d) {
+        var cell = document.createElement("div");
+        cell.className = "gb-widget-calendar-cell";
+        cell.textContent = String(d);
+        var isToday =
+          today.getFullYear() === view.getFullYear() &&
+          today.getMonth() === view.getMonth() &&
+          today.getDate() === d;
+        if (isToday) cell.classList.add("today");
+        cell.addEventListener("click", function () {
+          var iso =
+            view.getFullYear() +
+            "-" +
+            String(view.getMonth() + 1).padStart(2, "0") +
+            "-" +
+            String(d).padStart(2, "0");
+          if (window.openDeepLink) {
+            window.openDeepLink("calendar", { date: iso });
+          }
+        });
+        grid.appendChild(cell);
+      })(day);
+    }
+    grid.setAttribute("data-month", view.getMonth());
+  }
+
+  function prev() {
+    view = new Date(view.getFullYear(), view.getMonth() - 1, 1);
+    render();
+  }
+
+  function next() {
+    view = new Date(view.getFullYear(), view.getMonth() + 1, 1);
+    render();
+  }
+
+  function bindNav(host) {
+    if (!host) return;
+    var prevBtn = host.querySelector("#gb-widget-cal-prev");
+    var nextBtn = host.querySelector("#gb-widget-cal-next");
+    if (prevBtn) prevBtn.addEventListener("click", prev);
+    if (nextBtn) nextBtn.addEventListener("click", next);
+  }
+
+  // Boot the widget (script may run before the body contains the markup).
+  function boot() {
+    var host = root || document.querySelector(".gb-widget");
+    if (!host) return;
+    // Insert nav row if not present (single injection guard).
+    if (!host.querySelector("#gb-widget-cal-prev")) {
+      var nav = document.createElement("div");
+      nav.style.cssText =
+        "display:flex;justify-content:space-between;width:100%;padding:0 8px;";
+      nav.innerHTML =
+        '<button id="gb-widget-cal-prev" class="gb-widget-btn">‹</button>' +
+        '<button id="gb-widget-cal-next" class="gb-widget-btn">›</button>';
+      host.insertBefore(nav, host.querySelector("#gb-widget-cal-head"));
+      bindNav(host);
+    }
+    render();
+  }
+
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    boot();
+  } else {
+    document.addEventListener("DOMContentLoaded", boot);
+  }
+
+  if (root) {
+    root.addEventListener(
+      "gb-widget-remove",
+      function () {
+        document.removeEventListener("DOMContentLoaded", boot);
+      },
+      { once: true }
+    );
+  }
+})();
+</script>

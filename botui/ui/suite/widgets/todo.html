@@ -1,0 +1,135 @@
+<div class="gb-system-widget" data-gb-widget="todo">
+  <div class="gb-wtodo" style="height: 100%">
+    <div class="gb-wtodo-add">
+      <input type="text" class="gb-wtodo-input" placeholder="Add a task…" aria-label="New task" maxlength="200" />
+    </div>
+    <ul class="gb-wtodo-list"></ul>
+    <div class="gb-wtodo-foot">
+      <span class="gb-wtodo-count"></span>
+      <button type="button" class="gb-widget-btn gb-wtodo-clear">Clear done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var root = document.currentScript
+    ? document.currentScript.closest(".gb-widget")
+    : null;
+  var STORAGE_KEY = "gb-widget-todos";
+
+  function host() {
+    return root || document.querySelector(".gb-widget");
+  }
+
+  function read() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      return Array.isArray(raw) ? raw : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function write(items) {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+    } catch (e) {}
+  }
+
+  function render() {
+    var box = host();
+    if (!box) return;
+    var list = box.querySelector(".gb-wtodo-list");
+    var count = box.querySelector(".gb-wtodo-count");
+    if (!list) return;
+    var items = read();
+    list.innerHTML = "";
+    items.forEach(function (item, index) {
+      var li = document.createElement("li");
+      li.className = "gb-wtodo-item" + (item.done ? " done" : "");
+
+      var check = document.createElement("input");
+      check.type = "checkbox";
+      check.checked = !!item.done;
+      check.setAttribute("aria-label", "Toggle task");
+      check.addEventListener("change", function () {
+        var all = read();
+        if (all[index]) all[index].done = check.checked;
+        write(all);
+        render();
+      });
+
+      var label = document.createElement("span");
+      label.className = "gb-wtodo-text";
+      label.textContent = item.text;
+
+      var del = document.createElement("button");
+      del.type = "button";
+      del.className = "gb-widget-btn gb-wtodo-del";
+      del.title = "Remove";
+      del.textContent = "✕";
+      del.addEventListener("click", function () {
+        var all = read();
+        all.splice(index, 1);
+        write(all);
+        render();
+      });
+
+      li.appendChild(check);
+      li.appendChild(label);
+      li.appendChild(del);
+      list.appendChild(li);
+    });
+    if (count) {
+      var open = items.filter(function (i) { return !i.done; }).length;
+      count.textContent = open === 1 ? "1 task left" : open + " tasks left";
+    }
+  }
+
+  function boot() {
+    var box = host();
+    if (!box) return;
+    var input = box.querySelector(".gb-wtodo-input");
+    var clear = box.querySelector(".gb-wtodo-clear");
+    render();
+
+    if (input) {
+      input.addEventListener("keydown", function (e) {
+        if (e.key !== "Enter") return;
+        var text = input.value.trim();
+        if (!text) return;
+        var items = read();
+        items.push({ text: text, done: false });
+        write(items);
+        input.value = "";
+        render();
+      });
+    }
+    if (clear) {
+      clear.addEventListener("click", function () {
+        write(read().filter(function (i) { return !i.done; }));
+        render();
+      });
+    }
+  }
+
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    boot();
+  } else {
+    document.addEventListener("DOMContentLoaded", boot);
+  }
+
+  if (root) {
+    root.addEventListener(
+      "gb-widget-remove",
+      function () {
+        document.removeEventListener("DOMContentLoaded", boot);
+      },
+      { once: true }
+    );
+  }
+})();
+</script>

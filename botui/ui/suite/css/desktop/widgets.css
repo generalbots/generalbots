@@ -1,0 +1,223 @@
+/* ============================================ */
+/* GB FLUENT — Widgets (#1150, #1160)           */
+/* Desktop widget pane + cards + launcher pins  */
+/* ============================================ */
+
+/* ── Pane (under windows, above wallpaper) ── */
+#gb-widget-pane {
+  position: absolute;
+  inset: 0 0 0 0;
+  z-index: 4;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.gb-widget {
+  position: absolute;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--glass-bg, rgba(20, 22, 35, 0.72));
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-md, 10px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  color: var(--text, #eee);
+  min-width: 220px;
+  min-height: 140px;
+  transition: box-shadow 160ms ease;
+}
+
+.gb-widget:hover {
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+}
+
+.gb-widget-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  cursor: grab;
+  user-select: none;
+  border-bottom: 1px solid var(--shell-border, rgba(255, 255, 255, 0.08));
+  background: var(--surface-hover, rgba(255, 255, 255, 0.04));
+  border-radius: var(--radius-md, 10px) var(--radius-md, 10px) 0 0;
+}
+
+.gb-widget-header:active {
+  cursor: grabbing;
+}
+
+.gb-widget-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent, var(--primary, #84d669));
+  flex-shrink: 0;
+}
+
+.gb-widget-icon svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+}
+
+.gb-widget-title {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.gb-widget-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.gb-widget-btn {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-secondary, #999);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 120ms, color 120ms;
+}
+
+.gb-widget-btn:hover {
+  background: var(--win-caption-hover, rgba(255, 255, 255, 0.1));
+  color: var(--text, #eee);
+}
+
+.gb-widget-btn[data-action="close"]:hover {
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+}
+
+.gb-widget-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  position: relative;
+  border-radius: 0 0 var(--radius-md, 10px) var(--radius-md, 10px);
+}
+
+.gb-widget-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: var(--bg, #101018);
+}
+
+.gb-widget-external .gb-widget-body::after {
+  content: "web";
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.35);
+  color: #fff;
+  pointer-events: none;
+}
+
+.gb-widget-error {
+  padding: 14px;
+  font-size: 12px;
+  color: var(--text-secondary, #999);
+  text-align: center;
+}
+
+.gb-widget-grip {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  opacity: 0;
+  transition: opacity 140ms;
+  background: radial-gradient(
+    circle at bottom right,
+    var(--text-secondary, #888) 0 2px,
+    transparent 2px
+  );
+}
+
+.gb-widget:hover .gb-widget-grip {
+  opacity: 0.8;
+}
+
+/* ── Windowed widget frames ── */
+.gb-widget-window-frame {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* ── Launcher pins (taskbar strip) ── */
+.taskbar-pinned-strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  border-right: 1px solid var(--shell-border, rgba(255, 255, 255, 0.1));
+  margin-right: 6px;
+}
+
+.taskbar-pinned-item {
+  width: 38px;
+  height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--text-secondary, #aaa);
+  transition: background 130ms, color 130ms, transform 130ms;
+  position: relative;
+}
+
+.taskbar-pinned-item:hover {
+  background: var(--win-caption-hover, rgba(255, 255, 255, 0.1));
+  color: var(--text, #eee);
+  transform: translateY(-1px);
+}
+
+.taskbar-pinned-icon {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.taskbar-pinned-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+}
+
+/* ── Desktop context menu separator ── */
+.desktop-context-separator {
+  height: 1px;
+  margin: 5px 8px;
+  background: var(--shell-border, rgba(255, 255, 255, 0.1));
+}
+
+}

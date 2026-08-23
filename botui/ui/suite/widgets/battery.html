@@ -1,0 +1,82 @@
+<div class="gb-system-widget" data-gb-widget="battery">
+  <div class="gb-wbatt">
+    <div class="gb-wbatt-level">
+      <div class="gb-wbatt-track">
+        <div class="gb-wbatt-fill"></div>
+      </div>
+      <span class="gb-wbatt-pct">--</span>
+    </div>
+    <div class="gb-wbatt-state">Battery information unavailable</div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var root = document.currentScript
+    ? document.currentScript.closest(".gb-widget")
+    : null;
+
+  function host() {
+    return root || document.querySelector(".gb-widget");
+  }
+
+  function render(box, battery) {
+    var fill = box.querySelector(".gb-wbatt-fill");
+    var pct = box.querySelector(".gb-wbatt-pct");
+    var state = box.querySelector(".gb-wbatt-state");
+    if (!fill || !pct || !state) return;
+    var level = Math.round(battery.level * 100);
+    fill.style.width = level + "%";
+    fill.classList.toggle("low", level <= 20 && !battery.charging);
+    fill.classList.toggle("charging", battery.charging);
+    pct.textContent = level + "%";
+    var text = battery.charging ? "Charging" : "On battery";
+    if (battery.chargingTime && isFinite(battery.chargingTime)) {
+      var mins = Math.round(battery.chargingTime / 60);
+      text += " — full in " + (mins >= 1 ? mins + " min" : "<1 min");
+    } else if (!battery.charging && battery.dischargingTime && isFinite(battery.dischargingTime)) {
+      var hours = Math.floor(battery.dischargingTime / 3600);
+      var rem = Math.round((battery.dischargingTime % 3600) / 60);
+      text += " — " + hours + " h " + rem + " min left";
+    }
+    state.textContent = text;
+  }
+
+  function boot() {
+    var box = host();
+    if (!box) return;
+    if (!navigator.getBattery) return;
+    navigator
+      .getBattery()
+      .then(function (battery) {
+        render(box, battery);
+        var onChange = function () { render(box, battery); };
+        battery.addEventListener("levelchange", onChange);
+        battery.addEventListener("chargingchange", onChange);
+        battery.addEventListener("chargingtimechange", onChange);
+        battery.addEventListener("dischargingtimechange", onChange);
+        if (root) {
+          root.addEventListener(
+            "gb-widget-remove",
+            function () {
+              battery.removeEventListener("levelchange", onChange);
+              battery.removeEventListener("chargingchange", onChange);
+              battery.removeEventListener("chargingtimechange", onChange);
+              battery.removeEventListener("dischargingtimechange", onChange);
+            },
+            { once: true }
+          );
+        }
+      })
+      .catch(function () {});
+  }
+
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    boot();
+  } else {
+    document.addEventListener("DOMContentLoaded", boot);
+  }
+})();
+</script>

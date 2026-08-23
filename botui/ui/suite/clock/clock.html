@@ -1,0 +1,44 @@
+<link rel="stylesheet" href="/suite/clock/clock.p1.css?v=1" />
+
+<div class="gb-clock" id="gb-clock-root">
+    <div class="gb-clock-tabs" role="tablist">
+        <button type="button" class="gb-clock-tab active" data-tab="time">Time</button>
+        <button type="button" class="gb-clock-tab" data-tab="stopwatch">Stopwatch</button>
+        <button type="button" class="gb-clock-tab" data-tab="timer">Timer</button>
+    </div>
+
+    <section id="gb-clock-time" class="gb-clock-panel">
+        <div class="gb-clock-digital" id="gb-clock-digital">--:--:--</div>
+        <div class="gb-clock-date" id="gb-clock-date"></div>
+        <select id="gb-clock-tz" class="gb-clock-select" aria-label="Time zone"></select>
+    </section>
+
+    <section id="gb-clock-stopwatch" class="gb-clock-panel" hidden>
+        <div class="gb-clock-digital" id="gb-clock-sw-display">00:00.0</div>
+        <div class="gb-clock-controls">
+            <button type="button" class="gb-clock-btn primary" id="gb-clock-sw-start">Start</button>
+            <button type="button" class="gb-clock-btn" id="gb-clock-sw-lap">Lap</button>
+            <button type="button" class="gb-clock-btn warn" id="gb-clock-sw-reset">Reset</button>
+        </div>
+        <ul id="gb-clock-sw-laps" class="gb-clock-laps"></ul>
+    </section>
+
+    <section id="gb-clock-timer" class="gb-clock-panel" hidden>
+        <div class="gb-clock-timer-inputs">
+            <input type="number" id="gb-clock-t-min" min="0" max="999" value="5" aria-label="Minutes" />
+            <span>min</span>
+            <input type="number" id="gb-clock-t-sec" min="0" max="59" value="0" aria-label="Seconds" />
+            <span>sec</span>
+        </div>
+        <div class="gb-clock-track">
+            <div class="gb-clock-fill" id="gb-clock-t-fill"></div>
+        </div>
+        <div class="gb-clock-digital" id="gb-clock-t-display">05:00</div>
+        <div class="gb-clock-controls">
+            <button type="button" class="gb-clock-btn primary" id="gb-clock-t-start">Start</button>
+            <button type="button" class="gb-clock-btn warn" id="gb-clock-t-reset">Reset</button>
+        </div>
+    </section>
+</div>
+
+<script src="/suite/clock/clock.js?v=1"></script>

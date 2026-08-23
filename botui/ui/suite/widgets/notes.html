@@ -1,0 +1,89 @@
+<div class="gb-system-widget" data-gb-widget="notes">
+  <div class="gb-wnotes">
+    <textarea class="gb-wnotes-text" placeholder="Write a note…" aria-label="Sticky note"></textarea>
+    <div class="gb-wnotes-foot">
+      <span class="gb-wnotes-status"></span>
+      <button type="button" class="gb-widget-btn gb-wnotes-clear" title="Clear note">Clear</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var root = document.currentScript
+    ? document.currentScript.closest(".gb-widget")
+    : null;
+  var STORAGE_KEY = "gb-widget-notes";
+  var saveTimer = null;
+
+  function host() {
+    return root || document.querySelector(".gb-widget");
+  }
+
+  function read() {
+    try {
+      return localStorage.getItem(STORAGE_KEY) || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function write(value) {
+    try {
+      localStorage.setItem(STORAGE_KEY, value);
+    } catch (e) {}
+  }
+
+  function setStatus(box, text) {
+    var el = box.querySelector(".gb-wnotes-status");
+    if (el) el.textContent = text;
+  }
+
+  function boot() {
+    var box = host();
+    if (!box) return;
+    var area = box.querySelector(".gb-wnotes-text");
+    var clear = box.querySelector(".gb-wnotes-clear");
+    if (!area) return;
+    area.value = read();
+    setStatus(box, "Saved");
+
+    area.addEventListener("input", function () {
+      setStatus(box, "Editing…");
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(function () {
+        write(area.value);
+        setStatus(box, "Saved");
+      }, 400);
+    });
+
+    if (clear) {
+      clear.addEventListener("click", function () {
+        area.value = "";
+        write("");
+        setStatus(box, "Cleared");
+        area.focus();
+      });
+    }
+  }
+
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    boot();
+  } else {
+    document.addEventListener("DOMContentLoaded", boot);
+  }
+
+  if (root) {
+    root.addEventListener(
+      "gb-widget-remove",
+      function () {
+        if (saveTimer) clearTimeout(saveTimer);
+        document.removeEventListener("DOMContentLoaded", boot);
+      },
+      { once: true }
+    );
+  }
+})();
+</script>
