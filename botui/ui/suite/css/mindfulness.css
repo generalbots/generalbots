@@ -1,5 +1,5 @@
 /* ============================================================
-   Mindfulness quality contract — shared foundation (issue #938)
+   Mindfulness quality contract — shared foundation.
    Tokens, intentional states, focus/reduced-motion, app shell.
    Include once per page; fragments opt in via .gb-app on root.
    ============================================================ */
@@ -13,7 +13,6 @@
   --mnd-focus: 0 0 0 2px var(--surface, #16181f), 0 0 0 4px var(--primary, var(--accent, #84d669));
 }
 
-/* ── App shell: opaque, isolated from global leakage ── */
 .gb-app {
   position: relative;
   display: flex;
@@ -33,7 +32,6 @@
   padding: 16px;
 }
 
-/* ── Intentional states ── */
 .gb-state {
   display: none;
   align-items: center;
@@ -78,7 +76,6 @@
   50%      { opacity: 1; }
 }
 
-/* Inline status line for screen readers and quiet feedback */
 .gb-sr-status {
   position: absolute;
   width: 1px;
@@ -103,7 +100,6 @@
   font-size: 12px;
 }
 
-/* ── Accessibility contract ── */
 .gb-app :is(button, a, input, select, textarea, [tabindex]):focus-visible {
   outline: none;
   box-shadow: var(--mnd-focus);
