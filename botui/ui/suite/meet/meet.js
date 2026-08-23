@@ -2,6 +2,7 @@
 
 (function() {
     'use strict';
+    if (window.GBAppLifecycle) GBAppLifecycle.begin("meet");
 
     const ICE_SERVERS_URL = '/api/meet/turn-credentials';
 
