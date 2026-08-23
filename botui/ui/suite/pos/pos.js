@@ -1,5 +1,6 @@
 (function() {
 'use strict';
+if (window.GBAppLifecycle) GBAppLifecycle.begin("pos");
 const PosApp = {
     state: { products: [], cart: [], paymentMethod: 'cash', categories: [], activeCategory: 'all' },
 
