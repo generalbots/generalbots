@@ -83,7 +83,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "Last.fm",
         Category::Lifestyle,
         Strategy::Integrate,
-        Status::Planned,
+        Status::Built,
         Priority::Nice,
         None,
         Some("https://www.last.fm/api"),

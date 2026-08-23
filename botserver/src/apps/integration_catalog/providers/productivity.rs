@@ -133,7 +133,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "Arena",
         Category::Productivity,
         Strategy::Verify,
-        Status::Planned,
+        Status::Built,
         Priority::Nice,
         None,
         None,
