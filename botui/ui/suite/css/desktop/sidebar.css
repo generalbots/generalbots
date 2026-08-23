@@ -293,6 +293,25 @@
   color: var(--text, #eee);
 }
 
+/* ── Theme selector row ── */
+.chat-sidebar-theme {
+  flex-shrink: 0;
+  padding: 0 12px 6px;
+}
+
+.chat-sidebar-theme .theme-dropdown {
+  width: 100%;
+  padding: 7px 26px 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--shell-border, rgba(255,255,255,0.12));
+  font-size: 12px;
+}
+
+.chat-sidebar-theme .theme-dropdown option {
+  background: var(--surface, #1a1a24);
+  color: var(--text, #eee);
+}
+
 /* ── User footer ── */
 .chat-sidebar-user {
   flex-shrink: 0;

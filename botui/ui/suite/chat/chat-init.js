@@ -95,6 +95,60 @@ window.getChatSessionInfo = function () {
   };
 };
 
+// Seamless bot switch (sidebar combo): re-authenticates for the new bot and
+// swaps the live session context in place — no page/app reload, the window
+// stays exactly where it is.
+window.ChatSwitchBot = function (botName) {
+  if (!botName) return Promise.resolve();
+  var headers = {};
+  var tok = window.getGBAccessToken ? window.getGBAccessToken()
+    : (localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || localStorage.getItem("management_token"));
+  if (tok) headers["Authorization"] = "Bearer " + tok;
+
+  return fetch("/api/auth?bot_name=" + encodeURIComponent(botName), { headers: headers })
+    .then(function (r) { return r.json(); })
+    .then(function (auth) {
+      // Drop the previous socket silently — connectWebSocket() opens a fresh
+      // one bound to the new bot/session pair.
+      try {
+        if (ChatState.ws) {
+          ChatState.ws.onclose = null;
+          ChatState.ws.onerror = null;
+          ChatState.ws.onmessage = null;
+          ChatState.ws.close();
+        }
+      } catch (e) {}
+
+      ChatState.reconnectAttempts = 0;
+      ChatState.currentUserId = auth.user_id;
+      ChatState.currentSessionId = auth.session_id;
+      ChatState.currentBotId = auth.bot_id || "default";
+      ChatState.currentBotName = botName;
+      try {
+        localStorage.setItem("gb_chat_" + botName, JSON.stringify({ user_id: auth.user_id }));
+      } catch (e) {}
+
+      // Swap the conversation view in place (not a reload).
+      hideThinkingIndicator();
+      var pane = document.getElementById("messages");
+      if (pane) pane.innerHTML = "";
+      var sugg = document.getElementById("suggestions");
+      if (sugg) sugg.innerHTML = "";
+
+      // Re-apply the new bot's theme/colors without touching the shell.
+      if (typeof loadBotConfig === "function") loadBotConfig();
+
+      connectWebSocket();
+
+      window.dispatchEvent(new CustomEvent("gb-chat-session-changed", {
+        detail: { session_id: auth.session_id, bot_name: botName },
+      }));
+    })
+    .catch(function () {
+      notify("Failed to switch to bot " + botName, "warning");
+    });
+};
+
   // Sidebar deep-link payload (?session=… or __gbAppParams__.session) —
   // reopening an existing conversation from the desktop sidebar.
   function readRequestedSession() {

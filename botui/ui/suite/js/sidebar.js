@@ -201,8 +201,13 @@
     highlightActive("");
     loadHistory();
 
-    // Reopen Chat fresh under the new bot (deep-link re-injects the app).
-    if (window.openDeepLink) window.openDeepLink("chat", {});
+    // Seamless: swap the live chat session in place. Fallback to a chat app
+    // relaunch only when the chat module is not loaded.
+    if (window.ChatSwitchBot) {
+      window.ChatSwitchBot(name);
+    } else if (window.openDeepLink) {
+      window.openDeepLink("chat", {});
+    }
   }
 
   // ── Principal app links ──

@@ -16,7 +16,7 @@
         <link rel="stylesheet" href="/suite/css/desktop/windows.css?v=1" />
         <link rel="stylesheet" href="/suite/css/desktop/wallpaper.css?v=2" />
         <link rel="stylesheet" href="/suite/css/desktop/taskbar.css?v=1" />
-        <link rel="stylesheet" href="/suite/css/desktop/sidebar.css?v=3" />
+        <link rel="stylesheet" href="/suite/css/desktop/sidebar.css?v=4" />
         <link rel="stylesheet" href="/suite/css/desktop/start-menu.css?v=1" />
 
         <!-- Local JS requirements per AGENTS.md / UI.md -->
@@ -29,7 +29,7 @@
         <script src="/suite/js/vibe-bridge.js?v=1"></script>
         <script src="/suite/js/theme-manager.js"></script>
         <script src="/suite/js/command-palette.js?v=1"></script>
-        <script src="/suite/js/sidebar.js?v=2"></script>
+        <script src="/suite/js/sidebar.js?v=3"></script>
         <link rel="stylesheet" href="/suite/css/gb-palette.css?v=1" />
 
         <style>
@@ -185,6 +185,7 @@
                     <nav class="chat-sidebar-apps" id="sidebarAppsNav" aria-label="Main apps"></nav>
                     <div class="chat-sidebar-section-label">Conversations</div>
                     <div class="chat-sidebar-conversations" id="chatConversations"></div>
+                    <div class="chat-sidebar-theme" id="themeSelectorContainer" title="UI theme"></div>
                     <div class="chat-sidebar-user" id="sidebarUser"></div>
                 </div>
                 <div class="chat-sidebar-collapsed-icons">
@@ -224,7 +225,6 @@
                     <div class="taskbar-center" id="taskbar-center">
                     </div>
                     <div class="taskbar-right">
-                        <div id="themeSelectorContainer" style="margin-right:2px;"></div>
                         <div class="taskbar-clock">
                             <div id="clock-time">00:00</div>
                             <div id="clock-date">01/01/2026</div>
