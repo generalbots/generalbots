@@ -43,6 +43,9 @@
         clone.setAttribute(a.name, a.value);
       });
       clone.textContent = s.textContent;
+      // Dynamically inserted scripts are async by default; force
+      // insertion-order execution so partial dependencies hold.
+      if (clone.hasAttribute("src")) clone.async = false;
       container.appendChild(clone);
     });
   }

@@ -243,6 +243,10 @@
     return add({ kind: "widget", id: id, title: inst.title });
   }
 
+  function unpinWidget(id) {
+    return remove({ kind: "widget", id: id });
+  }
+
   function pinWeb(url, title) {
     return add({ kind: "web", url: url, title: title });
   }
@@ -369,6 +373,7 @@
     pinApp: pinApp,
     unpinApp: unpinApp,
     pinWidget: pinWidget,
+    unpinWidget: unpinWidget,
     pinWeb: pinWeb,
     isPinned: isPinned,
     list: function () {

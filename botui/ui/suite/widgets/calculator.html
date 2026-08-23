@@ -26,7 +26,10 @@
   ];
 
   var expr = "";
-  var engine = window.GBCalcEngine || null;
+
+  function engine() {
+    return window.GBCalcEngine || null;
+  }
 
   function host() {
     return root || document.querySelector(".gb-widget");
@@ -40,9 +43,9 @@
     if (!input) return;
     input.value = expr;
     if (preview) {
-      if (expr && engine) {
+      if (expr && engine()) {
         try {
-          preview.textContent = "= " + engine.format(engine.evaluate(expr));
+          preview.textContent = "= " + engine().format(engine().evaluate(expr));
         } catch (e) {
           preview.innerHTML = "&nbsp;";
         }
@@ -58,9 +61,9 @@
     } else if (key === "⌫") {
       expr = expr.slice(0, -1);
     } else if (key === "=") {
-      if (!engine) return;
+      if (!engine()) return;
       try {
-        expr = engine.format(engine.evaluate(expr));
+        expr = engine().format(engine().evaluate(expr));
       } catch (e) {
         renderScreen();
         return;
