@@ -335,3 +335,84 @@ pub const PHANTOMBUSTER_SPEC: ProviderSpec = ProviderSpec {
     actions: PHANTOMBUSTER_ACTIONS,
     action_keys: PHANTOMBUSTER_KEYS,
 };
+
+const ZOOM_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "zoom.meetings.list",
+        method: "GET",
+        path: "/users/me/meetings",
+        summary: "Listed Zoom meetings.",
+        path_params: &[],
+        query: &[("per_page", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("limit")],
+    },
+    ActionSpec {
+        key: "zoom.meetings.get",
+        method: "GET",
+        path: "/meetings/{meeting_id}",
+        summary: "Read a Zoom meeting.",
+        path_params: &["meeting_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("meeting_id")],
+    },
+    ActionSpec {
+        key: "zoom.recordings.list",
+        method: "GET",
+        path: "/meetings/{meeting_id}/recordings",
+        summary: "Listed meeting recordings.",
+        path_params: &["meeting_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("meeting_id")],
+    },
+    ActionSpec {
+        key: "zoom.meetings.create",
+        method: "POST",
+        path: "/users/me/meetings",
+        summary: "Created a Zoom meeting.",
+        path_params: &[],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[json("data", true)],
+    },
+    ActionSpec {
+        key: "zoom.meetings.cancel",
+        method: "DELETE",
+        path: "/meetings/{meeting_id}",
+        summary: "Cancelled a Zoom meeting.",
+        path_params: &["meeting_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::High,
+        params: &[s_req("meeting_id")],
+    },
+];
+
+const ZOOM_KEYS: &[&str] = &[
+    "zoom.meetings.list",
+    "zoom.meetings.get",
+    "zoom.recordings.list",
+    "zoom.meetings.create",
+    "zoom.meetings.cancel",
+];
+
+pub const ZOOM_SPEC: ProviderSpec = ProviderSpec {
+    slug: "zoom",
+    origin: Origin::Static("https://api.zoom.us/v2"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: ZOOM_ACTIONS,
+    action_keys: ZOOM_KEYS,
+};

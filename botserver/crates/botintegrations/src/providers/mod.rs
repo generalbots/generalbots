@@ -261,6 +261,12 @@ pub fn registry() -> Vec<Arc<dyn ProviderAdapter>> {
         Arc::new(generic::GenericAdapter::new(&generic::lifestyle::LUMA_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::lifestyle::PHILIPS_HUE_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::lifestyle::READWISE_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::startups::HUBSPOT_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::startups::INTERCOM_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::startups::ATTIO_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::productivity::TODOIST_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::productivity::NOTION_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::social_messaging::ZOOM_SPEC)),
     ]
 }
 

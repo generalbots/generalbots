@@ -1,4 +1,4 @@
-use super::helpers::{json_req, resource_id, s, s_req};
+use super::helpers::{json, json_req, resource_id, s, s_req};
 use super::{ActionSpec, AuthStyle, Origin, ParamKind, ParamSpec, ProviderSpec, Risk};
 const APOLLO_ACTIONS: &[ActionSpec] = &[
     ActionSpec {
@@ -419,3 +419,235 @@ pub const ZENDESK_SPEC: ProviderSpec = ProviderSpec {
 // ---------------------------------------------------------------------------
 // Trello REST API - key/token query authentication.
 // ---------------------------------------------------------------------------
+
+// HubSpot CRM API v3 - Bearer token (private app or OAuth).
+
+const HUBSPOT_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "hubspot.contacts.list",
+        method: "GET",
+        path: "/crm/v3/objects/contacts",
+        summary: "Listed HubSpot contacts.",
+        path_params: &[],
+        query: &[("limit", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("limit")],
+    },
+    ActionSpec {
+        key: "hubspot.contacts.search",
+        method: "POST",
+        path: "/crm/v3/objects/contacts/search",
+        summary: "Searched HubSpot contacts.",
+        path_params: &[],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[json("data", true)],
+    },
+    ActionSpec {
+        key: "hubspot.deals.list",
+        method: "GET",
+        path: "/crm/v3/objects/deals",
+        summary: "Listed HubSpot deals.",
+        path_params: &[],
+        query: &[("limit", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("limit")],
+    },
+    ActionSpec {
+        key: "hubspot.contacts.create",
+        method: "POST",
+        path: "/crm/v3/objects/contacts",
+        summary: "Created a HubSpot contact.",
+        path_params: &[],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[json("data", true)],
+    },
+    ActionSpec {
+        key: "hubspot.contacts.update",
+        method: "PATCH",
+        path: "/crm/v3/objects/contacts/{resource_id}",
+        summary: "Updated a HubSpot contact.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[s_req("resource_id"), json("data", true)],
+    },
+    ActionSpec {
+        key: "hubspot.contacts.delete",
+        method: "DELETE",
+        path: "/crm/v3/objects/contacts/{resource_id}",
+        summary: "Deleted a HubSpot contact.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::High,
+        params: &resource_id(),
+    },
+];
+
+const HUBSPOT_KEYS: &[&str] = &[
+    "hubspot.contacts.list",
+    "hubspot.contacts.search",
+    "hubspot.deals.list",
+    "hubspot.contacts.create",
+    "hubspot.contacts.update",
+    "hubspot.contacts.delete",
+];
+
+pub const HUBSPOT_SPEC: ProviderSpec = ProviderSpec {
+    slug: "hubspot",
+    origin: Origin::Static("https://api.hubapi.com"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: HUBSPOT_ACTIONS,
+    action_keys: HUBSPOT_KEYS,
+};
+
+const INTERCOM_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "intercom.tickets.list",
+        method: "GET",
+        path: "/tickets",
+        summary: "Listed Intercom tickets.",
+        path_params: &[],
+        query: &[("per_page", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("limit")],
+    },
+    ActionSpec {
+        key: "intercom.tickets.search",
+        method: "POST",
+        path: "/tickets/search",
+        summary: "Searched Intercom tickets.",
+        path_params: &[],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[json("data", true)],
+    },
+    ActionSpec {
+        key: "intercom.tickets.get",
+        method: "GET",
+        path: "/tickets/{resource_id}",
+        summary: "Read an Intercom ticket.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &resource_id(),
+    },
+    ActionSpec {
+        key: "intercom.tickets.create",
+        method: "POST",
+        path: "/tickets",
+        summary: "Created an Intercom ticket.",
+        path_params: &[],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[json("data", true)],
+    },
+];
+
+const INTERCOM_KEYS: &[&str] = &[
+    "intercom.tickets.list",
+    "intercom.tickets.search",
+    "intercom.tickets.get",
+    "intercom.tickets.create",
+];
+
+pub const INTERCOM_SPEC: ProviderSpec = ProviderSpec {
+    slug: "intercom",
+    origin: Origin::Static("https://api.intercom.io"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: INTERCOM_ACTIONS,
+    action_keys: INTERCOM_KEYS,
+};
+
+const ATTIO_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "attio.contacts.list",
+        method: "GET",
+        path: "/v2/objects/people/records",
+        summary: "Listed Attio people records.",
+        path_params: &[],
+        query: &[("pageSize", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("limit")],
+    },
+    ActionSpec {
+        key: "attio.contacts.search",
+        method: "POST",
+        path: "/v2/records/people/query",
+        summary: "Queried Attio people records.",
+        path_params: &[],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[json("data", true)],
+    },
+    ActionSpec {
+        key: "attio.deals.list",
+        method: "POST",
+        path: "/v2/records/deals/query",
+        summary: "Queried Attio deal records.",
+        path_params: &[],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[json("data", true)],
+    },
+    ActionSpec {
+        key: "attio.contacts.create",
+        method: "POST",
+        path: "/v2/records/people",
+        summary: "Created an Attio person record.",
+        path_params: &[],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[json("data", true)],
+    },
+];
+
+const ATTIO_KEYS: &[&str] = &[
+    "attio.contacts.list",
+    "attio.contacts.search",
+    "attio.deals.list",
+    "attio.contacts.create",
+];
+
+pub const ATTIO_SPEC: ProviderSpec = ProviderSpec {
+    slug: "attio",
+    origin: Origin::Static("https://api.attio.com"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: ATTIO_ACTIONS,
+    action_keys: ATTIO_KEYS,
+};
