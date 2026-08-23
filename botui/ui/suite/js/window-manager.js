@@ -138,6 +138,11 @@ if (typeof window.WindowManager === "undefined") {
           if (!known[a.id]) merged.push(a);
         });
         window.APPS_REGISTRY = merged;
+        window.dispatchEvent(
+          new CustomEvent("gb-apps-catalog-loaded", {
+            detail: { apps: merged },
+          })
+        );
       })
       .catch(function () { /* keep embedded fallback */ });
   })();
