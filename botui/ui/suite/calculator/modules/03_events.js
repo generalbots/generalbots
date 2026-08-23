@@ -162,9 +162,11 @@
         pressKey("C");
       } else if (
         e.key.length === 1 &&
-        !"0123456789+-*/.()%^!e".includes(e.key) &&
-        !["π"].includes(e.key)
+        !"0123456789+-*/.()%^!".includes(e.key) &&
+        !/[a-zπ]/i.test(e.key)
       ) {
+        // Allow digits/operators and letters (function and constant names);
+        // unknown names are rejected by the engine at evaluation time.
         e.preventDefault();
       }
     });

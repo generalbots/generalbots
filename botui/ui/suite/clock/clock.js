@@ -218,11 +218,12 @@ window.GBClockApp = window.GBClockApp || {};
   function timerTick() {
     var remaining = Math.max(0, state.tDeadline - Date.now());
     state.tRemainingMs = remaining;
-    renderTimer(remaining);
     if (remaining === 0) {
       pauseTimer();
       beep(3);
     }
+    // Render after pause so the finished state (flash) is reflected.
+    renderTimer(remaining);
   }
 
   function startPauseTimer() {

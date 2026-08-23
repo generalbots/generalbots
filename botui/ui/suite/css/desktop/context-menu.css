@@ -1,0 +1,40 @@
+/* ============================================ */
+/* GB FLUENT — Desktop context menu             */
+/* Right-click menu on the workspace + launcher */
+/* menus (pinned-launcher.js, widget picker)    */
+/* ============================================ */
+
+.desktop-context-menu {
+  position: fixed;
+  z-index: 100000;
+  min-width: 180px;
+  background: var(--surface, #1a1a24);
+  border: 1px solid var(--border, #333);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
+
+.desktop-context-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text, #e5e7eb);
+  transition: background 0.15s;
+  user-select: none;
+}
+
+.desktop-context-item:hover {
+  background: var(--surface-hover, rgba(255, 255, 255, 0.06));
+}
+
+.desktop-context-item svg {
+  flex-shrink: 0;
+  stroke: currentColor;
+}

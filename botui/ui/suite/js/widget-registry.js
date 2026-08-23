@@ -22,6 +22,20 @@
   var pane = null;
   var instances = [];
   var zCounter = 20;
+  var SPAWN_STEP = 36;
+
+  // Cascade new widgets across the workspace so overlapping stacks never
+  // hide earlier ones.
+  function nextPosition() {
+    var host = pane || document.getElementById("desktop-content");
+    var maxX = host ? Math.max(0, host.clientWidth - 300) : 900;
+    var maxY = host ? Math.max(0, host.clientHeight - 220) : 600;
+    var n = instances.length;
+    return {
+      x: 24 + ((n * SPAWN_STEP) % maxX),
+      y: 24 + ((n * SPAWN_STEP) % maxY),
+    };
+  }
 
   function readStore() {
     try {
@@ -210,6 +224,7 @@
         this.ensureVisible(existingId);
         return;
       }
+      var pos = nextPosition();
       addInstance({
         id: existingId,
         kind: "system",
@@ -217,14 +232,15 @@
         partial: def.partial,
         w: def.w,
         h: def.h,
-        x: 24 + instances.length * 12,
-        y: 24 + instances.length * 12,
+        x: pos.x,
+        y: pos.y,
       });
     },
 
     addApp: function (appId) {
       var app = findApp(appId);
       if (!app) return;
+      var pos = nextPosition();
       addInstance({
         id: "app-" + appId,
         kind: "app",
@@ -232,8 +248,8 @@
         title: app.title,
         w: 420,
         h: 320,
-        x: 24 + instances.length * 12,
-        y: 24 + instances.length * 12,
+        x: pos.x,
+        y: pos.y,
       });
     },
 
@@ -244,6 +260,7 @@
       } catch (e) {
         hostname = "Web";
       }
+      var pos = nextPosition();
       addInstance({
         id: "web-" + Date.now(),
         kind: "web",
@@ -251,8 +268,8 @@
         url: url,
         w: 420,
         h: 320,
-        x: 24 + instances.length * 12,
-        y: 24 + instances.length * 12,
+        x: pos.x,
+        y: pos.y,
       });
     },
 

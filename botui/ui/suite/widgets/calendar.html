@@ -108,7 +108,14 @@
       nav.innerHTML =
         '<button id="gb-widget-cal-prev" class="gb-widget-btn">‹</button>' +
         '<button id="gb-widget-cal-next" class="gb-widget-btn">›</button>';
-      host.insertBefore(nav, host.querySelector("#gb-widget-cal-head"));
+      // The header lives inside the inner .gb-system-widget card, not
+      // directly under the widget shell — insert relative to its parent.
+      var head = host.querySelector("#gb-widget-cal-head");
+      if (head && head.parentNode) {
+        head.parentNode.insertBefore(nav, head);
+      } else {
+        host.appendChild(nav);
+      }
       bindNav(host);
     }
     render();
