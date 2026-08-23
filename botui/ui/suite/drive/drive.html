@@ -1,7 +1,7 @@
 <!-- Drive - File Management v1.0 -->
 <link rel="stylesheet" href="/suite/drive/drive.css" />
 
-<div class="drive-container" id="drive-app">
+<div class="gb-app drive-container" id="drive-app" data-gb-app="explorer">
     <!-- Sidebar -->
     <aside class="drive-sidebar" id="drive-sidebar">
         <div class="drive-sidebar-header">
@@ -396,6 +396,8 @@
 <!-- Context Menu (dynamically populated by JS) -->
 <div id="context-menu" class="context-menu hidden"></div>
 
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script>
 // Sequential module loader — ensures scripts execute in order
 (function() {
