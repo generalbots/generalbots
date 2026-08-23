@@ -365,3 +365,47 @@ pub const GWSADMIN_SPEC: ProviderSpec = ProviderSpec {
     actions: GWSADMIN_ACTIONS,
     action_keys: GWSADMIN_KEYS,
 };
+
+// ── Google Cloud (Resource Manager) ─────────────────────────────
+
+const GCLOUD_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "google_cloud.projects.list",
+        method: "GET",
+        path: "/v1/projects",
+        summary: "Listed accessible GCP projects.",
+        path_params: &[],
+        query: &[("pageSize", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("limit")],
+    },
+    ActionSpec {
+        key: "google_cloud.projects.get",
+        method: "GET",
+        path: "/v1/projects/{resource_id}",
+        summary: "Fetched a GCP project.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &resource_id(),
+    },
+];
+
+const GCLOUD_KEYS: &[&str] = &[
+    "google_cloud.projects.list",
+    "google_cloud.projects.get",
+];
+
+pub const GCLOUD_SPEC: ProviderSpec = ProviderSpec {
+    slug: "google_cloud",
+    origin: Origin::Static("https://cloudresourcemanager.googleapis.com"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: GCLOUD_ACTIONS,
+    action_keys: GCLOUD_KEYS,
+};
