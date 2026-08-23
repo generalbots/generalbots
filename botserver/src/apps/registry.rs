@@ -125,6 +125,14 @@ pub fn with_launcher_default(mut definition: AppDefinition) -> AppDefinition {
 
 pub fn all_apps() -> Vec<AppDefinition> {
     vec![
+        // System widgets ship as kind=Widget so launchers can host them in
+        // widget surfaces instead of the start menu (frontend filters them).
+        widget_app("clock-widget", "Clock Widget", "system", "#06b6d4",
+            "/suite/widgets/clock.html",
+            "Desktop clock widget showing local time and date.",
+            "clock time widget",
+            "<circle cx=\"12\" cy=\"12\" r=\"10\"/><polyline points=\"12 6 12 12 16 14\"/>",
+            WidgetSpec { url: None, size_w: 2, size_h: 1, refresh_secs: Some(1) }),
         app("chat", "Chat", "ai", "#84d669", "/suite/partials/chat.html",
             "Conversational AI assistant with suggestions, tools and memory.",
             "conversation assistant ai bot",
