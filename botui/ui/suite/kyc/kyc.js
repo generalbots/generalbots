@@ -1,3 +1,4 @@
+if (window.GBAppLifecycle) GBAppLifecycle.begin("kyc");
 (function(){
 var verifications=[];
 var signatures=[];
