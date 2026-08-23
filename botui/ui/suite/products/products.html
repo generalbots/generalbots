@@ -1,7 +1,11 @@
 <!-- Products - Product & Service Catalog -->
 <!-- Dynamics nomenclature: Product, Service, PriceList -->
 
-<link rel="stylesheet" href="/suite/products/products.css">
+<link rel="stylesheet" href="/suite/products/products.p1.css?v=1">
+<link rel="stylesheet" href="/suite/products/products.p2.css?v=1">
+<link rel="stylesheet" href="/suite/products/products.p3.css?v=1">
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script src="/suite/js/vendor/htmx.min.js"></script>
 
 <div class="products-container">
@@ -269,3 +273,5 @@
     }
 })();
 </script>
+
+<script>if (window.GBAppLifecycle) GBAppLifecycle.begin("products");</script>
