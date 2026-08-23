@@ -1,188 +1,100 @@
-
+use super::helpers::{json, resource_id, s, s_req};
 use super::{ActionSpec, AuthStyle, Origin, ParamKind, ParamSpec, ProviderSpec, Risk};
-
-const fn s(name: &'static str) -> ParamSpec {
-    ParamSpec {
-        name,
-        kind: ParamKind::Str,
-        required: false,
-    }
-}
-
-const fn s_req(name: &'static str) -> ParamSpec {
-    ParamSpec {
-        name,
-        kind: ParamKind::Str,
-        required: true,
-    }
-}
-
-const fn json(name: &'static str, required: bool) -> ParamSpec {
-    ParamSpec {
-        name,
-        kind: ParamKind::Json,
-        required,
-    }
-}
-
-const HUE_ACTIONS: &[ActionSpec] = &[
+const DATABRICKS_ACTIONS: &[ActionSpec] = &[
     ActionSpec {
-        key: "philips_hue.devices.list",
+        key: "databricks.jobs.list",
         method: "GET",
-        path: "/clip/v2/resource/device",
-        summary: "Listed Hue devices.",
+        path: "/api/2.1/jobs/list",
+        summary: "Listed Databricks jobs.",
         path_params: &[],
-        query: &[],
+        query: &[("limit", "limit")],
         body_param: None,
         body_wrapper: None,
         risk: Risk::Low,
-        params: &[],
+        params: &[s("limit")],
     },
     ActionSpec {
-        key: "philips_hue.scenes.list",
-        method: "GET",
-        path: "/clip/v2/resource/scene",
-        summary: "Listed Hue scenes.",
-        path_params: &[],
-        query: &[],
-        body_param: None,
-        body_wrapper: None,
-        risk: Risk::Low,
-        params: &[],
-    },
-    ActionSpec {
-        key: "philips_hue.devices.update",
-        method: "PUT",
-        path: "/clip/v2/resource/light/{resource_id}",
-        summary: "Updated a Hue light.",
-        path_params: &["resource_id"],
-        query: &[],
-        body_param: Some("data"),
-        body_wrapper: None,
-        risk: Risk::Medium,
-        params: &[s_req("resource_id"), json("data", true)],
-    },
-    ActionSpec {
-        key: "philips_hue.scenes.activate",
-        method: "PUT",
-        path: "/clip/v2/resource/scene/{resource_id}",
-        summary: "Activated a Hue scene.",
-        path_params: &["resource_id"],
-        query: &[],
-        body_param: Some("data"),
-        body_wrapper: None,
-        risk: Risk::Medium,
-        params: &[s_req("resource_id"), json("data", true)],
-    },
-];
-
-const HUE_KEYS: &[&str] = &[
-    "philips_hue.devices.list",
-    "philips_hue.scenes.list",
-    "philips_hue.devices.update",
-    "philips_hue.scenes.activate",
-];
-
-pub const PHILIPS_HUE_SPEC: ProviderSpec = ProviderSpec {
-    slug: "philips_hue",
-    origin: Origin::FromField {
-        field: "bridge_url",
-        pattern: "{value}",
-    },
-    auth: AuthStyle::ApiKeyHeader {
-        header: "hue-application-key",
-        field: "api_key",
-    },
-    actions: HUE_ACTIONS,
-    action_keys: HUE_KEYS,
-};
-
-const UPSTASH_ACTIONS: &[ActionSpec] = &[ActionSpec {
-    key: "upstash_redis.queries.run",
-    method: "POST",
-    path: "/",
-    summary: "Executed a Redis command pipeline.",
-    path_params: &[],
-    query: &[],
-    body_param: Some("data"),
-    body_wrapper: None,
-    risk: Risk::High,
-    params: &[json("data", true)],
-}];
-
-const UPSTASH_KEYS: &[&str] = &["upstash_redis.queries.run"];
-
-pub const UPSTASH_REDIS_SPEC: ProviderSpec = ProviderSpec {
-    slug: "upstash_redis",
-    origin: Origin::FromField {
-        field: "base_url",
-        pattern: "{value}",
-    },
-    auth: AuthStyle::Bearer {
-        token_field: "token",
-    },
-    actions: UPSTASH_ACTIONS,
-    action_keys: UPSTASH_KEYS,
-};
-
-const GRAFANA_ACTIONS: &[ActionSpec] = &[
-    ActionSpec {
-        key: "grafana.alerts.list",
-        method: "GET",
-        path: "/api/prometheus/grafana/api/v1/alerts",
-        summary: "Listed Grafana alerts.",
-        path_params: &[],
-        query: &[],
-        body_param: None,
-        body_wrapper: None,
-        risk: Risk::Low,
-        params: &[],
-    },
-    ActionSpec {
-        key: "grafana.resources.search",
-        method: "GET",
-        path: "/api/search",
-        summary: "Searched Grafana dashboards.",
-        path_params: &[],
-        query: &[("query", "query")],
-        body_param: None,
-        body_wrapper: None,
-        risk: Risk::Low,
-        params: &[s("query")],
-    },
-    ActionSpec {
-        key: "grafana.metrics.query",
+        key: "databricks.queries.run",
         method: "POST",
-        path: "/api/ds/query",
-        summary: "Queried Grafana datasources.",
+        path: "/api/2.0/sql/statements",
+        summary: "Executed a SQL statement.",
         path_params: &[],
         query: &[],
         body_param: Some("data"),
         body_wrapper: None,
-        risk: Risk::Low,
+        risk: Risk::High,
         params: &[json("data", true)],
     },
 ];
 
-const GRAFANA_KEYS: &[&str] = &[
-    "grafana.alerts.list",
-    "grafana.resources.search",
-    "grafana.metrics.query",
-];
+const DATABRICKS_KEYS: &[&str] = &["databricks.jobs.list", "databricks.queries.run"];
 
-pub const GRAFANA_SPEC: ProviderSpec = ProviderSpec {
-    slug: "grafana",
+pub const DATABRICKS_SPEC: ProviderSpec = ProviderSpec {
+    slug: "databricks",
     origin: Origin::FromField {
-        field: "base_url",
+        field: "host_url",
         pattern: "{value}",
     },
     auth: AuthStyle::Bearer {
         token_field: "token",
     },
-    actions: GRAFANA_ACTIONS,
-    action_keys: GRAFANA_KEYS,
+    actions: DATABRICKS_ACTIONS,
+    action_keys: DATABRICKS_KEYS,
 };
+const DEVIN_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "devin.runs.list",
+        method: "GET",
+        path: "/v1/devins",
+        summary: "Listed Devin sessions.",
+        path_params: &[],
+        query: &[("limit", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("limit")],
+    },
+    ActionSpec {
+        key: "devin.runs.get",
+        method: "GET",
+        path: "/v1/devins/{resource_id}",
+        summary: "Read a Devin session.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[ParamSpec {
+            name: "resource_id",
+            kind: ParamKind::Str,
+            required: true,
+        }],
+    },
+    ActionSpec {
+        key: "devin.models.run",
+        method: "POST",
+        path: "/v1/devins",
+        summary: "Started a Devin session.",
+        path_params: &[],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::High,
+        params: &[json("data", true)],
+    },
+];
 
+const DEVIN_KEYS: &[&str] = &["devin.runs.list", "devin.runs.get", "devin.models.run"];
+
+pub const DEVIN_SPEC: ProviderSpec = ProviderSpec {
+    slug: "devin",
+    origin: Origin::Static("https://api.devin.ai"),
+    auth: AuthStyle::Bearer {
+        token_field: "api_key",
+    },
+    actions: DEVIN_ACTIONS,
+    action_keys: DEVIN_KEYS,
+};
 const HEX_ACTIONS: &[ActionSpec] = &[
     ActionSpec {
         key: "hex.projects.list",
@@ -237,13 +149,12 @@ pub const HEX_SPEC: ProviderSpec = ProviderSpec {
     actions: HEX_ACTIONS,
     action_keys: HEX_KEYS,
 };
-
-const DATABRICKS_ACTIONS: &[ActionSpec] = &[
+const N8N_ACTIONS: &[ActionSpec] = &[
     ActionSpec {
-        key: "databricks.jobs.list",
+        key: "n8n.workflows.list",
         method: "GET",
-        path: "/api/2.1/jobs/list",
-        summary: "Listed Databricks jobs.",
+        path: "/api/v1/workflows",
+        summary: "Listed n8n workflows.",
         path_params: &[],
         query: &[("limit", "limit")],
         body_param: None,
@@ -252,34 +163,54 @@ const DATABRICKS_ACTIONS: &[ActionSpec] = &[
         params: &[s("limit")],
     },
     ActionSpec {
-        key: "databricks.queries.run",
-        method: "POST",
-        path: "/api/2.0/sql/statements",
-        summary: "Executed a SQL statement.",
+        key: "n8n.runs.list",
+        method: "GET",
+        path: "/api/v1/executions",
+        summary: "Listed n8n executions.",
         path_params: &[],
-        query: &[],
-        body_param: Some("data"),
+        query: &[("limit", "limit")],
+        body_param: None,
         body_wrapper: None,
-        risk: Risk::High,
-        params: &[json("data", true)],
+        risk: Risk::Low,
+        params: &[s("limit")],
+    },
+    ActionSpec {
+        key: "n8n.workflows.get",
+        method: "GET",
+        path: "/api/v1/workflows/{resource_id}",
+        summary: "Read an n8n workflow.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &resource_id(),
     },
 ];
 
-const DATABRICKS_KEYS: &[&str] = &["databricks.jobs.list", "databricks.queries.run"];
+const N8N_KEYS: &[&str] = &[
+    "n8n.workflows.list",
+    "n8n.runs.list",
+    "n8n.workflows.get",
+];
 
-pub const DATABRICKS_SPEC: ProviderSpec = ProviderSpec {
-    slug: "databricks",
+pub const N8N_SPEC: ProviderSpec = ProviderSpec {
+    slug: "n8n",
     origin: Origin::FromField {
-        field: "host_url",
+        field: "base_url",
         pattern: "{value}",
     },
-    auth: AuthStyle::Bearer {
-        token_field: "token",
+    auth: AuthStyle::ApiKeyHeader {
+        header: "X-N8N-API-KEY",
+        field: "api_key",
     },
-    actions: DATABRICKS_ACTIONS,
-    action_keys: DATABRICKS_KEYS,
+    actions: N8N_ACTIONS,
+    action_keys: N8N_KEYS,
 };
 
+// ---------------------------------------------------------------------------
+// Paddle Billing API - Bearer key; vendor-dashed subdomain for sandbox.
+// ---------------------------------------------------------------------------
 const POSTMARK_ACTIONS: &[ActionSpec] = &[
     ActionSpec {
         key: "postmark.messages.list",
@@ -334,4 +265,31 @@ pub const POSTMARK_SPEC: ProviderSpec = ProviderSpec {
     },
     actions: POSTMARK_ACTIONS,
     action_keys: POSTMARK_KEYS,
+};
+const UPSTASH_ACTIONS: &[ActionSpec] = &[ActionSpec {
+    key: "upstash_redis.queries.run",
+    method: "POST",
+    path: "/",
+    summary: "Executed a Redis command pipeline.",
+    path_params: &[],
+    query: &[],
+    body_param: Some("data"),
+    body_wrapper: None,
+    risk: Risk::High,
+    params: &[json("data", true)],
+}];
+
+const UPSTASH_KEYS: &[&str] = &["upstash_redis.queries.run"];
+
+pub const UPSTASH_REDIS_SPEC: ProviderSpec = ProviderSpec {
+    slug: "upstash_redis",
+    origin: Origin::FromField {
+        field: "base_url",
+        pattern: "{value}",
+    },
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: UPSTASH_ACTIONS,
+    action_keys: UPSTASH_KEYS,
 };
