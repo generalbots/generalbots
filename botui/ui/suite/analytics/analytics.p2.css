@@ -1,0 +1,68 @@
+
+.activity-sidebar h3.mt-4 {
+    margin-top: 1.5rem;
+}
+
+.activity-feed,
+.top-queries {
+    flex: 1;
+    min-height: 0;
+}
+
+.activity-loading {
+    text-align: center;
+    padding: 1rem;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+/* Spinner */
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border-color);
+    border-top-color: var(--accent-color);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+    .analytics-layout {
+        grid-template-columns: 200px 1fr;
+    }
+    
+    .activity-sidebar {
+        display: none;
+    }
+}
+
+@media (max-width: 900px) {
+    .analytics-layout {
+        grid-template-columns: 1fr;
+    }
+    
+    .metrics-sidebar {
+        display: none;
+    }
+    
+    .charts-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .analytics-header {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: stretch;
+    }
+    
+    .header-actions {
+        justify-content: flex-end;
+    }
+}

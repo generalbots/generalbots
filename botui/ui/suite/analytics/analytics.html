@@ -1,6 +1,7 @@
-<link rel="stylesheet" href="/suite/analytics/analytics.css" />
+<link rel="stylesheet" href="/suite/analytics/analytics.p1.css?v=1" />
+<link rel="stylesheet" href="/suite/analytics/analytics.p2.css?v=1" />
 
-<div class="analytics-container" id="analytics-app">
+<div class="analytics-container" id="analytics-app" data-gb-app="analytics">
     <header class="analytics-header">
         <div class="header-title">
             <svg
@@ -77,202 +78,7 @@
 
     <div class="analytics-layout">
         <!-- Left Panel: Metrics Overview -->
-        <aside class="metrics-sidebar">
-            <div
-                class="metric-card"
-                hx-get="/api/ui/analytics/messages/count"
-                hx-trigger="load, every 30s"
-                hx-swap="innerHTML"
-            >
-                <div class="metric-icon messages">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                        <path
-                            d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        />
-                    </svg>
-                </div>
-                <div class="metric-content">
-                    <span class="metric-value">--</span>
-                    <span class="metric-label">Messages Today</span>
-                </div>
-            </div>
-
-            <div
-                class="metric-card"
-                hx-get="/api/ui/analytics/sessions/active"
-                hx-trigger="load, every 10s"
-                hx-swap="innerHTML"
-            >
-                <div class="metric-icon sessions">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                        <path
-                            d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        />
-                        <circle
-                            cx="9"
-                            cy="7"
-                            r="4"
-                            stroke="currentColor"
-                            stroke-width="2"
-                        />
-                        <path
-                            d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        />
-                    </svg>
-                </div>
-                <div class="metric-content">
-                    <span class="metric-value">--</span>
-                    <span class="metric-label">Active Sessions</span>
-                </div>
-            </div>
-
-            <div
-                class="metric-card"
-                hx-get="/api/ui/analytics/response/avg"
-                hx-trigger="load, every 30s"
-                hx-swap="innerHTML"
-            >
-                <div class="metric-icon response">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                        <polygon
-                            points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        />
-                    </svg>
-                </div>
-                <div class="metric-content">
-                    <span class="metric-value">--</span>
-                    <span class="metric-label">Avg Response Time</span>
-                </div>
-            </div>
-
-            <div
-                class="metric-card"
-                hx-get="/api/ui/analytics/llm/tokens"
-                hx-trigger="load, every 60s"
-                hx-swap="innerHTML"
-            >
-                <div class="metric-icon tokens">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                        <path
-                            d="M12 2a10 10 0 1 0 10 10H12V2z"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        />
-                        <path
-                            d="M12 2a10 10 0 0 1 10 10"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        />
-                        <circle
-                            cx="12"
-                            cy="12"
-                            r="4"
-                            stroke="currentColor"
-                            stroke-width="2"
-                        />
-                    </svg>
-                </div>
-                <div class="metric-content">
-                    <span class="metric-value">--</span>
-                    <span class="metric-label">LLM Tokens Used</span>
-                </div>
-            </div>
-
-            <div
-                class="metric-card"
-                hx-get="/api/ui/analytics/storage/usage"
-                hx-trigger="load, every 120s"
-                hx-swap="innerHTML"
-            >
-                <div class="metric-icon storage">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                        <ellipse
-                            cx="12"
-                            cy="5"
-                            rx="9"
-                            ry="3"
-                            stroke="currentColor"
-                            stroke-width="2"
-                        />
-                        <path
-                            d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"
-                            stroke="currentColor"
-                            stroke-width="2"
-                        />
-                        <path
-                            d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"
-                            stroke="currentColor"
-                            stroke-width="2"
-                        />
-                    </svg>
-                </div>
-                <div class="metric-content">
-                    <span class="metric-value">--</span>
-                    <span class="metric-label">Storage Used</span>
-                </div>
-            </div>
-
-            <div
-                class="metric-card"
-                hx-get="/api/ui/analytics/errors/count"
-                hx-trigger="load, every 30s"
-                hx-swap="innerHTML"
-            >
-                <div class="metric-icon errors">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-                        <path
-                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        />
-                        <line
-                            x1="12"
-                            y1="9"
-                            x2="12"
-                            y2="13"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                        />
-                        <line
-                            x1="12"
-                            y1="17"
-                            x2="12.01"
-                            y2="17"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                        />
-                    </svg>
-                </div>
-                <div class="metric-content">
-                    <span class="metric-value">--</span>
-                    <span class="metric-label">Errors Today</span>
-                </div>
-            </div>
-        </aside>
+<div id="analyticsSidebarSlot"></div>
 
         <!-- Main Content Area -->
         <main class="analytics-main">
@@ -536,6 +342,10 @@
         </aside>
     </div>
 
-    <link rel="stylesheet" href="/suite/analytics/analytics.css" />
-    <script src="/suite/analytics/analytics.js"></script>
+    <link rel="stylesheet" href="/suite/analytics/analytics.p1.css?v=1" />
+<link rel="stylesheet" href="/suite/analytics/analytics.p2.css?v=1" />
+    <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading analytics…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Analytics unavailable</span></div>
+<script src="/suite/analytics/analytics-templates.js?v=1"></script>
+<script src="/suite/analytics/analytics.js?v=2"></script>
 </div>
