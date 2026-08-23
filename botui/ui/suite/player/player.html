@@ -3,7 +3,7 @@
      Respects Theme Manager - No hardcoded theme
      ============================================================================= -->
 
-<div class="player-app">
+<div class="gb-app player-app" data-gb-app="player">
     <!-- Sidebar - File Browser -->
     <aside class="player-sidebar">
         <div class="sidebar-header">
@@ -932,6 +932,8 @@
     }
 </style>
 
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script>
     let currentFile = null;
     let currentPlayer = null;
