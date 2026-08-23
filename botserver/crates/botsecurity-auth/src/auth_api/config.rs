@@ -36,6 +36,9 @@ impl Default for AuthConfig {
                 "/oauth".to_string(),
                 "/auth/callback".to_string(),
                 "/webhook/whatsapp".to_string(),
+                // Host→bot lookup used by the UI server (botui) when rendering
+                // the suite for a domain/subdomain before any user auth exists.
+                "/api/domains/resolve".to_string(),
             ],
             public_paths: vec![
                 "/static".to_string(),

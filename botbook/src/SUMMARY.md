@@ -332,6 +332,7 @@
    - [Drive Integration](./10-configuration-deployment/drive.md)
    - [Multimodal Configuration](./10-configuration-deployment/multimodal.md)
    - [Secrets Management](./10-configuration-deployment/secrets-management.md)
+   - [Domains & Bot Subdomains](./10-configuration-deployment/domains-and-subdomains.md)
    - [System Limits](./10-configuration-deployment/system-limits.md)
    - [MinIO Storage](./10-configuration-deployment/minio.md)
 
