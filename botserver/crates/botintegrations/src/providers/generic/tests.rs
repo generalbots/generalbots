@@ -1,7 +1,6 @@
 use super::*;
+use serde_json::json;
 
-
-    use serde_json::json;
 
     const TEST_ACTIONS: &[ActionSpec] = &[ActionSpec {
         key: "widgets.items.list",

@@ -239,3 +239,84 @@ pub const READWISE_SPEC: ProviderSpec = ProviderSpec {
 // ---------------------------------------------------------------------------
 // Cloudflare API v4 - Bearer token; resources are zones.
 // ---------------------------------------------------------------------------
+
+const RAINDROP_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "raindrop.bookmarks.list",
+        method: "GET",
+        path: "/rest/v1/raindrops/0",
+        summary: "Listed saved bookmarks.",
+        path_params: &[],
+        query: &[("perpage", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("limit")],
+    },
+    ActionSpec {
+        key: "raindrop.bookmarks.search",
+        method: "GET",
+        path: "/rest/v1/raindrops/0",
+        summary: "Searched saved bookmarks.",
+        path_params: &[],
+        query: &[("search", "query")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("query")],
+    },
+    ActionSpec {
+        key: "raindrop.bookmarks.get",
+        method: "GET",
+        path: "/rest/v1/raindrop/{resource_id}",
+        summary: "Read a bookmark.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &resource_id(),
+    },
+    ActionSpec {
+        key: "raindrop.bookmarks.create",
+        method: "POST",
+        path: "/rest/v1/raindrop",
+        summary: "Saved a bookmark.",
+        path_params: &[],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[json("data", true)],
+    },
+    ActionSpec {
+        key: "raindrop.bookmarks.delete",
+        method: "DELETE",
+        path: "/rest/v1/raindrop/{resource_id}",
+        summary: "Deleted a bookmark.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::High,
+        params: &resource_id(),
+    },
+];
+
+const RAINDROP_KEYS: &[&str] = &[
+    "raindrop.bookmarks.list",
+    "raindrop.bookmarks.search",
+    "raindrop.bookmarks.get",
+    "raindrop.bookmarks.create",
+    "raindrop.bookmarks.delete",
+];
+
+pub const RAINDROP_SPEC: ProviderSpec = ProviderSpec {
+    slug: "raindrop",
+    origin: Origin::Static("https://api.raindrop.io"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: RAINDROP_ACTIONS,
+    action_keys: RAINDROP_KEYS,
+};

@@ -293,3 +293,71 @@ pub const UPSTASH_REDIS_SPEC: ProviderSpec = ProviderSpec {
     actions: UPSTASH_ACTIONS,
     action_keys: UPSTASH_KEYS,
 };
+
+const NETLIFY_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "netlify.projects.list",
+        method: "GET",
+        path: "/sites",
+        summary: "Listed Netlify sites.",
+        path_params: &[],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[],
+    },
+    ActionSpec {
+        key: "netlify.deployments.list",
+        method: "GET",
+        path: "/sites/{site_id}/deploys",
+        summary: "Listed site deployments.",
+        path_params: &["site_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("site_id")],
+    },
+    ActionSpec {
+        key: "netlify.deployments.get",
+        method: "GET",
+        path: "/deploys/{deploy_id}",
+        summary: "Read a Netlify deployment.",
+        path_params: &["deploy_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("deploy_id")],
+    },
+    ActionSpec {
+        key: "netlify.projects.delete",
+        method: "DELETE",
+        path: "/sites/{resource_id}",
+        summary: "Deleted a Netlify site.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::High,
+        params: &resource_id(),
+    },
+];
+
+const NETLIFY_KEYS: &[&str] = &[
+    "netlify.projects.list",
+    "netlify.deployments.list",
+    "netlify.deployments.get",
+    "netlify.projects.delete",
+];
+
+pub const NETLIFY_SPEC: ProviderSpec = ProviderSpec {
+    slug: "netlify",
+    origin: Origin::Static("https://api.netlify.com/api/v1"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: NETLIFY_ACTIONS,
+    action_keys: NETLIFY_KEYS,
+};

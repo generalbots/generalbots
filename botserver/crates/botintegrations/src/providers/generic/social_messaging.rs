@@ -1,4 +1,4 @@
-use super::helpers::{json, json_req, s, s_req};
+use super::helpers::{json, json_req, resource_id, s, s_req};
 use super::{ActionSpec, AuthStyle, Origin, ProviderSpec, Risk};
 const BEEHIIV_ACTIONS: &[ActionSpec] = &[
     ActionSpec {
@@ -253,46 +253,6 @@ pub const MAILCHIMP_SPEC: ProviderSpec = ProviderSpec {
 // ---------------------------------------------------------------------------
 // Mercury Platform API - Bearer token.
 // ---------------------------------------------------------------------------
-const NEWSCATCHER_ACTIONS: &[ActionSpec] = &[
-    ActionSpec {
-        key: "newscatcher.articles.search",
-        method: "POST",
-        path: "/v1/search",
-        summary: "Searched news articles.",
-        path_params: &[],
-        query: &[],
-        body_param: Some("data"),
-        body_wrapper: None,
-        risk: Risk::Low,
-        params: &[json("data", true)],
-    },
-    ActionSpec {
-        key: "newscatcher.sources.list",
-        method: "GET",
-        path: "/v1/sources",
-        summary: "Listed news sources.",
-        path_params: &[],
-        query: &[],
-        body_param: None,
-        body_wrapper: None,
-        risk: Risk::Low,
-        params: &[],
-    },
-];
-
-const NEWSCATCHER_KEYS: &[&str] = &["newscatcher.articles.search", "newscatcher.sources.list"];
-
-pub const NEWSCATCHER_SPEC: ProviderSpec = ProviderSpec {
-    slug: "newscatcher",
-    origin: Origin::Static("https://v3-api.newscatcherapi.com"),
-    auth: AuthStyle::ApiKeyHeader {
-        header: "x-api-token",
-        field: "api_key",
-    },
-    actions: NEWSCATCHER_ACTIONS,
-    action_keys: NEWSCATCHER_KEYS,
-};
-
 const PHANTOMBUSTER_ACTIONS: &[ActionSpec] = &[
     ActionSpec {
         key: "phantombuster.workflows.list",
@@ -415,4 +375,72 @@ pub const ZOOM_SPEC: ProviderSpec = ProviderSpec {
     },
     actions: ZOOM_ACTIONS,
     action_keys: ZOOM_KEYS,
+};
+
+const INTERCOM_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "intercom.tickets.list",
+        method: "GET",
+        path: "/tickets",
+        summary: "Listed Intercom tickets.",
+        path_params: &[],
+        query: &[("per_page", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("limit")],
+    },
+    ActionSpec {
+        key: "intercom.tickets.search",
+        method: "POST",
+        path: "/tickets/search",
+        summary: "Searched Intercom tickets.",
+        path_params: &[],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[json("data", true)],
+    },
+    ActionSpec {
+        key: "intercom.tickets.get",
+        method: "GET",
+        path: "/tickets/{resource_id}",
+        summary: "Read an Intercom ticket.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &resource_id(),
+    },
+    ActionSpec {
+        key: "intercom.tickets.create",
+        method: "POST",
+        path: "/tickets",
+        summary: "Created an Intercom ticket.",
+        path_params: &[],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[json("data", true)],
+    },
+];
+
+const INTERCOM_KEYS: &[&str] = &[
+    "intercom.tickets.list",
+    "intercom.tickets.search",
+    "intercom.tickets.get",
+    "intercom.tickets.create",
+];
+
+pub const INTERCOM_SPEC: ProviderSpec = ProviderSpec {
+    slug: "intercom",
+    origin: Origin::Static("https://api.intercom.io"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: INTERCOM_ACTIONS,
+    action_keys: INTERCOM_KEYS,
 };

@@ -399,3 +399,42 @@ pub const NOTION_SPEC: ProviderSpec = ProviderSpec {
     actions: NOTION_ACTIONS,
     action_keys: NOTION_KEYS,
 };
+
+const CALENDLY_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "calendly.events.list",
+        method: "GET",
+        path: "/scheduled_events",
+        summary: "Listed Calendly scheduled events.",
+        path_params: &[],
+        query: &[("count", "limit"), ("user", "user_uri")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("limit"), s("user_uri")],
+    },
+    ActionSpec {
+        key: "calendly.users.me",
+        method: "GET",
+        path: "/users/me",
+        summary: "Read the Calendly current user.",
+        path_params: &[],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[],
+    },
+];
+
+const CALENDLY_KEYS: &[&str] = &["calendly.events.list", "calendly.users.me"];
+
+pub const CALENDLY_SPEC: ProviderSpec = ProviderSpec {
+    slug: "calendly",
+    origin: Origin::Static("https://api.calendly.com"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: CALENDLY_ACTIONS,
+    action_keys: CALENDLY_KEYS,
+};
