@@ -416,7 +416,7 @@ const ProgressPanel = {
   },
 
   updateSection(sectionId, status, progress) {
-    const sectionEl = document.getElementById("window-tasks").querySelector(
+    const sectionEl = document.querySelector(
       `[data-section-id="${sectionId}"]`,
     );
     if (!sectionEl) return;
@@ -444,7 +444,7 @@ const ProgressPanel = {
   },
 
   updateItem(sectionId, itemId, status, duration) {
-    const itemEl = document.getElementById("window-tasks").querySelector(`[data-item-id="${itemId}"]`);
+    const itemEl = document.querySelector(`[data-item-id="${itemId}"]`);
     if (!itemEl) return;
 
     const dot = itemEl.querySelector(".item-dot");
@@ -469,7 +469,7 @@ const ProgressPanel = {
   },
 
   toggleSection(sectionId) {
-    const sectionEl = document.getElementById("window-tasks").querySelector(
+    const sectionEl = document.querySelector(
       `[data-section-id="${sectionId}"]`,
     );
     if (sectionEl) {
@@ -478,7 +478,7 @@ const ProgressPanel = {
   },
 
   toggleChild(childId) {
-    const childEl = document.getElementById("window-tasks").querySelector(`[data-child-id="${childId}"]`);
+    const childEl = document.querySelector(`[data-child-id="${childId}"]`);
     if (childEl) {
       childEl.classList.toggle("expanded");
     }
@@ -527,27 +527,3 @@ const ProgressPanel = {
     this.wsConnection = null;
   },
 };
-
-function toggleLogSection(header) {
-  const section = header.closest(".log-section");
-  if (section) {
-    section.classList.toggle("expanded");
-  }
-}
-
-function toggleLogChild(header) {
-  const child = header.closest(".log-child");
-  if (child) {
-    child.classList.toggle("expanded");
-  }
-}
-
-function viewSectionDetails(sectionId) {
-  ProgressPanel.viewDetails(sectionId);
-}
-
-function viewChildDetails(childId) {
-  ProgressPanel.viewChildDetails(childId);
-}
-
-window.ProgressPanel = ProgressPanel;

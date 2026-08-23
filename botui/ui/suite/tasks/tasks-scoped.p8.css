@@ -1,0 +1,448 @@
+
+.section-indicator.completed {
+    background: var(--primary, #c5f82a);
+    box-shadow: 0 0 6px var(--primary, #c5f82a);
+}
+
+.section-indicator.running {
+    background: var(--primary, #c5f82a);
+    animation: pulse 1.5s infinite;
+}
+
+.section-indicator.pending {
+    background: var(--text-muted, #3a3a3a);
+}
+
+.section-indicator.failed {
+    background: var(--error, var(--error, #ef4444));
+}
+
+.section-name {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text, #ffffff);
+    flex: 1;
+}
+
+.section-step-badge {
+    font-size: 12px;
+    padding: 4px 12px;
+    background: var(--primary, #c5f82a);
+    color: var(--bg, #0a0a0a);
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.section-status-badge {
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-weight: 500;
+    min-width: 80px;
+    text-align: center;
+}
+
+.section-status-badge.completed {
+    background: transparent;
+    color: var(--text-secondary, #888);
+}
+
+.section-status-badge.running {
+    background: var(--primary, #c5f82a);
+    color: var(--bg, #0a0a0a);
+}
+
+.section-status-badge.pending {
+    background: var(--surface-active, #1a1a24);
+    color: var(--text-secondary, #666);
+}
+
+.log-section-body {
+    display: none;
+    padding-left: 32px;
+    background: var(--bg, #080808);
+    border-top: 1px solid var(--border, #1a1a24);
+}
+
+.log-section.expanded .log-section-body {
+    display: block;
+}
+
+.log-child {
+    border-bottom: 1px solid var(--border-subtle, #151520);
+}
+
+.log-child:last-child {
+    border-bottom: none;
+}
+
+.log-child-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 20px 14px 24px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.log-child-header:hover {
+    background: var(--surface-hover, #0e0e12);
+}
+
+.child-indent {
+    width: 20px;
+    height: 1px;
+    background: var(--border, #2a2a2a);
+    flex-shrink: 0;
+}
+
+.child-name {
+    font-size: 13px;
+    color: var(--text, #e0e0e0);
+    flex: 1;
+}
+
+.child-step-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    background: var(--primary, #c5f82a);
+    color: var(--bg, #0a0a0a);
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.child-status-badge {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 4px;
+    min-width: 70px;
+    text-align: center;
+}
+
+.child-status-badge.completed {
+    color: var(--text-secondary, #888);
+}
+
+.log-child-body {
+    display: none;
+    padding-left: 24px;
+    padding-bottom: 8px;
+}
+
+.log-child.expanded .log-child-body {
+    display: block;
+}
+
+.log-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 20px;
+    font-size: 13px;
+}
+
+.item-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.item-dot.completed {
+    background: var(--primary, #c5f82a);
+}
+
+.item-dot.running {
+    background: var(--primary, #c5f82a);
+    animation: pulse 1s infinite;
+}
+
+.item-dot.pending {
+    background: var(--text-muted, #3a3a3a);
+}
+
+.item-name {
+    color: var(--text-secondary, #aaa);
+    flex: 1;
+}
+
+.item-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+}
+
+.item-duration {
+    font-size: 12px;
+    color: var(--text-muted, #666);
+}
+
+.item-check {
+    font-size: 16px;
+}
+
+.item-check.completed {
+    color: var(--success, var(--success, #22c55e));
+}
+
+.item-check.running {
+    color: var(--primary, #c5f82a);
+}
+
+/* =============================================================================
+   TASK DETAIL RICH VIEW OVERRIDES
+   ============================================================================= */
+
+.task-detail-rich {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/* Sections inside task detail - fixed height, no scroll */
+.task-detail-rich .taskmd-header,
+.task-detail-rich .taskmd-section {
+    flex-shrink: 0;
+}
+
+/* Only terminal output scrolls */
+.task-detail-rich .taskmd-terminal-output {
+    flex: 1;
+    min-height: 100px;
+    max-height: none;
+    overflow-y: auto;
+}
+
+/* Progress content has fixed max height with scroll */
+.task-detail-rich .taskmd-progress-content {
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.detail-section-box {
+    background: var(--surface, #111111);
+    border: 1px solid var(--border, #1a1a24);
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+/* Status section box - stable minimum height */
+.detail-section-box:first-child {
+    min-height: 120px;
+}
+
+.detail-section-box .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    color: var(--text-muted, #666);
+    text-transform: uppercase;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border, #1a1a24);
+    background: var(--surface, #0d0d0d);
+}
+
+.progress-log-section .progress-summary-content {
+    max-height: none;
+    padding: 0;
+    overflow-y: auto;
+}
+
+/* Progress log section - scrollable with stable height */
+.progress-log-section {
+    flex: 1;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.progress-log-section .section-label {
+    flex-shrink: 0;
+}
+
+/* Terminal Section Enhancements */
+.terminal-section-rich {
+    background: var(--bg-terminal, #0a0a0a);
+    flex-shrink: 0;
+    min-height: 150px;
+    max-height: 280px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.terminal-section-rich .section-header-rich {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border, #1a1a24);
+    background: var(--surface, #111111);
+    flex-shrink: 0;
+}
+
+.terminal-section-rich .section-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    color: var(--text-muted, #666);
+    text-transform: uppercase;
+    padding: 0;
+    border: none;
+    background: transparent;
+}
+
+.terminal-dot-rich {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted, #444);
+}
+
+.terminal-dot-rich.active {
+    background: var(--primary, #c5f82a);
+    box-shadow: 0 0 8px var(--primary, #c5f82a);
+    animation: pulse 1.5s infinite;
+}
+
+.terminal-stats-rich {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 12px;
+    color: var(--text-muted, #666);
+}
+
+.terminal-stats-rich strong {
+    color: var(--text, #e0e0e0);
+    font-weight: 500;
+}
+
+.terminal-output-rich {
+    padding: 16px 20px;
+    font-family: "JetBrains Mono", "Fira Code", "Monaco", monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--bg-terminal, #0a0a0a);
+    color: var(--text-terminal, #888);
+}
+
+/* =============================================================================
+   TASK CARD ENHANCEMENTS - SVG ICONS & OPEN APP BUTTON
+   ============================================================================= */
+
+.task-card {
+    position: relative;
+}
+
+.task-card .task-type-icon {
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    color: var(--primary, #c5f82a);
+}
+
+.task-card .btn-open-app {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: var(--primary, #c5f82a);
+    color: var(--bg, #0a0a0a);
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 8px;
+}
+
+.task-card .btn-open-app:hover {
+    background: var(--primary-hover, #d4ff3a);
+    transform: translateY(-1px);
+}
+
+.task-card .btn-open-app svg {
+    width: 14px;
+    height: 14px;
+}
+
+.task-card.completed .task-status-badge {
+    background: var(--success, var(--success, #22c55e));
+}
+
+/* Status section in detail panel */
+.status-section-box {
+    padding: 20px;
+}
+
+.status-section-box .status-title {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text, #fff);
+    margin-bottom: 12px;
+}
+
+.status-section-box .status-current {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+}
+
+.status-section-box .status-current .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary, #c5f82a);
+}
+
+.status-section-box .status-current .status-text {
+    color: var(--text, #e0e0e0);
+    font-size: 14px;
+}
+
+.status-section-box .status-time {
+    margin-left: auto;
+    font-size: 13px;
+    color: var(--text-muted, #666);
+}
+
+.status-section-box .status-decision {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    opacity: 0.7;
+}
+
+.status-section-box .status-decision .decision-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1px dashed var(--text-muted, #444);
+    background: transparent;
+}
+
+.status-section-box .decision-badge {
+    padding: 4px 10px;
+    background: var(--surface-active, #1a1a24);
+    border-radius: 4px;
+    font-size: 12px;
+    color: var(--text-muted, #888);
+}

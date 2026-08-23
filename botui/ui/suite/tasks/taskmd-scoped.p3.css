@@ -1,0 +1,290 @@
+.taskmd-terminal-output .terminal-h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text, #fff);
+    margin: 16px 0 8px 0;
+    font-family: var(--sentient-font-family, "Inter", sans-serif);
+}
+
+.taskmd-terminal-output .terminal-h2 {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text, #fff);
+    margin: 14px 0 6px 0;
+    font-family: var(--sentient-font-family, "Inter", sans-serif);
+}
+
+.taskmd-terminal-output .terminal-h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text, #fff);
+    margin: 12px 0 4px 0;
+    font-family: var(--sentient-font-family, "Inter", sans-serif);
+}
+
+.taskmd-terminal-output .terminal-p {
+    margin: 8px 0;
+    line-height: 1.6;
+}
+
+.taskmd-terminal-output .terminal-ul,
+.taskmd-terminal-output .terminal-ol {
+    margin: 8px 0;
+    padding-left: 24px;
+    list-style: none;
+}
+
+.taskmd-terminal-output .terminal-li {
+    margin: 4px 0;
+    position: relative;
+}
+
+.taskmd-terminal-output .terminal-li::before {
+    content: "•";
+    position: absolute;
+    left: -16px;
+    color: var(--accent, #c5f82a);
+}
+
+.taskmd-terminal-output .terminal-oli {
+    margin: 4px 0;
+    list-style: decimal;
+}
+
+.taskmd-terminal-output .terminal-inline-code {
+    background: var(--surface-active, #1a1a1a);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 12px;
+    color: var(--accent, #c5f82a);
+}
+
+.taskmd-terminal-output .terminal-quote {
+    border-left: 3px solid var(--accent, #c5f82a);
+    padding-left: 16px;
+    margin: 12px 0;
+    color: var(--text-muted, #888);
+    font-style: italic;
+}
+
+.taskmd-terminal-output .terminal-hr {
+    border: none;
+    border-top: 1px solid var(--border, #252525);
+    margin: 16px 0;
+}
+
+.taskmd-terminal-output .check-mark {
+    color: var(--success, var(--success, #22c55e));
+    font-weight: 600;
+}
+
+.taskmd-terminal-output .check-empty {
+    color: var(--text-muted, #555);
+}
+
+.taskmd-terminal-output a {
+    color: var(--accent, #c5f82a);
+    text-decoration: none;
+}
+
+.taskmd-terminal-output a:hover {
+    text-decoration: underline;
+}
+
+/* Actions */
+.taskmd-actions {
+    flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 10px 20px;
+    border-top: 1px solid var(--border, #1a1a1a);
+    background: var(--bg-secondary, #0d0d0d);
+}
+
+.taskmd-actions .btn-action-rich {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+
+.taskmd-actions .btn-open-app {
+    background: var(--success, var(--success, #22c55e));
+    color: var(--text, #fff);
+    font-weight: 600;
+    padding: 8px 18px;
+    font-size: 13px;
+    box-shadow: 0 2px 8px var(--success-light, rgba(34, 197, 94, 0.3));
+}
+
+.taskmd-actions .btn-open-app:hover {
+    background: var(--success-hover, #16a34a);
+    box-shadow: 0 4px 12px var(--success-light, rgba(34, 197, 94, 0.4));
+    transform: translateY(-1px);
+}
+
+.taskmd-actions .btn-cancel {
+    background: transparent;
+    border: 1px solid var(--border, #333);
+    color: var(--text-secondary, #888);
+    padding: 6px 14px;
+    font-size: 12px;
+}
+
+.taskmd-actions .btn-cancel:hover {
+    border-color: var(--error, var(--error, #ef4444));
+    color: var(--error, var(--error, #ef4444));
+}
+
+/* Empty State */
+.progress-empty {
+    padding: 40px 24px;
+    text-align: center;
+    color: var(--text-muted, #555);
+    font-size: 14px;
+}
+
+/* Error Alert */
+.error-alert {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    background: var(--error-light, rgba(239, 68, 68, 0.1));
+    border: 1px solid var(--error, #ef4444);
+    border-radius: 6px;
+    margin: 16px 24px;
+}
+
+.error-alert .error-icon {
+    color: var(--error, #ef4444);
+    font-size: 18px;
+}
+
+.error-alert .error-text {
+    color: var(--error, #ef4444);
+    font-size: 14px;
+}
+
+/* Scrollbar */
+.task-detail-rich::-webkit-scrollbar,
+.taskmd-terminal-output::-webkit-scrollbar,
+.taskmd-progress-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.task-detail-rich::-webkit-scrollbar-track,
+.taskmd-terminal-output::-webkit-scrollbar-track,
+.taskmd-progress-content::-webkit-scrollbar-track {
+    background: var(--surface, #1a1a1a);
+}
+
+.task-detail-rich::-webkit-scrollbar-thumb,
+.taskmd-terminal-output::-webkit-scrollbar-thumb,
+.taskmd-progress-content::-webkit-scrollbar-thumb {
+    background: var(--primary, #c5f82a);
+    border-radius: 4px;
+}
+
+.task-detail-rich::-webkit-scrollbar-thumb:hover,
+.taskmd-terminal-output::-webkit-scrollbar-thumb:hover,
+.taskmd-progress-content::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-hover, #d4ff4a);
+}
+
+/* =============================================================================
+   PROGRESS BAR - Shown under running sections
+   ============================================================================= */
+
+.tree-progress-bar-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 20px 16px 20px;
+    background: transparent;
+}
+
+.tree-progress-bar-container::before {
+    content: "";
+    position: absolute;
+    left: 20px;
+    right: 70px;
+    height: 3px;
+    background: var(--surface-active, #1a1a1a);
+    border-radius: 2px;
+}
+
+.tree-progress-bar {
+    flex: 1;
+    height: 3px;
+    background: var(--accent, #c5f82a);
+    border-radius: 2px;
+    transition: width 0.3s ease-out;
+    position: relative;
+    z-index: 1;
+}
+
+.tree-progress-percent {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent, #c5f82a);
+    min-width: 36px;
+    text-align: right;
+}
+
+/* =============================================================================
+   PREVENT HEIGHT FLASHING - Stable layout during updates
+   ============================================================================= */
+
+/* STATUS section - fixed height, no collapse */
+.taskmd-section:first-of-type {
+    flex-shrink: 0;
+}
+
+.taskmd-status-content {
+    min-height: 100px;
+}
+
+/* Progress log section - stable container */
+.taskmd-section:has(.taskmd-progress-content) {
+    flex-shrink: 0;
+}
+
+/* Tree sections maintain minimum height */
+.tree-section {
+    min-height: 48px;
+}
+
+.tree-row {
+    min-height: 48px;
+}
+
+/* Prevent layout shift when sections expand/collapse */
+.tree-children {
+    will-change: height;
+}
+
+.tree-items {
+    will-change: height;
+}
+
+/* Smooth transitions for expand/collapse */
+.tree-section .tree-children,
+.tree-child .tree-items {
+    transition: none;
+}
+
+/* Actions bar - always visible at bottom */
+.taskmd-actions {
+    flex-shrink: 0;
+    margin-top: auto;
+}

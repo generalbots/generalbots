@@ -1,7 +1,7 @@
 <!-- Task Window — Unified Tasks Dashboard (Phase 2) -->
 <link rel="stylesheet" href="/suite/tasks/task-window.css" />
 
-<div class="tw-container" id="taskWindow">
+<div class="gb-app tw-container" id="taskWindow" data-gb-app="tasks">
     <!-- Tab Header -->
     <div class="tw-tabs-header" id="twTabsHeader">
         <button class="tw-tab active" data-tab="dashboard" id="tabDashboard">
@@ -67,6 +67,8 @@
     </div>
 </div>
 
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script>
     (function () {
         "use strict";

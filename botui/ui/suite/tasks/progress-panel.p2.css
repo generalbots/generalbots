@@ -1,0 +1,105 @@
+
+.terminal-section {
+    background: var(--bg-terminal, #0a0a0f);
+    border-radius: 8px;
+    border: 1px solid var(--border-color, #1a1a24);
+    overflow: hidden;
+    flex-shrink: 0;
+    min-height: 150px;
+    max-height: 250px;
+    display: flex;
+    flex-direction: column;
+}
+
+.terminal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-color, #1a1a24);
+    background: var(--bg-secondary, #111118);
+    flex-shrink: 0;
+}
+
+.terminal-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.2px;
+    color: var(--text-muted, #666);
+    text-transform: uppercase;
+}
+
+.terminal-stats {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-muted, #666);
+}
+
+.terminal-stats strong {
+    color: var(--text-primary, #e0e0e0);
+    font-weight: 500;
+}
+
+.stat-separator {
+    margin: 0 8px;
+    color: var(--text-muted, #444);
+}
+
+.terminal-content {
+    padding: 16px 20px;
+    font-family: "JetBrains Mono", "Fira Code", "Monaco", monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    background: var(--bg-terminal, #0a0a0f);
+}
+
+.terminal-line {
+    color: var(--text-terminal, #8b8b8b);
+    padding: 2px 0;
+}
+
+.terminal-line.info {
+    color: var(--text-terminal, #8b8b8b);
+}
+
+.terminal-line.success {
+    color: var(--accent-green, #4ce97a);
+}
+
+.terminal-line.error {
+    color: var(--accent-red, #e94c4c);
+}
+
+.terminal-line.warning {
+    color: var(--accent-yellow, #d4e94c);
+}
+
+.terminal-line.progress {
+    color: var(--accent-blue, #4c9ee9);
+}
+
+.progress-log-content::-webkit-scrollbar,
+.terminal-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.progress-log-content::-webkit-scrollbar-track,
+.terminal-content::-webkit-scrollbar-track {
+    background: var(--bg-tertiary, #0d0d14);
+}
+
+.progress-log-content::-webkit-scrollbar-thumb,
+.terminal-content::-webkit-scrollbar-thumb {
+    background: var(--border-color, #1a1a24);
+    border-radius: 3px;
+}
+
+.progress-log-content::-webkit-scrollbar-thumb:hover,
+.terminal-content::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted, #444);
+}

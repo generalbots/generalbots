@@ -1,0 +1,449 @@
+/* =============================================================================
+   TASKS APP
+   Autonomous Task Management Interface
+   Uses CSS variables from theme manager (--bg, --surface, --primary, etc.)
+   ============================================================================= */
+
+/* =============================================================================
+   BASE APP CONTAINER
+   ============================================================================= */
+
+.tasks-app {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 64px);
+    max-height: calc(100vh - 64px);
+    background: var(--bg, #0a0a0a);
+    color: var(--text, #ffffff);
+    font-family: var(--font-family, system-ui, -apple-system, sans-serif);
+    overflow: hidden;
+}
+
+/* Disable ALL scrollbars when tasks app is active - scroll only in task list and progress log */
+html:has(.tasks-app),
+body:has(.tasks-app) {
+    overflow: hidden !important;
+    height: 100vh;
+    max-height: 100vh;
+}
+
+/* Override #main-content scroll when tasks-app is inside */
+#main-content:has(.tasks-app) {
+    overflow: hidden !important;
+    height: calc(100vh - 64px) !important;
+    max-height: calc(100vh - 64px) !important;
+}
+
+.app-main:has(.tasks-app) {
+    overflow: hidden !important;
+}
+
+.tasks-app *,
+.tasks-app *::before,
+.tasks-app *::after {
+    box-sizing: border-box;
+}
+
+/* =============================================================================
+   STATUS FILTER ROW
+   ============================================================================= */
+
+.status-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    background: var(--surface, #111);
+    border-bottom: 1px solid var(--border, #2a2a2a);
+    flex-wrap: wrap;
+}
+
+.filter-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    border-radius: 20px;
+    color: var(--text-secondary, #a1a1a1);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.filter-pill:hover {
+    color: var(--text, #fff);
+}
+
+.filter-pill.active {
+    background: var(--primary-light, rgba(197, 248, 42, 0.15));
+    color: var(--primary, #c5f82a);
+}
+
+.filter-pill .pill-icon {
+    font-size: 14px;
+}
+
+.filter-pill .pill-count {
+    padding: 2px 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.filter-pill.active .pill-count {
+    background: var(--primary-light, rgba(197, 248, 42, 0.2));
+    color: var(--primary, #c5f82a);
+}
+
+.time-saved-badge {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+}
+
+.time-saved-badge .time-label {
+    color: var(--text-secondary, #6b6b6b);
+}
+
+.time-saved-badge .time-value {
+    color: var(--primary, #c5f82a);
+    font-weight: 600;
+}
+
+/* =============================================================================
+   QUICK INTENT BAR
+   ============================================================================= */
+
+.quick-intent-bar {
+    padding: 16px 24px;
+    background: var(--bg, #0a0a0a);
+    border-bottom: 1px solid var(--border, #2a2a2a);
+}
+
+.intent-input-wrapper {
+    display: flex;
+    gap: 12px;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.quick-intent-input {
+    flex: 1;
+    padding: 14px 20px;
+    background: var(--surface, #111);
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 10px;
+    color: var(--text, #fff);
+    font-family: inherit;
+    font-size: 15px;
+    transition: all 0.2s ease;
+}
+
+.quick-intent-input::placeholder {
+    color: var(--text-secondary, #6b6b6b);
+}
+
+.quick-intent-input:focus {
+    outline: none;
+    border-color: var(--primary, #c5f82a);
+    box-shadow: 0 0 0 3px var(--primary-light, rgba(197, 248, 42, 0.15));
+}
+
+.btn-create-run {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 28px;
+    background: var(--success, #22c55e) !important;
+    border: none;
+    border-radius: 10px;
+    color: var(--text, #fff) !important;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px var(--success-light, rgba(34, 197, 94, 0.4));
+}
+
+.btn-create-run:hover {
+    background: var(--success-hover, #16a34a) !important;
+    box-shadow: 0 6px 20px var(--success-light, rgba(34, 197, 94, 0.5));
+    transform: translateY(-1px);
+}
+
+.btn-create-run:active {
+    transform: scale(0.98);
+}
+
+.btn-create-run .spinner {
+    display: none;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(0, 0, 0, 0.3);
+    border-top-color: var(--bg, #000);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+.btn-create-run.htmx-request .btn-text {
+    opacity: 0.6;
+}
+
+.btn-create-run.htmx-request .spinner {
+    display: block;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.intent-result {
+    margin-top: 12px;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.intent-result:empty {
+    display: none;
+}
+
+.intent-result .result-card {
+    background: var(--surface-hover, #141414);
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 10px;
+    padding: 16px 20px;
+}
+
+.intent-result .result-message {
+    font-size: 14px;
+    color: var(--text, #fff);
+    margin-bottom: 12px;
+}
+
+.intent-result .result-success {
+    color: var(--success, var(--success, #22c55e));
+}
+
+.intent-result .result-error {
+    color: var(--error, var(--error, #ef4444));
+}
+
+.intent-result .intent-success {
+    color: var(--success, var(--success, #22c55e));
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--success-light, rgba(34, 197, 94, 0.1));
+    border-radius: 6px;
+    animation: fadeIn 0.3s ease;
+}
+
+.intent-result .intent-error {
+    color: var(--error, var(--error, #ef4444));
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--error-light, rgba(239, 68, 68, 0.1));
+    border-radius: 6px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.intent-result .result-progress {
+    height: 6px;
+    background: var(--surface, #1a1a1a);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.intent-result .result-progress-bar {
+    height: 100%;
+    background: var(--primary, #c5f82a);
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+/* =============================================================================
+   MAIN LAYOUT - TWO COLUMNS
+   ============================================================================= */
+
+.tasks-main {
+    display: flex;
+    flex-direction: row;
+    flex: 1;
+    overflow: hidden;
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+    width: 100%;
+    position: relative;
+}
+
+/* Splitter between panels */
+.tasks-splitter {
+    width: 6px;
+    min-width: 6px;
+    max-width: 6px;
+    flex: 0 0 6px;
+    background: var(--border, #2a2a2a);
+    cursor: col-resize;
+    transition: background 0.2s;
+    position: relative;
+    z-index: 10;
+}
+
+.tasks-splitter:hover {
+    background: var(--primary, #c5f82a);
+}
+
+.tasks-splitter::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 2px;
+    height: 40px;
+    background: var(--text-tertiary, #666);
+    border-radius: 1px;
+}
+
+.tasks-splitter:hover::after {
+    background: var(--bg, #0a0a0a);
+}
+
+/* =============================================================================
+   LEFT PANEL - TASK CARDS LIST
+   ============================================================================= */
+
+.tasks-list-panel {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-right: none;
+    height: 100%;
+    max-height: 100%;
+    min-height: 0;
+    flex: 0 0 280px;
+    width: 280px;
+    background: var(--bg, #0a0a0a);
+}
+
+.tasks-list-scroll {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 12px;
+    padding-right: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* ============================================ */
+/* UNIFORM SCROLLBAR STYLES - ALL SCROLLBARS   */
+/* ============================================ */
+
+/* Firefox scrollbar */
+.tasks-list-scroll,
+.taskmd-progress-content,
+.taskmd-terminal-output,
+.task-detail-panel,
+#task-detail-content {
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary, #c5f82a) var(--surface, #1a1a1a);
+}
+
+/* Webkit scrollbar - uniform style */
+.tasks-list-scroll::-webkit-scrollbar,
+.taskmd-progress-content::-webkit-scrollbar,
+.taskmd-terminal-output::-webkit-scrollbar,
+.task-detail-panel::-webkit-scrollbar,
+#task-detail-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.tasks-list-scroll::-webkit-scrollbar-track,
+.taskmd-progress-content::-webkit-scrollbar-track,
+.taskmd-terminal-output::-webkit-scrollbar-track,
+.task-detail-panel::-webkit-scrollbar-track,
+#task-detail-content::-webkit-scrollbar-track {
+    background: var(--surface, #1a1a1a);
+}
+
+.tasks-list-scroll::-webkit-scrollbar-thumb,
+.taskmd-progress-content::-webkit-scrollbar-thumb,
+.taskmd-terminal-output::-webkit-scrollbar-thumb,
+.task-detail-panel::-webkit-scrollbar-thumb,
+#task-detail-content::-webkit-scrollbar-thumb {
+    background: var(--primary, #c5f82a);
+    border-radius: 4px;
+    border: 2px solid var(--surface, #1a1a1a);
+}
+
+.tasks-list-scroll::-webkit-scrollbar-thumb:hover,
+.taskmd-progress-content::-webkit-scrollbar-thumb:hover,
+.taskmd-terminal-output::-webkit-scrollbar-thumb:hover,
+.task-detail-panel::-webkit-scrollbar-thumb:hover,
+#task-detail-content::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-hover, #d4ff4a);
+}
+
+/* =============================================================================
+   TASK CARDS
+   ============================================================================= */
+
+.task-card {
+    background: var(--surface-hover, #141414);
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 8px;
+    padding: 16px 14px;
+    padding-left: 18px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    min-height: 60px;
+    height: auto;
+}
+
+.task-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 3px;
+    height: 100%;
+    background: var(--text-secondary, #666);
+    transition: background 0.2s ease;
+}
+
+.task-card.status-running::before {
+    background: var(--primary, #c5f82a);
+}

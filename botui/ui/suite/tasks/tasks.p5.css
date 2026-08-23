@@ -1,0 +1,447 @@
+
+@media (max-width: 768px) {
+    .tasks-topbar {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .topbar-right {
+        order: -1;
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    .status-filter-row {
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        gap: 8px;
+        padding: 12px 16px;
+    }
+
+    .filter-pill {
+        flex-shrink: 0;
+    }
+
+    .time-saved-badge {
+        display: none;
+    }
+
+    .quick-intent-bar {
+        padding: 12px 16px;
+    }
+
+    .intent-input-wrapper {
+        flex-direction: column;
+    }
+
+    .btn-create-run {
+        width: 100%;
+    }
+
+    .task-detail-panel.active {
+        width: 100%;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* HTMX Loading States */
+.htmx-request .task-card {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.htmx-request .btn-create-run .btn-text {
+    opacity: 0.5;
+}
+
+.htmx-request .btn-create-run .spinner {
+    display: block;
+}
+
+/* Animation for task cards */
+.task-card {
+    animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* =============================================================================
+   FLOATING PROGRESS PANEL
+   ============================================================================= */
+
+.floating-progress-panel {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 400px;
+    background: var(--surface, #111);
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    z-index: 1000;
+    overflow: hidden;
+    animation: slideInRight 0.3s ease;
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.floating-progress-panel.minimized {
+    width: 300px;
+}
+
+.floating-progress-panel.minimized .floating-progress-body {
+    display: none;
+}
+
+.floating-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--surface-hover, #1a1a1a);
+    border-bottom: 1px solid var(--border, #2a2a2a);
+}
+
+.floating-progress-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text, #fff);
+}
+
+.floating-progress-title .progress-dot {
+    width: 10px;
+    height: 10px;
+    background: var(--primary, #c5f82a);
+    border-radius: 50%;
+    animation: pulse 1.5s infinite;
+}
+
+.floating-progress-title .progress-dot.completed {
+    background: var(--success, var(--success, #22c55e));
+    animation: none;
+}
+
+.floating-progress-title .progress-dot.error {
+    background: var(--error, var(--error, #ef4444));
+    animation: none;
+}
+
+.floating-progress-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.floating-progress-actions button {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary, #6b6b6b);
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.floating-progress-actions button:hover {
+    background: var(--surface-hover, #1f1f1f);
+    color: var(--text, #fff);
+}
+
+.floating-progress-body {
+    padding: 16px;
+}
+
+.floating-progress-bar {
+    height: 8px;
+    background: var(--surface-hover, #1a1a1a);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 12px;
+}
+
+.floating-progress-fill {
+    height: 100%;
+    background: var(--primary, #c5f82a);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.floating-progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.floating-progress-info #floating-progress-step {
+    font-size: 13px;
+    color: var(--text-secondary, #a1a1a1);
+}
+
+.floating-progress-info #floating-progress-percent {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary, #c5f82a);
+    background: var(--primary-light, rgba(197, 248, 42, 0.15));
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.floating-progress-log {
+    max-height: 150px;
+    overflow-y: auto;
+    background: transparent;
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 6px;
+    padding: 8px;
+    font-family: monospace;
+    font-size: 11px;
+}
+
+.floating-progress-log .log-entry {
+    padding: 4px 0;
+    color: var(--text-secondary, #a1a1a1);
+    border-bottom: 1px solid var(--border, #2a2a2a);
+}
+
+.floating-progress-log .log-entry:last-child {
+    border-bottom: none;
+}
+
+.floating-progress-log .log-step {
+    color: var(--primary, #c5f82a);
+    font-weight: 600;
+}
+
+.floating-progress-log .log-details {
+    color: var(--text-secondary, #6b6b6b);
+    font-size: 10px;
+}
+
+/* =============================================================================
+   LLM STREAMING TERMINAL
+   ============================================================================= */
+
+.floating-llm-terminal {
+    max-height: 120px;
+    overflow-y: auto;
+    background: transparent;
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 6px;
+    padding: 8px;
+    margin-top: 8px;
+    font-family: monospace;
+    font-size: 11px;
+    color: var(--text-secondary, #a1a1a1);
+}
+
+.floating-llm-terminal .llm-output {
+    color: var(--primary, #c5f82a);
+    white-space: pre-wrap;
+    word-break: break-word;
+    padding: 2px 0;
+    animation: fadeIn 0.2s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-2px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* =============================================================================
+   ACTIVITY METRICS PANEL
+   ============================================================================= */
+
+.floating-activity-metrics {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 12px;
+    background: var(--surface-hover, #1a1a1a);
+    border-radius: 8px;
+    border: 1px solid var(--border, #2a2a2a);
+}
+
+.metric-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+}
+
+.metric-row.current-item {
+    grid-column: 1 / -1;
+    background: var(--primary-light, rgba(197, 248, 42, 0.1));
+    padding: 6px 8px;
+    border-radius: 4px;
+    margin-top: 4px;
+}
+
+.metric-label {
+    color: var(--text-secondary, #6b6b6b);
+    font-weight: 500;
+}
+
+.metric-value {
+    color: var(--text, #fff);
+    font-weight: 600;
+    font-family: monospace;
+}
+
+.metric-value.phase-analyzing {
+    color: var(--warning, var(--warning, #f59e0b));
+}
+
+.metric-value.phase-parsing {
+    color: var(--info, #3b82f6);
+}
+
+.metric-value.phase-database {
+    color: var(--accent, var(--info, #8b5cf6));
+}
+
+.metric-value.phase-writing {
+    color: var(--primary, #c5f82a);
+}
+
+.metric-value.phase-configuring {
+    color: var(--info, #3b82f6);
+}
+
+.metric-value.phase-tools {
+    color: var(--warning, var(--warning, #f59e0b));
+}
+
+.metric-value.phase-schedulers {
+    color: var(--accent, var(--info, #8b5cf6));
+}
+
+.metric-value.phase-syncing {
+    color: var(--success, var(--success, #22c55e));
+}
+
+.metric-value.phase-completed {
+    color: var(--success, var(--success, #22c55e));
+}
+
+/* =============================================================================
+   TERMINAL-STYLE LOG PANEL
+   ============================================================================= */
+
+.floating-progress-terminal {
+    background: #0d1117;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.terminal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: #161b22;
+    border-bottom: 1px solid #30363d;
+}
+
+.terminal-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: #8b949e;
+    font-family: monospace;
+}
+
+.terminal-status {
+    font-size: 8px;
+    color: #6b6b6b;
+    transition: color 0.3s ease;
+}
+
+.terminal-status.active {
+    color: var(--primary, #c5f82a);
+    animation: pulse 1s infinite;
+}
+
+.terminal-status.completed {
+    color: var(--success, var(--success, #22c55e));
+    animation: none;
+}
+
+.terminal-content {
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 12px;
+    font-family: "JetBrains Mono", "Fira Code", "SF Mono", Consolas, monospace;
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.terminal-content .log-entry {
+    padding: 2px 0;
+    color: #c9d1d9;
+    border-bottom: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.terminal-content .log-time {
+    color: #484f58;
+    margin-right: 8px;
+}
+
+.terminal-content .log-step {
+    color: var(--primary, #c5f82a);
+    font-weight: 600;
+    margin-right: 8px;
+}
+
+.terminal-content .log-current {
+    color: #58a6ff;
+}
+
+.terminal-content .log-progress {
+    color: #8b949e;
+    margin-left: 4px;
+}
+
+.terminal-content .log-bytes {
+    color: #7ee787;
+    margin-left: 4px;
+}
