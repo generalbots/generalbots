@@ -1,5 +1,6 @@
 (function() {
 'use strict';
+if (window.GBAppLifecycle) GBAppLifecycle.begin("tax");
 const API_BASE = '/api/tax';
 const state = {
   nfe: [],

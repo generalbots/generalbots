@@ -1,7 +1,7 @@
 <link rel="stylesheet" href="/suite/tax/tax.css">
   <header class="header">
     <h1>Gestão Fiscal</h1>
-    <div class="header-actions">
+    <div class="gb-app header-actions" data-gb-app="tax">
       <span id="currentDate"></span>
     </div>
   </header>
@@ -236,5 +236,7 @@
 
   <div class="toast" id="toast"></div>
 
-  <script src="/suite/tax/tax.js"></script>
+  <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<script src="/suite/tax/tax.js"></script>
 
