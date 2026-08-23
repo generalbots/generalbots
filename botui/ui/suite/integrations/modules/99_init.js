@@ -13,6 +13,9 @@
     }
 
     namespace.initializeAll = initializeAll;
+    if (typeof namespace.installActionRunner === "function") {
+        namespace.installActionRunner();
+    }
     initializeAll(document);
 
     if (!namespace.htmxInitializerBound) {
