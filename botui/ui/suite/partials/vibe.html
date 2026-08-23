@@ -1,10 +1,14 @@
 <!-- Vibe Window — APP_CREATE Canvas + Agents IDE (Phase 7) -->
 <link rel="stylesheet" href="/suite/vibe/agents-sidebar.css?v=8" />
-<link rel="stylesheet" href="/suite/vibe/vibe.css?v=8" />
-<link rel="stylesheet" href="/suite/vibe/vibe-dialogs.css?v=8" />
+<link rel="stylesheet" href="/suite/vibe/vibe.p1.css?v=1" />
+<link rel="stylesheet" href="/suite/vibe/vibe.p2.css?v=1" />
+<link rel="stylesheet" href="/suite/vibe/vibe-dialogs.p1.css?v=1" />
+<link rel="stylesheet" href="/suite/vibe/vibe-dialogs.p2.css?v=1" />
 <link rel="stylesheet" href="/suite/vibe/vibe-run.css?v=9" />
 
-<div class="vibe-container" id="vibeWindow">
+<div class="vibe-container gb-app" id="vibeWindow" data-gb-app="vibe">
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading Vibe…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Vibe service unavailable</span></div>
 <!-- Ribbon toolbar: each stage tab exposes the big commands for that phase -->
 <div class="vibe-ribbon" id="vibeRibbon">
 <div class="vibe-ribbon-tabs">
@@ -477,7 +481,7 @@ border: none;
 <script src="/suite/vibe/vibe-autotask.js"></script>
 <script src="/suite/vibe/vibe-graph.js?v=5"></script>
 <script src="/suite/vibe/vibe-metrics.js?v=3"></script>
-<script src="/suite/vibe/vibe-run.js?v=8"></script>
+<script src="/suite/vibe/vibe-run.js?v=9"></script>
 <script src="/suite/vibe/vibe-init.js?v=6"></script>
 <script src="/suite/vibe/vibe-deeplink.js"></script>
 <script src="/suite/vibe/vibe-new-project.js?v=6"></script>
