@@ -107,6 +107,12 @@ pub enum AuthStyle {
     ApiKeyHeaders {
         pairs: &'static [(&'static str, &'static str)],
     },
+    /// Bearer token plus fixed companion headers (API version pins such as
+    /// `Notion-Version`).
+    BearerHeaders {
+        token_field: &'static str,
+        headers: &'static [(&'static str, &'static str)],
+    },
 }
 
 /// Origin resolution for providers whose host depends on the credential.
@@ -286,6 +292,16 @@ fn auth_headers_and_query(
             for (header, field) in *pairs {
                 let value = cred_str(credentials, field)?;
                 headers.push((*header, value.to_string()));
+            }
+        }
+        AuthStyle::BearerHeaders {
+            token_field,
+            headers: extra,
+        } => {
+            let token = cred_str(credentials, token_field)?;
+            headers.push(("authorization", format!("Bearer {token}")));
+            for (name, value) in *extra {
+                headers.push((*name, (*value).to_string()));
             }
         }
     }
