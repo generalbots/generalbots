@@ -127,7 +127,7 @@
         } catch (error) {
             if (requestId === state.catalogRequest) {
                 state.catalogStatus = "error";
-                namespace.renderCatalogError(root);
+                namespace.renderCatalogError(root, error);
                 announce(root, "Integration catalog could not be loaded");
             }
         }

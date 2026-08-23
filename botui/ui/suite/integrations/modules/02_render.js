@@ -186,7 +186,7 @@
         namespace.renderCatalogHealth(root);
     };
 
-    namespace.renderCatalogError = function (root) {
+    namespace.renderCatalogError = function (root, failure) {
         var catalog = query(root, "[data-catalog-view]");
         var categories = query(root, "[data-category-filters]");
         categories.innerHTML = "";
@@ -195,7 +195,22 @@
         query(root, "[data-explore-notice]").innerHTML = "";
         query(root, "[data-result-status]").textContent = "Provider catalog unavailable";
         catalog.setAttribute("aria-busy", "false");
-        catalog.innerHTML = stateView("!", "We could not load the catalog", "The provider service did not respond. Connected services remain independent and may still be available.", "retry-catalog", "Try again", true);
+        var status = failure && failure.status;
+        if (status === 401 || status === 403) {
+            var loginUrl = (window.GB_LOGIN_URL || "/login") + "?next=" +
+                encodeURIComponent(location.pathname + location.search);
+            catalog.innerHTML = stateView("!", "Sign in to view the catalog",
+                "Integration catalogs are tenant-scoped and require an authenticated session.",
+                "goto-login", "Sign in", false);
+            var action = catalog.querySelector('[data-action="goto-login"]');
+            if (action) action.addEventListener("click", function () {
+                window.location.href = loginUrl;
+            });
+        } else if (status && status >= 500) {
+            catalog.innerHTML = stateView("!", "We could not load the catalog", "The provider service returned an error. Connected services remain independent and may still be available.", "retry-catalog", "Try again", true);
+        } else {
+            catalog.innerHTML = stateView("!", "We could not load the catalog", "The provider service did not respond. Connected services remain independent and may still be available.", "retry-catalog", "Try again", true);
+        }
         namespace.renderCatalogHealth(root);
     };
 
