@@ -15,6 +15,7 @@ pub struct NewConnection {
     pub secrets: serde_json::Value,
     pub configuration: serde_json::Value,
     pub granted_scopes: Vec<String>,
+    pub visibility: String,
     pub expires_at: Option<DateTime<Utc>>,
 }
 

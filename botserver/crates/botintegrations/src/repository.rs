@@ -28,6 +28,7 @@ pub struct NewConnectionInsert<'a> {
     pub vault_path: &'a str,
     pub granted_scopes: &'a serde_json::Value,
     pub configuration: &'a serde_json::Value,
+    pub visibility: &'a str,
     pub expires_at: Option<DateTime<Utc>>,
 }
 
@@ -81,7 +82,9 @@ pub fn find_active_by_provider(
     Ok(diesel::sql_query(
         "SELECT * FROM integration_connections \
          WHERE provider_slug = $5 AND status = 'active' \
-         AND org_id = $1 AND branch_id = $2 AND bot_id = $3 AND owner_user_id = $4 \
+         AND org_id = $1 AND branch_id = $2 AND bot_id = $3 \
+           AND (owner_user_id = $4 OR visibility = 'branch') \
+         ORDER BY CASE WHEN owner_user_id = $4 THEN 0 ELSE 1 END \
          LIMIT 1",
     )
     .bind::<diesel::sql_types::Uuid, _>(scope.org_id)
@@ -100,8 +103,8 @@ pub fn insert(
 ) -> Result<(), IntegrationError> {
     diesel::sql_query(
         "INSERT INTO integration_connections \
-         (id, org_id, branch_id, bot_id, owner_user_id, provider_slug, display_name, auth_kind, status, vault_path, granted_scopes, configuration, expires_at) \
-         VALUES ($5, $1, $2, $3, $4, $6, $7, $8, 'active', $9, $10, $11, $12)",
+         (id, org_id, branch_id, bot_id, owner_user_id, provider_slug, display_name, auth_kind, status, vault_path, granted_scopes, visibility, configuration, expires_at) \
+         VALUES ($5, $1, $2, $3, $4, $6, $7, $8, 'active', $9, $10, $12, $11, $13)",
     )
     .bind::<diesel::sql_types::Uuid, _>(scope.org_id)
     .bind::<diesel::sql_types::Uuid, _>(scope.branch_id)
@@ -113,6 +116,7 @@ pub fn insert(
     .bind::<diesel::sql_types::Text, _>(new_connection.auth_kind)
     .bind::<diesel::sql_types::Text, _>(new_connection.vault_path)
     .bind::<diesel::sql_types::Jsonb, _>(new_connection.granted_scopes)
+    .bind::<diesel::sql_types::Text, _>(new_connection.visibility)
     .bind::<diesel::sql_types::Jsonb, _>(new_connection.configuration)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(
         new_connection.expires_at,

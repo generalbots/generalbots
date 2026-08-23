@@ -93,6 +93,7 @@ pub async fn create(
         auth_kind: &parsed.auth_kind,
         vault_path: &vault_path,
         granted_scopes: &granted_scopes,
+        visibility: &parsed.visibility,
         configuration: &parsed.configuration,
         expires_at: parsed.expires_at,
     };

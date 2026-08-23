@@ -215,6 +215,11 @@
         return '<section class="integrations-detail-section"><div class="integrations-detail-section-head"><h4>Connect securely</h4>' +
             '<span>Vault-backed</span></div>' +
             '<form class="integrations-connect-form" data-connect-form novalidate>' +
+            '<label class="integrations-connect-field"><span>Visibility</span>' +
+            '<select name="visibility" data-visibility>' +
+            '<option value="private">Only me (private)</option>' +
+            '<option value="branch">Everyone in this branch workspace</option>' +
+            '</select></label>'+
             '<p class="integrations-connect-help">Values travel once over an authenticated request; secret keys are written to the server-side vault and never displayed again.</p>' +
             '<label class="integrations-field"><span class="integrations-field-label"><span>Display name</span>' +
             '<span class="integrations-field-meta"><span>Required</span></span></span>' +
@@ -297,7 +302,8 @@
                     auth_kind: authKindFor(provider),
                     secrets: secrets,
                     configuration: configuration,
-                    granted_scopes: []
+                    granted_scopes: [],
+                    visibility: form.elements.visibility ? form.elements.visibility.value : "private"
                 }
             });
             clearFormInputs(form);
