@@ -1,3 +1,4 @@
+if (window.GBAppLifecycle) GBAppLifecycle.begin("video");
 (function() {
 'use strict';
 const API_BASE = '/api/video';
@@ -197,5 +198,7 @@ loadAll();
 // Re-opening the app re-injects this script; drop any previous poll so
 // closed windows do not keep piling up intervals against a removed DOM.
 if (window.__videoPollTimer) clearInterval(window.__videoPollTimer);
-window.__videoPollTimer = setInterval(loadAlerts, 30000);
+window.__videoPollTimer = window.GBAppLifecycle
+  ? GBAppLifecycle.interval("video", loadAlerts, 30000)
+  : setInterval(loadAlerts, 30000);
 })();
