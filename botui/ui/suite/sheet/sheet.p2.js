@@ -1,5 +1,3 @@
-"use strict";
-/* sheet shell — virtual scrolling for 100k+ rows, all data via Rust endpoints */
 
 (function () {
   const SIDEBAR_TAB_KEY = "sheet_sidebar_tab";

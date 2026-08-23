@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="/suite/sheet/css/07_charts_responsive.css" />
 <link rel="stylesheet" href="/suite/css/collab.css" />
 
-<div class="sheet-app" id="sheet-app" data-touch-target="self" hx-ext="json-enc">
+<div class="gb-app sheet-app" id="sheet-app" data-touch-target="self" hx-ext="json-enc" data-gb-app="sheets">
     <div class="sheet-toolbar">
         <div class="toolbar-left">
             <input type="text" class="sheet-name-input" id="sheetName" value="Untitled Spreadsheet" spellcheck="false" onchange="renameSheet()" />
@@ -113,6 +113,8 @@
     <div class="modal-host" id="modal-container"></div>
 </div>
 
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script>
 /* Load sidebar dynamically from JSON API and render as HTML */
 function _t(key, fallback, params) {
