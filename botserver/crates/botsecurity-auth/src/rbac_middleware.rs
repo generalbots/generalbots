@@ -1073,6 +1073,9 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/auth/login", "POST", "").with_anonymous(true),
         RoutePermission::new("/api/cloud/auth/login", "POST", "").with_anonymous(true),
         RoutePermission::new("/api/cloud/auth/signup", "POST", "").with_anonymous(true),
+        // Cloud dashboard: list the caller's workspace bots (scoped by the
+        // JWT claims inside the handler; any authenticated tenant user).
+        RoutePermission::new("/api/cloud/bots", "GET", ""),
 
         // Client error reporting - anonymous to catch all JS errors
         RoutePermission::new("/api/client-errors", "POST", "").with_anonymous(true),
