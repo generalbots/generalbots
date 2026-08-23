@@ -1,7 +1,7 @@
 <link rel="stylesheet" href="/suite/css/collab.css" />
 <link rel="stylesheet" href="/suite/plan/plan.css" />
 
-<div class="plan-app" id="plan-app" data-touch-target="self">
+<div class="gb-app plan-app" id="plan-app" data-touch-target="self" data-gb-app="plan">
     <div class="plan-toolbar">
         <div class="plan-toolbar-left">
             <input type="text" class="plan-title-input" id="planTitle" value="Meu Plano de Projeto" spellcheck="false" />
@@ -33,6 +33,8 @@
     <div class="modal-host" id="modal-container"></div>
 </div>
 
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script>
 if (typeof htmx === 'undefined') {
     var s = document.createElement('script');
