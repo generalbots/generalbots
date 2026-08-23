@@ -433,9 +433,21 @@
     initAuthEventHandlers: function () {
       var self = this;
 
+      // True when the current document IS a login page. The login host
+      // serves "/login" (not "/auth/"), so both must be checked — without
+      // this, expiry handlers bounce login?expired=1&redirect=<itself>
+      // against themselves and build a self-nesting redirect loop.
+      self.isOnAuthPage = function () {
+        return (
+          window.location.pathname === "/login" ||
+          window.location.pathname.startsWith("/auth/")
+        );
+      };
+
       window.addEventListener("gb:auth:unauthorized", function (event) {
         var isLoginPage =
           window.location.pathname.includes("/auth/") ||
+          window.location.pathname === "/login" ||
           window.location.hash.includes("login");
 
         var isAuthEndpoint =
@@ -459,6 +471,12 @@
       });
 
       window.addEventListener("gb:auth:expired", function (event) {
+        // Never redirect away from the login page itself: re-entering
+        // login?expired=1&redirect=<login url> nests the loop.
+        if (self.isOnAuthPage()) {
+          return;
+        }
+
         // Check if current bot is public - if so, skip redirect
         if (window.__BOT_IS_PUBLIC__ === true) {
           console.log("[GBSecurity] Bot is public, skipping auth redirect");
