@@ -5,7 +5,7 @@
 <link rel="stylesheet" href="/suite/integrations/integrations-detail-content.css">
 <link rel="stylesheet" href="/suite/integrations/integrations-responsive.css">
 
-<div class="integrations-app" data-integrations-app>
+<div class="gb-app integrations-app" data-integrations-app data-gb-app="integrations">
     <div class="integrations-shell">
         <header class="integrations-header">
             <div class="integrations-heading">
@@ -115,6 +115,8 @@
     <div class="integrations-visually-hidden" data-global-live aria-live="polite" aria-atomic="true"></div>
 </div>
 
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script src="/suite/integrations/modules/01_state.js"></script>
 <script src="/suite/integrations/modules/02_render.js"></script>
 <script src="/suite/integrations/modules/03_details.js"></script>
