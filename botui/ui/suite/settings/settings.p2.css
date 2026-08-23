@@ -1,0 +1,203 @@
+.theme-name {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+}
+
+/* Danger Zone */
+.danger-zone {
+    border-color: var(--error);
+}
+
+.danger-zone .settings-card-title {
+    color: var(--error);
+}
+
+.btn-danger {
+    background: var(--error);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.btn-danger:hover {
+    opacity: 0.9;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .settings-container {
+        flex-direction: column;
+    }
+
+    .settings-sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .settings-nav {
+        display: flex;
+        overflow-x: auto;
+        padding: 8px;
+    }
+
+    .settings-nav-item {
+        white-space: nowrap;
+    }
+
+    .settings-main {
+        padding: 16px;
+    }
+}
+
+/* Desktop wallpaper picker */
+.wallpaper-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+  margin-top: 14px;
+}
+.wallpaper-option {
+  position: relative;
+  border: 2px solid #334155;
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  padding: 0;
+  background: transparent;
+  text-align: center;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.wallpaper-option:hover {
+  border-color: #3b82f6;
+  transform: translateY(-2px);
+}
+.wallpaper-option.active {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+}
+.wallpaper-thumb {
+  display: block;
+  height: 84px;
+  background: var(--wall);
+  position: relative;
+}
+.wallpaper-thumb::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--wall-vignette);
+  pointer-events: none;
+}
+.wallpaper-name {
+  display: block;
+  padding: 8px 6px;
+  font-size: 13px;
+  color: #e5e7eb;
+}
+.wallpaper-check {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #3b82f6;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  z-index: 2;
+}
+.wallpaper-option.active .wallpaper-check {
+  opacity: 1;
+}
+
+/* API Keys & Webhooks (issue #889) */
+.api-key-item,
+.webhook-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 10px;
+  margin-bottom: 8px;
+  background: rgba(148, 163, 184, 0.06);
+}
+.api-key-main,
+.webhook-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.api-key-name,
+.webhook-url {
+  font-weight: 600;
+  color: #e5e7eb;
+}
+.api-key-value {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.12);
+  padding: 2px 8px;
+  border-radius: 6px;
+  width: fit-content;
+}
+.api-key-meta,
+.webhook-events {
+  font-size: 12px;
+  color: #94a3b8;
+}
+.api-key-actions,
+.webhook-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.api-key-created,
+.webhook-created {
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  border-radius: 10px;
+  background: rgba(34, 197, 94, 0.08);
+  font-size: 13px;
+}
+.api-key-secret {
+  display: block;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  color: #86efac;
+  word-break: break-all;
+  margin: 8px 0;
+  user-select: all;
+}
+.status-badge.active {
+  background: rgba(34, 197, 94, 0.15);
+  color: #4ade80;
+}
+.status-badge.revoked {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+}
+.status-badge.expired {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+}
+.webhook-deliveries {
+  margin-top: 8px;
+}
+.webhook-deliveries table {
+  width: 100%;
+  font-size: 12px;
+}

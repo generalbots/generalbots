@@ -1,6 +1,6 @@
 <!-- Organizations & Bot Tree Settings Section -->
 <section id="organizations-section" class="settings-section">
-    <div class="section-header">
+    <div class="gb-app section-header" data-gb-app="settings">
         <h1>Organizations & Bots</h1>
         <p class="subtitle">Manage your organizations and bot hierarchy</p>
     </div>
@@ -970,6 +970,8 @@
     }
 </style>
 
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script>
     function toggleOrgDropdown() {
         const selector = document.querySelector(".org-selector");
