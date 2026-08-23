@@ -145,6 +145,7 @@ async fn inner_build_sub_router(
     #[cfg(feature = "chat")]
     {
         sub_router = sub_router.merge(super::chat_handlers::configure_chat_routes().with_state(app_state.clone()));
+        sub_router = sub_router.merge(super::chat_history::configure_chat_history_routes().with_state(app_state.clone()));
     }
 
     sub_router = sub_router.merge(super::misc_handlers::configure_misc_routes().with_state(app_state.clone()));

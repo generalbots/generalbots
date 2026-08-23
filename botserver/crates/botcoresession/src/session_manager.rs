@@ -374,6 +374,35 @@ impl SessionManager {
         Ok(history)
     }
 
+    pub fn get_first_user_message(
+        &mut self,
+        sess_id: Uuid,
+    ) -> Result<Option<String>, Box<dyn Error + Send + Sync>> {
+        let mut conn = self.pool.get()?;
+        let first: Option<String> = message_history::table
+            .filter(message_history::session_id.eq(sess_id))
+            .filter(message_history::role.eq(1))
+            .order(message_history::message_index.asc())
+            .select(message_history::content_encrypted)
+            .first::<String>(&mut conn)
+            .optional()?;
+        let Some(content) = first else {
+            return Ok(None);
+        };
+        let bot_id: Uuid = user_sessions::table
+            .filter(user_sessions::id.eq(sess_id))
+            .select(user_sessions::bot_id)
+            .first(&mut conn)?;
+        let key_bytes = derive_scope_key(&self.master_key, "message", &bot_id);
+        match decrypt_field(&content, &key_bytes) {
+            Ok(decrypted) => Ok(Some(decrypted)),
+            Err(e) => {
+                log::error!("Failed to decrypt session title message: {e}");
+                Ok(Some(content))
+            }
+        }
+    }
+
     pub fn get_user_sessions(
         &mut self,
         uid: Uuid,

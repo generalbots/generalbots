@@ -165,6 +165,9 @@ fn stub_session(
         ) -> Result<Vec<(String, String)>, String> {
             Ok(Vec::new())
         }
+        fn get_first_user_message(&mut self, _session_id: Uuid) -> Result<Option<String>, String> {
+            Ok(None)
+        }
         fn get_session_context_data(
             &self,
             _session_id: &Uuid,
