@@ -49,7 +49,9 @@ pub fn publish_project_schema() -> ToolSchema {
             "properties": {
                 "project_id": { "type": "string", "description": "UUID of the project to publish" },
                 "env": { "type": "string", "enum": ["development", "staging", "production"], "default": "production" },
-                "domain": { "type": "string", "description": "Optional custom domain to bind" }
+                "domain": { "type": "string", "description": "Optional custom domain to bind" },
+                "launcher": { "type": "boolean", "description": "When true, the published app auto-pins to the desktop launcher (desktop category) for workspace users (#1160)." },
+                "widget": { "type": "boolean", "description": "When true, the published app is registered as a desktop widget (always-visible tile) instead of a windowed app (#1160)." }
             },
             "required": ["project_id"]
         }))
@@ -181,6 +183,16 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         .get("domain")
         .and_then(|v| v.as_str())
         .map(ToString::to_string);
+    // #1160 — desktop launch surface: `launcher` auto-pins the app to the
+    // launcher; `widget` marks the app as an always-visible desktop widget.
+    let launcher_requested = args
+        .get("launcher")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let widget_requested = args
+        .get("widget")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
 
     let registry = ProjectRegistry::new(pool.clone());
     let project = registry
@@ -333,6 +345,21 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         .append_deployment(project_id, &deployment)
         .map_err(|e| format!("record deployment: {e}"))?;
 
+    let launch_info = if launcher_requested || widget_requested {
+        let launch = serde_json::json!({
+            "enabled": true,
+            "kind": if widget_requested { "widget" } else { "app" },
+            "at": chrono::Utc::now().to_rfc3339(),
+            "env": env,
+        });
+        registry
+            .set_launcher(project_id, &launch)
+            .map_err(|e| format!("record launcher flag: {e}"))?;
+        Some(launch)
+    } else {
+        None
+    };
+
     let binding = match &domain {
         Some(d) => {
             let bind_req = BindDomainRequest {
@@ -359,6 +386,7 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         "domain": domain,
         "domain_bind": binding,
         "deployment": deployed,
+        "launcher": launch_info,
         "history_key": "deployments"
     }))
 }

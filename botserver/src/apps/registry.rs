@@ -6,6 +6,29 @@
 
 use serde::Serialize;
 
+/// Launch surface of an application. Widgets additionally declare a
+/// [`WidgetSpec`] so the desktop can render them as live tiles.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AppKind {
+    /// Regular app opened as a desktop window (#1160).
+    App,
+    /// Always-visible desktop tile; also windowable and isolable.
+    Widget,
+}
+
+/// Compact render hints for widget-capable apps (#1160).
+#[derive(Debug, Clone, Serialize)]
+pub struct WidgetSpec {
+    /// Full web page rendered in a sandboxed iframe (cross-origin safe).
+    pub url: Option<String>,
+    /// Minimum grid cells, e.g. (2, 2).
+    pub size_w: u16,
+    pub size_h: u16,
+    /// Optional poll interval in seconds; `None` means static.
+    pub refresh_secs: Option<u64>,
+}
+
 #[derive(Debug, Clone, Serialize)]
 pub struct AppDefinition {
     pub id: String,
@@ -16,6 +39,12 @@ pub struct AppDefinition {
     pub description: String,
     pub keywords: String,
     pub icon: String,
+    /// Whether this app is a windowable app or a desktop widget.
+    pub kind: AppKind,
+    /// Widget render spec for `kind == Widget` (and for apps that expose one).
+    pub widget: Option<WidgetSpec>,
+    /// Vibe-published apps may opt in to auto-pin on the launcher (#1160).
+    pub launcher_default: bool,
 }
 
 pub const CATEGORIES: &[(&str, &str)] = &[
@@ -53,7 +82,45 @@ fn app(
         description: description.to_string(),
         keywords: keywords.to_string(),
         icon: icon.to_string(),
+        kind: AppKind::App,
+        widget: None,
+        launcher_default: false,
     }
+}
+
+/// Widget-capable app entry. Widget entries are excluded from the start menu
+/// by the frontend once the catalog carries `kind == "widget"`.
+fn widget_app(
+    id: &str,
+    title: &str,
+    category: &str,
+    color: &str,
+    url: &str,
+    description: &str,
+    keywords: &str,
+    icon: &str,
+    spec: WidgetSpec,
+) -> AppDefinition {
+    AppDefinition {
+        id: id.to_string(),
+        title: title.to_string(),
+        category: category.to_string(),
+        color: color.to_string(),
+        url: url.to_string(),
+        description: description.to_string(),
+        keywords: keywords.to_string(),
+        icon: icon.to_string(),
+        kind: AppKind::Widget,
+        widget: Some(spec),
+        launcher_default: false,
+    }
+}
+
+/// Marks a published app to auto-pin on the launcher when the frontend first
+/// sees it (Vibe `publish` with `launcher: true`, #1160).
+pub fn with_launcher_default(mut definition: AppDefinition) -> AppDefinition {
+    definition.launcher_default = true;
+    definition
 }
 
 pub fn all_apps() -> Vec<AppDefinition> {

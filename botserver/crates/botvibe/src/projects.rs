@@ -280,6 +280,25 @@ impl ProjectRegistry {
         Ok(())
     }
 
+    /// #1160 — Records the desktop launch surface of a published project
+    /// (`{enabled, kind: app|widget, at, env}`) in `vibe_projects.payload`
+    /// under the `launcher` key. The desktop launcher reads it to auto-pin
+    /// apps published with `launcher: true`.
+    pub fn set_launcher(&self, id: Uuid, spec: &serde_json::Value) -> Result<(), String> {
+        let mut conn = self.conn()?;
+        diesel::sql_query(
+            "UPDATE vibe_projects
+             SET payload = jsonb_set(payload, '{launcher}', $2::jsonb),
+                 updated_at = NOW()
+             WHERE id = $1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(id)
+        .bind::<diesel::sql_types::Jsonb, _>(spec)
+        .execute(&mut conn)
+        .map_err(|e| format!("set launcher: {e}"))?;
+        Ok(())
+    }
+
     /// #772 — Deployment history for a project, newest first, optionally
     /// filtered by environment. Reads the `deployments` jsonb array that
     /// `append_deployment` accumulates in `vibe_projects.payload`.
