@@ -106,6 +106,10 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
             // prefix only exposes the exact-token download handler, nothing
             // else under /api/files.
             .add_anonymous_path("/api/files/public")
+            // Integration OAuth2 callback: the provider browser redirect
+            // carries no JWT; the HMAC-signed state parameter is the
+            // authenticity proof (verified inside the handler).
+            .add_anonymous_path("/api/bots/*/integrations/oauth/*/callback")
         )
     };
 

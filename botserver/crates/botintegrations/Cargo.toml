@@ -24,4 +24,6 @@ serde_json = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["sync", "time"] }
 urlencoding = { workspace = true }
-uuid = { workspace = true, features = ["v4", "serde"] }
+uuid = { workspace = true, features = ["v4", "v7", "serde"] }
+hmac = { workspace = true }
+sha2 = { workspace = true }

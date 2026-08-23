@@ -197,6 +197,18 @@
 
     function renderConnectSection(provider, uid) {
         var authKind = authKindFor(provider);
+        var botId = (namespace.context && namespace.context.botId) || "";
+        if (authKind === "oauth2") {
+            if (!botId) return null;
+            var startUrl = "/api/bots/" + encodeURIComponent(botId) +
+                "/integrations/oauth/" + encodeURIComponent(provider.id) + "/start?return_to=/integrations";
+            return '<section class="integrations-detail-section"><div class="integrations-detail-section-head"><h4>Connect securely</h4>' +
+                '<span>OAuth 2.0</span></div>' +
+                '<p class="integrations-connect-help">Authorization happens on the provider consent screen; the exchanged token is written to the server-side vault and never displayed again.</p>' +
+                '<a class="integrations-button" data-oauth-start href="' + namespace.escapeHtml(startUrl) + '">Authorize ' +
+                namespace.escapeHtml(provider.name || provider.id) + '</a>' +
+                '</section>';
+        }
         if (!authKind || !connectInputs(provider, uid)) {
             return null;
         }

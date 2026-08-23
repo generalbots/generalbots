@@ -64,6 +64,14 @@ pub fn configure_connection_routes() -> Router<Arc<IntegrationState>> {
             get(handlers_context::context),
         )
         .route(
+            "/api/bots/:bot_id/integrations/oauth/:provider/start",
+            get(crate::oauth::start),
+        )
+        .route(
+            "/api/bots/:bot_id/integrations/oauth/:provider/callback",
+            get(crate::oauth::callback),
+        )
+        .route(
             "/api/apps/integrations/mentions",
             get(handlers_mentions::mentions),
         )
