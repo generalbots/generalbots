@@ -1,4 +1,5 @@
 (function(){
+if (window.GBAppLifecycle) GBAppLifecycle.begin("retail");
 var state={branches:[],stock:[],promos:[],suppliers:[],topProducts:[],currentTab:'dashboard',currentBranch:'all'};
 
 function showFeedback(msg,type){
