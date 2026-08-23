@@ -424,3 +424,72 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ── Left-edge gripper: always-visible ON/OFF handle for the bar ── */
+.gb-sidebar-gripper {
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 76px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: pointer;
+  z-index: 2100;
+  border-radius: 8px 0 0 8px;
+  background: var(--surface, rgba(20, 22, 35, 0.85));
+  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.14));
+  border-right: none;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.25);
+  transition: background 140ms, width 140ms;
+}
+
+.chat-sidebar {
+  position: relative;
+}
+
+.gb-sidebar-gripper:hover,
+.gb-sidebar-gripper:focus-visible {
+  width: 20px;
+  background: var(--win-caption-hover, rgba(255, 255, 255, 0.12));
+  outline: none;
+}
+
+.gb-gripper-dots {
+  display: grid;
+  grid-template-columns: repeat(2, 3px);
+  gap: 2px;
+}
+
+.gb-gripper-dots i {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--text-secondary, #98a);
+}
+
+.gb-sidebar-gripper:hover .gb-gripper-dots i {
+  background: var(--text, #eee);
+}
+
+.gb-gripper-chev {
+  font-size: 11px;
+  line-height: 1;
+  color: var(--text-secondary, #98a);
+  transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.chat-sidebar.collapsed .gb-gripper-chev {
+  transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gb-sidebar-gripper,
+  .gb-gripper-chev {
+    transition: none;
+  }
+}
