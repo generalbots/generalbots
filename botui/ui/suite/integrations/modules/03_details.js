@@ -146,6 +146,9 @@
             var badges = actionPill(risk, "") +
                 actionPill(action.requires_approval === true ? "Approval required" : "No approval", "") +
                 actionPill(action.implemented === true ? "Implemented" : "Planned", action.implemented === true ? "is-must" : "");
+            var runButton = action.implemented === true ?
+                '<button class="integrations-button integrations-button-subtle integrations-run-button" type="button" data-run-action="' +
+                namespace.escapeHtml(action.name) + '" data-provider-slug="' + namespace.escapeHtml(provider.id) + '">Run</button>' : "";
             var detailParts = params.map(function (param) {
                 var name = namespace.text(param.name || param.key, "parameter");
                 var type = namespace.text(param.type, "value");
@@ -156,7 +159,7 @@
             }).join("");
             return '<article class="integrations-action"><div class="integrations-action-head">' +
                 '<div class="integrations-action-title"><span class="integrations-action-verb">' + namespace.escapeHtml(verb) + '</span>' +
-                '<strong>' + namespace.escapeHtml(title) + '</strong></div><div class="integrations-action-badges">' + badges + '</div></div>' +
+                '<strong>' + namespace.escapeHtml(title) + '</strong></div><div class="integrations-action-badges">' + badges + runButton + '</div></div>' +
                 (action.summary ? '<p>' + namespace.escapeHtml(action.summary) + '</p>' : '') +
                 (detailParts ? '<details class="integrations-action-details"><summary>Parameters and surfaces</summary><div class="integrations-param-list">' + detailParts + '</div></details>' : '') +
                 '</article>';

@@ -24,6 +24,7 @@ use crate::scope::ConnectionScope;
 use crate::state::IntegrationState;
 
 pub mod aws;
+pub mod generic;
 pub mod github;
 pub mod rest_client;
 pub mod stripe;
@@ -203,13 +204,19 @@ pub fn redact_credentials(value: &Value) -> Value {
     }
 }
 
-/// Adapters available in this build. Slice 1 shipped AWS; slice 2 adds the
-/// GitHub and Stripe JSON REST adapters sharing `rest_client`.
+/// Adapters available in this build. Slice 1 shipped AWS; slice 2 added the
+/// GitHub and Stripe JSON REST adapters; the generic declarative engine now
+/// serves token/key/basic providers from static specifications.
 pub fn registry() -> Vec<Arc<dyn ProviderAdapter>> {
     vec![
         Arc::new(aws::AwsAdapter),
         Arc::new(github::GithubAdapter),
         Arc::new(stripe::StripeAdapter),
+        Arc::new(generic::GenericAdapter::new(&generic::simple::ZENDESK_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::simple::TRELLO_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::simple::MAILCHIMP_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::simple::MERCURY_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::simple::WHOP_SPEC)),
     ]
 }
 

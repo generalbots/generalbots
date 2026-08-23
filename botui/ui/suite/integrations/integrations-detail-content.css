@@ -245,3 +245,67 @@
     color: var(--integrations-faint);
     font-size: 11px;
 }
+
+/* Action runner (#939 wave) */
+.integrations-run-button {
+    margin-left: 0.35rem;
+}
+
+.integrations-runner {
+    margin-top: 0.75rem;
+    padding: 0.85rem;
+    border: 1px solid var(--integrations-border, rgba(148, 163, 184, 0.28));
+    border-radius: 12px;
+    background: var(--integrations-surface-soft, rgba(148, 163, 184, 0.08));
+}
+
+.integrations-run-grid {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.integrations-run-field {
+    display: grid;
+    gap: 0.3rem;
+    font-size: 0.8rem;
+    color: var(--integrations-text-muted, #64748b);
+}
+
+.integrations-run-field input,
+.integrations-run-field textarea {
+    font: inherit;
+    color: inherit;
+    padding: 0.45rem 0.6rem;
+    border-radius: 8px;
+    border: 1px solid var(--integrations-border, rgba(148, 163, 184, 0.35));
+    background: var(--integrations-surface, #fff);
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.integrations-run-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.7rem;
+}
+
+.integrations-run-outcome {
+    margin-top: 0.8rem;
+}
+
+.integrations-run-summary {
+    font-weight: 600;
+    margin-bottom: 0.4rem;
+}
+
+.integrations-run-data {
+    max-height: 320px;
+    overflow: auto;
+    font-size: 0.78rem;
+    line-height: 1.45;
+    border-radius: 10px;
+    padding: 0.7rem;
+    background: var(--integrations-code-bg, rgba(15, 23, 42, 0.06));
+    white-space: pre-wrap;
+    word-break: break-word;
+}

@@ -55,6 +55,52 @@ const TOKEN_FIELDS: &[AuthField] = &[field(
     "Stored in the secrets vault",
 )];
 
+const ZENDESK_TOKEN_FIELDS: &[AuthField] = &[
+    field(
+        "subdomain",
+        "Zendesk Subdomain",
+        InputType::Text,
+        false,
+        true,
+        "acme (from acme.zendesk.com)",
+    ),
+    field(
+        "email",
+        "Account Email",
+        InputType::Text,
+        false,
+        true,
+        "agent@company.com",
+    ),
+    field(
+        "token",
+        "API Token",
+        InputType::Password,
+        true,
+        true,
+        "Stored in the secrets vault",
+    ),
+];
+
+const TRELLO_KEY_TOKEN_FIELDS: &[AuthField] = &[
+    field(
+        "key",
+        "API Key",
+        InputType::Password,
+        true,
+        true,
+        "From trello.com/power-ups/admin",
+    ),
+    field(
+        "token",
+        "Member Token",
+        InputType::Password,
+        true,
+        true,
+        "Generated next to the API key",
+    ),
+];
+
 const BASIC_FIELDS: &[AuthField] = &[
     field(
         "username",
@@ -170,6 +216,20 @@ pub(crate) static TOKEN: AuthProfile = AuthProfile {
     fields: TOKEN_FIELDS,
     instructions: "Create a dedicated access token and store it in the secrets vault. Tokens are never exposed to the LLM.",
     least_privilege: "Grant only scopes needed by enabled actions and use an expiry when the provider supports one.",
+};
+
+pub(crate) static ZENDESK_TOKEN: AuthProfile = AuthProfile {
+    method: AuthMethod::Token,
+    fields: ZENDESK_TOKEN_FIELDS,
+    instructions: "In Zendesk Admin Center create an API token, then provide your tenant subdomain, account email and the token. All three are required for Basic {email}/token authentication over TLS.",
+    least_privilege: "Use a dedicated agent account whose role covers only ticket operations enabled here.",
+};
+
+pub(crate) static TRELLO_KEY_TOKEN: AuthProfile = AuthProfile {
+    method: AuthMethod::ApiKey,
+    fields: TRELLO_KEY_TOKEN_FIELDS,
+    instructions: "Create a Power-Up (or use your developer API key) on trello.com and generate a member token for it. Both the key and the token are stored in the secrets vault.",
+    least_privilege: "Scope the token to read or write only the boards used by the enabled actions.",
 };
 
 pub(crate) static BASIC: AuthProfile = AuthProfile {
