@@ -3,7 +3,7 @@ use super::super::actions::{
     FILE_ACTIONS, FORM_ACTIONS, KNOWLEDGE_ACTIONS, MAIL_ACTIONS, MEETING_ACTIONS,
     MESSAGING_ACTIONS, PROJECT_ACTIONS, SIGNATURE_ACTIONS, SPREADSHEET_ACTIONS, TASK_ACTIONS,
 };
-use super::super::auth::{API_KEY, GOOGLE_OAUTH2, IMAP, MICROSOFT_OAUTH2, OAUTH2, TOKEN, UNKNOWN};
+use super::super::auth::{API_KEY, GOOGLE_OAUTH2, IMAP, MICROSOFT_OAUTH2, OAUTH2, TRELLO_KEY_TOKEN, UNKNOWN};
 use super::super::types::{Category, Priority, ProviderSeed, Status, Strategy};
 use super::provider;
 
@@ -173,7 +173,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         Priority::Nice,
         None,
         Some("https://developer.atlassian.com/cloud/trello/rest/"),
-        &TOKEN,
+        &TRELLO_KEY_TOKEN,
         PROJECT_ACTIONS,
     ),
     provider(

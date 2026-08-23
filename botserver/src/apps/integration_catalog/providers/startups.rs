@@ -2,7 +2,7 @@ use super::super::actions::{
     AUTOMATION_ACTIONS, BANKING_ACTIONS, CRM_ACTIONS, FINANCE_OPERATIONS_ACTIONS, HR_ACTIONS,
     MARKETING_ACTIONS, SEO_ACTIONS, SUPPORT_ACTIONS,
 };
-use super::super::auth::{API_KEY, BASIC, GOOGLE_OAUTH2, OAUTH2, TOKEN, UNKNOWN};
+use super::super::auth::{API_KEY, BASIC, GOOGLE_OAUTH2, OAUTH2, TOKEN, UNKNOWN, ZENDESK_TOKEN};
 use super::super::types::{Category, Priority, ProviderSeed, Status, Strategy};
 use super::provider;
 
@@ -196,7 +196,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         Priority::Nice,
         None,
         Some("https://developer.zendesk.com/api-reference/"),
-        &TOKEN,
+        &ZENDESK_TOKEN,
         SUPPORT_ACTIONS,
     ),
     provider(
