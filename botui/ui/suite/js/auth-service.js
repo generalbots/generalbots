@@ -348,6 +348,14 @@
     }
 
     handleTokenExpired() {
+      // Already on a login page? Redirecting would nest
+      // login?expired=1&redirect=<itself> into an infinite loop.
+      if (
+        window.location.pathname === "/login" ||
+        window.location.pathname.startsWith("/auth/")
+      ) {
+        return;
+      }
       this.clearAuth();
       this.emit("tokenExpired");
 
