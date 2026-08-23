@@ -1,3 +1,4 @@
+if (window.GBAppLifecycle) GBAppLifecycle.begin("compliance");
 (function() {
     var checks = [];
     var issues = [];
