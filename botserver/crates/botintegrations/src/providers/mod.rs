@@ -319,6 +319,7 @@ pub fn registry() -> Vec<Arc<dyn ProviderAdapter>> {
         Arc::new(generic::GenericAdapter::new(&generic::devplatform::GRAIN_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::devplatform::DESCRIPT_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::devplatform::GWSADMIN_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::devplatform::GCLOUD_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::finplatform::SNOWFLAKE_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::finplatform::ROBINHOOD_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::finplatform::EXPENSIFY_SPEC)),
