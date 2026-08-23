@@ -1,0 +1,300 @@
+/* ============================================ */
+/* GB FLUENT — Widget content styles (#1160)    */
+/* Inner cards for clock, calendar, resources,  */
+/* calculator, notes, todo and battery widgets  */
+/* ============================================ */
+
+/* ── System widget inner cards (clock / calendar / resources) ── */
+.gb-system-widget {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px;
+  text-align: center;
+  color: var(--text, #eee);
+  font-family: "Fira Code", "Fira Sans", monospace;
+}
+
+.gb-widget-clock-time {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.1;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+.gb-widget-clock-date {
+  font-size: 12px;
+  color: var(--text-secondary, #bbb);
+}
+
+.gb-widget-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  width: 100%;
+  padding: 6px;
+}
+
+.gb-widget-calendar-cell {
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  color: var(--text, #ddd);
+}
+
+.gb-widget-calendar-cell:hover {
+  background: var(--win-caption-hover, rgba(255, 255, 255, 0.1));
+}
+
+.gb-widget-calendar-cell.today {
+  background: var(--primary, var(--accent, #84d669));
+  color: #06120a;
+  font-weight: 700;
+}
+
+.gb-widget-calendar-cell.other {
+  color: var(--text-tertiary, #556);
+}
+
+.gb-widget-meters {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gb-widget-meter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.gb-widget-meter-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--win-caption-hover, rgba(255, 255, 255, 0.12));
+  overflow: hidden;
+}
+
+.gb-widget-meter-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--primary, #84d669), var(--accent, #84d669));
+  transition: width 400ms ease;
+}
+
+/* ── Calculator widget ── */
+.gb-wcalc {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  outline: none;
+}
+
+.gb-wcalc-screen {
+  background: var(--surface-hover, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.12));
+  border-radius: 8px;
+  padding: 6px 10px;
+  text-align: right;
+}
+
+.gb-wcalc-expr {
+  width: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text, #eee);
+  font-family: "Fira Code", monospace;
+  font-size: 15px;
+  text-align: right;
+}
+
+.gb-wcalc-preview {
+  min-height: 14px;
+  font-size: 12px;
+  color: var(--text-secondary, #9ba);
+}
+
+.gb-wcalc-pad {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 4px;
+}
+
+.gb-wcalc-key {
+  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.1));
+  background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+  color: var(--text, #ddd);
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 0;
+  min-height: 26px;
+  transition: background 120ms;
+}
+
+.gb-wcalc-key:hover {
+  background: var(--win-caption-hover, rgba(255, 255, 255, 0.14));
+}
+
+.gb-wcalc-key[data-key="="] {
+  background: var(--primary, #84d669);
+  color: #06120a;
+  font-weight: 700;
+}
+
+/* ── Notes widget ── */
+.gb-wnotes {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gb-wnotes-text {
+  flex: 1;
+  resize: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--text, #eee);
+  font-family: "Fira Code", monospace;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.gb-wnotes-foot,
+.gb-wtodo-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-secondary, #999);
+}
+
+/* ── Todo widget ── */
+.gb-wtodo-add {
+  width: 100%;
+}
+
+.gb-wtodo-input {
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.12));
+  background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+  color: var(--text, #eee);
+  font-size: 12px;
+  outline: none;
+}
+
+.gb-wtodo-input:focus {
+  border-color: var(--primary, #84d669);
+}
+
+.gb-wtodo-list {
+  flex: 1;
+  width: 100%;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.gb-wtodo-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 3px 5px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.gb-wtodo-item:hover {
+  background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+}
+
+.gb-wtodo-item.done .gb-wtodo-text {
+  text-decoration: line-through;
+  color: var(--text-secondary, #888);
+}
+
+.gb-wtodo-text {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* ── Battery widget ── */
+.gb-wbatt {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gb-wbatt-level {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.gb-wbatt-track {
+  flex: 1;
+  height: 10px;
+  border-radius: 5px;
+  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.18));
+  padding: 1px;
+}
+
+.gb-wbatt-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--primary, #84d669), #22c55e);
+  transition: width 400ms ease;
+}
+
+.gb-wbatt-fill.low {
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+}
+
+.gb-wbatt-fill.charging {
+  background: linear-gradient(90deg, #22c55e, #84d669);
+}
+
+.gb-wbatt-pct {
+  font-size: 16px;
+  font-weight: 700;
+  min-width: 42px;
+  text-align: right;
+}
+
+.gb-wbatt-state {
+  font-size: 11px;
+  color: var(--text-secondary, #999);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gb-widget,
+  .taskbar-pinned-item {
+    transition: none;
+  }

@@ -18,6 +18,9 @@
         <link rel="stylesheet" href="/suite/css/desktop/taskbar.css?v=1" />
         <link rel="stylesheet" href="/suite/css/desktop/sidebar.css?v=4" />
         <link rel="stylesheet" href="/suite/css/desktop/start-menu.css?v=1" />
+        <link rel="stylesheet" href="/suite/css/desktop/widgets.css?v=1" />
+        <link rel="stylesheet" href="/suite/css/desktop/widgets-content.css?v=1" />
+        <link rel="stylesheet" href="/suite/css/desktop/sidebar-enhance.css?v=1" />
 
         <!-- Local JS requirements per AGENTS.md / UI.md -->
         <script src="/suite/js/vendor/htmx.min.js"></script>
@@ -34,6 +37,12 @@
         
         <link rel="stylesheet" href="/suite/css/mindfulness.css?v=1" />
         <script src="/suite/js/app-lifecycle.js?v=1"></script>
+        <script src="/suite/js/widget-renderer.js?v=1"></script>
+        <script src="/suite/js/widget-registry.js?v=1"></script>
+        <script src="/suite/js/pinned-launcher.js?v=1"></script>
+        <script src="/suite/js/sidebar-enhance.js?v=2"></script>
+        <script src="/suite/js/sidebar-sections.js?v=1"></script>
+        <script src="/suite/js/sidebar-history.js?v=1"></script>
 
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -401,7 +410,14 @@
                         '<span>Refresh</span></div>' +
                         '<div class="desktop-context-item" onclick="window.WindowManager && window.WindowManager.toggleStartMenu()">' +
                         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>' +
-                        '<span>Start Menu</span></div>';
+                        '<span>Start Menu</span></div>' +
+                        '<div class="desktop-context-separator"></div>' +
+                        '<div class="desktop-context-item" onclick="window.GBWidgets && window.GBWidgets.openPicker(event)">' +
+                        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>' +
+                        '<span>Add widget…</span></div>' +
+                        '<div class="desktop-context-item" onclick="window.GBWidgets && window.GBWidgets.addWebPrompt()">' +
+                        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>' +
+                        '<span>Add web page widget…</span></div>';
                     document.body.appendChild(menu);
                     document.addEventListener("click", closeDesktopMenu);
                 }
@@ -441,6 +457,16 @@
                 var workspace = document.getElementById("desktop-content");
                 if (workspace) window.Desktop3D.init(workspace);
             }
+
+            // Widget pane + pinned launcher (#1160)
+            (function () {
+                if (window.GBWidgets) {
+                    window.GBWidgets.init(document.getElementById("desktop-content"));
+                }
+                if (window.GBPinnedLauncher) {
+                    window.GBPinnedLauncher.init();
+                }
+            })();
 
             // Listen for auth state changes
             function initAuthUI() {

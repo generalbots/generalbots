@@ -1,0 +1,56 @@
+<link rel="stylesheet" href="/suite/calculator/calculator.p1.css?v=1" />
+
+<div class="gb-calc" id="gb-calc-root">
+    <div class="gb-calc-main">
+        <div class="gb-calc-toolbar">
+            <div class="gb-calc-tabs" role="tablist">
+                <button type="button" class="gb-calc-tab active" data-tab="standard">Standard</button>
+                <button type="button" class="gb-calc-tab" data-tab="scientific">Scientific</button>
+                <button type="button" class="gb-calc-tab" data-tab="convert">Convert</button>
+            </div>
+            <div class="gb-calc-tools">
+                <button type="button" class="gb-calc-tool" id="gb-calc-angle" title="Toggle angle unit">DEG</button>
+                <button type="button" class="gb-calc-tool" id="gb-calc-memory-indicator" title="Calculator memory">M</button>
+                <button type="button" class="gb-calc-tool" id="gb-calc-copy" title="Copy result">Copy</button>
+                <button type="button" class="gb-calc-tool" id="gb-calc-history-btn" title="Toggle history">History</button>
+            </div>
+        </div>
+
+        <div class="gb-calc-screen">
+            <input id="gb-calc-expr" class="gb-calc-expr" type="text" autocomplete="off"
+                   spellcheck="false" aria-label="Expression" placeholder="0" />
+            <div id="gb-calc-preview" class="gb-calc-preview">&nbsp;</div>
+        </div>
+
+        <div id="gb-calc-sci" class="gb-calc-pad gb-calc-sci" hidden></div>
+
+        <div id="gb-calc-pad" class="gb-calc-pad gb-calc-standard"></div>
+
+        <div id="gb-calc-converter" class="gb-calc-converter" hidden>
+            <select id="gb-calc-conv-cat" class="gb-calc-select" aria-label="Category"></select>
+            <div class="gb-calc-conv-row">
+                <input id="gb-calc-conv-amt" class="gb-calc-input" type="text" value="1" aria-label="Amount" />
+                <select id="gb-calc-conv-from" class="gb-calc-select" aria-label="From unit"></select>
+            </div>
+            <button type="button" class="gb-calc-key gb-calc-swap" id="gb-calc-conv-swap" title="Swap units">⇅</button>
+            <div class="gb-calc-conv-row">
+                <div id="gb-calc-conv-out" class="gb-calc-input gb-calc-conv-result">—</div>
+                <select id="gb-calc-conv-to" class="gb-calc-select" aria-label="To unit"></select>
+            </div>
+        </div>
+    </div>
+
+    <aside id="gb-calc-history" class="gb-calc-history" hidden>
+        <div class="gb-calc-history-head">
+            <span>History</span>
+            <button type="button" class="gb-calc-tool" id="gb-calc-history-clear">Clear</button>
+        </div>
+        <ul id="gb-calc-history-list" class="gb-calc-history-list"></ul>
+    </aside>
+</div>
+
+<script src="/suite/js/calculator-engine.js?v=1"></script>
+<script src="/suite/calculator/modules/01_state.js?v=1"></script>
+<script src="/suite/calculator/modules/02_render.js?v=1"></script>
+<script src="/suite/calculator/modules/03_events.js?v=1"></script>
+<script src="/suite/calculator/modules/99_init.js?v=1"></script>

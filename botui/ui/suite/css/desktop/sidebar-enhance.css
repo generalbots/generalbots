@@ -1,0 +1,290 @@
+/* ============================================ */
+/* GB FLUENT — Sidebar Enhancements (#1161)     */
+/* Pinned bar, workspace cards, quick files,    */
+/* quick actions, rich user card, conv grouping */
+/* ============================================ */
+
+/* ── Section wrapper ── */
+.gb-side-sec {
+  padding: 0 8px 10px;
+  border-bottom: 1px solid var(--shell-border, rgba(255, 255, 255, 0.08));
+  flex-shrink: 0;
+}
+
+.gb-side-sec-title {
+  padding: 12px 6px 6px;
+}
+
+.gb-side-sec-body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* ── 1. Pinned apps bar ── */
+.gb-side-pins {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 2px 6px;
+}
+
+.gb-side-pin {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  cursor: pointer;
+  color: var(--text-secondary, #aaa);
+  border: 1px solid transparent;
+  transition: background 130ms, color 130ms, transform 130ms;
+  position: relative;
+}
+
+.gb-side-pin:hover {
+  background: var(--win-caption-hover, rgba(255, 255, 255, 0.1));
+  color: var(--text, #eee);
+  transform: translateY(-1px);
+}
+
+.gb-side-pin.dragging {
+  opacity: 0.4;
+}
+
+.gb-side-pin-icon {
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gb-side-pin-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke: currentColor;
+}
+
+.gb-side-pin-plus {
+  border: 1px dashed var(--shell-border, rgba(255, 255, 255, 0.22));
+  color: var(--primary, var(--accent, #84d669));
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.gb-side-pin-plus:hover {
+  border-color: var(--primary, var(--accent, #84d669));
+  color: var(--primary, var(--accent, #84d669));
+}
+
+/* ── 2. Workspace cards ── */
+.gb-side-ws-card {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  cursor: pointer;
+  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.1));
+  background: var(--surface-hover, rgba(255, 255, 255, 0.03));
+  transition: background 140ms, border-color 140ms;
+  user-select: none;
+}
+
+.gb-side-ws-card:hover {
+  background: var(--win-caption-hover, rgba(255, 255, 255, 0.08));
+}
+
+.gb-side-ws-card.active {
+  border-color: var(--accent, var(--primary, #84d669));
+  background: rgba(132, 214, 105, 0.08);
+}
+
+.gb-side-ws-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+  flex-shrink: 0;
+}
+
+.gb-side-ws-card.active .gb-side-ws-dot {
+  background: var(--accent, var(--primary, #84d669));
+  box-shadow: 0 0 8px var(--accent, var(--primary, #84d669));
+}
+
+.gb-side-ws-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text, #ddd);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+  flex: 1;
+}
+
+.gb-side-ws-desc {
+  font-size: 10px;
+  color: var(--text-secondary, #777);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+.gb-side-ws-add {
+  border-style: dashed;
+  color: var(--text-secondary, #888);
+  font-size: 12px;
+  justify-content: center;
+}
+
+/* ── 3. Conversation search + grouping ── */
+.gb-conv-search {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 10px 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.1));
+  color: var(--text-secondary, #888);
+}
+
+.gb-conv-search svg {
+  flex-shrink: 0;
+  color: var(--text-secondary, #888);
+}
+
+.gb-conv-search input {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text, #eee);
+  font-size: 12px;
+  font-family: inherit;
+}
+
+.gb-conv-search input::placeholder {
+  color: var(--text-tertiary, #556);
+}
+
+.gb-conv-group-title {
+  margin-top: 4px;
+}
+
+/* ── 4. Quick files ── */
+.gb-file-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 130ms;
+  min-width: 0;
+}
+
+.gb-file-item:hover {
+  background: var(--win-caption-hover, rgba(255, 255, 255, 0.08));
+}
+
+.gb-file-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: var(--primary, var(--accent, #84d669));
+  font-size: 13px;
+}
+
+.gb-file-name {
+  font-size: 12px;
+  color: var(--text, #ccc);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── 5. Quick actions ── */
+.gb-side-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 2px 6px;
+}
+
+.gb-side-action {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.18));
+  background: transparent;
+  color: var(--text-secondary, #bbb);
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 130ms;
+}
+
+.gb-side-action:hover {
+  background: var(--primary, var(--accent, #84d669));
+  border-color: var(--primary, var(--accent, #84d669));
+  color: #111;
+}
+
+/* ── 6. Rich user card ── */
+.chat-sidebar-user {
+  flex-wrap: wrap;
+}
+
+.gb-user-meta {
+  flex: 1;
+  min-width: 0;
+  font-size: 11px;
+  color: var(--text-secondary, #777);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 2px;
+}
+
+.gb-user-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+  font-size: 0;
+  flex-shrink: 0;
+}
+
+.gb-user-dot:not(:empty) {
+  width: auto;
+  height: auto;
+  border-radius: 999px;
+  padding: 1px 8px;
+  background: rgba(34, 197, 94, 0.18);
+  color: #4ade80;
+  font-size: 10px;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+/* ── Collapsed rail keeps the original icons (leave intact) ── */
+/* ── Reduced motion ── */
+@media (prefers-reduced-motion: reduce) {
+  .gb-side-pin,
+  .gb-side-ws-card,
+  .gb-side-action {
+    transition: none;
+  }
+}

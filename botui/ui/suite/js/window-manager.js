@@ -100,20 +100,26 @@ if (typeof window.WindowManager === "undefined") {
       icon: '<path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>' },
     { id: "minutes", title: "Minutes", category: "office", color: "#8b5cf6", hxGet: "/suite/minutes/minutes.html",
       icon: '<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>' },
-     { id: "sheet", title: "Sheets", category: "office", color: "#0f9d58", hxGet: "/suite/sheet/sheet.html",
+    { id: "sheet", title: "Sheets", category: "office", color: "#0f9d58", hxGet: "/suite/sheet/sheet.html",
       icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>' },
+    { id: "calculator", title: "Calculator", category: "system", color: "#0ea5e9", hxGet: "/suite/calculator/calculator.html",
+      icon: '<rect x="5" y="2" width="14" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8.01" y1="11" x2="8" y2="11"/><line x1="12.01" y1="11" x2="12" y2="11"/><line x1="16.01" y1="11" x2="16" y2="11"/><line x1="8.01" y1="15" x2="8" y2="15"/><line x1="12.01" y1="15" x2="12" y2="15"/><line x1="16.01" y1="15" x2="16" y2="15"/><line x1="8.01" y1="19" x2="8" y2="19"/><line x1="12.01" y1="19" x2="12" y2="19"/><line x1="16.01" y1="19" x2="16" y2="19"/>' },
+    { id: "clockapp", title: "Clock", category: "office", color: "#06b6d4", hxGet: "/suite/clock/clock.html",
+      icon: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' },
   ];
 
   window.APPS_REGISTRY = APPS_REGISTRY;
 
-  // Load the authoritative catalog from the backend and keep the embedded
-  // registry as an offline fallback. Launchers read window.APPS_REGISTRY.
+  // Load the authoritative catalog from the backend and MERGE it with the
+  // embedded registry: backend entries win on id conflicts, while
+  // embedded-only apps (true offline fallback, e.g. Calculator) survive a
+  // catalog load. Launchers read window.APPS_REGISTRY.
   (function loadAppsCatalog() {
     fetch("/api/apps/catalog")
       .then(function (r) { if (!r.ok) throw new Error("catalog unavailable"); return r.json(); })
       .then(function (data) {
         if (!data || !Array.isArray(data.apps) || !data.apps.length) return;
-        window.APPS_REGISTRY = data.apps
+        var merged = data.apps
           .filter(function (a) { return a.enabled !== false && a.compiled !== false; })
           .map(function (a) {
             return {
@@ -126,6 +132,12 @@ if (typeof window.WindowManager === "undefined") {
               icon: a.icon,
             };
           });
+        var known = {};
+        merged.forEach(function (a) { known[a.id] = true; });
+        APPS_REGISTRY.forEach(function (a) {
+          if (!known[a.id]) merged.push(a);
+        });
+        window.APPS_REGISTRY = merged;
       })
       .catch(function () { /* keep embedded fallback */ });
   })();
@@ -649,6 +661,22 @@ if (typeof window.WindowManager === "undefined") {
         const body = document.getElementById(`window-body-${appId}`);
         if (body) this._injectBodyContent(appId, `<div style="padding:20px"><h3>${title}</h3><p>Application loading...</p></div>`);
       });
+    }
+
+    // Issue #1160: isolated launch — open the app in its own top-level tab
+    // with a fresh context. Deep-link params travel via the URL query string.
+    openIsolated(appId, params) {
+      const app = (window.APPS_REGISTRY || APPS_REGISTRY).find((a) => a.id === appId);
+      let url = app ? app.hxGet : `/suite/partials/${appId}.html`;
+      const qs = Object.keys(params || {}).map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`).join("&");
+      const sep = url.indexOf("?") === -1 ? "?" : "&";
+      url = url + sep + (qs ? qs + "&" : "") + "isolated=1";
+      window.open(url, "_blank", "noopener");
+    }
+
+    // Registry lookup helper shared by launchers and the widget pane.
+    getApp(appId) {
+      return (window.APPS_REGISTRY || APPS_REGISTRY).find((a) => a.id === appId) || null;
     }
   }
 

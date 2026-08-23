@@ -1,0 +1,75 @@
+<div class="gb-system-widget" data-gb-widget="clock">
+  <div class="gb-widget-clock-time">--:--</div>
+  <div class="gb-widget-clock-date"></div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var root = document.currentScript
+    ? document.currentScript.closest(".gb-widget")
+    : null;
+  var timeEl = null;
+  var dateEl = null;
+  var timer = null;
+
+  function render() {
+    var now = new Date();
+    if (!timeEl || !dateEl) return;
+    timeEl.textContent = now.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    dateEl.textContent = now.toLocaleDateString([], {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
+  }
+
+  function stop() {
+    if (timer) {
+      clearInterval(timer);
+      timer = null;
+    }
+  }
+
+  function start() {
+    stop();
+    render();
+    timer = setInterval(render, 1000);
+  }
+
+  // Boot: the widget body may or may not be in the DOM when this script runs.
+  function boot() {
+    var host = root || document.querySelector(".gb-widget");
+    if (!host) return;
+    timeEl = host.querySelector(".gb-widget-clock-time");
+    dateEl = host.querySelector(".gb-widget-clock-date");
+    start();
+  }
+
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    boot();
+  } else {
+    document.addEventListener("DOMContentLoaded", boot);
+  }
+
+  // Pause when the tab is hidden; resume on visible.
+  document.addEventListener("visibilitychange", function () {
+    if (document.hidden) stop();
+    else boot();
+  });
+
+  if (root) {
+    root.addEventListener(
+      "gb-widget-remove",
+      function () {
+        stop();
+      },
+      { once: true }
+    );
+  }
+})();
+</script>
