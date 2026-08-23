@@ -1,5 +1,6 @@
 (function () {
     'use strict';
+if (window.GBAppLifecycle) GBAppLifecycle.begin("database");
 
     var DB = window.DB;
 
