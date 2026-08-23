@@ -1,5 +1,5 @@
 <!-- Paper - Single Page Actionable Notes -->
-<div class="paper-app" id="paper-app">
+<div class="gb-app paper-app" id="paper-app" data-gb-app="paper">
     <!-- Header -->
     <header class="paper-header">
         <div class="header-left">
@@ -251,3 +251,5 @@
     <div hx-get="./partials/03_modal_history.html" hx-trigger="load" hx-swap="outerHTML"></div>
     <div hx-get="./partials/04_modal_settings.html" hx-trigger="load" hx-swap="outerHTML"></div>
 </div>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>

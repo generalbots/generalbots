@@ -1,7 +1,7 @@
 <link rel="stylesheet" href="/suite/paper/paper.css" />
 
 <!-- Paper - AI Writing & Notes -->
-<div class="paper-container" id="paper-app">
+<div class="gb-app paper-container" id="paper-app" data-gb-app="paper">
     <!-- 01_sidebar.html (sibling of main) -->
     <div hx-get="/suite/paper/partials/01_sidebar.html" hx-trigger="load" hx-swap="outerHTML"></div>
 
@@ -23,4 +23,6 @@
     <div hx-get="/suite/paper/partials/07_export_modal.html" hx-trigger="load" hx-swap="outerHTML"></div>
 </div>
 <link rel="stylesheet" href="/suite/paper/paper.css" />
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script src="/suite/paper/paper.js"></script>

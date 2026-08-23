@@ -1,3 +1,4 @@
+if (window.GBAppLifecycle) GBAppLifecycle.begin("paper");
 
     (function () {
         const editor = document.getElementById("editor-content");
