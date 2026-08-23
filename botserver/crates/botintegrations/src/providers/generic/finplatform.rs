@@ -3,7 +3,7 @@
 //! Lightspeed X-Series (#1030). Read-mostly surfaces with conservative
 //! action sets; write actions are flagged High risk.
 
-use super::helpers::{json, s, s_req};
+use super::helpers::{json, resource_id, s, s_req};
 use super::{ActionSpec, AuthStyle, Origin, ParamKind, ParamSpec, ProviderSpec, Risk};
 
 // ── Snowflake ────────────────────────────────────────────────────
@@ -307,4 +307,62 @@ pub const LIGHTSPEED_X_SPEC: ProviderSpec = ProviderSpec {
     },
     actions: LIGHTSPEED_X_ACTIONS,
     action_keys: LIGHTSPEED_X_KEYS,
+};
+
+// ── Rippling (HR) ────────────────────────────────────────────────
+
+const RIPPLING_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "rippling.employees.list",
+        method: "GET",
+        path: "/api/v1/employees",
+        summary: "Listed employees.",
+        path_params: &[],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[],
+    },
+    ActionSpec {
+        key: "rippling.employees.get",
+        method: "GET",
+        path: "/api/v1/employees/{resource_id}",
+        summary: "Fetched an employee profile.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &resource_id(),
+    },
+    ActionSpec {
+        key: "rippling.timeoffs.list",
+        method: "GET",
+        path: "/api/third-party/time-off-requests",
+        summary: "Listed time-off requests.",
+        path_params: &[],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[],
+    },
+];
+
+const RIPPLING_KEYS: &[&str] = &[
+    "rippling.employees.list",
+    "rippling.employees.get",
+    "rippling.timeoffs.list",
+];
+
+pub const RIPPLING_SPEC: ProviderSpec = ProviderSpec {
+    slug: "rippling",
+    origin: Origin::Static("https://api.rippling.com"),
+    auth: AuthStyle::BasicTemplate {
+        user_template: "{api_token}",
+        password_field: "password",
+    },
+    actions: RIPPLING_ACTIONS,
+    action_keys: RIPPLING_KEYS,
 };
