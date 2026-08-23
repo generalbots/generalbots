@@ -1,3 +1,4 @@
+if (window.GBAppLifecycle) GBAppLifecycle.begin("o365");
 (function(){
 var state={sharepointSites:[],calendarEvents:[],onedriveFiles:[],currentTab:'sharepoint',currentFolder:'root',folderStack:['root']};
 
