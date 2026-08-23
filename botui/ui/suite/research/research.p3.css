@@ -1,0 +1,50 @@
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .sources-panel {
+        position: absolute;
+        right: 0;
+        top: 60px;
+        bottom: 0;
+        z-index: 50;
+    }
+}
+
+@media (max-width: 768px) {
+    .research-sidebar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 60;
+        transform: translateX(-100%);
+    }
+
+    .research-sidebar.open {
+        transform: translateX(0);
+    }
+
+    .search-header {
+        padding: 16px;
+    }
+
+    .search-input-wrapper {
+        padding: 12px 16px;
+    }
+
+    .suggestions-panel {
+        padding: 20px 16px;
+    }
+
+    .suggestion-cards {
+        grid-template-columns: 1fr;
+    }
+
+    .sources-preview-list {
+        grid-template-columns: 1fr;
+    }
+
+    .sources-panel {
+        width: 100%;
+    }
+}
