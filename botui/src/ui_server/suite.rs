@@ -43,10 +43,41 @@ fn urlencoding(s: &str) -> String {
     s.chars().fold(String::new(), |mut acc, c| {
         match c {
             'a'..='z' | 'A'..='Z' | '0'..='9' | '-' | '_' | '.' | '~' => acc.push(c),
-            _ => acc.push_str(&format!("%{:02X}", c as u8)),
+            _ => acc.push_str(&format!("%{:02X}", c as u32)),
         }
         acc
     })
+}
+
+/// Platform domain for SaaS subdomain mode (parameterized for self-hosting).
+/// `{bot}.{platform}` serves the bot named `{bot}`; override with the
+/// `GB_PLATFORM_DOMAIN` env var when self-hosting under a different domain.
+fn platform_domain() -> String {
+    std::env::var("GB_PLATFORM_DOMAIN")
+        .unwrap_or_else(|_| "generalbots.org".to_string())
+        .to_lowercase()
+}
+
+/// True when `host` is the platform apex or any subdomain of it.
+fn is_platform_host(host: &str) -> bool {
+    let d = platform_domain();
+    host == d || host.ends_with(&format!(".{d}"))
+}
+
+/// Extract the bot name from a `{bot}.{platform}` host.
+/// `None` for the apex and reserved service hosts (chat., www., …) —
+/// those serve the default bot.
+fn platform_subdomain_bot(host: &str) -> Option<String> {
+    let d = platform_domain();
+    let sub = host.strip_suffix(&format!(".{d}"))?.to_lowercase();
+    const RESERVED: &[&str] = &[
+        "chat", "www", "api", "app", "bot", "docs", "store", "cloud", "login",
+        "admin", "mail", "smtp", "imap", "ns1", "ns2",
+    ];
+    if sub.is_empty() || RESERVED.contains(&sub.as_str()) {
+        return None;
+    }
+    Some(sub)
 }
 
 pub async fn index(
@@ -89,10 +120,14 @@ pub async fn index(
         })
         .map(|s| s.to_string());
 
-    // If no bot in URL path and we have a domain, try to resolve it
+    // If no bot in URL path and we have a domain, resolve it. Platform
+    // subdomains ({bot}.{GB_PLATFORM_DOMAIN}) resolve locally with no API
+    // call; custom domains go through the botserver domain API.
     if bot_name.is_none() {
         if let Some(ref host) = domain_resolved_bot {
-            if let Some(resolved) = resolve_bot_from_host(&state, host).await {
+            if let Some(sub) = platform_subdomain_bot(host) {
+                bot_name = Some(sub);
+            } else if let Some(resolved) = resolve_bot_from_host(&state, host).await {
                 bot_name = Some(resolved);
             }
         }
@@ -104,21 +139,27 @@ pub async fn index(
     let is_suite_dir = bot_name.as_ref().is_some_and(|b| suite_dirs.contains(&b.as_str()));
 
     // Suite dirs (vibe, project, database, …) are apps, not bots. Resolve the
-    // real bot from the domain (e.g. chat.pragmatismo.com.br -> pragmatismo);
-    // otherwise fall back to "default" so API/WebSocket calls target a real bot.
+    // real bot from the domain: platform subdomains ({bot}.{GB_PLATFORM_DOMAIN})
+    // resolve locally (apex/reserved hosts serve "default"); custom domains go
+    // through the domain API with a subdomain-parts fallback
+    // (e.g. chat.pragmatismo.com.br -> pragmatismo when bot_domains is empty).
     if is_suite_dir {
         let mut resolved = None;
         if let Some(ref host) = domain_resolved_bot {
-            resolved = resolve_bot_from_host(&state, host).await;
-            if resolved.is_none() {
-                // Fallback: derive the bot from the chat subdomain, e.g.
-                // chat.pragmatismo.com.br -> pragmatismo (bot_domains may be empty).
-                let parts: Vec<&str> = host.split('.').collect();
-                if parts.len() >= 2 {
-                    resolved = match parts[0] {
-                        "chat" | "www" | "bot" | "app" => Some(parts[1].to_string()),
-                        _ => Some(parts[0].to_string()),
-                    };
+            if is_platform_host(host) {
+                resolved = Some(platform_subdomain_bot(host).unwrap_or_else(|| "default".to_string()));
+            } else {
+                resolved = resolve_bot_from_host(&state, host).await;
+                if resolved.is_none() {
+                    // Fallback: derive the bot from the chat subdomain, e.g.
+                    // chat.pragmatismo.com.br -> pragmatismo (bot_domains may be empty).
+                    let parts: Vec<&str> = host.split('.').collect();
+                    if parts.len() >= 2 {
+                        resolved = match parts[0] {
+                            "chat" | "www" | "bot" | "app" => Some(parts[1].to_string()),
+                            _ => Some(parts[0].to_string()),
+                        };
+                    }
                 }
             }
         }
@@ -286,7 +327,9 @@ pub async fn index(
 
     if bot_name.is_none() {
         if let Some(ref host) = domain_resolved_bot {
-            if let Some(resolved) = resolve_bot_from_host(&state, host).await {
+            if let Some(sub) = platform_subdomain_bot(host) {
+                bot_name = Some(sub);
+            } else if let Some(resolved) = resolve_bot_from_host(&state, host).await {
                 bot_name = Some(resolved);
             }
         }

@@ -239,8 +239,26 @@ fn wildcard_matches(pattern: &str, host: &str) -> bool {
     }
 }
 
+/// Platform domain for SaaS subdomain mode (parameterized for self-hosting).
+/// `{bot}.{platform_domain}` serves the bot named `{bot}` without requiring a
+/// `bot_domains` row. Override with the `GB_PLATFORM_DOMAIN` env var when
+/// self-hosting under a different domain.
+pub fn platform_domain() -> String {
+    std::env::var("GB_PLATFORM_DOMAIN")
+        .unwrap_or_else(|_| "generalbots.org".to_string())
+        .to_lowercase()
+}
+
+/// Reserved platform subdomains that never map to a bot by name — they host
+/// platform services (suite entry, store, docs, …) and serve the default bot.
+const PLATFORM_RESERVED_SUBDOMAINS: &[&str] = &[
+    "chat", "www", "api", "app", "bot", "docs", "store", "cloud", "login",
+    "admin", "mail", "smtp", "imap", "ns1", "ns2",
+];
+
 /// `GET /api/domains/resolve?host=<host>` — resolve hostname to bot name (public).
-/// Tries exact match first, then wildcard match against `*.domain` patterns.
+/// Match order: exact `bot_domains` row → platform subdomain
+/// (`{bot}.{GB_PLATFORM_DOMAIN}`) → wildcard `*.domain` patterns.
 pub async fn resolve_domain(
     State(service): State<Arc<SaasService>>,
     axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
@@ -286,6 +304,28 @@ pub async fn resolve_domain(
                 "found": false, "error": "Bot not found for the mapped domain"
             }))),
         };
+    }
+
+    // Step 1.5: platform subdomain mode — `{bot}.{GB_PLATFORM_DOMAIN}` serves
+    // the bot named `{bot}` with no bot_domains row (SaaS publishing default).
+    // Reserved hosts (chat., www., …) fall through so callers use the default bot.
+    let pdomain = platform_domain();
+    if let Some(sub) = host.strip_suffix(&format!(".{pdomain}")) {
+        let sub = sub.to_lowercase();
+        if !sub.is_empty() && !PLATFORM_RESERVED_SUBDOMAINS.contains(&sub.as_str()) {
+            let row: Option<BotNameRow> = diesel::sql_query(
+                "SELECT name FROM bots WHERE LOWER(name) = $1 AND is_active = true LIMIT 1",
+            )
+            .bind::<diesel::sql_types::Text, _>(sub)
+            .get_result(&mut conn)
+            .optional()
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query: {e}")))?;
+            if let Some(r) = row {
+                return Ok(Json(serde_json::json!({
+                    "found": true, "bot_name": r.name, "match_type": "platform_subdomain",
+                })));
+            }
+        }
     }
 
     // Step 2: wildcard match for `*.domain` patterns — fetch all wildcard domains and test

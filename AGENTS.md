@@ -204,7 +204,7 @@ result = DETECT "folha_salarios"   ' Analyze table for anomalies (requires table
 {bucket} default.gbai/
 ├── default.gbdialog/   # scripts: start.bas, {tool}.bas, tables.bas
 ├── default.gbkb/       # knowledge base docs
-├── default.gbot/       # config.csv (non-sensitive LLM config; secrets → Vault)
+├── default.gbot/       # bot config (LLM settings → Vault)
 └── default.gbdrive/    # files/reports (optional)
 ```
 
@@ -249,34 +249,34 @@ DRIVE_PORT=$($VAULT_BIN kv get -field=port secret/gbo/drive)
 /tmp/mc mb local/{bot}.gbai && /tmp/mc cp --recursive botserver-stack/data/system/work/{bot}.gbai/ local/{bot}.gbai/  # Upload bot
 ```
 
-### 🔧 LLM Configuration — config.csv + Vault (secrets migrated)
-**Location (non-sensitive):** `local/{bot}.gbai/{bot}.gbot/config.csv`
-**Location (secrets):** Vault per-bot path `secret/gbo/{org_id}/{branch_id}/{bot_id}`
+### 🔧 LLM Configuration — Vault (single source of truth)
+**Location (ALL LLM settings):** Vault per-bot path `secret/gbo/{org_id}/{branch_id}/{bot_id}`
+**Global fallback:** `secret/gbo/llm` (read at boot for the base provider)
 
 | Field | Where it lives | Description |
 |-------|----------------|-------------|
-| `llm-url` | config.csv | Full URL for chat completions |
-| `llm-server` | config.csv | Base server URL |
-| `llm-key` | **Vault only** (sensitive — `is_sensitive_key`) | API key for the LLM provider |
-| `llm-model` | config.csv | Model identifier |
-| `llm-provider` | config.csv | Provider type |
-| `system-prompt` | config.csv | Bot personality/instructions |
-| `history-limit` | config.csv | Conversation history turns |
+| `llm-url` | **Vault** | Full URL for chat completions |
+| `llm-server` | **Vault** | Base server URL |
+| `llm-key` | **Vault** | API key for the LLM provider |
+| `llm-model` | **Vault** | Model identifier |
+| `llm-provider` | **Vault** | Provider type |
+| `system-prompt` | **Vault** | Bot personality/instructions |
+| `history-limit` | **Vault** | Conversation history turns |
 
-**How it works:** 1) drive_monitor syncs non-sensitive config.csv keys into the `bot_configuration` table (sensitive keys — e.g. `llm-key` — are IGNORED: "secrets must be configured via Vault"). 2) Per-bot config via `ConfigManager::get_config()`: sensitive keys → Vault per-bot path → DB fallback → env; non-sensitive → DB → env. 3) Falls back to env vars `LLM_URL`/`LLM_MODEL`/`LLM_KEY`. 4) Provider auto-detected from URL pattern.
+**How it works:** 1) All LLM settings are read from Vault via `ConfigManager::get_config()` (per-bot path → nil path → global `secret/gbo/llm`). 2) Falls back to env vars `LLM_URL`/`LLM_MODEL`/`LLM_KEY` only when Vault has no value. 3) Provider auto-detected from URL pattern.
 
-**Update model (non-sensitive):**
-```bash
-/tmp/mc cp local/{bot}.gbai/{bot}.gbot/config.csv /tmp/config.csv
-sed -i 's/llm-model,.*/llm-model,<desired-model>/' /tmp/config.csv
-/tmp/mc cp /tmp/config.csv local/{bot}.gbai/{bot}.gbot/config.csv   # auto-reloads
-```
-
-**Set LLM key (Vault):**
+**Update LLM settings (Vault):**
 ```bash
 export VAULT_ADDR=<vault-addr> VAULT_SKIP_VERIFY=true VAULT_TOKEN=<root-token>
 # resolve org/branch from: SELECT org_id, branch_id FROM bots WHERE name = '<bot>';
-vault kv put secret/gbo/<org_id>/<branch_id>/<bot_id> llm-key=<api-key>
+vault kv put secret/gbo/<org_id>/<branch_id>/<bot_id> \
+  llm-url=<chat-completions-url> llm-model=<model> llm-key=<api-key>
+# Restart botserver to apply (provider is built at boot).
+```
+
+**Set global fallback (used when a bot has no per-bot entry):**
+```bash
+vault kv put secret/gbo/llm url=<chat-completions-url> model=<model> openai_key=<api-key>
 ```
 
 ---
@@ -832,12 +832,23 @@ All crates MUST use `Some(...)` when the corresponding feature is active:
 
 ---
 
-## 🌐 Domain Management — Custom DNS → Bot Mapping
+## 🌐 Domain Management — Platform Subdomains + Custom DNS → Bot Mapping
 
-**Managed in cloud manager UI** (`/domains` on port 4000, admin-only via super admin check). Associates hostnames (e.g. `chat.generalbots.org`) with specific bots.
+**Managed in cloud manager UI** (`/domains` on port 4000, admin-only via super admin check). Associates hostnames (e.g. `chat.pragmatismo.com.br`) with specific bots.
+
+### Subdomain Mode (SaaS publishing default — parameterized)
+Every published bot is reachable at `{botname}.{GB_PLATFORM_DOMAIN}` (default `generalbots.org`) — no `bot_domains` row, no custom domain purchase needed. Same bot as the URL-path mode `/botname`.
+
+- **Resolution (botui, local — no API call):** `suite.rs` extracts the subdomain for any `*.{GB_PLATFORM_DOMAIN}` host; apex + reserved hosts (`chat.`, `www.`, `api.`, `docs.`, `store.`, …) serve the **default** bot.
+- **Resolution (botserver API):** `GET /api/domains/resolve` matches exact `bot_domains` row → platform subdomain (`match_type: "platform_subdomain"`) → wildcard `*.domain` row.
+- **Parameterized:** set `GB_PLATFORM_DOMAIN` (botserver **and** botui env) when self-hosting under a different platform domain. Default `generalbots.org`.
+- **DNS:** wildcard record `*.{platform} → server IP` (CoreDNS zone) + Caddy site block per exposed host (or wildcard cert via DNS-01). New bot = **zero** infra change.
+
+### Custom Domain Mode
+Users with their own domain add a `bot_domains` row (Domain Manager UI) + point DNS at the server.
 
 ### How It Works
-User visits `chat.generalbots.org` (proxied to port 3000): botui reads `Host` header → calls `GET /api/domains/resolve?host=...` (public, no auth) → botserver looks up `bot_domains` table → if found returns `{ found: true, bot_name, bot_id, org_id, branch_id }` → botui injects into `window.__INITIAL_BOT_NAME__` (same as URL path resolution) → fallback to URL path extraction.
+User visits a chat host (proxied to port 3000): botui reads `Host` header → platform subdomain resolved locally; otherwise calls `GET /api/domains/resolve?host=...` (anonymous — UI server resolves before any user auth) → botserver looks up `bot_domains` table → if found returns `{ found: true, bot_name, bot_id, org_id, branch_id }` → botui injects into `window.__INITIAL_BOT_NAME__` (same as URL path resolution) → fallback to URL path extraction.
 
 ### Database
 **Table:** `bot_domains` (migration `6.5.18-bot-domains`)
@@ -845,7 +856,7 @@ User visits `chat.generalbots.org` (proxied to port 3000): botui reads `Host` he
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | UUID PK | Unique identifier |
-| `domain` | VARCHAR(255) UNIQUE | The hostname (e.g. `chat.generalbots.org`) |
+| `domain` | VARCHAR(255) UNIQUE | The hostname (e.g. `chat.pragmatismo.com.br`) |
 | `bot_id` | UUID FK → bots | Which bot this domain routes to |
 | `org_id` | UUID FK → organizations (optional) | Org scope for multi-tenant |
 | `branch_id` | UUID FK → branches (optional) | Branch scope for multi-tenant |
@@ -858,7 +869,7 @@ User visits `chat.generalbots.org` (proxied to port 3000): botui reads `Host` he
 | `POST` | `/api/cloud/domains` | JWT + super admin | Create mapping |
 | `PUT` | `/api/cloud/domains/{id}` | JWT + super admin | Update mapping |
 | `DELETE` | `/api/cloud/domains/{id}` | JWT + super admin | Delete mapping |
-| `GET` | `/api/domains/resolve?host=` | **Auth required** | Resolve hostname → bot name (bearer token; docs previously said public — behavior now matches auth-required) |
+| `GET` | `/api/domains/resolve?host=` | Anonymous | Resolve hostname → bot name (exact → platform subdomain → wildcard) |
 
 ### Files Changed
 | File | Change |
