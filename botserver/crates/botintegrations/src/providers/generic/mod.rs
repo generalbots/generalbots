@@ -20,6 +20,7 @@ use crate::providers::rest_client::{self, RestRequest, MAX_RESPONSE_BYTES};
 use crate::providers::{ActionOutcome, LlmSafeAction, LlmSafeParam, ProviderAdapter};
 
 pub mod batch2;
+pub mod batch3;
 pub mod simple;
 
 use base64::Engine as _;
@@ -103,6 +104,12 @@ pub enum Origin {
     ZendeskSubdomain,
     /// Mailchimp: data center suffix of the API key selects the host.
     MailchimpDataCenter,
+    /// Credential-supplied base URL (`{value}` placeholder), restricted to
+    /// https so a hostile envelope cannot downgrade transport.
+    FromField {
+        field: &'static str,
+        pattern: &'static str,
+    },
 }
 
 /// One executable provider action.
@@ -190,6 +197,16 @@ fn resolve_origin(spec: &ProviderSpec, credentials: &Value) -> Result<String, St
                 ));
             }
             Ok(format!("https://{dc}.api.mailchimp.com/3.0"))
+        }
+        Origin::FromField { field, pattern } => {
+            let value = cred_str(credentials, field)?;
+            let origin = pattern.replace("{value}", value);
+            if !origin.starts_with("https://") {
+                return Err(invalid(
+                    "credential key base_url must be an https URL".to_string(),
+                ));
+            }
+            Ok(origin)
         }
     }
 }
