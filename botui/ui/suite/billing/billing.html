@@ -3,7 +3,7 @@
 
 <link rel="stylesheet" href="/suite/billing/billing.css" />
 
-<div class="billing-container">
+<div class="billing-container gb-app" data-gb-app="billing">
     <!-- Header -->
     <header class="billing-header">
         <div class="billing-header-left">
@@ -96,203 +96,10 @@
     <div id="billing-search-results" class="billing-search-results"></div>
 
     <!-- Summary Cards -->
-    <div class="billing-summary">
-        <div class="summary-card">
-            <div class="summary-icon pending">
-                <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-                    <circle cx="12" cy="12" r="10" />
-                    <polyline points="12 6 12 12 16 14" />
-                </svg>
-            </div>
-            <div class="summary-info">
-                <span class="summary-label" data-i18n="billing-pending"
-                    >Pending</span
-                >
-                <span
-                    class="summary-value"
-                    hx-get="/api/ui/billing/stats/pending"
-                    hx-trigger="load"
-                    >$0</span
-                >
-            </div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-icon overdue">
-                <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-                    <path
-                        d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-                    />
-                    <line x1="12" y1="9" x2="12" y2="13" />
-                    <line x1="12" y1="17" x2="12.01" y2="17" />
-                </svg>
-            </div>
-            <div class="summary-info">
-                <span class="summary-label" data-i18n="billing-overdue"
-                    >Overdue</span
-                >
-                <span
-                    class="summary-value overdue"
-                    hx-get="/api/ui/billing/stats/overdue"
-                    hx-trigger="load"
-                    >$0</span
-                >
-            </div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-icon paid">
-                <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                    <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-            </div>
-            <div class="summary-info">
-                <span class="summary-label" data-i18n="billing-paid-month"
-                    >Paid This Month</span
-                >
-                <span
-                    class="summary-value paid"
-                    hx-get="/api/ui/billing/stats/paid-month"
-                    hx-trigger="load"
-                    >$0</span
-                >
-            </div>
-        </div>
-        <div class="summary-card">
-            <div class="summary-icon total">
-                <svg
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                >
-                    <line x1="12" y1="1" x2="12" y2="23" />
-                    <path
-                        d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"
-                    />
-                </svg>
-            </div>
-            <div class="summary-info">
-                <span class="summary-label" data-i18n="billing-revenue-month"
-                    >Revenue This Month</span
-                >
-                <span
-                    class="summary-value"
-                    hx-get="/api/ui/billing/stats/revenue-month"
-                    hx-trigger="load"
-                    >$0</span
-                >
-            </div>
-        </div>
-    </div>
+<div id="billingSummarySlot"></div>
 
     <!-- Invoices View (Default) -->
-    <div id="billing-invoices-view" class="billing-view active">
-        <div class="billing-list-header">
-            <div class="list-filters">
-                <select
-                    hx-get="/api/ui/billing/invoices"
-                    hx-trigger="change"
-                    hx-target="#invoices-table-body"
-                    hx-include="this"
-                    name="status"
-                >
-                    <option value="all" data-i18n="billing-filter-all">
-                        All Invoices
-                    </option>
-                    <option value="draft" data-i18n="billing-filter-draft">
-                        Draft
-                    </option>
-                    <option value="sent" data-i18n="billing-filter-sent">
-                        Sent
-                    </option>
-                    <option value="paid" data-i18n="billing-filter-paid">
-                        Paid
-                    </option>
-                    <option value="overdue" data-i18n="billing-filter-overdue">
-                        Overdue
-                    </option>
-                    <option
-                        value="cancelled"
-                        data-i18n="billing-filter-cancelled"
-                    >
-                        Cancelled
-                    </option>
-                </select>
-                <select
-                    hx-get="/api/ui/billing/invoices"
-                    hx-trigger="change"
-                    hx-target="#invoices-table-body"
-                    hx-include="this"
-                    name="period"
-                >
-                    <option value="all" data-i18n="billing-period-all">
-                        All Time
-                    </option>
-                    <option value="month" data-i18n="billing-period-month">
-                        This Month
-                    </option>
-                    <option value="quarter" data-i18n="billing-period-quarter">
-                        This Quarter
-                    </option>
-                    <option value="year" data-i18n="billing-period-year">
-                        This Year
-                    </option>
-                </select>
-            </div>
-            <div class="list-actions">
-                <button
-                    class="action-btn"
-                    hx-get="/api/ui/billing/invoices/export"
-                    data-i18n="billing-export"
-                >
-                    Export
-                </button>
-            </div>
-        </div>
-        <table class="billing-table">
-            <thead>
-                <tr>
-                    <th data-i18n="billing-col-number">Invoice #</th>
-                    <th data-i18n="billing-col-account">Account</th>
-                    <th data-i18n="billing-col-date">Date</th>
-                    <th data-i18n="billing-col-due">Due Date</th>
-                    <th data-i18n="billing-col-amount">Amount</th>
-                    <th data-i18n="billing-col-status">Status</th>
-                    <th data-i18n="billing-col-actions">Actions</th>
-                </tr>
-            </thead>
-            <tbody
-                id="invoices-table-body"
-                hx-get="/api/ui/billing/invoices"
-                hx-trigger="load"
-            >
-                <!-- Invoices loaded via HTMX -->
-            </tbody>
-        </table>
-    </div>
+<div id="billingInvoicesSlot"></div>
 
     <!-- Payments View -->
     <div id="billing-payments-view" class="billing-view">
@@ -509,11 +316,10 @@
 <!-- Modal for forms -->
 <div id="billing-modal" class="billing-modal">
     <div class="billing-modal-backdrop" onclick="closeBillingModal()"></div>
-    <div class="billing-modal-content" id="billing-modal-content">
-        <!-- Form content loaded via HTMX -->
-    </div>
+<div id="billingModalSlot"></div>
 </div>
 
+<script src="/suite/billing/billing-templates.js?v=1"></script>
 <script>
     (function () {
         // Tab switching
