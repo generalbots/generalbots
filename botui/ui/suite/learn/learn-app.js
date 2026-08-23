@@ -1,3 +1,5 @@
+"use strict";
+if (window.GBAppLifecycle) GBAppLifecycle.begin("learn");
 (function(){
 var courses=[];
 var certifications=[];
