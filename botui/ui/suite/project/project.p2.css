@@ -1,0 +1,441 @@
+
+.gantt-timeline-header .timeline-day {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    text-align: center;
+    padding: 0.5rem 0;
+    border-right: 1px solid var(--border-color);
+}
+
+.gantt-timeline-header .tl-label {
+    font-size: 0.625rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---- Timeline ------------------------------------------------------------ */
+
+.timeline-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.375rem;
+    padding: 1rem;
+}
+
+.timeline-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    background: hsl(var(--card));
+    cursor: pointer;
+    transition: background 0.12s, border-color 0.12s;
+}
+
+.timeline-row:hover {
+    background: var(--bg-hover);
+    border-color: var(--accent-color);
+}
+
+.timeline-date {
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+    min-width: 84px;
+}
+
+.timeline-name {
+    flex: 1;
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.timeline-end {
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ---- List ----------------------------------------------------------------- */
+
+.task-list-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8125rem;
+}
+
+.task-list-table thead th {
+    text-align: left;
+    padding: 0.625rem 0.875rem;
+    background: hsl(var(--card));
+    color: var(--text-muted);
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+}
+
+.task-list-table tbody tr {
+    border-bottom: 1px solid var(--border-light);
+    cursor: pointer;
+    transition: background 0.12s;
+}
+
+.task-list-table tbody tr:hover {
+    background: var(--bg-hover);
+}
+
+.task-list-table td {
+    padding: 0.625rem 0.875rem;
+    color: var(--text-primary);
+}
+
+/* ---- Status badges -------------------------------------------------------- */
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: capitalize;
+    border: 1px solid transparent;
+}
+
+.status-badge.status-not-started {
+    color: var(--text-muted);
+    border-color: var(--border-color);
+}
+
+.status-badge.status-in-progress {
+    color: var(--warning-color);
+    border-color: var(--warning-color);
+    background: hsla(38 92% 50% / 0.08);
+}
+
+.status-badge.status-completed {
+    color: var(--success-color);
+    border-color: var(--success-color);
+    background: hsla(142 76% 36% / 0.08);
+}
+
+/* ---- Board ----------------------------------------------------------------- */
+
+.board-columns {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    height: 100%;
+    overflow-x: auto;
+    align-items: flex-start;
+}
+
+.board-column {
+    width: 290px;
+    min-width: 290px;
+    background: hsl(var(--card));
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md, 8px);
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
+}
+
+.board-column h3 {
+    padding: 0.75rem 1rem;
+    margin: 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.column-tasks {
+    flex: 1;
+    padding: 0.5rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.board-card {
+    padding: 0.75rem;
+    background: hsl(var(--background));
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    cursor: pointer;
+    transition: border-color 0.12s, box-shadow 0.12s;
+}
+
+.board-card:hover {
+    border-color: var(--accent-color);
+    box-shadow: var(--sentient-shadow-md, 0 4px 6px -1px hsla(var(--foreground) / 0.1));
+}
+
+.card-title {
+    color: var(--text-primary);
+    font-weight: 500;
+    font-size: 0.8125rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.card-meta {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+}
+
+.card-progress {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    margin-top: 0.375rem;
+}
+
+.empty-card {
+    padding: 1rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+}
+
+/* ---- Resources ------------------------------------------------------------- */
+
+.resource-table {
+    margin: 1rem;
+    width: calc(100% - 2rem);
+}
+
+/* ---- Details panel --------------------------------------------------------- */
+
+.details-panel {
+    width: 320px;
+    background: hsl(var(--card));
+    border-left: 1px solid var(--border-color);
+    transition: width 0.2s;
+    display: flex;
+    flex-direction: column;
+}
+
+.details-panel.collapsed {
+    width: 48px;
+}
+
+.details-panel.collapsed .panel-content {
+    display: none;
+}
+
+.panel-toggle {
+    width: 100%;
+    padding: 0.75rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 1.25rem;
+    color: var(--text-secondary);
+}
+
+.panel-content {
+    padding: 1rem;
+    overflow-y: auto;
+    height: calc(100% - 48px);
+}
+
+.empty-message {
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+}
+
+/* ---- Task detail panel -------------------------------------------------------- */
+
+.td-title {
+    margin: 0 0 0.75rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.td-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.td-grid > div {
+    background: hsl(var(--background));
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    padding: 0.4rem 0.5rem;
+}
+
+.td-grid label {
+    display: block;
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 0.125rem;
+}
+
+.td-grid span {
+    font-size: 0.8125rem;
+    color: var(--text-primary);
+    word-break: break-word;
+}
+
+.td-progress-val {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    margin-left: 0.5rem;
+}
+
+.td-section {
+    margin-top: 0.75rem;
+    border-top: 1px solid var(--border-color);
+    padding-top: 0.75rem;
+}
+
+.td-section h5 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.dep-list {
+    list-style: none;
+    margin: 0 0 0.5rem 0;
+    padding: 0;
+}
+
+.dep-item {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm, 6px);
+    margin-bottom: 0.25rem;
+    font-size: 0.8125rem;
+    color: var(--text-primary);
+}
+
+.dep-item span:first-child {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.dep-type,
+.dep-lag {
+    font-size: 0.6875rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.dep-add {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.375rem;
+}
+
+.dep-add .form-input {
+    padding: 0.375rem 0.5rem;
+    font-size: 0.8125rem;
+}
+
+.dep-add .btn-primary {
+    grid-column: 1 / -1;
+    justify-content: center;
+    padding: 0.375rem;
+    font-size: 0.8125rem;
+}
+
+/* ---- Empty states ----------------------------------------------------------- */
+
+.empty-state {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.project-app:not(.has-project) .project-views {
+    display: none;
+}
+
+.project-app:not(.has-project) .empty-state {
+    display: flex;
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.empty-state-inline {
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+/* ---- Buttons ----------------------------------------------------------------- */
+
+.btn-icon {
+    width: 28px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.125rem;
+}
+
+.btn-icon:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--accent-color);
+    color: hsl(var(--accent-foreground));
+    border: none;
+    border-radius: var(--radius-sm, 6px);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.btn-primary:hover {
+    background: var(--accent-hover);
+}
+
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
