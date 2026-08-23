@@ -108,7 +108,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "LinkedIn Ads",
         Category::SocialMessaging,
         Strategy::Integrate,
-        Status::Planned,
+        Status::Built,
         Priority::Nice,
         None,
         Some("https://learn.microsoft.com/linkedin/marketing/"),
