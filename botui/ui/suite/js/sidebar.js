@@ -6,8 +6,6 @@
 // the selected bot. Bottom: user profile menu (moved from the taskbar).
 
 (function () {
-  var APP_LINK_IDS = ["chat", "browser", "terminal", "drive"];
-
   // Path segments that are suite routes/apps — never treated as bot names
   // when deriving the active bot from location.pathname.
   var ROUTE_SEGMENTS = ["suite", "cloud", "login", "signup", "chat", "app",
@@ -211,145 +209,29 @@
   }
 
   // ── Principal app links ──
+  // Delegates to the unified apps panel (js/sidebar-apps.js): every
+  // APPS_REGISTRY app in one grid with an ON/OFF switch and filter.
   function renderApps() {
-    var nav = document.getElementById("sidebarAppsNav");
-    if (!nav) return;
-    nav.innerHTML = "";
-    APP_LINK_IDS.forEach(function (id) {
-      var app = findApp(id);
-      if (!app) return;
-      var link = document.createElement("div");
-      link.className = "sidebar-app-link";
-      link.setAttribute("data-app-id", app.id);
-      link.setAttribute("title", app.title);
-      link.innerHTML =
-        '<span class="sidebar-app-icon">' + appIcon(app) + "</span>" +
-        '<span class="sidebar-app-label"></span>';
-      link.querySelector(".sidebar-app-label").textContent = app.title;
-      link.addEventListener("click", function () {
-        if (window.openDeepLink) window.openDeepLink(app.id, {});
-      });
-      nav.appendChild(link);
-    });
-  }
-
-  // ── Time formatting ──
-  function timeAgo(iso) {
-    var then = new Date(iso).getTime();
-    if (!then) return "";
-    var diff = Math.max(0, Date.now() - then);
-    var min = Math.floor(diff / 60000);
-    if (min < 1) return "now";
-    if (min < 60) return min + "m";
-    var hours = Math.floor(min / 60);
-    if (hours < 24) return hours + "h";
-    var days = Math.floor(hours / 24);
-    if (days < 7) return days + "d";
-    return new Date(iso).toLocaleDateString();
-  }
-
-  // ── Chat history (scoped to the selected bot) ──
-  function historyItem(session) {
-    var item = document.createElement("div");
-    item.className = "chat-sidebar-conv-item";
-    item.setAttribute("data-session-id", session.session_id);
-    item.innerHTML =
-      '<div class="chat-sidebar-conv-info">' +
-      '<div class="chat-sidebar-conv-name"></div>' +
-      "</div>" +
-      '<div class="chat-sidebar-conv-time"></div>';
-    item.querySelector(".chat-sidebar-conv-name").textContent = session.title || "Conversation";
-    item.querySelector(".chat-sidebar-conv-time").textContent = timeAgo(session.updated_at);
-    item.addEventListener("click", function () {
-      openConversation(session.session_id);
-    });
-    return item;
-  }
-
-  function renderHistory(sessions) {
-    var list = document.getElementById("chatConversations");
-    if (!list) return;
-    list.innerHTML = "";
-    if (!sessions || !sessions.length) {
-      var empty = document.createElement("div");
-      empty.className = "chat-sidebar-history-empty";
-      empty.textContent = "No conversations yet";
-      list.appendChild(empty);
-      return;
+    if (window.GBSidebarApps) {
+      window.GBSidebarApps.render();
     }
-    sessions.forEach(function (s) {
-      list.appendChild(historyItem(s));
-    });
-    highlightActive(currentActiveSession());
   }
 
-  function renderSignInHint() {
-    var list = document.getElementById("chatConversations");
-    if (!list) return;
-    list.innerHTML = "";
-    var hint = document.createElement("div");
-    hint.className = "chat-sidebar-signin-hint";
-    hint.textContent = "Sign in to see your conversations";
-    hint.addEventListener("click", function () {
-      window.location.href = (window.GB_LOGIN_URL || "/login") +
-        "?redirect=" + encodeURIComponent(window.location.href);
-    });
-    list.appendChild(hint);
-  }
-
-  var historyLoading = false;
-
+  // ── Conversations (delegated to js/sidebar-convos.js) ────────────
   function loadHistory() {
-    if (historyLoading) return;
-    var list = document.getElementById("chatConversations");
-    if (!list) return;
-    historyLoading = true;
-    var botName = GBResolveActiveBot();
-    fetch("/api/chat/history/sessions?limit=30&bot_name=" +
-        encodeURIComponent(botName), { headers: authHeaders() })
-      .then(function (r) {
-        if (r.status === 401) { renderSignInHint(); return null; }
-        if (!r.ok) throw new Error("HTTP " + r.status);
-        return r.json();
-      })
-      .then(function (data) {
-        if (data) renderHistory(data.sessions || []);
-      })
-      .catch(function () {
-        if (!list.children.length) {
-          var empty = document.createElement("div");
-          empty.className = "chat-sidebar-history-empty";
-          empty.textContent = "History unavailable";
-          list.appendChild(empty);
-        }
-      })
-      .finally(function () {
-        historyLoading = false;
-      });
-  }
-
-  // ── Conversation activation ──
-  function currentActiveSession() {
-    if (window.ChatState && window.ChatState.currentSessionId) {
-      return String(window.ChatState.currentSessionId);
-    }
-    return "";
+    if (window.GBSidebarConvos) window.GBSidebarConvos.loadHistory();
   }
 
   function highlightActive(sessionId) {
-    var list = document.getElementById("chatConversations");
-    if (!list) return;
-    list.querySelectorAll(".chat-sidebar-conv-item").forEach(function (el) {
-      el.classList.toggle("active", el.getAttribute("data-session-id") === sessionId);
-    });
+    if (window.GBSidebarConvos) {
+      window.GBSidebarConvos.highlightActive(sessionId);
+    }
   }
 
   function openConversation(sessionId) {
-    if (!sessionId) return;
-    if (window.openDeepLink) {
-      window.openDeepLink("chat", { session: sessionId });
+    if (window.GBSidebarConvos) {
+      window.GBSidebarConvos.openConversation(sessionId);
     }
-    highlightActive(sessionId);
   }
 
   function newConversation() {

@@ -259,7 +259,7 @@
 
   function bindGlobalMenus() {
     document.addEventListener("contextmenu", function (e) {
-      var tile = e.target.closest(".start-menu-app");
+      var tile = e.target.closest(".start-menu-app, .gb-side-app-tile");
       if (tile) {
         e.preventDefault();
         var appId = tile.getAttribute("data-app-id");
