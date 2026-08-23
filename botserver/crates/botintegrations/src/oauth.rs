@@ -59,6 +59,12 @@ pub(crate) fn provider_config(slug: &str) -> Option<OAuthProviderConfig> {
             "",
             true,
         ),
+        "google_workspace_admin" => (
+            "https://accounts.google.com/o/oauth2/v2/auth",
+            "https://oauth2.googleapis.com/token",
+            "https://www.googleapis.com/auth/admin.directory.user https://www.googleapis.com/auth/admin.directory.group.readonly",
+            false,
+        ),
         "drive" => (
             "https://accounts.google.com/o/oauth2/v2/auth",
             "https://oauth2.googleapis.com/token",

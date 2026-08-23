@@ -23,6 +23,8 @@ pub mod commerce;
 pub mod crm_ops;
 pub mod developer;
 pub mod devops;
+pub mod devplatform;
+pub mod finplatform;
 pub mod finance;
 pub mod helpers;
 pub mod lifestyle;
