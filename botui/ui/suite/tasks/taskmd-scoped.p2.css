@@ -1,0 +1,450 @@
+.tree-children {
+    display: none;
+    background: var(--bg, #0a0a0a);
+}
+
+.tree-section.expanded .tree-children {
+    display: block;
+}
+
+/* Tree Child (Level 1) - Sub-sections like "Database Schema Design" */
+.tree-child {
+    border-bottom: 1px solid var(--border-light, #151515);
+}
+
+.tree-child:last-child {
+    border-bottom: none;
+}
+
+/* Tree Items (Level 2) - Individual items like files */
+.tree-items {
+    display: none;
+    padding: 8px 0 12px 0;
+    padding-left: 24px;
+    background: var(--bg, #080808);
+}
+
+.tree-child.expanded .tree-items {
+    display: block;
+}
+
+/* Section-level items */
+.tree-children > .tree-item {
+    padding-left: 24px;
+}
+
+/* Child row in tree-level-1 */
+.tree-level-1 {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px 12px 24px;
+    background: transparent;
+    border-top: none;
+}
+
+.tree-level-1 .tree-item-dot {
+    margin-right: 12px;
+}
+
+.tree-level-1 .tree-name {
+    font-size: 13px;
+    color: var(--text-secondary, #ccc);
+}
+
+/* Item Dot Indicator - the colored dots */
+.tree-item-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 12px;
+    flex-shrink: 0;
+    background: var(--text-muted, #444);
+    transition: all 0.3s ease-out;
+}
+
+.tree-item-dot.completed {
+    background: var(--accent, #c5f82a);
+}
+
+.tree-item-dot.running {
+    background: var(--accent, #c5f82a);
+    box-shadow: 0 0 8px var(--accent-glow, rgba(197, 248, 42, 0.6));
+    animation: dot-pulse 1.5s ease-in-out infinite;
+}
+
+.tree-item-dot.pending {
+    background: var(--text-muted, #333);
+}
+
+.tree-item-dot.failed {
+    background: var(--error, var(--error, #ef4444));
+}
+
+@keyframes dot-pulse {
+    0%,
+    100% {
+        opacity: 1;
+        box-shadow: 0 0 10px var(--accent-glow, rgba(197, 248, 42, 0.8));
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        box-shadow: 0 0 4px var(--accent-glow, rgba(197, 248, 42, 0.4));
+        transform: scale(0.9);
+    }
+}
+
+.tree-item-name {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-secondary, #888);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tree-item-duration {
+    font-size: 12px;
+    color: var(--text-muted, #555);
+    margin-left: auto;
+    margin-right: 8px;
+    white-space: nowrap;
+}
+
+.tree-item-check {
+    font-size: 14px;
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.tree-item-check.completed {
+    color: var(--success, var(--success, #22c55e));
+}
+
+.tree-item-check.running {
+    color: var(--accent, #c5f82a);
+}
+
+.tree-item-check.pending {
+    color: var(--text-tertiary, #444);
+}
+
+/* Completed items styling */
+.tree-item.completed .tree-item-name {
+    color: var(--text-secondary, #888);
+}
+
+.tree-item.completed .tree-item-dot {
+    background: var(--success, var(--success, #22c55e));
+}
+
+/* Parent section completed when all children done */
+.tree-section.completed .tree-name {
+    color: var(--text-secondary, #888);
+}
+
+.tree-child.completed .tree-name {
+    color: var(--text-secondary, #888);
+}
+
+/* Item row with duration and checkmark aligned right */
+.tree-item {
+    display: flex;
+    align-items: center;
+    padding: 8px 20px 8px 24px;
+    min-height: 32px;
+}
+
+.tree-item.completed .tree-item-name {
+    color: var(--text-tertiary, #888);
+}
+
+.tree-item.running .tree-item-name {
+    color: var(--text, #e0e0e0);
+}
+
+.tree-item.running {
+    background: var(--accent-light, rgba(197, 248, 42, 0.03));
+}
+
+/* TERMINAL Section - fixed at bottom */
+.taskmd-terminal {
+    flex: 0 0 100px;
+    display: flex;
+    flex-direction: column;
+    height: 100px;
+    min-height: 100px;
+    max-height: 100px;
+    overflow: hidden !important;
+}
+
+.taskmd-terminal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: var(--bg-secondary, #0d0d0d);
+    border-bottom: 1px solid var(--border, #1a1a1a);
+    flex-shrink: 0;
+}
+
+.taskmd-terminal-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    color: var(--text-tertiary, #666);
+    text-transform: uppercase;
+}
+
+.terminal-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-muted, #333);
+}
+
+.terminal-dot.active {
+    background: var(--accent, #c5f82a);
+    box-shadow: 0 0 8px var(--accent-glow, rgba(197, 248, 42, 0.5));
+    animation: dot-pulse 1.5s infinite;
+}
+
+.taskmd-terminal-stats {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-muted, #555);
+}
+
+.taskmd-terminal-stats strong {
+    color: var(--text-secondary, #e0e0e0);
+    font-weight: 500;
+}
+
+.stat-sep {
+    color: var(--text-muted, #333);
+}
+
+.taskmd-terminal-output {
+    flex: 1 1 auto;
+    padding: 8px 16px;
+    background: var(--bg, #0a0a0a);
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-secondary, #888);
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary, #c5f82a) var(--surface, #1a1a1a);
+}
+
+.taskmd-terminal-output::-webkit-scrollbar {
+    width: 8px;
+}
+
+.taskmd-terminal-output::-webkit-scrollbar-track {
+    background: var(--surface, #1a1a1a);
+}
+
+.taskmd-terminal-output::-webkit-scrollbar-thumb {
+    background: var(--primary, #c5f82a);
+    border-radius: 4px;
+    border: 2px solid var(--surface, #1a1a1a);
+}
+
+.taskmd-terminal-output::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-hover, #d4ff4a);
+}
+
+/* Markdown content in terminal */
+.taskmd-terminal-output .markdown-content {
+    font-family: var(
+        --sentient-font-family,
+        "Inter",
+        -apple-system,
+        sans-serif
+    );
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-secondary, #ccc);
+}
+
+.taskmd-terminal-output .markdown-content h1,
+.taskmd-terminal-output .markdown-content h2,
+.taskmd-terminal-output .markdown-content h3 {
+    color: var(--text, #fff);
+    font-weight: 600;
+    margin: 16px 0 8px 0;
+}
+
+.taskmd-terminal-output .markdown-content h1 {
+    font-size: 18px;
+}
+.taskmd-terminal-output .markdown-content h2 {
+    font-size: 16px;
+}
+.taskmd-terminal-output .markdown-content h3 {
+    font-size: 14px;
+}
+
+.taskmd-terminal-output .markdown-content p {
+    margin: 8px 0;
+}
+
+.taskmd-terminal-output .markdown-content ul,
+.taskmd-terminal-output .markdown-content ol {
+    margin: 8px 0;
+    padding-left: 24px;
+}
+
+.taskmd-terminal-output .markdown-content li {
+    margin: 4px 0;
+}
+
+.taskmd-terminal-output .markdown-content pre {
+    background: var(--surface-hover, #151515);
+    border: 1px solid var(--border-hover, #252525);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 12px 0;
+    overflow-x: auto;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.taskmd-terminal-output .markdown-content code {
+    background: var(--surface-active, #1a1a1a);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "JetBrains Mono", "Fira Code", monospace;
+    font-size: 12px;
+    color: var(--accent, #c5f82a);
+}
+
+.taskmd-terminal-output .markdown-content pre code {
+    background: transparent;
+    padding: 0;
+    color: var(--text-secondary, #aaa);
+}
+
+.taskmd-terminal-output .markdown-content blockquote {
+    border-left: 3px solid var(--accent, #c5f82a);
+    padding-left: 16px;
+    margin: 12px 0;
+    color: var(--text-muted, #888);
+    font-style: italic;
+}
+
+.taskmd-terminal-output .markdown-content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0;
+}
+
+.taskmd-terminal-output .markdown-content th,
+.taskmd-terminal-output .markdown-content td {
+    border: 1px solid var(--border-hover, #252525);
+    padding: 8px 12px;
+    text-align: left;
+}
+
+.taskmd-terminal-output .markdown-content th {
+    background: var(--surface-hover, #151515);
+    font-weight: 600;
+    color: var(--text, #fff);
+}
+
+.taskmd-terminal-output .markdown-content a {
+    color: var(--accent, #c5f82a);
+    text-decoration: none;
+}
+
+.taskmd-terminal-output .markdown-content a:hover {
+    text-decoration: underline;
+}
+
+.taskmd-terminal-output .terminal-line {
+    padding: 3px 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.taskmd-terminal-output .terminal-line.success {
+    color: var(--success, var(--success, #22c55e));
+}
+
+.taskmd-terminal-output .terminal-line.error {
+    color: var(--error, var(--error, #ef4444));
+}
+
+.taskmd-terminal-output .terminal-line.progress {
+    color: var(--accent, #c5f82a);
+    font-weight: 600;
+}
+
+/* Markdown-like header styling */
+.taskmd-terminal-output .terminal-line:has-text("##"),
+.taskmd-terminal-output .terminal-line[data-type="header"] {
+    color: var(--text, #fff);
+    font-weight: 600;
+    margin-top: 12px;
+    margin-bottom: 4px;
+    font-size: 14px;
+}
+
+/* Code block styling */
+.taskmd-terminal-output .terminal-code {
+    background: var(--surface-hover, #151515);
+    border: 1px solid var(--border-hover, #252525);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 8px 0;
+    font-size: 12px;
+    color: var(--text-secondary, #aaa);
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Checkmark items */
+.taskmd-terminal-output .terminal-line.success::before {
+    content: "";
+}
+
+/* List items */
+.taskmd-terminal-output .terminal-line.info {
+    color: var(--text-muted, #888);
+}
+
+/* Bold text in terminal (markdown **text**) */
+.taskmd-terminal-output strong,
+.taskmd-terminal-output b {
+    color: var(--text, #fff);
+    font-weight: 600;
+}
+
+/* Inline code (markdown `code`) */
+.taskmd-terminal-output code {
+    background: var(--surface-active, #1a1a1a);
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 12px;
+    color: var(--accent, #c5f82a);
+}
+
+/* Timestamp styling */
+.taskmd-terminal-output .terminal-timestamp {
+    color: var(--text-tertiary, #444);
+    font-size: 11px;
+    margin-right: 8px;
+}
+
+/* Terminal markdown elements */

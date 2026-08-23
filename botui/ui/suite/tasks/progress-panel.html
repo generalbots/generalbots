@@ -1,4 +1,4 @@
-<div class="progress-panel" id="task-progress-panel">
+<div class="gb-app progress-panel" id="task-progress-panel" data-gb-app="tasks">
     <div class="status-section">
         <div class="status-header">
             <span class="status-label">STATUS</span>
@@ -101,3 +101,5 @@
 <template id="terminal-line-template">
     <div class="terminal-line ${line_type}">${content}</div>
 </template>
+<div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>

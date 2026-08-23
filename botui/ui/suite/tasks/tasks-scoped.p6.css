@@ -1,0 +1,444 @@
+
+.terminal-content .log-entry {
+    padding: 2px 0;
+    color: #c9d1d9;
+    border-bottom: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.terminal-content .log-time {
+    color: #484f58;
+    margin-right: 8px;
+}
+
+.terminal-content .log-step {
+    color: var(--primary, #c5f82a);
+    font-weight: 600;
+    margin-right: 8px;
+}
+
+.terminal-content .log-current {
+    color: #58a6ff;
+}
+
+.terminal-content .log-progress {
+    color: #8b949e;
+    margin-left: 4px;
+}
+
+.terminal-content .log-bytes {
+    color: #7ee787;
+    margin-left: 4px;
+}
+
+.terminal-content .log-details {
+    color: #8b949e;
+}
+
+.terminal-content .log-summary {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid #30363d;
+}
+
+.terminal-content .summary-pre {
+    margin: 0;
+    color: #7ee787;
+    white-space: pre-wrap;
+    font-family: inherit;
+}
+
+/* Scrollbar styling for terminal */
+.terminal-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.terminal-content::-webkit-scrollbar-track {
+    background: #0d1117;
+}
+
+.terminal-content::-webkit-scrollbar-thumb {
+    background: #30363d;
+    border-radius: 3px;
+}
+
+.terminal-content::-webkit-scrollbar-thumb:hover {
+    background: #484f58;
+}
+
+@media (max-width: 480px) {
+    .floating-progress-panel {
+        width: calc(100% - 32px);
+        left: 16px;
+        right: 16px;
+    }
+}
+
+/* =============================================================================
+   RICH TASK DETAIL PANEL - BASE STYLES (All Themes)
+   ============================================================================= */
+
+.task-detail-rich {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px;
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+/* Task URL Bar - Fixed at top */
+.task-url-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--surface, #161616);
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 8px;
+    font-family: monospace;
+}
+
+.task-url-bar .url-icon {
+    font-size: 14px;
+    opacity: 0.6;
+}
+
+.task-url-bar .url-text {
+    flex: 1;
+    font-size: 0.85rem;
+    color: var(--text-secondary, #888);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.task-url-bar .btn-copy-url {
+    background: transparent;
+    border: none;
+    padding: 4px 8px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+    font-size: 14px;
+}
+
+.task-url-bar .btn-copy-url:hover {
+    opacity: 1;
+}
+
+.detail-header-rich {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding-bottom: 18px;
+    border-bottom: 2px solid var(--border, #2a2a2a);
+}
+
+.detail-title-rich {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text, #fff);
+    letter-spacing: -0.02em;
+}
+
+.status-badge-rich {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.status-badge-rich.status-running,
+.status-badge-rich.status-pending {
+    background: var(--primary, #c5f82a);
+    color: var(--bg, #000);
+}
+
+.status-badge-rich.status-completed {
+    background: var(--success, var(--success, #22c55e));
+    color: var(--text, #fff);
+}
+
+.status-badge-rich.status-error,
+.status-badge-rich.status-failed {
+    background: var(--error, var(--error, #ef4444));
+    color: var(--text, #fff);
+}
+
+.status-badge-rich.status-paused {
+    background: var(--warning, var(--warning, #f59e0b));
+    color: var(--bg, #000);
+}
+
+/* Section Boxes */
+.detail-section-box {
+    background: var(--surface, #161616);
+    border: 2px solid var(--border, #2a2a2a);
+    border-radius: 12px;
+    padding: 20px;
+}
+
+.section-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--text-secondary, #888);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Status Section */
+.status-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.status-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--primary, #c5f82a);
+}
+
+.status-dot.status-running {
+    animation: pulse-status-dot 1.5s ease-in-out infinite;
+}
+
+.status-dot.status-completed {
+    background: var(--success, var(--success, #22c55e));
+}
+
+.status-dot.status-error {
+    background: var(--error, var(--error, #ef4444));
+}
+
+@keyframes pulse-status-dot {
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: scale(1.2);
+    }
+}
+
+.status-text {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text, #fff);
+}
+
+.status-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    font-size: 0.8rem;
+    color: var(--text-secondary, #888);
+}
+
+.error-alert {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    background: var(--error-light, rgba(239, 68, 68, 0.15));
+    border: 2px solid var(--error, var(--error, #ef4444));
+    border-radius: 10px;
+    margin-bottom: 16px;
+}
+
+.error-icon {
+    color: var(--error, var(--error, #ef4444));
+    font-size: 1.1rem;
+}
+
+.error-text {
+    color: var(--error, var(--error, #ef4444));
+    font-size: 0.85rem;
+}
+
+.status-details {
+    border-top: 2px solid var(--border-light, #222);
+    padding-top: 16px;
+    margin-top: 12px;
+}
+
+.status-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+}
+
+.status-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--primary, #c5f82a);
+}
+
+.status-indicator.active {
+    animation: pulse-status-dot 1.5s ease-in-out infinite;
+}
+
+.status-step-name {
+    color: var(--text, #fff);
+    font-weight: 500;
+}
+
+.status-step-note {
+    color: var(--text-tertiary, #666);
+    font-size: 0.85rem;
+    margin-left: auto;
+    padding: 4px 10px;
+    background: var(--surface-hover, #1e1e1e);
+    border-radius: 6px;
+}
+
+/* Progress Bar Rich */
+.detail-progress-rich {
+    padding: 0 4px;
+}
+
+.progress-bar-rich {
+    height: 10px;
+    background: var(--surface, #161616);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 2px solid var(--border, #2a2a2a);
+}
+
+.progress-fill-rich {
+    height: 100%;
+    background: var(--primary, #c5f82a);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+    box-shadow: 0 0 8px rgba(197, 248, 42, 0.4);
+}
+
+.progress-info-rich {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.progress-label-rich {
+    font-size: 0.85rem;
+    color: var(--text, #fff);
+    font-weight: 600;
+}
+
+.progress-runtime {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #888);
+    font-family: monospace;
+}
+
+/* Progress Log Section */
+.progress-log-content {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.log-group {
+    margin-bottom: 12px;
+}
+
+.log-group:last-child {
+    margin-bottom: 0;
+}
+
+.log-group-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: var(--surface-hover, #1e1e1e);
+    border: 2px solid var(--border, #2a2a2a);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.log-group-header:hover {
+    background: var(--surface-active, #252525);
+}
+
+.log-group-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text, #fff);
+    flex: 1;
+}
+
+.log-group-toggle {
+    font-size: 0.75rem;
+    color: var(--text-tertiary, #666);
+}
+
+.log-step-badge {
+    padding: 4px 12px;
+    background: var(--primary, #c5f82a);
+    color: var(--bg, #000);
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 6px;
+}
+
+.log-status-badge {
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 6px;
+    background: var(--surface-active, #252525);
+    color: var(--text-secondary, #888);
+}
+
+.log-status-badge.completed {
+    background: var(--success-light, rgba(34, 197, 94, 0.15));
+    color: var(--success, var(--success, #22c55e));
+}
+
+.log-group-items {
+    padding: 12px 0 0 20px;
+    border-left: 3px solid var(--border, #2a2a2a);
+    margin-left: 16px;
+    margin-top: 10px;
+}
+
+.log-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: var(--surface, #161616);
+    border: 1px solid var(--border, #2a2a2a);
+    border-radius: 8px;
+    margin-bottom: 8px;
+}

@@ -1,0 +1,446 @@
+/* =============================================================================
+   AUTOTASK - SENTIENT THEME
+   Dark UI with Neon Yellow/Lime Accents (#CDFE00)
+   Pixel-perfect match to Agent Dashboard
+   ============================================================================= */
+
+/* =============================================================================
+   CSS VARIABLES - SENTIENT PALETTE
+   Inherits from theme system when [data-theme="sentient"] is present
+   ============================================================================= */
+
+.autotask-container {
+    --sentient-bg-primary: var(--bg, #0d0d0d);
+    --sentient-bg-secondary: var(--bg-secondary, #141414);
+    --sentient-bg-tertiary: var(--surface, #1a1a1a);
+    --sentient-bg-card: var(--card-bg, #161616);
+    --sentient-bg-card-hover: var(--surface-hover, #1c1c1c);
+    --sentient-bg-input: var(--input-bg, #0a0a0a);
+
+    --sentient-accent: var(--accent, #cdfe00);
+    --sentient-accent-hover: var(--accent-hover, #d8ff33);
+    --sentient-accent-dim: var(--accent-light, rgba(205, 254, 0, 0.15));
+    --sentient-accent-glow: var(--accent-glow, rgba(205, 254, 0, 0.25));
+
+    --sentient-text-primary: var(--text, #ffffff);
+    --sentient-text-secondary: var(--text-secondary, #a0a0a0);
+    --sentient-text-muted: var(--text-tertiary, #666666);
+    --sentient-text-dark: var(--bg-invert, #000000);
+
+    --sentient-border: var(--border, #2a2a2a);
+    --sentient-border-light: var(--border-light, #333333);
+    --sentient-border-accent: var(--border-accent, rgba(205, 254, 0, 0.3));
+
+    --sentient-success: var(--success, #22c55e);
+    --sentient-warning: var(--warning, #f59e0b);
+    --sentient-error: var(--error, #ef4444);
+    --sentient-info: var(--info, #3b82f6);
+
+    --sentient-radius-sm: 6px;
+    --sentient-radius-md: 8px;
+    --sentient-radius-lg: 12px;
+    --sentient-radius-xl: 16px;
+    --sentient-radius-pill: 50px;
+
+    --sentient-font:
+        "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        sans-serif;
+    --sentient-font-mono: "SF Mono", "Fira Code", "Consolas", monospace;
+
+    --sentient-shadow: var(--shadow-md, 0 4px 20px rgba(0, 0, 0, 0.4));
+    --sentient-shadow-lg: var(--shadow-lg, 0 8px 40px rgba(0, 0, 0, 0.5));
+}
+
+/* =============================================================================
+   BASE CONTAINER
+   ============================================================================= */
+
+.autotask-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-height: 100%;
+    background: var(--sentient-bg-primary);
+    color: var(--sentient-text-primary);
+    font-family: var(--sentient-font);
+    font-size: 14px;
+    line-height: 1.5;
+    overflow: hidden !important;
+}
+
+/* Disable global scrollbar on html/body when in tasks view */
+html:has(.autotask-container),
+body:has(.autotask-container) {
+    overflow: hidden !important;
+    height: 100%;
+    max-height: 100%;
+}
+
+.autotask-container * {
+    box-sizing: border-box;
+}
+
+/* =============================================================================
+   TOP NAVIGATION BAR
+   ============================================================================= */
+
+.autotask-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 24px;
+    background: var(--sentient-bg-secondary);
+    border-bottom: 1px solid var(--sentient-border);
+}
+
+.topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nav-tabs {
+    display: flex;
+    gap: 4px;
+    background: var(--sentient-bg-tertiary);
+    padding: 4px;
+    border-radius: var(--sentient-radius-md);
+}
+
+.nav-tab {
+    padding: 8px 20px;
+    background: transparent;
+    border: none;
+    border-radius: var(--sentient-radius-sm);
+    color: var(--sentient-text-secondary);
+    font-family: var(--sentient-font);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nav-tab:hover {
+    color: var(--sentient-text-primary);
+}
+
+.nav-tab.active {
+    background: var(--sentient-bg-card);
+    color: var(--sentient-text-primary);
+}
+
+.topbar-center {
+    flex: 1;
+    max-width: 500px;
+    margin: 0 40px;
+}
+
+.search-container {
+    position: relative;
+    width: 100%;
+}
+
+.search-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--sentient-text-muted);
+    font-size: 14px;
+}
+
+.search-input {
+    width: 100%;
+    padding: 10px 16px 10px 42px;
+    background: var(--sentient-bg-input);
+    border: 1px solid var(--sentient-border);
+    border-radius: var(--sentient-radius-md);
+    color: var(--sentient-text-primary);
+    font-family: var(--sentient-font);
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.search-input::placeholder {
+    color: var(--sentient-text-muted);
+}
+
+.search-input:focus {
+    border-color: var(--sentient-accent);
+    box-shadow: 0 0 0 3px var(--sentient-accent-dim);
+}
+
+.topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.btn-new-intent {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    background: var(--sentient-accent);
+    border: none;
+    border-radius: var(--sentient-radius-md);
+    color: var(--sentient-text-dark);
+    font-family: var(--sentient-font);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-new-intent:hover {
+    background: var(--sentient-accent-hover);
+    box-shadow: 0 0 20px var(--sentient-accent-glow);
+}
+
+.btn-settings {
+    padding: 10px 20px;
+    background: var(--sentient-bg-tertiary);
+    border: 1px solid var(--sentient-border);
+    border-radius: var(--sentient-radius-md);
+    color: var(--sentient-text-primary);
+    font-family: var(--sentient-font);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-settings:hover {
+    background: var(--sentient-bg-card-hover);
+    border-color: var(--sentient-border-light);
+}
+
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px 6px 8px;
+    background: var(--sentient-bg-tertiary);
+    border: 1px solid var(--sentient-border);
+    border-radius: var(--sentient-radius-pill);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.user-profile:hover {
+    border-color: var(--sentient-border-light);
+}
+
+.user-avatar {
+    width: 28px;
+    height: 28px;
+    background: var(--sentient-accent-dim);
+    border: 1px solid var(--sentient-accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+}
+
+.user-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--sentient-text-primary);
+}
+
+.dropdown-arrow {
+    font-size: 10px;
+    color: var(--sentient-text-muted);
+}
+
+.notification-bell {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--sentient-bg-tertiary);
+    border: 1px solid var(--sentient-border);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.notification-bell:hover {
+    border-color: var(--sentient-border-light);
+}
+
+.bell-icon {
+    font-size: 18px;
+}
+
+.notification-count {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    background: var(--sentient-accent);
+    border-radius: 10px;
+    color: var(--sentient-text-dark);
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* =============================================================================
+   STATUS FILTER PILLS
+   ============================================================================= */
+
+.status-filters {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    background: var(--sentient-bg-secondary);
+    border-bottom: 1px solid var(--sentient-border);
+    flex-wrap: wrap;
+}
+
+.status-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    border-radius: var(--sentient-radius-pill);
+    color: var(--sentient-text-secondary);
+    font-family: var(--sentient-font);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.status-filter:hover {
+    color: var(--sentient-text-primary);
+}
+
+.status-filter.active {
+    background: var(--sentient-accent-dim);
+    color: var(--sentient-accent);
+}
+
+.filter-icon {
+    font-size: 14px;
+}
+
+.filter-count {
+    padding: 2px 10px;
+    background: var(--sentient-bg-tertiary);
+    border-radius: var(--sentient-radius-pill);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.status-filter.active .filter-count {
+    background: var(--sentient-accent);
+    color: var(--sentient-text-dark);
+}
+
+.time-saved {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+}
+
+.time-label {
+    color: var(--sentient-text-secondary);
+}
+
+.time-value {
+    color: var(--sentient-text-primary);
+    font-weight: 600;
+}
+
+/* =============================================================================
+   MAIN CONTENT LAYOUT
+   ============================================================================= */
+
+.main-content {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    flex: 1;
+    overflow: hidden !important;
+    height: calc(100% - 120px);
+    max-height: calc(100% - 120px);
+}
+
+/* =============================================================================
+   INTENT LIST PANEL (LEFT)
+   ============================================================================= */
+
+.intent-list-panel {
+    background: var(--sentient-bg-secondary);
+    border-right: 1px solid var(--sentient-border);
+    overflow-y: scroll;
+    overflow-x: hidden;
+    padding: 12px;
+    padding-right: 4px;
+    height: 100%;
+    max-height: 100%;
+    scrollbar-width: auto;
+    scrollbar-color: var(--sentient-accent) var(--sentient-bg-tertiary);
+}
+
+.intent-list-panel::-webkit-scrollbar {
+    width: 10px;
+}
+
+.intent-list-panel::-webkit-scrollbar-track {
+    background: var(--sentient-bg-tertiary);
+    border-radius: 5px;
+}
+
+.intent-list-panel::-webkit-scrollbar-thumb {
+    background: var(--sentient-border-light);
+    border-radius: 5px;
+    border: 2px solid var(--sentient-bg-tertiary);
+}
+
+.intent-list-panel::-webkit-scrollbar-thumb:hover {
+    background: var(--sentient-accent);
+}
+
+.intent-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: var(--sentient-text-muted);
+    gap: 12px;
+}
+
+/* =============================================================================
+   INTENT CARD
+   ============================================================================= */
+
+.intent-card {
+    background: var(--sentient-bg-card);
+    border: 1px solid var(--sentient-border);
+    border-radius: var(--sentient-radius-lg);
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
