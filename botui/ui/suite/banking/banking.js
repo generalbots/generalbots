@@ -1,3 +1,4 @@
+if (window.GBAppLifecycle) GBAppLifecycle.begin("banking");
 (function() {
 'use strict';
 const BankingApp = {
