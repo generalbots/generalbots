@@ -1,5 +1,6 @@
 (function() {
 'use strict';
+if (window.GBAppLifecycle) GBAppLifecycle.begin("lists");
 let allLists = [];
 let currentFilter = 'all';
 let editingListId = null;
