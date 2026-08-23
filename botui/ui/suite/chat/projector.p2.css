@@ -1,0 +1,34 @@
+    @media (max-width: 768px) {
+        .projector-container {
+            width: 100%;
+            height: 100%;
+            max-width: none;
+            max-height: none;
+            border-radius: 0;
+        }
+
+        .projector-header {
+            padding: 10px 16px;
+        }
+
+        .projector-title {
+            max-width: 150px;
+            font-size: 14px;
+        }
+
+        .projector-controls {
+            padding: 10px 16px;
+        }
+
+        .progress-container {
+            min-width: 120px;
+        }
+
+        .time-display {
+            display: none;
+        }
+
+        .volume-slider {
+            display: none;
+        }
+    }

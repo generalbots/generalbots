@@ -1,0 +1,450 @@
+
+@media (max-width: 768px) {
+    .chat-layout {
+        width: 100%;
+        max-width: none;
+        min-width: auto;
+    }
+
+    .message-content {
+        max-width: 90%;
+    }
+}
+
+/* Projector Overlay */
+.projector-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.projector-overlay.hidden {
+    display: none;
+}
+
+.projector-overlay:not(.hidden) {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Projector Container */
+.projector-container {
+    position: relative;
+    width: 90%;
+    max-width: 1200px;
+    max-height: 90vh;
+    background: var(--surface, var(--card, #1a1a24));
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+}
+
+.projector-container.fullscreen {
+    width: 100%;
+    max-width: none;
+    height: 100vh;
+    max-height: none;
+    border-radius: 0;
+}
+
+/* Projector Header */
+.projector-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    background: var(--surface-hover, rgba(0, 0, 0, 0.2));
+    border-bottom: 1px solid var(--border, var(--border-color, #2a2a2a));
+}
+
+.projector-title-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.projector-icon {
+    font-size: 24px;
+}
+
+.projector-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text, #e5e5e5);
+    max-width: 400px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.projector-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.projector-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    color: var(--text, #e5e5e5);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.projector-btn:hover {
+    background: var(--surface-active, rgba(255, 255, 255, 0.1));
+    border-color: var(--accent, #2563eb);
+}
+
+.projector-btn.close-btn:hover {
+    background: var(--error, #ef4444);
+    border-color: var(--error, #ef4444);
+    color: white;
+}
+
+/* Projector Content */
+.projector-content {
+    flex: 1;
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: var(--bg, #0a0a0f);
+}
+
+/* Projector Loading */
+.projector-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    color: var(--text-secondary, #888);
+}
+
+.projector-loading.hidden {
+    display: none;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border, var(--border-color, #2a2a2a));
+    border-top-color: var(--accent, #2563eb);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Projector Media Types */
+.projector-video {
+    width: 100%;
+    max-height: 70vh;
+    border-radius: 8px;
+    outline: none;
+}
+
+.projector-audio {
+    width: 100%;
+    max-width: 500px;
+}
+
+.audio-visualizer {
+    width: 100%;
+    height: 100px;
+    background: var(--surface, var(--card, #1a1a24));
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.projector-image {
+    max-width: 100%;
+    max-height: 70vh;
+    border-radius: 8px;
+    object-fit: contain;
+}
+
+.projector-pdf {
+    width: 100%;
+    height: 70vh;
+    border: none;
+    border-radius: 8px;
+}
+
+.projector-code {
+    width: 100%;
+    max-height: 70vh;
+    overflow: auto;
+    background: var(--surface, var(--card, #1a1a24));
+    border-radius: 8px;
+    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+}
+
+.projector-code pre {
+    margin: 0;
+    padding: 16px;
+    font-family: "Fira Code", monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text, #e5e5e5);
+}
+
+.projector-code.line-numbers pre {
+    counter-reset: line;
+}
+
+.projector-code.line-numbers pre .line::before {
+    counter-increment: line;
+    content: counter(line);
+    display: inline-block;
+    width: 40px;
+    margin-right: 16px;
+    text-align: right;
+    color: var(--text-secondary, #888);
+    border-right: 1px solid var(--border, var(--border-color, #2a2a2a));
+    padding-right: 12px;
+}
+
+.projector-presentation {
+    width: 100%;
+    height: 70vh;
+}
+
+.slide-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--surface, var(--card, #1a1a24));
+    border-radius: 8px;
+}
+
+.slide-content {
+    max-width: 100%;
+    max-height: 100%;
+    padding: 40px;
+    text-align: center;
+}
+
+.projector-iframe {
+    width: 100%;
+    height: 70vh;
+    border: none;
+    border-radius: 8px;
+    background: white;
+}
+
+.projector-markdown {
+    width: 100%;
+    max-height: 70vh;
+    overflow: auto;
+    padding: 24px;
+    background: var(--surface, var(--card, #1a1a24));
+    border-radius: 8px;
+    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+}
+
+.projector-markdown h1,
+.projector-markdown h2,
+.projector-markdown h3 {
+    color: var(--text, #e5e5e5);
+    margin-bottom: 16px;
+}
+
+.projector-markdown code {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "Fira Code", monospace;
+}
+
+.projector-markdown pre code {
+    display: block;
+    padding: 16px;
+    overflow-x: auto;
+}
+
+/* Projector Controls */
+.projector-controls {
+    padding: 12px 20px;
+    background: var(--surface-hover, rgba(0, 0, 0, 0.2));
+    border-top: 1px solid var(--border, var(--border-color, #2a2a2a));
+}
+
+.media-controls,
+.slide-controls,
+.image-controls,
+.code-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.media-controls.hidden,
+.slide-controls.hidden,
+.image-controls.hidden,
+.code-controls.hidden {
+    display: none;
+}
+
+.control-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    color: var(--text, #e5e5e5);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.control-btn:hover {
+    background: var(--surface-active, rgba(255, 255, 255, 0.1));
+}
+
+.control-btn.active {
+    background: var(--accent, #2563eb);
+    border-color: var(--accent, #2563eb);
+}
+
+.play-btn {
+    width: 44px;
+    height: 44px;
+}
+
+.progress-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--border, var(--border-color, #2a2a2a));
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.progress-bar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: var(--accent, #2563eb);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.progress-bar::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: var(--accent, #2563eb);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+.time-display {
+    font-size: 12px;
+    color: var(--text-secondary, #888);
+    min-width: 80px;
+    text-align: center;
+    font-family: "Fira Code", monospace;
+}
+
+.volume-slider {
+    width: 80px;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--border, var(--border-color, #2a2a2a));
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: var(--accent, #2563eb);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.volume-slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    background: var(--accent, #2563eb);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+.speed-select,
+.theme-select {
+    padding: 6px 12px;
+    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border-radius: 6px;
+    color: var(--text, #e5e5e5);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.slide-info,
+.image-info,
+.code-info,
+.zoom-level {
+    font-size: 12px;
+    color: var(--text-secondary, #888);
+}
+
+.slide-nav input {
+    width: 60px;
+    padding: 6px 8px;
+    background: var(--surface-hover, rgba(255, 255, 255, 0.05));
+    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border-radius: 6px;
+    color: var(--text, #e5e5e5);
+    font-size: 12px;
+    text-align: center;
+}
+
+/* Projector Error */
+.projector-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 40px;
+    color: var(--error, #ef4444);
+}

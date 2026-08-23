@@ -387,9 +387,10 @@ hideMention();
 }
 
 function initChat() {
-if (typeof loadBotConfig === 'function') {
-loadBotConfig();
-}
+  if (window.GBAppLifecycle) GBAppLifecycle.begin("chat");
+  if (typeof loadBotConfig === 'function') {
+    loadBotConfig();
+  }
 proceedWithChatInit();
 autoFocusInput();
 

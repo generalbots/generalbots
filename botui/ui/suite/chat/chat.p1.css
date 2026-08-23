@@ -1,0 +1,448 @@
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toast {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    background: var(--surface, var(--card, #1a1a24));
+    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    min-width: 300px;
+    max-width: 450px;
+    animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.toast-success {
+    border-left: 4px solid var(--accent, #2563eb);
+}
+
+.toast-error {
+    border-left: 4px solid var(--error, #ef4444);
+}
+
+.toast-warning {
+    border-left: 4px solid var(--warning, #f59e0b);
+}
+
+.toast-info {
+    border-left: 4px solid var(--info, #06b6d4);
+}
+
+.toast-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.toast-message {
+    flex: 1;
+    font-size: 14px;
+    color: var(--text, #e5e5e5);
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary, #888);
+    cursor: pointer;
+    padding: 4px;
+    font-size: 18px;
+    line-height: 1;
+    transition: color 0.15s ease;
+}
+
+.toast-close:hover {
+    color: var(--text, #e5e5e5);
+}
+
+.toast-fade-out {
+    animation: fadeOut 0.3s ease forwards;
+}
+
+@keyframes fadeOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Chat Layout - full width */
+.chat-layout {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    width: 100%;
+    max-width: 1400px;
+    min-width: 600px;
+    height: 100%;
+    margin: 0 auto;
+    padding: 0;
+    box-sizing: border-box;
+    background: var(--bg, #ffffff);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+@media (max-width: 1024px) {
+    .chat-layout {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        border-radius: 0;
+    }
+}
+
+/* Chat Content Wrapper - fill available space with flex column */
+.chat-content-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+}
+
+/* Connection Status - use shared styles from app.css */
+
+@keyframes pulse {
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    50% {
+        opacity: 0.5;
+        transform: scale(1.2);
+    }
+}
+
+/* Messages Area */
+#messages {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px;
+    display: flex;
+    flex-direction: column !important;
+    gap: 16px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent, #2563eb) var(--surface, #1a1a24);
+    scroll-behavior: smooth;
+    justify-content: flex-start;
+    align-items: stretch;
+}
+
+/* Enhanced custom scrollbar */
+#messages::-webkit-scrollbar {
+    width: 6px;
+}
+
+#messages::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#messages::-webkit-scrollbar-thumb {
+    background: var(--accent, #2563eb);
+    border-radius: 3px;
+}
+
+#messages::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-hover, #1d4ed8);
+}
+
+/* Scrollbar Markers */
+.scrollbar-markers {
+    position: absolute;
+    right: 2px;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.scrollbar-marker {
+    position: absolute;
+    right: 0;
+    width: 6px;
+    min-height: 4px;
+    border-radius: 3px;
+    cursor: pointer;
+    pointer-events: auto;
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+    opacity: 0.6;
+}
+
+.scrollbar-marker:hover {
+    opacity: 1;
+    transform: scaleX(1.5);
+}
+
+.scrollbar-marker.user-marker {
+    background: var(--accent, #2563eb);
+}
+
+.scrollbar-marker.bot-marker {
+    background: var(--success, #22c55e);
+}
+
+.scrollbar-marker-tooltip {
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--surface, var(--card, #1a1a24));
+    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 12px;
+    color: var(--text, #e5e5e5);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+.scrollbar-marker:hover .scrollbar-marker-tooltip {
+    opacity: 1;
+}
+
+/* Message styles */
+.message {
+    display: flex;
+    flex-direction: column;
+    max-width: 85%;
+    animation: messageIn 0.3s ease;
+}
+
+@keyframes messageIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.message.user {
+    align-self: flex-end;
+    max-width: 80%;
+}
+
+.message.bot {
+    align-self: flex-start;
+    max-width: 80%;
+}
+
+.message-content {
+    padding: 12px 16px;
+    border-radius: 16px;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.user-message {
+    background: var(--accent, #2563eb);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.bot-message {
+    background: var(--surface, var(--card, #1a1a24));
+    color: var(--text, #e5e5e5);
+    border-bottom-left-radius: 4px;
+    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    white-space: pre-wrap;
+}
+
+.bot-message,
+.bot-message p,
+.bot-message span,
+.bot-message li,
+.bot-message a,
+.bot-message strong,
+.bot-message em,
+.bot-message h1,
+.bot-message h2,
+.bot-message h3,
+.bot-message h4 {
+    color: var(--text, #e5e5e5) !important;
+}
+
+.bot-message p {
+    margin: 0;
+}
+
+.bot-message p:last-child {
+    margin-bottom: 0;
+}
+
+.bot-message code {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "Fira Code", monospace;
+    font-size: 0.9em;
+}
+
+.bot-message pre {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 12px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 0.5em 0;
+}
+
+.bot-message pre code {
+    background: none;
+    padding: 0;
+}
+
+/* Thinking Section - collapsible reasoning block */
+.thinking-section {
+    background: var(--surface2, #1e1e2e);
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    padding: 0;
+    font-size: 0.85em;
+}
+
+.thinking-section summary {
+    cursor: pointer;
+    padding: 8px 12px;
+    color: var(--text-secondary, #888);
+    font-weight: 600;
+    font-size: 0.85em;
+    letter-spacing: 0.02em;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.thinking-summary-icon {
+    font-size: 1em;
+    line-height: 1;
+}
+
+.thinking-section summary::-webkit-details-marker {
+    display: none;
+}
+
+.thinking-section[open] summary::after {
+    content: '▲';
+    font-size: 0.7em;
+    margin-left: auto;
+    opacity: 0.5;
+}
+
+.thinking-section:not([open]) summary::after {
+    content: '▼';
+    font-size: 0.7em;
+    margin-left: auto;
+    opacity: 0.5;
+}
+
+.thinking-section .thinking-content {
+    padding: 0 12px 8px;
+    color: var(--text-secondary, #777);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    font-style: italic;
+    border-top: 1px solid var(--border, #2a2a3a);
+    margin-top: 0;
+    padding-top: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+/* Footer with solid background */
+footer {
+    padding: 12px 20px;
+    border-top: 1px solid var(--border, var(--border-color, #2a2a2a));
+    background: var(--surface, #f5f5f5);
+    position: relative;
+}
+
+/* Chat footer content layout - suggestions left, switchers right */
+.chat-footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 8px;
+}
+
+/* Mention Dropdown */
+.mention-dropdown {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    max-height: 300px;
+    background: var(--surface, var(--card, #1a1a24));
+    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border-radius: 12px;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.3);
+    margin-bottom: 8px;
+    display: none;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 100;
+}
+
+.mention-dropdown.visible {
+    display: flex;
+}
+
+.mention-header {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border, var(--border-color, #2a2a2a));
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary, #888);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.mention-results {
+    overflow-y: auto;
+    max-height: 250px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent, #2563eb) transparent;
+}
+
+.mention-results::-webkit-scrollbar {
+    width: 6px;
+}
