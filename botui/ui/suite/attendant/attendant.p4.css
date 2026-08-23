@@ -1,0 +1,167 @@
+
+            .modal-body {
+                padding: 20px;
+            }
+
+            .form-group {
+                margin-bottom: 16px;
+            }
+
+            .form-label {
+                display: block;
+                font-size: 13px;
+                color: var(--text-secondary);
+                margin-bottom: 6px;
+            }
+
+            .form-input,
+            .form-select {
+                width: 100%;
+                padding: 10px 14px;
+                border: 1px solid var(--border-color);
+                border-radius: 8px;
+                background: var(--bg-tertiary);
+                color: var(--text-primary);
+                font-size: 14px;
+            }
+
+            .form-input:focus,
+            .form-select:focus {
+                outline: none;
+                border-color: var(--accent-color);
+            }
+
+            .attendant-list {
+                max-height: 200px;
+                overflow-y: auto;
+            }
+
+            .attendant-option {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 12px;
+                border-radius: 8px;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+
+            .attendant-option:hover {
+                background: var(--surface-hover, #334155);
+            }
+
+            .attendant-option.selected {
+                background: var(--primary, #3b82f6);
+            }
+
+            .attendant-option .status-indicator {
+                width: 10px;
+                height: 10px;
+            }
+
+            .modal-footer {
+                padding: 16px 20px;
+                border-top: 1px solid var(--border, #334155);
+                display: flex;
+                justify-content: flex-end;
+                gap: 8px;
+            }
+
+            /* Toast Notifications */
+            .toast-container {
+                position: fixed;
+                bottom: 24px;
+                right: 24px;
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                z-index: 1001;
+            }
+
+            .toast {
+                padding: 12px 20px;
+                background: var(--surface, #1e293b);
+                border: 1px solid var(--border, #334155);
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+                animation: slideIn 0.3s ease;
+            }
+
+            @keyframes slideIn {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+
+            .toast.success {
+                border-left: 3px solid var(--success, #10b981);
+            }
+            .toast.error {
+                border-left: 3px solid var(--error, #ef4444);
+            }
+            .toast.warning {
+                border-left: 3px solid var(--warning, #f59e0b);
+            }
+            .toast.info {
+                border-left: 3px solid var(--primary, #3b82f6);
+            }
+
+            /* Loading State */
+            .loading-spinner {
+                width: 24px;
+                height: 24px;
+                border: 3px solid var(--surface-hover, #334155);
+                border-top-color: var(--primary, #3b82f6);
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+
+            @keyframes spin {
+                to {
+                    transform: rotate(360deg);
+                }
+            }
+
+            /* Responsive */
+            @media (max-width: 1200px) {
+                .attendant-layout {
+                    grid-template-columns: 280px 1fr 320px;
+                }
+            }
+
+            @media (max-width: 992px) {
+                .attendant-layout {
+                    grid-template-columns: 1fr;
+                }
+
+                .queue-sidebar,
+                .insights-sidebar {
+                    display: none;
+                }
+
+                .queue-sidebar.mobile-show,
+                .insights-sidebar.mobile-show {
+                    display: flex;
+                    position: fixed;
+                    top: 0;
+                    bottom: 0;
+                    width: 320px;
+                    z-index: 500;
+                }
+
+                .queue-sidebar.mobile-show {
+                    left: 0;
+                }
+
+                .insights-sidebar.mobile-show {
+                    right: 0;
+                }
+            }
