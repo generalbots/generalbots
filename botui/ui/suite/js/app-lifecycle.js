@@ -1,10 +1,5 @@
 "use strict";
 
-// GB App Lifecycle — Mindfulness contract helper (issue #938).
-// Every suite app registers under a stable app id; reopening the window
-// clears the previous timers/listeners/sockets before re-init, so no
-// orphaned handles accumulate across mount/reopen/close cycles.
-
 (function () {
   var registry = {};
 
@@ -26,12 +21,9 @@
       try { fn(); } catch (e) {}
     });
     registry[appId] = { intervals: [], timeouts: [], sockets: [], cleanups: [] };
-    var live = document.querySelector(".gb-app[data-gb-live-status]");
-    if (live && live.dataset.gbApp === appId) live.removeAttribute("data-gb-live-status");
   }
 
   window.GBAppLifecycle = {
-    // Call at the top of every app init: wipes handles from the previous mount.
     begin: function (appId) {
       cleanup(appId);
       var root = document.querySelector(".gb-app");
@@ -58,8 +50,6 @@
     end: function (appId) {
       cleanup(appId);
     },
-
-    // Screen-reader + visual status announcement.
     announce: function (message) {
       var el = document.getElementById("gb-sr-live");
       if (!el) {
@@ -71,9 +61,6 @@
       }
       el.textContent = message;
     },
-
-    // Sets data-gb-state on the nearest .gb-app root; CSS shows the
-    // matching intentional-state block. Pass null to clear back to content.
     setState: function (stateName, message) {
       var roots = document.querySelectorAll(".gb-app");
       for (var i = 0; i < roots.length; i++) {
@@ -85,7 +72,7 @@
         var msgEl = roots[i].querySelector(".gb-state.is-active .gb-state-msg");
         if (msgEl && message !== undefined) msgEl.textContent = message;
       }
-      if (message) GBAppLifecycle.announce(message);
+      if (message) window.GBAppLifecycle.announce(message);
     },
   };
 })();
