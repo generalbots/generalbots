@@ -21,6 +21,10 @@ use crate::providers::{ActionOutcome, LlmSafeAction, LlmSafeParam, ProviderAdapt
 
 pub mod batch2;
 pub mod batch3;
+pub mod batch4;
+pub mod batch5;
+pub mod batch6;
+pub mod batch7;
 pub mod simple;
 
 use base64::Engine as _;
@@ -94,6 +98,11 @@ pub enum AuthStyle {
     /// all declared parameters flatten into the same body (Canny style).
     BodyField {
         field: &'static str,
+    },
+    /// Multiple credential-backed headers in one style (Algolia application
+    /// id + key).
+    ApiKeyHeaders {
+        pairs: &'static [(&'static str, &'static str)],
     },
 }
 
@@ -269,6 +278,12 @@ fn auth_headers_and_query(
         AuthStyle::BodyField { .. } => {
             // Credential material is injected into the JSON body by
             // `flat_body` at invocation time; nothing enters headers.
+        }
+        AuthStyle::ApiKeyHeaders { pairs } => {
+            for (header, field) in *pairs {
+                let value = cred_str(credentials, field)?;
+                headers.push((*header, value.to_string()));
+            }
         }
     }
     headers.push(("user-agent", "generalbots-botintegrations".to_string()));
