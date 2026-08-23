@@ -217,6 +217,50 @@ pub fn registry() -> Vec<Arc<dyn ProviderAdapter>> {
         Arc::new(generic::GenericAdapter::new(&generic::simple::MAILCHIMP_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::simple::MERCURY_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::simple::WHOP_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch2::CANNY_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch2::APOLLO_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch2::LEMLIST_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch2::LUMA_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch3::READWISE_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch3::CLOUDFLARE_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch3::HUGGING_FACE_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch3::RESEND_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch3::SENTRY_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch3::POSTHOG_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch3::N8N_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch3::PADDLE_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch4::BIGCOMMERCE_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch4::WOOCOMMERCE_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch4::JOTFORM_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch4::LAST_FM_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch4::NEWSCATCHER_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch4::CAL_COM_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch4::MOTION_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch4::SQUARESPACE_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch4::DHL_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch4::PHANTOMBUSTER_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch4::STREAK_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch4::GREENHOUSE_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch5::COINBASE_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch5::VERCEL_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch5::SUPABASE_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch5::WISE_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch5::MOONPAY_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch5::BEEHIIV_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch5::AHREFS_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch5::CRUNCHBASE_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch6::PHILIPS_HUE_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch6::UPSTASH_REDIS_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch6::GRAFANA_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch6::HEX_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch6::DATABRICKS_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch6::POSTMARK_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch7::AMPLITUDE_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch7::ALGOLIA_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch7::DEVIN_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch7::CURSOR_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch7::SPLUNK_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::batch7::LOOPS_SO_SPEC)),
     ]
 }
 
@@ -438,5 +482,31 @@ mod tests {
             }
         }
         assert!(llm_safe_actions("nonexistent").is_empty());
+    }
+
+    #[test]
+    fn registry_registers_every_generic_provider_slug() {
+        let slugs = [
+            "zendesk", "trello", "mailchimp", "mercury", "whop",
+            "canny", "apollo", "lemlist", "luma",
+            "readwise", "cloudflare", "hugging_face", "resend", "sentry",
+            "posthog", "n8n", "paddle",
+            "bigcommerce", "woocommerce", "jotform", "last_fm", "newscatcher",
+            "cal_com", "motion", "squarespace", "dhl", "phantombuster",
+            "streak", "greenhouse",
+            "coinbase", "vercel", "supabase", "wise", "moonpay", "beehiiv",
+            "ahrefs", "crunchbase",
+            "philips_hue", "upstash_redis", "grafana", "hex", "databricks",
+            "postmark",
+            "amplitude", "algolia", "devin", "cursor", "splunk", "loops_so",
+        ];
+        let registered = registry();
+        assert!(registered.len() >= slugs.len());
+        for slug in slugs {
+            assert!(
+                registered.iter().any(|adapter| adapter.provider() == slug),
+                "provider {slug} missing from registry"
+            );
+        }
     }
 }
