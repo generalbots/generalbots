@@ -1,6 +1,6 @@
-<link rel="stylesheet" href="/suite/settings/settings.css" />
+<link rel="stylesheet" href="/suite/settings/settings.p1.css?v=1"" />
 
-<div class="settings-layout">
+<div class="gb-app settings-layout" data-gb-app="settings">
     <!-- Sidebar Navigation -->
     <aside class="settings-sidebar">
         <div class="settings-header">
@@ -477,7 +477,9 @@
                 </div>
             </div>
 
-            <script>
+            <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
+<div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
+<script>
                 (function () {
                     function initLanguageSelector() {
                         var savedLocale = localStorage.getItem('gb-locale') || 'en';
