@@ -1,0 +1,421 @@
+use super::helpers::{json_req, resource_id, s, s_req};
+use super::{ActionSpec, AuthStyle, Origin, ParamKind, ParamSpec, ProviderSpec, Risk};
+const APOLLO_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "apollo.contacts.list",
+        method: "GET",
+        path: "/v1/contacts",
+        summary: "Listed Apollo contacts.",
+        path_params: &[],
+        query: &[("page", "page")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("page")],
+    },
+    ActionSpec {
+        key: "apollo.contacts.search",
+        method: "GET",
+        path: "/v1/contacts/search",
+        summary: "Searched Apollo contacts.",
+        path_params: &[],
+        query: &[("q_keywords", "query"), ("page", "page")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("query"), s("page")],
+    },
+    ActionSpec {
+        key: "apollo.deals.list",
+        method: "POST",
+        path: "/v1/opportunities/search",
+        summary: "Listed Apollo opportunities.",
+        path_params: &[],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[ParamSpec {
+            name: "data",
+            kind: ParamKind::Json,
+            required: false,
+        }],
+    },
+    ActionSpec {
+        key: "apollo.contacts.create",
+        method: "POST",
+        path: "/v1/contacts",
+        summary: "Created an Apollo contact.",
+        path_params: &[],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[ParamSpec {
+            name: "data",
+            kind: ParamKind::Json,
+            required: true,
+        }],
+    },
+    ActionSpec {
+        key: "apollo.contacts.update",
+        method: "PUT",
+        path: "/v1/contacts/{resource_id}",
+        summary: "Updated an Apollo contact.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[s_req("resource_id"),
+            ParamSpec {
+                name: "data",
+                kind: ParamKind::Json,
+                required: true,
+            }],
+    },
+];
+
+
+const APOLLO_KEYS: &[&str] = &[
+    "apollo.contacts.list",
+    "apollo.contacts.search",
+    "apollo.deals.list",
+    "apollo.contacts.create",
+    "apollo.contacts.update",
+];
+
+pub const APOLLO_SPEC: ProviderSpec = ProviderSpec {
+    slug: "apollo",
+    origin: Origin::Static("https://api.apollo.io"),
+    auth: AuthStyle::ApiKeyHeader {
+        header: "X-Api-Key",
+        field: "api_key",
+    },
+    actions: APOLLO_ACTIONS,
+    action_keys: APOLLO_KEYS,
+};
+
+// ---------------------------------------------------------------------------
+// Lemlist API v2 - Basic :{apiKey} (empty team id) or teamId:apiKey.
+// Verified subset: campaign listing and per-campaign statistics.
+// ---------------------------------------------------------------------------
+const CANNY_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "canny.tickets.list",
+        method: "POST",
+        path: "/posts/list",
+        summary: "Listed Canny posts.",
+        path_params: &[],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("limit"), s("status")],
+    },
+    ActionSpec {
+        key: "canny.tickets.search",
+        method: "POST",
+        path: "/posts/list",
+        summary: "Searched Canny posts.",
+        path_params: &[],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("query")],
+    },
+    ActionSpec {
+        key: "canny.tickets.get",
+        method: "POST",
+        path: "/posts/get",
+        summary: "Read a Canny post.",
+        path_params: &[],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("id")],
+    },
+    ActionSpec {
+        key: "canny.tickets.create",
+        method: "POST",
+        path: "/posts/create",
+        summary: "Created a Canny post.",
+        path_params: &[],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[s_req("boardID"), s_req("title"), s_req("details")],
+    },
+    ActionSpec {
+        key: "canny.tickets.update",
+        method: "POST",
+        path: "/posts/update",
+        summary: "Updated a Canny post.",
+        path_params: &[],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[s_req("id"), s("title"), s("details")],
+    },
+    ActionSpec {
+        key: "canny.tickets.delete",
+        method: "POST",
+        path: "/posts/delete",
+        summary: "Deleted a Canny post.",
+        path_params: &[],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::High,
+        params: &resource_id(),
+    },
+];
+
+const CANNY_KEYS: &[&str] = &[
+    "canny.tickets.list",
+    "canny.tickets.search",
+    "canny.tickets.get",
+    "canny.tickets.create",
+    "canny.tickets.update",
+    "canny.tickets.delete",
+];
+
+pub const CANNY_SPEC: ProviderSpec = ProviderSpec {
+    slug: "canny",
+    origin: Origin::Static("https://canny.io/api/v1"),
+    auth: AuthStyle::BodyField { field: "api_key" },
+    actions: CANNY_ACTIONS,
+    action_keys: CANNY_KEYS,
+};
+
+// ---------------------------------------------------------------------------
+// Apollo.io REST API v1 - X-Api-Key header. Verified subset of the catalog:
+// contacts and opportunities CRUD via /v1/contacts and /v1/opportunities.
+// ---------------------------------------------------------------------------
+const CRUNCHBASE_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "crunchbase.contacts.search",
+        method: "GET",
+        path: "/data/entities/organizations",
+        summary: "Searched Crunchbase organizations.",
+        path_params: &[],
+        query: &[("q", "query"), ("field_ids", "fields")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("query"), s("fields")],
+    },
+    ActionSpec {
+        key: "crunchbase.deals.list",
+        method: "GET",
+        path: "/data/entities/funding_rounds",
+        summary: "Listed Crunchbase funding rounds.",
+        path_params: &[],
+        query: &[("field_ids", "fields")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("fields")],
+    },
+];
+
+const CRUNCHBASE_KEYS: &[&str] = &[
+    "crunchbase.contacts.search",
+    "crunchbase.deals.list",
+];
+
+pub const CRUNCHBASE_SPEC: ProviderSpec = ProviderSpec {
+    slug: "crunchbase",
+    origin: Origin::Static("https://api.crunchbase.com/api/v4"),
+    auth: AuthStyle::QueryPairs {
+        pairs: &[("user_key", "user_key")],
+    },
+    actions: CRUNCHBASE_ACTIONS,
+    action_keys: CRUNCHBASE_KEYS,
+};
+const GREENHOUSE_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "greenhouse.candidates.list",
+        method: "GET",
+        path: "/v1/candidates",
+        summary: "Listed Greenhouse candidates.",
+        path_params: &[],
+        query: &[("per_page", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("limit")],
+    },
+    ActionSpec {
+        key: "greenhouse.candidates.get",
+        method: "GET",
+        path: "/v1/candidates/{resource_id}",
+        summary: "Read a Greenhouse candidate.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &resource_id(),
+    },
+];
+
+const GREENHOUSE_KEYS: &[&str] = &[
+    "greenhouse.candidates.list",
+    "greenhouse.candidates.get",
+];
+
+pub const GREENHOUSE_SPEC: ProviderSpec = ProviderSpec {
+    slug: "greenhouse",
+    origin: Origin::Static("https://harvest.greenhouse.io"),
+    auth: AuthStyle::BasicJoin {
+        first_field: "api_key",
+        separator: ':',
+        second_field: None,
+    },
+    actions: GREENHOUSE_ACTIONS,
+    action_keys: GREENHOUSE_KEYS,
+};
+
+const STREAK_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "streak.deals.list",
+        method: "GET",
+        path: "/v1/pipelines/{pipeline_key}/boxes",
+        summary: "Listed pipeline boxes (deals).",
+        path_params: &["pipeline_key"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("pipeline_key")],
+    },
+    ActionSpec {
+        key: "streak.deals.get",
+        method: "GET",
+        path: "/v1/pipelines/{pipeline_key}/boxes/{resource_id}",
+        summary: "Read a pipeline box.",
+        path_params: &["pipeline_key", "resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("pipeline_key"), s_req("box_key")],
+    },
+];
+
+const STREAK_KEYS: &[&str] = &["streak.deals.list", "streak.deals.get"];
+
+pub const STREAK_SPEC: ProviderSpec = ProviderSpec {
+    slug: "streak",
+    origin: Origin::Static("https://www.streak.com/api"),
+    auth: AuthStyle::BasicJoin {
+        first_field: "api_key",
+        separator: ':',
+        second_field: None,
+    },
+    actions: STREAK_ACTIONS,
+    action_keys: STREAK_KEYS,
+};
+const ZENDESK_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "zendesk.tickets.list",
+        method: "GET",
+        path: "/tickets.json",
+        summary: "Listed support tickets.",
+        path_params: &[],
+        query: &[("per_page", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("limit")],
+    },
+    ActionSpec {
+        key: "zendesk.tickets.search",
+        method: "GET",
+        path: "/search.json",
+        summary: "Searched support tickets.",
+        path_params: &[],
+        query: &[("query", "query"), ("per_page", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("query"), s("limit")],
+    },
+    ActionSpec {
+        key: "zendesk.tickets.get",
+        method: "GET",
+        path: "/tickets/{resource_id}.json",
+        summary: "Read support ticket.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &resource_id(),
+    },
+    ActionSpec {
+        key: "zendesk.tickets.create",
+        method: "POST",
+        path: "/tickets.json",
+        summary: "Created support ticket.",
+        path_params: &[],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: Some("ticket"),
+        risk: Risk::Medium,
+        params: &[json_req("data")],
+    },
+    ActionSpec {
+        key: "zendesk.tickets.update",
+        method: "PUT",
+        path: "/tickets/{resource_id}.json",
+        summary: "Updated support ticket.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: Some("ticket"),
+        risk: Risk::Medium,
+        params: &[s_req("resource_id"), json_req("data")],
+    },
+    ActionSpec {
+        key: "zendesk.tickets.delete",
+        method: "DELETE",
+        path: "/tickets/{resource_id}.json",
+        summary: "Deleted support ticket.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::High,
+        params: &resource_id(),
+    },
+];
+
+const ZENDESK_KEYS: &[&str] = &[
+    "zendesk.tickets.list",
+    "zendesk.tickets.search",
+    "zendesk.tickets.get",
+    "zendesk.tickets.create",
+    "zendesk.tickets.update",
+    "zendesk.tickets.delete",
+];
+
+pub const ZENDESK_SPEC: ProviderSpec = ProviderSpec {
+    slug: "zendesk",
+    origin: Origin::ZendeskSubdomain,
+    auth: AuthStyle::BasicTemplate {
+        user_template: "{email}/token",
+        password_field: "token",
+    },
+    actions: ZENDESK_ACTIONS,
+    action_keys: ZENDESK_KEYS,
+};
+
+// ---------------------------------------------------------------------------
+// Trello REST API - key/token query authentication.
+// ---------------------------------------------------------------------------
