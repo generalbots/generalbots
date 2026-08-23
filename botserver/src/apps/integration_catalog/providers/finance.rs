@@ -102,7 +102,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "Robinhood",
         Category::Finance,
         Strategy::Verify,
-        Status::Planned,
+        Status::Built,
         Priority::Nice,
         None,
         None,

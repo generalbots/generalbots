@@ -144,7 +144,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         "Lightspeed X",
         Category::SmallBusiness,
         Strategy::Integrate,
-        Status::Planned,
+        Status::Built,
         Priority::Nice,
         None,
         None,
