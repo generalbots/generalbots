@@ -1,3 +1,4 @@
+if (window.GBAppLifecycle) GBAppLifecycle.begin("fraud");
 (function() {
 'use strict';
 const API_BASE = '/api/fraud';
