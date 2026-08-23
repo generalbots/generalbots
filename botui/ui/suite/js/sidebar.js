@@ -11,7 +11,7 @@
   // Path segments that are suite routes/apps — never treated as bot names
   // when deriving the active bot from location.pathname.
   var ROUTE_SEGMENTS = ["suite", "cloud", "login", "signup", "chat", "app",
-    "ws", "ui", "api", "auth", "desktop", "sources", "settings", "admin"];
+    "ws", "ui", "api", "auth", "desktop", "sources", "integrations", "settings", "admin"];
 
   var FALLBACK_APPS = {
     chat: {

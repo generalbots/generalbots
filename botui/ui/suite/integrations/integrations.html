@@ -33,6 +33,8 @@
                     aria-selected="true" tabindex="0">Explore</button>
                 <button class="integrations-tab" type="button" role="tab" data-tab="connected"
                     aria-selected="false" tabindex="-1">Connected</button>
+                <button class="integrations-tab" type="button" role="tab" data-tab="automations"
+                    aria-selected="false" tabindex="-1">Automations</button>
             </div>
         </nav>
 
@@ -93,7 +95,44 @@
                 </p>
                 <div class="integrations-connected" data-connected-view aria-busy="true"></div>
             </section>
+            <section class="integrations-panel" role="tabpanel" data-panel="automations" hidden>
+                <div class="integrations-section-heading">
+                    <div>
+                        <p class="integrations-eyebrow">Scheduled execution</p>
+                        <h2>Automations</h2>
+                        <p>Run an integration action on a repeating schedule using the vault-backed connection.</p>
+                    </div>
+                    <button class="integrations-button" type="button" data-action="new-automation">New automation</button>
+                </div>
+                <form class="integrations-automation-form" data-automation-form hidden novalidate>
+                    <div class="integrations-run-grid">
+                        <label class="integrations-run-field"><span>Provider *</span>
+                            <select name="provider" data-automation-provider required></select></label>
+                        <label class="integrations-run-field"><span>Action *</span>
+                            <select name="action" data-automation-action required></select></label>
+                        <label class="integrations-run-field"><span>Schedule *</span>
+                            <select name="schedule" data-automation-schedule required>
+                                <option value="@every_5m">Every 5 minutes</option>
+                                <option value="@every_15m">Every 15 minutes</option>
+                                <option value="@hourly">Hourly</option>
+                                <option value="@daily" selected>Daily</option>
+                                <option value="@weekly">Weekly</option>
+                            </select></label>
+                    </div>
+                    <label class="integrations-run-field"><span>Parameters (JSON object)</span>
+                        <textarea name="params" rows="4" placeholder='{ "limit": 10 }'></textarea></label>
+                    <p class="integrations-inline-error" data-automation-error hidden role="alert"></p>
+                    <div class="integrations-run-actions">
+                        <button class="integrations-button" type="submit">Create automation</button>
+                        <button class="integrations-button integrations-button-subtle" type="button" data-action="cancel-automation">Cancel</button>
+                    </div>
+                </form>
+                <p class="integrations-result-status" data-automation-status role="status" aria-live="polite">Loading automations</p>
+                <div data-automations-view aria-busy="true"></div>
+            </section>
+
         </main>
+
     </div>
 
     <div class="integrations-detail-layer" data-detail-layer hidden aria-hidden="true">
@@ -122,4 +161,5 @@
 <script src="/suite/integrations/modules/03_details.js"></script>
 <script src="/suite/integrations/modules/04_events.js"></script>
 <script src="/suite/integrations/modules/05_runner.js"></script>
+<script src="/suite/integrations/modules/06_automations.js"></script>
 <script src="/suite/integrations/modules/99_init.js"></script>

@@ -17,6 +17,9 @@ use strict";
     if (typeof namespace.installActionRunner === "function") {
         namespace.installActionRunner();
     }
+    if (typeof namespace.installAutomations === "function") {
+        namespace.installAutomations();
+    }
     initializeAll(document);
 
     if (!namespace.htmxInitializerBound) {
