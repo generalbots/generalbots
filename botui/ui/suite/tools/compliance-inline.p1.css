@@ -1,0 +1,445 @@
+.compliance-container {
+            padding: 24px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .compliance-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .compliance-header-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .compliance-back-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+
+        .compliance-back-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .compliance-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 4px 0;
+        }
+
+        .compliance-subtitle {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin: 0;
+        }
+
+        .compliance-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .compliance-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+            background: var(--secondary-bg);
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .compliance-btn:hover {
+            background: var(--bg-hover);
+        }
+
+        .compliance-btn-primary {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+
+        .compliance-btn-primary:hover {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        .compliance-stats {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .compliance-stat-card {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .compliance-stat-card::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+        }
+
+        .compliance-stat-card.critical::before {
+            background: #dc2626;
+        }
+        .compliance-stat-card.high::before {
+            background: #ea580c;
+        }
+        .compliance-stat-card.medium::before {
+            background: #d97706;
+        }
+        .compliance-stat-card.low::before {
+            background: #65a30d;
+        }
+        .compliance-stat-card.info::before {
+            background: #0891b2;
+        }
+
+        .compliance-stat-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .compliance-stat-value {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .compliance-stat-card.critical .compliance-stat-value {
+            color: #dc2626;
+        }
+        .compliance-stat-card.high .compliance-stat-value {
+            color: #ea580c;
+        }
+        .compliance-stat-card.medium .compliance-stat-value {
+            color: #d97706;
+        }
+        .compliance-stat-card.low .compliance-stat-value {
+            color: #65a30d;
+        }
+        .compliance-stat-card.info .compliance-stat-value {
+            color: #0891b2;
+        }
+
+        .compliance-stat-desc {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+        }
+
+        .compliance-filters {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 20px;
+            padding: 12px 16px;
+            background: var(--secondary-bg);
+            border-radius: 10px;
+            border: 1px solid var(--border-color);
+            flex-wrap: wrap;
+        }
+
+        .compliance-filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .compliance-filter-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .compliance-filter-select {
+            padding: 8px 12px;
+            background: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .compliance-filter-input {
+            padding: 8px 12px;
+            background: var(--primary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 13px;
+            width: 200px;
+        }
+
+        .compliance-filter-input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .compliance-filter-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+        }
+
+        .compliance-filter-spacer {
+            flex: 1;
+        }
+
+        .compliance-results {
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .compliance-results-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .compliance-results-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .compliance-results-count {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .compliance-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .compliance-table th {
+            text-align: left;
+            padding: 12px 16px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            background: var(--bg-hover);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .compliance-table td {
+            padding: 14px 16px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border-color);
+            vertical-align: top;
+            color: var(--text-primary);
+        }
+
+        .compliance-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .compliance-table tr:hover {
+            background: var(--bg-hover);
+        }
+
+        .compliance-severity {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .compliance-severity.critical {
+            background: rgba(220, 38, 38, 0.15);
+            color: #ef4444;
+        }
+
+        .compliance-severity.high {
+            background: rgba(234, 88, 12, 0.15);
+            color: #f97316;
+        }
+
+        .compliance-severity.medium {
+            background: rgba(217, 119, 6, 0.15);
+            color: #eab308;
+        }
+
+        .compliance-severity.low {
+            background: rgba(101, 163, 13, 0.15);
+            color: #84cc16;
+        }
+
+        .compliance-severity.info {
+            background: rgba(8, 145, 178, 0.15);
+            color: #22d3ee;
+        }
+
+        .compliance-severity-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+
+        .compliance-issue-type {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .compliance-issue-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .compliance-issue-icon.password {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .compliance-issue-icon.security {
+            background: rgba(249, 115, 22, 0.15);
+            color: #f97316;
+        }
+
+        .compliance-issue-icon.deprecated {
+            background: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+        }
+
+        .compliance-issue-icon.code {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+        }
+
+        .compliance-issue-icon.config {
+            background: rgba(16, 185, 129, 0.15);
+            color: #34d399;
+        }
+
+        .compliance-issue-title {
+            font-weight: 500;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+        }
+
+        .compliance-issue-category {
+            font-size: 11px;
+            color: var(--text-tertiary);
+        }
+
+        .compliance-file-path {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+            background: var(--bg-hover);
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .compliance-file-line {
+            font-size: 11px;
+            color: var(--text-tertiary);
+            margin-top: 4px;
+        }
+
+        .compliance-description {
+            color: var(--text-secondary);
+            max-width: 350px;
+            font-size: 13px;
+        }
+
+        .compliance-code-snippet {
+            font-family: "JetBrains Mono", "Fira Code", monospace;
+            font-size: 11px;
+            background: var(--primary-bg);
+            padding: 8px 10px;
+            border-radius: 6px;
+            margin-top: 8px;
+            border: 1px solid var(--border-color);
+            color: #f87171;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .compliance-action-btn {
+            padding: 6px 12px;
+            background: var(--secondary-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .compliance-action-btn:hover {
+            background: var(--accent-color);
+            border-color: var(--accent-color);
+            color: white;
+        }
+
+        .compliance-empty {
+            text-align: center;
+            padding: 60px 24px;
+            color: var(--text-secondary);
+        }
+
+        .compliance-empty-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .compliance-empty-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }

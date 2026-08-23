@@ -1,0 +1,111 @@
+
+        @media (max-width: 1200px) {
+            .compliance-stats {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .compliance-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .compliance-header {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .compliance-filters {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .compliance-filter-input {
+                width: 100%;
+            }
+
+            .compliance-table {
+                display: block;
+                overflow-x: auto;
+            }
+        }
+
+        .compliance-empty-state {
+            text-align: center;
+            padding: 48px 24px;
+        }
+
+        .compliance-empty-icon {
+            font-size: 40px;
+            margin-bottom: 12px;
+        }
+
+        .compliance-empty-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 6px;
+        }
+
+        .compliance-empty-desc {
+            font-size: 13px;
+            color: var(--text-tertiary);
+        }
+
+        .compliance-status-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: capitalize;
+            background: var(--primary-bg);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-color);
+        }
+
+        .compliance-status-badge.critical {
+            background: rgba(220, 38, 38, 0.1);
+            color: #dc2626;
+            border-color: rgba(220, 38, 38, 0.3);
+        }
+
+        .compliance-status-badge.high {
+            background: rgba(234, 88, 12, 0.1);
+            color: #ea580c;
+            border-color: rgba(234, 88, 12, 0.3);
+        }
+
+        .compliance-status-badge.medium {
+            background: rgba(217, 119, 6, 0.1);
+            color: #d97706;
+            border-color: rgba(217, 119, 6, 0.3);
+        }
+
+        .compliance-status-badge.low {
+            background: rgba(101, 163, 13, 0.1);
+            color: #65a30d;
+            border-color: rgba(101, 163, 13, 0.3);
+        }
+
+        .compliance-status-badge.info {
+            background: rgba(8, 145, 178, 0.1);
+            color: #0891b2;
+            border-color: rgba(8, 145, 178, 0.3);
+        }
+
+        .scan-spinner {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: compliance-spin 0.8s linear infinite;
+        }
+
+        @keyframes compliance-spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
