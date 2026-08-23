@@ -469,7 +469,7 @@ const GOOGLE_DRIVE_ACTIONS: &[ActionSpec] = &[
 const GOOGLE_DRIVE_KEYS: &[&str] = &["drive.files.list", "drive.files.get"];
 
 pub const GOOGLE_DRIVE_SPEC: ProviderSpec = ProviderSpec {
-    slug: "google_drive",
+    slug: "drive",
     origin: Origin::Static("https://www.googleapis.com"),
     auth: AuthStyle::Bearer {
         token_field: "token",
@@ -508,7 +508,7 @@ const GCAL_ACTIONS: &[ActionSpec] = &[
 const GCAL_KEYS: &[&str] = &["calendar.events.list", "calendar.events.create"];
 
 pub const GOOGLE_CALENDAR_SPEC: ProviderSpec = ProviderSpec {
-    slug: "google_calendar",
+    slug: "calendar",
     origin: Origin::Static("https://www.googleapis.com"),
     auth: AuthStyle::Bearer {
         token_field: "token",
@@ -753,4 +753,140 @@ pub const CONFLUENCE_SPEC: ProviderSpec = ProviderSpec {
     },
     actions: CONFLUENCE_ACTIONS,
     action_keys: CONFLUENCE_KEYS,
+};
+
+const GSHEETS_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "sheets.values.get",
+        method: "GET",
+        path: "/v4/spreadsheets/{spreadsheet_id}/values/{range}",
+        summary: "Read a range from a Google Sheet.",
+        path_params: &["spreadsheet_id", "range"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("spreadsheet_id"), s_req("range")],
+    },
+    ActionSpec {
+        key: "sheets.rows.append",
+        method: "POST",
+        path: "/v4/spreadsheets/{spreadsheet_id}/values/{range}:append",
+        summary: "Appended rows to a Google Sheet.",
+        path_params: &["spreadsheet_id", "range"],
+        query: &[("valueInputOption", "input_option")],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[s_req("spreadsheet_id"), s_req("range"), json("data", true), s("input_option")],
+    },
+    ActionSpec {
+        key: "sheets.spreadsheets.create",
+        method: "POST",
+        path: "/v4/spreadsheets",
+        summary: "Created a Google Sheet.",
+        path_params: &[],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[json("data", true)],
+    },
+];
+
+const GSHEETS_KEYS: &[&str] = &[
+    "sheets.values.get",
+    "sheets.rows.append",
+    "sheets.spreadsheets.create",
+];
+
+pub const GOOGLE_SHEETS_SPEC: ProviderSpec = ProviderSpec {
+    slug: "sheets",
+    origin: Origin::Static("https://sheets.googleapis.com"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: GSHEETS_ACTIONS,
+    action_keys: GSHEETS_KEYS,
+};
+
+const GTASKS_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "tasks.list",
+        method: "GET",
+        path: "/lists/{list_id}/tasks",
+        summary: "Listed Google Tasks.",
+        path_params: &["list_id"],
+        query: &[("maxResults", "limit"), ("showCompleted", "show_completed")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("list_id"), s("limit"), s("show_completed")],
+    },
+    ActionSpec {
+        key: "tasks.create",
+        method: "POST",
+        path: "/lists/{list_id}/tasks",
+        summary: "Created a Google Task.",
+        path_params: &["list_id"],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[s_req("list_id"), json("data", true)],
+    },
+    ActionSpec {
+        key: "tasks.update",
+        method: "PATCH",
+        path: "/lists/{list_id}/tasks/{resource_id}",
+        summary: "Updated a Google Task.",
+        path_params: &["list_id", "task_id"],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[s_req("list_id"), s_req("task_id"), json("data", true)],
+    },
+    ActionSpec {
+        key: "tasks.complete",
+        method: "PATCH",
+        path: "/lists/{list_id}/tasks/{resource_id}",
+        summary: "Completed a Google Task.",
+        path_params: &["list_id", "task_id"],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[s_req("list_id"), s_req("task_id"), json("data", true)],
+    },
+    ActionSpec {
+        key: "tasks.delete",
+        method: "DELETE",
+        path: "/lists/{list_id}/tasks/{resource_id}",
+        summary: "Deleted a Google Task.",
+        path_params: &["list_id", "task_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::High,
+        params: &[s_req("list_id"), s_req("task_id")],
+    },
+];
+
+const GTASKS_KEYS: &[&str] = &[
+    "tasks.list",
+    "tasks.create",
+    "tasks.update",
+    "tasks.complete",
+    "tasks.delete",
+];
+
+pub const GOOGLE_TASKS_SPEC: ProviderSpec = ProviderSpec {
+    slug: "tasks",
+    origin: Origin::Static("https://tasks.googleapis.com"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: GTASKS_ACTIONS,
+    action_keys: GTASKS_KEYS,
 };

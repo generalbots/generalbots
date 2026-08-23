@@ -59,13 +59,13 @@ pub(crate) fn provider_config(slug: &str) -> Option<OAuthProviderConfig> {
             "",
             true,
         ),
-        "google_drive" => (
+        "drive" => (
             "https://accounts.google.com/o/oauth2/v2/auth",
             "https://oauth2.googleapis.com/token",
             "https://www.googleapis.com/auth/drive.readonly",
             false,
         ),
-        "google_calendar" => (
+        "calendar" => (
             "https://accounts.google.com/o/oauth2/v2/auth",
             "https://oauth2.googleapis.com/token",
             "https://www.googleapis.com/auth/calendar.events",

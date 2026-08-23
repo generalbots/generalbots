@@ -25,8 +25,11 @@ use crate::state::IntegrationState;
 
 pub mod aws;
 pub mod ashby;
+pub mod carriers;
 pub mod bluesky;
 pub mod generic;
+pub mod linear;
+pub mod monday;
 pub mod plain;
 pub mod github;
 pub mod rest_client;
@@ -314,6 +317,10 @@ pub fn registry() -> Vec<Arc<dyn ProviderAdapter>> {
         Arc::new(plain::PlainAdapter),
         Arc::new(ashby::AshbyAdapter),
         Arc::new(bluesky::BlueskyAdapter),
+        Arc::new(carriers::CarriersAdapter::ups()),
+        Arc::new(carriers::CarriersAdapter::fedex()),
+        Arc::new(monday::MondayAdapter),
+        Arc::new(linear::LinearAdapter),
     ]
 }
 
@@ -547,7 +554,7 @@ mod tests {
             "cloudflare", "coinbase", "confluence", "crunchbase",
             "cursor", "databricks", "devin", "dhl",
             "docusign", "dropbox", "facebook_pages", "fitbit",
-            "google_calendar", "google_drive", "google_forms", "google_photos",
+            "calendar", "drive", "google_forms", "google_photos",
             "grafana", "greenhouse", "hex", "highlevel",
             "hubspot", "hugging_face", "intercom", "jotform",
             "last_fm", "lemlist", "loops_so", "luma",
@@ -565,6 +572,7 @@ mod tests {
             "wise", "woocommerce", "x", "xero_accounting",
             "ynab", "youtube_analytics", "zendesk", "zoom",
             "plain", "ashby", "bluesky",
+            "ups", "fedex", "monday", "linear",
         ];
         let registered = registry();
         assert!(registered.len() >= slugs.len());

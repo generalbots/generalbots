@@ -517,3 +517,159 @@ pub const FACEBOOK_PAGES_SPEC: ProviderSpec = ProviderSpec {
     actions: FB_PAGES_ACTIONS,
     action_keys: FB_PAGES_KEYS,
 };
+
+const TWITCH_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "twitch.posts.list",
+        method: "GET",
+        path: "/helix/videos",
+        summary: "Listed Twitch channel videos.",
+        path_params: &[],
+        query: &[("user_id", "user_id"), ("first", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("user_id"), s("limit")],
+    },
+    ActionSpec {
+        key: "twitch.posts.get",
+        method: "GET",
+        path: "/helix/videos",
+        summary: "Read a Twitch video.",
+        path_params: &[],
+        query: &[("id", "resource_id")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &resource_id(),
+    },
+    ActionSpec {
+        key: "twitch.posts.delete",
+        method: "DELETE",
+        path: "/helix/videos",
+        summary: "Deleted a Twitch video.",
+        path_params: &[],
+        query: &[("id", "resource_id")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::High,
+        params: &resource_id(),
+    },
+];
+
+const TWITCH_KEYS: &[&str] = &[
+    "twitch.posts.list",
+    "twitch.posts.get",
+    "twitch.posts.delete",
+];
+
+pub const TWITCH_SPEC: ProviderSpec = ProviderSpec {
+    slug: "twitch",
+    origin: Origin::Static("https://api.twitch.tv"),
+    auth: AuthStyle::BearerHeaders {
+        token_field: "token",
+        headers: &[("Client-Id", "client_id")],
+    },
+    actions: TWITCH_ACTIONS,
+    action_keys: TWITCH_KEYS,
+};
+
+const BASECAMP_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "basecamp.work_items.list",
+        method: "GET",
+        path: "/projects.json",
+        summary: "Listed Basecamp projects.",
+        path_params: &[],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[],
+    },
+    ActionSpec {
+        key: "basecamp.todolists.list",
+        method: "GET",
+        path: "/buckets/{bucket_id}/todolists.json",
+        summary: "Listed Basecamp to-do lists.",
+        path_params: &["bucket_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("bucket_id")],
+    },
+    ActionSpec {
+        key: "basecamp.work_items.create",
+        method: "POST",
+        path: "/buckets/{bucket_id}/todolists.json",
+        summary: "Created a Basecamp to-do list.",
+        path_params: &["bucket_id"],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[s_req("bucket_id"), json("data", true)],
+    },
+    ActionSpec {
+        key: "basecamp.todos.create",
+        method: "POST",
+        path: "/buckets/{bucket_id}/todolists/{todo_list_id}/todos.json",
+        summary: "Created a Basecamp to-do.",
+        path_params: &["bucket_id", "todo_list_id"],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[s_req("bucket_id"), s_req("todo_list_id"), json("data", true)],
+    },
+];
+
+const BASECAMP_KEYS: &[&str] = &[
+    "basecamp.work_items.list",
+    "basecamp.todolists.list",
+    "basecamp.work_items.create",
+    "basecamp.todos.create",
+];
+
+pub const BASECAMP_SPEC: ProviderSpec = ProviderSpec {
+    slug: "basecamp",
+    origin: Origin::FromField {
+        field: "base_url",
+        pattern: "{value}",
+    },
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: BASECAMP_ACTIONS,
+    action_keys: BASECAMP_KEYS,
+};
+
+const LINKEDIN_ADS_ACTIONS: &[ActionSpec] = &[ActionSpec {
+    key: "linkedin_ads.campaigns.list",
+    method: "GET",
+    path: "/rest/adAccountGroups",
+    summary: "Listed LinkedIn ad account groups.",
+    path_params: &[],
+    query: &[("pageSize", "limit")],
+    body_param: None,
+    body_wrapper: None,
+    risk: Risk::Low,
+    params: &[s("limit")],
+}];
+
+const LINKEDIN_ADS_KEYS: &[&str] = &["linkedin_ads.campaigns.list"];
+
+pub const LINKEDIN_ADS_SPEC: ProviderSpec = ProviderSpec {
+    slug: "linkedin_ads",
+    origin: Origin::Static("https://api.linkedin.com"),
+    auth: AuthStyle::BearerHeaders {
+        token_field: "token",
+        headers: &[
+            ("LinkedIn-Version", "202406"),
+            ("X-Restli-Protocol", "2.0.0"),
+        ],
+    },
+    actions: LINKEDIN_ADS_ACTIONS,
+    action_keys: LINKEDIN_ADS_KEYS,
+};
