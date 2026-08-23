@@ -1,3 +1,4 @@
+if (window.GBAppLifecycle) GBAppLifecycle.begin("biometry");
 (function(){
 var state={kyc:[],signatures:[],certificates:[],audit:[],livenessSessions:[],currentTab:'kyc',selectedSignDoc:null,signaturePad:null,drawing:false,lastX:0,lastY:0,livenessActive:false};
 
