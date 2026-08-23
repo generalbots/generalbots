@@ -438,3 +438,319 @@ pub const CALENDLY_SPEC: ProviderSpec = ProviderSpec {
     actions: CALENDLY_ACTIONS,
     action_keys: CALENDLY_KEYS,
 };
+
+const GOOGLE_DRIVE_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "drive.files.list",
+        method: "GET",
+        path: "/drive/v3/files",
+        summary: "Listed Google Drive files.",
+        path_params: &[],
+        query: &[("pageSize", "limit"), ("q", "query"), ("pageToken", "cursor")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("limit"), s("query"), s("cursor")],
+    },
+    ActionSpec {
+        key: "drive.files.get",
+        method: "GET",
+        path: "/drive/v3/files/{resource_id}",
+        summary: "Read Drive file metadata.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &resource_id(),
+    },
+];
+
+const GOOGLE_DRIVE_KEYS: &[&str] = &["drive.files.list", "drive.files.get"];
+
+pub const GOOGLE_DRIVE_SPEC: ProviderSpec = ProviderSpec {
+    slug: "google_drive",
+    origin: Origin::Static("https://www.googleapis.com"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: GOOGLE_DRIVE_ACTIONS,
+    action_keys: GOOGLE_DRIVE_KEYS,
+};
+
+const GCAL_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "calendar.events.list",
+        method: "GET",
+        path: "/calendar/v3/calendars/primary/events",
+        summary: "Listed calendar events.",
+        path_params: &[],
+        query: &[("maxResults", "limit"), ("timeMin", "time_min"), ("timeMax", "time_max")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("limit"), s("time_min"), s("time_max")],
+    },
+    ActionSpec {
+        key: "calendar.events.create",
+        method: "POST",
+        path: "/calendar/v3/calendars/primary/events",
+        summary: "Created a calendar event.",
+        path_params: &[],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[json("data", true)],
+    },
+];
+
+const GCAL_KEYS: &[&str] = &["calendar.events.list", "calendar.events.create"];
+
+pub const GOOGLE_CALENDAR_SPEC: ProviderSpec = ProviderSpec {
+    slug: "google_calendar",
+    origin: Origin::Static("https://www.googleapis.com"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: GCAL_ACTIONS,
+    action_keys: GCAL_KEYS,
+};
+
+const GPHOTOS_ACTIONS: &[ActionSpec] = &[ActionSpec {
+    key: "google_photos.mediaitems.list",
+    method: "GET",
+    path: "/v1/mediaItems",
+    summary: "Listed Google Photos media items.",
+    path_params: &[],
+    query: &[("pageSize", "limit")],
+    body_param: None,
+    body_wrapper: None,
+    risk: Risk::Low,
+    params: &[s("limit")],
+}];
+
+const GPHOTOS_KEYS: &[&str] = &["google_photos.mediaitems.list"];
+
+pub const GOOGLE_PHOTOS_SPEC: ProviderSpec = ProviderSpec {
+    slug: "google_photos",
+    origin: Origin::Static("https://photoslibrary.googleapis.com"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: GPHOTOS_ACTIONS,
+    action_keys: GPHOTOS_KEYS,
+};
+
+const GFORMS_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "google_forms.forms.get",
+        method: "GET",
+        path: "/v1/forms/{resource_id}",
+        summary: "Read a Google Form.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &resource_id(),
+    },
+    ActionSpec {
+        key: "google_forms.responses.list",
+        method: "GET",
+        path: "/v1/forms/{form_id}/responses",
+        summary: "Listed form responses.",
+        path_params: &["form_id"],
+        query: &[("pageSize", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("form_id"), s("limit")],
+    },
+];
+
+const GFORMS_KEYS: &[&str] = &["google_forms.forms.get", "google_forms.responses.list"];
+
+pub const GOOGLE_FORMS_SPEC: ProviderSpec = ProviderSpec {
+    slug: "google_forms",
+    origin: Origin::Static("https://forms.googleapis.com"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: GFORMS_ACTIONS,
+    action_keys: GFORMS_KEYS,
+};
+
+const OUTLOOK_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "outlook.messages.list",
+        method: "GET",
+        path: "/v1.0/me/messages",
+        summary: "Listed mailbox messages.",
+        path_params: &[],
+        query: &[("$top", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("limit")],
+    },
+    ActionSpec {
+        key: "outlook.messages.send",
+        method: "POST",
+        path: "/v1.0/me/sendMail",
+        summary: "Sent a mailbox message.",
+        path_params: &[],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::High,
+        params: &[json("data", true)],
+    },
+];
+
+const OUTLOOK_KEYS: &[&str] = &["outlook.messages.list", "outlook.messages.send"];
+
+pub const OUTLOOK_SPEC: ProviderSpec = ProviderSpec {
+    slug: "outlook",
+    origin: Origin::Static("https://graph.microsoft.com"),
+    auth: AuthStyle::BearerHeaders {
+        token_field: "token",
+        headers: &[("ConsistencyLevel", "eventual")],
+    },
+    actions: OUTLOOK_ACTIONS,
+    action_keys: OUTLOOK_KEYS,
+};
+
+const OUTLOOK_CAL_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "outlook_calendar.events.list",
+        method: "GET",
+        path: "/v1.0/me/events",
+        summary: "Listed Outlook calendar events.",
+        path_params: &[],
+        query: &[("$top", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("limit")],
+    },
+    ActionSpec {
+        key: "outlook_calendar.events.create",
+        method: "POST",
+        path: "/v1.0/me/events",
+        summary: "Created an Outlook event.",
+        path_params: &[],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::Medium,
+        params: &[json("data", true)],
+    },
+];
+
+const OUTLOOK_CAL_KEYS: &[&str] = &[
+    "outlook_calendar.events.list",
+    "outlook_calendar.events.create",
+];
+
+pub const OUTLOOK_CALENDAR_SPEC: ProviderSpec = ProviderSpec {
+    slug: "outlook_calendar",
+    origin: Origin::Static("https://graph.microsoft.com"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: OUTLOOK_CAL_ACTIONS,
+    action_keys: OUTLOOK_CAL_KEYS,
+};
+
+const ONEDRIVE_ACTIONS: &[ActionSpec] = &[ActionSpec {
+    key: "onedrive.files.list",
+    method: "GET",
+    path: "/v1.0/me/drive/root/children",
+    summary: "Listed OneDrive root children.",
+    path_params: &[],
+    query: &[("$top", "limit")],
+    body_param: None,
+    body_wrapper: None,
+    risk: Risk::Low,
+    params: &[s("limit")],
+}];
+
+const ONEDRIVE_KEYS: &[&str] = &["onedrive.files.list"];
+
+pub const ONEDRIVE_SPEC: ProviderSpec = ProviderSpec {
+    slug: "onedrive",
+    origin: Origin::Static("https://graph.microsoft.com"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: ONEDRIVE_ACTIONS,
+    action_keys: ONEDRIVE_KEYS,
+};
+
+const SHAREPOINT_ACTIONS: &[ActionSpec] = &[ActionSpec {
+    key: "sharepoint.sites.search",
+    method: "GET",
+    path: "/v1.0/sites",
+    summary: "Searched SharePoint sites.",
+    path_params: &[],
+    query: &[("search", "query")],
+    body_param: None,
+    body_wrapper: None,
+    risk: Risk::Low,
+    params: &[s_req("query")],
+}];
+
+const SHAREPOINT_KEYS: &[&str] = &["sharepoint.sites.search"];
+
+pub const SHAREPOINT_SPEC: ProviderSpec = ProviderSpec {
+    slug: "sharepoint",
+    origin: Origin::Static("https://graph.microsoft.com"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: SHAREPOINT_ACTIONS,
+    action_keys: SHAREPOINT_KEYS,
+};
+
+const CONFLUENCE_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "confluence.pages.search",
+        method: "GET",
+        path: "/api/v2/pages",
+        summary: "Listed Confluence pages.",
+        path_params: &[],
+        query: &[("space-id", "space_id"), ("limit", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("space_id"), s("limit")],
+    },
+    ActionSpec {
+        key: "confluence.pages.get",
+        method: "GET",
+        path: "/api/v2/pages/{resource_id}",
+        summary: "Read a Confluence page.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &resource_id(),
+    },
+];
+
+const CONFLUENCE_KEYS: &[&str] = &["confluence.pages.search", "confluence.pages.get"];
+
+pub const CONFLUENCE_SPEC: ProviderSpec = ProviderSpec {
+    slug: "confluence",
+    origin: Origin::FromField {
+        field: "site_url",
+        pattern: "{value}",
+    },
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: CONFLUENCE_ACTIONS,
+    action_keys: CONFLUENCE_KEYS,
+};

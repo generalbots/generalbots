@@ -407,3 +407,113 @@ pub const NEWSCATCHER_SPEC: ProviderSpec = ProviderSpec {
     actions: NEWSCATCHER_ACTIONS,
     action_keys: NEWSCATCHER_KEYS,
 };
+
+const BLOGGER_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "blogger.posts.list",
+        method: "GET",
+        path: "/v3/blogs/{blog_id}/posts",
+        summary: "Listed Blogger posts.",
+        path_params: &["blog_id"],
+        query: &[("maxResults", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("blog_id"), s("limit")],
+    },
+    ActionSpec {
+        key: "blogger.posts.create",
+        method: "POST",
+        path: "/v3/blogs/{blog_id}/posts/",
+        summary: "Published a Blogger post.",
+        path_params: &["blog_id"],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::High,
+        params: &[s_req("blog_id"), json("data", true)],
+    },
+    ActionSpec {
+        key: "blogger.posts.delete",
+        method: "DELETE",
+        path: "/v3/blogs/{blog_id}/posts/{resource_id}",
+        summary: "Deleted a Blogger post.",
+        path_params: &["blog_id", "post_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::High,
+        params: &[s_req("blog_id"), s_req("post_id")],
+    },
+];
+
+const BLOGGER_KEYS: &[&str] = &[
+    "blogger.posts.list",
+    "blogger.posts.create",
+    "blogger.posts.delete",
+];
+
+pub const BLOGGER_SPEC: ProviderSpec = ProviderSpec {
+    slug: "blogger",
+    origin: Origin::Static("https://www.googleapis.com"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: BLOGGER_ACTIONS,
+    action_keys: BLOGGER_KEYS,
+};
+
+const FB_PAGES_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "facebook_pages.posts.list",
+        method: "GET",
+        path: "/me/posts",
+        summary: "Listed Page posts.",
+        path_params: &[],
+        query: &[("limit", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("limit")],
+    },
+    ActionSpec {
+        key: "facebook_pages.posts.create",
+        method: "POST",
+        path: "/me/feed",
+        summary: "Published a Page post.",
+        path_params: &[],
+        query: &[],
+        body_param: Some("data"),
+        body_wrapper: None,
+        risk: Risk::High,
+        params: &[json("data", true)],
+    },
+    ActionSpec {
+        key: "facebook_pages.posts.delete",
+        method: "DELETE",
+        path: "/{resource_id}",
+        summary: "Deleted a Page post.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::High,
+        params: &resource_id(),
+    },
+];
+
+const FB_PAGES_KEYS: &[&str] = &[
+    "facebook_pages.posts.list",
+    "facebook_pages.posts.create",
+    "facebook_pages.posts.delete",
+];
+
+pub const FACEBOOK_PAGES_SPEC: ProviderSpec = ProviderSpec {
+    slug: "facebook_pages",
+    origin: Origin::Static("https://graph.facebook.com/v21.0"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: FB_PAGES_ACTIONS,
+    action_keys: FB_PAGES_KEYS,
+};

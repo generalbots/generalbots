@@ -320,3 +320,59 @@ pub const RAINDROP_SPEC: ProviderSpec = ProviderSpec {
     actions: RAINDROP_ACTIONS,
     action_keys: RAINDROP_KEYS,
 };
+
+const FITBIT_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "fitbit.activities.list",
+        method: "GET",
+        path: "/1/user/-/activities/list.json",
+        summary: "Listed Fitbit activities.",
+        path_params: &[],
+        query: &[("afterDate", "after_date"), ("sort", "sort"), ("limit", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("after_date"), s("sort"), s("limit")],
+    },
+    ActionSpec {
+        key: "fitbit.metrics.query",
+        method: "GET",
+        path: "/1/user/-/activities/heart-rate/date/today/1d.json",
+        summary: "Read today's heart-rate series.",
+        path_params: &[],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[],
+    },
+    ActionSpec {
+        key: "fitbit.activities.delete",
+        method: "DELETE",
+        path: "/1/user/-/activities/{resource_id}.json",
+        summary: "Deleted a logged activity.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::High,
+        params: &resource_id(),
+    },
+];
+
+const FITBIT_KEYS: &[&str] = &[
+    "fitbit.activities.list",
+    "fitbit.metrics.query",
+    "fitbit.activities.delete",
+];
+
+pub const FITBIT_SPEC: ProviderSpec = ProviderSpec {
+    slug: "fitbit",
+    origin: Origin::Static("https://api.fitbit.com"),
+    auth: AuthStyle::BearerHeaders {
+        token_field: "token",
+        headers: &[],
+    },
+    actions: FITBIT_ACTIONS,
+    action_keys: FITBIT_KEYS,
+};

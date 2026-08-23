@@ -1,4 +1,4 @@
-use super::helpers::{json, s, s_req};
+use super::helpers::{json, resource_id, s, s_req};
 use super::{ActionSpec, AuthStyle, Origin, ProviderSpec, Risk};
 const SALESFORCE_ACTIONS: &[ActionSpec] = &[
     ActionSpec {
@@ -263,4 +263,55 @@ pub const ATTIO_SPEC: ProviderSpec = ProviderSpec {
     },
     actions: ATTIO_ACTIONS,
     action_keys: ATTIO_KEYS,
+};
+
+const CANVA_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "canva.assets.list",
+        method: "GET",
+        path: "/v1/assets",
+        summary: "Listed Canva assets.",
+        path_params: &[],
+        query: &[("continuation", "cursor")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("cursor")],
+    },
+    ActionSpec {
+        key: "canva.assets.get",
+        method: "GET",
+        path: "/v1/assets/{resource_id}",
+        summary: "Read a Canva asset.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &resource_id(),
+    },
+    ActionSpec {
+        key: "canva.assets.delete",
+        method: "DELETE",
+        path: "/v1/assets/{resource_id}",
+        summary: "Deleted a Canva asset.",
+        path_params: &["resource_id"],
+        query: &[],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::High,
+        params: &resource_id(),
+    },
+];
+
+const CANVA_KEYS: &[&str] = &["canva.assets.list", "canva.assets.get", "canva.assets.delete"];
+
+pub const CANVA_SPEC: ProviderSpec = ProviderSpec {
+    slug: "canva",
+    origin: Origin::Static("https://api.canva.com"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: CANVA_ACTIONS,
+    action_keys: CANVA_KEYS,
 };

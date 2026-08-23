@@ -21,6 +21,7 @@
         <link rel="stylesheet" href="/suite/css/desktop/widgets.css?v=1" />
         <link rel="stylesheet" href="/suite/css/desktop/widgets-content.css?v=1" />
         <link rel="stylesheet" href="/suite/css/desktop/context-menu.css?v=1" />
+        <link rel="stylesheet" href="/suite/css/desktop/desktop-icons.css?v=1" />
         <link rel="stylesheet" href="/suite/css/desktop/sidebar-enhance.css?v=3" />
 
         <!-- Local JS requirements per AGENTS.md / UI.md -->
@@ -42,6 +43,7 @@
         <script src="/suite/js/app-lifecycle.js?v=1"></script>
         <script src="/suite/js/widget-renderer.js?v=2"></script>
         <script src="/suite/js/widget-registry.js?v=2"></script>
+        <script src="/suite/js/desktop-shortcuts.js?v=1"></script>
         <script src="/suite/js/pinned-launcher.js?v=3"></script>
         <script src="/suite/js/sidebar-enhance.js?v=2"></script>
         <script src="/suite/js/sidebar-sections.js?v=1"></script>
@@ -468,6 +470,10 @@
                 }
                 if (window.GBPinnedLauncher) {
                     window.GBPinnedLauncher.init();
+                }
+                // Per-user desktop shortcuts: drop Drive files here (#1188)
+                if (window.GBDesktopShortcuts) {
+                    window.GBDesktopShortcuts.init(document.getElementById("desktop-content"));
                 }
             })();
 

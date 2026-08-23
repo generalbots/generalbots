@@ -430,3 +430,45 @@ pub const HUBSPOT_SPEC: ProviderSpec = ProviderSpec {
     actions: HUBSPOT_ACTIONS,
     action_keys: HUBSPOT_KEYS,
 };
+
+const CLICKFUNNELS_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "clickfunnels.campaigns.list",
+        method: "GET",
+        path: "/workspaces/{workspace_id}/funnels",
+        summary: "Listed ClickFunnels funnels.",
+        path_params: &["workspace_id"],
+        query: &[("per_page", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("workspace_id"), s("limit")],
+    },
+    ActionSpec {
+        key: "clickfunnels.contacts.list",
+        method: "GET",
+        path: "/workspaces/{workspace_id}/contacts",
+        summary: "Listed ClickFunnels contacts.",
+        path_params: &["workspace_id"],
+        query: &[("per_page", "limit"), ("filter[email]", "email")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("workspace_id"), s("limit"), s("email")],
+    },
+];
+
+const CLICKFUNNELS_KEYS: &[&str] = &[
+    "clickfunnels.campaigns.list",
+    "clickfunnels.contacts.list",
+];
+
+pub const CLICKFUNNELS_SPEC: ProviderSpec = ProviderSpec {
+    slug: "clickfunnels",
+    origin: Origin::Static("https://api.myclickfunnels.com/api/v2"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: CLICKFUNNELS_ACTIONS,
+    action_keys: CLICKFUNNELS_KEYS,
+};

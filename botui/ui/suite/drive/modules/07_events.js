@@ -316,3 +316,26 @@ function handleBucketChange(e) {
 function bindRefreshBotsBtn() {}
 function bindBotSearchInput() {}
 function bindNewBotBtn() {}
+
+// ── Drag source for desktop shortcuts (#1188) ────────────────────
+// Delegated on the app container so re-renders keep working: any file
+// card/list row becomes draggable and hands its coordinates to the
+// desktop via the private drag type consumed by js/desktop-shortcuts.js.
+(function () {
+    var root = document.getElementById("drive-app");
+    if (!root || root.dataset.gbDragSource === "1") return;
+    root.dataset.gbDragSource = "1";
+
+    root.addEventListener("dragstart", function (e) {
+        var item = e.target.closest(".file-card, .drive-file-item");
+        if (!item || item.getAttribute("data-type") === "folder") return;
+        var payload = {
+            name: item.getAttribute("data-name") || "File",
+            path: item.getAttribute("data-path") || "",
+            bucket: "",
+            type: item.getAttribute("data-type") || "file",
+        };
+        e.dataTransfer.setData("application/x-gb-drive-file", JSON.stringify(payload));
+        e.dataTransfer.effectAllowed = "copy";
+    });
+})();
