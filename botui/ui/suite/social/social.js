@@ -1,6 +1,7 @@
 
     (function () {
         "use strict";
+if (window.GBAppLifecycle) GBAppLifecycle.begin("social");
 
         function showNewPostModal() {
             document.getElementById("newPostModal").classList.add("active");
