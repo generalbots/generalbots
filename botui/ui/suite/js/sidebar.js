@@ -388,7 +388,53 @@
     );
   };
 
+  // ── Left-edge gripper (ON/OFF for the whole bar) ────────────────
+  // A grabber pinned to the bar's right border, visible in BOTH states;
+  // click/Enter toggles open-off. State persists across reloads via
+  // localStorage["gb-sidebar-open"].
+  var SIDEBAR_OPEN_KEY = "gb-sidebar-open";
+
+  function installGripper() {
+    var bar = document.getElementById("chatSidebar");
+    if (!bar || bar.dataset.gbGripper === "1") return;
+    bar.dataset.gbGripper = "1";
+
+    try {
+      if (localStorage.getItem(SIDEBAR_OPEN_KEY) === "0") bar.classList.add("collapsed");
+    } catch (e) {}
+
+    var grip = document.createElement("div");
+    grip.className = "gb-sidebar-gripper";
+    grip.setAttribute("role", "button");
+    grip.setAttribute("tabindex", "0");
+    grip.setAttribute("aria-label", "Toggle left bar");
+    grip.title = "Toggle left bar";
+    grip.innerHTML =
+      '<span class="gb-gripper-dots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>' +
+      '<span class="gb-gripper-chev" aria-hidden="true">‹</span>';
+
+    function toggle() {
+      if (typeof window.toggleChatSidebar === "function") {
+        window.toggleChatSidebar();
+      }
+      try {
+        localStorage.setItem(
+          SIDEBAR_OPEN_KEY,
+          bar.classList.contains("collapsed") ? "0" : "1"
+        );
+      } catch (e) {}
+    }
+
+    grip.addEventListener("click", toggle);
+    grip.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
+    });
+
+    bar.appendChild(grip);
+  }
+
   function init() {
+    installGripper();
     renderBotSelector();
     renderApps();
     refreshUser();
