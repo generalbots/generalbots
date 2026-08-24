@@ -18,7 +18,7 @@ pub async fn handle_named_ranges_panel(
             html.push_str(&t(lang, "panel.ranges.title"));
             html.push_str(&format!(
                 r##"</h3>
-<button class="btn-icon" hx-get="/suite/sheet/modals/conditional-format" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" title=""##,
+<button class="btn-icon" hx-post="/suite/sheet/modals/conditional-format" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" title=""##,
                 id = html_escape(&sheet.id)
             ));
             html.push_str(&t(lang, "panel.ranges.add"));

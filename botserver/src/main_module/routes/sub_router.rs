@@ -177,6 +177,7 @@ async fn inner_build_sub_router(
             pool: Arc::new(app_state.conn.clone()),
             drive: app_state.drive.clone().unwrap_or_else(|| Arc::new(crate::drive::NoopDrive)),
             bucket_name: app_state.bucket_name.clone(),
+            history: tokio::sync::Mutex::new(std::collections::HashMap::new()),
         })));
     }
 

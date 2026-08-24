@@ -12,6 +12,7 @@ use panels::{
 };
 use sidebars::{
     handle_doc_list_sidebar, handle_search_sidebar, handle_recent_sidebar,
+        handle_document_view_by_id,
     handle_document_view,
 };
 use toolbar::{
@@ -57,12 +58,13 @@ pub fn empty_fragment(text: &str) -> String {
     )
 }
 
-pub fn configure<S: Clone + Send + Sync + 'static>() -> Router<S> {
+pub fn configure() -> Router<std::sync::Arc<crate::state::DocState>> {
     Router::new()
-        .route("/suite/docs/fragments/doc-list", get(handle_doc_list_sidebar))
-        .route("/suite/docs/fragments/search", get(handle_search_sidebar))
-        .route("/suite/docs/fragments/recent", get(handle_recent_sidebar))
+        .route("/suite/docs/fragments/doc-list", post(handle_doc_list_sidebar))
+        .route("/suite/docs/fragments/search", post(handle_search_sidebar))
+        .route("/suite/docs/fragments/recent", post(handle_recent_sidebar))
         .route("/suite/docs/fragments/view", post(handle_document_view))
+        .route("/suite/docs/fragments/view-by-id", get(handle_document_view_by_id))
         .route("/suite/docs/fragments/toc", post(handle_toc_panel))
         .route("/suite/docs/fragments/comments", post(handle_comments_panel))
         .route("/suite/docs/fragments/track-changes", post(handle_track_changes_panel))
@@ -103,7 +105,7 @@ pub fn render_metadata_card(m: &crate::types_core::DocumentMetadata) -> String {
         _ => r##"<span style="color:#94a3b8;font-size:10px;background:#1e293b;padding:2px 6px;border-radius:3px;">📄</span>"##,
     };
     format!(
-        r##"<div class="dc-metadata-card" hx-get="/suite/docs/fragments/view" hx-vals='{{"id":"{id}","action":"load"}}' hx-target="#doc-content" hx-swap="innerHTML" style="padding:12px;border:1px solid #334155;border-radius:6px;background:#1e293b;cursor:pointer;">
+        r##"<div class="dc-metadata-card" hx-post="/suite/docs/fragments/view-by-id" hx-vals='{{"id":"{id}"}}' hx-target="#doc-content" hx-swap="innerHTML" style="padding:12px;border:1px solid #334155;border-radius:6px;background:#1e293b;cursor:pointer;">
 <div style="display:flex;justify-content:space-between;align-items:start;gap:8px;">
 <div style="font-weight:600;color:#f8fafc;flex:1;">{title}</div>
 {storage_badge}

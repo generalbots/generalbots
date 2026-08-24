@@ -21,3 +21,4 @@ pub use styles::*;
 pub use templates::*;
 pub use toc::*;
 pub use track_changes::*;
+pub mod history;
