@@ -1,0 +1,12 @@
+/* GB Notepad (#1154) */
+.gb-notepad { height: 100%; min-height: 300px; display: flex; flex-direction: column; gap: 8px; padding: 10px; background: var(--surface, #141623); color: var(--text, #e5e5e5); font-family: "Fira Code", monospace; }
+.gb-notepad [hidden] { display: none !important; }
+.gb-notepad-bar { display: flex; align-items: center; gap: 6px; }
+.gb-notepad-title { font-size: 12px; font-weight: 700; color: var(--text-secondary, #999); margin-right: 4px; }
+.gb-notepad-select { flex: 1; max-width: 260px; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--shell-border, rgba(255,255,255,.12)); background: var(--surface-hover, rgba(255,255,255,.05)); color: var(--text,#eee); font-family: inherit; font-size: 12px; outline: none; }
+.gb-notepad-btn { border: 1px solid var(--shell-border, rgba(255,255,255,.12)); background: transparent; color: var(--text-secondary,#999); font-size: 11px; font-family: inherit; padding: 4px 9px; border-radius: 6px; cursor: pointer; }
+.gb-notepad-btn:hover { color: var(--text,#eee); background: var(--win-caption-hover, rgba(255,255,255,.08)); }
+.gb-notepad-btn.warn:hover { background: rgba(239,68,68,.16); color: #f87171; }
+.gb-notepad-text { flex: 1; resize: none; border-radius: 8px; border: 1px solid var(--shell-border, rgba(255,255,255,.12)); background: var(--surface-hover, rgba(255,255,255,.05)); color: var(--text,#eee); padding: 10px; font-family: inherit; font-size: 13px; line-height: 1.5; outline: none; }
+.gb-notepad-text:focus { border-color: var(--primary,#84d669); }
+.gb-notepad-foot { font-size: 10px; color: var(--text-tertiary,#667); }
