@@ -193,6 +193,20 @@
       return headers;
     },
 
+    // Public endpoints that must NEVER carry a stale Bearer token.  A
+    // previous-login token is expired/foreign and the server rejects it
+    // with 401, which kills the bot-public check and cascades into a
+    // 10× concurrent-redirect freeze.
+    isPublicEndpoint: function (url) {
+      if (typeof url !== "string") return false;
+      return (
+        /\/api\/bot\/public/.test(url) ||
+        /\/api\/catalog\/products/.test(url) ||
+        /\/api\/catalog\/prices/.test(url) ||
+        /\/api\/news\.xml/.test(url)
+      );
+    },
+
     handleUnauthorized: function (url) {
       console.warn("[GBSecurity] Unauthorized response from:", url);
 
@@ -222,7 +236,8 @@
           /\/api\/bots\/list/.test(url) ||
           /\/api\/system\/usage/.test(url) ||
           /\/api\/setup\/status/.test(url) ||
-          /\/api\/product/.test(url))
+          /\/api\/product/.test(url) ||
+          /\/api\/bot\/public/.test(url))
       ) {
         console.log("[GBSecurity] Skipping 401 redirect for cosmetic endpoint:", url);
         return;
@@ -393,7 +408,13 @@
           init.headers = headerObj;
         }
 
-        init.headers = self.buildAuthHeaders(init.headers);
+        // Public endpoints must never carry a stale Bearer token from a
+        // previous login.  A mismatched/expired JWT causes a spurious 401
+        // that kills the bot-public check and cascades into a freeze.
+        var resolvedUrl = typeof input === "string" ? input : input.url;
+        if (!self.isPublicEndpoint(resolvedUrl)) {
+          init.headers = self.buildAuthHeaders(init.headers);
+        }
 
         return originalFetch
           .call(window, input, init)
@@ -503,6 +524,13 @@
         );
       });
 
+      // Debounce guard: ~10 API calls fire during boot and each 401
+      // dispatches gb:auth:expired separately.  Without a gate every
+      // handler registers its own timer + promise callback; when the
+      // promise resolves ALL fire simultaneously, each calling
+      // clearTokens() + window.location.href → page freeze.
+      var _expiredDebounce = false;
+
       window.addEventListener("gb:auth:expired", function (event) {
         // Never redirect away from the login page itself: re-entering
         // login?expired=1&redirect=<login url> nests the loop.
@@ -516,6 +544,15 @@
           return;
         }
 
+        // Debounce: only queue ONE redirect decision, regardless of how
+        // many 401s arrived.  The bot-public check resolves once; we
+        // act exactly once on its outcome.
+        if (_expiredDebounce) {
+          console.log("[GBSecurity] Expired event already queued, dropping duplicate");
+          return;
+        }
+        _expiredDebounce = true;
+
         // If public status not yet known, wait for checkBotPublicStatus
         if (window.__BOT_IS_PUBLIC__ === undefined &&
             window.__checkBotPublicStatusPromise) {
@@ -526,8 +563,6 @@
             if (window.__BOT_IS_PUBLIC__ === true) return;
             self.clearTokens();
             sessionStorage.setItem('gb-signed-out', 'true');
-            // Full URL, not pathname: a relative redirect would resolve
-            // against the login host after auth and bounce back (login loop).
             window.location.href =
               (window.GB_LOGIN_URL || "/login") + "?expired=1&redirect=" +
               encodeURIComponent(window.location.href);
@@ -542,7 +577,6 @@
             }
             self.clearTokens();
             sessionStorage.setItem('gb-signed-out', 'true');
-            // Full URL — see comment above (login loop fix).
             window.location.href =
               (window.GB_LOGIN_URL || "/login") + "?expired=1&redirect=" +
               encodeURIComponent(window.location.href);
@@ -555,9 +589,6 @@
         );
         self.clearTokens();
         sessionStorage.setItem('gb-signed-out', 'true');
-
-        // Full URL — a relative redirect would resolve against the login
-        // host after auth and bounce back to the login page (login loop).
         window.location.href =
           (window.GB_LOGIN_URL || "/login") + "?expired=1&redirect=" +
           encodeURIComponent(window.location.href);
