@@ -458,7 +458,7 @@
     bar.dataset.gbGripper = "1";
 
     try {
-      if (localStorage.getItem(SIDEBAR_OPEN_KEY) === "0") bar.classList.add("collapsed");
+      // Always start open: if (localStorage.getItem(SIDEBAR_OPEN_KEY) === "0") bar.classList.add("collapsed");
     } catch (e) {}
 
     var grip = document.createElement("div");
