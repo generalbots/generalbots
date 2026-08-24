@@ -740,9 +740,21 @@ const Omnibox = {
       const botName = window.__INITIAL_BOT_NAME__;
       if (!botName || botName === "default") return;
 
-      const response = await fetch(
-        `/api/bot/public?bot_name=${encodeURIComponent(botName)}&_=${Date.now()}`,
-      );
+      // Fetch without any credentials (no Authorization header).
+      // GBSecurity.fetch interceptor strips tokens from public endpoints,
+      // so this request is anonymous even when a stale session token
+      // exists in localStorage from a previous login.
+      const url = `/api/bot/public?bot_name=${encodeURIComponent(botName)}&_=${Date.now()}`;
+      let response = await fetch(url);
+
+      // The interceptor can still attach a bad token in edge cases
+      // (e.g. the fetch polyfill bypasses our wrapper).  Retry once
+      // with an explicit no-auth fetch if the first attempt 401s.
+      if (response.status === 401) {
+        console.warn("[GBSecurity] Bot public check 401 — retrying without auth");
+        response = await fetch(url, { headers: { "Authorization": "" } });
+      }
+
       if (response.ok) {
         const config = await response.json();
         if (config.is_public === "true") {
