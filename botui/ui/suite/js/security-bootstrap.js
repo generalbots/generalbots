@@ -518,7 +518,11 @@
         console.log(
           "[GBSecurity] Unauthorized response, dispatching expired event",
         );
-        window.dispatchEvent(
+        if (window.__BOT_IS_PUBLIC__ === false) {
+        console.log("[GBSecurity] Private bot — suppressing auth:expired dispatch");
+        return;
+      }
+      window.dispatchEvent(
           new CustomEvent("gb:auth:expired", {
             detail: { url: event.detail.url },
           }),
