@@ -30,7 +30,8 @@ fn http_invoke(
     if bid.is_empty() {
         return Err("GB_BOT_ID is not configured for this runtime".into());
     }
-    let url = format!("{base_url}/api/bots/{bid}/integration-actions/invoke");
+    let base = base_url();
+    let url = format!("{base}/api/bots/{bid}/integration-actions/invoke");
     let internal_token = std::env::var("INTERNAL_API_TOKEN").unwrap_or_default();
     let (tx, rx) = std::sync::mpsc::channel();
 
