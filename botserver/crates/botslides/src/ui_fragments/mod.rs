@@ -14,6 +14,7 @@ use panels::{
 use sidebars::{
     handle_presentation_list_sidebar, handle_search_sidebar, handle_recent_sidebar,
     handle_slide_thumbnails, handle_presentation_view,
+        handle_presentation_view_by_id,
 };
 use toolbar::{
     handle_share_form, handle_ai_form, handle_new_slide_form, handle_insert_element_form,
@@ -60,12 +61,13 @@ pub fn empty_fragment(text: &str) -> String {
     )
 }
 
-pub fn configure<S: Clone + Send + Sync + 'static>() -> Router<S> {
+pub fn configure<D: crate::storage::DriveOps + Send + Sync + 'static>() -> Router<std::sync::Arc<crate::SlidesState<D>>> {
     Router::new()
         .route("/suite/slides/fragments/presentation-list", get(handle_presentation_list_sidebar))
         .route("/suite/slides/fragments/search", get(handle_search_sidebar))
         .route("/suite/slides/fragments/recent", get(handle_recent_sidebar))
         .route("/suite/slides/fragments/view", post(handle_presentation_view))
+        .route("/suite/slides/fragments/view-by-id", get(handle_presentation_view_by_id::<D>))
         .route("/suite/slides/fragments/thumbnails", post(handle_slide_thumbnails))
         .route("/suite/slides/fragments/slide-list", post(handle_slide_list_panel))
         .route("/suite/slides/fragments/theme", post(handle_theme_panel))
@@ -113,7 +115,7 @@ async fn health() -> &'static str { "ok" }
 
 pub fn render_metadata_card(m: &crate::types::PresentationMetadata) -> String {
     format!(
-        r##"<div class="sl-metadata-card" hx-get="/suite/slides/fragments/view" hx-vals='{{"id":"{id}","action":"load"}}' hx-target="#slides-content" hx-swap="innerHTML" style="padding:12px;border:1px solid #334155;border-radius:6px;background:#1e293b;cursor:pointer;">
+        r##"<div class="sl-metadata-card" hx-post="/suite/slides/fragments/view" hx-vals='{{"id":"{id}","action":"load"}}' hx-target="#slides-content" hx-swap="innerHTML" style="padding:12px;border:1px solid #334155;border-radius:6px;background:#1e293b;cursor:pointer;">
 <div style="font-weight:600;color:#f8fafc;">{name}</div>
 <div style="font-size:12px;color:#94a3b8;margin-top:4px;">{slides} slide(s) • Atualizado {updated}</div>
 </div>"##,
