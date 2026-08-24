@@ -258,17 +258,75 @@
     return "User";
   }
 
+  function openSettingsWindow() {
+    var m2 = document.getElementById("user-menu");
+    if (m2) m2.remove();
+    fetch("/suite/admin/organization-settings.html")
+      .then(function (r) { return r.text(); })
+      .then(function (html) {
+        // organization-settings.html is a full HTML document; extract
+        // only the <body> content.  Injecting a complete <!DOCTYPE html>
+        // into a WindowManager body frame produces invalid nested markup.
+        var bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+        var content = bodyMatch ? bodyMatch[1] : html;
+        if (window.WindowManager) {
+          window.WindowManager.open("settings", "Settings", content);
+        }
+      });
+  }
+
   function openSidebarUserMenu(displayName, email) {
     var m = document.getElementById("user-menu");
     if (m) { m.remove(); return; }
+
     var menu = document.createElement("div");
     menu.id = "user-menu";
     menu.style.cssText = "position:fixed;left:12px;bottom:52px;background:var(--surface,#1a1a24);border:1px solid var(--border,#333);border-radius:10px;padding:4px 0;min-width:190px;z-index:99999;box-shadow:0 4px 20px rgba(0,0,0,0.5)";
-    menu.innerHTML =
-      '<div style="padding:10px 14px;font-size:12px;color:var(--text-secondary,#888);border-bottom:1px solid var(--border,#333)">' + displayName + '<br><span style="font-size:11px;color:var(--muted,#666)">' + (email || "") + "</span></div>" +
-      '<div onclick="fetch(\'/suite/admin/organization-settings.html\').then(function(r){return r.text()}).then(function(html){var m2=document.getElementById(\'user-menu\');if(m2)m2.remove();if(window.WindowManager)window.WindowManager.open(\'settings\',\'Settings\',html)})" style="padding:8px 14px;cursor:pointer;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</div>' +
-      '<div style="border-top:1px solid var(--border,#333)"></div>' +
-      '<div onclick="sessionStorage.setItem(\'gb-signed-out\',\'true\');fetch(\'/api/auth/logout\',{method:\'POST\'}).finally(function(){localStorage.removeItem(\'gb-access-token\');sessionStorage.removeItem(\'gb-access-token\');localStorage.removeItem(\'management_token\');localStorage.removeItem(\'management_email\');localStorage.removeItem(\'management_name\');localStorage.removeItem(\'management_is_admin\');localStorage.removeItem(\'gb_selected_bot\');var i=0,keys=[];for(i=0;i<localStorage.length;i++){var k=localStorage.key(i);if(k&&k.indexOf(\'gb_chat_\')===0)keys.push(k);}keys.forEach(function(k){localStorage.removeItem(k);});if(window.GBSecurity&&window.GBSecurity.broadcastLogout)window.GBSecurity.broadcastLogout();var m3=document.getElementById(\'user-menu\');if(m3)m3.remove();window.location.href=window.GB_LOGIN_URL||\'/login\';})" style="padding:8px 14px;cursor:pointer;font-size:13px;color:#ef4444;display:flex;align-items:center;gap:8px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Logout</div>';
+
+    var header = document.createElement("div");
+    header.style.cssText = "padding:10px 14px;font-size:12px;color:var(--text-secondary,#888);border-bottom:1px solid var(--border,#333)";
+    header.innerHTML = displayName + '<br><span style="font-size:11px;color:var(--muted,#666)">' + (email || "") + "</span>";
+    menu.appendChild(header);
+
+    var settingsBtn = document.createElement("div");
+    settingsBtn.style.cssText = "padding:8px 14px;cursor:pointer;font-size:13px;color:var(--text);display:flex;align-items:center;gap:8px";
+    settingsBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings';
+    settingsBtn.addEventListener("click", openSettingsWindow);
+    menu.appendChild(settingsBtn);
+
+    var sep = document.createElement("div");
+    sep.style.cssText = "border-top:1px solid var(--border,#333)";
+    menu.appendChild(sep);
+
+    var logoutBtn = document.createElement("div");
+    logoutBtn.style.cssText = "padding:8px 14px;cursor:pointer;font-size:13px;color:#ef4444;display:flex;align-items:center;gap:8px";
+    logoutBtn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Logout';
+    logoutBtn.addEventListener("click", function () {
+      sessionStorage.setItem("gb-signed-out", "true");
+      fetch("/api/auth/logout", { method: "POST" }).finally(function () {
+        localStorage.removeItem("gb-access-token");
+        sessionStorage.removeItem("gb-access-token");
+        localStorage.removeItem("management_token");
+        localStorage.removeItem("management_email");
+        localStorage.removeItem("management_name");
+        localStorage.removeItem("management_is_admin");
+        localStorage.removeItem("gb_selected_bot");
+        var keys = [];
+        for (var i = 0; i < localStorage.length; i++) {
+          var k = localStorage.key(i);
+          if (k && k.indexOf("gb_chat_") === 0) keys.push(k);
+        }
+        keys.forEach(function (k) { localStorage.removeItem(k); });
+        if (window.GBSecurity && window.GBSecurity.broadcastLogout) {
+          window.GBSecurity.broadcastLogout();
+        }
+        var m3 = document.getElementById("user-menu");
+        if (m3) m3.remove();
+        window.location.href = window.GB_LOGIN_URL || "/login";
+      });
+    });
+    menu.appendChild(logoutBtn);
+
     document.body.appendChild(menu);
     setTimeout(function () {
       document.addEventListener("click", function closeMenu(ev) {
