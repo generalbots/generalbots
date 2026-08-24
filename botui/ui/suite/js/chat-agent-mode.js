@@ -11,12 +11,96 @@
     var totalSteps = 0;
     var terminalLineCount = 0;
 
+    // #1167-fe — per-tab persistence of the agent mode toggle.
+    var AGENT_MODE_STORE_KEY = "gb.agentMode.v1";
+
+    function loadTabModeMap() {
+        try {
+            return JSON.parse(localStorage.getItem(AGENT_MODE_STORE_KEY) || "{}") || {};
+        } catch (e) {
+            return {};
+        }
+    }
+
+    function saveTabModeMap(map) {
+        try {
+            localStorage.setItem(AGENT_MODE_STORE_KEY, JSON.stringify(map));
+        } catch (e) { /* storage unavailable */ }
+    }
+
+    // Tab identity: workspace tab id when tabs are active, otherwise the
+    // legacy single-surface key so behavior is unchanged with tabs off.
+    function activeModeKey() {
+        if (window.GBTabs && window.GBTabs.isActive()) {
+            var tab = window.GBTabs.activeTab();
+            if (tab && tab.id) return String(tab.id);
+        }
+        return "single";
+    }
+
+    function emitAgentModeFrame(enabled) {
+        var ws = window.ChatState && window.ChatState.ws;
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        ws.send(JSON.stringify({
+            type: "agent_mode",
+            enabled: !!enabled,
+            session_id: (window.ChatState && window.ChatState.currentSessionId) || null,
+        }));
+    }
+
+    function ensureAgentStatusChip() {
+        var chip = document.getElementById("gb-agent-status-chip");
+        if (chip) return chip;
+        var chatBtn = document.getElementById("modeChatBtn");
+        chip = document.createElement("span");
+        chip.id = "gb-agent-status-chip";
+        if (chatBtn && chatBtn.parentNode) {
+            chatBtn.parentNode.insertBefore(chip, chatBtn.nextSibling);
+        } else {
+            document.body.appendChild(chip);
+        }
+        return chip;
+    }
+
+    function updateAgentStatusChip() {
+        var chip = ensureAgentStatusChip();
+        chip.classList.toggle("on", agentMode);
+        chip.textContent = agentMode ? "\u2699 Agent mode" : "\u{1F4AC} Chat mode";
+        chip.title = agentMode
+            ? "Agent mode active for this tab"
+            : "Chat mode active for this tab";
+    }
+
+    // Persistence + control frame after every explicit or restored mode change.
+    function applyAgentModeSideEffects() {
+        var map = loadTabModeMap();
+        map[activeModeKey()] = agentMode;
+        saveTabModeMap(map);
+        emitAgentModeFrame(agentMode);
+        updateAgentStatusChip();
+    }
+
+    // Restore the mode stored for a tab whenever focus moves between tabs.
+    function setupAgentModeTabSync() {
+        window.addEventListener("gb-tab-focused", function () {
+            var stored = !!loadTabModeMap()[activeModeKey()];
+            if (stored !== agentMode) {
+                setMode(stored ? "agent" : "chat");
+            } else {
+                updateAgentStatusChip();
+            }
+        });
+    }
+
     function initAgentMode() {
         setupModeToggle();
         setupToggleSwitches();
         setupStepNavigation();
         setupQuickActions();
         setupSidebarItems();
+        ensureAgentStatusChip();
+        updateAgentStatusChip();
+        setupAgentModeTabSync();
     }
 
     function setupModeToggle() {
@@ -52,6 +136,9 @@
             chatApp.classList.remove("agent-mode");
             if (quickActions) quickActions.style.display = "";
         }
+
+        // #1167-fe — persist per active tab, notify server, refresh chip.
+        applyAgentModeSideEffects();
     }
 
     function setupToggleSwitches() {
@@ -324,7 +411,12 @@
         init: initAgentMode,
         handleMessage: handleAgentMessage,
         setMode: setMode,
-        isActive: function () { return agentMode; }
+        isActive: function () { return agentMode; },
+        // #1167-fe additions
+        refreshStatusChip: updateAgentStatusChip,
+        enabledForActiveTab: function () {
+            return !!loadTabModeMap()[activeModeKey()];
+        },
     };
 
     if (document.readyState === "loading") {

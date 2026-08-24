@@ -1149,6 +1149,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "botagent"
+version = "6.3.1"
+dependencies = [
+ "axum",
+ "botlib",
+ "botsecurity-core",
+ "chrono",
+ "diesel",
+ "diesel_migrations",
+ "r2d2",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "botanalytics"
 version = "6.3.1"
 dependencies = [
@@ -1247,6 +1266,23 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "botautomation"
+version = "6.3.1"
+dependencies = [
+ "async-stream",
+ "axum",
+ "botsecurity-core",
+ "chrono",
+ "diesel",
+ "futures",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
  "uuid",
 ]
 
@@ -1547,6 +1583,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "botbrowserpolicy"
+version = "6.3.1"
+dependencies = [
+ "async-stream",
+ "axum",
+ "chrono",
+ "diesel",
+ "futures",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "botcalendar"
 version = "6.3.1"
 dependencies = [
@@ -1574,6 +1626,20 @@ dependencies = [
  "r2d2",
  "serde",
  "serde_json",
+ "uuid",
+]
+
+[[package]]
+name = "botchannelbindings"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "chrono",
+ "diesel",
+ "r2d2",
+ "serde",
+ "serde_json",
+ "tracing",
  "uuid",
 ]
 
@@ -1678,6 +1744,40 @@ dependencies = [
  "tokio",
  "uuid",
  "walkdir",
+]
+
+[[package]]
+name = "botconnectors"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "botcore",
+ "botcoresecrets",
+ "chrono",
+ "diesel",
+ "r2d2",
+ "regex",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "botconsent"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "chrono",
+ "diesel",
+ "r2d2",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -2431,6 +2531,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "botmarketplace"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "botsecurity",
+ "chrono",
+ "diesel",
+ "r2d2",
+ "serde",
+ "serde_json",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "botmeet"
 version = "6.3.1"
 dependencies = [
@@ -2457,6 +2572,20 @@ dependencies = [
  "tokio",
  "tracing",
  "urlencoding",
+ "uuid",
+]
+
+[[package]]
+name = "botmemory"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "chrono",
+ "diesel",
+ "r2d2",
+ "serde",
+ "serde_json",
+ "tracing",
  "uuid",
 ]
 
@@ -2936,10 +3065,12 @@ dependencies = [
  "axum-server",
  "base64 0.22.1",
  "bigdecimal",
+ "botagent",
  "botanalytics",
  "botapi",
  "botattendance",
  "botattendant",
+ "botautomation",
  "botautotask",
  "botbanking",
  "botbasic_ai",
@@ -2951,11 +3082,15 @@ dependencies = [
  "botbasic_types",
  "botbilling",
  "botbrowser",
+ "botbrowserpolicy",
  "botcalendar",
  "botcanvas",
+ "botchannelbindings",
  "botchannels",
  "botcloud",
  "botcompliance",
+ "botconnectors",
+ "botconsent",
  "botcontacts",
  "botcore",
  "botcorebot",
@@ -2992,7 +3127,9 @@ dependencies = [
  "botm365",
  "botmaintenance",
  "botmarketing",
+ "botmarketplace",
  "botmeet",
+ "botmemory",
  "botminutes",
  "botmodelsbridge",
  "botmonitoring",

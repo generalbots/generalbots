@@ -1,0 +1,333 @@
+/* Vibe Shell — toolbar mode, palettes and task-card flow (issue #1177).
+   Reuses the vibe css tokens (var(--surface), var(--border), var(--text),
+   var(--text-muted), var(--bg), var(--accent)). Classic mode is inert:
+   every layout change is scoped under body.vibe-toolbar-mode. */
+
+/* ── Toolbar bar ─────────────────────────────────────────────────── */
+.vibe-shell-toolbar {
+    display: none;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 12px;
+    background: var(--surface, #14142a);
+    border-bottom: 1px solid var(--border, #2a2a4a);
+}
+
+body.vibe-toolbar-mode .vibe-shell-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.vibe-shell-tb-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-right: 10px;
+    border-right: 1px solid var(--border, #2a2a4a);
+}
+
+.vibe-shell-tb-group:last-of-type {
+    border-right: none;
+}
+
+.vibe-shell-tb-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--border, #2a2a4a);
+    background: var(--bg, #0d0d1f);
+    color: var(--text, #e8e8f2);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.vibe-shell-tb-btn:hover:not(:disabled) {
+    border-color: var(--accent, #84d669);
+    color: var(--accent, #84d669);
+}
+
+.vibe-shell-tb-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.vibe-shell-tb-icon {
+    font-size: 13px;
+    line-height: 1;
+}
+
+.vibe-shell-tb-spacer {
+    flex: 1;
+}
+
+.vibe-shell-tb-mode {
+    border-color: var(--accent, #84d669);
+}
+
+/* Discreet classic-mode switch chip (also visible in classic). */
+.vibe-shell-classic-toggle {
+    font-size: 10px;
+    opacity: 0.7;
+}
+
+.vibe-shell-classic-toggle:hover {
+    opacity: 1;
+}
+
+/* ── Internal panes hidden in toolbar mode ────────────────────────── */
+body.vibe-toolbar-mode .vibe-ribbon,
+body.vibe-toolbar-mode #vibeChatOverlay,
+body.vibe-toolbar-mode #vibeGraphPanel:not(.vibe-palette-mounted),
+body.vibe-toolbar-mode #vibeMetricsPanel:not(.vibe-palette-mounted),
+body.vibe-toolbar-mode #vibeDialogMask:not(.vibe-palette-mounted),
+body.vibe-toolbar-mode #vibeMembersModal:not(.vibe-palette-mounted) {
+    display: none !important;
+}
+
+/* ── Floating palette windows ─────────────────────────────────────── */
+.window-body-glass.vibe-shell-palette-body,
+div[id^="window-body-"].vibe-shell-palette-body {
+    position: relative;
+    overflow: hidden;
+    background: var(--bg, #0d0d1f);
+}
+
+#vibeGraphPanel.vibe-palette-mounted,
+#vibeMetricsPanel.vibe-palette-mounted {
+    position: static !important;
+    display: flex !important;
+    width: 100%;
+    height: 100%;
+    right: auto;
+    bottom: auto;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+#vibeMembersModal.vibe-palette-mounted {
+    position: static !important;
+    inset: auto;
+    display: block !important;
+    background: transparent;
+    overflow-y: auto;
+    height: 100%;
+}
+
+#vibeMembersModal.vibe-palette-mounted > div {
+    width: 100%;
+    max-height: none;
+    border: none;
+    box-shadow: none;
+}
+
+#vibeDialogMask.vibe-palette-mounted {
+    position: static !important;
+    display: block !important;
+    inset: auto;
+    background: transparent;
+    overflow-y: auto;
+    height: 100%;
+}
+
+#vibeDialogMask.vibe-palette-mounted .vibe-dialog {
+    margin: 0 auto;
+    max-width: none;
+    width: 100%;
+    min-height: 100%;
+    border: none;
+    box-shadow: none;
+    border-radius: 0;
+}
+
+/* ── Canvas task-card flow ────────────────────────────────────────── */
+.vibe-shell-flow {
+    display: none;
+    position: absolute;
+    top: 52px;
+    left: 24px;
+    right: 24px;
+    z-index: 30;
+    padding: 14px 18px;
+    border: 1px solid var(--border, #2a2a4a);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--surface, #14142a) 92%, transparent);
+    backdrop-filter: blur(4px);
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 44px;
+    overflow-x: auto;
+}
+
+body.vibe-toolbar-mode .vibe-shell-flow {
+    display: flex;
+}
+
+.vibe-shell-flow-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.vibe-shell-flow-arrow {
+    fill: none;
+    stroke: var(--accent, #84d669);
+    stroke-width: 2;
+    opacity: 0.65;
+}
+
+.vibe-shell-flow-card {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    min-width: 150px;
+    padding: 10px 16px;
+    border: 1px solid var(--border, #2a2a4a);
+    border-left-width: 3px;
+    border-radius: 10px;
+    background: var(--bg, #0d0d1f);
+    color: var(--text, #e8e8f2);
+    text-align: left;
+    cursor: pointer;
+    transition: transform 0.12s, border-color 0.12s;
+}
+
+.vibe-shell-flow-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent, #84d669);
+}
+
+.vibe-shell-flow-card[data-status="active"] {
+    border-color: var(--accent, #84d669);
+    box-shadow: 0 0 0 1px var(--accent, #84d669) inset;
+}
+
+.vibe-shell-flow-card[data-status="done"] {
+    border-left-color: #22c55e;
+}
+
+.vibe-shell-flow-card[data-status="failed"] {
+    border-left-color: #ef4444;
+}
+
+.vibe-shell-flow-card[data-status="paused"] {
+    border-left-color: #f59e0b;
+}
+
+.vibe-shell-flow-index {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text-muted, #8888aa);
+    letter-spacing: 1px;
+}
+
+.vibe-shell-flow-title {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.vibe-shell-flow-state {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted, #8888aa);
+}
+
+.vibe-shell-flow-card[data-status="active"] .vibe-shell-flow-state {
+    color: var(--accent, #84d669);
+}
+
+.vibe-shell-flow-card[data-status="done"] .vibe-shell-flow-state {
+    color: #22c55e;
+}
+
+.vibe-shell-flow-card[data-status="failed"] .vibe-shell-flow-state {
+    color: #ef4444;
+}
+
+.vibe-anchor {
+    position: absolute;
+    top: 50%;
+    width: 8px;
+    height: 8px;
+    margin-top: -4px;
+    border-radius: 50%;
+    background: var(--accent, #84d669);
+    opacity: 0.7;
+}
+
+.vibe-anchor.left {
+    left: -22px;
+}
+
+.vibe-anchor.right {
+    right: -22px;
+}
+
+/* ── External git controls ────────────────────────────────────────── */
+.vibe-shell-git-input {
+    width: 130px;
+    padding: 5px 9px;
+    border: 1px solid var(--border, #2a2a4a);
+    border-radius: 8px;
+    background: var(--bg, #0d0d1f);
+    color: var(--text, #e8e8f2);
+    font-size: 11px;
+    outline: none;
+}
+
+.vibe-shell-git-input:focus {
+    border-color: var(--accent, #84d669);
+}
+
+.vibe-shell-git-msg {
+    width: 190px;
+}
+
+.vibe-shell-git-btn.primary {
+    border-color: var(--accent, #84d669);
+    background: var(--accent, #84d669);
+    color: var(--surface, #14142a);
+}
+
+.vibe-shell-git-status {
+    font-size: 10px;
+    color: var(--text-muted, #8888aa);
+    white-space: nowrap;
+}
+
+.vibe-shell-git-status.ok {
+    color: #22c55e;
+}
+
+.vibe-shell-git-status.err {
+    color: #ef4444;
+}
+
+.vibe-shell-pr-card {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 10px;
+    border: 1px solid var(--accent, #84d669);
+    border-radius: 8px;
+    font-size: 10px;
+    color: var(--text, #e8e8f2);
+    max-width: 260px;
+    overflow: hidden;
+}
+
+.vibe-shell-pr-link {
+    color: var(--accent, #84d669);
+    text-decoration: underline;
+    word-break: break-all;
+}

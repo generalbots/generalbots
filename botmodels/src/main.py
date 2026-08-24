@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from .api.v1.endpoints import image, music, scoring, speech, video, anomaly
+from .api.v1.endpoints import image, music, scoring, speech, video, anomaly, voice
 from .core.config import settings
 from .core.logging import get_logger
 from .services.image_service import get_image_service
@@ -53,6 +53,7 @@ app.include_router(video.router, prefix=settings.api_v1_prefix)
 app.include_router(speech.router, prefix=settings.api_v1_prefix)
 app.include_router(scoring.router, prefix=settings.api_v1_prefix)
 app.include_router(anomaly.router, prefix=settings.api_v1_prefix)
+app.include_router(voice.router)
 
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 

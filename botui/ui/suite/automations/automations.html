@@ -1,0 +1,71 @@
+<link rel="stylesheet" href="/suite/automations/automations.p1.css?v=1" />
+<link rel="stylesheet" href="/suite/automations/automations.p2.css?v=1" />
+
+<div class="gb-app auto-app" id="automations-app" data-gb-app="automations">
+  <header class="auto-header">
+    <div class="auto-title-group">
+      <h2 class="auto-title">Automations</h2>
+      <span class="auto-subtitle" id="auto-count" aria-live="polite"></span>
+    </div>
+    <div class="auto-header-actions">
+      <span class="auto-poll-dot" id="auto-poll-dot" title="Live updates active"></span>
+      <button type="button" id="auto-refresh" class="auto-btn ghost" aria-label="Refresh schedules and runs">Refresh</button>
+      <button type="button" id="auto-new" class="auto-btn primary">New Schedule</button>
+    </div>
+  </header>
+
+  <div class="auto-state" id="auto-state" role="status"></div>
+
+  <div class="auto-board" id="auto-board"></div>
+
+  <div class="auto-modal" id="auto-modal" role="dialog" aria-modal="true" aria-labelledby="auto-modal-title">
+    <div class="auto-backdrop" data-auto-close="1"></div>
+    <div class="auto-modal-box">
+      <h3 class="auto-modal-title" id="auto-modal-title">New Schedule</h3>
+      <form id="auto-form" novalidate>
+        <div class="auto-field">
+          <label for="auto-f-title">Title</label>
+          <input type="text" id="auto-f-title" name="title" required maxlength="200"
+                 placeholder="Nightly inventory digest" autocomplete="off" />
+        </div>
+        <div class="auto-field">
+          <label for="auto-f-goal">Goal</label>
+          <textarea id="auto-f-goal" name="goal" rows="4" required
+                    placeholder="Describe the objective the agent must achieve on each run."></textarea>
+        </div>
+        <div class="auto-field">
+          <label for="auto-f-cron">Cron expression (5 fields: min hour day month weekday)</label>
+          <input type="text" id="auto-f-cron" name="cron_expr" required maxlength="64"
+                 placeholder="*/15 * * * *" autocomplete="off" spellcheck="false" />
+          <p class="auto-cron-preview" id="auto-cron-preview" aria-live="polite"></p>
+        </div>
+        <div class="auto-field-row">
+          <div class="auto-field">
+            <label for="auto-f-tz">Timezone</label>
+            <select id="auto-f-tz" name="timezone"></select>
+          </div>
+          <div class="auto-field">
+            <label for="auto-f-runtime">Max runtime (seconds)</label>
+            <input type="number" id="auto-f-runtime" name="max_runtime_secs" min="60" max="86400" step="60" value="900" />
+          </div>
+        </div>
+        <fieldset class="auto-field">
+          <legend>Delivery</legend>
+          <div class="auto-chip-row" role="group" aria-label="Delivery channels">
+            <label class="auto-chip-toggle"><input type="checkbox" id="auto-f-email" checked /><span>Email</span></label>
+            <label class="auto-chip-toggle"><input type="checkbox" id="auto-f-sms" /><span>SMS</span></label>
+          </div>
+        </fieldset>
+      </form>
+      <div class="auto-modal-actions">
+        <button type="button" class="auto-btn danger hidden" id="auto-delete">Delete</button>
+        <span class="auto-spacer"></span>
+        <button type="button" class="auto-btn ghost" data-auto-close="1">Cancel</button>
+        <button type="submit" form="auto-form" class="auto-btn primary" id="auto-save">Save Schedule</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/suite/automations/automations.p1.js?v=1"></script>
+<script src="/suite/automations/automations.p2.js?v=1"></script>

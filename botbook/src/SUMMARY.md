@@ -354,8 +354,7 @@
 # Part XII: Ecosystem
 
 - [Chapter 12: Ecosystem & Reference](./12-ecosystem-reference/README.md)
-   - [Migration Overview](./12-ecosystem-reference/overview.md)
-   - [Platform Comparison Matrix](./12-ecosystem-reference/comparison-matrix.md)
+   - [Migration Overview](./12-ecosystem-reference/overview.md)   - [Platform Comparison Matrix](./12-ecosystem-reference/comparison-matrix.md)
    - [Knowledge Base Migration](./12-ecosystem-reference/kb-migration.md)
    - [Cloud Productivity Migration](./12-ecosystem-reference/google-workspace.md)
    - [Enterprise Platform Migration](./12-ecosystem-reference/microsoft-365.md)
@@ -379,6 +378,23 @@
    - [Schema Overview](./12-ecosystem-reference/schema.md)
    - [Tables](./12-ecosystem-reference/tables.md)
    - [Relationships](./12-ecosystem-reference/relationships.md)
+
+---
+
+# Part XIII: AI OS
+
+- [Chapter 13: AI OS](./13-ai-os/README.md)
+   - [Agent Mode & Snapshots](./13-ai-os/agent-mode.md)
+   - [Workspace Tabs](./13-ai-os/workspace-tabs.md)
+   - [Adaptive Automations](./13-ai-os/automations.md)
+   - [Skills Marketplace](./13-ai-os/marketplace.md)
+   - [Memory OS](./13-ai-os/memory-os.md)
+   - [Consent System](./13-ai-os/consent.md)
+
+---
+
+# Appendices
+
    - [Glossary](./glossary.md)
    - [Contact](./contact/README.md)
    - [Features](./features.md)
