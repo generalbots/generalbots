@@ -110,6 +110,20 @@ if (typeof window.WindowManager === "undefined") {
       icon: '<path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>' },
     { id: "clockapp", title: "Clock", category: "office", color: "#06b6d4", hxGet: "/suite/clock/clock.html",
       icon: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' },
+    { id: "store", title: "App Store", category: "system", color: "#3b82f6", hxGet: "/suite/store/store.html",
+      icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/>' },
+    { id: "concierge", title: "Concierge", category: "ai", color: "#84d669", hxGet: "/suite/concierge/concierge.html",
+      icon: '<path d="M12 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4-4.8-2.5-4.8 2.5.9-5.4L4.2 7.7l5.4-.8z"/>' },
+    { id: "notes", title: "Sticky Notes", category: "office", color: "#f59e0b", hxGet: "/suite/notes/notes.html",
+      icon: '<path d="M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H9l-5 4V5a1 1 0 0 1 1-1z"/><line x1="8" y1="9" x2="16" y2="9"/><line x1="8" y1="13" x2="13" y2="13"/>' },
+    { id: "photos", title: "Photos", category: "system", color: "#ec4899", hxGet: "/suite/photos/photos.html",
+      icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>' },
+    { id: "timer", title: "Timer", category: "office", color: "#06b6d4", hxGet: "/suite/timer/timer.html",
+      icon: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M9 2h6"/>' },
+    { id: "weather", title: "Weather", category: "system", color: "#0ea5e9", hxGet: "/suite/weather/weather.html",
+      icon: '<path d="M17.5 19a4.5 4.5 0 1 0-.9-8.9 6 6 0 0 0-11.1 2.4A3.5 3.5 0 0 0 6 19z"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="2" y1="12" x2="4" y2="12"/>' },
+    { id: "recycle", title: "Recycle Bin", category: "system", color: "#64748b", hxGet: "/suite/recycle/recycle.html",
+      icon: '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>' },
   ];
 
   window.APPS_REGISTRY = APPS_REGISTRY;
@@ -230,6 +244,7 @@ if (typeof window.WindowManager === "undefined") {
       this._makeResizable(windowEl);
       this.focus(id);
       this._trackRecent(id, title);
+      document.dispatchEvent(new CustomEvent("gb-window-changed", { detail: { action: "open", id } }));
       if (window.htmx) htmx.process(windowEl);
       if (window.Desktop3D && window.Desktop3D.initialized) {
         window.Desktop3D.createWindowPlane(id, title);
@@ -363,6 +378,7 @@ if (typeof window.WindowManager === "undefined") {
       const obj = this.openWindows.find((w) => w.id === id);
       if (obj) document.title = `${obj.title} - General Bots`;
       this._updateDockActive();
+      document.dispatchEvent(new CustomEvent("gb-window-focus", { detail: obj || { id } }));
     }
 
     _updateDockActive() {
@@ -398,6 +414,8 @@ if (typeof window.WindowManager === "undefined") {
       if (window.Desktop3D && window.Desktop3D.initialized) {
         window.Desktop3D.removeWindow(id);
       }
+      document.dispatchEvent(new CustomEvent("gb-window-close", { detail: { id } }));
+      document.dispatchEvent(new CustomEvent("gb-window-changed", { detail: { action: "close", id } }));
     }
 
     toggleMinimize(id) {
@@ -686,6 +704,79 @@ if (typeof window.WindowManager === "undefined") {
     // Registry lookup helper shared by launchers and the widget pane.
     getApp(appId) {
       return (window.APPS_REGISTRY || APPS_REGISTRY).find((a) => a.id === appId) || null;
+    }
+
+    /* ─── Multitasking helpers (#1155) ─── */
+    listWindows() {
+      return this.openWindows.slice();
+    }
+
+    getWindow(id) {
+      return this.openWindows.find((w) => w.id === id) || null;
+    }
+
+    minimizeWindow(id) {
+      this.toggleMinimize(id);
+    }
+
+    maximizeWindow(id) {
+      this.toggleMaximize(id);
+    }
+
+    focusWindow(id) {
+      this.focus(id);
+    }
+
+    restoreWindow(id) {
+      const obj = this.openWindows.find((w) => w.id === id);
+      if (!obj) return;
+      if (obj.isMinimized) this.toggleMinimize(id);
+      if (obj.isMaximized) this.toggleMaximize(id);
+      if (obj.snapLayout) {
+        const el = document.getElementById(`window-${id}`);
+        if (el && obj.previousState) {
+          el.style.left = obj.previousState.left;
+          el.style.top = obj.previousState.top;
+          el.style.width = obj.previousState.width;
+          el.style.height = obj.previousState.height;
+          delete obj.snapLayout;
+        }
+      }
+      this.focus(id);
+    }
+
+    // Snap-assist geometry (#1155): lay the window out per a named layout
+    // (halves, quarters, thirds) relative to the viewport.
+    snapWindow(id, layout) {
+      const obj = this.openWindows.find((w) => w.id === id);
+      if (!obj) return;
+      const el = document.getElementById(`window-${id}`);
+      if (!el) return;
+      const L = {
+        left: { x: 0, y: 0, w: 0.5, h: 1 },
+        right: { x: 0.5, y: 0, w: 0.5, h: 1 },
+        top: { x: 0, y: 0, w: 1, h: 0.5 },
+        bottom: { x: 0, y: 0.5, w: 1, h: 0.5 },
+        "top-left": { x: 0, y: 0, w: 0.5, h: 0.5 },
+        "top-right": { x: 0.5, y: 0, w: 0.5, h: 0.5 },
+        "bottom-left": { x: 0, y: 0.5, w: 0.5, h: 0.5 },
+        "bottom-right": { x: 0.5, y: 0.5, w: 0.5, h: 0.5 },
+        "third-left": { x: 0, y: 0, w: 1 / 3, h: 1 },
+        "third-right": { x: 1 / 3, y: 0, w: 2 / 3, h: 1 },
+      };
+      const l = L[layout];
+      if (!l) return;
+      if (obj.isMaximized) this.toggleMaximize(id);
+      const pad = 4;
+      el.style.left = `${l.x * window.innerWidth + pad}px`;
+      el.style.top = `${l.y * window.innerHeight + pad}px`;
+      el.style.width = `${l.w * window.innerWidth - pad * 2}px`;
+      el.style.height = `${l.h * window.innerHeight - pad * 2}px`;
+      el.style.borderRadius = "0";
+      obj.isMaximized = false;
+      obj.snapLayout = layout;
+      obj.previousState = { width: el.style.width, height: el.style.height, top: el.style.top, left: el.style.left };
+      this.focus(id);
     }
   }
 

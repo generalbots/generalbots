@@ -25,6 +25,8 @@
         <link rel="stylesheet" href="/suite/css/desktop/desktop-icons.css?v=1" />
         <link rel="stylesheet" href="/suite/css/screensaver.css?v=1" />
         <link rel="stylesheet" href="/suite/css/desktop/sidebar-enhance.css?v=3" />
+        <link rel="stylesheet" href="/suite/js/multitasking.css?v=1" />
+        <link rel="stylesheet" href="/suite/js/chrome.css?v=1" />
 
         <!-- Local JS requirements per AGENTS.md / UI.md -->
         <script src="/suite/js/vendor/htmx.min.js"></script>
@@ -51,6 +53,16 @@
         <script src="/suite/js/sidebar-enhance.js?v=2"></script>
         <script src="/suite/js/sidebar-sections.js?v=1"></script>
         <script src="/suite/js/sidebar-history.js?v=1"></script>
+        <script src="/suite/js/snap-assist.js?v=1"></script>
+        <script src="/suite/js/virtual-desktops.js?v=1"></script>
+        <script src="/suite/js/mission-control.js?v=1"></script>
+        <script src="/suite/js/alt-tab.js?v=1"></script>
+        <script src="/suite/js/taskbar-previews.js?v=1"></script>
+        <script src="/suite/js/gb-toasts.js?v=1"></script>
+        <script src="/suite/js/control-center.js?v=1"></script>
+        <script src="/suite/js/lock-screen.js?v=1"></script>
+        <script src="/suite/js/spotlight.js?v=1"></script>
+        <script src="/suite/js/agent-executor.js?v=1"></script>
 
         <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -245,6 +257,24 @@
                     <div class="taskbar-center" id="taskbar-center">
                     </div>
                     <div class="taskbar-right">
+                        <div class="taskbar-tray">
+                            <button class="tray-btn" id="trayNotifications" title="Notifications" onclick="window.GBToasts && window.GBToasts.toggleCenter()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                                <span class="tray-badge" id="trayNotificationsBadge" style="display:none"></span>
+                            </button>
+                            <button class="tray-btn" id="trayControlCenter" title="Control Center" onclick="window.ControlCenter && window.ControlCenter.toggle()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+                            </button>
+                            <button class="tray-btn" id="trayMissionControl" title="Mission Control (Ctrl+Up)" onclick="window.MissionControl && window.MissionControl.toggle()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="2" y="4" width="20" height="6" rx="1"/><rect x="2" y="14" width="9" height="6" rx="1"/><rect x="13" y="14" width="9" height="6" rx="1"/></svg>
+                            </button>
+                            <button class="tray-btn" id="trayVirtualDesktops" title="Virtual Desktops" onclick="window.VirtualDesktops && window.VirtualDesktops.toggleSwitcher()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="2" y="4" width="9" height="7" rx="1"/><rect x="13" y="4" width="9" height="7" rx="1"/><rect x="2" y="13" width="9" height="7" rx="1"/><rect x="13" y="13" width="9" height="7" rx="1"/></svg>
+                            </button>
+                            <button class="tray-btn" id="trayLock" title="Lock Screen" onclick="window.LockScreen && window.LockScreen.lock()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                            </button>
+                        </div>
                         <div class="taskbar-clock">
                             <div id="clock-time">00:00</div>
                             <div id="clock-date">01/01/2026</div>
@@ -477,6 +507,25 @@
                 // Per-user desktop shortcuts: drop Drive files here (#1188)
                 if (window.GBDesktopShortcuts) {
                     window.GBDesktopShortcuts.init(document.getElementById("desktop-content"));
+                }
+                // Multitasking (#1155): virtual desktops, chrome (#1158), concierge (#1157)
+                if (window.VirtualDesktops) {
+                    window.VirtualDesktops.init(document.getElementById("desktop-content"));
+                }
+                if (window.ControlCenter) {
+                    window.ControlCenter.init();
+                }
+                if (window.LockScreen) {
+                    window.LockScreen.init();
+                }
+                if (window.GBToasts) {
+                    window.GBToasts.init();
+                }
+                if (window.Spotlight) {
+                    window.Spotlight.init();
+                }
+                if (window.AgentExecutor) {
+                    window.AgentExecutor.init();
                 }
             })();
 

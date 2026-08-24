@@ -1,0 +1,265 @@
+/* Multitasking styles — Mission Control, Alt-Tab, snap assist, virtual desktops, taskbar previews (#1155) */
+
+/* --- Snap assist picker + ghost --- */
+.gb-snap-picker {
+  position: fixed;
+  z-index: 9991;
+  background: rgba(22, 24, 34, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+}
+.gb-snap-picker-title {
+  font-size: 12px;
+  color: #dfe2ea;
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+.gb-snap-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 44px);
+  gap: 6px;
+}
+.gb-snap-picker-grid button {
+  height: 34px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 6px;
+  cursor: pointer;
+  position: relative;
+}
+.gb-snap-picker-grid button:hover { background: rgba(80, 140, 255, 0.3); }
+.gb-snap-picker-grid button[data-layout="full"] { border-color: rgba(80, 140, 255, 0.6); }
+.gb-snap-ghost {
+  position: fixed;
+  z-index: 9989;
+  background: rgba(80, 140, 255, 0.16);
+  border: 2px solid rgba(80, 140, 255, 0.65);
+  border-radius: 8px;
+  pointer-events: none;
+  transition: left 80ms ease, top 80ms ease, width 80ms ease, height 80ms ease;
+}
+
+/* --- Virtual desktop strip --- */
+.gb-desktops-strip {
+  position: fixed;
+  z-index: 75;
+  background: rgba(20, 20, 28, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 10px;
+  min-width: 200px;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5);
+}
+.gb-desktops-strip-title {
+  font-size: 12px;
+  color: #dfe2ea;
+  margin-bottom: 8px;
+  text-align: center;
+}
+.gb-desktops-strip-add {
+  font-size: 12px;
+  color: #8ab4ff;
+  text-align: center;
+  padding: 6px;
+  cursor: pointer;
+  border: 1px dashed rgba(138, 180, 255, 0.5);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.gb-desktops-strip-add:hover { background: rgba(80, 140, 255, 0.15); }
+.gb-desktops-strip-list { display: flex; flex-direction: column; gap: 6px; }
+.gb-desktop-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #cfd3dc;
+}
+.gb-desktop-chip.active { background: rgba(80, 140, 255, 0.25); border-color: rgba(80, 140, 255, 0.6); }
+.gb-desktop-chip-x {
+  color: #8a90a0;
+  padding: 0 4px;
+}
+.gb-desktop-chip-x:hover { color: #ef4444; }
+
+/* --- Snap assist --- */
+.snap-assist-zone {
+  position: fixed;
+  z-index: 9990;
+  background: rgba(80, 140, 255, 0.18);
+  border: 2px dashed rgba(80, 140, 255, 0.7);
+  border-radius: 8px;
+  pointer-events: none;
+  display: none;
+}
+.snap-assist-zone.visible { display: block; }
+
+/* --- Virtual desktops --- */
+.virtual-desktop-switcher {
+  position: fixed;
+  bottom: 48px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(20, 20, 28, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 8px 10px;
+  display: none;
+  z-index: 70;
+  gap: 6px;
+}
+.virtual-desktop-switcher.visible { display: flex; }
+.vd-item {
+  background: transparent;
+  color: #cfd3dc;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.vd-item.active { background: rgba(80, 140, 255, 0.25); color: #fff; }
+.vd-item:hover { background: rgba(255, 255, 255, 0.1); }
+.vd-add {
+  background: transparent;
+  border: none;
+  color: #8ab4ff;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 8px;
+}
+
+/* --- Mission Control --- */
+.mission-control-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 12, 18, 0.82);
+  backdrop-filter: blur(14px);
+  z-index: 80;
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+}
+.mission-control-overlay .mc-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+}
+.mission-control-overlay .mc-header h2 { margin: 0; font-size: 18px; color: #e8eaf0; }
+.mission-control-overlay .mc-desktops { display: flex; gap: 6px; flex-wrap: wrap; }
+.mc-desktop {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  color: #d5d8e0;
+  border-radius: 8px;
+  padding: 4px 10px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.mc-desktop.active { background: rgba(80, 140, 255, 0.3); color: #fff; }
+.mc-close {
+  background: transparent;
+  border: none;
+  color: #e8eaf0;
+  font-size: 16px;
+  cursor: pointer;
+  margin-left: auto;
+}
+.mc-windows {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 14px;
+  padding: 18px;
+  overflow-y: auto;
+}
+.mc-window {
+  background: rgba(30, 34, 44, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  padding: 14px;
+  cursor: pointer;
+  text-align: center;
+}
+.mc-window:hover { border-color: rgba(80, 140, 255, 0.6); transform: scale(1.02); }
+.mc-window-preview { font-size: 34px; margin-bottom: 8px; }
+.mc-window-title { font-size: 12px; color: #d5d8e0; text-align: center; word-break: break-word; }
+.mc-empty { color: #9aa0ac; text-align: center; margin-top: 40px; }
+
+/* --- Alt-Tab --- */
+.alt-tab-overlay {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(12, 14, 20, 0.9);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  gap: 10px;
+  z-index: 85;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+.alt-tab-item {
+  width: 110px;
+  padding: 10px;
+  text-align: center;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+.alt-tab-item.active { border-color: rgba(80, 140, 255, 0.8); background: rgba(80, 140, 255, 0.2); }
+.alt-tab-icon { font-size: 28px; margin-bottom: 6px; }
+.alt-tab-title { font-size: 11px; color: #c9ccd6; word-break: break-word; }
+
+/* --- Taskbar previews & jump lists --- */
+.taskbar-preview {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  min-width: 220px;
+  max-width: 340px;
+  background: rgba(24, 26, 36, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  padding: 8px;
+  z-index: 95;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+.taskbar-preview .tp-title { font-size: 11px; color: #dfe2ea; margin-bottom: 6px; }
+.taskbar-preview .tp-body { font-size: 11px; color: #9aa0ac; }
+.taskbar-preview .tp-placeholder { color: #6a707c; }
+
+.taskbar-jumplist {
+  background: rgba(22, 24, 34, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  min-width: 160px;
+  padding: 6px;
+  z-index: 96;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+.taskbar-jumplist button {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: #d5d8e0;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+}
+.taskbar-jumplist button:hover { background: rgba(80, 140, 255, 0.25); }
