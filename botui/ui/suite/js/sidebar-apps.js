@@ -11,7 +11,9 @@ window.GBSidebarApps = window.GBSidebarApps || {};
 
   function appsOn() {
     try {
-      return localStorage.getItem(SWITCH_KEY) !== "0";
+      // Hidden by default — the sidebar is for pinned essentials and
+      // conversations. The user opts into the full app grid via the toggle.
+      return localStorage.getItem(SWITCH_KEY) === "1";
     } catch (e) {
       return true;
     }

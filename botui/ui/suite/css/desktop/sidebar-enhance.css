@@ -425,7 +425,9 @@
   white-space: nowrap;
 }
 
-/* ── Left-edge gripper: always-visible ON/OFF handle for the bar ── */
+/* ── Left-edge gripper: only visible when sidebar is collapsed so the
+   user can pull it back open. Hidden when expanded (the sidebar itself
+   is the affordance). ── */
 .gb-sidebar-gripper {
   position: absolute;
   right: -1px;
@@ -433,7 +435,7 @@
   transform: translateY(-50%);
   width: 16px;
   height: 76px;
-  display: flex;
+  display: none;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -446,6 +448,11 @@
   border-right: none;
   box-shadow: -2px 0 8px rgba(0, 0, 0, 0.25);
   transition: background 140ms, width 140ms;
+}
+
+/* Show the gripper only when the sidebar is collapsed */
+.chat-sidebar.collapsed .gb-sidebar-gripper {
+  display: flex;
 }
 
 .chat-sidebar {
