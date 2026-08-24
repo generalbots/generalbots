@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>App Store</title>
+    <link rel="stylesheet" href="/suite/store/store.css" />
+</head>
+<body>
+    <div class="gb-store" id="gb-store">
+        <header class="store-header">
+            <div class="store-title">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                <h1>App Store</h1>
+            </div>
+            <div class="store-search">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="search" id="storeSearch" placeholder="Search the store..." autocomplete="off" />
+            </div>
+        </header>
+        <nav class="store-cats" id="storeCats"></nav>
+        <main class="store-grid" id="storeGrid">
+            <div class="store-loading">Loading the store…</div>
+        </main>
+    </div>
+    <script src="/suite/store/store.js"></script>
+</body>
+</html>

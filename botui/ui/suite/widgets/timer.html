@@ -1,0 +1,109 @@
+<div class="gb-system-widget" data-gb-widget="timer">
+  <div class="gb-wtimer">
+    <div class="gb-wtimer-display">25:00</div>
+    <div class="gb-wtimer-controls">
+      <button type="button" class="gb-widget-btn gb-wtimer-start">Start</button>
+      <button type="button" class="gb-widget-btn gb-wtimer-reset">Reset</button>
+      <button type="button" class="gb-widget-btn gb-wtimer-mode">🍅</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var root = document.currentScript
+    ? document.currentScript.closest(".gb-widget")
+    : null;
+  var MODES = [25, 5, 15];
+  var modeIdx = 0;
+  var total = 25 * 60;
+  var remaining = total;
+  var running = false;
+  var timer = null;
+
+  function host() {
+    return root || document.querySelector(".gb-widget");
+  }
+
+  function fmt(s) {
+    return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+  }
+
+  function renderDisplay(box) {
+    var el = box.querySelector(".gb-wtimer-display");
+    if (el) el.textContent = fmt(remaining);
+    var start = box.querySelector(".gb-wtimer-start");
+    if (start) start.textContent = running ? "Pause" : "Start";
+  }
+
+  function tick(box) {
+    remaining -= 1;
+    if (remaining <= 0) {
+      remaining = 0;
+      stop(box, true);
+    }
+    renderDisplay(box);
+  }
+
+  function stop(box, completed) {
+    running = false;
+    if (timer) { clearInterval(timer); timer = null; }
+    if (completed && window.GBToasts) {
+      window.GBToasts.show("Timer", "Time's up!", "success");
+    }
+    renderDisplay(box);
+  }
+
+  function boot() {
+    var box = host();
+    if (!box) return;
+    var start = box.querySelector(".gb-wtimer-start");
+    var reset = box.querySelector(".gb-wtimer-reset");
+    var mode = box.querySelector(".gb-wtimer-mode");
+    renderDisplay(box);
+
+    if (start) {
+      start.addEventListener("click", function () {
+        if (running) {
+          running = false;
+          if (timer) { clearInterval(timer); timer = null; }
+        } else {
+          running = true;
+          timer = setInterval(function () { tick(box); }, 1000);
+        }
+        renderDisplay(box);
+      });
+    }
+    if (reset) {
+      reset.addEventListener("click", function () {
+        remaining = total;
+        stop(box, false);
+      });
+    }
+    if (mode) {
+      mode.addEventListener("click", function () {
+        modeIdx = (modeIdx + 1) % MODES.length;
+        total = MODES[modeIdx] * 60;
+        remaining = total;
+        stop(box, false);
+      });
+    }
+  }
+
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    boot();
+  } else {
+    document.addEventListener("DOMContentLoaded", boot);
+  }
+
+  if (root) {
+    root.addEventListener("gb-widget-remove", function () {
+      running = false;
+      if (timer) clearInterval(timer);
+      document.removeEventListener("DOMContentLoaded", boot);
+    }, { once: true });
+  }
+})();
+</script>

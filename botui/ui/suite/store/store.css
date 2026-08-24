@@ -1,0 +1,158 @@
+/* App Store (#1156) */
+.gb-store {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 16px;
+    overflow: hidden;
+    background: var(--bg, #f7f8fa);
+    color: var(--text, #1f2430);
+}
+.gb-store .store-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+}
+.gb-store .store-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 18px;
+    font-weight: 700;
+}
+.gb-store .store-title svg { width: 24px; height: 24px; color: #3b82f6; }
+.gb-store .store-title h1 { margin: 0; font-size: 20px; }
+.gb-store .store-search {
+    flex: 1;
+    min-width: 200px;
+    max-width: 420px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    padding: 8px 12px;
+}
+.gb-store .store-search svg { width: 15px; height: 15px; color: #6b7280; }
+.gb-store .store-search input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--text, #1f2430);
+    font-size: 13px;
+}
+.gb-store .store-cats {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+.gb-store .store-cat {
+    background: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.15);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--text, #1f2430);
+}
+.gb-store .store-cat.active {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    color: #fff;
+}
+.gb-store .store-grid {
+    flex: 1;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 14px;
+    align-content: start;
+}
+.gb-store .store-card {
+    background: var(--card-bg, #fff);
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+.gb-store .store-card-top {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.gb-store .store-app-icon {
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+.gb-store .store-app-icon svg { width: 24px; height: 24px; }
+.gb-store .store-app-name { font-size: 14px; font-weight: 600; }
+.gb-store .store-app-cat { font-size: 11px; color: #6b7280; text-transform: capitalize; }
+.gb-store .store-app-desc {
+    font-size: 12px;
+    color: #6b7280;
+    line-height: 1.45;
+    flex: 1;
+}
+.gb-store .store-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: space-between;
+}
+.gb-store .store-install-btn {
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.gb-store .store-install-btn.installed {
+    background: rgba(34, 197, 94, 0.15);
+    color: #16a34a;
+    cursor: default;
+}
+.gb-store .store-open-btn {
+    background: transparent;
+    color: #3b82f6;
+    border: 1px solid #3b82f6;
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 12px;
+    cursor: pointer;
+}
+.gb-store .store-installs {
+    font-size: 11px;
+    color: #9ca3af;
+}
+.gb-store .store-loading,
+.gb-store .store-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #9ca3af;
+    padding: 40px 0;
+}
+
+@media (prefers-color-scheme: dark) {
+    .gb-store { background: #14161d; color: #e6e8ee; }
+    .gb-store .store-card { background: #1d2029; border-color: rgba(255, 255, 255, 0.08); }
+    .gb-store .store-search { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.12); }
+    .gb-store .store-cat { border-color: rgba(255, 255, 255, 0.18); color: #e6e8ee; }
+    .gb-store .store-app-desc { color: #aab0bd; }
+    .gb-store .store-app-cat { color: #aab0bd; }
+}

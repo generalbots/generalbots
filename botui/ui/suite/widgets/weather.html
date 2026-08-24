@@ -1,0 +1,84 @@
+<div class="gb-system-widget" data-gb-widget="weather">
+  <div class="gb-wweather">
+    <div class="gb-wweather-city">São Paulo</div>
+    <div class="gb-wweather-temp">--°C</div>
+    <div class="gb-wweather-desc">--</div>
+    <button type="button" class="gb-widget-btn gb-wweather-refresh" title="Refresh">↻</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var root = document.currentScript
+    ? document.currentScript.closest(".gb-widget")
+    : null;
+  var CACHE_KEY = "gb-weather-cache";
+
+  function host() {
+    return root || document.querySelector(".gb-widget");
+  }
+
+  function label(code) {
+    if (code === 0) return "Sunny";
+    if (code === 1 || code === 2) return "Partly cloudy";
+    if (code === 3) return "Cloudy";
+    if (code >= 51 && code <= 67) return "Rain";
+    if (code >= 71 && code <= 77) return "Snow";
+    if (code >= 95) return "Storm";
+    return "Mild";
+  }
+
+  function render(box, data) {
+    var city = box.querySelector(".gb-wweather-city");
+    var temp = box.querySelector(".gb-wweather-temp");
+    var desc = box.querySelector(".gb-wweather-desc");
+    if (city) city.textContent = data.city;
+    if (temp) temp.textContent = data.temp;
+    if (desc) desc.textContent = data.desc;
+  }
+
+  // Read the cached forecast first so the widget renders instantly, then
+  // refresh from the free Open-Meteo API (no key) when reachable.
+  function refresh(box) {
+    try {
+      var cached = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+      if (cached) render(box, cached);
+    } catch (e) {}
+    fetch("https://api.open-meteo.com/v1/forecast?latitude=-23.55&longitude=-46.63&current=temperature_2m,weather_code&timezone=auto")
+      .then(function (r) { return r.json(); })
+      .then(function (wx) {
+        if (!wx || !wx.current) return;
+        var data = {
+          city: "São Paulo",
+          temp: Math.round(wx.current.temperature_2m) + "°C",
+          desc: label(wx.current.weather_code),
+        };
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify(data)); } catch (e) {}
+        render(box, data);
+      })
+      .catch(function () {});
+  }
+
+  function boot() {
+    var box = host();
+    if (!box) return;
+    var refreshBtn = box.querySelector(".gb-wweather-refresh");
+    if (refreshBtn) refreshBtn.addEventListener("click", function () { refresh(box); });
+    refresh(box);
+  }
+
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    boot();
+  } else {
+    document.addEventListener("DOMContentLoaded", boot);
+  }
+
+  if (root) {
+    root.addEventListener("gb-widget-remove", function () {
+      document.removeEventListener("DOMContentLoaded", boot);
+    }, { once: true });
+  }
+})();
+</script>

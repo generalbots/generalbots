@@ -1,0 +1,63 @@
+<div class="gb-system-widget" data-gb-widget="photos">
+  <div class="gb-wphotos">
+    <div class="gb-wphotos-grid">
+      <div class="gb-wphotos-cell" style="background:linear-gradient(135deg,#3b82f622,#3b82f666);color:#3b82f6">🌄</div>
+      <div class="gb-wphotos-cell" style="background:linear-gradient(135deg,#84d66922,#84d66966);color:#84d669">🌊</div>
+      <div class="gb-wphotos-cell" style="background:linear-gradient(135deg,#f59e0b22,#f59e0b66);color:#f59e0b">🌿</div>
+      <div class="gb-wphotos-cell" style="background:linear-gradient(135deg,#ec489922,#ec489966);color:#ec4899">🌇</div>
+    </div>
+    <button type="button" class="gb-widget-btn gb-wphotos-open" title="Open Photos app">Open Photos →</button>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var root = document.currentScript
+    ? document.currentScript.closest(".gb-widget")
+    : null;
+
+  function host() {
+    return root || document.querySelector(".gb-widget");
+  }
+
+  function boot() {
+    var box = host();
+    if (!box) return;
+    var open = box.querySelector(".gb-wphotos-open");
+    if (open) {
+      open.addEventListener("click", function () {
+        if (window.WindowManager) {
+          window.WindowManager.open("photos", "Photos", "");
+          var body = document.getElementById("window-body-photos");
+          if (body) {
+            fetch("/suite/photos/photos.html?_=" + Date.now())
+              .then(function (r) { return r.text(); })
+              .then(function (html) {
+                if (window.WindowManager._injectBodyContent) {
+                  window.WindowManager._injectBodyContent("photos", html);
+                }
+              })
+              .catch(function () {});
+          }
+        } else {
+          window.open("/suite/photos/photos.html", "_blank", "noopener");
+        }
+      });
+    }
+  }
+
+  if (document.readyState === "complete" || document.readyState === "interactive") {
+    boot();
+  } else {
+    document.addEventListener("DOMContentLoaded", boot);
+  }
+
+  if (root) {
+    root.addEventListener("gb-widget-remove", function () {
+      document.removeEventListener("DOMContentLoaded", boot);
+    }, { once: true });
+  }
+})();
+</script>

@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Photos</title>
+    <link rel="stylesheet" href="/suite/photos/photos.css" />
+</head>
+<body>
+    <div class="gb-photos" id="gb-photos">
+        <div class="photos-toolbar">
+            <h2>Photos</h2>
+            <button class="photos-refresh" id="photosRefresh">↻ Refresh</button>
+            <span class="photos-count" id="photosCount"></span>
+        </div>
+        <div class="photos-grid" id="photosGrid">
+            <div class="photos-empty">Loading your images from Drive…</div>
+        </div>
+        <div class="photos-lightbox" id="photosLightbox" style="display:none">
+            <button class="photos-lb-close" id="photosLbClose">✕</button>
+            <img id="photosLbImg" alt="Preview" />
+        </div>
+    </div>
+    <script src="/suite/photos/photos.js"></script>
+</body>
+</html>

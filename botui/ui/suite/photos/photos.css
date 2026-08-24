@@ -1,0 +1,92 @@
+/* Photos (#1154) */
+.gb-photos {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--bg, #f7f8fa);
+    color: var(--text, #1f2430);
+}
+.gb-photos .photos-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+.gb-photos .photos-toolbar h2 { margin: 0; font-size: 16px; }
+.gb-photos .photos-refresh {
+    background: transparent;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--text, #1f2430);
+}
+.gb-photos .photos-count { font-size: 12px; color: #6b7280; }
+.gb-photos .photos-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+    padding: 16px;
+    overflow-y: auto;
+    align-content: start;
+}
+.gb-photos .photo-tile {
+    aspect-ratio: 1;
+    border-radius: 10px;
+    overflow: hidden;
+    cursor: pointer;
+    background: rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+}
+.gb-photos .photo-tile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    transition: transform 0.2s ease;
+}
+.gb-photos .photo-tile:hover img { transform: scale(1.05); }
+.gb-photos .photos-empty {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #9ca3af;
+    padding: 60px 0;
+}
+.gb-photos .photos-lightbox {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+.gb-photos .photos-lightbox img {
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: 8px;
+}
+.gb-photos .photos-lb-close {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(255, 255, 255, 0.15);
+    border: none;
+    color: #fff;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+@media (prefers-color-scheme: dark) {
+    .gb-photos { background: #14161d; color: #e6e8ee; }
+    .gb-photos .photos-toolbar { border-bottom-color: rgba(255, 255, 255, 0.08); }
+    .gb-photos .photos-refresh { border-color: rgba(255, 255, 255, 0.2); color: #e6e8ee; }
+    .gb-photos .photos-count { color: #aab0bd; }
+    .gb-photos .photo-tile { background: rgba(255, 255, 255, 0.06); border-color: rgba(255, 255, 255, 0.1); }
+}
