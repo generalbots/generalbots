@@ -17,6 +17,9 @@
     { id: "notes", title: "Sticky Note", partial: "/suite/widgets/notes.html", w: 260, h: 220 },
     { id: "todo", title: "Quick Tasks", partial: "/suite/widgets/todo.html", w: 280, h: 300 },
     { id: "battery", title: "Battery", partial: "/suite/widgets/battery.html", w: 250, h: 140 },
+    { id: "timer", title: "Pomodoro Timer", partial: "/suite/widgets/timer.html", w: 250, h: 220 },
+    { id: "weather", title: "Weather", partial: "/suite/widgets/weather.html", w: 300, h: 220 },
+    { id: "photos", title: "Photos", partial: "/suite/widgets/photos.html", w: 300, h: 240 },
   ];
 
   var pane = null;

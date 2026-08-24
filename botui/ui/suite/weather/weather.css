@@ -1,0 +1,51 @@
+/* Weather (#1154) */
+.gb-weather {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 18px;
+    gap: 14px;
+    background: linear-gradient(160deg, #0ea5e9 0%, #2563eb 100%);
+    color: #fff;
+    overflow-y: auto;
+}
+.gb-weather .weather-search { display: flex; gap: 8px; }
+.gb-weather .weather-search input {
+    flex: 1;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    outline: none;
+}
+.gb-weather .weather-search button {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    color: #fff;
+    border-radius: 10px;
+    padding: 0 18px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.gb-weather .weather-current { text-align: center; padding: 16px 0; }
+.gb-weather .weather-temp { font-size: 64px; font-weight: 200; }
+.gb-weather .weather-desc { font-size: 15px; text-transform: capitalize; }
+.gb-weather .weather-city { font-size: 13px; opacity: 0.85; }
+.gb-weather .weather-meta { font-size: 12px; opacity: 0.85; margin-top: 6px; display: flex; gap: 12px; justify-content: center; }
+.gb-weather .weather-empty { color: rgba(255, 255, 255, 0.85); font-size: 13px; padding: 20px 0; }
+.gb-weather .weather-forecast {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 8px;
+}
+.gb-weather .weather-day {
+    background: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+    font-size: 12px;
+}
+.gb-weather .weather-day .wd-temp { font-size: 16px; font-weight: 600; margin-top: 4px; }
+.gb-weather .weather-day .wd-emoji { font-size: 22px; }

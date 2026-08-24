@@ -35,6 +35,9 @@ function bindTopTabs() {
                 case TAB_ROOT:
                     loadRootTab();
                     break;
+                case TAB_DESKTOP:
+                    loadDesktopTab();
+                    break;
             }
         });
     });

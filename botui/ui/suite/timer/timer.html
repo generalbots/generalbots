@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Timer</title>
+    <link rel="stylesheet" href="/suite/timer/timer.css" />
+</head>
+<body>
+    <div class="gb-timer" id="gb-timer">
+        <div class="timer-modes">
+            <button class="timer-mode" data-min="25" data-label="Focus">Focus</button>
+            <button class="timer-mode" data-min="5" data-label="Short Break">Short Break</button>
+            <button class="timer-mode" data-min="15" data-label="Long Break">Long Break</button>
+        </div>
+        <div class="timer-display" id="timerDisplay">25:00</div>
+        <div class="timer-controls">
+            <button class="timer-btn timer-start" id="timerStart">Start</button>
+            <button class="timer-btn timer-reset" id="timerReset">Reset</button>
+        </div>
+        <div class="timer-label" id="timerLabel">Focus</div>
+        <div class="timer-sessions" id="timerSessions"></div>
+    </div>
+    <script src="/suite/timer/timer.js"></script>
+</body>
+</html>

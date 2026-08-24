@@ -388,3 +388,24 @@ async function loadRootTab() {
         showNotification("Root tab requires an org (.gborg) bucket", "warning");
     }
 }
+
+// ── Desktop tab (#1154): the user's Desktop folder on Drive, where
+// per-user shortcuts (.gbdesktop.json) and dropped files live.
+async function loadDesktopTab() {
+    var path = buildPathDesktop();
+    if (!currentBucket) await discoverBuckets();
+    if (path) {
+        currentPath = path;
+        currentScope = "bot";
+        await loadFiles(path, currentGborgBucket || currentBucket);
+    } else if (currentBucket) {
+        currentScope = "user";
+        await loadFiles("", currentBucket);
+    }
+}
+
+function buildPathDesktop() {
+    var base = buildPathMyFiles();
+    if (!base) return "";
+    return base + "/Desktop";
+}
