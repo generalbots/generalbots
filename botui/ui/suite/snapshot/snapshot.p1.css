@@ -1,0 +1,9 @@
+/* GB Snapshot (#1154) */
+.gb-snap { height: 100%; min-height: 240px; display: flex; flex-direction: column; gap: 12px; padding: 14px; background: var(--surface, #141623); color: var(--text, #e5e5e5); font-family: "Fira Sans", sans-serif; }
+.gb-snap-hint { margin: 0; font-size: 13px; color: var(--text-secondary, #99a); }
+.gb-snap-controls { display: flex; gap: 8px; }
+.gb-snap-btn { border: 1px solid var(--shell-border, rgba(255,255,255,.12)); background: var(--surface-hover, rgba(255,255,255,.05)); color: var(--text,#ddd); font-size: 13px; padding: 8px 16px; border-radius: 8px; cursor: pointer; }
+.gb-snap-btn:disabled { opacity: .45; cursor: not-allowed; }
+.gb-snap-btn.primary { background: var(--primary,#84d669); border-color: transparent; color: #06120a; font-weight: 700; }
+.gb-snap-preview { max-width: 100%; max-height: 55vh; border-radius: 10px; border: 1px solid var(--shell-border, rgba(255,255,255,.12)); }
+.gb-snap [hidden] { display: none !important; }
