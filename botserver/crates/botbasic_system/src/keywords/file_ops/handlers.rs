@@ -38,6 +38,7 @@ use crate::keywords::file_ops::archive::*;
 use crate::keywords::file_ops::basic_io::*;
 use crate::keywords::file_ops::copy_move::*;
 use crate::keywords::file_ops::create::*;
+use crate::keywords::file_ops::create_shortcut::*;
 use crate::keywords::file_ops::pdf::*;
 use crate::keywords::file_ops::transfer::*;
 use crate::keywords::file_ops::utils::dynamic_to_file_data;
@@ -46,6 +47,7 @@ pub fn register_file_operations(state: &Arc<dyn BasicRuntime>, user: UserSession
     register_read_keyword(Arc::clone(state), user.clone(), engine);
     register_write_keyword(Arc::clone(state), user.clone(), engine);
     register_create_file_keyword(Arc::clone(state), user.clone(), engine);
+    register_create_shortcut_keyword(Arc::clone(state), user.clone(), engine);
     register_delete_file_keyword(Arc::clone(state), user.clone(), engine);
     register_copy_keyword(Arc::clone(state), user.clone(), engine);
     register_move_keyword(Arc::clone(state), user.clone(), engine);

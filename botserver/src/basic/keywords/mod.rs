@@ -152,6 +152,7 @@ pub mod card;
 #[cfg(feature = "social")]
 pub mod post_to;
 pub mod set_answer_mode;
+pub mod invoke_action;
 pub mod vibe_agent;
 
 // ===== CONVENIENCE RE-EXPORTS =====
