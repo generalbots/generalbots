@@ -13,6 +13,8 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         "python3",
         "which",
         "curl",
+        "notify-send",
+        "osascript",
     ])
 });
 

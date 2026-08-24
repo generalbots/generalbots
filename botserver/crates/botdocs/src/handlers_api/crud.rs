@@ -19,6 +19,9 @@ pub async fn handle_docs_save(
     let user_id = get_current_user_id();
     let doc_id = req.id.unwrap_or_else(|| Uuid::new_v4().to_string());
 
+    // #1138: archive the previous version before overwriting it.
+    super::history::capture_snapshot(&state, &doc_id, &req.title, &req.content).await;
+
     if let Err(e) =
         save_document_to_drive(&state, &user_id, &doc_id, &req.title, &req.content).await
     {

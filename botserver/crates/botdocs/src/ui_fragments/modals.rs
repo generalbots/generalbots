@@ -11,7 +11,7 @@ pub async fn handle_share_modal(Json(payload): Json<serde_json::Value>) -> Html<
 <h3 style="margin:0;color:#f8fafc;">Compartilhar "{title}"</h3>
 <button onclick="this.closest('.dc-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
 </div>
-<div class="dc-modal-body" hx-get="/suite/docs/forms/share" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
+<div class="dc-modal-body" hx-post="/suite/docs/forms/share" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
 </div>
 </div>"##,
         id = html_escape(id),
@@ -31,12 +31,12 @@ pub async fn handle_ai_modal(Json(payload): Json<serde_json::Value>) -> Html<Str
 </div>
 <div class="dc-modal-body">
 <div style="display:flex;gap:4px;padding:8px;border-bottom:1px solid #334155;">
-<button hx-get="/suite/docs/forms/ai" hx-vals='{{"id":"{id}","action":"summarize","text":"{text}"}}' hx-target=".dc-modal-body" hx-swap="innerHTML" style="background:#1e293b;color:#cbd5e1;border:1px solid #334155;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">📋 Resumir</button>
-<button hx-get="/suite/docs/forms/ai" hx-vals='{{"id":"{id}","action":"expand","text":"{text}"}}' hx-target=".dc-modal-body" hx-swap="innerHTML" style="background:#1e293b;color:#cbd5e1;border:1px solid #334155;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">📝 Expandir</button>
-<button hx-get="/suite/docs/forms/ai" hx-vals='{{"id":"{id}","action":"improve","text":"{text}"}}' hx-target=".dc-modal-body" hx-swap="innerHTML" style="background:#1e293b;color:#cbd5e1;border:1px solid #334155;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">✨ Melhorar</button>
-<button hx-get="/suite/docs/forms/ai" hx-vals='{{"id":"{id}","action":"simplify","text":"{text}"}}' hx-target=".dc-modal-body" hx-swap="innerHTML" style="background:#1e293b;color:#cbd5e1;border:1px solid #334155;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">🔍 Simplificar</button>
+<button hx-post="/suite/docs/forms/ai" hx-vals='{{"id":"{id}","action":"summarize","text":"{text}"}}' hx-target=".dc-modal-body" hx-swap="innerHTML" style="background:#1e293b;color:#cbd5e1;border:1px solid #334155;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">📋 Resumir</button>
+<button hx-post="/suite/docs/forms/ai" hx-vals='{{"id":"{id}","action":"expand","text":"{text}"}}' hx-target=".dc-modal-body" hx-swap="innerHTML" style="background:#1e293b;color:#cbd5e1;border:1px solid #334155;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">📝 Expandir</button>
+<button hx-post="/suite/docs/forms/ai" hx-vals='{{"id":"{id}","action":"improve","text":"{text}"}}' hx-target=".dc-modal-body" hx-swap="innerHTML" style="background:#1e293b;color:#cbd5e1;border:1px solid #334155;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">✨ Melhorar</button>
+<button hx-post="/suite/docs/forms/ai" hx-vals='{{"id":"{id}","action":"simplify","text":"{text}"}}' hx-target=".dc-modal-body" hx-swap="innerHTML" style="background:#1e293b;color:#cbd5e1;border:1px solid #334155;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">🔍 Simplificar</button>
 </div>
-<div hx-get="/suite/docs/forms/ai" hx-vals='{{"id":"{id}","action":"improve","text":"{text}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
+<div hx-post="/suite/docs/forms/ai" hx-vals='{{"id":"{id}","action":"improve","text":"{text}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
 </div>
 </div>
 </div>"##,
@@ -54,7 +54,7 @@ pub async fn handle_find_replace_modal(Json(payload): Json<serde_json::Value>) -
 <h3 style="margin:0;color:#f8fafc;">Localizar e Substituir</h3>
 <button onclick="this.closest('.dc-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
 </div>
-<div class="dc-modal-body" hx-get="/suite/docs/forms/find-replace" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
+<div class="dc-modal-body" hx-post="/suite/docs/forms/find-replace" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
 </div>
 </div>"##,
         id = html_escape(id)
@@ -71,7 +71,7 @@ pub async fn handle_footnote_modal(Json(payload): Json<serde_json::Value>) -> Ht
 <h3 style="margin:0;color:#f8fafc;">Inserir Nota de Rodapé</h3>
 <button onclick="this.closest('.dc-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
 </div>
-<div class="dc-modal-body" hx-get="/suite/docs/forms/footnote" hx-vals='{{"id":"{id}","position":"{pos}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
+<div class="dc-modal-body" hx-post="/suite/docs/forms/footnote" hx-vals='{{"id":"{id}","position":"{pos}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
 </div>
 </div>"##,
         id = html_escape(id),
@@ -88,7 +88,7 @@ pub async fn handle_endnote_modal(Json(payload): Json<serde_json::Value>) -> Htm
 <h3 style="margin:0;color:#f8fafc;">Inserir Nota Final</h3>
 <button onclick="this.closest('.dc-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
 </div>
-<div class="dc-modal-body" hx-get="/suite/docs/forms/endnote" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
+<div class="dc-modal-body" hx-post="/suite/docs/forms/endnote" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
 </div>
 </div>"##,
         id = html_escape(id)
@@ -105,7 +105,7 @@ pub async fn handle_track_changes_modal(Json(payload): Json<serde_json::Value>) 
 <h3 style="margin:0;color:#f8fafc;">Controle de Alterações</h3>
 <button onclick="this.closest('.dc-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
 </div>
-<div class="dc-modal-body" hx-get="/suite/docs/forms/track-changes" hx-vals='{{"id":"{id}","enabled":"{enabled}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
+<div class="dc-modal-body" hx-post="/suite/docs/forms/track-changes" hx-vals='{{"id":"{id}","enabled":"{enabled}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
 </div>
 </div>"##,
         id = html_escape(id),
@@ -122,7 +122,7 @@ pub async fn handle_compare_modal(Json(payload): Json<serde_json::Value>) -> Htm
 <h3 style="margin:0;color:#f8fafc;">Comparar Documentos</h3>
 <button onclick="this.closest('.dc-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
 </div>
-<div class="dc-modal-body" hx-get="/suite/docs/forms/compare" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
+<div class="dc-modal-body" hx-post="/suite/docs/forms/compare" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
 </div>
 </div>"##,
         id = html_escape(id)

@@ -30,7 +30,7 @@ pub async fn handle_share_modal(
 <h3 style="margin:0;color:#f8fafc;">{title}</h3>
 <button onclick="this.closest('.ss-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
 </div>
-<div class="ss-modal-body" hx-get="/suite/sheet/forms/share" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
+<div class="ss-modal-body" hx-post="/suite/sheet/forms/share" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
 </div>
 </div>"##,
         title = tf(lang, "modal.share_title", &[("name", &html_escape(&name))]),
@@ -57,7 +57,7 @@ pub async fn handle_chart_modal(
 <h3 style="margin:0;color:#f8fafc;">{title}</h3>
 <button onclick="this.closest('.ss-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
 </div>
-<div class="ss-modal-body" hx-get="/suite/sheet/forms/chart" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
+<div class="ss-modal-body" hx-post="/suite/sheet/forms/chart" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
 </div>
 </div>"##,
         title = t(lang, "modal.chart"),
@@ -84,7 +84,7 @@ pub async fn handle_find_replace_modal(
 <h3 style="margin:0;color:#f8fafc;">{title}</h3>
 <button onclick="this.closest('.ss-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
 </div>
-<div class="ss-modal-body" hx-get="/suite/sheet/forms/find-replace" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
+<div class="ss-modal-body" hx-post="/suite/sheet/forms/find-replace" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
 </div>
 </div>"##,
         title = t(lang, "modal.find_replace"),
@@ -111,7 +111,7 @@ pub async fn handle_conditional_format_modal(
 <h3 style="margin:0;color:#f8fafc;">{title}</h3>
 <button onclick="this.closest('.ss-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
 </div>
-<div class="ss-modal-body" hx-get="/suite/sheet/forms/conditional-format" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
+<div class="ss-modal-body" hx-post="/suite/sheet/forms/conditional-format" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
 </div>
 </div>"##,
         title = t(lang, "modal.conditional_format"),
@@ -138,7 +138,7 @@ pub async fn handle_data_validation_modal(
 <h3 style="margin:0;color:#f8fafc;">{title}</h3>
 <button onclick="this.closest('.ss-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
 </div>
-<div class="ss-modal-body" hx-get="/suite/sheet/forms/data-validation" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
+<div class="ss-modal-body" hx-post="/suite/sheet/forms/data-validation" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
 </div>
 </div>"##,
         title = t(lang, "modal.data_validation"),
@@ -165,7 +165,7 @@ pub async fn handle_custom_format_modal(
 <h3 style="margin:0;color:#f8fafc;">{title}</h3>
 <button onclick="this.closest('.ss-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
 </div>
-<div class="ss-modal-body" hx-get="/suite/sheet/forms/custom-format" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
+<div class="ss-modal-body" hx-post="/suite/sheet/forms/custom-format" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
 </div>
 </div>"##,
         title = t(lang, "modal.custom_format"),
@@ -192,7 +192,7 @@ pub async fn handle_insert_image_modal(
 <h3 style="margin:0;color:#f8fafc;">{title}</h3>
 <button onclick="this.closest('.ss-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
 </div>
-<div class="ss-modal-body" hx-get="/suite/sheet/forms/insert-image" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
+<div class="ss-modal-body" hx-post="/suite/sheet/forms/insert-image" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
 </div>
 </div>"##,
         title = t(lang, "modal.insert_image"),
@@ -219,7 +219,7 @@ pub async fn handle_print_preview_modal(
 <h3 style="margin:0;color:#f8fafc;">{title}</h3>
 <button onclick="this.closest('.ss-modal').remove()" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:20px;">×</button>
 </div>
-<div class="ss-modal-body" hx-get="/suite/sheet/forms/print-preview" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
+<div class="ss-modal-body" hx-post="/suite/sheet/forms/print-preview" hx-vals='{{"id":"{id}"}}' hx-trigger="load" hx-swap="innerHTML"></div>
 </div>
 </div>"##,
         title = t(lang, "modal.print_preview"),
@@ -281,27 +281,27 @@ pub async fn handle_advanced_ranges_panel(
         r##"<div class="ss-panel" id="advanced-ranges-panel" style="padding:16px;">
 <h3 style="color:#f8fafc;margin-top:0;">{title}</h3>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-<button hx-get="/suite/sheet/modals/conditional-format" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button hx-post="/suite/sheet/modals/conditional-format" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>{cf_title}</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">{cf_desc}</div>
 </button>
-<button hx-get="/suite/sheet/modals/data-validation" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button hx-post="/suite/sheet/modals/data-validation" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>{dv_title}</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">{dv_desc}</div>
 </button>
-<button hx-get="/suite/sheet/modals/chart" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button hx-post="/suite/sheet/modals/chart" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>{charts_title}</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">{charts_desc}</div>
 </button>
-<button hx-get="/suite/sheet/modals/print-preview" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button hx-post="/suite/sheet/modals/print-preview" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>{print_title}</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">{print_desc}</div>
 </button>
-<button hx-get="/suite/sheet/modals/ai" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button hx-post="/suite/sheet/modals/ai" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>{ai_title}</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">{ai_desc}</div>
 </button>
-<button hx-get="/suite/sheet/modals/find-replace" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
+<button hx-post="/suite/sheet/modals/find-replace" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" class="ss-action-btn" style="padding:12px;background:#1e293b;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:left;">
 <strong>{find_title}</strong>
 <div style="font-size:11px;color:#94a3b8;margin-top:4px;">{find_desc}</div>
 </button>

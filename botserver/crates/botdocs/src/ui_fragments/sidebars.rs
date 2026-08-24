@@ -1,6 +1,31 @@
-use super::{empty_fragment, html_escape, render_metadata_card};
-use axum::{response::Html, Json};
+use super::{empty_fragment, err_fragment, html_escape, render_metadata_card};
+use axum::{extract::{Query, State}, response::Html, Json};
+use crate::state::DocState;
 use crate::types_core::DocumentMetadata;
+
+/// Server-rendered document view resolved by id (metadata cards carry only
+/// the id; the full Document is loaded from Drive here).
+pub async fn handle_document_view_by_id(
+    State(state): State<std::sync::Arc<DocState>>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> Html<String> {
+    let doc_id = params.get("id").cloned().unwrap_or_default();
+    if doc_id.is_empty() {
+        return Html(err_fragment("id ausente"));
+    }
+    let user_id = crate::storage::get_current_user_id();
+    match crate::storage_drive::load_document_from_drive(&state, &user_id, &doc_id).await {
+        Ok(Some(doc)) => {
+            handle_document_view(Json(serde_json::json!({
+                "id": doc.id,
+                "title": doc.title,
+                "content": doc.content,
+            })))
+            .await
+        }
+        _ => Html(err_fragment("Documento não encontrado")),
+    }
+}
 
 pub async fn handle_doc_list_sidebar(Json(items): Json<Vec<DocumentMetadata>>) -> Html<String> {
     if items.is_empty() {
@@ -75,9 +100,9 @@ pub async fn handle_document_view(Json(payload): Json<serde_json::Value>) -> Htm
 <div style="font-size:12px;color:#94a3b8;margin-top:4px;">{words} palavras • ID: {id}</div>
 </div>
 <div style="display:flex;gap:8px;">
-<button hx-get="/suite/docs/modals/ai" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#6366f1;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">✨ IA</button>
-<button hx-get="/suite/docs/modals/share" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#3b82f6;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">🔗 Compartilhar</button>
-<button hx-get="/suite/docs/modals/find-replace" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#0f172a;color:#f8fafc;border:1px solid #334155;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">🔍 Buscar</button>
+<button hx-post="/suite/docs/modals/ai" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#6366f1;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">✨ IA</button>
+<button hx-post="/suite/docs/modals/share" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#3b82f6;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">🔗 Compartilhar</button>
+<button hx-post="/suite/docs/modals/find-replace" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#0f172a;color:#f8fafc;border:1px solid #334155;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">🔍 Buscar</button>
 </div>
 </div>
 <article class="dc-content" id="doc-content" contenteditable="true" hx-post="/api/docs/autosave" hx-trigger="blur changed" hx-vals='{{"id":"{id}"}}' hx-swap="none" style="padding:48px 64px;line-height:1.8;color:#cbd5e1;font-size:15px;background:#0f172a;min-height:60vh;outline:none;font-family:Georgia,serif;">{content}</article>
