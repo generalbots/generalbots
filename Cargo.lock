@@ -1192,6 +1192,7 @@ version = "6.3.1"
 dependencies = [
  "anyhow",
  "botlib",
+ "botvideo",
  "chrono",
  "dirs 5.0.1",
  "image",
