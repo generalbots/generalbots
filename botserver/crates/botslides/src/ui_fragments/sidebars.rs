@@ -1,6 +1,7 @@
 use super::{empty_fragment, html_escape, render_metadata_card};
-use axum::{response::Html, Json};
+use axum::{extract::{Query, State}, response::Html, Json};
 use crate::types::{Presentation, PresentationMetadata, Slide};
+use crate::SlidesState;
 
 pub async fn handle_presentation_list_sidebar(Json(items): Json<Vec<PresentationMetadata>>) -> Html<String> {
     if items.is_empty() {
@@ -62,6 +63,26 @@ pub async fn handle_recent_sidebar(Json(items): Json<Vec<PresentationMetadata>>)
     Html(html)
 }
 
+/// Server-rendered presentation view resolved by id (metadata cards carry
+/// only the id; the full Presentation is loaded from Drive here).
+pub async fn handle_presentation_view_by_id<D: crate::storage::DriveOps>(
+    State(state): State<std::sync::Arc<SlidesState<D>>>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> Html<String> {
+    let pid = params.get("id").cloned().unwrap_or_default();
+    if pid.is_empty() {
+        return Html(super::err_fragment("id ausente"));
+    }
+    let user_id = crate::storage::get_current_user_id();
+    let Some(drive) = state.drive.as_ref() else {
+        return Html(super::err_fragment("Drive indisponível"));
+    };
+    match crate::storage::load_presentation_by_id(drive, &user_id, &pid).await {
+        Ok(pres) => handle_presentation_view(Json(pres)).await,
+        Err(e) => Html(super::err_fragment(&e)),
+    }
+}
+
 pub async fn handle_presentation_view(Json(pres): Json<Presentation>) -> Html<String> {
     let total = pres.slides.len();
     let current = 0;
@@ -77,9 +98,9 @@ pub async fn handle_presentation_view(Json(pres): Json<Presentation>) -> Html<St
 <div style="font-size:12px;color:#94a3b8;margin-top:2px;">{total} slides • Tema: {theme}</div>
 </div>
 <div style="display:flex;gap:6px;">
-<button hx-get="/suite/slides/modals/insert-element" hx-vals='{{"presentation_id":"{id}","slide_index":"0"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#3b82f6;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">+ Elemento</button>
-<button hx-get="/suite/slides/modals/ai" hx-vals='{{"presentation_id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#6366f1;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">✨ IA</button>
-<button hx-get="/suite/slides/modals/share" hx-vals='{{"presentation_id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#10b981;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">🔗 Compartilhar</button>
+<button hx-post="/suite/slides/modals/insert-element" hx-vals='{{"presentation_id":"{id}","slide_index":"0"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#3b82f6;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">+ Elemento</button>
+<button hx-post="/suite/slides/modals/ai" hx-vals='{{"presentation_id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#6366f1;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">✨ IA</button>
+<button hx-post="/suite/slides/modals/share" hx-vals='{{"presentation_id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#10b981;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">🔗 Compartilhar</button>
 <button hx-post="/api/slides/presenter/start" hx-vals='{{"presentation_id":"{id}"}}' style="background:#f59e0b;color:white;border:none;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">▶ Apresentar</button>
 </div>
 </div>

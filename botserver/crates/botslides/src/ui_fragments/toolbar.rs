@@ -62,11 +62,11 @@ pub async fn handle_new_slide_form(Json(payload): Json<serde_json::Value>) -> Ht
 
 pub async fn handle_insert_element_form(Json(_payload): Json<serde_json::Value>) -> Html<String> {
     Html(r##"<div class="sl-form" style="padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-<button hx-get="/suite/slides/modals/add-text" hx-target="#modal-container" hx-swap="innerHTML" style="padding:16px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;">📝 Texto</button>
-<button hx-get="/suite/slides/modals/add-image" hx-target="#modal-container" hx-swap="innerHTML" style="padding:16px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;">🖼️ Imagem</button>
-<button hx-get="/suite/slides/modals/add-shape" hx-target="#modal-container" hx-swap="innerHTML" style="padding:16px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;">🔷 Forma</button>
-<button hx-get="/suite/slides/modals/add-chart" hx-target="#modal-container" hx-swap="innerHTML" style="padding:16px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;">📊 Gráfico</button>
-<button hx-get="/suite/slides/modals/add-table" hx-target="#modal-container" hx-swap="innerHTML" style="padding:16px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;">📋 Tabela</button>
+<button hx-post="/suite/slides/modals/add-text" hx-target="#modal-container" hx-swap="innerHTML" style="padding:16px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;">📝 Texto</button>
+<button hx-post="/suite/slides/modals/add-image" hx-target="#modal-container" hx-swap="innerHTML" style="padding:16px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;">🖼️ Imagem</button>
+<button hx-post="/suite/slides/modals/add-shape" hx-target="#modal-container" hx-swap="innerHTML" style="padding:16px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;">🔷 Forma</button>
+<button hx-post="/suite/slides/modals/add-chart" hx-target="#modal-container" hx-swap="innerHTML" style="padding:16px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;">📊 Gráfico</button>
+<button hx-post="/suite/slides/modals/add-table" hx-target="#modal-container" hx-swap="innerHTML" style="padding:16px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;">📋 Tabela</button>
 <button onclick="alert('Use a opção Vídeo do menu Inserir')" style="padding:16px;background:#0f172a;border:1px solid #334155;border-radius:6px;color:#f8fafc;cursor:pointer;text-align:center;">🎬 Vídeo</button>
 </div>"##.to_string())
 }
