@@ -405,7 +405,7 @@
 }
 
 /* ── Public mode / fullscreen sidebar hide ── */
-body.public-mode .chat-sidebar {
+body.public-mode .chat-sidebar { /* always visible */
   display: none !important;
 }
 
