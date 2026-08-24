@@ -1,0 +1,26 @@
+/* GB Screensaver (#1151) */
+#gb-screensaver {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: #02060c;
+  cursor: none;
+}
+#gb-screensaver-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.gb-screensaver-hint {
+  position: absolute;
+  bottom: 26px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: rgba(232, 244, 255, 0.45);
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Blank scene only: engine respects by never animating when set to blank. */
+}
