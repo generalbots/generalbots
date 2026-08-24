@@ -195,13 +195,39 @@
 
     handleUnauthorized: function (url) {
       console.warn("[GBSecurity] Unauthorized response from:", url);
-      // Non-critical endpoints that don't need auth should never trigger a
-      // redirect loop: the frontend has an embedded fallback for the catalog
-      // and the remaining failures are cosmetic while the session initialises.
-      if (typeof url === "string" && (/\/api\/apps\/catalog/.test(url) || /\/api\/cloud\/bots/.test(url))) {
+
+      // Fresh visit with NO token anywhere — every page-load fires ~10 API
+      // calls that return 401 before the bot-public check / login flow can
+      // supply a token. Suppress ALL redirects in this state to prevent the
+      // concurrent-redirect cascade that freezes the page.
+      if (
+        !_accessToken &&
+        !localStorage.getItem("gb-access-token") &&
+        !localStorage.getItem("management_token") &&
+        !sessionStorage.getItem("gb-access-token")
+      ) {
+        console.log("[GBSecurity] No token anywhere — skipping 401 (fresh visit)");
+        return;
+      }
+
+      // Cosmetic / pre-init endpoints that can legitimately return 401
+      // before session initialisation. The frontend has fallbacks for all
+      // of them so there is never a reason to bounce to login.
+      if (
+        typeof url === "string" &&
+        (/\/api\/apps\/catalog/.test(url) ||
+          /\/api\/cloud\/bots/.test(url) ||
+          /\/api\/chat\/history/.test(url) ||
+          /\/api\/files\/recent/.test(url) ||
+          /\/api\/bots\/list/.test(url) ||
+          /\/api\/system\/usage/.test(url) ||
+          /\/api\/setup\/status/.test(url) ||
+          /\/api\/product/.test(url))
+      ) {
         console.log("[GBSecurity] Skipping 401 redirect for cosmetic endpoint:", url);
         return;
       }
+
       window.dispatchEvent(
         new CustomEvent("gb:auth:unauthorized", {
           detail: { url: url },
