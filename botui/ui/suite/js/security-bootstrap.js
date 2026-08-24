@@ -195,6 +195,13 @@
 
     handleUnauthorized: function (url) {
       console.warn("[GBSecurity] Unauthorized response from:", url);
+      // Non-critical endpoints that don't need auth should never trigger a
+      // redirect loop: the frontend has an embedded fallback for the catalog
+      // and the remaining failures are cosmetic while the session initialises.
+      if (typeof url === "string" && (/\/api\/apps\/catalog/.test(url) || /\/api\/cloud\/bots/.test(url))) {
+        console.log("[GBSecurity] Skipping 401 redirect for cosmetic endpoint:", url);
+        return;
+      }
       window.dispatchEvent(
         new CustomEvent("gb:auth:unauthorized", {
           detail: { url: url },
