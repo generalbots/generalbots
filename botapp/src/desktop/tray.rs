@@ -1,4 +1,5 @@
 use anyhow::Result;
+use botvideo::safe_command::SafeCommand;
 use serde::Serialize;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -182,7 +183,7 @@ impl TrayManager {
                     .and_then(|c| c.arg(title))
                     .and_then(|c| c.arg(body))
                 {
-                    let _ = cmd.spawn();
+                    let _ = cmd.execute();
                 }
             }
 
@@ -193,7 +194,7 @@ impl TrayManager {
                     .and_then(|c| c.arg("-e"))
                     .and_then(|c| c.arg(&script))
                 {
-                    let _ = cmd.spawn();
+                    let _ = cmd.execute();
                 }
             }
         }

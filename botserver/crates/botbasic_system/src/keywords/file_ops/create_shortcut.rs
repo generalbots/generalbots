@@ -38,6 +38,7 @@ pub fn register_create_shortcut_keyword(
                     format!("{safe_name}.shortcut")
                 };
                 let path = format!("Desktop/{file_name}");
+                let path_for_task = path.clone();
 
                 let payload = serde_json::json!({
                     "kind": "gb-shortcut",
@@ -58,7 +59,7 @@ pub fn register_create_shortcut_keyword(
                         .build();
                     let send_err = if let Ok(rt) = rt {
                         let result = rt.block_on(async move {
-                            execute_create_file(&state_for_task, &user_for_task, &path, &content).await
+                            execute_create_file(&state_for_task, &user_for_task, &path_for_task, &content).await
                         });
                         tx.send(result).err()
                     } else {
@@ -78,6 +79,12 @@ pub fn register_create_shortcut_keyword(
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                         Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                             "CREATE SHORTCUT timed out".into(),
+                            rhai::Position::NONE,
+                        )))
+                    }
+                    Err(std::sync::mpsc::RecvTimeoutError::Disconnected) => {
+                        Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                            "CREATE SHORTCUT worker disconnected".into(),
                             rhai::Position::NONE,
                         )))
                     }
