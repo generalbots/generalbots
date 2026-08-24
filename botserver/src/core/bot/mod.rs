@@ -99,7 +99,10 @@ impl TeamsAdapter {
 pub mod answer_mode;
 pub mod answer_mode_config;
 pub mod answer_mode_ops;
+pub mod agent_vm_hook;
+pub mod consent_gate;
 pub mod kb_context;
+pub mod memory_hook;
 pub mod pipeline;
 
 pub struct BotOrchestrator;

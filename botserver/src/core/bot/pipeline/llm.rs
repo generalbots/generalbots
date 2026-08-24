@@ -443,6 +443,12 @@ pub async fn stream_llm_response(
                     let mut sm = state.session_manager.lock().await;
                     let _ = sm.save_message(session_id, user_id, 2, &full_response, 2);
                 }
+                #[cfg(feature = "memory-os")]
+                crate::core::bot::memory_hook::extract_from_turn(
+                    user_id, uuid::Uuid::nil(), session_id,
+                    user_text, &full_response,
+                )
+                .await;
                 break;
             }
         }
@@ -513,6 +519,34 @@ async fn handle_api_call(
     } else {
         params
     };
+
+    #[cfg(feature = "consent")]
+    {
+        let app_id = crate::apps::commands::command_by_name(&name)
+            .map(|c| c.app.to_string())
+            .unwrap_or_else(|| name.clone());
+        let gate = crate::core::bot::consent_gate::check(
+            user_id,
+            &app_id,
+            "update",
+            serde_json::json!({ "command": name, "params": params }),
+        )
+        .await;
+        if !gate.allowed {
+            let message = match gate.pending_request {
+                Some(ref request) => {
+                    crate::core::bot::consent_gate::marker_content(request)
+                }
+                None => crate::core::bot::consent_gate::deny_message(&app_id),
+            };
+            let resp = botlib::models::BotResponse::new(
+                bot_uuid.to_string(), session_id.to_string(),
+                user_id.to_string(), &message, &channel,
+            );
+            let _ = sink.send_bot_response(&resp).await;
+            return true;
+        }
+    }
 
     match api_catalog::execute_command(state, bot_uuid, bot_name, user_id, &name, &params).await {
         Ok(result) => {

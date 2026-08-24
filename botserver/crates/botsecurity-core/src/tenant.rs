@@ -83,6 +83,22 @@ pub fn user_id_from_claims(headers: &HeaderMap) -> Option<String> {
         .map(|s| s.to_string())
 }
 
+/// Returns the `sub` claim from a raw token string. Needed by transports
+/// that cannot set headers (SSE via EventSource passes `?token=`).
+pub fn user_id_from_claims_subject(token: &str) -> Option<String> {
+    let token = token.strip_prefix("Bearer ").unwrap_or(token);
+    let parts: Vec<&str> = token.split('.').collect();
+    if parts.len() != 3 {
+        return None;
+    }
+    let payload = base64url_decode(parts[1].trim_end_matches('='))?;
+    serde_json::from_slice::<serde_json::Value>(&payload)
+        .ok()?
+        .get("sub")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+}
+
 /// Returns the email claim from the JWT, if present.
 pub fn email_from_claims(headers: &HeaderMap) -> Option<String> {
     jwt_payload(headers)?

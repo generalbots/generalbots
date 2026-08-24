@@ -1,0 +1,79 @@
+<link rel="stylesheet" href="/suite/memory/memory.p1.css?v=1" />
+
+<div class="gb-app mem-app" id="memory-app" data-gb-app="memory">
+  <header class="mem-header">
+    <div class="mem-title-group">
+      <h2 class="mem-title">Memory</h2>
+      <span class="mem-subtitle" id="mem-count" aria-live="polite"></span>
+    </div>
+    <div class="mem-header-actions">
+      <button type="button" class="mem-btn ghost" id="mem-export">Export</button>
+      <button type="button" class="mem-btn ghost" id="mem-import">Import</button>
+      <button type="button" class="mem-btn primary" id="mem-add">Add</button>
+    </div>
+  </header>
+
+  <div class="mem-privacy-banner" role="note">
+    <strong>Privacy:</strong> memories are scoped to your workspace branch. Private items are visible only to you;
+    shared branch items are visible to members of the same workspace. Nothing is published across organizations.
+  </div>
+
+  <div class="mem-toolbar">
+    <input type="search" id="mem-search" placeholder="Search memories…" aria-label="Search memories" />
+    <div class="mem-chip-row" id="mem-kind-chips" role="group" aria-label="Filter by kind"></div>
+  </div>
+
+  <div class="mem-state" id="mem-state" role="status"></div>
+
+  <div class="mem-grid" id="mem-grid"></div>
+
+  <div class="mem-modal" id="mem-modal" role="dialog" aria-modal="true" aria-labelledby="mem-modal-title">
+    <div class="mem-backdrop" data-mem-close="1"></div>
+    <div class="mem-modal-box">
+      <h3 class="mem-modal-title" id="mem-modal-title">Add Memory</h3>
+      <form id="mem-form" novalidate>
+        <div class="mem-field">
+          <label for="mem-f-kind">Kind</label>
+          <select id="mem-f-kind">
+            <option value="fact">Fact</option>
+            <option value="preference">Preference</option>
+            <option value="goal">Goal</option>
+            <option value="event">Event</option>
+          </select>
+        </div>
+        <div class="mem-field">
+          <label for="mem-f-content">Content</label>
+          <textarea id="mem-f-content" rows="4" required placeholder="State the memory in a single clear sentence."></textarea>
+        </div>
+      </form>
+      <div class="mem-modal-actions">
+        <span class="mem-spacer"></span>
+        <button type="button" class="mem-btn ghost" data-mem-close="1">Cancel</button>
+        <button type="button" class="mem-btn primary" id="mem-save-item">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="mem-modal" id="mem-import-modal" role="dialog" aria-modal="true" aria-labelledby="mem-import-title">
+    <div class="mem-backdrop" data-mem-close="1"></div>
+    <div class="mem-modal-box">
+      <h3 class="mem-modal-title" id="mem-import-title">Import Memories</h3>
+      <div class="mem-field">
+        <label for="mem-import-file">JSON file (array of {kind, content} objects)</label>
+        <input type="file" id="mem-import-file" accept=".json,application/json" />
+      </div>
+      <div class="mem-field mem-check-field">
+        <label><input type="checkbox" id="mem-dry-run" checked /> Dry run — validate and preview counts without writing</label>
+      </div>
+      <div class="mem-import-report hidden" id="mem-import-report" aria-live="polite"></div>
+      <div class="mem-modal-actions">
+        <span class="mem-spacer"></span>
+        <button type="button" class="mem-btn ghost" data-mem-close="1">Close</button>
+        <button type="button" class="mem-btn primary" id="mem-import-run">Run Import</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/suite/memory/memory.p1.js?v=1"></script>
+<script src="/suite/memory/memory.p2.js?v=1"></script>
