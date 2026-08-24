@@ -46,6 +46,15 @@ window.GBDesktopShortcuts = window.GBDesktopShortcuts || {};
     try {
       localStorage.setItem(storeKey(), JSON.stringify(items));
     } catch (e) {}
+    // Stamp + push-through so other devices converge (#1159).
+    var latest = readItems();
+    if (mod.syncToDrive) {
+      latest.forEach(function (i) { if (!i.updatedAt) i.updatedAt = Date.now(); });
+      try {
+        localStorage.setItem(storeKey(), JSON.stringify(latest));
+      } catch (e2) {}
+      mod.syncToDrive();
+    }
   }
 
   function uniqueName(items, base) {
@@ -242,6 +251,7 @@ window.GBDesktopShortcuts = window.GBDesktopShortcuts || {};
     var item = {
       id: "sc-" + Date.now(),
       kind: "shortcut",
+      updatedAt: Date.now(),
       name: uniqueName(items, data.name || "File"),
       path: data.path,
       bucket: data.bucket || "",
@@ -254,6 +264,66 @@ window.GBDesktopShortcuts = window.GBDesktopShortcuts || {};
     var node = layer.querySelector('[data-icon-id="' + item.id + '"]');
     if (node) node.classList.add("selected");
   }
+
+  // ── Cross-device sync (#1159): Desktop/.gbdesktop.json in user Drive ──
+
+  var SYNC_PATH = "Desktop/.gbdesktop.json";
+  var syncTimer = null;
+
+  function authHeaders() {
+    var h = { "Content-Type": "application/json" };
+    try {
+      var t = localStorage.getItem("gb-access-token") ||
+        sessionStorage.getItem("gb-access-token");
+      if (t) h["Authorization"] = "Bearer " + t;
+    } catch (e) {}
+    return h;
+  }
+
+  function mergeRemote(remoteItems) {
+    if (!Array.isArray(remoteItems)) return;
+    var local = readItems();
+    var byId = {};
+    local.forEach(function (i) { byId[i.id] = i; });
+    remoteItems.forEach(function (r) {
+      var l = byId[r.id];
+      if (!l || (r.updatedAt || 0) > (l.updatedAt || 0)) byId[r.id] = r;
+    });
+    writeItems(Object.keys(byId).map(function (k) { return byId[k]; }));
+    renderAll();
+  }
+
+  mod.syncToDrive = function () {
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(function () {
+      fetch("/api/files/write", {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          path: SYNC_PATH,
+          scope: "user",
+          content: JSON.stringify(readItems()),
+        }),
+      }).catch(function () {});
+    }, 1500);
+  };
+
+  mod.syncFromDrive = function () {
+    return fetch("/api/files/read", {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ path: SYNC_PATH, scope: "user" }),
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || !data.content) return false;
+        try {
+          mergeRemote(JSON.parse(data.content));
+          return true;
+        } catch (e) { return false; }
+      })
+      .catch(function () { return false; });
+  };
 
   // ── Init ─────────────────────────────────────────────────────
 
@@ -292,5 +362,6 @@ window.GBDesktopShortcuts = window.GBDesktopShortcuts || {};
     window.addEventListener("gb:auth:logout", renderAll);
 
     renderAll();
+    mod.syncFromDrive();
   };
 })(window.GBDesktopShortcuts);
