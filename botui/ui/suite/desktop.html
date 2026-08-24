@@ -4,6 +4,7 @@
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>General Bots Desktop</title>
+        <link rel="manifest" href="/manifest.webmanifest" />
 
         <!-- Global & theme foundation -->
         <link rel="stylesheet" href="/suite/css/app.css" />
@@ -22,6 +23,7 @@
         <link rel="stylesheet" href="/suite/css/desktop/widgets-content.css?v=1" />
         <link rel="stylesheet" href="/suite/css/desktop/context-menu.css?v=1" />
         <link rel="stylesheet" href="/suite/css/desktop/desktop-icons.css?v=1" />
+        <link rel="stylesheet" href="/suite/css/screensaver.css?v=1" />
         <link rel="stylesheet" href="/suite/css/desktop/sidebar-enhance.css?v=3" />
 
         <!-- Local JS requirements per AGENTS.md / UI.md -->
@@ -44,6 +46,7 @@
         <script src="/suite/js/widget-renderer.js?v=2"></script>
         <script src="/suite/js/widget-registry.js?v=2"></script>
         <script src="/suite/js/desktop-shortcuts.js?v=1"></script>
+        <script src="/suite/js/screensavers.js?v=1"></script>
         <script src="/suite/js/pinned-launcher.js?v=3"></script>
         <script src="/suite/js/sidebar-enhance.js?v=2"></script>
         <script src="/suite/js/sidebar-sections.js?v=1"></script>
@@ -511,6 +514,14 @@
             }, 1000);
         </script>
 
+        <script>
+            // Offline shell (#1159): register the service worker after load.
+            if ("serviceWorker" in navigator) {
+                window.addEventListener("load", function () {
+                    navigator.serviceWorker.register("/sw.js").catch(function () {});
+                });
+            }
+        </script>
         <!-- Setup Wizard Overlay (hidden by default) -->
         <div id="setupWizardOverlay" class="setup-wizard-overlay" style="display: none;">
           <div class="setup-wizard-modal">
