@@ -319,15 +319,12 @@
                     window.ThemeManager.init();
                 }
 
-                // Load product config for app filtering and sidebar control
+                // Load product config for app filtering (sidebar visibility
+                // is controlled by bot public status, not product config).
                 try {
                     const resp = await fetch("/api/product");
                     if (resp.ok) {
                         window.productConfig = await resp.json();
-                        if (window.productConfig.sidebar === false) {
-                            const sidebar = document.getElementById("chatSidebar");
-                            if (sidebar) sidebar.style.display = "none";
-                        }
                     }
                 } catch (e) {
                     console.warn("Failed to load product config:", e);
@@ -358,6 +355,7 @@
                                     const sidebar = document.getElementById('chatSidebar');
                                     if (sidebar) sidebar.style.display = 'none';
                                 } else {
+                                    window.__BOT_IS_PUBLIC__ = false;
                                     var isAuth = !!(window.getGBAccessToken && window.getGBAccessToken());
                                     if (!isAuth) {
                                         window.location.href = (window.GB_LOGIN_URL || '/login') + '?redirect=' + encodeURIComponent(window.location.href);

@@ -203,7 +203,8 @@
         /\/api\/bot\/public/.test(url) ||
         /\/api\/catalog\/products/.test(url) ||
         /\/api\/catalog\/prices/.test(url) ||
-        /\/api\/news\.xml/.test(url)
+        /\/api\/news\.xml/.test(url) ||
+        /\/api\/product/.test(url)
       );
     },
 
@@ -538,9 +539,18 @@
           return;
         }
 
-        // Check if current bot is public - if so, skip redirect
+        // Check if current bot is public - if so, skip redirect.
+        // If the bot is private (false), the desktop.html
+        // DOMContentLoaded handler already verified the user is
+        // authenticated or redirected them.  We never redirect
+        // away from a private bot's desktop — stale tokens just
+        // mean the user sees empty grids, not a loop.
         if (window.__BOT_IS_PUBLIC__ === true) {
           console.log("[GBSecurity] Bot is public, skipping auth redirect");
+          return;
+        }
+        if (window.__BOT_IS_PUBLIC__ === false) {
+          console.log("[GBSecurity] Bot is private, skipping auth redirect (desktop handles auth)");
           return;
         }
 
@@ -560,7 +570,7 @@
             "[GBSecurity] Public status still loading, waiting...",
           );
           var timer = setTimeout(function () {
-            if (window.__BOT_IS_PUBLIC__ === true) return;
+            if (window.__BOT_IS_PUBLIC__ === true || window.__BOT_IS_PUBLIC__ === false) return;
             self.clearTokens();
             sessionStorage.setItem('gb-signed-out', 'true');
             window.location.href =
@@ -569,9 +579,9 @@
           }, 5000);
           window.__checkBotPublicStatusPromise.then(function () {
             clearTimeout(timer);
-            if (window.__BOT_IS_PUBLIC__ === true) {
+            if (window.__BOT_IS_PUBLIC__ === true || window.__BOT_IS_PUBLIC__ === false) {
               console.log(
-                "[GBSecurity] Bot is public (deferred), skipping auth redirect",
+                "[GBSecurity] Bot public status resolved, skipping auth redirect",
               );
               return;
             }
@@ -584,6 +594,12 @@
           return;
         }
 
+        if (window.__BOT_IS_PUBLIC__ === false) {
+          console.log(
+            "[GBSecurity] Bot is private, skipping expired redirect (desktop handles auth)",
+          );
+          return;
+        }
         console.log(
           "[GBSecurity] Auth expired, clearing tokens and redirecting",
         );
