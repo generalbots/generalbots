@@ -6,22 +6,12 @@
         <title>General Bots Desktop</title>
         <link rel="manifest" href="/manifest.webmanifest" />
 
-        <!-- Anti-freeze: prevent login redirects during boot -->
         <script>
             window.__BOT_IS_PUBLIC__ = false;
-            var _hrefDesc = Object.getOwnPropertyDescriptor(Location.prototype, 'href');
-            var _bootGuardUntil = Date.now() + 4000;
-            Object.defineProperty(Location.prototype, 'href', {
-                get: function() { return _hrefDesc.get.call(this); },
-                set: function(v) {
-                    if (Date.now() < _bootGuardUntil && (typeof v === 'string') && (v.indexOf('login') >= 0 || v.indexOf('expired') >= 0)) {
-                        console.warn('[AntiFreeze] Blocked redirect during boot:', String(v).substring(0,80));
-                        return;
-                    }
-                    return _hrefDesc.set.call(this, v);
-                },
-                configurable: true
-            });
+            setTimeout(function() {
+                document.body.style.pointerEvents = 'auto';
+                document.body.style.overflow = 'auto';
+            }, 8000);
         </script>
 
         <!-- Global & theme foundation -->
