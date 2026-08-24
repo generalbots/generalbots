@@ -48,6 +48,7 @@ impl ScriptService {
         keywords::vibe_agent::register_vibe_cancel_command(&mut engine);
         keywords::vibe_agent::register_vibe_tools_command(&mut engine);
         keywords::vibe_agent::register_vibe_events_command(&mut engine);
+        keywords::invoke_action::register_invoke_keywords(&mut engine);
 
         Self { engine, scope, role }
     }
