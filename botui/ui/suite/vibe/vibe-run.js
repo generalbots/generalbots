@@ -24,7 +24,22 @@
         useCase: "software_development",
         loadedPipeline: false,
         budgetCents: 0,
+        paused: false,
     };
+
+    // Ribbon status lives in the Vibe main window (commands + project list).
+    function updateRibbonStatus(text, kind) {
+        var el = q("vibeRibbonStatus");
+        if (!el) return;
+        el.textContent = text || "";
+        el.className = "vibe-ribbon-status" + (kind ? " " + kind : "");
+        var runBtn = q("vibeRunBtn");
+        var pauseBtn = q("vibePauseBtn");
+        var stopBtn = q("vibeStopBtn");
+        if (runBtn) runBtn.classList.toggle("active", state.paused);
+        if (pauseBtn) pauseBtn.classList.toggle("active", state.paused);
+        if (stopBtn) stopBtn.classList.toggle("active", state.runId && state.run && ["running", "awaiting_approval", "pending"].indexOf(String(state.run.state)) !== -1);
+    }
 
     function q(id) {
         return document.getElementById(id);
@@ -368,12 +383,23 @@
         pollRun();
     }
 
+    // #1190 — animated execution overlay over the Vibe window while a run is
+    // executing; hidden on terminal states.
+    function syncExecOverlay() {
+        var overlay = q("vibeExecOverlay");
+        if (!overlay) return;
+        var active = state.run && ["running", "pending"].indexOf(String(state.run.state)) !== -1;
+        overlay.style.display = active ? "flex" : "none";
+        overlay.classList.toggle("hidden", !active);
+    }
+
     function pollRun() {
         api("/api/vibe/run/" + state.runId).then(function (data) {
             if (!data || !data.run_id) return;
             var changed = !state.run || String(data.state) !== String(state.run.state);
             state.run = data;
             renderRunCard();
+            syncExecOverlay();
             if (changed) {
                 // Keep the RUNS list truthful: the dock polls the focused run,
                 // but the list only refreshed on focus/start — so a run that
@@ -801,7 +827,86 @@
         }
     }
 
+    /* ------------------------------------------------ transport (VB6) */
+
+    function transportStatus() {
+        if (!state.runId || !state.run) return "IDLE";
+        if (state.paused) return "PAUSED";
+        var s = String(state.run.state || "").toUpperCase();
+        return s === "PENDING" ? "ACTIVE" : s;
+    }
+
+    function play() {
+        if (state.paused) {
+            state.paused = false;
+            uiMsg("▶ Run resumed.");
+            updateRibbonStatus("RESUMED", "ok");
+            pollRun();
+            return;
+        }
+        var st = state.run && state.run.state;
+        if (state.runId && st === "awaiting_approval") {
+            approveRun();
+            return;
+        }
+        if (state.runId && (st === "running" || st === "pending")) {
+            updateRibbonStatus("RUNNING", "running");
+            if (window.VibeWindows) window.VibeWindows.openRunDock();
+            return;
+        }
+        // Idle / finished: start a run from the assistant input.
+        var input = q("vibeChatInput");
+        var text = (input && input.value || "").trim();
+        if (!text) {
+            if (window.VibeWindows) window.VibeWindows.openAssistant();
+            if (input) input.focus();
+            updateRibbonStatus("TYPE A PROMPT TO RUN", "hint");
+            return;
+        }
+        input.value = "";
+        start(text).then(function () {
+            updateRibbonStatus("RUNNING", "running");
+        }).catch(function () {
+            updateRibbonStatus("START FAILED", "error");
+        });
+    }
+
+    // VB6 "Break": the run holds at its next checkpoint (manual approval
+    // gate). The server keeps the run in flight; the transport shows PAUSED
+    // and Play resumes (or approves the pending gate).
+    function pause() {
+        if (!state.runId || !state.run) {
+            updateRibbonStatus("NO RUN TO PAUSE", "hint");
+            return;
+        }
+        if (String(state.run.state) === "awaiting_approval") {
+            updateRibbonStatus("PAUSED — WAITING FOR APPROVAL", "paused");
+            if (window.VibeWindows) window.VibeWindows.openRunDock();
+            return;
+        }
+        state.paused = true;
+        uiMsg("⏸ Paused — the run will hold at its next checkpoint.");
+        updateRibbonStatus("PAUSED — HOLDS AT NEXT CHECKPOINT", "paused");
+    }
+
+    function stop() {
+        if (!state.runId) {
+            updateRibbonStatus("NO RUN TO STOP", "hint");
+            return;
+        }
+        state.paused = false;
+        denyRun();
+        updateRibbonStatus("STOPPED", "stop");
+    }
+
     init();
+
+    // Wire the run state into the ribbon status on every poll.
+    var _origPollRun = pollRun;
+    pollRun = function () {
+        _origPollRun();
+        updateRibbonStatus(state.paused ? "PAUSED" : transportStatus(), state.paused ? "paused" : undefined);
+    };
 
     window.VibeRun = {
         start: start,
@@ -810,5 +915,9 @@
         approve: approveRun,
         deny: denyRun,
         preview: previewProject,
+        play: play,
+        pause: pause,
+        stop: stop,
     };
+    window.VibeTransport = { play: play, pause: pause, stop: stop };
 })();

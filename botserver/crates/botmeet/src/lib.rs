@@ -36,6 +36,7 @@ pub mod webinar_api;
 pub mod webinar_types;
 pub mod whiteboard;
 pub mod whiteboard_export;
+pub mod trunks;
 
 use room_persistence::ScheduleMeetingRequest;
 use service::{DefaultTranscriptionService, MeetingService};
@@ -181,6 +182,7 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/api/meet/join", post(handle_meet_join_htmx))
         .route("/api/meet/mute-all", post(handle_mute_all))
         .route("/api/voice/toggle", post(handle_voice_toggle))
+        .merge(trunks::trunks_routes())
 }
 
 #[derive(Debug, Deserialize)]

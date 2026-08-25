@@ -1169,6 +1169,13 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/sheet/**", "PUT", "").with_anonymous(true),
         RoutePermission::new("/api/sheet/**", "DELETE", "").with_anonymous(true),
 
+        // Jukebox — was missing from the registry, so default_deny 403'd every
+        // request (including /api/jukebox/health from the jukebox app).
+        RoutePermission::new("/api/jukebox/**", "GET", ""),
+        RoutePermission::new("/api/jukebox/**", "POST", ""),
+        RoutePermission::new("/api/jukebox/**", "PUT", ""),
+        RoutePermission::new("/api/jukebox/**", "DELETE", ""),
+
         // Slides
         RoutePermission::new("/api/slides/**", "GET", ""),
         RoutePermission::new("/api/slides/**", "POST", ""),
@@ -1246,6 +1253,27 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/vibe/projects/:project_id/**", "POST", ""),
         RoutePermission::new("/api/vibe/projects/:project_id/**", "PUT", ""),
         RoutePermission::new("/api/vibe/projects/:project_id/**", "DELETE", ""),
+        // AI-OS wave (#1171/#1172/#1173/#1175/#1182/#1185) — planner,
+        // agent API, mixture-of-agents, browser memory, browser driver,
+        // proactivity scheduler. The MOA share route is anonymous so
+        // published deliverables are linkable without auth (#1180-style).
+        RoutePermission::new("/api/vibe/planner/**", "GET", ""),
+        RoutePermission::new("/api/vibe/planner/**", "POST", ""),
+        RoutePermission::new("/api/vibe/agents/**", "GET", ""),
+        RoutePermission::new("/api/vibe/agents/**", "POST", ""),
+        RoutePermission::new("/api/vibe/agents/**", "PUT", ""),
+        RoutePermission::new("/api/vibe/agents/**", "DELETE", ""),
+        RoutePermission::new("/api/vibe/moa/runs/**", "GET", ""),
+        RoutePermission::new("/api/vibe/moa/route", "POST", ""),
+        RoutePermission::new("/api/vibe/moa/share/:token", "GET", "").with_anonymous(true),
+        RoutePermission::new("/api/vibe/browser-memory/**", "GET", ""),
+        RoutePermission::new("/api/vibe/browser-memory/**", "POST", ""),
+        RoutePermission::new("/api/vibe/browser-memory/**", "DELETE", ""),
+        RoutePermission::new("/api/vibe/browser-driver/**", "GET", ""),
+        RoutePermission::new("/api/vibe/browser-driver/**", "POST", ""),
+        RoutePermission::new("/api/vibe/proactivity/**", "GET", ""),
+        RoutePermission::new("/api/vibe/proactivity/**", "POST", ""),
+        RoutePermission::new("/api/vibe/proactivity/**", "DELETE", ""),
         // Vibe canvas + collaboration surfaces for logged-in users.
         RoutePermission::new("/api/vibe/canvases/**", "GET", ""),
         RoutePermission::new("/api/vibe/canvases/**", "POST", ""),

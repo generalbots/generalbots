@@ -10,8 +10,15 @@ use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
+use axum::extract::{Extension, Path as AxumPath};
+use axum::http::{header, StatusCode};
+use axum::routing::get;
+use axum::Router;
+use diesel::RunQueryDsl;
 use serde_json::Value;
 use uuid::Uuid;
+
+use crate::types::DbPool;
 
 use crate::domains::{BindDomainRequest, ProjectDomains};
 use crate::harness;
@@ -19,6 +26,96 @@ use crate::projects::{Project, ProjectRegistry};
 use crate::tool_executor::{ToolHandler, ToolSchema};
 use crate::types::{VibeState, VibeToolResult, VibeUseCase};
 use crate::vm_lifecycle::{CreateVmRequest, VmLifecycle};
+
+/// #1180 — public deliverable URLs: `https://host/r/{slug}` 302-redirects to
+/// the project's published route (`{slug}.gb.solutions` or a bound custom
+/// domain), so Vibe artifacts are shareable without any auth.
+pub fn publish_router(pool: DbPool) -> Router {
+    Router::new()
+        .route("/r/:slug", get(resolve_slug).layer(Extension(pool)))
+}
+
+#[derive(diesel::QueryableByName)]
+struct SlugRow {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    domain: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    access: String,
+    #[diesel(sql_type = diesel::sql_types::Bool)]
+    verified: bool,
+}
+
+async fn resolve_slug(
+    Extension(pool): Extension<DbPool>,
+    AxumPath(slug): AxumPath<String>,
+) -> axum::response::Response {
+    let mut conn = match pool.get() {
+        Ok(c) => c,
+        Err(e) => {
+            log::error!("Publish /r/ resolve: db pool {e}");
+            return response_with_headers(
+                StatusCode::INTERNAL_SERVER_ERROR,
+                &[],
+                "internal error",
+            );
+        }
+    };
+    let candidates = [
+        format!("{slug}.gb.solutions"),
+        slug.clone(),
+    ];
+    let mut found: Option<(String, String)> = None;
+    for domain in candidates {
+        let row = diesel::sql_query(
+            "SELECT domain, access, verified FROM project_domains WHERE domain = $1 LIMIT 1",
+        )
+        .bind::<diesel::sql_types::Text, _>(&domain)
+        .get_result::<SlugRow>(&mut conn);
+        match row {
+            Ok(r) if r.access != "private" && r.verified => {
+                found = Some((r.domain, r.access));
+                break;
+            }
+            Ok(_) => continue,
+            Err(_) => continue,
+        }
+    }
+    match found {
+        Some((domain, _access)) => {
+            let url = format!("https://{domain}");
+            response_with_headers(
+                StatusCode::FOUND,
+                &[
+                    (header::LOCATION, url),
+                    (header::CACHE_CONTROL, "no-store".to_string()),
+                ],
+                "redirecting",
+            )
+        }
+        None => response_with_headers(StatusCode::NOT_FOUND, &[], "artifact not found"),
+    }
+}
+
+/// Builds a response with headers, keeping the error path panic-free:
+/// builder failures (invalid header name/value) are logged and fall back to
+/// a bare 500 response.
+fn response_with_headers(
+    status: StatusCode,
+    headers: &[(header::HeaderName, String)],
+    body: &str,
+) -> axum::response::Response {
+    let mut builder = axum::response::Response::builder().status(status);
+    for (name, value) in headers {
+        builder = builder.header(name, value);
+    }
+    match builder.body(axum::body::Body::from(body.to_string())) {
+        Ok(resp) => resp,
+        Err(e) => {
+            log::error!("Publish response build failed: {e}");
+            axum::response::Response::new(axum::body::Body::from("internal error"))
+        }
+    }
+}
 
 const PUBLISH_DEFAULT_ENV: &str = "production";
 

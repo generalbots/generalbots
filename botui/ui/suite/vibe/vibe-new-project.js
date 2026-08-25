@@ -214,11 +214,23 @@
     function close() {
         var el = document.getElementById("vibeNewProjectModal");
         if (el) el.style.display = "none";
+        var wm = window.WindowManager;
+        if (wm && wm.getWindow("vibe-newproject")) wm.close("vibe-newproject");
     }
 
     function open() {
         var el = document.getElementById("vibeNewProjectModal");
         if (!el) return;
+        // Floating tool window (VB6-style); falls back to in-window display
+        // when the desktop shell is absent (isolated run).
+        if (window.VibeWindows) window.VibeWindows.openNewProject();
+        var wm = window.WindowManager;
+        if (wm && !/[?&]isolated=1/.test(window.location.search)) {
+            el.style.display = "flex";
+            render();
+            wm.focusWindow("vibe-newproject");
+            return;
+        }
         el.style.display = "flex";
         render();
     }

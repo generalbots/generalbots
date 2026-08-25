@@ -217,7 +217,14 @@
     function open() {
         var modal = document.getElementById("vibeMembersModal");
         if (!modal) return;
+        // Floating tool window (VB6-style); falls back to in-window display
+        // when the desktop shell is absent (isolated run).
+        if (window.VibeWindows) window.VibeWindows.openMembers();
         modal.style.display = "flex";
+        var wm = window.WindowManager;
+        if (wm && !/[?&]isolated=1/.test(window.location.search)) {
+            wm.focusWindow("vibe-members");
+        }
         setupSuggest();
         load();
     }
@@ -225,6 +232,8 @@
     function close() {
         var modal = document.getElementById("vibeMembersModal");
         if (modal) modal.style.display = "none";
+        var wm = window.WindowManager;
+        if (wm && wm.getWindow("vibe-members")) wm.close("vibe-members");
     }
 
     document.addEventListener("gb:vibe-project", function (e) {

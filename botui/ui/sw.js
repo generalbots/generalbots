@@ -50,10 +50,22 @@ self.addEventListener("fetch", function (e) {
       return hit || fetch(e.request).then(function (resp) {
         if (resp.ok && url.pathname.startsWith("/suite/")) {
           var copy = resp.clone();
-          caches.open(CACHE).then(function (c) { c.put(e.request, copy); });
+          caches.open(CACHE).then(function (c) { return c.put(e.request, copy); })
+            .catch(function () { /* cache write failures must never break the response */ });
         }
         return resp;
+      }).catch(function () {
+        // Network failed and nothing cached: serve an offline fallback so
+        // respondWith never rejects (a rejected promise kills the page load).
+        if (e.request.mode === "navigate") {
+          return caches.match("/index.html").then(function (fb) {
+            return fb || new Response("Offline", { status: 503, headers: { "Content-Type": "text/plain" } });
+          });
+        }
+        return new Response("Offline", { status: 503, headers: { "Content-Type": "text/plain" } });
       });
+    }).catch(function () {
+      return new Response("Offline", { status: 503, headers: { "Content-Type": "text/plain" } });
     })
   );
 });

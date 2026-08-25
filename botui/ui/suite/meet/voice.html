@@ -1,0 +1,46 @@
+<link rel="stylesheet" href="/suite/meet/meet.css" />
+<style>
+  .gb-voice-console { display: grid; gap: 1rem; padding: 1rem; font-family: system-ui; }
+  .gb-voice-card { background: var(--gb-surface, #fff); border: 1px solid var(--gb-border, #ddd); border-radius: 8px; padding: 1rem; }
+  .gb-voice-card h3 { margin: 0 0 0.75rem; font-size: 1rem; }
+  .gb-voice-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+  .gb-voice-row input, .gb-voice-row select { padding: 0.4rem 0.6rem; border: 1px solid var(--gb-border, #ccc); border-radius: 4px; }
+  .gb-voice-btn { padding: 0.4rem 0.9rem; border: none; border-radius: 4px; background: var(--gb-accent, #2563eb); color: #fff; cursor: pointer; }
+  .gb-voice-btn.danger { background: #dc2626; }
+  .gb-voice-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .gb-voice-session-status { font-weight: 600; }
+  table.gb-trunk-table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+  table.gb-trunk-table th, table.gb-trunk-table td { text-align: left; padding: 0.4rem 0.5rem; border-bottom: 1px solid var(--gb-border, #eee); font-size: 0.85rem; }
+  .gb-voice-msg { margin-top: 0.5rem; font-size: 0.85rem; color: var(--gb-text-dim, #555); }
+</style>
+
+<!-- Voice + Telephony Console (#1184) -->
+<div class="gb-voice-console">
+  <div class="gb-voice-card">
+    <h3>🎙️ Voice Session</h3>
+    <div class="gb-voice-row">
+      <input id="voiceSessionId" placeholder="session_id (optional)" style="width: 16rem" />
+      <button id="voiceStartBtn" class="gb-voice-btn">▶ Start session</button>
+      <button id="voiceStopBtn" class="gb-voice-btn danger" disabled>■ Stop session</button>
+      <span id="voiceStatus" class="gb-voice-session-status">Idle</span>
+    </div>
+    <div id="voiceMsg" class="gb-voice-msg"></div>
+  </div>
+
+  <div class="gb-voice-card">
+    <h3>📞 Provision Telephony Trunk</h3>
+    <div class="gb-voice-row">
+      <input id="trunkName" placeholder="Name (e.g. Support line)" />
+      <input id="trunkNumber" placeholder="+1 555 0100" />
+      <input id="trunkCarrier" placeholder="carrier (default livekit-sip)" />
+      <button id="trunkProvisionBtn" class="gb-voice-btn">Provision</button>
+    </div>
+    <table class="gb-trunk-table">
+      <thead><tr><th>Name</th><th>Number</th><th>Carrier</th><th>Status</th><th></th></tr></thead>
+      <tbody id="trunkList"></tbody>
+    </table>
+    <div id="trunkMsg" class="gb-voice-msg"></div>
+  </div>
+</div>
+
+<script src="/suite/meet/voice.js?v=1"></script>

@@ -1,6 +1,6 @@
 
 <center>
-<img src="botui/ui/cloud/images/logo.svg" alt="General Bots" width="400" />
+<img src="botui/ui/cloud/images/logo-square.svg" alt="General Bots" width="400" />
 </center>
 
 

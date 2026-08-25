@@ -135,9 +135,15 @@ window.GBVirtualDesktops = window.GBVirtualDesktops || {};
         '<span class="gb-desktop-chip-x" title="Remove">\u00d7</span>';
       item.querySelector(".gb-desktop-chip-name").textContent = d.name;
       item.querySelector(".gb-desktop-chip-name").addEventListener("dblclick", function () {
-        var name = window.prompt("Desktop name:", d.name);
-        if (name) renameDesktop(i, name);
-        renderStrip();
+        var doRename = function (name) {
+          if (name) renameDesktop(i, name);
+          renderStrip();
+        };
+        if (window.WindowManager && window.WindowManager.promptFloating) {
+          window.WindowManager.promptFloating("Rename desktop", "Desktop name:", d.name, doRename);
+        } else {
+          doRename(window.prompt("Desktop name:", d.name));
+        }
       });
       item.addEventListener("click", function (e) {
         if (e.target.classList.contains("gb-desktop-chip-x")) {

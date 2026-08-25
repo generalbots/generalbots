@@ -1,7 +1,9 @@
 pub mod browser;
+pub mod evidence;
 pub mod pages;
 
 pub use browser::{Browser, BrowserConfig, BrowserType};
+pub use evidence::{assert_visible, attach, capture, launch_headless, report, EvidenceBundle};
 
 use serde::{Deserialize, Serialize};
 use std::time::Duration;

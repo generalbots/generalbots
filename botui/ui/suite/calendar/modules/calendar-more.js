@@ -353,12 +353,17 @@
         });
     }
 
-    // Export functions for external use
+    // Export functions for external use — merge over the core module
+    // exposed by calendar.js so init/navigate/renderCurrentView/loadEvents
+    // resolve from there instead of this module's empty scope.
+    var base = window.CalendarModule || {};
     window.CalendarModule = {
-        init,
-        navigate,
-        renderCurrentView,
-        showEventPopup,
+        init: base.init || init,
+        navigate: base.navigate || navigate,
+        renderCurrentView: base.renderCurrentView || renderCurrentView,
+        loadEvents: base.loadEvents || loadEvents,
+        drawEvents: base.drawEvents || drawEvents,
+        showEventPopup: showEventPopup,
         setView: function(view) {
             CS.currentView = view;
             renderCurrentView();
@@ -367,9 +372,10 @@
     };
 
     // Auto-initialize when DOM is ready
+    var bootInit = window.CalendarModule.init;
     if (document.readyState === 'loading') {
-        (function(){ var __cb = init; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
+        (function(){ var __cb = bootInit; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
     } else {
-        init();
+        bootInit();
     }
 })();

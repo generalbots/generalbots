@@ -282,7 +282,65 @@ pub fn issues_router(store: Arc<IssueStore>) -> Router {
         .route("/api/vibe/issues", axum::routing::post(create_issue))
         .route("/api/vibe/issues/:issue_id", axum::routing::get(get_issue))
         .route("/api/vibe/issues/:issue_id", axum::routing::patch(update_issue))
+        // #1190 — public task API: the same issue store exposed as plain
+        // tasks (id/title/state/labels) for chat/WhatsApp consumption.
+        .route("/api/vibe/tasks", axum::routing::get(list_tasks))
+        .route("/api/vibe/tasks", axum::routing::post(create_task))
         .layer(Extension(store))
+}
+
+// #1190 — task-shaped view of the issue store.
+#[derive(Debug, Serialize)]
+struct TaskItem {
+    id: Uuid,
+    title: String,
+    state: String,
+    labels: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct TasksResponse {
+    success: bool,
+    tasks: Vec<TaskItem>,
+    error: Option<String>,
+}
+
+async fn list_tasks(Extension(store): Extension<Arc<IssueStore>>) -> Json<TasksResponse> {
+    let issues = store.list(None).await;
+    let tasks = issues
+        .into_iter()
+        .map(|i| TaskItem {
+            id: i.issue_id,
+            title: i.title,
+            state: i.state.as_str().to_string(),
+            labels: i.labels,
+        })
+        .collect();
+    Json(TasksResponse { success: true, tasks, error: None })
+}
+
+async fn create_task(
+    Extension(store): Extension<Arc<IssueStore>>,
+    Json(req): Json<CreateIssueRequest>,
+) -> Json<TasksResponse> {
+    let issue = store
+        .create(
+            req.title,
+            req.body.unwrap_or_default(),
+            req.labels.unwrap_or_default(),
+            req.assignee,
+        )
+        .await;
+    Json(TasksResponse {
+        success: true,
+        tasks: vec![TaskItem {
+            id: issue.issue_id,
+            title: issue.title,
+            state: issue.state.as_str().to_string(),
+            labels: issue.labels,
+        }],
+        error: None,
+    })
 }
 
 async fn list_issues(Extension(store): Extension<Arc<IssueStore>>) -> Json<IssuesResponse> {

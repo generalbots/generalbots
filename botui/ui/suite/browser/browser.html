@@ -16,7 +16,16 @@
         <div class="browser-toolbar-right">
             <button class="browser-nav-btn" id="btn-screenshot" title="Screenshot">&#128247;</button>
             <button class="browser-nav-btn" id="btn-bookmark" title="Bookmark">&#9734;</button>
+            <button class="browser-nav-btn" id="btn-agentic" title="Agentic panel (memory, cited answers, browser driver)">&#129302;</button>
         </div>
+    </div>
+
+    <div class="browser-agentic-panel" id="browser-agentic-panel" style="display:none">
+        <div class="browser-agentic-tabs">
+            <button class="browser-agentic-tab active" data-tab="chips">Memory</button>
+            <button class="browser-agentic-tab" data-tab="driver">Driver</button>
+        </div>
+        <div class="browser-agentic-body" id="browser-agentic-body"></div>
     </div>
 
     <div class="browser-tabs-bar" id="browser-tabs-bar">
@@ -293,3 +302,4 @@
     updateTabs();
 })();
 </script>
+<script src="/suite/browser/browser-agentic.js?v=1"></script>

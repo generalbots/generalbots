@@ -1,0 +1,38 @@
+<!-- Vibe Database Schema specialist — first-class desktop app (#1189). -->
+<link rel="stylesheet" href="/suite/vibe/vibe.p1.css" />
+<link rel="stylesheet" href="/suite/vibe/vibe.p2.css" />
+<link rel="stylesheet" href="/suite/vibe/vibe-dialogs.p1.css" />
+<link rel="stylesheet" href="/suite/vibe/vibe-dialogs.p2.css" />
+
+<div class="gb-app vibe-container" id="vibeWindow" data-gb-app="vibe-db" style="height:100%">
+  <div id="specHost" style="position:absolute; inset:0; overflow-y:auto; padding:16px; box-sizing:border-box;"></div>
+  <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading Database Schema…</span></div>
+</div>
+
+<script src="/suite/vibe/vibe-state.js?v=5"></script>
+<script src="/suite/vibe/vibe-broadcast.js?v=1"></script>
+<script src="/suite/vibe/vibe-helpers.js?v=7"></script>
+<script src="/suite/vibe/vibe-dialogs.js?v=2"></script>
+<script src="/suite/vibe/vibe-dialog-db.js?v=7"></script>
+<script>
+(function () {
+    "use strict";
+    function params() {
+        var p = window.__gbAppParams__ || {};
+        var qs = new URLSearchParams(window.location.search);
+        if (!p.project && qs.get("project")) p.project = qs.get("project");
+        return p;
+    }
+    function boot() {
+        var p = params();
+        if (p.project && typeof currentProjectId !== "undefined") currentProjectId = p.project;
+        var host = document.getElementById("specHost");
+        if (window.VibeDialogs && host) window.VibeDialogs.openInPage("db", "Database Schema", host);
+    }
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", boot);
+    } else {
+        boot();
+    }
+})();
+</script>

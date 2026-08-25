@@ -1,6 +1,6 @@
 (function() {
-'if (window.GBAppLifecycle) GBAppLifecycle.begin("templates");
-use strict';
+if (window.GBAppLifecycle) GBAppLifecycle.begin("templates");
+"use strict";
 let allTemplates = [];
 let currentFilter = 'all';
 

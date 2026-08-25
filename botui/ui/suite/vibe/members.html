@@ -1,0 +1,67 @@
+<!-- Vibe Members specialist — first-class desktop app (#1189). -->
+<link rel="stylesheet" href="/suite/vibe/vibe.p1.css" />
+<link rel="stylesheet" href="/suite/vibe/vibe.p2.css" />
+
+<div class="gb-app vibe-container" id="vibeWindow" data-gb-app="vibe-members" style="height:100%">
+  <div id="vibeMembersModal" style="display:flex; position:absolute; inset:0; z-index:5; align-items:center; justify-content:center; background:rgba(0,0,0,0.5);">
+    <div style="width:520px; max-height:80vh; overflow-y:auto; background:var(--bg,#1a1a2e); border:1px solid var(--border,#333); border-radius:8px; padding:20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <h3 style="margin:0; font-size:15px; color:var(--text,#eee);">Project Members</h3>
+      </div>
+      <div id="vibeMembersRole" style="margin-bottom:12px; font-size:13px; color:var(--text-muted,#999);"></div>
+      <div id="vibeMeterUsage" style="margin-bottom:12px; font-size:13px; color:var(--text-muted,#999);"></div>
+      <div id="vibeMembersList" style="margin-bottom:16px;"></div>
+      <div style="border-top:1px solid var(--border,#333); padding-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+        <div style="position:relative; flex:1; min-width:200px;">
+          <input id="vibeMemberTarget" placeholder="Search user by name or email…" autocomplete="off" style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border,#333); border-radius:6px; background:var(--bg,#14142a); color:var(--text,#999); font-size:13px;" />
+          <div id="vibeMemberSuggest" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:10; max-height:180px; overflow-y:auto; background:var(--bg,#1a1a2e); border:1px solid var(--border,#333); border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,0.4);"></div>
+        </div>
+        <select id="vibeMemberRole" style="padding:8px 10px; border:1px solid var(--border,#333); border-radius:6px; background:var(--bg,#14142a); color:var(--text,#eee); font-size:13px;">
+          <option value="viewer">viewer</option>
+          <option value="developer">developer</option>
+          <option value="admin">admin</option>
+        </select>
+        <select id="vibeMemberKind" style="padding:8px 10px; border:1px solid var(--border,#333); border-radius:6px; background:var(--bg,#14142a); color:var(--text,#eee); font-size:13px;">
+          <option value="user">user</option>
+          <option value="group">group</option>
+        </select>
+        <button onclick="window.VibeMembers && window.VibeMembers.add()" style="padding:8px 14px; border:none; border-radius:6px; background:var(--accent,#4a6cf7); color:white; font-size:13px; font-weight:600; cursor:pointer;">Add</button>
+      </div>
+      <div style="margin-top:12px; border-top:1px solid var(--border,#333); padding-top:12px; display:flex; gap:8px; align-items:center;">
+        <div style="position:relative; flex:1;">
+          <input id="vibeTransferTarget" placeholder="Search new owner by name or email…" autocomplete="off" style="width:100%; box-sizing:border-box; padding:8px 10px; border:1px solid var(--border,#333); border-radius:6px; background:var(--bg,#14142a); color:var(--text,#eee); font-size:13px;" />
+          <div id="vibeTransferSuggest" style="display:none; position:absolute; top:100%; left:0; right:0; z-index:10; max-height:180px; overflow-y:auto; background:var(--bg,#1a1a2e); border:1px solid var(--border,#333); border-radius:6px; box-shadow:0 8px 24px rgba(0,0,0,0.4);"></div>
+        </div>
+        <button onclick="window.VibeMembers && window.VibeMembers.transfer()" style="padding:8px 14px; border:1px solid #f77; background:transparent; color:#f88; border-radius:6px; font-size:13px; cursor:pointer;">Transfer Ownership</button>
+      </div>
+    </div>
+  </div>
+  <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading members…</span></div>
+</div>
+
+<script src="/suite/vibe/vibe-state.js?v=5"></script>
+<script src="/suite/vibe/vibe-broadcast.js?v=1"></script>
+<script src="/suite/vibe/vibe-helpers.js?v=7"></script>
+<script src="/suite/vibe/vibe-members.js?v=3"></script>
+<script>
+(function () {
+    "use strict";
+    function params() {
+        var p = window.__gbAppParams__ || {};
+        var qs = new URLSearchParams(window.location.search);
+        if (!p.project && qs.get("project")) p.project = qs.get("project");
+        return p;
+    }
+    function boot() {
+        var p = params();
+        if (p.project && typeof currentProjectId !== "undefined") currentProjectId = p.project;
+        document.dispatchEvent(new CustomEvent("gb:vibe-project", { detail: { id: p.project, project: p.project } }));
+        if (window.VibeMembers) window.VibeMembers.open();
+    }
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", boot);
+    } else {
+        boot();
+    }
+})();
+</script>

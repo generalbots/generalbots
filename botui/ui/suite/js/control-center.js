@@ -34,6 +34,7 @@ const ControlCenter = (() => {
       <div class="gb-cc-toggles">
         <button class="gb-cc-toggle" id="ccTheme">${isDark() ? "☀️ Light" : "🌙 Dark"}</button>
         <button class="gb-cc-toggle" id="ccDnd">🔕 Do Not Disturb</button>
+        <button class="gb-cc-toggle" id="ccAgent">🤖 Agent perms</button>
         <button class="gb-cc-toggle" id="ccLock">🔒 Lock</button>
       </div>
       <div class="gb-cc-slider-row">
@@ -83,6 +84,13 @@ const ControlCenter = (() => {
       lock.addEventListener("click", () => {
         close();
         if (window.LockScreen) window.LockScreen.lock();
+      });
+    }
+    const agent = panel.querySelector("#ccAgent");
+    if (agent) {
+      agent.addEventListener("click", () => {
+        close();
+        if (window.AgentControl && window.AgentControl.showPanel) window.AgentControl.showPanel();
       });
     }
     const power = panel.querySelector("#ccPower");

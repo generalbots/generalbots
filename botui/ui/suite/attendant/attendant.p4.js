@@ -9,8 +9,12 @@
                 try {
                     const protocol =
                         window.location.protocol === "https:" ? "wss:" : "ws:";
+                    // Backend route: /api/attendance/ws (NOT /ws/attendant).
+                    // Token required for the WS upgrade handshake.
+                    const wsToken =
+                        localStorage.getItem("gb-access-token") || "";
                     ws = new WebSocket(
-                        `${protocol}//${window.location.host}/ws/attendant?attendant_id=${encodeURIComponent(currentAttendantId)}`,
+                        `${protocol}//${window.location.host}/api/attendance/ws?attendant_id=${encodeURIComponent(currentAttendantId)}&token=${encodeURIComponent(wsToken)}`,
                     );
 
                     ws.onopen = () => {

@@ -1,0 +1,119 @@
+<!-- Vibe Compute Metering admin — first-class desktop app (#1183). -->
+<link rel="stylesheet" href="/suite/vibe/vibe.p1.css" />
+<link rel="stylesheet" href="/suite/vibe/vibe.p2.css" />
+
+<div class="gb-app vibe-container" id="vibeWindow" data-gb-app="vibe-metering" style="height:100%">
+  <div style="padding:16px; box-sizing:border-box; height:100%; overflow-y:auto;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+      <h2 style="margin:0; font-size:15px; color:var(--text,#eee); font-weight:800;">⏱ COMPUTE METERING</h2>
+      <select id="meteringProject" style="padding:6px 10px; border:1px solid var(--border,#333); border-radius:6px; background:var(--bg,#14142a); color:var(--text,#eee); font-size:12px; max-width:260px;">
+        <option value="">Select project…</option>
+      </select>
+    </div>
+    <div id="meteringLimits" style="margin-bottom:16px;"></div>
+    <div id="meteringUsage" style="color:var(--text,#eee); font-size:12px; line-height:1.6;"></div>
+  </div>
+  <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading metering…</span></div>
+</div>
+
+<script src="/suite/vibe/vibe-state.js?v=5"></script>
+<script>
+(function () {
+    "use strict";
+
+    function headers() {
+        var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+        return token ? { "Authorization": "Bearer " + token } : {};
+    }
+    function api(path) {
+        return fetch(path, { headers: headers() }).then(function (r) {
+            return r.json().catch(function () { return { success: false }; });
+        });
+    }
+    function esc(s) {
+        var d = document.createElement("div");
+        d.textContent = s == null ? "" : String(s);
+        return d.innerHTML;
+    }
+    function money(cents) {
+        return "$" + (cents / 100).toFixed(2);
+    }
+
+    var projectId = null;
+    var select = document.getElementById("meteringProject");
+    var limitsBox = document.getElementById("meteringLimits");
+    var usageBox = document.getElementById("meteringUsage");
+
+    function loadProjects() {
+        api("/api/vibe/projects").then(function (data) {
+            var projects = (data && (data.projects || (data.success && data.data && data.data.projects))) || [];
+            var p = window.__gbAppParams__ || {};
+            var qs = new URLSearchParams(window.location.search);
+            var wanted = p.project || qs.get("project") || "";
+            select.innerHTML = '<option value="">Select project…</option>';
+            projects.forEach(function (proj) {
+                var id = proj.project_id || proj.id;
+                var opt = document.createElement("option");
+                opt.value = id;
+                opt.textContent = proj.name || id;
+                if (wanted && String(id) === String(wanted)) opt.selected = true;
+                select.appendChild(opt);
+            });
+            projectId = wanted || (projects[0] && (projects[0].project_id || projects[0].id)) || null;
+            if (projectId) select.value = projectId;
+            if (projectId) loadUsage();
+        });
+    }
+
+    function loadLimits() {
+        api("/api/vibe/metering/limits").then(function (data) {
+            limitsBox.innerHTML = "";
+            var limits = (data && data.limits) || (data && data.data && data.data.limits) || {};
+            var keys = Object.keys(limits);
+            if (!keys.length) {
+                limitsBox.innerHTML = '<div style="color:var(--text-muted,#999); font-size:11px;">No limits configured.</div>';
+                return;
+            }
+            var rows = keys.map(function (k) {
+                return '<div style="display:flex; justify-content:space-between; gap:12px; padding:6px 0; border-bottom:1px solid var(--border,#222);">' +
+                    "<span>" + esc(k) + "</span><b>" + esc(String(limits[k])) + "</b></div>";
+            }).join("");
+            limitsBox.innerHTML = '<div style="font-size:11px; font-weight:700; color:var(--accent,#84d669); margin-bottom:4px;">LIMITS</div>' + rows;
+        });
+    }
+
+    function loadUsage() {
+        if (!projectId) {
+            usageBox.innerHTML = '<div style="color:var(--text-muted,#999);">Pick a project to see metered compute usage.</div>';
+            return;
+        }
+        usageBox.innerHTML = "Loading…";
+        api("/api/vibe/projects/" + encodeURIComponent(projectId) + "/metering").then(function (data) {
+            var u = (data && data.usage) || (data && data.data && data.data.usage) || data || {};
+            var rows = [
+                ["VM hours", u.vm_hours != null ? u.vm_hours : (u.vm_hours_seconds != null ? (u.vm_hours_seconds / 3600).toFixed(2) : "—")],
+                ["Cost", u.total_cost != null ? money(Math.round(u.total_cost * 100)) : (u.cost != null ? money(u.cost) : "—")],
+            ];
+            usageBox.innerHTML = rows.map(function (r) {
+                return '<div style="display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border,#222);">' +
+                    "<span>" + esc(r[0]) + "</span><b>" + esc(r[1]) + "</b></div>";
+            }).join("") + '<div style="margin-top:10px; color:var(--text-muted,#999); font-size:11px;">Trace viewer: open the Vibe Metrics app for live run telemetry.</div>';
+        });
+    }
+
+    select.addEventListener("change", function () {
+        projectId = select.value;
+        loadUsage();
+    });
+
+    function boot() {
+        loadLimits();
+        loadProjects();
+    }
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", boot);
+    } else {
+        boot();
+    }
+})();
+</script>

@@ -153,26 +153,52 @@
   }
 
   function doRestore(id) {
-    if (!window.confirm("Restore this version? A new current version will be created — nothing is lost.")) return;
-    api("/api/collab/versions/" + encodeURIComponent(id))
-      .then(function (detail) {
-        if (typeof state.onRestore === "function") state.onRestore(detail.content);
-        load();
-      })
-      .catch(function (e) { window.alert("Restore failed: " + e.message); });
+    var restore = function () {
+      api("/api/collab/versions/" + encodeURIComponent(id))
+        .then(function (detail) {
+          if (typeof state.onRestore === "function") state.onRestore(detail.content);
+          load();
+        })
+        .catch(function (e) { notifyError("Restore failed: " + e.message); });
+    };
+    if (window.WindowManager && window.WindowManager.confirmFloating) {
+      window.WindowManager.confirmFloating(
+        "Restore version",
+        "Restore this version? A new current version will be created — nothing is lost.",
+        restore,
+        null,
+        "Restore"
+      );
+    } else if (window.confirm("Restore this version? A new current version will be created — nothing is lost.")) {
+      restore();
+    }
+  }
+
+  function notifyError(msg) {
+    if (window.GBToasts && window.GBToasts.show) {
+      window.GBToasts.show("Version history", msg, "error");
+    } else {
+      console.error(msg);
+    }
   }
 
   function doName(id, btn) {
-    var name = window.prompt("Name this version (e.g. \"v2 — approved\"):", "");
-    if (name === null) return;
-    name = name.trim();
-    if (!name) return;
-    api("/api/collab/versions/" + encodeURIComponent(id) + "/name", {
-      method: "POST",
-      body: JSON.stringify({ name: name })
-    })
-      .then(function () { load(); })
-      .catch(function (e) { window.alert("Rename failed: " + e.message); });
+    var done = function (name) {
+      if (name === null || name === undefined) return;
+      name = String(name).trim();
+      if (!name) return;
+      api("/api/collab/versions/" + encodeURIComponent(id) + "/name", {
+        method: "POST",
+        body: JSON.stringify({ name: name })
+      })
+        .then(function () { load(); })
+        .catch(function (e) { notifyError("Rename failed: " + e.message); });
+    };
+    if (window.WindowManager && window.WindowManager.promptFloating) {
+      window.WindowManager.promptFloating("Name version", "Name this version (e.g. \"v2 — approved\"):", "", done);
+    } else {
+      done(window.prompt("Name this version (e.g. \"v2 — approved\"):", ""));
+    }
   }
 
   function open(opts) {

@@ -46,6 +46,19 @@ pub mod pipeline;
 pub mod run_store;
 pub mod grounding;
 pub mod wired_tools;
+pub mod llm_client;
+pub mod planner;
+pub mod planner_api;
+pub mod moa;
+pub mod moa_api;
+pub mod agents;
+pub mod agents_api;
+pub mod browser_memory;
+pub mod browser_memory_api;
+pub mod browser_driver;
+pub mod browser_driver_api;
+pub mod proactivity;
+pub mod proactivity_api;
 
 pub use types::{
     VibeContext, VibeLlmOps, VibeProgressEvent, VibeRun, VibeRunConfig, VibeRunState, VibeState,
@@ -76,3 +89,16 @@ pub use sessions::{SessionRoutes, SessionStore, VibeSession, sessions_router};
 pub use teams::{TeamRoutes, TeamStore, VibeTeam, teams_router};
 pub use capability_registry::{build_capabilities, capabilities_for, Capability};
 pub use pipeline::{PipelineEngine, PipelineRunReport, PipelineStage, PipelineStageKind, PipelineStageReport, RunPipeline, StageStatus};
+pub use llm_client::{chat_completion, extract_json, resolve_llm, LlmSettings};
+pub use planner::{PlannerExecutor, PlannerRef, PlannerRun};
+pub use planner_api::planner_router;
+pub use moa::{MoaEngine, MoaRef, MoaRun};
+pub use moa_api::moa_router;
+pub use agents::{AgentDef, AgentRegistry, AgentRun, AgentUsage, AgentsRef};
+pub use agents_api::agents_router;
+pub use browser_memory::{BrowserMemory, BrowserMemoryRef, CitedAnswer, MemoryEntry};
+pub use browser_memory_api::browser_memory_router;
+pub use browser_driver::{BrowserDriver, BrowserDriverRef, DriverRun, TaskContract};
+pub use browser_driver_api::browser_driver_router;
+pub use proactivity::{ProactivityEngine, ProactivityRef, SuggestionCard, TriggerDef};
+pub use proactivity_api::proactivity_router;

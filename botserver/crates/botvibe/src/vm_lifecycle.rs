@@ -296,6 +296,51 @@ impl VmLifecycle {
         Ok(())
     }
 
+    /// Lists every VM across all projects (reaper / admin sweep).
+    pub fn list_all(&self) -> Result<Vec<VmInstance>, String> {
+        let mut conn = self.conn()?;
+        let rows = diesel::sql_query(
+            "SELECT id, project_id, org_id, branch_id, project_name, env, tier, status, \
+             container_name, runner_enabled, error, created_at, updated_at \
+             FROM vm_instances ORDER BY created_at",
+        )
+        .load::<VmRow>(&mut conn)
+        .map_err(|e| format!("list all vms: {e}"))?;
+        Ok(rows.into_iter().map(|row| row.into_vm()).collect())
+    }
+
+    /// Idle reaper + expiry sweep (#1181 / #1167). Stops VMs that have been
+    /// idle (no `updated_at` change) longer than `idle_secs` and deletes VMs
+    /// older than `max_age_secs`. Returns the container names affected so the
+    /// caller can log them. Running/awaiting VMs are never touched unless they
+    /// exceed the max age (expiry), which also forces a stop.
+    pub fn reap(&self, idle_secs: i64, max_age_secs: i64) -> Result<Vec<String>, String> {
+        let vms = self.list_all()?;
+        let now = chrono::Utc::now();
+        let mut reaped: Vec<String> = Vec::new();
+        for vm in vms {
+            if vm.status == "stopped" {
+                continue;
+            }
+            let idle = now.signed_duration_since(vm.updated_at).num_seconds();
+            let age = now.signed_duration_since(vm.created_at).num_seconds();
+            if age > max_age_secs {
+                // Expired: delete outright (containers are disposable).
+                match self.delete(vm.id) {
+                    Ok(()) => reaped.push(format!("{} (expired, deleted)", vm.container_name)),
+                    Err(e) => log::error!("Vibe reaper: expire {} failed: {e}", vm.container_name),
+                }
+            } else if idle > idle_secs {
+                // Idle: stop the container, keep the record for restart.
+                match self.stop(vm.id) {
+                    Ok(_) => reaped.push(format!("{} (idle, stopped)", vm.container_name)),
+                    Err(e) => log::error!("Vibe reaper: idle-stop {} failed: {e}", vm.container_name),
+                }
+            }
+        }
+        Ok(reaped)
+    }
+
     pub fn list(&self, project_id: Uuid) -> Result<Vec<VmInstance>, String> {
         let mut conn = self.conn()?;
         let rows = diesel::sql_query(

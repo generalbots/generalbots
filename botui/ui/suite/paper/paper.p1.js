@@ -1,7 +1,15 @@
 if (window.GBAppLifecycle) GBAppLifecycle.begin("paper");
 
-    (function () {
+(function () {
+    // The editor markup arrives via HTMX partials (03_canvas.html), so the
+    // element may not exist yet when this script runs. Poll briefly instead
+    // of throwing on a null element.
+    function boot() {
         const editor = document.getElementById("editor-content");
+        if (!editor) { setTimeout(boot, 100); return; }
+        init(editor);
+    }
+    function init(editor) {
         const title = document.getElementById("paper-title");
         const slashMenu = document.getElementById("slash-menu");
         const aiPanel = document.getElementById("ai-panel");
@@ -492,4 +500,6 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("paper");
 
         // Initial word count
         updateWordCount();
-    })();
+    }
+    boot();
+})();

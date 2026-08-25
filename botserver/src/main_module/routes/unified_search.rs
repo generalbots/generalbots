@@ -34,6 +34,13 @@ struct EntitySource {
     searchable_columns: &'static [&'static str],
     subtitle_columns: &'static [&'static str],
     url: &'static str,
+    /// Optional extra SQL predicate (e.g. `is_active = true`), appended to
+    /// the WHERE clause before the search terms (#1186 connector facet).
+    filter: Option<&'static str>,
+    /// Org-scoping column (e.g. `org_id`) when the table is tenant-scoped.
+    /// When set, results are restricted to the caller's org (#1179
+    /// permissioned search). `None` for global tables (connectors).
+    org_column: Option<&'static str>,
 }
 
 const SOURCES: &[EntitySource] = &[
@@ -45,6 +52,8 @@ const SOURCES: &[EntitySource] = &[
         searchable_columns: &["first_name", "last_name", "email"],
         subtitle_columns: &["email"],
         url: "/suite/people/people.html",
+        filter: None,
+        org_column: Some("org_id"),
     },
     EntitySource {
         app: "crm",
@@ -54,6 +63,8 @@ const SOURCES: &[EntitySource] = &[
         searchable_columns: &["first_name", "last_name", "email"],
         subtitle_columns: &["email"],
         url: "/suite/crm/crm.html",
+        filter: None,
+        org_column: Some("org_id"),
     },
     EntitySource {
         app: "products",
@@ -63,6 +74,8 @@ const SOURCES: &[EntitySource] = &[
         searchable_columns: &["name", "sku", "description"],
         subtitle_columns: &["sku"],
         url: "/suite/products/products.html",
+        filter: None,
+        org_column: Some("org_id"),
     },
     EntitySource {
         app: "tickets",
@@ -72,6 +85,8 @@ const SOURCES: &[EntitySource] = &[
         searchable_columns: &["subject", "description"],
         subtitle_columns: &["status"],
         url: "/suite/tickets/tickets.html",
+        filter: None,
+        org_column: Some("org_id"),
     },
     EntitySource {
         app: "research",
@@ -81,6 +96,8 @@ const SOURCES: &[EntitySource] = &[
         searchable_columns: &["file_path", "collection_name"],
         subtitle_columns: &["collection_name"],
         url: "/suite/research/research.html",
+        filter: None,
+        org_column: None,
     },
     EntitySource {
         app: "drive",
@@ -90,6 +107,8 @@ const SOURCES: &[EntitySource] = &[
         searchable_columns: &["name", "file_path"],
         subtitle_columns: &["file_path"],
         url: "/suite/drive/drive.html",
+        filter: None,
+        org_column: None,
     },
     EntitySource {
         app: "admin",
@@ -99,6 +118,20 @@ const SOURCES: &[EntitySource] = &[
         searchable_columns: &["name", "description"],
         subtitle_columns: &["description"],
         url: "/suite/admin/index.html",
+        filter: None,
+        org_column: Some("org_id"),
+    },
+    // #1186 — connector sources facet: only active connectors surface.
+    EntitySource {
+        app: "integrations",
+        entity_type: "connector",
+        table: "connectors",
+        id_column: "id",
+        searchable_columns: &["name", "connector_type", "description"],
+        subtitle_columns: &["connector_type"],
+        url: "/suite/integrations/integrations.html",
+        filter: Some("is_active = true"),
+        org_column: None,
     },
 ];
 
@@ -130,15 +163,20 @@ fn fts_vector_expr(source: &EntitySource) -> String {
     )
 }
 
-fn build_query(source: &EntitySource) -> String {
+fn build_query(source: &EntitySource, org_clause: Option<&str>) -> String {
     let title_expr = concat_expr(source.searchable_columns);
     let subtitle_expr = concat_expr(source.subtitle_columns);
     let fts = fts_vector_expr(source);
+    let filter = source
+        .filter
+        .map(|f| format!(" AND ({f})"))
+        .unwrap_or_default();
+    let org = org_clause.map(|c| format!(" AND {c}")).unwrap_or_default();
     format!(
         "SELECT {id} AS id, {title} AS title, {subtitle} AS subtitle \
          FROM {table} \
-         WHERE {fts} @@ websearch_to_tsquery('english', $1) \
-            OR LOWER({title_expr}) LIKE $2 \
+         WHERE ({fts} @@ websearch_to_tsquery('english', $1) \
+            OR LOWER({title_expr}) LIKE $2){filter}{org} \
          ORDER BY ts_rank({fts}, websearch_to_tsquery('english', $1)) DESC, id \
          LIMIT {limit}",
         id = source.id_column,
@@ -146,6 +184,8 @@ fn build_query(source: &EntitySource) -> String {
         subtitle = subtitle_expr,
         fts = fts,
         table = source.table,
+        filter = filter,
+        org = org,
         limit = MAX_RESULTS_PER_SOURCE,
     )
 }
@@ -164,6 +204,7 @@ fn row_to_json(source: &EntitySource, row: &SearchRow) -> serde_json::Value {
 pub async fn handle_unified_search(
     State(state): State<Arc<AppState>>,
     Query(params): Query<SearchParams>,
+    user: Option<axum::extract::Extension<crate::security::auth_api::types::AuthenticatedUser>>,
 ) -> impl IntoResponse {
     let trimmed = params.q.unwrap_or_default();
     let trimmed = trimmed.trim();
@@ -173,6 +214,20 @@ pub async fn handle_unified_search(
     let query = &trimmed.chars().take(MAX_QUERY_LEN).collect::<String>();
     let fts_pattern = query.to_string();
     let ilike_pattern = format!("%{}%", query.to_lowercase());
+
+    // #1179 — permissioned search: tenant-scoped sources are restricted to
+    // the caller's org. Admins and anonymous requests see everything.
+    let org_id = user.and_then(|u| {
+        let is_admin = u
+            .roles
+            .iter()
+            .any(|r| matches!(r, crate::security::auth_api::types::Role::Admin));
+        if is_admin {
+            None
+        } else {
+            u.organization_id
+        }
+    });
 
     let pool = state.conn.clone();
 
@@ -187,7 +242,13 @@ pub async fn handle_unified_search(
 
         let mut out: Vec<serde_json::Value> = Vec::new();
         for source in SOURCES {
-            let sql = build_query(source);
+            // Column is a hardcoded constant; the value is a Uuid parsed by
+            // the trusted auth layer — no user-controlled SQL reaches here.
+            let org_clause = match (source.org_column, org_id) {
+                (Some(col), Some(id)) => Some(format!("{col} = '{id}'")),
+                _ => None,
+            };
+            let sql = build_query(source, org_clause.as_deref());
             match diesel::sql_query(&sql)
                 .bind::<diesel::sql_types::Text, _>(&fts_pattern)
                 .bind::<diesel::sql_types::Text, _>(&ilike_pattern)

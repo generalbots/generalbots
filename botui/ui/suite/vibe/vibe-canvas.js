@@ -250,10 +250,16 @@ document.addEventListener("click", function (e) {
             return;
         }
         if (tool === "text") {
-            var label = window.prompt("Text", "Heading");
-            if (label) {
-                state.elements.push({ id: "el-" + Date.now(), type: "text", x: p.x, y: p.y, w: 180, h: 32, text: label });
-                render(); scheduleSave();
+            var addLabel = function (label) {
+                if (label) {
+                    state.elements.push({ id: "el-" + Date.now(), type: "text", x: p.x, y: p.y, w: 180, h: 32, text: label });
+                    render(); scheduleSave();
+                }
+            };
+            if (window.WindowManager && window.WindowManager.promptFloating) {
+                window.WindowManager.promptFloating("Add text", "Text", "Heading", addLabel);
+            } else {
+                addLabel(window.prompt("Text", "Heading"));
             }
             return;
         }
@@ -367,8 +373,23 @@ document.addEventListener("click", function (e) {
             if (event.target.closest("[data-vibe-zoom-reset]")) {
                 vibeZoomLevel = 100; vibeSetZoom(0);
             }
-            if (event.target.closest("[data-vibe-canvas-clear]") && window.confirm("Clear all design elements?")) {
-                state = { elements: [], connectors: [] }; selectedId = null; render(); scheduleSave();
+            if (event.target.closest("[data-vibe-canvas-clear]")) {
+                const doClear = function () {
+                    state = { elements: [], connectors: [] };
+                    selectedId = null;
+                    render();
+                    scheduleSave();
+                };
+                if (window.WindowManager && window.WindowManager.confirmFloating) {
+                    window.WindowManager.confirmFloating(
+                        "Clear canvas",
+                        "Clear all design elements?",
+                        doClear,
+                        null
+                    );
+                } else if (window.confirm("Clear all design elements?")) {
+                    doClear();
+                }
             }
         });
         document.getElementById("vibeCanvas").addEventListener("wheel", function (event) {
