@@ -115,9 +115,12 @@ pub async fn list_skills(
         .filter(visibility.eq("public"))
         .filter(review_status.ne("rejected"))
         .into_boxed();
+    let mut owned_pattern = String::new();
     if let Some(t) = term {
-        let pattern = format!("%{t}%");
-        query = query.filter(slug.ilike(&pattern).or(name.ilike(&pattern)));
+        owned_pattern = format!("%{t}%");
+    }
+    if !owned_pattern.is_empty() {
+        query = query.filter(slug.ilike(owned_pattern.clone()).or(name.ilike(owned_pattern)));
     }
 
     let items: Vec<PackageRow> = query

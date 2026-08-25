@@ -190,7 +190,7 @@ pub async fn unpublish(
 
     let mut conn = service.pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB pool: {e}")))?;
 
-    use crate::schema::skill_packages::dsl::{skill_packages, slug as slug_col, publisher_org_id as owner_col, visibility as vis_col, updated_at as upd_col};
+    use crate::schema::skill_packages::dsl::{skill_packages, slug as slug_col, visibility as vis_col, updated_at as upd_col};
     let target: PackageRow = skill_packages
         .filter(slug_col.eq(&slug))
         .select(PackageRow::as_select())

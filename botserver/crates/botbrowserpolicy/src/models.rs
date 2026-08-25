@@ -35,6 +35,7 @@ pub struct NewBrowserTask {
     pub org_id: Option<Uuid>,
     pub bot_id: Option<Uuid>,
     pub goal: String,
+    pub plan: Option<serde_json::Value>,
     pub domains: serde_json::Value,
     pub budget_steps: i32,
     pub status: String,

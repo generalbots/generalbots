@@ -82,7 +82,7 @@ fn apply_org_rules(input: &str, rules: &[RedactRule]) -> String {
     match wordish_token_re() {
         Some(re) => re
             .replace_all(input, |caps: &regex::Captures| {
-                let token = caps[0].as_str();
+                let token: &str = caps.get(0).map(|m| m.as_str()).unwrap_or("");
                 for &(prefix_keep, mask_len, suffix_keep) in rules {
                     let min_len = prefix_keep + mask_len + suffix_keep;
                     if token.len() >= min_len && looks_credential_shaped(token) {
@@ -114,7 +114,7 @@ pub fn redact(input: &str, rules: &[RedactRule]) -> String {
     if let Some(re) = email_re() {
         text = re
             .replace_all(&text, |caps: &regex::Captures| {
-                let matched = caps[0].as_str();
+                let matched = caps.get(0).map(|m| m.as_str()).unwrap_or("");
                 match matched.find('@') {
                     Some(at) => format!("***{}", &matched[at..]),
                     None => matched.to_string(),
@@ -125,7 +125,7 @@ pub fn redact(input: &str, rules: &[RedactRule]) -> String {
 
     if let Some(re) = digit_run_re() {
         text = re.replace_all(&text, |caps: &regex::Captures| {
-            let run = caps[0].as_str();
+            let run: &str = caps.get(0).map(|m| m.as_str()).unwrap_or("");
             if run.len() >= MIN_DIGIT_RUN {
                 mask_keep_last4(run)
             } else {
@@ -136,7 +136,7 @@ pub fn redact(input: &str, rules: &[RedactRule]) -> String {
 
     if let Some(re) = entropy_token_re() {
         text = re.replace_all(&text, |caps: &regex::Captures| {
-            let token = caps[0].as_str();
+            let token: &str = caps.get(0).map(|m| m.as_str()).unwrap_or("");
             if token.chars().count() >= MIN_ENTROPY_TOKEN
                 && entropy_bits_per_char(token) >= ENTROPY_THRESHOLD_BITS
             {

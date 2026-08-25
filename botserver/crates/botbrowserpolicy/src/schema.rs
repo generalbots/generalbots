@@ -43,9 +43,9 @@ diesel::table! {
     }
 }
 
-/// Existing platform table (migration 6.0.0-01-core). Declared read-only here
-/// to persist the admin browser policy under a settings-style key without a
-/// new migration; the platform-global scope uses the nil UUID sentinel user.
+// Existing platform table (migration 6.0.0-01-core). Declared read-only here
+// to persist the admin browser policy under a settings-style key without a
+// new migration; the platform-global scope uses the nil UUID sentinel user.
 diesel::table! {
     user_preferences (id) {
         id -> Uuid,

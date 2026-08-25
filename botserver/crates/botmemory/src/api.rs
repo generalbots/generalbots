@@ -27,7 +27,6 @@ use crate::models::{ImportBody, MemoryBody, UpdateMemoryBody};
 use crate::store::{self, DedupeOutcome};
 use crate::MemoryService;
 
-const B64_ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 fn b64_decode_flexible(input: &str) -> Option<Vec<u8>> {
     let mut normalized = String::with_capacity(input.len());

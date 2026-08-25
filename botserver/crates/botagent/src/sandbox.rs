@@ -5,6 +5,7 @@
 use axum::http::StatusCode;
 use botlib::security::command_guard::SafeCommand;
 use chrono::Utc;
+use diesel::prelude::*;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use uuid::Uuid;
@@ -123,7 +124,7 @@ fn spawn_cleanup(state: &AgentService, name: &str) {
                 return;
             }
         };
-        if let Ok(output) = tokio::task::spawn_blocking(move || cmd.execute()).await {
+        if let Ok(Ok(output)) = tokio::task::spawn_blocking(move || cmd.execute()).await {
             if !output.status.success() {
                 tracing::warn!(
                     "sandbox cleanup for {name} exited non-zero: {}",

@@ -108,13 +108,6 @@ fn jwt_org_id(headers: &HeaderMap) -> Option<Uuid> {
     claims.get("org_id").and_then(Value::as_str).and_then(|raw| Uuid::parse_str(raw).ok())
 }
 
-fn jwt_groups(headers: &HeaderMap) -> Vec<String> {
-    jwt_claims(headers)
-        .and_then(|c| c.get("groups").and_then(Value::as_array).cloned())
-        .map(|arr| arr.iter().filter_map(Value::as_str).map(|s| s.to_string()).collect())
-        .unwrap_or_default()
-}
-
 fn sha256_hex(input: &str) -> String {
     let digest = Sha256::digest(input.as_bytes());
     let mut out = String::with_capacity(digest.len() * 2);

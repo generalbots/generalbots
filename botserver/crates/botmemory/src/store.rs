@@ -161,7 +161,7 @@ pub(crate) fn do_insert(conn: &mut PgConnection, spec: &NewMemory<'_>) -> Result
     };
     diesel::insert_into(user_memories::table)
         .values(&row)
-        .returning(user_memories::all_columns)
+        
         .get_result(conn)
         .map_err(|e| format!("memory insert failed: {e}"))
 }
@@ -179,7 +179,7 @@ pub(crate) fn link_supersede(conn: &mut PgConnection, old_id: Uuid, new_id: Uuid
 }
 
 fn load_row(conn: &mut PgConnection, memory_id: Uuid) -> Result<UserMemory, String> {
-    user_memories
+    crate::schema::user_memories::dsl::user_memories
         .find(memory_id)
         .first::<UserMemory>(conn)
         .map_err(|e| format!("memory load failed: {e}"))
@@ -264,7 +264,7 @@ pub fn update(
         user_memories.filter(id.eq(memory_id)).filter(owner_user_id.eq(owner)),
     )
     .set(&next)
-    .returning(user_memories::all_columns)
+    
     .get_result(conn)
     .optional()
     .map_err(|e| format!("memory update failed: {e}"))?;
@@ -280,7 +280,9 @@ pub fn set_pinned(
 ) -> Result<bool, String> {
     use crate::schema::user_memories::columns::*;
     let touched = diesel::update(
-        user_memories.filter(id.eq(memory_id)).filter(owner_user_id.eq(owner)),
+        crate::schema::user_memories::dsl::user_memories
+            .filter(id.eq(memory_id))
+            .filter(owner_user_id.eq(owner)),
     )
     .set((pinned.eq(is_pinned), updated_at.eq(Utc::now())))
     .execute(conn)
@@ -319,7 +321,14 @@ pub fn list(
     use crate::schema::user_memories::dsl::*;
 
     let mut query = user_memories.filter(superseded_by.is_null()).into_boxed();
-    query = visible_rows(query, owner, branch_claim);
+    query = match branch_claim {
+        Some(claim) => query.filter(
+            owner_user_id
+                .eq(owner)
+                .or(scope.eq(SCOPE_BRANCH).and(branch_id.eq(claim))),
+        ),
+        None => query.filter(owner_user_id.eq(owner)),
+    };
     if let Some(kind_value) = filter.kind {
         query = query.filter(kind.eq(kind_value));
     }
@@ -341,21 +350,6 @@ pub fn list(
         .map_err(|e| format!("memory list failed: {e}"))
 }
 
-type BoxedMemoryQuery = diesel::helper_types::BoxedQuery<'static, diesel::pg::Pg>;
-
-fn visible_rows(
-    query: BoxedMemoryQuery,
-    owner: Uuid,
-    branch_claim: Option<Uuid>,
-) -> BoxedMemoryQuery {
-    use crate::schema::user_memories::dsl::*;
-    match branch_claim {
-        Some(claim) => query
-            .filter(owner_user_id.eq(owner).or(scope.eq(SCOPE_BRANCH).and(branch_id.eq(claim)))),
-        None => query.filter(owner_user_id.eq(owner)),
-    }
-}
-
 /// Fetches the newest visible memories, pinned first; used by recall.
 pub(crate) fn fetch_recent_visible(
     conn: &mut PgConnection,
@@ -365,7 +359,15 @@ pub(crate) fn fetch_recent_visible(
 ) -> Result<Vec<UserMemory>, String> {
     use crate::schema::user_memories::dsl::*;
     let query = user_memories.filter(superseded_by.is_null()).into_boxed();
-    visible_rows(query, owner, branch_claim)
+    let query = match branch_claim {
+        Some(claim) => query.filter(
+            owner_user_id
+                .eq(owner)
+                .or(scope.eq(SCOPE_BRANCH).and(branch_id.eq(claim))),
+        ),
+        None => query.filter(owner_user_id.eq(owner)),
+    };
+    query
         .order((pinned.desc(), updated_at.desc()))
         .limit(limit)
         .load::<UserMemory>(conn)

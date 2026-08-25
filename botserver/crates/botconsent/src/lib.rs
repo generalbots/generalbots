@@ -28,6 +28,8 @@ pub use models::{AppPermissionRow, Decision, GrantBody, ResolveBody};
 /// Builds the consent router over a shared service instance. The integrator
 /// merges this into the server router and calls
 /// `ConsentService::ensure_sweeper` once at boot.
+use std::sync::Arc;
+
 pub fn configure_routes() -> axum::Router<Arc<ConsentService>> {
     api::configure_routes()
 }

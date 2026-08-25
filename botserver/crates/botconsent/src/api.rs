@@ -21,7 +21,6 @@ use crate::models::{Decision, ResolveBody};
 use crate::store;
 use crate::ConsentService;
 
-const B64_ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 fn b64_decode_flexible(input: &str) -> Option<Vec<u8>> {
     let mut normalized = String::with_capacity(input.len());

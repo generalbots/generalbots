@@ -38,7 +38,7 @@ pub fn record_usage(
         .on_conflict((t::org_id, t::hour, t::resource))
         .do_update()
         .set((
-            t::quantity.eq(t::quantity + diesel::dsl::excluded(t::quantity)),
+            t::quantity.eq(t::quantity + diesel::upsert::excluded(t::quantity)),
             t::updated_at.eq(diesel::dsl::now),
         ))
         .execute(conn)

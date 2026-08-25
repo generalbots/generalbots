@@ -1,5 +1,4 @@
 use chrono::{DateTime, Utc};
-use serde::Deserialize;
 use serde_json::Value;
 use std::time::Duration;
 
@@ -244,31 +243,6 @@ fn item_acl(obj: &Value) -> Vec<String> {
     Vec::new()
 }
 
-#[derive(Deserialize)]
-struct GenericConnectorConfig {
-    #[serde(default)]
-    containers_path: Option<String>,
-    #[serde(default)]
-    items_path: Option<String>,
-}
-
-impl GenericConnectorConfig {
-    fn from_cred(cred: &Value) -> Self {
-        serde_json::from_value(cred.clone()).unwrap_or(Self {
-            containers_path: None,
-            items_path: None,
-        })
-    }
-
-    fn containers_path(&self, default: &str) -> String {
-        self.containers_path.clone().unwrap_or_else(|| default.to_string())
-    }
-
-    fn items_path(&self, default: &str) -> String {
-        self.items_path.clone().unwrap_or_else(|| default.to_string())
-    }
-}
-
 fn list_containers_generic(
     cred: &Value,
     default_containers_path: &str,
@@ -293,7 +267,6 @@ fn iter_items_generic(
     since: Option<DateTime<Utc>>,
     default_items_path: &str,
 ) -> Result<Vec<RawItem>, String> {
-    let config = GenericConnectorConfig::from_cred(cred);
     let mut url = resolve_path(cred, "items_path", default_items_path)?
         .replace("{container}", &percent_encode(&container.id));
     let mut params: Vec<(String, String)> = Vec::new();

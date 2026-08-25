@@ -6,7 +6,7 @@
 use diesel::PgConnection;
 use uuid::Uuid;
 
-use crate::models::{SCOPE_BRANCH, UserMemory};
+use crate::models::UserMemory;
 use crate::store;
 
 pub const RECALL_ROW_LIMIT: i64 = 12;

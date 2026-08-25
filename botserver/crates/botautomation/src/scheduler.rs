@@ -25,7 +25,7 @@ fn due_schedules(state: &AutomationService) -> Result<Vec<AgentSchedule>, String
         .map_err(|e| format!("query due schedules: {e}"))
 }
 
-fn fire_schedule(state: &AutomationService, schedule: &AgentSchedule) {
+fn fire_schedule(state: &Arc<AutomationService>, schedule: &AgentSchedule) {
     let mut conn = match state.pool().get() {
         Ok(c) => c,
         Err(e) => {
@@ -38,7 +38,7 @@ fn fire_schedule(state: &AutomationService, schedule: &AgentSchedule) {
         schedule_id: Some(schedule.id),
         bot_id: schedule.bot_id,
         trigger_kind: "cron".to_string(),
-        status: crate::STATUS_QUEUED.to_string(),
+        status: crate::engine::STATUS_QUEUED.to_string(),
     };
     let run_id = new_run.id;
     if let Err(e) = diesel::insert_into(agent_runs::dsl::agent_runs)
@@ -62,7 +62,7 @@ fn fire_schedule(state: &AutomationService, schedule: &AgentSchedule) {
     tokio::spawn(crate::engine::execute_run(state.clone(), run_id));
 }
 
-pub async fn spawn_scheduler(state: Arc<AutomationService>) {
+pub fn spawn_scheduler(state: Arc<AutomationService>) {
     tokio::spawn(async move {
         let mut interval = tokio::time::interval(std::time::Duration::from_secs(TICK_SECS));
         interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Delay);

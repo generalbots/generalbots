@@ -9,6 +9,7 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::Deserialize;
 use std::sync::Arc;
+use uuid::Uuid;
 
 use botcore::shared::state::AppState;
 
@@ -35,7 +36,7 @@ struct WorkspaceTabsRow {
 }
 
 #[derive(Debug, Deserialize)]
-struct TabsBody {
+pub struct TabsBody {
     tabs: serde_json::Value,
 }
 

@@ -7,6 +7,7 @@
 //! after an "always" decision.
 
 use chrono::{DateTime, Datelike, Utc};
+use chrono::TimeZone;
 use diesel::prelude::*;
 use serde_json::Value;
 use uuid::Uuid;
@@ -116,7 +117,7 @@ pub fn grant(
 pub fn revoke(conn: &mut PgConnection, permission_id: Uuid, owner_user_id: Uuid) -> Result<bool, String> {
     use app_permissions::dsl;
     let deleted = diesel::delete(
-        app_permissions
+        app_permissions::dsl::app_permissions
             .filter(dsl::id.eq(permission_id))
             .filter(dsl::user_id.eq(owner_user_id)),
     )
@@ -128,7 +129,7 @@ pub fn revoke(conn: &mut PgConnection, permission_id: Uuid, owner_user_id: Uuid)
 /// Lists every stored grant (including expired/revoked rows) for a user.
 pub fn list_for_user(conn: &mut PgConnection, user_id: Uuid) -> Result<Vec<AppPermissionRow>, String> {
     use app_permissions::dsl;
-    app_permissions
+    app_permissions::dsl::app_permissions
         .filter(dsl::user_id.eq(user_id))
         .order(dsl::granted_at.desc())
         .load::<AppPermissionRow>(conn)
@@ -145,7 +146,7 @@ pub fn effective_grant(
     action_class: &str,
 ) -> Result<Option<AppPermissionRow>, String> {
     use app_permissions::dsl;
-    let row = app_permissions
+    let row = dsl::app_permissions
         .filter(dsl::user_id.eq(user_id))
         .filter(dsl::app_id.eq(app_id))
         .filter(dsl::action_class.eq(action_class))

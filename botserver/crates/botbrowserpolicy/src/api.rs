@@ -446,7 +446,7 @@ pub async fn put_policy_handler(
 
 /// Router fragment merged by the integrator under the authenticated scope.
 pub fn configure_routes() -> axum::Router<SharedService> {
-    use axum::routing::{delete, get, post};
+    use axum::routing::{get, post};
 
     axum::Router::new()
         .route("/api/browser/tasks", get(list_tasks_handler).post(create_task_handler))

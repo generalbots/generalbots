@@ -4,7 +4,7 @@
 use crate::cron::CronExpr;
 use crate::engine;
 use crate::models::{AgentRun, AgentSchedule, NewAgentRun, NewAgentSchedule, ScheduleCreateBody, ScheduleUpdateBody};
-use crate::schema::{agent_runs, agent_schedules};
+use crate::schema::{agent_runs, agent_schedules, agent_spans};
 use crate::state::AutomationService;
 use axum::{
     extract::{Path, Query, State},
@@ -163,12 +163,12 @@ pub async fn update_schedule(
         }
     }
     let mut conn = state.pool().get().map_err(|e| db_err("update schedule", e))?;
-    use agent_schedules::dsl::*;
+    use agent_schedules::dsl as d;
 
     macro_rules! set_field {
         ($col:ident, $value:expr) => {
-            diesel::update(agent_schedules.find(schedule_id))
-                .set($col.eq($value))
+            diesel::update(d::agent_schedules.find(schedule_id))
+                .set(d::$col.eq($value))
                 .execute(&mut conn)
                 .map_err(|e| db_err("update schedule", e))?;
         };
@@ -203,9 +203,9 @@ pub async fn update_schedule(
         set_field!(tool_allowlist, Some(json!(list)));
     }
     if cron_changed || body.enabled.is_some() {
-        let current = agent_schedules
+        let current = d::agent_schedules
             .find(schedule_id)
-            .select((cron_expr, enabled))
+            .select((d::cron_expr, d::enabled))
             .first::<(String, bool)>(&mut conn)
             .map_err(|e| db_err("reload for next_run_at", e))?;
         let (current_expr, schedule_enabled) = current;
@@ -368,7 +368,7 @@ fn poll_tick(state: &AutomationService, run_id: Uuid, emitted: usize) -> Option<
         }
     };
     let run = match r::agent_runs.find(run_id).first::<AgentRun>(&mut conn).optional() {
-        Ok(v) => v.flatten(),
+        Ok(v) => v,
         Err(e) => {
             tracing::error!("automation sse {run_id}: run poll failed: {e}");
             return None;
@@ -431,7 +431,7 @@ pub async fn run_events(
 
 /// Router fragment merged by the integrator under the authenticated scope.
 pub fn configure_routes() -> axum::Router<Arc<AutomationService>> {
-    use axum::routing::{delete, get, post, put};
+    use axum::routing::{get, post, put};
     axum::Router::new()
         .route(
             "/api/automations/schedules",

@@ -73,14 +73,10 @@ pub fn search_visible(
     let pattern = format!("%{}%", q.trim());
 
     let kinds = sources.unwrap_or_default();
-    let sql = build_search_sql(kinds.len());
-    let mut query = diesel::sql_query(sql)
+    let sql = build_search_sql(&kinds);
+    let query = diesel::sql_query(sql)
         .bind::<diesel::sql_types::Text, _>(&pattern)
         .bind::<diesel::sql_types::BigInt, _>(prefilter_limit);
-
-    for kind in &kinds {
-        query = query.bind::<diesel::sql_types::Text, _>(kind);
-    }
 
     let candidates: Vec<ItemRow> = query
         .load(conn)
@@ -94,19 +90,25 @@ pub fn search_visible(
 }
 
 /// SQL with numbered placeholders; `$2..$n+1` carry the optional kind list.
-fn build_search_sql(kind_count: usize) -> String {
-    let mut kind_filters = String::new();
-    for index in 0..kind_count {
-        if index == 0 {
-            kind_filters.push_str(" AND c.kind IN (");
-        } else {
-            kind_filters.push_str(", ");
-        }
-        kind_filters.push_str(&format!("${}", index + 3));
-        if index + 1 == kind_count {
-            kind_filters.push(')');
-        }
-    }
+fn build_search_sql(kinds: &[String]) -> String {
+    // Kind list is embedded as literals after validation against the closed
+    // registry; only the pattern and limit stay bound parameters.
+    let valid = ["chat", "mail", "drive"];
+    let chosen: Vec<&str> = kinds
+        .iter()
+        .map(|k| k.as_str())
+        .filter(|k| valid.contains(k))
+        .collect();
+    let kind_filters = if chosen.is_empty() {
+        String::new()
+    } else {
+        let list = chosen
+            .iter()
+            .map(|k| format!("'{k}'"))
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!(" AND c.kind IN ({list})")
+    };
     format!(
         "SELECT i.* FROM indexed_items i \
          JOIN connector_connections c ON c.id = i.connection_id \

@@ -1,7 +1,7 @@
 //! Consent gate for agent-initiated app commands (issue #1176).
 //! Holds the process-wide `ConsentService` and offers a single decision
 //! entry point used by the chat command path and the api/ui loopback executor.
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 
 static SERVICE: OnceLock<Arc<botconsent::ConsentService>> = OnceLock::new();
 
