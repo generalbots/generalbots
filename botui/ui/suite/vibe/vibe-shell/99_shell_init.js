@@ -1,9 +1,9 @@
 "use strict";
 /**
- * Vibe Shell — bootstrap (issue #1177).
- * Loads after 00..40, resolves the shell mode and activates only the
- * toolbar-mode features. In classic mode a discreet SHELL ⇄ chip is added
- * to the ribbon so the user can still switch modes; nothing else changes.
+ * Vibe Shell — bootstrap (#1177; classic mode removed per #1189).
+ * Loads after 00..40 and activates the toolbar shell unconditionally:
+ * command bar, floating specialist palettes, external-git controls and the
+ * canvas task-card flow. No mode resolution remains.
  */
 (function () {
     "use strict";
@@ -15,8 +15,8 @@
     }
 
     /* WindowManager.close removes the window DOM outright; palettes need to
-       park their roots first. Wrap close once (toolbar mode only) and
-       re-emit as an event instead of altering WM behavior elsewhere. */
+       park their roots first. Wrap close once and re-emit as an event
+       instead of altering WM behavior elsewhere. */
     function wrapClose() {
         var mgr = wm();
         if (!mgr || mgr.__vibeShellCloseWrapped) return;
@@ -41,22 +41,16 @@
         /* Runs once per partial injection: a reopened Vibe window brings
            fresh DOM, so the shell always rebuilds for it. */
         purgeStaleStash();
-        S.detectToolbar().then(function (toolbar) {
-            /* detectToolbar already applied the resolved mode + body class. */
-            if (toolbar) {
-                wrapClose();
-                S.toolbar.build();
-                S.palettes.init();
-                S.git.mount();
-                S.canvasFlow.start();
-            } else {
-                S.toolbar.registerClassicToggle();
-            }
-        });
+        S.setMode("toolbar");
+        wrapClose();
+        S.toolbar.build();
+        S.palettes.init();
+        S.git.mount();
+        S.canvasFlow.start();
     }
 
     document.addEventListener("gb-shell-window-closed", function (e) {
-        if (e.detail && e.detail.id && S.isToolbar()) {
+        if (e.detail && e.detail.id) {
             S.palettes.handleWindowClosed(e.detail.id);
         }
     });

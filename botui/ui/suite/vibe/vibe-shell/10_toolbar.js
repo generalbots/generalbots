@@ -98,25 +98,6 @@
         );
     }
 
-    function toggleMode() {
-        var next = S.isToolbar() ? "classic" : "toolbar";
-        S.setMode(next, true);
-        restartVibeWindow();
-    }
-
-    /* A mode switch re-renders the whole app surface; the clean path is to
-       close and relaunch the Vibe window through the window manager so the
-       partial (and its scripts) execute fresh under the new mode. */
-    function restartVibeWindow() {
-        var mgr = wm();
-        if (mgr && typeof mgr.launchFromMenu === "function") {
-            try { mgr.close("vibe"); } catch (ignore) { }
-            mgr.launchFromMenu("vibe", "Vibe", "/suite/partials/vibe.html");
-            return;
-        }
-        window.location.reload();
-    }
-
     function buildButton(label, icon, handler, extraCls) {
         var btn = el("button", "vibe-shell-tb-btn" + (extraCls ? " " + extraCls : ""));
         btn.type = "button";
@@ -152,11 +133,6 @@
         var spacer = el("span", "vibe-shell-tb-spacer");
         bar.appendChild(spacer);
 
-        var toggle = buildButton("", "⇄", toggleMode, "vibe-shell-tb-mode");
-        toggle.id = "vibeShellModeToggle";
-        updateToggleLabel(toggle);
-        bar.appendChild(toggle);
-
         var ribbon = container.querySelector(".vibe-ribbon");
         if (ribbon && ribbon.parentNode) {
             ribbon.parentNode.insertBefore(bar, ribbon);
@@ -165,38 +141,10 @@
         }
     }
 
-    function updateToggleLabel(btn) {
-        if (!btn) btn = document.getElementById("vibeShellModeToggle");
-        if (!btn) return;
-        var label = btn.querySelector(".vibe-shell-tb-label");
-        if (label) label.textContent = S.isToolbar() ? "Toolbar ⇄ Classic" : "Classic ⇄ Toolbar";
-        btn.title = "Switch shell mode (current: " + S.mode + ")";
-    }
-
-    /** Discreet mode-switch chip also available in classic mode. */
-    function registerClassicToggle() {
-        if (document.getElementById("vibeShellClassicToggle")) return;
-        var tabs = document.querySelector("#vibeRibbon .vibe-ribbon-tabs");
-        if (!tabs) return;
-        var chip = el("button", "vibe-ribbon-tab vibe-shell-classic-toggle");
-        chip.id = "vibeShellClassicToggle";
-        chip.type = "button";
-        chip.textContent = "SHELL ⇄";
-        chip.title = "Toggle between classic and toolbar shell modes";
-        chip.addEventListener("click", function (e) {
-            e.stopPropagation();
-            toggleMode();
-        });
-        tabs.appendChild(chip);
-    }
-
     window.VibeShell.toolbar = {
         build: build,
         openTerminal: openTerminal,
         openBrowser: openBrowser,
         openChat: openChat,
-        toggleMode: toggleMode,
-        registerClassicToggle: registerClassicToggle,
-        refreshToggle: function () { updateToggleLabel(null); },
     };
 })();
