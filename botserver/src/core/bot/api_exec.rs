@@ -114,6 +114,29 @@ pub async fn exec_endpoint(
         return Err(format!("endpoint {method_upper} {path} requires the admin role"));
     }
 
+    #[cfg(feature = "consent")]
+    {
+        let class = match method_upper.as_str() {
+            "GET" => "read",
+            "POST" => "create",
+            "PUT" | "PATCH" => "update",
+            _ => "delete",
+        };
+        let gate = crate::core::bot::consent_gate::check(
+            user_id,
+            "api",
+            class,
+            serde_json::json!({ "method": method_upper, "path": path }),
+        )
+        .await;
+        if !gate.allowed {
+            return Err(match gate.request_id {
+                Some(id) => format!("consent_required:{id}"),
+                None => "action denied by consent policy".to_string(),
+            });
+        }
+    }
+
     let base = base_url(state);
     let url = format!("{base}{path}");
 

@@ -1,0 +1,26 @@
+[package]
+name = "botagent"
+version.workspace = true
+edition = "2021"
+publish = false
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+axum = { workspace = true }
+botlib = { workspace = true }
+botsecurity-core = { workspace = true }
+chrono = { workspace = true, features = ["serde"] }
+diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "serde_json", "uuid"] }
+diesel_migrations = { workspace = true }
+r2d2 = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+sha2 = { workspace = true }
+tokio = { workspace = true, features = ["full"] }
+tracing = { workspace = true }
+uuid = { workspace = true, features = ["v4", "serde"] }
+
+[lints]
+workspace = true

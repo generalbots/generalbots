@@ -52,6 +52,12 @@ members = [
   "botserver/crates/botdashboards",
   "botserver/crates/botdeployment",
   "botserver/crates/botdesigner",
+  "botserver/crates/botagent",
+  "botserver/crates/botautomation",
+  "botserver/crates/botbrowserpolicy",
+  "botserver/crates/botchannelbindings",
+  "botserver/crates/botconnectors",
+  "botserver/crates/botconsent",
   "botserver/crates/botdocs",
   "botserver/crates/botdrive",
   "botserver/crates/botemail",
@@ -62,6 +68,8 @@ members = [
   "botserver/crates/botllm",
   "botserver/crates/botmaintenance",
   "botserver/crates/botmarketing",
+  "botserver/crates/botmarketplace",
+  "botserver/crates/botmemory",
   "botserver/crates/botmeet",
   "botserver/crates/botmodelsbridge",
   "botserver/crates/botmonitoring",
@@ -158,6 +166,12 @@ botcontacts = { path = "botserver/crates/botcontacts" }
 botdashboards = { path = "botserver/crates/botdashboards" }
 botdeployment = { path = "botserver/crates/botdeployment" }
 botdesigner = { path = "botserver/crates/botdesigner" }
+botagent = { path = "botserver/crates/botagent" }
+botautomation = { path = "botserver/crates/botautomation" }
+botbrowserpolicy = { path = "botserver/crates/botbrowserpolicy" }
+botchannelbindings = { path = "botserver/crates/botchannelbindings" }
+botconnectors = { path = "botserver/crates/botconnectors" }
+botconsent = { path = "botserver/crates/botconsent" }
 botdocs = { path = "botserver/crates/botdocs" }
 botemail = { path = "botserver/crates/botemail" }
 botkb = { path = "botserver/crates/botkb" }
@@ -166,6 +180,8 @@ botlegal = { path = "botserver/crates/botlegal" }
 botllm = { path = "botserver/crates/botllm" }
 botmaintenance = { path = "botserver/crates/botmaintenance" }
 botmarketing = { path = "botserver/crates/botmarketing" }
+botmarketplace = { path = "botserver/crates/botmarketplace" }
+botmemory = { path = "botserver/crates/botmemory" }
 botbiometry = { path = "botserver/crates/botbiometry" }
 botbanking = { path = "botserver/crates/botbanking" }
 botclock = { path = "botserver/crates/botclock" }

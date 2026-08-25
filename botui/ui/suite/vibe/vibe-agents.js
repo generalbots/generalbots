@@ -145,22 +145,6 @@ function selectProject(p) {
     loadVibeProjects();
 }
 
-/**
- * Legacy hooks kept as safe no-ops — the fake agent cards were removed
- * (2026-08-14). Callers (vibe-run.js onProgress, vibe-websocket.js) still
- * invoke them; progress now lives in the Run Dock instead.
- */
-function updateVibe1(status, detail) {
-    void status;
-    void detail;
-}
-
-function updateAgentCard(agentId, status, detail) {
-    void agentId;
-    void status;
-    void detail;
-}
-
 document.addEventListener("gb:vibe-project-created", function () {
     loadVibeProjects();
 });

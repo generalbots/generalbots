@@ -1,0 +1,23 @@
+[package]
+name = "botmemory"
+version = "0.1.0"
+edition = "2021"
+description = "General Bots durable per-user and per-branch memory store - extraction hook, recall injection and import/export (issue #1178)"
+license = "AGPL-3.0"
+authors = ["Pragmatismo.com.br", "General Bots Community"]
+repository = "https://github.com/GeneralBots/BotServer"
+
+[dependencies]
+axum = { workspace = true }
+chrono = { workspace = true, features = ["serde", "clock"] }
+diesel = { workspace = true, features = ["postgres", "r2d2", "uuid", "chrono", "serde_json"] }
+r2d2 = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+tracing = { workspace = true }
+uuid = { workspace = true, features = ["serde", "v4"] }
+
+[dev-dependencies]
+
+[lints]
+workspace = true

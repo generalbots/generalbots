@@ -14,6 +14,10 @@ pub mod local;
 pub mod smart_router;
 pub mod observability;
 pub mod pipeline;
+pub mod breaker;
+pub mod council;
+pub mod profiles;
+pub mod router;
 
 pub use ci_gate::{CiGateConfig, CiGateReport, CiGateRunner, RegressionSummary};
 pub use evaluation::{
@@ -27,6 +31,7 @@ pub use glm::GLMClient;
 pub use vertex::VertexTokenManager;
 pub use bedrock::BedrockClient;
 pub use pipeline::{PipelineConfig, LlmPipeline, MessageBuilder, KbContextManager, PromptManager};
+pub use router::{chat_with_fallback, RouteMeta};
 
 use async_trait::async_trait;
 use log::{info, trace, warn};

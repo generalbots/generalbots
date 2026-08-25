@@ -42,14 +42,6 @@ function vibeSafeEsc(text) {
     return d.innerHTML;
 }
 
-function vibeSafeVibe(status) {
-    if (typeof updateVibe1 === "function") updateVibe1(status);
-}
-
-function vibeSafeAgentCard(agentId, status, detail) {
-    if (typeof updateAgentCard === "function") updateAgentCard(agentId, status, detail);
-}
-
 function vibeSafeTaskNode(title, description, meta) {
     if (typeof addTaskNode === "function") addTaskNode(title, description, meta);
 }
@@ -226,26 +218,6 @@ function connectTaskProgressWs(taskId) {
             }
 
             if (
-                data.event_type === "agent_update" ||
-                data.step === "agent_update"
-            ) {
-                try {
-                    var info =
-                        typeof data.details === "string"
-                            ? JSON.parse(data.details)
-                            : data.details;
-                    if (info) {
-                        vibeSafeAgentCard(
-                            info.agent_id,
-                            info.status,
-                            info.detail,
-                        );
-                    }
-                } catch (ignore) { }
-                return;
-            }
-
-            if (
                 data.event_type === "task_node" ||
                 data.step === "task_node"
             ) {
@@ -303,7 +275,6 @@ function connectTaskProgressWs(taskId) {
                 data.event_type === "pipeline_complete" ||
                 data.step === "pipeline_complete"
             ) {
-                vibeSafeVibe("done");
                 vibeSafeMsg(
                     "system",
                     "✅ Pipeline complete — all stages finished",

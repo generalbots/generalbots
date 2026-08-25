@@ -10,6 +10,7 @@ pub mod feature_routers;
 pub mod org_handlers;
 pub mod product_handlers;
 pub mod unified_search;
+pub mod workspace_tabs;
 pub mod security_setup;
 pub mod sub_router;
 pub mod collab_ops;
