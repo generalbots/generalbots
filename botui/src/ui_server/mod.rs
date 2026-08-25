@@ -9,7 +9,9 @@ pub mod ws;
 
 pub use self::assets::serve_favicon;
 #[cfg(feature = "embed-ui")]
-pub use self::assets::{handle_embedded_asset, handle_embedded_root_asset};
+pub use self::assets::{
+    handle_embedded_asset, handle_embedded_root_asset, handle_site_root_asset,
+};
 pub use self::cloud::*;
 pub use self::constants::get_ui_root;
 pub use self::login::{serve_login_index, serve_login_signup, serve_login_js, serve_login_images};
@@ -29,7 +31,7 @@ use std::path::Path;
 use tower_http::services::{ServeDir, ServeFile};
 
 use crate::shared::AppState;
-use crate::ui_server::constants::ROOT_FILES;
+use crate::ui_server::constants::{ROOT_FILES, SITE_ROOT_FILES};
 #[cfg(not(feature = "embed-ui"))]
 use crate::ui_server::constants::SUITE_DIRS;
 
@@ -69,6 +71,9 @@ fn add_static_routes(router: Router<AppState>, _suite_path: &Path) -> Router<App
         for file in ROOT_FILES {
             r = r.route(&format!("/suite/{}", file), get(handle_embedded_root_asset));
         }
+        for file in SITE_ROOT_FILES {
+            r = r.route(&format!("/{}", file), get(handle_site_root_asset));
+        }
         r
     }
     #[cfg(not(feature = "embed-ui"))]
@@ -83,6 +88,12 @@ fn add_static_routes(router: Router<AppState>, _suite_path: &Path) -> Router<App
         for file in ROOT_FILES {
             let path = _suite_path.join(file);
             r = r.nest_service(&format!("/suite/{}", file), ServeFile::new(path));
+        }
+
+        let ui_root = get_ui_root();
+        for file in SITE_ROOT_FILES {
+            let path = ui_root.join(file);
+            r = r.nest_service(&format!("/{}", file), ServeFile::new(path));
         }
         r
     }

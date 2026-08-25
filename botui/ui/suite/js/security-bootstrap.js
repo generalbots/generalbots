@@ -358,10 +358,14 @@
         if (token && !event.detail.headers["Authorization"]) {
           event.detail.headers["Authorization"] = "Bearer " + token;
           console.log("[GBSecurity] Authorization header added");
-        } else {
+        } else if (!token) {
           console.warn(
             "[GBSecurity] NO TOKEN - request will be unauthenticated",
           );
+        } else {
+          // Token exists but the header is already attached (previous pass)
+          // — the request is authenticated, not anonymous.
+          console.log("[GBSecurity] Authorization header already present");
         }
         if (sessionId) {
           event.detail.headers["X-Session-ID"] = sessionId;

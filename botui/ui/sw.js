@@ -1,11 +1,11 @@
 /* GB Desktop offline shell (#1159).
  * Cache-first for the core desktop shell assets; network fallback for
  * everything else. Version bump invalidates the previous cache. */
-var CACHE = "gb-desktop-shell-v1";
+var CACHE = "gb-desktop-shell-v2";
 var CORE = [
   "/suite/desktop.html",
   "/suite/js/vendor/htmx.min.js",
-  "/suite/js/security-bootstrap.js?v=2",
+  "/suite/js/security-bootstrap.js?v=4",
   "/suite/js/window-manager.js?v=13",
   "/suite/js/widget-registry.js?v=2",
   "/suite/js/widget-renderer.js?v=2",
@@ -13,8 +13,22 @@ var CORE = [
   "/suite/css/desktop/widgets.css?v=1",
 ];
 
+// Install must never fail wholesale: `c.addAll` rejects if ANY core URL
+// 404s, which aborts the install, leaves a broken/stale worker active and
+// spams the console with "FetchEvent ... network error". Cache each file
+// individually and ignore per-file failures instead.
 self.addEventListener("install", function (e) {
-  e.waitUntil(caches.open(CACHE).then(function (c) { return c.addAll(CORE); }));
+  e.waitUntil(
+    caches.open(CACHE).then(function (c) {
+      return Promise.all(
+        CORE.map(function (url) {
+          return fetch(url, { cache: "no-cache" })
+            .then(function (resp) { return resp.ok ? c.put(url, resp) : null; })
+            .catch(function () { return null; });
+        })
+      );
+    })
+  );
   self.skipWaiting();
 });
 

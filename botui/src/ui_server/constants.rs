@@ -101,6 +101,11 @@ pub const SUITE_DIRS: &[&str] = &[
     "templates", "templates-app", "terminal", "timeclock", "vision",
     // AI OS apps (issues #1170-fe, #1178-fe)
     "automations", "memory",
+    // AI OS utility apps (embedded registry apps, always included)
+    "jukebox", "calculator", "notepad", "photos", "timer", "weather",
+    "recycle", "snapshot", "clock", "notes", "store", "concierge", "fraud",
+    // Desktop widget partials (widget-registry.js loads /suite/widgets/*)
+    "widgets",
 ];
 
 pub const ROOT_FILES: &[&str] = &[
@@ -118,6 +123,10 @@ pub const ROOT_FILES: &[&str] = &[
     "default.gbui",
     "single.gbui",
 ];
+
+// Site-root static assets (embedded at the `ui/` folder root, served at
+// `/` scope rather than `/suite/`): PWA manifest and offline shell worker.
+pub const SITE_ROOT_FILES: &[&str] = &["manifest.webmanifest", "sw.js"];
 
 pub fn get_ui_root() -> PathBuf {
     #[cfg(feature = "embed-ui")]
