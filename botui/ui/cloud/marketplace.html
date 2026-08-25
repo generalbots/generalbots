@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Skills Marketplace — General Bots Cloud</title>
+  <meta name="description" content="Browse and install community skill packages for your General Bots agents.">
+  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+  <style>
+    .mkt-hero {
+      text-align: center;
+      padding: 3rem 1rem 1.75rem;
+    }
+    .mkt-hero h1 {
+      margin: 0 0 .5rem;
+      font-size: 2rem;
+      font-weight: 900;
+      letter-spacing: -.03em;
+      color: var(--text);
+    }
+    .mkt-hero p { margin: 0 auto; max-width: 480px; color: var(--muted); font-size: .88rem; }
+    .mkt-search-wrap {
+      margin: 1.4rem auto 0;
+      max-width: 520px;
+      position: relative;
+    }
+    #mkt-search {
+      width: 100%;
+      box-sizing: border-box;
+      font-family: inherit;
+      font-size: .92rem;
+      padding: .8rem 1rem .8rem 2.6rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      outline: none;
+    }
+    #mkt-search:focus { border-color: var(--accent); box-shadow: var(--shadow-accent); }
+    .mkt-search-icon {
+      position: absolute; left: 1rem; top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    .mkt-tags { display: flex; justify-content: center; gap: .45rem; flex-wrap: wrap; padding: 1rem 1rem 0; }
+    .mkt-tag-chip {
+      font-family: inherit; font-size: .74rem; font-weight: 600;
+      padding: .32rem .8rem; border-radius: 999px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--muted); cursor: pointer; transition: all .15s;
+    }
+    .mkt-tag-chip.active, .mkt-tag-chip:hover {
+      background: var(--accent-dim); border-color: var(--border-hover); color: var(--text);
+    }
+
+    .mkt-main { max-width: 1100px; margin: 0 auto; padding: 1.25rem 1rem 3rem; width: 100%; }
+    .mkt-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+      gap: .9rem;
+    }
+    .mkt-card {
+      text-align: left;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      cursor: pointer;
+      display: flex; flex-direction: column; gap: .55rem;
+      transition: transform .15s, border-color .15s, box-shadow .15s;
+      font-family: inherit;
+    }
+    .mkt-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-hover);
+      box-shadow: var(--shadow);
+    }
+    .mkt-card-head { display: flex; align-items: center; gap: .7rem; }
+    .mkt-avatar {
+      width: 46px; height: 46px; flex-shrink: 0;
+      border-radius: var(--radius-sm);
+      background: var(--accent-dim);
+      color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.35rem; font-weight: 900;
+    }
+    .mkt-name { margin: 0; font-size: .92rem; font-weight: 700; color: var(--text); letter-spacing: -.01em; }
+    .mkt-publisher { font-size: .7rem; color: var(--muted); }
+    .mkt-desc {
+      font-size: .76rem; color: var(--muted); line-height: 1.45; margin: 0;
+      overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+    }
+    .mkt-card-foot { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap; margin-top: auto; }
+    .mkt-downloads { font-size: .68rem; color: var(--muted); font-weight: 600; margin-left: auto; }
+    .mkt-mini-tag {
+      font-size: .62rem; font-weight: 700; padding: .1rem .45rem;
+      border-radius: 999px; background: var(--accent-dim); color: var(--accent2);
+    }
+    .mkt-empty, .mkt-state { grid-column: 1 / -1; text-align: center; color: var(--muted); font-size: .84rem; padding: 2.5rem 0; }
+
+    .mkt-footer {
+      border-top: 1px solid var(--border);
+      padding: 1.25rem 1rem 2rem;
+      text-align: center;
+      font-size: .72rem;
+      color: var(--muted);
+    }
+    .mkt-footer a { color: var(--muted); margin: 0 .5rem; }
+
+    .mkt-modal { display: none; position: fixed; inset: 0; z-index: 1000; }
+    .mkt-modal.open { display: block; }
+    .mkt-backdrop { position: absolute; inset: 0; background: rgba(0,0,0,.55); }
+    .mkt-drawer {
+      position: relative;
+      margin: 5vh auto;
+      width: min(560px, calc(100vw - 2rem));
+      max-height: 88vh;
+      overflow-y: auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.4rem;
+    }
+    .mkt-close-x {
+      position: absolute; top: .7rem; right: .9rem;
+      background: none; border: none; font-size: 1.3rem;
+      color: var(--muted); cursor: pointer; line-height: 1;
+    }
+    .mkt-detail-head { display: flex; gap: .9rem; align-items: center; margin-bottom: .9rem; padding-right: 1.5rem; }
+    .mkt-avatar.lg { width: 58px; height: 58px; font-size: 1.7rem; }
+    .mkt-section-title {
+      font-size: .68rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: .06em; color: var(--muted); margin: 1rem 0 .4rem;
+    }
+    .mkt-perm-row { display: flex; align-items: center; gap: .55rem; font-size: .78rem; color: var(--text); padding: .28rem 0; }
+    .mkt-perm-row svg { color: var(--warn, #f59e0b); flex-shrink: 0; }
+    .mkt-shot {
+      width: 100%; aspect-ratio: 16/9; border-radius: var(--radius-sm);
+      background: var(--bg3); display: flex; align-items: center; justify-content: center;
+      color: var(--muted); font-size: .72rem; margin-bottom: .5rem;
+    }
+    .mkt-install-row { display: flex; gap: .6rem; align-items: stretch; margin-top: 1.25rem; }
+    #mkt-bot-select {
+      flex: 1; font-family: inherit; font-size: .82rem;
+      padding: .6rem .75rem; border-radius: var(--radius-sm);
+      border: 1px solid var(--border); background: var(--bg2); color: var(--text); outline: none;
+    }
+    #mkt-install-btn {
+      font-family: inherit; font-size: .84rem; font-weight: 700;
+      padding: .6rem 1.2rem; border-radius: var(--radius-sm);
+      border: none; background: var(--accent); color: #fff; cursor: pointer;
+    }
+    #mkt-install-btn:hover { filter: brightness(1.12); }
+    @media (max-width: 720px) {
+      .mkt-hero h1 { font-size: 1.5rem; }
+      .mkt-grid { grid-template-columns: 1fr; }
+      .mkt-install-row { flex-direction: column; }
+    }
+  </style>
+</head>
+<body class="mgmt-layout">
+<div class="mgmt-shell">
+
+  <!-- Sidebar injected by cloud.js -->
+
+  <main class="mgmt-main">
+    <div class="mgmt-topbar">
+      <span class="mgmt-page-title">Marketplace</span>
+    </div>
+
+    <section class="mkt-hero">
+      <h1>Skills Marketplace</h1>
+      <p>Community-built skill packages that extend your agents with new capabilities. Install into any of your bots with one click.</p>
+      <div class="mkt-search-wrap">
+        <svg class="mkt-search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="search" id="mkt-search" placeholder="Search skills…" aria-label="Search skills" />
+      </div>
+    </section>
+
+    <div class="mkt-tags" id="mkt-tags" role="group" aria-label="Filter by tag"></div>
+
+    <div class="mkt-main">
+      <div class="mkt-grid" id="mkt-grid" aria-live="polite">
+        <div class="mkt-state">Loading skills…</div>
+      </div>
+    </div>
+
+    <footer class="mkt-footer">
+      <span>General Bots Cloud · Skills Marketplace</span><br>
+      <a href="/store">Store</a>·<a href="/plans">Plans</a>·<a href="/dashboard">Dashboard</a>
+    </footer>
+  </main>
+</div>
+
+<div class="mkt-modal" id="mkt-modal" role="dialog" aria-modal="true" aria-labelledby="mkt-detail-name">
+  <div class="mkt-backdrop" data-mkt-close="1"></div>
+  <div class="mkt-drawer">
+    <button type="button" class="mkt-close-x" data-mkt-close="1" aria-label="Close">&times;</button>
+    <div id="mkt-detail-body"></div>
+    <div class="mkt-install-row">
+      <select id="mkt-bot-select" aria-label="Target bot for installation"></select>
+      <button type="button" id="mkt-install-btn">Install</button>
+    </div>
+  </div>
+</div>
+
+<div id="cloud-toast"></div>
+
+<script src="/cloud/js/cloud.js"></script>
+<script src="/cloud/js/marketplace.p1.js?v=1"></script>
+<script src="/cloud/js/marketplace.p2.js?v=1"></script>
+</body>
+</html>

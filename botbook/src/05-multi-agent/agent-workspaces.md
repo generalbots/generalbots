@@ -35,3 +35,12 @@ To prevent dependency collisions, protect the host operating system, and offer c
 5. On completion or failure, the container is forcibly stopped and deleted (`lxc delete --force`).
 
 This isolated environment gives agents the absolute freedom to execute package installations (like `npm install`), launch development servers, and write arbitrary code, entirely segregated from the primary `BotServer`.
+
+## Verified runtime (AI OS, Chapter 13)
+
+The executor described above now runs on the planner-executor-verifier engine
+(`botautomation` crate): plans are typed step graphs, execution is checkpointed
+per step into `agent_spans`, results are verified against the original goal
+with a bounded repair loop, and parallel forks merge automatically with
+conflict gates in chat. See [Chapter 13: AI OS](../13-ai-os/README.md) for the
+snapshot, consent and delivery integrations around this runtime.

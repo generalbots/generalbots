@@ -1,0 +1,383 @@
+/* chat.p6.css — workspace tabs (#1168), citation chips (#1175),
+   consent cards (#1176), agent mode status chip (#1167).
+   Tokens follow chat.p1.css conventions with static fallbacks. */
+
+/* ── Tab strip ── */
+
+.gb-tab-strip {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    padding: 6px 10px 0;
+    background: var(--surface2, var(--surface, #1e1e2e));
+    border-bottom: 1px solid var(--border, var(--border-color, #2a2a3a));
+    overflow-x: auto;
+    scrollbar-width: thin;
+}
+
+.gb-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 200px;
+    padding: 6px 8px;
+    border: 1px solid transparent;
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    color: var(--text-secondary, #888);
+    font-size: 12px;
+    line-height: 1;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.gb-tab:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text, #e5e5e5);
+}
+
+.gb-tab.active {
+    background: var(--bg, var(--surface, #1a1a24));
+    border-color: var(--border, var(--border-color, #2a2a3a));
+    color: var(--text, #e5e5e5);
+}
+
+.gb-tab.dragging {
+    opacity: 0.5;
+}
+
+.gb-tab-glyph {
+    font-size: 13px;
+    line-height: 1;
+}
+
+.gb-tab-title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 130px;
+}
+
+.gb-tab-rename {
+    width: 120px;
+    font-size: 12px;
+    padding: 2px 4px;
+    border: 1px solid var(--accent, #2563eb);
+    border-radius: 4px;
+    background: var(--bg, #fff);
+    color: var(--text, #111);
+    outline: none;
+}
+
+.gb-tab-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent, #2563eb);
+    display: none;
+    flex-shrink: 0;
+}
+
+.gb-tab.unread .gb-tab-dot {
+    display: inline-block;
+}
+
+.gb-tab-pin {
+    font-size: 9px;
+    line-height: 1;
+    display: none;
+}
+
+.gb-tab.pinned .gb-tab-pin {
+    display: inline-block;
+}
+
+.gb-tab-close {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 0 2px;
+    opacity: 0.5;
+}
+
+.gb-tab-close:hover {
+    opacity: 1;
+    color: var(--error, #ef4444);
+}
+
+.gb-tab-new {
+    align-self: center;
+    background: none;
+    border: 1px dashed var(--border, var(--border-color, #2a2a3a));
+    border-radius: 6px;
+    color: var(--text-secondary, #888);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 3px 9px;
+    margin-left: 2px;
+}
+
+.gb-tab-new:hover {
+    color: var(--accent, #2563eb);
+    border-color: var(--accent, #2563eb);
+}
+
+/* ── Context menus / picker ── */
+
+.gb-context-menu {
+    position: fixed;
+    z-index: 10050;
+    min-width: 150px;
+    background: var(--surface, var(--card, #1a1a24));
+    border: 1px solid var(--border, var(--border-color, #2a2a2a));
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    display: flex;
+    flex-direction: column;
+    padding: 4px;
+}
+
+.gb-context-menu button {
+    background: none;
+    border: none;
+    text-align: left;
+    color: var(--text, #e5e5e5);
+    font-size: 13px;
+    padding: 7px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.gb-context-menu button:hover {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.gb-tab-picker {
+    min-width: 240px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.gb-tab-picker-title,
+.gb-tab-picker-section {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--text-secondary, #888);
+    padding: 6px 10px 3px;
+}
+
+.gb-tab-picker-row {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.gb-tab-picker-glyph {
+    font-size: 13px;
+    line-height: 1;
+}
+
+.gb-tab-picker-empty {
+    color: var(--text-secondary, #888);
+    font-size: 12px;
+    padding: 8px 10px;
+}
+
+/* ── Citation site-chips ── */
+
+.source-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.source-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 220px;
+    padding: 3px 9px 3px 3px;
+    border-radius: 999px;
+    border: 1px solid var(--border, var(--border-color, #2a2a3a));
+    background: var(--surface2, var(--surface, #1e1e2e));
+    color: var(--text, #e5e5e5);
+    font-size: 11px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, transform 0.15s ease;
+}
+
+.source-chip:hover {
+    border-color: var(--accent, #2563eb);
+    transform: translateY(-1px);
+}
+
+.source-chip-avatar {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--accent, #2563eb);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.source-chip-host {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+sup.gb-cite-ref {
+    color: var(--accent, #2563eb);
+    cursor: pointer;
+    font-weight: 600;
+    margin: 0 1px;
+    user-select: none;
+}
+
+sup.gb-cite-ref:hover {
+    text-decoration: underline;
+}
+
+/* ── Consent cards ── */
+
+.gb-consent-card {
+    margin-top: 10px;
+    border: 1px solid var(--warning, #f59e0b);
+    border-radius: 10px;
+    background: var(--surface2, var(--surface, #1e1e2e));
+    padding: 12px;
+    font-size: 13px;
+}
+
+.gb-consent-card.resolved {
+    border-color: var(--border, var(--border-color, #2a2a3a));
+}
+
+.gb-consent-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+}
+
+.gb-consent-glyph {
+    font-size: 18px;
+    line-height: 1;
+}
+
+.gb-consent-title {
+    font-weight: 600;
+    color: var(--text, #e5e5e5);
+}
+
+.gb-consent-app {
+    font-size: 11px;
+    color: var(--text-secondary, #888);
+    letter-spacing: 0.03em;
+}
+
+.gb-consent-detail {
+    color: var(--text-secondary, #aaa);
+    margin-bottom: 10px;
+    white-space: pre-wrap;
+}
+
+.gb-consent-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.gb-consent-btn {
+    border: 1px solid var(--border, var(--border-color, #2a2a3a));
+    background: var(--surface, var(--card, #1a1a24));
+    color: var(--text, #e5e5e5);
+    border-radius: 7px;
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: filter 0.15s ease;
+}
+
+.gb-consent-btn:hover:not(:disabled) {
+    filter: brightness(1.2);
+}
+
+.gb-consent-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.gb-consent-btn.primary {
+    background: var(--accent, #2563eb);
+    border-color: var(--accent, #2563eb);
+    color: #fff;
+}
+
+.gb-consent-btn.danger {
+    border-color: var(--error, #ef4444);
+    color: var(--error, #ef4444);
+}
+
+.gb-consent-outcome {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text, #e5e5e5);
+}
+
+.gb-consent-outcome-time {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--text-secondary, #888);
+}
+
+/* ── Agent mode status chip (#1167) ── */
+
+#gb-agent-status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 1px solid var(--border, var(--border-color, #2a2a3a));
+    color: var(--text-secondary, #888);
+    background: var(--surface, var(--card, #1a1a24));
+    vertical-align: middle;
+}
+
+#gb-agent-status-chip.on {
+    border-color: var(--success, #22c55e);
+    color: var(--success, #22c55e);
+}
+
+/* AI OS local token fallbacks (map to suite theme tokens) */
+:root {
+  --surface2: var(--surface);
+  --bg2: var(--background, var(--bg));
+  --bg3: var(--bg-active, var(--surface));
+  --accent2: var(--accent-hover, var(--accent));
+  --accent-dim: color-mix(in srgb, var(--accent) 65%, transparent);
+  --err: #e5484d;
+  --ok: #30a46c;
+  --warn: #f5a524;
+}

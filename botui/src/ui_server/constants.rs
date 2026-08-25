@@ -99,6 +99,8 @@ pub const SUITE_DIRS: &[&str] = &[
     "integrations", "erp", "itsm", "kyc", "lists", "o365", "minutes",
     "plan", "plugins", "pos", "retail", "sales", "tax",
     "templates", "templates-app", "terminal", "timeclock", "vision",
+    // AI OS apps (issues #1170-fe, #1178-fe)
+    "automations", "memory",
 ];
 
 pub const ROOT_FILES: &[&str] = &[

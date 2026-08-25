@@ -69,6 +69,16 @@ learn = ["automation", "drive", "cache", "crawler", "dep:botlearn"]
 research = ["automation", "drive", "cache", "llm", "vectordb", "dep:botresearch"]
 sources = ["automation", "drive", "cache", "dep:botsources"]
 
+# ===== AI OS (issues #1167-#1179) =====
+agent-vm = ["automation", "cache", "dep:botagent"]
+automations = ["automation", "cache", "llm", "dep:botautomation"]
+marketplace = ["drive", "dep:botmarketplace"]
+connectors = ["automation", "cache", "rbac", "dep:botconnectors"]
+consent = ["dep:botconsent"]
+browser-policy = ["dep:botbrowserpolicy"]
+memory-os = ["llm", "dep:botmemory"]
+channel-bindings = ["dep:botchannelbindings"]
+
 # Analytics
 analytics = ["automation", "drive", "cache", "dep:botanalytics"]
 dashboards = ["automation", "drive", "cache", "dep:botdashboards"]
@@ -352,6 +362,16 @@ botsources = { workspace = true, optional = true }
 botpaper = { workspace = true, optional = true }
 bottasks = { workspace = true, optional = true }
 botwhatsapp = { workspace = true, optional = true }
+
+# === AI OS crates (issues #1167-#1179) ===
+botagent = { workspace = true, optional = true }
+botautomation = { workspace = true, optional = true }
+botbrowserpolicy = { workspace = true, optional = true }
+botchannelbindings = { workspace = true, optional = true }
+botconnectors = { workspace = true, optional = true }
+botconsent = { workspace = true, optional = true }
+botmarketplace = { workspace = true, optional = true }
+botmemory = { workspace = true, optional = true }
 
 botattendance = { workspace = true, optional = true }
 bottelegram = { workspace = true, optional = true }

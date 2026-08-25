@@ -753,13 +753,6 @@
             }
         }
         renderRunCard();
-        if (typeof updateVibe1 === "function") {
-            if (eventData.progress === 100 || /complete|done|evolved/i.test(step)) {
-                updateVibe1("done");
-            } else {
-                updateVibe1("working");
-            }
-        }
         if (String(step).indexOf("team:member:") === 0) {
             startTeamPolling();
         }

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Channel Bindings — General Bots Cloud</title>
+  <link rel="stylesheet" href="/cloud/css/cloud-layout.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-components.css">
+  <link rel="stylesheet" href="/cloud/css/cloud-forms-utilities.css">
+  <style>
+    .bindings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1.5rem; }
+    @media (max-width: 900px) { .bindings-grid { grid-template-columns: 1fr; } }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-size: .8rem; font-weight: 600; color: var(--text-muted); margin-bottom: .4rem; }
+    .form-group input, .form-group textarea, .form-group select {
+      width: 100%; padding: .55rem .75rem; border-radius: 6px; border: 1px solid var(--border);
+      background: var(--bg3); color: var(--text); font-size: .85rem; box-sizing: border-box;
+    }
+    .form-group input:focus, .form-group textarea:focus, .form-group select:focus { outline: none; border-color: var(--accent); }
+    .calls-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    .calls-table th, .calls-table td { padding: .6rem; border-bottom: 1px solid var(--border); text-align: left; font-size: .8rem; }
+    .calls-table th { font-weight: 700; color: var(--muted); }
+    .status-badge { font-family: monospace; background: var(--accent-dim); color: var(--accent2); padding: .15rem .45rem; border-radius: 4px; font-weight: 600; font-size: .72rem; }
+    #save-message { margin-top: .75rem; font-size: .85rem; min-height: 1.2em; }
+  </style>
+</head>
+<body class="mgmt-layout">
+<div class="mgmt-shell">
+
+  <main class="mgmt-main">
+    <div class="mgmt-topbar">
+      <span class="mgmt-page-title">Channel Bindings</span>
+      <div class="mgmt-topbar-actions"></div>
+    </div>
+
+    <div style="padding:2rem">
+      <div class="bindings-grid">
+
+        <!-- Bindings form -->
+        <div class="card">
+          <h2 style="font-size:1.1rem;margin-bottom:1rem">Default Channel Identities</h2>
+          <div class="form-group">
+            <label for="bot_id">Bot</label>
+            <select id="bot_id" required>
+              <option value="">Loading bots...</option>
+            </select>
+          </div>
+          <form id="bindings-form" onsubmit="handleSaveBindings(event)" style="display:none">
+            <div class="form-group">
+              <label for="phone_default">Default Phone Number</label>
+              <input type="text" id="phone_default" placeholder="+55 11 4000-0000" maxlength="40">
+            </div>
+            <div class="form-group">
+              <label for="whatsapp_number">WhatsApp Number</label>
+              <input type="text" id="whatsapp_number" placeholder="+55 11 90000-0000" maxlength="40">
+            </div>
+            <div class="form-group">
+              <label for="telegram_username">Telegram Username</label>
+              <input type="text" id="telegram_username" placeholder="@mybot" maxlength="80">
+            </div>
+            <div class="form-group">
+              <label for="domains">Domains (comma separated)</label>
+              <textarea id="domains" rows="2" placeholder="bot.example.com, chat.example.org"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%">Save Bindings</button>
+          </form>
+          <div id="save-message"></div>
+        </div>
+
+        <!-- Recent calls -->
+        <div class="card">
+          <h2 style="font-size:1.1rem;margin-bottom:1rem">Recent Calls</h2>
+          <div style="overflow-x:auto">
+            <table class="calls-table">
+              <thead>
+                <tr><th>Direction</th><th>From</th><th>To</th><th>Status</th><th>Duration</th><th>Date</th></tr>
+              </thead>
+              <tbody id="calls-table-body">
+                <tr><td colspan="6" style="text-align:center;color:var(--muted)">Select a bot.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<script src="/cloud/js/cloud.js"></script>
+<script>
+"use strict";
+(async function() {
+  const token = await requireAuth();
+  let bindingsCache = {};
+
+  async function loadBots() {
+    const select = document.getElementById('bot_id');
+    try {
+      const res = await fetch('/api/cloud/bots', { headers: { 'Authorization': `Bearer ${token}` } });
+      if (!res.ok) throw new Error('failed');
+      const data = await res.json();
+      const bots = data.bots || [];
+      select.innerHTML = bots.length
+        ? '<option value="">Select a bot...</option>' + bots.map(b => `<option value="${b.id}">${escapeHtml(b.name)}</option>`).join('')
+        : '<option value="">No bots available</option>';
+    } catch (e) {
+      select.innerHTML = '<option value="">Failed to load bots</option>';
+    }
+  }
+
+  async function loadBindings(botId) {
+    const form = document.getElementById('bindings-form');
+    const msg = document.getElementById('save-message');
+    msg.textContent = '';
+    if (!botId) { form.style.display = 'none'; return; }
+    try {
+      const res = await fetch(`/api/channels/${botId}/bindings`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (!res.ok) throw new Error('failed');
+      const data = await res.json();
+      const b = data.bindings || {};
+      document.getElementById('phone_default').value = b.phone_default || '';
+      document.getElementById('whatsapp_number').value = b.whatsapp_number || '';
+      document.getElementById('telegram_username').value = b.telegram_username || '';
+      document.getElementById('domains').value = (b.domains || []).join(', ');
+      form.style.display = 'block';
+      await loadCalls(botId);
+    } catch (e) {
+      msg.style.color = '#ef4444';
+      msg.textContent = 'Could not load current bindings.';
+    }
+  }
+
+  window.handleSaveBindings = async function(e) {
+    e.preventDefault();
+    const botId = document.getElementById('bot_id').value;
+    if (!botId) return;
+    const msg = document.getElementById('save-message');
+    msg.style.color = 'var(--muted)';
+    msg.textContent = 'Saving...';
+    const body = {
+      phone_default: document.getElementById('phone_default').value.trim() || null,
+      whatsapp_number: document.getElementById('whatsapp_number').value.trim() || null,
+      telegram_username: document.getElementById('telegram_username').value.trim() || null,
+      domains: document.getElementById('domains').value.split(',').map(d => d.trim()).filter(Boolean),
+    };
+    try {
+      const res = await fetch(`/api/channels/${botId}/bindings`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        msg.style.color = '#34d399';
+        msg.textContent = 'Bindings saved.';
+        showToast('Channel bindings saved.', 'success');
+      } else {
+        msg.style.color = '#ef4444';
+        msg.textContent = 'Save failed.';
+      }
+    } catch (err) {
+      msg.style.color = '#ef4444';
+      msg.textContent = 'Connection error while saving.';
+    }
+  };
+
+  async function loadCalls(botId) {
+    const tbody = document.getElementById('calls-table-body');
+    try {
+      const res = await fetch(`/api/channels/${botId}/calls`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (!res.ok) throw new Error('failed');
+      const data = await res.json();
+      const calls = data.calls || [];
+      if (!calls.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">No calls logged.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = calls.map(c => `<tr>
+        <td>${escapeHtml(c.direction)}</td>
+        <td>${escapeHtml(c.from_number || '-')}</td>
+        <td>${escapeHtml(c.to_number || '-')}</td>
+        <td><span class="status-badge">${escapeHtml(c.status)}</span></td>
+        <td>${c.duration_sec == null ? '-' : c.duration_sec + 's'}</td>
+        <td style="color:var(--muted)">${new Date(c.created_at).toLocaleString()}</td>
+      </tr>`).join('');
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Could not load calls.</td></tr>';
+    }
+  }
+
+  document.getElementById('bot_id').addEventListener('change', ev => loadBindings(ev.target.value));
+  await loadBots();
+})();
+</script>
+</body>
+</html>

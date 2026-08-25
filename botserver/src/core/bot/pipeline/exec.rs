@@ -29,6 +29,29 @@ pub async fn process_message_internal(
     text: &str,
 ) -> PipelineResult<()> {
     let parsed: serde_json::Value = serde_json::from_str(text).unwrap_or_default();
+
+    // Agent-mode switcher control frame (issue #1167). Consumed before the
+    // regular pipeline so it never reaches the LLM; ignored when the
+    // agent-vm feature is disabled at boot.
+    #[cfg(feature = "agent-vm")]
+    if parsed.get("type").and_then(|v| v.as_str()) == Some("agent_mode") {
+        if let Some(status) = crate::core::bot::agent_vm_hook::handle_frame(
+            &parsed, session_id, user_id, bot_uuid,
+        )
+        .await
+        {
+            let resp = botlib::models::BotResponse::new(
+                bot_uuid.to_string(),
+                session_id.to_string(),
+                user_id.to_string(),
+                &status,
+                sink.channel_type(),
+            );
+            let _ = sink.send_bot_response(&resp).await;
+            return Ok(());
+        }
+    }
+
     let mut user_text = parsed
         .get("text")
         .and_then(|v| v.as_str())
@@ -376,6 +399,14 @@ pub async fn process_message_internal(
     {
         log::warn!("ws_handler: inject_kb_context TIMEOUT after 30s for session {session_id}");
     }
+
+    #[cfg(feature = "memory-os")]
+    crate::core::bot::memory_hook::inject_recall(
+        state,
+        user_id,
+        &user_query,
+        &mut messages_val,
+    );
 
     // Mention system blocks land right before the user turn so the LLM sees
     // the advertised integration surface adjacent to the request it enables.
