@@ -136,8 +136,15 @@ pub async fn get_analytics(headers: HeaderMap) -> Result<Json<Vec<HandoffAnalyti
         #[diesel(sql_type = diesel::sql_types::Numeric)] satisfaction_avg: rust_decimal::Decimal,
     }
     let rows: Vec<Row> = diesel::sql_query(
-        "SELECT period, total_transfers, avg_wait_seconds, avg_handle_seconds, satisfaction_avg
-         FROM conversation_analytics WHERE branch_id = $1 ORDER BY period DESC LIMIT 100",
+        "SELECT to_char(date_trunc('day', a.started_at), 'YYYY-MM-DD') AS period,
+                COUNT(*)::BIGINT AS total_transfers,
+                COALESCE(AVG(EXTRACT(EPOCH FROM (a.ended_at - a.started_at)))::BIGINT, 0) AS avg_wait_seconds,
+                COALESCE(AVG(a.duration_seconds), 0)::BIGINT AS avg_handle_seconds,
+                COALESCE((SELECT AVG(r.rating) FROM conversation_ratings r WHERE r.branch_id = $1), 0)::NUMERIC AS satisfaction_avg
+         FROM conversation_analytics a
+         WHERE a.branch_id = $1
+         GROUP BY date_trunc('day', a.started_at)
+         ORDER BY period DESC LIMIT 100",
     )
     .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)

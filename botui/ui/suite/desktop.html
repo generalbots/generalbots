@@ -8,11 +8,27 @@
 
         <script>
             window.__BOT_IS_PUBLIC__ = false;
+            // Hide the shell from the very first paint: a private bot must
+            // never flash an empty desktop before the auth gate resolves.
+            document.documentElement.classList.add('gb-auth-gate');
             setTimeout(function() {
                 document.body.style.pointerEvents = 'auto';
                 document.body.style.overflow = 'auto';
             }, 8000);
         </script>
+
+        <!-- AUTH GATE: hide the shell until the bot public/auth check resolves.
+             Private bots redirect unauthenticated visitors before first paint
+             of the desktop — never show an empty shell. -->
+        <style>
+            html.gb-auth-gate body > * { visibility: hidden !important; }
+            html.gb-auth-gate::after {
+                content: '';
+                position: fixed;
+                inset: 0;
+                background: var(--bg, #0b0b12);
+            }
+        </style>
 
         <!-- Global & theme foundation -->
         <link rel="stylesheet" href="/suite/css/app.css" />
@@ -347,55 +363,77 @@
                 const botName = window.__INITIAL_BOT_NAME__ ||
                     (routeApp ? 'default' : routeName) || 'default';
 
-                // Check if bot is public → hide sidebar, maximize chat
-                // If private and not authenticated → redirect to login
-                (async () => {
-                    try {
-        
+                // AUTH GATE: a private bot (public=false) must NEVER render
+                // the desktop for unauthenticated visitors — not even an empty
+                // shell. The shell stays hidden until this gate resolves; on
+                // private+unauthenticated we redirect to login immediately.
+                var authDenied = false;
+                try {
 
-                        if (botName && botName !== 'default') {
-                            const resp = await fetch('/api/bot/public?bot_name=' + encodeURIComponent(botName) + '&_=' + Date.now());
-                            if (resp.ok) {
-                                const config = await resp.json();
-                                const isPub = config.is_public === 'true' || config.is_public === true;
-                                if (isPub) {
-                                    window.__BOT_IS_PUBLIC__ = true;
-                                    // Hide the management sidebar only for anonymous
-                                    // visitors; authenticated owners keep it (thin/large).
-                                    var isAuth = false;
+                    if (botName && botName !== 'default') {
+                        const resp = await fetch('/api/bot/public?bot_name=' + encodeURIComponent(botName) + '&_=' + Date.now());
+                        if (resp.ok) {
+                            const config = await resp.json();
+                            const isPub = config.is_public === 'true' || config.is_public === true;
+                            if (isPub) {
+                                window.__BOT_IS_PUBLIC__ = true;
+                                // Hide the management sidebar only for anonymous
+                                // visitors; authenticated owners keep it (thin/large).
+                                var isAuth = false;
+                                try {
+                                    isAuth = !!(window.getGBAccessToken && window.getGBAccessToken());
+                                } catch (e) {}
+                                if (!isAuth) {
                                     try {
-                                        isAuth = !!(window.getGBAccessToken && window.getGBAccessToken());
+                                        isAuth = !!(localStorage.getItem("gb-access-token") ||
+                                            sessionStorage.getItem("gb-access-token") ||
+                                            localStorage.getItem("management_token"));
                                     } catch (e) {}
-                                    if (!isAuth) {
-                                        try {
-                                            isAuth = !!(localStorage.getItem("gb-access-token") ||
-                                                sessionStorage.getItem("gb-access-token") ||
-                                                localStorage.getItem("management_token"));
-                                        } catch (e) {}
-                                    }
-                                    // Login redirects back with ?token=... before any
-                                    // storage exists yet — that counts as authenticated.
-                                    if (!isAuth) {
-                                        try {
-                                            isAuth = new URLSearchParams(window.location.search).has("token");
-                                        } catch (e) {}
-                                    }
-                                    const sidebar = document.getElementById('chatSidebar');
-                                    if (sidebar && !isAuth) sidebar.style.display = 'none';
-                                } else {
-                                    window.__BOT_IS_PUBLIC__ = false;
-                                    var isAuth = !!(window.getGBAccessToken && window.getGBAccessToken());
-                                    if (!isAuth) {
-                                        window.location.href = (window.GB_LOGIN_URL || '/login') + '?redirect=' + encodeURIComponent(window.location.href);
-                                        return;
-                                    }
+                                }
+                                // Login redirects back with ?token=... before any
+                                // storage exists yet — that counts as authenticated.
+                                if (!isAuth) {
+                                    try {
+                                        isAuth = new URLSearchParams(window.location.search).has("token");
+                                    } catch (e) {}
+                                }
+                                const sidebar = document.getElementById('chatSidebar');
+                                if (sidebar && !isAuth) sidebar.style.display = 'none';
+                            } else {
+                                window.__BOT_IS_PUBLIC__ = false;
+                                var isAuthPriv = !!(window.getGBAccessToken && window.getGBAccessToken());
+                                if (!isAuthPriv) {
+                                    try {
+                                        isAuthPriv = !!(localStorage.getItem("gb-access-token") ||
+                                            sessionStorage.getItem("gb-access-token") ||
+                                            localStorage.getItem("management_token")) ||
+                                            new URLSearchParams(window.location.search).has("token");
+                                    } catch (e) {}
+                                }
+                                if (!isAuthPriv) {
+                                    authDenied = true;
+                                    window.location.href = (window.GB_LOGIN_URL || '/login') + '?redirect=' + encodeURIComponent(window.location.href);
                                 }
                             }
+                        } else {
+                            // Cannot verify public status → fail closed: the
+                            // desktop must not render for unverified bots.
+                            console.warn('Bot public-status check failed (HTTP ' + resp.status + ') — requiring authentication');
+                            authDenied = true;
+                            window.location.href = (window.GB_LOGIN_URL || '/login') + '?redirect=' + encodeURIComponent(window.location.href);
                         }
-                    } catch (e) {
-                        console.warn('Failed to check bot public status:', e);
                     }
-                })();
+                } catch (e) {
+                    console.warn('Failed to check bot public status:', e);
+                    // Fail closed on network errors too — never expose the
+                    // desktop of an unverifiable bot address.
+                    authDenied = true;
+                    window.location.href = (window.GB_LOGIN_URL || '/login') + '?redirect=' + encodeURIComponent(window.location.href);
+                }
+                if (authDenied) {
+                    return; // keep shell hidden; browser navigates to login
+                }
+                document.documentElement.classList.remove('gb-auth-gate');
                 
                 // Open a routed suite app inside the desktop shell; bot routes
                 // continue to open Chat as before.

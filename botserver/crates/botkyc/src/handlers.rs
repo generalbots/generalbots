@@ -63,25 +63,33 @@ pub async fn list_verifications(headers: HeaderMap) -> Result<Json<Vec<Verificat
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
-        #[diesel(sql_type = diesel::sql_types::Uuid)] user_id: Uuid,
-        #[diesel(sql_type = diesel::sql_types::Text)] kind: String,
+        #[diesel(sql_type = diesel::sql_types::Uuid)] profile_id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Text)] workflow_name: String,
         #[diesel(sql_type = diesel::sql_types::Text)] status: String,
-        #[diesel(sql_type = diesel::sql_types::Jsonb)] documents: serde_json::Value,
-        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)] reviewed_by: Option<Uuid>,
-        #[diesel(sql_type = diesel::sql_types::Timestamptz)] created_at: chrono::DateTime<Utc>,
+        #[diesel(sql_type = diesel::sql_types::Jsonb)] steps_completed: serde_json::Value,
+        #[diesel(sql_type = diesel::sql_types::Timestamptz)] started_at: chrono::DateTime<Utc>,
         #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)] completed_at: Option<chrono::DateTime<Utc>>,
     }
     let rows: Vec<Row> = diesel::sql_query(
-        "SELECT id, user_id, kind, status, documents, reviewed_by, created_at, completed_at
-         FROM identity_kyc_workflows WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
+        "SELECT id, profile_id, workflow_name, status, steps_completed, started_at, completed_at
+         FROM identity_kyc_workflows WHERE branch_id = $1 ORDER BY started_at DESC LIMIT 500",
     )
     .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| Verification {
-        id: r.id, user_id: r.user_id, kind: r.kind, status: r.status,
-        documents: r.documents.as_array().map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect()).unwrap_or_default(),
-        reviewed_by: r.reviewed_by, created_at: r.created_at, completed_at: r.completed_at,
+        id: r.id,
+        user_id: r.profile_id,
+        kind: r.workflow_name,
+        status: r.status,
+        documents: r
+            .steps_completed
+            .as_array()
+            .map(|a| a.iter().filter_map(|v| v.as_str().map(String::from)).collect())
+            .unwrap_or_default(),
+        reviewed_by: None,
+        created_at: r.started_at,
+        completed_at: r.completed_at,
     }).collect()))
 }
 
@@ -101,16 +109,10 @@ pub async fn update_verification(
     } else {
         None
     };
-    let docs_json = req.documents.as_ref()
-        .map(|d| serde_json::to_value(d).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Serialize: {e}"))))
-        .transpose()?
-        .unwrap_or(serde_json::json!([]));
     let n = diesel::sql_query(
-        "UPDATE identity_kyc_workflows SET status = $1, reviewed_by = $2, documents = $3, completed_at = COALESCE($4, completed_at) WHERE id = $5 AND branch_id = $6",
+        "UPDATE identity_kyc_workflows SET status = $1, completed_at = COALESCE($2, completed_at) WHERE id = $3 AND branch_id = $4",
     )
     .bind::<diesel::sql_types::Text, _>(&req.status)
-    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(req.reviewed_by)
-    .bind::<diesel::sql_types::Jsonb, _>(&docs_json)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>, _>(completed_at)
     .bind::<diesel::sql_types::Uuid, _>(parsed)
     .bind::<diesel::sql_types::Uuid, _>(branch)
@@ -133,22 +135,24 @@ pub async fn list_signatures(headers: HeaderMap) -> Result<Json<Vec<Signature>>,
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
         #[diesel(sql_type = diesel::sql_types::Uuid)] document_id: Uuid,
-        #[diesel(sql_type = diesel::sql_types::Text)] signer_name: String,
-        #[diesel(sql_type = diesel::sql_types::Text)] signer_email: String,
-        #[diesel(sql_type = diesel::sql_types::Text)] status: String,
-        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)] signed_at: Option<chrono::DateTime<Utc>>,
-        #[diesel(sql_type = diesel::sql_types::Timestamptz)] created_at: chrono::DateTime<Utc>,
+        #[diesel(sql_type = diesel::sql_types::Text)] signature_data: String,
+        #[diesel(sql_type = diesel::sql_types::Timestamptz)] signed_at: chrono::DateTime<Utc>,
     }
     let rows: Vec<Row> = diesel::sql_query(
-        "SELECT id, document_id, signer_name, signer_email, status, signed_at, created_at
-         FROM identity_signatures WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
+        "SELECT id, document_id, signature_data, signed_at
+         FROM identity_signatures WHERE branch_id = $1 ORDER BY signed_at DESC LIMIT 500",
     )
     .bind::<diesel::sql_types::Uuid, _>(branch)
     .load(&mut conn)
     .map_err(db::map_diesel_err)?;
     Ok(Json(rows.into_iter().map(|r| Signature {
-        id: r.id, document_id: r.document_id, signer_name: r.signer_name, signer_email: r.signer_email,
-        status: r.status, signed_at: r.signed_at, created_at: r.created_at,
+        id: r.id,
+        document_id: r.document_id,
+        signer_name: r.signature_data,
+        signer_email: String::new(),
+        status: "signed".to_string(),
+        signed_at: Some(r.signed_at),
+        created_at: r.signed_at,
     }).collect()))
 }
 
@@ -161,7 +165,7 @@ pub async fn sign_document(headers: HeaderMap, Path(id): Path<String>) -> Result
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
     let now = Utc::now();
     let n = diesel::sql_query(
-        "UPDATE identity_signatures SET status = 'signed', signed_at = $1 WHERE id = $2 AND branch_id = $3",
+        "UPDATE identity_signatures SET signed_at = $1 WHERE id = $2 AND branch_id = $3",
     )
     .bind::<diesel::sql_types::Timestamptz, _>(now)
     .bind::<diesel::sql_types::Uuid, _>(parsed)
@@ -182,6 +186,21 @@ pub async fn list_certificates(headers: HeaderMap) -> Result<Json<Vec<Certificat
     let branch = resolve_branch(&headers);
     let pool = db::pool()?;
     let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    // The identity_certificates table is not created by any migration yet,
+    // so guard with to_regclass and return an empty list instead of 500ing.
+    #[derive(diesel::QueryableByName)]
+    struct RegRow {
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+        exists: Option<String>,
+    }
+    let rows: Vec<RegRow> = diesel::sql_query(
+        "SELECT to_regclass('public.identity_certificates')::text AS exists",
+    )
+    .load(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    if rows.is_empty() || rows[0].exists.is_none() {
+        return Ok(Json(Vec::<Certificate>::new()));
+    }
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,

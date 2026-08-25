@@ -1,4 +1,5 @@
-<link rel="stylesheet" href="/suite/tools/tools.css" />
+<link rel="stylesheet" href="/suite/tools/tools.p1.css?v=1" />
+<link rel="stylesheet" href="/suite/tools/tools.p2.css?v=1" />
 
 <div class="gb-app compliance-container" id="compliance-app" data-gb-app="compliance">
     
@@ -7,11 +8,9 @@
     <header class="compliance-header">
         <div class="compliance-header-left">
             <a
-                href="#home"
+                href="#tools"
                 class="compliance-back-btn"
-                hx-get="/home.html"
-                hx-target="#main-content"
-                hx-push-url="true"
+                onclick="event.preventDefault(); window.WindowManager && window.WindowManager.launchFromMenu('tools', 'Tools', '/suite/tools/tools.html')"
             >
                 <svg
                     width="20"

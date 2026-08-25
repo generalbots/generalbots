@@ -56,11 +56,15 @@
         <p>Utility toolkit: search, reindex, security and compliance.</p>
     </div>
     <div class="tools-grid">
-        <a class="tool-card" href="/suite/tools/security.html" data-i18n="tools-security">
+        <!-- Cards open as desktop app windows (never raw HTML navigation —
+             fragments require the desktop shell bootstrap). -->
+        <a class="tool-card" href="#tools-security" data-i18n="tools-security"
+           onclick="event.preventDefault(); window.WindowManager && window.WindowManager.launchFromMenu('tools-security', 'Security', '/suite/tools/security.html')">
             <h3>Security</h3>
             <p>Security settings and audit configuration.</p>
         </a>
-        <a class="tool-card" href="/suite/tools/compliance.html" data-i18n="tools-compliance">
+        <a class="tool-card" href="#tools-compliance" data-i18n="tools-compliance"
+           onclick="event.preventDefault(); window.WindowManager && window.WindowManager.launchFromMenu('tools-compliance', 'Compliance', '/suite/tools/compliance.html')">
             <h3>Compliance</h3>
             <p>Compliance checks, issues and training.</p>
         </a>
