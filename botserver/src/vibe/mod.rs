@@ -109,6 +109,36 @@ pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
         Err(e) => log::error!("Vibe: ensure vm_instances schema failed: {e}"),
     }
 
+    // #1181/#1167 — Agent VM idle reaper + expiry sweep. Runs once at boot
+    // (expiry sweep for orphaned VMs from crashed runs) and then every 10
+    // minutes: stops VMs idle > 30 min, deletes VMs older than 7 days.
+    {
+        let lifecycle = vm_lifecycle.clone();
+        tokio::spawn(async move {
+            let idle_secs: i64 = std::env::var("GB_VIBE_VM_IDLE_SECS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(30 * 60);
+            let max_age_secs: i64 = std::env::var("GB_VIBE_VM_MAX_AGE_SECS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(7 * 24 * 3600);
+            let run = |label: &str| match lifecycle.reap(idle_secs, max_age_secs) {
+                Ok(reaped) if !reaped.is_empty() => {
+                    info!("Vibe VM reaper ({label}): {}", reaped.join(", "));
+                }
+                Ok(_) => {}
+                Err(e) => log::error!("Vibe VM reaper ({label}) failed: {e}"),
+            };
+            run("boot sweep");
+            let mut tick = tokio::time::interval(std::time::Duration::from_secs(600));
+            loop {
+                tick.tick().await;
+                run("periodic");
+            }
+        });
+    }
+
     let domain_binds = Arc::new(ProjectDomains::new(app_state.conn.clone()));
     match domain_binds.ensure_schema() {
         Ok(()) => info!("Vibe: project_domains schema ensured"),
@@ -161,6 +191,62 @@ pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
         Err(e) => log::error!("Vibe: ensure project_members schema failed: {e}"),
     }
 
+    // AI-OS wave (#1171/#1172/#1173/#1175/#1182/#1185): in-memory run
+    // stores (same model as the pre-#816 canvases/issues) exposed through
+    // the routers merged above.
+    let planner = Arc::new(botvibe::PlannerExecutor::new());
+    let agents = Arc::new(botvibe::AgentRegistry::new());
+    let moa = Arc::new(botvibe::MoaEngine::new());
+    let browser_memory = Arc::new(botvibe::BrowserMemory::new());
+    let browser_driver = Arc::new(botvibe::BrowserDriver::new());
+
+    // #1185 — Proactivity scheduler. Seeds a couple of consented demo
+    // triggers, then ticks every 60s emitting suggestion cards that the
+    // desktop Notification Center polls via /api/vibe/proactivity/cards.
+    let proactivity = Arc::new(botvibe::ProactivityEngine::new());
+    {
+        use botvibe::proactivity::RegisterTriggerRequest;
+        let seeds = [
+            RegisterTriggerRequest {
+                category: "daily-briefing".to_string(),
+                description: "Morning summary of open projects and runs".to_string(),
+                interval_secs: 3600,
+                consent_required: true,
+                consented: true,
+            },
+            RegisterTriggerRequest {
+                category: "vm-health".to_string(),
+                description: "Idle or over-budget VMs reminder".to_string(),
+                interval_secs: 1800,
+                consent_required: true,
+                consented: false,
+            },
+        ];
+        for seed in seeds {
+            let trigger = proactivity.register(&seed).await;
+            info!("Vibe proactivity: seeded trigger '{category}'", category = trigger.category);
+        }
+    }
+    {
+        let engine = proactivity.clone();
+        tokio::spawn(async move {
+            let mut ticker = tokio::time::interval(std::time::Duration::from_secs(60));
+            loop {
+                ticker.tick().await;
+                let emit = |t: &botvibe::proactivity::TriggerDef| {
+                    Some(format!(
+                        "{} — {}",
+                        t.category, t.description
+                    ))
+                };
+                match engine.tick(&emit).await {
+                    0 => {}
+                    n => info!("Vibe proactivity: emitted {n} suggestion card(s)"),
+                }
+            }
+        });
+    }
+
     let metering = Arc::new(VMetering::new(app_state.conn.clone()));
     match metering.ensure_schema() {
         Ok(()) => info!("Vibe: vm_metering schema ensured"),
@@ -193,6 +279,7 @@ pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
             metering.clone(),
         ))
         .merge(domains_router(domain_binds, project_rbac.clone(), metering.clone()))
+        .merge(botvibe::publish::publish_router(app_state.conn.clone()))
         .merge(botvibe::domain_auth::domain_auth_router(app_state.conn.clone()))
         .merge(members_router(project_rbac.clone()))
         .merge(metering_router(metering.clone(), project_rbac.clone()))
@@ -227,4 +314,13 @@ pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
             permissions: permissions.clone(),
             skills: skills.clone(),
         }))
+        // AI-OS wave (#1171/#1172/#1173/#1175/#1182/#1185): planner,
+        // agent API, mixture-of-agents, browsing memory, browser driver
+        // and proactivity scheduler — all mounted under /api/vibe/**.
+        .merge(botvibe::planner_router(planner))
+        .merge(botvibe::agents_router(agents))
+        .merge(botvibe::moa_router(moa))
+        .merge(botvibe::browser_memory_router(browser_memory))
+        .merge(botvibe::browser_driver_router(browser_driver))
+        .merge(botvibe::proactivity_router(proactivity))
 }

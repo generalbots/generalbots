@@ -11,6 +11,13 @@
             <button class="term-tab-add" id="btn-add-tab" title="New tab">+</button>
         </div>
         <div class="term-actions">
+            <label class="term-vm-picker" title="Exec into a project VM (Incus container) or the host shell">
+                <span class="term-vm-label">VM:</span>
+                <select id="termVmSelect">
+                    <option value="">Default (host shell)</option>
+                    <option value="__loading__" disabled>Loading VMs…</option>
+                </select>
+            </label>
             <button class="term-action-btn" onclick="GBTerminal.clearCurrent()" title="Clear">Clear</button>
             <button class="term-action-btn" onclick="GBTerminal.find()" title="Find (Ctrl+Shift+F)">Find</button>
         </div>

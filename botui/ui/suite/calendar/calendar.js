@@ -397,4 +397,15 @@
             drawEventsDay();
         }
     }
+
+    // Expose the core functions so calendar-more.js (loaded after) can
+    // extend the module instead of re-declaring them from an empty scope.
+    window.CalendarModule = {
+        init: init,
+        navigate: navigate,
+        renderCurrentView: renderCurrentView,
+        loadEvents: loadEvents,
+        drawEvents: drawEvents,
+        showEventPopup: showEventPopup
+    };
 })();

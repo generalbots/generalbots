@@ -382,3 +382,21 @@ body.window-maximized .window-element {
 .window-status-bar .status-item {
   cursor: help;
 }
+
+/* Floating confirm/prompt tool windows (VB6-style, no native modals). */
+.gb-confirm-floating { padding: 0.9rem 1rem 1.1rem; font-family: system-ui, sans-serif; min-width: 300px; }
+.gb-confirm-floating p { margin: 0 0 0.85rem; font-size: 0.85rem; line-height: 1.5; }
+.gb-prompt-input { width: 100%; box-sizing: border-box; padding: 0.45rem 0.6rem; border: 1px solid var(--gb-border, #cbd5e1); border-radius: 5px; font-size: 0.85rem; margin-bottom: 0.85rem; }
+.gb-confirm-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+.gb-confirm-btn { padding: 0.4rem 0.9rem; border: 1px solid var(--gb-border, #cbd5e1); border-radius: 5px; background: var(--gb-surface, #fff); color: inherit; cursor: pointer; font-size: 0.8rem; }
+.gb-confirm-btn.primary { background: var(--gb-accent, #2563eb); border-color: var(--gb-accent, #2563eb); color: #fff; }
+
+/* Workspace tabs (#1168): browser-style persistent tab bar. */
+.gb-workspace-tabbar { display: flex; align-items: flex-end; gap: 2px; padding: 4px 6px 0; background: var(--gb-surface-alt, #eef1f5); border-bottom: 1px solid var(--gb-border, #d5dbe3); min-height: 34px; }
+.gb-ws-tab { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.7rem; border: 1px solid var(--gb-border, #cbd5e1); border-bottom: none; border-radius: 6px 6px 0 0; background: var(--gb-surface, #f8fafc); cursor: pointer; font-size: 0.78rem; max-width: 180px; }
+.gb-ws-tab.active { background: var(--gb-surface, #fff); font-weight: 600; box-shadow: 0 -1px 3px rgba(0,0,0,.06); }
+.gb-ws-tab-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gb-ws-tab-x { color: var(--gb-text-dim, #94a3b8); font-weight: 700; padding: 0 2px; }
+.gb-ws-tab-x:hover { color: #dc2626; }
+.gb-ws-tab-add { border: 1px dashed var(--gb-border, #cbd5e1); background: transparent; border-radius: 4px; cursor: pointer; padding: 0 0.5rem; font-size: 0.9rem; margin-bottom: 3px; color: var(--gb-text-dim, #64748b); }
+.gb-ws-tab-add:hover { color: var(--gb-accent, #2563eb); border-color: var(--gb-accent, #2563eb); }

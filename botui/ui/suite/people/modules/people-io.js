@@ -5,6 +5,13 @@
     const state = scope.state;
     const API_BASE = scope.API_BASE;
     const loadContacts = scope.loadContacts;
+    const showContact = scope.showContact;
+    const openAddContact = scope.openAddContact;
+    const editContact = scope.editContact;
+    const closeContactPanel = scope.closeContactPanel;
+    const closeModal = scope.closeModal;
+    const saveContact = scope.saveContact;
+    const deleteContact = scope.deleteContact;
 
         window.exportCsv = function() {
             const rows = state.contacts.map((c) => [

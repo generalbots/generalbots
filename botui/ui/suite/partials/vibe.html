@@ -5,6 +5,7 @@
 <link rel="stylesheet" href="/suite/vibe/vibe-dialogs.p1.css?v=1" />
 <link rel="stylesheet" href="/suite/vibe/vibe-dialogs.p2.css?v=1" />
 <link rel="stylesheet" href="/suite/vibe/vibe-run.css?v=9" />
+<link rel="stylesheet" href="/suite/vibe/vibe-windows.css?v=1" />
 <link rel="stylesheet" href="/suite/vibe/vibe-shell/90_shell.css?v=2" />
 
 <div class="vibe-container gb-app" id="vibeWindow" data-gb-app="vibe">
@@ -19,6 +20,12 @@
 <button class="vibe-ribbon-tab" data-stage="deploy">DEPLOY</button>
 <button class="vibe-ribbon-tab" data-stage="monitor">MONITOR</button>
 <span class="vibe-ribbon-spacer"></span>
+<!-- VB6-style transport: ▶ Run / ⏸ Pause / ■ Stop drive the active run. -->
+<span class="vibe-transport" id="vibeTransport">
+<button type="button" class="vibe-transport-btn run" id="vibeRunBtn" title="Run the current prompt (F5)" onclick="window.VibeTransport && window.VibeTransport.play()">▶</button>
+<button type="button" class="vibe-transport-btn pause" id="vibePauseBtn" title="Pause at the next checkpoint" onclick="window.VibeTransport && window.VibeTransport.pause()">⏸</button>
+<button type="button" class="vibe-transport-btn stop" id="vibeStopBtn" title="Stop the run" onclick="window.VibeTransport && window.VibeTransport.stop()">■</button>
+</span>
 <span class="vibe-ribbon-status" id="vibeRibbonStatus"></span>
 </div>
 <div class="vibe-ribbon-panel">
@@ -30,10 +37,13 @@
 </div>
 <div class="vibe-ribbon-group" data-group="build">
 <button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('code', 'Code Editor')"><span class="rc-icon">💻</span><span class="rc-label">Code Editor</span></button>
-<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('terminal', 'Terminal')"><span class="rc-icon">⌨️</span><span class="rc-label">Terminal</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.openDeepLink('terminal', { project: (typeof currentProjectId !== 'undefined' && currentProjectId) || '' })"><span class="rc-icon">⌨️</span><span class="rc-label">Terminal</span></button>
 <button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('browser', 'Browser')"><span class="rc-icon">🌐</span><span class="rc-label">Browser</span></button>
 <button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('git', 'Source Control')"><span class="rc-icon">🌱</span><span class="rc-label">Source Control</span></button>
 <button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('db', 'Database')"><span class="rc-icon">🗄️</span><span class="rc-label">Database</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeWindows && window.VibeWindows.openRunDock()"><span class="rc-icon">🎛️</span><span class="rc-label">Run Dock</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeWindows && window.VibeWindows.openAssistant()"><span class="rc-icon">💬</span><span class="rc-label">Assistant</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeWindows && window.VibeWindows.openCanvas()"><span class="rc-icon">🖼️</span><span class="rc-label">Canvas</span></button>
 </div>
 <div class="vibe-ribbon-group" data-group="review">
 <button class="vibe-ribbon-cmd" onclick="window.VibeRun && window.VibeRun.approve()"><span class="rc-icon">✓</span><span class="rc-label">Approve &amp; Resume</span></button>
@@ -284,7 +294,13 @@ font-family: &quot;Fira Code&quot;, monospace;
 
 <!-- Run dock host is a sibling of the canvas (NOT inside it) so its
      bottom/right anchors to the vibe window, not the scrollable canvas. -->
-<div id="vibeRunDockHost" hx-get="/suite/partials/vibe-run-panel.html?v=3" hx-trigger="load"></div>
+<div id="vibeRunDockHost"></div>
+
+<!-- #1190 animated execution overlay: shown while a run is executing. -->
+<div id="vibeExecOverlay" class="vibe-exec-overlay hidden" style="display:none">
+<div class="vibe-exec-ring"></div>
+<span class="vibe-exec-label">AGENT EXECUTING…</span>
+</div>
 
 <!-- Vibe Chat Overlay -->
 <div id="vibeChatOverlay" style="
@@ -475,7 +491,9 @@ border: none;
 </div>
 
 <script src="/suite/vibe/vibe-state.js?v=5"></script>
-<script src="/suite/vibe/vibe-helpers.js?v=6"></script>
+<script src="/suite/vibe/vibe-windows.js?v=1"></script>
+<script src="/suite/vibe/vibe-broadcast.js?v=1"></script>
+<script src="/suite/vibe/vibe-helpers.js?v=7"></script>
 <script src="/suite/vibe/vibe-canvas.js?v=6"></script>
 <script src="/suite/vibe/vibe-agents.js?v=7"></script>
 <script src="/suite/vibe/vibe-websocket.js?v=6"></script>

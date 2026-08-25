@@ -106,65 +106,77 @@ fn git_pr() -> ToolHandler {
             let head = str_arg(&args, "head");
             let base = str_arg(&args, "base");
             let body = str_arg(&args, "body");
-            if title.is_empty() || head.is_empty() {
-                return err("title and head are required".into());
-            }
-            let base = if base.is_empty() { "main".to_string() } else { base };
-
-            let cwd = match ensure_workspace(&project) {
-                Ok(p) => p,
-                Err(e) => return err(e),
-            };
-            let remote_out = match run("git", &["remote".to_string(), "get-url".to_string(), "origin".to_string()], &cwd, 30) {
-                Ok(out) if out.exit_code == Some(0) => out.stdout.trim().to_string(),
-                _ => return err("no origin remote configured".into()),
-            };
-            let (owner, repo) = match parse_forgejo_repo(&remote_out) {
-                Some(pair) => pair,
-                None => return err(format!("cannot determine owner/repo from remote: {remote_out}")),
-            };
-
-            let (forgejo_url, forgejo_token, _org) = botcoresecrets::alm_config();
-            let token = if forgejo_token.is_empty() {
-                return err("FORGEJO_TOKEN is not configured (vault secret/gbo/alm)".into());
-            } else {
-                forgejo_token
-            };
-
-            let endpoint = format!(
-                "{}/api/v1/repos/{}/{}/pulls",
-                forgejo_url.trim_end_matches('/'),
-                owner,
-                repo
-            );
-            let payload = json!({
-                "title": title,
-                "head": head,
-                "base": base,
-                "body": body,
-            });
-
-            let client = reqwest::Client::new();
-            match client
-                .post(&endpoint)
-                .header("Authorization", format!("token {token}"))
-                .header("Content-Type", "application/json")
-                .json(&payload)
-                .send()
-                .await
-            {
-                Ok(resp) if resp.status().is_success() => {
-                    let json_resp = resp.json::<Value>().await.unwrap_or(json!({}));
-                    ok(json!({
-                        "pr_number": json_resp.get("number").cloned().unwrap_or(Value::Null),
-                        "url": json_resp.get("html_url").cloned().unwrap_or(Value::Null),
-                    }))
-                }
-                Ok(resp) => err(format!("Forgejo returned status {}", resp.status())),
-                Err(e) => err(format!("Forgejo request failed: {e}")),
-            }
+            create_pull_request(&project, &title, &head, &base, &body).await
         })
     })
+}
+
+/// Shared PR creation used by the `git/pr` tool and the external REST route
+/// `POST /api/vibe/projects/:id/git/pr` (#1187).
+pub async fn create_pull_request(
+    project: &str,
+    title: &str,
+    head: &str,
+    base: &str,
+    body: &str,
+) -> VibeToolResult {
+    if title.is_empty() || head.is_empty() {
+        return err("title and head are required".into());
+    }
+    let base = if base.is_empty() { "main".to_string() } else { base.to_string() };
+
+    let cwd = match ensure_workspace(project) {
+        Ok(p) => p,
+        Err(e) => return err(e),
+    };
+    let remote_out = match run("git", &["remote".to_string(), "get-url".to_string(), "origin".to_string()], &cwd, 30) {
+        Ok(out) if out.exit_code == Some(0) => out.stdout.trim().to_string(),
+        _ => return err("no origin remote configured".into()),
+    };
+    let (owner, repo) = match parse_forgejo_repo(&remote_out) {
+        Some(pair) => pair,
+        None => return err(format!("cannot determine owner/repo from remote: {remote_out}")),
+    };
+
+    let (forgejo_url, forgejo_token, _org) = botcoresecrets::alm_config();
+    let token = if forgejo_token.is_empty() {
+        return err("FORGEJO_TOKEN is not configured (vault secret/gbo/alm)".into());
+    } else {
+        forgejo_token
+    };
+
+    let endpoint = format!(
+        "{}/api/v1/repos/{}/{}/pulls",
+        forgejo_url.trim_end_matches('/'),
+        owner,
+        repo
+    );
+    let payload = json!({
+        "title": title,
+        "head": head,
+        "base": base,
+        "body": body,
+    });
+
+    let client = reqwest::Client::new();
+    match client
+        .post(&endpoint)
+        .header("Authorization", format!("token {token}"))
+        .header("Content-Type", "application/json")
+        .json(&payload)
+        .send()
+        .await
+    {
+        Ok(resp) if resp.status().is_success() => {
+            let json_resp = resp.json::<Value>().await.unwrap_or(json!({}));
+            ok(json!({
+                "pr_number": json_resp.get("number").cloned().unwrap_or(Value::Null),
+                "url": json_resp.get("html_url").cloned().unwrap_or(Value::Null),
+            }))
+        }
+        Ok(resp) => err(format!("Forgejo returned status {}", resp.status())),
+        Err(e) => err(format!("Forgejo request failed: {e}")),
+    }
 }
 
 fn parse_forgejo_repo(remote: &str) -> Option<(String, String)> {

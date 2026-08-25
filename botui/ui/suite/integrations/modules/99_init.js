@@ -1,5 +1,6 @@
-"if (window.GBAppLifecycle) GBAppLifecycle.begin("integrations");
-use strict";
+if (window.GBAppLifecycle) GBAppLifecycle.begin("integrations");
+"use strict";
+
 
 (function (namespace) {
     function initializeAll(scope) {

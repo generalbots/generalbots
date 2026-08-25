@@ -166,15 +166,38 @@ function vibeMakeWindowResizable(el, minW, minH) {
     });
 }
 
+// Panels living inside a floating tool window are dragged/resized by the
+// WindowManager (VB6-style tool windows) — skip them here to avoid fighting
+// the window chrome. Only panels still inside the main vibe window get the
+// legacy in-window drag/resize wiring.
+function isRelocated(el) {
+    if (!el) return true;
+    if (el.classList && el.classList.contains("vibe-tool-relocated")) return true;
+    var p = el.parentElement;
+    while (p) {
+        if (/^window-body-/.test(p.id || "")) return true;
+        p = p.parentElement;
+    }
+    return false;
+}
+
 function vibeWireWindowPanels() {
-    vibeMakeWindowDraggable(document.getElementById("vibeChatOverlay"), ".vibe-chat-header, #vibeChatOverlay > div:first-child");
-    vibeMakeWindowDraggable(document.getElementById("vibeRunDock"), ".vibe-rd-handle");
-    vibeMakeWindowDraggable(document.getElementById("vibeGraphPanel"), "#vibeGraphPanel > div:first-child");
-    vibeMakeWindowDraggable(document.getElementById("vibeMetricsPanel"), "#vibeMetricsPanel > div:first-child");
-    vibeMakeWindowResizable(document.getElementById("vibeChatOverlay"), 300, 240);
-    vibeMakeWindowResizable(document.getElementById("vibeRunDock"), 260, 200);
-    vibeMakeWindowResizable(document.getElementById("vibeGraphPanel"), 320, 240);
-    vibeMakeWindowResizable(document.getElementById("vibeMetricsPanel"), 320, 240);
+    if (!isRelocated(document.getElementById("vibeChatOverlay"))) {
+        vibeMakeWindowDraggable(document.getElementById("vibeChatOverlay"), ".vibe-chat-header, #vibeChatOverlay > div:first-child");
+        vibeMakeWindowResizable(document.getElementById("vibeChatOverlay"), 300, 240);
+    }
+    if (!isRelocated(document.getElementById("vibeRunDock"))) {
+        vibeMakeWindowDraggable(document.getElementById("vibeRunDock"), ".vibe-rd-handle");
+        vibeMakeWindowResizable(document.getElementById("vibeRunDock"), 260, 200);
+    }
+    if (!isRelocated(document.getElementById("vibeGraphPanel"))) {
+        vibeMakeWindowDraggable(document.getElementById("vibeGraphPanel"), "#vibeGraphPanel > div:first-child");
+        vibeMakeWindowResizable(document.getElementById("vibeGraphPanel"), 320, 240);
+    }
+    if (!isRelocated(document.getElementById("vibeMetricsPanel"))) {
+        vibeMakeWindowDraggable(document.getElementById("vibeMetricsPanel"), "#vibeMetricsPanel > div:first-child");
+        vibeMakeWindowResizable(document.getElementById("vibeMetricsPanel"), 320, 240);
+    }
 }
 
 function setVibeStatus(status) {

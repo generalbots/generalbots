@@ -1,5 +1,6 @@
-"if (window.GBAppLifecycle) GBAppLifecycle.begin("timeclock");
-use strict";
+if (window.GBAppLifecycle) GBAppLifecycle.begin("timeclock");
+"use strict";
+
 (function() {
     function activateTab(btn) {
         document.querySelectorAll("[data-tab-trigger]").forEach(function(b) {

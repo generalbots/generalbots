@@ -307,6 +307,12 @@ fn apply_middleware(
                 async move { crate::security::rbac_middleware_fn(req, next, rbac).await }
             },
         ))
+        // Resolves DB-backed roles (rbac_user_groups) for cloud-JWT/Zitadel
+        // authenticated users, upgrading admins BEFORE the RBAC check runs.
+        // Runs after auth (outer) and before rbac (inner) by layer order.
+        .layer(axum::middleware::from_fn(
+            crate::security::rbac_role_resolver_middleware,
+        ))
         .layer(axum::middleware::from_fn(
             move |req: axum::http::Request<axum::body::Body>, next: axum::middleware::Next| {
                 let state = auth_middleware_state.clone();

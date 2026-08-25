@@ -7,6 +7,7 @@ mod compliance;
 mod accessibility;
 mod internationalization;
 mod cloud_tenant;
+mod verification;
 
 use bottest::prelude::*;
 

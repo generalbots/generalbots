@@ -227,7 +227,10 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("attendant");
      */
     function setupWebSocket() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws/attendant`;
+        // Backend route lives under /api/attendance/ws (botattendance crate);
+        // /ws/attendant does not exist and fails the upgrade with HTTP 400.
+        const token = localStorage.getItem('gb-access-token') || '';
+        const wsUrl = `${protocol}//${window.location.host}/api/attendance/ws?token=${encodeURIComponent(token)}`;
 
         try {
             window.attendantSocket = new WebSocket(wsUrl);

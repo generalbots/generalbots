@@ -270,16 +270,28 @@
   }
 
   function del(commentId) {
-    if (!window.confirm("Delete this comment?")) return;
-    req("/comments/" + commentId, { method: "DELETE" })
-      .then(load)
-      .catch(function (e) { notify("Delete failed: " + e.message, "error"); });
+    var remove = function () {
+      req("/comments/" + commentId, { method: "DELETE" })
+        .then(load)
+        .catch(function (e) { notify("Delete failed: " + e.message, "error"); });
+    };
+    if (window.WindowManager && window.WindowManager.confirmFloating) {
+      window.WindowManager.confirmFloating("Delete comment", "Delete this comment?", remove, null, "Delete");
+    } else if (window.confirm("Delete this comment?")) {
+      remove();
+    }
   }
 
   function reply(commentId) {
-    var body = window.prompt("Reply to comment:");
-    if (!body) return;
-    addComment(body.trim(), commentId).then(load).catch(function (e) { notify("Reply failed: " + e.message, "error"); });
+    var done = function (body) {
+      if (!body) return;
+      addComment(body.trim(), commentId).then(load).catch(function (e) { notify("Reply failed: " + e.message, "error"); });
+    };
+    if (window.WindowManager && window.WindowManager.promptFloating) {
+      window.WindowManager.promptFloating("Reply", "Reply to comment:", "", done);
+    } else {
+      done(window.prompt("Reply to comment:"));
+    }
   }
 
   function resolve(commentId, resolved) {

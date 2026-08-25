@@ -47,16 +47,18 @@
             });
         }
 
+        var showNew = window.showNewConnectionForm;
+        var hide = window.hideModal;
         var btnNew = document.getElementById("btn-new-connection");
-        if (btnNew) btnNew.onclick = showNewConnectionForm;
+        if (btnNew && showNew) btnNew.onclick = showNew;
 
         var btnModalClose = document.getElementById("btn-modal-close");
-        if (btnModalClose) btnModalClose.onclick = hideModal;
+        if (btnModalClose && hide) btnModalClose.onclick = hide;
 
         var modalOverlay = document.getElementById("modal-overlay");
-        if (modalOverlay) {
+        if (modalOverlay && hide) {
             modalOverlay.addEventListener("click", function (e) {
-                if (e.target === modalOverlay) hideModal();
+                if (e.target === modalOverlay) hide();
             });
         }
 
@@ -69,7 +71,7 @@
         connectSaved: connectSaved,
         deleteSaved: deleteSavedConnection,
         saveNewConnection: window.saveNewConnection,
-        closeModal: hideModal,
+        closeModal: window.hideModal,
     };
 
     (function(){ var __cb = init; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();

@@ -1,0 +1,52 @@
+<!-- Vibe Knowledge Graph specialist — first-class desktop app (#1189). -->
+<link rel="stylesheet" href="/suite/vibe/vibe.p1.css" />
+<link rel="stylesheet" href="/suite/vibe/vibe.p2.css" />
+<link rel="stylesheet" href="/suite/vibe/agents-sidebar.css" />
+
+<div class="gb-app vibe-container" id="vibeWindow" data-gb-app="vibe-graph" style="height:100%">
+  <div id="vibeGraphPanel" style="display:flex; position:absolute; inset:0; z-index:5; flex-direction:column; border:none; border-radius:0; background:var(--surface,#fff);">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 14px; border-bottom:1px solid var(--border,#333); font-size:12px; font-weight:700; color:var(--text,#eee);">
+      <span>KNOWLEDGE GRAPH · <span id="vibeGraphUseCaseLabel">software_development</span></span>
+      <span>
+        <button onclick="VibeGraph && VibeGraph.togglePanel(true)" style="background:transparent; border:1px solid var(--border,#333); color:var(--text,#eee); border-radius:4px; padding:1px 8px; cursor:pointer; margin-right:6px;">⟳</button>
+      </span>
+    </div>
+    <div style="padding:8px 14px; border-bottom:1px solid var(--border,#d8dee9); color:var(--text-muted,#64748b); font-size:11px; line-height:1.45;">
+      Shows the selected use case, its execution runs, and the tools each run triggered. Double-click a run to inspect it.
+      <span style="float:right; white-space:nowrap"><b style="color:#2563eb">■</b> use case &nbsp; <b style="color:#7c3aed">■</b> run &nbsp; <b style="color:#d97706">■</b> tool</span>
+    </div>
+    <div style="flex:1; min-height:0; position:relative;">
+      <canvas id="vibeGraphCanvas" style="width:100%; height:100%; display:block;"></canvas>
+    </div>
+    <div id="vibeCapabilities" style="max-height:72px; overflow-y:auto; border-top:1px solid var(--border,#333); padding:8px 12px; font-size:11px; color:var(--text-muted,#aaa);"></div>
+  </div>
+  <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading graph…</span></div>
+</div>
+
+<script src="/suite/vibe/vibe-state.js?v=5"></script>
+<script src="/suite/vibe/vibe-broadcast.js?v=1"></script>
+<script src="/suite/vibe/vibe-helpers.js?v=7"></script>
+<script src="/suite/vibe/vibe-graph.js?v=5"></script>
+<script>
+(function () {
+    "use strict";
+    function params() {
+        var p = window.__gbAppParams__ || {};
+        var qs = new URLSearchParams(window.location.search);
+        if (!p.project && qs.get("project")) p.project = qs.get("project");
+        if (!p.use_case && qs.get("use_case")) p.use_case = qs.get("use_case");
+        return p;
+    }
+    function boot() {
+        var p = params();
+        if (p.use_case) window.VibeGraphUseCase = p.use_case;
+        if (p.project && typeof currentProjectId !== "undefined") currentProjectId = p.project;
+        if (window.VibeGraph) window.VibeGraph.togglePanel(true);
+    }
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", boot);
+    } else {
+        boot();
+    }
+})();
+</script>

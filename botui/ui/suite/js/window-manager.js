@@ -6,6 +6,18 @@ if (typeof window.WindowManager === "undefined") {
       icon: '<path d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v4h8z"/>' },
     { id: "vibe", title: "Vibe", category: "ai", color: "#84d669", hxGet: "/suite/partials/vibe.html",
       icon: '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
+    { id: "vibe-graph", title: "Knowledge Graph", category: "ai", color: "#7c3aed", hxGet: "/suite/vibe/graph.html",
+      icon: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>' },
+    { id: "vibe-metrics", title: "Vibe Metrics", category: "ai", color: "#f59e0b", hxGet: "/suite/vibe/metrics.html",
+      icon: '<path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>' },
+    { id: "vibe-members", title: "Project Members", category: "ai", color: "#06b6d4", hxGet: "/suite/vibe/members.html",
+      icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
+    { id: "vibe-deploy", title: "Vibe Deploy", category: "dev", color: "#22c55e", hxGet: "/suite/vibe/deploy.html",
+      icon: '<path d="M4 17l6-6-6-6"/><path d="M12 19h8"/>' },
+    { id: "vibe-db", title: "Vibe Database", category: "dev", color: "#3b82f6", hxGet: "/suite/vibe/db.html",
+      icon: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>' },
+    { id: "vibe-metering", title: "Compute Metering", category: "system", color: "#f97316", hxGet: "/suite/vibe/metering.html",
+      icon: '<path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
     { id: "crm", title: "CRM", category: "business", color: "#3b82f6", hxGet: "/suite/crm/crm.html",
       icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
     { id: "campaigns", title: "Campaigns", category: "business", color: "#f59e0b", hxGet: "/suite/campaigns/campaigns.html",
@@ -657,7 +669,12 @@ if (typeof window.WindowManager === "undefined") {
 
     launchFromMenu(id, title, hxGet) {
       this.closeStartMenu();
+      const existed = this.getWindow(id) !== null;
       this.open(id, title, "");
+      // Never re-inject into an existing window: the app HTML declares
+      // top-level consts (e.g. drive's API_BASE) and re-running it throws
+      // "Identifier ... has already been declared".
+      if (existed) return;
       const sep = hxGet.indexOf("?") === -1 ? "?" : "&";
       fetch(hxGet + sep + "_=" + Date.now()).then((r) => r.text()).then((html) => {
         const body = document.getElementById(`window-body-${id}`);
@@ -677,7 +694,9 @@ if (typeof window.WindowManager === "undefined") {
       const title = app ? app.title : appId;
       const hxGet = app ? app.hxGet : `/suite/partials/${appId}.html`;
       this.closeStartMenu();
+      const existed = this.getWindow(appId) !== null;
       this.open(appId, title, "");
+      if (existed) return;
       window.__gbAppParams__ = Object.assign({}, params || {});
       const qs = Object.keys(params || {}).map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`).join("&");
       const sep = hxGet.indexOf("?") === -1 ? "?" : "&";
@@ -687,6 +706,96 @@ if (typeof window.WindowManager === "undefined") {
       }).catch(() => {
         const body = document.getElementById(`window-body-${appId}`);
         if (body) this._injectBodyContent(appId, `<div style="padding:20px"><h3>${title}</h3><p>Application loading...</p></div>`);
+      });
+    }
+
+    // VB6/Adobe-style floating tool window: open (or focus) a window under a
+    // unique id and fetch a partial into its body. Unlike openDeepLink, the
+    // id is caller-controlled (e.g. "vibe-run", "vibe-terminal") so several
+    // accessory windows can float beside the main app window.
+    openToolWindow(id, title, hxGet, params) {
+      this.closeStartMenu();
+      const existed = this.getWindow(id) !== null;
+      this.open(id, title, "");
+      if (existed) return;
+      window.__gbAppParams__ = Object.assign({}, window.__gbAppParams__ || {}, params || {});
+      const qs = Object.keys(params || {}).map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`).join("&");
+      const sep = hxGet.indexOf("?") === -1 ? "?" : "&";
+      fetch(hxGet + sep + (qs ? qs + "&" : "") + "_=" + Date.now())
+        .then((r) => r.text())
+        .then((html) => {
+          const body = document.getElementById(`window-body-${id}`);
+          if (body) this._injectBodyContent(id, html);
+        })
+        .catch(() => {
+          const body = document.getElementById(`window-body-${id}`);
+          if (body) this._injectBodyContent(id, `<div style="padding:20px"><h3>${title}</h3><p>Tool window failed to load.</p></div>`);
+        });
+    }
+
+    // Open (or focus) a tool window and return its body element so callers can
+    // build DOM directly (dialog modules, panels, modals). Content is cleared
+    // on every call so re-opening a dialog never stacks stale markup.
+    openToolWindowBody(id, title, opts) {
+      opts = opts || {};
+      this.closeStartMenu();
+      const existed = this.getWindow(id) !== null;
+      this.open(id, title, "");
+      const body = document.getElementById(`window-body-${id}`);
+      if (!existed && body && opts.htmlContent) {
+        this._injectBodyContent(id, opts.htmlContent);
+        return body;
+      }
+      return body;
+    }
+
+    // VB6-style floating confirmation (no native confirm/alert modals).
+    // Opens a small tool window; onYes/onNo are called on button press.
+    confirmFloating(title, message, onYes, onNo, yesLabel) {
+      const html =
+        '<div class="gb-confirm-floating">' +
+        "<p>" + String(message == null ? "" : message) + "</p>" +
+        '<div class="gb-confirm-actions">' +
+        '<button data-c-no class="gb-confirm-btn">Cancel</button>' +
+        '<button data-c-yes class="gb-confirm-btn primary">' + (yesLabel || "OK") + "</button>" +
+        "</div></div>";
+      const body = this.openToolWindowBody("gb-confirm", title || "Confirm", { htmlContent: html });
+      if (!body) return;
+      body.querySelector("[data-c-no]").addEventListener("click", () => {
+        this.close("gb-confirm");
+        if (onNo) onNo();
+      });
+      body.querySelector("[data-c-yes]").addEventListener("click", () => {
+        this.close("gb-confirm");
+        if (onYes) onYes();
+      });
+    }
+
+    // VB6-style floating text input (replaces native window.prompt).
+    promptFloating(title, message, defaultValue, onOk) {
+      const safe = String(defaultValue == null ? "" : defaultValue);
+      const html =
+        '<div class="gb-confirm-floating">' +
+        (message ? "<p>" + String(message) + "</p>" : "") +
+        '<input type="text" class="gb-prompt-input" value="' + safe.replace(/"/g, "&quot;") + '" />' +
+        '<div class="gb-confirm-actions">' +
+        '<button data-c-no class="gb-confirm-btn">Cancel</button>' +
+        '<button data-c-yes class="gb-confirm-btn primary">OK</button>' +
+        "</div></div>";
+      const body = this.openToolWindowBody("gb-prompt", title || "Input", { htmlContent: html });
+      if (!body) return;
+      const input = body.querySelector(".gb-prompt-input");
+      input.focus();
+      input.select();
+      const finish = (value) => {
+        this.close("gb-prompt");
+        if (onOk) onOk(value);
+      };
+      body.querySelector("[data-c-no]").addEventListener("click", () => finish(null));
+      body.querySelector("[data-c-yes]").addEventListener("click", () => finish(input.value.trim()));
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") finish(input.value.trim());
+        if (e.key === "Escape") finish(null);
       });
     }
 

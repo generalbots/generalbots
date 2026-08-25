@@ -376,7 +376,7 @@ pub fn create_conn() -> Result<DbPool, anyhow::Error> {
     let manager = ConnectionManager::<PgConnection>::new(database_url);
     Pool::builder()
         .max_size(50)
-        .min_idle(Some(5))
+        .min_idle(Some(0))
         .connection_timeout(std::time::Duration::from_secs(5))
         .idle_timeout(Some(std::time::Duration::from_secs(300)))
         .max_lifetime(Some(std::time::Duration::from_secs(1800)))
@@ -389,7 +389,7 @@ pub async fn create_conn_async() -> Result<DbPool, anyhow::Error> {
     let manager = ConnectionManager::<PgConnection>::new(database_url);
     Pool::builder()
         .max_size(50)
-        .min_idle(Some(5))
+        .min_idle(Some(0))
         .connection_timeout(std::time::Duration::from_secs(5))
         .idle_timeout(Some(std::time::Duration::from_secs(300)))
         .max_lifetime(Some(std::time::Duration::from_secs(1800)))

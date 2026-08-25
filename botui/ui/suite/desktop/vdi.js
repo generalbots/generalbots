@@ -484,6 +484,7 @@ var activeSessions = new Map();
 
     window.saveNewConnection = async function saveNewConnection() {
     window.showNewConnectionForm = showNewConnectionForm;
+    window.hideModal = hideModal;
         var name = (document.getElementById("new-conn-name") || {}).value || "";
         var host = (document.getElementById("new-conn-host") || {}).value || "";
         var port = parseInt((document.getElementById("new-conn-port") || {}).value || "5900");

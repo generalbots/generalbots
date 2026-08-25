@@ -409,5 +409,5 @@
             }
 
         }
-        window.__peopleScope = { state: state, API_BASE: API_BASE, loadContacts: loadContacts };
+        window.__peopleScope = { state: state, API_BASE: API_BASE, loadContacts: loadContacts, showContact: showContact, openAddContact: openAddContact, editContact: editContact, closeContactPanel: closeContactPanel, closeModal: closeModal, saveContact: saveContact, deleteContact: deleteContact };
     })();

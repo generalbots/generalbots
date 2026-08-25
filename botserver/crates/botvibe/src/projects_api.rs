@@ -238,6 +238,8 @@ pub fn projects_router(
         .route("/api/vibe/projects/:project_id/files", get(list_project_files))
         .route("/api/vibe/projects/:project_id/files/content", get(read_project_file))
         .route("/api/vibe/projects/:project_id/files", post(write_project_file))
+        .route("/api/vibe/projects/:project_id/export", get(export_project))
+        .route("/api/vibe/projects/:project_id/git/pr", post(create_project_pr))
         .layer(Extension(registry))
         .layer(Extension(rbac))
         .layer(Extension(metering))
@@ -382,6 +384,156 @@ async fn read_project_file(
             resp.1 .0.path = Some(query.path.clone());
             resp
         }
+    }
+}
+
+// ── #1187: project export + external git PR creation ────────────────────────
+
+#[derive(Debug, Serialize)]
+struct ExportResponse {
+    success: bool,
+    project_id: Option<Uuid>,
+    name: Option<String>,
+    files: Option<Vec<ExportFile>>,
+    error: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct ExportFile {
+    path: String,
+    bytes: usize,
+    // base64 content so any encoding round-trips losslessly.
+    content_base64: String,
+}
+
+async fn export_project(
+    Extension(registry): Extension<ProjectRegistryRef>,
+    Extension(rbac): Extension<ProjectRbac>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(id): Path<Uuid>,
+) -> (StatusCode, Json<ExportResponse>) {
+    if let Err(e) = rbac.require_role(user.user_id, id, ProjectRole::Viewer) {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(ExportResponse {
+                success: false,
+                project_id: Some(id),
+                name: None,
+                files: None,
+                error: Some(e),
+            }),
+        );
+    }
+    let project = match registry.get(id) {
+        Ok(Some(p)) => p,
+        Ok(None) => {
+            return (
+                StatusCode::NOT_FOUND,
+                Json(ExportResponse {
+                    success: false,
+                    project_id: Some(id),
+                    name: None,
+                    files: None,
+                    error: Some(format!("project {id} not found")),
+                }),
+            );
+        }
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ExportResponse {
+                    success: false,
+                    project_id: Some(id),
+                    name: None,
+                    files: None,
+                    error: Some(e),
+                }),
+            );
+        }
+    };
+    let key = workspace_key(&project);
+    let paths = match harness::list_rel(&key, "", 0) {
+        Ok(p) => p,
+        Err(e) => {
+            return (
+                StatusCode::OK,
+                Json(ExportResponse {
+                    success: false,
+                    project_id: Some(id),
+                    name: Some(project.name.clone()),
+                    files: None,
+                    error: Some(e),
+                }),
+            );
+        }
+    };
+    let mut files: Vec<ExportFile> = Vec::new();
+    for path in paths {
+        if let Ok(bytes) = harness::read_rel_file(&key, &path, 4 * 1024 * 1024) {
+            use base64::Engine as _;
+            files.push(ExportFile {
+                path,
+                bytes: bytes.len(),
+                content_base64: base64::engine::general_purpose::STANDARD.encode(&bytes),
+            });
+        }
+    }
+    (
+        StatusCode::OK,
+        Json(ExportResponse {
+            success: true,
+            project_id: Some(id),
+            name: Some(project.name.clone()),
+            files: Some(files),
+            error: None,
+        }),
+    )
+}
+
+#[derive(Debug, Deserialize)]
+struct CreatePrRequest {
+    title: String,
+    head: String,
+    #[serde(default)]
+    base: String,
+    #[serde(default)]
+    body: String,
+}
+
+async fn create_project_pr(
+    Extension(registry): Extension<ProjectRegistryRef>,
+    Extension(rbac): Extension<ProjectRbac>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(id): Path<Uuid>,
+    Json(req): Json<CreatePrRequest>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    if let Err(e) = rbac.require_role(user.user_id, id, ProjectRole::Developer) {
+        return (StatusCode::FORBIDDEN, Json(serde_json::json!({ "success": false, "error": e })));
+    }
+    let project = match registry.get(id) {
+        Ok(Some(p)) => p,
+        Ok(None) => {
+            return (StatusCode::NOT_FOUND, Json(serde_json::json!({ "success": false, "error": "project not found" })));
+        }
+        Err(e) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "success": false, "error": e })));
+        }
+    };
+    let result = crate::gitflow::create_pull_request(
+        &project.name,
+        &req.title,
+        &req.head,
+        &req.base,
+        &req.body,
+    )
+    .await;
+    if result.success {
+        (StatusCode::OK, Json(serde_json::json!({ "success": true, "data": result.data })))
+    } else {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "success": false, "error": result.error })),
+        )
     }
 }
 

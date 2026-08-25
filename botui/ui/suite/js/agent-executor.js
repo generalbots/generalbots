@@ -55,6 +55,17 @@ const AgentExecutor = (() => {
       notify("Concierge", "App “" + appId + "” is not installed.", "warning");
       return;
     }
+    // #1176 — per-app agent consent: never drive an app the user denied.
+    if (window.AgentControl) {
+      window.AgentControl.gate(app.id, "open", title || app.title, function () {
+        doOpen(app, title, params);
+      });
+      return;
+    }
+    doOpen(app, title, params);
+  }
+
+  function doOpen(app, title, params) {
     if (window.WindowManager) {
       window.WindowManager.open(app.id, title || app.title, "");
       const qs = params ? encodeURIComponent(params) + "&" : "";

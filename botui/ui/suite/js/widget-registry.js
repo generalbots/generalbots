@@ -277,10 +277,23 @@
     },
 
     addWebPrompt: function () {
-      var url = window.prompt("Web address for the widget:", "https://");
-      if (!url) return;
-      var title = window.prompt("Widget title:", "") || "Web";
-      this.addWeb(url, title);
+      var self = this;
+      var askTitle = function (url) {
+        if (!url) return;
+        var done = function (title) {
+          self.addWeb(url, title || "Web");
+        };
+        if (window.WindowManager && window.WindowManager.promptFloating) {
+          window.WindowManager.promptFloating("Widget title", "Widget title:", "Web", done);
+        } else {
+          done(window.prompt("Widget title:", "") || "Web");
+        }
+      };
+      if (window.WindowManager && window.WindowManager.promptFloating) {
+        window.WindowManager.promptFloating("Web widget", "Web address for the widget:", "https://", askTitle);
+      } else {
+        askTitle(window.prompt("Web address for the widget:", "https://"));
+      }
     },
 
     ensureVisible: function (id) {

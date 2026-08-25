@@ -1,0 +1,16 @@
+/* Agent Control panel (#1176) — per-app consent matrix. */
+.gb-agent-control { padding: 0.9rem 1rem 1.1rem; font-family: system-ui, sans-serif; }
+.gb-agent-control h3 { margin: 0 0 0.4rem; font-size: 1.05rem; }
+.gb-ac-hint { margin: 0 0 0.8rem; font-size: 0.8rem; color: var(--gb-text-dim, #666); }
+.gb-ac-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+.gb-ac-table th, .gb-ac-table td { padding: 0.35rem 0.45rem; border-bottom: 1px solid var(--gb-border, #e5e5e5); text-align: left; }
+.gb-ac-table th { text-transform: capitalize; color: var(--gb-text-dim, #666); font-weight: 600; }
+.gb-ac-table select { padding: 0.2rem 0.3rem; border: 1px solid var(--gb-border, #ccc); border-radius: 4px; background: var(--gb-surface, #fff); }
+.gb-ac-table code { font-size: 0.7rem; color: var(--gb-text-dim, #888); }
+.gb-ac-btn { margin-top: 0.8rem; padding: 0.4rem 1rem; border: none; border-radius: 5px; background: var(--gb-accent, #2563eb); color: #fff; cursor: pointer; }
+.gb-ac-btn.danger { background: #dc2626; }
+.gb-ac-ask { font-family: system-ui, sans-serif; }
+.gb-ac-ask p { margin: 0 0 0.75rem; font-size: 0.85rem; line-height: 1.5; }
+.gb-ac-ask-always { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--gb-text-dim, #555); margin-bottom: 0.75rem; }
+.gb-ac-ask-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+.gb-ac-ask-actions .gb-ac-btn { margin-top: 0; }

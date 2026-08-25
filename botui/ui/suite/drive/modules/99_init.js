@@ -365,8 +365,11 @@ if (__deepPath) {
     };
 }
 
+// Auto-init guarded: an unhandled throw here surfaces as a bare
+// "Uncaught" in the console with no context and can break the app shell.
+function __safeInit() { try { init(); } catch (e) { console.error("[drive] init failed:", e); } }
 if (document.readyState === "loading") {
-    (function(){ var __cb = init; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
+    document.addEventListener("DOMContentLoaded", __safeInit);
 } else {
-    init();
+    __safeInit();
 }

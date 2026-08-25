@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="96" fill="#0a0a12"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="#84d669" stroke-width="28"/>
+  <text x="256" y="316" font-family="Arial, Helvetica, sans-serif" font-size="190" font-weight="bold" fill="#84d669" text-anchor="middle">GB</text>
+</svg>

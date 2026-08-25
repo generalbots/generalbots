@@ -330,6 +330,10 @@ pub fn router(
         .route("/api/vibe/run/:run_id/execute", axum::routing::post(execute_run))
         .route("/api/vibe/graph/:use_case", axum::routing::get(crate::knowledge_graph::get_knowledge_graph))
         .route("/api/vibe/graph/run/:run_id", axum::routing::get(crate::knowledge_graph::get_run_graph))
+        .route(
+            "/api/vibe/projects/:project_id/conversation",
+            axum::routing::get(export_project_conversation),
+        )
         .route("/api/vibe/capabilities", axum::routing::get(list_capabilities))
         .route("/api/vibe/capabilities/:use_case", axum::routing::get(list_capabilities_for_use_case))
         .route("/api/vibe/pipeline/:use_case", axum::routing::get(get_pipeline))
@@ -775,6 +779,63 @@ async fn approve_run(
             }),
         }
     }
+}
+
+/// #1190 — conversation export: every run for a project plus its tool-event
+/// timeline, as one JSON document (chat/WhatsApp can attach it to a reply).
+async fn export_project_conversation(
+    Extension(api): Extension<Arc<VibeApiInner>>,
+    axum::extract::Path(project_id): axum::extract::Path<Uuid>,
+) -> impl IntoResponse {
+    let want = project_id.to_string();
+    let (live, persisted) = {
+        let runs = api.runs.read().await;
+        (runs.clone(), api.runs_store.list_runs(200))
+    };
+    let mut merged: Vec<VibeRun> = persisted;
+    for run in live.into_values() {
+        if let Some(existing) = merged.iter_mut().find(|r| r.run_id == run.run_id) {
+            *existing = run;
+        } else {
+            merged.push(run);
+        }
+    }
+    merged.sort_by_key(|r| r.created_at);
+
+    let mut conversation: Vec<serde_json::Value> = Vec::new();
+    for run in merged {
+        if run.config.project_id.as_deref() != Some(&want) {
+            continue;
+        }
+        let events = api.telemetry.get_events_for_run(run.run_id, 200).await;
+        let run_json = match serde_json::to_value(&run) {
+            Ok(v) => v,
+            Err(e) => {
+                log::error!("Vibe conversation export: serialize run: {e}");
+                continue;
+            }
+        };
+        let events_json = match serde_json::to_value(&events) {
+            Ok(v) => v,
+            Err(e) => {
+                log::error!("Vibe conversation export: serialize events: {e}");
+                serde_json::Value::Array(Vec::new())
+            }
+        };
+        conversation.push(serde_json::json!({
+            "run": run_json,
+            "events": events_json,
+        }));
+    }
+
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "success": true,
+            "project_id": project_id,
+            "conversation": conversation,
+        })),
+    )
 }
 
 async fn list_runs(

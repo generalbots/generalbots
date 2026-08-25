@@ -61,6 +61,48 @@ pub fn resolve_user_role(pool: &DbPool, user_id: Uuid) -> String {
     ROLE_USER.to_string()
 }
 
+/// Resolves the effective role for an authenticated user, falling back to the
+/// canonical `users` row matched by email when the supplied (derived) user_id
+/// has no group memberships.
+///
+/// Background: cloud JWTs carry numeric Zitadel `sub` claims that are mapped
+/// to a deterministic UUIDv5. Older deployments created the `users` row (and
+/// its `rbac_user_groups` memberships) under a *different* derivation, so the
+/// derived id finds no groups and every role-gated endpoint 403s even for
+/// real admins. Matching the canonical row by email keeps role resolution
+/// robust to identity-id derivation drift.
+pub fn resolve_user_role_with_email(pool: &DbPool, user_id: Uuid, email: Option<&str>) -> String {
+    if resolve_user_role(pool, user_id) == ROLE_ADMIN {
+        return ROLE_ADMIN.to_string();
+    }
+    let email = match email {
+        Some(e) if !e.is_empty() => e,
+        _ => return ROLE_USER.to_string(),
+    };
+    let mut conn = match pool.get() {
+        Ok(c) => c,
+        Err(e) => {
+            debug!("resolve_user_role_with_email: DB pool error: {e}");
+            return ROLE_USER.to_string();
+        }
+    };
+    #[derive(diesel::QueryableByName)]
+    struct IdRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
+    let canonical: Option<IdRow> = diesel::sql_query(
+        "SELECT id FROM users WHERE lower(email) = lower($1) AND is_active = true LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Text, _>(email)
+    .get_result(&mut conn)
+    .ok();
+    match canonical {
+        Some(row) if row.id != user_id => resolve_user_role(pool, row.id),
+        _ => ROLE_USER.to_string(),
+    }
+}
+
 /// Whether a (method, path) endpoint is denied to non-admin users, per the
 /// `rbac_api_permissions` matrix. Admins are never denied.
 pub fn is_admin_only_endpoint(pool: &DbPool, user_id: Uuid, method: &str, path: &str) -> bool {
