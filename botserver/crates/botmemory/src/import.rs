@@ -88,7 +88,7 @@ pub fn import(
         });
     }
 
-    let candidates = fetch_candidates(conn, owner, branch)?;
+    let mut candidates = fetch_candidates(conn, owner, branch)?;
     if dry_run {
         return Ok(plan_import(candidates, items));
     }

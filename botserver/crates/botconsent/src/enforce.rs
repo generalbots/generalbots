@@ -42,7 +42,6 @@ pub enum ResolvedOutcome {
     RecordDenial(PendingRequest),
 }
 
-#[derive(Clone)]
 pub struct ConsentService {
     pub pool: DbPool,
     pub(crate) pending: tokio::sync::Mutex<HashMap<String, (PendingRequest, Instant)>>,

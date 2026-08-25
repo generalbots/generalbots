@@ -9,7 +9,6 @@ pub struct StarterSkill {
     pub entry: &'static str,
     pub scripts: &'static [(&'static str, &'static str)],
 }
-
 pub fn starter_skills() -> Vec<StarterSkill> {
     vec![
         StarterSkill {
@@ -287,5 +286,5 @@ pub fn starter_skills() -> Vec<StarterSkill> {
                 ),
             ],
         },
-    ];
+    ]
 }

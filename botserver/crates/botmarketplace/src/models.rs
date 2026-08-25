@@ -1,3 +1,5 @@
+use diesel::prelude::*;
+use serde::{Deserialize, Serialize};
 use chrono::{DateTime, Utc};
 use uuid::Uuid;
 

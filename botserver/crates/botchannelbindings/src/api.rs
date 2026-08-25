@@ -2,7 +2,6 @@ use axum::{
     extract::{Path, State},
     http::{HeaderMap, StatusCode},
     routing::get,
-    routing::put,
     Json, Router,
 };
 use chrono::Utc;
@@ -15,7 +14,6 @@ use crate::models::{BindingsBody, CallLog, ChannelBinding};
 use crate::schema::{call_logs, channel_bindings};
 use crate::ChannelBindingsService;
 
-const B64_ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 fn b64_decode_flexible(input: &str) -> Option<Vec<u8>> {
     let mut normalized = String::with_capacity(input.len());
@@ -41,8 +39,8 @@ fn b64_decode_flexible(input: &str) -> Option<Vec<u8>> {
             b'A'..=b'Z' => (b - b'A') as u32,
             b'a'..=b'z' => (b - b'a' + 26) as u32,
             b'0'..=b'9' => (b - b'0' + 52) as u32,
-            '+' => 62,
-            '/' => 63,
+            b'+' => 62,
+            b'/' => 63,
             _ => return None,
         };
         acc = (acc << 6) | v;

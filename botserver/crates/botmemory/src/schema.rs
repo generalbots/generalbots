@@ -8,7 +8,7 @@ diesel::table! {
         kind -> Text,
         content -> Text,
         source -> Text,
-        confidence -> Real,
+        confidence -> Float4,
         pinned -> Bool,
         superseded_by -> Nullable<Uuid>,
         embedding_ref -> Nullable<Text>,

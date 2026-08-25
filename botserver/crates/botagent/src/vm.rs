@@ -95,7 +95,7 @@ fn running_from_list(stdout: &str, vm_name: &str) -> bool {
     }
 }
 
-async fn is_running(state: &AgentService, vm_name: &str) -> Result<bool, (StatusCode, String)> {
+pub(crate) async fn is_running(state: &AgentService, vm_name: &str) -> Result<bool, (StatusCode, String)> {
     let output = run_incus(
         state,
         vec![
@@ -110,7 +110,7 @@ async fn is_running(state: &AgentService, vm_name: &str) -> Result<bool, (Status
 }
 
 /// Poll until the container reports RUNNING or the 60s budget elapses.
-async fn wait_for_running(
+pub(crate) async fn wait_for_running(
     state: &AgentService,
     vm_name: &str,
 ) -> Result<(), (StatusCode, String)> {

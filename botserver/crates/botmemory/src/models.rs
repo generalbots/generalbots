@@ -1,6 +1,7 @@
 //! Row and request/response types for the memory service.
 
 use chrono::{DateTime, Utc};
+use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 

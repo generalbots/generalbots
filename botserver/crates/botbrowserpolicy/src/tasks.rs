@@ -137,6 +137,7 @@ pub fn create_task(
         org_id,
         bot_id,
         goal,
+        plan,
         domains: serde_json::to_value(&domains).unwrap_or_else(|_| serde_json::json!([])),
         budget_steps: budget_steps.clamp(1, 10_000),
         status: STATUS_QUEUED.to_string(),

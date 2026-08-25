@@ -84,8 +84,9 @@ pub async fn dispatch(
                 let deliver = state.deliver_fn().clone();
                 let email_subject = subject.clone();
                 let email_body = body.clone();
-                let result = tokio::task::spawn_blocking(move || {
-                    attempt_with_retries(&deliver, "email", &to, &email_subject, &email_body)
+                let to_addr = to.clone();
+            let result = tokio::task::spawn_blocking(move || {
+                    attempt_with_retries(&deliver, "email", &to_addr, &email_subject, &email_body)
                 })
                 .await;
                 record_attempt(&mut attempts, "email", &to, result);
@@ -107,12 +108,13 @@ pub async fn dispatch(
             let deliver = state.deliver_fn().clone();
             let sms_subject = subject.clone();
             let sms_body = body.clone();
+            let to_addr = to.clone();
             let result =
                 tokio::task::spawn_blocking(move || {
                     attempt_with_retries(&deliver, "sms", &to, &sms_subject, &sms_body)
                 })
                 .await;
-            record_attempt(&mut attempts, "sms", &to, result);
+            record_attempt(&mut attempts, "sms", &to_addr, result);
         }
     }
 
@@ -125,8 +127,11 @@ pub async fn dispatch(
         let to = channels_target.clone().unwrap_or_else(|| channel.clone());
         let deliver = state.deliver_fn().clone();
         let channel_name = channel.clone();
+        let subject = subject.clone();
+        let body = body.clone();
+        let to_addr = to.clone();
         let result = tokio::task::spawn_blocking(move || {
-            attempt_with_retries(&deliver, &channel_name, &to, &subject, &body)
+            attempt_with_retries(&deliver, &channel_name, &to_addr, &subject, &body)
         })
         .await;
         record_attempt(&mut attempts, channel, &to, result);

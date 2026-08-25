@@ -45,7 +45,7 @@ pub fn register<S: Clone + Send + Sync + 'static>(r: Router<S>) -> Router<S> {
 }
 
 #[derive(serde::Deserialize)]
-struct InstallBody {
+pub struct InstallBody {
     app_id: Option<String>,
 }
 
@@ -87,7 +87,7 @@ pub async fn install_stats_handler() -> Json<serde_json::Value> {
 }
 
 #[derive(serde::Deserialize)]
-struct AgentPlanBody {
+pub struct AgentPlanBody {
     goal: Option<String>,
     app: Option<String>,
 }
@@ -172,7 +172,7 @@ fn build_plan(goal: &str, app_hint: Option<&str>) -> Vec<serde_json::Value> {
 
     for (keyword, app_id, label, params) in rules {
         if g.contains(keyword) {
-            steps.push(step(app_id, label, label, params));
+            steps.push(step(app_id, label, label, *params));
         }
     }
 

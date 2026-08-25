@@ -11,6 +11,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
     Json,
 };
+use diesel::prelude::*;
 use std::collections::HashMap;
 use std::sync::{Arc, LazyLock};
 use uuid::Uuid;
@@ -87,7 +88,7 @@ pub fn jwt_payload(token: &str) -> Option<serde_json::Value> {
 
 /// `sub` claim of an unverified token payload.
 pub fn b64_json_sub(token: &str) -> Option<String> {
-    jwt_payload(token)
+    jwt_payload(token)?
         .get("sub")
         .and_then(|s| s.as_str())
         .map(str::to_string)
@@ -163,7 +164,7 @@ pub async fn current_session(
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
     let session_id = params
         .get("session_id")
-        .map(str::trim)
+        .map(|v| v.trim())
         .filter(|s| !s.is_empty())
         .ok_or_else(|| (StatusCode::BAD_REQUEST, "Missing session_id parameter".to_string()))?;
     let clean = vm::sanitize_session_id(session_id)?;

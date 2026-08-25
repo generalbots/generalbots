@@ -79,8 +79,8 @@ pub async fn extract_from_turn(
     botmemory::extract::maybe_extract(
         service,
         user_id,
-        branch_id,
-        session_id,
+        Some(branch_id),
+        &session_id.to_string(),
         user_text,
         assistant_text,
     )

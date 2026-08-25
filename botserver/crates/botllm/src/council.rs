@@ -89,7 +89,7 @@ pub async fn council_answer(
         "Merge the following answers from {expected} independent model profiles into a single authoritative answer.\n\n{}",
         sections.join("\n\n")
     );
-    let (text, _) = chat_with_fallback(ARBITER_SYSTEM, &merge_prompt, &empty_params, caps).await?;
+    let (text, _) = chat_with_fallback(ARBITER_SYSTEM, &merge_prompt, &Value::Null, caps).await?;
     Ok(CouncilOutcome {
         text,
         contributors,
