@@ -257,42 +257,6 @@
   color: var(--primary, var(--accent, #84d669));
 }
 
-/* ── Bot selector combo ── */
-.chat-sidebar-botselect-wrap {
-  margin-top: 10px;
-}
-
-.chat-sidebar-botselect {
-  width: 100%;
-  appearance: none;
-  -webkit-appearance: none;
-  padding: 8px 28px 8px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--shell-border, rgba(255,255,255,0.12));
-  background:
-    url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")
-    no-repeat right 9px center / 13px,
-    var(--surface-hover, rgba(255,255,255,0.05));
-  color: var(--text, #eee);
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: border-color 150ms;
-  text-overflow: ellipsis;
-}
-
-.chat-sidebar-botselect:hover,
-.chat-sidebar-botselect:focus {
-  border-color: var(--primary, var(--accent, #84d669));
-  outline: none;
-}
-
-.chat-sidebar-botselect option {
-  background: var(--surface, #1a1a24);
-  color: var(--text, #eee);
-}
-
 /* ── Theme selector row ── */
 .chat-sidebar-theme {
   flex-shrink: 0;

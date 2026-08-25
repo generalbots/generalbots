@@ -24,6 +24,24 @@ if (typeof window.Desktop3D === "undefined") {
           return;
         }
 
+        // WebGL may be unavailable (software rendering, headless VMs). Bail
+        // out gracefully instead of letting WebGLRenderer throw, which would
+        // skip the rest of the desktop boot sequence.
+        var webglSupported = false;
+        try {
+          var probe = document.createElement("canvas");
+          webglSupported = !!(
+            probe.getContext("webgl") ||
+            probe.getContext("experimental-webgl")
+          );
+        } catch (e) {
+          webglSupported = false;
+        }
+        if (!webglSupported) {
+          console.warn("WebGL not available — 3D desktop effects disabled");
+          return;
+        }
+
         const rect = containerEl.getBoundingClientRect();
         const w = rect.width || window.innerWidth;
         const h = rect.height || window.innerHeight;

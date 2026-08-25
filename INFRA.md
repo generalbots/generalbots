@@ -1066,23 +1066,49 @@ If quick fixes don't work:
 
 ### Manual binary update (when ALM/CI unavailable)
 
+> **CI status (verified 2026-08-16):** the primary production host has NO
+> `alm-ci` container → CI/CD is unavailable. All production deploys use the
+> manual procedure below. Credentials (hosts, users, keys) live in `~/.prod`
+> on the build machine — never commit them.
+
+**Hosts:** primary host (`SRV1_*` in `~/.prod`) + secondary host (`SRV2_*`)
++ opportunity host (`OPP_*`). Both BotServer and BotUI run in the **bot**
+container at `/opt/gbo/bin/`, managed as `botserver.service` (port 5858) and
+`botui.service` (port 5859, `embed-ui`).
+
 ```bash
-# 1. Build binary (dev machine)
-cd $WORKSPACE
-cargo build -p botserver
+# 1. Build binaries (dev machine, debug only — NEVER release)
+cd $WORKSPACE/botserver
+cargo build -p botserver -p botui
 
-# 2. Copy to production host + container
-scp target/debug/botserver root@<prod-host>:/opt/gbo/bin/botserver
+# 2. Transfer via gzip pipe (fast; the debug binary is ~467MB, scp is slow)
+gzip -c target/debug/botserver | sshpass -p "$SRV1_PASS" ssh root@$SRV1_HOST 'gunzip > /opt/gbo/bin/botserver.new'
+gzip -c target/debug/botui    | sshpass -p "$SRV1_PASS" ssh root@$SRV1_HOST 'gunzip > /opt/gbo/bin/botui.new'
 
-# 3. Push into bot container and restart service
-ssh root@<prod-host> "sudo incus file push /opt/gbo/bin/botserver bot/opt/gbo/bin/botserver && sudo incus exec bot -- systemctl restart botserver"
+# 3. STOP services BEFORE replacing binaries ("text file busy" otherwise)
+ssh root@$SRV1_HOST 'sudo incus exec bot -- systemctl stop botserver botui'
 
-# 4. Verify health (port 5858 inside container)
-ssh root@<prod-host> "sudo incus exec bot -- curl -s http://localhost:5858/health"
+# 4. Keep .old copies for rollback, then push the new binaries
+ssh root@$SRV1_HOST 'sudo incus exec bot -- cp /opt/gbo/bin/botserver /opt/gbo/bin/botserver.old && sudo incus exec bot -- cp /opt/gbo/bin/botui /opt/gbo/bin/botui.old'
+ssh root@$SRV1_HOST 'sudo incus file push /opt/gbo/bin/botserver.new bot/opt/gbo/bin/botserver'
+ssh root@$SRV1_HOST 'sudo incus file push /opt/gbo/bin/botui.new bot/opt/gbo/bin/botui'
 
-# 5. Check logs
-ssh root@<prod-host> "sudo incus exec bot -- tail -20 /opt/gbo/logs/err.log"
+# 5. Start services
+ssh root@$SRV1_HOST 'sudo incus exec bot -- bash -c "chmod +x /opt/gbo/bin/botserver /opt/gbo/bin/botui && systemctl start botserver botui"'
+
+# 6. Verify health (both must return 200 inside the bot container)
+ssh root@$SRV1_HOST 'sudo incus exec bot -- curl -s http://localhost:5858/health'
+ssh root@$SRV1_HOST 'sudo incus exec bot -- curl -s http://localhost:5859/health'
+
+# 7. Rollback (if the new binary misbehaves)
+ssh root@$SRV1_HOST 'sudo incus exec bot -- cp /opt/gbo/bin/botserver.old /opt/gbo/bin/botserver && sudo incus exec bot -- systemctl restart botserver'
 ```
+
+**Gotchas (learned 2026-08):**
+- **Stop before push** — `incus file push` over a running binary fails with `text file busy`.
+- **BotUI static files** — prod serves from `/opt/gbo/bin/ui/` (botui WorkingDirectory); push files there, NO botui restart needed (ServeDir reads per request).
+- **botui `embed-ui`** serves `/suite/desktop.html` directly (was 500 before fix `21cb6dc6`).
+- **DriveMonitor** auto-reloads `config.csv` on ETag change (~10s) — never restart botserver for config changes.
 
 ### Container management
 | Action | Command |

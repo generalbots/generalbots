@@ -106,63 +106,6 @@
     });
   }
 
-  // ── 2. Workspace cards ───────────────────────────────────────
-
-  function renderWorkspaces() {
-    var host = base().byId("gbSideWorkspaces");
-    if (!host) return;
-    host.innerHTML = "";
-    var bots = base().state.bots;
-    if (!bots.length) {
-      host.innerHTML =
-        '<div class="chat-sidebar-history-empty">Loading workspaces…</div>';
-      return;
-    }
-    var active = base().activeBotName();
-    bots.forEach(function (bot) {
-      var card = document.createElement("div");
-      card.className = "gb-side-ws-card";
-      if (bot.name === active) card.classList.add("active");
-      card.innerHTML =
-        '<span class="gb-side-ws-dot"></span>' +
-        '<span class="gb-side-ws-name"></span>' +
-        '<span class="gb-side-ws-desc"></span>';
-      card.querySelector(".gb-side-ws-name").textContent = bot.name;
-      card.querySelector(".gb-side-ws-desc").textContent = bot.label || "";
-      card.addEventListener("click", function () {
-        switchWorkspace(bot.name);
-      });
-      host.appendChild(card);
-    });
-    var add = document.createElement("div");
-    add.className = "gb-side-ws-card gb-side-ws-add";
-    add.textContent = "+ New Workspace";
-    add.addEventListener("click", function () {
-      if (window.GBNewProject) window.GBNewProject.open();
-      else if (window.openDeepLink) window.openDeepLink("vibe", {});
-    });
-    host.appendChild(add);
-  }
-
-  function switchWorkspace(name) {
-    if (!name) return;
-    try {
-      localStorage.setItem("gb_selected_bot", name);
-    } catch (e) {}
-    window.__INITIAL_BOT_NAME__ = name;
-    window.__SELECTED_BOT_NAME__ = name;
-    window.dispatchEvent(
-      new CustomEvent("gb-bot-changed", { detail: { bot_name: name } })
-    );
-    // Drive the existing select (kept for compatibility) through its own
-    // change handler so chat switching behaves exactly as before.
-    var select = document.querySelector("#sidebarBotSelectWrap select");
-    if (select) {
-      select.value = name;
-      select.dispatchEvent(new Event("change"));
-    }
-  }
-
   // ── 4. Quick files ───────────────────────────────────────────
 
   function renderQuickFiles() {
@@ -321,13 +264,6 @@
         },
       },
       {
-        label: "Switch workspace",
-        run: function () {
-          var select = document.querySelector("#sidebarBotSelectWrap select");
-          if (select) select.focus();
-        },
-      },
-      {
         label: "Logout",
         run: function () {
           try {
@@ -365,10 +301,8 @@
   window.GBSidebarSections = {
     renderPins: renderPins,
     bindPinReorder: bindPinReorder,
-    renderWorkspaces: renderWorkspaces,
     renderQuickFiles: renderQuickFiles,
     renderActions: renderActions,
     enhanceUserCard: enhanceUserCard,
-    switchWorkspace: switchWorkspace,
   };
 })();

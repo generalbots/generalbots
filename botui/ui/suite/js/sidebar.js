@@ -113,101 +113,6 @@
   }
   window.GBResolveActiveBot = GBResolveActiveBot;
 
-  // ── Bot selector combo ───────────────────────────────────────────
-  var botSelectEl = null;
-
-  function fetchBots() {
-    // Branch-scoped SaaS listing first; fall back to the workspace-wide list.
-    return fetch("/api/cloud/bots", { headers: authHeaders() })
-      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
-      .then(function (data) {
-        return (data.bots || []).map(function (b) {
-          return { name: b.name, label: b.description ? b.name + " — " + b.description : b.name };
-        });
-      })
-      .catch(function () {
-        return fetch("/api/bots/list", { headers: authHeaders() })
-          .then(function (r) { return r.ok ? r.json() : []; })
-          .then(function (list) {
-            return (Array.isArray(list) ? list : []).map(function (b) {
-              return { name: b.name, label: b.name };
-            });
-          })
-          .catch(function () { return []; });
-      });
-  }
-
-  function ensureOption(select, name, label) {
-    if (!name) return;
-    var exists = Array.prototype.some.call(select.options, function (o) {
-      return o.value === name;
-    });
-    if (!exists) {
-      var opt = document.createElement("option");
-      opt.value = name;
-      opt.textContent = label || name;
-      select.appendChild(opt);
-    }
-  }
-
-  function renderBotSelector() {
-    var host = document.getElementById("sidebarBotSelectWrap");
-    if (!host) return;
-    host.innerHTML = "";
-
-    var select = document.createElement("select");
-    select.className = "chat-sidebar-botselect";
-    select.setAttribute("aria-label", "Current bot");
-    botSelectEl = select;
-
-    var active = GBResolveActiveBot();
-    ensureOption(select, active, active);
-
-    select.addEventListener("change", function () {
-      switchBot(select.value);
-    });
-    host.appendChild(select);
-
-    fetchBots().then(function (bots) {
-      if (!bots.length || botSelectEl !== select) return;
-      bots.forEach(function (b) { ensureOption(select, b.name, b.label); });
-      select.value = GBResolveActiveBot();
-      if (select.selectedIndex < 0) select.value = active;
-    });
-  }
-
-  function switchBot(name) {
-    if (!name) return;
-    saveStoredBot(name);
-    window.__INITIAL_BOT_NAME__ = name;
-    window.__SELECTED_BOT_NAME__ = name;
-
-    // Keep the URL consistent with the selected bot so refresh restores it.
-    // App routes (/vibe, /drive …) keep their path.
-    try {
-      var first = window.location.pathname.split("/").filter(Boolean)[0] || "";
-      var onAppRoute = first && !botFromPath();
-      if (!onAppRoute) {
-        window.history.replaceState({}, "", "/" + encodeURIComponent(name));
-      }
-    } catch (e) {}
-
-    window.dispatchEvent(new CustomEvent("gb-bot-changed", {
-      detail: { bot_name: name },
-    }));
-
-    highlightActive("");
-    loadHistory();
-
-    // Seamless: swap the live chat session in place. Fallback to a chat app
-    // relaunch only when the chat module is not loaded.
-    if (window.ChatSwitchBot) {
-      window.ChatSwitchBot(name);
-    } else if (window.openDeepLink) {
-      window.openDeepLink("chat", {});
-    }
-  }
-
   // ── Principal app links ──
   // Delegates to the unified apps panel (js/sidebar-apps.js): every
   // APPS_REGISTRY app in one grid with an ON/OFF switch and filter.
@@ -429,7 +334,6 @@
     loadHistory: loadHistory,
     openConversation: openConversation,
     newConversation: newConversation,
-    switchBot: switchBot,
     refreshUser: refreshUser,
   };
 
@@ -446,54 +350,11 @@
     );
   };
 
-  // ── Left-edge gripper (ON/OFF for the whole bar) ────────────────
-  // A grabber pinned to the bar's right border, visible in BOTH states;
-  // click/Enter toggles open-off. State persists across reloads via
-  // localStorage["gb-sidebar-open"].
-  var SIDEBAR_OPEN_KEY = "gb-sidebar-open";
-
-  function installGripper() {
-    var bar = document.getElementById("chatSidebar");
-    if (!bar || bar.dataset.gbGripper === "1") return;
-    bar.dataset.gbGripper = "1";
-
-    try {
-      // Always start open: if (localStorage.getItem(SIDEBAR_OPEN_KEY) === "0") bar.classList.add("collapsed");
-    } catch (e) {}
-
-    var grip = document.createElement("div");
-    grip.className = "gb-sidebar-gripper";
-    grip.setAttribute("role", "button");
-    grip.setAttribute("tabindex", "0");
-    grip.setAttribute("aria-label", "Toggle left bar");
-    grip.title = "Toggle left bar";
-    grip.innerHTML =
-      '<span class="gb-gripper-dots" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>' +
-      '<span class="gb-gripper-chev" aria-hidden="true">‹</span>';
-
-    function toggle() {
-      if (typeof window.toggleChatSidebar === "function") {
-        window.toggleChatSidebar();
-      }
-      try {
-        localStorage.setItem(
-          SIDEBAR_OPEN_KEY,
-          bar.classList.contains("collapsed") ? "0" : "1"
-        );
-      } catch (e) {}
-    }
-
-    grip.addEventListener("click", toggle);
-    grip.addEventListener("keydown", function (e) {
-      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(); }
-    });
-
-    bar.appendChild(grip);
-  }
+  // ── Init ────────────────────────────────────────────────────────
+  // Sidebar visibility is toggled by the existing .chat-sidebar-toggle
+  // button; no extra gripper is installed on the bar.
 
   function init() {
-    installGripper();
-    renderBotSelector();
     renderApps();
     refreshUser();
     loadHistory();
