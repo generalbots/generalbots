@@ -9,7 +9,8 @@
   if (window.GBSidebarHistory) return;
 
   var filterValue = "";
-  var repainting = false;
+  var mo = null;
+  var groupScheduled = false;
 
   function byId(id) {
     return window.GBSidebarBase.byId(id);
@@ -31,6 +32,31 @@
     return "Older";
   }
 
+  // Regrouping rewrites the host DOM (innerHTML wipe + re-append), which
+  // would re-trigger our own MutationObserver in an infinite loop. The
+  // observer is therefore disconnected while group() runs, and all
+  // regroups — including direct calls — go through the debounced
+  // scheduleGroup so bursts coalesce into a single pass.
+  function observeHost() {
+    var host = byId("chatConversations");
+    if (!host || !mo) return;
+    mo.observe(host, { childList: true, subtree: true });
+  }
+
+  function scheduleGroup() {
+    if (groupScheduled) return;
+    groupScheduled = true;
+    setTimeout(function () {
+      groupScheduled = false;
+      if (mo) mo.disconnect();
+      try {
+        group();
+      } finally {
+        observeHost();
+      }
+    }, 50);
+  }
+
   function install() {
     var host = byId("chatConversations");
     if (!host || host.parentNode.querySelector(".gb-conv-search")) return;
@@ -42,15 +68,11 @@
     host.parentNode.insertBefore(search, host);
     search.querySelector("input").addEventListener("input", function (e) {
       filterValue = e.target.value;
-      group();
+      scheduleGroup();
     });
-    new MutationObserver(function () {
-      if (repainting) return;
-      repainting = true;
-      group();
-      repainting = false;
-    }).observe(host, { childList: true, subtree: true });
-    group();
+    mo = new MutationObserver(scheduleGroup);
+    observeHost();
+    scheduleGroup();
   }
 
   function group() {
@@ -132,7 +154,7 @@
     if (host) {
       delete host.dataset.grouped;
       host._gbItems = undefined;
-      group();
+      scheduleGroup();
     }
   }
 

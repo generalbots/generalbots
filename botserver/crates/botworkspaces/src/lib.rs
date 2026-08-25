@@ -3278,7 +3278,10 @@ pub async fn workspace_cards(
     };
 
 
+    let branch_id = ui_get_bot_context(&state);
+
     let mut q = aiworkspaces::table
+        .filter(aiworkspaces::branch_id.eq(branch_id))
         .into_boxed();
 
     if let Some(search) = &query.search {

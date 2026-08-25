@@ -41,7 +41,7 @@
         <script src="/suite/js/security-bootstrap.js?v=4"></script>
         <script src="/suite/js/vendor/marked.min.js"></script>
         <script src="/suite/js/vendor/three.min.js"></script>
-        <script src="/suite/js/desktop3d.js?v=1"></script>
+        <script src="/suite/js/desktop3d.js?v=2"></script>
         <script src="/suite/js/window-manager.js?v=14"></script>
         <script src="/suite/js/vibe-bridge.js?v=1"></script>
         <script src="/suite/js/theme-manager.js?v=1"></script>
@@ -217,7 +217,6 @@
                             <span class="glow-dot"></span>
                             <span class="chat-sidebar-brand-name">General Bots</span>
                         </div>
-                        <div class="chat-sidebar-botselect-wrap" id="sidebarBotSelectWrap"></div>
                     </div>
                     <button class="chat-sidebar-new-chat" id="sidebarNewChatBtn">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
@@ -361,8 +360,28 @@
                                 const isPub = config.is_public === 'true' || config.is_public === true;
                                 if (isPub) {
                                     window.__BOT_IS_PUBLIC__ = true;
+                                    // Hide the management sidebar only for anonymous
+                                    // visitors; authenticated owners keep it (thin/large).
+                                    var isAuth = false;
+                                    try {
+                                        isAuth = !!(window.getGBAccessToken && window.getGBAccessToken());
+                                    } catch (e) {}
+                                    if (!isAuth) {
+                                        try {
+                                            isAuth = !!(localStorage.getItem("gb-access-token") ||
+                                                sessionStorage.getItem("gb-access-token") ||
+                                                localStorage.getItem("management_token"));
+                                        } catch (e) {}
+                                    }
+                                    // Login redirects back with ?token=... before any
+                                    // storage exists yet — that counts as authenticated.
+                                    if (!isAuth) {
+                                        try {
+                                            isAuth = new URLSearchParams(window.location.search).has("token");
+                                        } catch (e) {}
+                                    }
                                     const sidebar = document.getElementById('chatSidebar');
-                                    if (sidebar) sidebar.style.display = 'none';
+                                    if (sidebar && !isAuth) sidebar.style.display = 'none';
                                 } else {
                                     window.__BOT_IS_PUBLIC__ = false;
                                     var isAuth = !!(window.getGBAccessToken && window.getGBAccessToken());
@@ -500,7 +519,11 @@
 
             if (typeof window.Desktop3D !== "undefined" && window.wm) {
                 var workspace = document.getElementById("desktop-content");
-                if (workspace) window.Desktop3D.init(workspace);
+                try {
+                    if (workspace) window.Desktop3D.init(workspace);
+                } catch (e) {
+                    console.warn("Desktop3D init failed:", e);
+                }
             }
 
             // Widget pane + pinned launcher (#1160)

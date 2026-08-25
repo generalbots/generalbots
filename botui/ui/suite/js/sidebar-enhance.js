@@ -4,7 +4,7 @@
 //
 // Renders extra sections into the v17 sidebar rail around the elements
 // sidebar.js produces. Concrete renderers live in sidebar-sections.js
-// (pins/workspaces/files/actions/user card) and sidebar-history.js
+// (pins/files/actions/user card) and sidebar-history.js
 // (grouped + searchable conversations). This file owns the shared state,
 // helpers, and boot sequence.
 
@@ -16,7 +16,6 @@
 
   var state = {
     pinned: readPins(),
-    bots: [],
   };
 
   // ── Shared helpers (exposed as window.GBSidebarBase) ─────────
@@ -76,15 +75,6 @@
     return token ? { Authorization: "Bearer " + token } : {};
   }
 
-  function activeBotName() {
-    if (window.GBResolveActiveBot) return window.GBResolveActiveBot();
-    return (
-      window.__SELECTED_BOT_NAME__ ||
-      window.__INITIAL_BOT_NAME__ ||
-      "default"
-    );
-  }
-
   function section(title, bodyId) {
     var host = document.createElement("div");
     host.className = "gb-side-sec";
@@ -110,37 +100,8 @@
     iconOf: iconOf,
     authToken: authToken,
     authHeaders: authHeaders,
-    activeBotName: activeBotName,
     section: section,
   };
-
-  // ── Workspace data ───────────────────────────────────────────
-
-  function fetchBots() {
-    return fetch("/api/cloud/bots", { headers: authHeaders() })
-      .then(function (r) {
-        return r.ok ? r.json() : Promise.reject(r.status);
-      })
-      .then(function (data) {
-        return (data.bots || []).map(function (b) {
-          return { name: b.name, label: b.description || b.name };
-        });
-      })
-      .catch(function () {
-        return fetch("/api/bots/list", { headers: authHeaders() })
-          .then(function (r) {
-            return r.ok ? r.json() : [];
-          })
-          .then(function (list) {
-            return (Array.isArray(list) ? list : []).map(function (b) {
-              return { name: b.name, label: b.name };
-            });
-          })
-          .catch(function () {
-            return [];
-          });
-      });
-  }
 
   // ── Boot ─────────────────────────────────────────────────────
 
@@ -148,7 +109,6 @@
     var nav = byId("sidebarAppsNav");
     var sections = [
       section("Pinned", "gbSidePins"),
-      section("Workspaces", "gbSideWorkspaces"),
       section("Quick Files", "gbQuickFiles"),
       section("Quick actions", "gbQuickActions"),
     ];
@@ -183,17 +143,6 @@
       });
     }
 
-    if (!state.bots.length) {
-      fetchBots().then(function (bots) {
-        state.bots = bots;
-        if (window.GBSidebarSections) {
-          window.GBSidebarSections.renderWorkspaces();
-        }
-      });
-    } else if (window.GBSidebarSections) {
-      window.GBSidebarSections.renderWorkspaces();
-    }
-
     // Keep pins fresh when the pinned launcher gains an app.
     window.addEventListener("gb-launcher-pin-request", function (event) {
       var detail = event && event.detail;
@@ -218,9 +167,6 @@
   window.GBSidebarEnhance = {
     refreshPins: function () {
       if (window.GBSidebarSections) window.GBSidebarSections.renderPins();
-    },
-    refreshWorkspaces: function () {
-      if (window.GBSidebarSections) window.GBSidebarSections.renderWorkspaces();
     },
   };
 })();
