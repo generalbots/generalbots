@@ -362,7 +362,17 @@ if (typeof window.WindowManager === "undefined") {
       // (vibe-*, chat-*, etc.) bind listeners to the fresh injected DOM and
       // MUST re-run on every window open; only vendor bundles are skipped
       // after their first load anywhere.
-      body.innerHTML = tempDiv.innerHTML;
+      //
+      // Loading gate: the fragment is hidden behind a spinner until its own
+      // stylesheets have applied, so windows never flash unstyled markup
+      // (FOUC). Apps without local stylesheets reveal immediately.
+      body.classList.remove("gb-window-ready");
+      body.innerHTML =
+        '<div class="gb-window-loading" role="status" aria-label="Loading app">' +
+        '<div class="gb-window-loading-spinner"></div></div>' +
+        '<div class="gb-window-content"></div>';
+      const content = body.querySelector(".gb-window-content");
+      content.innerHTML = tempDiv.innerHTML;
       const VENDOR = /(xterm|vendor\/|amd-loader|monaco|@|three\.)/;
       window.__gbLoadedScripts = window.__gbLoadedScripts || {};
       scripts.forEach((s) => {
@@ -371,9 +381,48 @@ if (typeof window.WindowManager === "undefined") {
           if (window.__gbLoadedScripts[src]) return;
           window.__gbLoadedScripts[src] = true;
         }
-        body.appendChild(s);
+        content.appendChild(s);
       });
-      if (window.htmx) htmx.process(body);
+      if (window.htmx) htmx.process(content);
+      this._revealWhenReady(body);
+    }
+
+    // Reveal the app body once every local stylesheet of the fragment has
+    // loaded (or failed). A timeout guards apps whose CSS 404s or hangs.
+    _revealWhenReady(body) {
+      const links = Array.from(body.querySelectorAll('link[rel="stylesheet"]'));
+      if (!links.length) {
+        body.classList.add("gb-window-ready");
+        return;
+      }
+      const sheetReady = (link) => {
+        try {
+          return !!(link.sheet && link.sheet.cssRules && link.sheet.cssRules.length);
+        } catch (e) {
+          return false; // cross-origin sheet: fall through to load event
+        }
+      };
+      let remaining = links.length;
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        body.classList.add("gb-window-ready");
+      };
+      const onOne = () => {
+        remaining -= 1;
+        if (remaining <= 0) finish();
+      };
+      const timer = setTimeout(finish, 3000);
+      links.forEach((link) => {
+        if (sheetReady(link)) {
+          onOne();
+          return;
+        }
+        link.addEventListener("load", onOne);
+        link.addEventListener("error", onOne);
+      });
     }
 
     _addTaskbarDockItem(id) {

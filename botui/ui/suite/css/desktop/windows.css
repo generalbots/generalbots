@@ -268,6 +268,55 @@
   padding: 16px;
 }
 
+/* ── App loading gate: spinner shown until the fragment's stylesheets
+   have applied, so windows never flash unstyled markup (FOUC).
+   window-manager.js flips .gb-window-ready once CSS is in place. ── */
+
+.window-body-glass,
+.window-body {
+  position: relative;
+}
+
+.gb-window-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--app-bg, var(--gb-bg, var(--surface, #ffffff)));
+  transition: opacity 200ms var(--win-open-timing);
+}
+
+.window-body-glass.gb-window-ready .gb-window-loading,
+.window-body.gb-window-ready .gb-window-loading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.gb-window-loading-spinner {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 3px solid var(--shell-border, rgba(128, 128, 140, 0.25));
+  border-top-color: var(--accent-color, var(--gb-accent, #84d669));
+  animation: gbWindowSpin 800ms linear infinite;
+}
+
+@keyframes gbWindowSpin {
+  to { transform: rotate(360deg); }
+}
+
+.gb-window-content {
+  opacity: 0;
+  transition: opacity 220ms var(--win-open-timing);
+}
+
+.window-body-glass.gb-window-ready .gb-window-content,
+.window-body.gb-window-ready .gb-window-content {
+  opacity: 1;
+}
+
 /* ── Maximized overrides (existing rules preserved) ── */
 
 body.window-maximized .window-element-glass,
@@ -326,7 +375,10 @@ body.window-maximized .window-element {
 @media (prefers-reduced-motion: reduce) {
   .window-element-glass,
   .window-element,
-  .window-dot {
+  .window-dot,
+  .gb-window-loading-spinner,
+  .gb-window-loading,
+  .gb-window-content {
     animation: none !important;
     transition: none !important;
   }

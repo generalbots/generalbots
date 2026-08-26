@@ -62,7 +62,7 @@
         <script src="/suite/js/vibe-bridge.js?v=1"></script>
         <script src="/suite/js/theme-manager.js?v=1"></script>
         <script src="/suite/js/command-palette.js?v=1"></script>
-        <script src="/suite/js/sidebar-convos.js?v=2"></script>
+        <script src="/suite/js/sidebar-convos.js?v=3"></script>
         <script src="/suite/js/sidebar-apps.js?v=2"></script>
         <script src="/suite/js/sidebar.js?v=6"></script>
         <link rel="stylesheet" href="/suite/css/gb-palette.css?v=1" />
@@ -74,9 +74,9 @@
         <script src="/suite/js/desktop-shortcuts.js?v=1"></script>
         <script src="/suite/js/screensavers.js?v=1"></script>
         <script src="/suite/js/pinned-launcher.js?v=3"></script>
-        <script src="/suite/js/sidebar-enhance.js?v=3"></script>
+        <script src="/suite/js/sidebar-enhance.js?v=4"></script>
         <script src="/suite/js/sidebar-sections.js?v=2"></script>
-        <script src="/suite/js/sidebar-history.js?v=2"></script>
+        <script src="/suite/js/sidebar-history.js?v=3"></script>
         <script src="/suite/js/snap-assist.js?v=1"></script>
         <script src="/suite/js/virtual-desktops.js?v=1"></script>
         <script src="/suite/js/mission-control.js?v=1"></script>
@@ -220,6 +220,49 @@
     </head>
 
     <body>
+        <!-- Boot splash: covers the shell until CSS is applied so the first
+             paint is never raw, unstyled markup. Removed on window load (or
+             a short timeout as fallback). -->
+        <div id="gbBootSplash" aria-hidden="true">
+            <div class="gb-boot-spinner"></div>
+            <div class="gb-boot-text">General Bots</div>
+        </div>
+        <style>
+            #gbBootSplash {
+                position: fixed; inset: 0; z-index: 2147483000;
+                display: flex; flex-direction: column; gap: 14px;
+                align-items: center; justify-content: center;
+                background: var(--bg, #0f1117);
+                color: var(--text, #e5e5e5);
+                font-family: "Fira Code", "Fira Sans", Arial, sans-serif;
+                transition: opacity 320ms ease;
+            }
+            #gbBootSplash.gb-boot-hidden { opacity: 0; pointer-events: none; }
+            .gb-boot-spinner {
+                width: 34px; height: 34px; border-radius: 50%;
+                border: 3px solid rgba(132, 214, 105, 0.25);
+                border-top-color: var(--primary, #84d669);
+                animation: gbBootSpin 900ms linear infinite;
+            }
+            @keyframes gbBootSpin { to { transform: rotate(360deg); } }
+            .gb-boot-text { font-size: 13px; letter-spacing: 0.08em; opacity: 0.75; }
+        </style>
+        <script>
+            (function () {
+                function hideBootSplash() {
+                    var splash = document.getElementById("gbBootSplash");
+                    if (!splash || splash.dataset.gbHidden === "1") return;
+                    splash.dataset.gbHidden = "1";
+                    splash.classList.add("gb-boot-hidden");
+                    setTimeout(function () {
+                        if (splash.parentNode) splash.parentNode.removeChild(splash);
+                    }, 400);
+                }
+                window.addEventListener("load", hideBootSplash);
+                setTimeout(hideBootSplash, 4000);
+            })();
+        </script>
+
         <!-- Minibar removed - login moved to taskbar -->
 
         <div class="build-container">
