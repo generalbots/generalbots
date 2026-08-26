@@ -51,12 +51,23 @@
         openSharedApp("terminal", pid ? { project: pid } : {});
     }
 
-    function builtInProjectUrl(project) {
-        var name = String(project && (project.name || project.project_type) || "").toLowerCase();
-        if (name.indexOf("calculator") !== -1) {
-            return window.location.origin + "/suite/calculator/calculator.html?preview=1";
-        }
-        return "";
+    /* #1192 — run the project's OWN custom app: the LLM writes source files to
+       the project workspace (`VIBE_WORKSPACE_ROOT/{slug}/`). If it contains an
+       `index.html`, Play serves that app directly through the authenticated
+       workspace route; otherwise it falls back to a deployed preview URL. */
+    function workspaceServeUrl(projectId) {
+        if (!projectId) return Promise.reject(new Error("Select a project first"));
+        return vibeAuthFetch("/api/vibe/projects/" + encodeURIComponent(projectId) + "/files")
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var files = (data && data.files) || [];
+                var hasIndex = files.some(function (f) { return f === "index.html"; });
+                if (!hasIndex) return null;
+                var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+                var base = window.location.origin + "/api/vibe/projects/" + encodeURIComponent(projectId) + "/serve/index.html";
+                return token ? base + "?token=" + encodeURIComponent(token) : base;
+            })
+            .catch(function () { return null; });
     }
 
     function resolvePreviewUrl(projectId) {
@@ -66,8 +77,6 @@
             .then(function (projectData) {
                 if (projectData && projectData.success === false) throw new Error(projectData.error || "Project lookup failed");
                 var project = projectData && projectData.project;
-                var builtInUrl = builtInProjectUrl(project);
-                if (builtInUrl) return builtInUrl;
                 var env = (project && (project.environment || project.env)) || "development";
                 return vibeAuthFetch("/api/vibe/projects/" + encodeURIComponent(projectId) + "/preview?env=" + encodeURIComponent(env));
             })
@@ -304,22 +313,21 @@
             var id = project.project_id || project.id;
             return id != null && String(id) === String(projectId);
         });
-        var selectedProjectUrl = builtInProjectUrl(selectedProject || { name: S.projectName() });
-        if (selectedProjectUrl) {
-            openBrowser(selectedProjectUrl);
-            setRunVisual(true);
-            flashHint("RUNNING " + String((selectedProject && selectedProject.name) || S.projectName()).toUpperCase() + " IN THE BROWSER");
-            return;
-        }
-        resolvePreviewUrl(projectId)
+        var projectName = (selectedProject && selectedProject.name) || S.projectName();
+        workspaceServeUrl(projectId)
+            .then(function (url) {
+                if (url) return url;
+                return resolvePreviewUrl(projectId);
+            })
             .then(function (url) {
                 openBrowser(url);
                 setRunVisual(true);
-                flashHint("RUNNING " + S.projectName().toUpperCase() + " IN THE BROWSER");
+                flashHint("RUNNING " + String(projectName).toUpperCase() + " IN THE BROWSER");
             })
             .catch(function (err) {
-                // No live preview yet: still open the shared Browser window so
-                // the user has a place to go, and say why the app is not loaded.
+                // No workspace app and no live preview yet: still open the shared
+                // Browser window so the user has a place to go, and say why the
+                // app is not loaded.
                 setRunVisual(false);
                 openBrowser(null);
                 flashHint((err && err.message ? err.message : "No preview available") + " — deploy the project to see your app");

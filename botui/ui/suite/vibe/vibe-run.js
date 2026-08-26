@@ -540,12 +540,21 @@
 
     /* ------------------------------------------------- preview */
 
-    function builtInProjectUrl(project) {
-        var name = String(project && (project.name || project.project_type) || "").toLowerCase();
-        if (name.indexOf("calculator") !== -1) {
-            return window.location.origin + "/suite/calculator/calculator.html?preview=1";
-        }
-        return "";
+    /* #1192 — run the project's OWN custom app from its workspace instead of a
+       bundled template. Falls back to the deployed preview URL when the
+       workspace has no source. */
+    function workspaceServeUrl(projectId) {
+        if (!projectId) return Promise.resolve(null);
+        return api("/api/vibe/projects/" + encodeURIComponent(projectId) + "/files")
+            .then(function (data) {
+                var files = (data && data.files) || [];
+                var hasIndex = files.some(function (f) { return f === "index.html"; });
+                if (!hasIndex) return null;
+                var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+                var base = window.location.origin + "/api/vibe/projects/" + encodeURIComponent(projectId) + "/serve/index.html";
+                return token ? base + "?token=" + encodeURIComponent(token) : base;
+            })
+            .catch(function () { return null; });
     }
 
     function previewProject() {
@@ -562,27 +571,25 @@
             return;
         }
         previewWindow.document.body.innerHTML = "<p style='font-family:system-ui;padding:24px'>Resolving project preview…</p>";
-        api("/api/vibe/projects/" + encodeURIComponent(projectId)).then(function (projectData) {
-            var project = projectData && projectData.project;
-            var builtInUrl = builtInProjectUrl(project);
-            if (builtInUrl) return builtInUrl;
-            var env = (project && project.environment) || "development";
-            return api("/api/vibe/projects/" + encodeURIComponent(projectId) + "/preview?env=" + encodeURIComponent(env));
-        }).then(function (data) {
-            if (typeof data === "string") {
-                previewWindow.location.href = data;
-                uiMsg("🌐 Preview opened: " + data);
-                return null;
-            }
-            var payload = data && data.data ? data.data : data;
-            var url = payload && payload.preview_url;
-            if (!url || (String(url).indexOf("http://") !== 0 && String(url).indexOf("https://") !== 0)) {
-                previewWindow.close();
-                uiMsg("⚠️ No live preview is available yet. Deploy the project first.");
-                return;
-            }
+        workspaceServeUrl(projectId).then(function (url) {
+            if (url) return url;
+            return api("/api/vibe/projects/" + encodeURIComponent(projectId)).then(function (projectData) {
+                var project = projectData && projectData.project;
+                var env = (project && project.environment) || "development";
+                return api("/api/vibe/projects/" + encodeURIComponent(projectId) + "/preview?env=" + encodeURIComponent(env));
+            }).then(function (data) {
+                if (typeof data === "string") return data;
+                var payload = data && data.data ? data.data : data;
+                var url = payload && payload.preview_url;
+                if (!url || (String(url).indexOf("http://") !== 0 && String(url).indexOf("https://") !== 0)) {
+                    throw new Error("No live preview is available yet. Deploy the project first.");
+                }
+                return url;
+            });
+        }).then(function (url) {
             previewWindow.location.href = url;
             uiMsg("🌐 Preview opened: " + url);
+            return null;
         }).catch(function (err) {
             previewWindow.close();
             uiMsg("⚠️ Preview unavailable: " + err);
