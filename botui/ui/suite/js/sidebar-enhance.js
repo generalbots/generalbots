@@ -21,9 +21,16 @@
   // ── Shared helpers (exposed as window.GBSidebarBase) ─────────
 
   function readPins() {
+    // An empty or missing store must fall back to the default pins —
+    // returning "[]" here leaves the left-bar pin strip empty on first run.
     try {
-      var parsed = JSON.parse(localStorage.getItem(PINS_KEY) || "[]");
-      if (Array.isArray(parsed)) return parsed.filter(Boolean).slice(0, 16);
+      var raw = localStorage.getItem(PINS_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length) {
+          return parsed.filter(Boolean).slice(0, 16);
+        }
+      }
     } catch (e) {}
     return DEFAULT_PINS.slice();
   }

@@ -77,6 +77,9 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
     var item = document.createElement("div");
     item.className = "chat-sidebar-conv-item";
     item.setAttribute("data-session-id", session.session_id);
+    // Carry the real ISO timestamp so the history grouping/search module
+    // can bucket by updated_at even after this node is re-rendered.
+    if (session.updated_at) item.setAttribute("data-ts", session.updated_at);
     item.innerHTML =
       '<div class="chat-sidebar-conv-info">' +
       '<div class="chat-sidebar-conv-name"></div>' +

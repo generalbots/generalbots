@@ -82,29 +82,36 @@
       host.querySelectorAll(".chat-sidebar-conv-item")
     );
     if (!items.length) {
-      host.innerHTML = "";
+      // renderHistory owns the empty state ("No conversations yet") — leave
+      // it in place; just reset the grouping signature.
+      host._gbLastSig = "";
       return;
     }
-    // First pass: stash the flat list once; subsequent renders regroup it.
-    if (!host.dataset.grouped) {
-      host.dataset.grouped = "1";
-      items.forEach(function (item) {
-        var timeEl = item.querySelector(".chat-sidebar-conv-time");
-        if (timeEl) {
-          var ts = new Date(timeEl.textContent.trim()).getTime();
-          item._gbTs = isNaN(ts) ? 0 : ts;
-        } else {
-          item._gbTs = 0;
-        }
-      });
-      host._gbItems = items;
-    }
-    // Re-stash when the source list changes length (new session added).
+    // Stash the flat list once; re-stash whenever a fresh render replaced
+    // the DOM nodes — the previous stash is detached and must never be
+    // re-inserted, otherwise the history list freezes on the first fetch.
     var source = host._gbItems || items;
-    if (items.length !== source.length) {
+    var stale = source.length && source.some(function (item) {
+      return !host.contains(item);
+    });
+    if (!source.length || stale || items.length !== source.length) {
       host._gbItems = items;
       source = items;
     }
+    // Bucket timestamps: prefer the real ISO timestamp carried on the item
+    // (data-ts, set by sidebar-convos.js) so a re-render still buckets by
+    // the original updated_at instead of the relative label ("2h", …).
+    source.forEach(function (item) {
+      if (item._gbTs === undefined) {
+        var raw = item.getAttribute && item.getAttribute("data-ts");
+        if (!raw) {
+          var timeEl = item.querySelector(".chat-sidebar-conv-time");
+          if (timeEl) raw = timeEl.textContent.trim();
+        }
+        var ts = new Date(raw || "").getTime();
+        item._gbTs = isNaN(ts) ? 0 : ts;
+      }
+    });
     var groups = {
       Today: [],
       Yesterday: [],
@@ -115,6 +122,15 @@
       var bucket = item._gbTs ? timeBucket(item._gbTs) : "Older";
       groups[bucket].push(item);
     });
+    // Commit only when the grouping actually changed. Rebuilding the same
+    // list mutates the DOM and re-triggers the MutationObserver below,
+    // which would call group() again forever (each commit → new mutation).
+    var sig = signature(groups);
+    if (sig === host._gbLastSig) {
+      applyFilter(host);
+      return;
+    }
+    host._gbLastSig = sig;
     host.innerHTML = "";
     ["Today", "Yesterday", "Previous 7 Days", "Older"].forEach(function (name) {
       if (!groups[name].length) return;
@@ -127,6 +143,26 @@
       });
     });
     applyFilter(host);
+  }
+
+  // Lightweight signature of the current grouping (bucket + item order), used
+  // to skip pointless DOM rebuilds that would feed the MutationObserver.
+  function signature(groups) {
+    var parts = [];
+    ["Today", "Yesterday", "Previous 7 Days", "Older"].forEach(function (name) {
+      if (!groups[name].length) return;
+      parts.push(
+        name +
+          ":" +
+          groups[name].map(function (item) {
+            return (
+              (item.getAttribute && item.getAttribute("data-session-id")) ||
+              item._gbTs
+            );
+          }).join(",")
+      );
+    });
+    return parts.join("|");
   }
 
   function applyFilter(host) {
@@ -154,6 +190,7 @@
     if (host) {
       delete host.dataset.grouped;
       host._gbItems = undefined;
+      host._gbLastSig = undefined;
       scheduleGroup();
     }
   }
