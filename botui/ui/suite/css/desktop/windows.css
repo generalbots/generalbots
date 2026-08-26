@@ -118,6 +118,43 @@
   max-height: calc(100dvh - 72px);
 }
 
+/* VB6/Delphi-style floating tool windows: slim titlebar, no status bar
+   (the status bar is omitted in JS) and a smaller footprint — half the
+   height of a normal app window so they float beside the main app. */
+.window-element-glass.window-tool,
+.window-element.window-tool {
+  width: clamp(340px, 52vw, 720px);
+  height: clamp(200px, 32vh, 300px);
+}
+
+.window-tool .window-header-glass {
+  height: 30px;
+  padding: 0 10px;
+  border-bottom-width: 1px;
+}
+
+.window-tool .window-title {
+  font-size: 11px;
+}
+
+.window-tool .window-dot-minimize,
+.window-tool .window-dot-maximize {
+  display: none;
+}
+
+.window-tool .window-dot {
+  width: 10px;
+  height: 10px;
+}
+
+/* Compact popup-sized tool window (e.g. the Vibe Members list). */
+.window-element-glass.window-popup {
+  width: 360px;
+  height: auto;
+  min-height: 160px;
+  max-height: min(480px, 70vh);
+}
+
 
 /* ── Titlebar (modern, 40px, minimal) ── */
 

@@ -34,10 +34,46 @@ function sendMessage(messageContent) {
     message_type: MessageType.USER,
     active_switchers: Array.from(ChatState.activeSwitchers),
     mentions: selectedMentions.map(function (mention) {
-      return { kind: mention.kind, id: mention.id, label: mention.name };
+      return {
+        kind: mention.kind,
+        id: mention.id,
+        label: mention.name,
+        project_id: mention.project_id || null,
+      };
     }),
     timestamp: new Date().toISOString(),
   };
+
+  var projectMention = selectedMentions.find(function (mention) {
+    return mention.kind === "project" && mention.id;
+  });
+  // Also resolve a manually typed `@calculator` when its project list was
+  // already loaded by the mention picker.
+  if (!projectMention && Array.isArray(ChatState.projectCatalog)) {
+    var directMatch = content.match(/(?:^|\s)@([A-Za-z0-9][A-Za-z0-9_.-]*)/);
+    if (directMatch) {
+      var directName = directMatch[1].toLowerCase();
+      var directProject = ChatState.projectCatalog.find(function (project) {
+        return String(project.name || "").toLowerCase() === directName;
+      });
+      if (directProject) {
+        projectMention = {
+          id: directProject.id || directProject.project_id,
+          name: directProject.name,
+        };
+      }
+    }
+  }
+  if (projectMention) {
+    payload.project_context = {
+      project_id: String(projectMention.id),
+      project_name: String(projectMention.name || ""),
+    };
+    // Keep flat aliases for older server versions; the nested object is the
+    // canonical field used by the current chat pipeline.
+    payload.project_id = payload.project_context.project_id;
+    payload.project_name = payload.project_context.project_name;
+  }
 
   var finalSend = function () {
     ChatState.ws.send(JSON.stringify(payload));

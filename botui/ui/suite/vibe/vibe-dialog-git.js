@@ -24,8 +24,13 @@
         var commitBtn = D.el("button", "vibe-btn primary", "Commit");
         commitBtn.id = "vibeGitCommitBtn";
         commitBtn.addEventListener("click", commit);
+        var pushBtn = D.el("button", "vibe-btn", "Push");
+        pushBtn.id = "vibeGitPushBtn";
+        pushBtn.title = "Push the current branch";
+        pushBtn.addEventListener("click", pushBranch);
         commitBox.appendChild(msg);
         commitBox.appendChild(commitBtn);
+        commitBox.appendChild(pushBtn);
 
         var count = D.el("span", "vibe-status info", "0");
         count.id = "vibeGitCount";
@@ -175,6 +180,27 @@
                 renderLog();
             }
         }).catch(function () { renderLog(); });
+    }
+
+    function pushBranch() {
+        var btn = document.getElementById("vibeGitPushBtn");
+        if (btn) { btn.disabled = true; btn.textContent = "Pushing..."; }
+        D.api("/api/git/push?repo=" + encodeURIComponent(repoName()), {
+            method: "POST",
+        }).then(function (data) {
+            if (data && data.status === "failure") {
+                alert("Push failed: " + ((data && data.error) || "unknown"));
+            } else if (data && data.success === false) {
+                alert("Push failed: " + ((data && data.error) || "unknown"));
+            } else {
+                loadStatus();
+                loadLog();
+            }
+        }).catch(function (err) {
+            alert("Push error: " + err);
+        }).finally(function () {
+            if (btn) { btn.disabled = false; btn.textContent = "Push"; }
+        });
     }
 
     function commit() {

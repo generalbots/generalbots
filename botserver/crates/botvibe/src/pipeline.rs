@@ -291,6 +291,11 @@ impl PipelineEngine {
                         serde_json::json!({
                             "project": project_name.unwrap_or(""),
                             "project_id": project_id.unwrap_or(""),
+                            // git/commit declares 'message' as required; the
+                            // stage derives one from the project name so the
+                            // deploy pipeline no longer dies with
+                            // "Parâmetro obrigatório ausente: 'message'".
+                            "message": format!("Deploy {} via deploy pipeline", project_name.unwrap_or("app")),
                         })
                     }
                     _ => serde_json::json!({}),

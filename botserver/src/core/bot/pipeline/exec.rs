@@ -71,6 +71,26 @@ pub async fn process_message_internal(
                 .collect()
         })
         .unwrap_or_default();
+    // Project context is supplied by the chat mention picker as
+    // {project_id, project_name}. It is kept separate from entity mentions so
+    // an ordinary `@calculator` reference can target Vibe without changing
+    // the existing CRM/integration mention contract.
+    let project_context = parsed
+        .get("project_context")
+        .cloned()
+        .or_else(|| {
+            parsed.get("mentions").and_then(|value| {
+                value.as_array()?.iter().find_map(|mention| {
+                    if mention.get("kind").and_then(|v| v.as_str()) != Some("project") {
+                        return None;
+                    }
+                    Some(serde_json::json!({
+                        "project_id": mention.get("project_id").or_else(|| mention.get("id")),
+                        "project_name": mention.get("label").or_else(|| mention.get("name")),
+                    }))
+                })
+            })
+        });
     // @-mentions selected in the composer (#939 phase D); resolved against
     // the connection control plane only when the integrations feature is
     // compiled in, exactly like the `integrations.invoke` command arm.
@@ -333,6 +353,20 @@ pub async fn process_message_internal(
             "role": "system",
             "content": format!("Contexto da conversa:\n{session_context}")
         }));
+    }
+    if let Some(context) = project_context.as_ref() {
+        let project_id = context.get("project_id").and_then(|v| v.as_str()).unwrap_or("");
+        let project_name = context.get("project_name").and_then(|v| v.as_str()).unwrap_or("");
+        if !project_id.is_empty() || !project_name.is_empty() {
+            messages.push(serde_json::json!({
+                "role": "system",
+                "content": format!(
+                    "The user referenced Vibe project '{project_name}' (id: {project_id}).\n\
+                     For code changes to this project, use the vibe.project.change command with \
+                     project_id='{project_id}', project_name='{project_name}', and the user's requested intent."
+                ),
+            }));
+        }
     }
 
     let history_limit: i64 = {

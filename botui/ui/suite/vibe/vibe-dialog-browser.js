@@ -120,15 +120,32 @@
         });
     }
 
+    function builtInProjectUrl(project) {
+        var name = String(project && (project.name || project.project_type) || "").toLowerCase();
+        if (name.indexOf("calculator") !== -1) {
+            return window.location.origin + "/suite/calculator/calculator.html?preview=1";
+        }
+        return "";
+    }
+
     function resolveProjectUrl() {
         var pid = typeof window.currentProjectId !== "undefined" ? window.currentProjectId : null;
         if (!pid) return Promise.reject(new Error("Select a project first"));
         return D.api("/api/vibe/projects/" + encodeURIComponent(pid)).then(function (projectData) {
             if (projectData && projectData.success === false) throw new Error(projectData.error || "Project lookup failed");
             var project = projectData && projectData.project;
+            var builtInUrl = builtInProjectUrl(project);
+            if (builtInUrl) return builtInUrl;
             var env = (project && (project.environment || project.env)) || "production";
             return D.api("/api/vibe/projects/" + encodeURIComponent(pid) + "/preview?env=" + encodeURIComponent(env));
         }).then(function (data) {
+            if (typeof data === "string") {
+                state.url = data;
+                var builtInInput = document.getElementById("vibeBrowserUrl");
+                if (builtInInput) builtInInput.value = data;
+                logLine("built-in app preview resolved: " + data, "ok");
+                return data;
+            }
             if (data && data.success === false) throw new Error(data.error || "No preview is available");
             var payload = data && data.data ? data.data : data;
             var preview = payload && payload.preview_url;

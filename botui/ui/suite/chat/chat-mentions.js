@@ -41,7 +41,10 @@ function searchEntities(query) {
       return { type: type, name: EntityTypes[type].label, icon: EntityTypes[type].icon, isTypeHint: true };
     });
 
-  renderMentionResults(filteredTypes);
+  // A bare `@calculator` is a project reference, not only an entity type.
+  // Search the user's Vibe projects alongside the type hints so the selected
+  // project id travels with the message and the LLM never guesses a workspace.
+  fetchProjectMentions(query, filteredTypes);
 }
 
 function normalizeListResponse(data) {
@@ -54,6 +57,10 @@ function normalizeListResponse(data) {
 function fetchEntitiesOfType(type, searchTerm) {
   if (type === "integration") {
     fetchIntegrationMentions(searchTerm);
+    return;
+  }
+  if (type === "project") {
+    fetchProjectMentions(searchTerm, []);
     return;
   }
   fetch("/api/search/entities?type=" + encodeURIComponent(type) + "&q=" + encodeURIComponent(searchTerm || ""))
@@ -73,6 +80,35 @@ function fetchEntitiesOfType(type, searchTerm) {
     })
     .catch(function () {
       renderMentionResults([{ type: type, name: "Search unavailable", icon: "\u26A0\uFE0F", isTypeHint: false, disabled: true }]);
+    });
+}
+
+function fetchProjectMentions(searchTerm, leadingResults) {
+  var term = String(searchTerm || "").toLowerCase();
+  fetch("/api/vibe/projects?limit=50")
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      var projects = normalizeListResponse(data && data.projects ? data.projects : data);
+      ChatState.projectCatalog = projects;
+      var results = projects
+        .filter(function (project) {
+          var name = String(project.name || "").toLowerCase();
+          return !term || name.indexOf(term) !== -1;
+        })
+        .map(function (project) {
+          return {
+            type: "project",
+            name: project.name || "Unnamed project",
+            id: project.id || project.project_id,
+            icon: EntityTypes.project.icon,
+            subtitle: project.status || "Vibe project",
+            isTypeHint: false,
+          };
+        });
+      renderMentionResults((leadingResults || []).concat(results));
+    })
+    .catch(function () {
+      renderMentionResults(leadingResults || []);
     });
 }
 
@@ -151,7 +187,11 @@ function selectMentionItem(index) {
     searchEntities(ChatState.mentionState.query);
     return;
   } else {
-    insertText = "@" + item.type + ":" + item.name + " ";
+    // Projects use the concise `@calculator` form requested for chat. The
+    // selectedMentions record remains canonical and carries the UUID.
+    insertText = item.type === "project"
+      ? "@" + item.name + " "
+      : "@" + item.type + ":" + item.name + " ";
     input.value = beforeMention + insertText + afterMention;
     input.setSelectionRange(beforeMention.length + insertText.length, beforeMention.length + insertText.length);
     hideMentionDropdown();
@@ -161,8 +201,9 @@ function selectMentionItem(index) {
     if (!ChatState.selectedMentions) ChatState.selectedMentions = [];
     ChatState.selectedMentions.push({
       kind: item.type,
-      id: item.type === "integration" && item.id ? String(item.id) : "",
+      id: item.id ? String(item.id) : "",
       name: item.name,
+      project_id: item.type === "project" && item.id ? String(item.id) : null,
     });
   }
   input.focus();

@@ -44,13 +44,17 @@
         S.setMode("toolbar");
         wrapClose();
         S.toolbar.build();
-        S.palettes.init();
-        S.git.mount();
-        S.canvasFlow.start();
+        /* The single command row is the whole surface: its buttons open
+           every accessory (terminal, browser, chat, run dock, canvas,
+           graph, metrics, dialogs) as floating windows on demand. The
+           shell's duplicate palette buttons, the auto-rendered phases
+           canvas and the toolbar git controls are intentionally NOT
+           started — committing happens in the git dialog popup. */
     }
 
     document.addEventListener("gb-shell-window-closed", function (e) {
-        if (e.detail && e.detail.id) {
+        if (e.detail && e.detail.id && S.palettes &&
+            typeof S.palettes.handleWindowClosed === "function") {
             S.palettes.handleWindowClosed(e.detail.id);
         }
     });

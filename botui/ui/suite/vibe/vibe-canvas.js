@@ -167,7 +167,8 @@ document.addEventListener("click", function (e) {
 (function () {
     "use strict";
 
-    var state = { elements: [], connectors: [] };
+    var state = { elements: [], connectors: [], generated: null };
+
     var tool = "select";
     var selectedId = null;
     var gesture = null;
@@ -209,10 +210,18 @@ document.addEventListener("click", function (e) {
         setMode("design");
     }
 
+    function setGeneratedDesign(design) {
+        state.generated = design || null;
+        var host = document.getElementById("vibeGeneratedLayer");
+        if (host) host.innerHTML = state.generated && state.generated.svg ? state.generated.svg : "";
+    }
+
     function render() {
         var host = document.getElementById("vibeDesignElements");
         var svg = document.getElementById("vibeDesignConnectors");
         if (!host || !svg) return;
+        var generatedHost = document.getElementById("vibeGeneratedLayer");
+        if (generatedHost) generatedHost.innerHTML = state.generated && state.generated.svg ? state.generated.svg : "";
         host.innerHTML = "";
         state.elements.forEach(function (item) {
             var el = document.createElement("div");
@@ -333,10 +342,15 @@ document.addEventListener("click", function (e) {
                 canvasId = match.canvas_id;
                 state.elements = Array.isArray(match.content.elements) ? match.content.elements : [];
                 state.connectors = Array.isArray(match.content.connectors) ? match.content.connectors : [];
+                setGeneratedDesign(match.content.generated || null);
             } else {
-                state = { elements: [], connectors: [] };
+                state = { elements: [], connectors: [], generated: null };
             }
-            render(); setStatus("Saved");
+            render();
+            if (project !== "unsaved" && !state.generated && window.VibeCanvasViews && window.VibeCanvasViews.generateProjectDesign) {
+                window.VibeCanvasViews.generateProjectDesign(false);
+            }
+            setStatus("Saved");
         }).catch(function (error) { setStatus("Local changes only: " + error.message); });
     }
 
@@ -347,7 +361,8 @@ document.addEventListener("click", function (e) {
     }
 
     function saveCanvas() {
-        var content = { kind: "vibe-design", version: 1, elements: state.elements, connectors: state.connectors };
+        var content = { kind: "vibe-design", version: 2, elements: state.elements, connectors: state.connectors, generated: state.generated };
+
         var request = canvasId
             ? api("/api/vibe/canvases/" + encodeURIComponent(canvasId), { method: "PUT", body: JSON.stringify({ content: content }) })
             : api("/api/vibe/canvases", { method: "POST", body: JSON.stringify({ title: "Vibe Design", project: projectKey(), content: content }) });
@@ -375,7 +390,8 @@ document.addEventListener("click", function (e) {
             }
             if (event.target.closest("[data-vibe-canvas-clear]")) {
                 const doClear = function () {
-                    state = { elements: [], connectors: [] };
+                    state = { elements: [], connectors: [], generated: state.generated };
+
                     selectedId = null;
                     render();
                     scheduleSave();
@@ -403,6 +419,14 @@ document.addEventListener("click", function (e) {
         });
     }
 
-    window.VibeDesign = { init: init, activate: activateTool, render: render };
+    window.VibeDesign = {
+        init: init,
+        activate: activateTool,
+        render: render,
+        getState: function () { return state; },
+        setGeneratedDesign: setGeneratedDesign,
+        saveSoon: scheduleSave,
+        load: loadCanvas,
+    };
     init();
 })();

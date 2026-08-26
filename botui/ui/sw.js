@@ -1,15 +1,15 @@
 /* GB Desktop offline shell (#1159).
  * Cache-first for the core desktop shell assets; network fallback for
  * everything else. Version bump invalidates the previous cache. */
-var CACHE = "gb-desktop-shell-v2";
+var CACHE = "gb-desktop-shell-v12";
 var CORE = [
   "/suite/desktop.html",
   "/suite/js/vendor/htmx.min.js",
   "/suite/js/security-bootstrap.js?v=4",
-  "/suite/js/window-manager.js?v=13",
+  "/suite/js/window-manager.js?v=20",
   "/suite/js/widget-registry.js?v=2",
   "/suite/js/widget-renderer.js?v=2",
-  "/suite/js/sidebar.js?v=5",
+  "/suite/js/sidebar.js?v=6",
   "/suite/css/desktop/widgets.css?v=1",
 ];
 

@@ -152,11 +152,9 @@ function connectVibeWs() {
             };
         })
         .catch(function () {
+            /* Silent: toolbar mode has no chat client portion to show the
+               "could not connect" banner in — status dot only. */
             vibeSafeStatus("disconnected");
-            vibeSafeMsg(
-                "system",
-                "⚠️ Could not connect to backend. You can still plan offline.",
-            );
         });
 }
 
