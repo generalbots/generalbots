@@ -198,7 +198,10 @@
             urlInput.value = url;
 
             var target = new URL(url, window.location.href);
-            if (target.origin === window.location.origin && target.pathname.indexOf('/suite/') === 0) {
+            var isSuite = target.origin === window.location.origin && target.pathname.indexOf('/suite/') === 0;
+            var isWorkspaceServe = target.origin === window.location.origin &&
+                /^\/api\/vibe\/projects\/[^\/]+\/serve\//.test(target.pathname);
+            if (isSuite || isWorkspaceServe) {
                 navigateSameOrigin(target.href);
                 return;
             }

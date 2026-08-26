@@ -8,6 +8,7 @@ use std::sync::Arc;
 use axum::{
     extract::{Extension, Path, Query},
     http::StatusCode,
+    response::{IntoResponse, Response},
     Json,
 };
 use serde::{Deserialize, Serialize};
@@ -240,6 +241,12 @@ pub fn projects_router(
         .route("/api/vibe/projects/:project_id/files", post(write_project_file))
         .route("/api/vibe/projects/:project_id/export", get(export_project))
         .route("/api/vibe/projects/:project_id/git/pr", post(create_project_pr))
+        // #1192 — run the project's own custom app: stream the workspace
+        // files (the LLM-generated source) so Play/Preview opens the real app
+        // instead of a bundled template. Same per-project RBAC as the other
+        // workspace endpoints; `?token=` is honored like the WS routes so the
+        // embedded Browser iframe can load it directly.
+        .route("/api/vibe/projects/:project_id/serve/*path", get(serve_project_file))
         .layer(Extension(registry))
         .layer(Extension(rbac))
         .layer(Extension(metering))
@@ -535,6 +542,145 @@ async fn create_project_pr(
             Json(serde_json::json!({ "success": false, "error": result.error })),
         )
     }
+}
+
+// ── #1192: serve the project's own custom app (workspace static preview) ──
+// Play/Preview resolves a project to this route when its workspace has source
+// files, so the LLM-generated app runs in the Browser window without needing a
+// VM. Files are streamed from `VIBE_WORKSPACE_ROOT/{slug}/` with the correct
+// MIME type; HTML responses have relative asset URLs rewritten to carry the
+// auth token (iframes cannot set headers).
+
+#[derive(Debug, Deserialize)]
+struct ServeQuery {
+    token: Option<String>,
+}
+
+fn serve_mime_for(path: &str) -> &'static str {
+    let ext = path.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
+    match ext.as_str() {
+        "html" | "htm" => "text/html; charset=utf-8",
+        "css" => "text/css; charset=utf-8",
+        "js" | "mjs" => "text/javascript; charset=utf-8",
+        "json" | "map" => "application/json; charset=utf-8",
+        "svg" => "image/svg+xml",
+        "png" => "image/png",
+        "jpg" | "jpeg" => "image/jpeg",
+        "gif" => "image/gif",
+        "webp" => "image/webp",
+        "ico" => "image/x-icon",
+        "woff" => "font/woff",
+        "woff2" => "font/woff2",
+        "ttf" => "font/ttf",
+        "otf" => "font/otf",
+        "md" => "text/markdown; charset=utf-8",
+        "txt" => "text/plain; charset=utf-8",
+        _ => "application/octet-stream",
+    }
+}
+
+/// Rewrite relative `src`/`href` asset URLs in an HTML document so sub-resources
+/// carry the same `?token=` used for the iframe itself (embedded Browser iframes
+/// cannot set an Authorization header). Absolute, root-relative, scheme-relative,
+/// fragment, and data: URLs are left untouched.
+fn serve_inject_token(html: &str, token: &str) -> String {
+    if token.is_empty() || html.contains("?token=") {
+        return html.to_string();
+    }
+    let mut out = String::with_capacity(html.len() + 64);
+    let mut rest = html;
+    while !rest.is_empty() {
+        // Find the next `src="|href="|src='|href='` marker.
+        let candidates = ["src=\"", "href=\"", "src='", "href='"]
+            .into_iter()
+            .filter_map(|m| rest.find(m).map(|p| (p, m)))
+            .min_by_key(|(p, _)| *p);
+        match candidates {
+            Some((pos, marker)) => {
+                out.push_str(&rest[..pos]);
+                out.push_str(marker);
+                let quote = &marker[marker.len() - 1..];
+                let value_start = pos + marker.len();
+                let value_end = rest[value_start..]
+                    .find(quote)
+                    .map(|p| value_start + p)
+                    .unwrap_or(rest.len());
+                let url = &rest[value_start..value_end];
+                if !url.is_empty()
+                    && !url.starts_with("http://")
+                    && !url.starts_with("https://")
+                    && !url.starts_with("//")
+                    && !url.starts_with('/')
+                    && !url.starts_with('#')
+                    && !url.starts_with("data:")
+                    && !url.starts_with("blob:")
+                {
+                    let sep = if url.contains('?') { "&" } else { "?" };
+                    out.push_str(url);
+                    out.push_str(sep);
+                    out.push_str("token=");
+                    out.push_str(token);
+                } else {
+                    out.push_str(url);
+                }
+                out.push_str(quote);
+                rest = &rest[value_end + 1..];
+            }
+            None => {
+                out.push_str(rest);
+                rest = "";
+            }
+        }
+    }
+    out
+}
+
+async fn serve_project_file(
+    Extension(registry): Extension<ProjectRegistryRef>,
+    Extension(rbac): Extension<ProjectRbac>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path((id, path)): Path<(Uuid, String)>,
+    Query(query): Query<ServeQuery>,
+) -> Response {
+    if let Err(e) = rbac.require_role(user.user_id, id, ProjectRole::Viewer) {
+        log::warn!("Vibe serve forbidden: {e}");
+        return (StatusCode::FORBIDDEN, "forbidden").into_response();
+    }
+    let project = match registry.get(id) {
+        Ok(Some(p)) => p,
+        Ok(None) => return (StatusCode::NOT_FOUND, "project not found").into_response(),
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+    };
+    let key = workspace_key(&project);
+    let mut rel = path.trim().to_string();
+    if rel.is_empty() || rel.ends_with('/') {
+        rel.push_str("index.html");
+    }
+    let bytes = match harness::read_rel_file(&key, &rel, 16 * 1024 * 1024) {
+        Ok(b) => b,
+        Err(e) => {
+            log::warn!("Vibe serve {key}/{rel}: {e}");
+            return (StatusCode::NOT_FOUND, "app file not found").into_response();
+        }
+    };
+    let mime = serve_mime_for(&rel);
+    let body: axum::body::Body = if mime.starts_with("text/html") {
+        match (std::str::from_utf8(&bytes), query.token.as_deref()) {
+            (Ok(text), Some(token)) => serve_inject_token(text, token).into_bytes().into(),
+            _ => bytes.into(),
+        }
+    } else {
+        bytes.into()
+    };
+    (
+        StatusCode::OK,
+        [
+            (axum::http::header::CONTENT_TYPE, mime),
+            (axum::http::header::CACHE_CONTROL, "no-store"),
+        ],
+        body,
+    )
+        .into_response()
 }
 
 async fn write_project_file(
