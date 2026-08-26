@@ -84,6 +84,14 @@
     min-height: 420px;
 }
 
+/* The design surface defaults to min-height:720px for the old full-page
+   layout; inside the canvas tool window let it fill the available space so
+   drawing works at any window size. */
+[id^="window-body-"] .vibe-design-surface {
+    min-height: 0;
+    height: 100%;
+}
+
 /* Run dock fills its floating window */
 [id^="window-body-"] #vibeRunDock {
     position: static;
@@ -111,6 +119,16 @@
     position: absolute;
     inset: 0;
     z-index: 10;
+}
+
+/* Members is a compact popup: content-sized, scrollable, no absolute fill. */
+[id^="window-body-"] #vibeMembersModal.vibe-popup-panel {
+    position: static;
+    inset: auto;
+    height: auto;
+    min-height: 120px;
+    max-height: 56vh;
+    overflow-y: auto;
 }
 
 /* Dialogs built by VibeDialogs inside tool windows fill the body */

@@ -203,7 +203,7 @@ impl VMetering {
         let mut conn = self.conn()?;
         let plan = self.plan_for(&mut conn, branch_id)?;
         let cap: Option<F64Cell> = diesel::sql_query(
-            "SELECT hard_limit FROM metering_limits \
+            "SELECT hard_limit AS value FROM metering_limits \
              WHERE org_id = $1 AND scope = $2 AND meter = $3",
         )
         .bind::<diesel::sql_types::Uuid, _>(org_id)
@@ -217,7 +217,7 @@ impl VMetering {
             return Ok(EnforceResult { allowed: true, metered: meter.as_str().to_string() });
         }
         let used: F64Cell = diesel::sql_query(
-            "SELECT COALESCE(SUM(amount), 0) FROM metering_usage \
+            "SELECT COALESCE(SUM(amount), 0)::float8 AS value FROM metering_usage \
              WHERE org_id = $1 AND meter = $2 \
              AND period_start >= NOW() - make_interval(secs => $3)",
         )
@@ -295,7 +295,7 @@ impl VMetering {
         let elapsed = (Utc::now() - vm_created_at).num_seconds().max(0) as f64 / 3600.0;
         let window_hours = window as f64 / 3600.0;
         let recorded: f64 = diesel::sql_query(
-            "SELECT COALESCE(SUM(amount), 0)::float8 FROM metering_usage \
+            "SELECT COALESCE(SUM(amount), 0)::float8 AS value FROM metering_usage \
              WHERE project_id = $1 AND env = $2 AND meter = $3 \
              AND period_start >= NOW() - make_interval(secs => $4)",
         )
@@ -380,7 +380,7 @@ impl VMetering {
     pub fn project_count(&self, org_id: Uuid, project_type: &str) -> Result<i64, String> {
         let mut conn = self.conn()?;
         diesel::sql_query(
-            "SELECT COUNT(*) FROM vibe_projects \
+            "SELECT COUNT(*) AS value FROM vibe_projects \
              WHERE org_id = $1 AND project_type = $2",
         )
         .bind::<diesel::sql_types::Uuid, _>(org_id)

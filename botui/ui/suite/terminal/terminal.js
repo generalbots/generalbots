@@ -50,15 +50,23 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
         vmSelect.innerHTML = '';
         const hostOpt = document.createElement('option');
         hostOpt.value = '';
-        hostOpt.textContent = 'Default (host shell)';
+        hostOpt.textContent = 'Host shell (server — not recommended)';
         vmSelect.appendChild(hostOpt);
+        let preselected = false;
         options.forEach(function (o) {
             const opt = document.createElement('option');
             opt.value = o.container || '';
             opt.textContent = o.label;
-            if (preferred && o.container === preferred) opt.selected = true;
+            if (preferred && o.container === preferred) {
+                opt.selected = true;
+                preselected = true;
+            }
             vmSelect.appendChild(opt);
         });
+        // Safety: when the user HAS VMs, default into a VM — never the host.
+        if (options.length && !preselected) {
+            vmSelect.selectedIndex = 1;
+        }
         vmOptionsLoaded = true;
         // A deep-linked project VM should be used by the (already created)
         // first tab — reconnect it into the container.
@@ -91,8 +99,12 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
             }).then(function (groups) {
                 const flat = [];
                 groups.forEach(function (g) { if (Array.isArray(g)) flat.push.apply(flat, g); });
-                fillVmSelect(flat.filter(function (o) { return o.container; }), null);
-            }).catch(function () { /* picker stays on default */ });
+                const list = flat.filter(function (o) { return o.container; });
+                // Prefer a running VM (label carries the status), else the first.
+                const running = list.find(function (o) { return /run/i.test(o.label || ''); });
+                const pref = running || list[0] || null;
+                fillVmSelect(list, pref ? pref.container : null);
+            }).catch(function () { vmOptionsLoaded = true; });
         } else {
             // From the Vibe ribbon: resolve that project's VM and preselect it.
             apiGet('/api/vibe/projects/' + encodeURIComponent(projectId) + '/vms').then(function (vd) {
@@ -104,7 +116,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
                         label: (v.env || 'vm') + (v.status ? ' (' + v.status + ')' : ''),
                     };
                 }).filter(function (o) { return o.container; }), pref && pref.container_name);
-            }).catch(function () { /* picker stays on default */ });
+            }).catch(function () { vmOptionsLoaded = true; /* picker stays on default */ });
         }
     }
 
@@ -162,11 +174,36 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
         let reconnectTimer = null;
 
         function connect() {
+            if (!vmOptionsLoaded) {
+                // The VM picker loads async; never race it with a host shell.
+                statusText.textContent = 'Resolving VM…';
+                const wait = setInterval(function () {
+                    if (vmOptionsLoaded) {
+                        clearInterval(wait);
+                        doConnect();
+                    }
+                }, 150);
+                setTimeout(function () { clearInterval(wait); }, 15000); // safety net
+                return;
+            }
+            doConnect();
+        }
+
+        function doConnect() {
             statusText.textContent = 'Connecting...';
             const token = localStorage.getItem('gb-access-token') || sessionStorage.getItem('gb-access-token');
+            const container = getSelectedContainer();
+            // Safety: if the user has no VM at all, refuse to open a
+            // botserver host shell (never expose the server filesystem).
+            if (!container && vmSelect && vmSelect.options.length <= 1) {
+                statusText.textContent = 'No VM';
+                wsStatus.textContent = 'WS: —';
+                terminal.write('\r\n\x1b[31m[No VM found for your account.]\x1b[0m\r\n');
+                terminal.write('\x1b[33m[Open Vibe, create a project and publish it to provision a VM, then reopen the terminal.]\x1b[0m\r\n');
+                return;
+            }
             // The backend requires a session created via /api/terminal/create
             // before the WS upgrade (it looks up the PTY by ?id=).
-            const container = getSelectedContainer();
             fetch('/api/terminal/create', {
                 method: 'POST',
                 headers: {

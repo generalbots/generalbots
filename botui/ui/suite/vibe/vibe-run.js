@@ -36,8 +36,8 @@
         var runBtn = q("vibeRunBtn");
         var pauseBtn = q("vibePauseBtn");
         var stopBtn = q("vibeStopBtn");
-        if (runBtn) runBtn.classList.toggle("active", state.paused);
-        if (pauseBtn) pauseBtn.classList.toggle("active", state.paused);
+        if (runBtn) runBtn.classList.toggle("active", state.runId && state.run && ["running", "pending"].indexOf(String(state.run.state)) !== -1 && !state.paused);
+        if (pauseBtn) pauseBtn.classList.toggle("active", state.paused || (state.run && String(state.run.state) === "awaiting_approval"));
         if (stopBtn) stopBtn.classList.toggle("active", state.runId && state.run && ["running", "awaiting_approval", "pending"].indexOf(String(state.run.state)) !== -1);
     }
 
@@ -540,6 +540,14 @@
 
     /* ------------------------------------------------- preview */
 
+    function builtInProjectUrl(project) {
+        var name = String(project && (project.name || project.project_type) || "").toLowerCase();
+        if (name.indexOf("calculator") !== -1) {
+            return window.location.origin + "/suite/calculator/calculator.html?preview=1";
+        }
+        return "";
+    }
+
     function previewProject() {
         var projectId = typeof currentProjectId !== "undefined" ? currentProjectId : null;
         if (!projectId) {
@@ -556,9 +564,16 @@
         previewWindow.document.body.innerHTML = "<p style='font-family:system-ui;padding:24px'>Resolving project preview…</p>";
         api("/api/vibe/projects/" + encodeURIComponent(projectId)).then(function (projectData) {
             var project = projectData && projectData.project;
+            var builtInUrl = builtInProjectUrl(project);
+            if (builtInUrl) return builtInUrl;
             var env = (project && project.environment) || "development";
             return api("/api/vibe/projects/" + encodeURIComponent(projectId) + "/preview?env=" + encodeURIComponent(env));
         }).then(function (data) {
+            if (typeof data === "string") {
+                previewWindow.location.href = data;
+                uiMsg("🌐 Preview opened: " + data);
+                return null;
+            }
             var payload = data && data.data ? data.data : data;
             var url = payload && payload.preview_url;
             if (!url || (String(url).indexOf("http://") !== 0 && String(url).indexOf("https://") !== 0)) {
@@ -858,9 +873,9 @@
         var input = q("vibeChatInput");
         var text = (input && input.value || "").trim();
         if (!text) {
+            // Assistant = the shared Chat window; open it to prompt the user.
             if (window.VibeWindows) window.VibeWindows.openAssistant();
-            if (input) input.focus();
-            updateRibbonStatus("TYPE A PROMPT TO RUN", "hint");
+            updateRibbonStatus("TYPE A PROMPT IN CHAT TO RUN", "hint");
             return;
         }
         input.value = "";
@@ -887,6 +902,11 @@
         state.paused = true;
         uiMsg("⏸ Paused — the run will hold at its next checkpoint.");
         updateRibbonStatus("PAUSED — HOLDS AT NEXT CHECKPOINT", "paused");
+    }
+
+    function hasActiveRun() {
+        if (!state.runId || !state.run) return false;
+        return ["pending", "running", "awaiting_approval"].indexOf(String(state.run.state)) !== -1;
     }
 
     function stop() {
@@ -919,5 +939,10 @@
         pause: pause,
         stop: stop,
     };
-    window.VibeTransport = { play: play, pause: pause, stop: stop };
+    window.VibeTransport = {
+        play: play,
+        pause: pause,
+        stop: stop,
+        hasActiveRun: hasActiveRun,
+    };
 })();

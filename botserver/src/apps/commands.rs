@@ -516,6 +516,7 @@ pub static ALL_COMMANDS: &[AppCommand] = &[
     // ——— AI ———
     cmd("chat", "chat.resume", "Resume conversation", "Resume or start a chat with the assistant.", &[], None, false),
     cmd("vibe", "vibe.runs.list", "List assistant runs", "List generative assistant runs and workflows.", &[("limit", "optional max results")], Some("app://vibe?run_id={run_id}"), false),
+    cmd("vibe", "vibe.project.change", "Change a Vibe project", "Run an authenticated Vibe agent request against the referenced project workspace.", &[("project_id", "selected Vibe project UUID"), ("project_name", "selected project name"), ("intent", "requested code or project change")], None, false),
     cmd("research", "research.web.search", "Search the web", "Search the web (DuckDuckGo) for current facts, news or prices.", &[("query", "the search terms"), ("max_results", "optional 1-25")], Some("app://research?q={query}"), false),
     cmd("research", "research.discover", "Deep research", "Performs deep research on a topic across web and knowledge bases.", &[("topic", "the topic")], None, false),
     cmd("video", "video.projects.list", "List video projects", "List AI video editing/generation projects.", &[], Some("app://video?project_id={project_id}"), false),

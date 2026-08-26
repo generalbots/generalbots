@@ -5,8 +5,9 @@
 <link rel="stylesheet" href="/suite/vibe/vibe-dialogs.p1.css?v=1" />
 <link rel="stylesheet" href="/suite/vibe/vibe-dialogs.p2.css?v=1" />
 <link rel="stylesheet" href="/suite/vibe/vibe-run.css?v=9" />
-<link rel="stylesheet" href="/suite/vibe/vibe-windows.css?v=1" />
-<link rel="stylesheet" href="/suite/vibe/vibe-shell/90_shell.css?v=2" />
+<link rel="stylesheet" href="/suite/vibe/vibe-windows.css?v=3" />
+<link rel="stylesheet" href="/suite/vibe/vibe-canvas-views.css?v=2" />
+<link rel="stylesheet" href="/suite/vibe/vibe-shell/90_shell.css?v=10" />
 
 <div class="vibe-container gb-app" id="vibeWindow" data-gb-app="vibe">
 <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading Vibe…</span></div>
@@ -30,9 +31,9 @@
 </div>
 <div class="vibe-ribbon-panel">
 <div class="vibe-ribbon-group" data-group="plan">
-<button class="vibe-ribbon-cmd" onclick="window.VibeNewProject.open()"><span class="rc-icon">➕</span><span class="rc-label">New Project</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeWindows && window.VibeWindows.openNewProject()"><span class="rc-icon">➕</span><span class="rc-label">New Project</span></button>
 <button class="vibe-ribbon-cmd" onclick="window.openDeepLink('designer', {})"><span class="rc-icon">🎨</span><span class="rc-label">Designer</span></button>
-<button class="vibe-ribbon-cmd" onclick="VibeGraph && VibeGraph.togglePanel(true)"><span class="rc-icon">⛓️</span><span class="rc-label">Knowledge Graph</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeWindows && window.VibeWindows.openGraph()"><span class="rc-icon">⛓️</span><span class="rc-label">Knowledge Graph</span></button>
 <button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('db', 'Database Schema')"><span class="rc-icon">🗄️</span><span class="rc-label">Database</span></button>
 </div>
 <div class="vibe-ribbon-group" data-group="build">
@@ -48,16 +49,16 @@
 <div class="vibe-ribbon-group" data-group="review">
 <button class="vibe-ribbon-cmd" onclick="window.VibeRun && window.VibeRun.approve()"><span class="rc-icon">✓</span><span class="rc-label">Approve &amp; Resume</span></button>
 <button class="vibe-ribbon-cmd danger" onclick="window.VibeRun && window.VibeRun.deny()"><span class="rc-icon">✕</span><span class="rc-label">Deny &amp; Cancel</span></button>
-<button class="vibe-ribbon-cmd" onclick="VibeGraph && VibeGraph.togglePanel(true)"><span class="rc-icon">⛓️</span><span class="rc-label">Knowledge Graph</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeWindows && window.VibeWindows.openGraph()"><span class="rc-icon">⛓️</span><span class="rc-label">Knowledge Graph</span></button>
 <button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('git', 'Source Control')"><span class="rc-icon">🌱</span><span class="rc-label">Review Changes</span></button>
 </div>
 <div class="vibe-ribbon-group" data-group="deploy">
 <button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('deploy', 'Deploy')"><span class="rc-icon">🚀</span><span class="rc-label">Deploy</span></button>
 <button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('git', 'Source Control')"><span class="rc-icon">🌱</span><span class="rc-label">Push</span></button>
-<button class="vibe-ribbon-cmd" onclick="window.VibeMembers && window.VibeMembers.open()"><span class="rc-icon">👥</span><span class="rc-label">Members</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeWindows && window.VibeWindows.openMembers()"><span class="rc-icon">👥</span><span class="rc-label">Members</span></button>
 </div>
 <div class="vibe-ribbon-group" data-group="monitor">
-<button class="vibe-ribbon-cmd" onclick="VibeMetrics && VibeMetrics.open()"><span class="rc-icon">📊</span><span class="rc-label">Metrics</span></button>
+<button class="vibe-ribbon-cmd" onclick="window.VibeWindows && window.VibeWindows.openMetrics()"><span class="rc-icon">📊</span><span class="rc-label">Metrics</span></button>
 <button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('deploy', 'Deployments')"><span class="rc-icon">🚀</span><span class="rc-label">Deployments</span></button>
 <button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('terminal', 'Terminal')"><span class="rc-icon">⌨️</span><span class="rc-label">Logs</span></button>
 </div>
@@ -97,7 +98,7 @@ color: var(--text-muted);
 font-size: 14px;
 ">
 <span style="cursor: pointer" title="Home" onclick="vibeGoHome()">⌂</span>
-<span style="cursor: pointer" title="Overview" onclick="VibeGraph && VibeGraph.togglePanel()">◱</span>
+<span style="cursor: pointer" title="Overview" onclick="window.VibeWindows && window.VibeWindows.openGraph()">◱</span>
 </div>
 </div>
 
@@ -121,13 +122,6 @@ style="width: calc(100% - 16px); margin: 8px">
 </div>
 </div>
 </aside>
-
-<!-- MCP Servers -->
-<div style="width: 280px; margin-left: 280px; position: absolute; left: 0; bottom: 0; top: 60px; pointer-events: none; z-index: 50;">
-<div style="pointer-events: auto; position: absolute; bottom: 24px; left: 24px; right: 24px;">
-<div hx-get="/suite/partials/vibe-mcp-panel.html" hx-trigger="load"></div>
-</div>
-</div>
 
 <!-- Canvas Area -->
 <div class="vibe-canvas" id="vibeCanvas" style="
@@ -203,7 +197,8 @@ overflow-x: auto;
 "></div>
 
 <!-- Persistent visual design layer. Activated from the canvas toolbar. -->
-<div id="vibeDesignSurface" class="vibe-design-surface" aria-label="Visual design canvas">
+<div id="vibeGeneratedLayer" class="vibe-generated-layer" aria-label="Generated project design"></div>
+  <div id="vibeDesignSurface" class="vibe-design-surface" aria-label="Visual design canvas">
   <svg id="vibeDesignConnectors" class="vibe-design-connectors" aria-hidden="true"></svg>
   <div id="vibeDesignElements" class="vibe-design-elements"></div>
 </div>
@@ -491,34 +486,34 @@ border: none;
 </div>
 
 <script src="/suite/vibe/vibe-state.js?v=5"></script>
-<script src="/suite/vibe/vibe-windows.js?v=1"></script>
+<script src="/suite/vibe/vibe-windows.js?v=5"></script>
 <script src="/suite/vibe/vibe-broadcast.js?v=1"></script>
 <script src="/suite/vibe/vibe-helpers.js?v=7"></script>
-<script src="/suite/vibe/vibe-canvas.js?v=6"></script>
+<script src="/suite/vibe/vibe-canvas.js?v=7"></script>
+<script src="/suite/vibe/vibe-canvas-views.js?v=2"></script>
 <script src="/suite/vibe/vibe-agents.js?v=7"></script>
-<script src="/suite/vibe/vibe-websocket.js?v=6"></script>
+<script src="/suite/vibe/vibe-websocket.js?v=7"></script>
 <script src="/suite/vibe/vibe-autotask.js"></script>
 <script src="/suite/vibe/vibe-graph.js?v=5"></script>
 <script src="/suite/vibe/vibe-metrics.js?v=3"></script>
-<script src="/suite/vibe/vibe-run.js?v=9"></script>
+<script src="/suite/vibe/vibe-run.js?v=10"></script>
 <script src="/suite/vibe/vibe-init.js?v=6"></script>
 <script src="/suite/vibe/vibe-deeplink.js"></script>
 <script src="/suite/vibe/vibe-new-project.js?v=6"></script>
 <script src="/suite/vibe/vibe-members.js?v=3"></script>
 <script src="/suite/vibe/vibe-dialogs.js?v=2"></script>
 <script src="/suite/vibe/vibe-dialog-db.js?v=7"></script>
-<script src="/suite/vibe/vibe-dialog-git.js"></script>
-<script src="/suite/vibe/vibe-dialog-terminal.js?v=3"></script>
+<script src="/suite/vibe/vibe-dialog-git.js?v=2"></script>
+<script src="/suite/vibe/vibe-dialog-terminal.js?v=4"></script>
 <script src="/suite/vibe/vibe-dialog-browser.js?v=3"></script>
 <script src="/suite/vibe/vibe-dialog-code.js?v=4"></script>
 <script src="/suite/vibe/vibe-dialog-deploy.js?v=6"></script>
 <script src="/suite/vibe/vibe-pipeline.js?v=2"></script>
 <script src="/suite/vibe/vibe-shell/00_shell_state.js?v=2"></script>
-<script src="/suite/vibe/vibe-shell/10_toolbar.js?v=2"></script>
+<script src="/suite/vibe/vibe-shell/10_toolbar.js?v=10"></script>
 <script src="/suite/vibe/vibe-shell/20_palettes.js?v=2"></script>
 <script src="/suite/vibe/vibe-shell/30_canvas_flow.js?v=2"></script>
-<script src="/suite/vibe/vibe-shell/40_git_external.js?v=2"></script>
-<script src="/suite/vibe/vibe-shell/99_shell_init.js?v=2"></script>
+<script src="/suite/vibe/vibe-shell/99_shell_init.js?v=4"></script>
 <script src="/suite/js/vendor/xterm/xterm.js"></script>
 <script src="/suite/js/vendor/xterm/addon-fit.js"></script>
 </div>

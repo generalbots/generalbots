@@ -86,14 +86,30 @@ async function analyzeImage(file) {
   resultsTitle.textContent = `${getTabLabel(currentTab)} - Resultados`;
   resultsBody.innerHTML = '<div class="loading">Analisando imagem...</div>';
 
-  const formData = new FormData();
-  formData.append('image', file);
-  formData.append('analysis_type', currentTab);
+  let imageUrl;
+  try {
+    imageUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error('Não foi possível ler a imagem'));
+      reader.readAsDataURL(file);
+    });
+  } catch (err) {
+    resultsBody.innerHTML = `<div class="empty-state">Erro na análise: ${err.message}</div>`;
+    showToast(`Erro na análise: ${err.message}`, 'error');
+    progressBar.classList.remove('active');
+    return;
+  }
 
   try {
     const resp = await fetch(`${API_BASE}/analyze`, {
       method: 'POST',
-      body: formData
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image_url: imageUrl,
+        kind: currentTab,
+        parameters: { analysis_type: currentTab, filename: file.name }
+      })
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
@@ -109,7 +125,11 @@ async function analyzeImage(file) {
 
 function renderResults(data) {
   const resultsBody = document.getElementById('resultsBody');
-  const items = data.results || data.items || data.detections || [];
+  const items = data.results || data.items || data.detections ||
+    (Array.isArray(data.labels) ? data.labels.map(label => ({
+      label,
+      confidence: Number(data.confidence || 0) * 100
+    })) : []);
 
   if (!items.length) {
     resultsBody.innerHTML = '<div class="empty-state">Nenhum resultado encontrado</div>';
@@ -117,7 +137,8 @@ function renderResults(data) {
   }
 
   resultsBody.innerHTML = items.map(item => {
-    const confidence = item.confidence || item.confianca || 0;
+    let confidence = Number(item.confidence || item.confianca || 0);
+    if (confidence > 0 && confidence <= 1) confidence *= 100;
     const confClass = getConfidenceClass(confidence);
     const label = item.label || item.text || item.nome || item.type || item.tipo || 'Item';
     const details = item.details || item.detalhes || item.bounding_box || '';

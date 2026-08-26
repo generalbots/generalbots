@@ -164,17 +164,51 @@
         return API_BASE + '/proxy?url=' + encodeURIComponent(targetUrl);
     }
 
+    function ensureIframe(pageEl) {
+        var iframe = pageEl ? pageEl.querySelector('iframe') : null;
+        if (!iframe && pageEl) {
+            iframe = document.createElement('iframe');
+            iframe.className = 'browser-canvas';
+            iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts allow-forms allow-popups');
+            iframe.src = 'about:blank';
+            pageEl.innerHTML = '';
+            pageEl.appendChild(iframe);
+        }
+        return iframe;
+    }
+
+    function navigateSameOrigin(url) {
+        var pageEl = viewport.querySelector('.browser-page[data-page="' + activePage + '"]');
+        var iframe = ensureIframe(pageEl);
+        if (!iframe) throw new Error('Browser page is unavailable');
+        iframe.removeAttribute('srcdoc');
+        iframe.src = url;
+        pages[activePage].title = url.split('/').pop() || 'Project preview';
+        pages[activePage].url = url;
+        updateTabs();
+        pageInfo.textContent = pages[activePage].title;
+        statusText.textContent = 'Done';
+        setLoading(false);
+    }
+
     async function fetchViaProxy(url) {
         try {
             setLoading(true);
             setSecurityInfo(url);
             urlInput.value = url;
 
+            var target = new URL(url, window.location.href);
+            if (target.origin === window.location.origin && target.pathname.indexOf('/suite/') === 0) {
+                navigateSameOrigin(target.href);
+                return;
+            }
+
             var resp = await fetch(API_BASE + '/proxy?url=' + encodeURIComponent(url));
             if (!resp.ok) throw new Error('Proxy returned ' + resp.status);
             var data = await resp.json();
 
-            var iframe = viewport.querySelector('.browser-page[data-page="' + activePage + '"] iframe');
+            var pageEl = viewport.querySelector('.browser-page[data-page="' + activePage + '"]');
+            var iframe = ensureIframe(pageEl);
             if (iframe) {
                 iframe.srcdoc = data.content || data.html || '<p>No content available</p>';
             }
@@ -300,6 +334,26 @@
 
     pages.push({ title: 'New Tab', url: '', pageEl: viewport.querySelector('.browser-page[data-page="0"]') });
     updateTabs();
+
+    // Deep-link: the Vibe shell's Play button opens this window with the
+    // project preview URL (window.__gbAppParams__.url or ?url=...).
+    function deepLinkUrl() {
+        var p = window.__gbAppParams__ || {};
+        if (p.url) return String(p.url);
+        try { return new URLSearchParams(window.location.search).get('url') || ''; } catch (e) { return ''; }
+    }
+
+    document.addEventListener('gb:deep-link', function (e) {
+        var d = e.detail || {};
+        if (d.appId !== 'browser' || !d.params || !d.params.url) return;
+        navigateTo(String(d.params.url));
+        if (window.WindowManager && window.WindowManager.focusWindow) {
+            window.WindowManager.focusWindow('browser');
+        }
+    });
+
+    var startUrl = deepLinkUrl();
+    if (startUrl) navigateTo(startUrl);
 })();
 </script>
 <script src="/suite/browser/browser-agentic.js?v=1"></script>

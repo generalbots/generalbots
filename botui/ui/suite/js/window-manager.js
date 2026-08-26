@@ -217,20 +217,46 @@ if (typeof window.WindowManager === "undefined") {
       return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>';
     }
 
-    open(id, title, htmlContent) {
+    // Tool windows (VB6/Delphi-style floating palettes) pass opts.tool:
+    // they get a slim title bar, NO status bar (no "client portion") and a
+    // smaller default footprint. opts.popup makes an even smaller, compact
+    // popup-sized tool window (e.g. the Vibe Members list).
+    open(id, title, htmlContent, opts) {
+      opts = opts || {};
       const existingWindow = this.openWindows.find((w) => w.id === id);
       if (existingWindow) {
+        if (opts.ownerId) existingWindow.ownerId = opts.ownerId;
         this.focus(id);
         return;
       }
 
-      const windowData = { id, title, isMinimized: false, isMaximized: false, previousState: null };
+      const windowData = {
+        id,
+        title,
+        ownerId: opts.ownerId || null,
+        noMaximize: opts.noMaximize === true,
+        isMinimized: false,
+        isMaximized: false,
+        previousState: null,
+      };
       this.openWindows.push(windowData);
 
       const workspace = this.getWorkspace();
-      const offset = (this.openWindows.length * 24) % 120;
-      const top = 60 + offset;
-      const left = 180 + offset;
+      // Cascade new windows BELOW/RIGHT of the compact Vibe bar (VB4
+      // workbench) so a freshly opened Terminal/Browser never lands on top
+      // of it and blocks its toolbar buttons.
+      let topBase = 60;
+      let leftBase = 180;
+      const vibeEl = document.getElementById("window-vibe");
+      if (vibeEl) {
+        const wRect = workspace.getBoundingClientRect();
+        const vRect = vibeEl.getBoundingClientRect();
+        topBase = Math.max(60, vRect.bottom - wRect.top + 14);
+        leftBase = Math.max(180, vRect.left - wRect.left + 12);
+      }
+      const offset = (this.openWindows.length * 28) % 140;
+      const top = topBase + offset;
+      const left = leftBase + offset;
 
       const windowEl = document.createElement("div");
       windowEl.id = `window-${id}`;
@@ -240,14 +266,20 @@ if (typeof window.WindowManager === "undefined") {
 
       if (this.useGlassWindows) {
         windowEl.className = "window-element-glass";
-        windowEl.innerHTML = this._glassHeader(id, title) + this._glassBody(id);
+        windowEl.innerHTML = this._glassHeader(id, title, opts) + this._glassBody(id);
       } else {
         windowEl.className = "window-element";
-        windowEl.innerHTML = this._legacyHeader(id, title) + this._legacyBody(id);
+        windowEl.innerHTML = this._legacyHeader(id, title, opts) + this._legacyBody(id);
       }
 
-      // Issue #725: every app window gets an inverted 3D bevel status bar.
-      windowEl.insertAdjacentHTML("beforeend", this._statusBar(id));
+      if (opts.tool) {
+        windowEl.classList.add("window-tool");
+        if (opts.popup) windowEl.classList.add("window-popup");
+      } else if (!opts.noStatusBar) {
+        // Issue #725: every app window gets an inverted 3D bevel status bar.
+        // The Vibe workbench opts out: VB-style design, no status bar.
+        windowEl.insertAdjacentHTML("beforeend", this._statusBar(id));
+      }
 
       workspace.appendChild(windowEl);
       this._injectBodyContent(id, htmlContent);
@@ -255,7 +287,7 @@ if (typeof window.WindowManager === "undefined") {
       this._makeDraggable(windowEl);
       this._makeResizable(windowEl);
       this.focus(id);
-      this._trackRecent(id, title);
+      if (!opts.tool) this._trackRecent(id, title);
       document.dispatchEvent(new CustomEvent("gb-window-changed", { detail: { action: "open", id } }));
       if (window.htmx) htmx.process(windowEl);
       if (window.Desktop3D && window.Desktop3D.initialized) {
@@ -264,12 +296,15 @@ if (typeof window.WindowManager === "undefined") {
       }
     }
 
-    _glassHeader(id, title) {
+    _glassHeader(id, title, opts) {
+      const maximize = opts && opts.noMaximize !== true
+        ? `<div class="window-dot window-dot-maximize" onclick="window.WindowManager.toggleMaximize('${id}')"></div>`
+        : "";
       return `<div class="window-header-glass">
         <div class="window-title">${title}</div>
         <div class="window-dot-controls">
           <div class="window-dot window-dot-minimize" onclick="window.WindowManager.toggleMinimize('${id}')"></div>
-          <div class="window-dot window-dot-maximize" onclick="window.WindowManager.toggleMaximize('${id}')"></div>
+          ${maximize}
           <div class="window-dot window-dot-close" onclick="window.WindowManager.close('${id}')"></div>
         </div>
       </div>`;
@@ -279,8 +314,11 @@ if (typeof window.WindowManager === "undefined") {
       return `<div id="window-body-${id}" class="window-body-glass"></div>`;
     }
 
-    _legacyHeader(id, title) {
-      return `<div class="window-header"><div class="font-mono text-xs font-bold text-brand-600 tracking-wide">${title}</div><div class="flex space-x-3 text-gray-400"><button class="btn-minimize hover:text-gray-600" onclick="window.WindowManager.toggleMinimize('${id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg></button><button class="btn-maximize hover:text-gray-600" onclick="window.WindowManager.toggleMaximize('${id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg></button><button class="btn-close hover:text-red-500" onclick="window.WindowManager.close('${id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div></div>`;
+    _legacyHeader(id, title, opts) {
+      const maximize = opts && opts.noMaximize !== true
+        ? `<button class="btn-maximize hover:text-gray-600" onclick="window.WindowManager.toggleMaximize('${id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/></svg></button>`
+        : "";
+      return `<div class="window-header"><div class="font-mono text-xs font-bold text-brand-600 tracking-wide">${title}</div><div class="flex space-x-3 text-gray-400"><button class="btn-minimize hover:text-gray-600" onclick="window.WindowManager.toggleMinimize('${id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>${maximize}<button class="btn-close hover:text-red-500" onclick="window.WindowManager.close('${id}')"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div></div>`;
     }
 
     _legacyBody(id) {
@@ -404,6 +442,14 @@ if (typeof window.WindowManager === "undefined") {
     }
 
     close(id) {
+      // Close owned tool windows first. This gives an IDE workbench a real
+      // parent/child lifecycle: closing Vibe cannot leave a Browser, dialog,
+      // terminal or run dock orphaned behind it.
+      const children = this.openWindows
+        .filter((w) => w.ownerId === id)
+        .map((w) => w.id);
+      children.forEach((childId) => this.close(childId));
+
       const el = document.getElementById(`window-${id}`);
       if (el) {
         if (this.useGlassWindows) {
@@ -451,7 +497,7 @@ if (typeof window.WindowManager === "undefined") {
 
     toggleMaximize(id) {
       const obj = this.openWindows.find((w) => w.id === id);
-      if (!obj) return;
+      if (!obj || obj.noMaximize) return;
       const el = document.getElementById(`window-${id}`);
       if (!el) return;
       if (obj.isMaximized) {
@@ -488,7 +534,7 @@ if (typeof window.WindowManager === "undefined") {
         // desktop behavior.
         const id = el.id.replace("window-", "");
         const wd = this.openWindows.find((w) => w.id === id);
-        if (wd && wd.isMaximized) this.toggleMaximize(id);
+        if (wd && wd.isMaximized && !wd.noMaximize) this.toggleMaximize(id);
         isDragging = true;
         startX = e.clientX; startY = e.clientY;
         initialLeft = parseInt(el.style.left || 0, 10);
@@ -512,7 +558,9 @@ if (typeof window.WindowManager === "undefined") {
       header.addEventListener("mousedown", onDown);
       header.addEventListener("dblclick", (e) => {
         if (e.target.closest(".window-dot") || e.target.closest("button")) return;
-        this.toggleMaximize(el.id.replace("window-", ""));
+        const id = el.id.replace("window-", "");
+        const wd = this.openWindows.find((w) => w.id === id);
+        if (wd && !wd.noMaximize) this.toggleMaximize(id);
       });
       el.addEventListener("mousedown", () => this.focus(el.id.replace("window-", "")));
     }
@@ -670,7 +718,9 @@ if (typeof window.WindowManager === "undefined") {
     launchFromMenu(id, title, hxGet) {
       this.closeStartMenu();
       const existed = this.getWindow(id) !== null;
-      this.open(id, title, "");
+      // The Vibe workbench keeps the glass chrome but no status bar.
+      this.open(id, title, "", {        noStatusBar: id === "vibe",
+        noMaximize: id === "vibe" });
       // Never re-inject into an existing window: the app HTML declares
       // top-level consts (e.g. drive's API_BASE) and re-running it throws
       // "Identifier ... has already been declared".
@@ -689,15 +739,28 @@ if (typeof window.WindowManager === "undefined") {
     // HTML receives the params both as URL query args and via
     // window.__gbAppParams__ so it can select/filter the referenced record.
     // Only available in the desktop shell (web channel).
-    openDeepLink(appId, params) {
+    openDeepLink(appId, params, opts) {
+      opts = opts || {};
       const app = (window.APPS_REGISTRY || APPS_REGISTRY).find((a) => a.id === appId);
       const title = app ? app.title : appId;
       const hxGet = app ? app.hxGet : `/suite/partials/${appId}.html`;
       this.closeStartMenu();
       const existed = this.getWindow(appId) !== null;
-      this.open(appId, title, "");
-      if (existed) return;
-      window.__gbAppParams__ = Object.assign({}, params || {});
+      // The Vibe workbench keeps the glass chrome but no status bar.
+      this.open(appId, title, "", {
+        noStatusBar: appId === "vibe",
+        noMaximize: appId === "vibe",
+        ownerId: opts.ownerId || null,
+      });
+      window.__gbAppParams__ = Object.assign({}, window.__gbAppParams__ || {}, params || {});
+      if (existed) {
+        // Re-target an already-open app window (new project URL, session, ...)
+        // so deep-links always apply, not only on first open.
+        document.dispatchEvent(new CustomEvent("gb:deep-link", {
+          detail: { appId, params: params || {} },
+        }));
+        return;
+      }
       const qs = Object.keys(params || {}).map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`).join("&");
       const sep = hxGet.indexOf("?") === -1 ? "?" : "&";
       fetch(hxGet + sep + (qs ? qs + "&" : "") + "_=" + Date.now()).then((r) => r.text()).then((html) => {
@@ -713,10 +776,11 @@ if (typeof window.WindowManager === "undefined") {
     // unique id and fetch a partial into its body. Unlike openDeepLink, the
     // id is caller-controlled (e.g. "vibe-run", "vibe-terminal") so several
     // accessory windows can float beside the main app window.
-    openToolWindow(id, title, hxGet, params) {
+    openToolWindow(id, title, hxGet, params, opts) {
       this.closeStartMenu();
       const existed = this.getWindow(id) !== null;
-      this.open(id, title, "");
+      opts = opts || {};
+      this.open(id, title, "", { tool: true, ownerId: opts.ownerId || null, noMaximize: opts.noMaximize === true });
       if (existed) return;
       window.__gbAppParams__ = Object.assign({}, window.__gbAppParams__ || {}, params || {});
       const qs = Object.keys(params || {}).map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`).join("&");
@@ -740,7 +804,12 @@ if (typeof window.WindowManager === "undefined") {
       opts = opts || {};
       this.closeStartMenu();
       const existed = this.getWindow(id) !== null;
-      this.open(id, title, "");
+      this.open(id, title, "", {
+        tool: true,
+        popup: !!opts.popup,
+        ownerId: opts.ownerId || null,
+        noMaximize: opts.noMaximize === true,
+      });
       const body = document.getElementById(`window-body-${id}`);
       if (!existed && body && opts.htmlContent) {
         this._injectBodyContent(id, opts.htmlContent);
@@ -890,7 +959,7 @@ if (typeof window.WindowManager === "undefined") {
   }
 
   window.WindowManager = new WindowManager();
-  window.openDeepLink = (appId, params) => window.WindowManager.openDeepLink(appId, params);
+  window.openDeepLink = (appId, params, opts) => window.WindowManager.openDeepLink(appId, params, opts);
 
   // Ctrl+K is owned by the unified command palette (command-palette.js) which
   // is loaded after this file. Expose the start menu for launchers but do NOT

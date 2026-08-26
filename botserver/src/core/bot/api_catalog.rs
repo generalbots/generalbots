@@ -185,6 +185,12 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
         ApiEndpoint { method: "POST", path: "/api/ui/research/web/summarize", summary: "Summarize web search results" },
         ApiEndpoint { method: "POST", path: "/api/ui/research/web/deep", summary: "Deep research on a topic" },
         ApiEndpoint { method: "GET", path: "/api/ui/research/web/instant", summary: "Instant answer from the web" },
+        // Vibe / project workbench
+        ApiEndpoint { method: "POST", path: "/api/vibe/run", summary: "Run an authenticated Vibe agent request against a selected project" },
+        ApiEndpoint { method: "GET", path: "/api/vibe/runs", summary: "List Vibe agent runs" },
+        ApiEndpoint { method: "GET", path: "/api/vibe/projects", summary: "List the user's Vibe projects" },
+        ApiEndpoint { method: "GET", path: "/api/vibe/projects/:project_id", summary: "Get a Vibe project" },
+        ApiEndpoint { method: "GET", path: "/api/vibe/projects/:project_id/preview", summary: "Resolve a selected project's live preview" },
         // Catalog / apps
         ApiEndpoint { method: "GET", path: "/api/apps/catalog", summary: "Suite application catalog" },
         ApiEndpoint { method: "GET", path: "/api/apps/integrations/catalog", summary: "Search the integration provider and action catalog" },
@@ -273,7 +279,7 @@ pub fn api_command_instructions(role: &str) -> String {
 
     // Only the most common commands are named explicitly to avoid prompt bloat.
     lines.push("Common commands you may call directly:".to_string());
-    for name in ["apps.find", "api.find", "api.exec", "integrations.actions.list", "service.tax", "banking.diagnosis", "drive.list"] {
+    for name in ["apps.find", "api.find", "api.exec", "vibe.project.change", "integrations.actions.list", "service.tax", "banking.diagnosis", "drive.list"] {
         if let Some(cmd) = command_by_name(name) {
             let params = cmd
                 .params
@@ -575,6 +581,32 @@ pub async fn execute_command(
             {
                 Err("integration actions are not available in this build".to_string())
             }
+        }
+        "vibe.project.change" => {
+            let project_id = str_of("project_id")
+                .ok_or_else(|| "params.project_id is required".to_string())?;
+            let project_name = str_of("project_name").unwrap_or_default();
+            let intent = str_of("intent")
+                .ok_or_else(|| "params.intent is required".to_string())?;
+            let mut run_params = serde_json::Map::new();
+            run_params.insert("intent".to_string(), Value::String(intent));
+            run_params.insert("project_id".to_string(), Value::String(project_id));
+            if !project_name.is_empty() {
+                run_params.insert("project_name".to_string(), Value::String(project_name));
+            }
+            run_params.insert(
+                "use_case".to_string(),
+                Value::String("software_development".to_string()),
+            );
+            crate::core::bot::api_exec::exec_endpoint(
+                state,
+                user_id,
+                Some(bot_uuid),
+                "POST",
+                "/api/vibe/run",
+                &run_params,
+            )
+            .await
         }
         "api.exec" => {
             let method = str_of("method").ok_or_else(|| "params.method is required".to_string())?;

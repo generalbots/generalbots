@@ -106,17 +106,20 @@
 
         resolveContainer().then(function (container) {
             if (tornDown) return;
-            // Let botserver choose the host-native shell and working directory.
-            // When attached to an Incus project VM, botserver selects bash in
-            // the Debian container and routes the command through WSL on Windows.
-            var body = {};
-            if (container) body.container = container;
+            // Safety: only ever open a shell inside the project VM — never
+            // fall back to the botserver host filesystem.
+            if (!container) {
+                writeTerm("\r\n\x1b[31mNo VM for this project yet.\x1b[0m\r\n");
+                writeTerm("\x1b[33mPublish the project (or wait for its VM to be ready) and reopen the terminal.\x1b[0m\r\n");
+                return null;
+            }
             return D.api("/api/terminal/create", {
                 method: "POST",
-                body: body,
+                body: { container: container },
             });
         }).then(function (data) {
-            if (!data || !data.id) {
+            if (!data) return; // host-shell refusal already reported
+            if (!data.id) {
                 throw new Error((data && data.error) || "The terminal backend did not create a session");
             }
             sessionId = data.id;

@@ -54,7 +54,7 @@
     function resolveBody(name, title) {
         var wm = window.WindowManager;
         if (wm && wm.openToolWindowBody) {
-            var wmBody = wm.openToolWindowBody(TOOL_PREFIX + name, title || name);
+            var wmBody = wm.openToolWindowBody(TOOL_PREFIX + name, title || name, { ownerId: "vibe" });
             if (wmBody) {
                 wmBody.innerHTML = "";
                 var wrap = document.createElement("div");
