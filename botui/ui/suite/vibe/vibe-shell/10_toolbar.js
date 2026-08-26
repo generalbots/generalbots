@@ -300,11 +300,15 @@
             if (sel) sel.focus();
             return;
         }
-        var selectedProjectUrl = builtInProjectUrl({ name: S.projectName() });
+        var selectedProject = knownProjects.find(function (project) {
+            var id = project.project_id || project.id;
+            return id != null && String(id) === String(projectId);
+        });
+        var selectedProjectUrl = builtInProjectUrl(selectedProject || { name: S.projectName() });
         if (selectedProjectUrl) {
             openBrowser(selectedProjectUrl);
             setRunVisual(true);
-            flashHint("RUNNING " + S.projectName().toUpperCase() + " IN THE BROWSER");
+            flashHint("RUNNING " + String((selectedProject && selectedProject.name) || S.projectName()).toUpperCase() + " IN THE BROWSER");
             return;
         }
         resolvePreviewUrl(projectId)

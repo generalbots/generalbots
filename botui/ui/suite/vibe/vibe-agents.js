@@ -47,6 +47,10 @@ function applyProjectSelection(p, persist) {
     var name = p.name || "Unnamed project";
     if (typeof currentProject !== "undefined") currentProject = name;
     if (typeof currentProjectId !== "undefined") currentProjectId = id;
+    // Keep the explicit window properties synchronized for shell modules that
+    // read state through window.VibeShell.
+    window.currentProject = name;
+    window.currentProjectId = id;
     if (persist !== false) {
         try {
             sessionStorage.setItem("gb-vibe-project-id", String(id || ""));
