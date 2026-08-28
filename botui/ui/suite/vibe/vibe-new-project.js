@@ -1,8 +1,9 @@
 /**
- * Vibe New-Project dialog (#767) — exactly 3 kinds (Bot / Website / Custom),
- * env tier (small/medium/large), env picker, deploy trigger and hooks editor.
- * Creates the project through the registry API, then raises the dev VM
- * (runner enabled for custom dev), matching the #744 lifecycle.
+ * Vibe New-Project dialog (#767) — exactly 3 kinds (Bot / Website / Custom)
+ * and an env tier (small/medium/large). Environment, deploy trigger and hooks
+ * were removed (2026-08-27): a project is created in development (Run tests
+ * dev) and published to production via the toolbar Deploy button — there is
+ * no staging and no external hooks.
  */
 (function () {
     "use strict";
@@ -13,15 +14,18 @@
         { id: "custom", name: "Custom", sub: "Runtime VM + runner", project_type: "custom" }
     ];
     var TIERS = ["small", "medium", "large"];
-    var ENVS = ["development", "staging", "production"];
     var FRAMEWORKS = {
         website: ["htmx", "html", "css"],
         custom: ["node", "python", "htmx", "html"]
     };
 
-    // name kept in state so Kind/Tier/Env re-renders do not discard the
-    // user's typed value (fixes #821).
-    var state = { kind: 0, tier: 0, env: 0, name: "" };
+    // name kept in state so Kind/Tier re-renders do not discard the user's
+    // typed value (fixes #821).
+    var state = { kind: 0, tier: 0, name: "" };
+
+    // A project is created in development; production is reached only via the
+    // toolbar Deploy button (pipeline_mode=deploy). No staging, no env picker.
+    var CREATE_ENV = "development";
 
     function esc(s) {
         var d = document.createElement("div");
@@ -64,21 +68,13 @@
             '<div class="vibe-np-kinds">' + kindHtml() + "</div>" +
             '<label class="vibe-np-label">Env tier</label>' +
             '<div class="vibe-np-opts">' + optionHtml(TIERS, "tier") + "</div>" +
-            '<label class="vibe-np-label">Environment</label>' +
-            '<div class="vibe-np-opts">' + optionHtml(ENVS, "env") + "</div>" +
             (FRAMEWORKS[kind.id] ?
                 '<label class="vibe-np-label">Framework</label>' +
                 '<select id="vnpFramework" class="vibe-np-input">' +
                 FRAMEWORKS[kind.id].map(function (f) { return '<option value="' + esc(f) + '">' + esc(f) + "</option>"; }).join("") +
                 "</select>"
                 : "") +
-            '<label class="vibe-np-label">Deploy trigger</label>' +
-            '<select id="vnpTrigger" class="vibe-np-input">' +
-            '<option value="manual">manual</option>' +
-            '<option value="on-commit">on commit</option>' +
-            "</select>" +
-            '<label class="vibe-np-label">Hooks</label>' +
-            '<textarea id="vnpHooks" class="vibe-np-hooks" placeholder="name=url per line&#10;deploy=https://example.com/hooks/deploy"></textarea>' +
+            '<div class="vibe-np-hint">Created in <b>development</b> — Run tests it here; the <b>Deploy</b> button publishes to production.</div>' +
             '<div class="vibe-np-err" id="vnpErr"></div>' +
             "</div>" +
             '<div class="vibe-np-foot">' +
@@ -93,13 +89,11 @@
                 render();
             });
         });
-        ["tier", "env"].forEach(function (key) {
-            var inputs = el.querySelectorAll('input[name="vnp-' + key + '"]');
-            inputs.forEach(function (input) {
-                input.addEventListener("change", function () {
-                    state[key] = key === "tier" ? TIERS.indexOf(this.value) : ENVS.indexOf(this.value);
-                    render();
-                });
+        var tierInputs = el.querySelectorAll('input[name="vnp-tier"]');
+        tierInputs.forEach(function (input) {
+            input.addEventListener("change", function () {
+                state.tier = TIERS.indexOf(this.value);
+                render();
             });
         });
         // Persist the typed name in state so re-renders (Kind/Tier/Env
@@ -122,19 +116,6 @@
         });
     }
 
-    function hooksValue() {
-        var ta = document.getElementById("vnpHooks");
-        var out = {};
-        if (!ta) return out;
-        ta.value.split("\n").forEach(function (line) {
-            var idx = line.indexOf("=");
-            if (idx > 0) {
-                out[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
-            }
-        });
-        return out;
-    }
-
     async function submitCreate() {
         var err = document.getElementById("vnpErr");
         var nameInput = document.getElementById("vnpName");
@@ -142,13 +123,12 @@
         if (name) state.name = name;
         var kind = KINDS[state.kind];
         var tier = TIERS[state.tier];
-        var env = ENVS[state.env];
+        var env = CREATE_ENV;
         if (!name) {
             if (err) err.textContent = "Project name is required.";
             return;
         }
         var frameworkEl = document.getElementById("vnpFramework");
-        var triggerEl = document.getElementById("vnpTrigger");
         if (err) err.textContent = "";
 
         var payload = {
@@ -158,8 +138,6 @@
             framework: frameworkEl ? frameworkEl.value : null,
             payload: {
                 env_tier: tier,
-                deploy_trigger: triggerEl ? triggerEl.value : "manual",
-                hooks: hooksValue(),
                 creator: "vibe-new"
             }
         };
@@ -176,6 +154,11 @@
             }
             var project = data.project;
             await raiseDevVm(project, env, kind.id, tier);
+            // Seed project.draw at the ROOT of the project workspace so the
+            // Canvas app opens a ready architecture diagram on first click
+            // (no generation round-trip needed). The canvas app reads and
+            // edits exactly this file (project root /project.draw).
+            seedProjectDraw(project.id, name, kind.project_type || kind.id);
             if (typeof currentProject !== "undefined") currentProject = name;
             if (typeof currentProjectId !== "undefined") currentProjectId = project.id;
             state.name = "";
@@ -192,6 +175,55 @@
         } catch (e) {
             if (err) err.textContent = "Create failed: " + e.message;
         }
+    }
+
+    // Seed a baseline project.draw (vibe-design v2 format, matching the
+    // canvas app's loader) into the project workspace root at creation so
+    // the Canvas button opens a rendered architecture immediately.
+    function seedProjectDraw(pid, name, projectType) {
+        var draw = {
+            kind: "vibe-design",
+            version: 2,
+            elements: [],
+            connectors: [],
+            generated: {
+                version: 1,
+                generatedAt: new Date().toISOString(),
+                source: "project-creation",
+                title: name,
+                svg: buildSeedSvg(name, projectType)
+            }
+        };
+        vibeAuthFetch("/api/vibe/projects/" + encodeURIComponent(pid) + "/files", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ path: "project.draw", content: JSON.stringify(draw) })
+        }).catch(function (e) {
+            console.warn("seed project.draw failed (canvas will generate on open):", e);
+        });
+    }
+
+    // Minimal green/blue zone diagram matching the canvas app's "generated"
+    // field shape — the canvas renders it as the starting architecture.
+    function buildSeedSvg(name, projectType) {
+        var title = String(name || "project");
+        var kind = String(projectType || "website");
+        function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+        return "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 920 520\" aria-label=\"Generated project design\">" +
+            "<defs><linearGradient id=\"vbSeedGrad\" x1=\"0\" x2=\"1\"><stop stop-color=\"#dbeafe\"/><stop offset=\"1\" stop-color=\"#dcfce7\"/></linearGradient></defs>" +
+            "<rect x=\"36\" y=\"40\" width=\"848\" height=\"440\" rx=\"18\" fill=\"url(#vbSeedGrad)\" stroke=\"#93c5fd\" stroke-width=\"2\"/>" +
+            "<rect x=\"76\" y=\"88\" width=\"230\" height=\"320\" rx=\"12\" fill=\"#fff\" stroke=\"#60a5fa\"/>" +
+            "<text x=\"142\" y=\"134\" font-family=\"system-ui\" font-size=\"18\" font-weight=\"700\" fill=\"#0f172a\">" + esc(title) + "</text>" +
+            "<text x=\"100\" y=\"184\" font-family=\"system-ui\" font-size=\"13\" fill=\"#475569\">" + esc(kind) + " application</text>" +
+            "<rect x=\"336\" y=\"88\" width=\"508\" height=\"74\" rx=\"12\" fill=\"#fff\" stroke=\"#86efac\"/>" +
+            "<text x=\"356\" y=\"118\" font-family=\"system-ui\" font-size=\"14\" font-weight=\"700\" fill=\"#15803d\">Frontend</text>" +
+            "<rect x=\"336\" y=\"188\" width=\"242\" height=\"220\" rx=\"12\" fill=\"#fff\" stroke=\"#c4b5fd\"/>" +
+            "<text x=\"356\" y=\"218\" font-family=\"system-ui\" font-size=\"14\" font-weight=\"700\" fill=\"#7c3aed\">Backend</text>" +
+            "<rect x=\"602\" y=\"188\" width=\"242\" height=\"220\" rx=\"12\" fill=\"#fff\" stroke=\"#fdba74\"/>" +
+            "<text x=\"622\" y=\"218\" font-family=\"system-ui\" font-size=\"14\" font-weight=\"700\" fill=\"#c2410c\">Data</text>" +
+            "<path d=\"M306 248H336M578 298H602\" stroke=\"#64748b\" stroke-width=\"3\" stroke-dasharray=\"7 7\"/>" +
+            "<text x=\"100\" y=\"360\" font-family=\"system-ui\" font-size=\"12\" fill=\"#64748b\">Architecture seeded at project creation</text>" +
+            "</svg>";
     }
 
     async function raiseDevVm(project, env, kindId, tier) {

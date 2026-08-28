@@ -19,6 +19,7 @@
 pub mod cross_platform;
 pub mod forgejo;
 pub mod gateway;
+pub mod gateway_runtime;
 pub mod gateway_server;
 pub mod handlers;
 pub mod installer;

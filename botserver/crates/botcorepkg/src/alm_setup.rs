@@ -34,12 +34,19 @@ pub async fn setup_alm() -> anyhow::Result<()> {
     let alm_conf_dir = stack_path.join("conf/alm");
     std::fs::create_dir_all(&alm_conf_dir)
         .map_err(|e| anyhow::anyhow!("Failed to create ALM config dir: {}", e))?;
-    
+
+    // Forgejo requires RUN_USER to match the account that starts it
+    // ("Expect user 'alm' but current user is: ..." otherwise). Use the
+    // actual OS user so a fresh stack boots on any machine.
+    let run_user = std::env::var("USER")
+        .or_else(|_| std::env::var("LOGNAME"))
+        .unwrap_or_else(|_| "alm".to_string());
+
     let app_ini_path = alm_conf_dir.join("app.ini");
     if !app_ini_path.exists() {
         let app_ini_content = format!(
             r#"APP_NAME = General Bots ALM
-RUN_USER = alm
+RUN_USER = {}
 WORK_PATH = {}/data/alm
 
 [repository]
@@ -52,12 +59,13 @@ PATH = {}/data/alm/gitea.db
 [server]
 HTTP_PORT = 4747
 DOMAIN = localhost
-ROOT_URL = 
+ROOT_URL = http://localhost:4747/
+LOCAL_ROOT_URL = http://localhost:4747/
 
 [security]
 INSTALL_LOCK = true
 "#,
-            stack_path_str, stack_path_str, stack_path_str
+            run_user, stack_path_str, stack_path_str, stack_path_str
         );
         std::fs::write(&app_ini_path, app_ini_content)
             .map_err(|e| anyhow::anyhow!("Failed to write app.ini: {}", e))?;
@@ -85,6 +93,16 @@ INSTALL_LOCK = true
 
     info!("Generated ALM Runner token successfully");
 
+    // Mint a Forgejo API token (Personal Access Token) for the botserver
+    // user so the deployment pipeline can create orgs/repos without manual
+    // setup. The ForgejoClient authenticates with `token {pat}`; without it
+    // every deploy fails with "FORGEJO_TOKEN not configured".
+    let api_token = mint_api_token(alm_url, username, &password).await
+        .unwrap_or_else(|e| {
+            info!("API token minting unavailable: {} (deploys will need a manual PAT)", e);
+            String::new()
+        });
+
     // Register runner with forgejo-runner CLI
     let runner_bin = stack_path.join("bin/alm-ci/forgejo-runner");
     if runner_bin.exists() {
@@ -104,6 +122,9 @@ INSTALL_LOCK = true
             secrets.insert("username".to_string(), username.to_string());
             secrets.insert("password".to_string(), password);
             secrets.insert("runner_token".to_string(), runner_token);
+            if !api_token.is_empty() {
+                secrets.insert("token".to_string(), api_token);
+            }
 
             match secrets_manager.put_secret(botcoresecrets::SecretPaths::ALM, secrets).await {
                 Ok(_) => info!("ALM credentials and runner token stored in Vault"),
@@ -135,14 +156,81 @@ async fn try_alm_api_setup(
     }
 
     info!("ALM is responding at {}", base_url);
-    
-    // Try to get registration token from the API
-    // This requires admin auth, which we may not have yet
-    // For now, generate a placeholder token and let operator configure manually
+
+    // A fresh Forgejo has no users yet: create the botserver admin account
+    // via the CLI (admin user create) so the runner token / PAT flows have
+    // an authenticated identity. The API route /admin/users requires an
+    // existing admin token — chicken-and-egg — so the CLI is the reliable
+    // path (safe to run idempotently; duplicate creation is tolerated).
+    let create_user = SafeCommand::new("forgejo")?
+        .arg("admin")?
+        .arg("user")?
+        .arg("create")?
+        .arg("--username")?
+        .arg(_username)?
+        .arg("--password")?
+        .trusted_arg(_password)?
+        .arg("--email")?
+        .arg(format!("{}@localhost", _username))?
+        .arg("--admin")?
+        .arg("--must-change-password=false")?
+        .execute();
+    match create_user {
+        Ok(out) if out.status.success() => {
+            info!("Created Forgejo admin user '{}'", _username);
+        }
+        Ok(out) => {
+            let err = String::from_utf8_lossy(&out.stderr);
+            info!("Forgejo user creation returned non-zero (likely exists): {}", err.trim());
+        }
+        Err(e) => {
+            info!("Forgejo CLI unavailable, skipping admin user creation: {}", e);
+        }
+    }
+
+    // Generate a registration token for the runner
     let token = generate_random_string(40);
-    info!("ALM API available but requires manual admin setup. Generated placeholder runner token.");
-    
+    info!("ALM API available. Generated runner token.");
+
     Ok(token)
+}
+
+/// Mint a Forgejo Personal Access Token for the botserver user so the
+/// deployment pipeline can call the API. Uses basic auth (username:password)
+/// against the token endpoint; Forgejo accepts the account password for
+/// token creation on a fresh install.
+async fn mint_api_token(base_url: &str, username: &str, password: &str) -> anyhow::Result<String> {
+    use botlib::security::SafeCommand;
+
+    let url = format!("{}/api/v1/users/{}/tokens", base_url, username);
+    let body = r#"{"name":"gb-deploy","scopes":["all"]}"#;
+    let output = SafeCommand::new("curl")?
+        .args(&[
+            "-s",
+            "--max-time",
+            "10",
+            "-u",
+            &format!("{}:{}", username, password),
+            "-X",
+            "POST",
+            "-H",
+            "Content-Type: application/json",
+            "-d",
+            body,
+            &url,
+        ])?
+        .execute()?;
+    if !output.status.success() {
+        return Err(anyhow::anyhow!("token API status {}", output.status));
+    }
+    let text = String::from_utf8_lossy(&output.stdout).to_string();
+    let parsed: serde_json::Value = serde_json::from_str(&text)
+        .map_err(|e| anyhow::anyhow!("token response parse: {e}"))?;
+    parsed
+        .get("sha1")
+        .and_then(|v| v.as_str())
+        .map(|s| s.to_string())
+        .ok_or_else(|| anyhow::anyhow!("token response missing sha1"))
 }
 
 /// Register forgejo-runner with the instance

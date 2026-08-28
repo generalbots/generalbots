@@ -48,10 +48,9 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
     function fillVmSelect(options, preferred) {
         if (!vmSelect) return;
         vmSelect.innerHTML = '';
-        const hostOpt = document.createElement('option');
-        hostOpt.value = '';
-        hostOpt.textContent = 'Host shell (server — not recommended)';
-        vmSelect.appendChild(hostOpt);
+        // SECURITY: the backend refuses host shells (403) — only project VMs
+        // are attachable, so the picker offers nothing else. An empty list
+        // disables the selector and the terminal explains how to provision a VM.
         let preselected = false;
         options.forEach(function (o) {
             const opt = document.createElement('option');
@@ -63,9 +62,9 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
             }
             vmSelect.appendChild(opt);
         });
-        // Safety: when the user HAS VMs, default into a VM — never the host.
+        vmSelect.disabled = options.length === 0;
         if (options.length && !preselected) {
-            vmSelect.selectedIndex = 1;
+            vmSelect.selectedIndex = 0;
         }
         vmOptionsLoaded = true;
         // A deep-linked project VM should be used by the (already created)
@@ -172,6 +171,17 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
 
         let ws = null;
         let reconnectTimer = null;
+        // When the user switches VM in the picker, closing the old socket is
+        // INTENTIONAL — suppress the yellow "Reconnecting" message and just
+        // switch straight to the new container (green OK), no 3s delay.
+        let switchingVm = false;
+        // Guards against two PTYs being spawned at once. Switching the VM
+        // used to call connect() BOTH directly (reconnect()) AND from the
+        // old socket's onclose — every session prints its own `root@name>`
+        // prompt, so each switch stacked another prompt into the same pane
+        // ("prompt repeated 3 times" bug). Only ONE session may exist.
+        let connecting = false;
+        let currentSessionId = null;
 
         function connect() {
             if (!vmOptionsLoaded) {
@@ -193,31 +203,40 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
             statusText.textContent = 'Connecting...';
             const token = localStorage.getItem('gb-access-token') || sessionStorage.getItem('gb-access-token');
             const container = getSelectedContainer();
-            // Safety: if the user has no VM at all, refuse to open a
-            // botserver host shell (never expose the server filesystem).
-            if (!container && vmSelect && vmSelect.options.length <= 1) {
+            // SECURITY: host shells are refused server-side (403). With no VM
+            // available, explain how to provision one instead of attempting a
+            // bare botserver shell or a workspace-cwd fallback.
+            if (!container) {
                 statusText.textContent = 'No VM';
                 wsStatus.textContent = 'WS: —';
-                terminal.write('\r\n\x1b[31m[No VM found for your account.]\x1b[0m\r\n');
-                terminal.write('\x1b[33m[Open Vibe, create a project and publish it to provision a VM, then reopen the terminal.]\x1b[0m\r\n');
+                terminal.write('\r\n\x1b[31m[No project VM available for your account.]\x1b[0m\r\n');
+                terminal.write('\x1b[33m[Open Vibe, start a project (Play) to provision its VM, then reopen the terminal.]\x1b[0m\r\n');
                 return;
             }
             // The backend requires a session created via /api/terminal/create
             // before the WS upgrade (it looks up the PTY by ?id=).
+            createSession({ container: container }, token);
+        }
+
+        function createSession(body, token) {
+            if (connecting) return; // never spawn a second PTY mid-switch
+            connecting = true;
             fetch('/api/terminal/create', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': 'Bearer ' + (token || ''),
                 },
-                body: JSON.stringify(container ? { container: container } : {}),
+                body: JSON.stringify(body),
             })
                 .then(function (r) { return r.json(); })
                 .then(function (info) {
+                    connecting = false;
                     if (!info || !info.id) throw new Error('no session id');
                     openSocket(info.id);
                 })
                 .catch(function (e) {
+                    connecting = false;
                     statusText.textContent = 'Failed to start terminal';
                     wsStatus.textContent = 'WS: Error';
                     terminal.write('\r\n\x1b[31m[Failed to create terminal session: ' + e.message + ']\x1b[0m\r\n');
@@ -226,6 +245,16 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
         }
 
         function openSocket(sessionId) {
+            // The previous PTY (old VM) is still alive server-side; retire it
+            // so its shell and prompt cannot linger or leak.
+            if (currentSessionId && currentSessionId !== sessionId) {
+                fetch('/api/terminal/kill', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: currentSessionId }),
+                }).catch(function () { /* best-effort */ });
+            }
+            currentSessionId = sessionId;
             ws = new WebSocket(getWsUrl(sessionId));
             ws.onopen = function() {
                 wsStatus.textContent = 'WS: Connected';
@@ -244,6 +273,18 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
                 }
             };
             ws.onclose = function() {
+                if (switchingVm) {
+                    // User-chosen VM switch: reconnect immediately to the new
+                    // container, no yellow pending message, no artificial delay.
+                    switchingVm = false;
+                    wsStatus.textContent = 'WS: Connected';
+                    statusText.textContent = 'Connecting...';
+                    // New shell, new prompt: start it on a fresh line so the
+                    // previous `root@name>` prompt is never buried mid-line.
+                    terminal.write('\r\n\x1b[90m[switching VM — new shell]\x1b[0m\r\n');
+                    connect();
+                    return;
+                }
                 wsStatus.textContent = 'WS: Disconnected';
                 statusText.textContent = 'Disconnected';
                 terminal.write('\r\n\x1b[33m[Connection closed. Reconnecting in 3s...]\x1b[0m\r\n');
@@ -284,10 +325,17 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
             reconnectTimer: reconnectTimer,
             visible: index === activeTab,
             reconnect: function () {
-                // Recreate the PTY in the newly selected container.
-                if (ws) { try { ws.close(); } catch (ignore) { } }
+                // Recreate the PTY in the newly selected container. Closing
+                // the old socket lets its onclose handler reconnect — the
+                // single path. Calling connect() here AS WELL spawned a
+                // second PTY whose prompt stacked on top of the first.
+                switchingVm = true;
                 if (reconnectTimer) clearTimeout(reconnectTimer);
-                connect();
+                if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+                    try { ws.close(); } catch (ignore) { }
+                } else {
+                    connect();
+                }
             },
             cleanup: function() {
                 if (reconnectTimer) clearTimeout(reconnectTimer);

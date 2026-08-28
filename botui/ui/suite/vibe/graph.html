@@ -15,8 +15,27 @@
       Shows the selected use case, its execution runs, and the tools each run triggered. Double-click a run to inspect it.
       <span style="float:right; white-space:nowrap"><b style="color:#2563eb">■</b> use case &nbsp; <b style="color:#7c3aed">■</b> run &nbsp; <b style="color:#d97706">■</b> tool</span>
     </div>
-    <div style="flex:1; min-height:0; position:relative;">
-      <canvas id="vibeGraphCanvas" style="width:100%; height:100%; display:block;"></canvas>
+    <div style="flex:1; min-height:0; display:flex;">
+      <div style="flex:1; min-height:0; position:relative;">
+        <canvas id="vibeGraphCanvas" style="width:100%; height:100%; display:block;"></canvas>
+      </div>
+      <!-- Context rail: what the user asked (key points), the TODO plan and
+           the project's AGENTS.md directives — the same context the agent
+           works from. -->
+      <div id="vibeGraphContext" style="width:290px; min-width:290px; border-left:1px solid var(--border,#333); overflow-y:auto; padding:10px 12px; font-size:11px; color:var(--text,#eee); display:flex; flex-direction:column; gap:12px;">
+        <div>
+          <div style="font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted,#94a3b8); margin-bottom:6px;">User asks</div>
+          <div id="vibeGraphAsks"><div style="opacity:.6">Loading asks…</div></div>
+        </div>
+        <div>
+          <div style="font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted,#94a3b8); margin-bottom:6px;">TODO plan</div>
+          <div id="vibeGraphTodos"><div style="opacity:.6">Loading plan…</div></div>
+        </div>
+        <div>
+          <div style="font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--text-muted,#94a3b8); margin-bottom:6px;">AGENTS.md directives</div>
+          <div id="vibeGraphDirectives"><div style="opacity:.6">Loading directives…</div></div>
+        </div>
+      </div>
     </div>
     <div id="vibeCapabilities" style="max-height:72px; overflow-y:auto; border-top:1px solid var(--border,#333); padding:8px 12px; font-size:11px; color:var(--text-muted,#aaa);"></div>
   </div>
@@ -26,7 +45,7 @@
 <script src="/suite/vibe/vibe-state.js?v=5"></script>
 <script src="/suite/vibe/vibe-broadcast.js?v=1"></script>
 <script src="/suite/vibe/vibe-helpers.js?v=7"></script>
-<script src="/suite/vibe/vibe-graph.js?v=5"></script>
+<script src="/suite/vibe/vibe-graph.js?v=8"></script>
 <script>
 (function () {
     "use strict";

@@ -17,20 +17,24 @@ return d.innerHTML;
 }
 
 function vibeAddMsg(role, text) {
-var box = document.getElementById("vibeChatMessages");
-if (!box) return;
+// The in-runner chat overlay was removed: the runner surfaces status in the
+// RUNNER LOG (Run Dock) and conversations happen in the Chat app. Same API,
+// new target — callers (vibe-run.js, vibe-websocket.js, autotask) keep
+// working unchanged.
+var box = document.getElementById("vibeRunnerLogList");
+if (!box) return null;
 var div = document.createElement("div");
 if (role === "user") {
 div.style.cssText =
-"align-self:flex-end;background:var(--accent);color:var(--surface);font-weight:500;padding:10px 14px;border-radius:12px 12px 0 12px;max-width:85%;word-wrap:break-word;";
+"align-self:flex-end;background:var(--accent,#2563eb);color:#fff;font-weight:500;padding:6px 10px;border-radius:8px 8px 0 8px;max-width:92%;word-wrap:break-word;font-size:11.5px;line-height:1.45;";
 div.textContent = text;
 } else if (role === "system") {
 div.style.cssText =
-"align-self:center;background:rgba(132,214,105,0.12);color: var(--accent);padding:6px 12px;border-radius:8px;font-size:11px;text-align:center;";
+"align-self:flex-start;color:var(--accent,#84d669);padding:2px 0;font-size:11px;line-height:1.5;word-wrap:break-word;";
 div.innerHTML = text;
 } else {
 div.style.cssText =
-"align-self:flex-start;background:var(--surface-hover);color:var(--text);padding:10px 14px;border-radius:12px 12px 12px 0;max-width:85%;word-wrap:break-word;";
+"align-self:flex-start;background:var(--surface-hover,transparent);color:var(--text,#263630);padding:6px 10px;border-radius:8px 8px 8px 0;max-width:92%;word-wrap:break-word;font-size:11.5px;line-height:1.5;border:1px solid var(--border,transparent);";
 div.className = "vibe-bot-msg";
 if (typeof marked !== "undefined" && marked.parse) {
 div.innerHTML = marked.parse(text);
@@ -60,7 +64,7 @@ el.innerHTML = marked.parse(vibeStreamContent);
 } else {
 el.textContent = vibeStreamContent;
 }
-var box = document.getElementById("vibeChatMessages");
+var box = document.getElementById("vibeRunnerLogList");
 if (box) box.scrollTop = box.scrollHeight;
 }
 
@@ -182,10 +186,7 @@ function isRelocated(el) {
 }
 
 function vibeWireWindowPanels() {
-    if (!isRelocated(document.getElementById("vibeChatOverlay"))) {
-        vibeMakeWindowDraggable(document.getElementById("vibeChatOverlay"), ".vibe-chat-header, #vibeChatOverlay > div:first-child");
-        vibeMakeWindowResizable(document.getElementById("vibeChatOverlay"), 300, 240);
-    }
+    // The chat overlay is gone — only panels that still exist get wired.
     if (!isRelocated(document.getElementById("vibeRunDock"))) {
         vibeMakeWindowDraggable(document.getElementById("vibeRunDock"), ".vibe-rd-handle");
         vibeMakeWindowResizable(document.getElementById("vibeRunDock"), 260, 200);
@@ -201,37 +202,6 @@ function vibeWireWindowPanels() {
 }
 
 function setVibeStatus(status) {
-var dot = document.getElementById("vibeChatStatusDot");
-var badge = document.getElementById("vibeChatStatusBadge");
-if (status === "connected") {
-if (dot) {
-dot.className = "as-status-dot green";
-dot.style.boxShadow = "0 0 8px var(--accent)";
-}
-if (badge) {
-badge.textContent = "ONLINE";
-badge.style.background = "var(--accent)";
-badge.style.color = "var(--bg)";
-}
-} else if (status === "connecting") {
-if (dot) {
-dot.className = "as-status-dot yellow";
-dot.style.boxShadow = "0 0 8px #f59e0b";
-}
-if (badge) {
-badge.textContent = "CONNECTING…";
-badge.style.background = "var(--surface-hover)";
-badge.style.color = "var(--text-muted)";
-}
-} else {
-if (dot) {
-dot.className = "as-status-dot red";
-dot.style.boxShadow = "0 0 8px #ef4444";
-}
-if (badge) {
-badge.textContent = "OFFLINE";
-badge.style.background = "var(--surface-hover)";
-badge.style.color = "var(--text-muted)";
-}
-}
+// The WS status dot/badge lived in the removed chat overlay; status now
+// surfaces in the ribbon. Kept as a safe no-op for legacy callers.
 }

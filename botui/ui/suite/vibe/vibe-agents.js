@@ -114,7 +114,7 @@ function loadVibeProjects() {
                 var item = document.createElement("div");
                 item.className = "as-workspace-item";
                 item.innerHTML =
-                    '<button class="as-workspace-toggle" type="button" style="background: var(--bg);' +
+                    '<button class="as-workspace-toggle" type="button" style="background:' + (active ? "var(--bg);" : "var(--bg);") +
                     (active ? "border-left: 3px solid var(--accent);" : "") +
                     '">' +
                     '<span class="as-workspace-arrow">▶</span>' +
@@ -128,12 +128,30 @@ function loadVibeProjects() {
                           esc(status) +
                           "</span>"
                         : "") +
-                    "</button>";
+                    "</button>" +
+                    '<span class="as-workspace-actions">' +
+                    '<button type="button" class="as-ws-info" title="Project info" data-info="' + esc(id) + '">ⓘ</button>' +
+                    '<button type="button" class="as-ws-delete" title="Delete project" data-delete="' + esc(id) + '">🗑</button>' +
+                    "</span>";
                 item
                     .querySelector(".as-workspace-toggle")
                     .addEventListener("click", function () {
                         selectProject(p);
                     });
+                var infoBtn = item.querySelector(".as-ws-info");
+                if (infoBtn) {
+                    infoBtn.addEventListener("click", function (ev) {
+                        ev.stopPropagation();
+                        showProjectInfo(p);
+                    });
+                }
+                var delBtn = item.querySelector(".as-ws-delete");
+                if (delBtn) {
+                    delBtn.addEventListener("click", function (ev) {
+                        ev.stopPropagation();
+                        deleteProject(p);
+                    });
+                }
                 list.appendChild(item);
             });
         })
@@ -146,7 +164,175 @@ function loadVibeProjects() {
 
 function selectProject(p) {
     applyProjectSelection(p, true);
+    // User-initiated project switch: close every floating accessory so
+    // project-scoped content (canvas, graph, metrics, run dock, dialogs)
+    // from the previous project never lingers.
+    if (window.VibeWindows && typeof window.VibeWindows.closeVibeSubwindows === "function") {
+        window.VibeWindows.closeVibeSubwindows();
+    }
     loadVibeProjects();
+}
+
+/* ------------------------------------------------- project info + delete */
+
+// Project information dialog: shows the registry record (kind, env, repo,
+// status, timestamps) and offers Delete. Rendered as a floating tool window
+// when the desktop shell is present, else a simple fixed panel.
+var _projectInfoTarget = null;
+
+function projectInfoHtml(p) {
+    var id = p.project_id || p.id;
+    var name = p.name || "Unnamed project";
+    var rows = [
+        ["Name", name],
+        ["ID", String(id || "")],
+        ["Type", p.project_type || "—"],
+        ["Environment", p.environment || "—"],
+        ["Repository", p.repository || "—"],
+        ["Framework", p.framework || "—"],
+        ["Status", p.status || "—"],
+        ["Created", p.created_at ? new Date(p.created_at).toLocaleString() : "—"],
+        ["Updated", p.updated_at ? new Date(p.updated_at).toLocaleString() : "—"],
+    ];
+    return (
+        '<div style="padding:14px 16px;font-size:12px;color:var(--text,#eee);min-width:320px">' +
+        '<div style="font-weight:800;font-size:13px;margin-bottom:10px;border-bottom:1px solid var(--border,#333);padding-bottom:8px">📁 ' +
+        esc(name) +
+        "</div>" +
+        rows
+            .map(function (r) {
+                return (
+                    '<div style="display:flex;justify-content:space-between;gap:16px;padding:4px 0;border-bottom:1px solid var(--border,#222)">' +
+                    '<span style="color:var(--text-muted,#999)">' +
+                    esc(r[0]) +
+                    "</span><b>" +
+                    esc(r[1]) +
+                    "</b></div>"
+                );
+            })
+            .join("") +
+        '<div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">' +
+        '<button type="button" class="vibe-btn" data-pi-close>Close</button>' +
+        '<button type="button" class="vibe-btn" style="background:#ef4444;border-color:#ef4444;color:#fff" data-pi-delete="' +
+        esc(id) +
+        '">Delete project</button>' +
+        "</div></div>"
+    );
+}
+
+function showProjectInfo(p) {
+    if (!p) {
+        var fallbackId = typeof window.currentProjectId !== "undefined" ? window.currentProjectId : null;
+        if (!fallbackId) return;
+        p = { id: fallbackId, name: window.currentProject || String(fallbackId) };
+    }
+    _projectInfoTarget = p;
+    if (window.VibeDialogs && window.VibeDialogs.open) {
+        window.VibeDialogs.open("project", "Project Info");
+        var toolBody = document.getElementById("window-body-vibe-tool-project");
+        if (toolBody && !toolBody.textContent.trim()) {
+            toolBody.innerHTML = projectInfoHtml(p);
+            var close = toolBody.querySelector("[data-pi-close]");
+            if (close) close.addEventListener("click", function () {
+                if (window.VibeDialogs) window.VibeDialogs.close();
+            });
+        }
+        return;
+    }
+    // Fallback: simple floating panel.
+    var float = document.createElement("div");
+    float.style.cssText =
+        "position:fixed;top:25%;left:35%;z-index:9999;background:var(--surface,#1a1a2e);" +
+        "border:1px solid var(--border,#333);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.4);";
+    float.innerHTML = projectInfoHtml(p);
+    document.body.appendChild(float);
+    float.querySelector("[data-pi-close]").addEventListener("click", function () { float.remove(); });
+    var del = float.querySelector("[data-pi-delete]");
+    if (del) del.addEventListener("click", function () {
+        deleteProject(p);
+        float.remove();
+    });
+}
+
+// Register the project-info builder once so VibeDialogs.open("project") has
+// a target; it renders whatever project was last clicked (or the selected one).
+// vibe-agents.js loads before vibe-dialogs.js, so defer until the registry
+// exists (DOMContentLoaded is late enough in the same partial).
+function registerProjectInfoDialog() {
+    if (!window.VibeDialogs || !window.VibeDialogs.register) return false;
+    window.VibeDialogs.register("project", {
+        build: function (body) {
+            var p =
+                _projectInfoTarget ||
+                (typeof currentProjectId !== "undefined" && currentProjectId
+                    ? { id: currentProjectId, name: currentProject }
+                    : null);
+            if (!p) {
+                body.innerHTML = '<div class="vibe-empty">No project selected.</div>';
+                return;
+            }
+            body.innerHTML = projectInfoHtml(p);
+            var close = body.querySelector("[data-pi-close]");
+            if (close) close.addEventListener("click", function () {
+                if (window.VibeDialogs) window.VibeDialogs.close();
+            });
+            var del = body.querySelector("[data-pi-delete]");
+            if (del) del.addEventListener("click", function () {
+                deleteProject(p);
+                if (window.VibeDialogs) window.VibeDialogs.close();
+            });
+        },
+    });
+    return true;
+}
+// vibe-agents.js parses before vibe-dialogs.js in the same partial, and the
+// partial is injected via HTMX into an already-complete document (where
+// DOMContentLoaded never fires again), so a plain readyState check is not
+// enough. Poll briefly until VibeDialogs exists with its fresh registry.
+(function () {
+    var tries = 0;
+    function tryRegister() {
+        if (registerProjectInfoDialog()) return;
+        if (++tries < 50) setTimeout(tryRegister, 100);
+    }
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", tryRegister);
+    } else {
+        tryRegister();
+    }
+})();
+
+function deleteProject(p) {
+    if (!p) return;
+    var id = p.project_id || p.id;
+    var name = p.name || "this project";
+    if (!window.confirm("Delete project '" + name + "'?\n\nThis removes its VMs and workspace files. This cannot be undone.")) {
+        return;
+    }
+    vibeApi("/api/vibe/projects/" + encodeURIComponent(id), {
+        method: "DELETE",
+    })
+        .then(function (data) {
+            if (data && data.success) {
+                if (typeof vibeAddMsg === "function") {
+                    vibeAddMsg("system", "🗑 Project '" + name + "' deleted.");
+                }
+                if (String(id) === String(currentProjectId || "")) {
+                    currentProjectId = null;
+                    currentProject = "";
+                    window.currentProjectId = null;
+                    window.currentProject = "";
+                }
+                loadVibeProjects();
+                document.dispatchEvent(new CustomEvent("gb:vibe-project", { detail: {} }));
+            } else {
+                var msg = (data && data.error) || "delete failed";
+                window.alert("Could not delete project: " + msg);
+            }
+        })
+        .catch(function (e) {
+            window.alert("Could not delete project: " + e.message);
+        });
 }
 
 document.addEventListener("gb:vibe-project-created", function () {

@@ -40,6 +40,16 @@ CREATE TABLE IF NOT EXISTS project_domains (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_project_domains_domain_env ON project_domains(domain, env);
 CREATE INDEX IF NOT EXISTS idx_project_domains_project ON project_domains(project_id);
+
+-- Idempotent column additions for tables created by older schema versions:
+-- CREATE TABLE IF NOT EXISTS never alters an existing table, so columns
+-- added after the first deploy would otherwise be missing and every insert
+-- would fail with a missing-column error.
+ALTER TABLE project_domains ADD COLUMN IF NOT EXISTS verify_token VARCHAR(255);
+ALTER TABLE project_domains ADD COLUMN IF NOT EXISTS tls_status VARCHAR(20) NOT NULL DEFAULT 'pending';
+ALTER TABLE project_domains ADD COLUMN IF NOT EXISTS tls_error TEXT;
+ALTER TABLE project_domains ADD COLUMN IF NOT EXISTS access VARCHAR(16) NOT NULL DEFAULT 'public';
+ALTER TABLE project_domains ADD COLUMN IF NOT EXISTS allowed_emails TEXT;
 ";
 
 pub const DNS_VERIFY_PREFIX: &str = "_gb-verify";
@@ -229,7 +239,7 @@ impl ProjectDomains {
         let mut conn = self.conn()?;
         match self.select_by_domain_env(&mut conn, &domain, &env) {
             Ok(row) => {
-                let row_id = Uuid::parse_str(&row.id).map_err(|e| format!("row id uuid: {e}"))?;
+                let row_id = row.id;
                 diesel::sql_query(
                     "UPDATE project_domains SET project_id = $2, container = $3, verify_token = $4, access = $5, allowed_emails = $6, updated_at = NOW() WHERE id = $1",
                 )
@@ -394,7 +404,7 @@ impl ProjectDomains {
         .stdout;
 
         let matched = !expected.is_empty() && records.contains(&expected);
-        let row_id = Uuid::parse_str(&row.id).map_err(|e| format!("row id uuid: {e}"))?;
+        let row_id = row.id;
         let mut conn = self.conn()?;
         diesel::sql_query(
             "UPDATE project_domains SET verified = $2, updated_at = NOW() WHERE id = $1",
@@ -543,14 +553,14 @@ struct ProjectRow {
 
 #[derive(diesel::QueryableByName)]
 struct DomainRow {
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    id: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    project_id: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    org_id: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    branch_id: String,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    project_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    org_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    branch_id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Text)]
     domain: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
@@ -578,10 +588,10 @@ struct DomainRow {
 impl DomainRow {
     fn into_bind(self) -> DomainBind {
         DomainBind {
-            id: Uuid::parse_str(&self.id).unwrap_or_default(),
-            project_id: Uuid::parse_str(&self.project_id).unwrap_or_default(),
-            org_id: Uuid::parse_str(&self.org_id).unwrap_or_default(),
-            branch_id: Uuid::parse_str(&self.branch_id).unwrap_or_default(),
+            id: self.id,
+            project_id: self.project_id,
+            org_id: self.org_id,
+            branch_id: self.branch_id,
             domain: self.domain,
             env: self.env,
             container: self.container,

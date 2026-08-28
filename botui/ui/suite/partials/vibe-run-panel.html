@@ -1,6 +1,6 @@
 <link rel="stylesheet" href="/suite/vibe/vibe-run.css" />
 
-<!-- Vibe Run Dock — wave-2 (issues #806, #807) -->
+<!-- Vibe Run Dock — multi-agent execution board: TODOs, approval, sessions and runs. -->
 <div id="vibeRunDock" class="vibe-rd">
     <div class="vibe-rd-handle" id="vibeRunDockToggle" title="Toggle Run Dock">
         <span style="font-size: 14px">🎛️</span>
@@ -8,12 +8,30 @@
         <span id="vibeRunDockArrow" style="color: var(--text-muted)">▾</span>
     </div>
     <div class="vibe-rd-content">
-        <div class="vibe-rd-budget-row">
-            <label for="vibeRunBudget">Budget (USD)</label>
-            <input type="number" id="vibeRunBudget" min="0" step="0.25" value="2" />
-            <span style="flex: 1"></span>
-            <button type="button" id="vibePreviewBtn" class="vibe-btn" title="Open the selected project app">🌐 Preview App</button>
+        <!-- Action row: execution state only; cost/budget is deliberately absent. -->
+        <div class="vibe-rd-action-row">
+            <strong>Multi-agent runner</strong>
+            <button type="button" id="vibePreviewBtn" class="vibe-btn" title="Open the selected project app">🌐 Preview</button>
             <span id="vibeRunDockState" class="vibe-chip state-pending">IDLE</span>
+        </div>
+
+        <div class="vibe-rd-section vibe-todo-section">
+            <h4>// AGENT TODO BOARD</h4>
+            <div id="vibeTodoList" class="vibe-todo-list">
+                <div class="vibe-rd-empty">Select a project and press ▶ Play.</div>
+            </div>
+        </div>
+
+        <!-- Runner log — run events only (#1271). Chat-with-the-agent
+             happens in the Chat window (opened by the Chat button), NOT
+             mirrored here anymore. -->
+        <div class="vibe-rd-section">
+            <h4 class="vibe-rd-collapsible" data-rd-collapse="vibeRunnerLogWrap">// RUNNER LOG <span class="vibe-rd-arrow">▾</span></h4>
+            <div id="vibeRunnerLogWrap">
+                <div id="vibeRunnerLogList" class="vibe-runner-log">
+                    <div class="vibe-rd-empty">Run events appear here — use the Chat button to talk to the agent.</div>
+                </div>
+            </div>
         </div>
 
         <!-- Live run card -->
@@ -34,15 +52,6 @@
             </div>
         </div>
 
-        <!-- Budget / metering -->
-        <div class="vibe-run-card" id="vibeRunBudgetCard">
-            <div class="vibe-budget-meta">
-                <span class="spend" id="vibeBudgetSpend">$0.00 spent</span>
-                <span id="vibeBudgetCap">of $0.00</span>
-            </div>
-            <div class="vibe-budget-bar"><div class="vibe-budget-fill" id="vibeBudgetFill"></div></div>
-        </div>
-
         <!-- Pipeline strip -->
         <div class="vibe-rd-section" id="vibePipelineSection" style="display: none">
             <h4>// PIPELINE</h4>
@@ -54,8 +63,8 @@
             <h4>⏸ APPROVAL REQUIRED</h4>
             <div class="vibe-approval-tools" id="vibeApprovalTools"></div>
             <div class="vibe-approval-actions">
-                <button type="button" id="vibeApproveBtn">✓ Approve & Resume</button>
-                <button type="button" id="vibeDenyBtn">✕ Deny & Cancel</button>
+                <button type="button" id="vibeApproveBtn">✓ Approve &amp; Resume</button>
+                <button type="button" id="vibeDenyBtn">✕ Deny &amp; Cancel</button>
             </div>
         </div>
 
@@ -65,33 +74,33 @@
             <div id="vibeSourcesList"></div>
         </div>
 
-        <!-- Sessions -->
+        <!-- Sessions (resume / fork) -->
         <div class="vibe-rd-section">
-            <h4>// SESSIONS (resume / fork)</h4>
-            <div id="vibeSessionsList">
-                <div class="vibe-rd-empty">No sessions yet.</div>
+            <h4 class="vibe-rd-collapsible" data-rd-collapse="vibeSessionsWrap">// SESSIONS <span class="vibe-rd-arrow">▾</span></h4>
+            <div id="vibeSessionsWrap">
+                <div id="vibeSessionsList">
+                    <div class="vibe-rd-empty">No sessions yet.</div>
+                </div>
             </div>
         </div>
 
         <!-- Run history -->
         <div class="vibe-rd-section">
-            <h4>// RUNS</h4>
-            <div id="vibeRunsList">
-                <div class="vibe-rd-empty">No runs yet.</div>
+            <h4 class="vibe-rd-collapsible" data-rd-collapse="vibeRunsWrap">// RUNS <span class="vibe-rd-arrow">▾</span></h4>
+            <div id="vibeRunsWrap">
+                <div id="vibeRunsList">
+                    <div class="vibe-rd-empty">No runs yet.</div>
+                </div>
             </div>
         </div>
 
-        <!-- Team runs -->
+        <!-- Team runs (read-only chips; creation moved to chat) -->
         <div class="vibe-rd-section">
-            <h4>// TEAM RUNS</h4>
-            <div class="vibe-team-new">
-                <input type="text" id="vibeTeamName" placeholder="Team name (e.g. Ship Squad)" />
-                <input type="text" id="vibeTeamObjective" placeholder="Objective (e.g. review this PR)" />
-                <textarea id="vibeTeamMembers" placeholder="One member per line:&#10;reviewer | review this PR&#10;tester | run the tests"></textarea>
-                <button type="button" id="vibeTeamCreateBtn">Start Team Run</button>
-            </div>
-            <div id="vibeTeamsList" style="margin-top: 8px">
-                <div class="vibe-rd-empty">No teams yet.</div>
+            <h4 class="vibe-rd-collapsible" data-rd-collapse="vibeTeamsWrap">// TEAM RUNS <span class="vibe-rd-arrow">▾</span></h4>
+            <div id="vibeTeamsWrap">
+                <div id="vibeTeamsList" style="margin-top: 4px">
+                    <div class="vibe-rd-empty">No teams yet.</div>
+                </div>
             </div>
         </div>
     </div>

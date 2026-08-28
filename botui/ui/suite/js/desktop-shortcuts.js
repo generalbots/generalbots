@@ -309,18 +309,31 @@ window.GBDesktopShortcuts = window.GBDesktopShortcuts || {};
   };
 
   mod.syncFromDrive = function () {
-    return fetch("/api/files/read", {
-      method: "POST",
+    // The desktop manifest is optional. Check the folder first so a fresh
+    // account does not generate an expected-but-noisy 404 from /read.
+    return fetch("/api/files/list?scope=user&path=" + encodeURIComponent("Desktop"), {
+      method: "GET",
       headers: authHeaders(),
-      body: JSON.stringify({ path: SYNC_PATH, scope: "user" }),
     })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (data) {
-        if (!data || !data.content) return false;
-        try {
-          mergeRemote(JSON.parse(data.content));
-          return true;
-        } catch (e) { return false; }
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (items) {
+        var manifest = Array.isArray(items) && items.some(function (item) {
+          return !item.is_dir && item.name === ".gbdesktop.json";
+        });
+        if (!manifest) return false;
+        return fetch("/api/files/read", {
+          method: "POST",
+          headers: authHeaders(),
+          body: JSON.stringify({ path: SYNC_PATH, scope: "user" }),
+        })
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (data) {
+            if (!data || !data.content) return false;
+            try {
+              mergeRemote(JSON.parse(data.content));
+              return true;
+            } catch (e) { return false; }
+          });
       })
       .catch(function () { return false; });
   };
@@ -362,6 +375,8 @@ window.GBDesktopShortcuts = window.GBDesktopShortcuts || {};
     window.addEventListener("gb:auth:logout", renderAll);
 
     renderAll();
-    mod.syncFromDrive();
+    // Do not probe Drive during desktop boot. Drive may be unavailable in
+    // local/offline mode; local shortcuts remain functional and are synced
+    // after a user changes one.
   };
 })(window.GBDesktopShortcuts);

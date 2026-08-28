@@ -20,6 +20,7 @@ fn sw_dev_run(id: &str, tools: &[&str]) -> RunNodeInfo {
         state: "completed".to_string(),
         intent: "Add login page".to_string(),
         tool_names: tools.iter().map(|t| t.to_string()).collect(),
+        project_id: Some("00000000-0000-0000-0000-0000000000aa".to_string()),
     }
 }
 
@@ -34,10 +35,11 @@ fn use_case_graph_has_root_run_and_tool_nodes() {
             state: "running".to_string(),
             intent: "Help with ticket".to_string(),
             tool_names: vec!["search_kb".to_string()],
+            project_id: None,
         },
     ];
 
-    let graph = build_use_case_graph("software_development", &runs);
+    let graph = build_use_case_graph("software_development", &runs, None);
     let kinds = graph
         .nodes
         .iter()
@@ -77,6 +79,36 @@ fn use_case_graph_has_root_run_and_tool_nodes() {
 }
 
 #[test]
+fn use_case_graph_scopes_to_project_when_requested() {
+    let runs = vec![
+        sw_dev_run("00000000-0000-0000-0000-000000000001", &["write_file"]),
+        RunNodeInfo {
+            run_id: "00000000-0000-0000-0000-000000000002".to_string(),
+            use_case: "software_development".to_string(),
+            state: "completed".to_string(),
+            intent: "Other project".to_string(),
+            tool_names: vec!["deploy_app".to_string()],
+            project_id: Some("00000000-0000-0000-0000-0000000000bb".to_string()),
+        },
+    ];
+    let graph = build_use_case_graph(
+        "software_development",
+        &runs,
+        Some("00000000-0000-0000-0000-0000000000aa"),
+    );
+    assert_eq!(
+        graph
+            .nodes
+            .iter()
+            .filter(|n| n.node_type == "run")
+            .count(),
+        1,
+        "only the run belonging to the requested project appears"
+    );
+    assert!(graph.nodes.iter().all(|n| n.id != "tool:deploy_app"));
+}
+
+#[test]
 fn use_case_graph_with_only_foreign_runs_keeps_root() {
     let runs = vec![RunNodeInfo {
         run_id: "cs-run".to_string(),
@@ -84,8 +116,9 @@ fn use_case_graph_with_only_foreign_runs_keeps_root() {
         state: "running".to_string(),
         intent: "Help".to_string(),
         tool_names: vec![],
+        project_id: None,
     }];
-    let graph = build_use_case_graph("financial_analysis", &runs);
+    let graph = build_use_case_graph("financial_analysis", &runs, None);
     assert_eq!(graph.nodes.len(), 1);
     assert_eq!(graph.nodes[0].id, "root");
     assert!(graph.edges.is_empty());
@@ -120,7 +153,7 @@ async fn builders_consume_snapshot_from_data_source() {
         runs: vec![sw_dev_run("00000000-0000-0000-0000-000000000001", &["write_file"])],
     };
     let runs = source.snapshot_runs().await;
-    let graph = build_use_case_graph("software_development", &runs);
+    let graph = build_use_case_graph("software_development", &runs, None);
     assert_eq!(graph.nodes.len(), 3);
 }
 

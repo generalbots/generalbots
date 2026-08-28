@@ -22,6 +22,10 @@ pub enum PipelineStageKind {
     CompilePlan,
     ExecutePlan,
     BuildTest,
+    /// #1271 — snapshot the currently deployed commit into a
+    /// `release/prev-<ts>` branch before the new state is committed, so the
+    /// toolbar branch combo offers a rollback point to re-deploy.
+    SnapshotPrevious,
     CommitPush,
     PublishApp,
     BindDomain,
@@ -35,6 +39,7 @@ impl PipelineStageKind {
             Self::CompilePlan => "compile_plan",
             Self::ExecutePlan => "execute_plan",
             Self::BuildTest => "test/run",
+            Self::SnapshotPrevious => "git/snapshot-previous",
             Self::CommitPush => "git/commit",
             Self::PublishApp => "publish/project",
             Self::BindDomain => "domain/bind",
@@ -47,6 +52,7 @@ impl PipelineStageKind {
             Self::CompilePlan => "Plan compilation",
             Self::ExecutePlan => "Plan execution",
             Self::BuildTest => "Build and test",
+            Self::SnapshotPrevious => "Snapshot previous release",
             Self::CommitPush => "Commit and push",
             Self::PublishApp => "Publish application",
             Self::BindDomain => "Bind domain and TLS",
@@ -103,6 +109,10 @@ impl RunPipeline {
             stage("intent", PipelineStageKind::ClassifyIntent, 30),
             stage("plan", PipelineStageKind::CompilePlan, 30),
             stage_approval("build_test", PipelineStageKind::BuildTest, 300, false),
+            // Snapshot the current deployment BEFORE the new state is
+            // committed so `release/prev-<ts>` points at the version that is
+            // being replaced — the rollback point in the branch combo.
+            stage("snapshot_prev", PipelineStageKind::SnapshotPrevious, 30),
             stage_approval("commit_push", PipelineStageKind::CommitPush, 60, true),
             stage_approval("publish", PipelineStageKind::PublishApp, 300, true),
             stage_approval("domain", PipelineStageKind::BindDomain, 60, true),
@@ -208,6 +218,10 @@ pub struct PipelineRunContext<'a> {
     pub intent: &'a str,
     pub project_id: Option<&'a str>,
     pub project_name: Option<&'a str>,
+    /// #1269 — when the run carries auto_approve (admin-issued), skip the
+    /// per-stage human approval gates so headless deploys complete instead
+    /// of timing out waiting for a signal nobody sends.
+    pub auto_approve: bool,
 }
 
 impl PipelineEngine {
@@ -258,6 +272,7 @@ impl PipelineEngine {
             intent,
             project_id,
             project_name,
+            auto_approve,
         } = *ctx;
         let mut reports = Vec::new();
         for stage in &pipeline.stages {
@@ -287,7 +302,9 @@ impl PipelineEngine {
                         "env": "production",
                         "domain": format!("{}.gb.solutions", project_name.unwrap_or("app")),
                     }),
-                    PipelineStageKind::BuildTest | PipelineStageKind::CommitPush => {
+                    PipelineStageKind::BuildTest
+                    | PipelineStageKind::SnapshotPrevious
+                    | PipelineStageKind::CommitPush => {
                         serde_json::json!({
                             "project": project_name.unwrap_or(""),
                             "project_id": project_id.unwrap_or(""),
@@ -307,7 +324,10 @@ impl PipelineEngine {
                 arguments,
                 stage.requires_approval,
             );
-            if stage.requires_approval {
+            // #1269 — an auto-approved (admin-issued) run skips the human
+            // approval gate but still executes the stage tool; only the wait
+            // is bypassed, never the work.
+            if stage.requires_approval && !auto_approve {
                 let outcome = self.wait_for_approval(state, run_id).await;
                 if outcome != ApprovalOutcome::Approved {
                     let error = outcome
@@ -464,17 +484,21 @@ mod tests {
         }
         #[cfg(not(target_os = "windows"))]
         {
-            assert_eq!(pipeline.stages.len(), 6);
+            assert_eq!(pipeline.stages.len(), 7);
             assert_eq!(pipeline.stages[2].kind, PipelineStageKind::BuildTest);
-            assert_eq!(pipeline.stages[3].kind, PipelineStageKind::CommitPush);
-            assert_eq!(pipeline.stages[4].kind, PipelineStageKind::PublishApp);
-            assert!(pipeline.stages[3].requires_approval);
-            assert!(pipeline.stages[5].requires_approval);
+            // #1271 — the deploy pipeline snapshots the current deployment
+            // before committing the new state, so rollback is one combo click.
+            assert_eq!(pipeline.stages[3].kind, PipelineStageKind::SnapshotPrevious);
+            assert_eq!(pipeline.stages[4].kind, PipelineStageKind::CommitPush);
+            assert_eq!(pipeline.stages[5].kind, PipelineStageKind::PublishApp);
+            assert!(pipeline.stages[4].requires_approval);
+            assert!(pipeline.stages[6].requires_approval);
             assert!(pipeline.stage("domain").unwrap().requires_approval);
             assert_eq!(
                 pipeline.stage("domain").unwrap().name,
                 "Bind domain and TLS"
             );
+            assert!(pipeline.stage("snapshot_prev").is_some());
         }
     }
 
@@ -599,6 +623,7 @@ mod tests {
                     intent: "x",
                     project_id: None,
                     project_name: None,
+                    auto_approve: true,
                 },
             )
             .await;

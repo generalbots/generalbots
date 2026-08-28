@@ -204,6 +204,12 @@ cursor: pointer;
     font-size: 18px; cursor: pointer;
 }
 .vibe-np-body { padding: 14px 16px; max-height: 62vh; overflow-y: auto; }
+/* Relocated into a fixed-size popup window: no scrollbar — every field is
+   visible at once (the window height is auto so it fits the content). */
+.vibe-tool-relocated .vibe-np-body {
+    max-height: none;
+    overflow: visible;
+}
 .vibe-np-label {
     display: block; margin: 10px 0 4px;
     font-size: 11px; text-transform: uppercase; letter-spacing: .06em;

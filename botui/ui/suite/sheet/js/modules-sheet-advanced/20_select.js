@@ -7,12 +7,42 @@
     return window.SheetVirtualGrid || null;
   }
 
+  function isRowHeader(t) {
+    return !!(t && t.classList && t.classList.contains("ss-row-header"));
+  }
+
+  // A header `click` that fires immediately (<400ms) after a drag-resize is
+  // the residue of the resize itself — not a user selection. Ignore it so
+  // resizing does not select the whole row/column and scroll to the far
+  // corner (~1M index).
+  function wasJustResized() {
+    return !!(window.__GB_SHEET_RESIZED_AT && (Date.now() - window.__GB_SHEET_RESIZED_AT) < 400);
+  }
+
   function selectRow(row) {
     const g = grid();
     if (!g) return;
     if (window.SheetAdvanced && window.SheetAdvanced.setRange) {
       window.SheetAdvanced.setRange(row, 0, row, g.totalCols - 1);
     }
+    highlightRowHeader(row);
+  }
+
+  function highlightRowHeader(row) {
+    const g = grid();
+    if (!g || !g.bodyInner) return;
+    const headers = g.bodyInner.querySelectorAll(".ss-row-header");
+    headers.forEach(function (h) {
+      h.classList.toggle("row-selected", parseInt(h.dataset.row, 10) === row);
+    });
+  }
+
+  function clearRowHeaderHighlight() {
+    const g = grid();
+    if (!g || !g.bodyInner) return;
+    g.bodyInner.querySelectorAll(".ss-row-header.row-selected").forEach(function (h) {
+      h.classList.remove("row-selected");
+    });
   }
 
   function selectColumn(col) {
@@ -49,6 +79,7 @@
   }
 
   function onHeaderClick(e) {
+    if (wasJustResized()) return;
     const g = grid();
     const h = e.target;
     if (!g || !g.headerRow || !h || h.tagName !== "DIV") return;
@@ -71,9 +102,12 @@
   }
 
   function onRowHeaderClick(e) {
+    if (wasJustResized()) return;
     const g = grid();
     const t = e.target;
-    if (!g || !t || !t.dataset || t.dataset.row === undefined) return;
+    // Only the row-number gutter is a row selector — plain data cells must NOT
+    // select a whole row, even though they also carry a `data-row` attribute.
+    if (!isRowHeader(t)) return;
     const row = parseInt(t.dataset.row, 10);
     if (isNaN(row)) return;
     if (e.ctrlKey || e.metaKey) {
@@ -84,6 +118,7 @@
       return;
     }
     if (e.shiftKey) return;
+    e.preventDefault();
     selectRow(row);
   }
 
@@ -107,6 +142,8 @@
     selectRow: selectRow,
     selectColumn: selectColumn,
     selectAll: selectAll,
+    highlightRowHeader: highlightRowHeader,
+    clearRowHeaderHighlight: clearRowHeaderHighlight,
   };
 
   if (window.SheetCore) {

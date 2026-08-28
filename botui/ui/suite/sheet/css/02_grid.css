@@ -85,6 +85,38 @@
     color: white;
 }
 
+/* Row number header cells (virtual grid, live in the body layer) */
+.ss-row-header {
+    user-select: none;
+    cursor: default;
+}
+
+.ss-row-header.row-selected {
+    background: #3b82f6;
+    color: #fff;
+}
+
+/* Column header resize handle */
+.ss-col-resize, .ss-row-resize {
+    position: absolute;
+    z-index: 20;
+    display: none;
+}
+
+.ss-col-resize {
+    top: 0;
+    width: 5px;
+    height: 100%;
+    cursor: col-resize;
+}
+
+.ss-row-resize {
+    left: 0;
+    height: 5px;
+    width: 100%;
+    cursor: row-resize;
+}
+
 .cell.selected {
     outline: 2px solid var(--sentient-accent, #4285f4);
     outline-offset: -1px;

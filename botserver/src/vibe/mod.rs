@@ -71,17 +71,42 @@ impl VibeState for VibeStateImpl {
                 .ok()
                 .filter(|v| !v.is_empty())
         };
-        match value("llm-model") {
+        let per_bot = match value("llm-model") {
             Some(model) => Some(LlmConfig {
                 model,
                 key: value("llm-key").unwrap_or_default(),
                 url: value("llm-url").unwrap_or_default(),
             }),
-            None => {
-                log::warn!("Vibe: no llm-model configured for bot {bot_id}; falling back to env");
-                None
+            None => None,
+        };
+        // The per-bot path can resolve a model (Drive config.csv) while its
+        // Vault secret lacks the key/url — that must NOT shadow the global
+        // secret/gbo/llm (tokenrouter) that the bot chat uses, or every run
+        // dies with HTTP 401 "Invalid token". Merge: start from per-bot,
+        // then fill any empty field from the global fallback.
+        if let Ok(sm) = crate::core::secrets::SecretsManager::get() {
+            let (g_url, g_model, g_key, _, _) = sm.get_llm_config();
+            let base = per_bot.clone().unwrap_or(LlmConfig {
+                model: String::new(),
+                key: String::new(),
+                url: String::new(),
+            });
+            let merged = LlmConfig {
+                model: if base.model.is_empty() { g_model } else { base.model.clone() },
+                key: if base.key.is_empty() { g_key.unwrap_or_default() } else { base.key },
+                url: if base.url.is_empty() { g_url } else { base.url },
+            };
+            if !merged.url.is_empty() && !merged.model.is_empty() {
+                return Some(merged);
             }
         }
+        if let Some(cfg) = per_bot {
+            if !cfg.url.is_empty() && !cfg.model.is_empty() {
+                return Some(cfg);
+            }
+        }
+        log::warn!("Vibe: no llm config for bot {bot_id}; falling back to env");
+        None
     }
 }
 
@@ -132,6 +157,36 @@ pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
             };
             run("boot sweep");
             let mut tick = tokio::time::interval(std::time::Duration::from_secs(600));
+            loop {
+                tick.tick().await;
+                run("periodic");
+            }
+        });
+    }
+
+    // #1271 — Prod-VM guard: production VMs must stay running forever once
+    // deployed. A server (or host) restart can leave deployed containers
+    // stopped; this job reconciles them back to `running` at boot and every
+    // 60 seconds. Dev/staging VMs are lifecycle-managed by the frontend
+    // (start on Run, stop on window close / project switch) and are NOT
+    // touched here.
+    {
+        let lifecycle = vm_lifecycle.clone();
+        tokio::spawn(async move {
+            let run = |label: &str| match lifecycle.ensure_prod_running() {
+                Ok(started) if !started.is_empty() => {
+                    info!(
+                        "Vibe prod-VM guard ({label}): (re)started {}",
+                        started.join(", ")
+                    );
+                }
+                Ok(_) => {}
+                Err(e) => log::error!("Vibe prod-VM guard ({label}) failed: {e}"),
+            };
+            // Give the DB pool and Incus a moment at boot before probing.
+            tokio::time::sleep(std::time::Duration::from_secs(10)).await;
+            run("boot");
+            let mut tick = tokio::time::interval(std::time::Duration::from_secs(60));
             loop {
                 tick.tick().await;
                 run("periodic");
@@ -271,6 +326,7 @@ pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
             project_registry.clone(),
             project_rbac.clone(),
             metering.clone(),
+            vm_lifecycle.clone(),
         ))
         .merge(vms_router(
             vm_lifecycle,

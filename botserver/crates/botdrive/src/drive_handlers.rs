@@ -687,6 +687,10 @@ pub async fn open_file(
             "docs".to_string(),
             format!("/suite/docs/?file={path}&bucket={bucket}"),
         ),
+        "draw" => (
+            "canvas".to_string(),
+            format!("/suite/canvas/canvas.html?bucket={bucket}&path={path}"),
+        ),
         _ => ("preview".to_string(), format!("/suite/docs/?file={path}")),
     };
     Ok(Json(OpenFileResponse { app, url }))

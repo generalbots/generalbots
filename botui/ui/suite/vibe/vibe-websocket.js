@@ -24,7 +24,7 @@ function vibeSafeMsg(role, text) {
     if (typeof vibeAddMsg === "function") {
         return vibeAddMsg(role, text);
     }
-    var box = document.getElementById("vibeChatMessages");
+    var box = document.getElementById("vibeRunnerLogList");
     if (!box) return null;
     var div = document.createElement("div");
     div.textContent = text;

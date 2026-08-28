@@ -1,7 +1,5 @@
-use git2::{Repository, Signature};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use std::path::Path;
 
 use super::types::{DeploymentEnvironment, DeploymentError, DeployTarget, GeneratedApp, GeneratedFile, ProjectType};
 
@@ -34,7 +32,10 @@ impl ForgejoClient {
             description: description.to_string(),
             private,
             auto_init: true,
-            gitignores: Some("Node,React,Vite".to_string()),
+            // Only stock Forgejo gitignore templates are accepted; "React"
+            // and "Vite" are not valid templates and make repo creation
+            // fail with `GetRepoInitFile[React]: file does not exist`.
+            gitignores: Some("Node".to_string()),
             license: Some("MIT".to_string()),
             readme: Some("Default".to_string()),
         };
@@ -57,6 +58,87 @@ impl ForgejoClient {
         } else {
             let status = response.status();
             let body = response.text().await.unwrap_or_default();
+            // Idempotent re-deploys: the repo already exists from a previous
+            // deploy. Fetch it instead of failing so the pipeline can push
+            // the new commit (the re-deploy must succeed like git does).
+            if status == reqwest::StatusCode::CONFLICT && body.contains("already e") {
+                let existing = self
+                    .client
+                    .get(&format!("{}/api/v1/repos/{}/{}", self.base_url, org, name))
+                    .header("Authorization", format!("token {}", self.token))
+                    .send()
+                    .await
+                    .map_err(|e| ForgejoError::HttpError(e.to_string()))?;
+                if existing.status().is_success() {
+                    return existing
+                        .json()
+                        .await
+                        .map_err(|e| ForgejoError::JsonError(e.to_string()));
+                }
+                return Err(ForgejoError::ApiError(format!(
+                    "{}: {}",
+                    existing.status(),
+                    existing.text().await.unwrap_or_default()
+                )));
+            }
+            // Vibe projects derive the ALM org from the branch id
+            // (`org=branch`), so the org may not exist yet on a fresh
+            // deployment. Auto-create it (admin token) and retry once.
+            // Forgejo reports a missing org as 404 in some versions and as
+            // 422 "org does not exist" in others — handle both.
+            let org_missing = status == reqwest::StatusCode::NOT_FOUND
+                || (status == reqwest::StatusCode::UNPROCESSABLE_ENTITY
+                    && body.contains("does not exist"));
+            if org_missing {
+                if self.ensure_org(org).await.is_ok() {
+                    let retry = self
+                        .client
+                        .post(&url)
+                        .header("Authorization", format!("token {}", self.token))
+                        .json(&payload)
+                        .send()
+                        .await
+                        .map_err(|e| ForgejoError::HttpError(e.to_string()))?;
+                    if retry.status().is_success() {
+                        return retry
+                            .json()
+                            .await
+                            .map_err(|e| ForgejoError::JsonError(e.to_string()));
+                    }
+                    let retry_status = retry.status();
+                    let retry_body = retry.text().await.unwrap_or_default();
+                    return Err(ForgejoError::ApiError(format!(
+                        "{}: {}",
+                        retry_status, retry_body
+                    )));
+                }
+            }
+            Err(ForgejoError::ApiError(format!("{}: {}", status, body)))
+        }
+    }
+
+    /// Create the organization when missing so branch-derived orgs
+    /// (org=branch) can own repos without a manual Forgejo setup step.
+    async fn ensure_org(&self, org: &str) -> Result<(), ForgejoError> {
+        let url = format!("{}/api/v1/orgs", self.base_url);
+        let payload = serde_json::json!({
+            "username": org,
+            "full_name": format!("Workspace {org}"),
+            "visibility": "private",
+        });
+        let response = self
+            .client
+            .post(&url)
+            .header("Authorization", format!("token {}", self.token))
+            .json(&payload)
+            .send()
+            .await
+            .map_err(|e| ForgejoError::HttpError(e.to_string()))?;
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
             Err(ForgejoError::ApiError(format!("{}: {}", status, body)))
         }
     }
@@ -68,6 +150,14 @@ impl ForgejoClient {
         branch: &str,
     ) -> Result<String, DeploymentError> {
         let temp_dir = app.temp_dir()?;
+        // The temp dir is a fixed path (`gb-deployments/{name}`) reused
+        // across deployments; leaving a previous repo behind makes the next
+        // root commit fail with "current tip is not the first parent".
+        // Always start from a clean checkout.
+        if temp_dir.exists() {
+            std::fs::remove_dir_all(&temp_dir)
+                .map_err(|e| DeploymentError::GitError(format!("Failed to clean temp dir: {}", e)))?;
+        }
         std::fs::create_dir_all(&temp_dir)
             .map_err(|e| DeploymentError::GitError(format!("Failed to create temp dir: {}", e)))?;
 
@@ -81,43 +171,36 @@ impl ForgejoClient {
                 .map_err(|e| DeploymentError::GitError(format!("Failed to write file: {}", e)))?;
         }
 
-        let repo = Repository::init(&temp_dir)
-            .map_err(|e| DeploymentError::GitError(format!("Failed to init repo: {}", e)))?;
-
-        let mut index = repo.index()
-            .map_err(|e| DeploymentError::GitError(format!("Failed to get index: {}", e)))?;
-
-        self.add_all_files(&repo, &mut index, &temp_dir)
-            .map_err(|e| DeploymentError::GitError(format!("Failed to add files: {}", e)))?;
-
-        index.write()
-            .map_err(|e| DeploymentError::GitError(format!("Failed to write index: {}", e)))?;
-
-        let tree_id = index.write_tree()
-            .map_err(|e| DeploymentError::GitError(format!("Failed to write tree: {}", e)))?;
-        let tree = repo.find_tree(tree_id)
-            .map_err(|e| DeploymentError::GitError(format!("Failed to find tree: {}", e)))?;
-
-        let sig = Signature::now("GB Deployer", "deployer@generalbots.com")
-            .map_err(|e| DeploymentError::GitError(format!("Failed to create signature: {}", e)))?;
-
-        let oid = repo.commit(
-            Some(&format!("refs/heads/{}", branch)),
-            &sig,
-            &sig,
-            &format!("Initial commit: {}", app.description),
-            &tree,
-            &[],
-        ).map_err(|e| DeploymentError::GitError(format!("Failed to commit: {}", e)))?;
-
         let auth_url = self.add_token_to_url(repo_url);
-        let mut remote = repo.remote("origin", &auth_url)
-            .map_err(|e| DeploymentError::GitError(format!("Failed to add remote: {}", e)))?;
+        log::info!("git push url: {auth_url}");
+        // Use git CLI entirely (init + add + commit + push) instead of
+        // mixing git2 (which has ref-creation and HTTP auth issues) with
+        // CLI. The proven flow: init → add → commit → push.
+        let git = |args: &[&str]| -> Result<String, DeploymentError> {
+            let output = std::process::Command::new("git")
+                .current_dir(&temp_dir)
+                .args(args)
+                .output()
+                .map_err(|e| DeploymentError::GitError(format!("git {}: {e}", args[0])))?;
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                return Err(DeploymentError::GitError(format!(
+                    "git {} failed: {}",
+                    args[0],
+                    stderr.trim().lines().last().unwrap_or("unknown")
+                )));
+            }
+            Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+        };
 
-        remote.push(&[format!("refs/heads/{}", branch)], None)
-            .map_err(|e| DeploymentError::GitError(format!("Failed to push: {}", e)))?;
+        git(&["init", "-q"])?;
+        git(&["add", "-A"])?;
+        git(&["-c", "user.name=GB Deployer", "-c", "user.email=deployer@generalbots.com",
+             "commit", "-m", &format!("Initial commit: {}", app.description)])?;
+        let commit_hash = git(&["rev-parse", "HEAD"])?;
+        git(&["push", "--force", &auth_url, &format!("HEAD:{branch}")])?;
 
-        Ok(oid.to_string())
+        Ok(commit_hash)
     }
 
     pub async fn create_cicd_workflow(
@@ -149,36 +232,15 @@ impl ForgejoClient {
         Ok(())
     }
 
-    fn add_all_files(
-        &self,
-        repo: &Repository,
-        index: &mut git2::Index,
-        dir: &Path,
-    ) -> Result<(), git2::Error> {
-        for entry in std::fs::read_dir(dir).map_err(|e| git2::Error::from_str(&e.to_string()))? {
-            let entry = entry.map_err(|e| git2::Error::from_str(&e.to_string()))?;
-            let path = entry.path();
-
-            if path.is_dir() {
-                if path.file_name().map(|f| f == ".git").unwrap_or(false) {
-                    continue;
-                }
-                self.add_all_files(repo, index, &path)?;
-            } else {
-                let workdir = repo.workdir().ok_or_else(|| {
-                    git2::Error::from_str("Repository has no working directory")
-                })?;
-                let relative_path = path.strip_prefix(workdir)
-                    .map_err(|e| git2::Error::from_str(&e.to_string()))?;
-                index.add_path(relative_path)?;
-            }
-        }
-        Ok(())
-    }
-
     fn add_token_to_url(&self, url: &str) -> String {
-        if url.starts_with("https://") {
-            url.replace("https://", &format!("https://{}@", self.token))
+        // Forgejo personal access tokens authenticate over HTTP(S) via
+        // `token@host`; the self-hosted ALM serves plain `http://` clone
+        // URLs, so both schemes must embed the token or the push fails
+        // with "could not read Username for ..." (no auth at all).
+        if let Some(rest) = url.strip_prefix("https://") {
+            format!("https://{}@{}", self.token, rest)
+        } else if let Some(rest) = url.strip_prefix("http://") {
+            format!("http://{}@{}", self.token, rest)
         } else {
             url.to_string()
         }

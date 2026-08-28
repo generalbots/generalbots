@@ -1,6 +1,6 @@
 /**
  * Vibe Run Dock (#806, #807) — live run card, approval resume UX,
- * budget/metering panel, pipeline strip, grounding sources, sessions
+ * multi-agent TODO board, pipeline strip, grounding sources, sessions
  * resume/fork and team-run chips. Polling-based: /api/vibe/run|metrics|
  * events|pipeline|sessions|teams (backend channels confirmed live; the
  * WS vibe_progress broadcast has no subscriber, so events are optional).
@@ -23,7 +23,6 @@
         teamTimer: null,
         useCase: "software_development",
         loadedPipeline: false,
-        budgetCents: 0,
         paused: false,
     };
 
@@ -166,9 +165,11 @@
             stateEl.className = "vibe-chip " + chipState(state.run.state);
         }
         // Terminal states freeze the phase and the run-dock ribbon so the
-        // dock never lingers on "PLANNING"/"ACTIVE" after completion.
+        // dock never lingers on "PLANNING"/"ACTIVE" after completion — and
+        // the elapsed clock stops at the real duration.
         if (["completed", "failed", "cancelled"].indexOf(String(state.run.state)) !== -1) {
             state.phase = defaultPhase(state.run.state);
+            freezeElapsed();
         }
         syncRunDock();
         var phaseEl = q("vibeRunPhase");
@@ -182,34 +183,34 @@
         } else if (state.run.state === "completed") {
             setText("vibeRunOutcome", "✅ completed");
         }
-        renderBudget();
+        renderTodoBoard();
         renderApproval();
     }
 
-    function renderBudget() {
-        var card = q("vibeRunCard");
-        if (!card) return;
-        var spend = 0;
-        if (state.metrics && typeof state.metrics.total_cost === "number") {
-            spend = state.metrics.total_cost;
+    function renderTodoBoard() {
+        var list = q("vibeTodoList");
+        if (!list) return;
+        var items = [];
+        if (state.pipeline && Array.isArray(state.pipeline.stages)) {
+            items = state.pipeline.stages.map(function (stage) {
+                var key = stageKindTool(stage.kind) || stage.id;
+                var done = !!state.stageDone[stage.id] || !!state.stageDone[key];
+                var active = state.stageActive === stage.id;
+                return { label: stage.name || stage.id, state: done ? "done" : (active ? "active" : "pending") };
+            });
         }
-        var budgetCents = (state.run && state.run.budget_cents) ? state.run.budget_cents : state.budgetCents;
-        setText("vibeBudgetSpend", "$" + spend.toFixed(2) + " spent");
-        if (budgetCents > 0) {
-            setText("vibeBudgetCap", "of " + money(budgetCents));
-            var pct = Math.min(100, Math.round((spend * 100) / budgetCents));
-            var fill = q("vibeBudgetFill");
-            if (fill) {
-                fill.style.width = pct + "%";
-                fill.classList.toggle("near-cap", pct > 80);
-            }
-            var spendEl = q("vibeBudgetSpend");
-            if (spendEl) spendEl.classList.toggle("near-cap", pct > 80);
-        } else {
-            setText("vibeBudgetCap", "— no budget cap");
-            var f = q("vibeBudgetFill");
-            if (f) f.style.width = "0%";
+        if (!items.length && state.events.length) {
+            items = state.events.slice(-8).map(function (event) {
+                return { label: event.tool_name || event.event_type || event.step || "agent task", state: "done" };
+            });
         }
+        if (!items.length) {
+            items = [{ label: "Plan project change", state: "pending" }, { label: "Implement with agent", state: "pending" }, { label: "Verify result", state: "pending" }];
+        }
+        list.innerHTML = items.map(function (item) {
+            var icon = item.state === "done" ? "✓" : item.state === "active" ? "▶" : "○";
+            return '<div class="vibe-todo-item ' + esc(item.state) + '"><span class="vibe-todo-icon">' + icon + '</span><span>' + esc(item.label) + '</span></div>';
+        }).join("");
     }
 
     function loadPipeline() {
@@ -410,6 +411,18 @@
                 } else if (data.state === "completed") {
                     uiMsg("✅ Run completed.");
                     stopPolling();
+                    // #1271 — a chat message that changed the app should end
+                    // with the result visible: open the project's app in the
+                    // Browser window on the dev VM (skipped for deploy runs,
+                    // which ship to production and are verified there).
+                    var runProjectId = data.project_id;
+                    var isDeploy = String(data.pipeline_mode || "").indexOf("deploy") !== -1;
+                    if (runProjectId && !isDeploy) {
+                        if (window.VibeShell && window.VibeShell.toolbar &&
+                            typeof window.VibeShell.toolbar.openProjectApp === "function") {
+                            window.VibeShell.toolbar.openProjectApp(runProjectId);
+                        }
+                    }
                 } else if (data.state === "failed" || data.state === "cancelled") {
                     uiMsg("⛔ Run " + data.state + ".");
                     stopPolling();
@@ -418,7 +431,6 @@
             api("/api/vibe/metrics/" + state.runId).then(function (m) {
                 if (m && m.success && m.metrics) {
                     state.metrics = m.metrics;
-                    renderBudget();
                 }
             });
             if (!state.loadedPipeline) loadPipeline();
@@ -442,6 +454,12 @@
         if (state.tickTimer) clearInterval(state.tickTimer);
         var tick = function () {
             if (!state.run || !state.run.created_at) return;
+            // A finished run must freeze the clock, not keep counting (#run-timer).
+            var runState = String(state.run.state || "").toLowerCase();
+            if (["completed", "failed", "cancelled"].indexOf(runState) !== -1) {
+                freezeElapsed();
+                return;
+            }
             var start = new Date(state.run.created_at).getTime();
             if (isNaN(start)) return;
             var s = Math.max(0, Math.floor((Date.now() - start) / 1000));
@@ -450,6 +468,25 @@
         state.tickTimer = window.GBAppLifecycle
             ? GBAppLifecycle.interval("vibe", tick, 1000)
             : setInterval(tick, 1000);
+    }
+
+    function stopTicker() {
+        if (state.tickTimer) {
+            clearInterval(state.tickTimer);
+            state.tickTimer = null;
+        }
+    }
+
+    // Final elapsed for a terminal run: prefer the backend's completed_at so
+    // the frozen value is the true duration, not "now minus start".
+    function freezeElapsed() {
+        stopTicker();
+        if (!state.run || !state.run.created_at) return;
+        var start = new Date(state.run.created_at).getTime();
+        var end = state.run.completed_at ? new Date(state.run.completed_at).getTime() : NaN;
+        if (isNaN(start)) return;
+        if (isNaN(end)) end = Date.now();
+        setText("vibeRunElapsed", Math.max(0, Math.floor((end - start) / 1000)) + "s");
     }
 
     /* ------------------------------------------------- focus */
@@ -482,10 +519,6 @@
 
     function start(intent, opts) {
         opts = opts || {};
-        var budgetInput = q("vibeRunBudget");
-        var budget = budgetInput && parseFloat(budgetInput.value);
-        var budgetCents = isFinite(budget) && budget > 0 ? Math.round(budget * 100) : 0;
-        state.budgetCents = budgetCents;
         uiMsg("🔄 Starting Vibe run: " + intent.substring(0, 80) + "…");
         // Attach the currently selected project (if any) so the agent edits
         // the right workspace and the deploy pipeline targets the right VM.
@@ -506,10 +539,13 @@
                 ? vibeBotId
                 : null,
             use_case: state.useCase,
-            budget_cents: budgetCents,
             // #919 — default to manual approval for destructive tools; the
             // server only honors auto_approve for administrators.
             auto_approve: opts.auto_approve === true,
+            // "deploy" routes the run through the approval-gated deploy
+            // pipeline (publish to production); omitted/other values test in
+            // development. Run = dev, Deploy = prod — the only two paths.
+            pipeline_mode: opts.pipeline_mode || null,
             project_id: pid,
             project_name: pname,
         };
@@ -519,15 +555,25 @@
             body: JSON.stringify(body),
         }).then(function (data) {
             if (data.success && data.run_id) {
-                setText("vibeRunDockState", "ACTIVE");
-                q("vibeRunDockState").className = "vibe-chip state-running";
+                // The dock state chip may not exist yet (the Run Dock window
+                // is only opened after the run is created). Guard it — an
+                // unguarded null deref here rejected the promise and turned
+                // a successful run creation into "START FAILED".
+                var dockState = q("vibeRunDockState");
+                if (dockState) {
+                    dockState.textContent = "ACTIVE";
+                    dockState.className = "vibe-chip state-running";
+                }
                 focus(data.run_id);
                 return { ok: true, run_id: data.run_id };
             }
             var err = data.error || ("HTTP " + (data.http_status || "?"));
             uiMsg("⚠️ Vibe run API unavailable (" + err + ") — falling back to autotask flow.");
-            setText("vibeRunDockState", "IDLE");
-            q("vibeRunDockState").className = "vibe-chip state-pending";
+            var dockIdle = q("vibeRunDockState");
+            if (dockIdle) {
+                dockIdle.textContent = "IDLE";
+                dockIdle.className = "vibe-chip state-pending";
+            }
             throw new Error(err);
         });
     }
@@ -557,6 +603,18 @@
             .catch(function () { return null; });
     }
 
+    // Handle of the popup tab currently showing the live project preview.
+    // Stop must close it back (pressing ■ tears down what ▶ launched).
+    var previewWindowRef = null;
+
+    function closePreview() {
+        if (previewWindowRef && !previewWindowRef.closed) {
+            try { previewWindowRef.close(); } catch (e) { /* cross-origin: ignore */ }
+            uiMsg("⛔ Preview closed.");
+        }
+        previewWindowRef = null;
+    }
+
     function previewProject() {
         var projectId = typeof currentProjectId !== "undefined" ? currentProjectId : null;
         if (!projectId) {
@@ -565,7 +623,8 @@
         }
         // Open synchronously so browser popup blockers do not swallow the
         // preview tab while the authenticated API request is in flight.
-        var previewWindow = window.open("about:blank", "_blank");
+        previewWindowRef = window.open("about:blank", "_blank");
+        var previewWindow = previewWindowRef;
         if (!previewWindow) {
             uiMsg("⚠️ Allow pop-ups to open the project preview.");
             return;
@@ -699,41 +758,6 @@
 
     /* ------------------------------------------------- teams */
 
-    function createTeam() {
-        var name = q("vibeTeamName").value.trim();
-        var objective = q("vibeTeamObjective").value.trim();
-        var lines = q("vibeTeamMembers").value.split("\n")
-            .map(function (l) { return l.trim(); })
-            .filter(Boolean);
-        if (!name || !objective || !lines.length) {
-            uiMsg("⚠️ Team run needs a name, objective and at least one member.");
-            return;
-        }
-        var members = lines.map(function (l) {
-            var parts = l.split("|");
-            return {
-                name: (parts[0] || "member").trim(),
-                task: (parts[1] || objective).trim(),
-            };
-        });
-        uiMsg("🚀 Starting team run '" + name + "' with " + members.length + " member(s)…");
-        api("/api/vibe/teams", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: name, objective: objective, members: members }),
-        }).then(function (data) {
-            if (data.success) {
-                q("vibeTeamName").value = "";
-                q("vibeTeamObjective").value = "";
-                q("vibeTeamMembers").value = "";
-                uiMsg("✅ Team run started (team " + shortRunId(data.team_id) + ").");
-                startTeamPolling();
-            } else {
-                uiMsg("⚠️ Team start failed: " + ((data.error) || "unknown"));
-            }
-        });
-    }
-
     function startTeamPolling() {
         if (state.teamTimer) clearInterval(state.teamTimer);
         loadTeams();
@@ -829,8 +853,17 @@
                 }
             });
         }
-        var teamBtn = q("vibeTeamCreateBtn");
-        if (teamBtn) teamBtn.addEventListener("click", createTeam);
+        // Collapsible sections (Sessions / Runs / Team runs).
+        document.querySelectorAll("[data-rd-collapse]").forEach(function (h) {
+            h.addEventListener("click", function () {
+                var wrap = q(h.getAttribute("data-rd-collapse"));
+                if (!wrap) return;
+                var open = wrap.style.display !== "none";
+                wrap.style.display = open ? "none" : "";
+                var arrow = h.querySelector(".vibe-rd-arrow");
+                if (arrow) arrow.textContent = open ? "▸" : "▾";
+            });
+        });
         var previewBtn = q("vibePreviewBtn");
         if (previewBtn) previewBtn.addEventListener("click", previewProject);
         document.addEventListener("gb:vibe-run", function (e) {
@@ -876,18 +909,31 @@
             if (window.VibeWindows) window.VibeWindows.openRunDock();
             return;
         }
-        // Idle / finished: start a run from the assistant input.
-        var input = q("vibeChatInput");
-        var text = (input && input.value || "").trim();
-        if (!text) {
-            // Assistant = the shared Chat window; open it to prompt the user.
-            if (window.VibeWindows) window.VibeWindows.openAssistant();
-            updateRibbonStatus("TYPE A PROMPT IN CHAT TO RUN", "hint");
-            return;
-        }
-        input.value = "";
-        start(text).then(function () {
+        // Idle / finished: a selected project can always be run directly.
+        // With the runner chat removed, Run always executes the deterministic
+        // project verification intent; prompts belong in the Chat app (@app).
+        var projectName = typeof currentProject !== "undefined" && currentProject ? String(currentProject) : "selected project";
+        var text = "Run and verify the selected project " + projectName;
+        // Auto-approval like freebuff: Run executes tools without waiting for
+        // manual approval gates (server only honors it for admins).
+        start(text, { auto_approve: true }).then(function () {
             updateRibbonStatus("RUNNING", "running");
+            // Surface the execution board when starting a fresh run: the run
+            // card only exists inside the on-demand-fetched Run Dock, so a
+            // run started from the ribbon stayed invisible until the user
+            // manually opened the dock ("Play does nothing").
+            if (window.VibeWindows && typeof window.VibeWindows.openRunDock === "function") {
+                window.VibeWindows.openRunDock();
+            }
+            // Show the app in the Browser window IMMEDIATELY — waiting for
+            // run completion (which can take minutes) left the user staring
+            // at an empty desktop with no feedback ("can't see the app").
+            // openProjectApp re-runs at completion and refreshes the result.
+            var pid = typeof currentProjectId !== "undefined" ? currentProjectId : null;
+            if (pid && window.VibeShell && window.VibeShell.toolbar &&
+                typeof window.VibeShell.toolbar.openProjectApp === "function") {
+                window.VibeShell.toolbar.openProjectApp(pid);
+            }
         }).catch(function () {
             updateRibbonStatus("START FAILED", "error");
         });
@@ -911,6 +957,33 @@
         updateRibbonStatus("PAUSED — HOLDS AT NEXT CHECKPOINT", "paused");
     }
 
+    // Publish to production: same agent loop as Run, but the run executes the
+    // approval-gated deploy pipeline (server resolves pipeline_mode="deploy"
+    // to the deploy graph). Run stays the dev/test action; Deploy is the only
+    // path that touches production.
+    function deploy() {
+        if (state.runId && hasActiveRun()) {
+            uiMsg("⏳ A run is already active — stop it before deploying.");
+            updateRibbonStatus("RUN IN PROGRESS", "hint");
+            return;
+        }
+        var projectName = typeof currentProject !== "undefined" && currentProject ? String(currentProject) : "selected project";
+        var text = "Deploy the project " + projectName + " to production";
+        uiMsg("🚀 Deploying " + projectName + " to production…");
+        // The Deploy click itself is the approval to publish: carry
+        // auto_approve so the approval-gated deploy pipeline (commit/publish/
+        // domain stages) does not hang waiting for a signal nobody sends.
+        // The server only honors auto_approve for administrators.
+        start(text, { pipeline_mode: "deploy", auto_approve: true }).then(function () {
+            updateRibbonStatus("DEPLOYING", "running");
+            if (window.VibeWindows && typeof window.VibeWindows.openRunDock === "function") {
+                window.VibeWindows.openRunDock();
+            }
+        }).catch(function () {
+            updateRibbonStatus("DEPLOY FAILED", "error");
+        });
+    }
+
     function hasActiveRun() {
         if (!state.runId || !state.run) return false;
         return ["pending", "running", "awaiting_approval"].indexOf(String(state.run.state)) !== -1;
@@ -923,6 +996,7 @@
         }
         state.paused = false;
         denyRun();
+        closePreview();
         updateRibbonStatus("STOPPED", "stop");
     }
 
@@ -943,11 +1017,13 @@
         deny: denyRun,
         preview: previewProject,
         play: play,
+        deploy: deploy,
         pause: pause,
         stop: stop,
     };
     window.VibeTransport = {
         play: play,
+        deploy: deploy,
         pause: pause,
         stop: stop,
         hasActiveRun: hasActiveRun,

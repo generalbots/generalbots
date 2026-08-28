@@ -184,6 +184,23 @@ async function previewFile(path) {
             });
             return;
         }
+        if (app === "canvas" && window.WindowManager) {
+            var bucket = getEffectiveBucket();
+            var fileName = path.split("/").pop() || "Canvas";
+            var ts = Date.now();
+            // Canvas app context: the .draw file is loaded/saved by the app
+            // through the drive API using these globals (bucket + folder).
+            window.__CANVAS_FILE_BUCKET = bucket;
+            window.__CANVAS_FILE_PATH = path;
+            window.__CANVAS_FILE_SCOPE = currentScope;
+            var folder = path.indexOf("/") === -1 ? "" : path.substring(0, path.lastIndexOf("/"));
+            window.__CANVAS_FOLDER = folder;
+            window.WindowManager.open("canvas-" + ts, fileName, "");
+            fetch("/suite/canvas/canvas.html").then(function(r){return r.text();}).then(function(html){
+                window.WindowManager._injectBodyContent("canvas-" + ts, html);
+            });
+            return;
+        }
         if (app === "editor" && window.WindowManager) {
             var bucket = getEffectiveBucket();
             var fileName = path.split("/").pop() || "Untitled";

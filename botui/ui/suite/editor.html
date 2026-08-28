@@ -1,4 +1,8 @@
 <!-- Editor - General Bots (Code & Text Editor) -->
+<!-- The stylesheet MUST be declared with rel="stylesheet" — without it the
+     browser never fetches the file and the editor renders unstyled/unusable
+     (same bug class as the canvas app fix). -->
+<link rel="stylesheet" href="/suite/editor.css?v=2" />
 
 
     <div class="gb-app editor-container" data-gb-app="editor">
@@ -94,6 +98,23 @@
                 </div>
             </div>
 
+            <!-- Editor body: workspace explorer + editing column -->
+            <div class="editor-body">
+                <!-- File tree rooted at the project's dev-VM workspace. Populated
+                     by editor-inline.p1.js when opened with a project context; the
+                     tree lists the SAME files the LLM edits via chat, so the user
+                     can review/edit them before commit (Source Control) or deploy. -->
+                <div class="editor-sidebar" id="editor-sidebar" style="display: none;">
+                    <div class="editor-sidebar-head">
+                        <span id="editor-tree-root">FILES</span>
+                        <button id="editor-tree-refresh" title="Refresh workspace files">↻</button>
+                    </div>
+                    <div class="editor-tree" id="editor-tree">
+                        <div class="editor-tree-empty">No project selected.</div>
+                    </div>
+                </div>
+
+                <div class="editor-main-col">
             <!-- Editor Content - loaded via HTMX based on file type -->
             <div class="editor-content" id="editor-content">
                 <!-- Text Editor (default) -->
@@ -125,6 +146,8 @@
                     <span id="cursor-position">Ln 1, Col 1</span>
                 </div>
             </div>
+                </div>
+            </div>
         </div>
 
         <!-- Save Dialog (loaded via HTMX) -->
@@ -135,5 +158,5 @@
 
         <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading editor…</span></div>
 <div class="gb-state gb-state-error"><span class="gb-state-msg">Editor unavailable</span></div>
-<script src="/suite/editor-inline.p1.js?v=1"></script>
-<script src="/suite/editor-inline.p2.js?v=1"></script>
+<script src="/suite/editor-inline.p1.js?v=2"></script>
+<script src="/suite/editor-inline.p2.js?v=2"></script>

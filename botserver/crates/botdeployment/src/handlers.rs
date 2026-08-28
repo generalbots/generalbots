@@ -15,13 +15,16 @@ pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 pub fn configure_deployment_routes(pool: DbPool) -> axum::Router<()> {
     let pool_ext = Extension(pool);
     axum::Router::new()
-        .layer(pool_ext)
         .route("/api/deployment/types", axum::routing::get(get_project_types))
         .route("/api/deployment/deploy", axum::routing::post(deploy_project))
         .route("/api/deployment/stop", axum::routing::post(stop_project))
         .route("/api/deployment/start", axum::routing::post(start_project))
         .route("/api/deployment/status/:org/:app_name", axum::routing::get(get_project_status))
         .route("/api/deployment/projects", axum::routing::get(get_projects))
+        // `Router::layer` wraps the routes already registered at call time;
+        // routes added afterwards would not receive the pool extension and
+        // handlers would fail with "Missing request extension: r2d2::Pool".
+        .layer(pool_ext)
 }
 
 pub async fn get_project_types() -> Result<Json<ProjectTypesResponse>, DeploymentApiError> {
@@ -212,11 +215,39 @@ pub async fn deploy_project(
         };
 
         use crate::schema::projects::dsl::*;
-        if let Err(e) = diesel::insert_into(projects)
-            .values(&new_project)
-            .execute(&mut conn)
-        {
-            log::error!("Failed to persist project metadata in database: {}", e);
+        // Idempotent metadata: re-deploys hit the unique (org, name)
+        // constraint, so update the existing row (deploy_url, status, env,
+        // container, repo) instead of inserting a duplicate and logging a
+        // confusing "duplicate key" error every deploy (#1271 re-deploy).
+        let existing = projects
+            .filter(org.eq(&organization).and(name.eq(&request.app_name)))
+            .first::<Project>(&mut conn)
+            .optional();
+        match existing {
+            Ok(Some(row)) => {
+                if let Err(e) = diesel::update(projects.filter(id.eq(row.id)))
+                    .set((
+                        deploy_url.eq(&result.url),
+                        repo_url.eq(&result.repository),
+                        container_name.eq(&new_project.container_name),
+                        custom_domain.eq(&request.custom_domain.clone()),
+                        environment.eq(&request.environment.clone()),
+                        status.eq("deployed"),
+                        updated_at.eq(now),
+                    ))
+                    .execute(&mut conn)
+                {
+                    log::error!("Failed to update project metadata in database: {}", e);
+                }
+            }
+            _ => {
+                if let Err(e) = diesel::insert_into(projects)
+                    .values(&new_project)
+                    .execute(&mut conn)
+                {
+                    log::error!("Failed to persist project metadata in database: {}", e);
+                }
+            }
         }
     } else {
         log::error!("Failed to obtain database connection to persist project metadata");

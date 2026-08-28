@@ -67,26 +67,16 @@
     gap: 10px;
 }
 
-.vibe-rd-budget-row {
+.vibe-rd-action-row {
     display: flex;
     align-items: center;
     gap: 8px;
 }
 
-.vibe-rd-budget-row label {
+.vibe-rd-action-row label {
     font-size: 10px;
     color: var(--text-muted);
     white-space: nowrap;
-}
-
-#vibeRunBudget {
-    width: 72px;
-    padding: 4px 6px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: var(--bg);
-    color: var(--text);
-    font-size: 11px;
 }
 
 .vibe-run-card {
@@ -393,8 +383,75 @@
     color: #b91c1c;
 }
 
+.vibe-todo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.vibe-todo-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 8px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 10px;
+    color: var(--text-muted);
+    background: var(--bg);
+}
+
+.vibe-todo-icon {
+    width: 14px;
+    text-align: center;
+    font-weight: 800;
+}
+
+.vibe-todo-item.active { border-color: var(--accent); color: var(--text); }
+.vibe-todo-item.done { color: #3d7a24; }
+
 .vibe-rd-empty {
     font-size: 10px;
     color: var(--text-muted);
     padding: 4px 0;
+}
+
+/* Runner log (#1271) — chat messages mirrored into the run dock. */
+.vibe-runner-log {
+    max-height: 180px;
+    overflow-y: auto;
+    font-family: var(--mono, ui-monospace, monospace);
+    font-size: 10px;
+    line-height: 1.5;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border, #222);
+    border-radius: 6px;
+    padding: 6px 8px;
+}
+
+.vibe-runner-log-line {
+    white-space: pre-wrap;
+    word-break: break-word;
+    padding: 1px 0;
+}
+
+.vibe-runner-log-ts {
+    color: #3d7a24;
+    margin-right: 4px;
+}
+
+.vibe-runner-log-role {
+    display: inline-block;
+    min-width: 44px;
+    font-weight: 700;
+    color: var(--accent, #84d669);
+    margin-right: 4px;
+}
+
+.vibe-runner-log-role:first-letter {
+    text-transform: uppercase;
+}
+
+.vibe-runner-log-text {
+    color: var(--text-muted, #999);
 }

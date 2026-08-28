@@ -33,16 +33,6 @@
         var id = String(runId);
         if (typeof vibeSessionId !== "undefined") vibeSessionId = id;
         document.dispatchEvent(new CustomEvent("gb:vibe-run", { detail: { run_id: id } }));
-        var chatInput = document.getElementById("vibeChatInput");
-        if (chatInput) chatInput.placeholder = "Focusing run " + id + " - type a message to continue";
-        var chatForm = document.getElementById("vibeChatForm");
-        if (chatForm) {
-            var meta = document.createElement("input");
-            meta.type = "hidden";
-            meta.name = "run_id";
-            meta.value = id;
-            chatForm.appendChild(meta);
-        }
     }
 
     function apply() {

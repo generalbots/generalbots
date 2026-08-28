@@ -97,9 +97,9 @@
       if (!r) { box.style.display = "none"; continue; }
       box.style.display = "block";
       box.style.left = (cx(r.startCol) - 1) + "px";
-      box.style.top = (r.startRow * ROW_HEIGHT - 1) + "px";
+      box.style.top = (rTop(r.startRow) - 1) + "px";
       box.style.width = (cx(r.endCol) + cw(r.endCol) - cx(r.startCol) + 2) + "px";
-      box.style.height = ((r.endRow - r.startRow + 1) * ROW_HEIGHT + 2) + "px";
+      box.style.height = ((rTop(r.endRow + 1) - rTop(r.startRow)) + 2) + "px";
     }
   }
 
@@ -145,6 +145,21 @@
     return HEADER_WIDTH + idx * COL_WIDTH;
   }
 
+  // Cumulative row geometry (mirrors SheetCore.rowTop/rowHeight/rowAt), so
+  // resized rows shift every following row instead of overlapping.
+  function rTop(idx) {
+    if (window.SheetCore && window.SheetCore.rowTop) return window.SheetCore.rowTop(idx);
+    return idx * ROW_HEIGHT;
+  }
+  function rH(idx) {
+    if (window.SheetCore && window.SheetCore.rowHeight) return window.SheetCore.rowHeight(idx);
+    return ROW_HEIGHT;
+  }
+  function rowAt(y) {
+    if (window.SheetCore && window.SheetCore.rowAt) return window.SheetCore.rowAt(y);
+    return Math.max(0, Math.floor(y / ROW_HEIGHT));
+  }
+
   function cellFromEvent(e) {
     if (!grid || !grid.bodyInner) return null;
     const rect = grid.bodyInner.getBoundingClientRect();
@@ -160,7 +175,7 @@
       if (cx(mid) <= xAbs) { col = mid; lo = mid + 1; }
       else { hi = mid - 1; }
     }
-    const row = Math.floor(y / ROW_HEIGHT);
+    const row = rowAt(y);
     if (row < 0 || col < 0) return null;
     return { row: Math.min(row, grid.totalRows - 1), col: Math.min(col, grid.totalCols - 1) };
   }
@@ -169,16 +184,16 @@
     if (!rangeBox || !sel) return;
     rangeBox.style.display = "block";
     rangeBox.style.left = (cx(sel.startCol) - 1) + "px";
-    rangeBox.style.top = (sel.startRow * ROW_HEIGHT - 1) + "px";
+    rangeBox.style.top = (rTop(sel.startRow) - 1) + "px";
     rangeBox.style.width = (cx(sel.endCol) + cw(sel.endCol) - cx(sel.startCol) + 2) + "px";
-    rangeBox.style.height = ((sel.endRow - sel.startRow + 1) * ROW_HEIGHT + 2) + "px";
+    rangeBox.style.height = ((rTop(sel.endRow + 1) - rTop(sel.startRow)) + 2) + "px";
   }
 
   function positionFillHandle() {
     if (!fillHandle || !sel) return;
     fillHandle.style.display = "block";
     fillHandle.style.left = (cx(sel.endCol) + cw(sel.endCol) - 5) + "px";
-    fillHandle.style.top = (sel.endRow * ROW_HEIGHT + ROW_HEIGHT - 5) + "px";
+    fillHandle.style.top = (rTop(sel.endRow + 1) - 5) + "px";
   }
 
   function ensureOverlays() {
@@ -216,6 +231,9 @@
     if (e.shiftKey && sel) {
       setSelection(sel.startRow, sel.startCol, r, c);
     } else {
+      if (window.SheetSelect && window.SheetSelect.clearRowHeaderHighlight) {
+        window.SheetSelect.clearRowHeaderHighlight();
+      }
       anchor = { row: r, col: c };
       setSelection(r, c, r, c);
     }
@@ -266,9 +284,9 @@
     if (preview) {
       preview.style.display = "block";
       preview.style.left = (cx(sel.endCol) - 1) + "px";
-      preview.style.top = (sel.endRow * ROW_HEIGHT - 1) + "px";
+      preview.style.top = (rTop(sel.endRow) - 1) + "px";
       preview.style.width = (cx(c) + cw(c) - cx(sel.endCol) + 2) + "px";
-      preview.style.height = ((r - sel.endRow + 1) * ROW_HEIGHT + 2) + "px";
+      preview.style.height = ((rTop(r + 1) - rTop(sel.endRow)) + 2) + "px";
     }
   }
 
@@ -364,7 +382,15 @@
     getSelection: function () { return sel; },
     setRange: function (r1, c1, r2, c2) {
       setSelection(r1, c1, r2, c2);
-      if (grid) grid.selectCell(Math.max(r1, r2), Math.max(c1, c2));
+      if (!grid) return;
+      // A full-row or full-column selection must not force-scroll to the far
+      // corner (~1M index) — that is a surprising, disorienting jump. Only
+      // bring bounded (small) ranges into view.
+      const nr = Math.max(r1, r2), nc = Math.max(c1, c2);
+      const fullRow = r1 === 0 && r2 === grid.totalRows - 1;
+      const fullCol = c1 === 0 && c2 === grid.totalCols - 1;
+      const sparse = fullRow || fullCol;
+      grid.selectCell(nr, nc, sparse);
     },
     clearSelection: function () {
       clearSelection();

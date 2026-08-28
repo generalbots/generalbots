@@ -2,6 +2,13 @@
         cursor: pointer;
     }
 
+    /* The canvas root carries both .gb-app (column) and .canvas-app (row)
+       classes; the row direction must win so the toolbar sits on the left,
+       the main canvas in the center, and the properties panel on the right. */
+    #canvas-app-root.canvas-app {
+        flex-direction: row;
+    }
+
     .layer-name {
         flex: 1;
     }

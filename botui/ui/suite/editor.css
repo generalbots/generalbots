@@ -1,12 +1,21 @@
-/* Editor page styles */
+/* Editor page styles.
+   NOTE: this stylesheet is injected into the desktop document (the editor
+   opens inside a WindowManager window), so the old global `* { … }` reset and
+   `body { height:100vh; overflow:hidden }` rules leaked into the whole
+   desktop shell — they are scoped to the editor subtree now. */
 
-* {
+.editor-container,
+.editor-container *,
+#save-dialog,
+#save-dialog *,
+#notification,
+#notification * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
 }
 
-:root {
+.editor-container {
     --bg-primary: #0f172a;
     --bg-secondary: #1e293b;
     --bg-tertiary: #334155;
@@ -18,21 +27,27 @@
     --success: #22c55e;
     --warning: #f59e0b;
     --error: #ef4444;
-}
 
-body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
         Roboto, sans-serif;
     background: var(--bg-primary);
     color: var(--text-primary);
-    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    /* Fill the hosting window body (100vh overflowed it and made the editor
+       unusable inside a tool window); standalone tabs size via :has below. */
+    height: 100%;
+    min-height: 0;
     overflow: hidden;
 }
 
-.editor-container {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
+/* Standalone tab (editor.html opened directly): size the document. */
+html:has(.editor-container),
+body:has(.editor-container) {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: #0f172a;
 }
 
 .editor-header {
@@ -122,12 +137,244 @@ body {
     flex: 1;
     display: flex;
     overflow: hidden;
+    min-height: 0;
+}
+
+/* ── Workspace explorer (project VM dev source) ───────────────────────
+   When the Editor is opened from Vibe with a selected project, a file tree
+   rooted at the project's dev-VM workspace lets the user open and edit the
+   very same files the LLM edits in chat — before commit (Source Control)
+   or deploy to production. */
+.editor-body {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.editor-sidebar {
+    width: 230px;
+    min-width: 170px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.editor-sidebar-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 8px 12px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.editor-sidebar-head span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.editor-sidebar-head button {
+    border: 1px solid var(--border-color);
+    background: transparent;
+    color: var(--text-secondary);
+    border-radius: 4px;
+    padding: 0 6px;
+    cursor: pointer;
+    font-size: 12px;
+    line-height: 1.6;
+}
+
+.editor-sidebar-head button:hover {
+    color: var(--text-primary);
+    background: var(--bg-tertiary);
+}
+
+.editor-tree {
+    flex: 1;
+    overflow: auto;
+    padding: 6px 4px;
+    font-size: 12.5px;
+    user-select: none;
+}
+
+.editor-tree-empty {
+    padding: 12px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.editor-tree-folder {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    cursor: pointer;
+    color: var(--text-primary);
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.editor-tree-folder:hover {
+    background: var(--bg-tertiary);
+}
+
+.editor-tree-folder .tw {
+    width: 10px;
+    display: inline-block;
+    color: var(--text-secondary);
+    font-size: 10px;
+}
+
+.editor-tree-children {
+    margin-left: 14px;
+    border-left: 1px solid var(--border-color);
+    padding-left: 4px;
+}
+
+.editor-tree-file {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 8px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.editor-tree-file:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.editor-tree-file.active {
+    background: color-mix(in srgb, var(--accent-color) 22%, transparent);
+    color: var(--text-primary);
+}
+
+.editor-tree-file .dot-dirty {
+    margin-left: auto;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--warning);
+}
+
+.editor-main-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+}
+
+/* ── Magic AI panel (was unstyled) ─────────────────────────────────── */
+.magic-panel {
+    display: none;
+    position: absolute;
+    top: 108px;
+    right: 18px;
+    width: 380px;
+    max-height: 60%;
+    z-index: 30;
+    flex-direction: column;
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+    overflow: hidden;
+}
+
+.magic-panel.visible {
+    display: flex;
+}
+
+.magic-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 13px;
+}
+
+.magic-close {
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.magic-content {
+    padding: 12px 14px;
+    overflow-y: auto;
+    font-size: 12.5px;
+    line-height: 1.5;
+}
+
+.magic-loading {
+    color: var(--text-secondary);
+    text-align: center;
+    padding: 18px 0;
+}
+
+.magic-result {
+    background: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 10px;
+}
+
+.magic-result pre {
+    margin-top: 8px;
+    padding: 10px;
+    background: #0b1220;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: Consolas, monospace;
+    font-size: 12px;
+    color: var(--text-primary);
+}
+
+.magic-apply-btn {
+    margin-top: 8px;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 14px;
+    background: var(--accent-color);
+    color: #fff;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.magic-apply-btn:hover {
+    background: var(--accent-hover);
+}
+
+.btn-magic {
+    background: color-mix(in srgb, var(--accent-color) 18%, var(--bg-tertiary));
 }
 
 .editor-wrapper {
+    position: relative;
     display: flex;
     flex: 1;
     overflow: hidden;
+    min-height: 0;
 }
 
 .line-numbers {

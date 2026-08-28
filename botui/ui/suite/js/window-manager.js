@@ -6,6 +6,7 @@ if (typeof window.WindowManager === "undefined") {
       icon: '<path d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v4h8z"/>' },
     { id: "vibe", title: "Vibe", category: "ai", color: "#84d669", hxGet: "/suite/partials/vibe.html",
       icon: '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
+
     { id: "vibe-graph", title: "Knowledge Graph", category: "ai", color: "#7c3aed", hxGet: "/suite/vibe/graph.html",
       icon: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>' },
     { id: "vibe-metrics", title: "Vibe Metrics", category: "ai", color: "#f59e0b", hxGet: "/suite/vibe/metrics.html",
@@ -42,6 +43,8 @@ if (typeof window.WindowManager === "undefined") {
       icon: '<polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" y2="20"/>' },
     { id: "browser", title: "Browser", category: "system", color: "#3b82f6", hxGet: "/suite/browser/browser.html",
       icon: '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>' },
+    { id: "canvas", title: "Canvas", category: "office", color: "#0ea5e9", hxGet: "/suite/canvas/canvas.html",
+      icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/><circle cx="8" cy="8" r="1.5"/>' },
     { id: "versions", title: "Versions", category: "dev", color: "#8b5cf6", hxGet: "/suite/partials/versions-panel.html",
       icon: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' },
     { id: "database", title: "Database", category: "dev", color: "#f59e0b", hxGet: "/suite/database/database.html",
@@ -288,12 +291,45 @@ if (typeof window.WindowManager === "undefined") {
       this._makeResizable(windowEl);
       this.focus(id);
       if (!opts.tool) this._trackRecent(id, title);
+      // The cascade position above is computed while the desktop may still
+      // be laying out; an app auto-opened on load (e.g. ?app=vibe) can land
+      // with a stale/negative offset that pushes it off-screen. Clamp the
+      // window into the visible workspace so it can never be unreachable.
+      this._clampWindowIntoView(id);
       document.dispatchEvent(new CustomEvent("gb-window-changed", { detail: { action: "open", id } }));
       if (window.htmx) htmx.process(windowEl);
       if (window.Desktop3D && window.Desktop3D.initialized) {
         window.Desktop3D.createWindowPlane(id, title);
         window.Desktop3D.flipToWindow(id);
       }
+    }
+
+    // Keep an open window inside the viewport. If layout shifted between
+    // computing the cascade position and the window being appended
+    // (auto-opened apps on load are the usual victim), the window can sit
+    // off-screen (negative rect) even though its inline top/left look sane.
+    // Shift it back into view using pure viewport-rect math: whatever the
+    // offsetParent is doing, the window must end up fully visible.
+    _clampWindowIntoView(id) {
+      const win = document.getElementById(`window-${id}`);
+      if (!win) return;
+      const rect = win.getBoundingClientRect();
+      const margin = 8;
+      const vw = window.innerWidth;
+      const vh = window.innerHeight;
+      // Already fully inside — nothing to do.
+      if (rect.top >= margin && rect.left >= margin &&
+          rect.bottom <= vh - margin && rect.right <= vw - margin) return;
+      const curTop = parseInt(win.style.top || "0", 10) || 0;
+      const curLeft = parseInt(win.style.left || "0", 10) || 0;
+      let top = curTop;
+      let left = curLeft;
+      if (rect.top < margin) top = curTop + (margin - rect.top);
+      if (rect.left < margin) left = curLeft + (margin - rect.left);
+      if (rect.right > vw - margin) left = curLeft - (rect.right - (vw - margin));
+      if (rect.bottom > vh - margin) top = curTop - (rect.bottom - (vh - margin));
+      win.style.top = `${Math.max(margin, top)}px`;
+      win.style.left = `${Math.max(margin, left)}px`;
     }
 
     _glassHeader(id, title, opts) {
@@ -615,6 +651,15 @@ if (typeof window.WindowManager === "undefined") {
     }
 
     _makeResizable(el) {
+      // Fixed popup windows (e.g. Vibe New Project / Members) are NOT
+      // resizable (product spec): no resize handle and no window scrollbar —
+      // all fields are visible at once. Skip the CSS resize + auto overflow
+      // so a popup never grows a corner grip or clips its content.
+      if (el.classList.contains("window-popup")) {
+        el.style.resize = "none";
+        el.style.overflow = "hidden";
+        return;
+      }
       el.style.resize = "both";
       el.style.overflow = "auto";
     }
@@ -815,6 +860,9 @@ if (typeof window.WindowManager === "undefined") {
       fetch(hxGet + sep + (qs ? qs + "&" : "") + "_=" + Date.now()).then((r) => r.text()).then((html) => {
         const body = document.getElementById(`window-body-${appId}`);
         if (body) this._injectBodyContent(appId, html);
+        // Content can push the workspace layout; re-clamp so an auto-opened
+        // app never sits off-screen after its body settles.
+        this._clampWindowIntoView(appId);
       }).catch(() => {
         const body = document.getElementById(`window-body-${appId}`);
         if (body) this._injectBodyContent(appId, `<div style="padding:20px"><h3>${title}</h3><p>Application loading...</p></div>`);
@@ -1014,8 +1062,50 @@ if (typeof window.WindowManager === "undefined") {
   // is loaded after this file. Expose the start menu for launchers but do NOT
   // bind Ctrl+K here — command-palette.js handles it with one handler only.
 
+  // Chat sidebar collapse — the choice is remembered (localStorage) so the
+  // sidebar stays collapsed across reloads and app switches. The collapsed
+  // rail (51px) keeps the toggle button reachable.
+  const SIDEBAR_STATE_KEY = "gb.chatSidebar.collapsed";
+
   window.toggleChatSidebar = function () {
     const sidebar = document.getElementById("chatSidebar");
-    if (sidebar) sidebar.classList.toggle("collapsed");
+    if (!sidebar) return;
+    const collapsed = sidebar.classList.toggle("collapsed");
+    try {
+      localStorage.setItem(SIDEBAR_STATE_KEY, collapsed ? "1" : "0");
+    } catch (e) {
+      /* storage may be disabled; the toggle still works for the session */
+    }
   };
+
+  // Restore the remembered state on boot. window-manager.js loads in the
+  // <head>, before desktop.html's sidebar exists, so defer until the DOM is
+  // ready — and also re-apply after HTMX swaps that re-create the shell.
+  function restoreChatSidebar() {
+    const sidebar = document.getElementById("chatSidebar");
+    if (!sidebar) return;
+    let collapsed = "";
+    try {
+      collapsed = localStorage.getItem(SIDEBAR_STATE_KEY) || "";
+    } catch (e) {
+      /* storage unavailable — leave default */
+    }
+    sidebar.classList.toggle("collapsed", collapsed === "1");
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", hookChatSidebarAfterSwap);
+  } else {
+    restoreChatSidebar();
+    hookChatSidebarAfterSwap();
+  }
+  // window-manager.js loads in the <head>, before <body> exists, so attach
+  // the htmx listener only once the body element is present (binding it at
+  // parse time would throw a null addEventListener error in the console).
+  function hookChatSidebarAfterSwap() {
+    if (window.htmx && document.body) {
+      document.body.addEventListener("htmx:afterSwap", restoreChatSidebar);
+      return;
+    }
+    if (document.readyState !== "loading") document.addEventListener("DOMContentLoaded", hookChatSidebarAfterSwap);
+  }
 }

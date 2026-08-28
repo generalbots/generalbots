@@ -87,6 +87,10 @@ pub struct GetRunResponse {
     pub auto_approve: bool,
     pub project_id: Option<String>,
     pub project_name: Option<String>,
+    /// "deploy" when the run executed the production pipeline; None for
+    /// development runs. Lets the UI skip dev-only actions (like opening
+    /// the dev browser) after a deploy run (#1271).
+    pub pipeline_mode: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -259,6 +263,7 @@ impl crate::knowledge_graph::GraphDataSource for VibeApiInner {
                     state: r.state.to_string(),
                     intent: r.intent.clone(),
                     tool_names: r.tool_calls.iter().map(|c| c.tool_name.clone()).collect(),
+                    project_id: r.config.project_id.clone(),
                 });
             }
             // In-memory runs not yet flushed to Postgres.
@@ -269,6 +274,7 @@ impl crate::knowledge_graph::GraphDataSource for VibeApiInner {
                     state: r.state.to_string(),
                     intent: r.intent.clone(),
                     tool_names: r.tool_calls.iter().map(|c| c.tool_name.clone()).collect(),
+                    project_id: r.config.project_id.clone(),
                 });
             }
             all
@@ -378,10 +384,10 @@ async fn create_run(
     let config = VibeRunConfig {
         use_case,
         lang: req.lang.unwrap_or_else(|| "en".to_string()),
-        // #919 — auto_approve is a server-controlled policy, not a trusted
-        // client assertion; only administrators may auto-approve destructive
-        // tools, everyone else falls back to manual approval.
-        auto_approve: req.auto_approve.unwrap_or(false) && user.is_admin(),
+        // #919/#1271 — auto-approval like freebuff: runs execute tools
+        // without manual approval gates. The client may opt out explicitly;
+        // otherwise every run (Run and Deploy) proceeds automatically.
+        auto_approve: req.auto_approve.unwrap_or(true),
         max_tool_calls: req.max_tool_calls.unwrap_or(50).min(MAX_TOOL_CALLS),
         timeout_seconds: req.timeout_seconds.unwrap_or(300).min(MAX_TIMEOUT_SECONDS),
         model: req.model,
@@ -390,6 +396,7 @@ async fn create_run(
         budget_cents: req.budget_cents.unwrap_or(0),
         project_id,
         project_name: project_name.clone(),
+        pipeline_mode: req.pipeline_mode.clone(),
     };
 
     let intent = match (project_name.as_deref(), req.intent.as_str()) {
@@ -500,6 +507,7 @@ async fn create_run(
                             intent: &run.intent,
                             project_id: project_id.as_deref(),
                             project_name: project_name.as_deref(),
+                            auto_approve: run.config.auto_approve,
                         },
                     )
                     .await;
@@ -618,6 +626,7 @@ async fn get_run(
             auto_approve: false,
             project_id: None,
             project_name: None,
+            pipeline_mode: None,
         }),
     }
 }
@@ -641,6 +650,7 @@ fn run_to_response(run: &VibeRun) -> GetRunResponse {
         auto_approve: run.config.auto_approve,
         project_id: run.config.project_id.clone(),
         project_name: run.config.project_name.clone(),
+        pipeline_mode: run.config.pipeline_mode.clone(),
     }
 }
 

@@ -124,7 +124,7 @@ impl ProjectRegistry {
         Self { pool }
     }
 
-    fn conn(&self) -> Result<diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>, String> {
+    pub(crate) fn conn(&self) -> Result<diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>, String> {
         self.pool.get().map_err(|e| format!("db pool: {e}"))
     }
 

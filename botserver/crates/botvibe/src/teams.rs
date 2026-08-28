@@ -177,6 +177,7 @@ impl TeamCoordinator {
             budget_cents: 0,
             project_id: None,
             project_name: None,
+            pipeline_mode: None,
         };
         let mut run = VibeRun::new(
             runtime.bot_id,

@@ -101,10 +101,57 @@
         openSharedApp("browser", {});
     }
 
+    /* #1271 — open a project's app in the Browser window. Run on the dev VM
+       first (real node process); fall back to the static workspace stream,
+       then to a deployed preview URL. Used by the toolbar Browser/Run
+       buttons AND by the chat flow: a chat message that changes the app
+       should end with the browser showing the result on current dev. */
+    function openProjectApp(projectId) {
+        if (!projectId) {
+            openBrowser(null);
+            return Promise.resolve();
+        }
+        return startDevVm(projectId)
+            .then(function (vm) {
+                openBrowser(vm.url);
+                setRunVisual(true);
+                flashHint("RUNNING ON THE DEV VM — OPENING BROWSER");
+            })
+            .catch(function () {
+                return workspaceServeUrl(projectId)
+                    .then(function (url) {
+                        if (url) return url;
+                        return resolvePreviewUrl(projectId);
+                    })
+                    .then(function (url) {
+                        openBrowser(url);
+                        setRunVisual(true);
+                        flashHint("OPENED STATIC PREVIEW (NO VM)");
+                    })
+                    .catch(function () {
+                        openBrowser(null);
+                        flashHint("NO LIVE PREVIEW — DEPLOY TO SEE YOUR APP");
+                    });
+            });
+    }
+
+    /* #1271 — Chat button opens the shared Chat window as a NEW
+       conversation (no session param = fresh) and pre-fills the input with a
+       directive so the message is routed to the app currently running in
+       vibe. The pre-fill is the RUNNING APP'S NAME (@qa-flow), never a long
+       botbook file path — the user must see the app name in the input, not
+       a path to a .md file. Falls back to the botbook directive only when
+       no project is selected. */
+    var CHAT_BOOK_DIRECTIVE =
+        "@botbook/src/10-configuration-deployment/config-csv.md";
     function openChat() {
-        // The Vibe assistant IS the shared Chat window — same window, same
-        // context; it also works standalone from the desktop shell.
-        openSharedApp("chat", {});
+        var pid = S.projectId();
+        var name = S.projectName();
+        var message =
+            pid && name && String(name) !== "vibe"
+                ? "@" + name
+                : CHAT_BOOK_DIRECTIVE;
+        openSharedApp("chat", { message: message });
     }
 
     /* Commit is a popup dialog (the Source Control dialog), never toolbar
@@ -117,6 +164,52 @@
         openSharedApp("editor", {});
     }
 
+    /* Project actions for the selected project: the classic sidebar (which
+       carried ⓘ / 🗑 per project) is hidden in toolbar mode, so the toolbar
+       must expose them or users cannot see the buttons at all. */
+    function openProjectInfo() {
+        var pid = S.projectId();
+        if (!pid) {
+            // No project selected — the old code only toasted into the (now
+            // hidden) chat overlay, so the button appeared dead. Surface a
+            // visible hint and jump straight to creating a project.
+            flashHint("SELECT A PROJECT FIRST — CREATING ONE…");
+            if (window.VibeNewProject) window.VibeNewProject.open();
+            else if (window.VibeWindows) window.VibeWindows.openNewProject();
+            return;
+        }
+        if (window.VibeWindows && typeof window.VibeWindows.openProjectInfo === "function") {
+            window.VibeWindows.openProjectInfo();
+            return;
+        }
+        if (typeof window.showProjectInfo === "function") {
+            var match = knownProjects.find(function (p) {
+                var id = p.project_id || p.id;
+                return id != null && String(id) === String(pid);
+            });
+            window.showProjectInfo(match || { id: pid, name: pid });
+        }
+    }
+
+    function deleteSelectedProject() {
+        var pid = S.projectId();
+        if (!pid) {
+            flashHint("SELECT A PROJECT FIRST — CREATING ONE…");
+            if (window.VibeNewProject) window.VibeNewProject.open();
+            else if (window.VibeWindows) window.VibeWindows.openNewProject();
+            return;
+        }
+        var match = knownProjects.find(function (p) {
+            var id = p.project_id || p.id;
+            return id != null && String(id) === String(pid);
+        });
+        if (typeof window.deleteProject === "function") {
+            window.deleteProject(match || { project_id: pid, name: pid });
+        } else if (typeof window.VibeAgents !== "undefined" && typeof window.VibeAgents.deleteProject === "function") {
+            window.VibeAgents.deleteProject(match || { project_id: pid, name: pid });
+        }
+    }
+
     /* ── Inline SVG icons (custom, stroke style, no emoji) ─────────── */
     var ICONS = {
         Terminal: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>',
@@ -126,10 +219,17 @@
         "Knowledge Graph": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>',
         Canvas: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg>',
         Metrics: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>',
+        "Source Control": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="5" r="3"/><circle cx="6" cy="19" r="3"/><circle cx="18" cy="12" r="3"/><line x1="6" y1="8" x2="6" y2="16"/><line x1="8.59" y1="5.86" x2="15.42" y2="11.14"/><line x1="15.42" y1="12.86" x2="8.59" y2="18.14"/></svg>',
         Run: '<svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 20 12 6 21"/></svg>',
-        Hide: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="5" height="16"/><rect x="14" y="4" width="5" height="16"/></svg>',
+        // Rocket = publish to production (Run tests dev, Deploy ships prod).
+        Deploy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="M12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>',
+        Pause: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="4" width="5" height="16"/><rect x="14" y="4" width="5" height="16"/></svg>',
         Stop: '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14"/></svg>',
         "New Project": '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>',
+        Properties: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>',
+        Delete: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
+        Editor: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
+        Members: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
     };
 
     /* VB4-style big toolbar button: SVG icon over a short label. */
@@ -225,16 +325,47 @@
             .catch(function () { /* dropdown stays with its previous content */ });
     }
 
+    /* Dev-VM lifecycle (#1271): the dev VM is always on since project
+       creation; it stops when the vibe window closes or the user switches to
+       another project (the next Run restarts it). Production VMs are only
+       activated by Deploy and stay on forever. */
+    function stopDevVm(projectId) {
+        if (!projectId) return Promise.resolve();
+        return vibeApi("/api/vibe/projects/" + encodeURIComponent(projectId) + "/vms")
+            .then(function (data) {
+                var vms = (data && data.vms) || [];
+                var dev = vms.find(function (v) {
+                    return String(v.env || "") === "development";
+                }) || vms[0];
+                if (!dev || !dev.id) return null;
+                return vibeApi("/api/vibe/vms/" + encodeURIComponent(dev.id) + "/stop", { method: "POST" });
+            })
+            .catch(function () { return null; });
+    }
+
     function onProjectChange() {
         var sel = projectSelect();
         if (!sel) return;
+        // Stop the PREVIOUS project's dev VM (the lifecycle is automatic:
+        // one project at a time in dev). The new selection's VM starts on
+        // Run / is already running if it was the same project.
+        var previousId = S.projectId();
         var id = sel.value;
+        if (previousId && String(previousId) !== String(id)) {
+            stopDevVm(previousId);
+        }
         var match = knownProjects.find(function (p) {
             var pid = p.project_id || p.id;
             return pid != null && String(pid) === String(id);
         });
         if (match && typeof applyProjectSelection === "function") {
             applyProjectSelection(match);
+        }
+        // Switching project invalidates every floating accessory (canvas
+        // project.draw, graph runs, metrics, run dock, dialogs): close them
+        // so stale project-scoped content cannot linger on screen.
+        if (window.VibeWindows && typeof window.VibeWindows.closeVibeSubwindows === "function") {
+            window.VibeWindows.closeVibeSubwindows();
         }
         loadBranches();
     }
@@ -244,16 +375,21 @@
         return document.getElementById("vibeShellBranchSelect");
     }
 
+    /* Branch combo over the REAL project workspace repo (#1271). The old
+       /api/git/* endpoints resolve any non-/tmp repo to a fixed stub, so the
+       combo never showed the project's branches (and never listed the
+       release/prev-* rollback branches Deploy creates). */
     function loadBranches() {
         var sel = branchSelect();
         if (!sel) return;
-        if (!S.projectId()) {
+        var pid = S.projectId();
+        if (!pid) {
             sel.disabled = true;
             sel.innerHTML = "";
             sel.appendChild(el("option", null, "—"));
             return;
         }
-        vibeApi("/api/git/branches?repo=" + encodeURIComponent(S.projectName()))
+        vibeApi("/api/vibe/projects/" + encodeURIComponent(pid) + "/branches")
             .then(function (data) {
                 var branches = (data && data.branches) || [];
                 sel.innerHTML = "";
@@ -282,15 +418,17 @@
     function onBranchChange() {
         var sel = branchSelect();
         if (!sel || !sel.value) return;
-        vibeApi("/api/git/branch/" + encodeURIComponent(sel.value) +
-            "?repo=" + encodeURIComponent(S.projectName()), { method: "POST" })
+        var pid = S.projectId();
+        if (!pid) return;
+        vibeApi("/api/vibe/projects/" + encodeURIComponent(pid) + "/branches/" +
+            encodeURIComponent(sel.value), { method: "POST" })
             .then(function () { loadBranches(); })
             .catch(function () { });
     }
 
-    /* ── Transport (VB-style): Run opens the project in the shared Browser
-           window, Hide minimizes it, Stop closes it. No status bar: the
-           Run button lights up while the preview window is open. ── */
+    /* ── Transport: Run starts the selected project through the authoritative
+           Vibe runner, then opens its preview; Stop cancels the run and closes
+           the preview. ── */
     function setRunVisual(running) {
         var bar = document.getElementById("vibeShellToolbar");
         if (bar) bar.classList.toggle("vibe-shell-running", running);
@@ -299,6 +437,26 @@
     function previewOpen() {
         var mgr = wm();
         return !!(mgr && mgr.getWindow && mgr.getWindow("browser"));
+    }
+
+    /* #1271 — Run starts the app as a REAL process in the dev VM: the run
+       endpoint pushes the workspace files into the dev container, starts node
+       (or a static server) as a systemd service and returns the exposed URL.
+       The app is then visible in the project terminal's `ps`. Falls back to
+       the static workspace stream when the VM is unavailable. */
+    function startDevVm(projectId) {
+        return vibeAuthFetch("/api/vibe/projects/" + encodeURIComponent(projectId) + "/run", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({}),
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data && data.success && data.url) {
+                    return { url: data.url, vm: true, container: data.container };
+                }
+                throw new Error((data && data.error) || "dev VM run failed");
+            });
     }
 
     function openPreview() {
@@ -314,23 +472,36 @@
             return id != null && String(id) === String(projectId);
         });
         var projectName = (selectedProject && selectedProject.name) || S.projectName();
-        workspaceServeUrl(projectId)
-            .then(function (url) {
-                if (url) return url;
-                return resolvePreviewUrl(projectId);
-            })
-            .then(function (url) {
-                openBrowser(url);
+        // 1) Try to start the app on the dev VM (real node process).
+        // 2) Fall back to the static workspace stream when the VM is absent.
+        startDevVm(projectId)
+            .then(function (vm) {
+                openBrowser(vm.url);
                 setRunVisual(true);
-                flashHint("RUNNING " + String(projectName).toUpperCase() + " IN THE BROWSER");
+                flashHint("RUNNING " + String(projectName).toUpperCase() + " ON THE DEV VM");
+                if (window.VibeTransport && typeof window.VibeTransport.play === "function") {
+                    window.VibeTransport.play();
+                }
             })
-            .catch(function (err) {
-                // No workspace app and no live preview yet: still open the shared
-                // Browser window so the user has a place to go, and say why the
-                // app is not loaded.
-                setRunVisual(false);
-                openBrowser(null);
-                flashHint((err && err.message ? err.message : "No preview available") + " — deploy the project to see your app");
+            .catch(function () {
+                return workspaceServeUrl(projectId)
+                    .then(function (url) {
+                        if (url) return url;
+                        return resolvePreviewUrl(projectId);
+                    })
+                    .then(function (url) {
+                        openBrowser(url);
+                        setRunVisual(true);
+                        flashHint("RUNNING " + String(projectName).toUpperCase() + " (STATIC PREVIEW — NO VM)");
+                        if (window.VibeTransport && typeof window.VibeTransport.play === "function") {
+                            window.VibeTransport.play();
+                        }
+                    })
+                    .catch(function (err) {
+                        setRunVisual(false);
+                        openBrowser(null);
+                        flashHint((err && err.message ? err.message : "No preview available") + " — deploy the project to see your app");
+                    });
             });
     }
 
@@ -358,34 +529,75 @@
         flashHint("STOPPED");
     }
 
+    // Deploy = publish to production. Run tests in dev; Deploy is the only
+    // path to production (approval-gated deploy pipeline, pipeline_mode
+    // "deploy"). Distinct styling so the dev/prod split reads at a glance.
+    function deployProject() {
+        var projectId = S.projectId();
+        if (!projectId) {
+            flashHint("SELECT A PROJECT FIRST");
+            var sel = projectSelect();
+            if (sel) sel.focus();
+            return;
+        }
+        var selectedProject = knownProjects.find(function (project) {
+            var id = project.project_id || project.id;
+            return id != null && String(id) === String(projectId);
+        });
+        var projectName = (selectedProject && selectedProject.name) || S.projectName();
+        setRunVisual(true);
+        flashHint("DEPLOYING " + String(projectName).toUpperCase() + " TO PRODUCTION");
+        // The deploy pipeline snapshots the current deployment into a
+        // release/prev-<ts> branch; reload the branch combo when the run
+        // finishes so the rollback branch is immediately switchable.
+        var poll = setInterval(function () {
+            var t = window.VibeTransport;
+            var done = !t || typeof t.hasActiveRun !== "function" || !t.hasActiveRun();
+            if (done) {
+                clearInterval(poll);
+                loadBranches();
+            }
+        }, 2500);
+        var transport = window.VibeTransport;
+        if (transport && typeof transport.deploy === "function") {
+            transport.deploy();
+            return;
+        }
+        if (window.VibeRun && typeof window.VibeRun.deploy === "function") {
+            window.VibeRun.deploy();
+        }
+    }
+
     function openRunnerLog() {
+        // The runner log window IS the Run Dock; it must be tall (80% of the
+        // desktop) and docked at the top so the board/log/sessions all show.
         if (window.VibeWindows && window.VibeWindows.openRunDock) window.VibeWindows.openRunDock();
     }
 
-    function buildTransport() {
-        var group = el("div", "vibe-shell-tb-group vibe-shell-tb-transport");
-        group.appendChild(buildButton("Run", "Run", openPreview, "vibe-shell-tb-run"));
-        group.appendChild(buildButton("Pause", "Hide", pausePreview, "vibe-shell-tb-pause"));
-        group.appendChild(buildButton("Stop", "Stop", closePreview, "vibe-shell-tb-stop"));
-        return group;
-    }
+    /* Toolbar — a 2-row grid, never more than 2 rows (product spec):
 
-    /* The single command row. Transport first so the primary controls stay
-       visible; selectors and window buttons follow in the same row. */
+       │ RUN │ Project │ Deploy │ [Terminal][Browser][Chat][Editor][New][Props] │ ✕ │
+       │ 2r  │ Branch  │        │ [RunnerLog][Graph][Canvas][Metrics][SrcCtl][Members] │
+
+       RUN spans both rows (double height); the Project/Branch combos stack
+       one per row; Deploy sits on its own row beside them; the window
+       commands fill two rows; ✕ closes every vibe window at once. */
     function build() {
         if (document.getElementById("vibeShellToolbar")) return;
         var container = document.getElementById("vibeWindow");
         if (!container) return;
 
-        var bar = el("div", "vibe-shell-toolbar");
+        var bar = el("div", "vibe-shell-toolbar vibe-shell-tb-grid");
         bar.id = "vibeShellToolbar";
         bar.setAttribute("role", "toolbar");
         bar.setAttribute("aria-label", "Vibe commands");
 
-        // Transport is deliberately first: Run/Pause/Stop are the primary
-        // IDE controls and remain at the left edge on narrow windows.
-        bar.appendChild(buildTransport());
+        /* ── RUN — double height (spans both grid rows) ─────────── */
+        var runGroup = el("div", "vibe-shell-tb-group vibe-shell-tb-run-group");
+        runGroup.appendChild(buildButton("Run", "Run", openPreview, "vibe-shell-tb-run"));
+        bar.appendChild(runGroup);
 
+        /* ── Combos — two rows: Project on top, Branch below ────── */
         var selectors = el("div", "vibe-shell-tb-group vibe-shell-tb-selectors");
 
         var projWrap = el("label", "vibe-shell-tb-field");
@@ -414,33 +626,117 @@
         selectors.appendChild(brWrap);
         bar.appendChild(selectors);
 
-        // Shared desktop apps (also available from the desktop shell launcher).
-        var apps = el("div", "vibe-shell-tb-group vibe-shell-window-buttons");
-        apps.appendChild(buildButton("Terminal", "Terminal", openTerminal));
-        apps.appendChild(buildButton("Browser", "Browser", function () { openBrowser(null); }));
-        apps.appendChild(buildButton("Chat", "Chat", openChat));
-        bar.appendChild(apps);
+        /* ── DEPLOY — one row, right after the combos ───────────── */
+        var deployGroup = el("div", "vibe-shell-tb-group vibe-shell-tb-deploy-group");
+        deployGroup.appendChild(buildButton("Deploy", "Deploy", deployProject, "vibe-shell-tb-deploy"));
+        bar.appendChild(deployGroup);
 
-        // Vibe tool windows with clear labels.
-        var tools = el("div", "vibe-shell-tb-group vibe-shell-window-buttons");
-        tools.appendChild(buildButton("Runner Log", "Runner Log", openRunnerLog));
-        tools.appendChild(buildButton("Knowledge Graph", "Knowledge Graph", function () { if (window.VibeWindows) window.VibeWindows.openGraph(); }));
-        tools.appendChild(buildButton("Canvas", "Canvas", function () { if (window.VibeWindows) window.VibeWindows.openCanvas(); }));
-        tools.appendChild(buildButton("Metrics", "Metrics", function () { if (window.VibeWindows) window.VibeWindows.openMetrics(); }));
-        bar.appendChild(tools);
+    /* ── Window commands — two rows, grouped with | separators ── */
+        function tbSep() {
+            var sep = el("span", "vibe-shell-tb-sep");
+            sep.setAttribute("aria-hidden", "true");
+            return sep;
+        }
+        var cmds = el("div", "vibe-shell-tb-group vibe-shell-tb-cmds");
+        var cmdRow1 = el("div", "vibe-shell-tb-cmdrow");
+        // New Project is the FIRST command (product spec).
+        cmdRow1.appendChild(buildButton("New Project", "New Project", function () { if (window.VibeNewProject) window.VibeNewProject.open(); else if (window.VibeWindows) window.VibeWindows.openNewProject(); }, "vibe-shell-tb-new"));
+        cmdRow1.appendChild(tbSep());
+        cmdRow1.appendChild(buildButton("Terminal", "Terminal", openTerminal));
+        // Browser loads the selected project's app. Prefers the dev VM run
+        // (real node process, #1271), falls back to the static workspace
+        // stream, then to a deployed preview URL.
+        cmdRow1.appendChild(buildButton("Browser", "Browser", function () {
+            var pid = S.projectId();
+            if (!pid) { openBrowser(null); return; }
+            startDevVm(pid)
+                .then(function (vm) { openBrowser(vm.url); })
+                .catch(function () {
+                    workspaceServeUrl(pid)
+                        .then(function (url) {
+                            if (url) return url;
+                            return resolvePreviewUrl(pid);
+                        })
+                        .then(function (url) { openBrowser(url); })
+                        .catch(function () { openBrowser(null); });
+                });
+        }));
+        cmdRow1.appendChild(buildButton("Chat", "Chat", openChat));
+        // Editor opens the project's dev-VM workspace (file tree + editing of
+        // the same files the LLM edits in chat) when a project is selected.
+        var editorPid = S.projectId();
+        cmdRow1.appendChild(buildButton("Editor", "Editor", function () {
+            var pid = S.projectId() || editorPid;
+            openSharedApp("editor", pid ? { project: pid } : {});
+        }));
+        cmdRow1.appendChild(tbSep());
+        cmdRow1.appendChild(buildButton("Properties", "Properties", openProjectInfo, "vibe-shell-tb-info"));
+        cmds.appendChild(cmdRow1);
 
-        // No commit commands on the toolbar (VB design): committing is a
-        // popup opened from the Source Control dialog only.
-        var actions = el("div", "vibe-shell-tb-group vibe-shell-window-buttons");
-        actions.appendChild(buildButton("New Project", "New Project", function () { if (window.VibeWindows) window.VibeWindows.openNewProject(); }));
-        bar.appendChild(actions);
+        var cmdRow2 = el("div", "vibe-shell-tb-cmdrow");
+        cmdRow2.appendChild(buildButton("Runner Log", "Runner Log", openRunnerLog));
+        cmdRow2.appendChild(tbSep());
+        cmdRow2.appendChild(buildButton("Knowledge Graph", "Knowledge Graph", function () { if (window.VibeWindows) window.VibeWindows.openGraph(); }));
+        cmdRow2.appendChild(buildButton("Canvas", "Canvas", function () { if (window.VibeWindows) window.VibeWindows.openCanvas(); }));
+        cmdRow2.appendChild(buildButton("Metrics", "Metrics", function () { if (window.VibeWindows) window.VibeWindows.openMetrics(); }));
+        cmdRow2.appendChild(tbSep());
+        cmdRow2.appendChild(buildButton("Source Control", "Source Control", openCommit));
+        // Members was only reachable from the hidden legacy ribbon — give it
+        // a toolbar button so no window exists without one (ghost windows).
+        cmdRow2.appendChild(buildButton("Members", "Members", function () { if (window.VibeWindows) window.VibeWindows.openMembers(); }));
+        // Run-status chip at the end of row 2, next to the transport
+        // feedback it mirrors.
+        var status = el("span", "vibe-shell-tb-status", "IDLE");
+        status.id = "vibeShellStatusChip";
+        status.setAttribute("role", "status");
+        cmdRow2.appendChild(status);
+        cmds.appendChild(cmdRow2);
+        bar.appendChild(cmds);
 
+        /* ── Close-all ✕ — closes every vibe window at once ─────── */
+        var closeGroup = el("div", "vibe-shell-tb-group vibe-shell-tb-close-group");
+        var closeBtn = el("button", "vibe-shell-tb-btn vibe-shell-tb-closeall");
+        closeBtn.type = "button";
+        closeBtn.title = "Close all vibe windows";
+        closeBtn.innerHTML = '<span class="vibe-shell-tb-icon">✕</span>';
+        closeBtn.addEventListener("click", function () {
+            if (window.VibeWindows && typeof window.VibeWindows.closeVibeSubwindows === "function") {
+                window.VibeWindows.closeVibeSubwindows();
+            }
+        });
+        closeGroup.appendChild(closeBtn);
+        bar.appendChild(closeGroup);
+
+        // The rule in 90_shell.css used to hide the whole body; keep the old
+        // ribbon tree out of the light entirely so there is no second command
+        // bar and no dead chrome.
         var ribbon = container.querySelector(".vibe-ribbon");
-        if (ribbon && ribbon.parentNode) {
-            ribbon.parentNode.insertBefore(bar, ribbon);
+        if (ribbon) ribbon.style.display = "none";
+
+        var body = container.querySelector(".vibe-body");
+        if (body && body.parentNode) {
+            body.parentNode.insertBefore(bar, body);
         } else {
             container.insertBefore(bar, container.firstChild);
         }
+
+        /* Mirror the run state onto the row-1 status chip. The authoritative
+           text lives in the hidden legacy ribbon status; keep the visible
+           chip in lock-step without re-deriving state here. */
+        var chip = document.getElementById("vibeShellStatusChip");
+        var mirrorTimer = setInterval(function () {
+            var src = document.getElementById("vibeRibbonStatus");
+            if (!chip || !src) return;
+            var text = String(src.textContent || "").trim();
+            if (!text) return;
+            chip.textContent = text;
+            chip.dataset.state = /running|execut/i.test(text) ? "running"
+                : /paus|approv/i.test(text) ? "paused"
+                : /fail|error|stop/i.test(text) ? "failed"
+                : "idle";
+        }, 800);
+        if (bar && bar.__chipTimer && typeof bar.__chipTimer === "number") clearInterval(bar.__chipTimer);
+        bar.__chipTimer = mirrorTimer;
 
         loadProjects();
         document.addEventListener("gb:vibe-project", function () {
@@ -455,9 +751,12 @@
         loadBranches: loadBranches,
         openTerminal: openTerminal,
         openBrowser: openBrowser,
+        openProjectApp: openProjectApp,
         openChat: openChat,
         openCommit: openCommit,
         openPreview: openPreview,
+        deployProject: deployProject,
+        stopDevVm: stopDevVm,
         pausePreview: pausePreview,
         closePreview: closePreview,
         flashHint: flashHint,
