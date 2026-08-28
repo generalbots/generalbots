@@ -170,7 +170,7 @@ fn api_base() -> String {
 /// output) so the deployment API can push them to the ALM repo instead of an
 /// empty app. The workspace dir is keyed by the ALM repo slug, falling back
 /// to the raw project id.
-fn collect_workspace_files(project: &Project) -> Result<Vec<Value>, String> {
+pub(crate) fn collect_workspace_files(project: &Project) -> Result<Vec<Value>, String> {
     let candidates = [VmLifecycle::alm_repo(&project.name), project.id.to_string()];
     for key in candidates {
         let dir = harness::workspace_root().join(&key);
@@ -404,7 +404,7 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
     let deployed: Value = {
         let body = serde_json::json!({
             "app_name": repo_name,
-            "org": org,
+            "organization": org,
             "project_type": deployment_type,
             "environment": env,
             "target": target,
@@ -415,9 +415,18 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
             .timeout(Duration::from_secs(180))
             .build()
             .map_err(|e| format!("http client: {e}"))?;
-        let resp = client
+        let mut req = client
             .post(format!("{}/api/deployment/deploy", api_base()))
-            .header("Content-Type", "application/json")
+            .header("Content-Type", "application/json");
+        // The deployment API is an internal endpoint guarded by the
+        // INTERNAL_API_TOKEN (X-Internal-Token), same as the other internal
+        // callers (invoke_action, vibe_agent keywords).
+        if let Ok(token) = std::env::var("INTERNAL_API_TOKEN") {
+            if !token.is_empty() {
+                req = req.header("X-Internal-Token", token);
+            }
+        }
+        let resp = req
             .json(&body)
             .send()
             .await

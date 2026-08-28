@@ -15,14 +15,16 @@
 }
 
 .vibe-transport-btn {
-    width: 26px;
-    height: 26px;
-    border-radius: 6px;
+    /* Double-size transport: ▶ ⏸ ■ are the primary IDE commands and read at
+       a glance; the other ribbon commands flow below into a second row. */
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
     border: 1px solid var(--border);
     background: var(--bg);
     color: var(--text);
     cursor: pointer;
-    font-size: 13px;
+    font-size: 20px;
     line-height: 1;
     display: inline-flex;
     align-items: center;
@@ -32,7 +34,28 @@
 
 .vibe-transport-btn:hover {
     background: var(--surface);
-    transform: scale(1.08);
+    transform: scale(1.05);
+}
+
+/* Panels relocated into WindowManager tool windows must fill their window
+   body (no floating offset inside the hosting tool window) and must not
+   render their own title bar — the WM chrome already provides one
+   ("window inside a window" design fix). */
+#vibeGraphPanel.vibe-tool-relocated,
+#vibeMetricsPanel.vibe-tool-relocated {
+    right: auto !important;
+    bottom: auto !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-height: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+}
+
+.vibe-tool-relocated .vibe-panel-chrome {
+    display: none !important;
 }
 
 .vibe-transport-btn.run:hover { color: #22c55e; border-color: #22c55e; }
@@ -193,4 +216,96 @@
 @keyframes vibeExecPulse {
     0%, 100% { opacity: 1; }
     50% { opacity: 0.35; }
+}
+
+/* =============================================================
+   Tool-window contrast + chrome dedup (2026-08 review)
+   =============================================================
+
+   Two problems reported on every floating vibe tool window:
+
+   1. CONTRAST — the desktop theme defines --surface/--text but NOT
+      --bg2/--muted/--bg/--surface-hover/--text-muted, and some themes ship
+      --border as an HSL *triplet* ("43 17% 89%") which is not a raw color.
+      The panel CSS fallbacks were dark hexes (#0d1117, #14142a…), so on the
+      light theme inputs/kind-cards rendered near-black with dark text —
+      unreadable (New Project, Members, dialogs). Fix: define the missing
+      vars theme-aware (color-mix keeps them correct on dark themes too)
+      scoped to every vibe surface.
+
+   2. DUPLICATED CHROME — relocated panels kept their own modal title bar and
+      ✕ close button inside a WindowManager window that already has a title
+      bar and ✕. Fix: suppress the in-panel chrome when relocated. */
+
+.vibe-container,
+.vibe-tool-relocated,
+.vibe-dialog,
+.vibe-rd {
+    --bg2: color-mix(in srgb, var(--text, #263630) 5%, var(--surface, #fcfbf8));
+    --bg: color-mix(in srgb, var(--text, #263630) 8%, var(--surface, #fcfbf8));
+    --surface-hover: color-mix(in srgb, var(--text, #263630) 4%, var(--surface, #fcfbf8));
+    --muted: color-mix(in srgb, var(--text, #263630) 52%, var(--surface, #fcfbf8));
+    --text-muted: color-mix(in srgb, var(--text, #263630) 52%, var(--surface, #fcfbf8));
+    --border: color-mix(in srgb, var(--text, #263630) 18%, var(--surface, #fcfbf8));
+}
+
+/* Relocated modal panels: no second backdrop, no second z-order layer. */
+.vibe-tool-relocated {
+    background: transparent !important;
+    z-index: auto !important;
+}
+
+/* New Project: the WM window is titled "New Project" with its own ✕ — the
+   panel's overlay + head (title + close) disappear when relocated. */
+.vibe-tool-relocated .vibe-np-overlay {
+    position: static;
+    inset: auto;
+    display: block;
+    background: transparent;
+    padding: 0;
+}
+.vibe-tool-relocated .vibe-np-head {
+    display: none !important;
+}
+.vibe-tool-relocated .vibe-np-dialog {
+    width: auto;
+    max-width: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+}
+
+/* Members: the parked modal is inline-styled; neutralize the card chrome so
+   the panel reads as plain tool-window content (title/✕ come from the WM).
+   Scoped to the members modal — the graph/metrics panels have their own
+   functional child divs that must keep their layout. */
+#vibeMembersModal.vibe-tool-relocated > div {
+    width: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 14px 16px !important;
+}
+
+/* Only the member list scrolls internally — the popup itself stays fixed
+   with all fields visible (product spec). */
+#vibeMembersModal.vibe-tool-relocated #vibeMembersList {
+    max-height: 38vh;
+    overflow-y: auto;
+}
+
+/* Dialog content built inside tool windows: full-bleed, no nested card. */
+.vibe-dialog.vibe-dialog-toolwindow {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
 }

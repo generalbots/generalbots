@@ -73,8 +73,11 @@ impl VMetering {
             #[diesel(sql_type = diesel::sql_types::Text)]
             plan_name: String,
         }
+        // The plan is persisted in `billing_recurring.description`
+        // ('Free Plan', 'shared - 14 Day Trial', 'private-cloud', ...);
+        // there is no `plan_name` column in the table schema.
         let plan: Option<Row> = diesel::sql_query(
-            "SELECT plan_name FROM billing_recurring \
+            "SELECT description AS plan_name FROM billing_recurring \
              WHERE branch_id = $1 AND status = 'active' \
              ORDER BY created_at DESC LIMIT 1",
         )

@@ -75,14 +75,19 @@ impl DeploymentRouter {
             false,
         ).await?;
 
+        // The API returns the public clone URL (e.g.
+        // https://alm.pragmatismo.com.br/...), which is not resolvable from
+        // inside the bot container. Rewrite it to the configured internal
+        // Forgejo base so the push reaches the local ALM.
+        let repo_url = rewrite_clone_url(&self.forgejo_url, &repo.clone_url);
         log::info!("Repository created/verified: {}", repo.clone_url);
 
         let branch = config.environment.to_string();
-        client.push_app(&repo.clone_url, &generated_app, &branch).await?;
+        client.push_app(&repo_url, &generated_app, &branch).await?;
 
         if config.ci_cd_enabled {
             client.create_cicd_workflow(
-                &repo.clone_url,
+                &repo_url,
                 &config.project_type,
                 &config.deploy_target,
                 &config.environment,
@@ -170,4 +175,22 @@ impl DeploymentRouter {
             }
         }
     }
+}
+
+/// Rewrite the Forgejo API's public clone URL to the configured internal
+/// base so pushes reach the local ALM. The API returns e.g.
+/// `https://alm.pragmatismo.com.br/org/repo.git` (not resolvable from the
+/// bot container), while the configured base is `http://10.0.0.13:4747`.
+/// Keeps the path (`/org/repo.git`) from the original URL.
+fn rewrite_clone_url(base_url: &str, clone_url: &str) -> String {
+    // "https://alm.pragmatismo.com.br/org/repo.git" → "org/repo.git"
+    let path = clone_url
+        .splitn(2, "://")
+        .nth(1)                          // "alm.pragmatismo.com.br/org/repo.git"
+        .and_then(|rest| {
+            rest.splitn(2, '/').nth(1)   // "org/repo.git"
+        })
+        .unwrap_or("")
+        .trim_start_matches('/');
+    format!("{}/{}", base_url.trim_end_matches('/'), path)
 }

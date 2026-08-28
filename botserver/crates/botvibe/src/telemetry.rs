@@ -236,14 +236,10 @@ impl VibeTelemetry {
         if run_events.is_empty() {
             return None;
         }
-        if run_events.iter().any(|e| {
-            matches!(
-                e.event_type,
-                VibeTelemetryEventType::RunCompleted | VibeTelemetryEventType::RunFailed
-            )
-        }) {
-            return None;
-        }
+        // #1268 — keep per-run metrics available after the run ends: the
+        // frontend queries /api/vibe/metrics/{run_id} exactly when the run
+        // reaches a terminal state, so dropping the summary here made the
+        // run dock budget and Metrics window show nothing for finished runs.
 
         let use_case = run_events[0].use_case;
         let mut total_tool_calls = 0u32;
@@ -402,12 +398,18 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn run_end_removes_in_flight_metrics() {
+    async fn run_end_keeps_metrics_available() {
+        // #1268 — per-run metrics must stay queryable after the run finishes
+        // (the frontend reads them exactly on completion), so a terminal run
+        // still returns its summary instead of None.
         let telemetry = VibeTelemetry::new();
         let run_id = Uuid::new_v4();
         telemetry.record(event(run_id, VibeTelemetryEventType::RunStarted, true, 0, 0.0)).await;
+        telemetry.record(event(run_id, VibeTelemetryEventType::ToolCallCompleted, true, 40, 1.0)).await;
         telemetry.record(event(run_id, VibeTelemetryEventType::RunCompleted, true, 100, 2.0)).await;
-        assert!(telemetry.get_run_metrics(run_id).await.is_none());
+        let m = telemetry.get_run_metrics(run_id).await.expect("metrics survive completion");
+        assert_eq!(m.total_tool_calls, 1);
+        assert_eq!(m.successful_tool_calls, 1);
     }
 
     #[tokio::test]

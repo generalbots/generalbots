@@ -283,6 +283,10 @@ async fn resume_session(
         budget_cents: session.budget_cents,
         project_id: None,
         project_name: None,
+        // A resumed session continues the same pipeline the original run
+        // used (deploy stays deploy) so the UI still distinguishes prod
+        // runs from dev runs after resume.
+        pipeline_mode: session.run.as_ref().and_then(|r| r.config.pipeline_mode.clone()),
     };
 
     let mut run = VibeRun::new(session.bot_id, session.session_id, session.user_id, session.intent.clone(), config);

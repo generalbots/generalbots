@@ -142,16 +142,43 @@ stepsContainer.appendChild(node);
 
 var vibeZoomLevel = 100;
 
+// Top-level twin of the module's visEl: prefer the canvas in the standalone
+// app window, else the visible inline surface (both carry the same ids).
+function vibeVis(id) {
+    var all = document.querySelectorAll("#" + id);
+    if (all.length <= 1) return all[0] || null;
+    var appWin = document.getElementById("window-vibe-canvas");
+    if (appWin) {
+        var inApp = appWin.querySelector("#" + id);
+        if (inApp && inApp.offsetParent !== null) return inApp;
+    }
+    for (var i = 0; i < all.length; i++) { if (all[i].offsetParent !== null) return all[i]; }
+    return all[all.length - 1];
+}
+
 function vibeSetZoom(delta) {
-    var steps = document.getElementById("vibeSteps");
-    var design = document.getElementById("vibeDesignSurface");
+    // Same visible-copy resolution as the other surfaces: getElementById
+    // returns the first match, which is the parked hidden copy inside the
+    // Vibe window, not the visible canvas — zooming it was a no-op.
+    var steps = vibeVis("vibeSteps");
+    var design = vibeVis("vibeDesignSurface");
+    var generated = vibeVis("vibeGeneratedLayer");
     vibeZoomLevel = Math.min(200, Math.max(40, vibeZoomLevel + (delta * 10)));
     var scale = vibeZoomLevel / 100;
     if (steps) {
         steps.style.transformOrigin = "0 0";
         steps.style.transform = "scale(" + scale + ")";
     }
-    if (design) design.style.transform = "scale(" + scale + ")";
+    // Scale the drawable surface AND the generated architecture behind it
+    // from the top-left corner so +/- zoom visibly works (was a no-op).
+    if (design) {
+        design.style.transformOrigin = "0 0";
+        design.style.transform = "scale(" + scale + ")";
+    }
+    if (generated) {
+        generated.style.transformOrigin = "0 0";
+        generated.style.transform = "scale(" + scale + ")";
+    }
     var labels = document.querySelectorAll("[data-vibe-zoom-label]");
     labels.forEach(function (label) {
         label.textContent = vibeZoomLevel + "%";
@@ -183,15 +210,15 @@ document.addEventListener("click", function (e) {
     }
 
     function setStatus(text) {
-        var el = document.getElementById("vibeCanvasSaveState");
+        var el = visEl("vibeCanvasSaveState");
         if (el) el.textContent = text;
     }
 
     function setMode(mode) {
         var windowRoot = document.getElementById("vibeWindow");
-        var design = document.getElementById("vibeDesignSurface");
-        var steps = document.getElementById("vibeSteps");
-        var empty = document.getElementById("vibeCanvasEmpty");
+        var design = visEl("vibeDesignSurface");
+        var steps = visEl("vibeSteps");
+        var empty = visEl("vibeCanvasEmpty");
         var isDesign = mode === "design";
         if (windowRoot) windowRoot.classList.toggle("vibe-design-mode", isDesign);
         if (design) design.classList.toggle("active", isDesign);
@@ -205,22 +232,22 @@ document.addEventListener("click", function (e) {
 
     function activateTool(nextTool) {
         tool = nextTool || "select";
-        var surface = document.getElementById("vibeDesignSurface");
+        var surface = visEl("vibeDesignSurface");
         if (surface) surface.setAttribute("data-tool", tool);
         setMode("design");
     }
 
     function setGeneratedDesign(design) {
         state.generated = design || null;
-        var host = document.getElementById("vibeGeneratedLayer");
+        var host = visEl("vibeGeneratedLayer");
         if (host) host.innerHTML = state.generated && state.generated.svg ? state.generated.svg : "";
     }
 
     function render() {
-        var host = document.getElementById("vibeDesignElements");
-        var svg = document.getElementById("vibeDesignConnectors");
+        var host = visEl("vibeDesignElements");
+        var svg = visEl("vibeDesignConnectors");
         if (!host || !svg) return;
-        var generatedHost = document.getElementById("vibeGeneratedLayer");
+        var generatedHost = visEl("vibeGeneratedLayer");
         if (generatedHost) generatedHost.innerHTML = state.generated && state.generated.svg ? state.generated.svg : "";
         host.innerHTML = "";
         state.elements.forEach(function (item) {
@@ -241,7 +268,8 @@ document.addEventListener("click", function (e) {
     }
 
     function point(event) {
-        var surface = document.getElementById("vibeDesignSurface");
+        var surface = visEl("vibeDesignSurface");
+        if (!surface) return { x: 0, y: 0 };
         var rect = surface.getBoundingClientRect();
         var scale = vibeZoomLevel / 100;
         return { x: (event.clientX - rect.left) / scale, y: (event.clientY - rect.top) / scale };
@@ -327,31 +355,158 @@ document.addEventListener("click", function (e) {
         });
     }
 
+    // project.draw lives at the ROOT of the project workspace (#1191): one
+    // portable artifact holding the whole architecture drawing. Preference
+    // order when loading: project.draw file → canvases API store → baseline.
+    var UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+    function projectId() {
+        var project = projectKey();
+        return UUID_RE.test(project) ? project : null;
+    }
+
+    // The inline canvas in the Vibe main window and the standalone Vibe
+    // Canvas app window both carry the same element ids. Prefer the copy in
+    // the standalone app window when that window is open and visible (that
+    // is where the user draws), otherwise the visible inline one.
+    function visEl(id) {
+        var all = document.querySelectorAll("#" + id);
+        if (all.length <= 1) return all[0] || null;
+        var appWin = document.getElementById("window-vibe-canvas");
+        if (appWin) {
+            var inApp = appWin.querySelector("#" + id);
+            if (inApp && inApp.offsetParent !== null) return inApp;
+        }
+        for (var i = 0; i < all.length; i++) {
+            if (all[i].offsetParent !== null) return all[i];
+        }
+        return all[all.length - 1];
+    }
+
+    function applyContent(content) {
+        state.elements = Array.isArray(content.elements) ? content.elements : [];
+        state.connectors = Array.isArray(content.connectors) ? content.connectors : [];
+        setGeneratedDesign(content.generated || null);
+    }
+
+    function readProjectDraw(pid) {
+        return api("/api/vibe/projects/" + encodeURIComponent(pid) +
+            "/files/content?path=" + encodeURIComponent("project.draw"), { method: "GET", headers: {} })
+            .then(function (d) {
+                var text = d && d.content;
+                if (!text) throw new Error("no project.draw yet");
+                var parsed = JSON.parse(text);
+                if (!parsed || parsed.kind !== "vibe-design") throw new Error("not a vibe design file");
+                return parsed;
+            });
+    }
+
+    function writeProjectDraw(pid, content) {
+        return api("/api/vibe/projects/" + encodeURIComponent(pid) + "/files",
+            { method: "POST", body: JSON.stringify({ path: "project.draw", content: JSON.stringify(content, null, 2) }) });
+    }
+
+    // Draw the architecture FROM the project itself: fetch the real
+    // workspace file list and lay out the runtime zones (Web / App / API /
+    // Data) using actual module names, then persist it to project.draw.
+    function zoneFor(path) {
+        var p = String(path || "/").toLowerCase();
+        if (p.indexOf("api") !== -1 || p.indexOf("service") !== -1) return "API";
+        if (p.indexOf("db") !== -1 || p.indexOf("sql") !== -1 || p.indexOf("data") !== -1 || p.indexOf("model") !== -1) return "Data";
+        if (p.indexOf("ui") !== -1 || p.indexOf("web") !== -1 || p.indexOf("html") !== -1 || p.indexOf("public") !== -1) return "Web";
+        return "App";
+    }
+
+    function svgForWorkspace(files, title) {
+        var zones = { Web: [], App: [], API: [], Data: [] };
+        (files || []).slice(0, 60).forEach(function (f) {
+            var name = String(f).split("/").pop();
+            if (!name) return;
+            var z = zoneFor(f);
+            if (zones[z].length < 4) zones[z].push(name);
+        });
+        if (!zones.Web.length) zones.Web = ["browser"];
+        if (!zones.App.length) zones.App = ["runtime"];
+        var cols = ["Web", "App", "API", "Data"];
+        var colors = ["#2563eb", "#16a34a", "#d97706", "#7c3aed"];
+        var h = "";
+        var cx = 40;
+        cols.forEach(function (col, i) {
+            var x = cx + i * 220;
+            var items = zones[col];
+            h += '<rect x="' + x + '" y="64" width="180" height="" fill="none" stroke="' + colors[i] + '" stroke-width="2" rx="10"/>';
+            h += '<text x="' + (x + 14) + '" y="90" font-family="system-ui" font-size="15" font-weight="700" fill="' + colors[i] + '">' + col + "</text>";
+            var y = 118;
+            items.forEach(function (item) {
+                h += '<text x="' + (x + 14) + '" y="' + y + '" font-family="monospace" font-size="11" fill="#334155">\u2022 ' + item + "</text>";
+                y += 20;
+            });
+        });
+        return '<svg viewBox="0 0 960 520" xmlns="http://www.w3.org/2000/svg">' +
+            '<rect x="20" y="24" width="920" height="476" rx="14" fill="#f8fafc" stroke="#cbd5e1"/>' +
+            '<text x="44" y="52" font-family="system-ui" font-size="16" font-weight="700" fill="#0f172a">' + (title || "Project") + " architecture</text>" +
+            h + "</svg>";
+    }
+
+    function maybeGenerateBaseline(project) {
+        if (project === "unsaved" || state.generated) return;
+        var pid = projectId();
+        if (pid) {
+            api("/api/vibe/projects/" + encodeURIComponent(pid) + "/files", { method: "GET", headers: {} })
+                .then(function (d) {
+                    var files = (d && (d.files || d.data && d.data.files)) || [];
+                    if (!files.length) throw new Error("no files");
+                    var design = { kind: "vibe-design", version: 3, generatedAt: new Date().toISOString(),
+                        source: "workspace", title: project, svg: svgForWorkspace(files, project) };
+                    setGeneratedDesign(design);
+                    render();
+                    scheduleSave();
+                })
+                .catch(function () {
+                    if (window.VibeCanvasViews && window.VibeCanvasViews.generateProjectDesign) {
+                        window.VibeCanvasViews.generateProjectDesign(false);
+                    }
+                });
+            return;
+        }
+        if (window.VibeCanvasViews && window.VibeCanvasViews.generateProjectDesign) {
+            window.VibeCanvasViews.generateProjectDesign(false);
+        }
+    }
+
     function loadCanvas() {
         var project = projectKey();
         if (loadedProject === project) return;
         loadedProject = project;
         canvasId = null;
         setStatus("Loading…");
-        api("/api/vibe/canvases", { method: "GET", headers: {} }).then(function (data) {
-            var rows = data.canvases || [];
-            var match = rows.filter(function (row) {
-                return String(row.project || "") === project && row.content && row.content.kind === "vibe-design";
-            }).sort(function (a, b) { return String(b.updated_at).localeCompare(String(a.updated_at)); })[0];
-            if (match) {
-                canvasId = match.canvas_id;
-                state.elements = Array.isArray(match.content.elements) ? match.content.elements : [];
-                state.connectors = Array.isArray(match.content.connectors) ? match.content.connectors : [];
-                setGeneratedDesign(match.content.generated || null);
-            } else {
-                state = { elements: [], connectors: [], generated: null };
-            }
+        var pid = projectId();
+
+        var fallbackCanvases = function () {
+            api("/api/vibe/canvases", { method: "GET", headers: {} }).then(function (data) {
+                var rows = data.canvases || [];
+                var match = rows.filter(function (row) {
+                    return String(row.project || "") === project && row.content && row.content.kind === "vibe-design";
+                }).sort(function (a, b) { return String(b.updated_at).localeCompare(String(a.updated_at)); })[0];
+                if (match) {
+                    canvasId = match.canvas_id;
+                    applyContent(match.content);
+                } else {
+                    state = { elements: [], connectors: [], generated: null };
+                }
+                render();
+                maybeGenerateBaseline(project);
+                setStatus("Saved");
+            }).catch(function (error) { setStatus("Local changes only: " + error.message); });
+        };
+
+        // Prefer the persistent, exportable file at the workspace root.
+        if (!pid) { fallbackCanvases(); return; }
+        readProjectDraw(pid).then(function (parsed) {
+            applyContent(parsed);
             render();
-            if (project !== "unsaved" && !state.generated && window.VibeCanvasViews && window.VibeCanvasViews.generateProjectDesign) {
-                window.VibeCanvasViews.generateProjectDesign(false);
-            }
-            setStatus("Saved");
-        }).catch(function (error) { setStatus("Local changes only: " + error.message); });
+            setStatus("Saved · project.draw ✓");
+        }).catch(fallbackCanvases);
     }
 
     function scheduleSave() {
@@ -369,18 +524,27 @@ document.addEventListener("click", function (e) {
         setStatus("Saving…");
         request.then(function (data) {
             if (data.canvas) canvasId = data.canvas.canvas_id;
-            setStatus("Saved");
+            // Mirror the design to project.draw at the root of the workspace
+            // so the architecture travels with the project files (#1191).
+            var pid = projectId();
+            if (!pid) { setStatus("Saved"); return; }
+            writeProjectDraw(pid, content)
+                .then(function () { setStatus("Saved · project.draw ✓"); })
+                .catch(function () { setStatus("Saved"); });
         }).catch(function (error) { setStatus("Save failed: " + error.message); });
     }
 
     function init() {
-        var surface = document.getElementById("vibeDesignSurface");
-        if (!surface || surface.dataset.ready === "1") return;
-        surface.dataset.ready = "1";
-        surface.addEventListener("pointerdown", onPointerDown);
-        surface.addEventListener("pointermove", onPointerMove);
-        surface.addEventListener("pointerup", onPointerUp);
-        surface.addEventListener("pointercancel", onPointerUp);
+        // Bind EVERY design surface (parked panel + standalone app window):
+        // the visible one receives the pointer events that matter.
+        document.querySelectorAll("#vibeDesignSurface").forEach(function (surface) {
+            if (!surface || surface.dataset.ready === "1") return;
+            surface.dataset.ready = "1";
+            surface.addEventListener("pointerdown", onPointerDown);
+            surface.addEventListener("pointermove", onPointerMove);
+            surface.addEventListener("pointerup", onPointerUp);
+            surface.addEventListener("pointercancel", onPointerUp);
+        });
         document.addEventListener("click", function (event) {
             var toolButton = event.target.closest("[data-vibe-tool]");
             if (toolButton) activateTool(toolButton.getAttribute("data-vibe-tool"));
@@ -408,7 +572,8 @@ document.addEventListener("click", function (e) {
                 }
             }
         });
-        document.getElementById("vibeCanvas").addEventListener("wheel", function (event) {
+        var wheelHost = visEl("vibeCanvas");
+        if (wheelHost) wheelHost.addEventListener("wheel", function (event) {
             if (!event.ctrlKey) return;
             event.preventDefault();
             vibeSetZoom(event.deltaY < 0 ? 1 : -1);
@@ -419,6 +584,217 @@ document.addEventListener("click", function (e) {
         });
     }
 
+    // Draw-by-chat offline parser (#1191). Recognized grammar:
+    //   add rect[angle] <label> | rectangle <label> | box <label>
+    //   add text <text>          | text <text>
+    //   connect|link A -> B      | connect A to B
+    //   rename <from> to <to>    | delete|remove <label> | clear
+    function chatFeedback(msg) {
+        var bar = document.getElementById("vibeDesignChatLog");
+        if (bar) {
+            bar.textContent = msg;
+            clearTimeout(chatFeedback._t);
+            chatFeedback._t = setTimeout(function () { bar.textContent = ""; }, 5000);
+        }
+        setStatus(msg);
+    }
+
+    function findLabelled(label) {
+        var needle = label.toLowerCase();
+        return state.elements.filter(function (e) {
+            return e.text && String(e.text).toLowerCase() === needle;
+        });
+    }
+
+    function labelAnchor(label) {
+        var items = findLabelled(label);
+        var best = null;
+        items.forEach(function (e) {
+            if (!best || (e.type === "rectangle" && best.type !== "rectangle")) best = e;
+        });
+        return best;
+    }
+
+    function addRect(label, opts) {
+        opts = opts || {};
+        var base = Date.now() + Math.floor(Math.random() * 1000);
+        var rect = { id: "el-" + base, type: "rectangle", x: opts.x != null ? opts.x : 80 + (state.elements.length % 5) * 40,
+            y: opts.y != null ? opts.y : 80 + Math.floor(state.elements.length / 5) * 40 + 60, w: 170, h: 90 };
+        state.elements.push(rect);
+        if (label) {
+            state.elements.push({ id: "el-" + base + "t", type: "text", x: rect.x + 12, y: rect.y + rect.h / 2 - 14,
+                w: Math.max(60, rect.w - 24), h: 28, text: label });
+        }
+        selectedId = rect.id;
+        render(); scheduleSave();
+        return rect;
+    }
+
+    function centerOf(el) { return { x: el.x + el.w / 2, y: el.y + el.h / 2 }; }
+
+    function connect(fromLabel, toLabel) {
+        var a = labelAnchor(fromLabel), b = labelAnchor(toLabel);
+        if (!a || !b) return false;
+        var ca = centerOf(a), cb = centerOf(b);
+        state.connectors.push({ id: "line-" + Date.now(), x1: ca.x, y1: ca.y, x2: cb.x, y2: cb.y });
+        render(); scheduleSave();
+        return true;
+    }
+
+    function chatCommand(raw) {
+        var text = raw.trim().replace(/;+$/g, "");
+        if (!text) return false;
+        var m;
+        if ((m = text.match(/^(?:add\s+)?(?:rect(?:angle)?|box)\s+(.{1,40})$/i))) {
+            addRect(m[1].trim());
+            chatFeedback("▭ Added “" + m[1].trim() + "”");
+            return true;
+        }
+        if ((m = text.match(/^(?:add\s+)?text\s+(.{1,120})$/i))) {
+            var t = m[1].trim();
+            state.elements.push({ id: "el-" + Date.now(), type: "text", x: 110, y: 110 + (state.elements.length % 6) * 30, w: 220, h: 30, text: t });
+            render(); scheduleSave();
+            chatFeedback("🔤 Added text “" + t + "”");
+            return true;
+        }
+        if ((m = text.match(/^(?:connect|link)\s+['"]?(.+?)['"]?\s*(?:->|→|to)\s*['"]?(.+?)['"]?$/i))) {
+            if (connect(m[1].trim(), m[2].trim())) {
+                chatFeedback("↔ Connected “" + m[1].trim() + "” → “" + m[2].trim() + "”");
+                return true;
+            }
+            chatFeedback("⚠ Not found. Try: add rect " + m[1].trim() + " first.");
+            return true;
+        }
+        if ((m = text.match(/^rename\s+['"]?(.+?)['"]?\s+to\s+['"]?(.+?)['"]?$/i))) {
+            var target = labelAnchor(m[1].trim());
+            if (!target) { chatFeedback("⚠ No element named “" + m[1].trim() + "”."); return true; }
+            target.text = m[2].trim();
+            render(); scheduleSave();
+            chatFeedback("✏ Renamed → “" + m[2].trim() + "”");
+            return true;
+        }
+        if ((m = text.match(/^(?:delete|remove)\s+['"]?(.+?)['"]?$/i))) {
+            var doomed = findLabelled(m[1].trim());
+            if (!doomed.length) { chatFeedback("⚠ Nothing named “" + m[1].trim() + "”."); return true; }
+            var ids = {}; doomed.forEach(function (d) { ids[d.id] = 1; });
+            state.elements = state.elements.filter(function (e) { return !ids[e.id]; });
+            render(); scheduleSave();
+            chatFeedback("🗑 Removed “" + m[1].trim() + "”");
+            return true;
+        }
+        if (/^clear(\s+all)?$|^reset$/i.test(text)) {
+            state = { elements: [], connectors: [], generated: state.generated };
+            selectedId = null;
+            render(); scheduleSave();
+            chatFeedback("🧽 Canvas cleared (baseline kept)");
+            return true;
+        }
+        chatFeedback("Try: add rect API · add text Login · connect UI to API · rename A to B · delete A · clear");
+        return false;
+    }
+
+    // Pinned draw-by-chat input docked at the bottom of the drawing surface.
+    function installChatBar(hostOverride) {
+        var host = hostOverride || visEl("vibeCanvas");
+        if (!host || host.dataset.chatReady === "1") return;
+        if (host.querySelector("#vibeDesignChatInput")) { host.dataset.chatReady = "1"; return; }
+        host.dataset.chatReady = "1";
+        var wrap = document.createElement("div");
+        wrap.style.cssText = [
+            "position:absolute", "left:12px", "bottom:12px", "z-index:20",
+            "display:flex", "align-items:center", "gap:8px",
+            "background:var(--surface,#14142a)", "border:1px solid var(--border,#333)",
+            "border-radius:10px", "padding:7px 10px", "box-shadow:0 10px 26px rgba(0,0,0,.35)",
+        ].join(";");
+        wrap.innerHTML = '<span title="Draw by chat" style="font-size:13px;">💬</span>' +
+            '<input id="vibeDesignChatInput" type="text" autocomplete="off" placeholder=' +
+            '"draw by chat: add rect API · connect UI to API" ' +
+            'style="width:min(340px,42vw);background:transparent;border:none;color:var(--text,#eee);font-size:12px;outline:none;" />' +
+            '<span id="vibeDesignChatLog" style="font-size:11px;color:var(--accent,#84d669);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>';
+        host.appendChild(wrap);
+        var input = wrap.querySelector("#vibeDesignChatInput");
+        input.addEventListener("keydown", function (ev) {
+            if (ev.key === "Enter") {
+                ev.preventDefault();
+                window.VibeDesign && window.VibeDesign.chat(input.value);
+                input.value = "";
+            }
+        });
+    }
+
+    // LLM architecture generation: sends the project context through the
+    // Vibe assistant (bot LLM = tokenrouter) asking for a strict JSON zone
+    // map, then renders it as the generated diagram and persists project.draw.
+    function llmGenerateArchitecture() {
+        var pid = projectId();
+        if (!pid) { chatFeedback("⚠ Select a project first."); return; }
+        chatFeedback("✦ Asking the LLM for the architecture…");
+        api("/api/vibe/projects/" + encodeURIComponent(pid) + "/files", { method: "GET", headers: {} })
+            .then(function (d) {
+                var files = (d && (d.files || d.data && d.data.files)) || [];
+                var fileList = (files || []).slice(0, 40).join("\n");
+                var prompt = "Design the software architecture for this project. Return ONLY a JSON object, no prose, no markdown, with this exact shape: {" +
+                    "\"title\":\"<project name>\",\"zones\":[{\"name\":\"Web\",\"items\":[<short module names>]},{\"name\":\"App\",...},{\"name\":\"API\",...},{\"name\":\"Data\",...}]}. " +
+                    "Use the real modules found in this project file list, max 5 items per zone, short names only (no paths). Project files:\n" + fileList;
+                window.vibeQuickSubmit(prompt);
+                var attempts = 0;
+                var timer = setInterval(function () {
+                    attempts++;
+                    // Runner status/bot messages land in the RUNNER LOG since
+                    // the in-runner chat overlay was removed.
+                    var messages = document.getElementById("vibeRunnerLogList");
+                    if (!messages) { if (attempts > 24) clearInterval(timer); return; }
+                    var nodes = messages.querySelectorAll(".vibe-bot-msg, .bot-message, .message.bot");
+                    if (!nodes.length) return;
+                    var last = nodes[nodes.length - 1];
+                    var text = (last.textContent || "").trim();
+                    var m = text.match(/\{[\s\S]*\}/);
+                    if (!m || attempts > 24) { if (attempts > 24) clearInterval(timer); return; }
+                    var parsed = null;
+                    try { parsed = JSON.parse(m[0]); } catch (e) { /* not JSON yet */ }
+                    if (!parsed || !parsed.zones) return;
+                    clearInterval(timer);
+                    var design = { kind: "vibe-design", version: 3, generatedAt: new Date().toISOString(),
+                        source: "llm", title: parsed.title || projectKey(), svg: svgFromZones(parsed.zones, parsed.title || projectKey()) };
+                    setGeneratedDesign(design);
+                    render();
+                    var content = { kind: "vibe-design", version: 3, elements: state.elements, connectors: state.connectors, generated: state.generated };
+                    writeProjectDraw(pid, content).then(function () {
+                        chatFeedback("✦ LLM architecture saved to project.draw ✓");
+                        setStatus("Saved · project.draw (LLM) ✓");
+                    }).catch(function () {
+                        chatFeedback("✦ Architecture generated (project.draw save pending)");
+                    });
+                }, 700);
+            }).catch(function () {
+                chatFeedback("⚠ Could not read project files.");
+            });
+    }
+
+    function svgFromZones(zones, title) {
+        var cols = ["Web", "App", "API", "Data"];
+        var colors = { Web: "#2563eb", App: "#16a34a", API: "#d97706", Data: "#7c3aed" };
+        var h = "";
+        cols.forEach(function (col, i) {
+            var z = (zones || []).find(function (x) { return String(x.name).toLowerCase() === String(col).toLowerCase(); });
+            var items = (z && z.items) || [];
+            if (!items.length) items = [col.toLowerCase()];
+            var x = 40 + i * 225;
+            h += '<rect x="' + x + '" y="70" width="185" height="340" rx="12" fill="#ffffff" stroke="' + colors[col] + '" stroke-width="2"/>';
+            h += '<text x="' + (x + 16) + '" y="98" font-family="system-ui" font-size="16" font-weight="700" fill="' + colors[col] + '">' + col + "</text>";
+            var y = 130;
+            items.slice(0, 5).forEach(function (item) {
+                h += '<rect x="' + (x + 14) + '" y="' + (y - 14) + '" width="157" height="22" rx="6" fill="#f1f5f9"/>';
+                h += '<text x="' + (x + 24) + '" y="' + y + '" font-family="monospace" font-size="11" fill="#334155">' + item + "</text>";
+                y += 32;
+            });
+        });
+        return '<svg viewBox="0 0 960 520" xmlns="http://www.w3.org/2000/svg">' +
+            '<rect x="16" y="20" width="928" height="480" rx="14" fill="#f8fafc" stroke="#cbd5e1"/>' +
+            '<text x="40" y="48" font-family="system-ui" font-size="16" font-weight="700" fill="#0f172a">' + (title || "Architecture") + "</text>" +
+            h + "</svg>";
+    }
+
     window.VibeDesign = {
         init: init,
         activate: activateTool,
@@ -427,6 +803,10 @@ document.addEventListener("click", function (e) {
         setGeneratedDesign: setGeneratedDesign,
         saveSoon: scheduleSave,
         load: loadCanvas,
+        chat: function (raw) { return chatCommand(String(raw || "")); },
+        installChat: function (hostOverride) { return installChatBar(hostOverride); },
+        llmGenerate: llmGenerateArchitecture,
     };
     init();
+    installChatBar();
 })();

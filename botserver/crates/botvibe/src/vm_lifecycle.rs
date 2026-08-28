@@ -296,6 +296,82 @@ impl VmLifecycle {
         Ok(())
     }
 
+    /// Deletes every VM (row + Incus container) belonging to a project.
+    /// Called when the project itself is removed so no orphaned containers
+    /// or `vm_instances` rows survive the project delete (#1266).
+    pub fn delete_all_for_project(&self, project_id: Uuid) -> Result<usize, String> {
+        let vms = self.list(project_id)?;
+        let mut deleted = 0usize;
+        for vm in &vms {
+            if self.linux_available() && self.linux_exists(&vm.container_name)? {
+                if let Err(e) = self.linux_delete(&vm.container_name) {
+                    log::error!(
+                        "Vibe: delete container {} for project {project_id} failed: {e}",
+                        vm.container_name
+                    );
+                }
+            }
+            let mut conn = self.conn()?;
+            diesel::sql_query("DELETE FROM vm_instances WHERE id = $1")
+                .bind::<diesel::sql_types::Uuid, _>(vm.id)
+                .execute(&mut conn)
+                .map_err(|e| format!("delete vm for project {project_id}: {e}"))?;
+            deleted += 1;
+        }
+        Ok(deleted)
+    }
+
+    /// Prod-VM guard (#1271): production VMs stay running forever once
+    /// deployed. Starts every `production` VM whose container exists but is
+    /// not running (host reboot, manual stop, crash) and syncs the row back
+    /// to `running`. Missing containers are reported so the operator can
+    /// redeploy. Returns the container names that were (re)started.
+    pub fn ensure_prod_running(&self) -> Result<Vec<String>, String> {
+        let vms = self.list_all()?;
+        if vms.is_empty() || !self.linux_available() {
+            return Ok(Vec::new());
+        }
+        let mut started: Vec<String> = Vec::new();
+        for vm in vms {
+            if vm.env != "production" {
+                continue;
+            }
+            match self.linux_exists(&vm.container_name) {
+                Ok(false) => log::warn!(
+                    "Vibe prod-VM guard: {} row exists but container is missing — redeploy to recreate",
+                    vm.container_name
+                ),
+                Ok(true) => match self.linux_running(&vm.container_name) {
+                    Ok(true) => {}
+                    Ok(false) => match self.linux_start(&vm.container_name) {
+                        Ok(()) => {
+                            if let Err(e) = self.set_status(&vm.id, "running") {
+                                log::error!(
+                                    "Vibe prod-VM guard: sync status for {} failed: {e}",
+                                    vm.container_name
+                                );
+                            }
+                            started.push(vm.container_name.clone());
+                        }
+                        Err(e) => log::error!(
+                            "Vibe prod-VM guard: start {} failed: {e}",
+                            vm.container_name
+                        ),
+                    },
+                    Err(e) => log::error!(
+                        "Vibe prod-VM guard: check {} failed: {e}",
+                        vm.container_name
+                    ),
+                },
+                Err(e) => log::error!(
+                    "Vibe prod-VM guard: probe {} failed: {e}",
+                    vm.container_name
+                ),
+            }
+        }
+        Ok(started)
+    }
+
     /// Lists every VM across all projects (reaper / admin sweep).
     pub fn list_all(&self) -> Result<Vec<VmInstance>, String> {
         let mut conn = self.conn()?;
@@ -320,6 +396,12 @@ impl VmLifecycle {
         let mut reaped: Vec<String> = Vec::new();
         for vm in vms {
             if vm.status == "stopped" {
+                continue;
+            }
+            // #1271 — production VMs are never reaped: they run forever once
+            // deployed (the prod-VM guard keeps them up). Only dev/staging
+            // VMs are subject to idle-stop and expiry.
+            if vm.env == "production" {
                 continue;
             }
             let idle = now.signed_duration_since(vm.updated_at).num_seconds();

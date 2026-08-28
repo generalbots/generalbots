@@ -2,15 +2,18 @@
      CANVAS APP - Collaborative Whiteboard & Drawing
      Respects Theme Manager - No hardcoded theme
      ============================================================================= -->
-<link rel="stylesheet" href="/suite/canvas/canvas.p1.css?v=1">
-<link rel="stylesheet" href="/suite/canvas/canvas.p2.css?v=1">
-<div class="gb-app canvas-root" id="canvas-app-root" data-gb-app="canvas">
-    <div hx-get="/suite/canvas/partials/01_app_open.html" hx-trigger="load" hx-swap="outerHTML"></div>
-    <div hx-get="/suite/canvas/partials/02_toolbar.html" hx-trigger="load" hx-swap="outerHTML"></div>
-    <div hx-get="/suite/canvas/partials/03_header.html" hx-trigger="load" hx-swap="outerHTML"></div>
-    <div hx-get="/suite/canvas/partials/04_canvas_container.html" hx-trigger="load" hx-swap="outerHTML"></div>
-    <div hx-get="/suite/canvas/partials/05_properties_panel.html" hx-trigger="load" hx-swap="outerHTML"></div>
-    <div hx-get="/suite/canvas/partials/06_export_modal.html" hx-trigger="load" hx-swap="outerHTML"></div>
+<link rel="stylesheet" href="/suite/canvas/canvas.p1.css?v=3" />
+<link rel="stylesheet" href="/suite/canvas/canvas.p2.css?v=3" />
+<!-- The .canvas-app class makes this root the flex-row layout container.
+     Partials 02/03/05/06 are swapped in as direct children: toolbar (left),
+     main (center), properties (right). Modals are position:fixed and take no
+     flex space. #canvas-app-root.canvas-app { flex-direction: row } in
+     canvas.p2.css overrides the .gb-app column direction. -->
+<div class="gb-app canvas-app canvas-root" id="canvas-app-root" data-gb-app="canvas">
+    <div hx-get="/suite/canvas/partials/02_toolbar.html?v=3" hx-trigger="load" hx-swap="outerHTML"></div>
+    <div hx-get="/suite/canvas/partials/03_header.html?v=3" hx-trigger="load" hx-swap="outerHTML"></div>
+    <div hx-get="/suite/canvas/partials/05_properties_panel.html?v=3" hx-trigger="load" hx-swap="outerHTML"></div>
+    <div hx-get="/suite/canvas/partials/06_export_modal.html?v=3" hx-trigger="load" hx-swap="outerHTML"></div>
 </div>
 
 <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading canvas…</span></div>
@@ -262,6 +265,14 @@
         if (e.ctrlKey && e.key === "c" && selectedElement) copySelected();
         if (e.ctrlKey && e.key === "v") pasteClipboard();
         if (e.ctrlKey && e.key === "d" && selectedElement) duplicateSelected();
+        if (e.ctrlKey && e.key.toLowerCase() === "s") {
+            e.preventDefault();
+            if (typeof window.saveCanvas === "function") window.saveCanvas();
+        }
+        if (e.ctrlKey && e.key.toLowerCase() === "n") {
+            e.preventDefault();
+            if (typeof window.newCanvas === "function") window.newCanvas();
+        }
     }
 
     function drawGrid() {
@@ -774,6 +785,10 @@
         setStrokeWidth: setStrokeWidth,
         setGridType: setGridType,
         setCanvasBackground: setCanvasBackground,
+        setCanvasBackgroundHidden: function () {
+            canvasBg = "transparent";
+            redraw();
+        },
         toggleSnapToGrid: toggleSnapToGrid,
         updateElementProperty: updateElementProperty,
         clearCanvas: clearCanvas,
@@ -798,7 +813,544 @@
         bringToFront: bringToFront,
         sendToBack: sendToBack,
         renameCanvas: renameCanvas,
+        getCanvasElements: function () { return elements; },
+        setCanvasElements: function (arr) {
+            elements = Array.isArray(arr) ? arr : [];
+            saveHistory();
+            redraw();
+        },
+        appendCanvasElements: function (arr) {
+            if (Array.isArray(arr)) arr.forEach(function (el) { elements.push(el); });
+            saveHistory();
+            redraw();
+        },
+        canvasSaveMethods: { saveCanvas: saveCanvas, clearCanvas: clearCanvas, undo: undo, redo: redo },
     };
     Object.assign(window, window._canvasApp);
+})();
+</script>
+
+<!-- =============================================================================
+     PROJECT.DRAW BRIDGE (#1398)
+     When the Canvas App is opened from Vibe (toolbar Canvas button), it deep-links
+     with `window.__gbAppParams__.project` = the vibe project UUID. This bridge loads
+     the LLM-generated architecture file `project.draw` from the project workspace
+     root and persists future edits back to it, so the canvas always reflects the
+     project architecture.
+     ============================================================================= -->
+<script>
+(function () {
+    "use strict";
+
+    function currentProjectId() {
+        var p = window.__gbAppParams__ || {};
+        var qs = new URLSearchParams(window.location.search);
+        return p.project || qs.get("project") || "";
+    }
+
+    // JSON POST helper consistent with the rest of the suite.
+    function api(url, opts) {
+        opts = opts || {};
+        var headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
+        // Bearer token so the project-files endpoints accept the read/write.
+        var token = "";
+        if (window.getGBAccessToken) { token = window.getGBAccessToken() || ""; }
+        if (!token) token = window.localStorage.getItem("gb-access-token") || "";
+        if (!token) token = window.sessionStorage.getItem("gb-access-token") || "";
+        if (window.GB_TOKEN) token = window.GB_TOKEN;
+        if (token) headers["Authorization"] = "Bearer " + token;
+        return fetch(url, {
+            method: opts.method || "GET",
+            headers: headers,
+            body: opts.body || undefined,
+        }).then(function (r) { return r.json(); });
+    }
+
+    // Map a project.draw design element to the canvas-app element shape.
+    function canvasElement(designEl) {
+        var el = designEl || {};
+        var w = el.w || el.width || 160;
+        var h = el.h || el.height || 90;
+        var elem = {
+            id: el.id || Date.now() + Math.floor(Math.random() * 10000),
+            type: el.type || "rectangle",
+            x: el.x || 0,
+            y: el.y || 0,
+            width: w,
+            height: h,
+            stroke: "#0f172a",
+            fill: el.text ? "#e0f2fe" : "transparent",
+            strokeWidth: 2,
+        };
+        if (el.text) { elem.text = el.text; elem.type = "text"; }
+        return elem;
+    }
+
+    function loadProjectDraw() {
+        var pid = currentProjectId();
+        if (!pid || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pid)) return;
+        api("/api/vibe/projects/" + encodeURIComponent(pid) +
+            "/files/content?path=" + encodeURIComponent("project.draw"))
+            .then(function (d) {
+                if (!d || !d.content) return;
+                var parsed;
+                try { parsed = JSON.parse(d.content); } catch (e) { return; }
+                // Render the LLM-generated architecture SVG as a non-interactive
+                // background so the user sees the diagram and can draw on top of
+                // it; the interactive canvas sits transparent above it.
+                var bg = document.getElementById("canvas-bg-svg");
+                if (parsed.generated && parsed.generated.svg) {
+                    if (bg) bg.innerHTML = parsed.generated.svg;
+                    var app = window._canvasApp;
+                    if (app && typeof app.setCanvasBackgroundHidden === "function") {
+                        app.setCanvasBackgroundHidden();
+                    }
+                }
+                var name = document.getElementById("canvas-name");
+                if (name) name.value = (parsed.title || "project") + " · project.draw";
+
+                var items = Array.isArray(parsed.elements) ? parsed.elements : [];
+                if (!items.length) return;
+                // Push saved design elements into the live canvas via the app API.
+                var app = window._canvasApp;
+                if (app && typeof app.appendCanvasElements === "function") {
+                    app.appendCanvasElements(items.map(canvasElement));
+                }
+            })
+            .catch(function () { /* no project.draw yet — blank canvas */ });
+    }
+
+    // Persist current elements back to project.draw at the project root.
+    function saveProjectDraw() {
+        var pid = currentProjectId();
+        if (!pid || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pid)) return;
+        var app = window._canvasApp;
+        var els = app && typeof app.getCanvasElements === "function" ? app.getCanvasElements() : [];
+        var designElements = els.map(function (el) {
+            return {
+                id: el.id,
+                type: el.type === "text" ? "text" : "rectangle",
+                x: Math.round(el.x),
+                y: Math.round(el.y),
+                w: Math.round(el.width),
+                h: Math.round(el.height),
+                text: el.text || undefined,
+            };
+        });
+        var content = {
+            kind: "vibe-design",
+            version: 2,
+            title: "project",
+            elements: designElements,
+            connectors: [],
+            generated: null,
+        };
+        api("/api/vibe/projects/" + encodeURIComponent(pid) + "/files", {
+            method: "POST",
+            body: JSON.stringify({ path: "project.draw", content: JSON.stringify(content, null, 2) }),
+        })
+            .then(function () {
+                var status = document.getElementById("save-status");
+                if (status) status.textContent = "Saved · project.draw ✓";
+            })
+            .catch(function () {
+                var status = document.getElementById("save-status");
+                if (status) status.textContent = "Saved (local)";
+            });
+    }
+
+    // Bridge into the native canvas app: after boot + load, sync the drawn
+    // elements to project.draw on every save/undo/redo/clear.
+    var origSave = window._canvasApp && window._canvasApp.saveCanvas;
+    var origClear = window._canvasApp && window._canvasApp.clearCanvas;
+    var origUndo = window._canvasApp && window._canvasApp.undo;
+    var origRedo = window._canvasApp && window._canvasApp.redo;
+
+    function syncSave() {
+        if (origSave) origSave();
+        saveProjectDraw();
+    }
+    function syncClear() {
+        if (origClear) origClear();
+        saveProjectDraw();
+    }
+    function syncUndo() {
+        if (origUndo) origUndo();
+        saveProjectDraw();
+    }
+    function syncRedo() {
+        if (origRedo) origRedo();
+        saveProjectDraw();
+    }
+    if (window._canvasApp) {
+        window._canvasApp.saveCanvas = syncSave;
+        window._canvasApp.clearCanvas = syncClear;
+        window._canvasApp.undo = syncUndo;
+        window._canvasApp.redo = syncRedo;
+        Object.assign(window, {
+            saveCanvas: syncSave,
+            clearCanvas: syncClear,
+            undo: syncUndo,
+            redo: syncRedo,
+        });
+        window.saveProjectDraw = saveProjectDraw;
+    }
+
+    // Boot once the canvas is mounted.
+    (function waitBoot() {
+        if (document.getElementById("main-canvas")) {
+            loadProjectDraw();
+        } else {
+            setTimeout(waitBoot, 150);
+        }
+    })();
+})();
+</script>
+
+<!-- =============================================================================
+     DRIVE .DRAW BRIDGE
+     When the Canvas App is opened from the Drive app (double-click a .draw
+     file), the drive shell sets window.__CANVAS_FILE_BUCKET /
+     window.__CANVAS_FILE_PATH (or the URL carries ?bucket=&path=). This bridge
+     loads the .draw document from MinIO Drive, persists edits back to it, and
+     supports creating new .draw files. Standalone canvases (no drive context)
+     save by downloading a local .draw file.
+     ============================================================================= -->
+<script>
+(function () {
+    "use strict";
+
+    function currentCanvasFile() {
+        var p = window.__CANVAS_FILE_PATH || "";
+        var b = window.__CANVAS_FILE_BUCKET || "";
+        var s = window.__CANVAS_FILE_SCOPE || "bot";
+        if (!p || !b) {
+            var qs = new URLSearchParams(window.location.search);
+            if (!p) p = qs.get("path") || "";
+            if (!b) b = qs.get("bucket") || "";
+        }
+        var folder = window.__CANVAS_FOLDER;
+        if (folder === undefined && p) {
+            folder = p.indexOf("/") === -1 ? "" : p.substring(0, p.lastIndexOf("/"));
+        }
+        return {
+            path: p,
+            bucket: b,
+            scope: s,
+            folder: folder || "",
+            name: p ? p.split("/").pop() : "",
+        };
+    }
+
+    function driveFileOpen() {
+        var f = currentCanvasFile();
+        return !!f.bucket && !!f.path;
+    }
+
+    function api(url, opts) {
+        opts = opts || {};
+        var headers = Object.assign({ "Content-Type": "application/json" }, opts.headers || {});
+        var token = "";
+        if (window.getGBAccessToken) token = window.getGBAccessToken() || "";
+        if (!token) token = window.localStorage.getItem("gb-access-token") || "";
+        if (!token) token = window.sessionStorage.getItem("gb-access-token") || "";
+        if (window.GB_TOKEN) token = window.GB_TOKEN;
+        if (token) headers["Authorization"] = "Bearer " + token;
+        return fetch(url, {
+            method: opts.method || "GET",
+            headers: headers,
+            body: opts.body || undefined,
+        }).then(function (r) { return r.json(); });
+    }
+
+    function setStatus(text) {
+        var status = document.getElementById("save-status");
+        if (status) status.textContent = text;
+    }
+
+    // Normalize any element shape (full canvas element, or legacy
+    // vibe-design {type,x,y,w,h,text}) into a drawable canvas element.
+    function toCanvasElement(el) {
+        if (!el) return null;
+        var copy = Object.assign({}, el);
+        delete copy.img; // HTMLImageElement is not JSON-serializable
+        if (copy.width !== undefined || copy.type === "text" || copy.points) {
+            if (copy.type === "text") copy.fontSize = copy.fontSize || 18;
+            if (!copy.stroke) copy.stroke = "#000000";
+            if (!copy.strokeWidth) copy.strokeWidth = 2;
+            if (copy.id === undefined) copy.id = Date.now() + Math.floor(Math.random() * 10000);
+            return copy;
+        }
+        // Legacy design element
+        var w = el.w || el.width || 160;
+        var h = el.h || el.height || 90;
+        var elem = {
+            id: el.id || Date.now() + Math.floor(Math.random() * 10000),
+            type: el.type || "rectangle",
+            x: el.x || 0,
+            y: el.y || 0,
+            width: w,
+            height: h,
+            stroke: "#0f172a",
+            fill: el.text ? "#e0f2fe" : "transparent",
+            strokeWidth: 2,
+        };
+        if (el.text) { elem.text = el.text; elem.type = "text"; }
+        return elem;
+    }
+
+    function serializeElements(els) {
+        var keys = ["id", "type", "x", "y", "width", "height", "stroke", "fill", "strokeWidth", "rotation", "opacity", "fontSize", "text", "points"];
+        return (els || []).map(function (el) {
+            var copy = {};
+            keys.forEach(function (k) {
+                if (el[k] !== undefined) copy[k] = el[k];
+            });
+            return copy;
+        });
+    }
+
+    function canvasTitle() {
+        var el = document.getElementById("canvas-name");
+        var t = ((el && el.value) || "Untitled Canvas").trim();
+        return t.replace(/\.draw$/i, "");
+    }
+
+    function loadDriveDraw() {
+        var f = currentCanvasFile();
+        if (!f.bucket || !f.path) return;
+        api("/api/files/download", {
+            method: "POST",
+            body: JSON.stringify({ bucket: f.bucket, path: f.path, scope: f.scope }),
+        })
+            .then(function (d) {
+                if (!d || !d.content) return;
+                var text;
+                try { text = atob(d.content); } catch (e) { return; }
+                var parsed;
+                try { parsed = JSON.parse(text); } catch (e) { return; }
+                var items = Array.isArray(parsed.elements) ? parsed.elements : [];
+                var app = window._canvasApp;
+                if (app && typeof app.setCanvasElements === "function") {
+                    app.setCanvasElements(items.map(toCanvasElement).filter(Boolean));
+                }
+                // LLM-generated architecture background (vibe-style .draw)
+                if (parsed.generated && parsed.generated.svg) {
+                    var bg = document.getElementById("canvas-bg-svg");
+                    if (bg) bg.innerHTML = parsed.generated.svg;
+                    if (app && typeof app.setCanvasBackgroundHidden === "function") {
+                        app.setCanvasBackgroundHidden();
+                    }
+                }
+                var nameEl = document.getElementById("canvas-name");
+                if (nameEl) nameEl.value = parsed.title || f.name.replace(/\.draw$/i, "");
+                setStatus("Loaded · " + f.name);
+            })
+            .catch(function () { /* file missing — blank canvas */ });
+    }
+
+    // Write the current elements back to a .draw file on the drive (or
+    // download a local .draw when there is no drive context).
+    function saveDriveDraw() {
+        var f = currentCanvasFile();
+        var app = window._canvasApp;
+        var els = app && typeof app.getCanvasElements === "function" ? app.getCanvasElements() : [];
+        var content = JSON.stringify({
+            kind: "canvas-draw",
+            version: 2,
+            title: canvasTitle(),
+            elements: serializeElements(els),
+            connectors: [],
+            generated: null,
+        }, null, 2);
+
+        var name = canvasTitle();
+        if (!f.bucket) {
+            // Standalone canvas: download a local .draw file.
+            var blob = new Blob([content], { type: "application/json" });
+            var link = document.createElement("a");
+            link.download = name + ".draw";
+            link.href = URL.createObjectURL(blob);
+            link.click();
+            setTimeout(function () { URL.revokeObjectURL(link.href); }, 4000);
+            setStatus("Saved (download)");
+            return;
+        }
+
+        var path = f.path;
+        if (!path) {
+            // New file: derive a fresh .draw path inside the launch folder.
+            var safeName = name.replace(/[\/\\?%*:|"<>]/g, "-").replace(/\.draw$/i, "") + ".draw";
+            path = f.folder ? f.folder + "/" + safeName : safeName;
+            window.__CANVAS_FILE_PATH = path;
+        }
+
+        api("/api/files/write", {
+            method: "POST",
+            body: JSON.stringify({
+                bucket: f.bucket,
+                path: path,
+                content: btoa(content),
+                scope: f.scope,
+            }),
+        })
+            .then(function () {
+                setStatus("Saved · " + path.split("/").pop() + " ✓");
+            })
+            .catch(function () {
+                setStatus("Save failed");
+            });
+    }
+
+    // Reset the board to a blank canvas; the next Save creates a new .draw
+    // file (same folder when launched from Drive, local download otherwise).
+    function newCanvas() {
+        var app = window._canvasApp;
+        if (app && typeof app.setCanvasElements === "function") app.setCanvasElements([]);
+        var nameEl = document.getElementById("canvas-name");
+        if (nameEl) nameEl.value = "Untitled Canvas";
+        window.__CANVAS_FILE_PATH = "";
+        setStatus("New canvas — press Save");
+    }
+
+    // Drive-aware save dispatch: Drive file → write .draw to Drive; Vibe
+    // project → project.draw; otherwise → download a local .draw.
+    var prevClear = window._canvasApp && window._canvasApp.clearCanvas;
+    var prevUndo = window._canvasApp && window._canvasApp.undo;
+    var prevRedo = window._canvasApp && window._canvasApp.redo;
+
+    function driveSync(fn) {
+        return function () {
+            var r = fn ? fn.apply(this, arguments) : undefined;
+            if (driveFileOpen()) saveDriveDraw();
+            return r;
+        };
+    }
+
+    function hasVibeProject() {
+        var p = (window.__gbAppParams__ || {}).project;
+        if (!p) {
+            try { p = new URLSearchParams(window.location.search).get("project"); } catch (e) { p = null; }
+        }
+        return !!p;
+    }
+
+    function saveCanvasDispatch() {
+        if (driveFileOpen()) { saveDriveDraw(); return; }
+        if (hasVibeProject() && window.saveProjectDraw) { window.saveProjectDraw(); return; }
+        saveDriveDraw(); // standalone — downloads .draw
+    }
+
+    if (window._canvasApp) {
+        window._canvasApp.saveCanvas = saveCanvasDispatch;
+        window._canvasApp.clearCanvas = driveSync(prevClear);
+        window._canvasApp.undo = driveSync(prevUndo);
+        window._canvasApp.redo = driveSync(prevRedo);
+        window._canvasApp.newCanvas = newCanvas;
+    }
+    window.saveCanvas = saveCanvasDispatch;
+    window.newCanvas = newCanvas;
+
+    // Boot once the canvas is mounted.
+    (function waitBoot() {
+        if (document.getElementById("main-canvas")) {
+            loadDriveDraw();
+        } else {
+            setTimeout(waitBoot, 150);
+        }
+    })();
+})();
+</script>
+
+<!-- =============================================================================
+     SELF-HEALING
+     The desktop window manager injects this HTML into an app window; the
+     partials are fetched via htmx and the stylesheets via <link>. If the
+     server hiccups (503) mid-load, the window can be left half-built with no
+     retry. Detect missing pieces and re-request them until the canvas is
+     fully mounted.
+     ============================================================================= -->
+<script>
+(function () {
+    "use strict";
+
+    var MAX_FAST_ATTEMPTS = 6; // ~9s of eager retrying every 1.5s
+    var attempts = 0;
+    var slow = false;
+
+    // Capture the expected stylesheet URLs while the <link>s are still in the
+    // DOM so a missing/broken link can be recreated with the same version.
+    var EXPECTED_CSS = Array.from(document.querySelectorAll('link[href*="/suite/canvas/canvas.p"]'))
+        .map(function (l) { return l.href; });
+
+    function canvasRootGone() {
+        return !document.getElementById("canvas-app-root");
+    }
+
+    function canvasFullyMounted() {
+        return !!document.getElementById("main-canvas")
+            && !!document.querySelector(".canvas-toolbar")
+            && !!document.querySelector(".canvas-main")
+            && !!document.querySelector(".properties-panel")
+            && !!document.getElementById("export-modal");
+    }
+
+    function cssLoaded() {
+        var links = Array.from(document.querySelectorAll('link[href*="canvas.p"]'));
+        return links.length > 0 && links.every(function (l) { return l.sheet; });
+    }
+
+    // A placeholder that never got swapped (htmx failure) is still an empty
+    // [hx-get] element under the root. Re-processing it re-fires its
+    // hx-trigger="load" and re-issues the request (htmx.trigger does NOT).
+    function reloadMissingPartials() {
+        if (canvasFullyMounted()) return;
+        Array.from(document.querySelectorAll("#canvas-app-root > [hx-get]")).forEach(function (el) {
+            if (window.htmx) htmx.process(el);
+        });
+    }
+
+    // Broken stylesheets are replaced; links that are missing entirely
+    // (removed or never injected) are recreated from the captured URLs.
+    function reloadMissingCss() {
+        if (cssLoaded()) return;
+        Array.from(document.querySelectorAll('link[href*="canvas.p"]')).forEach(function (link) {
+            if (link.sheet) return;
+            var fresh = document.createElement("link");
+            fresh.rel = "stylesheet";
+            fresh.href = link.href;
+            if (link.parentNode) link.parentNode.replaceChild(fresh, link);
+        });
+        EXPECTED_CSS.forEach(function (href) {
+            var exists = Array.from(document.querySelectorAll('link[href*="canvas.p"]'))
+                .some(function (l) { return l.href === href; });
+            if (!exists) {
+                var fresh = document.createElement("link");
+                fresh.rel = "stylesheet";
+                fresh.href = href;
+                document.body.appendChild(fresh);
+            }
+        });
+    }
+
+    // Keeps watching while the app window is open: broken → retry eagerly
+    // (1.5s), then settle into a slow watch (5s) so a window opened during a
+    // server blip still repairs itself once the server returns. Healthy →
+    // stay on the slow watch so late breakage is also caught. Stops when the
+    // window is closed. All actions are no-ops when everything is present.
+    function heal() {
+        if (canvasRootGone()) return;
+        if (canvasFullyMounted() && cssLoaded()) {
+            setTimeout(heal, 5000);
+            return;
+        }
+        attempts++;
+        if (!slow && attempts >= MAX_FAST_ATTEMPTS) slow = true;
+        reloadMissingPartials();
+        reloadMissingCss();
+        setTimeout(heal, slow ? 5000 : 1500);
+    }
+
+    setTimeout(heal, 1000);
 })();
 </script>

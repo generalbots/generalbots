@@ -145,7 +145,13 @@ impl SecretsManager {
                 .cloned()
                 .unwrap_or_default()
                 .replace("localhost", "127.0.0.1");
-            let token = secrets.get("token").cloned().unwrap_or_default();
+            let token = secrets
+                .get("token")
+                .cloned()
+                .filter(|t| !t.is_empty())
+                .or_else(|| secrets.get("runner_token").cloned().filter(|t| !t.is_empty()))
+                .or_else(|| secrets.get("password").cloned().filter(|t| !t.is_empty()))
+                .unwrap_or_default();
             let default_org = secrets.get("default_org").cloned().unwrap_or_default();
             if !url.is_empty() {
                 return (url, token, default_org);

@@ -4,11 +4,15 @@ use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Query, State};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
-use axum::{Json, Router};
+use axum::{Extension, Json, Router};
 use futures_util::StreamExt;
 use serde::Deserialize;
+use uuid::Uuid;
 
-use super::{default_shell, sanitize_cwd, TerminalManager};
+use crate::security::auth_api::types::AuthenticatedUser;
+
+use super::{sanitize_cwd, TerminalManager};
+use botcore::shared::utils::DbPool;
 
 #[derive(Deserialize)]
 pub struct CreateTerminalRequest {
@@ -27,33 +31,61 @@ pub struct KillTerminalRequest {
     pub id: String,
 }
 
-pub fn configure_terminal_routes() -> Router {
+pub struct TerminalRouterState {
+    pub manager: Arc<TerminalManager>,
+    pub pool: DbPool,
+}
+
+pub fn configure_terminal_routes(pool: DbPool) -> Router {
     let manager = Arc::new(TerminalManager::new());
     Router::new()
         .route("/api/terminal/create", post(create_terminal))
         .route("/api/terminal/list", get(list_terminals))
         .route("/api/terminal/kill", post(kill_terminal))
         .route("/api/terminal/ws", get(terminal_ws))
-        .with_state(manager)
+        .with_state(Arc::new(TerminalRouterState { manager, pool }))
 }
 
 async fn create_terminal(
-    State(manager): State<Arc<TerminalManager>>,
+    State(state): State<Arc<TerminalRouterState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<CreateTerminalRequest>,
 ) -> impl IntoResponse {
     let container = req.container.clone().filter(|c| !c.trim().is_empty());
-    let shell = req.shell.unwrap_or_else(|| {
-        if container.is_some() {
-            "/bin/bash".to_string()
-        } else {
-            default_shell()
+    // SECURITY: a container-less session spawns a PTY on the botserver host
+    // itself — any caller could read the whole server filesystem ("terminal
+    // exposes server contents" report). Web terminals must run inside a
+    // project VM container; refuse anything else outright.
+    let container = match container {
+        Some(c) => c,
+        None => {
+            return (
+                axum::http::StatusCode::FORBIDDEN,
+                Json(serde_json::json!({
+                    "error": "Host shell denied: the terminal must run inside the project VM. Start the VM (Play) and retry."
+                })),
+            );
         }
-    });
-    let cwd = sanitize_cwd(req.cwd.as_deref().unwrap_or(""));
-    let result = match container {
-        Some(name) => manager.create_session_with_container(shell, cwd, Some(name)),
-        None => manager.create_session(shell, cwd),
     };
+    // SECURITY: even with a container, only `vm_instances` containers of
+    // projects the caller can access (viewer+) may be attached. Arbitrary
+    // names (e.g. the server's own `tables`, `vault`, `drive`, `system`
+    // containers) would otherwise grant an `incus exec` shell on production
+    // infrastructure — the same "terminal exposes server contents" flaw in
+    // another form.
+    if let Err(e) = authorize_project_container(&state.pool, user.user_id, &container) {
+        log::warn!("terminal create forbidden (user {}): {e}", user.user_id);
+        return (
+            axum::http::StatusCode::FORBIDDEN,
+            Json(serde_json::json!({ "error": e })),
+        );
+    }
+    let shell = req
+        .shell
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(|| "/bin/bash".to_string());
+    let cwd = sanitize_cwd(req.cwd.as_deref().unwrap_or(""));
+    let result = state.manager.create_session_with_container(shell, cwd, Some(container));
     let (code, body) = match result {
         Ok(session) => (
             axum::http::StatusCode::OK,
@@ -78,16 +110,18 @@ async fn create_terminal(
     (code, body)
 }
 
-async fn list_terminals(State(manager): State<Arc<TerminalManager>>) -> impl IntoResponse {
-    manager.reap();
-    Json(serde_json::json!({ "terminals": manager.list_sessions() }))
+async fn list_terminals(
+    State(state): State<Arc<TerminalRouterState>>,
+) -> impl IntoResponse {
+    state.manager.reap();
+    Json(serde_json::json!({ "terminals": state.manager.list_sessions() }))
 }
 
 async fn kill_terminal(
-    State(manager): State<Arc<TerminalManager>>,
+    State(state): State<Arc<TerminalRouterState>>,
     Json(req): Json<KillTerminalRequest>,
 ) -> impl IntoResponse {
-    match manager.kill_session(&req.id).await {
+    match state.manager.kill_session(&req.id).await {
         Ok(()) => (
             axum::http::StatusCode::OK,
             Json(serde_json::json!({ "ok": true })),
@@ -103,12 +137,12 @@ async fn kill_terminal(
 }
 
 async fn terminal_ws(
-    State(manager): State<Arc<TerminalManager>>,
+    State(state): State<Arc<TerminalRouterState>>,
     Query(query): Query<std::collections::HashMap<String, String>>,
     ws: WebSocketUpgrade,
 ) -> impl IntoResponse {
     let id = query.get("id").cloned().unwrap_or_default();
-    let session = match manager.get_session(&id) {
+    let session = match state.manager.get_session(&id) {
         Some(s) => s,
         None => {
             return axum::response::Response::builder()
@@ -167,6 +201,110 @@ async fn terminal_ws_loop(mut socket: WebSocket, session: Arc<super::TerminalSes
             }
         }
     }
+}
+
+/// SECURITY gate for container attachment: the requested container must be a
+/// `vm_instances` row for a project the caller can access (direct or group
+/// membership with at least the `viewer` role).
+fn authorize_project_container(
+    pool: &DbPool,
+    user_id: Uuid,
+    container: &str,
+) -> Result<(), String> {
+    use diesel::prelude::*;
+    if container.is_empty()
+        || !container
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-')
+    {
+        return Err("Invalid container name".to_string());
+    }
+    let mut conn = pool.get().map_err(|e| format!("db pool: {e}"))?;
+    #[derive(diesel::QueryableByName)]
+    struct UuidCell {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        value: Uuid,
+    }
+    let project_id: Option<UuidCell> = diesel::sql_query(
+        "SELECT project_id AS value FROM vm_instances WHERE container_name = $1",
+    )
+    .bind::<diesel::sql_types::Text, _>(container)
+    .get_result::<UuidCell>(&mut conn)
+    .optional()
+    .map_err(|e| format!("vm lookup: {e}"))?;
+    let project_id = match project_id {
+        Some(row) => row.value,
+        None => {
+            return Err(format!(
+                "container '{container}' is not a project VM — only project VMs can be attached"
+            ));
+        }
+    };
+    if !project_role_at_least_viewer(&mut conn, user_id, project_id)? {
+        return Err("you do not have access to this project's VM".to_string());
+    }
+    Ok(())
+}
+
+/// Resolves whether the caller holds at least the `viewer` role on the
+/// project that owns the VM (direct membership or via an active group).
+fn project_role_at_least_viewer(
+    conn: &mut diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
+    user_id: Uuid,
+    project_id: Uuid,
+) -> Result<bool, String> {
+    use diesel::prelude::*;
+    if user_id == Uuid::nil() {
+        return Ok(false);
+    }
+    #[derive(diesel::QueryableByName)]
+    struct RoleCell {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        value: String,
+    }
+    let direct: Option<RoleCell> = diesel::sql_query(
+        "SELECT role AS value FROM project_members WHERE project_id = $1 AND user_id = $2",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(project_id)
+    .bind::<diesel::sql_types::Uuid, _>(user_id)
+    .get_result::<RoleCell>(conn)
+    .optional()
+    .map_err(|e| format!("project role lookup: {e}"))?;
+    if let Some(role) = direct {
+        return Ok(is_viewer_or_above(&role.value));
+    }
+    let groups: Vec<RoleCell> = diesel::sql_query(
+        "SELECT g.name AS value FROM rbac_user_groups ug \
+         JOIN rbac_groups g ON g.id = ug.group_id \
+         WHERE ug.user_id = $1 AND g.is_active = true",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(user_id)
+    .load::<RoleCell>(conn)
+    .map_err(|e| format!("user groups lookup: {e}"))?;
+    for group in groups {
+        let group_role: Option<RoleCell> = diesel::sql_query(
+            "SELECT role AS value FROM project_members \
+             WHERE project_id = $1 AND group_name = $2",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(project_id)
+        .bind::<diesel::sql_types::Text, _>(&group.value)
+        .get_result::<RoleCell>(conn)
+        .optional()
+        .map_err(|e| format!("group role lookup: {e}"))?;
+        if let Some(role) = group_role {
+            if is_viewer_or_above(&role.value) {
+                return Ok(true);
+            }
+        }
+    }
+    Ok(false)
+}
+
+fn is_viewer_or_above(role: &str) -> bool {
+    matches!(
+        role.to_ascii_lowercase().as_str(),
+        "viewer" | "developer" | "admin" | "owner"
+    )
 }
 
 /// Parses an xterm.js resize control message: `resize <cols> <rows>`.

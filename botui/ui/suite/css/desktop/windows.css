@@ -147,12 +147,92 @@
   height: 10px;
 }
 
-/* Compact popup-sized tool window (e.g. the Vibe Members list). */
+/* Compact popup-sized tool window (e.g. the Vibe Members list). Fixed size
+   (product spec): all fields visible, no scrollbar, not resizable. */
 .window-element-glass.window-popup {
-  width: 360px;
+  width: 560px;
   height: auto;
   min-height: 160px;
-  max-height: min(480px, 70vh);
+  max-height: none;
+}
+
+/* Vibe popups: fixed footprints, no window-level scrolling. */
+#window-vibe-newproject,
+#window-vibe-members {
+  width: 560px !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+#window-vibe-newproject {
+  width: 540px !important;
+  height: 600px !important;
+  max-height: 600px !important;
+  resize: none !important;
+  overflow: hidden;
+}
+
+/* New Project modal content fills its fixed-height window with all fields
+   visible at once (no window-level scrollbar, not resizable). */
+#window-body-vibe-newproject #vibeNewProjectModal {
+  overflow: hidden;
+}
+#window-body-vibe-newproject #vibeNewProjectModal .vibe-np-dialog {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+#window-body-vibe-newproject .vibe-np-body {
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Vibe main window — larger default width at startup so the toolbar rows,
+   project/branch combos and the window-command buttons fit without cramping. */
+#window-vibe {
+  width: 820px !important;
+  min-width: 720px;
+}
+
+#window-vibe-metrics {
+  width: 520px !important;
+  height: 420px !important;
+}
+
+/* Vibe Run Dock — taller than the default half-height tool window (same
+   width) so the TODO board, runner log and sessions fit; docks at the top
+   of the desktop. */
+#window-vibe-run {
+  height: clamp(480px, 72vh, 680px) !important;
+  z-index: 900;
+}
+
+/* Vibe Project Info — fixed-size popup so the Close / Delete project
+   buttons are always visible without scrolling. */
+#window-vibe-tool-project {
+  width: 480px !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
+/* Source Control — larger initial footprint and user-resizable (corner
+   grip via CSS resize). */
+#window-vibe-tool-git {
+  width: min(880px, 82vw) !important;
+  height: min(620px, 76vh) !important;
+  resize: both;
+  overflow: hidden;
+}
+
+/* The other work dialogs (terminal, browser, code, db, deploy) also open
+   larger than the default half-height tool window. */
+#window-vibe-tool-terminal,
+#window-vibe-tool-browser,
+#window-vibe-tool-code,
+#window-vibe-tool-db,
+#window-vibe-tool-deploy {
+  width: min(860px, 80vw) !important;
+  height: min(600px, 74vh) !important;
 }
 
 

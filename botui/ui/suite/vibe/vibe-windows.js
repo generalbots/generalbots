@@ -29,17 +29,20 @@
     // Panels that are MOVED (their DOM must be preserved across close/reopen)
     // vs. dialogs whose content is rebuilt on every open.
     var MOVED = {
-        "vibe-assistant": { elId: "vibeChatOverlay", title: "Vibe Assistant", display: "flex" },
-        // The canvas is a drawing surface (720px min-height) — it needs a
-        // real workspace, not the half-height accessory default.
-        "vibe-canvas": { elId: "vibeCanvas", title: "Project Canvas", display: "flex", size: { w: "min(1000px, 92vw)", h: "min(780px, 88vh)" } },
-        "vibe-graph": { elId: "vibeGraphPanel", title: "Knowledge Graph", display: "flex" },
-        "vibe-metrics": { elId: "vibeMetricsPanel", title: "Metrics", display: "flex" },
-        "vibe-newproject": { elId: "vibeNewProjectModal", title: "New Project", display: "flex" },
-        "vibe-members": { elId: "vibeMembersModal", title: "Project Members", display: "flex", popup: true },
+        // ("vibe-assistant" removed — chat lives in the Chat app window.)
+        "vibe-graph": { elId: "vibeGraphPanel", title: "Knowledge Graph", display: "flex", size: { w: "90vw", h: "90vh" } },
+        // Fixed-size popups (product spec): New Project / Metrics / Members
+        // open at a set footprint with ALL fields visible — no scrollbars,
+        // no resizing; only the long members list scrolls internally.
+        "vibe-metrics": { elId: "vibeMetricsPanel", title: "Metrics", display: "flex", size: { w: "520px", h: "420px" } },
+        // New Project is a fixed-height popup (product spec): all fields
+        // visible at once, taller than the content would otherwise need, and
+        // NOT resizable — it must not grow a scrollbar nor a resize handle.
+        "vibe-newproject": { elId: "vibeNewProjectModal", title: "New Project", display: "flex", popup: true, size: { w: "540px", h: "600px" } },
+        "vibe-members": { elId: "vibeMembersModal", title: "Project Members", display: "flex", popup: true, size: { w: "560px", h: "auto" } },
     };
 
-    var RUN_DOCK_PARTIAL = "/suite/partials/vibe-run-panel.html?v=4";
+    var RUN_DOCK_PARTIAL = "/suite/partials/vibe-run-panel.html?v=15";
 
     function stashHost() {
         var host = document.getElementById("vibeHiddenPanels");
@@ -51,6 +54,27 @@
             (vibeWindow || document.body).appendChild(host);
         }
         return host;
+    }
+
+    // Re-injecting the vibe partial (desktop relaunch, htmx body swap)
+    // duplicates every panel id in the document. The stale copies become the
+    // "ghost windows/metrics/graphs" reported by users: duplicated tool
+    // content stacked inside old windows. Keep ONLY the last occurrence (the
+    // fresh partial markup) and drop every earlier copy.
+    function dedupeGhosts() {
+        var ids = ["vibeGraphPanel", "vibeMetricsPanel",
+                   "vibeNewProjectModal", "vibeMembersModal", "vibeDialogMask"];
+        ids.forEach(function (id) {
+            var all = Array.prototype.slice.call(document.querySelectorAll("#" + id));
+            if (all.length <= 1) return;
+            var keep = all[all.length - 1];
+            all.slice(0, -1).forEach(function (stale) {
+                if (typeof WM !== "undefined" && WM && keep && stale.compareDocumentPosition(keep) & Node.DOCUMENT_POSITION_FOLLOWING) {
+                    // A later element exists — this one is a ghost copy.
+                    stale.remove();
+                }
+            });
+        });
     }
 
     // Open (or focus) a floating tool window hosting a moved panel.
@@ -115,6 +139,32 @@
             return;
         }
         WM.openToolWindow("vibe-run", "Run Dock", RUN_DOCK_PARTIAL, {}, { ownerId: "vibe" });
+        // 80% of the desktop height, docked at the top, so the TODO board,
+        // the runner log and the sessions are all visible at once.
+        var winEl = document.getElementById("window-vibe-run");
+        if (winEl) {
+            winEl.style.top = "10px";
+            winEl.style.height = "80vh";
+        }
+    }
+
+    // Closing every floating accessory when the user switches project: each
+    // window shows project-scoped content (canvas project.draw, graph runs,
+    // metrics, run dock, dialogs), so stale content from the previous
+    // project must not linger. The main window itself stays open.
+    function closeVibeSubwindows() {
+        var subs = [
+            "vibe-run", "canvas", "vibe-graph", "vibe-metrics",
+            "vibe-newproject", "vibe-members",
+            "vibe-tool-project", "vibe-tool-terminal", "vibe-tool-browser",
+        ];
+        subs.forEach(function (id) {
+            if (WM.getWindow(id)) WM.close(id);
+        });
+        // Also close any other tool windows owned by the vibe app.
+        (WM.openWindows || []).slice().forEach(function (w) {
+            if (w.ownerId === "vibe" && w.id !== "vibe") WM.close(w.id);
+        });
     }
 
     // No accessory opens at startup: the Vibe window is toolbar + project
@@ -122,9 +172,18 @@
     // window until their toolbar button opens them as floating tool windows
     // on demand (run dock, canvas, graph, metrics, assistant, dialogs…).
     (function init() {
+        // Kill ghost duplicates from any prior partial injection first,
+        // then re-run shortly after to catch late htmx swaps (no timers).
+        dedupeGhosts();
+        requestAnimationFrame(function () { dedupeGhosts(); });
+        requestAnimationFrame(function () {
+            requestAnimationFrame(dedupeGhosts);
+        });
+
         var hidden = {
-            "vibeChatOverlay": "flex",
-            "vibeCanvas": "flex",
+            // No #vibeCanvas parked panel exists — the canvas is the official
+            // deep-linked app, not a hidden panel inside the vibe window.
+            // (No #vibeChatOverlay either — the runner chat was removed.)
             "vibeGraphPanel": "flex",
             "vibeMetricsPanel": "flex",
             "vibeNewProjectModal": "flex",
@@ -156,6 +215,13 @@
                 if (WM.getWindow(childId)) WM.close(childId);
             });
             if (WM.getWindow("vibe-run")) WM.close("vibe-run");
+            // #1271 — automatic dev-VM lifecycle: closing the vibe window
+            // stops the selected project's dev VM (Run restarts it).
+            var pid = window.currentProjectId || null;
+            if (pid && window.VibeShell && window.VibeShell.toolbar &&
+                typeof window.VibeShell.toolbar.stopDevVm === "function") {
+                window.VibeShell.toolbar.stopDevVm(pid);
+            }
             return;
         }
         if (MOVED[id]) {
@@ -178,10 +244,68 @@
                 window.VibeShell.toolbar.openChat();
             }
         },
-        openCanvas: function () { openMoved("vibe-canvas"); },
-        openGraph: function () { openMoved("vibe-graph"); },
-        openMetrics: function () { openMoved("vibe-metrics"); },
+        // CANVAS APP (#1191/#1271): the Canvas button opens the SHARED Canvas
+        // App (the official whiteboard at /suite/canvas/canvas.html) via the
+        // window-manager deep link. The old "Vibe Canvas" window is REMOVED
+        // from vibe — there is no custom in-window canvas panel, only the
+        // real Canvas App, reused everywhere (desktop launcher + vibe).
+        openCanvas: function () {
+            dedupeGhosts();
+            var pid = (typeof currentProjectId !== "undefined" && currentProjectId) || "";
+            WM.openDeepLink("canvas", pid ? { project: pid } : {}, { ownerId: "vibe" });
+        },
+        // Project properties/info dialog for the currently selected project.
+        openProjectInfo: function () {
+            dedupeGhosts();
+            var pid = (typeof window.currentProjectId !== "undefined" && window.currentProjectId) || null;
+            if (!pid) {
+                if (window.VibeShell && window.VibeShell.toolbar && typeof window.VibeShell.toolbar.flashHint === "function") {
+                    window.VibeShell.toolbar.flashHint("SELECT A PROJECT FIRST");
+                }
+                return;
+            }
+            var show = function (p) {
+                if (typeof window.showProjectInfo === "function") {
+                    window.showProjectInfo(p || { id: pid, name: String(window.currentProject || pid) });
+                }
+            };
+            vibeAuthFetch("/api/vibe/projects")
+                .then(function (r) {
+                    if (!r.ok) throw new Error("Project lookup failed");
+                    return r.json();
+                })
+                .then(function (d) {
+                    var rows = (d && d.projects) || (d && d.data && d.data.projects) || (Array.isArray(d) ? d : []) || [];
+                    var p = rows.find(function (row) {
+                        return String(row.project_id || row.id) === String(pid);
+                    });
+                    show(p);
+                })
+                .catch(function () { show(null); });
+        },
+        // openMoved() only relocates the parked panel into its tool window;
+        // the panel's own activator must run afterwards or the canvas stays
+        // 1x1 and the body empty (graph pollution/empty-panel bug).
+        openGraph: function () {
+            openMoved("vibe-graph");
+            // Always bring the Knowledge Graph to ~90% of the desktop, even
+            // when the tool window already exists (openMoved applies size
+            // only on first create). Force the window size every open.
+            var winEl = document.getElementById("window-vibe-graph");
+            if (winEl) {
+                winEl.style.width = "90vw";
+                winEl.style.height = "90vh";
+                winEl.style.left = (window.innerWidth * 0.05) + "px";
+                winEl.style.top = (window.innerHeight * 0.05) + "px";
+            }
+            if (window.VibeGraph) window.VibeGraph.togglePanel(true);
+        },
+        openMetrics: function () {
+            openMoved("vibe-metrics");
+            if (window.VibeMetrics) window.VibeMetrics.open();
+        },
         openNewProject: function () { openMoved("vibe-newproject"); },
+        closeVibeSubwindows: closeVibeSubwindows,
         openMembers: function () { openMoved("vibe-members"); },
     };
 })();

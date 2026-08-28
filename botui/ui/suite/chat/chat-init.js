@@ -341,10 +341,74 @@ function proceedWithChatInit() {
     });
 }
 
+// #1271 — a deep link can carry a pre-filled chat message (e.g. the vibe
+// Chat button sends a botbook directive to route the fresh conversation to
+// the app running in vibe). Apply it once, then consume the params so a
+// later reopen does not re-inject it.
+function applyDeepLinkMessage() {
+  try {
+    var msg = "";
+    if (window.__gbAppParams__ && window.__gbAppParams__.message) {
+      msg = String(window.__gbAppParams__.message);
+      delete window.__gbAppParams__.message;
+    } else {
+      msg = new URLSearchParams(window.location.search).get("message") || "";
+    }
+    if (!msg) return;
+    var input = document.getElementById("messageInput");
+    if (input) {
+      input.value = msg;
+      input.focus();
+    }
+  } catch (e) { /* non-fatal */ }
+}
+
+// Apply a deep-link message ROBUSTLY. initChat()'s autoFocusInput timer
+// does not fire in every injection context (the window body can be
+// re-injected after the timer is scheduled), and a re-targeted chat window
+// (gb:deep-link on an already-open window) never applied the message at all.
+// So: try immediately, retry briefly until the input carries the value, and
+// re-apply whenever the shell re-targets this chat window with new params.
+(function ensureDeepLinkApplies() {
+  var applied = false;
+  function tryApply() {
+    if (applied) return;
+    var input = document.getElementById("messageInput");
+    if (!input) return;
+    var msg = "";
+    try {
+      if (window.__gbAppParams__ && window.__gbAppParams__.message) {
+        msg = String(window.__gbAppParams__.message);
+      } else {
+        msg = new URLSearchParams(window.location.search).get("message") || "";
+      }
+    } catch (e) { msg = ""; }
+    if (!msg) { applied = true; return; }
+    input.value = msg;
+    input.focus();
+    if (window.__gbAppParams__) delete window.__gbAppParams__.message;
+    applied = true;
+  }
+  var tries = 0;
+  var iv = setInterval(function () {
+    tryApply();
+    if (applied || ++tries > 20) clearInterval(iv);
+  }, 150);
+  document.addEventListener("gb:deep-link", function (e) {
+    var detail = e.detail || {};
+    if (String(detail.appId) === "chat") {
+      applied = false;
+      tryApply();
+    }
+  });
+  tryApply();
+})();
+
 function autoFocusInput() {
   setTimeout(function() {
     var input = document.getElementById("messageInput");
     if (input) input.focus();
+    applyDeepLinkMessage();
   }, 500);
 }
 

@@ -21,7 +21,7 @@ use super::types::*;
 pub struct GatewayState {
     #[serde(default)]
     deploy_keys: Vec<String>,
-    incus_socket: String,
+    pub(crate) incus_socket: String,
     caddy_api_url: String,
     sites_root: String,
 }
@@ -328,6 +328,11 @@ async fn deploy_to_incus(
 
     run_incus_command(state, &["start", container_name]).await
         .map_err(|e| format!("Failed to start container: {e}"))?;
+
+    // Auto-manage the app runtime inside the container: detect node/python/
+    // rust/static, install the runtime when missing, and run the app as a
+    // systemd service bound to port 80 (auto-restart + start on boot).
+    super::gateway_runtime::bootstrap_app_runtime(state, container_name).await?;
 
     let domain = std::env::var("SITE_DOMAIN")
         .unwrap_or_else(|_| "gb.solutions".to_string());

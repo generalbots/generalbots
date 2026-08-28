@@ -109,6 +109,10 @@ pub struct VibeRunConfig {
     pub project_id: Option<String>,
     /// Project name as seen by the agent (workspace key, e.g. `calculator`).
     pub project_name: Option<String>,
+    /// Pipeline the run executed: "deploy" for the production pipeline,
+    /// otherwise the development agent loop. Persisted so the UI can tell
+    /// a prod run from a dev run (e.g. skip auto-opening the dev browser).
+    pub pipeline_mode: Option<String>,
 }
 
 impl Default for VibeRunConfig {
@@ -125,6 +129,7 @@ impl Default for VibeRunConfig {
             budget_cents: 0,
             project_id: None,
             project_name: None,
+            pipeline_mode: None,
         }
     }
 }

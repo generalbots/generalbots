@@ -38,7 +38,7 @@
 
         <!-- GB Fluent CSS modules -->
         <link rel="stylesheet" href="/suite/css/desktop/motion.css?v=1" />
-        <link rel="stylesheet" href="/suite/css/desktop/windows.css?v=5" />
+        <link rel="stylesheet" href="/suite/css/desktop/windows.css?v=6" />
         <link rel="stylesheet" href="/suite/css/desktop/wallpaper.css?v=2" />
         <link rel="stylesheet" href="/suite/css/desktop/taskbar.css?v=1" />
         <link rel="stylesheet" href="/suite/css/desktop/sidebar.css?v=5" />
@@ -58,7 +58,7 @@
         <script src="/suite/js/vendor/marked.min.js"></script>
         <script src="/suite/js/vendor/three.min.js"></script>
         <script src="/suite/js/desktop3d.js?v=2"></script>
-        <script src="/suite/js/window-manager.js?v=20"></script>
+        <script src="/suite/js/window-manager.js?v=25"></script>
         <script src="/suite/js/vibe-bridge.js?v=1"></script>
         <script src="/suite/js/theme-manager.js?v=1"></script>
         <script src="/suite/js/command-palette.js?v=1"></script>
@@ -71,7 +71,7 @@
         <script src="/suite/js/app-lifecycle.js?v=1"></script>
         <script src="/suite/js/widget-renderer.js?v=2"></script>
         <script src="/suite/js/widget-registry.js?v=2"></script>
-        <script src="/suite/js/desktop-shortcuts.js?v=1"></script>
+        <script src="/suite/js/desktop-shortcuts.js?v=2"></script>
         <script src="/suite/js/screensavers.js?v=1"></script>
         <script src="/suite/js/pinned-launcher.js?v=3"></script>
         <script src="/suite/js/sidebar-enhance.js?v=4"></script>
@@ -383,6 +383,38 @@
                     console.error(
                         "WindowManager class not loaded from window-manager.js",
                     );
+                }
+
+                // AUTO-OPEN an app on load: ?app=vibe (legacy ?vibe=1) opens
+                // the Vibe workbench immediately, so the browser always lands
+                // with the app loaded instead of a bare desktop. Waits for the
+                // catalog merge when it is still in flight so deep links
+                // resolve against the full registry.
+                var autoApp =
+                    new URLSearchParams(window.location.search).get("app") ||
+                    (new URLSearchParams(window.location.search).get("vibe")
+                        ? "vibe"
+                        : "");
+                if (autoApp && typeof window.openDeepLink === "function") {
+                    var launched = false;
+                    var launch = function () {
+                        if (launched) return;
+                        launched = true;
+                        window.openDeepLink(autoApp, {});
+                    };
+                    if (window.__gbAppsCatalogLoaded) {
+                        launch();
+                    } else {
+                        var timer = setTimeout(launch, 4000);
+                        window.addEventListener(
+                            "gb-apps-catalog-loaded",
+                            function () {
+                                clearTimeout(timer);
+                                launch();
+                            },
+                            { once: true }
+                        );
+                    }
                 }
 
                 // Initialize ThemeManager

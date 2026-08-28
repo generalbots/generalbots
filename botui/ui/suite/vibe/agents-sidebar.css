@@ -74,6 +74,7 @@
 
 .vibe-ribbon-panel {
     display: flex;
+    flex-wrap: wrap; /* double-size transport pushes remaining commands into a second row */
     gap: 8px;
     padding: 12px 16px;
     min-height: 76px;
@@ -275,6 +276,40 @@
 
 .as-workspace-item {
     margin-bottom: 4px;
+    position: relative;
+}
+
+.as-workspace-actions {
+    /* Always visible: Info ⓘ and Delete 🗑 are core commands and users could
+       not discover them behind a hover-only reveal. */
+    display: flex !important;
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    gap: 4px;
+    z-index: 2;
+}
+
+.as-workspace-actions button {
+    border: none;
+    background: var(--surface-hover, #eee);
+    border-radius: 4px;
+    padding: 2px 5px;
+    font-size: 11px;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--text-muted, #888);
+}
+
+.as-workspace-actions .as-ws-delete:hover {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
+}
+
+.as-workspace-actions .as-ws-info:hover {
+    background: rgba(74, 108, 247, 0.15);
+    color: #4a6cf7;
 }
 
 .as-workspace-toggle {

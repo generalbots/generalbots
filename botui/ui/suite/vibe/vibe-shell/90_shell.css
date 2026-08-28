@@ -4,9 +4,11 @@
    var(--bg), var(--accent)); only the toolbar layout borrows the VB
    idea of one compact command row. No menu bar, no status bar. */
 
-/* ── Compact vibe window ──────────────────────────────────────────── */
-/* The vibe window collapses to the command row only (all internal panes
-   are hidden below). */
+/* ── Vibe window — compact floating command bar (VB-style) ───────── */
+/* The Vibe window is a floating toolbar ONLY: two command rows (transport
+   + tools). Every workspace surface — project sidebar, canvas, design
+   surface, palm, chat — lives in its own floating window opened on
+   demand from the toolbar. The legacy .vibe-body is never shown. */
 #window-vibe {
     height: auto !important;
     min-height: 0 !important;
@@ -27,6 +29,10 @@
     display: block;
 }
 
+body.vibe-toolbar-mode #window-vibe .vibe-container {
+    flex-direction: column;
+}
+
 /* Floating state banners ("Loading Vibe…" / "Vibe service unavailable") are
    full-app screens meant for whole-page apps; the compact vibe command row
    has no room for them and they would render huge — always hidden here. */
@@ -39,43 +45,168 @@
     display: none !important;
 }
 
-/* ── Single command row ───────────────────────────────────────────── */
+/* ── Command toolbar — a 2-row grid (product spec, never >2 rows) ── */
 .vibe-shell-toolbar {
     display: none;
-    align-items: center;
-    gap: 5px;
-    padding: 3px 6px 4px;
+    flex-direction: column;
+    gap: 2px;
+    padding: 4px 6px;
     background: var(--surface, #14142a);
     border-bottom: 1px solid var(--border, #2a2a4a);
     position: relative;
-    min-height: 38px;
 }
 
-/* Strictly ONE row: never wrap. If the row overflows (narrow window),
-   it scrolls horizontally instead of growing taller. */
 body.vibe-toolbar-mode .vibe-shell-toolbar {
-    display: flex;
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: thin;
+    display: grid;
+}
+
+.vibe-shell-toolbar.vibe-shell-tb-grid {
+    grid-template-columns: auto auto auto 1fr auto;
+    grid-template-rows: 1fr 1fr;
+    height: 78px;
+    gap: 2px 8px;
+    align-items: center;
 }
 
 .vibe-shell-tb-group {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 2px;
-    padding-right: 5px;
+    gap: 4px;
+    padding-right: 7px;
+    margin-right: 3px;
     border-right: 1px solid var(--border, #2a2a4a);
 }
 
 .vibe-shell-tb-group:last-of-type {
     border-right: none;
+    margin-right: 0;
+    padding-right: 0;
+}
+
+/* RUN — spans both grid rows: the double-height primary action. */
+.vibe-shell-tb-run-group {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    align-self: stretch;
+    display: flex;
+    align-items: stretch;
+    padding-right: 9px;
+    margin-right: 5px;
+}
+
+.vibe-shell-tb-run-group .vibe-shell-tb-btn {
+    height: 100%;
+    min-width: 64px;
+    min-height: 66px;
+    flex-direction: column;
+    gap: 5px;
+    border: 1px solid var(--border, #2a2a4a);
+    background: var(--bg, #0d0d1f);
+    border-radius: 6px;
+}
+
+.vibe-shell-tb-run-group .vibe-shell-tb-icon {
+    font-size: 18px;
+}
+
+.vibe-shell-tb-run-group .vibe-shell-tb-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.vibe-shell-tb-run-group .vibe-shell-tb-label {
+    font-size: 11px;
+    color: var(--text, #e8e8f2);
+}
+
+/* Combos — stacked, one per row: Project on top, Branch below. */
+.vibe-shell-tb-selectors {
+    grid-column: 2;
+    grid-row: 1 / 3;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    justify-content: center;
+}
+
+/* Deploy — SAME size as Run: double height spanning both grid rows
+   (product spec — Run and Deploy are the two primary transport actions). */
+.vibe-shell-tb-deploy-group {
+    grid-column: 3;
+    grid-row: 1 / 3;
+    align-self: stretch;
+    display: flex;
+    align-items: stretch;
+    padding-right: 9px;
+    margin-right: 5px;
+}
+
+.vibe-shell-tb-deploy-group .vibe-shell-tb-btn {
+    min-width: 64px;
+    min-height: 66px;
+    height: 100%;
+    flex-direction: column;
+    gap: 5px;
+    padding: 4px 12px;
+    border: 1px solid var(--border, #2a2a4a);
+    background: var(--bg, #0d0d1f);
+    border-radius: 6px;
+}
+
+.vibe-shell-tb-deploy-group .vibe-shell-tb-icon {
+    font-size: 18px;
+}
+
+.vibe-shell-tb-deploy-group .vibe-shell-tb-icon svg {
+    width: 18px;
+    height: 18px;
+}
+
+.vibe-shell-tb-deploy-group .vibe-shell-tb-label {
+    font-size: 11px;
+}
+
+/* Window commands — two rows, then the close-all ✕. */
+.vibe-shell-tb-cmds {
+    grid-column: 4;
+    grid-row: 1 / 3;
+    flex-direction: column;
+    gap: 2px;
+    justify-content: center;
+}
+
+.vibe-shell-tb-cmdrow {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+    justify-content: flex-start; /* window commands align LEFT */
+}
+
+/* | group separator between logical command groups. */
+.vibe-shell-tb-sep {
+    width: 1px;
+    align-self: stretch;
+    margin: 3px 6px;
+    background: var(--border, #2a2a4a);
+    flex: 0 0 auto;
+}
+
+.vibe-shell-tb-close-group {
+    grid-column: 5;
+    grid-row: 1 / 3;
+    align-self: center;
+}
+
+.vibe-shell-tb-closeall .vibe-shell-tb-icon {
+    color: #ef4444;
+    font-size: 14px;
+    font-weight: 700;
 }
 
 /* Project + branch selector fields (VB combo style but themed). */
-.vibe-shell-tb-selectors {
-    gap: 5px;
-    align-self: center;
+.vibe-shell-tb-selectors .vibe-shell-tb-field-label {
+    min-width: 46px;
 }
 
 .vibe-shell-tb-field {
@@ -94,6 +225,8 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
 }
 
 .vibe-shell-project-select {
+    /* Project and Branch combos share the SAME width (product spec). */
+    width: 160px;
     max-width: 160px;
     height: 24px;
     padding: 2px 6px;
@@ -117,11 +250,11 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
 }
 
 .vibe-shell-branch-select {
-    max-width: 120px;
+    width: 160px;   /* same width as the Project combo */
+    max-width: 160px;
 }
 
-/* Compact window command: the icon and label share one line. Transport
-   controls below are deliberately taller so the IDE actions remain primary. */
+/* Command button (row 2): icon + label on one line, comfortable hit area. */
 .vibe-shell-tb-btn {
     display: inline-flex;
     flex-direction: row;
@@ -129,13 +262,14 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
     justify-content: center;
     gap: 4px;
     min-width: auto;
-    height: 24px;
-    padding: 2px 6px;
+    height: 28px;
+    padding: 3px 9px;
     border: 1px solid transparent;
     background: transparent;
     color: var(--text, #e8e8f2);
-    border-radius: 4px;
+    border-radius: 5px;
     cursor: pointer;
+    white-space: nowrap;
     transition: border-color 0.15s, color 0.15s, background 0.15s;
 }
 
@@ -176,24 +310,55 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
     color: var(--text, #e8e8f2);
 }
 
-/* Transport (Run/Pause/Stop) — first and slightly taller than the compact
-   window buttons, while still staying within one toolbar row. */
-.vibe-shell-tb-transport {
-    align-self: center;
-    gap: 3px;
-    padding-right: 6px;
+/* Transport labels read clearly on the large buttons. */
+.vibe-shell-tb-deploy-group .vibe-shell-tb-label {
+    font-size: 11px;
+    color: var(--text, #e8e8f2);
 }
 
-.vibe-shell-tb-transport .vibe-shell-tb-btn {
-    min-width: 62px;
-    height: 32px;
-    border: 1px solid var(--border, #2a2a4a);
-    background: var(--bg, #0d0d1f);
+.vibe-shell-tb-text-label {
+    display: none;
 }
 
 .vibe-shell-tb-run .vibe-shell-tb-icon { color: #22c55e; }
+/* Deploy = publish to production: violet (distinct from green Run and amber
+   Pause) so the dev (Run) / prod (Deploy) split reads at a glance. */
+.vibe-shell-tb-deploy .vibe-shell-tb-icon { color: #a78bfa; }
+.vibe-shell-tb-deploy {
+    border-color: rgba(167, 139, 250, 0.55) !important;
+}
+.vibe-shell-tb-deploy:hover {
+    background: rgba(167, 139, 250, 0.12) !important;
+    box-shadow: 0 0 6px rgba(167, 139, 250, 0.4);
+}
 .vibe-shell-tb-pause .vibe-shell-tb-icon { color: #f59e0b; }
 .vibe-shell-tb-stop .vibe-shell-tb-icon { color: #ef4444; }
+
+/* Danger/delete and accent buttons in row 2 stay recognizable. */
+.vibe-shell-tb-danger {
+    color: #ef4444 !important;
+}
+.vibe-shell-tb-danger:hover {
+    background: rgba(239, 68, 68, 0.12) !important;
+    border-color: rgba(239, 68, 68, 0.4) !important;
+}
+
+/* Run-status chip (row 1, after selectors) — mirrors the transport light so
+   the IDLE/RUNNING/PAUSED/FAILED state is readable at a glance. */
+.vibe-shell-tb-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border, #2a2a4a);
+    background: var(--bg, #0d0d1f);
+    color: var(--text-muted, #8888aa);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
 
 /* While the app preview (Browser window) is open, the Run button lights up. */
 .vibe-shell-toolbar.vibe-shell-running .vibe-shell-tb-run {
@@ -201,30 +366,36 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
     box-shadow: 0 0 6px rgba(34, 197, 94, 0.55);
 }
 
-/* Transient hint pill — replaces the status bar. */
+/* Transient hint toast — replaces the status bar. Positioned BELOW the
+   toolbar (never overlapping the window caption) and styled as a subtle
+   centered pill: the old placement (top-right, dark box-shadow) read as a
+   black glitch flashing in the titlebar on every command click. */
 .vibe-shell-hint {
     position: absolute;
-    right: 12px;
-    top: calc(100% - 2px);
+    left: 50%;
+    top: calc(100% + 8px);
+    transform: translate(-50%, -6px);
     z-index: 20;
-    max-width: 420px;
-    padding: 7px 12px;
-    border: 1px solid var(--border, #2a2a4a);
-    border-radius: 8px;
-    background: var(--surface, #14142a);
-    color: var(--text, #e8e8f2);
+    max-width: 460px;
+    padding: 6px 14px;
+    border: 1px solid var(--border, rgba(128, 128, 128, 0.35));
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--text, #263630) 6%, var(--surface, #fcfbf8));
+    color: var(--text, #263630);
     font-size: 11px;
     font-weight: 600;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.10);
     opacity: 0;
     pointer-events: none;
-    transform: translateY(-4px);
-    transition: opacity 0.18s, transform 0.18s;
+    transition: opacity 0.22s, transform 0.22s;
 }
 
 .vibe-shell-hint.show {
     opacity: 1;
-    transform: translateY(0);
+    transform: translate(-50%, 0);
 }
 /* The rule only guards against any stale element. */
 .vibe-shell-status {

@@ -595,9 +595,11 @@
         const pathParts = window.location.pathname.split('/');
         const botName = pathParts[1] || 'default';
         
-        // Auto-open Chat window maximized for all bots
+        // Auto-open Chat window maximized for all bots. Cache-buster keeps
+        // the injected chat scripts fresh (a heuristically-cached partial
+        // would ship stale chat-init.js and miss deep-link re-targets).
             try {
-                const response = await fetch("/suite/partials/chat.html");
+                const response = await fetch("/suite/partials/chat.html?_=" + Date.now());
                 if (response.ok) {
                     const htmlContent = await response.text();
                     window.wm.open("chat", "Chat", htmlContent);

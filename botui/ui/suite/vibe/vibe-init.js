@@ -22,17 +22,18 @@ callAutotask(text);
 }
 
 function vibeQuickSubmit(text) {
-    var input = document.getElementById("vibeChatInput");
-    if (!input) return;
-    input.value = text;
-    var form = document.getElementById("vibeChatForm");
-    if (!form) return;
-    if (form.requestSubmit) {
-        form.requestSubmit();
+    // The runner chat form is gone — a submitted prompt IS a run.
+    if (!text || !text.trim()) return;
+    if (
+        typeof window.VibeRun !== "undefined" &&
+        window.VibeRun &&
+        typeof window.VibeRun.start === "function"
+    ) {
+        window.VibeRun.start(text.trim()).catch(function () {
+            callAutotask(text.trim());
+        });
     } else {
-        form.dispatchEvent(
-            new Event("submit", { bubbles: true, cancelable: true }),
-        );
+        callAutotask(text.trim());
     }
 }
 
@@ -85,7 +86,7 @@ function initVibe() {
     setupSidebarActions();
 
     var form = document.getElementById("vibeChatForm");
-    if (form) form.addEventListener("submit", handleVibeSubmit);
+    if (form) form.addEventListener("submit", handleVibeSubmit); // legacy guard — the form was removed with the runner chat
 
     // Make floating panels (chat, run dock, graph, metrics) draggable and
     // resizable. The run dock arrives via HTMX after load, so wire again on

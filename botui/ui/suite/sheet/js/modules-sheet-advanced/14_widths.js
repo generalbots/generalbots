@@ -55,6 +55,30 @@
     return rowHeights && rowHeights[idx] ? rowHeights[idx] : DEFAULT_ROW;
   }
 
+  // Cumulative vertical offset of the TOP of row `idx` (sum of all row
+  // heights above it). Variable row heights shift every following row down,
+  // so positioning MUST use this, never `row * ROW_HEIGHT`.
+  function rowTop(idx) {
+    let t = 0;
+    const n = Math.max(0, idx);
+    for (let r = 0; r < n; r++) t += rowHeight(r);
+    return t;
+  }
+
+  // Given a y offset relative to the body's top, return the row index whose
+  // vertical span contains y (binary search over cumulative row heights).
+  function rowAt(y) {
+    const g = grid();
+    const n = g ? g.totalRows : 1000;
+    let lo = 0, hi = n - 1, row = 0;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (rowTop(mid) <= y) { row = mid; lo = mid + 1; }
+      else { hi = mid - 1; }
+    }
+    return row;
+  }
+
   function colX(idx) {
     let x = HEADER_W;
     for (let c = 0; c < idx; c++) x += colWidth(c);
@@ -117,6 +141,8 @@
       const cols = g.visibleColRange ? g.visibleColRange() : { start: 0, end: g.totalCols };
       for (let c = cols.start; c < cols.end; c++) {
         const hd = document.createElement("div");
+        hd.className = "ss-col-head";
+        hd.dataset.col = c;
         hd.textContent = g.colName ? g.colName(c) : String.fromCharCode(65 + c);
         hd.style.cssText =
           "position:absolute;left:" + colX(c) + "px;width:" + colWidth(c) + "px;background:#0f172a;color:#94a3b8;text-align:center;line-height:24px;font-size:11px;" +
@@ -143,7 +169,7 @@
         node.dataset.formula = formula;
         node.textContent = value;
         node.style.left = (g.colX(c)) + "px";
-        node.style.top = (row * rowHeight(row)) + "px";
+        node.style.top = rowTop(row) + "px";
         node.style.width = colWidth(c) + "px";
         node.style.height = rowHeight(row) + "px";
         node.style.fontWeight = "";
@@ -229,25 +255,40 @@
     return h;
   }
 
+  // Grab zone (px) either side of a header boundary where resize is active.
+  const RESIZE_GRIP = 8;
+
+  // Returns the column whose RIGHT boundary is being resized, or -1.
+  // Uses absolute header geometry so the cursor reacts BETWEEN column
+  // headers, not just on the last few pixels of a cell.
   function headerColIndex(el, x) {
     const g = grid();
-    if (!g || !g.headerRow || !el) return -1;
-    const children = Array.prototype.slice.call(g.headerRow.children);
-    const idx = children.indexOf(el);
-    if (idx < 0) return -1;
-    const c = idx - 1;
-    if (c < 0 || c >= g.totalCols) return -1;
-    const e = el.getBoundingClientRect();
-    if (x - e.left < e.width - 6) return -1;
-    return c;
+    if (!g || !el) return -1;
+    const headRect = g.headerRow.getBoundingClientRect();
+    const headLeft = headRect.left;
+    // Only meaningful when hovering the column-header strip.
+    if (x < headLeft + HEADER_W) return -1;
+    const xLocal = x - headLeft;
+    // Column boundaries sit at colX(c)+colWidth(c) in the header strip's
+    // local coordinates (colX already includes HEADER_W).
+    for (let c = 0; c < g.totalCols; c++) {
+      const end = colX(c) + colWidth(c);
+      // Resizeable zone: centred on the boundary between column c and c+1.
+      if (Math.abs(xLocal - end) <= RESIZE_GRIP) return c;
+    }
+    return -1;
   }
 
   function rowHeaderIndex(el, y) {
-    if (!el || !el.dataset || el.dataset.row === undefined) return -1;
+    if (!el || !el.classList || !el.classList.contains("ss-row-header")) return -1;
+    if (el.dataset.row === undefined) return -1;
     const r = parseInt(el.dataset.row, 10);
     if (isNaN(r)) return -1;
     const e = el.getBoundingClientRect();
-    if (y - e.top >= e.height - 6) return r;
+    // Resizeable zone centred on the bottom boundary of this row (resize row r)
+    if (Math.abs(y - e.bottom) <= RESIZE_GRIP) return r;
+    // …or on its top boundary (resize the previous row r-1).
+    if (Math.abs(y - e.top) <= RESIZE_GRIP && r > 0) return r - 1;
     return -1;
   }
 
@@ -268,6 +309,11 @@
       document.removeEventListener("mouseup", endDrag);
       if (mode === "col" && index >= 0) persistResize({ col: index, width: colWidth(index) });
       if (mode === "row" && index >= 0) persistResize({ row: index, height: rowHeight(index) });
+      // A `click` fires on the header right after a drag-resize; the header
+      // click handler would select the whole row/column and force-scroll to
+      // the far corner (~1M index). Stamp the time so those handlers can
+      // ignore the click that immediately follows a resize.
+      window.__GB_SHEET_RESIZED_AT = Date.now();
       mode = null; index = -1;
     }
 
@@ -284,6 +330,7 @@
       const col = headerColIndex(e.target, e.clientX);
       if (col < 0) return;
       e.preventDefault();
+      e.stopPropagation();
       mode = "col"; index = col;
       startX = e.clientX; startW = colWidth(col);
       document.addEventListener("mousemove", onMove);
@@ -294,10 +341,46 @@
       const row = rowHeaderIndex(e.target, e.clientY);
       if (row < 0) return;
       e.preventDefault();
+      e.stopPropagation();
       mode = "row"; index = row;
       startY = e.clientY; startH = rowHeight(row);
       document.addEventListener("mousemove", onMove);
       document.addEventListener("mouseup", endDrag);
+    });
+
+    // Affordance: show a resize cursor while hovering the boundary between
+    // column headers (or the boundary below a row header), so the user can
+    // discover that drag-resizing is available. Uses absolute geometry so the
+    // cursor reacts even between two adjacent headers.
+    g.headerRow.addEventListener("mousemove", function (e) {
+      if (mode) return;
+      const col = headerColIndex(e.target, e.clientX);
+      g.headerRow.style.cursor = col >= 0 ? "col-resize" : "default";
+    });
+    g.headerRow.addEventListener("mouseleave", function () {
+      g.headerRow.style.cursor = "default";
+    });
+    g.bodyInner.addEventListener("mousemove", function (e) {
+      if (mode) return;
+      // The row header is thin (48px) and has no gap between rows, so the
+      // element under the pointer is whichever header contains the y — the
+      // boundary can sit on the NEXT row's top edge. Set the cursor per
+      // header so the row-resize affordance shows at every row boundary.
+      const headers = g.bodyInner.querySelectorAll(".ss-row-header");
+      headers.forEach(function (h) {
+        const rp = parseInt(h.dataset.row, 10);
+        if (isNaN(rp)) { h.style.cursor = "default"; return; }
+        const rect = h.getBoundingClientRect();
+        const near =
+          Math.abs(e.clientY - rect.bottom) <= RESIZE_GRIP ||
+          (Math.abs(e.clientY - rect.top) <= RESIZE_GRIP && rp > 0);
+        h.style.cursor = near ? "row-resize" : "default";
+      });
+    });
+    g.bodyInner.addEventListener("mouseleave", function () {
+      const headers = g.bodyInner.querySelectorAll(".ss-row-header");
+      headers.forEach(function (h) { h.style.cursor = "default"; });
+      g.bodyInner.style.cursor = "default";
     });
   }
 
@@ -306,6 +389,8 @@
     colWidth: colWidth,
     rowHeight: rowHeight,
     colX: colX,
+    rowTop: rowTop,
+    rowAt: rowAt,
     computeVisibleColRange: computeVisibleColRange,
     resizeColumn: function (idx, w) { setColWidth(idx, w); persistResize({ col: idx, width: colWidth(idx) }); },
     resizeRow: function (idx, h) { setRowHeight(idx, h); persistResize({ row: idx, height: rowHeight(idx) }); },
@@ -315,6 +400,8 @@
     window.SheetCore.colWidth = function (idx) { return colWidth(idx); };
     window.SheetCore.rowHeight = function (idx) { return rowHeight(idx); };
     window.SheetCore.colX = function (idx) { return colX(idx); };
+    window.SheetCore.rowTop = function (idx) { return rowTop(idx); };
+    window.SheetCore.rowAt = function (y) { return rowAt(y); };
     window.SheetCore.refreshWidths = wire;
     // #786: share the virtualization math so the shell grid and every module
     // compute the identical column window.

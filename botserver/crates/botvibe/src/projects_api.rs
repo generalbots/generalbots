@@ -5,6 +5,7 @@
 
 use std::sync::Arc;
 
+use diesel::{OptionalExtension, RunQueryDsl};
 use axum::{
     extract::{Extension, Path, Query},
     http::StatusCode,
@@ -33,6 +34,37 @@ pub struct ProjectResponse {
 }
 
 type ApiResult = (StatusCode, Json<ProjectResponse>);
+
+/// Resolve the caller's active branch for an org so project creation and
+/// metering run against the real tenant scope instead of the nil branch.
+fn resolve_org_branch(registry: &ProjectRegistryRef, org_id: Uuid) -> Option<Uuid> {
+    if org_id.is_nil() {
+        return None;
+    }
+    match registry.conn() {
+        Ok(mut conn) => {
+            #[derive(diesel::QueryableByName)]
+            struct BranchRow {
+                #[diesel(sql_type = diesel::sql_types::Uuid)]
+                id: Uuid,
+            }
+            diesel::sql_query(
+                "SELECT id FROM branches WHERE org_id = $1 AND is_active = true \
+                 ORDER BY created_at ASC LIMIT 1",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(org_id)
+            .get_result::<BranchRow>(&mut conn)
+            .optional()
+            .ok()
+            .flatten()
+            .map(|r| r.id)
+        }
+        Err(e) => {
+            log::error!("Vibe: resolve branch for org {org_id} failed: {e}");
+            None
+        }
+    }
+}
 
 fn ok_project(p: Project) -> ApiResult {
     (
@@ -115,7 +147,16 @@ async fn create_project(
     let mut req = req;
     req.org_id = Some(user.organization_id.unwrap_or_else(Uuid::nil));
     let org_id = req.org_id.unwrap_or_else(Uuid::nil);
-    let branch_id = req.branch_id.unwrap_or_else(Uuid::nil);
+    // #1267 — resolve the caller's real org branch when the request does not
+    // carry one, so metering sees the org's actual plan (a nil branch always
+    // resolves to the Free plan and wrongly blocks custom projects even for
+    // private-cloud subscribers) and the project lands in the right tenant
+    // scope instead of the nil branch.
+    let branch_id = match req.branch_id {
+        Some(bid) => bid,
+        None => resolve_org_branch(&registry, org_id).unwrap_or_else(Uuid::nil),
+    };
+    req.branch_id = Some(branch_id);
     if let Err(e) = metering.enforce_project_creation(
         org_id,
         branch_id,
@@ -157,12 +198,18 @@ async fn create_project(
 async fn delete_project(
     Extension(registry): Extension<ProjectRegistryRef>,
     Extension(rbac): Extension<ProjectRbac>,
+    Extension(lifecycle): Extension<Arc<VmLifecycle>>,
     Extension(user): Extension<AuthenticatedUser>,
     Path(id): Path<Uuid>,
 ) -> ApiResult {
     match rbac.require_role(user.user_id, id, ProjectRole::Owner) {
         Ok(_) => {}
         Err(e) => return forbidden(e),
+    }
+    // Cascade-delete the project's VMs (rows + Incus containers) first so
+    // no orphaned containers or vm_instances rows outlive the project.
+    if let Err(e) = lifecycle.delete_all_for_project(id) {
+        log::error!("Vibe: cascade-delete VMs for project {id} failed: {e}");
     }
     match registry.delete(id) {
         Ok(true) => deleted(),
@@ -201,6 +248,19 @@ async fn list_projects(
     if user.user_id.is_nil() {
         return forbidden("forbidden: anonymous users cannot list projects".into());
     }
+    // #1267 — resolve the caller's real org branch when the query does not
+    // carry one, mirroring create_project. Otherwise a project created in the
+    // org branch (see create) is invisible to the list, which would default
+    // to the nil branch and return an empty/stale set (#931 scope mismatch).
+    let query = if query.branch_id.is_none() {
+        let org_id = user.organization_id.unwrap_or_else(Uuid::nil);
+        ListProjectsQuery {
+            branch_id: resolve_org_branch(&registry, org_id).or(query.branch_id),
+            ..query
+        }
+    } else {
+        query
+    };
     match registry.list(&query) {
         Ok(list) => ok_projects(list),
         Err(e) => err_response(e),
@@ -228,6 +288,7 @@ pub fn projects_router(
     registry: ProjectRegistryRef,
     rbac: ProjectRbac,
     metering: Arc<VMetering>,
+    lifecycle: Arc<VmLifecycle>,
 ) -> axum::Router {
     use axum::routing::{delete, get, post, put};
     axum::Router::new()
@@ -247,6 +308,23 @@ pub fn projects_router(
         // workspace endpoints; `?token=` is honored like the WS routes so the
         // embedded Browser iframe can load it directly.
         .route("/api/vibe/projects/:project_id/serve/*path", get(serve_project_file))
+        // #1271 — Run actually starts the app as a process in the dev VM
+        // (node visible in the project terminal's `ps`), exposed through a
+        // host proxy device; the browser opens the returned URL instead of a
+        // static workspace stream.
+        .route("/api/vibe/projects/:project_id/run", post(run_project_app))
+        // #1271 — same-origin preview of the running dev VM (server-side
+        // fetch of the host proxy port, see `preview_vm_app`).
+        .route("/api/vibe/projects/:project_id/vm-preview", get(preview_vm_app))
+        // Branch combo over the real workspace repo (the old /api/git/*
+        // endpoints resolve any non-/tmp repo to a fixed stub repo, so the
+        // combo never showed the project's branches).
+        .route("/api/vibe/projects/:project_id/branches", get(list_project_branches))
+        .route(
+            "/api/vibe/projects/:project_id/branches/:name",
+            post(switch_project_branch),
+        )
+        .layer(Extension(lifecycle))
         .layer(Extension(registry))
         .layer(Extension(rbac))
         .layer(Extension(metering))
@@ -541,6 +619,325 @@ async fn create_project_pr(
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({ "success": false, "error": result.error })),
         )
+    }
+}
+
+// ── #1271: run the project app as a real process in the dev VM ────────────
+// Run pushes the workspace files into the dev container, starts node (or a
+// generated static server) as a systemd service, exposes it through a host
+// proxy device and returns the URL. The app process is then visible in the
+// project terminal's `ps` — previously the browser streamed workspace files
+// with nothing actually running on the VM.
+
+#[derive(Debug, Deserialize)]
+pub struct RunProjectQuery {
+    /// Host port for the proxy device; stable per project when omitted.
+    pub port: Option<u16>,
+}
+
+/// Deterministic per-project host port (31000-31999) so re-runs and the
+/// Browser button reuse the same proxy device instead of piling up devices.
+fn project_run_port(project: &Project) -> u16 {
+    let offset = (project_hash(&project.name) % 1000) as u16;
+    if let Ok(p) = std::env::var("VIBE_RUN_PORT_BASE") {
+        if let Ok(base) = p.parse::<u16>() {
+            return base + offset;
+        }
+    }
+    31000 + offset
+}
+
+fn project_hash(name: &str) -> u64 {
+    let mut h: u64 = 1469598103934665603;
+    for b in name.bytes() {
+        h ^= u64::from(b);
+        h = h.wrapping_mul(1099511628211);
+    }
+    h
+}
+
+async fn run_project_app(
+    Extension(registry): Extension<ProjectRegistryRef>,
+    Extension(rbac): Extension<ProjectRbac>,
+    Extension(lifecycle): Extension<Arc<VmLifecycle>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(project_id): Path<Uuid>,
+    Query(query): Query<RunProjectQuery>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    if let Err(e) = rbac.require_role(user.user_id, project_id, ProjectRole::Viewer) {
+        return (StatusCode::FORBIDDEN, Json(serde_json::json!({ "success": false, "error": e })));
+    }
+    let project = match registry.get(project_id) {
+        Ok(Some(p)) => p,
+        Ok(None) => {
+            return (StatusCode::NOT_FOUND, Json(serde_json::json!({ "success": false, "error": "project not found" })));
+        }
+        Err(e) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "success": false, "error": e })));
+        }
+    };
+    let files = match crate::publish::collect_workspace_files(&project) {
+        Ok(f) => f,
+        Err(e) => return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "success": false, "error": e }))),
+    };
+    let branch_id = resolve_org_branch(&registry, project.org_id).unwrap_or(project.branch_id);
+    let vm = match lifecycle.create_project_vm(
+        project_id,
+        branch_id,
+        &project.name,
+        &crate::vm_lifecycle::CreateVmRequest {
+            env: "development".to_string(),
+            tier: "small".to_string(),
+            runner_enabled: false,
+        },
+    ) {
+        Ok(vm) => vm,
+        Err(e) => return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "success": false, "error": e }))),
+    };
+    let port = query.port.unwrap_or_else(|| project_run_port(&project));
+    match lifecycle.run_dev_app(&vm.container_name, &files, port) {
+        Ok(url) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "success": true,
+                // Same-origin route so the embedded Browser iframe can load
+                // the dev VM through botserver (the generic /api/browser/proxy
+                // rejects private hosts, and iframes cannot set headers).
+                "url": format!("/api/vibe/projects/{project_id}/vm-preview?port={port}"),
+                "host_url": url,
+                "container": vm.container_name,
+                "port": port,
+                "project": project.name,
+            })),
+        ),
+        Err(e) => (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "success": false, "error": e })),
+        ),
+    }
+}
+
+/// Ports allocated for dev-VM proxy devices (see `project_run_port`).
+const DEV_VM_PORT_MIN: u16 = 31000;
+const DEV_VM_PORT_MAX: u16 = 32000;
+
+#[derive(Debug, Deserialize)]
+struct VmPreviewQuery {
+    port: u16,
+    path: Option<String>,
+    token: Option<String>,
+}
+
+/// #1271 — same-origin preview of the project's dev VM. `run` starts the app
+/// as a real process in the container and exposes it through a host proxy
+/// device (`localhost:{port}`); the generic browser proxy refuses private
+/// hosts, so this route fetches `127.0.0.1:{port}` server-side and streams the
+/// response back — authenticated exactly like the workspace `serve` route
+/// (Bearer header from the desktop, or `?token=` from the embedded iframe).
+/// Only ports from the dev-VM range are accepted; RBAC still gates access.
+async fn preview_vm_app(
+    Extension(registry): Extension<ProjectRegistryRef>,
+    Extension(rbac): Extension<ProjectRbac>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(project_id): Path<Uuid>,
+    Query(query): Query<VmPreviewQuery>,
+) -> Response {
+    if let Err(e) = rbac.require_role(user.user_id, project_id, ProjectRole::Viewer) {
+        log::warn!("Vibe vm-preview forbidden: {e}");
+        return (StatusCode::FORBIDDEN, "forbidden").into_response();
+    }
+    let project = match registry.get(project_id) {
+        Ok(Some(p)) => p,
+        Ok(None) => return (StatusCode::NOT_FOUND, "project not found").into_response(),
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, e).into_response(),
+    };
+    let port = query.port;
+    if !(DEV_VM_PORT_MIN..DEV_VM_PORT_MAX).contains(&port) {
+        log::warn!("Vibe vm-preview {}: out-of-range port {port}", project.name);
+        return (StatusCode::BAD_REQUEST, "invalid dev-vm port").into_response();
+    }
+    let path = query.path.as_deref().unwrap_or("/");
+    let target = format!("http://127.0.0.1:{port}{path}");
+    let client = match reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .redirect(reqwest::redirect::Policy::limited(5))
+        .build()
+    {
+        Ok(c) => c,
+        Err(e) => {
+            log::warn!("Vibe vm-preview {}: client build failed: {e}", project.name);
+            return (StatusCode::INTERNAL_SERVER_ERROR, "proxy client").into_response();
+        }
+    };
+    let resp = match client.get(&target).send().await {
+        Ok(r) => r,
+        Err(e) => {
+            log::warn!(
+                "Vibe vm-preview {}: fetch {target} failed: {e}",
+                project.name
+            );
+            return (StatusCode::BAD_GATEWAY, "dev vm not reachable").into_response();
+        }
+    };
+    let status = resp.status();
+    let content_type = resp
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("application/octet-stream")
+        .to_string();
+    let bytes = match resp.bytes().await {
+        Ok(b) => b,
+        Err(e) => {
+            log::warn!("Vibe vm-preview {}: read response: {e}", project.name);
+            return (StatusCode::BAD_GATEWAY, "read dev vm response").into_response();
+        }
+    };
+    let body: axum::body::Body = if content_type.to_lowercase().contains("html") {
+        match (std::str::from_utf8(&bytes), query.token.as_deref()) {
+            (Ok(text), Some(token)) => serve_inject_token(text, token).into_bytes().into(),
+            _ => bytes.into(),
+        }
+    } else {
+        bytes.into()
+    };
+    (
+        status,
+        [
+            (axum::http::header::CONTENT_TYPE, content_type),
+            (axum::http::header::CACHE_CONTROL, "no-store".to_string()),
+        ],
+        body,
+    )
+        .into_response()
+}
+
+#[derive(Debug, Serialize)]
+struct BranchInfo {
+    name: String,
+    current: bool,
+}
+
+async fn list_project_branches(
+    Extension(registry): Extension<ProjectRegistryRef>,
+    Extension(rbac): Extension<ProjectRbac>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(project_id): Path<Uuid>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    if let Err(e) = rbac.require_role(user.user_id, project_id, ProjectRole::Viewer) {
+        return (StatusCode::FORBIDDEN, Json(serde_json::json!({ "success": false, "error": e })));
+    }
+    let project = match registry.get(project_id) {
+        Ok(Some(p)) => p,
+        Ok(None) => {
+            return (StatusCode::NOT_FOUND, Json(serde_json::json!({ "success": false, "error": "project not found" })));
+        }
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "success": false, "error": e }))),
+    };
+    let key = workspace_key(&project);
+    let cwd = match harness::ensure_workspace(&key) {
+        Ok(p) => p,
+        Err(e) => return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "success": false, "error": e }))),
+    };
+    let branches = harness::cmd::run(
+        "git",
+        &["branch".to_string(), "--format=%(refname:short)".to_string()],
+        &cwd,
+        30,
+    );
+    let current = harness::cmd::run(
+        "git",
+        &["rev-parse".to_string(), "--abbrev-ref".to_string(), "HEAD".to_string()],
+        &cwd,
+        15,
+    )
+    .ok()
+    .filter(|o| o.exit_code == Some(0))
+    .map(|o| o.stdout.trim().to_string())
+    .unwrap_or_default();
+    let mut out: Vec<BranchInfo> = Vec::new();
+    if let Ok(b) = branches {
+        if b.exit_code == Some(0) {
+            for line in b.stdout.lines() {
+                let name = line.trim();
+                if name.is_empty() {
+                    continue;
+                }
+                out.push(BranchInfo {
+                    name: name.to_string(),
+                    current: name == current,
+                });
+            }
+        }
+    }
+    if out.is_empty() {
+        out.push(BranchInfo {
+            name: if current.is_empty() { "main".to_string() } else { current.clone() },
+            current: true,
+        });
+    }
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({ "success": true, "branches": out, "current": current })),
+    )
+}
+
+async fn switch_project_branch(
+    Extension(registry): Extension<ProjectRegistryRef>,
+    Extension(rbac): Extension<ProjectRbac>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path((project_id, name)): Path<(Uuid, String)>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    if let Err(e) = rbac.require_role(user.user_id, project_id, ProjectRole::Developer) {
+        return (StatusCode::FORBIDDEN, Json(serde_json::json!({ "success": false, "error": e })));
+    }
+    if name.is_empty()
+        || name == "."
+        || name == ".."
+        || name.contains('/')
+        || !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.')
+    {
+        return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "success": false, "error": "invalid branch name" })));
+    }
+    let project = match registry.get(project_id) {
+        Ok(Some(p)) => p,
+        Ok(None) => {
+            return (StatusCode::NOT_FOUND, Json(serde_json::json!({ "success": false, "error": "project not found" })));
+        }
+        Err(e) => return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "success": false, "error": e }))),
+    };
+    let key = workspace_key(&project);
+    let cwd = match harness::ensure_workspace(&key) {
+        Ok(p) => p,
+        Err(e) => return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "success": false, "error": e }))),
+    };
+    let exists = harness::cmd::run(
+        "git",
+        &[
+            "rev-parse".to_string(),
+            "--verify".to_string(),
+            format!("refs/heads/{name}"),
+        ],
+        &cwd,
+        15,
+    )
+    .map(|o| o.exit_code == Some(0))
+    .unwrap_or(false);
+    let cmd: Vec<String> = if exists {
+        vec!["checkout".to_string(), name.clone()]
+    } else {
+        vec!["checkout".to_string(), "-B".to_string(), name.clone()]
+    };
+    match harness::cmd::run("git", &cmd, &cwd, 60) {
+        Ok(out) if out.exit_code == Some(0) => (
+            StatusCode::OK,
+            Json(serde_json::json!({ "success": true, "branch": name, "output": out.stdout.trim() })),
+        ),
+        Ok(out) => (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "success": false, "error": format!("git checkout failed: {}", out.stderr.trim()) })),
+        ),
+        Err(e) => (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "success": false, "error": e.to_string() }))),
     }
 }
 

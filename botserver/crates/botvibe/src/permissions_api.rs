@@ -48,6 +48,7 @@ const DESTRUCTIVE_LIST: &[&str] = &[
     "shell/run",
     "git/commit",
     "git/init",
+    "git/snapshot-previous",
     "git/push",
     "git/pr",
     "git/checkout",

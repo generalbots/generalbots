@@ -4,10 +4,10 @@
 <link rel="stylesheet" href="/suite/vibe/vibe.p2.css?v=1" />
 <link rel="stylesheet" href="/suite/vibe/vibe-dialogs.p1.css?v=1" />
 <link rel="stylesheet" href="/suite/vibe/vibe-dialogs.p2.css?v=1" />
-<link rel="stylesheet" href="/suite/vibe/vibe-run.css?v=9" />
-<link rel="stylesheet" href="/suite/vibe/vibe-windows.css?v=3" />
+<link rel="stylesheet" href="/suite/vibe/vibe-run.css?v=10" />
+<link rel="stylesheet" href="/suite/vibe/vibe-windows.css?v=5" />
 <link rel="stylesheet" href="/suite/vibe/vibe-canvas-views.css?v=2" />
-<link rel="stylesheet" href="/suite/vibe/vibe-shell/90_shell.css?v=10" />
+<link rel="stylesheet" href="/suite/vibe/vibe-shell/90_shell.css?v=17" />
 
 <div class="vibe-container gb-app" id="vibeWindow" data-gb-app="vibe">
 <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading Vibe…</span></div>
@@ -66,227 +66,6 @@
 </div>
 
 <!-- Main Content: Canvas + Sidebar -->
-<div class="vibe-body">
-<!-- Projects Sidebar — real project registry (/api/vibe/projects).
-     The former "vibe farm" simulation (fake Vibe #1-#4 agent cards,
-     EVOLVED/BRED/WILD badges, drag-and-drop workspaces) had no backend
-     and was removed 2026-08-14. -->
-<aside class="agents-sidebar" id="agentsSidebar" style="background: var(--surface)">
-<div class="as-logo-section" style="
-padding: 16px;
-border-bottom: 1px solid var(--border);
-display: flex;
-align-items: center;
-justify-content: space-between;
-">
-<h2 style="
-margin: 0;
-font-size: 15px;
-color: var(--text);
-font-weight: 800;
-display: flex;
-align-items: center;
-gap: 8px;
-">
-<span style="font-size: 18px; color: var(--accent)">🌱</span>
-Vibe Studio
-</h2>
-<div style="
-display: flex;
-gap: 12px;
-color: var(--text-muted);
-font-size: 14px;
-">
-<span style="cursor: pointer" title="Home" onclick="vibeGoHome()">⌂</span>
-<span style="cursor: pointer" title="Overview" onclick="window.VibeWindows && window.VibeWindows.openGraph()">◱</span>
-</div>
-</div>
-
-<div class="as-section">
-<div class="as-section-header">
-<h3>Projects</h3>
-<button class="as-collapse-btn" id="agentsSidebarCollapse" type="button">
-◀
-</button>
-</div>
-
-<div class="as-workspace-list" id="asProjectList">
-<div class="vibe-rd-empty" style="padding: 8px 12px; font-size: 12px;">Loading projects…</div>
-</div>
-
-<div style="padding: 0 8px">
-<button class="as-create-btn" id="createWorkspaceBtn" type="button"
-style="width: calc(100% - 16px); margin: 8px">
-+ Create a New Project
-</button>
-</div>
-</div>
-</aside>
-
-<!-- Canvas Area -->
-<div class="vibe-canvas" id="vibeCanvas" style="
-background: #ffffff;
-background-image: radial-gradient(
-rgba(15, 23, 42, 0.12) 1px,
-transparent 1px
-);
-background-size: 20px 20px;
-position: relative;
-">
-<div class="vibe-canvas-header" style="
-padding: 16px 24px;
-font-size: 11px;
-color: var(--text-muted);
-font-weight: 600;
-letter-spacing: 0.5px;
-border-bottom: 1px solid var(--border);
-background: var(--surface);
-opacity: 0.95;
-backdrop-filter: blur(4px);
-">
-// DASHBOARD
-<span style="color: var(--text-secondary); margin: 0 6px">&gt;</span>
-// E-COMMERCE APP DEVELOPMENT
-<div style="float: right">
-<button data-vibe-zoom="-1" type="button" style="
-border: 1px solid var(--border);
-background: var(--bg);
-border-radius: 4px;
-padding: 2px 8px;
-cursor: pointer;
-">
--
-</button>
-<span data-vibe-zoom-label style="
-font-size: 11px;
-margin: 0 8px;
-color: var(--text);
-">100%</span>
-<button data-vibe-zoom="1" type="button" style="
-border: 1px solid var(--border);
-background: var(--bg);
-border-radius: 4px;
-padding: 2px 8px;
-cursor: pointer;
-">
-+
-</button>
-</div>
-</div>
-
-<div id="vibeCanvasToolbar" class="vibe-canvas-toolbar" role="toolbar" aria-label="Canvas tools">
-  <button type="button" data-vibe-mode="flow" class="active">Flow</button>
-  <span class="vibe-toolbar-separator"></span>
-  <button type="button" data-vibe-tool="select" title="Select and move elements">Select</button>
-  <button type="button" data-vibe-tool="rectangle" title="Draw a rectangle">Rectangle</button>
-  <button type="button" data-vibe-tool="text" title="Add text">Text</button>
-  <button type="button" data-vibe-tool="connector" title="Draw a connector">Connector</button>
-  <span class="vibe-toolbar-separator"></span>
-  <button type="button" data-vibe-canvas-clear title="Clear design elements">Clear</button>
-  <button type="button" data-vibe-zoom-reset title="Reset zoom">Fit 100%</button>
-  <span id="vibeCanvasSaveState" class="vibe-canvas-save-state">Ready</span>
-</div>
-
-<!-- Steps Nodes -->
-<div class="vibe-steps" id="vibeSteps" style="
-padding: 40px;
-display: none;
-gap: 60px;
-align-items: flex-start;
-overflow-x: auto;
-"></div>
-
-<!-- Persistent visual design layer. Activated from the canvas toolbar. -->
-<div id="vibeGeneratedLayer" class="vibe-generated-layer" aria-label="Generated project design"></div>
-  <div id="vibeDesignSurface" class="vibe-design-surface" aria-label="Visual design canvas">
-  <svg id="vibeDesignConnectors" class="vibe-design-connectors" aria-hidden="true"></svg>
-  <div id="vibeDesignElements" class="vibe-design-elements"></div>
-</div>
-
-<!-- Empty state -->
-<div id="vibeCanvasEmpty" style="
-flex: 1;
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-gap: 16px;
-padding: 60px;
-text-align: center;
-">
-<div style="font-size: 56px; animation: float 3s ease-in-out infinite;">
-🌱
-</div>
-<h3 style="
-margin: 0;
-font-size: 22px;
-font-weight: 800;
-color: var(--text);
-font-family: &quot;Fira Code&quot;, monospace;
-">
-Vibe — App Builder
-</h3>
-<p style="
-margin: 0;
-font-size: 14px;
-color: var(--text-muted);
-max-width: 440px;
-line-height: 1.6;
-">
-Describe what you want to build in the chat. The Vibe Assistant will
-analyze your request, generate task nodes on this canvas,
-and build the entire application for you.
-</p>
-<div style="display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 12px;">
-<button class="vibe-quick-btn" type="button"
-onclick="vibeQuickSubmit('Create an e-commerce app for selling handmade crafts with shopping cart and payments')"
-style="
-padding: 8px 16px;
-border: 1px solid var(--border);
-border-radius: 20px;
-background: var(--bg);
-font-size: 12px;
-cursor: pointer;
-color: var(--text-muted);
-transition: all 0.15s;
-font-family: &quot;Fira Code&quot;, monospace;
-">
-🛍️ E-Commerce App
-</button>
-<button class="vibe-quick-btn" type="button"
-onclick="vibeQuickSubmit('Build a CRM system with contacts, leads, and deal pipeline tracking')"
-style="
-padding: 8px 16px;
-border: 1px solid var(--border);
-border-radius: 20px;
-background: var(--bg);
-font-size: 12px;
-cursor: pointer;
-color: var(--text-muted);
-transition: all 0.15s;
-font-family: &quot;Fira Code&quot;, monospace;
-">
-📇 CRM System
-</button>
-<button class="vibe-quick-btn" type="button"
-onclick="vibeQuickSubmit('Create a project management dashboard with tasks, Kanban board, and team assignments')"
-style="
-padding: 8px 16px;
-border: 1px solid var(--border);
-border-radius: 20px;
-background: var(--bg);
-font-size: 12px;
-cursor: pointer;
-color: var(--text-muted);
-transition: all 0.15s;
-font-family: &quot;Fira Code&quot;, monospace;
-">
-📊 Project Manager
-</button>
-</div>
-</div>
-</div>
-
 <!-- Run dock host is a sibling of the canvas (NOT inside it) so its
      bottom/right anchors to the vibe window, not the scrollable canvas. -->
 <div id="vibeRunDockHost"></div>
@@ -297,112 +76,9 @@ font-family: &quot;Fira Code&quot;, monospace;
 <span class="vibe-exec-label">AGENT EXECUTING…</span>
 </div>
 
-<!-- Vibe Chat Overlay -->
-<div id="vibeChatOverlay" style="
-position: absolute;
-bottom: 24px;
-right: 24px;
-width: 380px;
-background: var(--surface);
-border-radius: 12px;
-box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-display: flex;
-flex-direction: column;
-overflow: hidden;
-border: 1px solid var(--border);
-color: var(--text);
-z-index: 100;
-">
-<div style="
-padding: 12px 16px;
-background: var(--surface-hover);
-border-bottom: 1px solid var(--border);
-display: flex;
-justify-content: space-between;
-align-items: center;
-">
-<div style="display: flex; align-items: center; gap: 8px">
-<span class="as-status-dot green" id="vibeChatStatusDot"
-style="box-shadow: 0 0 8px var(--accent)"></span>
-<span style="font-size: 12px; font-weight: 600">Vibe Assistant</span>
-</div>
-<span id="vibeChatStatusBadge" style="
-font-size: 10px;
-color: var(--text-muted);
-background: var(--surface-hover);
-padding: 2px 6px;
-border-radius: 4px;
-">CONNECTING…</span>
-</div>
-
-<div id="vibeChatMessages" style="
-padding: 16px;
-display: flex;
-flex-direction: column;
-gap: 12px;
-font-size: 12px;
-line-height: 1.5;
-min-height: 220px;
-max-height: 350px;
-overflow-y: auto;
-font-family: &quot;Segoe UI&quot;, system-ui, sans-serif;
-">
-<div style="
-align-self: center;
-background: rgba(132, 214, 105, 0.12);
-color: var(--accent);
-padding: 8px 14px;
-border-radius: 8px;
-font-size: 11px;
-text-align: center;
-">
-💡 TIP: Describe your project. The more detail, the better the plan.
-</div>
-</div>
-
-<div style="
-padding: 12px;
-border-top: 1px solid var(--border);
-background: var(--surface);
-">
-<form id="vibeChatForm" autocomplete="off" style="
-display: flex;
-align-items: center;
-gap: 8px;
-background: var(--surface-hover);
-padding: 8px 12px;
-border-radius: 20px;
-border: 1px solid var(--border);
-">
-<span style="color: var(--text-muted); cursor: pointer; transform: rotate(-45deg);">📎</span>
-<input type="text" id="vibeChatInput" placeholder="Describe your project…" style="
-flex: 1;
-background: transparent;
-border: none;
-color: var(--text);
-font-size: 13px;
-outline: none;
-font-family: &quot;Segoe UI&quot;, system-ui, sans-serif;
-" />
-<button type="submit" id="vibeChatSend" style="
-background: var(--accent);
-color: var(--surface);
-width: 24px;
-height: 24px;
-border-radius: 50%;
-display: flex;
-align-items: center;
-justify-content: center;
-cursor: pointer;
-font-size: 14px;
-font-weight: bold;
-border: none;
-">
-↑
-</button>
-</form>
-</div>
-</div>
+<!-- Chat lives in the Chat app only (toolbar Chat button pre-fills @appname).
+     The runner surfaces run status in the ribbon, the Run Dock and the
+     runner log — no in-runner chat overlay anymore. -->
 
 <!-- Vibe Professional Dialogs (#806 rewrite) — one mask, real API content per dialog -->
 <div class="vibe-dialog-mask" id="vibeDialogMask">
@@ -421,10 +97,8 @@ border: none;
 
 <div id="vibeMembersModal" style="display: none; position: fixed; inset: 0; z-index: 95; align-items: center; justify-content: center; background: rgba(0,0,0,0.5);">
   <div style="width: 520px; max-height: 80vh; overflow-y: auto; background: var(--bg, #1a1a2e); border: 1px solid var(--border, #333); border-radius: 8px; padding: 20px;">
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-      <h3 style="margin: 0; font-size: 15px; color: var(--text, #eee);">Project Members</h3>
-      <button onclick="window.VibeMembers && window.VibeMembers.close()" style="border: none; background: transparent; color: var(--text, #eee); font-size: 18px; cursor: pointer;">×</button>
-    </div>
+    <!-- No in-panel title/close: the WindowManager chrome already carries
+         the "Project Members" title and the ✕ button. -->
     <div id="vibeMembersRole" style="margin-bottom: 12px; font-size: 13px; color: var(--text-muted, #999);"></div>
     <div id="vibeMeterUsage" style="margin-bottom: 12px; font-size: 13px; color: var(--text-muted, #999);"></div>
     <div id="vibeMembersList" style="margin-bottom: 16px;"></div>
@@ -455,13 +129,11 @@ border: none;
 </div>
 
 <!-- Vibe Graph Panel + Capabilities -->
-<div id="vibeGraphPanel" style="display: none; position: absolute; right: 12px; bottom: 12px; width: min(720px, calc(100% - 24px)); height: min(520px, calc(100% - 24px)); z-index: 80; border: 1px solid var(--border, #d8dee9); border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 12px 40px rgba(15,23,42,0.18); flex-direction: column;">
-  <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; border-bottom: 1px solid var(--border, #333); font-size: 12px; font-weight: 700; color: var(--text, #eee);">
-    <span>KNOWLEDGE GRAPH · <span id="vibeGraphUseCaseLabel">software_development</span></span>
-    <span>
-      <button onclick="VibeGraph && VibeGraph.togglePanel(true)" style="background: transparent; border: 1px solid var(--border, #333); color: var(--text, #eee); border-radius: 4px; padding: 1px 8px; cursor: pointer; margin-right: 6px;">⟳</button>
-      <button id="vibeGraphClose" style="background: transparent; border: none; color: var(--text-muted, #888); cursor: pointer; font-size: 14px;">✕</button>
-    </span>
+<div id="vibeGraphPanel" style="display: none; position: absolute; left: 5%; top: 6%; width: 90%; height: 90%; z-index: 80; border: 1px solid var(--border, #d8dee9); border-radius: 10px; overflow: hidden; background: #fff; box-shadow: 0 12px 40px rgba(15,23,42,0.18); flex-direction: column;">
+  <!-- Slim toolbar (no title/✕ — the tool window chrome carries them). -->
+  <div style="display: flex; align-items: center; justify-content: flex-end; padding: 6px 14px; border-bottom: 1px solid var(--border, #333); font-size: 11px; color: var(--text-muted, #888);">
+    <span style="margin-right: auto"><span id="vibeGraphUseCaseLabel">software_development</span></span>
+    <button onclick="VibeGraph && VibeGraph.togglePanel(true)" style="background: transparent; border: 1px solid var(--border, #333); color: var(--text, #eee); border-radius: 4px; padding: 1px 8px; cursor: pointer;">⟳</button>
   </div>
   <div style="padding: 8px 14px; border-bottom: 1px solid var(--border, #d8dee9); color: var(--text-muted, #64748b); font-size: 11px; line-height: 1.45;">
     Shows the selected use case, its execution runs, and the tools each run triggered. Double-click a run to inspect it.
@@ -475,46 +147,43 @@ border: none;
 
 <!-- Vibe Metrics Panel (real run telemetry, not the knowledge graph) -->
 <div id="vibeMetricsPanel" style="display: none; position: absolute; right: 24px; bottom: 24px; width: 480px; height: 400px; z-index: 80; border: 1px solid var(--border, #333); border-radius: 10px; overflow: hidden; background: var(--surface, #14142a); box-shadow: 0 12px 40px rgba(0,0,0,0.45); flex-direction: column;">
-  <div style="display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; border-bottom: 1px solid var(--border, #333); font-size: 12px; font-weight: 700; color: var(--text, #eee);">
-    <span>📊 VIBE METRICS</span>
-    <span>
-      <button onclick="VibeMetrics && VibeMetrics.refresh()" title="Refresh" style="background: transparent; border: 1px solid var(--border, #333); color: var(--text, #eee); border-radius: 4px; padding: 1px 8px; cursor: pointer; margin-right: 6px;">⟳</button>
-      <button id="vibeMetricsClose" style="background: transparent; border: none; color: var(--text-muted, #888); cursor: pointer; font-size: 14px;">✕</button>
-    </span>
+  <!-- Slim toolbar (no title/✕ — the tool window chrome carries them). -->
+  <div style="display: flex; align-items: center; justify-content: flex-end; padding: 6px 14px; border-bottom: 1px solid var(--border, #333); font-size: 11px; color: var(--text-muted, #888);">
+    <span style="margin-right: auto">run telemetry</span>
+    <button onclick="VibeMetrics && VibeMetrics.refresh()" title="Refresh" style="background: transparent; border: 1px solid var(--border, #333); color: var(--text, #eee); border-radius: 4px; padding: 1px 8px; cursor: pointer;">⟳</button>
   </div>
   <div id="vibeMetricsBody" style="flex: 1; min-height: 0; overflow-y: auto; padding: 12px 14px; font-size: 12px; color: var(--text, #eee);"></div>
 </div>
 
 <script src="/suite/vibe/vibe-state.js?v=5"></script>
-<script src="/suite/vibe/vibe-windows.js?v=5"></script>
+<script src="/suite/vibe/vibe-windows.js?v=21"></script>
 <script src="/suite/vibe/vibe-broadcast.js?v=1"></script>
-<script src="/suite/vibe/vibe-helpers.js?v=7"></script>
-<script src="/suite/vibe/vibe-canvas.js?v=7"></script>
+<script src="/suite/vibe/vibe-helpers.js?v=10"></script>
+<script src="/suite/vibe/vibe-canvas.js?v=8"></script>
 <script src="/suite/vibe/vibe-canvas-views.js?v=2"></script>
-<script src="/suite/vibe/vibe-agents.js?v=8"></script>
-<script src="/suite/vibe/vibe-websocket.js?v=7"></script>
+<script src="/suite/vibe/vibe-agents.js?v=14"></script>
+<script src="/suite/vibe/vibe-websocket.js?v=8"></script>
 <script src="/suite/vibe/vibe-autotask.js"></script>
 <script src="/suite/vibe/vibe-graph.js?v=5"></script>
 <script src="/suite/vibe/vibe-metrics.js?v=3"></script>
-<script src="/suite/vibe/vibe-run.js?v=11"></script>
-<script src="/suite/vibe/vibe-init.js?v=6"></script>
-<script src="/suite/vibe/vibe-deeplink.js"></script>
-<script src="/suite/vibe/vibe-new-project.js?v=6"></script>
+<script src="/suite/vibe/vibe-run.js?v=20"></script>
+<script src="/suite/vibe/vibe-init.js?v=7"></script>
+<script src="/suite/vibe/vibe-deeplink.js?v=2"></script>
+<script src="/suite/vibe/vibe-new-project.js?v=7"></script>
 <script src="/suite/vibe/vibe-members.js?v=3"></script>
 <script src="/suite/vibe/vibe-dialogs.js?v=2"></script>
 <script src="/suite/vibe/vibe-dialog-db.js?v=7"></script>
 <script src="/suite/vibe/vibe-dialog-git.js?v=2"></script>
-<script src="/suite/vibe/vibe-dialog-terminal.js?v=4"></script>
+<script src="/suite/vibe/vibe-dialog-terminal.js?v=5"></script>
 <script src="/suite/vibe/vibe-dialog-browser.js?v=4"></script>
 <script src="/suite/vibe/vibe-dialog-code.js?v=4"></script>
 <script src="/suite/vibe/vibe-dialog-deploy.js?v=6"></script>
 <script src="/suite/vibe/vibe-pipeline.js?v=2"></script>
 <script src="/suite/vibe/vibe-shell/00_shell_state.js?v=2"></script>
-<script src="/suite/vibe/vibe-shell/10_toolbar.js?v=11"></script>
+<script src="/suite/vibe/vibe-shell/10_toolbar.js?v=27"></script>
 <script src="/suite/vibe/vibe-shell/20_palettes.js?v=2"></script>
 <script src="/suite/vibe/vibe-shell/30_canvas_flow.js?v=2"></script>
 <script src="/suite/vibe/vibe-shell/99_shell_init.js?v=4"></script>
 <script src="/suite/js/vendor/xterm/xterm.js"></script>
 <script src="/suite/js/vendor/xterm/addon-fit.js"></script>
-</div>
 </div>

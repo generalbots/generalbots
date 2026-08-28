@@ -1,4 +1,4 @@
-<link rel="stylesheet" href="/suite/css/browser.css">
+<link rel="stylesheet" href="/suite/css/browser.css?v=2">
 
 <div class="gb-app browser-root" data-gb-app="browser">
     <div class="browser-toolbar">
@@ -103,7 +103,10 @@
     var protocolIcon = document.getElementById('protocol-icon');
 
     function isUrl(str) {
-        return /^(https?:\/\/|localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/i.test(str);
+        // Also accept same-origin absolute paths (leading "/") such as the
+        // Vibe dev-VM preview route (/api/vibe/projects/<id>/vm-preview?port=…).
+        // They are real navigation targets, never an internet search query.
+        return /^(https?:\/\/|\/|localhost|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/i.test(str);
     }
 
     function sanitizeHtml(html) {
@@ -178,6 +181,20 @@
     }
 
     function navigateSameOrigin(url) {
+        // Embedded iframes cannot send an Authorization header — the
+        // vm-preview/serve routes accept `?token=` instead. Match against the
+        // PATHNAME (strip origin/query), because `url` is absolute here
+        // (http://host/api/vibe/projects/<id>/vm-preview?port=…) and the
+        // `^\/api\/` anchor would never match an absolute http URL — leaving
+        // the app in an unauthenticated iframe (403 blank browser).
+        var pathname = (url.split('?')[0] || '').replace(/^https?:\/\/[^\/]+/, '');
+        var isVmPreview = /^\/api\/vibe\/projects\/[^\/]+\/vm-preview/.test(pathname);
+        var isWorkspaceServe = /^\/api\/vibe\/projects\/[^\/]+\/serve\//.test(pathname);
+        if ((isVmPreview || isWorkspaceServe) && url.indexOf('token=') === -1) {
+            var token = localStorage.getItem('gb-access-token') ||
+                sessionStorage.getItem('gb-access-token') || '';
+            if (token) url += (url.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(token);
+        }
         var pageEl = viewport.querySelector('.browser-page[data-page="' + activePage + '"]');
         var iframe = ensureIframe(pageEl);
         if (!iframe) throw new Error('Browser page is unavailable');
@@ -191,6 +208,12 @@
         setLoading(false);
     }
 
+    function authHeaders() {
+        var token = localStorage.getItem('gb-access-token') ||
+            sessionStorage.getItem('gb-access-token') || '';
+        return token ? { 'Authorization': 'Bearer ' + token } : {};
+    }
+
     async function fetchViaProxy(url) {
         try {
             setLoading(true);
@@ -201,13 +224,17 @@
             var isSuite = target.origin === window.location.origin && target.pathname.indexOf('/suite/') === 0;
             var isWorkspaceServe = target.origin === window.location.origin &&
                 /^\/api\/vibe\/projects\/[^\/]+\/serve\//.test(target.pathname);
-            if (isSuite || isWorkspaceServe) {
+            var isVmPreview = target.origin === window.location.origin &&
+                /^\/api\/vibe\/projects\/[^\/]+\/vm-preview/.test(target.pathname);
+            if (isSuite || isWorkspaceServe || isVmPreview) {
                 navigateSameOrigin(target.href);
                 return;
             }
 
-            var resp = await fetch(API_BASE + '/proxy?url=' + encodeURIComponent(url));
-            if (!resp.ok) throw new Error('Proxy returned ' + resp.status);
+            var resp = await fetch(API_BASE + '/proxy?url=' + encodeURIComponent(url), {
+                headers: authHeaders()
+            });
+            if (!resp.ok) throw new Error('Proxy returned ' + resp.status + (resp.status === 401 ? ' (auth required)' : ''));
             var data = await resp.json();
 
             var pageEl = viewport.querySelector('.browser-page[data-page="' + activePage + '"]');
@@ -224,16 +251,22 @@
             statusText.textContent = 'Done';
         } catch (e) {
             statusText.textContent = 'Failed: ' + e.message;
-            var iframe2 = viewport.querySelector('.browser-page[data-page="' + activePage + '"] iframe');
-            if (iframe2) {
-                iframe2.srcdoc = '<div style="padding:40px;text-align:center;color:#666;font-family:sans-serif">'
+            // Always render the failure inside the page — the initial page has
+            // no iframe yet, so a querySelector would find nothing and the
+            // error would vanish (blank "New Tab" with a "Ready" status).
+            var pageEl = viewport.querySelector('.browser-page[data-page="' + activePage + '"]');
+            var iframe = ensureIframe(pageEl);
+            if (iframe) {
+                iframe.srcdoc = '<div style="padding:40px;text-align:center;color:#666;font-family:sans-serif">'
                     + '<h2>Unable to load page</h2>'
                     + '<p>' + sanitizeHtml(e.message) + '</p>'
                     + '<p style="font-size:13px;color:#999">URL: ' + sanitizeHtml(url) + '</p>'
                     + '</div>';
             }
         } finally {
-            setLoading(false);
+            // Hide only the spinner — never reset the status text, or a
+            // "Failed: ..." message would be clobbered back to "Ready".
+            loadingIndicator.style.display = 'none';
         }
     }
 

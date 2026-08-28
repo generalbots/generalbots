@@ -31,6 +31,21 @@
     return n - 1;
   }
 
+  // Cumulative row geometry, delegated to the widths module when loaded so
+  // resized rows shift every following row (never `row * ROW_HEIGHT`).
+  function rTop(r) {
+    if (window.SheetCore && window.SheetCore.rowTop) return window.SheetCore.rowTop(r);
+    return r * ROW_HEIGHT;
+  }
+  function rH(r) {
+    if (window.SheetCore && window.SheetCore.rowHeight) return window.SheetCore.rowHeight(r);
+    return ROW_HEIGHT;
+  }
+  function rowIdx(y) {
+    if (window.SheetCore && window.SheetCore.rowAt) return window.SheetCore.rowAt(y);
+    return Math.max(0, Math.floor(y / ROW_HEIGHT));
+  }
+
   function parseCellRef(ref) {
     const m = String(ref).match(/^([A-Z]+)(\d+)$/);
     if (!m) return null;
@@ -88,9 +103,9 @@
     const cxFn = (window.SheetCore && window.SheetCore.colX) ? window.SheetCore.colX : function (c) { return HEADER_WIDTH + c * COL_WIDTH; };
     VirtualGrid.selectionOverlay.style.display = "block";
     VirtualGrid.selectionOverlay.style.left = (cxFn(col) - 1) + "px";
-    VirtualGrid.selectionOverlay.style.top = (row * ROW_HEIGHT - 1) + "px";
+    VirtualGrid.selectionOverlay.style.top = (rTop(row) - 1) + "px";
     VirtualGrid.selectionOverlay.style.width = (cwFn(col) + 2) + "px";
-    VirtualGrid.selectionOverlay.style.height = (ROW_HEIGHT + 2) + "px";
+    VirtualGrid.selectionOverlay.style.height = (rH(row) + 2) + "px";
   }
 
   const VirtualGrid = {
@@ -190,6 +205,8 @@
       // row, so only the visible columns exist in the DOM (#786).
       for (let c = cols.start; c < cols.end; c++) {
         const h = document.createElement("div");
+        h.className = "ss-col-head";
+        h.dataset.col = c;
         h.textContent = colName(c);
         h.style.cssText = "position:absolute;left:" + this.colXOf(c) + "px;width:" + this.colWidthOf(c) + "px;background:#0f172a;color:#94a3b8;text-align:center;line-height:24px;font-size:11px;border-right:1px solid #334155;flex-shrink:0;box-sizing:border-box;";
         this.headerRow.appendChild(h);
@@ -203,6 +220,7 @@
         node = this.headerColPool[idx];
       } else {
         node = document.createElement("div");
+        node.className = "ss-row-header";
         node.style.cssText = "position:absolute;width:" + HEADER_WIDTH + "px;height:" + ROW_HEIGHT + "px;background:#0f172a;color:#94a3b8;text-align:center;line-height:" + ROW_HEIGHT + "px;font-size:11px;border-bottom:1px solid #334155;border-right:1px solid #334155;box-sizing:border-box;z-index:5;";
         this.bodyInner.appendChild(node);
         this.headerColPool.push(node);
@@ -211,9 +229,14 @@
     },
 
     visibleRowRange: function () {
-      const start = Math.max(0, Math.floor(this.scrollTop / ROW_HEIGHT) - OVERSCAN);
-      const visible = Math.ceil(this.viewportHeight / ROW_HEIGHT) + OVERSCAN * 2;
-      const end = Math.min(this.totalRows, start + visible);
+      const start = Math.max(0, rowIdx(this.scrollTop) - OVERSCAN);
+      // Advance through cumulative row heights until the viewport is covered.
+      let end = start;
+      let h = 0;
+      for (let r = start; r < this.totalRows && h < this.viewportHeight; r++, end = r + 1) {
+        h += rH(r);
+      }
+      end = Math.min(this.totalRows, end + OVERSCAN);
       return { start: start, end: end };
     },
 
@@ -307,7 +330,9 @@
         node.textContent = r + 1;
         node.style.display = "block";
         node.style.left = "0px";
-        node.style.top = (r * ROW_HEIGHT) + "px";
+        node.style.top = rTop(r) + "px";
+        node.style.height = rH(r) + "px";
+        node.style.lineHeight = rH(r) + "px";
         node.dataset.row = r;
       }
       for (let i = headerUsed; i < this.headerColPool.length; i++) {
@@ -360,12 +385,12 @@
       }
     },
 
-    selectCell: function (row, col) {
+    selectCell: function (row, col, preventScroll) {
       this.selectedRow = row;
       this.selectedCol = col;
       positionSelectionOverlay(row, col);
       updateFormulaBar();
-      this.ensureVisible(row, col);
+      if (!preventScroll) this.ensureVisible(row, col);
       // Focus the cell element so keyboard events reach it
       var cellEl = this.bodyInner.querySelector('[data-row="' + row + '"][data-col="' + col + '"]');
       if (cellEl) cellEl.focus({preventScroll: true});
@@ -379,8 +404,8 @@
       var viewBottom = viewTop + this.viewportHeight;
       var viewLeft = this.scrollLeft;
       var viewRight = viewLeft + this.viewportWidth;
-      var cellTop = row * ROW_HEIGHT;
-      var cellBottom = cellTop + ROW_HEIGHT;
+      var cellTop = rTop(row);
+      var cellBottom = cellTop + rH(row);
       var cellLeft = this.colXOf(col);
       var cellRight = cellLeft + this.colWidthOf(col);
       if (cellTop < viewTop) this.scrollArea.scrollTop = cellTop - 10;
@@ -461,7 +486,7 @@
           this.selectCell(row + 1, col);
           var next = this.bodyInner.querySelector('[data-row="' + (row + 1) + '"][data-col="' + col + '"]');
           if (!next && row + 1 < this.totalRows) {
-            this.scrollArea.scrollTop += ROW_HEIGHT;
+            this.scrollArea.scrollTop += rH(row + 1);
           }
         } else {
           // Enter edit mode on selected cell
@@ -544,9 +569,9 @@
         node.dataset.formula = formula;
         node.textContent = value;
         node.style.left = this.colXOf(c) + "px";
-        node.style.top = (row * ROW_HEIGHT) + "px";
+        node.style.top = rTop(row) + "px";
         node.style.width = this.colWidthOf(c) + "px";
-        node.style.height = ROW_HEIGHT + "px";
+        node.style.height = rH(row) + "px";
         // Reset style then apply cell-level style
         node.style.fontWeight = "";
         node.style.fontStyle = "";

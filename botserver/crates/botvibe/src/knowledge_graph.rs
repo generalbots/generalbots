@@ -14,7 +14,7 @@
 
 use crate::api::VibeApiInner;
 use axum::{
-    extract::{Extension, Path},
+    extract::{Extension, Path, Query},
     Json,
 };
 use serde::{Deserialize, Serialize};
@@ -86,6 +86,9 @@ pub struct RunNodeInfo {
     pub intent: String,
     /// Names of the tools triggered during this run.
     pub tool_names: Vec<String>,
+    /// Vibe project this run operated on (uuid string); used to scope the
+    /// graph to the selected project so unrelated runs do not pollute it.
+    pub project_id: Option<String>,
 }
 
 /// Future alias used by [`GraphDataSource::snapshot_runs`] so the trait
@@ -112,8 +115,14 @@ fn weight_for(count: u32) -> f64 {
 }
 
 /// Builds a graph for a use case containing its runs and the tools they
-/// triggered. Runs from other use cases are filtered out.
-pub fn build_use_case_graph(use_case: &str, runs: &[RunNodeInfo]) -> KnowledgeGraph {
+/// triggered. Runs from other use cases are filtered out; when `project_id`
+/// is set, only runs belonging to that project are included (so the graph
+/// reflects the selected project instead of every run in the workspace).
+pub fn build_use_case_graph(
+    use_case: &str,
+    runs: &[RunNodeInfo],
+    project_id: Option<&str>,
+) -> KnowledgeGraph {
     let mut nodes = vec![GraphNode {
         id: "root".to_string(),
         label: format!("Vibe Graph for {use_case}"),
@@ -126,6 +135,11 @@ pub fn build_use_case_graph(use_case: &str, runs: &[RunNodeInfo]) -> KnowledgeGr
     for run in runs {
         if run.use_case != use_case {
             continue;
+        }
+        if let Some(pid) = project_id {
+            if run.project_id.as_deref() != Some(pid) {
+                continue;
+            }
         }
         nodes.push(GraphNode {
             id: run_id_node(run),
@@ -159,7 +173,15 @@ pub fn build_use_case_graph(use_case: &str, runs: &[RunNodeInfo]) -> KnowledgeGr
             properties: HashMap::from([("calls".to_string(), count.to_string())]),
         });
         for run in runs {
-            if run.use_case == use_case && run.tool_names.iter().any(|t| t == &tool) {
+            if run.use_case != use_case {
+                continue;
+            }
+            if let Some(pid) = project_id {
+                if run.project_id.as_deref() != Some(pid) {
+                    continue;
+                }
+            }
+            if run.tool_names.iter().any(|t| t == &tool) {
                 edges.push(GraphEdge {
                     source: run_id_node(run),
                     target: tool_id(&tool),
@@ -227,15 +249,38 @@ fn sort_graph(nodes: &mut [GraphNode], edges: &mut [GraphEdge]) {
     edges.sort_by_key(|e| (e.source.clone(), e.target.clone(), e.relationship.clone()));
 }
 
+/// Optional query params for the use-case graph.
+#[derive(Debug, Deserialize)]
+pub struct GraphQuery {
+    /// Scope the graph to a single Vibe project (its UUID); when absent the
+    /// graph shows every run for the use case across projects.
+    pub project_id: Option<String>,
+    /// Maximum number of runs to include (newest first). Defaults to 20 so
+    /// a long-lived workspace does not produce an unreadable graph.
+    pub limit: Option<usize>,
+}
+
 /// Returns a knowledge graph for the given use case, built from live runs.
+/// Optionally scoped to a project and capped to the most recent `limit` runs.
 pub(crate) async fn get_knowledge_graph(
     Extension(api): Extension<Arc<VibeApiInner>>,
     Path(use_case): Path<String>,
+    Query(query): Query<GraphQuery>,
 ) -> Json<GraphResponse> {
-    let runs = api.snapshot_runs().await;
+    let mut runs = api.snapshot_runs().await;
+    let project_id = query.project_id.as_deref();
+    if let Some(pid) = project_id {
+        runs.retain(|r| r.project_id.as_deref() == Some(pid));
+    }
+    // Newest first, then cap so the canvas stays readable.
+    runs.sort_by(|a, b| b.run_id.cmp(&a.run_id));
+    let limit = query.limit.unwrap_or(20).min(100);
+    if runs.len() > limit {
+        runs.truncate(limit);
+    }
     Json(GraphResponse {
         success: true,
-        graph: Some(build_use_case_graph(&use_case, &runs)),
+        graph: Some(build_use_case_graph(&use_case, &runs, project_id)),
         error: None,
     })
 }

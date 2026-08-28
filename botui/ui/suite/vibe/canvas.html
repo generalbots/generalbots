@@ -1,0 +1,110 @@
+<!-- Vibe Canvas — UNIFIED standalone canvas app (#1191).
+     One entry point for project drawing: opens via deep link (vibe-canvas),
+     hosts the full design surface, and persists the architecture to
+     project.draw at the root of the selected project workspace. -->
+<link rel="stylesheet" href="/suite/vibe/vibe.p1.css" />
+<link rel="stylesheet" href="/suite/vibe/vibe.p2.css" />
+<link rel="stylesheet" href="/suite/vibe/vibe-canvas-views.css?v=4" />
+
+<div class="gb-app vibe-container" id="vibeCanvasWindow" data-gb-app="vibe-canvas" style="height:100%;">
+  <div class="vibe-canvas" id="vibeCanvas" style="
+      height: 100%;
+      background: #ffffff;
+      background-image: radial-gradient(rgba(15, 23, 42, 0.12) 1px, transparent 1px);
+      background-size: 20px 20px;
+      position: relative;
+    ">
+    <div class="vibe-canvas-header" style="
+        padding: 14px 22px;
+        font-size: 11px;
+        color: var(--text-muted);
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        border-bottom: 1px solid var(--border);
+        background: var(--surface);
+        opacity: 0.95;
+      ">
+      // CANVAS · <span id="vibeCanvasProjectLabel" style="color: var(--text);">project</span>
+      <span style="color:var(--text-muted); margin-left:8px;" id="vibeCanvasDrawFile">project.draw</span>
+      <div style="float: right; display: flex; align-items: center; gap: 8px;">
+        <span id="vibeCanvasSaveState" class="vibe-canvas-save-state">Ready</span>
+        <button data-vibe-zoom="-1" type="button" style="border:1px solid var(--border); background: var(--bg); border-radius:4px; padding:2px 9px; cursor:pointer;">-</button>
+        <span data-vibe-zoom-label style="font-size:11px; color: var(--text);">100%</span>
+        <button data-vibe-zoom="1" type="button" style="border:1px solid var(--border); background: var(--bg); border-radius:4px; padding:2px 9px; cursor:pointer;">+</button>
+      </div>
+    </div>
+
+    <div id="vibeCanvasToolbar" class="vibe-canvas-toolbar" role="toolbar" aria-label="Canvas tools">
+      <button type="button" data-vibe-tool="select" class="active" title="Select and move elements">Select</button>
+      <button type="button" data-vibe-tool="rectangle" title="Draw a rectangle">Rectangle</button>
+      <button type="button" data-vibe-tool="text" title="Add text">Text</button>
+      <button type="button" data-vibe-tool="connector" title="Draw a connector">Connector</button>
+      <span class="vibe-toolbar-separator"></span>
+      <button type="button" data-vibe-zoom-reset title="Reset zoom">Fit 100%</button>
+      <button type="button" data-vibe-canvas-clear title="Clear design elements">Clear</button>
+      <span class="vibe-toolbar-separator"></span>
+      <button type="button" id="vibeCanvasLlmBtn" title="Generate the architecture with the bot LLM (tokenrouter) and save to project.draw">✦ Generate (LLM)</button>
+    </div>
+
+    <!-- Persistent design layer: generated architecture baseline + drawable surface -->
+    <div id="vibeGeneratedLayer" class="vibe-generated-layer" aria-label="Generated project design"></div>
+    <div id="vibeDesignSurface" class="vibe-design-surface active" aria-label="Visual design canvas">
+      <svg id="vibeDesignConnectors" class="vibe-design-connectors" aria-hidden="true"></svg>
+      <div id="vibeDesignElements" class="vibe-design-elements"></div>
+    </div>
+  </div>
+</div>
+
+<script src="/suite/vibe/vibe-state.js?v=5"></script>
+<script src="/suite/vibe/vibe-helpers.js?v=7"></script>
+<script src="/suite/vibe/vibe-canvas.js?v=13"></script>
+<script src="/suite/vibe/vibe-canvas-views.js?v=3"></script>
+<script>
+(function () {
+    "use strict";
+    // The WindowManager injects this page's HTML into the document; scripts
+    // run while the fragment is being parsed, before the nodes are reachable
+    // via getElementById. Poll a few animation frames until #vibeCanvas is
+    // actually attached, then drive the surface.
+    function boot() {
+        var p = window.__gbAppParams__ || {};
+        var qs = new URLSearchParams(window.location.search);
+        var pid = p.project || qs.get("project") || "";
+        if (pid) window.currentProjectId = pid;
+        var tries = 0;
+        (function wait() {
+            tries++;
+            // Wait for THIS app window's own canvas node — the parked panel
+            // in the Vibe window also carries #vibeCanvas and resolves first.
+            var host = document.querySelector("#window-vibe-canvas #vibeCanvas");
+            if ((!host || !window.VibeDesign) && tries <= 60) {
+                requestAnimationFrame(wait);
+                return;
+            }
+            if (pid) {
+                fetch("/api/vibe/projects/" + encodeURIComponent(pid)).then(function (r) { return r.json(); })
+                    .then(function (d) {
+                        var pr = d && (d.project || d.data);
+                        var label = document.getElementById("vibeCanvasProjectLabel");
+                        if (label && pr && pr.name) label.textContent = pr.name;
+                    }).catch(function () {});
+            }
+            if (typeof window.VibeDesign.activate === "function") window.VibeDesign.activate("select");
+            if (typeof window.VibeDesign.installChat === "function") window.VibeDesign.installChat(host);
+            if (typeof window.VibeDesign.load === "function") window.VibeDesign.load();
+            if (window.VibeCanvasViews && typeof window.VibeCanvasViews.generateProjectDesign === "function") {
+                window.VibeCanvasViews.generateProjectDesign(false);
+            }
+            var llmBtn = document.getElementById("vibeCanvasLlmBtn");
+            if (llmBtn && window.VibeDesign && typeof window.VibeDesign.llmGenerate === "function") {
+                llmBtn.addEventListener("click", function () { window.VibeDesign.llmGenerate(); });
+            }
+        })();
+    }
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", boot);
+    } else {
+        boot();
+    }
+})();
+</script>

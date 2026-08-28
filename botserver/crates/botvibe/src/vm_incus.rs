@@ -325,6 +325,74 @@ impl VmLifecycle {
         ];
         self.incus_run(&args, 120)
             .map_err(|e| format!("incus launch {name} (tier {tier}): {e}"))?;
+        // Attach the container to the managed bridge. `incus launch` only
+        // applies the default profile, which typically carries a root disk
+        // but no NIC — leaving the VM with loopback only and no DNS, so the
+        // deployment API (bot.incus) is unreachable from inside the VM.
+        // Prefer the default managed bridge (Incus names it `incusbr0`);
+        // fall back to `incusbr0` when detection yields nothing.
+        let bridge = self
+            .incus_run(
+                &[
+                    "network".to_string(),
+                    "list".to_string(),
+                    "--format".to_string(),
+                    "csv".to_string(),
+                ],
+                30,
+            )
+            .ok()
+            .and_then(|out| {
+                let rows: Vec<Vec<String>> = out
+                    .stdout
+                    .lines()
+                    .filter(|line| !line.trim().is_empty())
+                    .map(|line| {
+                        line.split(',')
+                            .map(|col| col.trim().to_string())
+                            .collect::<Vec<_>>()
+                    })
+                    .collect();
+                // CSV columns: name,type,managed,ipv4,ipv6,description,usedby,state
+                // Prefer the default managed bridge (`incusbr0`), then any
+                // managed bridge; never a physical NIC (`type=physical`).
+                rows.iter()
+                    .find(|r| r.first().map(String::as_str) == Some("incusbr0"))
+                    .or_else(|| {
+                        rows.iter().find(|r| {
+                            r.get(1).map(String::as_str) == Some("bridge")
+                        })
+                    })
+                    .and_then(|r| r.first().cloned())
+            })
+            .unwrap_or_else(|| "incusbr0".to_string());
+        let nic_args = [
+            "config".to_string(),
+            "device".to_string(),
+            "add".to_string(),
+            name.to_string(),
+            "eth0".to_string(),
+            "nic".to_string(),
+            format!("network={bridge}"),
+            "name=eth0".to_string(),
+        ];
+        self.incus_run(&nic_args, 30).map_err(|e| {
+            format!("incus config device add eth0 to {name} (bridge {bridge}): {e}")
+        })?;
+        // Pre-create the app working directory so the project terminal
+        // (`incus exec --cwd /opt/vibe/app`) and the publish flow never hit a
+        // missing-directory error on a fresh container.
+        let mkdir_args = [
+            "exec".to_string(),
+            name.to_string(),
+            "--".to_string(),
+            "mkdir".to_string(),
+            "-p".to_string(),
+            "/opt/vibe/app".to_string(),
+        ];
+        if let Err(e) = self.incus_run(&mkdir_args, 60) {
+            log::warn!("Vibe: pre-create /opt/vibe/app in {name} failed (will retry later): {e}");
+        }
         Ok(())
     }
 
@@ -514,6 +582,323 @@ impl VmLifecycle {
 
         if let Err(e) = std::fs::remove_dir_all(&temp) {
             log::warn!("Vibe: failed to remove deploy temp dir: {e}");
+        }
+        result
+    }
+
+    /// Windows variant: the existing `deploy_node_files` flow already runs
+    /// the app in the WSL-hosted Incus container; `run_dev_app` is the
+    /// platform-neutral entry point used by the projects API.
+    #[cfg(target_os = "windows")]
+    pub(crate) fn run_dev_app(
+        &self,
+        name: &str,
+        files: &[serde_json::Value],
+        host_port: u16,
+    ) -> Result<String, String> {
+        self.deploy_node_files(name, files, host_port)
+    }
+
+    /// Run the project's own app inside the dev container as a REAL process
+    /// (visible in the project terminal's `ps`), exposed through a host proxy
+    /// device. This is the Linux equivalent of the Windows `deploy_node_files`
+    /// flow: workspace files are pushed into `/opt/vibe/app`, node is
+    /// installed when missing, the app is started as a systemd service, and a
+    /// `vibe-http` proxy device maps `host_port` → 127.0.0.1:3000.
+    ///
+    /// The entry point is `index.js` when present; otherwise a minimal node
+    /// static file server is generated so a node process always runs (the
+    /// user's `ps` complaint: the browser showed the app but nothing was
+    /// running on the VM).
+    #[cfg(not(target_os = "windows"))]
+    pub(crate) fn run_dev_app(
+        &self,
+        name: &str,
+        files: &[serde_json::Value],
+        host_port: u16,
+    ) -> Result<String, String> {
+        self.skip_if_unavailable()?;
+        if !self.linux_running(name)? {
+            self.linux_start(name)?;
+        }
+        let temp = std::env::temp_dir().join(format!("vibe-run-{}", uuid::Uuid::new_v4()));
+        std::fs::create_dir_all(&temp).map_err(|e| format!("create run temp dir: {e}"))?;
+
+        let result = (|| -> Result<String, String> {
+            self.incus_run(
+                &[
+                    "exec".to_string(),
+                    name.to_string(),
+                    "--".to_string(),
+                    "mkdir".to_string(),
+                    "-p".to_string(),
+                    "/opt/vibe/app".to_string(),
+                ],
+                30,
+            )
+            .map_err(|e| format!("prepare app directory: {e}"))?;
+
+            let has_index_js = files.iter().any(|f| {
+                f.get("path")
+                    .and_then(|v| v.as_str())
+                    .map(|p| p == "index.js" || p.ends_with("/index.js"))
+                    .unwrap_or(false)
+            });
+            // Static fallback server: a node process that serves the workspace
+            // files over HTTP. Used when the project has no index.js AND when
+            // the real entry is not a web server (a CLI that exits, or a crash)
+            // so the browser never opens against a dead port.
+            let server_js = concat!(
+                "const http=require('http'),fs=require('fs'),path=require('path');\n",
+                "const root='/opt/vibe/app';\n",
+                "const mime={'.html':'text/html','.css':'text/css','.js':'text/javascript','.mjs':'text/javascript','.json':'application/json','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.gif':'image/gif','.ico':'image/x-icon','.woff2':'font/woff2','.woff':'font/woff','.ttf':'font/ttf','.txt':'text/plain'};\n",
+                "http.createServer((req,res)=>{\n",
+                "  let p=path.join(root,decodeURIComponent((req.url||'/').split('?')[0]));\n",
+                "  if(p.endsWith('/'))p=path.join(p,'index.html');\n",
+                "  fs.readFile(p,(e,d)=>{ if(e){res.writeHead(404);res.end('not found');return;} \n",
+                "    res.writeHead(200,{'Content-Type':mime[path.extname(p)]||'application/octet-stream'});res.end(d);});\n",
+                "}).listen(3000);\n",
+            );
+            for file in files {
+                let rel = file
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .ok_or_else(|| "run file is missing path".to_string())?;
+                let rel_path = std::path::Path::new(rel);
+                if rel_path.is_absolute()
+                    || rel_path
+                        .components()
+                        .any(|part| matches!(part, std::path::Component::ParentDir))
+                {
+                    return Err(format!("invalid run path '{rel}'"));
+                }
+                let bytes = file
+                    .get("content")
+                    .and_then(|v| v.as_array())
+                    .ok_or_else(|| format!("run file '{rel}' has invalid content"))?
+                    .iter()
+                    .map(|v| {
+                        v.as_u64()
+                            .filter(|n| *n <= u8::MAX as u64)
+                            .map(|n| n as u8)
+                            .ok_or_else(|| format!("run file '{rel}' has invalid byte"))
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+                let source = temp.join(rel_path);
+                if let Some(parent) = source.parent() {
+                    std::fs::create_dir_all(parent)
+                        .map_err(|e| format!("create run path for '{rel}': {e}"))?;
+                }
+                std::fs::write(&source, bytes)
+                    .map_err(|e| format!("write run file '{rel}': {e}"))?;
+                let destination = format!("{name}/opt/vibe/app/{}", rel.replace('\\', "/"));
+                self.incus_run(
+                    &[
+                        "file".to_string(),
+                        "push".to_string(),
+                        source.to_string_lossy().into_owned(),
+                        destination,
+                        "--create-dirs".to_string(),
+                    ],
+                    60,
+                )
+                .map_err(|e| format!("push run file '{rel}': {e}"))?;
+            }
+
+            // Static apps (pure htmx/html) get a generated node server so a
+            // node process is what shows up in the terminal's `ps`.
+            if !has_index_js {
+                let server_path = temp.join("server.js");
+                std::fs::write(&server_path, server_js)
+                    .map_err(|e| format!("write static server: {e}"))?;
+                self.incus_run(
+                    &[
+                        "file".to_string(),
+                        "push".to_string(),
+                        server_path.to_string_lossy().into_owned(),
+                        format!("{name}/opt/vibe/app/server.js"),
+                        "--create-dirs".to_string(),
+                    ],
+                    60,
+                )
+                .map_err(|e| format!("push static server: {e}"))?;
+            }
+
+            let entry = if has_index_js { "index.js" } else { "server.js" };
+            let service = temp.join("vibe-app.service");
+            std::fs::write(
+                &service,
+                format!(
+                    "[Unit]\nDescription=Vibe application\nAfter=network.target\n\n[Service]\nType=simple\nWorkingDirectory=/opt/vibe/app\nEnvironment=PORT=3000\nExecStart=/usr/bin/node /opt/vibe/app/{entry}\nRestart=always\nRestartSec=2\n\n[Install]\nWantedBy=multi-user.target\n"
+                ),
+            )
+            .map_err(|e| format!("write service unit: {e}"))?;
+            self.incus_run(
+                &[
+                    "file".to_string(),
+                    "push".to_string(),
+                    service.to_string_lossy().into_owned(),
+                    format!("{name}/etc/systemd/system/vibe-app.service"),
+                    "--create-dirs".to_string(),
+                ],
+                60,
+            )
+            .map_err(|e| format!("push service unit: {e}"))?;
+
+            if self
+                .incus_run(
+                    &[
+                        "exec".to_string(),
+                        name.to_string(),
+                        "--".to_string(),
+                        "node".to_string(),
+                        "--version".to_string(),
+                    ],
+                    30,
+                )
+                .is_err()
+            {
+                for command in [
+                    vec!["apt-get", "update"],
+                    vec!["apt-get", "install", "-y", "nodejs", "npm"],
+                ] {
+                    let mut args = vec!["exec".to_string(), name.to_string(), "--".to_string()];
+                    args.extend(command.into_iter().map(str::to_string));
+                    self.incus_run(&args, 300)
+                        .map_err(|e| format!("install Node runtime: {e}"))?;
+                }
+            }
+
+            for command in [
+                vec!["systemctl", "daemon-reload"],
+                vec!["systemctl", "enable", "vibe-app.service"],
+                vec!["systemctl", "restart", "vibe-app.service"],
+            ] {
+                let mut args = vec!["exec".to_string(), name.to_string(), "--".to_string()];
+                args.extend(command.into_iter().map(str::to_string));
+                self.incus_run(&args, 60)
+                    .map_err(|e| format!("start Vibe application: {e}"))?;
+            }
+
+            // Health check: if the project entry is not a web server (a CLI
+            // that prints usage and exits, a crash, or a long build step)
+            // nothing listens on :3000 and the browser would open against a
+            // dead port. Fall back to the generated static server so the
+            // browser always shows the workspace and `ps` shows a live node
+            // process instead of a crash-loop.
+            let listening = |attempts: u32| -> bool {
+                let script = format!(
+                    "for i in $(seq 1 {attempts}); do (echo > /dev/tcp/127.0.0.1/3000) 2>/dev/null && exit 0; sleep 1; done; exit 1"
+                );
+                self.incus_run(
+                    &[
+                        "exec".to_string(),
+                        name.to_string(),
+                        "--".to_string(),
+                        "bash".to_string(),
+                        "-c".to_string(),
+                        script,
+                    ],
+                    60,
+                )
+                .is_ok()
+            };
+            if !listening(20) && has_index_js {
+                log::info!(
+                    "Vibe: {name} entry is not a web server (nothing on :3000) — serving workspace statically"
+                );
+                let server_path = temp.join("server.js");
+                std::fs::write(&server_path, server_js)
+                    .map_err(|e| format!("write static fallback server: {e}"))?;
+                self.incus_run(
+                    &[
+                        "file".to_string(),
+                        "push".to_string(),
+                        server_path.to_string_lossy().into_owned(),
+                        format!("{name}/opt/vibe/app/server.js"),
+                        "--create-dirs".to_string(),
+                    ],
+                    60,
+                )
+                .map_err(|e| format!("push static fallback server: {e}"))?;
+                let unit = format!(
+                    "[Unit]\nDescription=Vibe application (static)\nAfter=network.target\n\n[Service]\nType=simple\nWorkingDirectory=/opt/vibe/app\nEnvironment=PORT=3000\nExecStart=/usr/bin/node /opt/vibe/app/server.js\nRestart=always\nRestartSec=2\n\n[Install]\nWantedBy=multi-user.target\n"
+                );
+                let unit_path = temp.join("vibe-app-static.service");
+                std::fs::write(&unit_path, unit).map_err(|e| format!("write static unit: {e}"))?;
+                self.incus_run(
+                    &[
+                        "file".to_string(),
+                        "push".to_string(),
+                        unit_path.to_string_lossy().into_owned(),
+                        format!("{name}/etc/systemd/system/vibe-app.service"),
+                        "--create-dirs".to_string(),
+                    ],
+                    60,
+                )
+                .map_err(|e| format!("push static unit: {e}"))?;
+                for command in [
+                    vec!["systemctl", "daemon-reload"],
+                    vec!["systemctl", "restart", "vibe-app.service"],
+                ] {
+                    let mut args = vec!["exec".to_string(), name.to_string(), "--".to_string()];
+                    args.extend(command.into_iter().map(str::to_string));
+                    self.incus_run(&args, 60)
+                        .map_err(|e| format!("start static fallback: {e}"))?;
+                }
+                if !listening(15) {
+                    log::warn!("Vibe: {name} static fallback is not serving on :3000");
+                }
+            }
+
+            let devices = self
+                .incus_run(
+                    &[
+                        "config".to_string(),
+                        "device".to_string(),
+                        "show".to_string(),
+                        name.to_string(),
+                    ],
+                    30,
+                )
+                .map_err(|e| format!("inspect proxy device: {e}"))?;
+            if devices.stdout.contains("vibe-http:") {
+                self.incus_run(
+                    &[
+                        "config".to_string(),
+                        "device".to_string(),
+                        "remove".to_string(),
+                        name.to_string(),
+                        "vibe-http".to_string(),
+                    ],
+                    30,
+                )
+                .map_err(|e| format!("replace proxy device: {e}"))?;
+            }
+            self.incus_run(
+                &[
+                    "config".to_string(),
+                    "device".to_string(),
+                    "add".to_string(),
+                    name.to_string(),
+                    "vibe-http".to_string(),
+                    "proxy".to_string(),
+                    format!("listen=tcp:0.0.0.0:{host_port}"),
+                    "connect=tcp:127.0.0.1:3000".to_string(),
+                ],
+                60,
+            )
+            .map_err(|e| format!("expose application port: {e}"))?;
+
+            if host_port == 80 {
+                Ok("http://localhost".to_string())
+            } else {
+                Ok(format!("http://localhost:{host_port}"))
+            }
+        })();
+
+        if let Err(e) = std::fs::remove_dir_all(&temp) {
+            log::warn!("Vibe: failed to remove run temp dir: {e}");
         }
         result
     }

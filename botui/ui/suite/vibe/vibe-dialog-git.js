@@ -40,12 +40,8 @@
         list.innerHTML = '<div class="vibe-empty">Loading status...</div>';
 
         var branchBar = D.el("div", "vibe-browser-status");
-        var branchSel = D.el("select", "vibe-select");
-        branchSel.id = "vibeGitBranch";
-        branchSel.innerHTML = "<option>—</option>";
-        branchSel.style.flex = "1";
-        branchBar.innerHTML = "<span>branch</span>";
-        branchBar.appendChild(branchSel);
+        branchBar.id = "vibeGitBranchBar";
+        branchBar.innerHTML = '<span class="vibe-branch-label">branch: <b>main</b></span>';
 
         box.appendChild(head);
         box.appendChild(count);
@@ -124,17 +120,32 @@
 
     function loadBranches() {
         D.api("/api/git/branches?repo=" + encodeURIComponent(repoName())).then(function (data) {
-            var sel = document.getElementById("vibeGitBranch");
-            if (!sel || !data || !data.branches) return;
-            sel.innerHTML = "";
-            (data.branches || []).forEach(function (b) {
+            var branches = (data && data.branches) || [];
+            var bar = document.getElementById("vibeGitBranchBar");
+            if (!bar) return;
+            // No branches (fresh repo): never show a blank dropdown — inform
+            // like the vibe window does ("main" is the standard branch).
+            if (!Array.isArray(branches) || !branches.length) {
+                bar.innerHTML = '<span class="vibe-branch-label">branch: <b>main</b></span>';
+                return;
+            }
+            var sel = document.createElement("select");
+            sel.id = "vibeGitBranch";
+            sel.className = "vibe-select";
+            sel.style.flex = "1";
+            branches.forEach(function (b) {
                 var name = typeof b === "string" ? b : (b.name || "?");
                 var opt = document.createElement("option");
                 opt.value = name;
                 opt.textContent = name + (name === state.branch ? " *" : "");
                 sel.appendChild(opt);
             });
-        }).catch(function () { });
+            bar.innerHTML = "<span>branch</span>";
+            bar.appendChild(sel);
+        }).catch(function () {
+            var bar = document.getElementById("vibeGitBranchBar");
+            if (bar) bar.innerHTML = '<span class="vibe-branch-label">branch: <b>main</b></span>';
+        });
     }
 
     function loadLog() {

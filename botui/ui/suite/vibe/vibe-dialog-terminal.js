@@ -23,7 +23,29 @@
         }
     }
 
+    // Dispose the previous terminal session, socket and xterm instance. A
+    // re-opened dialog MUST NOT keep the old PTY alive: every live session
+    // prints its own `root@name>` prompt into the same terminal, which is
+    // exactly the "prompt repeated 3 times" the user saw after opening the
+    // Terminal three times. Only one session may be attached at a time.
+    function disposeTerminal() {
+        tornDown = true;
+        if (ws) {
+            try { ws.close(); } catch (ignore) { }
+            ws = null;
+        }
+        var oldTerm = term;
+        term = null;
+        fitAddon = null;
+        if (oldTerm) {
+            try { oldTerm.dispose(); } catch (ignore) { }
+        }
+    }
+
     function buildTerm(container) {
+        // Kill any previous session BEFORE building a new one so prompts
+        // from stale PTYs never stack on top of the fresh shell.
+        disposeTerminal();
         tornDown = false;
         if (!window.Terminal) {
             container.innerHTML = '<div class="vibe-empty">xterm.js not loaded.</div>';
@@ -72,31 +94,37 @@
         }
     }
 
-    // Resolve the selected project's VM container so the terminal execs into
-    // the project environment (the calculator VM) instead of the botserver
-    // host filesystem. Falls back to a host shell when no project/VM exists.
-    function resolveContainer() {
+    // Resolve the selected project's terminal target: exec into the project
+    // VM container. SECURITY: never fall back to a shell on the botserver
+    // host — the previous workspace-cwd fallback opened the server's own
+    // filesystem (the backend now refuses container-less sessions too).
+    function resolveTarget() {
         var pid =
             typeof window.currentProjectId !== "undefined" && window.currentProjectId
                 ? window.currentProjectId
                 : null;
-        if (!pid) return Promise.resolve(null);
+        if (!pid) return Promise.resolve({ container: null, error: "No project selected — open a project first." });
         return D.api("/api/vibe/projects/" + encodeURIComponent(pid) + "/vms")
             .then(function (data) {
                 if (data && data.success === false) throw new Error(data.error || "VM lookup failed");
                 var vms = (data && (data.vms || (data.success && data.data && data.data.vms))) || [];
-                if (!Array.isArray(vms) || !vms.length) throw new Error("This project has no VM yet. Publish it first.");
-                // Prefer a running dev VM; otherwise the first one.
-                var preferred = vms.find(function (v) {
-                    return String(v.env || "").indexOf("development") !== -1 &&
-                        String(v.status || "").indexOf("run") !== -1;
-                }) || vms.find(function (v) {
-                    return String(v.status || "").indexOf("run") !== -1;
-                }) || vms[0];
-                return (preferred && preferred.container_name) ? preferred.container_name : null;
+                if (Array.isArray(vms) && vms.length) {
+                    // Prefer a running dev VM; otherwise the first one.
+                    var preferred = vms.find(function (v) {
+                        return String(v.env || "").indexOf("development") !== -1 &&
+                            String(v.status || "").indexOf("run") !== -1;
+                    }) || vms.find(function (v) {
+                        return String(v.status || "").indexOf("run") !== -1;
+                    }) || vms[0];
+                    if (preferred && preferred.container_name) {
+                        return { container: preferred.container_name };
+                    }
+                }
+                // No running VM: refuse rather than expose a host shell.
+                return { container: null, error: "The project VM is not running — start it (▶ Play) to open a terminal inside it." };
             })
             .catch(function (error) {
-                throw new Error("Could not resolve the project VM: " + (error && error.message ? error.message : error));
+                throw new Error("Could not resolve the project: " + (error && error.message ? error.message : error));
             });
     }
 
@@ -104,18 +132,20 @@
         if (!term || tornDown) return;
         sessionId = "vibe-" + Date.now() + "-" + Math.random().toString(36).substr(2, 8);
 
-        resolveContainer().then(function (container) {
+        resolveTarget().then(function (target) {
             if (tornDown) return;
-            // Safety: only ever open a shell inside the project VM — never
-            // fall back to the botserver host filesystem.
-            if (!container) {
-                writeTerm("\r\n\x1b[31mNo VM for this project yet.\x1b[0m\r\n");
-                writeTerm("\x1b[33mPublish the project (or wait for its VM to be ready) and reopen the terminal.\x1b[0m\r\n");
+            // Exec into the project VM when available; otherwise root the
+            // shell at the project workspace (never the whole host).
+            var createBody = {};
+            if (target && target.container) {
+                createBody.container = target.container;
+            } else {
+                writeTerm("\r\n\x1b[31m" + (target && target.error ? target.error : "No project VM available — start it first.") + "\x1b[0m\r\n");
                 return null;
             }
             return D.api("/api/terminal/create", {
                 method: "POST",
-                body: { container: container },
+                body: createBody,
             });
         }).then(function (data) {
             if (!data) return; // host-shell refusal already reported
@@ -138,7 +168,9 @@
                 if (!term) return;
                 // The PTY shell prints its own prompt — no client-side prompt
                 // is needed (a fake prompt would double up with the real one).
-                writeTerm("\x1b[32mconnected — project WSL/Incus workspace\x1b[0m\r\n");
+                // Leading \r\n separates the banner from any prior output so
+                // a new shell's prompt always starts on a fresh line.
+                writeTerm("\r\n\x1b[32mconnected — project WSL/Incus workspace\x1b[0m\r\n");
                 // Grab focus so the user can type immediately after the
                 // dialog opens — without it, keystrokes go nowhere until
                 // the terminal is clicked once.
@@ -188,20 +220,11 @@
             });
         },
         teardown: function () {
-            tornDown = true;
-            if (ws) {
-                try { ws.close(); } catch (ignore) { }
-                ws = null;
-            }
-            // Null the global BEFORE dispose so any in-flight ws.onmessage /
-            // onopen callback that fires during teardown sees term === null and
-            // bails instead of calling write() on a half-disposed terminal.
-            var oldTerm = term;
-            term = null;
-            fitAddon = null;
-            if (oldTerm) {
-                try { oldTerm.dispose(); } catch (ignore) { }
-            }
+            // Null the globals BEFORE dispose so any in-flight ws.onmessage /
+            // onopen callback that fires during teardown sees term === null
+            // and bails instead of calling write() on a half-disposed
+            // terminal.
+            disposeTerminal();
         },
     });
 })();

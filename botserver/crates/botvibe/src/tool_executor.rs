@@ -320,6 +320,12 @@ impl ToolRegistry {
                 harness::git_tools::git_init_tool(),
             ),
             (
+                "git/snapshot-previous".into(),
+                "Snapshot the currently deployed commit into a release/prev-<ts> branch before publishing (rollback point)".into(),
+                true,
+                harness::git_tools::git_snapshot_previous_tool(),
+            ),
+            (
                 "logs/read".into(),
                 "Read the tail of a project log file".into(),
                 false,
