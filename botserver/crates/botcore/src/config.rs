@@ -535,33 +535,45 @@ impl DriveConfig {
         curl_args.push("-H");
         curl_args.push(&auth_header);
         curl_args.push(&url);
-        let output = std::process::Command::new("curl")
-            .args(&curl_args)
-            .output()
-            .map_err(|e| format!("Failed to execute curl to Vault: {}", e))?;
-
-        let data: serde_json::Value = serde_json::from_slice(&output.stdout)
-            .map_err(|e| format!("Failed to parse Vault response: {}", e))?;
-
-        let secret_data = data.get("data")
-            .and_then(|d| d.get("data"))
-            .ok_or_else(|| "Vault response missing 'data.data' path".to_string())?;
-
-        let host = secret_data.get("host").and_then(|v| v.as_str()).ok_or_else(|| "Vault secret/gbo/drive: 'host' not set".to_string())?;
-        let port = secret_data.get("port").and_then(|v| v.as_str()).ok_or_else(|| "Vault secret/gbo/drive: 'port' not set".to_string())?;
-        let accesskey = secret_data.get("accesskey").and_then(|v| v.as_str()).ok_or_else(|| "Vault secret/gbo/drive: 'accesskey' not set".to_string())?;
-        let secret = secret_data.get("secret").and_then(|v| v.as_str()).ok_or_else(|| "Vault secret/gbo/drive: 'secret' not set".to_string())?;
-        let bucket = secret_data.get("bucket").and_then(|v| v.as_str()).ok_or_else(|| "Vault secret/gbo/drive: 'bucket' not set".to_string())?;
-        let server = format!("{}:{}", host, port);
-
-        Ok(Self {
-            endpoint: format!("http://{}:{}", host, port),
-            bucket: bucket.to_string(),
-            region: "auto".to_string(),
-            access_key: accesskey.to_string(),
-            secret_key: secret.to_string(),
-            server,
-        })
+        // Vault may still be bootstrapping when the process starts (fresh
+        // install or container restart); a single curl attempt then returns
+        // empty stdout and the stack boots without Drive. Retry with backoff
+        // for a few seconds before giving up (#1200).
+        let mut last_err = "no attempt made".to_string();
+        for attempt in 0..10 {
+            let output = std::process::Command::new("curl")
+                .args(&curl_args)
+                .output()
+                .map_err(|e| format!("Failed to execute curl to Vault: {}", e))?;
+            match serde_json::from_slice::<serde_json::Value>(&output.stdout) {
+                Ok(data) => {
+                    let secret_data = data
+                        .get("data")
+                        .and_then(|d| d.get("data"))
+                        .ok_or_else(|| "Vault response missing 'data.data' path".to_string())?;
+                    let host = secret_data.get("host").and_then(|v| v.as_str()).ok_or_else(|| "Vault secret/gbo/drive: 'host' not set".to_string())?;
+                    let port = secret_data.get("port").and_then(|v| v.as_str()).ok_or_else(|| "Vault secret/gbo/drive: 'port' not set".to_string())?;
+                    let accesskey = secret_data.get("accesskey").and_then(|v| v.as_str()).ok_or_else(|| "Vault secret/gbo/drive: 'accesskey' not set".to_string())?;
+                    let secret = secret_data.get("secret").and_then(|v| v.as_str()).ok_or_else(|| "Vault secret/gbo/drive: 'secret' not set".to_string())?;
+                    let bucket = secret_data.get("bucket").and_then(|v| v.as_str()).ok_or_else(|| "Vault secret/gbo/drive: 'bucket' not set".to_string())?;
+                    let server = format!("{}:{}", host, port);
+                    return Ok(Self {
+                        endpoint: format!("http://{}:{}", host, port),
+                        bucket: bucket.to_string(),
+                        region: "auto".to_string(),
+                        access_key: accesskey.to_string(),
+                        secret_key: secret.to_string(),
+                        server,
+                    });
+                }
+                Err(e) => {
+                    last_err = format!("Failed to parse Vault response: {}", e);
+                    log::warn!("DriveConfig::from_vault() attempt {}: {last_err}", attempt + 1);
+                    std::thread::sleep(std::time::Duration::from_secs(1));
+                }
+            }
+        }
+        return Err(format!("DriveConfig::from_vault() failed after retries: {last_err}"));
     }
 
     /// Carrega credenciais das variáveis de ambiente.
