@@ -516,9 +516,30 @@ impl AgentLoop {
         if let Some(name) = forced_tool {
             tools.retain(|tool| tool["function"]["name"].as_str() == Some(name));
         }
-        let tool_choice = if forced_tool.is_some()
-            || (Self::is_local_windows_llm(&api_url) && run.tool_calls.is_empty())
-        {
+        // Force a native tool call while the request still needs work:
+        // reasoning models (e.g. NVIDIA gpt-oss) that are simultaneously told
+        // to "respond in the JSON envelope" stream their whole plan as content
+        // text instead of emitting `tool_calls` deltas, so an unforced parse
+        // yields nothing and the loop retries until the run timeout (fix
+        // #1294). With `tool_choice: "required"` the provider emits native tool
+        // calls reliably. Keep it required until a mutation tool has actually
+        // succeeded (writes/replace/delete/shell/publish), not merely until the
+        // first read ran — otherwise the model inspects the workspace, then
+        // flips to "auto" and answers in prose without applying the edit.
+        let mutation_done = run.tool_calls.iter().any(|call| {
+            matches!(
+                call.tool_name.as_str(),
+                "file/write"
+                    | "file/replace"
+                    | "file/delete"
+                    | "file/set-title"
+                    | "shell/run"
+                    | "test/run"
+                    | "git/commit"
+                    | "publish/project"
+            ) && call.result.as_ref().is_some_and(|result| result.success)
+        });
+        let tool_choice = if forced_tool.is_some() || (!tools.is_empty() && !mutation_done) {
             "required"
         } else {
             "auto"
