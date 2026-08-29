@@ -18,6 +18,8 @@ pub mod tenant;
 pub mod validation;
 pub mod webhook;
 
+use uuid::Uuid;
+
 pub trait VaultConfigProvider: Send + Sync {
     fn get_secret(&self, path: &str) -> Result<String, String>;
     fn get_directory_config(&self) -> Result<(String, String, String, String), String>;
@@ -43,6 +45,10 @@ pub struct SessionCacheEntry {
     pub user_id: String,
     pub email: String,
     pub roles: Vec<String>,
+    /// Org scope carried from the login JWT (cloud SSO) so org-scoped suite
+    /// APIs (vibe projects, metering, domains) resolve the user's real
+    /// organization instead of the nil scope (fix #1268).
+    pub organization_id: Option<Uuid>,
 }
 
 use std::sync::OnceLock;

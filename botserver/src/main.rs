@@ -367,6 +367,10 @@ async fn main() -> std::io::Result<()> {
                     user_id: u.user_id.clone(),
                     email: u.email.clone(),
                     roles: u.roles.clone(),
+                    organization_id: u
+                        .organization_id
+                        .as_ref()
+                        .and_then(|s| Uuid::parse_str(s).ok()),
                 }),
                 None => {
                     // Rehydrate from the persisted login_sessions table.
@@ -406,6 +410,7 @@ async fn main() -> std::io::Result<()> {
                                     user_id: user_id.to_string(),
                                     email: String::new(),
                                     roles,
+                                    organization_id: None,
                                 });
                             }
                             return None;
@@ -417,6 +422,10 @@ async fn main() -> std::io::Result<()> {
                         user_id: user.user_id.clone(),
                         email: user.email.clone(),
                         roles: user.roles.clone(),
+                        organization_id: user
+                            .organization_id
+                            .as_ref()
+                            .and_then(|s| Uuid::parse_str(s).ok()),
                     })
                 }
             }
