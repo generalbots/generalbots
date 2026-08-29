@@ -284,11 +284,19 @@ pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
     }
     {
         let engine = proactivity.clone();
+        let briefing_pool = app_state.conn.clone();
         tokio::spawn(async move {
             let mut ticker = tokio::time::interval(std::time::Duration::from_secs(60));
             loop {
                 ticker.tick().await;
                 let emit = |t: &botvibe::proactivity::TriggerDef| {
+                    // #1191 — the daily briefing card carries real per-app
+                    // history + LLM relevance instead of a static stub.
+                    if t.category == "daily-briefing" {
+                        return Some(botvibe::daily_briefing::build_daily_briefing_blocking(
+                            &briefing_pool,
+                        ));
+                    }
                     Some(format!(
                         "{} — {}",
                         t.category, t.description

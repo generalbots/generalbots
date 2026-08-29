@@ -47,6 +47,7 @@ pub mod run_store;
 pub mod grounding;
 pub mod wired_tools;
 pub mod llm_client;
+pub mod daily_briefing;
 pub mod planner;
 pub mod planner_api;
 pub mod moa;
