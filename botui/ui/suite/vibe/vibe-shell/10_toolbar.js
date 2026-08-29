@@ -95,10 +95,39 @@
 
     function openBrowser(url) {
         if (url) {
+            // The browser window renders the preview inside an iframe, which
+            // cannot send an Authorization header — the vm-preview/serve
+            // endpoints accept `?token=` instead. Resolve the token here (the
+            // shell knows it via getGBAccessToken()) and append it to the URL
+            // so the app is authenticated regardless of which browser.html
+            // version is cached in the service worker.
+            url = withPreviewToken(url);
             openSharedApp("browser", { url: url });
             return;
         }
         openSharedApp("browser", {});
+    }
+
+    // Append the caller's access token to a same-origin preview URL so the
+    // embedded iframe can authenticate. No-op for foreign/external URLs.
+    function withPreviewToken(url) {
+        try {
+            var u = new URL(url, window.location.href);
+            if (u.origin !== window.location.origin) return url;
+            var path = u.pathname;
+            var isPreview = /^\/api\/vibe\/projects\/[^\/]+\/(vm-preview|serve)/.test(path);
+            if (!isPreview || (u.search || "").indexOf("token=") !== -1) return url;
+            var tok = window.getGBAccessToken ? window.getGBAccessToken() : null;
+            if (!tok) {
+                tok = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") ||
+                    localStorage.getItem("management_token") || localStorage.getItem("token") || localStorage.getItem("gb_token") || "";
+            }
+            if (!tok) return url;
+            u.search = (u.search ? u.search + "&" : "?") + "token=" + encodeURIComponent(tok);
+            return u.toString();
+        } catch (e) {
+            return url;
+        }
     }
 
     /* #1271 — open a project's app in the Browser window. Run on the dev VM
