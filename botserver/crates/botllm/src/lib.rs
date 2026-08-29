@@ -558,9 +558,13 @@ impl LLMProvider for OpenAIClient {
         } else {
             "max_tokens"
         };
-        let use_stream = !(model.contains("gpt-oss") && (self.base_url.contains("nvidia") || self.base_url.contains("cerebras")));
+        let use_stream = !(model.contains("gpt-oss") && (self.base_url.contains("nvidia") || self.base_url.contains("cerebras")))
+            // #1202 — the tokenrouter free GLM tier intermittently fails SSE
+            // decoding ('Stream read error: error decoding response body');
+            // its non-streaming path is reliable, so disable streaming for it.
+            && !(model.contains("glm") && self.base_url.contains("tokenrouter"));
         if !use_stream {
-            info!("Setting stream=false for NVIDIA model: {}", model);
+            info!("Setting stream=false for model: {}", model);
         }
         let mut request_body = serde_json::json!({
             "model": model,
