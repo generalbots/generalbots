@@ -21,7 +21,13 @@ function vibeAddMsg(role, text) {
 // RUNNER LOG (Run Dock) and conversations happen in the Chat app. Same API,
 // new target — callers (vibe-run.js, vibe-websocket.js, autotask) keep
 // working unchanged.
-var box = document.getElementById("vibeRunnerLogList");
+// User/bot chat messages are NOT shown in the Run Dock anymore — only
+// system/status lines belong there. Bot responses still stream into a
+// hidden mirror element (#vibeChatMirror, display:none) so internal
+// consumers (canvas LLM architecture parsing) can read them without
+// rendering a chat window inside the run dock.
+var isChat = role === "user" || role === "bot";
+var box = isChat ? vibeChatMirrorEl() : document.getElementById("vibeRunnerLogList");
 if (!box) return null;
 var div = document.createElement("div");
 if (role === "user") {
@@ -55,6 +61,20 @@ if (el) el.id = vibeStreamId;
 return el;
 }
 
+// Hidden mirror for chat/bot content that must be readable internally
+// (e.g. canvas LLM architecture parsing) without being displayed in the
+// Run Dock. Created lazily so the run dock stays chat-free.
+function vibeChatMirrorEl() {
+    var el = document.getElementById("vibeChatMirror");
+    if (!el) {
+        el = document.createElement("div");
+        el.id = "vibeChatMirror";
+        el.style.cssText = "display:none;position:absolute;left:-9999px;top:0;width:1px;height:1px;overflow:hidden;";
+        document.body.appendChild(el);
+    }
+    return el;
+}
+
 function vibeUpdateStream(content) {
 vibeStreamContent += content || "";
 var el = document.getElementById(vibeStreamId);
@@ -64,7 +84,7 @@ el.innerHTML = marked.parse(vibeStreamContent);
 } else {
 el.textContent = vibeStreamContent;
 }
-var box = document.getElementById("vibeRunnerLogList");
+var box = document.getElementById("vibeChatMirror");
 if (box) box.scrollTop = box.scrollHeight;
 }
 

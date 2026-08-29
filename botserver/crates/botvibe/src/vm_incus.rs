@@ -18,6 +18,26 @@ use crate::vm_lifecycle::VmLifecycle;
 
 const VM_UNAVAILABLE: &str = "vm-skip: incus binary unavailable";
 
+/// Health-check probe pushed into the dev container and run with `node`.
+/// Exits 0 as soon as something listens on 127.0.0.1:3000, otherwise after
+/// `attempts` tries with a 1s pause each. Kept as a FILE (not a `bash -c`
+/// string) because the command guard rejects shell metacharacters in
+/// arguments: `;`, `$`, `>` and `&` would make an inline probe fail to
+/// spawn and wrongly classify every app as "not listening".
+const HEALTH_PROBE_JS: &str = r#"'use strict';
+const net = require('net');
+const attempts = Number(process.argv[2] || 20);
+let tried = 0;
+function probe() {
+  if (tried >= attempts) { process.exit(1); }
+  tried += 1;
+  const sock = net.connect(3000, '127.0.0.1');
+  sock.on('connect', () => { sock.destroy(); process.exit(0); });
+  sock.on('error', () => { sock.destroy(); setTimeout(probe, 1000); });
+}
+probe();
+"#;
+
 /// Working directory for driver commands: `/tmp` on Linux, the OS temp dir
 /// on Windows (where `/tmp` does not exist).
 fn driver_cwd() -> std::path::PathBuf {
@@ -786,18 +806,34 @@ impl VmLifecycle {
             // dead port. Fall back to the generated static server so the
             // browser always shows the workspace and `ps` shows a live node
             // process instead of a crash-loop.
+            // The probe must live in a FILE: the command guard rejects shell
+            // metacharacters in arguments, so `incus exec -- bash -c "..."`
+            // (with `$`, `;`, `>`) is refused and the probe always fails,
+            // which wrongly swapped every custom/node app to the static
+            // server. A pushed probe script runs with clean arguments.
+            let probe_path = temp.join("vibe-healthcheck.js");
+            std::fs::write(&probe_path, HEALTH_PROBE_JS)
+                .map_err(|e| format!("write health probe: {e}"))?;
+            self.incus_run(
+                &[
+                    "file".to_string(),
+                    "push".to_string(),
+                    probe_path.to_string_lossy().into_owned(),
+                    format!("{name}/opt/vibe/healthcheck.js"),
+                    "--create-dirs".to_string(),
+                ],
+                60,
+            )
+            .map_err(|e| format!("push health probe: {e}"))?;
             let listening = |attempts: u32| -> bool {
-                let script = format!(
-                    "for i in $(seq 1 {attempts}); do (echo > /dev/tcp/127.0.0.1/3000) 2>/dev/null && exit 0; sleep 1; done; exit 1"
-                );
                 self.incus_run(
                     &[
                         "exec".to_string(),
                         name.to_string(),
                         "--".to_string(),
-                        "bash".to_string(),
-                        "-c".to_string(),
-                        script,
+                        "node".to_string(),
+                        "/opt/vibe/healthcheck.js".to_string(),
+                        attempts.to_string(),
                     ],
                     60,
                 )

@@ -2,24 +2,16 @@
 <!-- The stylesheet MUST be declared with rel="stylesheet" — without it the
      browser never fetches the file and the editor renders unstyled/unusable
      (same bug class as the canvas app fix). -->
-<link rel="stylesheet" href="/suite/editor.css?v=2" />
+<link rel="stylesheet" href="/suite/editor.css?v=3" />
 
 
     <div class="gb-app editor-container" data-gb-app="editor">
-            <!-- Header -->
-            <div class="editor-header">
-                <div class="editor-title">
-                    <span class="editor-title-icon">📝</span>
-                    <div>
-                        <span class="editor-title-text" id="editor-filename">Untitled</span>
-                        <div class="editor-path" id="editor-filepath"></div>
-                    </div>
-                    <span class="dirty-indicator" id="dirty-indicator" style="display: none;" title="Unsaved changes"></span>
-                </div>
-                <div>
-                    <button class="btn btn-small" onclick="closeEditorWindow()">✕ Close</button>
-                </div>
-            </div>
+            <!-- No internal header: the WindowManager window chrome already
+                 carries the title bar and the ✕ close button. The filename
+                 and dirty indicator still exist for save/status JS logic,
+                 kept hidden off-screen. -->
+            <span id="editor-filename" style="display:none">Untitled</span>
+            <span class="dirty-indicator" id="dirty-indicator" style="display: none;" title="Unsaved changes"></span>
 
             <!-- Toolbar -->
             <div class="editor-toolbar">

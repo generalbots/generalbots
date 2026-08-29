@@ -166,8 +166,8 @@
 
 #window-vibe-newproject {
   width: 540px !important;
-  height: 600px !important;
-  max-height: 600px !important;
+  height: 480px !important;
+  max-height: 480px !important;
   resize: none !important;
   overflow: hidden;
 }
@@ -188,10 +188,14 @@
 }
 
 /* Vibe main window — larger default width at startup so the toolbar rows,
-   project/branch combos and the window-command buttons fit without cramping. */
+   project/branch combos and the window-command buttons fit without cramping.
+   Widened to 1200px (was 960px) so BOTH command rows (incl. the widest row
+   two: Runner Log | Knowledge Graph Canvas Metrics Database | Source Control
+   Members) each sit on exactly ONE line with the groups left-aligned — no
+   internal wrap to a third row. */
 #window-vibe {
-  width: 820px !important;
-  min-width: 720px;
+  width: 1200px !important;
+  min-width: 1000px;
 }
 
 #window-vibe-metrics {
@@ -255,11 +259,17 @@
   display: flex;
   gap: 8px;
   flex-shrink: 0;
+  /* Product spec: the window control buttons (▪ ▪ ✕) sit on the LEFT
+     (MacOS traffic-light style) before the title. The DOM renders title
+     first; flex `order` places the dots first (left) and the title fills
+     the remaining width. */
+  order: -1;
+  margin-right: 6px;
 }
 
 .window-header-glass .window-title {
   flex: 1;
-  text-align: center;
+  text-align: left;
   font-family: Inter, system-ui, -apple-system, sans-serif;
   font-size: 13px;
   font-weight: 600;

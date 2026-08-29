@@ -38,7 +38,9 @@
         // New Project is a fixed-height popup (product spec): all fields
         // visible at once, taller than the content would otherwise need, and
         // NOT resizable — it must not grow a scrollbar nor a resize handle.
-        "vibe-newproject": { elId: "vibeNewProjectModal", title: "New Project", display: "flex", popup: true, size: { w: "540px", h: "600px" } },
+        // Height tracks the form content (Name + 3 kinds + env tier +
+        // framework + footer) so there is no dead space below the fields.
+        "vibe-newproject": { elId: "vibeNewProjectModal", title: "New Project", display: "flex", popup: true, size: { w: "540px", h: "480px" } },
         "vibe-members": { elId: "vibeMembersModal", title: "Project Members", display: "flex", popup: true, size: { w: "560px", h: "auto" } },
     };
 

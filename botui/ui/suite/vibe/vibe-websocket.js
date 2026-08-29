@@ -97,11 +97,13 @@ function connectVibeWs() {
                     }
 
                     if (data.type === "thought_process") {
-                        vibeSafeMsg("system", "💭 " + vibeSafeEsc(data.content));
+                        // Agent reasoning is no longer mirrored into the Run
+                        // Dock — conversations live in the Chat window only.
                         return;
                     }
                     if (data.type === "terminal_output") {
-                        vibeSafeMsg("system", "🖥️ " + vibeSafeEsc(data.line));
+                        // Terminal output belongs to the project Terminal app,
+                        // not the Run Dock runner log.
                         return;
                     }
                     if (data.type === "step_progress") {
@@ -111,6 +113,13 @@ function connectVibeWs() {
                     }
 
                     if (data.message_type === 2) {
+                        // #1271 — chat responses are NOT shown in the Run Dock:
+                        // the runner log displays run events only and
+                        // conversation happens in the Chat window. The bot
+                        // reply still streams into the hidden #vibeChatMirror
+                        // so internal consumers (canvas LLM architecture
+                        // parsing) can read it without a chat window inside
+                        // the run dock.
                         if (data.is_complete) {
                             if (vibeStreaming) {
                                 if (typeof vibeFinalizeStream === "function") {
@@ -118,10 +127,7 @@ function connectVibeWs() {
                                 } else {
                                     vibeStreaming = false;
                                 }
-                            } else if (
-                                data.content &&
-                                data.content.trim()
-                            ) {
+                            } else if (data.content && data.content.trim()) {
                                 vibeSafeMsg("bot", data.content);
                             }
                             vibeStreaming = false;
@@ -253,19 +259,6 @@ function connectTaskProgressWs(taskId) {
                 data.step === "step_progress"
             ) {
                 // Progress now lives in the Run Dock; the removed fake
-                // agent card has no progress bar to update.
-                var stageMap = {
-                    Planning: "plan",
-                    Building: "build",
-                    Reviewing: "review",
-                    Deploying: "deploy",
-                    Monitoring: "monitor",
-                };
-                var stageLabel = data.message || "";
-                var tabStage = stageMap[stageLabel];
-                if (tabStage && window.VibePipeline) {
-                    window.VibePipeline.activate(tabStage);
-                }
                 return;
             }
 

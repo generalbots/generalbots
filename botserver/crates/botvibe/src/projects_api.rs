@@ -728,13 +728,47 @@ struct VmPreviewQuery {
     token: Option<String>,
 }
 
+/// Resolve the default gateway IPv4 address from `/proc/net/route`.
+/// The vibe-http proxy device binds on the host; a botserver running inside
+/// an Incus container must reach it via the gateway rather than 127.0.0.1.
+/// Returns `None` when no default route exists (e.g. running directly on the
+/// host). Parsing the proc file avoids spawning any external command.
+fn default_gateway_ip() -> Option<String> {
+    let raw = std::fs::read_to_string("/proc/net/route").ok()?;
+    for line in raw.lines().skip(1) {
+        let mut fields = line.split_whitespace();
+        let _iface = fields.next()?;
+        let dest = fields.next()?;
+        let gw = fields.next()?;
+        if dest == "00000000" && gw.len() == 8 {
+            // /proc/net/route stores the gateway little-endian: the first two
+            // hex digits are the least-significant byte of the address.
+            let bytes = gw.as_bytes();
+            let mut octets = [0u8; 4];
+            for (i, chunk) in bytes.chunks(2).enumerate() {
+                octets[i] = u8::from_str_radix(
+                    &String::from_utf8_lossy(chunk),
+                    16,
+                )
+                .ok()?;
+            }
+            return Some(format!(
+                "{}.{}.{}.{}",
+                octets[3], octets[2], octets[1], octets[0]
+            ));
+        }
+    }
+    None
+}
+
 /// #1271 — same-origin preview of the project's dev VM. `run` starts the app
 /// as a real process in the container and exposes it through a host proxy
 /// device (`localhost:{port}`); the generic browser proxy refuses private
-/// hosts, so this route fetches `127.0.0.1:{port}` server-side and streams the
-/// response back — authenticated exactly like the workspace `serve` route
-/// (Bearer header from the desktop, or `?token=` from the embedded iframe).
-/// Only ports from the dev-VM range are accepted; RBAC still gates access.
+/// hosts, so this route fetches the dev-VM host address server-side and
+/// streams the response back — authenticated exactly like the workspace
+/// `serve` route (Bearer header from the desktop, or `?token=` from the
+/// embedded iframe). Only ports from the dev-VM range are accepted; RBAC
+/// still gates access.
 async fn preview_vm_app(
     Extension(registry): Extension<ProjectRegistryRef>,
     Extension(rbac): Extension<ProjectRbac>,
@@ -757,7 +791,18 @@ async fn preview_vm_app(
         return (StatusCode::BAD_REQUEST, "invalid dev-vm port").into_response();
     }
     let path = query.path.as_deref().unwrap_or("/");
-    let target = format!("http://127.0.0.1:{port}{path}");
+    // The vibe-http proxy device binds on the Incus HOST (`0.0.0.0:{port}`).
+    // When botserver runs directly on the host (dev machines) `127.0.0.1` is
+    // correct; when botserver runs inside an Incus container (prod bot
+    // container), 127.0.0.1 is the container itself and the host is only
+    // reachable via the default gateway. Probe the candidates in order.
+    let mut candidates = vec![format!("http://127.0.0.1:{port}{path}")];
+    if let Some(gateway) = default_gateway_ip() {
+        let host_candidate = format!("http://{gateway}:{port}{path}");
+        if !candidates.contains(&host_candidate) {
+            candidates.push(host_candidate);
+        }
+    }
     let client = match reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
         .redirect(reqwest::redirect::Policy::limited(5))
@@ -769,13 +814,24 @@ async fn preview_vm_app(
             return (StatusCode::INTERNAL_SERVER_ERROR, "proxy client").into_response();
         }
     };
-    let resp = match client.get(&target).send().await {
-        Ok(r) => r,
-        Err(e) => {
-            log::warn!(
-                "Vibe vm-preview {}: fetch {target} failed: {e}",
-                project.name
-            );
+    let mut last_error: Option<(String, String)> = None;
+    let mut resp = None;
+    for target in &candidates {
+        match client.get(target).send().await {
+            Ok(r) => {
+                resp = Some(r);
+                break;
+            }
+            Err(e) => last_error = Some((target.clone(), e.to_string())),
+        }
+    }
+    let resp = match resp {
+        Some(r) => r,
+        None => {
+            // Every candidate failed; log the last attempt's target and error.
+            let (target, err) = last_error
+                .unwrap_or_else(|| (candidates[0].clone(), "no reachable candidate".to_string()));
+            log::warn!("Vibe vm-preview {}: fetch {target} failed: {err}", project.name);
             return (StatusCode::BAD_GATEWAY, "dev vm not reachable").into_response();
         }
     };

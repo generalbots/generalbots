@@ -205,10 +205,29 @@ cursor: pointer;
 }
 .vibe-np-body { padding: 14px 16px; max-height: 62vh; overflow-y: auto; }
 /* Relocated into a fixed-size popup window: no scrollbar — every field is
-   visible at once (the window height is auto so it fits the content). */
+   visible at once. The modal fills the window (vibe-windows.css) and the
+   dialog stretches inside it (flex child), so there is no dead space below
+   the fields, and the footer pins to the bottom. */
+.vibe-tool-relocated .vibe-np-dialog {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
 .vibe-tool-relocated .vibe-np-body {
+    flex: 1;
     max-height: none;
-    overflow: visible;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+.vibe-tool-relocated .vibe-np-body .vibe-np-hint {
+    margin-top: auto;
+}
+.vibe-tool-relocated .vibe-np-foot {
+    flex-shrink: 0;
 }
 .vibe-np-label {
     display: block; margin: 10px 0 4px;
@@ -222,15 +241,17 @@ cursor: pointer;
     color: var(--text, #e5e7eb);
     border-radius: 6px; padding: 7px 10px; font-size: 13px;
 }
-.vibe-np-kinds { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.vibe-np-kinds { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 .vibe-np-kind {
     background: var(--bg2, #0d1117);
     border: 1px solid var(--border, rgba(128,128,128,.3));
     color: var(--text, inherit);
-    border-radius: 8px; padding: 10px 8px; cursor: pointer;
+    border-radius: 10px; padding: 14px 10px; cursor: pointer;
     text-align: left;
-    transition: border-color .15s;
+    display: flex; flex-direction: column; gap: 4px;
+    transition: border-color .15s, transform .1s;
 }
+.vibe-np-kind:hover { transform: translateY(-1px); }
 .vibe-np-kind.active,
 .vibe-np-opt.active {
     border-color: var(--accent, #84d669);
