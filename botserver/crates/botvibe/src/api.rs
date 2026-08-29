@@ -106,9 +106,10 @@ pub struct ListRunsQuery {
     pub offset: Option<u32>,
 }
 
-/// Resolves a nil bot id to the default bot so chat-driven vibe runs
-/// (which carry no explicit bot) still resolve LLM config (Vault + config.csv).
-fn resolve_effective_bot_id(pool: &crate::types::DbPool) -> Uuid {
+/// Resolves a nil bot id to the caller's own org bot (when the user belongs to
+/// an organization) or the default bot otherwise, so vibe runs resolve the
+/// correct LLM config (Vault + config.csv) instead of always hitting `default`.
+fn resolve_effective_bot_id(pool: &crate::types::DbPool, user: &AuthenticatedUser) -> Uuid {
     let mut conn = match pool.get() {
         Ok(c) => c,
         Err(_) => return Uuid::nil(),
@@ -118,6 +119,18 @@ fn resolve_effective_bot_id(pool: &crate::types::DbPool) -> Uuid {
         #[diesel(sql_type = diesel::sql_types::Uuid)]
         id: Uuid,
     }
+    // A member of an org runs against an active bot of that org.
+    if let Some(org_id) = user.organization_id {
+        if let Ok(Some(row)) = diesel::sql_query(
+            "SELECT id FROM bots WHERE org_id = $1 AND is_active = true LIMIT 1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(org_id)
+        .get_result::<BotIdRow>(&mut conn)
+        .optional()
+        {
+            return row.id;
+        }
+    }
     diesel::sql_query("SELECT id FROM bots WHERE name = 'default' AND is_active = true LIMIT 1")
         .get_result::<BotIdRow>(&mut conn)
         .optional()
@@ -125,6 +138,39 @@ fn resolve_effective_bot_id(pool: &crate::types::DbPool) -> Uuid {
         .flatten()
         .map(|r| r.id)
         .unwrap_or(Uuid::nil())
+}
+
+/// #918 — a caller may run against a bot they hold an explicit grant for, the
+/// bot their session authenticated against, or an active bot of their own
+/// organization. Dev/SSO users without Zitadel `bot:` grants must still be able
+/// to run vibe on the domain bot they logged in through.
+fn bot_accessible_to_user(pool: &crate::types::DbPool, user: &AuthenticatedUser, bid: &Uuid) -> bool {
+    if user.bot_access.contains_key(bid) {
+        return true;
+    }
+    if user.current_bot_id.as_ref() == Some(bid) {
+        return true;
+    }
+    let Some(org_id) = user.organization_id else {
+        return false;
+    };
+    let mut conn = match pool.get() {
+        Ok(c) => c,
+        Err(_) => return false,
+    };
+    #[derive(diesel::QueryableByName)]
+    struct OrgRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        org_id: Uuid,
+    }
+    diesel::sql_query("SELECT org_id FROM bots WHERE id = $1 AND is_active = true")
+        .bind::<diesel::sql_types::Uuid, _>(bid)
+        .get_result::<OrgRow>(&mut conn)
+        .optional()
+        .ok()
+        .flatten()
+        .map(|r| r.org_id == org_id)
+        .unwrap_or(false)
 }
 
 /// Resolves the `(project_id, project_name)` a run operates on. An explicit
@@ -408,7 +454,7 @@ async fn create_run(
     // #918 — a caller may only run against a bot they have access to; only an
     // administrator may target an arbitrary bot.
     let bot_id = match req.bot_id {
-        Some(bid) if !bid.is_nil() && !user.is_admin() && !user.bot_access.contains_key(&bid) => {
+        Some(bid) if !bid.is_nil() && !user.is_admin() && !bot_accessible_to_user(api.state.db_pool(), &user, &bid) => {
             return (
                 StatusCode::FORBIDDEN,
                 Json(serde_json::json!({
@@ -419,7 +465,7 @@ async fn create_run(
                 .into_response();
         }
         Some(bid) => bid,
-        None => resolve_effective_bot_id(api.state.db_pool()),
+        None => resolve_effective_bot_id(api.state.db_pool(), &user),
     };
     let run = VibeRun::new(bot_id, Uuid::nil(), Uuid::nil(), intent, config);
     let run_id = run.run_id;
