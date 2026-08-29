@@ -583,9 +583,30 @@ pub async fn execute_command(
             }
         }
         "vibe.project.change" => {
-            let project_id = str_of("project_id")
-                .ok_or_else(|| "params.project_id is required".to_string())?;
             let project_name = str_of("project_name").unwrap_or_default();
+            // The model may call the command without a project_id when the
+            // user is working inside the Vibe shell; fall back to the caller's
+            // most recently created project in the bot's branch scope so the
+            // request still lands in a real workspace (#1196).
+            let project_id = match str_of("project_id") {
+                Some(pid) => pid,
+                None => {
+                    let branch = branch_scope(state, &bot_uuid).unwrap_or_else(|_| Uuid::nil());
+                    let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
+                    // Projects created from the suite land in the caller's real
+                    // branch; the default-bot scope may be the nil branch. Try
+                    // both so the fallback finds the user's latest project
+                    // regardless of which scope it was created under.
+                    diesel::sql_query(
+                        "SELECT id AS project_id FROM vibe_projects WHERE branch_id = ANY($1) ORDER BY created_at DESC LIMIT 1",
+                    )
+                    .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(vec![branch, Uuid::nil()])
+                    .get_result::<ProjectIdRow>(&mut conn)
+                    .ok()
+                    .map(|r| r.project_id.to_string())
+                    .ok_or_else(|| "params.project_id is required (no Vibe project found)".to_string())?
+                }
+            };
             let intent = str_of("intent")
                 .ok_or_else(|| "params.intent is required".to_string())?;
             let mut run_params = serde_json::Map::new();
@@ -703,6 +724,12 @@ async fn integrations_invoke(
         "data": outcome.data,
         "truncated": outcome.truncated,
     }))
+}
+
+#[derive(diesel::QueryableByName)]
+struct ProjectIdRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    project_id: Uuid,
 }
 
 #[derive(diesel::QueryableByName)]
