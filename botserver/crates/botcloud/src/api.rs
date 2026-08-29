@@ -885,53 +885,39 @@ async fn handle_login(
                     let mut user_id: Option<String> = None;
 
                     for login_name in &login_names {
-                        // This Zitadel build verifies credentials only via
-                        // the flat v2 shape; the checks{} wrapper is
-                        // rejected with COMMAND-3M0fs even for valid users.
+                        // Use the v2 `checks` wrapper so the password is actually
+                        // verified. A bare `{loginName, password}` flat shape makes
+                        // Zitadel start a session WITHOUT checking credentials, so
+                        // ANY password would mint a valid JWT. The checks wrapper
+                        // runs the user + password checks and only returns a
+                        // session when they pass (wrong password -> COMMAND-3M0fs).
                         let mut rb = c.post(format!("{dir_url}/v2/sessions"))
                             .header("Authorization", format!("Bearer {dir_token}"))
                             .json(&serde_json::json!({
-                                "loginName": login_name,
-                                "password": body.password
+                                "checks": {
+                                    "user": { "loginName": login_name },
+                                    "password": { "password": body.password }
+                                }
                             }));
                         if let Some(host) = &service.config.directory_external_domain {
                             rb = rb.header("Host", host);
                         }
                         match rb.send().await {
                             Ok(r) if r.status().is_success() => {
-                                // v2 sessions response carries sessionId/sessionToken, not factors.user.userId
+                                // On a successful checks wrapper, the response carries
+                                // the verified user factor directly; use it as the
+                                // stable JWT subject (RBAC derives UUIDv5 from it).
                                 let session = r.json::<serde_json::Value>().await.ok();
-                                let session_id = session.as_ref()
-                                    .and_then(|v| v.get("sessionId").cloned())
-                                    .and_then(|sid| sid.as_str().map(|s| s.to_string()));
-                                let session_token = session.as_ref()
-                                    .and_then(|v| v.get("sessionToken").cloned())
-                                    .and_then(|st| st.as_str().map(|s| s.to_string()));
-                                // Resolve the real Zitadel user id from the session so JWT
-                                // subjects are stable (RBAC derives UUIDv5 from them).
-                                let resolved = match (&session_id, &session_token) {
-                                    (Some(sid), Some(stok)) => {
-                                        let mut grb = c.get(format!("{dir_url}/v2/sessions/{sid}"))
-                                            .header("Authorization", format!("Bearer {dir_token}"))
-                                            .header("sessionToken", stok);
-                                        if let Some(host) = &service.config.directory_external_domain {
-                                            grb = grb.header("Host", host);
-                                        }
-                                        match grb.send().await {
-                                            Ok(gr) if gr.status().is_success() => {
-                                                gr.json::<serde_json::Value>().await.ok()
-                                                    .and_then(|v| v.get("session").cloned())
-                                                    .and_then(|s| s.get("factors").cloned())
-                                                    .and_then(|f| f.get("user").cloned())
-                                                    .and_then(|u| u.get("id").or_else(|| u.get("userId")).cloned())
-                                                    .and_then(|uid| uid.as_str().map(|s| s.to_string()))
-                                            }
-                                            _ => None,
-                                        }
-                                    }
-                                    _ => None,
-                                };
-                                user_id = resolved.or(session_id);
+                                user_id = session.as_ref()
+                                    .and_then(|v| v.get("factors").cloned())
+                                    .and_then(|f| f.get("user").cloned())
+                                    .and_then(|u| u.get("userId").or_else(|| u.get("id")).cloned())
+                                    .and_then(|uid| uid.as_str().map(|s| s.to_string()))
+                                    .or_else(|| {
+                                        session.as_ref()
+                                            .and_then(|v| v.get("sessionId").cloned())
+                                            .and_then(|sid| sid.as_str().map(|s| s.to_string()))
+                                    });
                                 break;
                             }
                             Ok(_) => {
