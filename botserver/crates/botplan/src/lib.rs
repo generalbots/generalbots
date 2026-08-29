@@ -6,11 +6,13 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use botllm::{create_llm_provider, LLMProviderType};
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -226,6 +228,7 @@ pub fn configure_plan_routes() -> Router {
         .route("/api/plan/task/update", post(handle_update_task))
         .route("/api/plan/task/delete", post(handle_delete_task))
         .route("/api/plan/task/depends", post(handle_set_dependencies))
+        .route("/api/plan/ai/assist", post(handle_plan_ai_assist))
 }
 
 pub async fn handle_get_plan(Path(plan_id): Path<String>) -> impl IntoResponse {
@@ -418,4 +421,89 @@ pub async fn handle_delete_task(Json(req): Json<serde_json::Value>) -> impl Into
     } else {
         Json(serde_json::json!({ "ok": false, "error": "plan not found" }))
     }
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct PlanAiRequest {
+    pub instruction: String,
+    #[serde(default)]
+    pub context: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlanAiSuggestion {
+    pub title: String,
+    #[serde(default = "default_status")]
+    pub status: String,
+    #[serde(default = "default_priority")]
+    pub priority: String,
+    #[serde(default)]
+    pub assignee: Option<String>,
+}
+
+fn default_status() -> String {
+    "todo".to_string()
+}
+fn default_priority() -> String {
+    "medium".to_string()
+}
+
+/// AI planning assistant: takes the current plan context and a free-form
+/// instruction and asks the configured LLM to propose tasks. The LLM call is
+/// built from environment configuration (`LLM_URL`, `LLM_KEY`, `LLM_MODEL`);
+/// when those are absent the endpoint degrades gracefully instead of panicking.
+pub async fn handle_plan_ai_assist(Json(req): Json<PlanAiRequest>) -> impl IntoResponse {
+    let url = match std::env::var("LLM_URL") {
+        Ok(v) if !v.is_empty() => v,
+        _ => {
+            return Json(serde_json::json!({ "ok": false, "error": "llm_not_configured" }))
+                .into_response();
+        }
+    };
+    let key = std::env::var("LLM_KEY").unwrap_or_default();
+    let model = match std::env::var("LLM_MODEL") {
+        Ok(v) if !v.is_empty() => v,
+        _ => {
+            return Json(serde_json::json!({ "ok": false, "error": "llm_model_not_configured" }))
+                .into_response();
+        }
+    };
+
+    let ptype: LLMProviderType = url.as_str().into();
+    let provider = create_llm_provider(ptype, url, None, None);
+    let config = Value::Null;
+
+    let prompt = format!(
+        "You are a project planning assistant. Given the project context and a user instruction, \
+         propose concrete tasks as a JSON array. Each item must be an object with keys: \
+         \"title\" (string), \"status\" (one of todo|inprogress|review|done), \
+         \"priority\" (one of low|medium|high|urgent), \"assignee\" (string or null). \
+         Respond with ONLY the JSON array, no markdown fences, no prose.\n\n\
+         Project context:\n{}\n\nInstruction: {}",
+        req.context, req.instruction
+    );
+
+    match provider.generate(&prompt, &config, &model, &key).await {
+        Ok(text) => {
+            let suggestions = parse_plan_suggestions(&text);
+            Json(serde_json::json!({ "ok": true, "suggestions": suggestions })).into_response()
+        }
+        Err(e) => {
+            log::error!("plan ai assist llm call failed: {e}");
+            Json(serde_json::json!({ "ok": false, "error": "ai_assist_failed" })).into_response()
+        }
+    }
+}
+
+fn parse_plan_suggestions(text: &str) -> Vec<PlanAiSuggestion> {
+    let start = text.find('[');
+    let end = text.rfind(']');
+    if let (Some(s), Some(e)) = (start, end) {
+        if e > s {
+            if let Ok(v) = serde_json::from_slice::<Vec<PlanAiSuggestion>>(text[s..=e].as_bytes()) {
+                return v;
+            }
+        }
+    }
+    Vec::new()
 }

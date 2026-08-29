@@ -25,6 +25,7 @@ pub const ROUTE_RESEARCH_EXPORT_CITATIONS: &str = "/api/ui/research/export/citat
 pub const ROUTE_RESEARCH_SOURCE_COUNTS: &str = "/api/ui/research/source-counts";
 pub const ROUTE_RESEARCH_SOURCES: &str = "/api/ui/research/sources";
 pub const ROUTE_RESEARCH_COLLECTIONS_SAVE: &str = "/api/ui/research/collections/save";
+pub const ROUTE_RESEARCH_SHARE: &str = "/api/ui/research/share";
 
 pub trait ResearchState: Send + Sync + std::fmt::Debug + 'static {
     fn db_pool(&self) -> &DbPool;
@@ -117,6 +118,7 @@ pub fn configure_research_routes<S: ResearchState>() -> Router<Arc<S>> {
             ROUTE_RESEARCH_COLLECTIONS_SAVE,
             post(handle_collections_save::<S>),
         )
+        .route(ROUTE_RESEARCH_SHARE, post(handle_share::<S>))
 }
 
 #[derive(Debug, QueryableByName)]
@@ -800,9 +802,110 @@ pub async fn handle_collections_save<S: ResearchState>(
     State(state): State<Arc<S>>,
     Json(payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
-    let _ = state;
-    let _ = payload;
-    Json(serde_json::json!({ "ok": true, "saved": true }))
+    let bot_id = state.bot_id().unwrap_or_else(uuid::Uuid::nil);
+    let pool = state.db_pool().clone();
+    let collection_id = payload
+        .get("collection_id")
+        .and_then(|v| v.as_str())
+        .and_then(|s| uuid::Uuid::parse_str(s).ok());
+    let title = payload
+        .get("title")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Untitled")
+        .to_string();
+    let content = payload
+        .get("content")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let url = payload
+        .get("url")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let res = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|e| e.to_string())?;
+        let id = uuid::Uuid::new_v4();
+        diesel::sql_query(
+            "INSERT INTO research_collection_items (id, bot_id, collection_id, title, content, url, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, NOW())",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(id)
+        .bind::<diesel::sql_types::Uuid, _>(bot_id)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(collection_id)
+        .bind::<diesel::sql_types::Text, _>(&title)
+        .bind::<diesel::sql_types::Text, _>(&content)
+        .bind::<diesel::sql_types::Text, _>(&url)
+        .execute(&mut conn)
+        .map_err(|e| e.to_string())
+    })
+    .await;
+
+    match res {
+        Ok(Ok(_)) => Json(serde_json::json!({ "ok": true, "saved": true })),
+        Ok(Err(e)) => {
+            log::error!("research collection save failed: {e}");
+            Json(serde_json::json!({ "ok": false, "error": "save_failed" }))
+        }
+        Err(e) => {
+            log::error!("research collection save join failed: {e}");
+            Json(serde_json::json!({ "ok": false, "error": "internal" }))
+        }
+    }
+}
+
+pub async fn handle_share<S: ResearchState>(
+    State(state): State<Arc<S>>,
+    Json(payload): Json<serde_json::Value>,
+) -> impl IntoResponse {
+    let bot_id = state.bot_id().unwrap_or_else(uuid::Uuid::nil);
+    let pool = state.db_pool().clone();
+    let title = payload
+        .get("title")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Research result")
+        .to_string();
+    let url = payload
+        .get("url")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let channel = payload
+        .get("channel")
+        .and_then(|v| v.as_str())
+        .unwrap_or("link")
+        .to_string();
+    let id = uuid::Uuid::new_v4();
+    let inserted = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().map_err(|e| e.to_string())?;
+        diesel::sql_query(
+            "INSERT INTO research_shares (id, bot_id, title, url, channel, created_at)
+             VALUES ($1, $2, $3, $4, $5, NOW())",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(id)
+        .bind::<diesel::sql_types::Uuid, _>(bot_id)
+        .bind::<diesel::sql_types::Text, _>(&title)
+        .bind::<diesel::sql_types::Text, _>(&url)
+        .bind::<diesel::sql_types::Text, _>(&channel)
+        .execute(&mut conn)
+        .map_err(|e| e.to_string())
+    })
+    .await;
+
+    match inserted {
+        Ok(Ok(_)) => {
+            let share_url = format!("/suite/research?share={}", id);
+            Json(serde_json::json!({ "ok": true, "share_url": share_url }))
+        }
+        Ok(Err(e)) => {
+            log::error!("research share failed: {e}");
+            Json(serde_json::json!({ "ok": false, "error": "share_failed" }))
+        }
+        Err(e) => {
+            log::error!("research share join failed: {e}");
+            Json(serde_json::json!({ "ok": false, "error": "internal" }))
+        }
+    }
 }
 
 fn html_escape(s: &str) -> String {

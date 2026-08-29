@@ -359,6 +359,7 @@
                 restoreSnapshot(state.history[state.historyIndex]);
             }
         }
+        window.undo = undo;
 
         function redo() {
             if (state.historyIndex < state.history.length - 1) {
@@ -366,6 +367,7 @@
                 restoreSnapshot(state.history[state.historyIndex]);
             }
         }
+        window.redo = redo;
 
         function restoreSnapshot(snapshot) {
             // Clear canvas

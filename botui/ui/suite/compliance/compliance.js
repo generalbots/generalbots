@@ -265,7 +265,29 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("compliance");
     }
 
     function openFramework(name) {
-        window.location = '/suite/compliance/framework/' + encodeURIComponent(name);
+        var overlay = document.getElementById('framework-detail-overlay');
+        if (!overlay) return;
+        overlay.style.display = 'flex';
+        var body = document.getElementById('framework-detail-body');
+        if (body) {
+            body.innerHTML = '<div class="loading-state"><div class="spinner"></div></div>';
+        }
+        var url = '/api/ui/compliance/framework/' + encodeURIComponent(name);
+        if (typeof htmx !== 'undefined' && body) {
+            htmx.ajax('GET', url, { target: '#framework-detail-body', swap: 'innerHTML' });
+        } else {
+            fetch(url)
+                .then(function (r) { return r.text(); })
+                .then(function (html) { if (body) body.innerHTML = html; })
+                .catch(function () {
+                    if (body) body.innerHTML = '<div class="framework-detail-error">Failed to load framework</div>';
+                });
+        }
+    }
+
+    function closeFrameworkDetail() {
+        var overlay = document.getElementById('framework-detail-overlay');
+        if (overlay) overlay.style.display = 'none';
     }
 
     async function loadIssues() {
@@ -393,6 +415,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("compliance");
         loadAll: loadAll,
         createFramework: createFramework,
         openFramework: openFramework,
+        closeFrameworkDetail: closeFrameworkDetail,
         loadFrameworks: loadFrameworks
     };
 

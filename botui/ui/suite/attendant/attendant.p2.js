@@ -254,6 +254,50 @@
                 // Load AI insights
                 await loadInsights(sessionId);
 
+                // Populate customer details + tags from the real session record
+                try {
+                    const sessionResp = await fetch(
+                        `${API_BASE}/api/attendant/sessions/${encodeURIComponent(sessionId)}`,
+                    );
+                    if (sessionResp.ok) {
+                        const sessionData = await sessionResp.json();
+                        const s = sessionData && sessionData.session ? sessionData.session : null;
+                        if (s) {
+                            const detailEmail = document.getElementById("detailEmail");
+                            const detailPhone = document.getElementById("detailPhone");
+                            const detailLocation = document.getElementById("detailLocation");
+                            const detailTags = document.getElementById("detailTags");
+                            if (detailEmail) {
+                                detailEmail.textContent = s.customer_email || conv.user_email || "-";
+                            }
+                            if (detailPhone) {
+                                detailPhone.textContent = s.customer_phone || "-";
+                            }
+                            if (detailLocation) {
+                                const loc =
+                                    s.metadata && s.metadata.location ? s.metadata.location : "-";
+                                detailLocation.textContent = loc;
+                            }
+                            if (detailTags) {
+                                const tags = Array.isArray(s.tags) ? s.tags : [];
+                                detailTags.innerHTML = tags.length
+                                    ? tags
+                                          .map(
+                                              (t) =>
+                                                  `<span class="tag">${escapeHtml(t)}</span>`,
+                                          )
+                                          .join("")
+                                    : '<span class="tag tag-empty">no tags</span>';
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Failed to load customer details", e);
+                }
+
+                // Load previous conversations for this customer
+                loadHistoricalConversation(sessionId);
+
                 // Assign to self if unassigned
                 if (!conv.assigned_to && currentAttendantId) {
                     await assignConversation(sessionId, currentAttendantId);

@@ -486,6 +486,21 @@ pub async fn get_dashboard(
             .get_result(&mut conn)
             .unwrap_or(0);
 
+        let total_key_results: i64 = okr_key_results::table
+            .filter(okr_key_results::org_id.eq(org_id))
+            .filter(okr_key_results::branch_id.eq(branch_id))
+            .count()
+            .get_result(&mut conn)
+            .unwrap_or(0);
+
+        let at_risk_key_results: i64 = okr_key_results::table
+            .filter(okr_key_results::org_id.eq(org_id))
+            .filter(okr_key_results::branch_id.eq(branch_id))
+            .filter(okr_key_results::status.eq("at_risk"))
+            .count()
+            .get_result(&mut conn)
+            .unwrap_or(0);
+
         let objectives = okr_objectives::table
             .filter(okr_objectives::org_id.eq(org_id))
             .filter(okr_objectives::branch_id.eq(branch_id))
@@ -522,6 +537,8 @@ pub async fn get_dashboard(
             total_objectives: total,
             completed_objectives: completed,
             at_risk_objectives: at_risk,
+            total_key_results,
+            at_risk_key_results,
             average_progress: avg_progress,
             upcoming_check_ins,
             recent_activity: vec![],

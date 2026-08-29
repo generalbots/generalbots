@@ -36,6 +36,23 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
         "ALTER TABLE hr_attendance ADD COLUMN IF NOT EXISTS branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'",
         "ALTER TABLE hr_review_cycles ADD COLUMN IF NOT EXISTS branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'",
         "ALTER TABLE hr_goals ADD COLUMN IF NOT EXISTS branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'",
+        "CREATE TABLE IF NOT EXISTS hr_payroll_runs (
+            id UUID PRIMARY KEY, period_label TEXT NOT NULL,
+            employee_count BIGINT NOT NULL DEFAULT 0,
+            gross NUMERIC(14,2) NOT NULL DEFAULT 0, net NUMERIC(14,2) NOT NULL DEFAULT 0,
+            taxes NUMERIC(14,2) NOT NULL DEFAULT 0,
+            status VARCHAR(30) NOT NULL DEFAULT 'completed', run_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000')",
+        "CREATE TABLE IF NOT EXISTS hr_benefits (
+            id UUID PRIMARY KEY, plan TEXT NOT NULL, provider TEXT NOT NULL DEFAULT '',
+            type VARCHAR(50) NOT NULL DEFAULT '', enrolled BIGINT NOT NULL DEFAULT 0,
+            monthly_cost NUMERIC(12,2) NOT NULL DEFAULT 0, status VARCHAR(30) NOT NULL DEFAULT 'active',
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000')",
+        "CREATE TABLE IF NOT EXISTS hr_training_courses (
+            id UUID PRIMARY KEY, course TEXT NOT NULL, provider TEXT NOT NULL DEFAULT '',
+            duration TEXT NOT NULL DEFAULT '', assigned BIGINT NOT NULL DEFAULT 0,
+            completed BIGINT NOT NULL DEFAULT 0, status VARCHAR(30) NOT NULL DEFAULT 'open',
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000')",
     ] {
         diesel::sql_query(sql).execute(&mut conn).map_err(db::map_diesel_err)?;
     }

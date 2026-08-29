@@ -89,6 +89,7 @@ pub fn configure_compliance_routes() -> Router<AppState> {
         .route("/api/compliance/evidence", post(handlers::handle_upload_evidence))
         // Frameworks CRUD + controls + evidence mapping
         .route("/api/compliance/frameworks", get(framework_handlers::handle_list_frameworks).post(framework_handlers::handle_create_framework))
+        .route("/api/ui/compliance/framework/:name", get(framework_handlers::handle_framework_detail_page))
         .route("/api/compliance/frameworks/:framework_id", get(framework_handlers::handle_get_framework).put(framework_handlers::handle_update_framework))
         .route("/api/compliance/frameworks/:framework_id/archive", post(framework_handlers::handle_archive_framework))
         .route("/api/compliance/frameworks/:framework_id/export.csv", get(framework_handlers::handle_export_framework_csv))

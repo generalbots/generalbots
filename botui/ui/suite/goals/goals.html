@@ -106,13 +106,7 @@
 
         <!-- Stats Cards -->
         <div class="stats-grid">
-            <div
-                class="stat-card"
-                hx-get="/api/goals/dashboard"
-                hx-trigger="load, objectiveUpdated from:body"
-                hx-swap="innerHTML"
-                hx-select=".stat-objectives"
-            >
+            <div class="stat-card">
                 <div class="stat-icon">🎯</div>
                 <div class="stat-content">
                     <div class="stat-value" id="total-objectives">--</div>
@@ -233,3 +227,4 @@
 <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
 <div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script src="/suite/goals/goals-inline.js?v=1"></script>
+<script src="/suite/goals/goals.js?v=1"></script>

@@ -168,6 +168,46 @@ pub async fn approve_overtime(headers: HeaderMap, Path(id): Path<String>) -> Res
     }))
 }
 
+#[derive(Debug, Deserialize)]
+pub struct NewOvertimeRequest {
+    pub employee_id: Uuid,
+    pub date: String,
+    pub hours: String,
+    pub reason: String,
+}
+
+pub async fn create_overtime(
+    headers: HeaderMap,
+    Json(req): Json<NewOvertimeRequest>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
+    let pool = db::pool()?;
+    let mut conn = pool
+        .get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    let date = chrono::NaiveDate::parse_from_str(&req.date, "%Y-%m-%d")
+        .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid date: {e}")))?;
+    let hours = req
+        .hours
+        .parse::<rust_decimal::Decimal>()
+        .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid hours: {e}")))?;
+    let id = Uuid::new_v4();
+    diesel::sql_query(
+        "INSERT INTO timeclock_overtime (id, employee_id, date, hours, reason, status, branch_id)
+         VALUES ($1, $2, $3, $4, $5, 'pending', $6)",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(id)
+    .bind::<diesel::sql_types::Uuid, _>(req.employee_id)
+    .bind::<diesel::sql_types::Date, _>(date)
+    .bind::<diesel::sql_types::Numeric, _>(hours)
+    .bind::<diesel::sql_types::Text, _>(&req.reason)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
+    .execute(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    Ok(Json(serde_json::json!({ "ok": true, "id": id })))
+}
+
 pub async fn get_reports(headers: HeaderMap) -> Result<Json<Vec<Report>>, (StatusCode, String)> {
     ensure_schema_sync()?;
     let branch = resolve_branch(&headers);

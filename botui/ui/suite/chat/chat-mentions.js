@@ -310,6 +310,8 @@ function showEntityCard(type, name, targetEl) {
   card.querySelector(".entity-card-title").textContent = entityType.icon + " " + name;
   card.querySelector(".entity-card-status").textContent = "";
   card.querySelector(".entity-card-details").textContent = "Loading...";
+  card.dataset.entityType = type;
+  card.dataset.entityName = name;
 
   var rect = targetEl.getBoundingClientRect();
   card.style.left = rect.left + "px";
@@ -333,6 +335,21 @@ return fetch("/api/search/entity?type=" + encodeURIComponent(type) + "&name=" + 
 .then(function (r) { return r.json(); })
 .then(function (data) { return data && data.details ? data.details : "No additional details available"; })
 .catch(function () { return "Unable to load details"; });
+}
+
+// Bind the entity-card "View" button to navigate to the referenced entity.
+if (typeof window !== 'undefined' && !window.__entityCardViewBound) {
+  window.__entityCardViewBound = true;
+  document.addEventListener("click", function (e) {
+    var btn = e.target.closest && e.target.closest(".entity-card-btn[data-action='view']");
+    if (!btn) return;
+    var card = document.getElementById("entityCardTooltip");
+    if (!card || !card.classList.contains("visible")) return;
+    var type = card.dataset.entityType;
+    var name = card.dataset.entityName;
+    if (type && name) navigateToEntity(type, name);
+    hideEntityCard();
+  });
 }
 
 // Export functions to global scope for use in chat-init.js

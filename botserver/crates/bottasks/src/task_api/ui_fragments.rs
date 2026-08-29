@@ -20,6 +20,8 @@ use crate::state::TasksState;
 #[derive(Deserialize)]
 pub struct UiListQuery {
     pub filter: Option<String>,
+    pub stage: Option<String>,
+    pub priority: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -162,6 +164,26 @@ pub async fn handle_ui_tasks_list(
                 sql.push_str(&format!(" AND {not_done} AND due_date IS NOT NULL AND due_date >= NOW() AND due_date <= NOW() + INTERVAL '24 hours'"))
             }
             _ => {}
+        }
+        // Stage filter (pipeline tabs: plan/build/review/deploy/monitor).
+        if let Some(stage) = query.stage.as_deref() {
+            let validated = match stage {
+                "plan" | "build" | "review" | "deploy" | "monitor" => stage,
+                _ => "",
+            };
+            if !validated.is_empty() {
+                sql.push_str(&format!(" AND stage = '{validated}'"));
+            }
+        }
+        // Priority filter (low/medium/high/urgent).
+        if let Some(priority) = query.priority.as_deref() {
+            let validated = match priority {
+                "low" | "medium" | "high" | "urgent" => priority,
+                _ => "",
+            };
+            if !validated.is_empty() {
+                sql.push_str(&format!(" AND priority = '{validated}'"));
+            }
         }
         sql.push_str(" ORDER BY created_at DESC LIMIT 100");
 

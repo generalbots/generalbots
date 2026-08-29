@@ -92,7 +92,10 @@ async fn cloud_jwt_middleware(
 fn jwt_sign_inner(message: &str, secret: &[u8]) -> String {
     use hmac::{Hmac, Mac};
     use sha2::Sha256;
-    let mut mac = Hmac::<Sha256>::new_from_slice(secret).expect("valid HMAC key");
+    let mut mac = match Hmac::<Sha256>::new_from_slice(secret) {
+        Ok(m) => m,
+        Err(_) => return String::new(),
+    };
     mac.update(message.as_bytes());
     base64_url_encode(&mac.finalize().into_bytes())
 }
@@ -867,8 +870,12 @@ async fn handle_login(
         return Err((StatusCode::BAD_REQUEST, "Invalid email".to_string()));
     }
 
-    // Try Zitadel v2 sessions API for password verification
-    let zitadel_session_id = match (&service.config.directory_api_url, &service.config.directory_service_token) {
+    // Try Zitadel v2 sessions API for password verification.
+    // Returns (stable Zitadel user id, password-verified flag): this Zitadel
+    // build omits session factors, so a created session proves the password but
+    // may not expose the user id — in that case callers resolve the stable id
+    // from the users table keyed by the verified email.
+    let (zitadel_user_id, zitadel_password_verified) = match (&service.config.directory_api_url, &service.config.directory_service_token) {
         (Some(dir_url), Some(dir_token)) => {
             let client = reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(8))
@@ -883,6 +890,7 @@ async fn handle_login(
                     let login_names = [body.email.clone(), username];
 
                     let mut user_id: Option<String> = None;
+                    let mut verified = false;
 
                     for login_name in &login_names {
                         // Use the v2 `checks` wrapper so the password is actually
@@ -904,6 +912,7 @@ async fn handle_login(
                         }
                         match rb.send().await {
                             Ok(r) if r.status().is_success() => {
+                                verified = true;
                                 // On a successful checks wrapper, the response carries
                                 // the verified user factor directly; use it as the
                                 // stable JWT subject (RBAC derives UUIDv5 from it).
@@ -929,12 +938,12 @@ async fn handle_login(
                         }
                     }
 
-                    user_id
+                    (user_id, verified)
                 }
-                None => None,
+                None => (None, false),
             }
         }
-        _ => None,
+        _ => (None, false),
     };
 
     // Look up user in CRM contacts for JWT claims
@@ -960,7 +969,32 @@ async fn handle_login(
     // 1) Zitadel v2 session check succeeded (sessionId), or
     // 2) dev-only bootstrap admin (admin-credentials.json, present only in dev).
     // NEVER fall back to an unverified CRM contact row.
-    let sub = zitadel_session_id
+    let sub = zitadel_user_id
+        .or_else(|| {
+            if zitadel_password_verified {
+                // Zitadel verified the password but this build does not expose
+                // the user id via session factors. Derive a stable subject from
+                // the users table (keyed by the verified email) so JWT subs and
+                // the derived UUIDs used by RBAC/org membership stay constant
+                // across logins.
+                #[derive(QueryableByName)]
+                struct StableUserRow {
+                    #[diesel(sql_type = diesel::sql_types::Uuid)]
+                    id: Uuid,
+                }
+                diesel::sql_query(
+                    "SELECT id FROM users WHERE email = $1 AND is_active = true LIMIT 1",
+                )
+                .bind::<diesel::sql_types::Text, _>(body.email.as_str())
+                .get_result::<StableUserRow>(&mut conn)
+                .optional()
+                .ok()
+                .flatten()
+                .map(|r| r.id.to_string())
+            } else {
+                None
+            }
+        })
         .or_else(|| lookup_admin_credentials_user_id(&body.email, &body.password))
         .ok_or_else(|| {
             (

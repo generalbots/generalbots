@@ -7,6 +7,7 @@ pub mod cashflow;
 pub mod db;
 pub mod storage;
 pub mod handlers;
+pub mod accounts_pix;
 pub mod routes;
 
 pub use routes::configure;

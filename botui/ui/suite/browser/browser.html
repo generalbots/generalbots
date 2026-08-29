@@ -335,6 +335,50 @@
                 setSecurityInfo(pages[activePage].url);
             }
             updateTabs();
+        },
+
+        screenshot: function () {
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                statusText.textContent = "Screenshots are not supported in this browser";
+                return;
+            }
+            navigator.mediaDevices.getDisplayMedia({ video: true })
+                .then(function (stream) {
+                    var track = stream.getVideoTracks()[0];
+                    var video = document.createElement("video");
+                    video.srcObject = stream;
+                    video.play();
+                    video.onloadedmetadata = function () {
+                        var canvas = document.createElement("canvas");
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        canvas.getContext("2d").drawImage(video, 0, 0);
+                        track.stop();
+                        var url = canvas.toDataURL("image/png");
+                        var a = document.createElement("a");
+                        a.href = url;
+                        a.download = "gb-browser-screenshot-" + Date.now() + ".png";
+                        a.click();
+                        statusText.textContent = "Screenshot saved";
+                    };
+                })
+                .catch(function () {
+                    statusText.textContent = "Screenshot cancelled";
+                });
+        },
+
+        bookmark: function () {
+            var url = (urlInput.value || "").trim();
+            if (!url) {
+                statusText.textContent = "Nothing to bookmark";
+                return;
+            }
+            var key = "gb-browser-bookmarks";
+            var list = [];
+            try { list = JSON.parse(localStorage.getItem(key) || "[]"); } catch (e) { list = []; }
+            if (list.indexOf(url) === -1) list.push(url);
+            localStorage.setItem(key, JSON.stringify(list));
+            statusText.textContent = "Bookmarked " + url;
         }
     };
 
@@ -381,6 +425,14 @@
         pages[activePage].title = 'New Tab';
         setSecurityInfo('');
         updateTabs();
+    });
+
+    document.getElementById('btn-screenshot').addEventListener('click', function () {
+        GBBrowser.screenshot();
+    });
+
+    document.getElementById('btn-bookmark').addEventListener('click', function () {
+        GBBrowser.bookmark();
     });
 
     pages.push({ title: 'New Tab', url: '', pageEl: viewport.querySelector('.browser-page[data-page="0"]') });

@@ -173,8 +173,14 @@ document.querySelectorAll(".chart-btn").forEach((btn) => {
             .forEach((b) => b.classList.remove("active"));
         this.classList.add("active");
 
-        // Could trigger chart re-render here
-        console.log(`Switching ${chart} chart to ${type}`);
+        const container = document.getElementById(chart + "Chart");
+        if (container && window.htmx) {
+            const base = (container.getAttribute("hx-get") || "").split("?")[0];
+            const url = base + "?type=" + encodeURIComponent(type);
+            // Persist the selected type so the periodic auto-refresh keeps it.
+            container.setAttribute("hx-get", url);
+            htmx.ajax("GET", url, { target: "#" + chart + "Chart", swap: "innerHTML" });
+        }
     });
 });
 

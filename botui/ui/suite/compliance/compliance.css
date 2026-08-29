@@ -129,3 +129,17 @@
 @media (max-width: 768px) { .compliance-stats { grid-template-columns: 1fr 1fr; } .compliance-header { flex-direction: column; gap: 12px; align-items: flex-start; } }
 @media (max-width: 480px) { .compliance-stats { grid-template-columns: 1fr; } .compliance-frameworks { grid-template-columns: 1fr; } }
 @keyframes compliance-spin { to { transform: rotate(360deg); } }
+
+/* Framework detail (openFramework target) */
+.framework-detail { padding: 4px 2px; }
+.framework-detail-header h2 { margin: 0 0 4px; font-size: 20px; }
+.framework-detail-desc { color: var(--text-secondary); margin: 0 0 8px; }
+.framework-detail-coverage { font-weight: 600; margin-bottom: 12px; }
+.framework-controls-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.framework-controls-table th, .framework-controls-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.framework-controls-table th { background: var(--surface); position: sticky; top: 0; }
+.cv-badge { padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600; }
+.cv-badge.ok { background: rgba(46,125,50,0.15); color: #2e7d32; }
+.cv-badge.missing { background: rgba(198,40,40,0.15); color: #c62828; }
+.framework-detail-error { color: #c62828; padding: 16px; }
+.framework-detail-modal { max-width: 820px; width: 92%; max-height: 80vh; overflow: auto; }

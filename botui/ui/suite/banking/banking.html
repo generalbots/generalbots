@@ -132,7 +132,10 @@
 
     <div id="statements-view" class="banking-view">
         <div class="banking-table-wrap" style="padding:24px">
-            <h3 style="margin:0 0 12px 0;font-size:14px;font-weight:600">Account statements</h3>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+                <h3 style="margin:0;font-size:14px;font-weight:600">Account statements</h3>
+                <button class="btn-primary" onclick="BankingApp.showNewStatement()">+ New statement</button>
+            </div>
             <table class="banking-table">
                 <thead><tr><th>Period</th><th>Account</th><th>Opening</th><th>Closing</th><th>Generated</th><th>Format</th><th>Actions</th></tr></thead>
                 <tbody id="statements-body"></tbody>
@@ -215,4 +218,41 @@
     </div>
 </div>
 
-<script src="/suite/banking/banking.js?v=2"></script>
+<div id="bankingAccountModal" class="banking-modal" style="display:none">
+    <div class="banking-modal-dialog">
+        <header class="banking-modal-header">
+            <h2>Add bank account</h2>
+            <button onclick="BankingApp.closeModal('bankingAccountModal')">&times;</button>
+        </header>
+        <form class="banking-modal-body" onsubmit="BankingApp.submitAccount(event)">
+            <label>Bank
+                <input type="text" id="accountBank" placeholder="e.g. Banco do Brasil" required>
+            </label>
+            <label>Agency
+                <input type="text" id="accountAgency" placeholder="0001">
+            </label>
+            <label>Account number
+                <input type="text" id="accountNumber" placeholder="12345-6">
+            </label>
+            <label>Type
+                <select id="accountType">
+                    <option value="checking">Checking</option>
+                    <option value="savings">Savings</option>
+                    <option value="payment">Payment</option>
+                </select>
+            </label>
+            <label>Balance (R$)
+                <input type="number" id="accountBalance" step="0.01" min="0" value="0">
+            </label>
+            <label>Currency
+                <input type="text" id="accountCurrency" value="BRL">
+            </label>
+            <div style="display:flex;gap:8px;margin-top:16px">
+                <button type="button" class="btn-secondary" onclick="BankingApp.closeModal('bankingAccountModal')">Cancel</button>
+                <button type="submit" class="btn-primary">Save account</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/suite/banking/banking.js?v=3"></script>

@@ -324,6 +324,8 @@ pub struct GoalsDashboard {
     pub total_objectives: i64,
     pub completed_objectives: i64,
     pub at_risk_objectives: i64,
+    pub total_key_results: i64,
+    pub at_risk_key_results: i64,
     pub average_progress: f32,
     pub upcoming_check_ins: Vec<UpcomingCheckIn>,
     pub recent_activity: Vec<GoalActivity>,

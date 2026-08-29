@@ -8,6 +8,7 @@
     <header class="tc-header">
         <h1>Electronic Time Clock</h1>
         <div class="tc-header-actions">
+            <button class="tc-btn" onclick="openTcOtModal()">Solicitar Hora Extra</button>
             <button class="tc-btn" hx-get="/suite/timeclock/fragments/dashboard" hx-target="#tc-content" hx-swap="innerHTML">Atualizar</button>
         </div>
     </header>
@@ -37,12 +38,15 @@
 <div id="tc-ot-modal" class="tc-modal" hidden>
     <div class="tc-modal-content">
         <h3>Solicitar hora extra</h3>
-        <form hx-post="/api/timeclock/forms/overtime" hx-target="#tc-content" hx-swap="innerHTML">
+        <form onsubmit="return submitTcOtForm(event)">
             <label>Data <input type="date" name="date" required></label>
             <label>Horas <input type="number" name="hours" step="0.25" min="0.25" max="12" required></label>
             <label>Motivo <textarea name="reason" rows="2" required></textarea></label>
             <label>Funcionário <input type="text" name="employee_id" placeholder="UUID" required></label>
-            <button type="submit" class="tc-btn tc-btn-primary">Enviar</button>
+            <div class="tc-modal-actions">
+                <button type="button" class="tc-btn" onclick="closeTcOtModal()">Cancelar</button>
+                <button type="submit" class="tc-btn tc-btn-primary">Enviar</button>
+            </div>
         </form>
     </div>
 </div>

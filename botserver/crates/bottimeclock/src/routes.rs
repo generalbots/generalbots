@@ -9,5 +9,6 @@ pub fn configure<S: Clone + Send + Sync + 'static>() -> Router<S> {
         .route("/api/timeclock/records", get(handlers::list_records))
         .route("/api/timeclock/overtime", get(handlers::list_overtime))
         .route("/api/timeclock/overtime/:id/approve", post(handlers::approve_overtime))
+        .route("/api/timeclock/forms/overtime", post(handlers::create_overtime))
         .route("/api/timeclock/reports", get(handlers::get_reports))
 }

@@ -1,6 +1,6 @@
 if (window.GBAppLifecycle) GBAppLifecycle.begin("o365");
 (function(){
-var state={sharepointSites:[],calendarEvents:[],onedriveFiles:[],currentTab:'sharepoint',currentFolder:'root',folderStack:['root']};
+var state={sharepointSites:[],calendarEvents:[],onedriveFiles:[],teams:[],currentTab:'sharepoint',currentFolder:'root',folderStack:['root']};
 
 function showFeedback(msg,type){
     var el=document.getElementById('o365-feedback');
@@ -29,9 +29,11 @@ function updateStats(){
     var s1=document.getElementById('stat-sites');
     var s2=document.getElementById('stat-events');
     var s3=document.getElementById('stat-files');
+    var s4=document.getElementById('stat-teams');
     if(s1)s1.textContent=state.sharepointSites.length;
     if(s2)s2.textContent=state.calendarEvents.length;
     if(s3)s3.textContent=state.onedriveFiles.length;
+    if(s4)s4.textContent=state.teams.length;
 }
 
 function renderSharePoint(){
@@ -97,6 +99,11 @@ async function loadSharePoint(){
     if(data){state.sharepointSites=Array.isArray(data)?data:[];updateStats();renderSharePoint()}
 }
 
+async function loadTeams(){
+    var data=await apiCall('/api/o365/teams');
+    if(data){state.teams=Array.isArray(data)?data:[];updateStats()}
+}
+
 async function loadCalendar(){
     var data=await apiCall('/api/o365/calendar');
     if(data){state.calendarEvents=Array.isArray(data)?data:[];updateStats();renderCalendar()}
@@ -111,17 +118,14 @@ async function loadOneDrive(folderId){
 
 async function loadSettings(){
     var data=await apiCall('/api/o365/settings');
-    var statusEl=document.getElementById('o365-connection-status');
     var accountEl=document.getElementById('settings-account');
     var badgeEl=document.getElementById('settings-status');
     var syncEl=document.getElementById('settings-sync');
     if(data&&data.connected){
-        if(statusEl){statusEl.textContent='Connected';statusEl.className='o365-status connected'}
         if(accountEl)accountEl.textContent=data.account||'Connected to o365';
         if(badgeEl){badgeEl.textContent='Connected';badgeEl.className='o365-badge connected'}
-        if(syncEl)syncEl.textContent=new Date().toLocaleString();
+        if(syncEl)syncEl.textContent=(data.last_sync?new Date(data.last_sync).toLocaleString():new Date().toLocaleString());
     }else{
-        if(statusEl){statusEl.textContent='Disconnected';statusEl.className='o365-status'}
         if(accountEl)accountEl.textContent='Not connected';
         if(badgeEl){badgeEl.textContent='Disconnected';badgeEl.className='o365-badge disconnected'}
     }
@@ -139,6 +143,24 @@ function navigateTo(folderId,index){
 
 function downloadFile(fileId){
     showFeedback('Starting download...','success');
+    return fetch('/api/o365/onedrive/download/'+fileId, {
+        headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('gb_token') || '') }
+    }).then(function(r){
+        if(!r.ok) throw new Error('HTTP '+r.status);
+        return r.blob();
+    }).then(function(blob){
+        var url=URL.createObjectURL(blob);
+        var a=document.createElement('a');
+        a.href=url;
+        a.download='o365-file-'+fileId+'.txt';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function(){URL.revokeObjectURL(url);},2000);
+        showFeedback('Download complete','success');
+    }).catch(function(e){
+        showFeedback('Download failed: '+e.message,'error');
+    });
 }
 
 function showCreateMeeting(){
@@ -186,7 +208,7 @@ async function disconnectAccount(){
 function showModal(id){var el=document.getElementById(id);if(el)el.style.display='flex'}
 function hideModal(id){var el=document.getElementById(id);if(el)el.style.display='none'}
 
-function loadAll(){loadSharePoint();loadCalendar();loadOneDrive('root');loadSettings()}
+function loadAll(){loadSharePoint();loadCalendar();loadOneDrive('root');loadTeams();loadSettings()}
 
 window._o365={switchTab:switchTab,navigateFolder:navigateFolder,navigateTo:navigateTo,downloadFile:downloadFile,showCreateMeeting:showCreateMeeting,createMeeting:createMeeting,syncNow:syncNow,updateSync:updateSync,connectAccount:connectAccount,disconnectAccount:disconnectAccount,showModal:showModal,hideModal:hideModal,loadAll:loadAll};
 loadAll();
