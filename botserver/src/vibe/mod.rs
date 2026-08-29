@@ -84,20 +84,32 @@ impl VibeState for VibeStateImpl {
         // secret/gbo/llm (tokenrouter) that the bot chat uses, or every run
         // dies with HTTP 401 "Invalid token". Merge: start from per-bot,
         // then fill any empty field from the global fallback.
+        //
+        // A model-only per-bot config (no llm-url) must NOT be combined with
+        // the global endpoint: the model belongs to the per-bot provider and
+        // the global endpoint returns 404 for it. Treat a per-bot config
+        // without its own url as incomplete and use the global set wholesale.
         if let Ok(sm) = crate::core::secrets::SecretsManager::get() {
             let (g_url, g_model, g_key, _, _) = sm.get_llm_config();
-            let base = per_bot.clone().unwrap_or(LlmConfig {
-                model: String::new(),
-                key: String::new(),
-                url: String::new(),
-            });
-            let merged = LlmConfig {
-                model: if base.model.is_empty() { g_model } else { base.model.clone() },
-                key: if base.key.is_empty() { g_key.unwrap_or_default() } else { base.key },
-                url: if base.url.is_empty() { g_url } else { base.url },
-            };
-            if !merged.url.is_empty() && !merged.model.is_empty() {
-                return Some(merged);
+            if let Some(cfg) = per_bot.clone() {
+                if !cfg.url.is_empty() {
+                    let merged = LlmConfig {
+                        model: if cfg.model.is_empty() { g_model.clone() } else { cfg.model.clone() },
+                        key: if cfg.key.is_empty() { g_key.clone().unwrap_or_default() } else { cfg.key },
+                        url: cfg.url,
+                    };
+                    if !merged.url.is_empty() && !merged.model.is_empty() {
+                        return Some(merged);
+                    }
+                }
+            }
+            // No complete per-bot config: fall back to the global set.
+            if !g_url.is_empty() && !g_model.is_empty() {
+                return Some(LlmConfig {
+                    model: g_model,
+                    key: g_key.unwrap_or_default(),
+                    url: g_url,
+                });
             }
         }
         if let Some(cfg) = per_bot {
