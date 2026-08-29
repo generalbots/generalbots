@@ -65,9 +65,10 @@ pub async fn handle_cloud_sso(
     let email = claims.get("email").and_then(|v| v.as_str()).unwrap_or("user@localhost");
     let user_id = claims.get("sub").and_then(|v| v.as_str()).unwrap_or("unknown");
 
-    // Create Suite session with the real per-user role (fix #843)
+    // Create Suite session with the real per-user role (fix #843) and the
+    // JWT org scope so org-scoped APIs resolve the user's organization.
     let roles = resolve_session_roles(&state, user_id);
-    let api_token = create_suite_session(email, user_id, None, roles).await;
+    let api_token = create_suite_session(email, user_id, None, roles, claims_org(&claims)).await;
 
     Ok(Json(SsoResponse {
         access_token: api_token,
@@ -113,7 +114,7 @@ pub async fn handle_suite_sso(
     let bucket = claims.get("bucket").and_then(|v| v.as_str()).map(|s| s.to_string());
 
     let roles = resolve_session_roles(&state, user_id);
-    let suite_token = create_suite_session(email, user_id, bucket, roles).await;
+    let suite_token = create_suite_session(email, user_id, bucket, roles, claims_org(&claims)).await;
     let redirect = sanitize_redirect(&query.redirect);
 
     let html = format!(
@@ -149,6 +150,17 @@ fn sanitize_redirect(url: &str) -> String {
     }
 }
 
+/// Extract the `org_id` claim from a decoded cloud JWT so suite sessions
+/// carry the caller's organization scope (fix #1268). Returns `None` for
+/// tokens minted without an org claim.
+fn claims_org(claims: &serde_json::Value) -> Option<String> {
+    claims
+        .get("org_id")
+        .and_then(|v| v.as_str())
+        .filter(|s| !s.is_empty())
+        .map(|s| s.to_string())
+}
+
 /// Cria uma sessão no SESSION_CACHE do Suite e retorna o token `gb_{uuid}_{timestamp}`.
 /// O papel da sessão é resolvido por grupo RBAC (fix #843) — nunca hardcoded.
 pub(crate) async fn create_suite_session(
@@ -156,6 +168,7 @@ pub(crate) async fn create_suite_session(
     user_id: &str,
     bucket: Option<String>,
     roles: Vec<String>,
+    organization_id: Option<String>,
 ) -> String {
     let api_token = format!("gb_{}_{}", uuid::Uuid::new_v4(), chrono::Utc::now().timestamp());
     let session_user = SessionUserData {
@@ -165,7 +178,7 @@ pub(crate) async fn create_suite_session(
         first_name: None,
         last_name: None,
         display_name: Some(email.split('@').next().unwrap_or("User").to_string()),
-        organization_id: None,
+        organization_id,
         roles,
         bucket,
         created_at: chrono::Utc::now().timestamp(),
@@ -226,9 +239,10 @@ pub async fn handle_unified_login(
         return Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "Provide cloud_token"}))));
     }
 
-    // Create Suite session token with the real per-user role (fix #843)
+    // Create Suite session token with the real per-user role (fix #843) and
+    // the JWT org scope.
     let roles = resolve_session_roles(&state, &user_id);
-    let suite_token = create_suite_session(&email, &user_id, None, roles).await;
+    let suite_token = create_suite_session(&email, &user_id, None, roles, claims_org(&claims)).await;
 
     // Sign Cloud JWT
     let header = serde_json::json!({"alg": "HS256", "typ": "JWT"});

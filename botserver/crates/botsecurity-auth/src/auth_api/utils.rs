@@ -220,6 +220,13 @@ pub fn validate_session_sync(session_id: &str) -> Result<AuthenticatedUser, Auth
                 user = user.with_role(Role::User);
             }
 
+            // Carry the org scope from the login JWT (cloud SSO) so
+            // org-scoped APIs (vibe, metering, domains) resolve the user's
+            // real organization instead of the nil scope.
+            if let Some(org) = user_data.organization_id {
+                user = user.with_organization(org);
+            }
+
             debug!(
                 "Session validated from cache, user has {} roles",
                 user_data.roles.len()
