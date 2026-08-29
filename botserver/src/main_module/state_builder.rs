@@ -63,7 +63,7 @@ pub async fn create_app_state(
         Arc::new(tokio::sync::Mutex::new(session_manager_inner));
 
     #[cfg(feature = "directory")]
-    let (auth_service, zitadel_config) = init_directory_service()?;
+    let (auth_service, zitadel_config) = init_directory_service().await?;
 
     #[cfg(feature = "directory")]
     {

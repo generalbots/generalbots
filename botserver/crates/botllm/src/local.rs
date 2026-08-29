@@ -13,6 +13,18 @@ use tokio;
 
 static LLAMA_SERVERS_STARTED: AtomicBool = AtomicBool::new(false);
 
+/// Reduce a model reference to its bare filename. Template config.csv files
+/// may store a legacy relative path (e.g. "../../../../data/llm/model.gguf")
+/// that only resolves in the production layout; stripping the directories and
+/// rejoining under the stack data dir makes it work everywhere.
+fn model_file_name(model: &str) -> &str {
+    let model = model.trim();
+    if model.is_empty() {
+        return model;
+    }
+    model.rsplit(['/', '\\']).next().unwrap_or(model)
+}
+
 pub async fn ensure_llama_servers_running(
     app_state: Arc<AppState>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -123,10 +135,13 @@ let llm_url = if llm_url.is_empty() && llm_server_enabled {
     };
 
     // For llama-server startup, use path relative to botserver root
-    // The models are in <stack_path>/data/llm/ and the llama-server runs from botserver root
+    // The models are in <stack_path>/data/llm/ and the llama-server runs from botserver root.
+    // Template config.csv files may carry a legacy relative path (e.g.
+    // "../../../../data/llm/model.gguf"); reduce it to the bare filename and
+    // rejoin under the stack data dir so the path resolves on any layout.
     let stack_path = botcore::shared::utils::get_stack_path();
-    let llm_model_path = format!("{stack_path}/data/llm/{}", llm_model);
-    let embedding_model_path = format!("{stack_path}/data/llm/{}", embedding_model);
+    let llm_model_path = format!("{stack_path}/data/llm/{}", model_file_name(&llm_model));
+    let embedding_model_path = format!("{stack_path}/data/llm/{}", model_file_name(&embedding_model));
     if !llm_server_enabled {
         info!("Local LLM server management disabled (llm-server=false). Using external endpoints.");
         info!("  LLM URL: {llm_url}");
