@@ -232,6 +232,16 @@ if (typeof window.WindowManager === "undefined") {
         this.focus(id);
         return;
       }
+      // The user explicitly opened the Vibe workbench again (launcher,
+      // command palette, deep link): forget the remembered closed state so
+      // the next page load restores the bar instead of skipping it.
+      if (id === "vibe") {
+        try {
+          localStorage.removeItem("gb.vibe.closed");
+        } catch (e) {
+          /* storage may be disabled — the open still works */
+        }
+      }
 
       const windowData = {
         id,
@@ -527,6 +537,17 @@ if (typeof window.WindowManager === "undefined") {
     }
 
     close(id) {
+      // Remember an explicit close of the Vibe workbench (localStorage) so
+      // the auto-open on load (desktop.html ?app=vibe / ?vibe=) does not
+      // fight the user: close the bar once, reload keeps it closed; opening
+      // it again clears the flag so the next reload restores it.
+      if (id === "vibe" && this.getWindow(id)) {
+        try {
+          localStorage.setItem("gb.vibe.closed", "1");
+        } catch (e) {
+          /* storage may be disabled — the close still works for the session */
+        }
+      }
       // Close owned tool windows first. This gives an IDE workbench a real
       // parent/child lifecycle: closing Vibe cannot leave a Browser, dialog,
       // terminal or run dock orphaned behind it.
