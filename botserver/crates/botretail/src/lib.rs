@@ -13,6 +13,8 @@ pub mod pos;
 pub mod db;
 pub mod mutations;
 
+use axum::Router;
+
 pub use product::{Product, Variation, VariationKind, ProductStatus};
 pub use stock::{StockLevel, StockMovement, MovementKind, Branch};
 pub use pricing::{PriceList, PriceListEntry, PriceTier};
@@ -25,7 +27,7 @@ pub use pos::{PosSession, PosLineItem, PosSale, PosPayment, PosError, PaymentMet
 /// against the shared database pool, so no application state is threaded through
 /// the router.
 pub fn configure() -> Router {
-    use axum::routing::{get, post, put};
+    use axum::routing::{get, put};
 
     Router::new()
         .route(

@@ -1,5 +1,7 @@
 #![recursion_limit = "512"]
 
+use uuid::Uuid;
+
 // Module declarations
 pub mod main_module; // ci-timing
 pub mod session_pool;
