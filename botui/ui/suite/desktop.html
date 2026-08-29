@@ -58,7 +58,7 @@
         <script src="/suite/js/vendor/marked.min.js"></script>
         <script src="/suite/js/vendor/three.min.js"></script>
         <script src="/suite/js/desktop3d.js?v=2"></script>
-        <script src="/suite/js/window-manager.js?v=25"></script>
+        <script src="/suite/js/window-manager.js?v=26"></script>
         <script src="/suite/js/vibe-bridge.js?v=1"></script>
         <script src="/suite/js/theme-manager.js?v=1"></script>
         <script src="/suite/js/command-palette.js?v=1"></script>
@@ -395,6 +395,18 @@
                     (new URLSearchParams(window.location.search).get("vibe")
                         ? "vibe"
                         : "");
+                // Respect a remembered close of the Vibe bar: closing it sets
+                // gb.vibe.closed=1, so a reload of /vibe (or ?app=vibe) must
+                // NOT auto-reopen it. Reopening the bar clears the flag.
+                if (autoApp === "vibe") {
+                    try {
+                        if (localStorage.getItem("gb.vibe.closed") === "1") {
+                            autoApp = "";
+                        }
+                    } catch (e) {
+                        /* storage unavailable — keep the default auto-open */
+                    }
+                }
                 if (autoApp && typeof window.openDeepLink === "function") {
                     var launched = false;
                     var launch = function () {
@@ -436,9 +448,9 @@
                 // Get bot name from URL path
                 const pathParts = window.location.pathname.split('/');
                 const routeName = pathParts[1] === 'sources' ? 'integrations' : (pathParts[1] || '');
-                const routeApp = (window.APPS_REGISTRY || []).find(
+                let routeApp = (window.APPS_REGISTRY || []).find(
                     (app) => app.id === routeName,
-                );
+                ) || null;
                 const botName = window.__INITIAL_BOT_NAME__ ||
                     (routeApp ? 'default' : routeName) || 'default';
 
@@ -516,6 +528,20 @@
                 
                 // Open a routed suite app inside the desktop shell; bot routes
                 // continue to open Chat as before.
+                // Remembered close: if the routed app is the Vibe bar and the
+                // user closed it earlier (gb.vibe.closed=1), do NOT auto-open
+                // it here either — the URL-path route must respect the same
+                // memory as the ?app= / ?vibe= query route (window-manager.js
+                // records the close, opening the bar again clears it).
+                if (routeApp && routeApp.id === "vibe") {
+                    try {
+                        if (localStorage.getItem("gb.vibe.closed") === "1") {
+                            routeApp = null;
+                        }
+                    } catch (e) {
+                        /* storage unavailable — keep the default auto-open */
+                    }
+                }
                 if (window.wm) {
                     try {
                         const initialApp = routeApp || {
