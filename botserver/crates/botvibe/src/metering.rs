@@ -399,6 +399,11 @@ impl VMetering {
         branch_id: Uuid,
         project_type: &str,
     ) -> Result<(), String> {
+        // Dev/testing escape hatch; mirrors the flag the cloud signup path
+        // honors (botcloud::api::handle_signup). Never set in production.
+        if std::env::var("SAAS_DISABLE_CAPACITY_CHECK").as_deref() == Ok("1") {
+            return Ok(());
+        }
         if org_id.is_nil() {
             return Ok(());
         }

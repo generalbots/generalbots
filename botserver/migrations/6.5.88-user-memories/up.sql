@@ -1,3 +1,8 @@
+-- The legacy schema (user_id/key/value/memory_type) was created by 6.0.0-01-core.
+-- The new owner-scoped schema (owner_user_id/kind/content/...) is incompatible, so
+-- drop the old table and recreate with the current shape.
+DROP TABLE IF EXISTS user_memories CASCADE;
+
 CREATE TABLE IF NOT EXISTS user_memories (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id UUID,

@@ -53,48 +53,114 @@ pub(crate) fn resolve_saas_jwt_secret() -> String {
 }
 
 
-pub(crate) fn init_directory_service() -> Result<(Arc<Mutex<crate::directory::AuthService>>, crate::directory::ZitadelConfig), std::io::Error> {
-    let zitadel_config = {
-        // Try to load from directory_config.json first
-        // Use same path as DirectorySetup saves to (BOTSERVER_STACK_PATH/conf/system/directory_config.json)
-        let stack_path = get_stack_path();
-        let config_path = format!("{}/conf/system/directory_config.json", stack_path);
-        if let Ok(content) = std::fs::read_to_string(&config_path) {
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
-                let base_url = json
-                    .get("base_url")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
-                let client_id = json.get("client_id").and_then(|v| v.as_str()).unwrap_or("");
-                let client_secret = json
-                    .get("client_secret")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
+/// Resolve the Zitadel config for the directory service.
+/// Priority: `directory_config.json` → Vault `secret/gbo/directory` → defaults.
+/// The Vault fallback lets a fresh stack pick up the OAuth client even when the
+/// on-disk config has not been written yet, instead of starting with an empty
+/// `api_url` (which produces "builder error" on every token request).
+async fn resolve_directory_config() -> crate::directory::ZitadelConfig {
+    let stack_path = get_stack_path();
+    // Same path DirectorySetup saves to (BOTSERVER_STACK_PATH/conf/system/directory_config.json)
+    let config_path = format!("{}/conf/system/directory_config.json", stack_path);
 
+    if let Ok(content) = std::fs::read_to_string(&config_path) {
+        if let Ok(config) = serde_json::from_str::<crate::directory::ZitadelConfig>(&content) {
+            if !config.api_url.is_empty() {
                 info!(
                     "Loaded Zitadel config from {}: url={}",
-                    config_path, base_url
+                    config_path, config.api_url
                 );
-
-                crate::directory::ZitadelConfig {
-                    issuer_url: base_url.to_string(),
-                    issuer: base_url.to_string(),
-                    client_id: client_id.to_string(),
-                    client_secret: client_secret.to_string(),
-                    redirect_uri: format!("{}/callback", base_url),
-                    project_id: "default".to_string(),
-                    api_url: base_url.to_string(),
-                    service_account_key: None,
-                }
-            } else {
-                info!("Failed to parse directory_config.json, using defaults");
-                default_zitadel_config()
+                return config;
             }
-        } else {
-            info!("directory_config.json not found, using default Zitadel config");
+        }
+        info!("directory_config.json missing or invalid, trying Vault");
+    }
+
+    match load_directory_config_from_vault().await {
+        Ok(config) => {
+            info!(
+                "Loaded Zitadel config from Vault (secret/gbo/directory): url={}",
+                config.api_url
+            );
+            config
+        }
+        Err(e) => {
+            warn!(
+                "directory_config.json not found and Vault lookup failed ({}): using default Zitadel config",
+                e
+            );
             default_zitadel_config()
         }
-    };
+    }
+}
+
+/// Load the Zitadel config from Vault `secret/gbo/directory`.
+/// Vault may store `url`/`api_url`; older entries use `host`/`port`, which is
+/// normalized into an `api_url` here.
+async fn load_directory_config_from_vault() -> anyhow::Result<crate::directory::ZitadelConfig> {
+    let secrets_manager = botcoresecrets::SecretsManager::get()?;
+    if !secrets_manager.is_enabled() {
+        anyhow::bail!("Vault not enabled");
+    }
+    let secrets = secrets_manager
+        .get_secret(botcoresecrets::SecretPaths::DIRECTORY)
+        .await?;
+
+    let url = secrets
+        .get("url")
+        .cloned()
+        .filter(|u| !u.is_empty())
+        .or_else(|| secrets.get("api_url").cloned().filter(|u| !u.is_empty()))
+        .map(Ok)
+        .unwrap_or_else(|| {
+            let host = secrets
+                .get("host")
+                .cloned()
+                .filter(|h| !h.is_empty())
+                .unwrap_or_else(|| "localhost".to_string());
+            let port = secrets
+                .get("port")
+                .cloned()
+                .filter(|p| !p.is_empty())
+                .unwrap_or_else(|| "8300".to_string());
+            let base = if port == "443" {
+                format!("https://{host}")
+            } else {
+                format!("http://{host}:{port}")
+            };
+            Ok::<String, anyhow::Error>(base)
+        })?;
+
+    Ok(crate::directory::ZitadelConfig {
+        issuer_url: secrets
+            .get("issuer_url")
+            .cloned()
+            .filter(|u| !u.is_empty())
+            .unwrap_or_else(|| url.clone()),
+        issuer: secrets
+            .get("issuer")
+            .cloned()
+            .filter(|u| !u.is_empty())
+            .unwrap_or_else(|| url.clone()),
+        client_id: secrets.get("client_id").cloned().unwrap_or_default(),
+        client_secret: secrets.get("client_secret").cloned().unwrap_or_default(),
+        redirect_uri: secrets
+            .get("redirect_uri")
+            .cloned()
+            .filter(|u| !u.is_empty())
+            .unwrap_or_else(|| "/callback".to_string()),
+        project_id: secrets
+            .get("project_id")
+            .cloned()
+            .filter(|u| !u.is_empty())
+            .unwrap_or_else(|| "default".to_string()),
+        api_url: url,
+        service_account_key: secrets.get("service_account_key").cloned(),
+    })
+}
+
+pub(crate) async fn init_directory_service() -> Result<(Arc<Mutex<crate::directory::AuthService>>, crate::directory::ZitadelConfig), std::io::Error> {
+    let zitadel_config = resolve_directory_config().await;
 
     let auth_service = Arc::new(tokio::sync::Mutex::new(
         crate::directory::AuthService::new(zitadel_config.clone())
@@ -119,6 +185,16 @@ fn default_zitadel_config() -> crate::directory::ZitadelConfig {
 
 pub(crate) async fn bootstrap_directory_admin(zitadel_config: &crate::directory::ZitadelConfig) {
     use crate::directory::{bootstrap, ZitadelClient};
+
+    // With no reachable URL there is nothing to bootstrap; retrying would just
+    // spam "Failed to get access token: builder error".
+    if zitadel_config.api_url.trim().is_empty() {
+        warn!(
+            "Cannot bootstrap directory admin: no Zitadel api_url configured. \
+             Provide conf/system/directory_config.json or set secret/gbo/directory in Vault."
+        );
+        return;
+    }
 
     let stack = get_stack_path();
     let pat_path = std::path::PathBuf::from(format!("{}/conf/directory/admin-pat.txt", stack));
