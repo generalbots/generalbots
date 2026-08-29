@@ -1113,7 +1113,14 @@ if (typeof window.WindowManager === "undefined") {
     sidebar.classList.toggle("collapsed", collapsed === "1");
   }
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", hookChatSidebarAfterSwap);
+    document.addEventListener("DOMContentLoaded", function () {
+      // Apply the remembered state on first paint AND keep it applied across
+      // later HTMX swaps that re-create the shell. The sidebar lives in the
+      // initial desktop.html markup (not a swapped partial), so restoring only
+      // on htmx:afterSwap misses loads where no swap occurs.
+      restoreChatSidebar();
+      hookChatSidebarAfterSwap();
+    });
   } else {
     restoreChatSidebar();
     hookChatSidebarAfterSwap();
