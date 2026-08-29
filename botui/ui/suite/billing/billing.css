@@ -1,0 +1,6 @@
+/* Billing app stylesheet.
+   Real styles live in the split partials billing.p1.css / billing.p2.css;
+   this file aggregates them so the canonical /suite/billing/billing.css
+   reference resolves. */
+@import url("billing.p1.css");
+@import url("billing.p2.css");

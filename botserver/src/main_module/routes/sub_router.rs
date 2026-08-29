@@ -601,7 +601,7 @@ async fn inner_build_sub_router(
     }
 
     #[cfg(feature = "retail")]
-    { sub_router = sub_router.merge(crate::retail::configure_retail_routes().with_state(Arc::new(crate::retail::RetailState))); }
+    { sub_router = sub_router.merge(botretail::configure()); }
 
     #[cfg(feature = "banking")]
     { *api_router = api_router.clone().merge(botbanking::configure()); }

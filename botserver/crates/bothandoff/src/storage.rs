@@ -84,5 +84,39 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
     )
     .execute(&mut conn)
     .map_err(db::map_diesel_err)?;
+
+    diesel::sql_query(
+        "CREATE TABLE IF NOT EXISTS handoff_agents (
+            id UUID PRIMARY KEY,
+            name TEXT NOT NULL,
+            email TEXT NOT NULL DEFAULT '',
+            status VARCHAR(30) NOT NULL DEFAULT 'available',
+            active_chats BIGINT NOT NULL DEFAULT 0,
+            handled_today BIGINT NOT NULL DEFAULT 0,
+            avg_handling_seconds BIGINT NOT NULL DEFAULT 0,
+            csat NUMERIC(3,2) NOT NULL DEFAULT 0,
+            skills TEXT NOT NULL DEFAULT '',
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
+        )",
+    )
+    .execute(&mut conn)
+    .map_err(db::map_diesel_err)?;
+
+    diesel::sql_query(
+        "CREATE TABLE IF NOT EXISTS handoff_transcripts (
+            id UUID PRIMARY KEY,
+            session_id UUID NOT NULL,
+            customer TEXT NOT NULL DEFAULT '',
+            agent TEXT NOT NULL DEFAULT '',
+            channel VARCHAR(50) NOT NULL DEFAULT 'chat',
+            duration_seconds BIGINT NOT NULL DEFAULT 0,
+            messages BIGINT NOT NULL DEFAULT 0,
+            outcome TEXT NOT NULL DEFAULT '',
+            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000'
+        )",
+    )
+    .execute(&mut conn)
+    .map_err(db::map_diesel_err)?;
     Ok(())
 }

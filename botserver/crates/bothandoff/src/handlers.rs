@@ -204,3 +204,204 @@ pub async fn list_csat(headers: HeaderMap) -> Result<Json<Vec<CsatEntry>>, (Stat
         id: r.id, session_id: r.session_id, rating: r.rating, comment: r.comment, submitted_at: r.submitted_at,
     }).collect()))
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Agent {
+    pub id: Uuid,
+    pub name: String,
+    pub email: String,
+    pub status: String,
+    pub active_chats: i64,
+    pub handled_today: i64,
+    pub avg_handling_seconds: i64,
+    pub csat: String,
+    pub skills: String,
+}
+
+pub async fn list_agents(headers: HeaderMap) -> Result<Json<Vec<Agent>>, (StatusCode, String)> {
+    ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Text)] name: String,
+        #[diesel(sql_type = diesel::sql_types::Text)] email: String,
+        #[diesel(sql_type = diesel::sql_types::Text)] status: String,
+        #[diesel(sql_type = diesel::sql_types::BigInt)] active_chats: i64,
+        #[diesel(sql_type = diesel::sql_types::BigInt)] handled_today: i64,
+        #[diesel(sql_type = diesel::sql_types::BigInt)] avg_handling_seconds: i64,
+        #[diesel(sql_type = diesel::sql_types::Numeric)] csat: rust_decimal::Decimal,
+        #[diesel(sql_type = diesel::sql_types::Text)] skills: String,
+    }
+    let rows: Vec<Row> = diesel::sql_query(
+        "SELECT id, name, email, status, active_chats, handled_today, avg_handling_seconds, csat, skills
+         FROM handoff_agents WHERE branch_id = $1 ORDER BY name ASC LIMIT 500",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
+    .load(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    Ok(Json(rows.into_iter().map(|r| Agent {
+        id: r.id, name: r.name, email: r.email, status: r.status,
+        active_chats: r.active_chats, handled_today: r.handled_today,
+        avg_handling_seconds: r.avg_handling_seconds, csat: r.csat.to_string(), skills: r.skills,
+    }).collect()))
+}
+
+pub async fn create_agent(headers: HeaderMap, Json(item): Json<serde_json::Value>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    let id = Uuid::new_v4();
+    let name = item.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let email = item.get("email").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let skills = item.get("skills").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    diesel::sql_query(
+        "INSERT INTO handoff_agents (id, name, email, status, active_chats, handled_today, avg_handling_seconds, csat, skills, branch_id)
+         VALUES ($1, $2, $3, 'available', 0, 0, 0, 0, $4, $5)",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(id)
+    .bind::<diesel::sql_types::Text, _>(&name)
+    .bind::<diesel::sql_types::Text, _>(&email)
+    .bind::<diesel::sql_types::Text, _>(&skills)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
+    .execute(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    Ok(Json(serde_json::json!({"item": {"id": id, "name": name, "email": email, "status": "available", "skills": skills}})))
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Transcript {
+    pub id: Uuid,
+    pub customer: String,
+    pub agent: String,
+    pub channel: String,
+    pub duration_seconds: i64,
+    pub messages: i64,
+    pub outcome: String,
+    pub created_at: chrono::DateTime<Utc>,
+}
+
+pub async fn list_transcripts(headers: HeaderMap) -> Result<Json<Vec<Transcript>>, (StatusCode, String)> {
+    ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Text)] customer: String,
+        #[diesel(sql_type = diesel::sql_types::Text)] agent: String,
+        #[diesel(sql_type = diesel::sql_types::Text)] channel: String,
+        #[diesel(sql_type = diesel::sql_types::BigInt)] duration_seconds: i64,
+        #[diesel(sql_type = diesel::sql_types::BigInt)] messages: i64,
+        #[diesel(sql_type = diesel::sql_types::Text)] outcome: String,
+        #[diesel(sql_type = diesel::sql_types::Timestamptz)] created_at: chrono::DateTime<Utc>,
+    }
+    let rows: Vec<Row> = diesel::sql_query(
+        "SELECT id, customer, agent, channel, duration_seconds, messages, outcome, created_at
+         FROM handoff_transcripts WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 500",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
+    .load(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    Ok(Json(rows.into_iter().map(|r| Transcript {
+        id: r.id, customer: r.customer, agent: r.agent, channel: r.channel,
+        duration_seconds: r.duration_seconds, messages: r.messages,
+        outcome: r.outcome, created_at: r.created_at,
+    }).collect()))
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SlaReport {
+    pub first_response_pct: i64,
+    pub resolution_pct: i64,
+    pub csat_pct: i64,
+    pub breaches: Vec<serde_json::Value>,
+}
+
+pub async fn get_sla(headers: HeaderMap) -> Result<Json<SlaReport>, (StatusCode, String)> {
+    ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+
+    #[derive(diesel::QueryableByName)]
+    struct PctRow { #[diesel(sql_type = diesel::sql_types::BigInt)] c: i64 }
+    #[derive(diesel::QueryableByName)]
+    struct TotRow { #[diesel(sql_type = diesel::sql_types::BigInt)] c: i64 }
+
+    let first_ok: i64 = diesel::sql_query(
+        "SELECT COUNT(*) AS c FROM conversation_analytics WHERE branch_id = $1 AND avg_wait_seconds <= 30",
+    ).bind::<diesel::sql_types::Uuid, _>(branch).get_result::<PctRow>(&mut conn).map_err(db::map_diesel_err)?.c;
+    let first_total: i64 = diesel::sql_query(
+        "SELECT COUNT(*) AS c FROM conversation_analytics WHERE branch_id = $1",
+    ).bind::<diesel::sql_types::Uuid, _>(branch).get_result::<TotRow>(&mut conn).map_err(db::map_diesel_err)?.c;
+    let first_response_pct = if first_total > 0 { first_ok * 100 / first_total } else { 0 };
+
+    let res_ok: i64 = diesel::sql_query(
+        "SELECT COUNT(*) AS c FROM conversation_analytics WHERE branch_id = $1 AND avg_handle_seconds <= 14400",
+    ).bind::<diesel::sql_types::Uuid, _>(branch).get_result::<PctRow>(&mut conn).map_err(db::map_diesel_err)?.c;
+    let resolution_pct = if first_total > 0 { res_ok * 100 / first_total } else { 0 };
+
+    let csat_ok: i64 = diesel::sql_query(
+        "SELECT COUNT(*) AS c FROM conversation_ratings WHERE branch_id = $1 AND rating >= 4",
+    ).bind::<diesel::sql_types::Uuid, _>(branch).get_result::<PctRow>(&mut conn).map_err(db::map_diesel_err)?.c;
+    let csat_total: i64 = diesel::sql_query(
+        "SELECT COUNT(*) AS c FROM conversation_ratings WHERE branch_id = $1",
+    ).bind::<diesel::sql_types::Uuid, _>(branch).get_result::<TotRow>(&mut conn).map_err(db::map_diesel_err)?.c;
+    let csat_pct = if csat_total > 0 { csat_ok * 100 / csat_total } else { 0 };
+
+    #[derive(diesel::QueryableByName)]
+    struct BreachRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Text)] user_name: String,
+        #[diesel(sql_type = diesel::sql_types::Text)] channel: String,
+        #[diesel(sql_type = diesel::sql_types::Timestamptz)] waiting_since: chrono::DateTime<Utc>,
+    }
+    let breaches: Vec<serde_json::Value> = diesel::sql_query(
+        "SELECT id, user_name, channel, waiting_since FROM handoff_queue
+         WHERE branch_id = $1 AND waiting_since < NOW() - INTERVAL '30 seconds'
+         ORDER BY waiting_since ASC LIMIT 100",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
+    .load::<BreachRow>(&mut conn)
+    .map_err(db::map_diesel_err)?
+    .into_iter()
+    .map(|b| serde_json::json!({
+        "id": b.id, "user_name": b.user_name, "channel": b.channel,
+        "waiting_since": b.waiting_since, "elapsed_seconds": (Utc::now() - b.waiting_since).num_seconds()
+    }))
+    .collect();
+
+    Ok(Json(SlaReport { first_response_pct, resolution_pct, csat_pct, breaches }))
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DeflectionReason {
+    pub reason: String,
+    pub count: i64,
+}
+
+pub async fn list_deflection(headers: HeaderMap) -> Result<Json<Vec<DeflectionReason>>, (StatusCode, String)> {
+    ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = diesel::sql_types::Text)] reason: String,
+        #[diesel(sql_type = diesel::sql_types::BigInt)] count: i64,
+    }
+    let rows: Vec<Row> = diesel::sql_query(
+        "SELECT COALESCE(reason, 'uncategorized') AS reason, COUNT(*) AS count
+         FROM handoff_queue WHERE branch_id = $1 AND reason IS NOT NULL AND reason <> ''
+         GROUP BY reason ORDER BY count DESC LIMIT 20",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
+    .load(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    Ok(Json(rows.into_iter().map(|r| DeflectionReason { reason: r.reason, count: r.count }).collect()))
+}

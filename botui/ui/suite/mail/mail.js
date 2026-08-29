@@ -668,14 +668,14 @@
     }
   }
 
-  function saveAccount() {
+  function saveAccount(evt) {
     var form = document.getElementById("account-form");
-    if (form && typeof htmx !== "undefined") {
-      htmx.trigger(form, "submit");
-    }
-    closeAddAccount();
-    if (typeof window.showNotification === "function") {
-      window.showNotification("Email account added", "success");
+    if (!form) return;
+    if (evt) evt.preventDefault();
+    if (typeof form.requestSubmit === "function") {
+      form.requestSubmit();
+    } else {
+      form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
     }
   }
 

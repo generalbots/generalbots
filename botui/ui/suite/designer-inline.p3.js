@@ -79,12 +79,14 @@
             updateCanvasTransform();
             updateZoomDisplay();
         }
+        window.zoomIn = zoomIn;
 
         function zoomOut() {
             state.zoom = Math.max(state.zoom - 0.1, 0.25);
             updateCanvasTransform();
             updateZoomDisplay();
         }
+        window.zoomOut = zoomOut;
 
         // Modal Management
         function showModal(id) {
@@ -96,6 +98,7 @@
                 }
             }
         }
+        window.showModal = showModal;
 
         function hideModal(id) {
             const modal = document.getElementById(id);
@@ -103,6 +106,7 @@
                 modal.classList.remove('visible');
             }
         }
+        window.hideModal = hideModal;
 
         // Save Design
         function saveDesign() {
@@ -302,6 +306,7 @@
             updatePropertiesPanel();
             updateStatusBar();
         }
+        window.newDesign = newDesign;
 
         // File selection in open modal
         document.addEventListener('click', (e) => {

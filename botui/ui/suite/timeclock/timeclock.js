@@ -29,4 +29,46 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("timeclock");
     }
     tick();
     setInterval(tick, 1000);
+
+    window.openTcOtModal = function() {
+        var m = document.getElementById("tc-ot-modal");
+        if (m) m.hidden = false;
+    };
+    window.closeTcOtModal = function() {
+        var m = document.getElementById("tc-ot-modal");
+        if (m) m.hidden = true;
+    };
+    document.body.addEventListener("click", function(e) {
+        var backdrop = e.target.closest(".tc-modal");
+        if (backdrop && e.target === backdrop) backdrop.hidden = true;
+    });
+
+    window.submitTcOtForm = function(event) {
+        event.preventDefault();
+        var form = event.target;
+        var data = {};
+        Array.prototype.forEach.call(form.elements, function(el) {
+            if (el.name && !el.disabled) data[el.name] = el.value;
+        });
+        fetch("/api/timeclock/forms/overtime", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        })
+            .then(function(r) { return r.json(); })
+            .then(function(resp) {
+                if (resp && resp.ok) {
+                    form.closest(".tc-modal").hidden = true;
+                    form.reset();
+                    if (window.htmx) htmx.trigger("#tc-content", "load");
+                } else {
+                    alert("Erro: " + ((resp && resp.error) || "falha ao enviar"));
+                }
+            })
+            .catch(function(err) {
+                console.error(err);
+                alert("Erro de rede.");
+            });
+        return false;
+    };
 })();

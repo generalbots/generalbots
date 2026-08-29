@@ -11,6 +11,7 @@ let performanceData = {};
 (function(){ var __cb = () => {
 initTabs();
 initEvents();
+loadStats();
 loadTab(currentTab);
 }; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
 
@@ -42,6 +43,32 @@ document.getElementById('empSearch').addEventListener('input', filterEmployees);
 document.getElementById('empDeptFilter').addEventListener('change', filterEmployees);
 document.getElementById('empStatusFilter').addEventListener('change', filterEmployees);
 document.getElementById('postJobBtn').addEventListener('click', postJob);
+document.getElementById('exportEmployeesBtn').addEventListener('click', exportEmployees);
+document.getElementById('runPayrollBtn').addEventListener('click', runPayroll);
+document.getElementById('startReviewBtn').addEventListener('click', startReview);
+document.getElementById('addCourseBtn').addEventListener('click', addCourse);
+}
+
+async function loadStats() {
+  try {
+    const [emp, rec, perf] = await Promise.allSettled([
+      fetchApi('/employees'), fetchApi('/recruitment'), fetchApi('/performance')
+    ]);
+    const emps = emp.status === 'fulfilled' ? (emp.value.items || []) : [];
+    const recs = rec.status === 'fulfilled' ? (rec.value.items || []) : [];
+    const cycles = perf.status === 'fulfilled' ? (perf.value.review_cycles || []) : [];
+    const openReqs = recs.filter(r => (r.status || '') === 'open').length;
+    const onLeave = emps.filter(e => (e.status || '') === 'on_leave').length;
+    const pendingReviews = cycles.filter(c => (c.status || '') === 'active').reduce((s, c) => s + ((c.total || 0) - (c.completed || 0)), 0);
+    const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    set('hr-stat-headcount', emps.length);
+    set('hr-stat-leave', onLeave);
+    set('hr-stat-reqs', openReqs);
+    set('hr-stat-reviews', pendingReviews);
+    set('hr-stat-turnover', emps.length ? ((emps.filter(e => (e.status || '') === 'terminated').length / emps.length) * 100).toFixed(0) + '%' : '0%');
+    set('hrOpenPositions', openReqs);
+    set('hrUpdated', new Date().toLocaleString());
+  } catch (e) { /* non-fatal */ }
 }
 
 async function loadTab(tab) {
@@ -51,6 +78,10 @@ case 'employees': await loadEmployees(); break;
 case 'recruitment': await loadRecruitment(); break;
 case 'attendance': await loadAttendance(); break;
 case 'performance': await loadPerformance(); break;
+case 'payroll': await loadPayroll(); break;
+case 'benefits': await loadBenefits(); break;
+case 'training': await loadTraining(); break;
+case 'reports': await loadReports(); break;
 }
 } catch (e) {
 console.error('Failed to load ' + tab, e);
@@ -258,11 +289,137 @@ grid.innerHTML = `
 }
 
 async function postJob() {
-console.log('Post new job');
+const position = prompt('Job title / position:');
+if (!position) return;
+const department = document.getElementById('empDeptFilter') ? document.getElementById('empDeptFilter').value : '';
+try {
+  const data = await fetchApi('/recruitment', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ position, department })
+  });
+  await loadRecruitment();
+  loadStats();
+  showFeedback('Job posted', 'success');
+} catch (e) {
+  console.error('Post job failed', e);
+  showFeedback('Failed to post job', 'error');
+}
 }
 
 function viewJob(id) {
-console.log('View job:', id);
+const job = jobsData.find(j => j.id === id);
+if (!job) return;
+showFeedback('Job: ' + (job.title || '') + ' — ' + (job.candidate_count || 0) + ' candidates', 'success');
+}
+
+function showFeedback(msg, type) {
+  let el = document.getElementById('hr-feedback');
+  if (!el) { el = document.createElement('div'); el.id = 'hr-feedback'; el.style.cssText = 'position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:6px;font-size:13px;z-index:2000;color:#fff;transition:opacity .3s'; document.body.appendChild(el); }
+  el.textContent = msg;
+  el.style.background = type === 'error' ? '#ef4444' : '#22c55e';
+  el.style.opacity = '1';
+  setTimeout(() => { el.style.opacity = '0'; }, 3000);
+}
+
+async function exportEmployees() {
+  try {
+    const data = await fetchApi('/employees');
+    const items = (data.items || []).map(e => [e.name || '', e.email || '', e.role || '', e.department || '', e.status || '']);
+    const header = ['name', 'email', 'role', 'department', 'status'];
+    const csv = [header, ...items].map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'employees.csv'; a.click();
+    URL.revokeObjectURL(url);
+  } catch (e) { console.error('Export failed', e); }
+}
+
+async function runPayroll() {
+  try {
+    await fetchApi('/payroll/run', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+    await loadPayroll();
+    showFeedback('Payroll run completed', 'success');
+  } catch (e) { console.error('Run payroll failed', e); showFeedback('Payroll run failed', 'error'); }
+}
+
+async function startReview() {
+  const name = prompt('Review cycle name:', 'Q' + (new Date().getMonth() + 1) + ' ' + new Date().getFullYear() + ' review');
+  if (!name) return;
+  try {
+    await fetchApi('/review-cycles', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name }) });
+    await loadPerformance();
+    loadStats();
+    showFeedback('Review cycle started', 'success');
+  } catch (e) { console.error('Start review failed', e); showFeedback('Failed to start review', 'error'); }
+}
+
+async function addCourse() {
+  const course = prompt('Course name:');
+  if (!course) return;
+  const provider = prompt('Provider:', '') || '';
+  const duration = prompt('Duration (e.g. 4h):', '') || '';
+  try {
+    await fetchApi('/training', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ course, provider, duration, assigned: 0, completed: 0, status: 'open' }) });
+    await loadTraining();
+    showFeedback('Course added', 'success');
+  } catch (e) { console.error('Add course failed', e); showFeedback('Failed to add course', 'error'); }
+}
+
+async function loadPayroll() {
+  const data = await fetchApi('/payroll');
+  const items = data.items || [];
+  const fmt = n => (parseFloat(n) || 0).toLocaleString(undefined, { style: 'currency', currency: 'BRL' });
+  document.getElementById('payrollBody').innerHTML = items.length ? items.map(r => `
+    <tr>
+      <td>${esc(r.period_label)}</td>
+      <td>${r.employee_count || 0}</td>
+      <td>${fmt(r.gross)}</td>
+      <td>${fmt(r.net)}</td>
+      <td>${fmt(r.taxes)}</td>
+      <td><span class="badge badge-success">${esc(r.status)}</span></td>
+      <td><button class="btn-sm" onclick="showFeedback('Payslip export not available','error')">Export</button></td>
+    </tr>`).join('') : '<tr><td colspan="7" class="o365-empty">No payroll runs yet</td></tr>';
+}
+
+async function loadBenefits() {
+  const data = await fetchApi('/benefits');
+  const items = data.items || [];
+  const fmt = n => (parseFloat(n) || 0).toLocaleString(undefined, { style: 'currency', currency: 'BRL' });
+  document.getElementById('benefitsBody').innerHTML = items.length ? items.map(b => `
+    <tr>
+      <td>${esc(b.plan)}</td>
+      <td>${esc(b.provider)}</td>
+      <td>${esc(b.type)}</td>
+      <td>${b.enrolled || 0}</td>
+      <td>${fmt(b.monthly_cost)}</td>
+      <td><span class="badge badge-${b.status === 'active' ? 'success' : 'neutral'}">${esc(b.status)}</span></td>
+    </tr>`).join('') : '<tr><td colspan="6" class="o365-empty">No benefits enrolled</td></tr>';
+}
+
+async function loadTraining() {
+  const data = await fetchApi('/training');
+  const items = data.items || [];
+  document.getElementById('trainingBody').innerHTML = items.length ? items.map(c => `
+    <tr>
+      <td>${esc(c.course)}</td>
+      <td>${esc(c.provider)}</td>
+      <td>${esc(c.duration)}</td>
+      <td>${c.assigned || 0}</td>
+      <td>${c.completed || 0}</td>
+      <td><span class="badge badge-${c.status === 'open' ? 'info' : 'success'}">${esc(c.status)}</span></td>
+    </tr>`).join('') : '<tr><td colspan="6" class="o365-empty">No training courses</td></tr>';
+}
+
+async function loadReports() {
+  const data = await fetchApi('/reports');
+  const fmtPct = n => (parseFloat(n) || 0).toFixed(1) + '%';
+  const dept = (data.departments || []).map(d => `${esc(d.department)}: ${d.count}`).join('<br>') || 'No data';
+  document.getElementById('hrReportDept').innerHTML = dept;
+  document.getElementById('hrReportAttrition').textContent = data.attrition_rate ? fmtPct(data.attrition_rate) : '0.0%';
+  document.getElementById('hrReportTimeToHire').textContent = data.avg_time_to_hire_days ? data.avg_time_to_hire_days + ' days' : '0.0 days';
+  document.getElementById('hrReportComp').innerHTML = `Active: ${data.active || 0}<br>Terminated: ${data.terminated || 0}<br>Total: ${data.total || 0}`;
 }
 
 async function loadAttendance() {

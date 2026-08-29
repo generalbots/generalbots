@@ -14,7 +14,7 @@
         <!-- Pipeline Tabs -->
         <div class="tw-pipeline-tabs">
             <button class="tw-pipeline-tab" data-stage="plan">// PLAN</button>
-            <button class="tw-pipeline-tab active" data-stage="build">// BUILD</button>
+            <button class="tw-pipeline-tab" data-stage="build">// BUILD</button>
             <button class="tw-pipeline-tab" data-stage="review">// REVIEW</button>
             <button class="tw-pipeline-tab" data-stage="deploy">// DEPLOY</button>
             <button class="tw-pipeline-tab" data-stage="monitor">// MONITOR</button>
@@ -109,6 +109,26 @@
             });
         }
 
+        var currentStage = "";
+        var currentFilter = "all";
+
+        function reloadTaskList() {
+            var params = new URLSearchParams();
+            if (currentStage) params.set("stage", currentStage);
+            if (currentFilter && currentFilter !== "all") params.set("filter", currentFilter);
+
+            var list = document.getElementById("taskList");
+            if (!list) return;
+            list.innerHTML = '<div class="tw-task-list-empty">Loading tasks…</div>';
+
+            if (window.htmx) {
+                htmx.ajax("GET", "/api/ui/tasks?" + params.toString(), {
+                    target: "#taskList",
+                    swap: "innerHTML",
+                });
+            }
+        }
+
         function setupPipelineTabs() {
             var container = document.querySelector(".tw-pipeline-tabs");
             if (!container) return;
@@ -121,6 +141,8 @@
                     t.classList.remove("active");
                 });
                 tab.classList.add("active");
+                currentStage = tab.getAttribute("data-stage") || "";
+                reloadTaskList();
             });
         }
 
@@ -136,6 +158,8 @@
                     c.classList.remove("active");
                 });
                 chip.classList.add("active");
+                currentFilter = chip.getAttribute("data-filter") || "all";
+                reloadTaskList();
             });
         }
 

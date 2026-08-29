@@ -320,6 +320,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("plan");
       if (window.GBCollab && window.GBCollab.isConnected && window.GBCollab.isConnected()) {
         window.GBCollab.send("plan_update", { content: JSON.stringify(Object.assign({ type: "task", id: task.id }, patch)) });
       }
+      syncTaskToBackend(Object.assign({ id: task.id }, patch), "update");
       close();
     };
   }
@@ -328,6 +329,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("plan");
     const id = uid();
     const t = { id: id, title: "Nova tarefa", status: status || "todo", priority: "medium", start: today(), end: today() + 7, progress: 0, assignee: "", tags: [] };
     Store.addTask(t);
+    syncTaskToBackend(t, "create");
     openTaskEditor(t);
   }
 
@@ -375,6 +377,128 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("plan");
     if (window.GBAuthGuard) GBAuthGuard.injectLoginButton($("#gb-auth-button"));
   }
 
+  function syncTaskToBackend(task, mode) {
+    const payload = {
+      plan_id: Store.data.id,
+      task_id: task.id,
+      title: task.title,
+      status: task.status,
+      priority: task.priority,
+      assignee: task.assignee || null,
+      start: task.start || null,
+      end: task.end || null,
+      tags: task.tags || []
+    };
+    fetch(mode === "create" ? "/api/plan/task" : "/api/plan/task/update", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    }).catch(function (e) { console.error("plan task sync failed", e); });
+  }
+
+  async function onAiAssist() {
+    const instruction = window.prompt("Descreva o que a IA deve planejar (ex: adicionar etapas de QA):");
+    if (!instruction) return;
+    const aiBtn = $("#aiAssistBtn");
+    if (aiBtn) { aiBtn.disabled = true; aiBtn.textContent = "🤖 ..."; }
+    const context = JSON.stringify({ title: Store.data.title, tasks: Store.data.tasks });
+    try {
+      const res = await fetch("/api/plan/ai/assist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ instruction: instruction, context: context })
+      });
+      const data = await res.json();
+      if (data.ok && Array.isArray(data.suggestions) && data.suggestions.length) {
+        data.suggestions.forEach(function (s) {
+          const id = uid();
+          const t = {
+            id: id,
+            title: s.title || "Nova tarefa",
+            status: ["todo", "inprogress", "review", "done"].indexOf(s.status) >= 0 ? s.status : "todo",
+            priority: ["low", "medium", "high", "urgent"].indexOf(s.priority) >= 0 ? s.priority : "medium",
+            assignee: s.assignee || "",
+            start: today(),
+            end: today() + 7,
+            progress: 0,
+            tags: []
+          };
+          Store.addTask(t);
+          syncTaskToBackend(t, "create");
+        });
+        window.alert(data.suggestions.length + " tarefa(s) sugerida(s) adicionada(s).");
+      } else {
+        window.alert("IA: " + (data.error || "sem sugestões"));
+      }
+    } catch (e) {
+      console.error(e);
+      window.alert("Falha ao chamar a IA.");
+    } finally {
+      if (aiBtn) { aiBtn.disabled = false; aiBtn.textContent = "🤖 IA Assist"; }
+    }
+  }
+
+  function onExport() {
+    const data = JSON.stringify(Store.data, null, 2);
+    const blob = new Blob([data], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = (Store.data.title || "plan").replace(/\s+/g, "_") + ".json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  async function onImportFile(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      if (parsed && parsed.tasks) {
+        Store.data = parsed;
+        Store.data.id = Store.data.id || DEFAULT_PLAN_ID;
+        Store.notify();
+        Store.data.tasks.forEach(function (t) { syncTaskToBackend(t, "create"); });
+        window.alert("Plano importado com " + Store.data.tasks.length + " tarefa(s).");
+      } else {
+        window.alert("Arquivo de plano inválido.");
+      }
+    } catch (err) {
+      console.error(err);
+      window.alert("Arquivo inválido.");
+    }
+    e.target.value = "";
+  }
+
+  function wireToolbar() {
+    const newBtn = $("#newTaskBtn");
+    if (newBtn) newBtn.addEventListener("click", function () { promptNewTask("todo"); });
+
+    const aiBtn = $("#aiAssistBtn");
+    if (aiBtn) aiBtn.addEventListener("click", function () { onAiAssist(); });
+
+    const expBtn = $("#exportBtn");
+    if (expBtn) expBtn.addEventListener("click", function () { onExport(); });
+
+    const impBtn = $("#importBtn");
+    if (impBtn) {
+      let fileInput = document.getElementById("plan-import-input");
+      if (!fileInput) {
+        fileInput = document.createElement("input");
+        fileInput.type = "file";
+        fileInput.id = "plan-import-input";
+        fileInput.accept = "application/json";
+        fileInput.style.display = "none";
+        document.body.appendChild(fileInput);
+        fileInput.addEventListener("change", function (ev) { onImportFile(ev); });
+      }
+      impBtn.addEventListener("click", function () { fileInput.click(); });
+    }
+  }
+
   function bindPlanCommentsBadge() {
     const btn = document.getElementById("commentsBtn");
     if (btn && window.GBCollabComments) {
@@ -392,6 +516,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("plan");
     initViewTabs();
     initAuth();
     initCollab();
+    wireToolbar();
     render();
     window.PlanStore = Store;
     window.PlanView = View;

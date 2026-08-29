@@ -104,8 +104,140 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("social");
 
         window.showAnnouncements = function() {
             var content = document.getElementById('social-content');
-            content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary)">No announcements yet.</div>';
+            content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary)">Loading announcements...</div>';
+            fetch('/api/social/announcements').then(function(r){return r.json()}).then(function(posts){
+                if (!posts || !posts.length) {
+                    content.innerHTML = '<div class="empty-feed"><p>No announcements yet.</p></div>';
+                    return;
+                }
+                content.innerHTML = posts.map(function(p) {
+                    var authorName = p.author && (p.author.name || p.author.display_name) ? (p.author.name || p.author.display_name) : 'User';
+                    return '<div class="social-post announcement"><div class="post-header"><strong>' + escapeHtml(authorName) + '</strong> <span class="badge-announcement">Announcement</span></div><div class="post-body">' + escapeHtml(p.content || '') + '</div></div>';
+                }).join('');
+            }).catch(function(){
+                content.innerHTML = '<div class="empty-feed"><p>Could not load announcements.</p></div>';
+            });
         };
+
+        function escapeHtml(text) {
+            var div = document.createElement('div');
+            div.textContent = text == null ? '' : String(text);
+            return div.innerHTML;
+        }
+
+        function populateSidebars() {
+            loadMyCommunities();
+            loadTrending();
+            loadSuggestedCommunities();
+            loadRecentActivity();
+            loadPeopleSuggestions();
+        }
+
+        function loadMyCommunities() {
+            var el = document.getElementById('my-communities');
+            if (!el) return;
+            fetch('/api/social/my-communities').then(function(r){return r.json()}).then(function(list){
+                if (!list || !list.length) { el.innerHTML = '<p class="empty-state">No communities yet</p>'; return; }
+                el.innerHTML = list.map(function(c){
+                    return '<div class="community-item" data-community-id="' + c.id + '">'
+                        + '<span class="community-icon">' + escapeHtml(c.icon || '🌐') + '</span>'
+                        + '<span class="community-name">' + escapeHtml(c.name) + '</span>'
+                        + '<span class="community-meta">' + c.member_count + ' members</span>'
+                        + '</div>';
+                }).join('');
+            }).catch(function(){ el.innerHTML = '<p class="empty-state">Could not load</p>'; });
+        }
+
+        function loadTrending() {
+            var el = document.getElementById('trending-topics');
+            if (!el) return;
+            fetch('/api/social/trending').then(function(r){return r.json()}).then(function(list){
+                if (!list || !list.length) { el.innerHTML = '<p class="empty-state">No trending topics</p>'; return; }
+                el.innerHTML = list.map(function(t){
+                    return '<div class="trending-item" onclick="applyTrending(\'' + encodeURIComponent(t.tag) + '\')">#' + escapeHtml(t.tag) + ' <span class="trending-count">' + t.count + '</span></div>';
+                }).join('');
+            }).catch(function(){ el.innerHTML = '<p class="empty-state">Could not load</p>'; });
+        }
+
+        function applyTrending(tag) {
+            var ta = document.querySelector('.post-textarea');
+            if (ta) { showNewPostModal(); ta.value = ta.value + ' #' + decodeURIComponent(tag); }
+        }
+
+        function loadSuggestedCommunities() {
+            var el = document.getElementById('suggested-communities');
+            if (!el) return;
+            fetch('/api/ui/social/suggested').then(function(r){return r.text()}).then(function(html){
+                el.innerHTML = (html && html.trim()) ? html : '<p class="empty-state">No suggestions</p>';
+            }).catch(function(){ el.innerHTML = '<p class="empty-state">Could not load</p>'; });
+        }
+
+        function loadRecentActivity() {
+            var el = document.getElementById('recent-activity');
+            if (!el) return;
+            fetch('/api/social/activity').then(function(r){return r.json()}).then(function(list){
+                if (!list || !list.length) { el.innerHTML = '<p class="empty-state">No recent activity</p>'; return; }
+                el.innerHTML = list.map(function(a){
+                    var when = a.created_at ? new Date(a.created_at).toLocaleString() : '';
+                    return '<div class="activity-item"><span class="activity-kind">' + escapeHtml(a.kind) + '</span><span class="activity-summary">' + escapeHtml(a.summary) + '</span><span class="activity-time">' + escapeHtml(when) + '</span></div>';
+                }).join('');
+            }).catch(function(){ el.innerHTML = '<p class="empty-state">Could not load</p>'; });
+        }
+
+        function loadPeopleSuggestions() {
+            var el = document.getElementById('people-suggestions');
+            if (!el) return;
+            fetch('/api/social/people').then(function(r){return r.json()}).then(function(list){
+                if (!list || !list.length) { el.innerHTML = '<p class="empty-state">No suggestions</p>'; return; }
+                el.innerHTML = list.map(function(p){
+                    return '<div class="person-item"><span class="person-name">' + escapeHtml(p.name) + '</span><button type="button" class="btn-follow" onclick="followPerson(\'' + p.user_id + '\')">Follow</button></div>';
+                }).join('');
+            }).catch(function(){ el.innerHTML = '<p class="empty-state">Could not load</p>'; });
+        }
+
+        function followPerson(userId) {
+            fetch('/api/social/praise', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ to_user_id: userId, badge_type: 'follow', message: 'Following you', is_public: true })
+            }).then(function(){
+                if (window.GBAlerts) window.GBAlerts.info('Social', 'Following!');
+            }).catch(function(){});
+        }
+
+        function addPostImage() {
+            var input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.multiple = true;
+            input.onchange = function(e) {
+                var files = e.target.files;
+                var box = document.getElementById('postAttachments');
+                if (!box || !files) return;
+                Array.prototype.forEach.call(files, function(f) {
+                    var chip = document.createElement('div');
+                    chip.className = 'attachment-chip';
+                    chip.innerHTML = '<span>' + escapeHtml(f.name) + '</span><button type="button" onclick="this.parentElement.remove()">×</button>';
+                    box.appendChild(chip);
+                });
+            };
+            input.click();
+        }
+
+        function schedulePost() {
+            var sched = document.querySelector('.schedule-input');
+            if (sched) {
+                sched.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                sched.focus();
+                if (window.GBAlerts) window.GBAlerts.info('Social', 'Pick a date and time to schedule your post');
+            }
+        }
+
+        window.applyTrending = applyTrending;
+        window.followPerson = followPerson;
+        window.addPostImage = addPostImage;
+        window.schedulePost = schedulePost;
+        window.populateSidebars = populateSidebars;
 
         window.showAnalytics = function() {
             var content = document.getElementById('social-content');
@@ -194,6 +326,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("social");
     if (typeof window.showFeed === "function" && document.getElementById("social-content") && activeTab) {
       clearInterval(timer);
       if (activeTab.dataset.tab === "feed") window.showFeed();
+      if (typeof window.populateSidebars === "function") window.populateSidebars();
       return;
     }
     if (tries > 50) clearInterval(timer);

@@ -15,7 +15,7 @@
             </div>
 
             <div class="designer-toolbar">
-                <button class="toolbar-btn" id="btn-new" title="New Dialog (Ctrl+N)">
+                <button class="toolbar-btn" id="btn-new" title="New Dialog (Ctrl+N)" onclick="newDesign()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                         <polyline points="14 2 14 8 20 8"/>
@@ -53,14 +53,14 @@
 
                 <div class="toolbar-separator"></div>
 
-                <button class="toolbar-btn" id="btn-undo" title="Undo (Ctrl+Z)">
+                <button class="toolbar-btn" id="btn-undo" title="Undo (Ctrl+Z)" onclick="undo()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M3 7v6h6"/>
                         <path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/>
                     </svg>
                 </button>
 
-                <button class="toolbar-btn" id="btn-redo" title="Redo (Ctrl+Y)">
+                <button class="toolbar-btn" id="btn-redo" title="Redo (Ctrl+Y)" onclick="redo()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 7v6h-6"/>
                         <path d="M3 17a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3L21 13"/>
@@ -469,9 +469,9 @@
                 <span>Not saved</span>
             </div>
             <div class="zoom-controls">
-                <button class="zoom-btn" id="zoom-out" title="Zoom Out">−</button>
+                <button class="zoom-btn" id="zoom-out" title="Zoom Out" onclick="zoomOut()">−</button>
                 <span class="zoom-value" id="zoom-value">100%</span>
-                <button</span> class="zoom-btn" id="zoom-in" title="Zoom In">+</button>
+                <button class="zoom-btn" id="zoom-in" title="Zoom In" onclick="zoomIn()">+</button>
             </div>
         </footer>
     </div>

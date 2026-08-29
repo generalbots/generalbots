@@ -6,10 +6,14 @@ description = "Retail management (Bling-style): products, stock, variations, pri
 
 [dependencies]
 chrono = { workspace = true, features = ["serde"] }
-rust_decimal = { workspace = true, features = ["serde-with-str"] }
+rust_decimal = { workspace = true, features = ["serde-with-str", "db-diesel2-postgres"] }
 serde = { workspace = true, features = ["derive"] }
 thiserror = { workspace = true }
 uuid = { workspace = true, features = ["v4", "serde"] }
+diesel = { workspace = true, features = ["postgres", "r2d2", "serde_json", "chrono", "uuid", "numeric"] }
+botcore = { workspace = true }
+axum = { workspace = true }
+serde_json = { workspace = true }
 
 [dev-dependencies]
 rust_decimal_macros = { workspace = true }

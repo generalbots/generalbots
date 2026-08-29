@@ -111,8 +111,62 @@
                 if (picker) picker.style.display = "none";
             }
 
+            function escapeHtml(text) {
+                var div = document.createElement("div");
+                div.textContent = text == null ? "" : String(text);
+                return div.innerHTML;
+            }
+
             function loadHistoricalConversation(id) {
-                showToast("Loading conversation history...", "info");
+                var box = document.getElementById("conversationHistory");
+                if (!box) return;
+                if (!id) {
+                    box.innerHTML =
+                        '<div class="history-item"><div class="history-summary">Select a customer to view their history</div></div>';
+                    return;
+                }
+                box.innerHTML = '<div class="loading-spinner"></div>';
+                fetch("/api/attendant/sessions/" + encodeURIComponent(id))
+                    .then(function (r) {
+                        return r.json();
+                    })
+                    .then(function (data) {
+                        var session = data && data.session ? data.session : null;
+                        var messages =
+                            data && Array.isArray(data.messages) ? data.messages : [];
+                        if (!messages.length) {
+                            box.innerHTML =
+                                '<div class="history-item"><div class="history-summary">No previous conversations</div></div>';
+                            return;
+                        }
+                        box.innerHTML = messages
+                            .map(function (m) {
+                                var when = m.created_at
+                                    ? new Date(m.created_at).toLocaleString()
+                                    : "";
+                                var who = m.sender_type
+                                    ? m.sender_type
+                                    : m.agent_id
+                                      ? "agent"
+                                      : "customer";
+                                return (
+                                    '<div class="history-item" onclick="loadHistoricalConversation(\'' +
+                                    id +
+                                    '\')"><div class="history-header"><span class="history-date">' +
+                                    escapeHtml(when) +
+                                    '</span></div><div class="history-summary">' +
+                                    escapeHtml(m.content || "") +
+                                    '</div><div class="history-meta">' +
+                                    escapeHtml(who) +
+                                    "</div></div>"
+                                );
+                            })
+                            .join("");
+                    })
+                    .catch(function () {
+                        box.innerHTML =
+                            '<div class="history-item"><div class="history-summary">Could not load history</div></div>';
+                    });
             }
 
             // Periodic refresh (every 30 seconds if WebSocket not connected)

@@ -135,16 +135,21 @@ var activeSessions = new Map();
         ctx.fillText("Place noVNC files in /suite/desktop/vendor/novnc/", w / 2, h / 2 + 80);
     }
 
-    async function startSession(host, port, protocol) {
+    async function startSession(host, port, protocol, password) {
         protocol = protocol || "vnc";
         // The backend only accepts registered (UUID) sessions — quick connect
         // must register via POST /connect first, then proxy through the returned id.
         var sessionId;
+        var payload = { name: "Desktop", host: host, port: port, protocol: protocol, auth_type: "none" };
+        if (password) {
+            payload.auth_type = "password";
+            payload.password = password;
+        }
         try {
             var reg = await fetch("/api/desktop/connect", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name: "Desktop", host: host, port: port, protocol: protocol, auth_type: "password" }),
+                body: JSON.stringify(payload),
             });
             if (!reg.ok) throw new Error("registration failed");
             var regData = await reg.json();
@@ -517,6 +522,181 @@ var activeSessions = new Map();
         } catch (e) {
             toast("Failed to save: " + e.message, "error");
         }
+    }
+
+    // =============================================================================
+    // VDI PUBLIC API (wires the vdi.html controls)
+    // =============================================================================
+
+    var pendingAuth = null;
+
+    function openNewConnection() {
+        var overlay = document.getElementById("modal-overlay");
+        if (overlay) overlay.classList.remove("hidden");
+    }
+    function closeModal() {
+        var overlay = document.getElementById("modal-overlay");
+        if (overlay) overlay.classList.add("hidden");
+    }
+    function openAuth() {
+        var overlay = document.getElementById("auth-modal-overlay");
+        if (overlay) overlay.classList.remove("hidden");
+    }
+    function closeAuth() {
+        var overlay = document.getElementById("auth-modal-overlay");
+        if (overlay) overlay.classList.add("hidden");
+    }
+
+    function readConnForm() {
+        var el = function (id) { return document.getElementById(id); };
+        var protocol = (el("conn-protocol") || {}).value || "vnc";
+        var portEl = el("conn-port");
+        var port = parseInt((portEl || {}).value || (protocol === "rdp" ? "3389" : "5900"), 10);
+        return {
+            name: ((el("conn-name") || {}).value || "").trim(),
+            host: ((el("conn-host") || {}).value || "").trim(),
+            port: port,
+            protocol: protocol,
+            authType: (el("conn-auth-type") || {}).value || "none",
+        };
+    }
+
+    function saveNewConnection() {
+        var c = readConnForm();
+        if (!c.name || !c.host) {
+            toast("Name and host are required", "error");
+            return;
+        }
+        if (c.authType === "password") {
+            pendingAuth = c;
+            closeModal();
+            openAuth();
+            return;
+        }
+        closeModal();
+        startSession(c.host, c.port, c.protocol, null);
+    }
+
+    function connectQuick() {
+        var raw = ((document.getElementById("quick-host") || {}).value || "").trim();
+        if (!raw) {
+            toast("Enter a host:port", "error");
+            return;
+        }
+        var parts = raw.split(":");
+        var host = parts[0].trim();
+        var port = parseInt((parts[1] || (raw.indexOf("rdp") >= 0 ? "3389" : "5900")).trim(), 10) || 5900;
+        startSession(host, port, "vnc", null);
+    }
+
+    function submitAuth() {
+        var password = ((document.getElementById("auth-password") || {}).value || "").trim();
+        var c = pendingAuth;
+        pendingAuth = null;
+        closeAuth();
+        if (!c) return;
+        startSession(c.host, c.port, c.protocol, password);
+    }
+
+    function connectSaved(id) {
+        var c = CONNECTIONS.filter(function (x) { return x.id === id; })[0];
+        if (!c) {
+            toast("Connection not found", "error");
+            return;
+        }
+        startSession(c.host, c.port, c.protocol || "vnc", null);
+    }
+
+    async function deleteSaved(id) {
+        try {
+            var resp = await fetch("/api/desktop/connections/" + encodeURIComponent(id), { method: "DELETE" });
+            if (!resp.ok) throw new Error("delete failed");
+            toast("Connection removed", "success");
+            await loadConnections();
+        } catch (e) {
+            toast("Failed to remove: " + e.message, "error");
+        }
+    }
+
+    function applyResolution(res) {
+        var canvas = document.getElementById("vnc-canvas");
+        if (!canvas) return;
+        if (!res || res === "auto") {
+            var wrap = document.getElementById("vnc-container");
+            canvas.style.width = "100%";
+            canvas.style.height = "100%";
+            return;
+        }
+        var dims = res.split("x");
+        if (dims.length === 2) {
+            var w = parseInt(dims[0], 10), h = parseInt(dims[1], 10);
+            canvas.width = w;
+            canvas.height = h;
+            canvas.style.width = w + "px";
+            canvas.style.height = h + "px";
+        }
+    }
+
+    function applyScaling(mode) {
+        var canvas = document.getElementById("vnc-canvas");
+        if (!canvas) return;
+        if (mode === "none") {
+            applyResolution((document.getElementById("resolution-select") || {}).value);
+        } else {
+            canvas.style.width = "100%";
+            canvas.style.height = "100%";
+        }
+    }
+
+    function onProtocolChange() {
+        var proto = (document.getElementById("conn-protocol") || {}).value || "vnc";
+        var portEl = document.getElementById("conn-port");
+        if (!portEl) return;
+        var v = parseInt(portEl.value, 10);
+        if (proto === "rdp" && (isNaN(v) || v === 5900)) portEl.value = "3389";
+        if (proto === "vnc" && (isNaN(v) || v === 3389)) portEl.value = "5900";
+        var authRow = document.getElementById("conn-auth-type");
+        if (authRow) authRow.value = "password";
+    }
+
+    window.VDI = {
+        openNewConnection: openNewConnection,
+        closeModal: closeModal,
+        openAuth: openAuth,
+        closeAuth: closeAuth,
+        saveNewConnection: saveNewConnection,
+        connectQuick: connectQuick,
+        submitAuth: submitAuth,
+        connectSaved: connectSaved,
+        deleteSaved: deleteSaved,
+        applyResolution: applyResolution,
+        applyScaling: applyScaling,
+        onProtocolChange: onProtocolChange,
+    };
+
+    function bindVdiControls() {
+        var bind = function (id, ev, fn) {
+            var el = document.getElementById(id);
+            if (el) el.addEventListener(ev, fn);
+        };
+        bind("btn-new-connection", "click", openNewConnection);
+        bind("btn-modal-cancel", "click", closeModal);
+        bind("btn-modal-close", "click", closeModal);
+        bind("btn-modal-save", "click", saveNewConnection);
+        bind("btn-quick-connect", "click", connectQuick);
+        bind("btn-auth-submit", "click", submitAuth);
+        bind("conn-protocol", "change", onProtocolChange);
+        var resSel = document.getElementById("resolution-select");
+        if (resSel) resSel.addEventListener("change", function () { applyResolution(resSel.value); });
+        var scaleSel = document.getElementById("scaling-select");
+        if (scaleSel) scaleSel.addEventListener("change", function () { applyScaling(scaleSel.value); });
+        if (typeof loadConnections === "function") loadConnections();
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", bindVdiControls);
+    } else {
+        bindVdiControls();
     }
 
 })();

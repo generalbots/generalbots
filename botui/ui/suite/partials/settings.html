@@ -573,7 +573,7 @@
                     </div>
                     <div class="form-group">
                         <label>First Day of Week</label>
-                        <select id="first-day-select" class="form-select">
+                        <select id="first-day-select" class="form-select" onchange="changeFirstDay(this.value)">
                             <option value="sunday">Sunday</option>
                             <option value="monday">Monday</option>
                         </select>
@@ -680,7 +680,7 @@
                         <span class="setting-desc">Always show navigation sidebar</span>
                     </div>
                     <label class="toggle">
-                        <input type="checkbox" name="show_sidebar" checked>
+                        <input type="checkbox" name="show_sidebar" checked onchange="toggleShowSidebar(this)">
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
@@ -690,7 +690,7 @@
                         <span class="setting-desc">Enable UI animations and transitions</span>
                     </div>
                     <label class="toggle">
-                        <input type="checkbox" name="animations" checked>
+                        <input type="checkbox" name="animations" checked onchange="toggleAnimations(this)">
                         <span class="toggle-slider"></span>
                     </label>
                 </div>

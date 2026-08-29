@@ -1,4 +1,4 @@
-use axum::extract::Json;
+use axum::extract::{Json, Path};
 use axum::http::{HeaderMap, StatusCode};
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
@@ -166,4 +166,191 @@ pub async fn get_settings(headers: HeaderMap) -> Result<Json<Option<M365Settings
         scopes: Vec::new(),
         last_sync: r.last_sync,
     })))
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct M365Team {
+    pub id: Uuid,
+    pub display_name: String,
+    pub description: String,
+    pub channel_count: i64,
+    pub member_count: i64,
+}
+
+pub async fn list_teams(headers: HeaderMap) -> Result<Json<Vec<M365Team>>, (StatusCode, String)> {
+    storage::ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Text)] display_name: String,
+        #[diesel(sql_type = diesel::sql_types::Text)] description: String,
+        #[diesel(sql_type = diesel::sql_types::BigInt)] channel_count: i64,
+        #[diesel(sql_type = diesel::sql_types::BigInt)] member_count: i64,
+    }
+    let rows: Vec<Row> = diesel::sql_query(
+        "SELECT id, display_name, description, channel_count, member_count
+         FROM m365_teams WHERE branch_id = $1 ORDER BY display_name ASC LIMIT 500",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
+    .load(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    Ok(Json(rows.into_iter().map(|r| M365Team {
+        id: r.id, display_name: r.display_name, description: r.description,
+        channel_count: r.channel_count, member_count: r.member_count,
+    }).collect()))
+}
+
+use axum::body::Body;
+use axum::http::{header, HeaderValue, StatusCode as HttpStatusCode};
+use axum::response::Response;
+
+pub async fn download_file(headers: HeaderMap, Path(id): Path<String>) -> Result<Response<Body>, (StatusCode, String)> {
+    storage::ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
+    let parsed = Uuid::parse_str(&id).map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid file id '{id}': {e}")))?;
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = diesel::sql_types::Text)] name: String,
+        #[diesel(sql_type = diesel::sql_types::Text)] path: String,
+        #[diesel(sql_type = diesel::sql_types::BigInt)] size_bytes: i64,
+        #[diesel(sql_type = diesel::sql_types::Timestamptz)] last_modified: chrono::DateTime<Utc>,
+        #[diesel(sql_type = diesel::sql_types::Text)] author: String,
+    }
+    let row: Option<Row> = diesel::sql_query(
+        "SELECT name, path, size_bytes, last_modified, author FROM m365_onedrive_files \
+         WHERE id = $1 AND branch_id = $2",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(parsed)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
+    .get_result(&mut conn)
+    .optional()
+    .map_err(db::map_diesel_err)?;
+    let row = row.ok_or((StatusCode::NOT_FOUND, format!("File {id} not found")))?;
+    let safe_name = row.name.replace(['/', '\\', '"'], "_");
+    let body = format!(
+        "Microsoft 365 OneDrive file export\nName: {}\nPath: {}\nSize (bytes): {}\nLast modified: {}\nAuthor: {}\n",
+        row.name, row.path, row.size_bytes, row.last_modified, row.author
+    );
+    let cd = format!("attachment; filename=\"{}\"", safe_name);
+    Response::builder()
+        .status(HttpStatusCode::OK)
+        .header(header::CONTENT_TYPE, "application/octet-stream")
+        .header(header::CONTENT_DISPOSITION, HeaderValue::from_str(&cd).unwrap_or_else(|_| HeaderValue::from_static("attachment")))
+        .body(Body::from(body))
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Response error: {e}")))
+}
+
+#[derive(diesel::QueryableByName)]
+struct IdRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    id: Uuid,
+}
+
+pub async fn connect_account(headers: HeaderMap) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    storage::ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    let now = Utc::now();
+    let existing: Option<Uuid> = diesel::sql_query(
+        "SELECT id FROM oauth_microsoft_settings WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
+    .get_result::<IdRow>(&mut conn)
+    .optional()
+    .map_err(db::map_diesel_err)?
+    .map(|r| r.id);
+    match existing {
+        Some(id) => {
+            diesel::sql_query("UPDATE oauth_microsoft_settings SET connected_at = $1, last_sync = $1, updated_at = $1 WHERE id = $2")
+                .bind::<diesel::sql_types::Timestamptz, _>(now)
+                .bind::<diesel::sql_types::Uuid, _>(id)
+                .execute(&mut conn)
+                .map_err(db::map_diesel_err)?;
+        }
+        None => {
+            diesel::sql_query(
+                "INSERT INTO oauth_microsoft_settings (id, branch_id, connected_at, last_sync, sync_calendar_min, sync_onedrive_min)
+                 VALUES ($1, $2, $3, $3, 15, 30)",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(Uuid::new_v4())
+            .bind::<diesel::sql_types::Uuid, _>(branch)
+            .bind::<diesel::sql_types::Timestamptz, _>(now)
+            .execute(&mut conn)
+            .map_err(db::map_diesel_err)?;
+        }
+    }
+    Ok(Json(serde_json::json!({ "connected": true, "connected_at": now })))
+}
+
+pub async fn disconnect_account(headers: HeaderMap) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    storage::ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    diesel::sql_query("UPDATE oauth_microsoft_settings SET connected_at = NULL, updated_at = NOW() WHERE branch_id = $1")
+        .bind::<diesel::sql_types::Uuid, _>(branch)
+        .execute(&mut conn)
+        .map_err(db::map_diesel_err)?;
+    Ok(Json(serde_json::json!({ "connected": false })))
+}
+
+pub async fn sync_now(headers: HeaderMap) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    storage::ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    let now = Utc::now();
+    let existing: Option<Uuid> = diesel::sql_query(
+        "SELECT id FROM oauth_microsoft_settings WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch)
+    .get_result::<IdRow>(&mut conn)
+    .optional()
+    .map_err(db::map_diesel_err)?
+    .map(|r| r.id);
+    match existing {
+        Some(id) => {
+            diesel::sql_query("UPDATE oauth_microsoft_settings SET last_sync = $1, updated_at = $1 WHERE id = $2")
+                .bind::<diesel::sql_types::Timestamptz, _>(now)
+                .bind::<diesel::sql_types::Uuid, _>(id)
+                .execute(&mut conn)
+                .map_err(db::map_diesel_err)?;
+        }
+        None => {
+            diesel::sql_query(
+                "INSERT INTO oauth_microsoft_settings (id, branch_id, last_sync, sync_calendar_min, sync_onedrive_min)
+                 VALUES ($1, $2, $3, 15, 30)",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(Uuid::new_v4())
+            .bind::<diesel::sql_types::Uuid, _>(branch)
+            .bind::<diesel::sql_types::Timestamptz, _>(now)
+            .execute(&mut conn)
+            .map_err(db::map_diesel_err)?;
+        }
+    }
+    Ok(Json(serde_json::json!({ "synced_at": now })))
+}
+
+pub async fn update_sync_settings(headers: HeaderMap, Json(req): Json<serde_json::Value>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    storage::ensure_schema_sync()?;
+    let branch = resolve_branch(&headers);
+    let pool = db::pool()?;
+    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    let sync_type = req.get("type").and_then(|v| v.as_str()).unwrap_or("").to_string();
+    let frequency = req.get("frequency").and_then(|v| v.as_i64()).unwrap_or(15);
+    let col = if sync_type == "calendar" { "sync_calendar_min" } else { "sync_onedrive_min" };
+    diesel::sql_query(&format!(
+        "UPDATE oauth_microsoft_settings SET {col} = $1, updated_at = NOW() WHERE branch_id = $2"
+    ))
+    .bind::<diesel::sql_types::BigInt, _>(frequency)
+    .bind::<diesel::sql_types::Uuid, _>(branch)
+    .execute(&mut conn)
+    .map_err(db::map_diesel_err)?;
+    Ok(Json(serde_json::json!({ "type": sync_type, "frequency": frequency })))
 }

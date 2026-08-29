@@ -115,3 +115,57 @@
         </div>
     </div>
 </div>
+
+<div id="retailBranchModal" class="retail-modal" style="display:none">
+    <div class="retail-modal-dialog">
+        <header class="retail-modal-header"><h2>Branch</h2><button onclick="window._retail.closeModal('retailBranchModal')">&times;</button></header>
+        <form class="retail-modal-body" onsubmit="window._retail.submitBranch(event)">
+            <label>Code<input type="text" id="branchCode" placeholder="e.g. BR-01"></label>
+            <label>Name<input type="text" id="branchName" required placeholder="Downtown"></label>
+            <label>Address<input type="text" id="branchAddress"></label>
+            <label>Manager<input type="text" id="branchManager"></label>
+            <label>Stock value (R$)<input type="number" id="branchStock" step="0.01" min="0" value="0"></label>
+            <label>Status<select id="branchStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></label>
+            <div style="display:flex;gap:8px;margin-top:12px">
+                <button type="button" class="retail-btn" onclick="window._retail.closeModal('retailBranchModal')">Cancel</button>
+                <button type="submit" class="retail-btn retail-btn-primary">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="retailPromoModal" class="retail-modal" style="display:none">
+    <div class="retail-modal-dialog">
+        <header class="retail-modal-header"><h2>Promotion</h2><button onclick="window._retail.closeModal('retailPromoModal')">&times;</button></header>
+        <form class="retail-modal-body" onsubmit="window._retail.submitPromo(event)">
+            <label>Name<input type="text" id="promoName" required></label>
+            <label>Type<select id="promoType"><option value="percent">Percent</option><option value="fixed">Fixed</option><option value="bogo">BOGO</option></select></label>
+            <label>Discount<input type="text" id="promoDiscount" placeholder="e.g. 10% or R$20"></label>
+            <label>Valid from<input type="date" id="promoFrom"></label>
+            <label>Valid to<input type="date" id="promoTo"></label>
+            <label>Status<select id="promoStatus"><option value="active">Active</option><option value="paused">Paused</option></select></label>
+            <div style="display:flex;gap:8px;margin-top:12px">
+                <button type="button" class="retail-btn" onclick="window._retail.closeModal('retailPromoModal')">Cancel</button>
+                <button type="submit" class="retail-btn retail-btn-primary">Save</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="retailSupplierModal" class="retail-modal" style="display:none">
+    <div class="retail-modal-dialog">
+        <header class="retail-modal-header"><h2>Supplier</h2><button onclick="window._retail.closeModal('retailSupplierModal')">&times;</button></header>
+        <form class="retail-modal-body" onsubmit="window._retail.submitSupplier(event)">
+            <label>CNPJ<input type="text" id="supplierCnpj"></label>
+            <label>Name<input type="text" id="supplierName" required></label>
+            <label>Contact<input type="text" id="supplierContact"></label>
+            <label>Email<input type="email" id="supplierEmail"></label>
+            <label>Lead time (days)<input type="number" id="supplierLead" min="0" value="0"></label>
+            <label>Rating (0-5)<input type="number" id="supplierRating" step="0.1" min="0" max="5" value="0"></label>
+            <div style="display:flex;gap:8px;margin-top:12px">
+                <button type="button" class="retail-btn" onclick="window._retail.closeModal('retailSupplierModal')">Cancel</button>
+                <button type="submit" class="retail-btn retail-btn-primary">Save</button>
+            </div>
+        </form>
+    </div>
+</div>

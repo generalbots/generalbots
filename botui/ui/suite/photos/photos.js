@@ -1,6 +1,7 @@
 "use strict";
-/* Photos (#1154): image gallery sourced from the user's Drive. Falls back to
-   a local demo gallery when the drive API is unreachable. */
+/* Photos (#1154): image gallery sourced from the user's Drive. On failure it
+   shows a real error/empty state that prompts the user to connect a Drive
+   instead of a fake mock gallery. */
 
 (function () {
   if (window.GBPhotos) return;
@@ -31,8 +32,8 @@
         renderPlaceholders(images);
         loadThumbnails(images, 0);
       })
-      .catch(function () {
-        renderDemo();
+      .catch(function (err) {
+        renderError(err);
       });
   }
 
@@ -94,21 +95,21 @@
     });
   }
 
-  function renderDemo() {
+  function renderError(err) {
     const grid = document.getElementById("photosGrid");
     if (!grid) return;
-    const colors = ["#3b82f6", "#84d669", "#f59e0b", "#ec4899", "#8b5cf6", "#06b6d4"];
-    grid.innerHTML = colors
-      .map(function (c, i) {
-        return (
-          '<div class="photo-tile" title="Sample ' + (i + 1) + '">' +
-          '<div style="width:100%;height:100%;background:linear-gradient(135deg,' + c + '22,' + c + '66);display:flex;align-items:center;justify-content:center;font-size:34px;color:' + c + '">' + ["🌄", "🌊", "🌿", "🌇", "🪐", "🏔"][i] + "</div>" +
-          "</div>"
-        );
-      })
-      .join("");
+    const msg = (err && err.message) ? err.message : "Could not reach your Drive.";
+    grid.innerHTML =
+      '<div class="photos-empty photos-error">' +
+      "<p>" + escapeHtml(msg) + "</p>" +
+      '<p class="photos-hint">Connect a Drive to see your images here. ' +
+      'If your Drive is connected, try refreshing.</p>' +
+      '<button class="photos-retry" id="photosRetry">Retry</button>' +
+      "</div>";
+    const retry = document.getElementById("photosRetry");
+    if (retry) retry.addEventListener("click", load);
     const count = document.getElementById("photosCount");
-    if (count) count.textContent = "demo mode";
+    if (count) count.textContent = "";
   }
 
   function escapeHtml(s) {

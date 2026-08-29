@@ -193,8 +193,94 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("research");
             // Hide suggestions when results are shown
             suggestionsPanel.classList.add("hidden");
 
+            // Use the result-template to ensure every rendered card carries the
+            // answer action buttons (Save to Collection / Share / etc.).
+            useResultTemplate();
+
             // Update source counts
             updateSourceCounts();
+        });
+
+        function useResultTemplate() {
+            const tpl = document.getElementById("result-template");
+            if (!tpl) return;
+            document.querySelectorAll("#main-results .result-card").forEach(function (card) {
+                if (card.querySelector(".answer-actions")) return;
+                const content = card.querySelector(".answer-content");
+                const actions = tpl.content.querySelector(".answer-actions");
+                if (actions && content) {
+                    card.appendChild(actions.cloneNode(true));
+                }
+            });
+        }
+
+        function researchToast(msg) {
+            let host = document.getElementById("research-toast");
+            if (!host) {
+                host = document.createElement("div");
+                host.id = "research-toast";
+                host.style.cssText =
+                    "position:fixed;bottom:16px;left:16px;background:#1e293b;color:#e2e8f0;" +
+                    "padding:8px 12px;border-radius:6px;font-size:13px;z-index:9999;opacity:0;" +
+                    "transition:opacity .2s;box-shadow:0 4px 12px rgba(0,0,0,.3)";
+                document.body.appendChild(host);
+            }
+            host.textContent = msg;
+            host.style.opacity = "1";
+            setTimeout(function () { host.style.opacity = "0"; }, 2600);
+        }
+
+        function currentAnswerText(btn) {
+            const card = btn.closest(".result-card");
+            const ac = card ? card.querySelector(".answer-content") : null;
+            return ac ? ac.innerText.trim() : "";
+        }
+
+        function saveCurrentResult(btn) {
+            const ans = currentAnswerText(btn);
+            fetch("/api/ui/research/collections/save", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: "Research result", content: ans, url: "" }),
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    researchToast(d && d.ok ? "Saved to collection" : "Save failed");
+                })
+                .catch(function () { researchToast("Save failed"); });
+        }
+
+        function shareCurrentResult(btn) {
+            const ans = currentAnswerText(btn);
+            fetch("/api/ui/research/share", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title: "Research result", content: ans, url: "" }),
+            })
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (d && d.ok && d.share_url) {
+                        if (navigator.clipboard) {
+                            navigator.clipboard.writeText(location.origin + d.share_url);
+                        }
+                        researchToast("Share link copied");
+                    } else {
+                        researchToast("Share failed");
+                    }
+                })
+                .catch(function () { researchToast("Share failed"); });
+        }
+
+        document.addEventListener("click", function (e) {
+            const saveBtn = e.target.closest('.action-btn[title="Save to Collection"]');
+            const shareBtn = e.target.closest('.action-btn[title="Share"]');
+            if (saveBtn) {
+                e.preventDefault();
+                saveCurrentResult(saveBtn);
+            } else if (shareBtn) {
+                e.preventDefault();
+                shareCurrentResult(shareBtn);
+            }
         });
 
         function updateSourceCounts() {

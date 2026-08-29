@@ -66,8 +66,36 @@ pub fn ensure_schema_sync() -> Result<(), (StatusCode, String)> {
             user_principal_name TEXT,
             connected_at TIMESTAMPTZ,
             last_sync TIMESTAMPTZ,
+            sync_calendar_min INTEGER NOT NULL DEFAULT 15,
+            sync_onedrive_min INTEGER NOT NULL DEFAULT 30,
             created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
             updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        )",
+    )
+    .execute(&mut conn)
+    .map_err(crate::db::map_diesel_err)?;
+
+    diesel::sql_query(
+        "ALTER TABLE oauth_microsoft_settings ADD COLUMN IF NOT EXISTS sync_calendar_min INTEGER NOT NULL DEFAULT 15",
+    )
+    .execute(&mut conn)
+    .map_err(crate::db::map_diesel_err)?;
+
+    diesel::sql_query(
+        "ALTER TABLE oauth_microsoft_settings ADD COLUMN IF NOT EXISTS sync_onedrive_min INTEGER NOT NULL DEFAULT 30",
+    )
+    .execute(&mut conn)
+    .map_err(crate::db::map_diesel_err)?;
+
+    diesel::sql_query(
+        "CREATE TABLE IF NOT EXISTS m365_teams (
+            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+            branch_id UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000',
+            display_name TEXT NOT NULL DEFAULT '',
+            description TEXT NOT NULL DEFAULT '',
+            channel_count BIGINT NOT NULL DEFAULT 0,
+            member_count BIGINT NOT NULL DEFAULT 0,
+            synced_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
         )",
     )
     .execute(&mut conn)

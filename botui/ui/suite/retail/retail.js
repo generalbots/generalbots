@@ -1,6 +1,6 @@
 (function(){
 if (window.GBAppLifecycle) GBAppLifecycle.begin("retail");
-var state={branches:[],stock:[],promos:[],suppliers:[],topProducts:[],currentTab:'dashboard',currentBranch:'all'};
+var state={branches:[],stock:[],promos:[],suppliers:[],topProducts:[],currentTab:'dashboard',currentBranch:'all',editingBranchId:null};
 
 function showFeedback(msg,type){
     var el=document.getElementById('retail-feedback');
@@ -171,13 +171,67 @@ function searchStock(q){
     rows.forEach(function(r){r.style.display=r.textContent.toLowerCase().includes(q.toLowerCase())?'':'none'});
 }
 
-function showCreateBranch(){showFeedback('Opening new branch form...','success')}
-function showCreatePromo(){showFeedback('Opening promotion form...','success')}
-function showCreateSupplier(){showFeedback('Opening supplier form...','success')}
-function editBranch(id){showFeedback('Editing branch '+id,'success')}
+async function apiPost(url, body){
+    try{
+        var r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('gb_token')||'')},body:JSON.stringify(body)});
+        if(!r.ok)throw new Error('HTTP '+r.status);
+        var t=await r.text();return t?JSON.parse(t):null;
+    }catch(e){showFeedback('API error: '+e.message,'error');return null}
+}
+
+function openModal(id){var el=document.getElementById(id);if(el)el.style.display='flex';}
+function closeModal(id){var el=document.getElementById(id);if(el)el.style.display='none';}
+
+function showCreateBranch(){state.editingBranchId=null;['branchCode','branchName','branchAddress','branchManager','branchStock','branchStatus'].forEach(function(i){var e=document.getElementById(i);if(e)e.value=(i==='branchStatus')?'active':'';});openModal('retailBranchModal');}
+function showCreatePromo(){state.editingPromoId=null;['promoName','promoType','promoDiscount','promoFrom','promoTo','promoStatus'].forEach(function(i){var e=document.getElementById(i);if(e)e.value=(i==='promoStatus')?'active':'';});openModal('retailPromoModal');}
+function showCreateSupplier(){['supplierCnpj','supplierName','supplierContact','supplierEmail','supplierLead','supplierRating'].forEach(function(i){var e=document.getElementById(i);if(e)e.value='';});openModal('retailSupplierModal');}
+
+async function editBranch(id){
+    var data=await apiCall('/api/retail/branches');
+    var list=Array.isArray(data)?data:(data&&data.items)||[];
+    var b=list.find(function(x){return x.id===id;});
+    if(!b){showFeedback('Branch not found','error');return;}
+    state.editingBranchId=id;
+    var set=function(i,v){var e=document.getElementById(i);if(e)e.value=v||'';};
+    set('branchCode',b.code);set('branchName',b.name);set('branchAddress',b.address);set('branchManager',b.manager);
+    set('branchStock',b.stock_value);set('branchStatus',b.status);
+    openModal('retailBranchModal');
+}
+
+async function submitBranch(e){
+    if(e)e.preventDefault();
+    var name=document.getElementById('branchName').value.trim();
+    if(!name){showFeedback('Name is required','error');return;}
+    var payload={code:document.getElementById('branchCode').value.trim(),name:name,address:document.getElementById('branchAddress').value.trim(),manager:document.getElementById('branchManager').value.trim(),status:document.getElementById('branchStatus').value,stock_value:document.getElementById('branchStock').value};
+    var url=state.editingBranchId?('/api/retail/branches/'+state.editingBranchId):'/api/retail/branches';
+    var method=state.editingBranchId?'PUT':'POST';
+    try{
+        var r=await fetch(url,{method:method,headers:{'Content-Type':'application/json','Authorization':'Bearer '+(localStorage.getItem('gb_token')||'')},body:JSON.stringify(payload)});
+        if(!r.ok)throw new Error('HTTP '+r.status);
+        closeModal('retailBranchModal');showFeedback('Branch saved','success');loadBranches();
+    }catch(err){showFeedback('Save failed: '+err.message,'error');}
+}
+
+async function submitPromo(e){
+    if(e)e.preventDefault();
+    var name=document.getElementById('promoName').value.trim();
+    if(!name){showFeedback('Name is required','error');return;}
+    var payload={name:name,type:document.getElementById('promoType').value,discount:document.getElementById('promoDiscount').value,valid_from:document.getElementById('promoFrom').value||null,valid_to:document.getElementById('promoTo').value||null,status:document.getElementById('promoStatus').value};
+    var res=await apiPost('/api/retail/promotions',payload);
+    if(res){closeModal('retailPromoModal');showFeedback('Promotion created','success');loadPromos();}
+}
+
+async function submitSupplier(e){
+    if(e)e.preventDefault();
+    var name=document.getElementById('supplierName').value.trim();
+    if(!name){showFeedback('Name is required','error');return;}
+    var payload={cnpj:document.getElementById('supplierCnpj').value.trim(),name:name,contact:document.getElementById('supplierContact').value.trim(),email:document.getElementById('supplierEmail').value.trim(),lead_time_days:parseInt(document.getElementById('supplierLead').value||'0',10),rating:parseFloat(document.getElementById('supplierRating').value||'0')};
+    var res=await apiPost('/api/retail/suppliers',payload);
+    if(res){closeModal('retailSupplierModal');showFeedback('Supplier created','success');loadSuppliers();}
+}
 
 function loadAll(){loadBranches();loadStock();loadPromos();loadSuppliers();loadTopProducts();renderPricing()}
 
-window._retail={switchTab:switchTab,filterBranch:filterBranch,searchStock:searchStock,showCreateBranch:showCreateBranch,showCreatePromo:showCreatePromo,showCreateSupplier:showCreateSupplier,editBranch:editBranch,loadAll:loadAll};
+window._retail={switchTab:switchTab,filterBranch:filterBranch,searchStock:searchStock,showCreateBranch:showCreateBranch,showCreatePromo:showCreatePromo,showCreateSupplier:showCreateSupplier,editBranch:editBranch,loadAll:loadAll,submitBranch:submitBranch,submitPromo:submitPromo,submitSupplier:submitSupplier,openModal:openModal,closeModal:closeModal};
 loadAll();
 })();

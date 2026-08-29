@@ -294,6 +294,19 @@
       animationsToggle.checked = animations;
       if (!animations) document.body.classList.add("no-animations");
     }
+    var savedTz = localStorage.getItem("gb-timezone");
+    var tzSelect = document.getElementById("timezone-select");
+    if (savedTz && tzSelect) tzSelect.value = savedTz;
+    var savedFirstDay = localStorage.getItem("gb-first-day");
+    var firstDaySelect = document.getElementById("first-day-select");
+    if (savedFirstDay && firstDaySelect) firstDaySelect.value = savedFirstDay;
+    var showSidebar =
+      localStorage.getItem("gb-show-sidebar") !== "false";
+    var showSidebarToggle = document.querySelector('[name="show_sidebar"]');
+    if (showSidebarToggle) {
+      showSidebarToggle.checked = showSidebar;
+      if (!showSidebar) document.body.classList.add("sidebar-hidden");
+    }
   }
 
   function saveSetting(key, value) {
@@ -854,6 +867,100 @@
     document.body.classList.toggle("no-animations", !enabled);
     showToast(enabled ? "Animations enabled" : "Animations disabled");
   };
+  window.changeTimezone = function (tz) {
+    if (!tz) return;
+    localStorage.setItem("gb-timezone", tz);
+    showToast("Timezone updated");
+  };
+  window.changeFirstDay = function (day) {
+    if (!day) return;
+    localStorage.setItem("gb-first-day", day);
+    showToast("First day of week updated");
+  };
+  window.toggleShowSidebar = function (checkbox) {
+    var enabled = checkbox.checked;
+    localStorage.setItem("gb-show-sidebar", enabled);
+    document.body.classList.toggle("sidebar-hidden", !enabled);
+    showToast(enabled ? "Sidebar shown" : "Sidebar hidden");
+  };
+  window.togglePushNotifications = function (checkbox) {
+    var enabled = checkbox.checked;
+    localStorage.setItem("gb-push-enabled", enabled);
+    if (enabled) {
+      requestPushPermissionAndSubscribe().catch(function () {});
+    } else {
+      unregisterPushSubscription().catch(function () {});
+    }
+    // Persist the whole preferences form to the server (best effort).
+    var form = checkbox.closest("form");
+    if (form) {
+      var params = new URLSearchParams(new FormData(form));
+      fetch("/api/user/notifications/preferences", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + getAuthToken(),
+        },
+        body: JSON.stringify(Object.fromEntries(params.entries())),
+      }).catch(function () {});
+    }
+    showToast(enabled ? "Push notifications enabled" : "Push notifications disabled");
+  };
+  function pushManagerAvailable() {
+    return (
+      "serviceWorker" in navigator &&
+      "PushManager" in window &&
+      "Notification" in window
+    );
+  }
+  function requestPushPermissionAndSubscribe() {
+    if (!pushManagerAvailable()) {
+      showToast("Push notifications are not supported in this browser");
+      return Promise.resolve();
+    }
+    return Notification.requestPermission().then(function (perm) {
+      if (perm !== "granted") {
+        showToast("Push notifications blocked by the browser");
+        return Promise.resolve();
+      }
+      return navigator.serviceWorker.ready.then(function (reg) {
+        return reg.pushManager
+          .subscribe({ userVisibleOnly: true, applicationServerKey: null })
+          .then(function (sub) {
+            return fetch("/api/notifications/push/register", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: "Bearer " + getAuthToken(),
+              },
+              body: JSON.stringify(sub),
+            });
+          });
+      });
+    });
+  }
+  function unregisterPushSubscription() {
+    if (!pushManagerAvailable()) return Promise.resolve();
+    return navigator.serviceWorker.ready.then(function (reg) {
+      return reg.pushManager.getSubscription().then(function (sub) {
+        if (!sub) return Promise.resolve();
+        return fetch("/api/notifications/push/unregister", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + getAuthToken(),
+          },
+          body: JSON.stringify(sub),
+        })
+          .then(function () {
+            return sub.unsubscribe();
+          })
+          .catch(function () {
+            return sub.unsubscribe();
+          });
+      });
+    });
+  }
   window.showSection = function (sectionId, navElement) {
     document.querySelectorAll(".settings-section").forEach(function (s) {
       s.classList.remove("active");

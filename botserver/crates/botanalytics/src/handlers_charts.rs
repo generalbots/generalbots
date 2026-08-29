@@ -1,13 +1,54 @@
 use std::fmt::Write as FmtWrite;
 use std::sync::Arc;
 
-use axum::{extract::State, response::Html, response::IntoResponse};
+use axum::{extract::{Query, State}, response::Html, response::IntoResponse};
 use diesel::RunQueryDsl;
+use serde::Deserialize;
 
 use crate::analytics_types::*;
 use crate::DbPool;
 
-pub async fn handle_timeseries_messages(State(pool): State<Arc<DbPool>>) -> impl IntoResponse {
+#[derive(Debug, Deserialize)]
+pub struct ChartTypeQuery {
+    pub chart_type: Option<String>,
+}
+
+/// Renders an SVG line/area chart from `values` (raw magnitudes) with labels
+/// shown every 4 hours. `fill` toggles the area fill under the polyline.
+fn render_line_chart(values: &[f64], max: f64, labels: &[String], fill: bool) -> String {
+    let mut html = String::new();
+    let _ = write!(html, "<div class=\"chart-container line-chart\">");
+    let _ = write!(html, "<svg viewBox=\"0 0 480 200\" preserveAspectRatio=\"none\">");
+    if fill {
+        let _ = write!(html, "<polygon fill=\"var(--primary)\" fill-opacity=\"0.15\" stroke=\"none\" points=\"");
+        for (i, v) in values.iter().enumerate() {
+            let x = (i as f64 / 23.0) * 480.0;
+            let y = 180.0f64.mul_add(-(v / max), 200.0);
+            let _ = write!(html, "{x},{y} ");
+        }
+        let _ = write!(html, "480,200 0,200\"/>");
+    }
+    let _ = write!(html, "<polyline fill=\"none\" stroke=\"var(--primary)\" stroke-width=\"2\" points=\"");
+    for (i, v) in values.iter().enumerate() {
+        let x = (i as f64 / 23.0) * 480.0;
+        let y = 180.0f64.mul_add(-(v / max), 200.0);
+        let _ = write!(html, "{x},{y} ");
+    }
+    let _ = write!(html, "\"/></svg>");
+    let _ = write!(html, "<div class=\"chart-labels\">");
+    for (i, label) in labels.iter().enumerate() {
+        if i % 4 == 0 {
+            let _ = write!(html, "<span>{label}</span>");
+        }
+    }
+    let _ = write!(html, "</div></div>");
+    html
+}
+
+pub async fn handle_timeseries_messages(
+    State(pool): State<Arc<DbPool>>,
+    Query(query): Query<ChartTypeQuery>,
+) -> impl IntoResponse {
     let conn = pool.clone();
 
     let hourly_data = tokio::task::spawn_blocking(move || {
@@ -45,6 +86,12 @@ pub async fn handle_timeseries_messages(State(pool): State<Arc<DbPool>>) -> impl
     let labels: Vec<String> = hours.iter().map(|h| format!("{}:00", h)).collect();
     let max_count = counts.iter().max().copied().unwrap_or(1).max(1);
 
+    let chart_type = query.chart_type.as_deref().unwrap_or("bar");
+    if chart_type == "line" {
+        let norm: Vec<f64> = counts.iter().map(|c| *c as f64 / max_count as f64).collect();
+        return Html(render_line_chart(&norm, 1.0, &labels, false));
+    }
+
     let mut html = String::new();
     html.push_str("<div class=\"chart-container\">");
     html.push_str("<div class=\"chart-bars\">");
@@ -71,7 +118,10 @@ pub async fn handle_timeseries_messages(State(pool): State<Arc<DbPool>>) -> impl
     Html(html)
 }
 
-pub async fn handle_timeseries_response(State(pool): State<Arc<DbPool>>) -> impl IntoResponse {
+pub async fn handle_timeseries_response(
+    State(pool): State<Arc<DbPool>>,
+    Query(query): Query<ChartTypeQuery>,
+) -> impl IntoResponse {
     let conn = pool.clone();
 
     #[derive(Debug, diesel::QueryableByName)]
@@ -117,28 +167,10 @@ pub async fn handle_timeseries_response(State(pool): State<Arc<DbPool>>) -> impl
 
     let labels: Vec<String> = (0..24).map(|h| format!("{}:00", h)).collect();
     let max_avg = avgs.iter().copied().fold(0.0f64, f64::max).max(0.1);
+    let chart_type = query.chart_type.as_deref().unwrap_or("area");
+    let fill = chart_type != "line";
 
-    let mut html = String::new();
-    html.push_str("<div class=\"chart-container line-chart\">");
-    html.push_str("<svg viewBox=\"0 0 480 200\" preserveAspectRatio=\"none\">");
-    html.push_str("<polyline fill=\"none\" stroke=\"var(--primary)\" stroke-width=\"2\" points=\"");
-
-    for (i, avg) in avgs.iter().enumerate() {
-        let x = (i as f64 / 23.0) * 480.0;
-        let y = 180.0f64.mul_add(-(*avg / max_avg), 200.0);
-        let _ = write!(html, "{x},{y} ");
-    }
-
-    html.push_str("\"/></svg>");
-    html.push_str("<div class=\"chart-labels\">");
-    for (i, label) in labels.iter().enumerate() {
-        if i % 4 == 0 {
-            let _ = write!(html, "<span>{label}</span>");
-        }
-    }
-    html.push_str("</div>");
-    html.push_str("</div>");
-
+    let html = render_line_chart(&avgs, max_avg, &labels, fill);
     Html(html)
 }
 

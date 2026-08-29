@@ -231,7 +231,7 @@
             html += `
                 <div class="month-day other-month">
                     <span class="month-day-number">${prevMonthLastDay - i}</span>
-                    <div class="month-day-CS.events"></div>
+                    <div class="month-day-events"></div>
                 </div>
             `;
         }
@@ -242,7 +242,7 @@
             html += `
                 <div class="month-day ${isToday ? 'today' : ''}" data-date="${year}-${month + 1}-${d}">
                     <span class="month-day-number">${d}</span>
-                    <div class="month-day-CS.events"></div>
+                    <div class="month-day-events"></div>
                 </div>
             `;
         }
@@ -254,7 +254,7 @@
             html += `
                 <div class="month-day other-month">
                     <span class="month-day-number">${i}</span>
-                    <div class="month-day-CS.events"></div>
+                    <div class="month-day-events"></div>
                 </div>
             `;
         }
@@ -374,7 +374,7 @@
             end = dayEnd.toISOString();
         }
 
-        fetch(`/api/calendar/CS.events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`)
+        fetch(`/api/calendar/events?start=${encodeURIComponent(start)}&end=${encodeURIComponent(end)}`)
             .then(r => r.json())
             .then(data => {
                 CS.events = data || [];

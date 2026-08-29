@@ -74,11 +74,23 @@
         </nav>
 
         <div class="sidebar-footer">
-            <button class="sidebar-btn" data-i18n="workspace-templates">
+            <button
+                class="sidebar-btn"
+                data-i18n="workspace-templates"
+                hx-get="/api/ui/workspaces/current/templates"
+                hx-target="#workspace-modal"
+                hx-swap="innerHTML"
+            >
                 <span class="btn-icon">📄</span>
                 Templates
             </button>
-            <button class="sidebar-btn" data-i18n="workspace-trash">
+            <button
+                class="sidebar-btn"
+                data-i18n="workspace-trash"
+                hx-get="/api/ui/workspaces/current/trash"
+                hx-target="#workspace-modal"
+                hx-swap="innerHTML"
+            >
                 <span class="btn-icon">🗑️</span>
                 Trash
             </button>

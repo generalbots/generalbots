@@ -27,6 +27,8 @@
         startY = 0;
     let points = [];
     let elements = [];
+    let layers = [{ id: "layer_1", name: "Layer 1", hidden: false }];
+    let activeLayerId = "layer_1";
     let selectedElement = null;
     let clipboard = null;
     let history = [];
@@ -64,8 +66,22 @@
         canvas.addEventListener("wheel", handleWheel);
         canvas.addEventListener("contextmenu", function (e) {
             e.preventDefault();
+            showContextMenu(e);
         });
         document.addEventListener("keydown", handleKeyDown);
+        renderLayers();
+        loadCollaborators();
+    }
+
+    function showContextMenu(e) {
+        var menu = document.getElementById("context-menu");
+        if (!menu) return;
+        menu.classList.remove("hidden");
+        menu.style.position = "fixed";
+        menu.style.left = e.clientX + "px";
+        menu.style.top = e.clientY + "px";
+        var close = function () { menu.classList.add("hidden"); document.removeEventListener("click", close); };
+        setTimeout(function () { document.addEventListener("click", close); }, 0);
     }
     boot();
 
@@ -199,6 +215,7 @@
                         y: startY,
                         width: w,
                         height: h,
+                        layer: activeLayerId,
                     })
                 );
                 saveHistory();
@@ -216,6 +233,7 @@
         }
 
         if (element) {
+            element.layer = activeLayerId;
             elements.push(element);
             saveHistory();
             redraw();
@@ -315,6 +333,8 @@
         ctx.translate(panX, panY);
         ctx.scale(zoom, zoom);
         elements.forEach(function (el) {
+            var layer = layers.filter(function (l) { return l.id === el.layer; })[0];
+            if (layer && layer.hidden) return;
             drawElement(el);
         });
         if (currentTool === "pencil" || currentTool === "brush" || currentTool === "eraser") {
@@ -322,6 +342,65 @@
         }
         if (selectedElement) drawSelection(selectedElement);
         ctx.restore();
+        drawMiniMap();
+    }
+
+    function drawMiniMap() {
+        var mm = document.getElementById("mini-map-canvas");
+        if (!mm) return;
+        var mctx = mm.getContext("2d");
+        var W = mm.width || 160, H = mm.height || 100;
+        mctx.clearRect(0, 0, W, H);
+        mctx.fillStyle = "rgba(255,255,255,0.6)";
+        mctx.fillRect(0, 0, W, H);
+        if (!elements.length) return;
+        var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        elements.forEach(function (el) {
+            if (el.x != null) { minX = Math.min(minX, el.x); minY = Math.min(minY, el.y); }
+            if (el.x != null) { maxX = Math.max(maxX, el.x + (el.width || 50)); maxY = Math.max(maxY, el.y + (el.height || 30)); }
+        });
+        var cw = canvas.width || 1200, ch = canvas.height || 800;
+        var pad = 8;
+        var scale = Math.min((W - pad * 2) / cw, (H - pad * 2) / ch);
+        mctx.setTransform(scale, 0, 0, scale, pad, pad);
+        mctx.fillStyle = "#3b82f6";
+        elements.forEach(function (el) {
+            if (el.x == null) return;
+            mctx.fillRect(el.x, el.y, Math.max(2, el.width || 10), Math.max(2, el.height || 8));
+        });
+        mctx.setTransform(1, 0, 0, 1, 0, 0);
+    }
+
+    function loadCollaborators() {
+        var list = document.getElementById("collaborators-list");
+        if (!list) return;
+        if (typeof getGBAccessToken !== "function") {
+            list.innerHTML = '<div class="collaborator-empty">No collaborators</div>';
+            return;
+        }
+        fetch("/api/canvas/collaborators", {
+            headers: { Authorization: "Bearer " + (getGBAccessToken() || "") },
+        })
+            .then(function (r) {
+                if (!r.ok) throw new Error("fetch failed");
+                return r.json();
+            })
+            .then(function (data) {
+                var people = (data && (data.collaborators || data.users || [])) || [];
+                if (!people.length) {
+                    list.innerHTML = '<div class="collaborator-empty">No collaborators</div>';
+                    return;
+                }
+                list.innerHTML = people
+                    .map(function (p) {
+                        var name = p.name || p.email || p.username || "User";
+                        return '<div class="collaborator" title="' + name + '">' + name.charAt(0).toUpperCase() + "</div>";
+                    })
+                    .join("");
+            })
+            .catch(function () {
+                list.innerHTML = '<div class="collaborator-empty">No collaborators</div>';
+            });
     }
 
     function drawInProgress() {
@@ -624,15 +703,43 @@
     }
 
     function addLayer() {
+        const newId = "layer_" + (layers.length + 1);
+        layers.push({ id: newId, name: "Layer " + layers.length, hidden: false });
+        activeLayerId = newId;
+        renderLayers();
+    }
+
+    function renderLayers() {
         const list = document.getElementById("layers-list");
         if (!list) return;
-        const item = document.createElement("div");
-        item.className = "layer-item";
-        item.innerHTML =
-            '<span class="layer-visibility">👁️</span><span class="layer-name">Layer ' +
-            (list.children.length + 1) +
-            "</span><span class=\"layer-lock\">🔓</span>";
-        list.appendChild(item);
+        list.innerHTML = layers
+            .map(function (l) {
+                return (
+                    '<div class="layer-item' + (l.id === activeLayerId ? " active" : "") + '" data-layer-id="' + l.id + '">' +
+                    '<span class="layer-visibility" data-act="vis">' + (l.hidden ? "🚫" : "👁️") + "</span>" +
+                    '<span class="layer-name">' + l.name + "</span>" +
+                    '<span class="layer-lock" data-act="lock">' + (l.locked ? "🔒" : "🔓") + "</span>" +
+                    "</div>"
+                );
+            })
+            .join("");
+        Array.prototype.forEach.call(list.querySelectorAll(".layer-item"), function (item) {
+            item.addEventListener("click", function (e) {
+                const id = item.getAttribute("data-layer-id");
+                if (e.target && e.target.getAttribute("data-act") === "vis") {
+                    const layer = layers.filter(function (l) { return l.id === id; })[0];
+                    if (layer) { layer.hidden = !layer.hidden; renderLayers(); redraw(); }
+                    return;
+                }
+                if (e.target && e.target.getAttribute("data-act") === "lock") {
+                    const layer = layers.filter(function (l) { return l.id === id; })[0];
+                    if (layer) { layer.locked = !layer.locked; renderLayers(); }
+                    return;
+                }
+                activeLayerId = id;
+                renderLayers();
+            });
+        });
     }
 
     function bringToFront() {
@@ -740,12 +847,105 @@
             link.download = name + ".json";
             link.href = URL.createObjectURL(blob);
             link.click();
-        } else {
-            window.alert(
-                format.toUpperCase() + " export requires a vectorizer; use PNG or JSON."
-            );
+        } else if (format === "svg") {
+            exportSvg(name, bg);
+        } else if (format === "pdf") {
+            exportPdf(name, bg);
         }
         closeExportModal();
+    }
+
+    function visibleElements() {
+        return elements.filter(function (el) {
+            var layer = layers.filter(function (l) { return l.id === el.layer; })[0];
+            return !layer || !layer.hidden;
+        });
+    }
+
+    function exportSvg(name, bg) {
+        const w = canvas.width, h = canvas.height;
+        let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h +
+            '" viewBox="0 0 ' + w + " " + h + '">';
+        if (bg) svg += '<rect width="100%" height="100%" fill="' + (canvasBg || "#ffffff") + '"/>';
+        visibleElements().forEach(function (el) {
+            const stroke = el.stroke || strokeColor;
+            const fill = el.fill && el.fill !== "transparent" ? el.fill : "none";
+            const sw = el.strokeWidth || strokeWidth;
+            const esc = function (s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); };
+            if (el.type === "rectangle" || el.type === "frame") {
+                svg += '<rect x="' + el.x + '" y="' + el.y + '" width="' + el.width + '" height="' + el.height +
+                    '" stroke="' + stroke + '" fill="' + fill + '" stroke-width="' + sw + '"/>';
+            } else if (el.type === "ellipse") {
+                svg += '<ellipse cx="' + (el.x + el.width / 2) + '" cy="' + (el.y + el.height / 2) +
+                    '" rx="' + (el.width / 2) + '" ry="' + (el.height / 2) +
+                    '" stroke="' + stroke + '" fill="' + fill + '" stroke-width="' + sw + '"/>';
+            } else if (el.type === "line" || el.type === "arrow") {
+                svg += '<line x1="' + el.x1 + '" y1="' + el.y1 + '" x2="' + el.x2 + '" y2="' + el.y2 +
+                    '" stroke="' + stroke + '" stroke-width="' + sw + '"/>';
+            } else if (el.type === "text") {
+                svg += '<text x="' + el.x + '" y="' + el.y + '" font-size="' + (el.fontSize || 18) +
+                    '" fill="' + stroke + '">' + esc(el.text) + "</text>";
+            } else if (el.type === "image" && el.img && el.img.src) {
+                svg += '<image x="' + el.x + '" y="' + el.y + '" width="' + el.width + '" height="' + el.height +
+                    '" href="' + el.img.src + '"/>';
+            } else if (el.points && el.points.length) {
+                const pts = el.points.map(function (p) { return p.x + "," + p.y; }).join(" ");
+                svg += '<polyline points="' + pts + '" stroke="' + stroke + '" fill="none" stroke-width="' + sw + '"/>';
+            }
+        });
+        svg += "</svg>";
+        const blob = new Blob([svg], { type: "image/svg+xml" });
+        const link = document.createElement("a");
+        link.download = name + ".svg";
+        link.href = URL.createObjectURL(blob);
+        link.click();
+    }
+
+    function exportPdf(name, bg) {
+        const w = canvas.width, h = canvas.height;
+        const out = document.createElement("canvas");
+        out.width = w;
+        out.height = h;
+        const outCtx = out.getContext("2d");
+        if (bg) { outCtx.fillStyle = canvasBg; outCtx.fillRect(0, 0, w, h); }
+        outCtx.drawImage(canvas, 0, 0);
+        const jpegUrl = out.toDataURL("image/jpeg", 0.92);
+        const bin = atob(jpegUrl.split(",")[1]);
+        const jpeg = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) jpeg[i] = bin.charCodeAt(i);
+
+        const parts = [];
+        let offset = 0;
+        const objOffsets = [];
+        const push = function (b) {
+            parts.push(b);
+            offset += (typeof b === "string" ? b.length : b.length);
+        };
+        const pad10 = function (n) { return ("0000000000" + n).slice(-10); };
+        push("%PDF-1.3\n");
+        const obj = function (body) { objOffsets.push(offset); push((objOffsets.length) + " 0 obj\n" + body + "\nendobj\n"); };
+        obj("<< /Type /Catalog /Pages 2 0 R >>");
+        obj("<< /Type /Pages /Kids [3 0 R] /Count 1 >>");
+        obj("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 " + w + " " + h +
+            "] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>");
+        objOffsets.push(offset);
+        push("4 0 obj\n<< /Type /XObject /Subtype /Image /Width " + w + " /Height " + h +
+            " /ColorSpace /DeviceRGB /Filter /DCTDecode /BitsPerComponent 8 /Length " + jpeg.length +
+            " >>\nstream\n");
+        push(jpeg);
+        push("\nendstream\nendobj\n");
+        const content = "q\n" + w + " 0 0 " + h + " 0 0 cm /Im0 Do\nQ\n";
+        obj("<< /Length " + content.length + " >>\nstream\n" + content + "\nendstream");
+        const xrefStart = offset;
+        let xref = "xref\n0 " + (objOffsets.length + 1) + "\n0000000000 65535 f \n";
+        for (let k = 0; k < objOffsets.length; k++) xref += pad10(objOffsets[k]) + " 00000 n \n";
+        push(xref);
+        push("trailer\n<< /Size " + (objOffsets.length + 1) + " /Root 1 0 R >>\nstartxref\n" + xrefStart + "\n%%EOF");
+        const blob = new Blob(parts, { type: "application/pdf" });
+        const link = document.createElement("a");
+        link.download = name + ".pdf";
+        link.href = URL.createObjectURL(blob);
+        link.click();
     }
 
     function saveCanvas() {

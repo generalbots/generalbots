@@ -8,6 +8,11 @@
     <header class="min-header">
         <h1>Meeting Minutes</h1>
         <div class="min-header-actions">
+            <button class="min-btn" onclick="openMinModal('min-meeting-modal')">Agendar</button>
+            <button class="min-btn" onclick="openMinModal('min-action-modal')">Nova Ação</button>
+            <button class="min-btn" onclick="openMinModal('min-attendance-modal')">Presença</button>
+            <button class="min-btn" onclick="openMinModal('min-doc-modal')">Ata</button>
+            <button class="min-btn" onclick="openMinModal('min-sign-modal')">Assinatura</button>
             <button class="min-btn" hx-get="/suite/minutes/fragments/upcoming" hx-target="#min-content" hx-swap="innerHTML">Atualizar</button>
         </div>
     </header>
@@ -30,13 +35,16 @@
 <div id="min-meeting-modal" class="min-modal" hidden>
     <div class="min-modal-content">
         <h3>Agendar reunião</h3>
-        <form hx-post="/api/minutes/forms/meeting" hx-target="#min-content" hx-swap="innerHTML">
+        <form onsubmit="return submitMinuteForm(event, '/api/minutes/forms/meeting')">
             <label>Título <input name="title" required></label>
             <label>Data <input type="date" name="date" required></label>
             <label>Hora <input type="time" name="time" required></label>
             <label>Duração (min) <input type="number" name="duration" value="30" min="5" required></label>
             <label>Local <input name="location" placeholder="Sala ou link"></label>
-            <button type="submit" class="min-btn min-btn-primary">Agendar</button>
+            <div class="min-modal-actions">
+                <button type="button" class="min-btn" onclick="closeMinModal('min-meeting-modal')">Cancelar</button>
+                <button type="submit" class="min-btn min-btn-primary">Agendar</button>
+            </div>
         </form>
     </div>
 </div>
@@ -44,7 +52,8 @@
 <div id="min-action-modal" class="min-modal" hidden>
     <div class="min-modal-content">
         <h3>Nova ação</h3>
-        <form hx-post="/api/minutes/forms/action" hx-target="#min-content" hx-swap="innerHTML">
+        <form onsubmit="return submitMinuteForm(event, '/api/minutes/forms/action')">
+            <label>ID da reunião (opcional) <input name="meeting_id" placeholder="UUID da reunião"></label>
             <label>Título <input name="title" required></label>
             <label>Responsável <input name="owner" required></label>
             <label>Prazo <input type="date" name="due"></label>
@@ -57,7 +66,10 @@
                 </select>
             </label>
             <label>Notas <textarea name="notes" rows="2"></textarea></label>
-            <button type="submit" class="min-btn min-btn-primary">Criar</button>
+            <div class="min-modal-actions">
+                <button type="button" class="min-btn" onclick="closeMinModal('min-action-modal')">Cancelar</button>
+                <button type="submit" class="min-btn min-btn-primary">Criar</button>
+            </div>
         </form>
     </div>
 </div>
@@ -65,21 +77,57 @@
 <div id="min-attendance-modal" class="min-modal" hidden>
     <div class="min-modal-content">
         <h3>Confirmação de presença</h3>
-        <p>Carregue a lista via <code>hx-get="/suite/minutes/fragments/attendance/&lt;id&gt;"</code></p>
+        <form onsubmit="return submitMinuteFormWithId(event, 'min-attendance-meeting', '/api/minutes/forms/attendance/')">
+            <label>ID da reunião <input id="min-attendance-meeting" name="meeting_id" required placeholder="UUID da reunião"></label>
+            <label>Participante <input name="attendee" required placeholder="Nome ou e-mail"></label>
+            <label>Status
+                <select name="status">
+                    <option value="confirmed" selected>Confirmado</option>
+                    <option value="declined">Recusado</option>
+                    <option value="tentative">Talvez</option>
+                </select>
+            </label>
+            <div class="min-modal-actions">
+                <button type="button" class="min-btn" onclick="closeMinModal('min-attendance-modal')">Cancelar</button>
+                <button type="submit" class="min-btn min-btn-primary">Registrar</button>
+            </div>
+        </form>
     </div>
 </div>
 
 <div id="min-doc-modal" class="min-modal" hidden>
     <div class="min-modal-content">
         <h3>Editor de ata</h3>
-        <p>Use os fragmentos <code>/suite/minutes/fragments/documents</code> e <code>/api/minutes/forms/document/&lt;id&gt;</code> para gerenciar conteúdo.</p>
+        <form onsubmit="return submitMinuteForm(event, '/api/minutes/forms/document')">
+            <label>ID da reunião (opcional) <input name="meeting_id" placeholder="UUID da reunião"></label>
+            <label>Título <input name="title" required></label>
+            <label>Tipo
+                <select name="kind">
+                    <option value="minutes" selected>Ata</option>
+                    <option value="transcript">Transcrição</option>
+                    <option value="summary">Resumo</option>
+                </select>
+            </label>
+            <label>Conteúdo <textarea name="content" rows="4"></textarea></label>
+            <div class="min-modal-actions">
+                <button type="button" class="min-btn" onclick="closeMinModal('min-doc-modal')">Cancelar</button>
+                <button type="submit" class="min-btn min-btn-primary">Salvar</button>
+            </div>
+        </form>
     </div>
 </div>
 
 <div id="min-sign-modal" class="min-modal" hidden>
     <div class="min-modal-content">
         <h3>Assinatura digital</h3>
-        <p>Endpoint: <code>POST /api/minutes/forms/sign/&lt;id&gt;</code></p>
+        <form onsubmit="return submitMinuteFormWithId(event, 'min-sign-doc', '/api/minutes/forms/sign/')">
+            <label>ID do documento <input id="min-sign-doc" name="document_id" required placeholder="UUID do documento"></label>
+            <label>Assinante <input name="signer" required placeholder="Nome ou e-mail"></label>
+            <div class="min-modal-actions">
+                <button type="button" class="min-btn" onclick="closeMinModal('min-sign-modal')">Cancelar</button>
+                <button type="submit" class="min-btn min-btn-primary">Assinar</button>
+            </div>
+        </form>
     </div>
 </div>
 
