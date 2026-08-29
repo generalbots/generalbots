@@ -180,6 +180,23 @@
         return iframe;
     }
 
+    // Resolve the caller's access token for same-origin iframe auth. The
+    // canonical accessor is window.getGBAccessToken() (GBSecurity closure ->
+    // gb-access-token -> management_token); older sessions stored the JWT
+    // under plain `token` / `gb_token` keys, so fall back to those too.
+    function resolveAccessToken() {
+        if (window.getGBAccessToken) {
+            var t = window.getGBAccessToken();
+            if (t) return t;
+        }
+        return localStorage.getItem('gb-access-token') ||
+            sessionStorage.getItem('gb-access-token') ||
+            localStorage.getItem('management_token') ||
+            localStorage.getItem('token') ||
+            localStorage.getItem('gb_token') ||
+            '';
+    }
+
     function navigateSameOrigin(url) {
         // Embedded iframes cannot send an Authorization header — the
         // vm-preview/serve routes accept `?token=` instead. Match against the
@@ -191,8 +208,7 @@
         var isVmPreview = /^\/api\/vibe\/projects\/[^\/]+\/vm-preview/.test(pathname);
         var isWorkspaceServe = /^\/api\/vibe\/projects\/[^\/]+\/serve\//.test(pathname);
         if ((isVmPreview || isWorkspaceServe) && url.indexOf('token=') === -1) {
-            var token = localStorage.getItem('gb-access-token') ||
-                sessionStorage.getItem('gb-access-token') || '';
+            var token = resolveAccessToken();
             if (token) url += (url.indexOf('?') === -1 ? '?' : '&') + 'token=' + encodeURIComponent(token);
         }
         var pageEl = viewport.querySelector('.browser-page[data-page="' + activePage + '"]');
@@ -209,8 +225,7 @@
     }
 
     function authHeaders() {
-        var token = localStorage.getItem('gb-access-token') ||
-            sessionStorage.getItem('gb-access-token') || '';
+        var token = resolveAccessToken();
         return token ? { 'Authorization': 'Bearer ' + token } : {};
     }
 

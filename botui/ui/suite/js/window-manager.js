@@ -41,7 +41,7 @@ if (typeof window.WindowManager === "undefined") {
       icon: '<path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/>' },
     { id: "bas-editor", title: "BASIC", category: "dev", color: "#84d669", hxGet: "/suite/partials/vibe.html?mode=bas",
       icon: '<polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" y2="20"/>' },
-    { id: "browser", title: "Browser", category: "system", color: "#3b82f6", hxGet: "/suite/browser/browser.html",
+    { id: "browser", title: "Browser", category: "system", color: "#3b82f6", hxGet: "/suite/browser/browser.html?v=2",
       icon: '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>' },
     { id: "canvas", title: "Canvas", category: "office", color: "#0ea5e9", hxGet: "/suite/canvas/canvas.html",
       icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/><circle cx="8" cy="8" r="1.5"/>' },
