@@ -1,69 +1,22 @@
 <!-- Vibe Window — APP_CREATE Canvas + Agents IDE (Phase 7) -->
-<link rel="stylesheet" href="/suite/vibe/agents-sidebar.css?v=8" />
+<link rel="stylesheet" href="/suite/vibe/agents-sidebar.css?v=9" />
 <link rel="stylesheet" href="/suite/vibe/vibe.p1.css?v=1" />
-<link rel="stylesheet" href="/suite/vibe/vibe.p2.css?v=1" />
+<link rel="stylesheet" href="/suite/vibe/vibe.p2.css?v=2" />
 <link rel="stylesheet" href="/suite/vibe/vibe-dialogs.p1.css?v=1" />
 <link rel="stylesheet" href="/suite/vibe/vibe-dialogs.p2.css?v=1" />
 <link rel="stylesheet" href="/suite/vibe/vibe-run.css?v=10" />
-<link rel="stylesheet" href="/suite/vibe/vibe-windows.css?v=5" />
+<link rel="stylesheet" href="/suite/vibe/vibe-windows.css?v=6" />
 <link rel="stylesheet" href="/suite/vibe/vibe-canvas-views.css?v=2" />
-<link rel="stylesheet" href="/suite/vibe/vibe-shell/90_shell.css?v=17" />
+<link rel="stylesheet" href="/suite/vibe/vibe-shell/90_shell.css?v=21" />
 
 <div class="vibe-container gb-app" id="vibeWindow" data-gb-app="vibe">
 <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading Vibe…</span></div>
 <div class="gb-state gb-state-error"><span class="gb-state-msg">Vibe service unavailable</span></div>
-<!-- Ribbon toolbar: each stage tab exposes the big commands for that phase -->
-<div class="vibe-ribbon" id="vibeRibbon">
-<div class="vibe-ribbon-tabs">
-<button class="vibe-ribbon-tab" data-stage="plan">PLAN</button>
-<button class="vibe-ribbon-tab active" data-stage="build">BUILD</button>
-<button class="vibe-ribbon-tab" data-stage="review">REVIEW</button>
-<button class="vibe-ribbon-tab" data-stage="deploy">DEPLOY</button>
-<button class="vibe-ribbon-tab" data-stage="monitor">MONITOR</button>
-<span class="vibe-ribbon-spacer"></span>
-<!-- VB6-style transport: ▶ Run / ⏸ Pause / ■ Stop drive the active run. -->
-<span class="vibe-transport" id="vibeTransport">
-<button type="button" class="vibe-transport-btn run" id="vibeRunBtn" title="Run the current prompt (F5)" onclick="window.VibeTransport && window.VibeTransport.play()">▶</button>
-<button type="button" class="vibe-transport-btn pause" id="vibePauseBtn" title="Pause at the next checkpoint" onclick="window.VibeTransport && window.VibeTransport.pause()">⏸</button>
-<button type="button" class="vibe-transport-btn stop" id="vibeStopBtn" title="Stop the run" onclick="window.VibeTransport && window.VibeTransport.stop()">■</button>
-</span>
-<span class="vibe-ribbon-status" id="vibeRibbonStatus"></span>
-</div>
-<div class="vibe-ribbon-panel">
-<div class="vibe-ribbon-group" data-group="plan">
-<button class="vibe-ribbon-cmd" onclick="window.VibeWindows && window.VibeWindows.openNewProject()"><span class="rc-icon">➕</span><span class="rc-label">New Project</span></button>
-<button class="vibe-ribbon-cmd" onclick="window.openDeepLink('designer', {})"><span class="rc-icon">🎨</span><span class="rc-label">Designer</span></button>
-<button class="vibe-ribbon-cmd" onclick="window.VibeWindows && window.VibeWindows.openGraph()"><span class="rc-icon">⛓️</span><span class="rc-label">Knowledge Graph</span></button>
-<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('db', 'Database Schema')"><span class="rc-icon">🗄️</span><span class="rc-label">Database</span></button>
-</div>
-<div class="vibe-ribbon-group" data-group="build">
-<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('code', 'Code Editor')"><span class="rc-icon">💻</span><span class="rc-label">Code Editor</span></button>
-<button class="vibe-ribbon-cmd" onclick="window.openDeepLink('terminal', { project: (typeof currentProjectId !== 'undefined' && currentProjectId) || '' })"><span class="rc-icon">⌨️</span><span class="rc-label">Terminal</span></button>
-<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('browser', 'Browser')"><span class="rc-icon">🌐</span><span class="rc-label">Browser</span></button>
-<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('git', 'Source Control')"><span class="rc-icon">🌱</span><span class="rc-label">Source Control</span></button>
-<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('db', 'Database')"><span class="rc-icon">🗄️</span><span class="rc-label">Database</span></button>
-<button class="vibe-ribbon-cmd" onclick="window.VibeWindows && window.VibeWindows.openRunDock()"><span class="rc-icon">🎛️</span><span class="rc-label">Run Dock</span></button>
-<button class="vibe-ribbon-cmd" onclick="window.VibeWindows && window.VibeWindows.openAssistant()"><span class="rc-icon">💬</span><span class="rc-label">Assistant</span></button>
-<button class="vibe-ribbon-cmd" onclick="window.VibeWindows && window.VibeWindows.openCanvas()"><span class="rc-icon">🖼️</span><span class="rc-label">Canvas</span></button>
-</div>
-<div class="vibe-ribbon-group" data-group="review">
-<button class="vibe-ribbon-cmd" onclick="window.VibeRun && window.VibeRun.approve()"><span class="rc-icon">✓</span><span class="rc-label">Approve &amp; Resume</span></button>
-<button class="vibe-ribbon-cmd danger" onclick="window.VibeRun && window.VibeRun.deny()"><span class="rc-icon">✕</span><span class="rc-label">Deny &amp; Cancel</span></button>
-<button class="vibe-ribbon-cmd" onclick="window.VibeWindows && window.VibeWindows.openGraph()"><span class="rc-icon">⛓️</span><span class="rc-label">Knowledge Graph</span></button>
-<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('git', 'Source Control')"><span class="rc-icon">🌱</span><span class="rc-label">Review Changes</span></button>
-</div>
-<div class="vibe-ribbon-group" data-group="deploy">
-<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('deploy', 'Deploy')"><span class="rc-icon">🚀</span><span class="rc-label">Deploy</span></button>
-<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('git', 'Source Control')"><span class="rc-icon">🌱</span><span class="rc-label">Push</span></button>
-<button class="vibe-ribbon-cmd" onclick="window.VibeWindows && window.VibeWindows.openMembers()"><span class="rc-icon">👥</span><span class="rc-label">Members</span></button>
-</div>
-<div class="vibe-ribbon-group" data-group="monitor">
-<button class="vibe-ribbon-cmd" onclick="window.VibeWindows && window.VibeWindows.openMetrics()"><span class="rc-icon">📊</span><span class="rc-label">Metrics</span></button>
-<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('deploy', 'Deployments')"><span class="rc-icon">🚀</span><span class="rc-label">Deployments</span></button>
-<button class="vibe-ribbon-cmd" onclick="window.VibeDialogs && window.VibeDialogs.open('terminal', 'Terminal')"><span class="rc-icon">⌨️</span><span class="rc-label">Logs</span></button>
-</div>
-</div>
-</div>
+<!-- Ribbon status sink: the run status text is mirrored into the window
+     status bar (vibe-shell/10_toolbar.js). The legacy PLAN/BUILD/REVIEW/
+     DEPLOY/MONITOR ribbon was removed — the VB-style toolbar is the only
+     command surface. -->
+<span id="vibeRibbonStatus" class="vibe-ribbon-status" style="display:none"></span>
 
 <!-- Main Content: Canvas + Sidebar -->
 <!-- Run dock host is a sibling of the canvas (NOT inside it) so its
@@ -156,20 +109,20 @@
 </div>
 
 <script src="/suite/vibe/vibe-state.js?v=5"></script>
-<script src="/suite/vibe/vibe-windows.js?v=21"></script>
+<script src="/suite/vibe/vibe-windows.js?v=22"></script>
 <script src="/suite/vibe/vibe-broadcast.js?v=1"></script>
-<script src="/suite/vibe/vibe-helpers.js?v=10"></script>
-<script src="/suite/vibe/vibe-canvas.js?v=8"></script>
+<script src="/suite/vibe/vibe-helpers.js?v=11"></script>
+<script src="/suite/vibe/vibe-canvas.js?v=10"></script>
 <script src="/suite/vibe/vibe-canvas-views.js?v=2"></script>
 <script src="/suite/vibe/vibe-agents.js?v=14"></script>
-<script src="/suite/vibe/vibe-websocket.js?v=8"></script>
+<script src="/suite/vibe/vibe-websocket.js?v=10"></script>
 <script src="/suite/vibe/vibe-autotask.js"></script>
 <script src="/suite/vibe/vibe-graph.js?v=5"></script>
 <script src="/suite/vibe/vibe-metrics.js?v=3"></script>
-<script src="/suite/vibe/vibe-run.js?v=20"></script>
+<script src="/suite/vibe/vibe-run.js?v=21"></script>
 <script src="/suite/vibe/vibe-init.js?v=7"></script>
 <script src="/suite/vibe/vibe-deeplink.js?v=2"></script>
-<script src="/suite/vibe/vibe-new-project.js?v=7"></script>
+<script src="/suite/vibe/vibe-new-project.js?v=8"></script>
 <script src="/suite/vibe/vibe-members.js?v=3"></script>
 <script src="/suite/vibe/vibe-dialogs.js?v=2"></script>
 <script src="/suite/vibe/vibe-dialog-db.js?v=7"></script>
@@ -178,9 +131,8 @@
 <script src="/suite/vibe/vibe-dialog-browser.js?v=4"></script>
 <script src="/suite/vibe/vibe-dialog-code.js?v=4"></script>
 <script src="/suite/vibe/vibe-dialog-deploy.js?v=6"></script>
-<script src="/suite/vibe/vibe-pipeline.js?v=2"></script>
 <script src="/suite/vibe/vibe-shell/00_shell_state.js?v=2"></script>
-<script src="/suite/vibe/vibe-shell/10_toolbar.js?v=27"></script>
+<script src="/suite/vibe/vibe-shell/10_toolbar.js?v=31"></script>
 <script src="/suite/vibe/vibe-shell/20_palettes.js?v=2"></script>
 <script src="/suite/vibe/vibe-shell/30_canvas_flow.js?v=2"></script>
 <script src="/suite/vibe/vibe-shell/99_shell_init.js?v=4"></script>

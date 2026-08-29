@@ -205,7 +205,8 @@
             });
         }
         if (!items.length) {
-            items = [{ label: "Plan project change", state: "pending" }, { label: "Implement with agent", state: "pending" }, { label: "Verify result", state: "pending" }];
+            list.innerHTML = '<div class="vibe-rd-empty">No tasks yet — start a run to see its plan stages.</div>';
+            return;
         }
         list.innerHTML = items.map(function (item) {
             var icon = item.state === "done" ? "✓" : item.state === "active" ? "▶" : "○";

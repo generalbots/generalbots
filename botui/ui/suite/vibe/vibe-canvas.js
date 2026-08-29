@@ -11,7 +11,6 @@ try { if (window.VibeDialogs) window.VibeDialogs.close(); } catch (e) {}
 try { if (window.VibeNewProject) window.VibeNewProject.close(); } catch (e) {}
 try { if (window.VibeMembers) window.VibeMembers.close(); } catch (e) {}
 try { if (window.VibeGraph) window.VibeGraph.togglePanel(false); } catch (e) {}
-if (window.VibePipeline) window.VibePipeline.activate("plan");
 }
 
 function addTaskNode(title, description, meta) {
@@ -740,9 +739,9 @@ document.addEventListener("click", function (e) {
                 var attempts = 0;
                 var timer = setInterval(function () {
                     attempts++;
-                    // Runner status/bot messages land in the RUNNER LOG since
-                    // the in-runner chat overlay was removed.
-                    var messages = document.getElementById("vibeRunnerLogList");
+                    // Bot responses stream into the hidden #vibeChatMirror
+                    // (the Run Dock runner log is run-events only, no chat).
+                    var messages = document.getElementById("vibeChatMirror");
                     if (!messages) { if (attempts > 24) clearInterval(timer); return; }
                     var nodes = messages.querySelectorAll(".vibe-bot-msg, .bot-message, .message.bot");
                     if (!nodes.length) return;

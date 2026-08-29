@@ -230,6 +230,7 @@
         Delete: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>',
         Editor: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>',
         Members: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+        Database: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>',
     };
 
     /* VB4-style big toolbar button: SVG icon over a short label. */
@@ -679,17 +680,14 @@
         cmdRow2.appendChild(buildButton("Knowledge Graph", "Knowledge Graph", function () { if (window.VibeWindows) window.VibeWindows.openGraph(); }));
         cmdRow2.appendChild(buildButton("Canvas", "Canvas", function () { if (window.VibeWindows) window.VibeWindows.openCanvas(); }));
         cmdRow2.appendChild(buildButton("Metrics", "Metrics", function () { if (window.VibeWindows) window.VibeWindows.openMetrics(); }));
+        // Database opens the SQL schema editor (same dialog the ribbon's
+        // Database command used — #1189).
+        cmdRow2.appendChild(buildButton("Database", "Database", function () { if (window.VibeDialogs) window.VibeDialogs.open("db", "Database Schema"); }));
         cmdRow2.appendChild(tbSep());
         cmdRow2.appendChild(buildButton("Source Control", "Source Control", openCommit));
         // Members was only reachable from the hidden legacy ribbon — give it
         // a toolbar button so no window exists without one (ghost windows).
         cmdRow2.appendChild(buildButton("Members", "Members", function () { if (window.VibeWindows) window.VibeWindows.openMembers(); }));
-        // Run-status chip at the end of row 2, next to the transport
-        // feedback it mirrors.
-        var status = el("span", "vibe-shell-tb-status", "IDLE");
-        status.id = "vibeShellStatusChip";
-        status.setAttribute("role", "status");
-        cmdRow2.appendChild(status);
         cmds.appendChild(cmdRow2);
         bar.appendChild(cmds);
 
@@ -720,28 +718,41 @@
             container.insertBefore(bar, container.firstChild);
         }
 
-        /* Mirror the run state onto the row-1 status chip. The authoritative
-           text lives in the hidden legacy ribbon status; keep the visible
-           chip in lock-step without re-deriving state here. */
-        var chip = document.getElementById("vibeShellStatusChip");
-        var mirrorTimer = setInterval(function () {
+        /* Run/idle status lives in the WINDOW STATUS BAR (product spec: no
+           badge/status chip inside the command bar — the per-window inverted
+           bevel status bar carries it). Mirror the authoritative legacy
+           ribbon status text into #window-vibe .window-statusbar-status so
+           there is exactly one status readout, in the window footer, not a
+           pill inside the toolbar. */
+        var statusBarTimer = setInterval(function () {
             var src = document.getElementById("vibeRibbonStatus");
-            if (!chip || !src) return;
+            var statusEl = document.querySelector("#window-vibe .window-statusbar-status");
+            if (!src || !statusEl) return;
             var text = String(src.textContent || "").trim();
             if (!text) return;
-            chip.textContent = text;
-            chip.dataset.state = /running|execut/i.test(text) ? "running"
+            statusEl.textContent = text;
+            var state = /running|execut/i.test(text) ? "running"
                 : /paus|approv/i.test(text) ? "paused"
                 : /fail|error|stop/i.test(text) ? "failed"
                 : "idle";
+            statusEl.dataset.state = state;
+            document.dispatchEvent(new CustomEvent("gb:vibe-status", { detail: { status: text, state: state } }));
         }, 800);
-        if (bar && bar.__chipTimer && typeof bar.__chipTimer === "number") clearInterval(bar.__chipTimer);
-        bar.__chipTimer = mirrorTimer;
+        if (bar && bar.__statusBarTimer && typeof bar.__statusBarTimer === "number") clearInterval(bar.__statusBarTimer);
+        bar.__statusBarTimer = statusBarTimer;
 
         loadProjects();
         document.addEventListener("gb:vibe-project", function () {
             syncProjectSelect();
             loadBranches();
+        });
+        // A project created through the New Project dialog must appear in the
+        // toolbar combo immediately — the dialog dispatches
+        // `gb:vibe-project-created` after the row is committed, so reload the
+        // list (it also re-syncs the active selection) instead of leaving the
+        // combo on its stale options.
+        document.addEventListener("gb:vibe-project-created", function () {
+            loadProjects();
         });
     }
 

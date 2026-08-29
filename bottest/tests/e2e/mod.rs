@@ -2,6 +2,7 @@ mod auth_flow;
 mod chat;
 mod dashboard;
 mod platform_flow;
+mod vibe_workbench;
 
 use bottest::prelude::*;
 use bottest::services::{BrowserService, DEFAULT_DEBUG_PORT};

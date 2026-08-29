@@ -10,8 +10,10 @@ const LockScreen = (() => {
   function init() {
     if (initialized) return;
     initialized = true;
-    // Auto-lock after 10 minutes of inactivity.
-    const IDLE_MS = 10 * 60 * 1000;
+    // Auto-lock after 60 minutes of inactivity (was 10 min — too aggressive
+    // for an always-open workbench; it kept covering the desktop while the
+    // user was reading. The tray Lock button still locks on demand).
+    const IDLE_MS = 60 * 60 * 1000;
     const resetIdle = () => {
       if (idleTimer) clearTimeout(idleTimer);
       idleTimer = setTimeout(() => {

@@ -50,35 +50,8 @@ body:has(.editor-container) {
     background: #0f172a;
 }
 
-.editor-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 12px 20px;
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border-color);
-}
-
-.editor-title {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.editor-title-icon {
-    font-size: 24px;
-}
-
-.editor-title-text {
-    font-size: 16px;
-    font-weight: 600;
-}
-
-.editor-path {
-    font-size: 12px;
-    color: var(--text-secondary);
-}
-
+/* The editor has no internal header: the WindowManager window chrome
+   carries the title bar and ✕ close button. The toolbar starts at the top. */
 .editor-toolbar {
     display: flex;
     align-items: center;

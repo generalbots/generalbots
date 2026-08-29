@@ -17,50 +17,9 @@
 }
 
 /* ============================================
-   PIPELINE TABS
+   RIBBON STATUS (hidden sink — text is mirrored
+   into the window status bar by the toolbar)
    ============================================ */
-
-.vibe-ribbon {
-    background: var(--surface, #f8f8f8);
-    border-bottom: 1px solid var(--border, #f0f1f2);
-}
-
-.vibe-ribbon-tabs {
-    display: flex;
-    align-items: center;
-    height: 38px;
-    padding: 0 8px;
-    border-bottom: 1px solid var(--border, #f0f1f2);
-    background: var(--bg, #fff);
-}
-
-.vibe-ribbon-tab {
-    border: none;
-    background: transparent;
-    padding: 9px 16px;
-    font-family: 'Fira Code', monospace;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    color: var(--text-muted, #888);
-    cursor: pointer;
-    border-radius: 6px 6px 0 0;
-    transition: all 0.15s;
-}
-
-.vibe-ribbon-tab:hover {
-    background: var(--surface, #f8f8f8);
-    color: var(--text, #3b3b3b);
-}
-
-.vibe-ribbon-tab.active {
-    background: var(--accent, #84d669);
-    color: var(--bg, #fff);
-}
-
-.vibe-ribbon-spacer {
-    flex: 1;
-}
 
 .vibe-ribbon-status {
     font-size: 11px;
@@ -70,65 +29,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 40%;
-}
-
-.vibe-ribbon-panel {
-    display: flex;
-    flex-wrap: wrap; /* double-size transport pushes remaining commands into a second row */
-    gap: 8px;
-    padding: 12px 16px;
-    min-height: 76px;
-    align-items: center;
-}
-
-.vibe-ribbon-group {
-    display: none;
-    gap: 8px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-.vibe-ribbon-group.active {
-    display: flex;
-}
-
-.vibe-ribbon-cmd {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    min-width: 88px;
-    padding: 10px 12px;
-    border: 1px solid var(--border, #e5e7eb);
-    border-radius: 8px;
-    background: var(--bg, #fff);
-    cursor: pointer;
-    transition: all 0.15s;
-    font-family: inherit;
-}
-
-.vibe-ribbon-cmd:hover {
-    border-color: var(--accent, #84d669);
-    background: var(--surface, #f8f8f8);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-}
-
-.vibe-ribbon-cmd.danger:hover {
-    border-color: #f77;
-}
-
-.vibe-ribbon-cmd .rc-icon {
-    font-size: 22px;
-    line-height: 1;
-}
-
-.vibe-ribbon-cmd .rc-label {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--text, #3b3b3b);
-    text-align: center;
 }
 
 /* ============================================

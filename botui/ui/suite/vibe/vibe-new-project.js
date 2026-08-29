@@ -15,7 +15,10 @@
     ];
     var TIERS = ["small", "medium", "large"];
     var FRAMEWORKS = {
-        website: ["htmx", "html", "css"],
+        // Web is htmx-only: the website template ships as an htmx page, so the
+        // framework picker offers nothing else (html/css are htmx's building
+        // blocks, not standalone templates).
+        website: ["htmx"],
         custom: ["node", "python", "htmx", "html"]
     };
 

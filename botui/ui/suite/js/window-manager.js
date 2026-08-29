@@ -813,7 +813,7 @@ if (typeof window.WindowManager === "undefined") {
       this.closeStartMenu();
       const existed = this.getWindow(id) !== null;
       // The Vibe workbench keeps the glass chrome but no status bar.
-      this.open(id, title, "", {        noStatusBar: id === "vibe",
+      this.open(id, title, "", {
         noMaximize: id === "vibe" });
       // Never re-inject into an existing window: the app HTML declares
       // top-level consts (e.g. drive's API_BASE) and re-running it throws
@@ -842,7 +842,6 @@ if (typeof window.WindowManager === "undefined") {
       const existed = this.getWindow(appId) !== null;
       // The Vibe workbench keeps the glass chrome but no status bar.
       this.open(appId, title, "", {
-        noStatusBar: appId === "vibe",
         noMaximize: appId === "vibe",
         ownerId: opts.ownerId || null,
       });

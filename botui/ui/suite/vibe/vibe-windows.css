@@ -136,12 +136,22 @@
     overflow-y: auto;
 }
 
-/* New-Project + Members float inside their windows (never full-screen) */
+/* New-Project + Members float inside their windows (never full-screen).
+   New Project FILLS its fixed-height window (product spec: complete fields
+   view, no dead space) — the popup inlines position:static/height:auto, so
+   the fill must be forced with !important. */
 [id^="window-body-"] #vibeNewProjectModal,
 [id^="window-body-"] #vibeMembersModal {
     position: absolute;
     inset: 0;
     z-index: 10;
+}
+[id^="window-body-"] #vibeNewProjectModal.vibe-tool-relocated {
+    position: static !important;
+    inset: auto !important;
+    width: 100% !important;
+    height: 100% !important;
+    display: flex !important;
 }
 
 /* Members is a compact popup: content-sized, scrollable, no absolute fill. */
