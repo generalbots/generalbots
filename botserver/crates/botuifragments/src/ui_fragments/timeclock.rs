@@ -4,7 +4,6 @@
 use super::*;
 use axum::Json;
 use axum::http::HeaderMap;
-use crate::db;
 use bottimeclock::handlers as timeclock;
 
 pub fn configure<S: Clone + Send + Sync + 'static>() -> Router<S> {
@@ -24,7 +23,6 @@ pub fn configure<S: Clone + Send + Sync + 'static>() -> Router<S> {
         .route("/api/timeclock/forms/break-start", post(break_start))
         .route("/api/timeclock/forms/break-end", post(break_end))
         .route("/api/timeclock/forms/justification", post(submit_justification))
-        .route("/api/timeclock/forms/overtime", post(submit_overtime))
         .route("/api/timeclock/forms/overtime/:id/approve", post(approve_overtime))
 }
 
@@ -315,36 +313,6 @@ async fn submit_justification(Form(f): Form<JustificationForm>) -> Result<Html<S
     )))
 }
 
-#[derive(Deserialize)]
-pub struct OvertimeForm {
-    pub employee_id: Uuid,
-    pub date: String,
-    pub hours: String,
-    pub reason: String,
-}
-
-async fn submit_overtime(Form(_f): Form<OvertimeForm>) -> Result<Html<String>, (StatusCode, String)> {
-    let pool = db::pool()?;
-    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool: {e}")))?;
-    ensure_overtime_table(&mut conn).map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
-    let id = Uuid::new_v4();
-    let hours_dec = Decimal::from_str_exact(&_f.hours)
-        .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid hours: {e}")))?;
-    diesel::sql_query(
-        "INSERT INTO timeclock_overtime (id, employee_id, date, hours, reason, status, created_at)
-         VALUES ($1, $2, $3, $4, $5, 'pending', NOW())",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(id)
-    .bind::<diesel::sql_types::Uuid, _>(_f.employee_id)
-    .bind::<diesel::sql_types::Date, _>(chrono::NaiveDate::parse_from_str(&_f.date, "%Y-%m-%d")
-        .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid date: {e}")))?)
-    .bind::<diesel::sql_types::Numeric, _>(hours_dec)
-    .bind::<diesel::sql_types::Text, _>(&_f.reason)
-    .execute(&mut conn)
-    .map_err(db::map_diesel_err)?;
-    Ok(Html(r#"<div class="gb-form-result"><strong>✓ Hora extra solicitada</strong> — aguardando aprovação.</div>"#.to_string()))
-}
-
 async fn approve_overtime(Path(id): Path<String>) -> Result<Html<String>, (StatusCode, String)> {
     match timeclock::approve_overtime(HeaderMap::new(), Path(id)).await {
         Ok(_) => Ok(Html(r#"<span class="gb-ok">✓ Aprovado</span>"#.to_string())),
@@ -352,20 +320,3 @@ async fn approve_overtime(Path(id): Path<String>) -> Result<Html<String>, (Statu
     }
 }
 
-fn ensure_overtime_table(conn: &mut diesel::PgConnection) -> Result<(), String> {
-    diesel::sql_query(
-        "CREATE TABLE IF NOT EXISTS timeclock_overtime (
-            id UUID PRIMARY KEY,
-            employee_id UUID NOT NULL,
-            date DATE NOT NULL,
-            hours NUMERIC(8,2) NOT NULL DEFAULT 0,
-            reason TEXT NOT NULL DEFAULT '',
-            status VARCHAR(30) NOT NULL DEFAULT 'pending',
-            approved_by UUID,
-            created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-        )",
-    )
-    .execute(conn)
-    .map_err(|e| format!("{e}"))?;
-    Ok(())
-}

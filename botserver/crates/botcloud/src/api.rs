@@ -980,7 +980,7 @@ async fn handle_login(
                 #[derive(QueryableByName)]
                 struct StableUserRow {
                     #[diesel(sql_type = diesel::sql_types::Uuid)]
-                    id: Uuid,
+                    user_row_id: Uuid,
                 }
                 diesel::sql_query(
                     "SELECT id FROM users WHERE email = $1 AND is_active = true LIMIT 1",
@@ -990,7 +990,7 @@ async fn handle_login(
                 .optional()
                 .ok()
                 .flatten()
-                .map(|r| r.id.to_string())
+                .map(|r| r.user_row_id.to_string())
             } else {
                 None
             }

@@ -214,6 +214,7 @@ pub async fn handle_unified_login(
 
     let email: String;
     let user_id: String;
+    let org_scope: Option<String>;
 
     // Support both direct login and cloud_token exchange
     if let Some(cloud_token) = body.get("cloud_token").and_then(|v| v.as_str()) {
@@ -235,6 +236,7 @@ pub async fn handle_unified_login(
         let claims: serde_json::Value = serde_json::from_slice(&payload_bytes).map_err(|_| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "Invalid JSON"}))))?;
         email = claims.get("email").and_then(|v| v.as_str()).unwrap_or("user@localhost").to_string();
         user_id = claims.get("sub").and_then(|v| v.as_str()).unwrap_or("unknown").to_string();
+        org_scope = claims_org(&claims);
     } else {
         return Err((StatusCode::BAD_REQUEST, Json(serde_json::json!({"error": "Provide cloud_token"}))));
     }
@@ -242,7 +244,7 @@ pub async fn handle_unified_login(
     // Create Suite session token with the real per-user role (fix #843) and
     // the JWT org scope.
     let roles = resolve_session_roles(&state, &user_id);
-    let suite_token = create_suite_session(&email, &user_id, None, roles, claims_org(&claims)).await;
+    let suite_token = create_suite_session(&email, &user_id, None, roles, org_scope).await;
 
     // Sign Cloud JWT
     let header = serde_json::json!({"alg": "HS256", "typ": "JWT"});
