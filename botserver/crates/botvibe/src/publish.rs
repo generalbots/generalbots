@@ -512,6 +512,7 @@ mod tests {
             repository: String::new(),
             framework: None,
             custom_domain: None,
+            source_control: "native".to_string(),
             status: "active".to_string(),
             environment: "development".to_string(),
             payload: Value::Null,

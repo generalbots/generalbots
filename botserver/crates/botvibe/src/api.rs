@@ -54,6 +54,9 @@ pub struct CreateRunRequest {
     /// Project name (workspace key) — the value the agent passes to
     /// file/run/git tools as `project`.
     pub project_name: Option<String>,
+    /// Source-control mode for a project auto-created by this run:
+    /// `native` (default) or `git` (Forgejo-backed).
+    pub source_control: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -206,6 +209,7 @@ fn resolve_project(
                 framework: None,
                 custom_domain: None,
                 environment: None,
+                source_control: Some(req.source_control.clone().unwrap_or_else(|| "native".to_string())),
                 org_id: Some(org_id),
                 branch_id: None,
             };
@@ -453,6 +457,19 @@ async fn create_run(
     let (project_id, project_name) =
         resolve_project(&api.project_registry, &api.project_rbac, &user, &req);
 
+    // #1271 — git-mode projects auto-created by this run get their Forgejo
+    // repo + origin remote wired (mirrors explicit creation). Non-fatal:
+    // native-mode projects and ALM-unavailable cases keep working.
+    if let Some(pid) = project_id.as_deref().and_then(|s| Uuid::parse_str(s).ok()) {
+        if let Ok(Some(p)) = api.project_registry.get(pid) {
+            if p.source_control == "git" {
+                if let Err(e) = crate::git_mode::ensure_git_repo(&p).await {
+                    error!("Vibe: git-mode wiring for project {pid} failed: {e}");
+                }
+            }
+        }
+    }
+
     let config = VibeRunConfig {
         use_case,
         lang: req.lang.unwrap_or_else(|| "en".to_string()),
@@ -635,6 +652,7 @@ async fn create_run(
                         framework: None,
                         custom_domain: None,
                         environment: None,
+                        source_control: None,
                         status: Some(status.to_string()),
                         payload: None,
                     };
