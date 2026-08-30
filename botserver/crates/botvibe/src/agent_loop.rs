@@ -19,6 +19,11 @@ const MAX_VERIFY_FAILURES: u32 = 2;
 // vibe33 #813 — transient provider failures must not kill the run.
 const MAX_LLM_RETRIES: u32 = 6;
 const LLM_RETRY_BACKOFF_SECS: &[u64] = &[1, 2, 4, 8, 12, 16];
+// A hung gateway (no response, no error — common behind flaky providers
+// such as the CodeBuddy proxy) otherwise pins the run for the whole 120s
+// per attempt through every retry. A shorter per-request timeout lets the
+// retry/backoff path recover instead of stalling the run for ~13 minutes.
+const LLM_REQUEST_TIMEOUT_SECS: u64 = 45;
 // Some providers (e.g. tabitoken.com behind Cloudflare) reject the default
 // reqwest/curl User-Agent with a 403 WAF block. Send a browser UA so the
 // agent loop's LLM calls are not mistaken for scraping.
@@ -507,7 +512,7 @@ impl AgentLoop {
         }
 
         let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(120))
+            .timeout(Duration::from_secs(LLM_REQUEST_TIMEOUT_SECS))
             .user_agent(LLM_USER_AGENT)
             .build()
             .map_err(|e| format!("http client: {e}"))?;
@@ -645,7 +650,7 @@ impl AgentLoop {
         tool_choice: &str,
     ) -> Result<(String, Option<LlmUsage>), String> {
         let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(120))
+            .timeout(Duration::from_secs(LLM_REQUEST_TIMEOUT_SECS))
             .user_agent(LLM_USER_AGENT)
             .build()
             .map_err(|e| format!("http client: {e}"))?;
@@ -788,7 +793,7 @@ impl AgentLoop {
         prompt: &str,
     ) -> Result<(String, Option<LlmUsage>), String> {
         let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(120))
+            .timeout(Duration::from_secs(LLM_REQUEST_TIMEOUT_SECS))
             .user_agent(LLM_USER_AGENT)
             .build()
             .map_err(|e| format!("http client: {e}"))?;
