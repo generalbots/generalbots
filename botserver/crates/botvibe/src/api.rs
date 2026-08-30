@@ -209,7 +209,16 @@ fn resolve_project(
                 branch_id: None,
             };
             match registry.create(&create) {
-                Ok(p) => (Some(p.id.to_string()), Some(p.name)),
+                Ok(p) => {
+                    // #1271 — an auto-created project must ship with the same
+                    // starter/calculator seed as an explicit one, so a Run
+                    // against it never opens an empty "No web app yet" VM.
+                    let key = crate::vm_lifecycle::VmLifecycle::alm_repo(&p.name);
+                    if let Err(e) = crate::templates::seed_project_workspace(&key, &p.name) {
+                        error!("Vibe: seed auto-created project '{name}' failed: {e}");
+                    }
+                    (Some(p.id.to_string()), Some(p.name))
+                }
                 Err(e) => {
                     error!("Vibe: auto-create project '{name}' failed: {e}");
                     (None, Some(name))
