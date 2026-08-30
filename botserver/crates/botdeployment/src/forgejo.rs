@@ -227,7 +227,111 @@ impl ForgejoClient {
             files: vec![workflow_file],
         };
 
-        self.push_app(repo_url, &workflow_app, "main").await?;
+        // The workflow file must land on `main` (Forgejo Actions runs
+        // workflows from the default branch), but it must never replace the
+        // project's history: git-mode workspaces keep `main` as the source
+        // of truth, so a force-push of a fresh root commit would destroy it
+        // and make the next deploy's push fail with "fetch first".
+        // Clone → commit on top → non-force push instead.
+        self.push_workflow_preserving(repo_url, &workflow_app).await?;
+
+        Ok(())
+    }
+
+    /// Push a small app (CI/CD workflow) onto `main` without replacing
+    /// existing history: clone the remote, write the files, commit on top of
+    /// the current HEAD, and push non-force. Works for both an empty remote
+    /// (creates the initial commit) and a repo with existing history.
+    async fn push_workflow_preserving(
+        &self,
+        repo_url: &str,
+        app: &GeneratedApp,
+    ) -> Result<(), DeploymentError> {
+        let temp_dir = app.temp_dir()?;
+        if temp_dir.exists() {
+            std::fs::remove_dir_all(&temp_dir)
+                .map_err(|e| DeploymentError::GitError(format!("Failed to clean temp dir: {}", e)))?;
+        }
+        std::fs::create_dir_all(&temp_dir)
+            .map_err(|e| DeploymentError::GitError(format!("Failed to create temp dir: {}", e)))?;
+
+        let auth_url = self.add_token_to_url(repo_url);
+        let git = |args: &[&str]| -> Result<String, DeploymentError> {
+            let output = std::process::Command::new("git")
+                .current_dir(&temp_dir)
+                .args(args)
+                .output()
+                .map_err(|e| DeploymentError::GitError(format!("git {}: {e}", args[0])))?;
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                return Err(DeploymentError::GitError(format!(
+                    "git {} failed: {}",
+                    args[0],
+                    stderr.trim().lines().last().unwrap_or("unknown")
+                )));
+            }
+            Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+        };
+
+        // Clone the existing repo (empty remotes clone cleanly; the working
+        // tree is then populated by the file writes below).
+        let clone_output = std::process::Command::new("git")
+            .current_dir(
+                temp_dir
+                    .parent()
+                    .ok_or_else(|| DeploymentError::GitError("temp dir has no parent".to_string()))?,
+            )
+            .args(["clone", "--quiet", &auth_url, &temp_dir.to_string_lossy()])
+            .output()
+            .map_err(|e| DeploymentError::GitError(format!("git clone: {e}")))?;
+        if !clone_output.status.success() {
+            let stderr = String::from_utf8_lossy(&clone_output.stderr);
+            return Err(DeploymentError::GitError(format!(
+                "git clone failed: {}",
+                stderr.trim().lines().last().unwrap_or("unknown")
+            )));
+        }
+
+        // Ensure we are on `main` even when the clone produced no checkout
+        // (empty remote) or checked out a different default branch.
+        git(&["checkout", "-q", "-B", "main"])?;
+
+        for file in &app.files {
+            let file_path = temp_dir.join(&file.path);
+            if let Some(parent) = file_path.parent() {
+                std::fs::create_dir_all(parent)
+                    .map_err(|e| DeploymentError::GitError(format!("Failed to create parent dir: {}", e)))?;
+            }
+            std::fs::write(&file_path, &file.content)
+                .map_err(|e| DeploymentError::GitError(format!("Failed to write file: {}", e)))?;
+        }
+
+        git(&["add", "-A"])?;
+        // The workflow may already exist and be identical (re-deploy after a
+        // rebase brought it in): a "nothing to commit" is a no-op, not an
+        // error — the push below then just confirms everything is in sync.
+        let commit_out = std::process::Command::new("git")
+            .current_dir(&temp_dir)
+            .args(["-c", "user.name=GB Deployer", "-c", "user.email=deployer@generalbots.com",
+                   "commit", "-m", &format!("Add CI/CD workflow: {}", app.description)])
+            .output()
+            .map_err(|e| DeploymentError::GitError(format!("git commit: {e}")))?;
+        let commit_text = format!(
+            "{} {}",
+            String::from_utf8_lossy(&commit_out.stdout),
+            String::from_utf8_lossy(&commit_out.stderr)
+        );
+        if !commit_out.status.success()
+            && !(commit_text.contains("nothing to commit")
+                || commit_text.contains("no changes added to commit"))
+        {
+            let stderr = String::from_utf8_lossy(&commit_out.stderr);
+            return Err(DeploymentError::GitError(format!(
+                "git commit failed: {}",
+                stderr.trim().lines().last().unwrap_or("unknown")
+            )));
+        }
+        git(&["push", &auth_url, "HEAD:main"])?;
 
         Ok(())
     }

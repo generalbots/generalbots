@@ -138,7 +138,54 @@ pub fn git_commit_tool() -> ToolHandler {
             // push every commit so the branch + commit land in ALM and the VM
             // can sync from the repo. Native workspaces (no origin) stay
             // local-only. Push failure is reported, not silent.
+            // The deploy pipeline's publish stage adds a CI/CD workflow commit
+            // to origin/main AFTER this push, so a subsequent deploy would
+            // otherwise be rejected ("fetch first"). Rebase onto the remote
+            // tip before pushing so the workspace stays in sync with Forgejo.
             fn push_origin(cwd: &std::path::Path) -> VibeToolResult {
+                // Sync with the remote tip first (best-effort; a missing
+                // origin/main is fine — it just means no remote history yet).
+                match run("git", &["fetch".to_string(), "origin".to_string()], cwd, 60) {
+                    Ok(out) if out.exit_code == Some(0) => {
+                        let has_origin_main = run(
+                            "git",
+                            &[
+                                "rev-parse".to_string(),
+                                "--verify".to_string(),
+                                "origin/main".to_string(),
+                            ],
+                            cwd,
+                            15,
+                        )
+                        .map(|r| r.exit_code == Some(0))
+                        .unwrap_or(false);
+                        if has_origin_main {
+                            match run(
+                                "git",
+                                &["rebase".to_string(), "origin/main".to_string()],
+                                cwd,
+                                90,
+                            ) {
+                                Ok(reb) if reb.exit_code == Some(0) => {}
+                                Ok(reb) => {
+                                    let _ = run(
+                                        "git",
+                                        &["rebase".to_string(), "--abort".to_string()],
+                                        cwd,
+                                        15,
+                                    );
+                                    return err(format!(
+                                        "git rebase onto origin/main failed: {}",
+                                        reb.stderr.trim()
+                                    ));
+                                }
+                                Err(e) => return err(e.to_string()),
+                            }
+                        }
+                    }
+                    Ok(_) => {}
+                    Err(e) => return err(e.to_string()),
+                }
                 match run("git", &["push".to_string(), "origin".to_string()], cwd, 120) {
                     Ok(out) if out.exit_code == Some(0) => ok(json!({ "pushed": true })),
                     Ok(out) => {
@@ -245,12 +292,40 @@ pub fn git_snapshot_previous_tool() -> ToolHandler {
                 vec!["branch".to_string(), branch.clone(), head.clone()]
             };
             match run("git", &args_vec, &cwd, 30) {
-                Ok(out) if out.exit_code == Some(0) => ok(json!({
-                    "snapshot": true,
-                    "branch": branch,
-                    "from": head,
-                    "output": out.stdout.trim(),
-                })),
+                Ok(out) if out.exit_code == Some(0) => {
+                    // #1271 — git-mode workspaces push the snapshot branch to
+                    // origin so the per-deploy rollback branch persists in
+                    // ALM/Forgejo (the Branch combo and VM sync read remote
+                    // refs too). Push is best-effort; failure is reported in
+                    // the output, not fatal — the local branch is enough for
+                    // the toolbar's branch combo.
+                    let mut pushed = false;
+                    let has_origin = run(
+                        "git",
+                        &["remote".to_string(), "get-url".to_string(), "origin".to_string()],
+                        &cwd,
+                        15,
+                    )
+                    .map(|r| r.exit_code == Some(0))
+                    .unwrap_or(false);
+                    if has_origin {
+                        if let Ok(p) = run(
+                            "git",
+                            &["push".to_string(), "origin".to_string(), branch.clone().to_string()],
+                            &cwd,
+                            60,
+                        ) {
+                            pushed = p.exit_code == Some(0);
+                        }
+                    }
+                    ok(json!({
+                        "snapshot": true,
+                        "branch": branch,
+                        "from": head,
+                        "output": out.stdout.trim(),
+                        "pushed": pushed,
+                    }))
+                }
                 Ok(out) => err(format!("git branch snapshot failed: {}", out.stderr.trim())),
                 Err(e) => err(e.to_string()),
             }
