@@ -341,6 +341,7 @@ pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
         },
         app_state.conn.clone(),
         project_registry.clone(),
+        project_rbac.clone(),
     )
         .merge(projects_router(
             project_registry.clone(),
