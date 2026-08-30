@@ -224,17 +224,19 @@ pub fn get_stack_path() -> String {
             return path;
         }
     }
-    let stack_dir = std::path::Path::new("./botserver-stack");
-    let has_env = std::path::Path::new("./.env").exists()
-        || std::path::Path::new("/opt/gbo/bin/.env").exists();
-    let production_base = std::path::Path::new("/opt/gbo/bin/botserver");
-    if stack_dir.exists() {
-        "./botserver-stack".to_string()
-    } else if has_env || production_base.exists() {
-        "/opt/gbo".to_string()
-    } else {
-        "./botserver-stack".to_string()
+    // Production deployment: the stack data lives at `/opt/gbo` and the
+    // binary at `/opt/gbo/bin/botserver`. This must be checked before the
+    // dev-relative `./botserver-stack` probe below: in prod the process CWD is
+    // normally `/opt/gbo/bin`, where a stray `botserver-stack` directory can
+    // exist and would otherwise shadow the real stack root.
+    if std::path::Path::new("/opt/gbo/bin/botserver").exists()
+        || std::path::Path::new("/opt/gbo/bin/.env").exists()
+    {
+        return "/opt/gbo".to_string();
     }
+    // Development checkout: the stack data dir sits next to the repo root.
+    // Absent an explicit marker, assume the relative layout for local runs.
+    "./botserver-stack".to_string()
 }
 
 #[cfg(feature = "drive")]
