@@ -180,6 +180,7 @@ fn bot_accessible_to_user(pool: &crate::types::DbPool, user: &AuthenticatedUser,
 /// list instead of landing in an untracked workspace directory.
 fn resolve_project(
     registry: &ProjectRegistryRef,
+    rbac: &crate::rbac::ProjectRbac,
     user: &AuthenticatedUser,
     req: &CreateRunRequest,
 ) -> (Option<String>, Option<String>) {
@@ -216,6 +217,18 @@ fn resolve_project(
                     let key = crate::vm_lifecycle::VmLifecycle::alm_repo(&p.name);
                     if let Err(e) = crate::templates::seed_project_workspace(&key, &p.name) {
                         error!("Vibe: seed auto-created project '{name}' failed: {e}");
+                    }
+                    // #1271 — an auto-created project must grant the caller
+                    // ownership exactly like explicit creation (which calls
+                    // `rbac.set_user_role`), otherwise the workspace-files API
+                    // returns "role viewer forbidden" and the run owner cannot
+                    // list/edit the project's files in the UI.
+                    if let Err(e) =
+                        rbac.set_user_role(p.id, user.user_id, crate::rbac::ProjectRole::Owner)
+                    {
+                        error!(
+                            "Vibe: grant owner on auto-created project '{name}' failed: {e}"
+                        );
                     }
                     (Some(p.id.to_string()), Some(p.name))
                 }
@@ -300,6 +313,7 @@ pub(crate) struct VibeApiInner {
     runs: Arc<RwLock<HashMap<Uuid, VibeRun>>>,
     runs_store: crate::run_store::VibeRunStore,
     project_registry: ProjectRegistryRef,
+    project_rbac: crate::rbac::ProjectRbac,
 }
 
 impl crate::knowledge_graph::GraphDataSource for VibeApiInner {
@@ -364,6 +378,7 @@ pub fn router(
     security: VibeSecurityDeps,
     pool: crate::types::DbPool,
     project_registry: ProjectRegistryRef,
+    project_rbac: crate::rbac::ProjectRbac,
 ) -> axum::Router {
     let api = Arc::new(VibeApiInner {
         state,
@@ -375,6 +390,7 @@ pub fn router(
         runs: Arc::new(RwLock::new(HashMap::new())),
         runs_store: crate::run_store::VibeRunStore::new(pool),
         project_registry,
+        project_rbac,
     });
     axum::Router::new()
         .route("/api/vibe/run", axum::routing::post(create_run))
@@ -434,7 +450,8 @@ async fn create_run(
     // An explicit project wins; otherwise derive one from the intent and
     // auto-create it in the registry so the run's output lands in a tracked
     // project (visible in the sidebar) instead of an orphan workspace dir.
-    let (project_id, project_name) = resolve_project(&api.project_registry, &user, &req);
+    let (project_id, project_name) =
+        resolve_project(&api.project_registry, &api.project_rbac, &user, &req);
 
     let config = VibeRunConfig {
         use_case,
