@@ -452,17 +452,20 @@ async fn create_run(
         _ => req.intent,
     };
     // #918 — a caller may only run against a bot they have access to; only an
-    // administrator may target an arbitrary bot.
+    // administrator may target an arbitrary bot. The vibe UI always sends the
+    // site's own bot UUID, which for session users (whose auth cache may lack
+    // org/role grants) would otherwise 403 legitimate runs on the very bot
+    // they logged in through. When the explicit bot is not granted, fall back
+    // to the session's effective bot instead of rejecting — the run still
+    // executes, scoped to the caller's own domain bot.
     let bot_id = match req.bot_id {
         Some(bid) if !bid.is_nil() && !user.is_admin() && !bot_accessible_to_user(api.state.db_pool(), &user, &bid) => {
-            return (
-                StatusCode::FORBIDDEN,
-                Json(serde_json::json!({
-                    "success": false,
-                    "error": "forbidden: no access to the requested bot"
-                })),
-            )
-                .into_response();
+            let fallback = resolve_effective_bot_id(api.state.db_pool(), &user);
+            log::info!(
+                "Vibe create run: bot {bid} not granted to user {}, falling back to effective bot {fallback}",
+                user.user_id
+            );
+            fallback
         }
         Some(bid) => bid,
         None => resolve_effective_bot_id(api.state.db_pool(), &user),
