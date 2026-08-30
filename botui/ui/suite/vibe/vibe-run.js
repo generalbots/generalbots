@@ -115,6 +115,9 @@
         opts = opts || {};
         opts.headers = Object.assign({}, opts.headers || {});
         var token =
+            (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) ||
+            localStorage.getItem("token") ||
+            localStorage.getItem("id_token") ||
             localStorage.getItem("gb-access-token") ||
             sessionStorage.getItem("gb-access-token") ||
             "";
@@ -597,7 +600,7 @@
                 var files = (data && data.files) || [];
                 var hasIndex = files.some(function (f) { return f === "index.html"; });
                 if (!hasIndex) return null;
-                var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+                var token = (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) || localStorage.getItem("token") || localStorage.getItem("id_token") || localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
                 var base = window.location.origin + "/api/vibe/projects/" + encodeURIComponent(projectId) + "/serve/index.html";
                 return token ? base + "?token=" + encodeURIComponent(token) : base;
             })

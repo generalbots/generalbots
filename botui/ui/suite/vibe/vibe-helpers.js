@@ -2,6 +2,9 @@ function vibeAuthFetch(path, options) {
     options = options || {};
     options.headers = Object.assign({}, options.headers || {});
     var token =
+        (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) ||
+        localStorage.getItem("token") ||
+        localStorage.getItem("id_token") ||
         localStorage.getItem("gb-access-token") ||
         sessionStorage.getItem("gb-access-token") ||
         localStorage.getItem("management_token") ||

@@ -15,6 +15,9 @@
     function authHeaders(extra) {
         var headers = Object.assign({}, extra || {});
         var token =
+            (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) ||
+            localStorage.getItem("token") ||
+            localStorage.getItem("id_token") ||
             localStorage.getItem("gb-access-token") ||
             sessionStorage.getItem("gb-access-token") ||
             "";

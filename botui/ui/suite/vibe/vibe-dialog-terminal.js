@@ -155,6 +155,9 @@
             sessionId = data.id;
             var proto = location.protocol === "https:" ? "wss:" : "ws:";
             var token =
+                (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) ||
+                localStorage.getItem("token") ||
+                localStorage.getItem("id_token") ||
                 localStorage.getItem("gb-access-token") ||
                 sessionStorage.getItem("gb-access-token") ||
                 "";
