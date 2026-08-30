@@ -189,6 +189,15 @@ async fn create_project(
                 }
                 return err_response(format!("seed project workspace failed: {e}"));
             }
+            // #1271 — git-mode projects get a real Forgejo repo + origin
+            // remote so Deploy can snapshot per-deploy branches and promote
+            // dev→prod by runtime. A git wiring failure is logged, not fatal:
+            // the project still works in native mode until ALM is configured.
+            if p.source_control == "git" {
+                if let Err(e) = crate::git_mode::ensure_git_repo(&p).await {
+                    log::error!("git-mode wiring for project {} failed: {e}", p.id);
+                }
+            }
             ok_project(p)
         }
         Err(e) => err_response(e),

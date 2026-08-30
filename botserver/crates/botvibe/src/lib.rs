@@ -39,6 +39,7 @@ pub mod catalog_persistence;
 pub mod issues;
 pub mod websearch;
 pub mod gitflow;
+pub mod git_mode;
 pub mod sessions;
 pub mod teams;
 pub mod capability_registry;

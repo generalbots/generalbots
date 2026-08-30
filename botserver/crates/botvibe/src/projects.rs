@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS vibe_projects (
     repository VARCHAR(255) NOT NULL DEFAULT 'generalbots',
     framework VARCHAR(255),
     custom_domain VARCHAR(255),
+    source_control VARCHAR(50) NOT NULL DEFAULT 'native',
     status VARCHAR(50) NOT NULL DEFAULT 'pending',
     environment VARCHAR(50) NOT NULL DEFAULT 'development',
     payload JSONB NOT NULL DEFAULT '{}',
@@ -34,6 +35,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_vibe_projects_name_branch ON vibe_projects
 CREATE INDEX IF NOT EXISTS idx_vibe_projects_branch ON vibe_projects(branch_id);
 CREATE INDEX IF NOT EXISTS idx_vibe_projects_status ON vibe_projects(status);
 CREATE INDEX IF NOT EXISTS idx_vibe_projects_type ON vibe_projects(project_type);
+ALTER TABLE vibe_projects ADD COLUMN IF NOT EXISTS source_control VARCHAR(50) NOT NULL DEFAULT 'native';
+CREATE INDEX IF NOT EXISTS idx_vibe_projects_source_control ON vibe_projects(source_control);
 ";
 
 /// Kinds of Vibe projects (REST API enum surface).
@@ -73,6 +76,10 @@ pub struct Project {
     pub repository: String,
     pub framework: Option<String>,
     pub custom_domain: Option<String>,
+    /// Source-control mode: `native` (workspace-only, VM syncs from the
+    /// workspace) or `git` (Forgejo-backed, VM syncs from the repo and
+    /// Deploy creates per-deploy branches + dev→prod promotion).
+    pub source_control: String,
     pub status: String,
     pub environment: String,
     pub payload: serde_json::Value,
@@ -88,6 +95,8 @@ pub struct CreateProjectRequest {
     pub framework: Option<String>,
     pub custom_domain: Option<String>,
     pub environment: Option<String>,
+    /// `native` (default) or `git` — see `Project::source_control`.
+    pub source_control: Option<String>,
     pub org_id: Option<Uuid>,
     pub branch_id: Option<Uuid>,
 }
@@ -100,6 +109,7 @@ pub struct UpdateProjectRequest {
     pub framework: Option<String>,
     pub custom_domain: Option<String>,
     pub environment: Option<String>,
+    pub source_control: Option<String>,
     pub status: Option<String>,
     pub payload: Option<serde_json::Value>,
 }
@@ -144,7 +154,7 @@ impl ProjectRegistry {
         // failing on the unique (branch_id, name) constraint.
         let existing = diesel::sql_query(
             "SELECT id, org_id, branch_id, name, project_type, repository, framework, \
-             custom_domain, status, environment, payload, created_at, updated_at \
+             custom_domain, source_control, status, environment, payload, created_at, updated_at \
              FROM vibe_projects WHERE branch_id = $1 AND name = $2",
         )
         .bind::<diesel::sql_types::Uuid, _>(branch_id)
@@ -160,6 +170,10 @@ impl ProjectRegistry {
         let repository = req.repository.clone().unwrap_or_else(|| req.name.clone());
         let framework = req.framework.clone().unwrap_or_default();
         let custom_domain = req.custom_domain.clone().unwrap_or_default();
+        let source_control = match req.source_control.as_deref() {
+            Some("git") => "git",
+            _ => "native",
+        };
         let environment = req.environment.clone().unwrap_or_else(|| "development".to_string());
         let payload = serde_json::json!({});
 
@@ -167,8 +181,8 @@ impl ProjectRegistry {
         diesel::sql_query(
             "INSERT INTO vibe_projects \
              (id, org_id, branch_id, name, project_type, repository, framework, custom_domain, \
-              status, environment, payload, created_at, updated_at) \
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW(), NOW())",
+              source_control, status, environment, payload, created_at, updated_at) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW(), NOW())",
         )
         .bind::<diesel::sql_types::Uuid, _>(id)
         .bind::<diesel::sql_types::Uuid, _>(org_id)
@@ -178,6 +192,7 @@ impl ProjectRegistry {
         .bind::<diesel::sql_types::Text, _>(&repository)
         .bind::<diesel::sql_types::Text, _>(&framework)
         .bind::<diesel::sql_types::Text, _>(&custom_domain)
+        .bind::<diesel::sql_types::Text, _>(source_control)
         .bind::<diesel::sql_types::Text, _>("pending")
         .bind::<diesel::sql_types::Text, _>(&environment)
         .bind::<diesel::sql_types::Jsonb, _>(&payload)
@@ -193,6 +208,7 @@ impl ProjectRegistry {
             repository,
             framework: req.framework.clone(),
             custom_domain: req.custom_domain.clone(),
+            source_control: source_control.to_string(),
             status: "pending".to_string(),
             environment,
             payload,
@@ -209,7 +225,7 @@ impl ProjectRegistry {
 
         let mut sql = String::from(
             "SELECT id, org_id, branch_id, name, project_type, repository, framework, \
-             custom_domain, status, environment, payload, created_at, updated_at \
+             custom_domain, source_control, status, environment, payload, created_at, updated_at \
              FROM vibe_projects WHERE branch_id = $1",
         );
         let mut binds: Vec<String> = Vec::new();
@@ -249,7 +265,7 @@ impl ProjectRegistry {
         let mut conn = self.conn()?;
         let row = diesel::sql_query(
             "SELECT id, org_id, branch_id, name, project_type, repository, framework, \
-             custom_domain, status, environment, payload, created_at, updated_at \
+             custom_domain, source_control, status, environment, payload, created_at, updated_at \
              FROM vibe_projects WHERE id = $1",
         )
         .bind::<diesel::sql_types::Uuid, _>(id)
@@ -351,6 +367,11 @@ impl ProjectRegistry {
             binds.push(cd.clone());
             assignments.push(format!("custom_domain = ${}", binds.len()));
         }
+        if let Some(ref sc) = req.source_control {
+            let sc = if sc == "git" { "git" } else { "native" };
+            binds.push(sc.to_string());
+            assignments.push(format!("source_control = ${}", binds.len()));
+        }
         if let Some(ref env) = req.environment {
             binds.push(env.clone());
             assignments.push(format!("environment = ${}", binds.len()));
@@ -418,6 +439,8 @@ struct ProjectRow {
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
     custom_domain: Option<String>,
     #[diesel(sql_type = diesel::sql_types::Text)]
+    source_control: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
     status: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
     environment: String,
@@ -445,6 +468,7 @@ impl ProjectRow {
             repository: self.repository,
             framework: self.framework,
             custom_domain: self.custom_domain,
+            source_control: self.source_control,
             status: self.status,
             environment: self.environment,
             payload: self.payload,

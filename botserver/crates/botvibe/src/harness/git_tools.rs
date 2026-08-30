@@ -134,12 +134,53 @@ pub fn git_commit_tool() -> ToolHandler {
                     || combined.contains("no changes added to commit")
                     || combined.contains("nothing added to commit")
             };
+            // #1271 — git-mode workspaces (Forgejo-backed, origin remote set)
+            // push every commit so the branch + commit land in ALM and the VM
+            // can sync from the repo. Native workspaces (no origin) stay
+            // local-only. Push failure is reported, not silent.
+            fn push_origin(cwd: &std::path::Path) -> VibeToolResult {
+                match run("git", &["push".to_string(), "origin".to_string()], cwd, 120) {
+                    Ok(out) if out.exit_code == Some(0) => ok(json!({ "pushed": true })),
+                    Ok(out) => {
+                        let combined = format!("{} {}", out.stdout, out.stderr);
+                        if combined.contains("Everything up-to-date") {
+                            ok(json!({ "pushed": true, "output": "everything up-to-date" }))
+                        } else {
+                            err(format!("git push origin failed: {}", out.stderr.trim()))
+                        }
+                    }
+                    Err(e) => err(e.to_string()),
+                }
+            }
             match run("git", &commit_args, &cwd, 30) {
-                Ok(out) if out.exit_code == Some(0) => ok(json!({
-                    "message": message,
-                    "hash": out.stdout.lines().next().unwrap_or("").trim(),
-                    "output": out.stdout,
-                })),
+                Ok(out) if out.exit_code == Some(0) => {
+                    let has_origin = run(
+                        "git",
+                        &["remote".to_string(), "get-url".to_string(), "origin".to_string()],
+                        &cwd,
+                        15,
+                    )
+                    .map(|r| r.exit_code == Some(0))
+                    .unwrap_or(false);
+                    if has_origin {
+                        // push_origin returns a VibeToolResult directly
+                        // (success=false + error carries push failures).
+                        let mut pushed = push_origin(&cwd);
+                        if pushed.success {
+                            pushed.data["message"] = json!(message);
+                            pushed.data["hash"] =
+                                json!(out.stdout.lines().next().unwrap_or("").trim());
+                            pushed.data["output"] = json!(out.stdout);
+                        }
+                        pushed
+                    } else {
+                        ok(json!({
+                            "message": message,
+                            "hash": out.stdout.lines().next().unwrap_or("").trim(),
+                            "output": out.stdout,
+                        }))
+                    }
+                }
                 Ok(out) if clean_tree(&out) => ok(json!({
                     "message": message,
                     "hash": "",
