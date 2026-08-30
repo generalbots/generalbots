@@ -675,7 +675,12 @@ impl VmLifecycle {
                 "http.createServer((req,res)=>{\n",
                 "  let p=path.join(root,decodeURIComponent((req.url||'/').split('?')[0]));\n",
                 "  if(p.endsWith('/'))p=path.join(p,'index.html');\n",
-                "  fs.readFile(p,(e,d)=>{ if(e){res.writeHead(404);res.end('not found');return;} \n",
+                "  fs.readFile(p,(e,d)=>{ if(e){\n",
+                "    // No web entry point: show a helpful page instead of a dead 404 so\n",
+                "    // Run never opens an empty browser for an app-less project.\n",
+                "    const ents=fs.existsSync(root)?fs.readdirSync(root).map(f=>'<li>'+f+'</li>').join(''):'<li>(empty workspace)</li>';\n",
+                "    const html='<!doctype html><html><head><meta charset=\"utf-8\"><title>No web app yet</title><style>body{font:16px system-ui;background:#0d1117;color:#e6edf3;display:grid;place-items:center;min-height:100vh;margin:0}main{max-width:560px;padding:28px;border:1px solid #30363d;border-radius:16px;background:#161b22}h1{color:#84d669}p{color:#8b949e}code{background:#0d1117;padding:2px 6px;border-radius:6px}ul{color:#8b949e}</style></head><body><main><h1>No web app in this project yet</h1><p>This project has no <code>index.html</code> entry point. Ask the Vibe agent in Chat to build one, then press Run again.</p><ul>'+ents+'</ul></main></body></html>';\n",
+                "    res.writeHead(404,{'Content-Type':'text/html; charset=utf-8'});res.end(html);return;} \n",
                 "    res.writeHead(200,{'Content-Type':mime[path.extname(p)]||'application/octet-stream'});res.end(d);});\n",
                 "}).listen(3000);\n",
             );
