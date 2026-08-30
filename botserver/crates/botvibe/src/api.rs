@@ -55,8 +55,12 @@ pub struct CreateRunRequest {
     /// file/run/git tools as `project`.
     pub project_name: Option<String>,
     /// Source-control mode for a project auto-created by this run:
-    /// `native` (default) or `git` (Forgejo-backed).
+    /// `native` (default), `git` (Forgejo-backed) or `github` (clone an
+    /// external repository — see `clone_url`).
     pub source_control: Option<String>,
+    /// External repository URL for `source_control = "github"` projects
+    /// auto-created by this run.
+    pub clone_url: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -210,6 +214,7 @@ fn resolve_project(
                 custom_domain: None,
                 environment: None,
                 source_control: Some(req.source_control.clone().unwrap_or_else(|| "native".to_string())),
+                clone_url: req.clone_url.clone(),
                 org_id: Some(org_id),
                 branch_id: None,
             };
@@ -218,6 +223,8 @@ fn resolve_project(
                     // #1271 — an auto-created project must ship with the same
                     // starter/calculator seed as an explicit one, so a Run
                     // against it never opens an empty "No web app yet" VM.
+                    // (github-mode projects clone the caller's repo instead —
+                    // wired async in create_run below, which owns the await.)
                     let key = crate::vm_lifecycle::VmLifecycle::alm_repo(&p.name);
                     if let Err(e) = crate::templates::seed_project_workspace(&key, &p.name) {
                         error!("Vibe: seed auto-created project '{name}' failed: {e}");
@@ -458,14 +465,24 @@ async fn create_run(
         resolve_project(&api.project_registry, &api.project_rbac, &user, &req);
 
     // #1271 — git-mode projects auto-created by this run get their Forgejo
-    // repo + origin remote wired (mirrors explicit creation). Non-fatal:
-    // native-mode projects and ALM-unavailable cases keep working.
+    // repo + origin remote wired (mirrors explicit creation); github-mode
+    // projects clone the caller's external repository into the workspace
+    // instead of the built-in seed. Non-fatal: native-mode projects and
+    // ALM-unavailable cases keep working.
     if let Some(pid) = project_id.as_deref().and_then(|s| Uuid::parse_str(s).ok()) {
         if let Ok(Some(p)) = api.project_registry.get(pid) {
-            if p.source_control == "git" {
-                if let Err(e) = crate::git_mode::ensure_git_repo(&p).await {
-                    error!("Vibe: git-mode wiring for project {pid} failed: {e}");
+            match p.source_control.as_str() {
+                "git" => {
+                    if let Err(e) = crate::git_mode::ensure_git_repo(&p).await {
+                        error!("Vibe: git-mode wiring for project {pid} failed: {e}");
+                    }
                 }
+                "github" => {
+                    if let Err(e) = crate::git_mode::ensure_github_clone(&p).await {
+                        error!("Vibe: github-mode wiring for project {pid} failed: {e}");
+                    }
+                }
+                _ => {}
             }
         }
     }

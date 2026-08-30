@@ -130,6 +130,90 @@ pub async fn ensure_git_repo(project: &Project) -> Result<(), String> {
     Ok(())
 }
 
+/// Clone an external repository into the workspace for a `github`-mode
+/// project (`source_control = "github"`). The clone URL comes from
+/// `project.payload.clone_url`. Idempotent: an existing `.git` checkout is
+/// left untouched (re-runs of creation).
+pub async fn ensure_github_clone(project: &Project) -> Result<(), String> {
+    if project.source_control != "github" {
+        return Ok(());
+    }
+    let cwd = ensure_workspace(&project.name)?;
+    if cwd.join(".git").exists() {
+        info!("Vibe github-mode {}: workspace already cloned", project.name);
+        return Ok(());
+    }
+    let clone_url = project
+        .payload
+        .get("clone_url")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .trim()
+        .to_string();
+    if clone_url.is_empty() {
+        return Err(format!(
+            "github-mode project '{}' needs payload.clone_url",
+            project.name
+        ));
+    }
+    // The workspace dir exists (ensure_workspace created it). `git clone`
+    // requires an empty target directory, so clone into a temp sibling and
+    // move the contents into place, then wire the origin remote (the clone
+    // already carries it).
+    let parent = cwd
+        .parent()
+        .ok_or_else(|| "workspace has no parent dir".to_string())?;
+    let tmp = parent.join(format!(".clone-{}", project.name));
+    if tmp.exists() {
+        std::fs::remove_dir_all(&tmp).map_err(|e| format!("clean temp clone: {e}"))?;
+    }
+    let owned = vec![
+        "clone".to_string(),
+        "--quiet".to_string(),
+        clone_url.clone(),
+        tmp.to_string_lossy().to_string(),
+    ];
+    match run("git", &owned, parent, 180) {
+        Ok(out) if out.exit_code == Some(0) => {}
+        Ok(out) => {
+            return Err(format!(
+                "git clone {} failed: {}",
+                clone_url,
+                out.stderr.trim()
+            ))
+        }
+        Err(e) => return Err(format!("git clone: {e}")),
+    }
+    // Move the cloned checkout into the workspace (hidden dotfiles included).
+    for entry in std::fs::read_dir(&tmp).map_err(|e| format!("read temp clone: {e}"))? {
+        let entry = entry.map_err(|e| format!("read temp clone entry: {e}"))?;
+        let from = entry.path();
+        let to = cwd.join(entry.file_name());
+        std::fs::rename(&from, &to).map_err(|e| format!("move {} into workspace: {e}", entry.file_name().to_string_lossy()))?;
+    }
+    std::fs::remove_dir_all(&tmp).map_err(|e| format!("remove temp clone: {e}"))?;
+    // Reset origin to the canonical (token-free) URL the caller supplied.
+    match run(
+        "git",
+        &["remote".to_string(), "set-url".to_string(), "origin".to_string(), clone_url.clone()],
+        &cwd,
+        15,
+    ) {
+        Ok(out) if out.exit_code == Some(0) => {}
+        Ok(out) => warn!(
+            "Vibe github-mode {}: reset origin failed: {}",
+            project.name,
+            out.stderr.trim()
+        ),
+        Err(e) => warn!("Vibe github-mode {}: reset origin: {e}", project.name),
+    }
+    info!(
+        "Vibe github-mode {}: cloned {} into workspace",
+        project.name, clone_url
+    );
+    Ok(())
+}
+
 /// Create a per-deploy snapshot branch `release/deploy-<ts>` pointing at the
 /// current HEAD (the deployed version being replaced), without checking it
 /// out — the working tree and running app stay put. Returns the branch name

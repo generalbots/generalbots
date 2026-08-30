@@ -77,8 +77,9 @@ pub struct Project {
     pub framework: Option<String>,
     pub custom_domain: Option<String>,
     /// Source-control mode: `native` (workspace-only, VM syncs from the
-    /// workspace) or `git` (Forgejo-backed, VM syncs from the repo and
-    /// Deploy creates per-deploy branches + dev→prod promotion).
+    /// workspace), `git` (Forgejo-backed, VM syncs from the repo and
+    /// Deploy creates per-deploy branches + dev→prod promotion) or
+    /// `github` (clone of an external repository, see `payload.clone_url`).
     pub source_control: String,
     pub status: String,
     pub environment: String,
@@ -95,8 +96,12 @@ pub struct CreateProjectRequest {
     pub framework: Option<String>,
     pub custom_domain: Option<String>,
     pub environment: Option<String>,
-    /// `native` (default) or `git` — see `Project::source_control`.
+    /// `native` (default), `git` (Forgejo-backed) or `github` (clone an
+    /// external repository) — see `Project::source_control`.
     pub source_control: Option<String>,
+    /// External repository URL for `source_control = "github"` (the
+    /// repository is cloned into the workspace at creation).
+    pub clone_url: Option<String>,
     pub org_id: Option<Uuid>,
     pub branch_id: Option<Uuid>,
 }
@@ -172,10 +177,19 @@ impl ProjectRegistry {
         let custom_domain = req.custom_domain.clone().unwrap_or_default();
         let source_control = match req.source_control.as_deref() {
             Some("git") => "git",
+            Some("github") => "github",
             _ => "native",
         };
         let environment = req.environment.clone().unwrap_or_else(|| "development".to_string());
-        let payload = serde_json::json!({});
+        // #1271 — github-mode projects carry their clone URL in the payload
+        // so the create handler can clone the external repository into the
+        // workspace (instead of seeding the built-in template).
+        let mut payload = serde_json::json!({});
+        if let Some(clone_url) = req.clone_url.as_deref() {
+            if !clone_url.trim().is_empty() {
+                payload["clone_url"] = serde_json::json!(clone_url);
+            }
+        }
 
         let id = Uuid::new_v4();
         diesel::sql_query(
