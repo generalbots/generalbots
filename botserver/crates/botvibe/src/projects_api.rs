@@ -680,6 +680,25 @@ async fn run_project_app(
         Ok(f) => f,
         Err(e) => return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "success": false, "error": e }))),
     };
+    // #1271 — a project with an empty workspace must still serve an app when
+    // Run is clicked (automatic project creation skips the explicit seeding in
+    // `create_project`). Seed the starter (or calculator) template on the fly
+    // so the Browser never opens against a blank "No web app yet" VM.
+    if files.is_empty() {
+        let key = workspace_key(&project);
+        if let Err(e) = crate::templates::seed_project_workspace(&key, &project.name) {
+            log::warn!("Vibe run {}: seed empty workspace failed: {e}", project.name);
+        } else {
+            log::info!(
+                "Vibe run {}: seeded empty workspace before run",
+                project.name
+            );
+        }
+    }
+    let files = match crate::publish::collect_workspace_files(&project) {
+        Ok(f) => f,
+        Err(e) => return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "success": false, "error": e }))),
+    };
     let branch_id = resolve_org_branch(&registry, project.org_id).unwrap_or(project.branch_id);
     let vm = match lifecycle.create_project_vm(
         project_id,
