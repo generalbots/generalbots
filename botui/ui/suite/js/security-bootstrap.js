@@ -662,6 +662,32 @@
     return sessionStorage.getItem("gb-access-token") || sessionStorage.getItem("token") || null;
   };
 
+  // Normalize the JWT into the legacy gb-access-token key on every page
+  // load. Many suite apps (Drive, collab, Settings, shared Terminal/Browser,
+  // automations, memory, …) read only localStorage["gb-access-token"] and
+  // would otherwise 401 their APIs even though the session is valid — the
+  // login flow stores the token under `token`/`id_token` and GBSecurity
+  // keeps it in its closure/sessionStorage. Mirroring once here makes every
+  // legacy reader work without touching each app.
+  (function normalizeLegacyToken() {
+    if (localStorage.getItem("gb-access-token")) return;
+    var t =
+      (window.GBSecurity && window.GBSecurity.getToken()) ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("id_token") ||
+      localStorage.getItem("gb_token") ||
+      localStorage.getItem("management_token") ||
+      sessionStorage.getItem("gb-access-token") ||
+      sessionStorage.getItem("token");
+    if (t) {
+      try {
+        localStorage.setItem("gb-access-token", t);
+      } catch (e) {
+        /* storage may be disabled */
+      }
+    }
+  })();
+
   window.getGBRefreshToken = function () {
     var t = window.GBSecurity && window.GBSecurity.getRefreshToken();
     if (t) return t;

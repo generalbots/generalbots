@@ -25,7 +25,13 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
     let vmOptionsLoaded = false;
 
     function apiGet(path) {
-        const token = localStorage.getItem('gb-access-token') || sessionStorage.getItem('gb-access-token') || '';
+        const token =
+            (typeof window.getGBAccessToken === 'function' && window.getGBAccessToken()) ||
+            localStorage.getItem('token') ||
+            localStorage.getItem('id_token') ||
+            localStorage.getItem('gb-access-token') ||
+            sessionStorage.getItem('gb-access-token') ||
+            '';
         return fetch(path, { headers: { 'Authorization': 'Bearer ' + token } })
             .then(function (r) { return r.json().catch(function () { return { success: false }; }); });
     }
@@ -201,7 +207,12 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
 
         function doConnect() {
             statusText.textContent = 'Connecting...';
-            const token = localStorage.getItem('gb-access-token') || sessionStorage.getItem('gb-access-token');
+            const token =
+                (typeof window.getGBAccessToken === 'function' && window.getGBAccessToken()) ||
+                localStorage.getItem('token') ||
+                localStorage.getItem('id_token') ||
+                localStorage.getItem('gb-access-token') ||
+                sessionStorage.getItem('gb-access-token');
             const container = getSelectedContainer();
             // SECURITY: host shells are refused server-side (403). With no VM
             // available, explain how to provision one instead of attempting a
