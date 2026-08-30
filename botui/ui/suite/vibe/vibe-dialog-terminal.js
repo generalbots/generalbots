@@ -99,10 +99,15 @@
     // host — the previous workspace-cwd fallback opened the server's own
     // filesystem (the backend now refuses container-less sessions too).
     function resolveTarget() {
+        // Same source as the rest of the shell (S.projectId): the in-memory
+        // selection first, then the persisted one so a terminal still works
+        // right after a page reload without re-selecting the project.
         var pid =
-            typeof window.currentProjectId !== "undefined" && window.currentProjectId
-                ? window.currentProjectId
-                : null;
+            (typeof window.currentProjectId !== "undefined" && window.currentProjectId) ||
+            (function () {
+                try { return sessionStorage.getItem("gb-vibe-project-id") || ""; } catch (e) { return ""; }
+            })() ||
+            null;
         if (!pid) return Promise.resolve({ container: null, error: "No project selected — open a project first." });
         return D.api("/api/vibe/projects/" + encodeURIComponent(pid) + "/vms")
             .then(function (data) {
