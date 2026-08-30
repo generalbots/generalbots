@@ -1170,11 +1170,21 @@ impl AgentLoop {
         }
 
         let start = tokio::time::Instant::now();
-        let executed_ok = match self
-            .tool_executor
-            .execute(&mut tool_call, run.use_case, self.state.as_ref())
-            .await
-        {
+        // Cap a single tool call: any handler that awaits long-running work
+        // (e.g. a deployment, an incus/lifecycle step) without an internal
+        // timeout cannot hold the run away from the outer run-level timeout
+        // forever. Previously a wedged tool left the run silently "running"
+        // until manually cancelled. On expiry the tool is recorded as failed,
+        // a corrective note is fed back, and the loop continues.
+        const MAX_TOOL_EXEC_SECS: u64 = 300;
+        let use_case = run.use_case;
+        let run_id = run.run_id;
+        let executed_ok = match timeout(Duration::from_secs(MAX_TOOL_EXEC_SECS), async {
+            match self
+                .tool_executor
+                .execute(&mut tool_call, use_case, self.state.as_ref())
+                .await
+            {
             Ok(()) => {
                 if !tool_call.requires_approval {
                     let mut attempts: u32 = 1;
@@ -1195,12 +1205,12 @@ impl AgentLoop {
                         // actual last attempt.
                         if let Err(e) = self
                             .tool_executor
-                            .execute(&mut tool_call, run.use_case, self.state.as_ref())
+                            .execute(&mut tool_call, use_case, self.state.as_ref())
                             .await
                         {
                             warn!(
                                 "Vibe run {} tool {} retry {attempts} failed: {e}",
-                                run.run_id, tool_call.tool_name
+                                run_id, tool_call.tool_name
                             );
                         }
                     }
@@ -1215,8 +1225,8 @@ impl AgentLoop {
 
                 self.telemetry
                     .record_tool_call(ToolCallRecord {
-                        run_id: run.run_id,
-                        use_case: run.use_case,
+                        run_id,
+                        use_case,
                         tool_name: tool_call.tool_name.clone(),
                         latency_ms: latency,
                         tokens: None,
@@ -1252,7 +1262,7 @@ impl AgentLoop {
                 ));
                 log::info!(
                     "agent_loop: run {} tool {} completed success={} summary={}",
-                    run.run_id,
+                    run_id,
                     tool_call.tool_name,
                     success,
                     truncate(&result_summary, 160)
@@ -1287,10 +1297,48 @@ impl AgentLoop {
                 ));
                 log::info!(
                     "agent_loop: run {} tool {} execute-ERR: {}",
-                    run.run_id,
+                    run_id,
                     tool_call.tool_name,
                     e
                 );
+                false
+            }
+            }
+        })
+        .await
+        {
+            Ok(ok) => ok,
+            Err(_) => {
+                // The tool hit the per-call cap. Record it as a failed call,
+                // feed a corrective note back so the model stops retrying the
+                // same slow step, and keep the run moving.
+                let latency = start.elapsed().as_millis() as u64;
+                let message = format!(
+                    "Tool {} exceeded {MAX_TOOL_EXEC_SECS}s execution budget and was aborted",
+                    tool_call.tool_name
+                );
+                warn!("Vibe run {run_id} {message}");
+                self.telemetry
+                    .record_tool_call(ToolCallRecord {
+                        run_id,
+                        use_case,
+                        tool_name: tool_call.tool_name.clone(),
+                        latency_ms: latency,
+                        tokens: None,
+                        cost: 0.0,
+                        success: false,
+                        error: Some(message.clone()),
+                    })
+                    .await;
+                tool_call.result = Some(crate::types::VibeToolResult {
+                    success: false,
+                    data: serde_json::Value::Null,
+                    error: Some(message.clone()),
+                    latency_ms: latency,
+                });
+                context.add_assistant_message(format!(
+                    "{message}. Do not repeat this step; continue with a smaller, faster one instead."
+                ));
                 false
             }
         };

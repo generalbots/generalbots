@@ -40,23 +40,31 @@ pub fn workspace_root() -> PathBuf {
         .unwrap_or_else(|_| default_workspace_root())
 }
 
-#[cfg(target_os = "windows")]
-fn default_workspace_root() -> PathBuf {
-    // Preserve projects created before the stack-relative Windows default was
-    // introduced. New installations use the packaged stack data directory.
-    let legacy = PathBuf::from(r"C:\opt\gbo\data\vibe-workspaces");
-    if legacy.exists() {
-        return legacy;
-    }
-
+/// Resolve the stack data directory (dev `./botserver-stack`, prod `/opt/gbo`)
+/// under `data/vibe-workspaces`. Relying on `get_stack_path()` makes the
+/// default work on every platform without an env var and without depending on
+/// a pre-created `/opt/gbo` in a dev checkout. `VIBE_WORKSPACE_ROOT` (if set
+/// explicitly) still takes precedence via `workspace_root()`.
+fn stack_vibe_workspaces() -> PathBuf {
     PathBuf::from(botlib::security::get_stack_path())
         .join("data")
         .join("vibe-workspaces")
 }
 
+#[cfg(target_os = "windows")]
+fn default_workspace_root() -> PathBuf {
+    // Preserve projects created before the stack-relative default was
+    // introduced: prefer the legacy path when it actually exists.
+    let legacy = PathBuf::from(r"C:\opt\gbo\data\vibe-workspaces");
+    if legacy.exists() {
+        return legacy;
+    }
+    stack_vibe_workspaces()
+}
+
 #[cfg(not(target_os = "windows"))]
 fn default_workspace_root() -> PathBuf {
-    PathBuf::from("/opt/gbo/data/vibe-workspaces")
+    stack_vibe_workspaces()
 }
 
 /// Validate a project id: alphanumerics, dash, underscore, dot — no path
