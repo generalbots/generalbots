@@ -405,6 +405,7 @@
 .window-body-glass.gb-window-ready .gb-window-content,
 .window-body.gb-window-ready .gb-window-content {
   opacity: 1;
+  height: 100%;
 }
 
 /* ── Maximized overrides (existing rules preserved) ── */
