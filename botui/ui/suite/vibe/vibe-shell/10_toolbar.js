@@ -41,7 +41,23 @@
         }
         var app = (window.APPS_REGISTRY || []).find(function (a) { return a.id === appId; });
         if (app) {
-            window.open(app.hxGet, "_blank", "noopener");
+            // Standalone fallback (no desktop WindowManager): the app
+            // partials read deep-link params from the query string
+            // (browser.html deepLinkUrl reads ?url=...). Losing the url here
+            // is exactly "Run opens the Browser but the window is blank" —
+            // so append it when the caller supplied one.
+            var target = app.hxGet;
+            var url = params && params.url;
+            if (url) {
+                try {
+                    var q = new URLSearchParams(target.split("?")[1] || "");
+                    q.set("url", String(url));
+                    target = target.split("?")[0] + "?" + q.toString();
+                } catch (e) {
+                    target += (target.indexOf("?") === -1 ? "?" : "&") + "url=" + encodeURIComponent(String(url));
+                }
+            }
+            window.open(target, "_blank", "noopener");
         }
     }
 

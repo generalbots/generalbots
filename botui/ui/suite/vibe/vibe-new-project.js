@@ -14,6 +14,15 @@
         { id: "custom", name: "Custom", sub: "Runtime VM + runner", project_type: "custom" }
     ];
     var TIERS = ["small", "medium", "large"];
+    // #1271 — Source control mode. "Internal": the project lives on the
+    // platform's own source control (Forgejo/ALM) — the VM syncs from it and
+    // Deploy snapshots a per-deploy branch promoting dev→prod by runtime.
+    // "GitHub URL": clone from an external GitHub repository (the clone URL
+    // is required), so the agent edits a checkout of the caller's repo.
+    var SOURCE_CONTROLS = [
+        { id: "internal", name: "Internal", sub: "Platform source control (Forgejo), per-deploy branches + dev→prod" },
+        { id: "github", name: "GitHub URL", sub: "Clone an external GitHub repository into the workspace" }
+    ];
     var FRAMEWORKS = {
         // Web is htmx-only: the website template ships as an htmx page, so the
         // framework picker offers nothing else (html/css are htmx's building
@@ -24,7 +33,7 @@
 
     // name kept in state so Kind/Tier re-renders do not discard the user's
     // typed value (fixes #821).
-    var state = { kind: 0, tier: 0, name: "" };
+    var state = { kind: 0, tier: 0, source: 0, name: "", cloneUrl: "" };
 
     // A project is created in development; production is reached only via the
     // toolbar Deploy button (pipeline_mode=deploy). No staging, no env picker.
@@ -55,6 +64,29 @@
         }).join("");
     }
 
+    // Source-control picker: Internal (platform Forgejo/ALM) vs GitHub URL
+    // (clone an external repo). Uses the same option-row markup as TIERS for
+    // visual consistency.
+    function sourceHtml() {
+        return SOURCE_CONTROLS.map(function (s, i) {
+            return '<label class="vibe-np-opt' + (i === state.source ? " active" : "") + '" title="' +
+                esc(s.sub) + '">' +
+                '<input type="radio" name="vnp-source" value="' + s.id + '"' +
+                (i === state.source ? " checked" : "") + "> " + esc(s.name) +
+                "</label>";
+        }).join("");
+    }
+
+    // GitHub mode needs a clone URL; shown only when that source is selected.
+    function cloneUrlHtml() {
+        if (!SOURCE_CONTROLS[state.source] || SOURCE_CONTROLS[state.source].id !== "github") {
+            return "";
+        }
+        return '<label class="vibe-np-label" for="vnpCloneUrl">GitHub repository URL</label>' +
+            '<input type="url" id="vnpCloneUrl" class="vibe-np-input" placeholder="https://github.com/owner/repo.git"' +
+            ' value="' + esc(state.cloneUrl || "") + '">';
+    }
+
     function render() {
         var el = document.getElementById("vibeNewProjectModal");
         if (!el) return;
@@ -69,6 +101,9 @@
             '<input type="text" id="vnpName" class="vibe-np-input" placeholder="e.g. my-project" value="' + esc(state.name) + '">' +
             '<label class="vibe-np-label">Kind</label>' +
             '<div class="vibe-np-kinds">' + kindHtml() + "</div>" +
+            '<label class="vibe-np-label">Source control</label>' +
+            '<div class="vibe-np-opts">' + sourceHtml() + "</div>" +
+            cloneUrlHtml() +
             '<label class="vibe-np-label">Env tier</label>' +
             '<div class="vibe-np-opts">' + optionHtml(TIERS, "tier") + "</div>" +
             (FRAMEWORKS[kind.id] ?
@@ -99,6 +134,19 @@
                 render();
             });
         });
+        var sourceInputs = el.querySelectorAll('input[name="vnp-source"]');
+        sourceInputs.forEach(function (input) {
+            input.addEventListener("change", function () {
+                state.source = SOURCE_CONTROLS.findIndex(function (s) { return s.id === this.value; }.bind(input));
+                render();
+            });
+        });
+        var cloneUrlInput = document.getElementById("vnpCloneUrl");
+        if (cloneUrlInput) {
+            cloneUrlInput.addEventListener("input", function () {
+                state.cloneUrl = this.value;
+            });
+        }
         // Persist the typed name in state so re-renders (Kind/Tier/Env
         // changes) do not discard it (fixes #821).
         var nameInput = document.getElementById("vnpName");
@@ -134,11 +182,23 @@
         var frameworkEl = document.getElementById("vnpFramework");
         if (err) err.textContent = "";
 
+        var source = SOURCE_CONTROLS[state.source] || SOURCE_CONTROLS[0];
+        var cloneUrl = "";
+        if (source.id === "github") {
+            var cloneInput = document.getElementById("vnpCloneUrl");
+            cloneUrl = cloneInput ? cloneInput.value.trim() : "";
+            if (!cloneUrl) {
+                if (err) err.textContent = "A GitHub repository URL is required for GitHub source control.";
+                return;
+            }
+        }
         var payload = {
             name: name,
             project_type: kind.project_type,
             environment: env,
             framework: frameworkEl ? frameworkEl.value : null,
+            source_control: source.id === "internal" ? "git" : "github",
+            clone_url: cloneUrl || null,
             payload: {
                 env_tier: tier,
                 creator: "vibe-new"

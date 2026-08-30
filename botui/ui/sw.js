@@ -6,7 +6,7 @@
  * policy silently froze window-manager, partials and CSS after their first
  * fetch — "the browser is not loading the updated app"). Version bump
  * invalidates the previous cache. */
-var CACHE = "gb-desktop-shell-v20";
+var CACHE = "gb-desktop-shell-v21";
 var CORE = [
   "/suite/desktop.html",
   "/suite/js/vendor/htmx.min.js",
