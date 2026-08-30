@@ -33,12 +33,29 @@ window.VibeShell = window.VibeShell || {
     },
 
     projectId: function () {
-        return typeof window.currentProjectId !== "undefined" ? window.currentProjectId : null;
+        if (typeof window.currentProjectId !== "undefined" && window.currentProjectId) {
+            return window.currentProjectId;
+        }
+        // Restore the selection across reloads: applyProjectSelection
+        // persists it, but window.currentProjectId itself is lost on a
+        // fresh page load, which silently disabled Run/Deploy/Terminal
+        // after every reload ("Select a project first" with one selected).
+        try {
+            return sessionStorage.getItem("gb-vibe-project-id") || null;
+        } catch (e) {
+            return null;
+        }
     },
 
     projectName: function () {
         if (typeof window.currentProject !== "undefined" && window.currentProject) {
             return String(window.currentProject);
+        }
+        try {
+            var n = sessionStorage.getItem("gb-vibe-project-name");
+            if (n) return n;
+        } catch (e) {
+            /* storage unavailable */
         }
         return "vibe";
     },
