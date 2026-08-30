@@ -29,7 +29,16 @@ const Proactivity = (() => {
   }
 
   function poll() {
-    fetch(CARDS_API, { headers: { "Content-Type": "application/json" } })
+    const tok =
+      (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) ||
+      localStorage.getItem("token") ||
+      localStorage.getItem("id_token") ||
+      localStorage.getItem("gb-access-token") ||
+      sessionStorage.getItem("gb-access-token") ||
+      "";
+    const h = { "Content-Type": "application/json" };
+    if (tok) h["Authorization"] = "Bearer " + tok;
+    fetch(CARDS_API, { headers: h })
       .then((r) => r.json())
       .then((data) => {
         const cards = (data && data.cards) || [];
@@ -46,7 +55,10 @@ const Proactivity = (() => {
           }
           markSeen(card.card_id);
           // Acknowledge server-side so the feed does not grow unbounded.
-          fetch("/api/vibe/proactivity/cards/" + card.card_id + "/seen", { method: "POST" }).catch(function () {});
+          const ah = {};
+          const at = (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) || "";
+          if (at) ah["Authorization"] = "Bearer " + at;
+          fetch("/api/vibe/proactivity/cards/" + card.card_id + "/seen", { method: "POST", headers: ah }).catch(function () {});
         }
       })
       .catch(() => {

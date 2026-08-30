@@ -652,9 +652,14 @@
     // older session copies.
     t = localStorage.getItem("gb-access-token");
     if (t) return t;
+    // The login flow stores the JWT under `token` (and sometimes `id_token`
+    // or `gb_token`); the vibe/chat sub-windows read through this accessor,
+    // so those keys must be honored or every sub-window API 401s.
+    t = localStorage.getItem("token") || localStorage.getItem("id_token") || localStorage.getItem("gb_token");
+    if (t) return t;
     t = localStorage.getItem("management_token");
     if (t) return t;
-    return sessionStorage.getItem("gb-access-token") || null;
+    return sessionStorage.getItem("gb-access-token") || sessionStorage.getItem("token") || null;
   };
 
   window.getGBRefreshToken = function () {
