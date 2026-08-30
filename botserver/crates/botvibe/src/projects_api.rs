@@ -182,18 +182,30 @@ async fn create_project(
             // A failed seed must not leave an orphan project row whose
             // workspace is permanently empty (#931).
             let key = workspace_key(&p);
-            if let Err(e) = crate::templates::seed_project_workspace(&key, &p.name) {
-                log::error!("seed workspace for project {} failed: {e}", p.id);
-                if let Err(de) = registry.delete(p.id) {
-                    log::error!("compensating delete for project {} failed: {de}", p.id);
+            // #1271 — github-mode clones the caller's repository into the
+            // workspace; seeding the built-in template first would make the
+            // clone target non-empty and fail. Clone replaces the seed.
+            let wants_seed = p.source_control != "github";
+            if wants_seed {
+                if let Err(e) = crate::templates::seed_project_workspace(&key, &p.name) {
+                    log::error!("seed workspace for project {} failed: {e}", p.id);
+                    if let Err(de) = registry.delete(p.id) {
+                        log::error!("compensating delete for project {} failed: {de}", p.id);
+                    }
+                    return err_response(format!("seed project workspace failed: {e}"));
                 }
-                return err_response(format!("seed project workspace failed: {e}"));
             }
             // #1271 — git-mode projects get a real Forgejo repo + origin
             // remote so Deploy can snapshot per-deploy branches and promote
             // dev→prod by runtime. A git wiring failure is logged, not fatal:
             // the project still works in native mode until ALM is configured.
-            if p.source_control == "git" {
+            // github-mode projects clone the caller's external repository into
+            // the workspace instead (payload.clone_url).
+            if p.source_control == "github" {
+                if let Err(e) = crate::git_mode::ensure_github_clone(&p).await {
+                    log::error!("github-mode wiring for project {} failed: {e}", p.id);
+                }
+            } else if p.source_control == "git" {
                 if let Err(e) = crate::git_mode::ensure_git_repo(&p).await {
                     log::error!("git-mode wiring for project {} failed: {e}", p.id);
                 }
