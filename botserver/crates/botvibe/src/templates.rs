@@ -177,16 +177,134 @@ Use the file tools to add source code, then `project_test` to verify and
 `publish/project` to deploy it to an environment.
 "#;
 
+/// Starter page for Website (htmx) projects: a self-contained static page
+/// (inline CSS/JS — no CDN, per project rules) so Run renders a real app
+/// instead of the "No web app yet" fallback. htmx is the declared framework
+/// for website projects; the template stays dependency-free so it runs in
+/// the VM with zero install steps.
+const WEBSITE_INDEX_HTML: &str = r#"<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vibe Website</title><style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0d1117;color:#e6edf3;font:16px system-ui,sans-serif}
+main{width:min(92vw,520px);padding:32px;border:1px solid #30363d;border-radius:18px;background:#161b22;box-shadow:0 24px 70px #0008;text-align:center}
+h1{margin:0 0 8px;color:#84d669;font-size:28px}p{color:#8b949e;margin:0 0 24px;line-height:1.6}
+.btn{display:inline-block;border:0;border-radius:10px;padding:12px 22px;background:#84d669;color:#10220b;font-weight:800;cursor:pointer;text-decoration:none;margin:4px}
+.btn:hover{filter:brightness(1.1)}#demo{margin-top:22px;padding:16px;border-radius:12px;background:#0d1117;font-size:15px;color:#e6edf3;display:none}
+</style></head><body><main>
+<h1>Vibe Website</h1>
+<p>This is the starter page for <strong>Website</strong> projects. Edit <code>index.html</code> in the Editor to build your site, then press <strong>Run</strong> again.</p>
+<button class="btn" id="demoBtn">Show htmx-style demo</button>
+<div id="demo"></div>
+<script>
+document.getElementById('demoBtn').addEventListener('click', function () {
+  var d = document.getElementById('demo');
+  d.style.display = 'block';
+  d.textContent = 'Server time: ' + new Date().toLocaleTimeString() + ' — served by Vibe on ' + location.hostname;
+});
+</script>
+</main></body></html>
+"#;
+
+/// Starter service for Custom/python projects: a dependency-free HTTP server
+/// (stdlib only) so Run starts a real python process and serves a page. The
+/// VM runs it as `/usr/bin/python3 app.py` with `PORT=3000`.
+const PYTHON_APP_PY: &str = r#"#!/usr/bin/env python3
+"""Vibe python starter — stdlib HTTP server, no external dependencies."""
+import os
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+PORT = int(os.environ.get("PORT", "3000"))
+
+PAGE = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Vibe Python</title><style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0d1117;color:#e6edf3;font:16px system-ui,sans-serif}
+main{width:min(92vw,520px);padding:32px;border:1px solid #30363d;border-radius:18px;background:#161b22;box-shadow:0 24px 70px #0008;text-align:center}
+h1{margin:0 0 8px;color:#84d669}p{color:#8b949e;margin:0 0 20px}
+code{background:#0d1117;padding:2px 8px;border-radius:6px;color:#e6edf3}
+</style></head><body><main>
+<h1>Vibe Python</h1>
+<p>This is the starter for <strong>Custom / python</strong> projects. Edit <code>app.py</code> in the Editor to build your service, then press <strong>Run</strong> again.</p>
+</main></body></html>
+"""
+
+
+class Handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        if self.path == "/health":
+            body = b'{"status":"ok"}'
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+            return
+        body = PAGE.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def log_message(self, *args):
+        pass
+
+
+if __name__ == "__main__":
+    print(f"python starter listening on http://0.0.0.0:{PORT}")
+    HTTPServer(("0.0.0.0", PORT), Handler).serve_forever()
+"#;
+
+/// Starter service for Custom/node projects that are not calculator-style:
+/// a minimal stdlib http server so Run starts a real node process and serves
+/// a page (the VM runs it as `/usr/bin/node index.js` with `PORT=3000`).
+const NODE_INDEX_JS: &str = r#"'use strict';
+const http = require('http');
+const port = Number(process.env.PORT || 3000);
+
+const page = `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Vibe Node</title><style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0d1117;color:#e6edf3;font:16px system-ui,sans-serif}
+main{width:min(92vw,520px);padding:32px;border:1px solid #30363d;border-radius:18px;background:#161b22;box-shadow:0 24px 70px #0008;text-align:center}
+h1{margin:0 0 8px;color:#84d669}p{color:#8b949e;margin:0 0 20px}
+code{background:#0d1117;padding:2px 8px;border-radius:6px;color:#e6edf3}
+</style></head><body><main>
+<h1>Vibe Node</h1>
+<p>This is the starter for <strong>Custom / node</strong> projects. Edit <code>index.js</code> in the Editor to build your service, then press <strong>Run</strong> again.</p>
+</main></body></html>`;
+
+const server = http.createServer((req, res) => {
+  if (req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    return res.end('{"status":"ok"}');
+  }
+  res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+  res.end(page);
+});
+
+server.listen(port, () => console.log('node starter listening on http://0.0.0.0:' + port));
+"#;
+
 /// True when the project name asks for a calculator-style app.
 pub fn is_calculator_project(name: &str) -> bool {
     let n = name.to_lowercase();
     n.contains("calculator") || n.contains("calc")
 }
 
-/// Seed the project workspace at `workspace_root()/{key}` with the built-in
-/// starter (or calculator) template. No-op when the workspace already has
-/// files (the agent may have started working).
-pub fn seed_project_workspace(key: &str, project_name: &str) -> Result<(), String> {
+/// Pick the built-in starter matching a project's kind and framework, then
+/// seed it into the workspace at `workspace_root()/{key}`. Calculator-style
+/// names win (regardless of type); otherwise the matrix is:
+///   website + htmx  -> `index.html` (self-contained static page)
+///   custom + python -> `app.py`    (stdlib http server)
+///   custom + node   -> `index.js`  (stdlib http server)
+///   bot / others    -> README starter only
+/// No-op when the workspace already has files (the agent may have started
+/// working).
+pub fn seed_project_workspace(
+    key: &str,
+    project_name: &str,
+    project_type: &str,
+    framework: Option<&str>,
+) -> Result<(), String> {
     let key = crate::harness::sanitize_project_id(key)?;
     let dir = crate::harness::workspace_root().join(&key);
     if dir.is_dir() {
@@ -199,12 +317,25 @@ pub fn seed_project_workspace(key: &str, project_name: &str) -> Result<(), Strin
     std::fs::create_dir_all(&dir).map_err(|e| format!("create workspace {key}: {e}"))?;
 
     let calculator = is_calculator_project(project_name);
-    if calculator {
+    let fw = framework.unwrap_or("").to_lowercase();
+    let template = if calculator {
         crate::harness::write_rel_file(&key, "calc.js", CALCULATOR_CALC_JS.as_bytes())?;
         crate::harness::write_rel_file(&key, "index.js", CALCULATOR_INDEX_JS.as_bytes())?;
         crate::harness::write_rel_file(&key, "test.js", CALCULATOR_TEST_JS.as_bytes())?;
         crate::harness::write_rel_file(&key, "package.json", CALCULATOR_PACKAGE_JSON.as_bytes())?;
-    }
+        "calculator"
+    } else if project_type.eq_ignore_ascii_case("website") {
+        crate::harness::write_rel_file(&key, "index.html", WEBSITE_INDEX_HTML.as_bytes())?;
+        "website"
+    } else if fw == "python" {
+        crate::harness::write_rel_file(&key, "app.py", PYTHON_APP_PY.as_bytes())?;
+        "python"
+    } else if fw == "node" {
+        crate::harness::write_rel_file(&key, "index.js", NODE_INDEX_JS.as_bytes())?;
+        "node"
+    } else {
+        "starter"
+    };
     let readme = if calculator {
         CALCULATOR_README
     } else {
@@ -212,10 +343,7 @@ pub fn seed_project_workspace(key: &str, project_name: &str) -> Result<(), Strin
     };
     crate::harness::write_rel_file(&key, "README.md", readme.as_bytes())?;
 
-    log::info!(
-        "Vibe: seeded workspace '{key}' with {} template",
-        if calculator { "calculator" } else { "starter" }
-    );
+    log::info!("Vibe: seeded workspace '{key}' with {template} template");
     Ok(())
 }
 
@@ -243,7 +371,7 @@ mod tests {
         std::env::set_var("VIBE_WORKSPACE_ROOT", &tmp);
         let key = "calculator";
 
-        seed_project_workspace(key, "Calculator").expect("seed");
+        seed_project_workspace(key, "Calculator", "custom", Some("node")).expect("seed");
         let entries = crate::harness::list_rel(key, "", 0).expect("list");
         for want in [
             "calc.js",
@@ -263,7 +391,7 @@ mod tests {
         assert!(calc.contains("evaluate"), "calc.js must export evaluate");
 
         // Second seed is a no-op (workspace already populated).
-        seed_project_workspace(key, "Calculator").expect("re-seed");
+        seed_project_workspace(key, "Calculator", "custom", Some("node")).expect("re-seed");
         let after = crate::harness::list_rel(key, "", 0).expect("list after");
         assert_eq!(after.len(), entries.len());
 
@@ -282,10 +410,22 @@ mod tests {
         std::env::set_var("VIBE_WORKSPACE_ROOT", &tmp);
         let key = "landing";
 
-        seed_project_workspace(key, "Landing Page").expect("seed");
+        seed_project_workspace(key, "Landing Page", "website", Some("htmx")).expect("seed");
         let entries = crate::harness::list_rel(key, "", 0).expect("list");
+        assert!(entries.iter().any(|e| e == "index.html"));
         assert!(entries.iter().any(|e| e == "README.md"));
         assert!(!entries.iter().any(|e| e == "calc.js"));
+
+        // python framework seeds app.py; node framework seeds index.js
+        // (each on its own fresh workspace — seeding never clobbers).
+        let py_key = "py-app";
+        seed_project_workspace(py_key, "Py App", "custom", Some("python")).expect("seed2");
+        let entries = crate::harness::list_rel(py_key, "", 0).expect("list after");
+        assert!(entries.iter().any(|e| e == "app.py"), "{entries:?}");
+        let node_key = "node-app";
+        seed_project_workspace(node_key, "Node App", "custom", Some("node")).expect("seed3");
+        let entries = crate::harness::list_rel(node_key, "", 0).expect("list after2");
+        assert!(entries.iter().any(|e| e == "index.js"), "{entries:?}");
 
         let _ = std::fs::remove_dir_all(&tmp);
         crate::harness::restore_workspace_root(previous);
