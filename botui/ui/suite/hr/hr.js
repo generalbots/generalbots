@@ -11,9 +11,32 @@ let performanceData = {};
 (function(){ var __cb = () => {
 initTabs();
 initEvents();
+setupDelegation();
 loadStats();
 loadTab(currentTab);
 }; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
+
+// #1205/#1211 — row actions used inline `onclick="editEmployee(...)"` but
+// those functions live inside this IIFE, so the handlers were never
+// reachable (dead buttons), and one-shot DOMContentLoaded bindings are lost
+// when the app is re-injected via HTMX. Delegate one listener on the
+// document, guarded by a marker so repeated injections do not stack it.
+function setupDelegation() {
+if (document.body.dataset.hrDelegated === '1') return;
+document.body.dataset.hrDelegated = '1';
+document.addEventListener('click', (ev) => {
+const el = ev.target && ev.target.closest ? ev.target : null;
+if (!el) return;
+const edit = el.closest('.btn-edit');
+if (edit && edit.dataset.id) { editEmployee(edit.dataset.id); return; }
+const term = el.closest('.btn-terminate');
+if (term && term.dataset.id) { terminateEmployee(term.dataset.id); return; }
+const view = el.closest('.btn-view');
+if (view && view.dataset.id) { viewJob(view.dataset.id); return; }
+const exp = el.closest('.btn-export');
+if (exp) { showFeedback('Payslip export not available', 'error'); return; }
+});
+}
 
 function initTabs() {
 document.querySelectorAll('.tab').forEach(tab => {
@@ -133,8 +156,8 @@ return `
 <span class="badge ${empStatusBadge(e.status)}">${esc(e.status)}</span>
 </div>
 <div class="emp-actions">
-<button class="btn-sm btn-edit" onclick="editEmployee('${esc(e.id)}')">Edit</button>
-<button class="btn-sm btn-terminate" onclick="terminateEmployee('${esc(e.id)}')">Terminate</button>
+<button class="btn-sm btn-edit" data-id="${esc(e.id)}">Edit</button>
+<button class="btn-sm btn-terminate" data-id="${esc(e.id)}">Terminate</button>
 </div>
 </div>
 `;
@@ -261,7 +284,7 @@ list.innerHTML = jobs.map(j => `
 </div>
 </div>
 <div class="job-candidates">${j.candidate_count || 0} candidates</div>
-<button class="btn-outline" onclick="viewJob('${esc(j.id)}')">View</button>
+<button class="btn-outline btn-view" data-id="${esc(j.id)}">View</button>
 </div>
 `).join('');
 }
@@ -379,7 +402,7 @@ async function loadPayroll() {
       <td>${fmt(r.net)}</td>
       <td>${fmt(r.taxes)}</td>
       <td><span class="badge badge-success">${esc(r.status)}</span></td>
-      <td><button class="btn-sm" onclick="showFeedback('Payslip export not available','error')">Export</button></td>
+      <td><button class="btn-sm btn-export">Export</button></td>
     </tr>`).join('') : '<tr><td colspan="7" class="o365-empty">No payroll runs yet</td></tr>';
 }
 
