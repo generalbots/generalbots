@@ -664,6 +664,20 @@ impl VmLifecycle {
                     .map(|p| p == "index.js" || p.ends_with("/index.js"))
                     .unwrap_or(false)
             });
+            // A node-framework project (framework type "node") may designate
+            // its web entry point as `server.js` instead of `index.js` (or a
+            // package.json "start" script). Treat a user-provided `server.js`
+            // as a REAL web entrypoint so it is not clobbered by the generated
+            // static-only fallback server below — otherwise an Express/Node
+            // app silently degrades to the "No web app in this project yet"
+            // page instead of running.
+            let has_server_js = files.iter().any(|f| {
+                f.get("path")
+                    .and_then(|v| v.as_str())
+                    .map(|p| p == "server.js" || p.ends_with("/server.js"))
+                    .unwrap_or(false)
+            });
+            let has_node_entry = has_index_js || has_server_js;
             // Static fallback server: a node process that serves the workspace
             // files over HTTP. Used when the project has no index.js AND when
             // the real entry is not a web server (a CLI that exits, or a crash)
@@ -730,9 +744,11 @@ impl VmLifecycle {
                 .map_err(|e| format!("push run file '{rel}': {e}"))?;
             }
 
-            // Static apps (pure htmx/html) get a generated node server so a
-            // node process is what shows up in the terminal's `ps`.
-            if !has_index_js {
+            // Static apps (pure htmx/html) with no node entrypoint get a
+            // generated node server so a node process is what shows up in the
+            // terminal's `ps`. When the project ships its own server.js it is
+            // honored (has_node_entry), not overwritten.
+            if !has_node_entry {
                 let server_path = temp.join("server.js");
                 std::fs::write(&server_path, server_js)
                     .map_err(|e| format!("write static server: {e}"))?;
@@ -844,7 +860,7 @@ impl VmLifecycle {
                 )
                 .is_ok()
             };
-            if !listening(20) && has_index_js {
+            if !listening(20) && has_node_entry {
                 log::info!(
                     "Vibe: {name} entry is not a web server (nothing on :3000) — serving workspace statically"
                 );
