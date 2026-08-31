@@ -677,6 +677,9 @@ async fn inner_build_sub_router(
     #[cfg(feature = "terminal")]
     { sub_router = sub_router.merge(crate::api::terminal::routes::configure_terminal_routes(app_state.conn.clone())); }
 
+    // #1247 — Web Push subscription backend (Settings push toggle).
+    { sub_router = sub_router.merge(crate::api::push::configure_push_routes(app_state.conn.clone())); }
+
     // AutoTask routes
     {
         use botautotask::types::{AutoTaskState, ConfigOps};
