@@ -524,14 +524,16 @@
         var projectName = (selectedProject && selectedProject.name) || S.projectName();
         // 1) Try to start the app on the dev VM (real node process).
         // 2) Fall back to the static workspace stream when the VM is absent.
+        // Run is a deterministic "start the app on the dev VM" action: it
+        // pushes the workspace into the container, restarts the node service,
+        // and reveals the Browser. It must NOT invoke the agent loop
+        // (VibeTransport.play), which spends LLM tool calls running/verifying
+        // the project — that belongs to the Chat agent, not the Run button.
         startDevVm(projectId)
             .then(function (vm) {
                 openBrowser(vm.url);
                 setRunVisual(true);
                 flashHint("RUNNING " + String(projectName).toUpperCase() + " ON THE DEV VM");
-                if (window.VibeTransport && typeof window.VibeTransport.play === "function") {
-                    window.VibeTransport.play();
-                }
             })
             .catch(function () {
                 return workspaceServeUrl(projectId)
@@ -543,9 +545,6 @@
                         openBrowser(url);
                         setRunVisual(true);
                         flashHint("RUNNING " + String(projectName).toUpperCase() + " (STATIC PREVIEW — NO VM)");
-                        if (window.VibeTransport && typeof window.VibeTransport.play === "function") {
-                            window.VibeTransport.play();
-                        }
                     })
                     .catch(function (err) {
                         setRunVisual(false);
