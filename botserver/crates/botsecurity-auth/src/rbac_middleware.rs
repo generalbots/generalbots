@@ -1140,6 +1140,11 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/mail/**", "PUT", ""),
         RoutePermission::new("/api/mail/**", "DELETE", ""),
 
+        // Notifications — Web Push subscription backend (#1247): the Settings
+        // app registers/unregisters the browser PushSubscription.
+        RoutePermission::new("/api/notifications/push/**", "POST", ""),
+        RoutePermission::new("/api/notifications/**", "GET", ""),
+
         // Calendar
         RoutePermission::new("/api/calendar/**", "GET", ""),
         RoutePermission::new("/api/calendar/**", "POST", ""),
