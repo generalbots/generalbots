@@ -17,6 +17,19 @@ use tokio::sync::RwLock;
 
 use super::types::*;
 
+/// Published-app site domain. Deployed vibe apps are reachable at
+/// `{appname}.{domain}` (#1261). Prefer the platform domain
+/// (`GB_PLATFORM_DOMAIN`, e.g. `generalbots.org`) — the same wildcard zone
+/// the bots use — and fall back to `SITE_DOMAIN` / `gb.solutions` for
+/// legacy self-hosted setups.
+pub(crate) fn published_domain() -> String {
+    std::env::var("GB_PLATFORM_DOMAIN")
+        .ok()
+        .filter(|d| !d.trim().is_empty())
+        .or_else(|| std::env::var("SITE_DOMAIN").ok().filter(|d| !d.trim().is_empty()))
+        .unwrap_or_else(|| "gb.solutions".to_string())
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct GatewayState {
     #[serde(default)]
@@ -334,8 +347,7 @@ async fn deploy_to_incus(
     // systemd service bound to port 80 (auto-restart + start on boot).
     super::gateway_runtime::bootstrap_app_runtime(state, container_name).await?;
 
-    let domain = std::env::var("SITE_DOMAIN")
-        .unwrap_or_else(|_| "gb.solutions".to_string());
+    let domain = published_domain();
     let env_suffix = match request.environment {
         DeploymentEnvironment::Production => String::new(),
         DeploymentEnvironment::Staging => "-staging".to_string(),
@@ -366,8 +378,7 @@ async fn deploy_to_caddy(
         }
     }
 
-    let domain = std::env::var("SITE_DOMAIN")
-        .unwrap_or_else(|_| "gb.solutions".to_string());
+    let domain = published_domain();
     let env_suffix = match request.environment {
         DeploymentEnvironment::Production => String::new(),
         DeploymentEnvironment::Staging => "-staging".to_string(),

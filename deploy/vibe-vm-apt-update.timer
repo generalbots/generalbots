@@ -1,0 +1,9 @@
+[Unit]
+Description=Run vibe VM apt update daily (02:00 UTC)
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -27,8 +27,20 @@ use crate::tool_executor::{ToolHandler, ToolSchema};
 use crate::types::{VibeState, VibeToolResult, VibeUseCase};
 use crate::vm_lifecycle::{CreateVmRequest, VmLifecycle};
 
+/// Published-app site domain: `{appname}.{published_domain()}` (#1261).
+/// Honors `GB_PLATFORM_DOMAIN` (e.g. `generalbots.org`) so published vibe
+/// apps sit on the same wildcard zone as bots; falls back to `SITE_DOMAIN`
+/// then `gb.solutions` for legacy self-hosted deployments.
+pub fn published_domain() -> String {
+    std::env::var("GB_PLATFORM_DOMAIN")
+        .ok()
+        .filter(|d| !d.trim().is_empty())
+        .or_else(|| std::env::var("SITE_DOMAIN").ok().filter(|d| !d.trim().is_empty()))
+        .unwrap_or_else(|| "gb.solutions".to_string())
+}
+
 /// #1180 — public deliverable URLs: `https://host/r/{slug}` 302-redirects to
-/// the project's published route (`{slug}.gb.solutions` or a bound custom
+/// the project's published route (`{slug}.{domain}` or a bound custom
 /// domain), so Vibe artifacts are shareable without any auth.
 pub fn publish_router(pool: DbPool) -> Router {
     Router::new()
@@ -61,7 +73,7 @@ async fn resolve_slug(
         }
     };
     let candidates = [
-        format!("{slug}.gb.solutions"),
+        format!("{slug}.{}", published_domain()),
         slug.clone(),
     ];
     let mut found: Option<(String, String)> = None;
@@ -337,7 +349,7 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         }),
         None => serde_json::json!({
             "Internal": {
-                "route": format!("{repo_name}-{env}.gb.solutions"),
+                "route": format!("{repo_name}-{env}.{}", published_domain()),
                 "shared_resources": true
             }
         }),
@@ -438,6 +450,38 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         }
         serde_json::from_str(&text).unwrap_or_else(|_| serde_json::json!({ "raw": text }))
     };
+
+    // #1271 — prod must keep the framework running always-on, not just raise
+    // the container. Deploying to the prod VM reuses the same app-start as
+    // dev Run (run_dev_app): workspace pushed into /opt/vibe/app and the node
+    // (or python) service started with Restart=always, so the published URL
+    // serves a live process instead of an empty VM. Only meaningful for
+    // production (dev Run already goes through run_dev_app directly).
+    #[cfg(not(target_os = "windows"))]
+    if env == "production" {
+        let host_port = std::env::var("VIBE_PROD_APP_PORT")
+            .ok()
+            .and_then(|v| v.parse::<u16>().ok())
+            .unwrap_or(80);
+        match VmLifecycle::new(pool.clone()).run_dev_app(
+            &vm.container_name,
+            &files,
+            host_port,
+        ) {
+            Ok(_) => log::info!(
+                "Vibe publish {}: started app always-on in prod container {}",
+                project.name,
+                vm.container_name
+            ),
+            Err(e) => {
+                log::warn!(
+                    "Vibe publish {}: could not start prod app in {}: {e}",
+                    project.name,
+                    vm.container_name
+                );
+            }
+        }
+    }
 
     let deployment = serde_json::json!({
         "env": env,

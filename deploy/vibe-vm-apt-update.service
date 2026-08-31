@@ -1,0 +1,7 @@
+[Unit]
+Description=Vibe VM daily apt update (with snapshot rotate)
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/gbo/bin/vibe-vm-apt-update.sh

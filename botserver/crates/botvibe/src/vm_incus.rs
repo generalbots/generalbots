@@ -38,6 +38,24 @@ function probe() {
 probe();
 "#;
 
+/// Same TCP :3000 liveness probe in Python for runtime-python projects (the
+/// base image may not have node installed, so the node probe would always
+/// fail and wrongly trigger a static fallback).
+const HEALTH_PROBE_PYTHON: &str = r#"import socket, sys, time
+attempts = int(sys.argv[1] if len(sys.argv) > 1 else 20)
+tried = 0
+while tried < attempts:
+    try:
+        s = socket.create_connection(('127.0.0.1', 3000), timeout=1)
+    except OSError:
+        tried += 1
+        time.sleep(1)
+        continue
+    s.close()
+    sys.exit(0)
+sys.exit(1)
+"#;
+
 /// Working directory for driver commands: `/tmp` on Linux, the OS temp dir
 /// on Windows (where `/tmp` does not exist).
 fn driver_cwd() -> std::path::PathBuf {
@@ -678,6 +696,20 @@ impl VmLifecycle {
                     .unwrap_or(false)
             });
             let has_node_entry = has_index_js || has_server_js;
+            // A python-framework project (framework type "python") designates
+            // its web entry point with a python module (app.py / server.py /
+            // main.py) instead of index.js. Treat a user-provided python
+            // entry as a REAL web entrypoint too, so a Flask/FastAPI app is
+            // started and kept alive (Restart=always) rather than being
+            // clobbered by the node static-only fallback below.
+            let has_python_entry = files.iter().any(|f| {
+                let path = f.get("path").and_then(|v| v.as_str()).unwrap_or("");
+                let name = path.rsplit('/').next().unwrap_or(path);
+                matches!(
+                    name,
+                    "app.py" | "server.py" | "main.py" | "api.py" | "run.py"
+                )
+            });
             // Static fallback server: a node process that serves the workspace
             // files over HTTP. Used when the project has no index.js AND when
             // the real entry is not a web server (a CLI that exits, or a crash)
@@ -746,9 +778,10 @@ impl VmLifecycle {
 
             // Static apps (pure htmx/html) with no node entrypoint get a
             // generated node server so a node process is what shows up in the
-            // terminal's `ps`. When the project ships its own server.js it is
-            // honored (has_node_entry), not overwritten.
-            if !has_node_entry {
+            // terminal's `ps`. When the project ships its own server.js (node)
+            // or a python entry it is honored (has_node_entry /
+            // has_python_entry), not overwritten.
+            if !has_node_entry && !has_python_entry {
                 let server_path = temp.join("server.js");
                 std::fs::write(&server_path, server_js)
                     .map_err(|e| format!("write static server: {e}"))?;
@@ -765,12 +798,35 @@ impl VmLifecycle {
                 .map_err(|e| format!("push static server: {e}"))?;
             }
 
-            let entry = if has_index_js { "index.js" } else { "server.js" };
+            // Pick the web entry + runtime. Node projects run index.js (or a
+            // custom server.js) with /usr/bin/node; python projects run their
+            // detected module with /usr/bin/python3. Pure-static projects get
+            // the generated server.js (node). This drives the systemd ExecStart
+            // and the runtime bootstrap below.
+            let is_python = has_python_entry && !has_node_entry;
+            let entry = if is_python {
+                files
+                    .iter()
+                    .filter_map(|f| {
+                        let path = f.get("path").and_then(|v| v.as_str())?;
+                        let name = path.rsplit('/').next().unwrap_or(path);
+                        (matches!(name, "app.py" | "server.py" | "main.py" | "api.py" | "run.py")).then_some(name)
+                    })
+                    .collect::<Vec<_>>()
+                    .into_iter()
+                    .next()
+                    .unwrap_or("app.py")
+            } else if has_index_js {
+                "index.js"
+            } else {
+                "server.js"
+            };
             let service = temp.join("vibe-app.service");
             std::fs::write(
                 &service,
                 format!(
-                    "[Unit]\nDescription=Vibe application\nAfter=network.target\n\n[Service]\nType=simple\nWorkingDirectory=/opt/vibe/app\nEnvironment=PORT=3000\nExecStart=/usr/bin/node /opt/vibe/app/{entry}\nRestart=always\nRestartSec=2\n\n[Install]\nWantedBy=multi-user.target\n"
+                    "[Unit]\nDescription=Vibe application\nAfter=network.target\n\n[Service]\nType=simple\nWorkingDirectory=/opt/vibe/app\nEnvironment=PORT=3000\nExecStart={}/opt/vibe/app/{entry}\nRestart=always\nRestartSec=2\n\n[Install]\nWantedBy=multi-user.target\n",
+                    if is_python { "/usr/bin/python3" } else { "/usr/bin/node" }
                 ),
             )
             .map_err(|e| format!("write service unit: {e}"))?;
@@ -786,7 +842,58 @@ impl VmLifecycle {
             )
             .map_err(|e| format!("push service unit: {e}"))?;
 
-            if self
+            // Bootstrap the project runtime. Node apps check for nodejs/npm;
+            // python apps check for python3 (and pip so `requirements.txt`
+            // deps resolve before the service starts). Static fallbacks run
+            // with node, so a python-only VM still gets node for the generated
+            // static server.
+            if is_python {
+                if self
+                    .incus_run(
+                        &[
+                            "exec".to_string(),
+                            name.to_string(),
+                            "--".to_string(),
+                            "python3".to_string(),
+                            "--version".to_string(),
+                        ],
+                        30,
+                    )
+                    .is_err()
+                {
+                    for command in [
+                        vec!["apt-get", "update"],
+                        vec!["apt-get", "install", "-y", "python3", "python3-pip"],
+                    ] {
+                        let mut args = vec!["exec".to_string(), name.to_string(), "--".to_string()];
+                        args.extend(command.into_iter().map(str::to_string));
+                        self.incus_run(&args, 300)
+                            .map_err(|e| format!("install Python runtime: {e}"))?;
+                    }
+                }
+                // Resolve project dependencies before the service starts.
+                if files.iter().any(|f| {
+                    let p = f.get("path").and_then(|v| v.as_str()).unwrap_or("");
+                    p == "requirements.txt" || p.ends_with("/requirements.txt")
+                }) {
+                    let mut args = vec![
+                        "exec".to_string(),
+                        name.to_string(),
+                        "--".to_string(),
+                        "python3".to_string(),
+                        "-m".to_string(),
+                        "pip".to_string(),
+                        "install".to_string(),
+                        "-r".to_string(),
+                        "/opt/vibe/app/requirements.txt".to_string(),
+                    ];
+                    // Some base images are externally-managed (PEP 668) and
+                    // refuse system installs; --break-system-packages keeps a
+                    // few-line python app running on Ubuntu 24.04 VMs.
+                    args.push("--break-system-packages".to_string());
+                    let _ = self.incus_run(&args, 300);
+                }
+            } else if self
                 .incus_run(
                     &[
                         "exec".to_string(),
@@ -832,28 +939,32 @@ impl VmLifecycle {
             // (with `$`, `;`, `>`) is refused and the probe always fails,
             // which wrongly swapped every custom/node app to the static
             // server. A pushed probe script runs with clean arguments.
-            let probe_path = temp.join("vibe-healthcheck.js");
-            std::fs::write(&probe_path, HEALTH_PROBE_JS)
+            let probe_file = if is_python { "healthcheck.py" } else { "healthcheck.js" };
+            let probe_path = temp.join(&format!("vibe-{probe_file}"));
+            let probe_src = if is_python { HEALTH_PROBE_PYTHON } else { HEALTH_PROBE_JS };
+            std::fs::write(&probe_path, probe_src)
                 .map_err(|e| format!("write health probe: {e}"))?;
             self.incus_run(
                 &[
                     "file".to_string(),
                     "push".to_string(),
                     probe_path.to_string_lossy().into_owned(),
-                    format!("{name}/opt/vibe/healthcheck.js"),
+                    format!("{name}/opt/vibe/{probe_file}"),
                     "--create-dirs".to_string(),
                 ],
                 60,
             )
             .map_err(|e| format!("push health probe: {e}"))?;
+            let probe_interp = if is_python { "python3" } else { "node" };
+            let probe_dest = format!("/opt/vibe/{probe_file}");
             let listening = |attempts: u32| -> bool {
                 self.incus_run(
                     &[
                         "exec".to_string(),
                         name.to_string(),
                         "--".to_string(),
-                        "node".to_string(),
-                        "/opt/vibe/healthcheck.js".to_string(),
+                        probe_interp.to_string(),
+                        probe_dest.clone(),
                         attempts.to_string(),
                     ],
                     60,
