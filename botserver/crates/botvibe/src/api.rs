@@ -226,7 +226,12 @@ fn resolve_project(
                     // (github-mode projects clone the caller's repo instead —
                     // wired async in create_run below, which owns the await.)
                     let key = crate::vm_lifecycle::VmLifecycle::alm_repo(&p.name);
-                    if let Err(e) = crate::templates::seed_project_workspace(&key, &p.name) {
+                    if let Err(e) = crate::templates::seed_project_workspace(
+                        &key,
+                        &p.name,
+                        "custom",
+                        p.framework.as_deref(),
+                    ) {
                         error!("Vibe: seed auto-created project '{name}' failed: {e}");
                     }
                     // #1271 — an auto-created project must grant the caller
