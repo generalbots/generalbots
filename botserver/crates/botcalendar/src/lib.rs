@@ -531,15 +531,46 @@ pub async fn list_calendars_db(
         Err(_) => (Uuid::nil(), Uuid::nil()),
     };
 
-    let result = tokio::task::spawn_blocking(move || {
-        let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
-        calendars::table
-            .filter(calendars::org_id.eq(org_id))
-            .filter(calendars::bot_id.eq(bot_id))
-            .order(calendars::created_at.desc())
-            .load::<CalendarRecord>(&mut conn)
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
-    })
+    let result = tokio::task::spawn_blocking(
+        move || -> Result<Vec<CalendarRecord>, StatusCode> {
+            let mut conn = pool.get().map_err(|_| StatusCode::SERVICE_UNAVAILABLE)?;
+            let calendars = calendars::table
+                .filter(calendars::org_id.eq(org_id))
+                .filter(calendars::bot_id.eq(bot_id))
+                .order(calendars::created_at.desc())
+                .load::<CalendarRecord>(&mut conn)
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            // #1250 — auto-provision a default calendar when the workspace
+            // has none: `create_event` requires a `calendar_id`, and a fresh
+            // user who opens Calendar would otherwise see an empty state with
+            // no way to create events until they manually create a calendar.
+            if calendars.is_empty() {
+                let now = Utc::now();
+                let default_calendar = CalendarRecord {
+                    id: Uuid::new_v4(),
+                    org_id,
+                    bot_id,
+                    owner_id: Uuid::nil(),
+                    name: "Default".to_string(),
+                    description: Some("Your default calendar".to_string()),
+                    color: Some("#3b82f6".to_string()),
+                    timezone: Some("UTC".to_string()),
+                    is_primary: true,
+                    is_visible: true,
+                    is_shared: false,
+                    created_at: now,
+                    updated_at: now,
+                };
+                // Race-safe: two concurrent first lists may both try to
+                // insert; a duplicate-key error is harmless (the other won).
+                let _ = diesel::insert_into(calendars::table)
+                    .values(&default_calendar)
+                    .execute(&mut conn);
+                return Ok(vec![default_calendar]);
+            }
+            Ok(calendars)
+        },
+    )
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
