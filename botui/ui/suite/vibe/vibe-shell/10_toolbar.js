@@ -354,7 +354,11 @@
                 });
                 if (!S.projectId()) {
                     var storedId = "";
-                    try { storedId = sessionStorage.getItem("gb-vibe-project-id") || ""; } catch (ignore) { }
+                    // Prefer the durable (localStorage) selection so the last
+                    // used project — not projects[0] — is restored across
+                    // sessions; fall back to the in-session value.
+                    try { storedId = localStorage.getItem("gb-vibe-project-id") || 
+                                     sessionStorage.getItem("gb-vibe-project-id") || ""; } catch (ignore) { }
                     var preferred = projects.find(function (p) {
                         var id = p.project_id || p.id;
                         return storedId && String(id) === String(storedId);
