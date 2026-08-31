@@ -1015,6 +1015,68 @@ fn generate_svg(canvas: &Canvas, include_background: bool) -> String {
     svg
 }
 
+/// Workspace-level collaborator (distinct users granted access to any canvas
+/// in the caller's scope, with their permission role) — #1248.
+#[derive(Debug, Clone, Serialize)]
+pub struct WorkspaceCollaborator {
+    pub email: String,
+    pub username: String,
+    pub role: String,
+}
+
+#[derive(diesel::QueryableByName)]
+struct WorkspaceCollaboratorRow {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    email: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    username: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    role: String,
+}
+
+impl WorkspaceCollaboratorRow {
+    fn into_collaborator(self) -> WorkspaceCollaborator {
+        WorkspaceCollaborator {
+            email: self.email,
+            username: self.username,
+            role: self.role,
+        }
+    }
+}
+
+/// #1248 — workspace collaborators for the Canvas app's `loadCollaborators()`:
+/// `GET /api/canvas/collaborators` (no canvas id). Previously this route did
+/// not exist, so the UI always degraded to "No collaborators" even when
+/// canvases were shared. Returns every user granted access to any canvas in
+/// the caller's (org, bot) scope, deduplicated, joined to the users table for
+/// real emails/usernames.
+async fn list_workspace_collaborators(
+    State(state): State<Arc<CanvasState>>,
+) -> Result<Json<Vec<WorkspaceCollaborator>>, (StatusCode, String)> {
+    let mut conn = state
+        .pool
+        .get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}")))?;
+    let (org_id, bot_id) = (state.get_bot_context)(&state.pool);
+
+    let rows = diesel::sql_query(
+        "SELECT DISTINCT u.email AS email, u.username AS username, cc.permission AS role \
+         FROM canvas_collaborators cc \
+         JOIN canvases c ON c.id = cc.canvas_id \
+         JOIN users u ON u.id = cc.user_id \
+         WHERE c.org_id = $1 AND c.bot_id = $2 \
+         ORDER BY u.email",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(org_id)
+    .bind::<diesel::sql_types::Uuid, _>(bot_id)
+    .load::<WorkspaceCollaboratorRow>(&mut conn)
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+
+    Ok(Json(
+        rows.into_iter().map(|r| r.into_collaborator()).collect(),
+    ))
+}
+
 async fn list_collaborators(
     State(state): State<Arc<CanvasState>>,
     Path(canvas_id): Path<Uuid>,
@@ -1261,6 +1323,10 @@ async fn get_collaboration_info(
 
 pub fn configure_canvas_routes() -> Router<Arc<CanvasState>> {
     Router::new()
+        .route(
+            "/api/canvas/collaborators",
+            get(list_workspace_collaborators),
+        )
         .route("/api/canvas", get(list_canvases).post(create_canvas))
         .route(
             "/api/canvas/{canvas_id}",
