@@ -539,11 +539,16 @@ impl VmLifecycle {
                 )
                 .is_err()
             {
+                // Fresh containers have no TTY; debconf's Dialog frontend
+                // aborts with exit 100 unless the frontend is noninteractive.
                 for command in [
                     vec!["apt-get", "update"],
                     vec!["apt-get", "install", "-y", "nodejs", "npm"],
                 ] {
-                    let mut args = vec!["exec".to_string(), name.to_string(), "--".to_string()];
+                    let mut args = vec!["exec".to_string(), name.to_string()];
+                    args.push("--env".to_string());
+                    args.push("DEBIAN_FRONTEND=noninteractive".to_string());
+                    args.push("--".to_string());
                     args.extend(command.into_iter().map(str::to_string));
                     self.incus_run(&args, 300)
                         .map_err(|e| format!("install Node runtime: {e}"))?;
@@ -861,11 +866,16 @@ impl VmLifecycle {
                     )
                     .is_err()
                 {
+                    // Fresh containers have no TTY; debconf's Dialog frontend
+                    // aborts with exit 100 unless the frontend is noninteractive.
                     for command in [
                         vec!["apt-get", "update"],
                         vec!["apt-get", "install", "-y", "python3", "python3-pip"],
                     ] {
-                        let mut args = vec!["exec".to_string(), name.to_string(), "--".to_string()];
+                        let mut args = vec!["exec".to_string(), name.to_string()];
+                        args.push("--env".to_string());
+                        args.push("DEBIAN_FRONTEND=noninteractive".to_string());
+                        args.push("--".to_string());
                         args.extend(command.into_iter().map(str::to_string));
                         self.incus_run(&args, 300)
                             .map_err(|e| format!("install Python runtime: {e}"))?;
@@ -906,11 +916,16 @@ impl VmLifecycle {
                 )
                 .is_err()
             {
+                // Fresh containers have no TTY; debconf's Dialog frontend
+                // aborts with exit 100 unless the frontend is noninteractive.
                 for command in [
                     vec!["apt-get", "update"],
                     vec!["apt-get", "install", "-y", "nodejs", "npm"],
                 ] {
-                    let mut args = vec!["exec".to_string(), name.to_string(), "--".to_string()];
+                    let mut args = vec!["exec".to_string(), name.to_string()];
+                    args.push("--env".to_string());
+                    args.push("DEBIAN_FRONTEND=noninteractive".to_string());
+                    args.push("--".to_string());
                     args.extend(command.into_iter().map(str::to_string));
                     self.incus_run(&args, 300)
                         .map_err(|e| format!("install Node runtime: {e}"))?;
