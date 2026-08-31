@@ -142,7 +142,58 @@ pub fn git_commit_tool() -> ToolHandler {
             // to origin/main AFTER this push, so a subsequent deploy would
             // otherwise be rejected ("fetch first"). Rebase onto the remote
             // tip before pushing so the workspace stays in sync with Forgejo.
+            // #1271 — github-mode projects clone an EXTERNAL repository (the
+            // caller's GitHub repo). That remote is read-only for us (no
+            // GitHub credentials), so `git push origin` fails with "could not
+            // read Username" and aborts the whole deploy pipeline before
+            // publish. The deploy publishes from the WORKSPACE, not from the
+            // GitHub remote, so the push must be skipped: the commit stays
+            // local, and the pipeline proceeds to publish. Only git-mode
+            // workspaces (origin = internal ALM/Forgejo with an embedded
+            // token) actually push.
+            fn origin_is_external(cwd: &std::path::Path) -> bool {
+                let url = match run(
+                    "git",
+                    &["remote".to_string(), "get-url".to_string(), "origin".to_string()],
+                    cwd,
+                    15,
+                ) {
+                    Ok(out) if out.exit_code == Some(0) => out.stdout.trim().to_string(),
+                    _ => return false,
+                };
+                let (alm_base, _, _) = botcoresecrets::alm_config();
+                // No ALM configured -> there is no internal remote to push to
+                // (git-mode projects require ALM config to exist), so any
+                // origin is external by definition. Skip the push rather than
+                // attempt an unauthenticated push to a foreign remote.
+                if alm_base.is_empty() {
+                    return true;
+                }
+                let alm_host = alm_base
+                    .trim_end_matches('/')
+                    .split("://")
+                    .nth(1)
+                    .unwrap_or(&alm_base)
+                    .split(['/', ':'])
+                    .next()
+                    .unwrap_or("")
+                    .to_string();
+                if alm_host.is_empty() {
+                    return true;
+                }
+                // The internal remote embeds the ALM host; an external
+                // (github) remote points elsewhere.
+                !url.contains(&alm_host)
+            }
+
             fn push_origin(cwd: &std::path::Path) -> VibeToolResult {
+                if origin_is_external(cwd) {
+                    return ok(json!({
+                        "pushed": false,
+                        "external": true,
+                        "output": "external origin — push skipped (commit is local-only)",
+                    }));
+                }
                 // Sync with the remote tip first (best-effort; a missing
                 // origin/main is fine — it just means no remote history yet).
                 match run("git", &["fetch".to_string(), "origin".to_string()], cwd, 60) {
