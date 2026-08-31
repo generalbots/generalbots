@@ -916,8 +916,12 @@
         // Idle / finished: a selected project can always be run directly.
         // With the runner chat removed, Run always executes the deterministic
         // project verification intent; prompts belong in the Chat app (@app).
-        var projectName = typeof currentProject !== "undefined" && currentProject ? String(currentProject) : "selected project";
-        var text = "Run and verify the selected project " + projectName;
+        var projectName = typeof currentProject !== "undefined" && currentProject ? String(currentProject) : "";
+        // Avoid the doubled "...selected project selected project" when no
+        // project is currently selected (projectName is the verbatim fallback).
+        var text = projectName
+            ? "Run and verify the selected project " + projectName
+            : "Run and verify the selected project";
         // Auto-approval like freebuff: Run executes tools without waiting for
         // manual approval gates (server only honors it for admins).
         start(text, { auto_approve: true }).then(function () {
@@ -971,8 +975,10 @@
             updateRibbonStatus("RUN IN PROGRESS", "hint");
             return;
         }
-        var projectName = typeof currentProject !== "undefined" && currentProject ? String(currentProject) : "selected project";
-        var text = "Deploy the project " + projectName + " to production";
+        var projectName = typeof currentProject !== "undefined" && currentProject ? String(currentProject) : "";
+        var text = projectName
+            ? "Deploy the project " + projectName + " to production"
+            : "Deploy the selected project to production";
         uiMsg("🚀 Deploying " + projectName + " to production…");
         // The Deploy click itself is the approval to publish: carry
         // auto_approve so the approval-gated deploy pipeline (commit/publish/

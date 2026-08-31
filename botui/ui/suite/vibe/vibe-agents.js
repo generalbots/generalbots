@@ -56,6 +56,13 @@ function applyProjectSelection(p, persist) {
     window.currentProjectId = id;
     if (persist !== false) {
         try {
+            // Persist to BOTH storage backends: localStorage so the last-used
+            // project is restored on a fresh tab/session (otherwise the shell
+            // falls back to projects[0], which may have no web app yet and
+            // shows "No web app in this project yet"), and sessionStorage for
+            // the in-window sync used by loadProjects today.
+            localStorage.setItem("gb-vibe-project-id", String(id || ""));
+            localStorage.setItem("gb-vibe-project-name", String(name));
             sessionStorage.setItem("gb-vibe-project-id", String(id || ""));
             sessionStorage.setItem("gb-vibe-project-name", String(name));
         } catch (_) {
