@@ -84,6 +84,16 @@ fn route_payload(domain: &str, dial: &str, rid: &str, access: &str) -> serde_jso
 }
 
 pub async fn upsert_route(domain: &str, container: &str, access: &str) -> Result<CaddyResult, String> {
+    let dial = format!("{container}.incus:80");
+    upsert_route_to(domain, &dial, access).await
+}
+
+/// #1261 — upsert a Caddy reverse-proxy route for `domain` → `dial`, where
+/// `dial` is an explicit `host:port` (e.g. `10.0.0.42:3000`). The proxy
+/// container cannot resolve `{container}.incus` names, so the vibe publish
+/// path resolves the container's real IP at deploy time and dials it
+/// directly, keeping published apps reachable at `{app}.{platform-domain}`.
+pub async fn upsert_route_to(domain: &str, dial: &str, access: &str) -> Result<CaddyResult, String> {
     let base = caddy_api_url();
     let client = client()?;
     let rid = route_id(domain);
@@ -93,8 +103,7 @@ pub async fn upsert_route(domain: &str, container: &str, access: &str) -> Result
         .send()
         .await;
 
-    let dial = format!("{container}.incus:80");
-    let body = route_payload(domain, &dial, &rid, access);
+    let body = route_payload(domain, dial, &rid, access);
     let resp = client
         .post(format!("{base}/config/apps/http/servers/srv0/routes"))
         .json(&body)
