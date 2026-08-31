@@ -463,22 +463,69 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
             .ok()
             .and_then(|v| v.parse::<u16>().ok())
             .unwrap_or(80);
-        match VmLifecycle::new(pool.clone()).run_dev_app(
+        let app_started = match VmLifecycle::new(pool.clone()).run_dev_app(
             &vm.container_name,
             &files,
             host_port,
         ) {
-            Ok(_) => log::info!(
-                "Vibe publish {}: started app always-on in prod container {}",
-                project.name,
-                vm.container_name
-            ),
+            Ok(_) => {
+                log::info!(
+                    "Vibe publish {}: started app always-on in prod container {}",
+                    project.name,
+                    vm.container_name
+                );
+                true
+            }
             Err(e) => {
                 log::warn!(
                     "Vibe publish {}: could not start prod app in {}: {e}",
                     project.name,
                     vm.container_name
                 );
+                false
+            }
+        };
+        // #1261 — the published app is reachable at `{repo}.{domain}` (the
+        // same wildcard zone as bots). Register a Caddy reverse-proxy route
+        // to the prod container. The app listens on :3000 inside the
+        // container (`run_dev_app` pins PORT=3000) and the proxy container
+        // cannot resolve `{container}.incus` names, so dial the container's
+        // real IP. Route failure is logged but non-fatal: the app keeps
+        // running inside the container and the host proxy still works.
+        if app_started {
+            let host = format!("{repo_name}.{}", published_domain());
+            let dial = match VmLifecycle::new(pool.clone()).linux_ip(&vm.container_name) {
+                Ok(Some(ip)) => format!("{ip}:3000"),
+                Ok(None) => {
+                    log::warn!(
+                        "Vibe publish {}: no IPv4 found for {} — published URL {} will not route",
+                        project.name,
+                        vm.container_name,
+                        host
+                    );
+                    String::new()
+                }
+                Err(e) => {
+                    log::warn!(
+                        "Vibe publish {}: could not resolve IP for {}: {e}",
+                        project.name,
+                        vm.container_name
+                    );
+                    String::new()
+                }
+            };
+            if !dial.is_empty() {
+                match crate::caddy::upsert_route_to(&host, &dial, "public").await {
+                    Ok(route) => log::info!(
+                        "Vibe publish {}: Caddy route {} -> {dial}",
+                        project.name,
+                        route.route_id
+                    ),
+                    Err(e) => log::warn!(
+                        "Vibe publish {}: Caddy route for {host} failed: {e}",
+                        project.name
+                    ),
+                }
             }
         }
     }
