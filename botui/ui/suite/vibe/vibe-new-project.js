@@ -28,7 +28,10 @@
         // framework picker offers nothing else (html/css are htmx's building
         // blocks, not standalone templates).
         website: ["htmx"],
-        custom: ["node", "python", "htmx", "html"]
+        // Runtime apps are node or python — the two runtimes the dev VM and
+        // the prod Deploy actually launch as an always-on service. htmx/html
+        // belong only to the Website kind (Caddy/static), not to a custom app.
+        custom: ["node", "python"]
     };
 
     // name kept in state so Kind/Tier re-renders do not discard the user's

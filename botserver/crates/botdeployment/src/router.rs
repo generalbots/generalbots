@@ -162,15 +162,19 @@ impl DeploymentRouter {
         if let Some(ref domain) = config.custom_domain {
             format!("https://{domain}/")
         } else {
+            // #1261 — deployed apps are reachable at `{appname}.{domain}`,
+            // honoring GB_PLATFORM_DOMAIN (e.g. generalbots.org) so the same
+            // wildcard zone serves bots and published vibe apps.
+            let domain = super::gateway_server::published_domain();
             match config.environment {
                 DeploymentEnvironment::Production => {
-                    format!("https://{}.gb.solutions/", config.app_name)
+                    format!("https://{}.{domain}/", config.app_name)
                 }
                 DeploymentEnvironment::Staging => {
-                    format!("https://{}-staging.gb.solutions/", config.app_name)
+                    format!("https://{}-staging.{domain}/", config.app_name)
                 }
                 DeploymentEnvironment::Development => {
-                    format!("https://{}-dev.gb.solutions/", config.app_name)
+                    format!("https://{}-dev.{domain}/", config.app_name)
                 }
             }
         }
