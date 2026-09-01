@@ -64,6 +64,18 @@ function sendMessage(messageContent) {
       }
     }
   }
+  // The vibe shell knows the running project even when the mention picker
+  // never loaded its catalog: a typed (or toolbar pre-filled) `@<project>`
+  // resolves against the SELECTED project, so the message carries
+  // project_context and the server routes it deterministically to the vibe
+  // agent instead of the bot's generic LLM answering with a clarification.
+  if (!projectMention && typeof window.currentProjectId !== "undefined" && window.currentProjectId) {
+    var vibeName = String(window.currentProject || "").trim();
+    var vibeMatch = content.match(/(?:^|\s)@([A-Za-z0-9][A-Za-z0-9_.-]*)/);
+    if (vibeMatch && vibeName && vibeMatch[1].toLowerCase() === vibeName.toLowerCase()) {
+      projectMention = { id: window.currentProjectId, name: vibeName };
+    }
+  }
   if (projectMention) {
     payload.project_context = {
       project_id: String(projectMention.id),
