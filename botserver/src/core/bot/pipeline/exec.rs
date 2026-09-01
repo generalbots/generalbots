@@ -354,6 +354,79 @@ pub async fn process_message_internal(
             "content": format!("Contexto da conversa:\n{session_context}")
         }));
     }
+    // #1298 — a chat message that explicitly references a Vibe project via the
+    // mention picker (`@project` / the vibe Chat toolbar) is a deterministic
+    // vibe agent request, NOT a general chat question. Route it straight to the
+    // vibe run pipeline instead of relying on the LLM to emit an `__api_call__`
+    // block with `vibe.project.change` (smaller models like gpt-oss skip it and
+    // answer with a generic clarification, so "@app paint it red" never reaches
+    // the agent). The run executor is the same one `vibe.project.change` uses.
+    let routed_project_id = project_context.as_ref().and_then(|ctx| {
+        ctx.get("project_id")
+            .and_then(|v| v.as_str())
+            .filter(|s| !s.is_empty())
+            .map(|s| s.to_string())
+    });
+    if let Some(pid) = routed_project_id {
+        let project_name = project_context
+            .as_ref()
+            .and_then(|c| c.get("project_name"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let mut run_params = serde_json::Map::new();
+        run_params.insert("intent".to_string(), serde_json::Value::String(user_text.clone()));
+        run_params.insert("project_id".to_string(), serde_json::Value::String(pid.clone()));
+        if !project_name.is_empty() {
+            run_params.insert("project_name".to_string(), serde_json::Value::String(project_name.clone()));
+        }
+        run_params.insert(
+            "use_case".to_string(),
+            serde_json::Value::String("software_development".to_string()),
+        );
+        let result = crate::core::bot::api_exec::exec_endpoint(
+            state,
+            user_id,
+            Some(bot_uuid),
+            "POST",
+            "/api/vibe/run",
+            &run_params,
+        )
+        .await;
+        match result {
+            Ok(value) => {
+                // Surface a concise confirmation; the run itself streams its
+                // progress through the vibe websocket/Run Dock, not the chat.
+                let run_id = value.get("run_id").and_then(|v| v.as_str()).unwrap_or("");
+                let note = if run_id.is_empty() {
+                    "Vibe agent started for project '{project_name}'.".to_string()
+                } else {
+                    format!("Vibe agent started for project '{project_name}' (run #{run_id}).")
+                };
+                let resp = botlib::models::BotResponse::new(
+                    bot_uuid.to_string(),
+                    session_id.to_string(),
+                    user_id.to_string(),
+                    &note,
+                    "web",
+                );
+                let _ = sink.send_bot_response(&resp).await;
+            }
+            Err(e) => {
+                log::warn!("Vibe chat routing failed for project {pid}: {e}");
+                let resp = botlib::models::BotResponse::new(
+                    bot_uuid.to_string(),
+                    session_id.to_string(),
+                    user_id.to_string(),
+                    &format!("Vibe agent could not start for '{project_name}': {e}"),
+                    "web",
+                );
+                let _ = sink.send_bot_response(&resp).await;
+            }
+        }
+        return Ok(());
+    }
+
     if let Some(context) = project_context.as_ref() {
         let project_id = context.get("project_id").and_then(|v| v.as_str()).unwrap_or("");
         let project_name = context.get("project_name").and_then(|v| v.as_str()).unwrap_or("");

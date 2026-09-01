@@ -376,6 +376,12 @@ pub fn projects_router(
             "/api/vibe/projects/:project_id/branches/:name",
             post(switch_project_branch),
         )
+        // Project Properties: full run history with per-run and rolled-up
+        // token usage (input/output/total) for the selected project.
+        .route(
+            "/api/vibe/projects/:project_id/history",
+            get(project_run_history),
+        )
         .layer(Extension(lifecycle))
         .layer(Extension(registry))
         .layer(Extension(rbac))
@@ -927,7 +933,9 @@ async fn preview_vm_app(
     };
     let body: axum::body::Body = if content_type.to_lowercase().contains("html") {
         match (std::str::from_utf8(&bytes), query.token.as_deref()) {
-            (Ok(text), Some(token)) => serve_inject_token(text, token).into_bytes().into(),
+            (Ok(text), Some(token)) => serve_inject_preview(text, token, project_id, port)
+                .into_bytes()
+                .into(),
             _ => bytes.into(),
         }
     } else {
@@ -1108,6 +1116,131 @@ fn serve_mime_for(path: &str) -> &'static str {
     }
 }
 
+/// Rewrite an HTML document served through the dev-VM preview proxy so the app
+/// keeps working when embedded in a same-origin iframe.
+///
+/// Two problems are solved (reported 2026-09-01):
+/// 1. Root-relative `src`/`href` URLs (`/style.css`) and inline `fetch('/api/..')`
+///    calls resolve against the botserver origin, hit the `/api/*` auth middleware
+///    and return `missing_token`. They are rewritten to route back through the
+///    preview proxy itself (`path=` + `token=`), exactly like the workspace
+///    `serve` route does for relative assets.
+/// 2. Relative asset URLs (`app.js`) are also routed through the proxy (they
+///    would otherwise resolve against `/api/vibe/projects/...` and 404).
+fn serve_inject_preview(html: &str, token: &str, project_id: Uuid, port: u16) -> String {
+    if token.is_empty() {
+        return html.to_string();
+    }
+    let proxy_base = format!(
+        "/api/vibe/projects/{project_id}/vm-preview?port={port}&path="
+    );
+    let shim = format!(
+        r##"<script>/* gb vm-preview proxy shim */
+(function(){{
+  var base = {proxy_base_q:?};
+  var token = {token_q:?};
+  function proxify(u) {{
+    if (typeof u !== "string" || !u) return u;
+    if (u.indexOf("http://") === 0 || u.indexOf("https://") === 0 ||
+        u.indexOf("//") === 0 || u.indexOf("data:") === 0 ||
+        u.indexOf("blob:") === 0 || u.indexOf("#") === 0 ||
+        u.indexOf("/api/vibe/projects/") === 0) return u;
+    var p = u.charAt(0) === "/" ? u : "/" + u;
+    return base + encodeURIComponent(p) + "&token=" + token;
+  }}
+  var of = window.fetch;
+  if (of) window.fetch = function(input, init) {{
+    return of.call(this, proxify(input), init);
+  }};
+  var OX = window.XMLHttpRequest;
+  if (OX && OX.prototype && OX.prototype.open) {{
+    var op = OX.prototype.open;
+    OX.prototype.open = function(m, u, async, user, pass) {{
+      return op.call(this, m, proxify(u), async, user, pass);
+    }};
+  }}
+}})();</script>"##,
+        proxy_base_q = proxy_base,
+        token_q = token,
+    );
+    let mut out = String::with_capacity(html.len() + shim.len() + 64);
+    let mut rest = html;
+    while !rest.is_empty() {
+        // Find the next `src="|href="|src='|href='` marker.
+        let candidates = ["src=\"", "href=\"", "src='", "href='"]
+            .into_iter()
+            .filter_map(|m| rest.find(m).map(|p| (p, m)))
+            .min_by_key(|(p, _)| *p);
+        match candidates {
+            Some((pos, marker)) => {
+                out.push_str(&rest[..pos]);
+                out.push_str(marker);
+                let quote = &marker[marker.len() - 1..];
+                let value_start = pos + marker.len();
+                let value_end = rest[value_start..]
+                    .find(quote)
+                    .map(|p| value_start + p)
+                    .unwrap_or(rest.len());
+                let url = &rest[value_start..value_end];
+                if !url.is_empty()
+                    && !url.starts_with("http://")
+                    && !url.starts_with("https://")
+                    && !url.starts_with("//")
+                    && !url.starts_with("#")
+                    && !url.starts_with("data:")
+                    && !url.starts_with("blob:")
+                    && !url.starts_with("/api/vibe/projects/")
+                {
+                    let p = if url.starts_with('/') {
+                        url.to_string()
+                    } else {
+                        format!("/{url}")
+                    };
+                    out.push_str(&proxy_base);
+                    out.push_str(&urlencode_path(&p));
+                    out.push_str("&token=");
+                    out.push_str(token);
+                } else {
+                    out.push_str(url);
+                }
+                out.push_str(quote);
+                rest = &rest[value_end + 1..];
+            }
+            None => {
+                out.push_str(rest);
+                rest = "";
+            }
+        }
+    }
+    // Inject the fetch/XHR shim before </head> (or prepend if no head).
+    if let Some(idx) = out.find("</head>") {
+        out.insert_str(idx, &shim);
+    } else {
+        out.insert_str(0, &shim);
+    }
+    out
+}
+
+/// Percent-encode a path for use as a query-parameter value. Keeps only `/` and
+/// unreserved characters readable; encodes `?`, `&`, `=`, `+`, `%` etc. so the
+/// whole original URL (path + query) round-trips through `Query<VmPreviewQuery>`
+/// without being split at the first `&`.
+fn urlencode_path(path: &str) -> String {
+    let mut out = String::with_capacity(path.len());
+    for b in path.bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' | b'/' => {
+                out.push(b as char)
+            }
+            _ => {
+                out.push('%');
+                out.push_str(&format!("{b:02X}"));
+            }
+        }
+    }
+    out
+}
+
 /// Rewrite relative `src`/`href` asset URLs in an HTML document so sub-resources
 /// carry the same `?token=` used for the iframe itself (embedded Browser iframes
 /// cannot set an Authorization header). Absolute, root-relative, scheme-relative,
@@ -1240,4 +1373,181 @@ async fn write_project_file(
         }
         Err(e) => ws_err(Some(id), Some(key), e),
     }
+}
+
+// ── Project run history + token usage (Properties window) ────────────────────
+// The Properties dialog shows the full set of runs for the selected project
+// (state, intent, timestamps, error) plus token accounting: per-run and
+// rolled-up total/input/output tokens, derived from the persisted telemetry
+// rows (`tokens_used` and the `metadata.input_tokens` / `output_tokens`
+// split recorded for `llm/chat` events).
+
+#[derive(Debug, Serialize)]
+struct ProjectTokenTotals {
+    tokens: u64,
+    input_tokens: u64,
+    output_tokens: u64,
+}
+
+#[derive(Debug, Serialize)]
+struct ProjectRunRow {
+    run_id: Uuid,
+    state: String,
+    intent: String,
+    pipeline_mode: Option<String>,
+    created_at: String,
+    completed_at: Option<String>,
+    error: Option<String>,
+    tokens: ProjectTokenTotals,
+}
+
+#[derive(Debug, Serialize)]
+struct ProjectHistoryResponse {
+    success: bool,
+    runs: Vec<ProjectRunRow>,
+    totals: ProjectTokenTotals,
+    run_count: u64,
+    error: Option<String>,
+}
+
+/// Reads the token columns for one run whose aliased columns are
+/// `tokens_total`, `tokens_input`, `tokens_output` (i64).
+#[derive(diesel::QueryableByName)]
+struct TokensRow {
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    tokens_total: i64,
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    tokens_input: i64,
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    tokens_output: i64,
+}
+
+#[derive(diesel::QueryableByName)]
+struct HistoryRunRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    run_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    state: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    intent: String,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    pipeline_mode: Option<String>,
+    #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+    created_at: chrono::DateTime<chrono::Utc>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)]
+    completed_at: Option<chrono::DateTime<chrono::Utc>>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    error: Option<String>,
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    tokens_total: i64,
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    tokens_input: i64,
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    tokens_output: i64,
+}
+
+async fn project_run_history(
+    Extension(registry): Extension<ProjectRegistryRef>,
+    Extension(rbac): Extension<ProjectRbac>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(id): Path<Uuid>,
+) -> Response {
+    let conn = match registry.conn() {
+        Ok(c) => c,
+        Err(e) => return history_resp(None, e),
+    };
+    if let Err(e) = rbac.require_role(user.user_id, id, ProjectRole::Viewer) {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(ProjectHistoryResponse {
+                success: false,
+                runs: Vec::new(),
+                totals: ProjectTokenTotals {
+                    tokens: 0,
+                    input_tokens: 0,
+                    output_tokens: 0,
+                },
+                run_count: 0,
+                error: Some(e),
+            }),
+        )
+            .into_response();
+    }
+    let want = id.to_string();
+    let mut conn = conn;
+    // Runs whose payload carries this project id, newest first, with token
+    // usage aggregated from the persisted telemetry rows.
+    let runs = diesel::sql_query(
+        "SELECT r.run_id, r.state, r.intent, \
+                r.config->>'pipeline_mode' AS pipeline_mode, \
+                r.created_at, r.completed_at, r.error, \
+                COALESCE(SUM(t.tokens_used), 0) AS tokens_total, \
+                COALESCE(SUM((t.metadata->>'input_tokens')::bigint), 0) AS tokens_input, \
+                COALESCE(SUM((t.metadata->>'output_tokens')::bigint), 0) AS tokens_output \
+         FROM vibe_runs r \
+         LEFT JOIN vibe_telemetry t ON t.run_id = r.run_id \
+         WHERE r.config->>'project_id' = $1 \
+         GROUP BY r.run_id \
+         ORDER BY r.created_at DESC \
+         LIMIT 200",
+    )
+    .bind::<diesel::sql_types::Text, _>(&want)
+    .load::<HistoryRunRow>(&mut conn);
+    let rows = match runs {
+        Ok(rows) => rows,
+        Err(e) => return history_resp(None, format!("run history: {e}")),
+    };
+    let mut totals = ProjectTokenTotals {
+        tokens: 0,
+        input_tokens: 0,
+        output_tokens: 0,
+    };
+    let out: Vec<ProjectRunRow> = rows
+        .into_iter()
+        .map(|r| {
+            totals.tokens = totals.tokens.saturating_add(r.tokens_total.max(0) as u64);
+            totals.input_tokens =
+                totals.input_tokens.saturating_add(r.tokens_input.max(0) as u64);
+            totals.output_tokens =
+                totals.output_tokens.saturating_add(r.tokens_output.max(0) as u64);
+            ProjectRunRow {
+                run_id: r.run_id,
+                state: r.state,
+                intent: r.intent,
+                pipeline_mode: r.pipeline_mode,
+                created_at: r.created_at.to_rfc3339(),
+                completed_at: r.completed_at.map(|c| c.to_rfc3339()),
+                error: r.error,
+                tokens: ProjectTokenTotals {
+                    tokens: r.tokens_total.max(0) as u64,
+                    input_tokens: r.tokens_input.max(0) as u64,
+                    output_tokens: r.tokens_output.max(0) as u64,
+                },
+            }
+        })
+        .collect();
+    let run_count = out.len() as u64;
+    Json(ProjectHistoryResponse {
+        success: true,
+        runs: out,
+        totals,
+        run_count,
+        error: None,
+    })
+    .into_response()
+}
+
+fn history_resp(runs: Option<Vec<ProjectRunRow>>, error: String) -> Response {
+    Json(ProjectHistoryResponse {
+        success: false,
+        runs: runs.unwrap_or_default(),
+        totals: ProjectTokenTotals {
+            tokens: 0,
+            input_tokens: 0,
+            output_tokens: 0,
+        },
+        run_count: 0,
+        error: Some(error),
+    })
+    .into_response()
 }

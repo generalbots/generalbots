@@ -190,6 +190,12 @@ function selectProject(p) {
 // when the desktop shell is present, else a simple fixed panel.
 var _projectInfoTarget = null;
 
+// Formats a token count with thousands separators (e.g. 12,345).
+function fmtTokens(n) {
+    n = Number(n || 0);
+    return n.toLocaleString ? n.toLocaleString("en-US") : String(n);
+}
+
 function projectInfoHtml(p) {
     var id = p.project_id || p.id;
     var name = p.name || "Unnamed project";
@@ -205,9 +211,17 @@ function projectInfoHtml(p) {
         ["Updated", p.updated_at ? new Date(p.updated_at).toLocaleString() : "—"],
     ];
     return (
-        '<div style="padding:14px 16px;font-size:12px;color:var(--text,#eee);min-width:320px">' +
+        '<div style="padding:14px 16px;font-size:12px;color:var(--text,#eee);min-width:360px;max-width:520px">' +
         '<div style="font-weight:800;font-size:13px;margin-bottom:10px;border-bottom:1px solid var(--border,#333);padding-bottom:8px">📁 ' +
         esc(name) +
+        "</div>" +
+        '<div id="vibe-pi-tokens" style="margin-bottom:4px">' +
+        '<div style="display:flex;justify-content:space-between;gap:16px;padding:4px 0;border-bottom:1px solid var(--border,#222)">' +
+        '<span style="color:var(--text-muted,#999)">Total tokens</span><b id="vibe-pi-total">…</b></div>' +
+        '<div style="display:flex;justify-content:space-between;gap:16px;padding:4px 0;border-bottom:1px solid var(--border,#222)">' +
+        '<span style="color:var(--text-muted,#999)">Input tokens</span><b id="vibe-pi-input">…</b></div>' +
+        '<div style="display:flex;justify-content:space-between;gap:16px;padding:4px 0;border-bottom:1px solid var(--border,#222)">' +
+        '<span style="color:var(--text-muted,#999)">Output tokens</span><b id="vibe-pi-output">…</b></div>' +
         "</div>" +
         rows
             .map(function (r) {
@@ -221,6 +235,10 @@ function projectInfoHtml(p) {
                 );
             })
             .join("") +
+        '<div id="vibe-pi-history" style="margin-top:10px">' +
+        '<div style="font-weight:800;font-size:12px;margin-bottom:6px">🗂 Run history</div>' +
+        '<div id="vibe-pi-runs" style="max-height:180px;overflow-y:auto;border:1px solid var(--border,#333);border-radius:6px">' +
+        '<div class="vibe-empty" style="padding:10px">Loading history…</div></div></div>' +
         '<div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">' +
         '<button type="button" class="vibe-btn" data-pi-close>Close</button>' +
         '<button type="button" class="vibe-btn" style="background:#ef4444;border-color:#ef4444;color:#fff" data-pi-delete="' +
@@ -228,6 +246,69 @@ function projectInfoHtml(p) {
         '">Delete project</button>' +
         "</div></div>"
     );
+}
+
+// Fetches the project run history (tokens + runs) and fills the Properties
+// window placeholders when it is open.
+function loadProjectInfoStats(p) {
+    var id = (p && (p.project_id || p.id)) || "";
+    if (!id || typeof vibeAuthFetch !== "function") return;
+    vibeAuthFetch("/api/vibe/projects/" + encodeURIComponent(id) + "/history")
+        .then(function (r) {
+            if (!r.ok) throw new Error("history failed");
+            return r.json();
+        })
+        .then(function (data) {
+            function setText(elId, text) {
+                var el = document.getElementById(elId);
+                if (el) el.textContent = text;
+            }
+            var totals = (data && data.totals) || {};
+            setText("vibe-pi-total", fmtTokens(totals.tokens));
+            setText("vibe-pi-input", fmtTokens(totals.input_tokens));
+            setText("vibe-pi-output", fmtTokens(totals.output_tokens));
+            var box = document.getElementById("vibe-pi-runs");
+            if (!box) return;
+            var runs = (data && data.runs) || [];
+            if (!runs.length) {
+                box.innerHTML = '<div class="vibe-empty" style="padding:10px">No runs yet — start a Run or Chat with the agent.</div>';
+                return;
+            }
+            box.innerHTML = runs.map(function (r) {
+                var when = r.created_at ? new Date(r.created_at).toLocaleString() : "";
+                var dur = "";
+                if (r.created_at && r.completed_at) {
+                    var ms = new Date(r.completed_at) - new Date(r.created_at);
+                    if (ms >= 0) dur = " · " + Math.round(ms / 1000) + "s";
+                }
+                var tok = fmtTokens(r.tokens && r.tokens.tokens);
+                var mode = r.pipeline_mode ? " [" + esc(r.pipeline_mode) + "]" : "";
+                var err = r.error ? ' <span style="color:#f87171">' + esc(String(r.error).substring(0, 90)) + "</span>" : "";
+                return (
+                    '<div style="padding:6px 8px;border-bottom:1px solid var(--border,#222)">' +
+                    '<div style="display:flex;justify-content:space-between;gap:10px"><b>' +
+                    esc(String(r.state || "")) +
+                    '</b><span style="color:var(--text-muted,#999);white-space:nowrap">' +
+                    esc(tok) +
+                    " tok" +
+                    dur +
+                    "</span></div>" +
+                    '<div style="color:var(--text-muted,#bbb);word-break:break-word;margin-top:2px">' +
+                    esc(String(r.intent || "")) +
+                    mode +
+                    err +
+                    "</div></div>"
+                );
+            }).join("");
+        })
+        .catch(function () {
+            var box = document.getElementById("vibe-pi-runs");
+            if (box) box.innerHTML = '<div class="vibe-empty" style="padding:10px">History unavailable.</div>';
+            ["vibe-pi-total", "vibe-pi-input", "vibe-pi-output"].forEach(function (elId) {
+                var el = document.getElementById(elId);
+                if (el) el.textContent = "—";
+            });
+        });
 }
 
 function showProjectInfo(p) {
@@ -242,6 +323,7 @@ function showProjectInfo(p) {
         var toolBody = document.getElementById("window-body-vibe-tool-project");
         if (toolBody && !toolBody.textContent.trim()) {
             toolBody.innerHTML = projectInfoHtml(p);
+            loadProjectInfoStats(p);
             var close = toolBody.querySelector("[data-pi-close]");
             if (close) close.addEventListener("click", function () {
                 if (window.VibeDialogs) window.VibeDialogs.close();
@@ -282,6 +364,7 @@ function registerProjectInfoDialog() {
                 return;
             }
             body.innerHTML = projectInfoHtml(p);
+            loadProjectInfoStats(p);
             var close = body.querySelector("[data-pi-close]");
             if (close) close.addEventListener("click", function () {
                 if (window.VibeDialogs) window.VibeDialogs.close();

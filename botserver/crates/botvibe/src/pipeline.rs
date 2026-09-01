@@ -352,6 +352,7 @@ impl PipelineEngine {
                             cost: 0.0,
                             success: false,
                             error: Some(error),
+                            metadata: std::collections::HashMap::new(),
                         })
                         .await;
                     for rest in &pipeline.stages[reports.len()..] {
@@ -396,6 +397,7 @@ impl PipelineEngine {
                         cost: 0.0,
                         success: false,
                         error,
+                        metadata: std::collections::HashMap::new(),
                     })
                     .await;
                 for rest in &pipeline.stages[reports.len()..] {
@@ -428,6 +430,7 @@ impl PipelineEngine {
                     cost: 0.0,
                     success: status == StageStatus::Completed,
                     error,
+                    metadata: std::collections::HashMap::new(),
                 })
                 .await;
         }
