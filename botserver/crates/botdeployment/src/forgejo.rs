@@ -143,6 +143,28 @@ impl ForgejoClient {
         }
     }
 
+    /// Delete a repository (used when a Vibe project is deleted so a
+    /// recreated project with the same name starts from a clean repo
+    /// instead of inheriting stale history that rejects the seed push).
+    pub async fn delete_repository(&self, org: &str, name: &str) -> Result<(), ForgejoError> {
+        let url = format!("{}/api/v1/repos/{}/{}", self.base_url, org, name);
+        let response = self
+            .client
+            .delete(&url)
+            .header("Authorization", format!("token {}", self.token))
+            .send()
+            .await
+            .map_err(|e| ForgejoError::HttpError(e.to_string()))?;
+        // 404 = already gone; treat as success (idempotent delete).
+        if response.status().is_success() || response.status() == reqwest::StatusCode::NOT_FOUND {
+            Ok(())
+        } else {
+            let status = response.status();
+            let body = response.text().await.unwrap_or_default();
+            Err(ForgejoError::ApiError(format!("{}: {}", status, body)))
+        }
+    }
+
     pub async fn push_app(
         &self,
         repo_url: &str,
