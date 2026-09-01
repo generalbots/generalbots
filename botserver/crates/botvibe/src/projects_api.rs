@@ -237,6 +237,32 @@ async fn delete_project(
     if let Err(e) = lifecycle.delete_all_for_project(id) {
         log::error!("Vibe: cascade-delete VMs for project {id} failed: {e}");
     }
+    // git-mode projects own a Forgejo repo; delete it too so a recreated
+    // project with the same name starts from a clean repo instead of
+    // inheriting stale history that rejects the seed push (non-fast-forward).
+    if let Ok(Some(p)) = registry.get(id) {
+        if p.source_control == "git" {
+            let (alm_base, alm_token, _org) = botcoresecrets::alm_config();
+            if !alm_base.is_empty() && !alm_token.is_empty() {
+                let forgejo_org = crate::vm_lifecycle::VmLifecycle::alm_org(p.branch_id);
+                let forgejo_repo = crate::vm_lifecycle::VmLifecycle::alm_repo(&p.name);
+                let client = botdeployment::ForgejoClient::new(alm_base, alm_token);
+                match client
+                    .delete_repository(&forgejo_org, &forgejo_repo)
+                    .await
+                {
+                    Ok(_) => log::info!(
+                        "Vibe git-mode {}: deleted Forgejo repo {forgejo_org}/{forgejo_repo}",
+                        p.name
+                    ),
+                    Err(e) => log::warn!(
+                        "Vibe git-mode {}: delete Forgejo repo {forgejo_org}/{forgejo_repo} failed: {e}",
+                        p.name
+                    ),
+                }
+            }
+        }
+    }
     match registry.delete(id) {
         Ok(true) => deleted(),
         Ok(false) => err_response(format!("project {id} not found")),
