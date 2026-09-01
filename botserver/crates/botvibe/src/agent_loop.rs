@@ -277,6 +277,9 @@ impl AgentLoop {
             if let Some(usage) = llm_usage {
                 let model = run.config.model.clone().unwrap_or_default();
                 let cost = estimate_llm_cost(&model, usage.prompt_tokens, usage.completion_tokens);
+                let mut meta = std::collections::HashMap::new();
+                meta.insert("input_tokens".to_string(), usage.prompt_tokens.to_string());
+                meta.insert("output_tokens".to_string(), usage.completion_tokens.to_string());
                 self.telemetry
                     .record_tool_call(ToolCallRecord {
                         run_id: run.run_id,
@@ -287,6 +290,7 @@ impl AgentLoop {
                         cost,
                         success: true,
                         error: None,
+                        metadata: meta,
                     })
                     .await;
             }
@@ -1096,6 +1100,7 @@ impl AgentLoop {
                     cost: 0.0,
                     success: false,
                     error: Some(validation_error.clone()),
+                    metadata: std::collections::HashMap::new(),
                 })
                 .await;
             run.tool_calls.push(tool_call);
@@ -1238,6 +1243,7 @@ impl AgentLoop {
                         cost: 0.0,
                         success,
                         error: tool_call.result.as_ref().and_then(|r| r.error.clone()),
+                        metadata: std::collections::HashMap::new(),
                     })
                     .await;
 
@@ -1286,6 +1292,7 @@ impl AgentLoop {
                         cost: 0.0,
                         success: false,
                         error: Some(e.clone()),
+                        metadata: std::collections::HashMap::new(),
                     })
                     .await;
 
@@ -1333,6 +1340,7 @@ impl AgentLoop {
                         cost: 0.0,
                         success: false,
                         error: Some(message.clone()),
+                        metadata: std::collections::HashMap::new(),
                     })
                     .await;
                 tool_call.result = Some(crate::types::VibeToolResult {

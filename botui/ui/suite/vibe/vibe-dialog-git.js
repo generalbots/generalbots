@@ -223,7 +223,7 @@
             method: "POST",
             body: { message: msg.value.trim(), repo: repoName() },
         }).then(function (data) {
-            if (data && data.success) {
+            if (data && (data.success === true || data.status === "success")) {
                 msg.value = "";
                 loadStatus();
                 loadLog();

@@ -347,12 +347,81 @@
                         D.esc(projName) + "</b> — approve stages in the Run Dock.</div>";
                 }
                 setTimeout(loadHistory, 8000);
+                // Auto-open the deployed app in a new tab once the pipeline
+                // finishes: poll the run, then open the production URL
+                // (https://{app}.{platform-domain}) in a fresh tab.
+                waitDeployFinished(data.run_id, 0);
             } else {
                 if (grid) grid.innerHTML = '<div class="vibe-empty">Deploy start failed: ' + D.esc((data && data.error) || "unknown") + "</div>";
             }
         }).catch(function (err) {
             if (grid) grid.innerHTML = '<div class="vibe-empty">Deploy error: ' + D.esc(err) + "</div>";
         });
+    }
+
+    // Polls the deploy run until it reaches a terminal state, then opens the
+    // published app in a NEW browser tab (popup-friendly about:blank flow).
+    function waitDeployFinished(runId, attempt) {
+        if (!runId || attempt > 120) {
+            return; // 10 min cap — the Run Dock still shows live progress.
+        }
+        D.api("/api/vibe/run/" + encodeURIComponent(runId)).then(function (data) {
+            var state = data && (data.state || (data.data && data.data.state));
+            if (state === "completed") {
+                var grid = document.getElementById("vibeDeployMain");
+                if (grid) {
+                    grid.innerHTML = '<div class="vibe-empty">✅ Deployed — opening <b>' +
+                        D.esc(projName) + "</b> in a new tab…</div>";
+                }
+                openAppTab("production");
+                setTimeout(loadHistory, 2500);
+            } else if (state === "failed" || state === "cancelled" || state === "aborted") {
+                var gf = document.getElementById("vibeDeployMain");
+                if (gf) {
+                    gf.innerHTML = '<div class="vibe-empty">Deploy ' + D.esc(state) +
+                        ": " + D.esc((data && data.error) || "see Runner Log for details.") + "</div>";
+                }
+            } else {
+                setTimeout(function () { waitDeployFinished(runId, attempt + 1); }, 5000);
+            }
+        }).catch(function () {
+            setTimeout(function () { waitDeployFinished(runId, attempt + 1); }, 5000);
+        });
+    }
+
+    // Opens the app's production URL in a fresh tab: prefer the backend
+    // preview URL, fall back to the platform route {repo}.{domain} so a
+    // deployed app ALWAYS opens at {app}.generalbots.org.
+    function openAppTab(envName) {
+        var w = window.open("about:blank", "_blank");
+        if (!w) {
+            var grid = document.getElementById("vibeDeployMain");
+            if (grid) grid.innerHTML = '<div class="vibe-empty">Allow pop-ups to open the deployed app.</div>';
+            return;
+        }
+        w.document.body.innerHTML = "<p style='font-family:system-ui;padding:24px'>Opening deployed app…</p>";
+        var open = function (url) {
+            if (url && (String(url).indexOf("http://") === 0 || String(url).indexOf("https://") === 0)) {
+                w.location.href = url;
+            } else {
+                w.close();
+                var grid = document.getElementById("vibeDeployMain");
+                if (grid) grid.innerHTML = '<div class="vibe-empty">Deployed, but no live URL was reported.</div>';
+            }
+        };
+        D.api("/api/vibe/projects/" + encodeURIComponent(state.projectId) + "/preview?env=" + encodeURIComponent(envName))
+            .then(function (data) {
+                var payload = data && data.data ? data.data : data;
+                if (payload && payload.preview_url) { open(payload.preview_url); return; }
+                var slug = String(projName || "").toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+                var host = (window.location.hostname || "").split(".").slice(-2).join(".");
+                open("https://" + encodeURIComponent(slug) + "." + host + "/");
+            })
+            .catch(function () {
+                var slug = String(projName || "").toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+                var host = (window.location.hostname || "").split(".").slice(-2).join(".");
+                open("https://" + encodeURIComponent(slug) + "." + host + "/");
+            });
     }
 
     D.register("deploy", {

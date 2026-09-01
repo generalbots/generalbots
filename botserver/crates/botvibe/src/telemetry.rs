@@ -32,6 +32,10 @@ pub struct ToolCallRecord {
     pub success: bool,
     /// Error message if the tool call failed.
     pub error: Option<String>,
+    /// Extra structured facts about the call (e.g. `input_tokens` /
+    /// `output_tokens` from the provider usage payload). Persisted into the
+    /// telemetry `metadata` column; empty for non-LLM calls.
+    pub metadata: std::collections::HashMap<String, String>,
 }
 
 const MAX_EVENTS: usize = 50000;
@@ -225,7 +229,7 @@ impl VibeTelemetry {
             success: record.success,
             error: record.error,
             timestamp: chrono::Utc::now(),
-            metadata: HashMap::new(),
+            metadata: record.metadata.clone(),
         };
         self.record(event).await;
     }
@@ -471,6 +475,7 @@ mod tests {
             cost: 0.01,
             success: true,
             error: None,
+            metadata: std::collections::HashMap::new(),
         }).await;
 
         let events = telemetry.get_events_for_run(run_id, 100).await;

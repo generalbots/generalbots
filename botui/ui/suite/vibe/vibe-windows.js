@@ -123,6 +123,16 @@
         }
         el.style.display = el.getAttribute("data-vibe-panel-display") || spec.display || "flex";
         body.appendChild(el);
+        // The WindowManager body ships with an empty `.gb-window-content`
+        // placeholder stretched to height:100%. A relocated panel is appended
+        // as a SIBLING (not inside it), so the empty placeholder stacks under
+        // the popup and doubles the body scroll height — showing a scrollbar
+        // on fixed-size popups (New Project / Members). Hide the placeholder
+        // (and its loading overlay): the relocated panel IS the content now.
+        var gbContent = body.querySelector(".gb-window-content");
+        if (gbContent) gbContent.style.display = "none";
+        var gbLoading = body.querySelector(".gb-window-loading");
+        if (gbLoading) gbLoading.style.display = "none";
         // Panels with a bespoke footprint (e.g. the drawing canvas) override
         // the half-height accessory default.
         if (spec.size) {
