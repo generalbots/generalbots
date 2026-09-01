@@ -601,25 +601,32 @@ impl VmLifecycle {
                 )
                 .map_err(|e| format!("replace proxy device: {e}"))?;
             }
-            self.incus_run(
-                &[
-                    "config".to_string(),
-                    "device".to_string(),
-                    "add".to_string(),
-                    name.to_string(),
-                    "vibe-http".to_string(),
-                    "proxy".to_string(),
-                    format!("listen=tcp:0.0.0.0:{host_port}"),
-                    "connect=tcp:127.0.0.1:3000".to_string(),
-                ],
-                60,
-            )
-            .map_err(|e| format!("expose application port: {e}"))?;
-
-            if host_port == 80 {
-                Ok("http://localhost".to_string())
+            // host_port == 0: prod publish path — no proxy device is attached
+            // (the app is served through the Caddy domain route → container
+            // IP:3000). Attaching a device with the previous default of 80
+            // failed with `bind: address already in use` on prod.
+            if host_port != 0 {
+                self.incus_run(
+                    &[
+                        "config".to_string(),
+                        "device".to_string(),
+                        "add".to_string(),
+                        name.to_string(),
+                        "vibe-http".to_string(),
+                        "proxy".to_string(),
+                        format!("listen=tcp:0.0.0.0:{host_port}"),
+                        "connect=tcp:127.0.0.1:3000".to_string(),
+                    ],
+                    60,
+                )
+                .map_err(|e| format!("expose application port: {e}"))?;
+                if host_port == 80 {
+                    Ok("http://localhost".to_string())
+                } else {
+                    Ok(format!("http://localhost:{host_port}"))
+                }
             } else {
-                Ok(format!("http://localhost:{host_port}"))
+                Ok("http://localhost:3000".to_string())
             }
         })();
 
@@ -1058,25 +1065,32 @@ impl VmLifecycle {
                 )
                 .map_err(|e| format!("replace proxy device: {e}"))?;
             }
-            self.incus_run(
-                &[
-                    "config".to_string(),
-                    "device".to_string(),
-                    "add".to_string(),
-                    name.to_string(),
-                    "vibe-http".to_string(),
-                    "proxy".to_string(),
-                    format!("listen=tcp:0.0.0.0:{host_port}"),
-                    "connect=tcp:127.0.0.1:3000".to_string(),
-                ],
-                60,
-            )
-            .map_err(|e| format!("expose application port: {e}"))?;
-
-            if host_port == 80 {
-                Ok("http://localhost".to_string())
+            // host_port == 0: prod publish path — no proxy device is attached
+            // (the app is served through the Caddy domain route → container
+            // IP:3000). Attaching a device with the previous default of 80
+            // failed with `bind: address already in use` on prod.
+            if host_port != 0 {
+                self.incus_run(
+                    &[
+                        "config".to_string(),
+                        "device".to_string(),
+                        "add".to_string(),
+                        name.to_string(),
+                        "vibe-http".to_string(),
+                        "proxy".to_string(),
+                        format!("listen=tcp:0.0.0.0:{host_port}"),
+                        "connect=tcp:127.0.0.1:3000".to_string(),
+                    ],
+                    60,
+                )
+                .map_err(|e| format!("expose application port: {e}"))?;
+                if host_port == 80 {
+                    Ok("http://localhost".to_string())
+                } else {
+                    Ok(format!("http://localhost:{host_port}"))
+                }
             } else {
-                Ok(format!("http://localhost:{host_port}"))
+                Ok("http://localhost:3000".to_string())
             }
         })();
 

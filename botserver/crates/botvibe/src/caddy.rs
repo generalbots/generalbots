@@ -117,35 +117,55 @@ pub async fn upsert_route_to(domain: &str, dial: &str, access: &str) -> Result<C
     }
     // #1302 — persist the route into the proxy's Caddyfile so a manual
     // `caddy reload` (which rebuilds from the file and drops admin-API
-    // routes) does not 502 the published app. Only when the operator
-    // points `CADDYFILE_PATH` at the proxy config (e.g. on the host the
-    // bot container's /opt/gbo/conf/config); purely in-memory installs
-    // keep the admin-API behavior.
-    if let Ok(path) = std::env::var("CADDYFILE_PATH") {
-        if !path.trim().is_empty() && access == "public" {
-            persist_route_block(&path, domain, dial);
+    // routes) does not 502 the published app. Enabled by setting
+    // `CADDYFILE_INCUS_CONTAINER` (e.g. `proxy`): the config is pulled
+    // from that container, the site block appended/updated, and pushed
+    // back. Purely in-memory installs keep the admin-API behavior.
+    if access == "public" {
+        if let Ok(container) = std::env::var("CADDYFILE_INCUS_CONTAINER") {
+            if !container.trim().is_empty() {
+                persist_route_block(&container, domain, dial);
+            }
         }
     }
     Ok(CaddyResult { route_id: rid })
 }
 
 /// Appends/updates the site block for `domain` ({domain} → {dial}) in the
-/// LXC-mounted Caddyfile at `path`. Idempotent: an existing block whose host
-/// line matches is replaced, keeping the file valid Caddyfile syntax. Failures
-/// are logged, never fatal — the admin-API route above stays live regardless.
-fn persist_route_block(path: &str, domain: &str, dial: &str) {
+/// Caddyfile of the given incus container (e.g. `proxy`), via file
+/// pull/edit/push — the same argv-clean mechanism the VM workflow uses.
+/// Idempotent: an existing block whose host line matches is replaced.
+/// Failures are logged, never fatal — the admin-API route stays live and a
+/// broken edit is never pushed (the edit happens on a temp copy).
+fn persist_route_block(container: &str, domain: &str, dial: &str) {
     use std::io::Write;
     let block = format!(
         "\n{domain} {{ \n\timport tls_config\n\treverse_proxy {dial}\n}}\n"
     );
     let result = (|| -> Result<(), String> {
-        let raw = std::fs::read_to_string(path).map_err(|e| format!("read: {e}"))?;
+        if !container
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-')
+        {
+            return Err("invalid proxy container name".to_string());
+        }
+        let run = |args: &[&str]| -> Result<String, String> {
+            let mut cmd =
+                botlib::security::SafeCommand::new("incus").map_err(|e| e.to_string())?;
+            for a in args {
+                cmd = cmd.trusted_arg(a).map_err(|e| e.to_string())?;
+            }
+            let out = cmd.execute().map_err(|e| e.to_string())?;
+            Ok(String::from_utf8_lossy(&out.stdout).to_string())
+        };
+        let conf = "/opt/gbo/conf/config";
+        let tmp = std::env::temp_dir().join(format!("gbo-caddy-{uuid}.cfg", uuid = uuid::Uuid::new_v4()));
+        run(&["file", "pull", &format!("{container}{conf}"), tmp.to_str().ok_or("tmp path")?])?;
+        let raw = std::fs::read_to_string(&tmp).map_err(|e| format!("read: {e}"))?;
         let lines: Vec<&str> = raw.split('\n').collect();
         let start = lines.iter().position(|l| l.trim() == format!("{domain} {{"));
         let out = match start {
             Some(i) => {
-                // Replace the block: find its closing brace (blocks are
-                // flat, one closing `}` per site).
                 let mut end = i;
                 for (j, l) in lines.iter().enumerate().skip(i + 1) {
                     if l.trim() == "}" {
@@ -160,8 +180,13 @@ fn persist_route_block(path: &str, domain: &str, dial: &str) {
             }
             None => format!("{raw}\n{block}"),
         };
-        let mut f = std::fs::File::create(path).map_err(|e| format!("open: {e}"))?;
+        let edited = tmp.with_file_name(format!("gbo-caddy-edited-{}", uuid::Uuid::new_v4()));
+        let mut f = std::fs::File::create(&edited).map_err(|e| format!("open: {e}"))?;
         f.write_all(out.as_bytes()).map_err(|e| format!("write: {e}"))?;
+        drop(f);
+        run(&["file", "push", edited.to_str().ok_or("edited path")?, &format!("{container}{conf}")])?;
+        let _ = std::fs::remove_file(&tmp);
+        let _ = std::fs::remove_file(&edited);
         Ok(())
     })();
     if let Err(e) = result {
