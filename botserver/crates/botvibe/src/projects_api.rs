@@ -1469,9 +1469,9 @@ async fn project_run_history(
         "SELECT r.run_id, r.state, r.intent, \
                 r.config->>'pipeline_mode' AS pipeline_mode, \
                 r.created_at, r.completed_at, r.error, \
-                COALESCE(SUM(t.tokens_used), 0) AS tokens_total, \
-                COALESCE(SUM((t.metadata->>'input_tokens')::bigint), 0) AS tokens_input, \
-                COALESCE(SUM((t.metadata->>'output_tokens')::bigint), 0) AS tokens_output \
+                COALESCE(SUM(t.tokens_used), 0)::bigint AS tokens_total, \
+                COALESCE(SUM((t.metadata->>'input_tokens')::bigint), 0)::bigint AS tokens_input, \
+                COALESCE(SUM((t.metadata->>'output_tokens')::bigint), 0)::bigint AS tokens_output \
          FROM vibe_runs r \
          LEFT JOIN vibe_telemetry t ON t.run_id = r.run_id \
          WHERE r.config->>'project_id' = $1 \
