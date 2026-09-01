@@ -4,11 +4,26 @@ use axum::{
 };
 use botlib::security::SafeCommand;
 use serde::{Deserialize, Serialize};
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use botcore::shared::state::AppState;
 
 const DEFAULT_REPO: &str = "/tmp/git-repo";
+
+/// Root that hosts every vibe project workspace (mirrors
+/// `botvibe::harness::workspace_root()` so the Source Control dialog reads
+/// the SAME repo the Vibe agent edits). `VIBE_WORKSPACE_ROOT` wins when set;
+/// otherwise the platform stack data directory is used.
+fn vibe_workspace_root() -> PathBuf {
+    std::env::var("VIBE_WORKSPACE_ROOT")
+        .map(PathBuf::from)
+        .unwrap_or_else(|_| {
+            PathBuf::from(botlib::security::get_stack_path())
+                .join("data")
+                .join("vibe-workspaces")
+        })
+}
 
 #[derive(Deserialize)]
 pub struct GitQuery {
@@ -65,10 +80,28 @@ fn resolve_repo(query_repo: Option<&str>) -> String {
         .filter(|r| !r.is_empty())
         .unwrap_or(DEFAULT_REPO);
     if repo.starts_with("/tmp") || repo.starts_with("/var/tmp") {
-        repo.to_string()
-    } else {
-        DEFAULT_REPO.to_string()
+        return repo.to_string();
     }
+    // Absolute paths point at an explicit git checkout.
+    if repo.starts_with('/') {
+        return repo.to_string();
+    }
+    // A bare name is a vibe project: resolve it against the workspace root
+    // (e.g. `e2e-gh-4404` → `/opt/gbo/data/vibe-workspaces/e2e-gh-4404`).
+    // Only accept plain project ids — no separators, no traversal.
+    if !repo.is_empty()
+        && repo != "."
+        && repo != ".."
+        && !repo.contains('/')
+        && !repo.contains('\\')
+        && repo.len() <= 128
+    {
+        let candidate = vibe_workspace_root().join(&repo);
+        if candidate.join(".git").exists() {
+            return candidate.to_string_lossy().into_owned();
+        }
+    }
+    DEFAULT_REPO.to_string()
 }
 
 fn run_git(repo: &str, args: &[&str]) -> Result<String, String> {
