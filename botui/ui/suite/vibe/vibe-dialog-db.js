@@ -100,13 +100,13 @@
     /* ------------------------------------------------- cell editing */
 
     function pkValue(row) {
-        // The data grid returns rows keyed by aliased columns c1..cN in order
-        // of `cols`; the backend also reports `pk_column`. Find the pk value
-        // from the position of the pk column, or fall back to the first col.
-        var idx = state.pk ? state.cols.indexOf(state.pk) : -1;
-        if (idx < 0) idx = 0;
-        var key = "c" + (idx + 1);
-        return row[key] != null ? String(row[key]) : "";
+        // The backend remaps rows to real column names (#906), so the PK
+        // value lives under `row[pk_column]`; fall back to the first column.
+        var pk = state.pk && state.cols.indexOf(state.pk) >= 0 ? state.pk : (state.cols[0] || null);
+        if (!pk) return "";
+        var v = row[pk];
+        if (v == null && row["c1"] != null) v = row["c1"];
+        return v != null ? String(v) : "";
     }
 
     function cellInput(row, col, current) {
@@ -245,8 +245,12 @@
         state.rows.forEach(function (row, i) {
             html += "<tr><td>" + ((state.page - 1) * state.pageSize + i + 1) + "</td>";
             state.cols.forEach(function (c) {
-                var key = "c" + (state.cols.indexOf(c) + 1);
-                var v = row[key];
+                // Rows arrive keyed by real column names (#906) — reading the
+                // old aliased `c1..cN` keys rendered every cell empty.
+                var v = row[c];
+                if (v === undefined && row["c" + (state.cols.indexOf(c) + 1)] !== undefined) {
+                    v = row["c" + (state.cols.indexOf(c) + 1)];
+                }
                 var display = v == null ? "NULL" : String(v);
                 html += "<td><input class='vibe-input vibe-cell' data-col='" + D.esc(c) +
                     "' data-pk='" + D.esc(pkValue(row)) +
