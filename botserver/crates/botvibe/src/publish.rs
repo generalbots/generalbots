@@ -459,10 +459,13 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
     // production (dev Run already goes through run_dev_app directly).
     #[cfg(not(target_os = "windows"))]
     if env == "production" {
+        // 0 = no host proxy device (see run_dev_app): prod apps are served
+        // through the Caddy domain route -> container IP:3000, and the old
+        // default of 80 collided with the container's listeners.
         let host_port = std::env::var("VIBE_PROD_APP_PORT")
             .ok()
             .and_then(|v| v.parse::<u16>().ok())
-            .unwrap_or(80);
+            .unwrap_or(0);
         // Start the app always-on. `run_dev_app` may return Err solely
         // because the host port-80 proxy device cannot bind (Caddy owns :80
         // on the host) — irrelevant for prod, which is served through the

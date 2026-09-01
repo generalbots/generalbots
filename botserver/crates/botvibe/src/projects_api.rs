@@ -1410,18 +1410,6 @@ struct ProjectHistoryResponse {
     error: Option<String>,
 }
 
-/// Reads the token columns for one run whose aliased columns are
-/// `tokens_total`, `tokens_input`, `tokens_output` (i64).
-#[derive(diesel::QueryableByName)]
-struct TokensRow {
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    tokens_total: i64,
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    tokens_input: i64,
-    #[diesel(sql_type = diesel::sql_types::BigInt)]
-    tokens_output: i64,
-}
-
 #[derive(diesel::QueryableByName)]
 struct HistoryRunRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
