@@ -188,7 +188,22 @@ pub async fn git_commit(
     } else {
         payload.message.trim().to_string()
     };
-    let commit = run_git(&repo, &["commit", "-m", &message]);
+    // Project workspaces are not configured with a git identity (the agent
+    // harness passes `-c user.*` for its own commits), so committing without
+    // one fails with "Please tell me who you are". Supply the same identity
+    // the Vibe agent uses so the Source Control dialog commit always works.
+    let commit = run_git(
+        &repo,
+        &[
+            "-c",
+            "user.name=Vibe Agent",
+            "-c",
+            "user.email=vibe@gbo.local",
+            "commit",
+            "-m",
+            &message,
+        ],
+    );
     match commit {
         Ok(out) => {
             results.insert("status".into(), serde_json::Value::String("success".into()));
