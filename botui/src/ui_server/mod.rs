@@ -14,7 +14,7 @@ pub use self::assets::{
 };
 pub use self::cloud::*;
 pub use self::constants::get_ui_root;
-pub use self::login::{serve_login_index, serve_login_signup, serve_login_js, serve_login_images};
+pub use self::login::{serve_login_index, serve_login_signup, serve_login_js, serve_login_images, serve_login_cloud};
 pub use self::proxy::*;
 pub use self::suite::*;
 pub use self::suite_ops::*;
@@ -175,6 +175,7 @@ pub fn configure_login_router() -> Router {
         .route("/signup", get(serve_login_signup))
         .route("/js/*path", get(serve_login_js))
         .route("/images/*path", get(serve_login_images))
+        .route("/cloud/*path", get(serve_login_cloud))
         .nest("/api", create_api_router())
         .nest("/ws", create_ws_router())
         .fallback(get(serve_login_index))
