@@ -584,6 +584,24 @@
     function deployProject() {
         var projectId = S.projectId();
         if (!projectId) {
+            // Reload/restore can leave the in-memory selection empty while the
+            // last-used project is still persisted (#deploy-the-selected).
+            // Recover it before bailing out so Deploy never mints a junk
+            // project from the intent slug.
+            try {
+                var savedId = localStorage.getItem("gb-vibe-project-id");
+                var savedName = localStorage.getItem("gb-vibe-project-name");
+                if (savedId && typeof applyProjectSelection === "function") {
+                    var match = knownProjects.find(function (p) {
+                        var pid = p.project_id || p.id;
+                        return pid != null && String(pid) === String(savedId);
+                    });
+                    applyProjectSelection(match || { project_id: savedId, name: savedName || "" }, false);
+                    projectId = savedId;
+                }
+            } catch (_e) { /* storage unavailable */ }
+        }
+        if (!projectId) {
             flashHint("SELECT A PROJECT FIRST");
             var sel = projectSelect();
             if (sel) sel.focus();
