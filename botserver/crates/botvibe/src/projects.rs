@@ -119,7 +119,7 @@ pub struct UpdateProjectRequest {
     pub payload: Option<serde_json::Value>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 pub struct ListProjectsQuery {
     pub branch_id: Option<Uuid>,
     pub project_type: Option<String>,
