@@ -276,7 +276,7 @@ async fn resume_session(
         lang: req.lang.unwrap_or_else(|| "en".to_string()),
         auto_approve: req.auto_approve.unwrap_or(false),
         max_tool_calls: req.max_tool_calls.unwrap_or(50),
-        timeout_seconds: req.timeout_seconds.unwrap_or(300),
+        timeout_seconds: req.timeout_seconds.unwrap_or(600),
         model: req.model,
         llm_key: None,
         llm_url: None,
