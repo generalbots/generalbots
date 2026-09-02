@@ -493,6 +493,7 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         // inside the container (`run_dev_app` pins PORT=3000) and the proxy
         // container cannot resolve `{container}.incus` names, so dial the
         // container's real IP. Route failure is logged but non-fatal.
+        // (#1271 — this same host is the public URL recorded below.)
         let host = format!("{repo_name}.{}", published_domain());
         let dial = match VmLifecycle::new(pool.clone()).linux_ip(&vm.container_name) {
             Ok(Some(ip)) => format!("{ip}:3000"),
@@ -529,10 +530,24 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         }
     }
 
+    // #1271 — the deployment history row must carry a browser-openable URL:
+    // the platform host route (https://{repo}.{platform-domain}) when the
+    // Caddy route was installed, else whatever the inner deploy reported.
+    // `ops_api::preview` reads this row to give the UI a real public URL;
+    // an empty url forces the frontend to guess slugs from the hostname.
+    let public_host = format!("{repo_name}.{}", published_domain());
+    let public_url = if env == "production" {
+        Some(format!("https://{public_host}/"))
+    } else {
+        None
+    };
     let deployment = serde_json::json!({
         "env": env,
         "at": chrono::Utc::now().to_rfc3339(),
-        "url": deployed.get("url").and_then(|v| v.as_str()).unwrap_or(""),
+        "url": public_url
+            .clone()
+            .or_else(|| deployed.get("url").and_then(|v| v.as_str()).map(String::from))
+            .unwrap_or_default(),
         "container": vm.container_name,
         "domain": domain.clone().unwrap_or_default(),
         "track": "ok",

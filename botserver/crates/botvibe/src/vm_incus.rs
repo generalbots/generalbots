@@ -12,6 +12,7 @@
 use std::sync::OnceLock;
 
 use crate::harness::cmd::{run, GuardError, RunOutput};
+use sha2::{Digest, Sha256};
 #[cfg(target_os = "windows")]
 use crate::harness::cmd::spawn_persistent;
 use crate::vm_lifecycle::VmLifecycle;
@@ -972,25 +973,78 @@ impl VmLifecycle {
             // Run serves the real app even when the agent never ran npm
             // install itself. Tolerated failure: the static fallback probe
             // below still rescues projects whose deps cannot resolve.
+            // #1273 — skipped when both manifests are byte-identical to the
+            // previous Run: the hash file written after a successful install
+            // turns every subsequent Run into a no-op instead of re-paying
+            // the npm tax on slow networks.
             if files
                 .iter()
                 .any(|f| f.get("path").and_then(|v| v.as_str()) == Some("package.json"))
             {
-                let args = vec![
-                    "exec".to_string(),
-                    name.to_string(),
-                    "--env".to_string(),
-                    "DEBIAN_FRONTEND=noninteractive".to_string(),
-                    "--".to_string(),
-                    "npm".to_string(),
-                    "install".to_string(),
-                    "--prefix".to_string(),
-                    "/opt/vibe/app".to_string(),
-                    "--no-audit".to_string(),
-                    "--no-fund".to_string(),
-                ];
-                if let Err(e) = self.incus_run(&args, 300) {
-                    log::warn!("Vibe: {name} npm install failed: {e}");
+                let mut hasher_input = Vec::new();
+                for manifest in ["package.json", "package-lock.json"] {
+                    if let Some(f) = files
+                        .iter()
+                        .find(|f| f.get("path").and_then(|v| v.as_str()) == Some(manifest))
+                    {
+                        if let Some(content) = f.get("content").and_then(|v| v.as_array()) {
+                            for b in content {
+                                hasher_input.push(b.as_u64().unwrap_or(0) as u8);
+                            }
+                        }
+                    }
+                    hasher_input.push(b'\n');
+                }
+                let deps_hash = format!("{:x}", Sha256::digest(&hasher_input));
+                let check = self.incus_run(
+                    &[
+                        "exec".to_string(),
+                        name.to_string(),
+                        "--".to_string(),
+                        "cat".to_string(),
+                        "/opt/vibe/app/.vibe-deps-hash".to_string(),
+                    ],
+                    15,
+                );
+                let unchanged = check
+                    .map(|out| out.stdout.trim() == deps_hash)
+                    .unwrap_or(false);
+                if unchanged {
+                    log::info!("Vibe: {name} dependencies unchanged — skipping npm install");
+                } else {
+                    let args = vec![
+                        "exec".to_string(),
+                        name.to_string(),
+                        "--env".to_string(),
+                        "DEBIAN_FRONTEND=noninteractive".to_string(),
+                        "--".to_string(),
+                        "npm".to_string(),
+                        "install".to_string(),
+                        "--prefix".to_string(),
+                        "/opt/vibe/app".to_string(),
+                        "--no-audit".to_string(),
+                        "--no-fund".to_string(),
+                    ];
+                    if let Err(e) = self.incus_run(&args, 300) {
+                        log::warn!("Vibe: {name} npm install failed: {e}");
+                    } else {
+                        // Record the hash only after a successful install so
+                        // a failed attempt retries on the next Run.
+                        let _ = self.incus_run(
+                            &[
+                                "exec".to_string(),
+                                name.to_string(),
+                                "--".to_string(),
+                                "sh".to_string(),
+                                "-c".to_string(),
+                                format!(
+                                    "printf %s {} > /opt/vibe/app/.vibe-deps-hash",
+                                    deps_hash
+                                ),
+                            ],
+                            15,
+                        );
+                    }
                 }
             }
 

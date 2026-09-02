@@ -29,6 +29,8 @@ pub enum PipelineStageKind {
     CommitPush,
     PublishApp,
     BindDomain,
+    VerifyDomain,
+    IssueTls,
 }
 
 impl PipelineStageKind {
@@ -43,6 +45,8 @@ impl PipelineStageKind {
             Self::CommitPush => "git/commit",
             Self::PublishApp => "publish/project",
             Self::BindDomain => "domain/bind",
+            Self::VerifyDomain => "domain/verify",
+            Self::IssueTls => "domain/tls",
         }
     }
 
@@ -56,6 +60,8 @@ impl PipelineStageKind {
             Self::CommitPush => "Commit and push",
             Self::PublishApp => "Publish application",
             Self::BindDomain => "Bind domain and TLS",
+            Self::VerifyDomain => "Verify domain ownership",
+            Self::IssueTls => "Issue TLS certificate",
         }
     }
 }
@@ -116,6 +122,14 @@ impl RunPipeline {
             stage_approval("commit_push", PipelineStageKind::CommitPush, 60, true),
             stage_approval("publish", PipelineStageKind::PublishApp, 300, true),
             stage_approval("domain", PipelineStageKind::BindDomain, 60, true),
+            // #1268 — a bound domain must not stay verified=false/tls=pending
+            // forever: verify ownership right after binding, then (re)apply
+            // the route so ACME issues on first request. Platform-managed
+            // wildcard hosts verify against the platform zone; custom domains
+            // keep requiring the manual TXT token. Both stages tolerate
+            // failure (verification may legitimately need DNS propagation).
+            stage_continue("domain_verify", PipelineStageKind::VerifyDomain, 30),
+            stage_continue("domain_tls", PipelineStageKind::IssueTls, 60),
         ];
         Self {
             pipeline_id: format!("deploy/{}", use_case_str(use_case)),
@@ -131,6 +145,19 @@ impl RunPipeline {
 
 fn stage(id: &str, kind: PipelineStageKind, timeout_secs: u64) -> PipelineStage {
     stage_approval(id, kind, timeout_secs, false)
+}
+
+/// #1268 — a stage whose failure must not abort the deploy (DNS propagation
+/// delays, upstream ACME hiccups): the pipeline continues when it fails.
+fn stage_continue(id: &str, kind: PipelineStageKind, timeout_secs: u64) -> PipelineStage {
+    PipelineStage {
+        id: id.to_string(),
+        name: kind.display_name().to_string(),
+        kind,
+        timeout_secs,
+        requires_approval: false,
+        continue_on_failure: true,
+    }
 }
 
 fn stage_approval(
@@ -302,6 +329,16 @@ impl PipelineEngine {
                         "env": "production",
                         "domain": format!("{}.gb.solutions", project_name.unwrap_or("app")),
                     }),
+                    // #1268 — verify/verify-then-issue for the just-bound
+                    // host. domain/verify reads the binding itself (token
+                    // already recorded at bind time); domain/tls re-applies
+                    // the route so ACME issues on first request.
+                    PipelineStageKind::VerifyDomain | PipelineStageKind::IssueTls => {
+                        serde_json::json!({
+                            "env": "production",
+                            "domain": format!("{}.gb.solutions", project_name.unwrap_or("app")),
+                        })
+                    }
                     PipelineStageKind::BuildTest
                     | PipelineStageKind::SnapshotPrevious
                     | PipelineStageKind::CommitPush => {
@@ -487,7 +524,9 @@ mod tests {
         }
         #[cfg(not(target_os = "windows"))]
         {
-            assert_eq!(pipeline.stages.len(), 7);
+            // #1268 — 9 stages: the original 7 plus domain_verify + domain_tls
+            // appended so a bound domain never stays verified=false/tls=pending.
+            assert_eq!(pipeline.stages.len(), 9);
             assert_eq!(pipeline.stages[2].kind, PipelineStageKind::BuildTest);
             // #1271 — the deploy pipeline snapshots the current deployment
             // before committing the new state, so rollback is one combo click.
@@ -502,6 +541,8 @@ mod tests {
                 "Bind domain and TLS"
             );
             assert!(pipeline.stage("snapshot_prev").is_some());
+            assert!(pipeline.stage("domain_verify").is_some());
+            assert!(pipeline.stage("domain_tls").is_some());
         }
     }
 

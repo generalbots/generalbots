@@ -290,6 +290,13 @@ fn derive_project_name(intent: &str) -> String {
         "create", "make", "build", "write", "generate", "develop", "add", "a", "an", "the",
         "my", "new", "simple", "basic", "me", "please",
     ];
+    // #1272 — generic deictic phrases must never become project names: a run
+    // like "Deploy the selected project to production" minted the junk
+    // workspace `deploy-the-selected`. Such intents refer to an EXISTING
+    // project; the caller must pass project_id/project_name instead.
+    const FORBIDDEN: &[&str] = &["selected", "current", "this", "that", "project", "it"];
+    // Articles add nothing to a slug and read badly mid-name ("deploy-the-to").
+    const ARTICLES: &[&str] = &["the", "a", "an"];
     let mut words: Vec<String> = Vec::new();
     for raw in intent.split(|c: char| !c.is_ascii_alphanumeric()) {
         let word = raw.to_ascii_lowercase();
@@ -297,6 +304,9 @@ fn derive_project_name(intent: &str) -> String {
             continue;
         }
         if words.is_empty() && STOP.contains(&word.as_str()) {
+            continue;
+        }
+        if FORBIDDEN.contains(&word.as_str()) || ARTICLES.contains(&word.as_str()) {
             continue;
         }
         words.push(word);
@@ -1277,8 +1287,17 @@ mod tests {
             derive_project_name("Build a new landing page"),
             "landing-page"
         );
-        assert_eq!(derive_project_name("refactor the auth module"), "refactor-the-auth");
+        assert_eq!(derive_project_name("refactor the auth module"), "refactor-auth-module");
         assert_eq!(derive_project_name(""), "app");
         assert_eq!(derive_project_name("   "), "app");
+        // #1272 — deictic phrases never become project names.
+        assert_eq!(
+            derive_project_name("Deploy the selected project to production"),
+            "deploy-to-production"
+        );
+        assert_eq!(
+            derive_project_name("Update this project settings"),
+            "update-settings"
+        );
     }
 }

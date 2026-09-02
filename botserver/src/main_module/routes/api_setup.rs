@@ -17,7 +17,18 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
         .route(ApiUrls::SESSIONS, post(crate::core::session::create_session))
         .route(ApiUrls::SESSION_START, post(crate::core::session::start_session))
         .route(ApiUrls::WS, get(crate::core::bot::websocket_handler))
-        .route("/ws/:bot_name", get(crate::core::bot::websocket_handler_with_bot));
+        .route("/ws/:bot_name", get(crate::core::bot::websocket_handler_with_bot))
+        // AutoTask progress stream — botui proxies /ws/task-progress[/:task_id]
+        // here (issue #1266: the endpoint was missing so every client dial
+        // failed and progress events never reached the UI).
+        .route(
+            "/ws/task-progress",
+            get(super::task_progress_ws::task_progress_ws),
+        )
+        .route(
+            "/ws/task-progress/:task_id",
+            get(super::task_progress_ws::task_progress_ws_with_id),
+        );
 
     #[cfg(feature = "drive")]
     {

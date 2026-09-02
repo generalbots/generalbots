@@ -98,18 +98,66 @@ pub async fn upsert_route_to(domain: &str, dial: &str, access: &str) -> Result<C
     let client = client()?;
     let rid = route_id(domain);
 
-    // Remove ALL previous routes with the same @id, not just one. A single
-    // delete leaves older duplicates in place when a host was published
-    // multiple times (e.g. after a container IP change), and Caddy serves
-    // the first match — a stale dial makes the published app 502 (#e2e).
+    // Remove ALL previous routes matching this host before inserting. Two
+    // removal passes are needed:
+    //   1. by @id — the id scheme is stable today, but...
+    //   2. by match host via the routes LIST INDEX — duplicate @ids make the
+    //      id index unresolvable (DELETE /config/id/{rid} returns 500
+    //      `invalid traversal path` when duplicates exist, observed in
+    //      production), and older id schemes never match. Caddy serves the
+    //      FIRST matching route, so a stale duplicate can 502 the app even
+    //      when a correct route also exists (#1265). Walking the list from
+    //      the END backwards keeps earlier indices valid as items shift.
+    let routes_path = "config/apps/http/servers/srv0/routes";
     for _ in 0..16 {
         let resp = client
-            .delete(format!("{base}/config/id/{rid}?"))
+            .delete(format!("{base}/config/id/{rid}"))
             .send()
             .await;
         match resp {
             Ok(r) if r.status().is_success() => continue,
             _ => break,
+        }
+    }
+    if let Ok(resp) = client.get(format!("{base}/{routes_path}")).send().await {
+        if resp.status().is_success() {
+            if let Ok(routes) = resp.json::<Vec<serde_json::Value>>().await {
+                let mut removed = 0usize;
+                for (index, route) in routes.iter().enumerate().rev() {
+                    let matches_host = route
+                        .get("match")
+                        .and_then(|m| m.as_array())
+                        .map(|arr| {
+                            arr.iter().any(|m| {
+                                m.get("host")
+                                    .and_then(|h| h.as_array())
+                                    .map(|hosts| {
+                                        hosts.iter().any(|h| h.as_str() == Some(domain))
+                                    })
+                                    .unwrap_or(false)
+                            })
+                        })
+                        .unwrap_or(false);
+                    if !matches_host {
+                        continue;
+                    }
+                    let delete_url = format!(
+                        "{base}/{routes_path}/{}",
+                        index.saturating_sub(removed)
+                    );
+                    removed += 1;
+                    if let Ok(resp) = client.delete(delete_url).send().await {
+                        if !resp.status().is_success() {
+                            log::warn!(
+                                "Caddy dedupe: index delete for {domain} returned {}",
+                                resp.status()
+                            );
+                        }
+                    }
+                }
+            }
+        } else {
+            log::debug!("Caddy dedupe: routes list unavailable ({})", resp.status());
         }
     }
 
