@@ -705,7 +705,7 @@ fn branch_scope(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Uuid, String> 
 /// app's name as a mention, so the mention text itself identifies the target
 /// workspace — matching by name avoids the wrong-project edit that the
 /// latest-project fallback caused (#e2e).
-fn mentioned_project(
+pub(crate) fn mentioned_project(
     state: &Arc<AppState>,
     bot_uuid: &Uuid,
     intent: &str,

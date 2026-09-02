@@ -361,19 +361,32 @@ pub async fn process_message_internal(
     // block with `vibe.project.change` (smaller models like gpt-oss skip it and
     // answer with a generic clarification, so "@app paint it red" never reaches
     // the agent). The run executor is the same one `vibe.project.change` uses.
-    let routed_project_id = project_context.as_ref().and_then(|ctx| {
+    let picked_project_id = project_context.as_ref().and_then(|ctx| {
         ctx.get("project_id")
             .and_then(|v| v.as_str())
             .filter(|s| !s.is_empty())
             .map(|s| s.to_string())
     });
-    if let Some(pid) = routed_project_id {
-        let project_name = project_context
+    let (routed_project_id, routed_project_name) = if let Some(pid) = picked_project_id {
+        let name = project_context
             .as_ref()
             .and_then(|c| c.get("project_name"))
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();
+        (Some(pid), name)
+    } else {
+        // #mention — a typed "@project-name" in the raw text is deterministic
+        // too: resolve it by name instead of trusting the LLM, which may route
+        // the message to ui_plan automation (app 'designer') instead of the
+        // vibe agent.
+        match crate::core::bot::api_catalog::mentioned_project(state, &bot_uuid, &user_text) {
+            Ok(Some((pid, name))) => (Some(pid), name),
+            _ => (None, String::new()),
+        }
+    };
+    if let Some(pid) = routed_project_id {
+        let project_name = routed_project_name;
         let mut run_params = serde_json::Map::new();
         run_params.insert("intent".to_string(), serde_json::Value::String(user_text.clone()));
         run_params.insert("project_id".to_string(), serde_json::Value::String(pid.clone()));
