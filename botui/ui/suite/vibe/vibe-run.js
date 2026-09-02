@@ -809,6 +809,28 @@
         var evRunId = eventData.run_id;
         if (evRunId && state.runId && String(evRunId) !== String(state.runId)) return;
 
+        // Report the run's outcome back into the Chat window — the chat only
+        // says "Vibe agent started ..." when routing a mention, so without
+        // this the user never learns the agent finished or what it did.
+        if ((step === "completed" || step === "failed" || step === "cancelled") && evRunId) {
+            var detail = eventData.message || "";
+            var runCfg = (state.run && (state.run.config || state.run)) || {};
+            var wasDeploy = runCfg.pipeline_mode === "deploy" || /publish|deploy/i.test(detail);
+            var note;
+            if (step === "completed") {
+                note = wasDeploy
+                    ? "✅ Deploy finished — your app is published and ready at its public URL."
+                    : "✅ Vibe agent finished — changes applied and ready to go.";
+            } else if (step === "failed") {
+                note = "❌ Vibe run failed — " + (detail || "check the Runner Log for details.");
+            } else {
+                note = "⏹ Vibe run cancelled.";
+            }
+            if (typeof vibeSafeMsg === "function") {
+                vibeSafeMsg("system", note);
+            }
+        }
+
         if (typeof eventData.progress === "number") {
             state.progress = Math.max(state.progress, eventData.progress);
         } else if (eventData.current_step && eventData.total_steps) {
