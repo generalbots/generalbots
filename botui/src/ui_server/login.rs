@@ -124,3 +124,15 @@ pub async fn serve_login_images(
     let login_root = get_ui_root().join("login");
     serve_login_file(login_root.join("images").join(path.as_str())).await
 }
+
+/// `/cloud/*path` on the login server — serves shared cloud assets (js,
+/// images, css) directly from the cloud UI tree. Deployed login pages
+/// reference `/cloud/js/cloud-auth.js` and `/cloud/images/logo.svg`; without
+/// this route the request fell through to the index fallback and the browser
+/// refused the HTML body as a script (strict MIME checking).
+pub async fn serve_login_cloud(
+    axum::extract::Path(path): axum::extract::Path<String>,
+) -> Response {
+    let cloud_root = get_ui_root().join("cloud");
+    serve_login_file(cloud_root.join(path.as_str())).await
+}
