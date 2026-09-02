@@ -4,16 +4,35 @@ use std::sync::Arc;
 use std::time::Instant;
 use tokio::sync::RwLock;
 
+// Fields default + alias legacy key names so a config file written by an
+// older stack (e.g. `base_url` instead of `api_url`, `service_token` instead
+// of `service_account_key`, or a partial JSON with only 5 keys) still
+// deserializes. Without the aliases, resolve_directory_config() rejects the
+// on-disk conf/system/directory_config.json and falls back to Vault, which
+// may hold a raw container IP — then Zitadel 404s the token request because
+// the Host header no longer matches the registered instance domain.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ZitadelConfig {
+    #[serde(default)]
     pub issuer_url: String,
+    #[serde(default)]
     pub issuer: String,
+    #[serde(default)]
     pub client_id: String,
+    #[serde(default)]
     pub client_secret: String,
+    #[serde(default)]
     pub redirect_uri: String,
+    #[serde(default = "default_project_id")]
     pub project_id: String,
+    #[serde(default, alias = "base_url")]
     pub api_url: String,
+    #[serde(default, alias = "service_token")]
     pub service_account_key: Option<String>,
+}
+
+fn default_project_id() -> String {
+    "default".to_string()
 }
 
 #[derive(Debug, Clone)]

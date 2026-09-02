@@ -98,10 +98,20 @@ pub async fn upsert_route_to(domain: &str, dial: &str, access: &str) -> Result<C
     let client = client()?;
     let rid = route_id(domain);
 
-    let _ = client
-        .delete(format!("{base}/config/id/{rid}"))
-        .send()
-        .await;
+    // Remove ALL previous routes with the same @id, not just one. A single
+    // delete leaves older duplicates in place when a host was published
+    // multiple times (e.g. after a container IP change), and Caddy serves
+    // the first match — a stale dial makes the published app 502 (#e2e).
+    for _ in 0..16 {
+        let resp = client
+            .delete(format!("{base}/config/id/{rid}?"))
+            .send()
+            .await;
+        match resp {
+            Ok(r) if r.status().is_success() => continue,
+            _ => break,
+        }
+    }
 
     let body = route_payload(domain, dial, &rid, access);
     let resp = client
