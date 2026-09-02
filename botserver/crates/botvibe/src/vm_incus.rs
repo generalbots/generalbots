@@ -1071,7 +1071,7 @@ impl VmLifecycle {
             // which wrongly swapped every custom/node app to the static
             // server. A pushed probe script runs with clean arguments.
             let probe_file = if is_python { "healthcheck.py" } else { "healthcheck.js" };
-            let probe_path = temp.join(&format!("vibe-{probe_file}"));
+            let probe_path = temp.join(format!("vibe-{probe_file}"));
             let probe_src = if is_python { HEALTH_PROBE_PYTHON } else { HEALTH_PROBE_JS };
             std::fs::write(&probe_path, probe_src)
                 .map_err(|e| format!("write health probe: {e}"))?;
@@ -1120,9 +1120,8 @@ impl VmLifecycle {
                     60,
                 )
                 .map_err(|e| format!("push static fallback server: {e}"))?;
-                let unit = format!(
-                    "[Unit]\nDescription=Vibe application (static)\nAfter=network.target\n\n[Service]\nType=simple\nWorkingDirectory=/opt/vibe/app\nEnvironment=PORT=3000\nExecStart=/usr/bin/node /opt/vibe/app/server.js\nRestart=always\nRestartSec=2\n\n[Install]\nWantedBy=multi-user.target\n"
-                );
+                let unit = "[Unit]\nDescription=Vibe application (static)\nAfter=network.target\n\n[Service]\nType=simple\nWorkingDirectory=/opt/vibe/app\nEnvironment=PORT=3000\nExecStart=/usr/bin/node /opt/vibe/app/server.js\nRestart=always\nRestartSec=2\n\n[Install]\nWantedBy=multi-user.target\n"
+                    .to_string();
                 let unit_path = temp.join("vibe-app-static.service");
                 std::fs::write(&unit_path, unit).map_err(|e| format!("write static unit: {e}"))?;
                 self.incus_run(

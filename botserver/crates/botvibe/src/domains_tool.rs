@@ -60,7 +60,8 @@ pub fn domain_verify_schema() -> ToolSchema {
     .with_parameters(serde_json::json!({
         "type": "object",
         "properties": {
-            "domain": { "type": "string", "description": "Bound domain to verify" }
+            "domain": { "type": "string", "description": "Bound domain to verify" },
+            "env": { "type": "string", "enum": ["development", "staging", "production"], "description": "Project environment the binding belongs to (defaults to production)" }
         },
         "required": ["domain"]
     }))
@@ -76,7 +77,8 @@ pub fn domain_tls_schema() -> ToolSchema {
     .with_parameters(serde_json::json!({
         "type": "object",
         "properties": {
-            "domain": { "type": "string", "description": "Bound domain to secure" }
+            "domain": { "type": "string", "description": "Bound domain to secure" },
+            "env": { "type": "string", "enum": ["development", "staging", "production"], "description": "Project environment the binding belongs to (defaults to production)" }
         },
         "required": ["domain"]
     }))

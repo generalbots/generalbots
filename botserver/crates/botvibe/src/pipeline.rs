@@ -327,7 +327,7 @@ impl PipelineEngine {
                     PipelineStageKind::BindDomain => serde_json::json!({
                         "project_id": project_id.unwrap_or(""),
                         "env": "production",
-                        "domain": format!("{}.gb.solutions", project_name.unwrap_or("app")),
+                        "domain": format!("{}.{domain}", project_name.unwrap_or("app"), domain = crate::publish::published_domain()),
                     }),
                     // #1268 — verify/verify-then-issue for the just-bound
                     // host. domain/verify reads the binding itself (token
@@ -336,7 +336,7 @@ impl PipelineEngine {
                     PipelineStageKind::VerifyDomain | PipelineStageKind::IssueTls => {
                         serde_json::json!({
                             "env": "production",
-                            "domain": format!("{}.gb.solutions", project_name.unwrap_or("app")),
+                            "domain": format!("{}.{domain}", project_name.unwrap_or("app"), domain = crate::publish::published_domain()),
                         })
                     }
                     PipelineStageKind::BuildTest
