@@ -411,6 +411,74 @@ pub async fn process_message_internal(
                     "web",
                 );
                 let _ = sink.send_bot_response(&resp).await;
+
+                // #e2e — report the run's outcome back into this chat. The
+                // "agent started" note above is the last thing the user sees
+                // otherwise, so they never learn whether the edit applied or
+                // the deploy published. A poller watches the run state via
+                // the same loopback API and pushes one final BotResponse
+                // through the live session channel (response_channels), so
+                // the message lands in the open Chat window even after this
+                // pipeline call returns.
+                if !run_id.is_empty() {
+                    let state = state.clone();
+                    let run_id = run_id.to_string();
+                    let project_name = project_name.clone();
+                    let bot_uuid = bot_uuid;
+                    let session_id = session_id;
+                    let user_id = user_id;
+                    tokio::spawn(async move {
+                        let final_state = loop {
+                            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+                            let value = match crate::core::bot::api_exec::exec_endpoint(
+                                &state,
+                                user_id,
+                                Some(bot_uuid),
+                                "GET",
+                                &format!("/api/vibe/run/{run_id}"),
+                                &serde_json::Map::new(),
+                            )
+                            .await
+                            {
+                                Ok(v) => v,
+                                Err(_) => return,
+                            };
+                            let s = value
+                                .get("state")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .to_string();
+                            if matches!(s.as_str(), "completed" | "failed" | "cancelled")
+                                || s.is_empty()
+                            {
+                                break s;
+                            }
+                        };
+                        let text = match final_state.as_str() {
+                            "completed" => format!(
+                                "✅ Vibe agent finished for '{project_name}' — the changes are ready to go."
+                            ),
+                            "failed" => format!(
+                                "❌ Vibe run for '{project_name}' failed — check the Runner Log for details."
+                            ),
+                            "cancelled" => {
+                                format!("⏹ Vibe run for '{project_name}' was cancelled.")
+                            }
+                            _ => return,
+                        };
+                        let resp = botlib::models::BotResponse::new(
+                            bot_uuid.to_string(),
+                            session_id.to_string(),
+                            user_id.to_string(),
+                            &text,
+                            "web",
+                        );
+                        let channels = state.response_channels.lock().await;
+                        if let Some(tx) = channels.get(&session_id.to_string()) {
+                            let _ = tx.try_send(resp);
+                        }
+                    });
+                }
             }
             Err(e) => {
                 log::warn!("Vibe chat routing failed for project {pid}: {e}");
