@@ -707,7 +707,33 @@ impl VmLifecycle {
                     .map(|p| p == "server.js" || p.ends_with("/server.js"))
                     .unwrap_or(false)
             });
-            let has_node_entry = has_index_js || has_server_js;
+            // An explicit web entry declared by the project (package.json
+            // "main" or a "start" script of the form `node <file>`) wins over
+            // conventional file names — the agent may build the app in
+            // server.js while a starter index.js template still exists, and
+            // index.js must not shadow the real application.
+            let declared_entry: Option<String> = files.iter().find_map(|f| {
+                if f.get("path").and_then(|v| v.as_str()) != Some("package.json") {
+                    return None;
+                }
+                let content = f.get("content").and_then(|v| v.as_array())?;
+                let bytes: Vec<u8> = content
+                    .iter()
+                    .filter_map(|v| v.as_u64().filter(|n| *n <= u8::MAX as u64).map(|n| n as u8))
+                    .collect();
+                let manifest: serde_json::Value = serde_json::from_slice(&bytes).ok()?;
+                let main = manifest
+                    .get("main")
+                    .and_then(|v| v.as_str())
+                    .map(str::to_string);
+                let start = manifest
+                    .get("scripts")
+                    .and_then(|s| s.get("start"))
+                    .and_then(|v| v.as_str())
+                    .and_then(|s| s.strip_prefix("node ").map(str::to_string));
+                main.or(start)
+            });
+            let has_node_entry = has_index_js || has_server_js || declared_entry.is_some();
             // A python-framework project (framework type "python") designates
             // its web entry point with a python module (app.py / server.py /
             // main.py) instead of index.js. Treat a user-provided python
@@ -828,6 +854,8 @@ impl VmLifecycle {
                     .into_iter()
                     .next()
                     .unwrap_or("app.py")
+            } else if let Some(main) = declared_entry.as_deref() {
+                main
             } else if has_index_js {
                 "index.js"
             } else {
@@ -936,6 +964,33 @@ impl VmLifecycle {
                     args.extend(command.into_iter().map(str::to_string));
                     self.incus_run(&args, 300)
                         .map_err(|e| format!("install Node runtime: {e}"))?;
+                }
+            }
+
+            // Install project dependencies when a package.json exists (the
+            // same trigger the python branch uses for requirements.txt) so a
+            // Run serves the real app even when the agent never ran npm
+            // install itself. Tolerated failure: the static fallback probe
+            // below still rescues projects whose deps cannot resolve.
+            if files
+                .iter()
+                .any(|f| f.get("path").and_then(|v| v.as_str()) == Some("package.json"))
+            {
+                let args = vec![
+                    "exec".to_string(),
+                    name.to_string(),
+                    "--env".to_string(),
+                    "DEBIAN_FRONTEND=noninteractive".to_string(),
+                    "--".to_string(),
+                    "npm".to_string(),
+                    "install".to_string(),
+                    "--prefix".to_string(),
+                    "/opt/vibe/app".to_string(),
+                    "--no-audit".to_string(),
+                    "--no-fund".to_string(),
+                ];
+                if let Err(e) = self.incus_run(&args, 300) {
+                    log::warn!("Vibe: {name} npm install failed: {e}");
                 }
             }
 
