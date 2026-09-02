@@ -583,34 +583,54 @@ pub async fn execute_command(
             }
         }
         "vibe.project.change" => {
-            let project_name = str_of("project_name").unwrap_or_default();
-            // The model may call the command without a project_id when the
-            // user is working inside the Vibe shell; fall back to the caller's
-            // most recently created project in the bot's branch scope so the
-            // request still lands in a real workspace (#1196).
-            let project_id = match str_of("project_id") {
-                Some(pid) => pid,
-                None => {
-                    let branch = branch_scope(state, &bot_uuid).unwrap_or_else(|_| Uuid::nil());
-                    let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
-                    // Projects created from the suite land in the caller's real
-                    // branch; the default-bot scope may be the nil branch. Try
-                    // both so the fallback finds the user's latest project
-                    // regardless of which scope it was created under.
-                    diesel::sql_query(
-                        "SELECT id AS project_id FROM vibe_projects WHERE branch_id = ANY($1) ORDER BY created_at DESC LIMIT 1",
-                    )
-                    .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(vec![branch, Uuid::nil()])
-                    .get_result::<ProjectIdRow>(&mut conn)
-                    .ok()
-                    .map(|r| r.project_id.to_string())
-                    .ok_or_else(|| "params.project_id is required (no Vibe project found)".to_string())?
+            // The model may call the command without a project_id. Resolve the
+            // target in this order:
+            //   1. explicit params.project_id
+            //   2. an @project mention inside the intent text (the chat
+            //      composer prefills "@contato-calc-e2e ..." — the mention IS
+            //      the target)
+            //   3. the caller's most recently created project in the bot's
+            //      branch scope (#1196)
+            // Without step 2 the fallback silently landed the edit in whichever
+            // project was created last (e.g. an accidental "deploy-the-selected"
+            // auto-project) instead of the project the user typed.
+            let intent_text = str_of("intent").unwrap_or_default();
+            let (project_id, project_name) = match str_of("project_id") {
+                Some(pid) => (pid, str_of("project_name").unwrap_or_default()),
+                None => match mentioned_project(state, &bot_uuid, &intent_text)? {
+                    Some((pid, name)) => (pid, name),
+                    None => {
+                        // 3) latest-project fallback
+                        let branch = branch_scope(state, &bot_uuid).unwrap_or_else(|_| Uuid::nil());
+                        let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
+                        // Projects created from the suite land in the caller's real
+                        // branch; the default-bot scope may be the nil branch. Try
+                        // both so the fallback finds the user's latest project
+                        // regardless of which scope it was created under.
+                        let latest = diesel::sql_query(
+                            "SELECT id AS project_id, name AS project_name FROM vibe_projects WHERE branch_id = ANY($1) ORDER BY created_at DESC LIMIT 1",
+                        )
+                        .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(vec![branch, Uuid::nil()])
+                        .get_result::<ProjectNameRow>(&mut conn)
+                        .ok();
+                        match latest {
+                            Some(row) => (row.project_id.to_string(), row.project_name),
+                            None => {
+                                if let Some(name) = str_of("project_name").filter(|n| !n.is_empty()) {
+                                    (name.clone(), name)
+                                } else {
+                                    return Err("params.project_id is required (no Vibe project found)".to_string());
+                                }
+                            }
+                        }
+                    }
                 }
             };
-            let intent = str_of("intent")
-                .ok_or_else(|| "params.intent is required".to_string())?;
+            if intent_text.trim().is_empty() {
+                return Err("params.intent is required".to_string());
+            }
             let mut run_params = serde_json::Map::new();
-            run_params.insert("intent".to_string(), Value::String(intent));
+            run_params.insert("intent".to_string(), Value::String(intent_text));
             run_params.insert("project_id".to_string(), Value::String(project_id));
             if !project_name.is_empty() {
                 run_params.insert("project_name".to_string(), Value::String(project_name));
@@ -680,6 +700,41 @@ fn branch_scope(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Uuid, String> 
         .ok_or_else(|| "bot not found".to_string())
 }
 
+/// Resolves an `@project-name` mention inside the intent text to
+/// `(project_id, project_name)`. The chat composer prefills the running
+/// app's name as a mention, so the mention text itself identifies the target
+/// workspace — matching by name avoids the wrong-project edit that the
+/// latest-project fallback caused (#e2e).
+fn mentioned_project(
+    state: &Arc<AppState>,
+    bot_uuid: &Uuid,
+    intent: &str,
+) -> Result<Option<(String, String)>, String> {
+    // First @token in the text (alphanumerics, dash, underscore, dot).
+    let mention = intent
+        .split(|c: char| c.is_whitespace() || c == ',' || c == '!' || c == '?' || c == '.')
+        .find_map(|word| {
+            let w = word.strip_prefix('@').filter(|s| !s.is_empty())?;
+            (w.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.'))
+                .then(|| w.to_ascii_lowercase())
+        });
+    let Some(name) = mention else {
+        return Ok(None);
+    };
+    let branch = branch_scope(state, bot_uuid).unwrap_or_else(|_| Uuid::nil());
+    let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
+    let row = diesel::sql_query(
+        "SELECT id AS project_id, name AS project_name FROM vibe_projects \
+         WHERE lower(name) = $1 OR branch_id = ANY($2) AND lower(name) = $1 \
+         ORDER BY created_at DESC LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Text, _>(name.clone())
+    .bind::<diesel::sql_types::Array<diesel::sql_types::Uuid>, _>(vec![branch, Uuid::nil()])
+    .get_result::<ProjectNameRow>(&mut conn)
+    .ok();
+    Ok(row.map(|r| (r.project_id.to_string(), r.project_name)))
+}
+
 /// Executes one registered provider action from the chat command path (#950).
 ///
 /// The chat session is server-side and bot-bound: the tenant scope derives
@@ -727,9 +782,11 @@ async fn integrations_invoke(
 }
 
 #[derive(diesel::QueryableByName)]
-struct ProjectIdRow {
+struct ProjectNameRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     project_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    project_name: String,
 }
 
 #[derive(diesel::QueryableByName)]
