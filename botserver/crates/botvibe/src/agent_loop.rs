@@ -110,9 +110,12 @@ impl AgentLoop {
     /// not be reported as "Completed" (the model text-replied instead of acting).
     /// This terminal helper fails the run with an honest verdict when no tool
     /// ever ran, and otherwise completes it normally.
-    async fn finish_truthfully(&self, run: &mut VibeRun, completed_msg: &str) {
-        let intent = run.intent.to_ascii_lowercase();
-        let requires_mutation = [
+    /// #819/#923b — whether the user's intent demands a persisted change
+    /// (shared by the prose nudge in the run loop and the honest verdict in
+    /// finish_truthfully).
+    fn intent_requires_mutation(intent: &str) -> bool {
+        let intent = intent.to_ascii_lowercase();
+        [
             "change",
             "edit",
             "modify",
@@ -129,7 +132,11 @@ impl AgentLoop {
             "deploy",
         ]
         .iter()
-        .any(|word| intent.contains(word));
+        .any(|word| intent.contains(word))
+    }
+
+    async fn finish_truthfully(&self, run: &mut VibeRun, completed_msg: &str) {
+        let requires_mutation = Self::intent_requires_mutation(&run.intent);
         let successful_mutation = run.tool_calls.iter().any(|call| {
             matches!(
                 call.tool_name.as_str(),
@@ -298,7 +305,27 @@ impl AgentLoop {
             let tool_calls = self.parse_tool_calls(&llm_response);
 
             if tool_calls.is_empty() {
+                // #923b — when the intent requires a mutation and none has
+                // succeeded yet, a prose-only reply is NOT completion: the
+                // model described the change instead of applying it (observed
+                // with small models that narrate after an exploratory
+                // file/list). Nudge it toward the tools, within the empty
+                // parse budget, before accepting the text as final.
+                let mutation_pending = Self::intent_requires_mutation(&run.intent)
+                    && !run.tool_calls.iter().any(|call| {
+                        matches!(
+                            call.tool_name.as_str(),
+                            "file/write"
+                                | "file/replace"
+                                | "file/delete"
+                                | "file/set-title"
+                                | "shell/run"
+                                | "git/commit"
+                                | "publish/project"
+                        ) && call.result.as_ref().is_some_and(|result| result.success)
+                    });
                 if !looks_like_tool_intent(&llm_response)
+                    && !mutation_pending
                     || empty_parse_rounds + 1 >= MAX_EMPTY_PARSE_RETRIES
                 {
                     context.add_assistant_message(llm_response);
@@ -309,11 +336,21 @@ impl AgentLoop {
                 empty_parse_rounds += 1;
                 context.add_assistant_message(llm_response);
                 context.add_assistant_message(
-                    "Your previous response could not be parsed into tool calls. \
-                     Return a JSON object exactly like: \
-                     {\"tool_calls\": [{\"tool_name\": \"example_tool\", \"arguments\": {}}]} \
-                     — or, if the task is complete, answer plainly without any tool_calls key."
-                        .to_string(),
+                    if mutation_pending {
+                        "The requested change has NOT been applied yet. Reply with tool_calls \
+                         now — for example {\"tool_calls\":[{\"tool_name\":\"file/replace\",\
+                         \"arguments\":{\"project\":\"…\",\"path\":\"…\",\"old\":\"…\",\
+                         \"new\":\"…\"}}]} — do not describe the change in prose.\
+                         If the task is truly complete, answer plainly without any \
+                         tool_calls key."
+                            .to_string()
+                    } else {
+                        "Your previous response could not be parsed into tool calls. \
+                         Return a JSON object exactly like: \
+                         {\"tool_calls\": [{\"tool_name\": \"example_tool\", \"arguments\": {}}]} \
+                         — or, if the task is complete, answer plainly without any tool_calls key."
+                            .to_string()
+                    },
                 );
                 continue;
             }
