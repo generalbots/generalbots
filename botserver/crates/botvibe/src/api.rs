@@ -204,6 +204,31 @@ fn resolve_project(
         }
         (None, Some(name)) => (None, Some(crate::vm_lifecycle::VmLifecycle::alm_repo(name))),
         (None, None) => {
+            // "Deploy/Run the selected|current project" without a picker
+            // selection is not a NEW project: minting one from the intent slug
+            // produced junk workspaces like `deploy-the-selected`. Resolve the
+            // caller's most recent real project instead — the UI always lists
+            // newest-first, so this is exactly what "the selected project"
+            // refers to when the combo state was lost (reload, restore).
+            let intent_lower = req.intent.to_ascii_lowercase();
+            if req.pipeline_mode.as_deref() == Some("deploy")
+                || intent_lower.contains("the selected project")
+                || intent_lower.contains("the current project")
+            {
+                let org_id = user.organization_id.unwrap_or_else(Uuid::nil);
+                if let Ok(Some(existing)) = registry.list(&crate::projects::ListProjectsQuery {
+                    branch_id: Some(org_id),
+                    limit: Some(1),
+                    project_type: None,
+                    status: None,
+                    offset: None,
+                })
+                .map(|mut v| v.drain(..).next())
+                {
+                    let key = crate::vm_lifecycle::VmLifecycle::alm_repo(&existing.name);
+                    return (Some(existing.id.to_string()), Some(key));
+                }
+            }
             let name = derive_project_name(&req.intent);
             let org_id = user.organization_id.unwrap_or_else(Uuid::nil);
             let create = CreateProjectRequest {
