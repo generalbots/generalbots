@@ -525,6 +525,22 @@ impl AgentLoop {
         if let Some(name) = forced_tool {
             tools.retain(|tool| tool["function"]["name"].as_str() == Some(name));
         }
+        // Kiro provider (secret/gbo/llm with provider=kiro): the ksk_ key
+        // speaks the CodeWhisperer protocol, not OpenAI SSE. Translate the
+        // same system/prompt/tools and map the response back to the canonical
+        // tool-call envelope.
+        if crate::kiro_llm::is_kiro(&api_url) {
+            return crate::kiro_llm::call_kiro(
+                &api_url,
+                &api_key,
+                &model,
+                &system,
+                &prompt,
+                &tools,
+                MAX_LLM_RETRIES as usize,
+            )
+            .await;
+        }
         // Force a native tool call while the request still needs work:
         // reasoning models (e.g. NVIDIA gpt-oss) that are simultaneously told
         // to "respond in the JSON envelope" stream their whole plan as content
@@ -1679,9 +1695,9 @@ fn parse_sse(body: &str) -> Option<serde_json::Value> {
 
 /// Token usage reported by an LLM provider for a single completion attempt.
 #[derive(Debug, Clone, Copy, Default)]
-struct LlmUsage {
-    prompt_tokens: u32,
-    completion_tokens: u32,
+pub struct LlmUsage {
+    pub prompt_tokens: u32,
+    pub completion_tokens: u32,
 }
 
 /// Extracts provider-reported token usage from an OpenAI-style completion

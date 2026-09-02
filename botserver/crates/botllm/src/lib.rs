@@ -3,6 +3,7 @@ pub mod claude;
 pub mod glm;
 pub mod hallucination_detector;
 pub mod kimi;
+pub mod kiro;
 pub mod llm_models;
 pub mod rate_limiter;
 pub mod vertex;
@@ -28,6 +29,7 @@ pub use hallucination_detector::HallucinationDetector;
 pub use llm_models::{get_handler, ProcessedChunk, ModelHandler};
 pub use claude::ClaudeClient;
 pub use glm::GLMClient;
+pub use kiro::KiroClient;
 pub use vertex::VertexTokenManager;
 pub use bedrock::BedrockClient;
 pub use pipeline::{PipelineConfig, LlmPipeline, MessageBuilder, KbContextManager, PromptManager};
@@ -917,6 +919,7 @@ pub enum LLMProviderType {
     GLM,
     Bedrock,
     Vertex,
+    Kiro,
 }
 
 impl From<&str> for LLMProviderType {
@@ -936,6 +939,8 @@ impl From<&str> for LLMProviderType {
             Self::Bedrock
         } else if lower.contains("googleapis.com") || lower.contains("vertex") || lower.contains("generativelanguage") {
             Self::Vertex
+        } else if lower.contains("kiro") || lower.contains("q.us-east-1.amazonaws.com") || lower.contains("codewhisperer") {
+            Self::Kiro
         } else {
             Self::OpenAI
         }
@@ -985,6 +990,38 @@ pub fn create_llm_provider(
             info!("Creating Vertex/Gemini LLM provider with URL: {}", base_url);
             Arc::new(vertex::VertexClient::new(base_url, endpoint_path))
         }
+        LLMProviderType::Kiro => {
+            info!("Creating Kiro LLM provider (CodeWhisperer protocol)");
+            Arc::new(kiro::KiroClient::new(base_url))
+        }
+    }
+}
+
+/// Resolves a provider name (as stored in Vault `gbo/llm.provider` or bot
+/// config `llm-provider`) to a provider type. Returns `None` for unknown or
+/// empty names so callers fall back to URL-based detection.
+pub fn llm_provider_type_from_name(name: &str) -> Option<LLMProviderType> {
+    let lower = name.to_lowercase();
+    if lower.is_empty() {
+        None
+    } else if lower.contains("kiro") || lower.contains("codewhisperer") {
+        Some(LLMProviderType::Kiro)
+    } else if lower.contains("openai") || lower.contains("nvidia") || lower.contains("groq") || lower.contains("cerebras") {
+        Some(LLMProviderType::OpenAI)
+    } else if lower.contains("azure") && lower.contains("claude") {
+        Some(LLMProviderType::AzureClaude)
+    } else if lower.contains("azure") {
+        Some(LLMProviderType::AzureGPT5)
+    } else if lower.contains("claude") || lower.contains("anthropic") {
+        Some(LLMProviderType::Claude)
+    } else if lower.contains("glm") || lower.contains("z.ai") {
+        Some(LLMProviderType::GLM)
+    } else if lower.contains("bedrock") {
+        Some(LLMProviderType::Bedrock)
+    } else if lower.contains("vertex") || lower.contains("gemini") || lower.contains("google") {
+        Some(LLMProviderType::Vertex)
+    } else {
+        None
     }
 }
 

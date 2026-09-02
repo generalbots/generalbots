@@ -41,15 +41,17 @@ pub async fn stream_llm_response(
         let mut llm_url = cfg.get_config(&bot_uuid, "llm-url", Some("")).unwrap_or_default();
         let mut llm_key = cfg.get_config(&bot_uuid, "llm-key", Some("")).unwrap_or_default();
         let mut llm_model = cfg.get_config(&bot_uuid, "llm-model", Some("")).unwrap_or_default();
+        let llm_provider = cfg.get_config(&bot_uuid, "llm-provider", Some("")).unwrap_or_default();
         if let Ok(val) = std::env::var("LLM_URL") { if !val.is_empty() { llm_url = val; } }
         if let Ok(val) = std::env::var("LLM_KEY") { if !val.is_empty() { llm_key = val; } }
         if let Ok(val) = std::env::var("LLM_MODEL") { if !val.is_empty() { llm_model = val; } }
-        log::info!("BOT {} LLM CONFIG: url=[{}] key_len=[{}] model=[{}]", bot_uuid, llm_url, llm_key.len(), llm_model);
+        log::info!("BOT {} LLM CONFIG: url=[{}] key_len=[{}] model=[{}] provider=[{}]", bot_uuid, llm_url, llm_key.len(), llm_model, llm_provider);
         if !llm_url.is_empty() {
+            let explicit = if llm_provider.is_empty() { None } else { crate::llm::llm_provider_type_from_name(&llm_provider) };
             let provider = crate::llm::create_llm_provider_from_url(
                 &llm_url,
                 if llm_model.is_empty() { None } else { Some(llm_model.clone()) },
-                None, None,
+                None, explicit,
             );
             Some((
                 Arc::new(crate::llm::BotlibLLMProviderWrapper::new(
