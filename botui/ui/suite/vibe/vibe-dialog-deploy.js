@@ -328,6 +328,10 @@
         if (!state.projectId) return;
         var proj = state.projects.find(function (x) { return x.id === state.projectId; });
         var projName = proj ? proj.name : "project";
+        // #1267 — keep the name on the dialog state: the async poller and
+        // tab-opener below run after this function returned and previously
+        // referenced the function-local `projName` (ReferenceError).
+        state.projectName = projName;
         var grid = document.getElementById("vibeDeployMain");
         if (grid) grid.innerHTML = '<div class="vibe-empty">Launching deploy pipeline (approval-gated)...</div>';
         D.api("/api/vibe/run", {
@@ -366,19 +370,21 @@
             return; // 10 min cap — the Run Dock still shows live progress.
         }
         D.api("/api/vibe/run/" + encodeURIComponent(runId)).then(function (data) {
-            var state = data && (data.state || (data.data && data.data.state));
-            if (state === "completed") {
+            // `runState` (not `state`) — a local `state` here would shadow the
+            // dialog state and break the #1267 projectName lookup below.
+            var runState = data && (data.state || (data.data && data.data.state));
+            if (runState === "completed") {
                 var grid = document.getElementById("vibeDeployMain");
                 if (grid) {
                     grid.innerHTML = '<div class="vibe-empty">✅ Deployed — opening <b>' +
-                        D.esc(projName) + "</b> in a new tab…</div>";
+                        D.esc(state.projectName || "project") + "</b> in a new tab…</div>";
                 }
                 openAppTab("production");
                 setTimeout(loadHistory, 2500);
-            } else if (state === "failed" || state === "cancelled" || state === "aborted") {
+            } else if (runState === "failed" || runState === "cancelled" || runState === "aborted") {
                 var gf = document.getElementById("vibeDeployMain");
                 if (gf) {
-                    gf.innerHTML = '<div class="vibe-empty">Deploy ' + D.esc(state) +
+                    gf.innerHTML = '<div class="vibe-empty">Deploy ' + D.esc(runState) +
                         ": " + D.esc((data && data.error) || "see Runner Log for details.") + "</div>";
                 }
             } else {
@@ -413,12 +419,12 @@
             .then(function (data) {
                 var payload = data && data.data ? data.data : data;
                 if (payload && payload.preview_url) { open(payload.preview_url); return; }
-                var slug = String(projName || "").toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+                var slug = String(state.projectName || "").toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
                 var host = (window.location.hostname || "").split(".").slice(-2).join(".");
                 open("https://" + encodeURIComponent(slug) + "." + host + "/");
             })
             .catch(function () {
-                var slug = String(projName || "").toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+                var slug = String(state.projectName || "").toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
                 var host = (window.location.hostname || "").split(".").slice(-2).join(".");
                 open("https://" + encodeURIComponent(slug) + "." + host + "/");
             });

@@ -109,8 +109,40 @@ function sendMessage(messageContent) {
     reader.readAsDataURL(file);
   } else if (ChatState.ws && ChatState.ws.readyState === WebSocket.OPEN) {
     finalSend();
+  } else if (file) {
+    // #1275 — reconnect may still be in flight when the user attaches a
+    // file: read it now and queue the send for the reopened socket.
+    var queuedReader = new FileReader();
+    queuedReader.onload = function () {
+      payload.file = {
+        name: file.name,
+        content_base64: String(queuedReader.result).split(",")[1] || queuedReader.result,
+      };
+      queueOfflineMessage(payload);
+    };
+    queuedReader.readAsDataURL(file);
   } else {
-    notify("Not connected to server. Message not sent.", "warning");
+    // #1275 — a server restart kills the socket while the user keeps
+    // typing. Queue instead of dropping the message on the floor; the
+    // reconnect handler flushes the queue once the socket reopens.
+    queueOfflineMessage(payload);
+  }
+}
+
+// #1275 — messages composed while the socket is down are kept here (most
+// recent last) and flushed in order after the WebSocket reconnects. The
+// queue is capped so a stuck socket cannot grow memory without bound.
+function queueOfflineMessage(payload) {
+  if (!Array.isArray(ChatState.offlineQueue)) ChatState.offlineQueue = [];
+  ChatState.offlineQueue.push(payload);
+  if (ChatState.offlineQueue.length > 50) ChatState.offlineQueue.shift();
+  notify("Reconnecting — your message will be sent when the connection is back.", "info");
+  if (typeof updateConnectionStatus === "function") updateConnectionStatus("connecting");
+  if (ChatState.reconnectAttempts >= ChatState.maxReconnectAttempts) {
+    // Reconnect budget was exhausted before the user tried to send: restart
+    // it so the queued message actually goes out.
+    ChatState.reconnectAttempts = 0;
+    if (typeof connectWebSocket === "function") connectWebSocket();
   }
 }
 

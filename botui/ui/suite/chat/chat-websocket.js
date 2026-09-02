@@ -137,6 +137,28 @@ ChatState.ws.onopen = function () {
     }
   };
 
+  ChatState.ws.onopen = function () {
+    // #1275 — the socket is healthy again: stop the “offline” state, then
+    // flush messages queued while disconnected, in order, on THIS socket.
+    ChatState.disconnectNotified = false;
+    updateConnectionStatus("connected");
+    var queued = Array.isArray(ChatState.offlineQueue) ? ChatState.offlineQueue : [];
+    ChatState.offlineQueue = [];
+    queued.forEach(function (payload) {
+      try {
+        ChatState.ws.send(JSON.stringify(payload));
+        window.dispatchEvent(new CustomEvent("gb-chat-message-sent", {
+          detail: { session_id: ChatState.currentSessionId, queued: true },
+        }));
+      } catch (e) {
+        // Socket died again mid-flush: put the rest back and let onclose
+        // schedule the next reconnect.
+        ChatState.offlineQueue = [payload].concat(queued.slice(queued.indexOf(payload) + 1));
+        return;
+      }
+    });
+  };
+
   ChatState.ws.onerror = function () {
     updateConnectionStatus("disconnected");
   };
