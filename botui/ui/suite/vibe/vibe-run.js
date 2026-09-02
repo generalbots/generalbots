@@ -413,15 +413,30 @@
                 if (data.state === "awaiting_approval") {
                     uiMsg("⏸ Run is waiting for approval — see the Run Dock.");
                 } else if (data.state === "completed") {
-                    uiMsg("✅ Run completed.");
                     stopPolling();
-                    // #1271 — a chat message that changed the app should end
-                    // with the result visible: open the project's app in the
-                    // Browser window on the dev VM (skipped for deploy runs,
-                    // which ship to production and are verified there).
+                    // #run-done — a finished run must end with the result
+                    // visible: (1) drop a clickable deeplink in the Runner
+                    // Log, (2) refresh the Browser window with the app (dev
+                    // VM first) or open the production tab for deploys.
                     var runProjectId = data.project_id;
                     var isDeploy = String(data.pipeline_mode || "").indexOf("deploy") !== -1;
-                    if (runProjectId && !isDeploy) {
+                    if (runProjectId || data.project_name) {
+                        showDoneDeeplink(data, isDeploy, state.runId);
+                    }
+                    if (isDeploy) {
+                        // Deploy IS production: open the published app in a
+                        // new tab. openProdTab is sessionStorage-guarded per
+                        // run, so a duplicate call (the WS path may already
+                        // have opened it) is a no-op.
+                        if (runProjectId) {
+                            openProdTab(data.project_name || "", runProjectId, state.runId);
+                        }
+                    } else if (runProjectId) {
+                        // #1271 — a chat message that changed the app should
+                        // end with the result visible: re-resolve the dev VM
+                        // and reload it in the Browser window. openDeepLink
+                        // re-targets an open Browser (navigateTo → iframe
+                        // refresh) or opens a fresh one.
                         if (window.VibeShell && window.VibeShell.toolbar &&
                             typeof window.VibeShell.toolbar.openProjectApp === "function") {
                             window.VibeShell.toolbar.openProjectApp(runProjectId);
@@ -659,6 +674,37 @@
         });
     }
 
+    // #run-done — a completed run posts a system line in the Runner Log
+    // with a CLICKABLE deeplink: clicking reopens the app in the Browser
+    // window (non-deploy) or the production tab (deploy) without re-running
+    // anything. The handler lives in wire() as a delegated listener.
+    // Guarded by sessionStorage per run: the WS onProgress path and the
+    // pollRun path can both observe the completion — only the first posts.
+    function showDoneDeeplink(data, isDeploy, runId) {
+        if (typeof vibeSafeMsg !== "function") return;
+        var guardKey = "vibeDoneLink:" + (runId || state.runId || "anon");
+        if (window.sessionStorage && sessionStorage.getItem(guardKey)) return;
+        if (window.sessionStorage) sessionStorage.setItem(guardKey, "1");
+        var pid = String(data.project_id || "");
+        var name = String(data.project_name || "");
+        var label = name ? "@" + name : "the app";
+        // esc() escapes < > & but not quotes — attribute values need "" safe too.
+        var attr = esc(pid).replace(/"/g, "&quot;");
+        var nameAttr = esc(name).replace(/"/g, "&quot;");
+        var msg;
+        if (isDeploy) {
+            msg = "✅ Run completed — <a href=\"#\" data-vibe-open-prod=\"" + attr +
+                "\" data-vibe-open-prod-name=\"" + nameAttr +
+                "\" style=\"color:var(--accent,#84d669);text-decoration:underline\">open " + esc(label) +
+                "</a> in a new tab (production).";
+        } else {
+            msg = "✅ Run completed — <a href=\"#\" data-vibe-open-app=\"" + attr +
+                "\" style=\"color:var(--accent,#84d669);text-decoration:underline\">open " + esc(label) +
+                "</a> in the Browser window (click to refresh).";
+        }
+        vibeSafeMsg("system", msg);
+    }
+
     // Opens the deployed app (https://{app}.{platform-domain}) in a fresh
     // tab. Falls back to the backend preview URL (env=production) when the
     // project name is unknown. Guarded by sessionStorage per run so the
@@ -861,18 +907,24 @@
             var detail = eventData.message || "";
             var runCfg = (state.run && (state.run.config || state.run)) || {};
             var wasDeploy = runCfg.pipeline_mode === "deploy" || /publish|deploy/i.test(detail);
-            var note;
-            if (step === "completed") {
-                note = wasDeploy
-                    ? "✅ Deploy finished — your app is published and ready at its public URL."
-                    : "✅ Vibe agent finished — changes applied and ready to go.";
-            } else if (step === "failed") {
-                note = "❌ Vibe run failed — " + (detail || "check the Runner Log for details.");
+            if (step === "completed" && (runCfg.project_id || runCfg.project_name)) {
+                // Clickable completion deeplink (shared with the poll path,
+                // which is guarded per run — whichever fires first wins).
+                showDoneDeeplink(runCfg, wasDeploy, evRunId);
             } else {
-                note = "⏹ Vibe run cancelled.";
-            }
-            if (typeof vibeSafeMsg === "function") {
-                vibeSafeMsg("system", note);
+                var note;
+                if (step === "completed") {
+                    note = wasDeploy
+                        ? "✅ Deploy finished — your app is published and ready at its public URL."
+                        : "✅ Vibe agent finished — changes applied and ready to go.";
+                } else if (step === "failed") {
+                    note = "❌ Vibe run failed — " + (detail || "check the Runner Log for details.");
+                } else {
+                    note = "⏹ Vibe run cancelled.";
+                }
+                if (typeof vibeSafeMsg === "function") {
+                    vibeSafeMsg("system", note);
+                }
             }
             // #deploy — a finished deploy IS production: open the published
             // app in a NEW tab. window.open from a WS callback is popup-blocked
@@ -950,6 +1002,31 @@
         document.addEventListener("gb:vibe-run", function (e) {
             if (e.detail && e.detail.run_id) focus(e.detail.run_id);
         });
+        // #run-done — the Runner Log "open the app" deeplinks are injected
+        // after completion (showDoneDeeplink); one delegated listener covers
+        // every run card without re-binding per message.
+        if (!document.documentElement.dataset.vibeRunDoneWired) {
+            document.documentElement.dataset.vibeRunDoneWired = "true";
+            document.addEventListener("click", function (event) {
+                var link = event.target && typeof event.target.closest === "function"
+                    ? event.target.closest("a[data-vibe-open-app], a[data-vibe-open-prod]")
+                    : null;
+                if (!link) return;
+                event.preventDefault();
+                var pid = link.getAttribute("data-vibe-open-app") || link.getAttribute("data-vibe-open-prod");
+                if (!pid) return;
+                if (link.hasAttribute("data-vibe-open-app")) {
+                    if (window.VibeShell && window.VibeShell.toolbar &&
+                        typeof window.VibeShell.toolbar.openProjectApp === "function") {
+                        window.VibeShell.toolbar.openProjectApp(pid);
+                    }
+                } else {
+                    // Same run-scoped guard as the auto-open above: if the
+                    // tab already opened at completion, this is a no-op.
+                    openProdTab(link.getAttribute("data-vibe-open-prod-name") || "", pid, state.runId);
+                }
+            });
+        }
         loadRuns();
         loadSessions();
         loadTeams();
