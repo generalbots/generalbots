@@ -1,5 +1,7 @@
 use crate::agent_loop::AgentLoop;
-use crate::pipeline::{PipelineEngine, PipelineRunContext, RunPipeline, StageStatus};
+use crate::pipeline::{
+    PipelineEngine, PipelineRunContext, PipelineStageReport, RunPipeline, StageStatus,
+};
 use crate::prompt_manager::VibePromptManager;
 use crate::projects::{CreateProjectRequest, ProjectRegistryRef};
 use crate::telemetry::VibeTelemetry;
@@ -660,10 +662,17 @@ async fn create_run(
                         },
                     )
                     .await;
-                let failed = report
-                    .stages
-                    .iter()
-                    .any(|s| s.status == StageStatus::Failed);
+                // #1268 — a tolerated stage failure (continue_on_failure, e.g.
+                // DNS verify or a TLS hiccup) must not fail the whole run:
+                // only fail-fast stage failures abort the deploy.
+                let blocking_failure = |report_stage: &PipelineStageReport| {
+                    report_stage.status == StageStatus::Failed
+                        && pipeline
+                            .stage(&report_stage.stage_id)
+                            .map(|st| !st.continue_on_failure)
+                            .unwrap_or(true)
+                };
+                let failed = report.stages.iter().any(&blocking_failure);
                 let skipped = report
                     .stages
                     .iter()
@@ -675,7 +684,7 @@ async fn create_run(
                         report
                             .stages
                             .iter()
-                            .find(|s| s.status == StageStatus::Failed)
+                            .find(|s| blocking_failure(s))
                             .and_then(|s| s.error.clone())
                             .unwrap_or_else(|| "pipeline stage failed".to_string()),
                     );

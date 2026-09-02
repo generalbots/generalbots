@@ -390,6 +390,27 @@ impl ProjectDomains {
         let row = self.select_by_domain_env(&mut conn, &domain, &env)?;
         let expected = row.verify_token.clone().unwrap_or_default();
 
+        // #1268 — platform-subdomain hosts ({app}.{published_domain()}) sit
+        // on the platform's own wildcard zone: ownership is platform-managed
+        // and needs no TXT round-trip. Mark them verified so the deploy
+        // pipeline's TLS stage can proceed (custom domains still require the
+        // manual TXT token below).
+        if domain.ends_with(&format!(".{}", crate::publish::published_domain())) {
+            let row_id = row.id;
+            diesel::sql_query(
+                "UPDATE project_domains SET verified = true, updated_at = NOW() WHERE id = $1",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(row_id)
+            .execute(&mut conn)
+            .map_err(|e| format!("update verified: {e}"))?;
+            return Ok(serde_json::json!({
+                "domain": domain,
+                "verified": true,
+                "method": "platform_subdomain",
+                "message": "host is on the platform-managed wildcard zone; ownership pre-verified"
+            }));
+        }
+
         let records = crate::harness::cmd::run(
             "dig",
             &[
