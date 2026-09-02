@@ -17,12 +17,37 @@ async fn serve_login_file(file_path: std::path::PathBuf) -> Response {
         get_cloud_url()
     );
 
+    // Login pages reference shared cloud assets (e.g. /js/cloud-auth.js from
+    // cloud/js/) — the login UI has no copy of them. Fall back to the cloud
+    // tree per the "login serves CSS/JS/images from cloud via proxy" design;
+    // otherwise the 404 HTML body reaches the browser as the script response
+    // and strict MIME checking blocks it ("MIME type ('text/html') is not
+    // executable").
+    let cloud_fallback = {
+        let ui_root = get_ui_root();
+        file_path
+            .strip_prefix(&ui_root)
+            .ok()
+            .and_then(|rel| rel.to_str())
+            .and_then(|rel| rel.strip_prefix("login/"))
+            .map(|rel| ui_root.join("cloud").join(rel))
+    };
+
     #[cfg(feature = "embed-ui")]
     {
         let ui_root = get_ui_root();
         let relative = file_path.strip_prefix(&ui_root).unwrap_or(&file_path);
         let asset_path = relative.display().to_string().replace('\\', "/");
-        if let Some(content) = Assets::get(&asset_path) {
+        let embedded = Assets::get(&asset_path)
+            .or_else(|| {
+                cloud_fallback
+                    .as_ref()
+                    .and_then(|p| p.strip_prefix(&ui_root).ok())
+                    .and_then(|rel| rel.to_str())
+                    .and_then(|rel| rel.replace('\\', "/"))
+                    .and_then(|rel| Assets::get(&rel))
+            });
+        if let Some(content) = embedded {
             let mime = mime_guess::from_path(&asset_path).first_or_octet_stream();
             let data = if mime.as_ref() == "text/html" {
                 inject_script_into_html(&content.data, &injection).into()
@@ -47,7 +72,18 @@ async fn serve_login_file(file_path: std::path::PathBuf) -> Response {
                 };
                 ([(axum::http::header::CONTENT_TYPE, mime.as_ref())], data).into_response()
             }
-            Err(_) => StatusCode::NOT_FOUND.into_response(),
+            Err(_) => match cloud_fallback {
+                Some(fallback_path) => match tokio::fs::read(&fallback_path).await {
+                    Ok(bytes) => {
+                        let mime =
+                            mime_guess::from_path(&fallback_path).first_or_octet_stream();
+                        ([(axum::http::header::CONTENT_TYPE, mime.as_ref())], bytes)
+                            .into_response()
+                    }
+                    Err(_) => StatusCode::NOT_FOUND.into_response(),
+                },
+                None => StatusCode::NOT_FOUND.into_response(),
+            },
         }
     }
 }
