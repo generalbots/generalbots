@@ -659,6 +659,51 @@
         });
     }
 
+    // Opens the deployed app (https://{app}.{platform-domain}) in a fresh
+    // tab. Falls back to the backend preview URL (env=production) when the
+    // project name is unknown. Guarded by sessionStorage per run so the
+    // Deploy dialog poller and this WS handler never open two tabs.
+    function openProdTab(projectName, projectId, runId) {
+        var guardKey = "vibeDeployTabOpened:" + (runId || "anon");
+        if (window.sessionStorage && sessionStorage.getItem(guardKey)) return;
+        var slug = String(projectName || "").toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+        var host = (window.location.hostname || "").split(".").slice(-2).join(".");
+        var direct = slug ? "https://" + slug + "." + host + "/" : null;
+        var w = window.open("about:blank", "_blank");
+        if (!w) {
+            if (typeof vibeSafeMsg === "function") {
+                vibeSafeMsg("system", "⚠️ Deploy finished — allow pop-ups to open " + (direct || "your app") + ".");
+            }
+            return;
+        }
+        if (window.sessionStorage) sessionStorage.setItem(guardKey, "1");
+        w.document.body.innerHTML = "<p style='font-family:system-ui;padding:24px'>Opening deployed app…</p>";
+        if (direct) { w.location.href = direct; return; }
+        if (!projectId) {
+            w.close();
+            if (typeof vibeSafeMsg === "function") {
+                vibeSafeMsg("system", "✅ Deploy finished — open your app at its public URL.");
+            }
+            return;
+        }
+        api("/api/vibe/projects/" + encodeURIComponent(projectId) + "/preview?env=production")
+            .then(function (data) {
+                var payload = data && data.data ? data.data : data;
+                var url = payload && payload.preview_url;
+                if (url && /^https?:/i.test(String(url))) { w.location.href = url; return; }
+                w.close();
+                if (typeof vibeSafeMsg === "function") {
+                    vibeSafeMsg("system", "✅ Deploy finished — no public URL reported for the app.");
+                }
+            })
+            .catch(function () {
+                w.close();
+                if (typeof vibeSafeMsg === "function") {
+                    vibeSafeMsg("system", "✅ Deploy finished — could not resolve the public URL.");
+                }
+            });
+    }
+
     /* ------------------------------------------------- sessions */
 
     function loadSessions() {
@@ -828,6 +873,16 @@
             }
             if (typeof vibeSafeMsg === "function") {
                 vibeSafeMsg("system", note);
+            }
+            // #deploy — a finished deploy IS production: open the published
+            // app in a NEW tab. window.open from a WS callback is popup-blocked
+            // unless we open about:blank first and navigate afterwards.
+            if (step === "completed" && wasDeploy) {
+                openProdTab(
+                    runCfg.project_name || (state.run && state.run.project_name) || "",
+                    runCfg.project_id || (state.run && state.run.project_id) || "",
+                    evRunId
+                );
             }
         }
 
