@@ -79,8 +79,11 @@ impl AgentLoop {
         let max_steps = config.max_tool_calls.min(DEFAULT_MAX_STEPS);
         let timeout_duration =
             Duration::from_secs(config.timeout_seconds.min(DEFAULT_TIMEOUT_SECS));
+        // #1270 — shared with the LLM retry loop so it can stop retrying
+        // when the remaining run time can no longer fit another attempt.
+        let deadline = tokio::time::Instant::now() + timeout_duration;
 
-        let result = timeout(timeout_duration, self.run_loop(run, max_steps)).await;
+        let result = timeout(timeout_duration, self.run_loop(run, max_steps, deadline)).await;
 
         match result {
             Ok(()) => {
@@ -179,7 +182,7 @@ impl AgentLoop {
         }
     }
 
-    async fn run_loop(&self, run: &mut VibeRun, max_steps: u32) {
+    async fn run_loop(&self, run: &mut VibeRun, max_steps: u32, deadline: tokio::time::Instant) {
         let mut context =
             self.prompt_manager
                 .build_context(run.use_case, &run.config.lang, &run.intent, &[]);
@@ -262,7 +265,7 @@ impl AgentLoop {
             };
 
             let (llm_response, llm_usage) =
-                match self.call_llm_with_retry(&context, run, &run.intent).await {
+                match self.call_llm_with_retry(&context, run, &run.intent, deadline).await {
                     Ok((response, usage)) => (response, usage),
                     Err(e) => {
                         error!("LLM call failed at step {}: {}", step, e);
@@ -495,9 +498,21 @@ impl AgentLoop {
         context: &crate::types::VibeContext,
         run: &VibeRun,
         user_message: &str,
+        deadline: tokio::time::Instant,
     ) -> Result<(String, Option<LlmUsage>), String> {
         let mut last_error = String::new();
         for attempt in 0..=MAX_LLM_RETRIES {
+            // #1270 — budget-aware: when the remaining run time can no
+            // longer fit one more attempt (request timeout + short backoff),
+            // stop here with the real cause instead of letting the outer
+            // run timeout kill the loop mid-flight with a generic
+            // "Agent loop timed out".
+            let remaining = deadline
+                .checked_duration_since(tokio::time::Instant::now())
+                .unwrap_or_default();
+            if remaining <= Duration::from_secs(LLM_REQUEST_TIMEOUT_SECS) {
+                break;
+            }
             match self.call_llm(context, run, user_message).await {
                 Ok(response) => return Ok(response),
                 Err(e) => {
@@ -678,6 +693,25 @@ impl AgentLoop {
                 // non-streaming so a complete arguments document is returned
                 // instead of silently writing an empty/corrupt file.
                 warn!("LLM streaming truncated tool-call arguments ({e}); retrying non-streaming");
+                self.call_llm_nonstream(
+                    &api_url,
+                    &api_key,
+                    &model,
+                    &system,
+                    &prompt,
+                    &tools,
+                    tool_choice,
+                )
+                .await
+            }
+            Err(e) if e.contains("empty content") => {
+                // #1270 — providers behind flaky gateways (NVIDIA, CodeBuddy)
+                // intermittently complete the stream with ZERO bytes and a
+                // 2xx. That is a transient provider fault, not a valid empty
+                // turn: surface it as an error so call_llm_with_retry retries
+                // instead of the loop burning an empty-parse round or
+                // accepting the turn as final.
+                warn!("LLM stream completed empty ({e}); retrying non-streaming");
                 self.call_llm_nonstream(
                     &api_url,
                     &api_key,
@@ -997,7 +1031,6 @@ impl AgentLoop {
         }
         e.contains("LLM returned status 4")
     }
-
     /// Parses a self-verification reply into a verdict. Reasoning models often
     /// restate earlier failures before the verdict ("the first test FAILED but
     /// was corrected"); a naive `contains()` would read the historical mention

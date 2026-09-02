@@ -13,6 +13,7 @@ pub mod unified_search;
 pub mod workspace_tabs;
 pub mod security_setup;
 pub mod sub_router;
+pub mod task_progress_ws;
 pub mod collab_ops;
 pub mod collab_routes;
 pub use security_setup::SecurityComponents;

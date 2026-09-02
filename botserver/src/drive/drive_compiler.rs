@@ -55,6 +55,38 @@ async fn download_from_s3(file_path: &str, state: &Arc<AppState>) -> Result<Vec<
 }
 
 impl DriveCompiler {
+    /// #1279 — keys known to be missing (NoSuchBucket/NoSuchKey) with the
+    /// moment their single warning was emitted. A static map is deliberate:
+    /// the flood it suppresses comes from periodic scans across all monitors,
+    /// not from a per-instance flow.
+    fn missing_log_registry() -> &'static std::sync::Mutex<std::collections::HashMap<String, std::time::Instant>> {
+        static REGISTRY: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<String, std::time::Instant>>> =
+            std::sync::OnceLock::new();
+        REGISTRY.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+    }
+
+    /// Returns true when the warning for this key is suppressed (logged
+    /// within the last hour).
+    fn suppress_missing_log(fp: &str) -> bool {
+        let mut map = Self::missing_log_registry().lock().unwrap_or_else(|p| p.into_inner());
+        let now = std::time::Instant::now();
+        match map.get(fp) {
+            Some(t) if now.duration_since(*t) < std::time::Duration::from_secs(3600) => true,
+            _ => {
+                map.insert(fp.to_string(), now);
+                false
+            }
+        }
+    }
+
+    /// Clears the suppression when the object reappears.
+    fn clear_missing_suppression(fp: &str) {
+        Self::missing_log_registry()
+            .lock()
+            .unwrap_or_else(|p| p.into_inner())
+            .remove(fp);
+    }
+
     pub fn new(state: Arc<AppState>) -> Self {
         let work_root = PathBuf::from(get_work_path());
 
@@ -218,13 +250,30 @@ impl DriveCompiler {
                     return Err(format!("Failed to write file: {}", e).into());
                 }
                 info!("Downloaded {} to {}", fp, work_bas_path.display());
+                // #1279 — the object is back; clear the suppression so a
+                // future failure logs normally again.
+                Self::clear_missing_suppression(fp);
             }
             Err(e) => {
-                if !work_bas_path.exists() {
+                // #1279 — a missing bucket/object repeats on every drive scan
+                // (NoSuchBucket): logging the full S3 error body each time
+                // flooded prod logs with thousands of duplicate blocks. The
+                // error text is compacted and, once a key is known-missing,
+                // demoted to debug so it logs at most once per hour (the
+                // entry is dropped when the object reappears via Ok).
+                let error_text = e.to_string();
+                let missing = error_text.contains("NoSuchBucket") || error_text.contains("NoSuchKey");
+                if missing && Self::suppress_missing_log(fp) {
+                    debug!("S3 object still missing (suppressed): {}", fp);
+                } else if missing {
+                    warn!("S3 object missing: {} (compacted; details suppressed until it reappears)", fp);
+                } else {
                     info!("Failed to download {} from S3 and no local copy: {}", fp, e);
+                }
+                if !work_bas_path.exists() {
                     return Err(format!("File not found in S3: {}", fp).into());
                 }
-                info!("Failed to download {} from S3, using existing work copy: {}", fp, e);
+                info!("Failed to download {} from S3, using existing work copy", fp);
             }
         }
 
