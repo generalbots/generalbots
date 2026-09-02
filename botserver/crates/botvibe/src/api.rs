@@ -500,7 +500,7 @@ async fn create_run(
         // otherwise every run (Run and Deploy) proceeds automatically.
         auto_approve: req.auto_approve.unwrap_or(true),
         max_tool_calls: req.max_tool_calls.unwrap_or(50).min(MAX_TOOL_CALLS),
-        timeout_seconds: req.timeout_seconds.unwrap_or(300).min(MAX_TIMEOUT_SECONDS),
+        timeout_seconds: req.timeout_seconds.unwrap_or(600).min(MAX_TIMEOUT_SECONDS),
         model: req.model,
         llm_key: None,
         llm_url: None,

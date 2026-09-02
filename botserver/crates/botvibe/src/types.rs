@@ -122,7 +122,9 @@ impl Default for VibeRunConfig {
             lang: "en".to_string(),
             auto_approve: false,
             max_tool_calls: 50,
-            timeout_seconds: 300,
+            // 600s (the run-loop cap) so the LLM retry budget (~5.5min worst
+            // case with a flaky provider) fits inside one run.
+            timeout_seconds: 600,
             model: None,
             llm_key: None,
             llm_url: None,
@@ -520,7 +522,7 @@ mod tests {
         assert_eq!(cfg.lang, "en");
         assert!(!cfg.auto_approve);
         assert_eq!(cfg.max_tool_calls, 50);
-        assert_eq!(cfg.timeout_seconds, 300);
+        assert_eq!(cfg.timeout_seconds, 600);
         assert_eq!(cfg.model, None);
         assert_eq!(cfg.llm_key, None);
         assert_eq!(cfg.llm_url, None);
