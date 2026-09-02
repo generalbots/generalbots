@@ -2457,6 +2457,7 @@ dependencies = [
  "botcore",
  "botlib",
  "botsecurity",
+ "bytes",
  "chrono",
  "diesel",
  "futures",

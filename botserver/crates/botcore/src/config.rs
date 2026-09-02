@@ -199,6 +199,32 @@ impl ConfigManager {
         format!("gbo/{}/{}/{}", org_id, branch_id, bot_id)
     }
 
+    /// Maps bot-config `llm-*` keys to fields of the central `gbo/llm`
+    /// Vault secret — the SINGLE point of update for LLM provider settings
+    /// (url/model/key/provider). Every bot and the Vibe agent loop inherit
+    /// from it; per-bot Vault entries and the DB only fill fields the
+    /// central secret does not define, so rotating a provider key happens
+    /// in exactly one place.
+    fn central_llm_field(key: &str) -> Option<&'static str> {
+        match key {
+            "llm-url" => Some("url"),
+            "llm-key" => Some("openai_key"),
+            "llm-model" => Some("model"),
+            "llm-provider" => Some("provider"),
+            _ => None,
+        }
+    }
+
+    fn central_llm_value(key: &str) -> Option<String> {
+        let field = Self::central_llm_field(key)?;
+        let value = Self::read_vault_value("gbo/llm", field)?;
+        if value.is_empty() {
+            None
+        } else {
+            Some(value)
+        }
+    }
+
     // ── Vault helpers (for sensitive keys) ──────────────────────────
 
     fn read_vault_value(path: &str, key: &str) -> Option<String> {
@@ -378,6 +404,12 @@ impl ConfigManager {
         key: &str,
         default: Option<&str>,
     ) -> Result<String, Box<dyn std::error::Error>> {
+        // Central LLM secret first: `gbo/llm` is the tenant-wide source of
+        // truth for llm-url/llm-key/llm-model/llm-provider. Per-bot Vault
+        // paths and the DB are only fallbacks for undefined fields.
+        if let Some(value) = Self::central_llm_value(key) {
+            return Ok(value);
+        }
         if is_sensitive_key(key) {
             let (org_id, branch_id) = self.resolve_bot_identity(bot_id);
             let nil = uuid::Uuid::nil();
@@ -424,6 +456,9 @@ impl ConfigManager {
         bot_id: &uuid::Uuid,
         key: &str,
     ) -> Result<String, Box<dyn std::error::Error>> {
+        if let Some(value) = Self::central_llm_value(key) {
+            return Ok(value);
+        }
         if is_sensitive_key(key) {
             let (org_id, branch_id) = self.resolve_bot_identity(bot_id);
             let nil = uuid::Uuid::nil();

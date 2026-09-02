@@ -16,6 +16,7 @@ chrono = { workspace = true, features = ["clock", "std", "serde"] }
 diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }
 futures = { workspace = true }
 futures-util = { workspace = true }
+bytes = { workspace = true }
 governor = { workspace = true }
 hex = { workspace = true }
 jsonwebtoken = { workspace = true }

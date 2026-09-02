@@ -5,6 +5,7 @@ pub mod telemetry;
 pub mod api;
 pub mod knowledge_graph;
 pub mod agent_loop;
+pub mod kiro_llm;
 pub mod projects;
 pub mod projects_api;
 pub mod vm_lifecycle;
