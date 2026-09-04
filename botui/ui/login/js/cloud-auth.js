@@ -5,7 +5,11 @@ const API_BASE = '/api/cloud';
 // otherwise after login we land back on the login page with ?token= and
 // never consume it (infinite login loop).
 function resolveRedirect() {
-  const raw = (new URLSearchParams(window.location.search)).get('redirect');
+  // `redirect` is used by the server-side suite gate; `return_to` by the
+  // desktop shell (auth-guard.js). Both must return the caller to their
+  // original page after login.
+  const raw = (new URLSearchParams(window.location.search)).get('redirect')
+    || (new URLSearchParams(window.location.search)).get('return_to');
   if (!raw) return null;
   if (/^https?:\/\//i.test(raw)) return raw;
   if (raw.startsWith('/') && document.referrer) {

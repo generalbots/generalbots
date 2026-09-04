@@ -76,6 +76,9 @@
   function onClick(e) {
     if (drag && drag.moved) return;
     if (e.target.closest("#gbTabNew")) {
+      // Shift/alt click = parallel multi-chat tab (handled by the capture
+      // listener in 22_multichat.js); plain click = stock picker.
+      if (e.shiftKey || e.altKey) return;
       openPicker(e);
       return;
     }
@@ -83,7 +86,13 @@
     if (!id) return;
     if (e.target.closest(".gb-tab-close")) {
       e.stopPropagation();
-      GBTabs.closeTab(id);
+      closeTabGuarded(id);
+      return;
+    }
+    // Multi-chat: focus switches the visible conversation (its own pane +
+    // session); without multi-chat the stock history-tab path applies.
+    if (window.GBMultiChat && GBMultiChat.tabs[id]) {
+      GBMultiChat.switchTo(id);
       return;
     }
     GBTabs.focusTab(id);
@@ -157,7 +166,7 @@
         var el = stripEl().querySelector('[data-tab-id="' + id + '"]');
         if (el) startInlineRename(id, el);
       }
-      if (act === "close") GBTabs.closeTab(id);
+      if (act === "close") closeTabGuarded(id);
     });
   }
 
@@ -310,6 +319,16 @@
       e.preventDefault();
       openTabMenu(e.clientX, e.clientY, id);
     });
+    s.addEventListener("middleclick", function (e) {
+      var id = tabIdFromEvent(e);
+      if (id) closeTabGuarded(id);
+    });
+    // #1283 — middle-click (auxclick button 1) closes the tab.
+    s.addEventListener("auxclick", function (e) {
+      if (e.button !== 1) return;
+      var id = tabIdFromEvent(e);
+      if (id) { e.preventDefault(); closeTabGuarded(id); }
+    });
     document.addEventListener("click", function (e) {
       if (!e.target.closest(".gb-context-menu")) closeMenus();
     });
@@ -317,6 +336,32 @@
       if (e.key === "Escape") closeMenus();
     });
     bindHistoryContextMenu();
+    bindKeyboardCycle();
+    if (window.GBMultiChat) GBMultiChat.start();
+  }
+
+  // #1283 — Ctrl+Tab / Ctrl+Shift+Tab cycle tabs; Ctrl+W closes the active
+  // tab (guarded). Plain browser-tab muscle memory, zero new chrome.
+  function bindKeyboardCycle() {
+    document.addEventListener("keydown", function (e) {
+      if (!GBTabs.state.enabled || GBTabs.state.tabs.length < 2) return;
+      if (e.ctrlKey && !e.altKey && !e.metaKey && e.key === "Tab") {
+        e.preventDefault();
+        var tabs = GBTabs.state.tabs;
+        var idx = tabs.findIndex(function (t) { return t.id === GBTabs.state.activeTabId; });
+        var next = e.shiftKey
+          ? tabs[(idx - 1 + tabs.length) % tabs.length]
+          : tabs[(idx + 1) % tabs.length];
+        if (window.GBMultiChat && GBMultiChat.tabs[next.id]) GBMultiChat.switchTo(next.id);
+        else GBTabs.focusTab(next.id);
+      } else if (e.ctrlKey && !e.shiftKey && !e.altKey && !e.metaKey && (e.key === "w" || e.key === "W")) {
+        var active = GBTabs.activeTab();
+        if (active && !active.pinned && GBTabs.state.tabs.length > 1) {
+          e.preventDefault();
+          closeTabGuarded(active.id);
+        }
+      }
+    });
   }
 
   if (document.readyState === "loading") {

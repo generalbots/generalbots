@@ -44,7 +44,7 @@ async fn serve_login_file(file_path: std::path::PathBuf) -> Response {
                     .as_ref()
                     .and_then(|p| p.strip_prefix(&ui_root).ok())
                     .and_then(|rel| rel.to_str())
-                    .and_then(|rel| rel.replace('\\', "/"))
+                    .map(|rel| rel.replace('\\', "/"))
                     .and_then(|rel| Assets::get(&rel))
             });
         if let Some(content) = embedded {

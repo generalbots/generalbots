@@ -18,6 +18,10 @@ fn get_chat_url() -> String {
     std::env::var("CHAT_URL").unwrap_or_else(|_| "http://localhost:3000".to_string())
 }
 
+fn get_platform_domain() -> String {
+    std::env::var("GB_PLATFORM_DOMAIN").unwrap_or_else(|_| "generalbots.org".to_string())
+}
+
 pub async fn redirect_to_login() -> Response {
     Redirect::to(&get_login_url()).into_response()
 }
@@ -66,9 +70,10 @@ fn inject_banner_into_html(bytes: &[u8], banner: &str) -> Vec<u8> {
 fn get_html_injection_script() -> String {
     let login_url = get_login_url();
     let chat_url = get_chat_url();
+    let platform_domain = get_platform_domain();
     format!(
-        r#"<script>window.GB_LOGIN_URL = "{}";window.GB_CHAT_URL = "{}";</script>"#,
-        login_url, chat_url
+        r#"<script>window.GB_LOGIN_URL = "{}";window.GB_CHAT_URL = "{}";window.GB_PLATFORM_DOMAIN = "{}";</script>"#,
+        login_url, chat_url, platform_domain
     )
 }
 

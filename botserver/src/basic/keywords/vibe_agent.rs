@@ -27,7 +27,7 @@ fn http_json(
     body: Option<serde_json::Value>,
 ) -> Result<serde_json::Value, String> {
     let url = format!("{}{}", vibe_base_url(), path_and_query);
-    let internal_token = std::env::var("INTERNAL_API_TOKEN").unwrap_or_default();
+    let internal_token = botcoresecrets::internal_api_token();
     let (tx, rx) = std::sync::mpsc::channel();
 
     std::thread::spawn(move || {

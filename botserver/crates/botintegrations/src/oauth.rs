@@ -202,11 +202,11 @@ pub(crate) fn provider_config(slug: &str) -> Option<OAuthProviderConfig> {
 }
 
 fn signing_key() -> Result<String, Response> {
-    std::env::var("INTERNAL_API_TOKEN")
-        .ok()
-        .filter(|value| !value.trim().is_empty())
-        .map(String::from)
-        .ok_or_else(|| error_response(StatusCode::SERVICE_UNAVAILABLE, IntegrationError::Validation("oauth signing key is not configured".to_string())))
+    let token = botcoresecrets::internal_api_token();
+    if token.trim().is_empty() {
+        return Err(error_response(StatusCode::SERVICE_UNAVAILABLE, IntegrationError::Validation("oauth signing key is not configured".to_string())));
+    }
+    Ok(token)
 }
 
 fn sign(payload: &str, key: &str) -> String {

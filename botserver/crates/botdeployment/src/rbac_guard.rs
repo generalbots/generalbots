@@ -50,7 +50,7 @@ fn user_group_names(conn: &mut Conn, user_id: Uuid) -> Result<Vec<String>, Strin
         return Ok(Vec::new());
     }
     diesel::sql_query(
-        "SELECT g.name FROM rbac_user_groups ug \
+        "SELECT g.name AS value FROM rbac_user_groups ug \
          JOIN rbac_groups g ON g.id = ug.group_id \
          WHERE ug.user_id = $1 AND g.is_active = true",
     )
@@ -67,7 +67,7 @@ pub fn resolve_project_role(
 ) -> Result<DeployRole, String> {
     let mut conn = conn(pool)?;
     let direct: Option<StringCell> = diesel::sql_query(
-        "SELECT role FROM project_members WHERE project_id = $1 AND user_id = $2",
+        "SELECT role AS value FROM project_members WHERE project_id = $1 AND user_id = $2",
     )
     .bind::<diesel::sql_types::Uuid, _>(project_id)
     .bind::<diesel::sql_types::Uuid, _>(user_id)
@@ -83,7 +83,7 @@ pub fn resolve_project_role(
     let mut best = DeployRole::Viewer;
     for name in &groups {
         let group_role: Option<StringCell> = diesel::sql_query(
-            "SELECT role FROM project_members WHERE project_id = $1 AND group_name = $2",
+            "SELECT role AS value FROM project_members WHERE project_id = $1 AND group_name = $2",
         )
         .bind::<diesel::sql_types::Uuid, _>(project_id)
         .bind::<diesel::sql_types::Text, _>(name)

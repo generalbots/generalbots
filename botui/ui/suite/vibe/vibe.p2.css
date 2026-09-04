@@ -241,6 +241,9 @@ cursor: pointer;
     color: var(--text, #e5e7eb);
     border-radius: 6px; padding: 7px 10px; font-size: 13px;
 }
+.vibe-np-desc {
+    resize: vertical; min-height: 64px; font-family: inherit; line-height: 1.45;
+}
 .vibe-np-kinds { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 .vibe-np-kind {
     background: var(--bg2, #0d1117);

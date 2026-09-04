@@ -29,7 +29,7 @@ if (typeof window.WindowManager === "undefined") {
       icon: '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>' },
     { id: "tasks", title: "Tasks", category: "office", color: "#22c55e", hxGet: "/suite/tasks/task-window.html",
       icon: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
-    { id: "chat", title: "Chat", category: "ai", color: "#84d669", hxGet: "/suite/partials/chat.html",
+    { id: "chat", title: "Chat", category: "ai", color: "#84d669", hxGet: "/suite/partials/chat.html?v=3",
       icon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
     { id: "terminal", title: "Terminal", category: "dev", color: "#64748b", hxGet: "/suite/terminal/terminal.html",
       icon: '<polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>' },
@@ -255,16 +255,19 @@ if (typeof window.WindowManager === "undefined") {
       this.openWindows.push(windowData);
 
       const workspace = this.getWorkspace();
-      // Cascade new windows BELOW/RIGHT of the compact Vibe bar (VB4
+      // #1288 — windows open with a ~10% top margin instead of hugging the
+      // title bar (the old 60px base stacked popups right under the chrome).
+      // They still cascade BELOW/RIGHT of the compact Vibe bar (VB4
       // workbench) so a freshly opened Terminal/Browser never lands on top
       // of it and blocks its toolbar buttons.
-      let topBase = 60;
+      const wRect = workspace.getBoundingClientRect();
+      const tenPct = Math.max(60, Math.round(wRect.height * 0.10));
+      let topBase = tenPct;
       let leftBase = 180;
       const vibeEl = document.getElementById("window-vibe");
       if (vibeEl) {
-        const wRect = workspace.getBoundingClientRect();
         const vRect = vibeEl.getBoundingClientRect();
-        topBase = Math.max(60, vRect.bottom - wRect.top + 14);
+        topBase = Math.max(tenPct, vRect.bottom - wRect.top + 14);
         leftBase = Math.max(180, vRect.left - wRect.left + 12);
       }
       const offset = (this.openWindows.length * 28) % 140;
@@ -321,15 +324,28 @@ if (typeof window.WindowManager === "undefined") {
     // Shift it back into view using pure viewport-rect math: whatever the
     // offsetParent is doing, the window must end up fully visible.
     _clampWindowIntoView(id) {
+      // A maximized window fills the workspace by design; never clamp it.
+      if (document.body.classList.contains("window-maximized")) return;
       const win = document.getElementById(`window-${id}`);
       if (!win) return;
       const rect = win.getBoundingClientRect();
       const margin = 8;
       const vw = window.innerWidth;
       const vh = window.innerHeight;
+      // #1278 — the real lower bound is the taskbar's top edge, not the
+      // viewport bottom: a window whose footer slides under the taskbar
+      // (e.g. the New Project popup after its content grows) leaves its
+      // primary buttons unclickable. Measure the taskbar when present and
+      // keep windows above it.
+      let bottomBound = vh - margin;
+      const taskbar = document.getElementById("taskbar");
+      if (taskbar) {
+        const tb = taskbar.getBoundingClientRect();
+        if (tb.top > 0 && tb.top < vh) bottomBound = tb.top - margin;
+      }
       // Already fully inside — nothing to do.
       if (rect.top >= margin && rect.left >= margin &&
-          rect.bottom <= vh - margin && rect.right <= vw - margin) return;
+          rect.bottom <= bottomBound && rect.right <= vw - margin) return;
       const curTop = parseInt(win.style.top || "0", 10) || 0;
       const curLeft = parseInt(win.style.left || "0", 10) || 0;
       let top = curTop;
@@ -337,7 +353,7 @@ if (typeof window.WindowManager === "undefined") {
       if (rect.top < margin) top = curTop + (margin - rect.top);
       if (rect.left < margin) left = curLeft + (margin - rect.left);
       if (rect.right > vw - margin) left = curLeft - (rect.right - (vw - margin));
-      if (rect.bottom > vh - margin) top = curTop - (rect.bottom - (vh - margin));
+      if (rect.bottom > bottomBound) top = curTop - (rect.bottom - bottomBound);
       win.style.top = `${Math.max(margin, top)}px`;
       win.style.left = `${Math.max(margin, left)}px`;
     }
@@ -437,8 +453,17 @@ if (typeof window.WindowManager === "undefined") {
     // loaded (or failed). A timeout guards apps whose CSS 404s or hangs.
     _revealWhenReady(body) {
       const links = Array.from(body.querySelectorAll('link[rel="stylesheet"]'));
+      const reclampAfterReveal = () => {
+        // #1278 — the open-time clamp runs before the app content settles;
+        // a popup whose body grows after reveal (New Project modal) can end
+        // up extending under the taskbar. Clamp once more now that the
+        // window has its final height.
+        const wid = body.dataset && body.dataset.windowId;
+        if (wid && this._clampWindowIntoView) this._clampWindowIntoView(wid);
+      };
       if (!links.length) {
         body.classList.add("gb-window-ready");
+        reclampAfterReveal();
         return;
       }
       const sheetReady = (link) => {
@@ -455,6 +480,7 @@ if (typeof window.WindowManager === "undefined") {
         done = true;
         clearTimeout(timer);
         body.classList.add("gb-window-ready");
+        reclampAfterReveal();
       };
       const onOne = () => {
         remaining -= 1;
@@ -868,6 +894,14 @@ if (typeof window.WindowManager === "undefined") {
       });
       window.__gbAppParams__ = Object.assign({}, window.__gbAppParams__ || {}, params || {});
       if (existed) {
+        // #1288 — a re-targeted window must adopt the caller's ownership
+        // (e.g. the Vibe toolbar opening the shared Terminal/Browser/Chat):
+        // a window first opened without an owner (desktop sidebar) would
+        // otherwise never be closable by its new owner's cleanup.
+        if (opts.ownerId) {
+          const rec = this.openWindows.find((w) => w.id === appId);
+          if (rec) rec.ownerId = opts.ownerId;
+        }
         // Re-target an already-open app window (new project URL, session, ...)
         // so deep-links always apply, not only on first open.
         document.dispatchEvent(new CustomEvent("gb:deep-link", {

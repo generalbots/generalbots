@@ -286,6 +286,13 @@
     background: transparent;
 }
 
+/* #1288 — the parked members modal used to ship an inline fixed full-screen
+   black backdrop; when a stale copy was displayed (or relocated into the
+   popup) it painted a black flash at 0,0. Relocated: never paint a backdrop. */
+#vibeMembersModal.vibe-tool-relocated {
+    background: transparent !important;
+}
+
 /* Members: the parked modal is inline-styled; neutralize the card chrome so
    the panel reads as plain tool-window content (title/✕ come from the WM).
    Scoped to the members modal — the graph/metrics panels have their own

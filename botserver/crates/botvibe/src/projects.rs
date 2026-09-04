@@ -102,6 +102,11 @@ pub struct CreateProjectRequest {
     /// External repository URL for `source_control = "github"` (the
     /// repository is cloned into the workspace at creation).
     pub clone_url: Option<String>,
+    /// Free-form "what do you want to build?" prompt from the New Project
+    /// dialog. When present, the LLM scaffolds the starter files from it
+    /// instead of a hardcoded template; the built-in template remains the
+    /// offline fallback (#1312).
+    pub description: Option<String>,
     pub org_id: Option<Uuid>,
     pub branch_id: Option<Uuid>,
 }

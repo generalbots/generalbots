@@ -140,6 +140,31 @@ impl ProjectDomains {
         self.pool.get().map_err(|e| format!("db pool: {e}"))
     }
 
+    /// Applies the Caddy route for a binding, dialing the container's real
+    /// IPv4: apps listen on :3000 inside the container and the proxy
+    /// container cannot resolve `{container}.incus` names (#1261). Without a
+    /// resolvable IP the route would silently point at a dead upstream (the
+    /// ERR_SSL_PROTOCOL_ERROR/502 symptom on published apps), so fail
+    /// loudly instead.
+    async fn apply_route(&self, bind: &DomainBind) -> Result<CaddyResult, String> {
+        let dial = match VmLifecycle::new(self.pool.clone()).linux_ip(&bind.container) {
+            Ok(Some(ip)) => format!("{ip}:3000"),
+            Ok(None) => {
+                return Err(format!(
+                    "container '{}' has no IPv4 address — cannot route {}",
+                    bind.container, bind.domain
+                ));
+            }
+            Err(e) => {
+                return Err(format!(
+                    "could not resolve IPv4 for '{}': {e}",
+                    bind.container
+                ));
+            }
+        };
+        caddy::upsert_route_to(&bind.domain, &dial, &bind.access).await
+    }
+
     pub fn ensure_schema(&self) -> Result<(), String> {
         let mut conn = self.conn()?;
         ensure_schema_sql(&mut conn, PROJECT_DOMAINS_SCHEMA, "project_domains schema")?;
@@ -297,12 +322,10 @@ impl ProjectDomains {
         .execute(&mut conn)
         .map_err(|e| format!("update access: {e}"))?;
         let bind = self.get(bind_id)?;
-        caddy::upsert_route(&bind.domain, &bind.container, &bind.access)
-            .await
-            .map_err(|e| {
-                log::warn!("Caddy route re-apply for {} failed: {e}", bind.domain);
-                e
-            })?;
+        self.apply_route(&bind).await.map_err(|e| {
+            log::warn!("Caddy route re-apply for {} failed: {e}", bind.domain);
+            e
+        })?;
         Ok(bind)
     }
 
@@ -488,7 +511,7 @@ impl ProjectDomains {
                 bind.domain
             ));
         }
-        let route_applied = caddy::upsert_route(&bind.domain, &bind.container, &bind.access).await;
+        let route_applied = self.apply_route(bind).await;
         let route_state = match &route_applied {
             Ok(CaddyResult { route_id, .. }) => Ok(route_id.clone()),
             Err(e) => Err(e.clone()),

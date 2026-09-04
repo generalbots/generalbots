@@ -31,6 +31,27 @@ const MAX_TOOL_CALLS: u32 = 500;
 /// Upper bound on a single run's wall-clock timeout (#925).
 const MAX_TIMEOUT_SECONDS: u64 = 3600;
 
+/// Heuristic for #1286: is this intent a MODifying turn (tools that write to
+/// the project workspace) or a read-only query? Only modifying turns take
+/// the project's exclusive edit lock; read-only queries stay parallel.
+fn is_modifying_intent(intent: &str) -> bool {
+    const MODIFY_HINTS: &[&str] = &[
+        "create", "make", "build", "write", "generate", "develop", "add",
+        "change", "update", "edit", "refactor", "fix", "remove", "delete",
+        "rename", "deploy", "run", "modify", "implement", "replace", "move",
+        "crie", "criar", "mude", "mudar", "atualize", "atualizar", "edite",
+        "editar", "adicione", "adiccionar", "corrija", "corrigir", "remova",
+        "remover", "implemente", "implementar",
+    ];
+    let lower = intent.to_lowercase();
+    // Bounded scan: the intent is already capped at MAX_INTENT_CHARS.
+    MODIFY_HINTS.iter().any(|h| {
+        lower
+            .split(|c: char| !c.is_ascii_alphanumeric())
+            .any(|w| w == *h)
+    })
+}
+
 #[derive(Debug, Deserialize)]
 pub struct CreateRunRequest {
     pub intent: String,
@@ -242,25 +263,46 @@ fn resolve_project(
                 environment: None,
                 source_control: Some(req.source_control.clone().unwrap_or_else(|| "native".to_string())),
                 clone_url: req.clone_url.clone(),
+                // #1312 — the run intent is the LLM scaffold prompt for
+                // chat-created projects.
+                description: Some(req.intent.clone()),
                 org_id: Some(org_id),
                 branch_id: None,
             };
             match registry.create(&create) {
                 Ok(p) => {
-                    // #1271 — an auto-created project must ship with the same
-                    // starter/calculator seed as an explicit one, so a Run
-                    // against it never opens an empty "No web app yet" VM.
-                    // (github-mode projects clone the caller's repo instead —
-                    // wired async in create_run below, which owns the await.)
+                    // #1271 — an auto-created project must ship with starter
+                    // content so a Run against it never opens an empty
+                    // "No web app yet" VM. #1312 — that starter is LLM-
+                    // generated from the run intent ("create a calculator
+                    // app" → the LLM writes calc.js, not a hardcoded
+                    // template). This resolver is synchronous, so the
+                    // scaffold runs on a spawned thread (same bridge as
+                    // daily_briefing); `run_project_app` re-seeds an empty
+                    // workspace on Run, so the guarantee holds even if the
+                    // scaffold is slow. (github-mode clones the caller's
+                    // repo instead — wired async in create_run below.)
                     let key = crate::vm_lifecycle::VmLifecycle::alm_repo(&p.name);
-                    if let Err(e) = crate::templates::seed_project_workspace(
-                        &key,
-                        &p.name,
-                        "custom",
-                        p.framework.as_deref(),
-                    ) {
-                        error!("Vibe: seed auto-created project '{name}' failed: {e}");
-                    }
+                    let scaffold_key = key.clone();
+                    let scaffold_name = p.name.clone();
+                    let scaffold_framework = p.framework.clone();
+                    let scaffold_intent = req.intent.clone();
+                    std::thread::spawn(move || {
+                        let rt = tokio::runtime::Builder::new_current_thread()
+                            .enable_all()
+                            .build();
+                        if let Ok(rt) = rt {
+                            let _ = rt.block_on(
+                                crate::scaffold::scaffold_project_workspace(
+                                    &scaffold_key,
+                                    &scaffold_name,
+                                    "custom",
+                                    scaffold_framework.as_deref(),
+                                    Some(&scaffold_intent),
+                                ),
+                            );
+                        }
+                    });
                     // #1271 — an auto-created project must grant the caller
                     // ownership exactly like explicit creation (which calls
                     // `rbac.set_user_role`), otherwise the workspace-files API
@@ -367,6 +409,9 @@ pub(crate) struct VibeApiInner {
     runs_store: crate::run_store::VibeRunStore,
     project_registry: ProjectRegistryRef,
     project_rbac: crate::rbac::ProjectRbac,
+    /// #1286 — per-project edit locks: one exclusive write slot per project
+    /// so parallel multi-chat sessions queue instead of interleaving writes.
+    project_locks: Arc<crate::project_locks::ProjectLockRegistry>,
 }
 
 impl crate::knowledge_graph::GraphDataSource for VibeApiInner {
@@ -444,6 +489,7 @@ pub fn router(
         runs_store: crate::run_store::VibeRunStore::new(pool),
         project_registry,
         project_rbac,
+        project_locks: Arc::new(crate::project_locks::ProjectLockRegistry::new()),
     });
     axum::Router::new()
         .route("/api/vibe/run", axum::routing::post(create_run))
@@ -577,6 +623,25 @@ async fn create_run(
     let state_str = run.state.to_string();
     let uc_str = run.use_case.to_string();
 
+    // #1286 — a MODifying turn on a project must not interleave writes with
+    // an in-flight run on the same project. The run is created immediately
+    // (state pending, fully observable) and the spawned executor waits on
+    // the project's exclusive edit lock BEFORE running tools — a second
+    // chat tab bound to the same project queues FIFO instead of racing.
+    // Read-only queries and other projects are untouched: parallelism
+    // across tabs/projects is the feature's core value.
+    let needs_edit_lock =
+        is_modifying_intent(&run.intent) && run.config.project_id.is_some();
+    if needs_edit_lock {
+        if let Some(pid) = run.config.project_id.as_deref() {
+            if !api.project_locks.is_free(pid).await {
+                info!(
+                    "Vibe run {run_id} queued: another session is modifying project {pid}"
+                );
+            }
+        }
+    }
+
     // #921 — persist the run row *before* the first telemetry event so the
     // `vibe_telemetry.run_id` FK is satisfied and the run stays durable even
     // if the process dies mid-execution. save_run upserts, so the later
@@ -623,6 +688,9 @@ async fn create_run(
 
     let pipeline_mode = req.pipeline_mode.clone();
     let api_clone = api.clone();
+    // Slot for the acquired edit lock; held across the run, released at the
+    // end of the spawned task (terminal state) via drop.
+    let mut run_guard_slot: Option<crate::project_locks::ProjectLockGuard> = None;
     tokio::spawn(async move {
         // #827 — keep a "running" placeholder in the map so the run stays
         // queryable (GET /api/vibe/run/{id}) while the loop executes, instead
@@ -638,7 +706,43 @@ async fn create_run(
             taken
         };
         if let Some(mut run) = run_opt {
-            if pipeline_mode.as_deref() == Some("deploy") {
+            // #1286 — modifying runs wait (FIFO, bounded) for the project's
+            // exclusive edit slot while another session's run is executing.
+            // The run stays observable as pending/running so the user's tab
+            // shows the queued turn; timeout fails it explicitly instead of
+            // dropping it (the #1275 lesson).
+            if needs_edit_lock {
+                let pid = run.config.project_id.clone().unwrap_or_default();
+                let wait = tokio::time::timeout(
+                    crate::project_locks::LOCK_WAIT_TIMEOUT,
+                    api_clone.project_locks.acquire(&pid, run_id),
+                )
+                .await;
+                match wait {
+                    Ok(Ok(guard)) => {
+                        // Hold the slot until end of scope: it releases when
+                        // guard drops at the end of this block.
+                        run_guard_slot = Some(guard);
+                    }
+                    Ok(Err(e)) => {
+                        error!("Vibe: run {run_id} edit lock for project {pid} failed: {e}");
+                        run.transition(VibeRunState::Failed);
+                        run.error = Some(format!("project edit lock: {e}"));
+                    }
+                    Err(_) => {
+                        info!("Vibe: run {run_id} timed out waiting for the edit lock of project {pid}");
+                        run.transition(VibeRunState::Failed);
+                        run.error = Some(
+                            "another session is modifying this project — your turn waited too long; try again".to_string(),
+                        );
+                    }
+                }
+                if let Err(e) = api_clone.runs_store.save_run(&run) {
+                    error!("Vibe: persist run {run_id} failed: {e}");
+                }
+            }
+            let lock_is_failed = run.state == VibeRunState::Failed;
+            if pipeline_mode.as_deref() == Some("deploy") && !lock_is_failed {
                 // vibe33 #811 — graph execution path: the deploy pipeline
                 // runs its stages through the tool executor with approval
                 // gates and fail-fast (failed stage skips the rest).
@@ -699,8 +803,10 @@ async fn create_run(
                     .telemetry
                     .record_run_completion(&run, 0, None, 0.0)
                     .await;
-            } else {
+            } else if pipeline_mode.as_deref() != Some("deploy") && !lock_is_failed {
                 agent_loop.execute_run(&mut run).await;
+            } else if lock_is_failed {
+                info!("Vibe run {run_id}: skipped execution — edit lock not acquired");
             }
             // Keep the sidebar project status truthful: a completed run marks
             // its project active, a failed/cancelled one marks it failed.
@@ -730,6 +836,10 @@ async fn create_run(
             if let Err(e) = api_clone.runs_store.save_run(&run) {
                 error!("Vibe: persist run {run_id} failed: {e}");
             }
+            // #1286 — the run reached a terminal state: release the project
+            // edit lock so the queued session's turn can start. Dropping the
+            // guard wakes the next FIFO waiter.
+            drop(run_guard_slot);
             let final_run = run.clone();
             let mut runs = api_clone.runs.write().await;
             runs.insert(run_id, run);

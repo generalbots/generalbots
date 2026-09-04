@@ -25,6 +25,14 @@ use `all=true` only when every occurrence should change.
 Use file/write only with the complete final file content; never pass only an
 isolated value such as `blue` as file content.
 
+Before editing an existing app, identify the file the app actually SERVES:
+read package.json (`main` / `scripts.start`) and follow the static/public
+directory the server mounts. A starter `index.js`/`server.js` at the root is
+often just a template — the page the user sees may live in `public/index.html`
+or behind the entry named in package.json. When in doubt, run the app and
+read the response before editing. Prefer editing the served file over a
+starter template that is not mounted.
+
 Shell (require "project"; "command" is allowlisted — use node/npm/python3/git/...):
 - shell/run    {"project": "...", "command": "node", "args": ["index.js", "2+3"], "timeout_secs": 30}   Run a command and capture stdout/stderr
 

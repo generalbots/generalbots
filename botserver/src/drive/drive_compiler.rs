@@ -26,6 +26,11 @@ use uuid::Uuid;
 pub struct DriveCompiler {
     state: Arc<AppState>,
     work_root: PathBuf,
+    /// #1279/#1288 — paths whose source object is known absent (download
+    /// failed with no work copy). Prevents `ast_missing` from forcing a
+    /// recompile attempt every scan for files that can never compile until
+    /// their object reappears (an ETag change clears the marker).
+    missing_files: Arc<RwLock<std::collections::HashSet<String>>>,
     is_processing: Arc<AtomicBool>,
     last_etags: Arc<RwLock<HashMap<String, String>>>,
 }
@@ -87,12 +92,23 @@ impl DriveCompiler {
             .remove(fp);
     }
 
+    /// Marks a path as absent so the scanner stops retrying it every cycle.
+    async fn mark_missing(&self, fp: &str) {
+        self.missing_files.write().await.insert(fp.to_string());
+    }
+
+    /// Clears the absent marker (object came back or compiled fine).
+    async fn clear_missing(&self, fp: &str) {
+        self.missing_files.write().await.remove(fp);
+    }
+
     pub fn new(state: Arc<AppState>) -> Self {
         let work_root = PathBuf::from(get_work_path());
 
         Self {
             state,
             work_root,
+            missing_files: Arc::new(RwLock::new(std::collections::HashSet::new())),
             is_processing: Arc::new(AtomicBool::new(false)),
             last_etags: Arc::new(RwLock::new(HashMap::new())),
         }
@@ -162,7 +178,8 @@ impl DriveCompiler {
             let should_compile = {
                 let etags = self.last_etags.read().await;
                 let etag_changed = etags.get(&query_file_path).map(|e| e != &current_etag).unwrap_or(true);
-                let ast_missing = !self.resolve_ast_path(&query_file_path).exists();
+                let is_marked_missing = self.missing_files.read().await.contains(&query_file_path);
+                let ast_missing = !is_marked_missing && !self.resolve_ast_path(&query_file_path).exists();
                 if ast_missing {
                     debug!("Force recompile: .ast file missing for {}", query_file_path);
                 }
@@ -180,7 +197,13 @@ impl DriveCompiler {
                     let mut etags = self.last_etags.write().await;
                     etags.insert(query_file_path.clone(), current_etag);
 
-                    info!("DriveCompiler: {} compiled successfully", query_file_path);
+                    // #1288 — the skip path also returns Ok; only claim success
+                    // (and clear the missing marker) when an .ast was actually
+                    // produced.
+                    if self.resolve_ast_path(&query_file_path).exists() {
+                        self.clear_missing(&query_file_path).await;
+                        info!("DriveCompiler: {} compiled successfully", query_file_path);
+                    }
                 }
             }
         }
@@ -271,7 +294,20 @@ impl DriveCompiler {
                     info!("Failed to download {} from S3 and no local copy: {}", fp, e);
                 }
                 if !work_bas_path.exists() {
-                    return Err(format!("File not found in S3: {}", fp).into());
+                    // #1264 — a permanently-absent object with no work copy used
+                    // to return Err every scan, so the monitor retried the same
+                    // file 2×/second and burned a full core on a hopeless loop
+                    // (signup capacity gate saw the resulting CPU and vetoed
+                    // every free signup). Suppress like NoSuchBucket: log once,
+                    // then debug until the object reappears, and return Ok so
+                    // the scanner moves on without spinning.
+                if missing || Self::suppress_missing_log(fp) {
+                    debug!("S3 object absent, compile skipped (suppressed): {}", fp);
+                } else {
+                    warn!("S3 object absent, compile skipped: {} (suppressed until it reappears)", fp);
+                }
+                self.mark_missing(fp).await;
+                return Ok(());
                 }
                 info!("Failed to download {} from S3, using existing work copy", fp);
             }
@@ -446,6 +482,7 @@ impl Clone for DriveCompiler {
         Self {
             state: Arc::clone(&self.state),
             work_root: self.work_root.clone(),
+            missing_files: Arc::clone(&self.missing_files),
             is_processing: Arc::clone(&self.is_processing),
             last_etags: Arc::clone(&self.last_etags),
         }

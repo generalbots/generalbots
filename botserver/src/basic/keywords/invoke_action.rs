@@ -32,7 +32,7 @@ fn http_invoke(
     }
     let base = base_url();
     let url = format!("{base}/api/bots/{bid}/integration-actions/invoke");
-    let internal_token = std::env::var("INTERNAL_API_TOKEN").unwrap_or_default();
+    let internal_token = botcoresecrets::internal_api_token();
     let (tx, rx) = std::sync::mpsc::channel();
 
     std::thread::spawn(move || {

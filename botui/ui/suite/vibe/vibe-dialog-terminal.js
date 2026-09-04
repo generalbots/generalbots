@@ -114,13 +114,16 @@
                 if (data && data.success === false) throw new Error(data.error || "VM lookup failed");
                 var vms = (data && (data.vms || (data.success && data.data && data.data.vms))) || [];
                 if (Array.isArray(vms) && vms.length) {
-                    // Prefer a running dev VM; otherwise the first one.
+                    // #1288 — only a RUNNING VM may be attached: incus exec
+                    // into a stopped/creating container blocks forever. A
+                    // non-running VM surfaces the "start it (Play)" hint
+                    // instead of hanging the dialog on a silent shell.
                     var preferred = vms.find(function (v) {
                         return String(v.env || "").indexOf("development") !== -1 &&
                             String(v.status || "").indexOf("run") !== -1;
                     }) || vms.find(function (v) {
                         return String(v.status || "").indexOf("run") !== -1;
-                    }) || vms[0];
+                    }) || null;
                     if (preferred && preferred.container_name) {
                         return { container: preferred.container_name };
                     }

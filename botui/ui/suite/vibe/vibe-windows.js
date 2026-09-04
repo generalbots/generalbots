@@ -64,8 +64,13 @@
     // content stacked inside old windows. Keep ONLY the last occurrence (the
     // fresh partial markup) and drop every earlier copy.
     function dedupeGhosts() {
+        // #1288 — vibeExecOverlay is a fixed/absolute full-panel overlay; a
+        // stale copy left behind by a partial re-injection paints a black
+        // flash at the document's 0,0 when a run toggles it. Dedupe it like
+        // the other parked panels.
         var ids = ["vibeGraphPanel", "vibeMetricsPanel",
-                   "vibeNewProjectModal", "vibeMembersModal", "vibeDialogMask"];
+                   "vibeNewProjectModal", "vibeMembersModal", "vibeDialogMask",
+                   "vibeExecOverlay"];
         ids.forEach(function (id) {
             var all = Array.prototype.slice.call(document.querySelectorAll("#" + id));
             if (all.length <= 1) return;
@@ -169,6 +174,12 @@
             "vibe-run", "canvas", "vibe-graph", "vibe-metrics",
             "vibe-newproject", "vibe-members",
             "vibe-tool-project", "vibe-tool-terminal", "vibe-tool-browser",
+            // #1288 — the shared desktop apps the Vibe toolbar opens are
+            // project-scoped too (terminal execs the project VM, browser
+            // shows the app, chat carries @project context). Close them by
+            // id: an app first opened from the desktop sidebar has no vibe
+            // ownerId and would otherwise survive project switch/delete.
+            "terminal", "browser", "chat",
         ];
         subs.forEach(function (id) {
             if (WM.getWindow(id)) WM.close(id);

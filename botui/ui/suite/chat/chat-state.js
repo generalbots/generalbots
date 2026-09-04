@@ -32,6 +32,25 @@ var WS_BASE_URL =
   window.location.protocol === "https:" ? "wss://" : "ws://";
 var WS_URL = WS_BASE_URL + window.location.host + "/ws";
 
+// Private bots require an authenticated WebSocket. Browser WS cannot send
+// headers, so append the suite token as a query param (the server accepts
+// ?token= on /ws, same as collab.js does for realtime channels).
+(function () {
+  try {
+    var tok =
+      (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) ||
+      localStorage.getItem("gb-access-token") ||
+      localStorage.getItem("management_token") ||
+      sessionStorage.getItem("gb-access-token") ||
+      "";
+    if (tok) {
+      WS_URL += (WS_URL.indexOf("?") === -1 ? "?" : "&") + "token=" + encodeURIComponent(tok);
+    }
+  } catch (e) {
+    /* storage may be unavailable (private mode) */
+  }
+})();
+
 var MessageType = {
   EXTERNAL: 0,
   USER: 1,

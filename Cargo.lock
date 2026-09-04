@@ -2953,6 +2953,7 @@ dependencies = [
  "async-trait",
  "axum",
  "base64 0.22.1",
+ "botcoresecrets",
  "botlib",
  "botsecurity-core",
  "chrono",

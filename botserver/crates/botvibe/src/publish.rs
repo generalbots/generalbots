@@ -433,10 +433,9 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         // The deployment API is an internal endpoint guarded by the
         // INTERNAL_API_TOKEN (X-Internal-Token), same as the other internal
         // callers (invoke_action, vibe_agent keywords).
-        if let Ok(token) = std::env::var("INTERNAL_API_TOKEN") {
-            if !token.is_empty() {
-                req = req.header("X-Internal-Token", token);
-            }
+        let internal_token = botcoresecrets::internal_api_token();
+        if !internal_token.is_empty() {
+            req = req.header("X-Internal-Token", internal_token);
         }
         let resp = req
             .json(&body)

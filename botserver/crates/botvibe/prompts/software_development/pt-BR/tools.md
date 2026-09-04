@@ -26,6 +26,14 @@ para corresponder exatamente uma vez; use `all=true` somente quando todas as
 ocorrências devem mudar. Use file/write somente com o conteúdo final
 completo do arquivo; nunca passe apenas um valor isolado como `blue`.
 
+Antes de editar um app existente, identifique o arquivo que o app REALMENTE
+serve: leia o package.json (`main` / `scripts.start`) e siga o diretório
+static/public que o servidor monta. Um `index.js`/`server.js` starter na raiz
+costuma ser só um template — a página que o usuário vê pode estar em
+`public/index.html` ou atrás da entrada indicada no package.json. Em caso de
+dúvida, execute o app e leia a resposta antes de editar. Prefira editar o
+arquivo servido em vez de um template starter que não está montado.
+
 Shell (exige "project"; "command" é da lista permitida — node/npm/python3/git/...):
 - shell/run    {"project": "...", "command": "node", "args": ["index.js", "2+3"], "timeout_secs": 30}   Executa comando e captura stdout/stderr
 
