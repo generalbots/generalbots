@@ -385,23 +385,44 @@ fn rotate_release(site_dir: &str) -> Result<(), String> {
     Ok(())
 }
 
-/// Render the Caddyfile site block for one site.
-fn site_block(slug: &str, python: bool) -> String {
+/// Render the Caddyfile site block for one site. TLS mode is
+/// environment-aware: production relies on Caddy's automatic ACME
+/// (wildcard `*.{domain}` DNS already points there — a new site gets a
+/// Let's Encrypt cert on demand, exactly like the platform sites), while
+/// dev stacks set `GB_VIBE_TLS_INTERNAL=1` to serve locally-trusted certs
+/// (ACME can never complete for a domain that doesn't resolve to dev).
+fn tls_directive(internal: bool) -> String {
+    if internal {
+        "\ttls internal\n".to_string()
+    } else {
+        String::new()
+    }
+}
+
+fn tls_internal_from_env() -> bool {
+    std::env::var("GB_VIBE_TLS_INTERNAL")
+        .map(|v| {
+            let v = v.trim().to_ascii_lowercase();
+            v == "1" || v == "true" || v == "yes"
+        })
+        .unwrap_or(false)
+}
+
+fn site_block_with_mode(slug: &str, python: bool, tls_internal: bool) -> String {
     let site_host = format!("{slug}.{}", super::publish::published_domain());
-    // `tls internal` keeps Caddy from attempting an ACME handshake for a
-    // host whose DNS may not point here yet (staging/new sites): Caddy then
-    // serves a locally-trusted cert immediately and upgrades to Let's
-    // Encrypt once the directive is dropped and DNS/ACME are ready.
+    let tls = tls_directive(tls_internal);
     if python {
         let port = python_port(slug);
-        format!(
-            "{site_host} {{\n\ttls internal\n\treverse_proxy 127.0.0.1:{port}\n}}\n"
-        )
+        format!("{site_host} {{\n{tls}\treverse_proxy 127.0.0.1:{port}\n}}\n")
     } else {
         format!(
-            "{site_host} {{\n\ttls internal\n\troot * {PROXY_SITES_ROOT}/{slug}\n\tfile_server\n\tencode zstd gzip\n}}\n"
+            "{site_host} {{\n{tls}\troot * {PROXY_SITES_ROOT}/{slug}\n\tfile_server\n\tencode zstd gzip\n}}\n"
         )
     }
+}
+
+fn site_block(slug: &str, python: bool) -> String {
+    site_block_with_mode(slug, python, tls_internal_from_env())
 }
 
 /// Pull the proxy Caddyfile to a local temp file. Caller owns the temp file.
@@ -494,11 +515,18 @@ fn validate_candidate(candidate: &Path) -> Result<(), String> {
     Ok(())
 }
 
-/// Reload caddy against the LIVE config path.
+/// Reload caddy against the LIVE config path. The harness runs commands
+/// with a cleared environment, so `CADDY_ADMIN` is passed explicitly as an
+/// argv env assignment: when the admin endpoint binds a wildcard address
+/// (`admin 0.0.0.0:2019`), Caddy's origin enforcement rejects a CLI dial
+/// with Host `0.0.0.0:2019` (HTTP 403) — dialing `127.0.0.1` is always an
+/// allowed origin.
 fn reload_caddy() -> Result<(), String> {
     must_run(
         "caddy reload",
         &[
+            "env".to_string(),
+            "CADDY_ADMIN=127.0.0.1:2019".to_string(),
             "caddy".to_string(),
             "reload".to_string(),
             "--adapter".to_string(),
@@ -874,14 +902,16 @@ fn verify_route_serving(site_host: &str) -> Result<(), String> {
     } else {
         return Err("verify probe push error".to_string());
     }
-    for attempt in 1..=4 {
+    for attempt in 1..=8 {
         let out = proxy_exec(&["python3".to_string(), proxy_path.to_string()], 25);
         if let Ok(o) = &out {
             if o.exit_code == Some(0) {
                 return Ok(());
             }
         }
-        std::thread::sleep(std::time::Duration::from_millis(1200 * attempt));
+        // Generous window: on production a brand-new host triggers an ACME
+        // issuance before the first successful TLS handshake.
+        std::thread::sleep(std::time::Duration::from_millis(1500 * attempt));
     }
     Err(format!("route for {site_host} does not serve through Caddy yet"))
 }
@@ -1099,17 +1129,25 @@ mod tests {
 
     #[test]
     fn site_block_static_has_file_server() {
-        let b = site_block("mysite", false);
-        assert!(b.starts_with("mysite."));
+        let d = super::super::publish::published_domain();
+        let b = site_block_with_mode("mysite", false, true);
+        assert!(b.starts_with(&format!("mysite.{d}")));
         assert!(b.contains("file_server"));
         assert!(b.contains(&format!("root * {PROXY_SITES_ROOT}/mysite")));
         assert!(b.contains("tls internal"));
+        // Production mode: automatic ACME — no explicit tls directive.
+        let prod = site_block_with_mode("mysite", false, false);
+        assert!(!prod.contains("tls "));
+        assert!(prod.contains("file_server"));
     }
 
     #[test]
     fn site_block_python_has_reverse_proxy() {
-        let b = site_block("pysite", true);
+        let b = site_block_with_mode("pysite", true, true);
         assert!(b.contains(&format!("reverse_proxy 127.0.0.1:{}", python_port("pysite"))));
+        let prod = site_block_with_mode("pysite", true, false);
+        assert!(prod.contains(&format!("reverse_proxy 127.0.0.1:{}", python_port("pysite"))));
+        assert!(!prod.contains("tls "));
     }
 
     #[test]
