@@ -270,7 +270,12 @@
 .vibe-tool-relocated .vibe-np-overlay {
     position: static;
     inset: auto;
-    display: block;
+    /* #1280-gap2 — must be a flex column so .vibe-np-dialog's flex:1
+       (vibe.p2.css) engages: the dialog then stretches to the window height,
+       .vibe-np-body scrolls internally and the footer (Create button) stays
+       inside the window instead of overflowing under the taskbar. */
+    display: flex;
+    flex-direction: column;
     background: transparent;
     padding: 0;
 }

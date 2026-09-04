@@ -19,6 +19,118 @@ use crate::vm_lifecycle::VmLifecycle;
 
 const VM_UNAVAILABLE: &str = "vm-skip: incus binary unavailable";
 
+/// Web-entry resolution for `run_dev_app` (#1276 regression surface).
+///
+/// Pure function so the static/python/node precedence rules are unit-testable
+/// without a container:
+///
+/// * a python entry (`app.py`/`server.py`/`main.py`/`api.py`/`run.py`) runs
+///   with `python3` — unless a node entry exists too (python never shadows a
+///   real node app);
+/// * a `package.json` `main` or `node <file>` start script wins over
+///   conventional names (an agent may build the real app in `server.js`
+///   while a starter `index.js` template still exists);
+/// * `server.js` is a REAL web entrypoint and must never be clobbered by the
+///   generated static fallback (previous bug class);
+/// * only a project with neither node nor python entries gets the generated
+///   static `server.js` (pure static site).
+struct WebEntry {
+    entry: String,
+    is_python: bool,
+    /// True when the project ships no web entry at all and needs the
+    /// generated static `server.js` pushed (node projects with index.js,
+    /// python apps and node apps do NOT need it).
+    needs_static_fallback: bool,
+}
+
+fn python_entry_of<'a>(path: &'a str) -> Option<&'a str> {
+    let name = path.rsplit('/').next().unwrap_or(path);
+    match name {
+        "app.py" | "server.py" | "main.py" | "api.py" | "run.py" => Some(name),
+        _ => None,
+    }
+}
+
+fn resolve_web_entry(files: &[serde_json::Value]) -> WebEntry {
+    let has_index_js = files.iter().any(|f| {
+        f.get("path")
+            .and_then(|v| v.as_str())
+            .map(|p| p == "index.js" || p.ends_with("/index.js"))
+            .unwrap_or(false)
+    });
+    // A node-framework project may designate its web entry point as
+    // `server.js` instead of `index.js` (or a package.json "start" script).
+    let has_server_js = files.iter().any(|f| {
+        f.get("path")
+            .and_then(|v| v.as_str())
+            .map(|p| p == "server.js" || p.ends_with("/server.js"))
+            .unwrap_or(false)
+    });
+    // An explicit web entry declared by the project (package.json "main" or
+    // a "start" script of the form `node <file>`) wins over conventional
+    // file names.
+    let declared_entry: Option<String> = files.iter().find_map(|f| {
+        if f.get("path").and_then(|v| v.as_str()) != Some("package.json") {
+            return None;
+        }
+        let content = f.get("content").and_then(|v| v.as_array())?;
+        let bytes: Vec<u8> = content
+            .iter()
+            .filter_map(|v| v.as_u64().filter(|n| *n <= u8::MAX as u64).map(|n| n as u8))
+            .collect();
+        let manifest: serde_json::Value = serde_json::from_slice(&bytes).ok()?;
+        let main = manifest
+            .get("main")
+            .and_then(|v| v.as_str())
+            .map(str::to_string);
+        let start = manifest
+            .get("scripts")
+            .and_then(|s| s.get("start"))
+            .and_then(|v| v.as_str())
+            .and_then(|s| s.strip_prefix("node ").map(str::to_string));
+        main.or(start)
+    });
+    let has_node_entry = has_index_js || has_server_js || declared_entry.is_some();
+    let python_entry = files
+        .iter()
+        .filter_map(|f| f.get("path").and_then(|v| v.as_str()).and_then(python_entry_of))
+        .next();
+    let is_python = python_entry.is_some() && !has_node_entry;
+    if is_python {
+        return WebEntry {
+            entry: python_entry.unwrap_or("app.py").to_string(),
+            is_python: true,
+            needs_static_fallback: false,
+        };
+    }
+    if let Some(main) = declared_entry {
+        return WebEntry {
+            entry: main,
+            is_python: false,
+            needs_static_fallback: false,
+        };
+    }
+    if has_index_js {
+        return WebEntry {
+            entry: "index.js".to_string(),
+            is_python: false,
+            needs_static_fallback: false,
+        };
+    }
+    if has_server_js {
+        return WebEntry {
+            entry: "server.js".to_string(),
+            is_python: false,
+            needs_static_fallback: false,
+        };
+    }
+    WebEntry {
+        entry: "server.js".to_string(),
+        is_python: false,
+        needs_static_fallback: true,
+    }
+}
+
 /// Health-check probe pushed into the dev container and run with `node`.
 /// Exits 0 as soon as something listens on 127.0.0.1:3000, otherwise after
 /// `attempts` tries with a 1s pause each. Kept as a FILE (not a `bash -c`
@@ -689,66 +801,12 @@ impl VmLifecycle {
             )
             .map_err(|e| format!("prepare app directory: {e}"))?;
 
-            let has_index_js = files.iter().any(|f| {
-                f.get("path")
-                    .and_then(|v| v.as_str())
-                    .map(|p| p == "index.js" || p.ends_with("/index.js"))
-                    .unwrap_or(false)
-            });
-            // A node-framework project (framework type "node") may designate
-            // its web entry point as `server.js` instead of `index.js` (or a
-            // package.json "start" script). Treat a user-provided `server.js`
-            // as a REAL web entrypoint so it is not clobbered by the generated
-            // static-only fallback server below — otherwise an Express/Node
-            // app silently degrades to the "No web app in this project yet"
-            // page instead of running.
-            let has_server_js = files.iter().any(|f| {
-                f.get("path")
-                    .and_then(|v| v.as_str())
-                    .map(|p| p == "server.js" || p.ends_with("/server.js"))
-                    .unwrap_or(false)
-            });
-            // An explicit web entry declared by the project (package.json
-            // "main" or a "start" script of the form `node <file>`) wins over
-            // conventional file names — the agent may build the app in
-            // server.js while a starter index.js template still exists, and
-            // index.js must not shadow the real application.
-            let declared_entry: Option<String> = files.iter().find_map(|f| {
-                if f.get("path").and_then(|v| v.as_str()) != Some("package.json") {
-                    return None;
-                }
-                let content = f.get("content").and_then(|v| v.as_array())?;
-                let bytes: Vec<u8> = content
-                    .iter()
-                    .filter_map(|v| v.as_u64().filter(|n| *n <= u8::MAX as u64).map(|n| n as u8))
-                    .collect();
-                let manifest: serde_json::Value = serde_json::from_slice(&bytes).ok()?;
-                let main = manifest
-                    .get("main")
-                    .and_then(|v| v.as_str())
-                    .map(str::to_string);
-                let start = manifest
-                    .get("scripts")
-                    .and_then(|s| s.get("start"))
-                    .and_then(|v| v.as_str())
-                    .and_then(|s| s.strip_prefix("node ").map(str::to_string));
-                main.or(start)
-            });
-            let has_node_entry = has_index_js || has_server_js || declared_entry.is_some();
-            // A python-framework project (framework type "python") designates
-            // its web entry point with a python module (app.py / server.py /
-            // main.py) instead of index.js. Treat a user-provided python
-            // entry as a REAL web entrypoint too, so a Flask/FastAPI app is
-            // started and kept alive (Restart=always) rather than being
-            // clobbered by the node static-only fallback below.
-            let has_python_entry = files.iter().any(|f| {
-                let path = f.get("path").and_then(|v| v.as_str()).unwrap_or("");
-                let name = path.rsplit('/').next().unwrap_or(path);
-                matches!(
-                    name,
-                    "app.py" | "server.py" | "main.py" | "api.py" | "run.py"
-                )
-            });
+            // #1276 — entry resolution (node/python/static precedence) is
+            // extracted into `resolve_web_entry` so the clobber rules stay
+            // unit-tested without a container.
+            let resolved = resolve_web_entry(files);
+            let has_node_entry = !resolved.is_python && !resolved.needs_static_fallback;
+            let has_python_entry = resolved.is_python;
             // Static fallback server: a node process that serves the workspace
             // files over HTTP. Used when the project has no index.js AND when
             // the real entry is not a web server (a CLI that exits, or a crash)
@@ -837,31 +895,11 @@ impl VmLifecycle {
                 .map_err(|e| format!("push static server: {e}"))?;
             }
 
-            // Pick the web entry + runtime. Node projects run index.js (or a
-            // custom server.js) with /usr/bin/node; python projects run their
-            // detected module with /usr/bin/python3. Pure-static projects get
-            // the generated server.js (node). This drives the systemd ExecStart
-            // and the runtime bootstrap below.
-            let is_python = has_python_entry && !has_node_entry;
-            let entry = if is_python {
-                files
-                    .iter()
-                    .filter_map(|f| {
-                        let path = f.get("path").and_then(|v| v.as_str())?;
-                        let name = path.rsplit('/').next().unwrap_or(path);
-                        (matches!(name, "app.py" | "server.py" | "main.py" | "api.py" | "run.py")).then_some(name)
-                    })
-                    .collect::<Vec<_>>()
-                    .into_iter()
-                    .next()
-                    .unwrap_or("app.py")
-            } else if let Some(main) = declared_entry.as_deref() {
-                main
-            } else if has_index_js {
-                "index.js"
-            } else {
-                "server.js"
-            };
+            // Pick the web entry + runtime (extracted + unit-tested — #1276).
+            // This drives the systemd ExecStart and the runtime bootstrap
+            // below.
+            let is_python = resolved.is_python;
+            let entry = resolved.entry;
             let service = temp.join("vibe-app.service");
             std::fs::write(
                 &service,
@@ -1306,5 +1344,80 @@ impl VmLifecycle {
             )
             .map_err(|e| format!("incus list: {e}"))?;
         serde_json::from_str(&out.stdout).map_err(|e| format!("incus list parse: {e}"))
+    }
+}
+
+#[cfg(test)]
+mod entry_resolution_tests {
+    use super::resolve_web_entry;
+
+    fn f(path: &str) -> serde_json::Value {
+        serde_json::json!({ "path": path, "content": [1, 2, 3] })
+    }
+
+    fn pkg_json(manifest: &str) -> serde_json::Value {
+        let bytes: Vec<serde_json::Value> =
+            manifest.as_bytes().iter().map(|b| serde_json::json!(b)).collect();
+        serde_json::json!({ "path": "package.json", "content": bytes })
+    }
+
+    #[test]
+    fn pure_static_gets_generated_fallback() {
+        let r = resolve_web_entry(&[f("index.html"), f("style.css")]);
+        assert!(r.needs_static_fallback, "static site must get generated server.js");
+        assert_eq!(r.entry, "server.js");
+        assert!(!r.is_python);
+    }
+
+    #[test]
+    fn user_server_js_is_real_entry_never_clobbered() {
+        // #1276 regression: an Express app's server.js must NOT degrade to the
+        // "No web app yet" static fallback page.
+        let r = resolve_web_entry(&[f("server.js"), f("index.html")]);
+        assert_eq!(r.entry, "server.js");
+        assert!(!r.needs_static_fallback, "real server.js clobbered by static fallback");
+        assert!(!r.is_python);
+    }
+
+    #[test]
+    fn declared_entry_wins_over_starter_index_js() {
+        // The agent builds the app in src/main.js while a starter index.js
+        // template still exists — index.js must not shadow the real app.
+        let pkg = pkg_json(r#"{"main":"src/main.js","scripts":{"start":"node src/main.js"}}"#);
+        let r = resolve_web_entry(&[f("index.js"), f("src/main.js"), pkg]);
+        assert_eq!(r.entry, "src/main.js");
+        assert!(!r.needs_static_fallback);
+    }
+
+    #[test]
+    fn start_script_node_form_is_declared_entry() {
+        let pkg = pkg_json(r#"{"scripts":{"start":"node app.js"}}"#);
+        let r = resolve_web_entry(&[pkg]);
+        assert_eq!(r.entry, "app.js");
+        assert!(!r.needs_static_fallback);
+    }
+
+    #[test]
+    fn python_entry_runs_with_python3() {
+        let r = resolve_web_entry(&[f("app.py"), f("requirements.txt"), f("templates/x.html")]);
+        assert!(r.is_python);
+        assert_eq!(r.entry, "app.py");
+        assert!(!r.needs_static_fallback, "python app must not be clobbered");
+    }
+
+    #[test]
+    fn node_entry_shadows_python_entry() {
+        // A real node app wins even when a stray .py exists.
+        let r = resolve_web_entry(&[f("index.js"), f("util.py")]);
+        assert!(!r.is_python);
+        assert_eq!(r.entry, "index.js");
+        assert!(!r.needs_static_fallback);
+    }
+
+    #[test]
+    fn nested_python_entry_detected() {
+        let r = resolve_web_entry(&[f("backend/main.py")]);
+        assert!(r.is_python);
+        assert_eq!(r.entry, "main.py");
     }
 }

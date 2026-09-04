@@ -133,6 +133,14 @@ impl AgentLoop {
             "background",
             "publish",
             "deploy",
+            // #1276 — creation intents are mutations too: a "create a page"
+            // run that never writes a file must not be reported as completed.
+            "create",
+            "build",
+            "generate",
+            "scaffold",
+            "write",
+            "add ",
         ]
         .iter()
         .any(|word| intent.contains(word))
@@ -338,7 +346,12 @@ impl AgentLoop {
                 }
                 empty_parse_rounds += 1;
                 context.add_assistant_message(llm_response);
-                context.add_assistant_message(
+                // The nudge must arrive as a USER message: appended as an
+                // assistant turn, small models read it back as their own
+                // narration and keep producing prose (observed on dev with
+                // six consecutive prose rounds while the file was never
+                // written). As a user turn it is an authoritative demand.
+                context.add_user_message(
                     if mutation_pending {
                         "The requested change has NOT been applied yet. Reply with tool_calls \
                          now — for example {\"tool_calls\":[{\"tool_name\":\"file/replace\",\
@@ -346,7 +359,7 @@ impl AgentLoop {
                          \"new\":\"…\"}}]} — do not describe the change in prose.\
                          If the task is truly complete, answer plainly without any \
                          tool_calls key."
-                            .to_string()
+                        .to_string()
                     } else {
                         "Your previous response could not be parsed into tool calls. \
                          Return a JSON object exactly like: \
@@ -575,7 +588,10 @@ impl AgentLoop {
         let mut tools = self.tool_schemas_for(run.use_case).await;
         let forced_tool = Self::local_forced_tool(&api_url, run);
         if let Some(name) = forced_tool {
-            tools.retain(|tool| tool["function"]["name"].as_str() == Some(name));
+            // Schema names are LLM-sanitized (#1276): compare the forced
+            // canonical name through the same encoding.
+            let wire_name = sanitize_tool_name_for_llm(name);
+            tools.retain(|tool| tool["function"]["name"].as_str() == Some(wire_name.as_str()));
         }
         // Kiro provider (secret/gbo/llm with provider=kiro): the ksk_ key
         // speaks the CodeWhisperer protocol, not OpenAI SSE. Translate the
@@ -786,7 +802,7 @@ impl AgentLoop {
                 serde_json::json!({
                     "type": "function",
                     "function": {
-                        "name": t.schema.name,
+                        "name": sanitize_tool_name_for_llm(&t.schema.name),
                         "description": t.schema.description,
                         "parameters": t.schema.parameters,
                     }
@@ -1067,7 +1083,7 @@ impl AgentLoop {
                                     .cloned()
                                     .unwrap_or(serde_json::json!({}));
                                 Some(ExtractedToolCall {
-                                    tool_name: name,
+                                    tool_name: restore_tool_name_from_llm(&name),
                                     arguments: args,
                                 })
                             })
@@ -1076,7 +1092,83 @@ impl AgentLoop {
                 }
             }
         }
+        // #1276 — text-embedded tool calls: some providers (NVIDIA nemotron
+        // observed on dev) ignore `tool_choice:"required"` and emit the call
+        // inside `content` as `[[ {"name": "...", "parameters": {...}} ]]`
+        // or a bare array, with no native `tool_calls`. Accept these
+        // variants so the run still executes the requested work.
+        if let Some(calls) = Self::parse_embedded_tool_calls(llm_response) {
+            return calls;
+        }
         Vec::new()
+    }
+
+    /// Parse tool calls embedded in content text: a bracketed call block
+    /// (`[[ {...} ]]` — nemotron style), a bare JSON array of calls, or a
+    /// single JSON object carrying a name-ish key plus arguments/parameters.
+    /// Returns None when no recognizable call is present so the caller can
+    /// treat the message as plain prose.
+    fn parse_embedded_tool_calls(response: &str) -> Option<Vec<ExtractedToolCall>> {
+        if let Some(arr_text) = extract_json_array(response) {
+            if let Ok(serde_json::Value::Array(items)) =
+                serde_json::from_str::<serde_json::Value>(&arr_text)
+            {
+                let mut calls = Vec::new();
+                for item in items {
+                    // `[[ {...} ]]` nests the call one level deep.
+                    match item {
+                        serde_json::Value::Array(nested) => {
+                            for v in nested {
+                                if let Some(c) = Self::call_from_value(&v) {
+                                    calls.push(c);
+                                }
+                            }
+                        }
+                        v => {
+                            if let Some(c) = Self::call_from_value(&v) {
+                                calls.push(c);
+                            }
+                        }
+                    }
+                }
+                if !calls.is_empty() {
+                    return Some(calls);
+                }
+            }
+        }
+        if let Some(obj_text) = extract_json_object(response) {
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&obj_text) {
+                if let Some(c) = Self::call_from_value(&v) {
+                    return Some(vec![c]);
+                }
+            }
+        }
+        None
+    }
+
+    /// Conservative mapping of a JSON value to a tool call: the name must
+    /// come with arguments/parameters, or look like a canonical vibe tool
+    /// name (`/`-separated) — arbitrary `{"name": ...}` JSON is not a call.
+    fn call_from_value(v: &serde_json::Value) -> Option<ExtractedToolCall> {
+        let name = v
+            .get("tool_name")
+            .and_then(|x| x.as_str())
+            .or_else(|| v.get("name").and_then(|x| x.as_str()))?;
+        if name.is_empty() {
+            return None;
+        }
+        let args = v
+            .get("arguments")
+            .cloned()
+            .or_else(|| v.get("parameters").cloned());
+        let looks_like_tool = args.is_some() || name.contains('/');
+        if !looks_like_tool {
+            return None;
+        }
+        Some(ExtractedToolCall {
+            tool_name: restore_tool_name_from_llm(name),
+            arguments: args.unwrap_or_else(|| serde_json::json!({})),
+        })
     }
 
     async fn verify_latest(&self, context: &mut crate::types::VibeContext, run: &VibeRun) -> bool {
@@ -1276,6 +1368,18 @@ impl AgentLoop {
         let use_case = run.use_case;
         let run_id = run.run_id;
         let executed_ok = match timeout(Duration::from_secs(MAX_TOOL_EXEC_SECS), async {
+            // #1280 — publish is deploy-role gated downstream. The tool runs
+            // server-side without a session, so stamp the initiating user's
+            // id into the arguments; the deployment handler enforces RBAC for
+            // internal callers through this field (never silently privileged).
+            if tool_call.tool_name == "publish/project" {
+                if let Some(args) = tool_call.arguments.as_object_mut() {
+                    args.insert(
+                        "on_behalf_of_user".to_string(),
+                        serde_json::Value::String(run.user_id.to_string()),
+                    );
+                }
+            }
             match self
                 .tool_executor
                 .execute(&mut tool_call, use_case, self.state.as_ref())
@@ -1819,6 +1923,30 @@ fn estimate_llm_cost(model: &str, prompt_tokens: u32, completion_tokens: u32) ->
     (prompt_tokens as f64) / 1_000_000.0 * input + (completion_tokens as f64) / 1_000_000.0 * output
 }
 
+/// #1276 — provider-agnostic tool-name encoding for the LLM boundary.
+///
+/// Internal Vibe tool names use `/` (`file/write`, `backup/list`, …), which
+/// several OpenAI-compatible providers reject outright (e.g. NVIDIA returns
+/// `400 Bad Request: Function at index 0 has an invalid name`). Names are
+/// sanitized to `[A-Za-z0-9_-]` on the way OUT (schemas) and restored on the
+/// way IN (parsed tool calls) so the executor keeps seeing canonical names.
+/// `/` is the only character used by internal names; `__` cannot collide
+/// because no internal name contains a literal `__`.
+fn sanitize_tool_name_for_llm(name: &str) -> String {
+    if name.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-') {
+        return name.to_string();
+    }
+    name.replace('/', "__")
+}
+
+fn restore_tool_name_from_llm(name: &str) -> String {
+    if name.contains("__") {
+        name.replace("__", "/")
+    } else {
+        name.to_string()
+    }
+}
+
 /// Extracts native OpenAI-format tool calls (`message.tool_calls[].function`)
 /// from a completion payload, if present.
 fn native_tool_calls_from_value(payload: &serde_json::Value) -> Option<Vec<ExtractedToolCall>> {
@@ -1837,7 +1965,7 @@ fn native_tool_calls_from_value(payload: &serde_json::Value) -> Option<Vec<Extra
                 .and_then(|a| serde_json::from_str::<serde_json::Value>(a).ok())
                 .unwrap_or_else(|| serde_json::json!({}));
             Some(ExtractedToolCall {
-                tool_name: name,
+                tool_name: restore_tool_name_from_llm(&name),
                 arguments,
             })
         })
@@ -1872,6 +2000,45 @@ fn truncate(text: &str, limit: usize) -> String {
         end -= 1;
     }
     format!("{}… (truncated)", &text[..end])
+}
+
+/// Extract the first balanced bracketed block (`[ ... ]`) from `s`,
+/// respecting strings and escapes — the array counterpart of
+/// `extract_json_object`. Used for text-embedded tool calls (#1276).
+fn extract_json_array(s: &str) -> Option<String> {
+    let start = s.find('[')?;
+    let mut depth = 0i32;
+    let mut in_string = false;
+    let mut escape = false;
+
+    for (i, ch) in s[start..].char_indices() {
+        if escape {
+            escape = false;
+            continue;
+        }
+        if ch == '\\' && in_string {
+            escape = true;
+            continue;
+        }
+        if ch == '"' {
+            in_string = !in_string;
+            continue;
+        }
+        if in_string {
+            continue;
+        }
+        match ch {
+            '[' => depth += 1,
+            ']' => {
+                depth -= 1;
+                if depth == 0 {
+                    return Some(s[start..=start + i].to_string());
+                }
+            }
+            _ => {}
+        }
+    }
+    None
 }
 
 fn extract_json_object(s: &str) -> Option<String> {
@@ -2307,5 +2474,104 @@ mod tests {
         fn llm_config(&self, _bot_id: &uuid::Uuid) -> Option<crate::types::LlmConfig> {
             None
         }
+    }
+}
+
+#[cfg(test)]
+mod tool_name_encoding_tests {
+    use super::{restore_tool_name_from_llm, sanitize_tool_name_for_llm};
+
+    #[test]
+    fn nemotron_bracketed_call_block_parses() {
+        // Exact shape observed from NVIDIA nemotron on dev (#1276): the call
+        // is embedded in content with `name` + `parameters`, never native.
+        let response = "[[ \n{\n  \"name\": \"file__write\",\n  \"parameters\": {\n    \"path\": \"index.html\",\n    \"content\": \"<html>hi</html>\"\n  }\n}\n]]";
+        let calls = super::AgentLoop::parse_embedded_tool_calls(response)
+            .expect("bracketed block should parse");
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].tool_name, "file/write");
+        assert_eq!(calls[0].arguments["path"], "index.html");
+    }
+
+    #[test]
+    fn bare_array_of_calls_parses() {
+        let response =
+            "[{\"tool_name\":\"file/list\",\"arguments\":{\"project\":\"p\"}}]";
+        let calls = super::AgentLoop::parse_embedded_tool_calls(response)
+            .expect("bare array should parse");
+        assert_eq!(calls.len(), 1);
+        assert_eq!(calls[0].tool_name, "file/list");
+    }
+
+    #[test]
+    fn plain_name_without_arguments_is_not_a_call() {
+        // Arbitrary `{"name": ...}` JSON must not be mistaken for a call.
+        assert!(super::AgentLoop::parse_embedded_tool_calls(
+            "{\"name\": \"John\", \"age\": 30}"
+        )
+        .is_none());
+    }
+
+    #[test]
+    fn prose_without_json_is_not_a_call() {
+        assert!(super::AgentLoop::parse_embedded_tool_calls(
+            "I will now write the file for you."
+        )
+        .is_none());
+    }
+
+    #[test]
+    fn creation_intents_require_mutation() {
+        // #1276 — create/build intents must be treated as mutations so a
+        // prose-only reply cannot complete the run without writing anything.
+        for intent in [
+            "create",
+            "Create a small bakery landing page",
+            "build me a units converter",
+            "generate an index.html",
+            "scaffold a python service",
+        ] {
+            assert!(
+                super::AgentLoop::intent_requires_mutation(intent),
+                "intent `{intent}` should require mutation"
+            );
+        }
+    }
+
+    #[test]
+    fn read_only_intents_still_do_not_require_mutation() {
+        for intent in ["list the files", "explain the project", "review my code"] {
+            assert!(
+                !super::AgentLoop::intent_requires_mutation(intent),
+                "intent `{intent}` should not require mutation"
+            );
+        }
+    }
+
+    #[test]
+    fn slashes_are_encoded_for_the_wire() {
+        assert_eq!(sanitize_tool_name_for_llm("file/write"), "file__write");
+        assert_eq!(sanitize_tool_name_for_llm("backup/list"), "backup__list");
+        assert_eq!(sanitize_tool_name_for_llm("publish/project"), "publish__project");
+    }
+
+    #[test]
+    fn plain_names_pass_through_unchanged() {
+        assert_eq!(sanitize_tool_name_for_llm("shell_run"), "shell_run");
+        assert_eq!(sanitize_tool_name_for_llm("git-status"), "git-status");
+    }
+
+    #[test]
+    fn round_trip_restores_canonical_name() {
+        for canonical in ["file/write", "file/replace", "backup/list", "domain/bind"] {
+            let wire = sanitize_tool_name_for_llm(canonical);
+            assert!(wire.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_' || b == b'-'));
+            assert_eq!(restore_tool_name_from_llm(&wire), canonical);
+        }
+    }
+
+    #[test]
+    fn restore_ignores_plain_names() {
+        assert_eq!(restore_tool_name_from_llm("write_file"), "write_file");
     }
 }
