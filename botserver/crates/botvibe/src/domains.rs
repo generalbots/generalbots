@@ -147,6 +147,16 @@ impl ProjectDomains {
     /// ERR_SSL_PROTOCOL_ERROR/502 symptom on published apps), so fail
     /// loudly instead.
     async fn apply_route(&self, bind: &DomainBind) -> Result<CaddyResult, String> {
+        // #1288 — proxy-published sites (website / python via proxy_sites)
+        // already have their Caddyfile site block managed by the publish
+        // pipeline; re-dialing a VM IP here would overwrite the file_server
+        // / python reverse_proxy route with a dead container dial (502).
+        if bind.container == "proxy" {
+            return Err(
+                "proxy-published site: route is managed by the vibe publish pipeline (Caddyfile section), not the container dial path"
+                    .to_string(),
+            );
+        }
         let dial = match VmLifecycle::new(self.pool.clone()).linux_ip(&bind.container) {
             Ok(Some(ip)) => format!("{ip}:3000"),
             Ok(None) => {

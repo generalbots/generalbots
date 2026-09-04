@@ -12,6 +12,7 @@ pub mod vm_lifecycle;
 mod vm_incus;
 pub mod vms_api;
 pub mod publish;
+pub mod proxy_sites;
 pub mod caddy;
 pub mod domains;
 pub mod domain_auth;

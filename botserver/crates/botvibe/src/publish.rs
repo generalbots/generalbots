@@ -328,6 +328,80 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         1.0,
     );
 
+    // #1288 — website and python projects in production are served straight
+    // from the proxy container's shared websites dir (Caddy file_server),
+    // NOT from a dedicated prod VM (too expensive) and NOT from the bot
+    // container (the proxy cannot see its filesystem). One early return
+    // covers both kinds; every side effect below (deployment history,
+    // launcher, domain binding) is shared with the normal path.
+    let is_python_project = project.project_type == "custom"
+        && project
+            .framework
+            .as_deref()
+            .map(|f| f.eq_ignore_ascii_case("python") || f.eq_ignore_ascii_case("python3") || f.eq_ignore_ascii_case("flask"))
+            .unwrap_or(false);
+    if env == "production"
+        && (project.project_type == "website" || is_python_project)
+    {
+        let (proxy_url, route) =
+            crate::proxy_sites::deploy_site_to_proxy(&project, is_python_project).await?;
+        let deployment = serde_json::json!({
+            "env": env,
+            "at": chrono::Utc::now().to_rfc3339(),
+            "url": proxy_url,
+            "container": "proxy",
+            "deploy_target": "proxy-websites",
+            "caddy_route": route,
+            "domain": domain.clone().unwrap_or_default(),
+            "track": "ok",
+        });
+        registry
+            .append_deployment(project_id, &deployment)
+            .map_err(|e| format!("record deployment: {e}"))?;
+        let launch_info = if launcher_requested || widget_requested {
+            let launch = serde_json::json!({
+                "enabled": true,
+                "kind": if widget_requested { "widget" } else { "app" },
+                "at": chrono::Utc::now().to_rfc3339(),
+                "env": env,
+            });
+            registry
+                .set_launcher(project_id, &launch)
+                .map_err(|e| format!("record launcher flag: {e}"))?;
+            Some(launch)
+        } else {
+            None
+        };
+        let binding = match &domain {
+            Some(d) => {
+                let bind_req = BindDomainRequest {
+                    domain: d.clone(),
+                    env: env.clone(),
+                    access: None,
+                    allowed_emails: None,
+                };
+                match ProjectDomains::new(pool).bind(project_id, &bind_req).await {
+                    Ok(b) => serde_json::json!({ "bound": true, "id": b.id, "domain": b.domain, "env": b.env, "container": b.container, "verified": b.verified, "tls_status": b.tls_status }),
+                    Err(e) => serde_json::json!({ "bound": false, "error": e }),
+                }
+            }
+            None => serde_json::json!({ "bound": false, "error": "no domain provided" }),
+        };
+        return Ok(serde_json::json!({
+            "published": true,
+            "project": project.name,
+            "env": env,
+            "container": "proxy",
+            "deploy_target": "proxy-websites",
+            "url": proxy_url,
+            "domain": domain,
+            "domain_bind": binding,
+            "deployment": deployment,
+            "launcher": launch_info,
+            "history_key": "deployments",
+        }));
+    }
+
     #[cfg(not(target_os = "windows"))]
     let repo_name = VmLifecycle::alm_repo(&project.name);
     #[cfg(not(target_os = "windows"))]
