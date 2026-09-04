@@ -263,7 +263,17 @@ impl ProjectDomains {
         }
         let project = self.project_row(project_id)?;
         let branch = project.branch_id;
-        let container = VmLifecycle::container_name(&project.name, &env, false);
+        // #1288 — bindings for proxy-published projects must never carry a
+        // VM container name: apply_route would then dial the project VM's
+        // IP (dead upstream for a site served from the proxy websites tree)
+        // and the admin-API route would shadow the Caddyfile file_server
+        // block with a 502. The container field is the routing source of
+        // truth, so record it as "proxy".
+        let container = if project_last_deploy_target(&project) == Some("proxy-websites") {
+            "proxy".to_string()
+        } else {
+            VmLifecycle::container_name(&project.name, &env, false)
+        };
         let token = format!("{}:{}", branch.simple(), domain);
         let access = match &req.access {
             Some(a) => Self::validate_access(a)?,
@@ -524,6 +534,12 @@ impl ProjectDomains {
         let route_applied = self.apply_route(bind).await;
         let route_state = match &route_applied {
             Ok(CaddyResult { route_id, .. }) => Ok(route_id.clone()),
+            Err(e) if e.contains("proxy-published site") => {
+                // TLS for proxy sites is owned by the Caddyfile block
+                // (`tls internal` on dev, automatic ACME on prod) — not a
+                // failure of issuance.
+                Ok("caddyfile-managed".to_string())
+            }
             Err(e) => Err(e.clone()),
         };
         let status = match route_state {
@@ -532,7 +548,8 @@ impl ProjectDomains {
         };
         let error_col: Option<&str> = match &route_applied {
             Ok(_) => bind.tls_error.as_deref(),
-            Err(e) => Some(e.as_str()),
+            Err(e) if !e.contains("proxy-published site") => Some(e.as_str()),
+            Err(_) => bind.tls_error.as_deref(),
         };
         let mut conn = self.conn()?;
         diesel::sql_query(
@@ -587,12 +604,21 @@ impl ProjectDomains {
     fn project_row(&self, project_id: Uuid) -> Result<ProjectRow, String> {
         let mut conn = self.conn()?;
         diesel::sql_query(
-            "SELECT org_id, branch_id, name FROM vibe_projects WHERE id = $1",
+            "SELECT org_id, branch_id, name, \
+             payload->'deployments'->-1->>'deploy_target' AS deploy_target \
+             FROM vibe_projects WHERE id = $1",
         )
         .bind::<diesel::sql_types::Uuid, _>(project_id)
         .get_result::<ProjectRow>(&mut conn)
         .map_err(|e| format!("project lookup: {e}"))
     }
+}
+
+/// `Some("proxy-websites")` when the project's most recent deployment went
+/// through the proxy-sites pipeline — such projects must bind domains with
+/// `container = "proxy"` so routes are never dialed at a VM IP.
+fn project_last_deploy_target(p: &ProjectRow) -> Option<&str> {
+    p.deploy_target.as_deref()
 }
 
 #[derive(diesel::QueryableByName)]
@@ -603,6 +629,8 @@ struct ProjectRow {
     branch_id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Text)]
     name: String,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    deploy_target: Option<String>,
 }
 
 #[derive(diesel::QueryableByName)]
