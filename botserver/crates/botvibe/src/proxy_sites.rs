@@ -1020,6 +1020,15 @@ fn unpublish_site_sync(slug: &str, purge: bool) -> Result<(), String> {
     let _guard = lock_publish();
     validate_slug(slug)?;
     let site_dir = format!("{PROXY_SITES_ROOT}/{slug}");
+    // Nothing published → nothing to unpublish (idempotent for deletes and
+    // project eviction; the caller logs a warning otherwise).
+    let exists = proxy_exec(
+        &["test".to_string(), "-d".to_string(), site_dir.clone()],
+        15,
+    )?;
+    if exists.exit_code != Some(0) {
+        return Ok(());
+    }
     // Guard: only vibe-managed sites may be unpublished.
     let marker = proxy_exec(
         &["test".to_string(), "-f".to_string(), format!("{site_dir}/{MARKER_FILE}")],

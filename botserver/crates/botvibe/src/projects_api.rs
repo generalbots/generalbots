@@ -132,6 +132,7 @@ async fn create_project(
     Extension(registry): Extension<ProjectRegistryRef>,
     Extension(rbac): Extension<ProjectRbac>,
     Extension(metering): Extension<Arc<VMetering>>,
+    Extension(lifecycle): Extension<Arc<VmLifecycle>>,
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<CreateProjectRequest>,
 ) -> ApiResult {
@@ -163,6 +164,25 @@ async fn create_project(
         req.project_type.as_deref().unwrap_or("bot"),
     ) {
         return forbidden(e);
+    }
+    // Disk-guard eviction: a branch keeps at most
+    // VIBE_MAX_PROJECTS_PER_KIND (default 2) projects of each kind. Creating
+    // beyond the cap evicts the OLDEST same-kind project with full asset
+    // cleanup (VMs, published site, workspace dir) so workspaces and stopped
+    // VM containers cannot grow without bound and exhaust the host disk.
+    match crate::eviction::evict_oldest_if_needed(
+        &registry,
+        &lifecycle,
+        branch_id,
+        req.project_type.as_deref().unwrap_or("bot"),
+    )
+    .await
+    {
+        Ok(evicted) if !evicted.is_empty() => {
+            log::info!("Vibe: eviction completed for branch {branch_id}: {evicted:?}");
+        }
+        Ok(_) => {}
+        Err(e) => return err_response(format!("project eviction failed: {e}")),
     }
     match registry.create(&req) {
         Ok(p) => {
@@ -243,34 +263,40 @@ async fn delete_project(
         Ok(_) => {}
         Err(e) => return forbidden(e),
     }
-    // Cascade-delete the project's VMs (rows + Incus containers) first so
-    // no orphaned containers or vm_instances rows outlive the project.
-    if let Err(e) = lifecycle.delete_all_for_project(id) {
-        log::error!("Vibe: cascade-delete VMs for project {id} failed: {e}");
+    // Fetch the project first: asset cleanup needs its name/workspace key.
+    let project = match registry.get(id) {
+        Ok(Some(p)) => p,
+        Ok(None) => return err_response(format!("project {id} not found")),
+        Err(e) => return err_response(e),
+    };
+    // Shared asset cleanup: Incus VMs (rows + containers), published proxy
+    // site (payload + route + systemd unit), on-disk workspace directory —
+    // the workspace removal closes the disk leak (workspaces could hold
+    // node_modules/venvs forever after the project row was gone).
+    for e in crate::eviction::delete_project_assets(&project, &lifecycle).await {
+        log::warn!("Vibe: asset cleanup for project {id}: {e}");
     }
     // git-mode projects own a Forgejo repo; delete it too so a recreated
     // project with the same name starts from a clean repo instead of
     // inheriting stale history that rejects the seed push (non-fast-forward).
-    if let Ok(Some(p)) = registry.get(id) {
-        if p.source_control == "git" {
-            let (alm_base, alm_token, _org) = botcoresecrets::alm_config();
-            if !alm_base.is_empty() && !alm_token.is_empty() {
-                let forgejo_org = crate::vm_lifecycle::VmLifecycle::alm_org(p.branch_id);
-                let forgejo_repo = crate::vm_lifecycle::VmLifecycle::alm_repo(&p.name);
-                let client = botdeployment::ForgejoClient::new(alm_base, alm_token);
-                match client
-                    .delete_repository(&forgejo_org, &forgejo_repo)
-                    .await
-                {
-                    Ok(_) => log::info!(
-                        "Vibe git-mode {}: deleted Forgejo repo {forgejo_org}/{forgejo_repo}",
-                        p.name
-                    ),
-                    Err(e) => log::warn!(
-                        "Vibe git-mode {}: delete Forgejo repo {forgejo_org}/{forgejo_repo} failed: {e}",
-                        p.name
-                    ),
-                }
+    if project.source_control == "git" {
+        let (alm_base, alm_token, _org) = botcoresecrets::alm_config();
+        if !alm_base.is_empty() && !alm_token.is_empty() {
+            let forgejo_org = crate::vm_lifecycle::VmLifecycle::alm_org(project.branch_id);
+            let forgejo_repo = crate::vm_lifecycle::VmLifecycle::alm_repo(&project.name);
+            let client = botdeployment::ForgejoClient::new(alm_base, alm_token);
+            match client
+                .delete_repository(&forgejo_org, &forgejo_repo)
+                .await
+            {
+                Ok(_) => log::info!(
+                    "Vibe git-mode {}: deleted Forgejo repo {forgejo_org}/{forgejo_repo}",
+                    project.name
+                ),
+                Err(e) => log::warn!(
+                    "Vibe git-mode {}: delete Forgejo repo {forgejo_org}/{forgejo_repo} failed: {e}",
+                    project.name
+                ),
             }
         }
     }
