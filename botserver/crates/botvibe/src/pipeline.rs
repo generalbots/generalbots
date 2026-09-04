@@ -245,6 +245,10 @@ pub struct PipelineRunContext<'a> {
     pub intent: &'a str,
     pub project_id: Option<&'a str>,
     pub project_name: Option<&'a str>,
+    /// #1280 — the run's acting user, forwarded to the RBAC-guarded
+    /// deployment API via publish args (the pipeline path never passes
+    /// through the agent-loop arg injection).
+    pub user_id: Uuid,
     /// #1269 — when the run carries auto_approve (admin-issued), skip the
     /// per-stage human approval gates so headless deploys complete instead
     /// of timing out waiting for a signal nobody sends.
@@ -299,6 +303,7 @@ impl PipelineEngine {
             intent,
             project_id,
             project_name,
+            user_id,
             auto_approve,
         } = *ctx;
         let mut reports = Vec::new();
@@ -323,6 +328,10 @@ impl PipelineEngine {
                     PipelineStageKind::PublishApp => serde_json::json!({
                         "project_id": project_id.unwrap_or(""),
                         "env": "production",
+                        // #1280 — deployment API enforces deploy RBAC even on
+                        // internal (X-Internal-Token) calls; without the acting
+                        // user the request is rejected as anonymous.
+                        "on_behalf_of_user": user_id.to_string(),
                     }),
                     PipelineStageKind::BindDomain => serde_json::json!({
                         "project_id": project_id.unwrap_or(""),
@@ -667,6 +676,7 @@ mod tests {
                     intent: "x",
                     project_id: None,
                     project_name: None,
+                    user_id: Uuid::nil(),
                     auto_approve: true,
                 },
             )

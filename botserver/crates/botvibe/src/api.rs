@@ -618,7 +618,10 @@ async fn create_run(
         Some(bid) => bid,
         None => resolve_effective_bot_id(api.state.db_pool(), &user),
     };
-    let run = VibeRun::new(bot_id, Uuid::nil(), Uuid::nil(), intent, config);
+    // #1280 — record the acting user on the run: the publish tool and the
+    // deploy pipeline forward it to the deployment API's RBAC gate. A nil
+    // user would make every REST-issued deploy fail as "anonymous".
+    let run = VibeRun::new(bot_id, Uuid::nil(), user.user_id, intent, config);
     let run_id = run.run_id;
     let state_str = run.state.to_string();
     let uc_str = run.use_case.to_string();
@@ -762,6 +765,7 @@ async fn create_run(
                             intent: &run.intent,
                             project_id: project_id.as_deref(),
                             project_name: project_name.as_deref(),
+                            user_id: run.user_id,
                             auto_approve: run.config.auto_approve,
                         },
                     )

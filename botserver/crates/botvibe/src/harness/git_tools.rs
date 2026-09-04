@@ -211,9 +211,22 @@ pub fn git_commit_tool() -> ToolHandler {
                         .map(|r| r.exit_code == Some(0))
                         .unwrap_or(false);
                         if has_origin_main {
+                            // A rebase replays commits, so it needs a committer
+                            // identity just like `git commit` — and the harness
+                            // runs processes with env_clear(), leaving git with
+                            // none. Pass it via `-c` (must precede the
+                            // subcommand) or a second deploy after a fresh edit
+                            // fails with "Committer identity unknown".
                             match run(
                                 "git",
-                                &["rebase".to_string(), "origin/main".to_string()],
+                                &[
+                                    "-c".to_string(),
+                                    format!("user.name={GIT_USER_NAME}"),
+                                    "-c".to_string(),
+                                    format!("user.email={GIT_USER_EMAIL}"),
+                                    "rebase".to_string(),
+                                    "origin/main".to_string(),
+                                ],
                                 cwd,
                                 90,
                             ) {
