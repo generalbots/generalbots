@@ -133,7 +133,7 @@ pub fn all_apps() -> Vec<AppDefinition> {
             "clock time widget",
             "<circle cx=\"12\" cy=\"12\" r=\"10\"/><polyline points=\"12 6 12 12 16 14\"/>",
             WidgetSpec { url: None, size_w: 2, size_h: 1, refresh_secs: Some(1) }),
-        app("chat", "Chat", "ai", "#84d669", "/suite/partials/chat.html",
+        app("chat", "Chat", "ai", "#84d669", "/suite/partials/chat.html?v=3",
             "Conversational AI assistant with suggestions, tools and memory.",
             "conversation assistant ai bot",
             "<path d=\"M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z\"/>"),

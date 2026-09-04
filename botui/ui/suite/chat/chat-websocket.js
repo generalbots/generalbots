@@ -40,7 +40,8 @@ function connectWebSocket() {
   updateConnectionStatus("connecting");
 
   var url = WS_URL +
-    "?session_id=" + ChatState.currentSessionId +
+    (WS_URL.indexOf("?") === -1 ? "?" : "&") +
+    "session_id=" + ChatState.currentSessionId +
     "&user_id=" + ChatState.currentUserId +
     "&bot_name=" + ChatState.currentBotName;
 

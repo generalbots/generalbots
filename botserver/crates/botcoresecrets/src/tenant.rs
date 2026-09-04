@@ -396,3 +396,39 @@ pub fn app_runtime() -> (String, String) {
         .map(|s| s.get_app_runtime())
         .unwrap_or_default()
 }
+
+/// Vault-first internal API token resolver: `secret/gbo/system/security` → env.
+/// Every internal caller (X-Internal-Token) resolves through this single
+/// function so the token can live in Vault instead of the systemd unit.
+pub fn internal_api_token() -> String {
+    if let Ok(token) = std::env::var("INTERNAL_API_TOKEN") {
+        if !token.is_empty() {
+            return token;
+        }
+    }
+    let sm = match SecretsManager::get() {
+        Ok(sm) => sm,
+        Err(_) => return String::new(),
+    };
+    let self_owned = sm.clone();
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build();
+        let result = if let Ok(rt) = rt {
+            rt.block_on(async move {
+                self_owned
+                    .get_secret(SecretPaths::SECURITY)
+                    .await
+                    .ok()
+                    .and_then(|s| s.get("internal_token").cloned())
+            })
+        } else {
+            None
+        };
+        let _ = tx.send(result);
+    });
+    rx.recv_timeout(std::time::Duration::from_secs(5))
+        .ok()
+        .flatten()
+        .unwrap_or_default()
+}

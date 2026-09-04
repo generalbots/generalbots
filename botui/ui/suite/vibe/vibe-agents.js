@@ -416,6 +416,16 @@ function deleteProject(p) {
                     window.currentProjectId = null;
                     window.currentProject = "";
                 }
+                // #1288 — a deleted project must not linger in the restored
+                // selection (localStorage) nor keep stale windows (canvas,
+                // run dock, terminal, dialogs) showing its content.
+                try {
+                    localStorage.removeItem("gb-vibe-project-id");
+                    sessionStorage.removeItem("gb-vibe-project-id");
+                } catch (ignore) { }
+                if (window.VibeWindows && typeof window.VibeWindows.closeVibeSubwindows === "function") {
+                    window.VibeWindows.closeVibeSubwindows();
+                }
                 loadVibeProjects();
                 document.dispatchEvent(new CustomEvent("gb:vibe-project", { detail: {} }));
             } else {

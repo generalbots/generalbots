@@ -408,6 +408,24 @@ pub async fn process_message_internal(
         .await;
         match result {
             Ok(value) => {
+                // #1286 — a lock conflict (another session is modifying the
+                // same project) must be reported honestly, never as success:
+                // the API returns success=false + lock_conflict=true.
+                if value.get("lock_conflict").and_then(|v| v.as_bool()).unwrap_or(false) {
+                    let detail = value
+                        .get("error")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("another session is modifying this project");
+                    let resp = botlib::models::BotResponse::new(
+                        bot_uuid.to_string(),
+                        session_id.to_string(),
+                        user_id.to_string(),
+                        &format!("⏳ {detail} — your change is queued and will run automatically."),
+                        "web",
+                    );
+                    let _ = sink.send_bot_response(&resp).await;
+                    return Ok(());
+                }
                 // Surface a concise confirmation; the run itself streams its
                 // progress through the vibe websocket/Run Dock, not the chat.
                 let run_id = value.get("run_id").and_then(|v| v.as_str()).unwrap_or("");

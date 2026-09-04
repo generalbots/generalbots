@@ -7,7 +7,7 @@ pub mod env_defaults;
 pub use manager::SecretsManager;
 pub use paths::SecretPaths;
 pub use service_configs::ServiceConfigResult;
-pub use tenant::{alm_config, app_runtime, TenantSecrets};
+pub use tenant::{alm_config, app_runtime, internal_api_token, TenantSecrets};
 pub use env_defaults::init_secrets_manager;
 
 use serde::{Deserialize, Serialize};

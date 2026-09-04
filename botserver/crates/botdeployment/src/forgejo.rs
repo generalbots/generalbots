@@ -193,6 +193,19 @@ impl ForgejoClient {
                 .map_err(|e| DeploymentError::GitError(format!("Failed to write file: {}", e)))?;
         }
 
+        // Empty projects (no source files yet, e.g. created from chat) must
+        // still produce a valid initial commit: with an empty tree `git
+        // commit` fails with "nothing to commit" and the whole deployment
+        // 500s. Seed a placeholder README so the ALM repo gets its initial
+        // commit and the pipeline can proceed.
+        if app.files.is_empty() {
+            std::fs::write(
+                temp_dir.join("README.md"),
+                format!("# {}\n\nEmpty project scaffolded by General Bots.\n", app.name),
+            )
+            .map_err(|e| DeploymentError::GitError(format!("Failed to seed README: {}", e)))?;
+        }
+
         let auth_url = self.add_token_to_url(repo_url);
         log::info!("git push url: {auth_url}");
         // Use git CLI entirely (init + add + commit + push) instead of

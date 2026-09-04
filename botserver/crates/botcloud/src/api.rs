@@ -259,6 +259,15 @@ async fn handle_signup(
             &botbilling::server_capacity::ServerCapacityConfig::default(),
             0, 0,
         );
+        tracing::info!(
+            "signup capacity gate: cpu={:.1} ram={:.1} disk={:.1} (total={:.1}GB used={:.1}GB) allowed={}",
+            capacity.cpu_usage_pct,
+            capacity.ram_used_gb / capacity.ram_total_gb * 100.0,
+            capacity.disk_used_gb / capacity.disk_total_gb.max(0.001) * 100.0,
+            capacity.disk_total_gb,
+            capacity.disk_used_gb,
+            capacity.new_signups_allowed
+        );
         if !capacity.new_signups_allowed {
             return Err((StatusCode::SERVICE_UNAVAILABLE, format!(
                 "{{ \"error\": \"server_at_capacity\", \"message\": \"{} plan temporarily unavailable. Please try again later or upgrade.\", \"capacity_health\": \"{}\" }}",
@@ -406,11 +415,20 @@ async fn handle_signup(
                 if let Ok(data) = resp.json::<serde_json::Value>().await {
                     if let Some(user_id) = data.get("userId").and_then(|v| v.as_str()) {
                         if let Some(password) = &body.password {
+                            // #1287 — this Zitadel build (v4.13.1) stores an EMPTY
+                            // hash when the password is set through v2
+                            // /v2/users/{id}/password: it returns 200 and flips
+                            // `passwordChanged`, but every later session check fails
+                            // with "passwap: password does not match hash: " (empty
+                            // hash) — the account can never log in. The v1
+                            // management endpoint persists the hash correctly, so
+                            // signup MUST use it.
                             let mut pw_req = client
-                                .post(format!("{dir_url}/v2/users/{user_id}/password"))
+                                .post(format!("{dir_url}/management/v1/users/{user_id}/password"))
                                 .header("Authorization", format!("Bearer {dir_token}"))
                                 .json(&serde_json::json!({
-                                    "newPassword": { "password": password, "changeRequired": false }
+                                    "password": password,
+                                    "noVerification": true
                                 }));
                             if let Some(host) = &service.config.directory_external_domain {
                                 pw_req = pw_req.header("Host", host);
@@ -857,6 +875,36 @@ async fn get_plan_detail(
 /// `POST /api/cloud/auth/login`
 ///
 /// Validates credentials and returns a JWT token for the management portal.
+/// #1262 — `resolve_directory_service_token` (boot) only accepts candidates
+/// from `directory_config.json` and `conf/directory/admin-pat.txt`. When the
+/// config file loses its `service_token` key (observed on prod), login
+/// silently skipped the Zitadel password check and every correct password
+/// was rejected with "Invalid credentials" and no log line. This fallback
+/// reads the canonical Vault secret (`gbo/directory`, `service_token`) so
+/// password verification survives a config regression.
+fn directory_token_from_vault() -> Option<String> {
+    let sm = botcoresecrets::manager::SecretsManager::get_clone().ok()?;
+    let (tx, rx) = std::sync::mpsc::channel();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread().enable_all().build();
+        let result = if let Ok(rt) = rt {
+            rt.block_on(async move {
+                sm.get_secret(botcoresecrets::paths::SecretPaths::DIRECTORY)
+                    .await
+                    .ok()
+                    .and_then(|s| s.get("service_token").cloned())
+                    .filter(|t| !t.is_empty())
+            })
+        } else {
+            None
+        };
+        let _ = tx.send(result);
+    });
+    rx.recv_timeout(std::time::Duration::from_secs(5))
+        .ok()
+        .flatten()
+}
+
 /// Uses Zitadel sessions API when directory is configured; falls back to
 /// local argon2 hash (dev mode) when Zitadel is not available.
 async fn handle_login(
@@ -875,7 +923,29 @@ async fn handle_login(
     // build omits session factors, so a created session proves the password but
     // may not expose the user id — in that case callers resolve the stable id
     // from the users table keyed by the verified email.
-    let (zitadel_user_id, zitadel_password_verified) = match (&service.config.directory_api_url, &service.config.directory_service_token) {
+    // #1262 — resolve the directory token with a Vault fallback so a missing
+    // `service_token` in directory_config.json can never silently disable
+    // password verification. The error below makes the unavailable case
+    // diagnosable instead of surfacing as a bare "Invalid credentials".
+    let effective_directory_token = match (&service.config.directory_api_url, &service.config.directory_service_token) {
+        (Some(_), Some(token)) if !token.is_empty() => Some(token.clone()),
+        (Some(_), _) => match directory_token_from_vault() {
+            Some(t) => {
+                tracing::warn!(
+                    "directory_config.json has no service_token - using Vault gbo/directory fallback"
+                );
+                Some(t)
+            }
+            None => {
+                tracing::error!(
+                    "No directory service token available - Zitadel password verification is DISABLED for this login"
+                );
+                None
+            }
+        },
+        _ => None,
+    };
+    let (zitadel_user_id, zitadel_password_verified) = match (&service.config.directory_api_url, &effective_directory_token) {
         (Some(dir_url), Some(dir_token)) => {
             let client = reqwest::Client::builder()
                 .timeout(std::time::Duration::from_secs(8))
@@ -917,16 +987,19 @@ async fn handle_login(
                                 // the verified user factor directly; use it as the
                                 // stable JWT subject (RBAC derives UUIDv5 from it).
                                 let session = r.json::<serde_json::Value>().await.ok();
+                                // #1263 — never fall back to `sessionId` here: it
+                                // changes on every login, so the JWT sub (and
+                                // everything derived from it — RBAC UUIDv5, org
+                                // membership, project ownership) would rotate per
+                                // session. When this build omits session factors,
+                                // leave user_id None; the verified-password path
+                                // below resolves the STABLE subject from the users
+                                // table keyed by the verified email.
                                 user_id = session.as_ref()
                                     .and_then(|v| v.get("factors").cloned())
                                     .and_then(|f| f.get("user").cloned())
                                     .and_then(|u| u.get("userId").or_else(|| u.get("id")).cloned())
-                                    .and_then(|uid| uid.as_str().map(|s| s.to_string()))
-                                    .or_else(|| {
-                                        session.as_ref()
-                                            .and_then(|v| v.get("sessionId").cloned())
-                                            .and_then(|sid| sid.as_str().map(|s| s.to_string()))
-                                    });
+                                    .and_then(|uid| uid.as_str().map(|s| s.to_string()));
                                 break;
                             }
                             Ok(_) => {
@@ -970,6 +1043,7 @@ async fn handle_login(
     // 2) dev-only bootstrap admin (admin-credentials.json, present only in dev).
     // NEVER fall back to an unverified CRM contact row.
     let sub = zitadel_user_id
+        .map(|zid| resolve_login_subject(&mut conn, &zid, &body.email))
         .or_else(|| {
             if zitadel_password_verified {
                 // Zitadel verified the password but this build does not expose
@@ -1099,6 +1173,49 @@ fn base64_url_encode(input: &[u8]) -> String {
         .replace('/', "_")
         .trim_end_matches('=')
         .to_string()
+}
+
+/// Picks the JWT subject for a password-verified Zitadel session. Normally the
+/// Zitadel user id is used (RBAC and org checks derive a stable UUIDv5 from
+/// it). When that identity has no users-table row but the verified email does,
+/// keep the existing account — its org memberships and RBAC groups survive
+/// Zitadel account re-creation (new numeric id, same email). The SaaS JWT
+/// provider parses UUID subjects directly, so a users-row id works unchanged.
+fn resolve_login_subject(
+    conn: &mut diesel::PgConnection,
+    zitadel_user_id: &str,
+    email: &str,
+) -> String {
+    let derived = Uuid::new_v5(
+        &Uuid::NAMESPACE_DNS,
+        format!("zitadel:{zitadel_user_id}").as_bytes(),
+    );
+    #[derive(diesel::QueryableByName)]
+    struct UuidRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
+    let email_row = diesel::sql_query(
+        "SELECT id FROM users WHERE email = $1 AND is_active = true LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Text, _>(email)
+    .get_result::<UuidRow>(conn)
+    .optional()
+    .ok()
+    .flatten()
+    .map(|r| r.id);
+    let derived_row = diesel::sql_query("SELECT id FROM users WHERE id = $1 LIMIT 1")
+        .bind::<diesel::sql_types::Uuid, _>(derived)
+        .get_result::<UuidRow>(conn)
+        .optional()
+        .ok()
+        .flatten()
+        .map(|r| r.id);
+    match (derived_row, email_row) {
+        (Some(_), _) => zitadel_user_id.to_string(),
+        (None, Some(existing)) => existing.to_string(),
+        (None, None) => zitadel_user_id.to_string(),
+    }
 }
 
 /// Resolves the caller's workspace branch from their user→org membership

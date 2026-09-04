@@ -20,6 +20,7 @@ pub mod domains_tool;
 pub mod harness;
 pub mod ops;
 pub mod templates;
+pub mod scaffold;
 pub mod ops_api;
 pub mod ops_tools;
 pub mod backups;
@@ -62,6 +63,7 @@ pub mod browser_driver;
 pub mod browser_driver_api;
 pub mod proactivity;
 pub mod proactivity_api;
+pub mod project_locks;
 
 pub use types::{
     VibeContext, VibeLlmOps, VibeProgressEvent, VibeRun, VibeRunConfig, VibeRunState, VibeState,

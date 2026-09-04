@@ -211,6 +211,7 @@ impl ConfigManager {
             "llm-key" => Some("openai_key"),
             "llm-model" => Some("model"),
             "llm-provider" => Some("provider"),
+            "embedding-key" => Some("embedding_key"),
             _ => None,
         }
     }

@@ -44,7 +44,25 @@ pub async fn auth_middleware_with_providers(
 
     if state.config.is_public_path(&path) || state.config.is_anonymous_allowed(&path) {
         info!("Path is public/anonymous, skipping auth: {}", path);
-        request.extensions_mut().insert(AuthenticatedUser::anonymous());
+        // Public/anonymous paths must still resolve a supplied Bearer token
+        // so handlers (e.g. the bot access check) can tell real users apart
+        // from anonymous callers. Fall back to anonymous when the token is
+        // absent or invalid; never reject on a bad token here.
+        let extracted = ExtractedAuthData::from_request(&request, &state.config);
+        let user = match authenticate_with_extracted_data(
+            extracted,
+            &state.config,
+            &state.provider_registry,
+        )
+        .await
+        {
+            Ok(user) => user,
+            Err(e) => {
+                info!("Public path token resolution failed, allowing anonymous: {:?}", e);
+                AuthenticatedUser::anonymous()
+            }
+        };
+        request.extensions_mut().insert(user);
         request.extensions_mut().insert(PublicPathAllowed);
         let response = next.run(request).await;
         info!("Public path response status: {}", response.status());

@@ -178,6 +178,7 @@ pub async fn index(
                 }
             })
         });
+        let query_token_present = query_token.is_some();
         let auth_header = query_token
             .map(|t| format!("Bearer {}", t))
             .or_else(|| {
@@ -185,11 +186,6 @@ pub async fn index(
                     .and_then(|v| v.to_str().ok())
                     .map(|s| s.to_string())
             });
-
-        // Only cookie-based token counts for has_token (query token is new/untested)
-        let has_token = headers.get(axum::http::header::COOKIE)
-            .and_then(|c| c.to_str().ok())
-            .is_some_and(|s| s.contains("gb-access-token"));
 
         let target_url = format!("{}/api/bots/{}/access", state.client.base_url(), bot);
         let client = reqwest::Client::builder()
@@ -207,16 +203,62 @@ pub async fn index(
             }
         }
 
+        // Only redirect to login when a token was actually supplied but
+        // rejected. Anonymous callers (or sessions stored client-side in
+        // localStorage after the suite-sso hop) must be served the page —
+        // their JS attaches the token to API calls. Redirecting them here
+        // would loop: SSO hop -> clean URL -> access check sees no token ->
+        // login -> ...
+        let has_token = headers
+            .get(axum::http::header::COOKIE)
+            .and_then(|c| c.to_str().ok())
+            .is_some_and(|s| s.contains("gb-access-token"))
+            || query_token_present;
+
         match req.send().await {
             Ok(resp) => {
                 if has_token
                     && (resp.status() == axum::http::StatusCode::FORBIDDEN
                         || resp.status() == axum::http::StatusCode::UNAUTHORIZED)
                 {
-                    info!("index: Access denied for bot {} (invalid token)", bot);
+                    info!("index: Access denied for bot {} (redirecting to login)", bot);
                     let login_url = std::env::var("LOGIN_URL")
                         .unwrap_or_else(|_| "http://localhost:5000".to_string());
-                    return Redirect::to(&login_url).into_response();
+                    // Return to this exact page after login: the login page
+                    // resolves the absolute `redirect` param and lands back
+                    // here with a fresh token. Strip any stale token/email/name
+                    // params from the return URL to avoid a login loop.
+                    let host = headers
+                        .get(axum::http::header::HOST)
+                        .and_then(|v| v.to_str().ok())
+                        .unwrap_or("");
+                    let scheme = if host.contains("localhost") || host.contains("127.0.0.1") {
+                        "http"
+                    } else {
+                        "https"
+                    };
+                    let clean_query = uri
+                        .query()
+                        .unwrap_or("")
+                        .split('&')
+                        .filter(|p| {
+                            !p.starts_with("token=")
+                                && !p.starts_with("email=")
+                                && !p.starts_with("name=")
+                        })
+                        .collect::<Vec<_>>()
+                        .join("&");
+                    let return_url = if clean_query.is_empty() {
+                        format!("{scheme}://{host}{}", uri.path())
+                    } else {
+                        format!("{scheme}://{host}{}?{clean_query}", uri.path())
+                    };
+                    return Redirect::to(&format!(
+                        "{}?redirect={}",
+                        login_url,
+                        urlencoding(&return_url)
+                    ))
+                    .into_response();
                 }
             }
             Err(e) => {

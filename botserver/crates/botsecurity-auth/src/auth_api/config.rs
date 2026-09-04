@@ -71,10 +71,9 @@ impl AuthConfig {
             }
         }
 
-        if let Ok(token) = std::env::var("INTERNAL_API_TOKEN") {
-            if !token.is_empty() {
-                config.internal_token = Some(token);
-            }
+        let internal_token = botcoresecrets::internal_api_token();
+        if !internal_token.is_empty() {
+            config.internal_token = Some(internal_token);
         }
 
         config

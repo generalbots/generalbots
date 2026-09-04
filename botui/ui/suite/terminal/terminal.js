@@ -43,12 +43,16 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
     }
 
     function preferredVm(vms) {
+        // #1288 — only a RUNNING VM may be attached: `incus exec` into a
+        // stopped/creating container blocks forever, leaving the terminal
+        // stuck at "Connecting...". A non-running VM must be surfaced as
+        // "No VM — start it (Play)" instead of being selected.
         if (!Array.isArray(vms) || !vms.length) return null;
         return vms.find(function (v) {
             return String(v.env || '').indexOf('development') !== -1 && String(v.status || '').indexOf('run') !== -1;
         }) || vms.find(function (v) {
             return String(v.status || '').indexOf('run') !== -1;
-        }) || vms[0];
+        }) || null;
     }
 
     function fillVmSelect(options, preferred) {
@@ -177,6 +181,7 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
 
         let ws = null;
         let reconnectTimer = null;
+        let openTimer = null;
         // When the user switches VM in the picker, closing the old socket is
         // INTENTIONAL — suppress the yellow "Reconnecting" message and just
         // switch straight to the new container (green OK), no 3s delay.
@@ -256,6 +261,8 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
         }
 
         function openSocket(sessionId) {
+            if (openTimer) clearTimeout(openTimer);
+            openTimer = null;
             // The previous PTY (old VM) is still alive server-side; retire it
             // so its shell and prompt cannot linger or leak.
             if (currentSessionId && currentSessionId !== sessionId) {
@@ -304,6 +311,17 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
             ws.onerror = function() {
                 wsStatus.textContent = 'WS: Error';
             };
+            // #1288 — a WS upgrade that never completes (proxy hiccup, hung
+            // backend) otherwise leaves the status at "Connecting..."
+            // forever. If the socket has not opened within 10s, close it and
+            // retry through the normal onclose path.
+            openTimer = setTimeout(function () {
+                openTimer = null;
+                if (ws && ws.readyState !== WebSocket.OPEN) {
+                    wsStatus.textContent = 'WS: Timeout';
+                    try { ws.close(); } catch (ignore) { }
+                }
+            }, 10000);
         }
 
         terminal.onData(function(data) {
@@ -400,7 +418,21 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
             updateTabs();
         },
         closeTab: function(index) {
-            if (tabs.length <= 1) return;
+            // #1288 — closing the LAST tab used to be a silent no-op (the
+            // `tabs.length <= 1` guard), which read as "the X does nothing".
+            // Closing the last tab now replaces it with a fresh session so
+            // the ✕ always visibly closes the current shell.
+            if (tabs.length <= 1) {
+                tabs[0].cleanup();
+                var fresh = createTerminal(0);
+                tabs[0] = fresh;
+                activeTab = 0;
+                fresh.visible = true;
+                fresh.pane.classList.add('active');
+                fresh.fitAddon.fit();
+                updateTabs();
+                return;
+            }
             tabs[index].cleanup();
             tabs.splice(index, 1);
             if (activeTab >= tabs.length) activeTab = tabs.length - 1;

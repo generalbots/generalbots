@@ -21,6 +21,11 @@ jobs:
       - name: Guard: no hx-get on POST-only fragment routes (#1139)
         run: ./scripts/check-hx-fragments.sh
 
+      # #1213 — zero-cost regression gates: locale parity must stay full
+      # (any PR adding keys to one locale without the others fails fast).
+      - name: Guard: full locale key parity
+        run: python3 scripts/check_locales.py
+
       - name: Install Rust
         run: |
           rustup set profile minimal

@@ -35,8 +35,8 @@
     };
 
     // name kept in state so Kind/Tier re-renders do not discard the user's
-    // typed value (fixes #821).
-    var state = { kind: 0, tier: 0, source: 0, name: "", cloneUrl: "" };
+    // typed value (fixes #821). desc is the LLM scaffold prompt (#1312).
+    var state = { kind: 0, tier: 0, source: 0, name: "", desc: "", cloneUrl: "" };
 
     // A project is created in development; production is reached only via the
     // toolbar Deploy button (pipeline_mode=deploy). No staging, no env picker.
@@ -102,6 +102,8 @@
             '<div class="vibe-np-body">' +
             '<label class="vibe-np-label">Name</label>' +
             '<input type="text" id="vnpName" class="vibe-np-input" placeholder="e.g. my-project" value="' + esc(state.name) + '">' +
+            '<label class="vibe-np-label">What do you want to build?</label>' +
+            '<textarea id="vnpDesc" class="vibe-np-input vibe-np-desc" rows="3" placeholder="e.g. an invoice generator that reads CSV and emails PDFs — the AI scaffolds the starter code from this">' + esc(state.desc) + '</textarea>' +
             '<label class="vibe-np-label">Kind</label>' +
             '<div class="vibe-np-kinds">' + kindHtml() + "</div>" +
             '<label class="vibe-np-label">Source control</label>' +
@@ -158,6 +160,13 @@
                 state.name = this.value;
             });
         }
+        // Persist the description so Kind/Tier re-renders keep it (#1312).
+        var descInput = document.getElementById("vnpDesc");
+        if (descInput) {
+            descInput.addEventListener("input", function () {
+                state.desc = this.value;
+            });
+        }
         renderKindActive();
         var create = document.getElementById("vnpCreateBtn");
         if (create) create.addEventListener("click", submitCreate);
@@ -202,6 +211,10 @@
             framework: frameworkEl ? frameworkEl.value : null,
             source_control: source.id === "internal" ? "git" : "github",
             clone_url: cloneUrl || null,
+            // #1312 — the description is the LLM scaffold prompt: the AI
+            // generates the starter files from it instead of a hardcoded
+            // template.
+            description: (state.desc || "").trim() || null,
             payload: {
                 env_tier: tier,
                 creator: "vibe-new"

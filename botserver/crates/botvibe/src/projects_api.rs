@@ -187,12 +187,23 @@ async fn create_project(
             // clone target non-empty and fail. Clone replaces the seed.
             let wants_seed = p.source_control != "github";
             if wants_seed {
-                if let Err(e) = crate::templates::seed_project_workspace(
+                log::info!(
+                    "Vibe create: seeding project {} (key={key}, desc={})",
+                    p.name,
+                    req.description.as_ref().map(|d| d.len()).unwrap_or(0)
+                );
+                // #1312 — LLM-first starter: the description ("what do you
+                // want to build?") scaffolds the workspace via the LLM; the
+                // built-in template is only the offline fallback.
+                if let Err(e) = crate::scaffold::scaffold_project_workspace(
                     &key,
                     &p.name,
                     &p.project_type,
                     p.framework.as_deref(),
-                ) {
+                    req.description.as_deref(),
+                )
+                .await
+                {
                     log::error!("seed workspace for project {} failed: {e}", p.id);
                     if let Err(de) = registry.delete(p.id) {
                         log::error!("compensating delete for project {} failed: {de}", p.id);
@@ -744,12 +755,17 @@ async fn run_project_app(
     // so the Browser never opens against a blank "No web app yet" VM.
     if files.is_empty() {
         let key = workspace_key(&project);
-        if let Err(e) = crate::templates::seed_project_workspace(
+        // #1312 — same LLM-first scaffold as project creation so an
+        // automatically created project also starts from AI-generated code.
+        if let Err(e) = crate::scaffold::scaffold_project_workspace(
             &key,
             &project.name,
             &project.project_type,
             project.framework.as_deref(),
-        ) {
+            None,
+        )
+        .await
+        {
             log::warn!("Vibe run {}: seed empty workspace failed: {e}", project.name);
         } else {
             log::info!(
