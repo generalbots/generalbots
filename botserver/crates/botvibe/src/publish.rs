@@ -160,7 +160,8 @@ pub fn publish_project_schema() -> ToolSchema {
                 "env": { "type": "string", "enum": ["development", "staging", "production"], "default": "production" },
                 "domain": { "type": "string", "description": "Optional custom domain to bind" },
                 "launcher": { "type": "boolean", "description": "When true, the published app auto-pins to the desktop launcher (desktop category) for workspace users (#1160)." },
-                "widget": { "type": "boolean", "description": "When true, the published app is registered as a desktop widget (always-visible tile) instead of a windowed app (#1160)." }
+                "widget": { "type": "boolean", "description": "When true, the published app is registered as a desktop widget (always-visible tile) instead of a windowed app (#1160)." },
+                "on_behalf_of_user": { "type": "string", "description": "Internal — always overwritten by the server with the run's acting user for deploy RBAC; never supply it yourself." }
             },
             "required": ["project_id"]
         }))
