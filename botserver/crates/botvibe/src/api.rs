@@ -513,6 +513,9 @@ pub fn router(
         .route("/api/vibe/capabilities", axum::routing::get(list_capabilities))
         .route("/api/vibe/capabilities/:use_case", axum::routing::get(list_capabilities_for_use_case))
         .route("/api/vibe/pipeline/:use_case", axum::routing::get(get_pipeline))
+        // #1288 — enterprise site lifecycle on the proxy container.
+        .route("/api/vibe/projects/:project_id/site", axum::routing::delete(unpublish_project_site))
+        .route("/api/vibe/projects/:project_id/site/rollback", axum::routing::post(rollback_project_site))
         .layer(axum::Extension(api))
 }
 
@@ -1422,5 +1425,119 @@ mod tests {
             derive_project_name("Update this project settings"),
             "update-settings"
         );
+    }
+}
+
+// ============================================================================
+// #1288 — proxy site lifecycle (unpublish / rollback)
+// ============================================================================
+
+/// Shared guard: the caller must hold at least project Admin (or be a global
+/// admin), and the project must exist. Returns the project on success.
+fn guard_site_admin(
+    api: &Arc<VibeApiInner>,
+    user: &AuthenticatedUser,
+    project_id: Uuid,
+) -> Result<crate::projects::Project, (axum::http::StatusCode, String)> {
+    if user.user_id.is_nil() {
+        return Err((
+            axum::http::StatusCode::UNAUTHORIZED,
+            "authentication required".to_string(),
+        ));
+    }
+    let project = api
+        .project_registry
+        .get(project_id)
+        .map_err(|e| (axum::http::StatusCode::INTERNAL_SERVER_ERROR, e))?
+        .ok_or_else(|| {
+            (
+                axum::http::StatusCode::NOT_FOUND,
+                "project not found".to_string(),
+            )
+        })?;
+    if !user.is_admin() {
+        if let Err(e) = api.project_rbac.require_role(
+            user.user_id,
+            project_id,
+            crate::rbac::ProjectRole::Admin,
+        ) {
+            return Err((axum::http::StatusCode::FORBIDDEN, e));
+        }
+    }
+    Ok(project)
+}
+
+fn site_error_response(e: String) -> Response {
+    // Site-operation errors carry an actionable message (refusals, missing
+    // releases, proxy issues); they are operator-facing, not secrets.
+    (
+        axum::http::StatusCode::UNPROCESSABLE_ENTITY,
+        Json(serde_json::json!({ "success": false, "error": e })),
+    )
+        .into_response()
+}
+
+#[derive(Deserialize, Default)]
+struct UnpublishSiteRequest {
+    /// Drop the retained `.prev-*` releases and the retired payload too.
+    #[serde(default)]
+    purge: bool,
+}
+
+/// DELETE /api/vibe/projects/:project_id/site — take a published site off
+/// the proxy: route removed immediately, python service stopped, payload
+/// retired (or purged with `?purge=true` / body `{"purge": true}`).
+async fn unpublish_project_site(
+    Extension(api): Extension<Arc<VibeApiInner>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(project_id): Path<Uuid>,
+    body: Option<Json<UnpublishSiteRequest>>,
+) -> Response {
+    info!("Vibe site unpublish requested: project {project_id}");
+    let project = match guard_site_admin(&api, &user, project_id) {
+        Ok(p) => p,
+        Err((status, msg)) => return (status, msg).into_response(),
+    };
+    let purge = body.map(|Json(b)| b.purge).unwrap_or(false);
+    let slug = crate::proxy_sites::site_slug(&project.name);
+    match crate::proxy_sites::unpublish_site(&slug, purge).await {
+        Ok(()) => Json(serde_json::json!({
+            "success": true,
+            "message": format!("site '{slug}' unpublished (purge={purge})"),
+            "site": slug,
+        }))
+        .into_response(),
+        Err(e) => {
+            error!("Vibe site unpublish failed for {slug}: {e}");
+            site_error_response(e)
+        }
+    }
+}
+
+/// POST /api/vibe/projects/:project_id/site/rollback — reactivate the
+/// previous retained release of the project's site on the proxy.
+async fn rollback_project_site(
+    Extension(api): Extension<Arc<VibeApiInner>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(project_id): Path<Uuid>,
+) -> Response {
+    info!("Vibe site rollback requested: project {project_id}");
+    let project = match guard_site_admin(&api, &user, project_id) {
+        Ok(p) => p,
+        Err((status, msg)) => return (status, msg).into_response(),
+    };
+    let slug = crate::proxy_sites::site_slug(&project.name);
+    match crate::proxy_sites::rollback_site(&slug).await {
+        Ok(url) => Json(serde_json::json!({
+            "success": true,
+            "message": format!("site '{slug}' rolled back to the previous release"),
+            "site": slug,
+            "url": url,
+        }))
+        .into_response(),
+        Err(e) => {
+            error!("Vibe site rollback failed for {slug}: {e}");
+            site_error_response(e)
+        }
     }
 }
