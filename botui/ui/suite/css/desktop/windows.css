@@ -166,8 +166,14 @@
 
 #window-vibe-newproject {
   width: 540px !important;
-  height: 480px !important;
-  max-height: 480px !important;
+  /* #1280-gap2 — the fixed 480px footprint exceeds the workspace between the
+     desktop top edge and the taskbar on small viewports (e.g. 790x502 with a
+     56px taskbar): the footer (Create project button) landed under the
+     taskbar and was unclickable. min() caps the height to the available
+     space — the modal body scrolls (.vibe-np-body overflow-y:auto), the
+     footer stays visible. max() keeps a usable minimum on tiny screens. */
+  height: min(480px, max(240px, calc(100vh - var(--gb-taskbar-h, 56px) - 24px))) !important;
+  max-height: min(480px, max(240px, calc(100vh - var(--gb-taskbar-h, 56px) - 24px))) !important;
   resize: none !important;
   overflow: hidden;
 }

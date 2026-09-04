@@ -292,6 +292,16 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         .get("domain")
         .and_then(|v| v.as_str())
         .map(ToString::to_string);
+    // #1280 — the acting user for the downstream deployment RBAC gate. The
+    // agent loop stamps the initiating user's id into the tool arguments;
+    // direct REST/ops callers have their session user enforced at the API
+    // layer. Internal (X-Internal-Token) requests carry a nil session user,
+    // so the deployment handler relies on this field to authorize.
+    let on_behalf_of_user = args
+        .get("on_behalf_of_user")
+        .and_then(|v| v.as_str())
+        .and_then(|s| Uuid::parse_str(s).ok())
+        .filter(|id| !id.is_nil());
     // #1160 — desktop launch surface: `launcher` auto-pins the app to the
     // launcher; `widget` marks the app as an always-visible desktop widget.
     let launcher_requested = args
@@ -421,6 +431,7 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
             "environment": env,
             "target": target,
             "project_id": project_id,
+            "on_behalf_of_user": on_behalf_of_user,
             "files": files,
         });
         let client = reqwest::Client::builder()

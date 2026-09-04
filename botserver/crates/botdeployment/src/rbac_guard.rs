@@ -116,7 +116,10 @@ pub fn require_deploy_role(
     match project_id {
         Some(pid) => {
             let role = resolve_project_role(pool, user_id, pid)?;
-            if role < DeployRole::Admin {
+            // #1280 — an org-level admin administers every project in the
+            // org, so a missing project_members row must not lock them out;
+            // everyone below admin still gets the explicit denial.
+            if role < DeployRole::Admin && !is_org_admin(pool, user_id)? {
                 return Err(format!(
                     "forbidden: role '{}' requires 'admin' on project {pid}",
                     role.as_str()

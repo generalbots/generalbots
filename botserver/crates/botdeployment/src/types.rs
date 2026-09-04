@@ -223,6 +223,13 @@ pub struct DeploymentRequest {
     /// gated by the caller's role on that project (admin+ required).
     #[serde(default)]
     pub project_id: Option<uuid::Uuid>,
+    /// #1280 — the acting user the internal caller is publishing on behalf
+    /// of. Internal (X-Internal-Token) requests authenticate as a nil user,
+    /// so the handler cannot resolve a role from the session alone; vibe run
+    /// contexts carry the initiating user_id here and the handler enforces
+    /// the same RBAC gate for them (never silently privileged).
+    #[serde(default)]
+    pub on_behalf_of_user: Option<uuid::Uuid>,
     /// The project's source files to deploy, relative paths to bytes. When
     /// present, these are pushed to the ALM repo instead of an empty app.
     #[serde(default)]

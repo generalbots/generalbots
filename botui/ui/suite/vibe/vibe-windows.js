@@ -144,7 +144,27 @@
             var winEl = document.getElementById("window-" + id);
             if (winEl) {
                 if (spec.size.w) winEl.style.width = spec.size.w;
-                if (spec.size.h) winEl.style.height = spec.size.h;
+                // #1280-gap2 — a fixed popup height (New Project: 480px) can
+                // exceed the workspace between the desktop top edge and the
+                // taskbar on small viewports; the #1278 clamp cannot shrink a
+                // window, only move it, so the footer (Create button) stayed
+                // under the taskbar and unclickable. Cap the window to the
+                // available space: the dialog body scrolls internally
+                // (.vibe-np-body overflow-y:auto), the footer stays clickable.
+                if (spec.size.h) {
+                    var tb = document.getElementById("taskbar");
+                    var tbH = tb ? tb.getBoundingClientRect().height : 0;
+                    var maxH = Math.max(240, window.innerHeight - tbH - 24);
+                    var h = parseInt(spec.size.h, 10);
+                    if (!isNaN(h)) {
+                        winEl.style.height = Math.min(h, maxH) + "px";
+                    } else {
+                        // "auto" popups (Members) grow with content — cap them.
+                        winEl.style.height = "auto";
+                        winEl.style.maxHeight = maxH + "px";
+                        winEl.style.overflow = "auto";
+                    }
+                }
             }
         }
     }

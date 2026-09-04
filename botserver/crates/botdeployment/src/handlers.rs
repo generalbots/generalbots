@@ -99,11 +99,28 @@ pub async fn deploy_project(
     Extension(user): Extension<botsecurity_auth::auth_api::types::AuthenticatedUser>,
     Json(request): Json<DeploymentRequest>,
 ) -> Result<Json<DeploymentResponse>, DeploymentApiError> {
-    if !user.user_id.is_nil() {
-        if let Err(msg) = super::rbac_guard::require_deploy_role(&pool, user.user_id, request.project_id) {
-            log::warn!("Deployment denied for user {}: {msg}", user.user_id);
-            return Err(DeploymentApiError::Forbidden(msg));
+    let effective_user = if !user.user_id.is_nil() {
+        Some(user.user_id)
+    } else {
+        // #1280 — internal callers (vibe agent publish tool) authenticate via
+        // X-Internal-Token with a nil session user; the acting user travels in
+        // the request body and MUST pass the same deploy-role gate. A request
+        // with neither a real session user nor an on-behalf-of user is
+        // rejected (no anonymous deploys).
+        request.on_behalf_of_user.filter(|id| !id.is_nil())
+    };
+    let effective_user = match effective_user {
+        Some(id) => id,
+        None => {
+            log::warn!("Deployment denied: no session user and no on_behalf_of_user supplied");
+            return Err(DeploymentApiError::Forbidden(
+                "forbidden: deploying requires an authenticated user".to_string(),
+            ));
         }
+    };
+    if let Err(msg) = super::rbac_guard::require_deploy_role(&pool, effective_user, request.project_id) {
+        log::warn!("Deployment denied for user {effective_user}: {msg}");
+        return Err(DeploymentApiError::Forbidden(msg));
     }
     log::info!(
         "Deployment request: org={:?}, app={}, type={}, env={}",
