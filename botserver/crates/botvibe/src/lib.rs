@@ -18,6 +18,7 @@ pub mod domains;
 pub mod domain_auth;
 pub mod domains_api;
 pub mod domains_tool;
+pub mod eviction;
 pub mod harness;
 pub mod ops;
 pub mod templates;
