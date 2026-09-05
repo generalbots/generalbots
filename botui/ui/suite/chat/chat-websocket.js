@@ -46,28 +46,7 @@ function connectWebSocket() {
     "&bot_name=" + ChatState.currentBotName;
 
   ChatState.ws = new WebSocket(url);
-  if (window.GBAppLifecycle) GBAppLifecycle.socket("chat", ChatState.ws);
-
-ChatState.ws.onopen = function () {
-  ChatState.disconnectNotified = false;
-  ChatState.isStreaming = false;
-  ChatState.streamingMessageId = null;
-  ChatState.currentStreamingContent = "";
-  ChatState.streamingBuffer = "";
-  updateConnectionStatus("connected");
-  var loadingOverlay = document.getElementById("chatLoadingOverlay");
-  if (loadingOverlay) loadingOverlay.style.display = "none";
-  if (typeof window.showChatApp === "function") {
-    window.showChatApp();
-  }
-  var params = new URLSearchParams(window.location.search);
-  var q = params.get("q");
-  if (q && typeof window.sendMessage === "function") {
-    setTimeout(function () { window.sendMessage(q); }, 300);
-  }
-};
-
-  ChatState.ws.onmessage = function (event) {
+  if (window.GBAppLifecycle) GBAppLifecycle.socket("chat", ChatState.ws);  ChatState.ws.onmessage = function (event) {
     try {
       var data = JSON.parse(event.data);
 
@@ -139,9 +118,25 @@ ChatState.ws.onopen = function () {
   };
 
   ChatState.ws.onopen = function () {
+    // Reset streaming state and reveal the app (the original onopen — its
+    // logic was silently DISCARDED by a second onopen assignment below,
+    // leaving the loading overlay stuck on every reconnect).
+    ChatState.isStreaming = false;
+    ChatState.streamingMessageId = null;
+    ChatState.currentStreamingContent = "";
+    ChatState.streamingBuffer = "";
+    var loadingOverlay = document.getElementById("chatLoadingOverlay");
+    if (loadingOverlay) loadingOverlay.style.display = "none";
+    if (typeof window.showChatApp === "function") {
+      window.showChatApp();
+    }
+    var params = new URLSearchParams(window.location.search);
+    var q = params.get("q");
+    if (q && typeof window.sendMessage === "function") {
+      setTimeout(function () { window.sendMessage(q); }, 300);
+    }
     // #1275 — the socket is healthy again: stop the “offline” state, then
     // flush messages queued while disconnected, in order, on THIS socket.
-    ChatState.disconnectNotified = false;
     updateConnectionStatus("connected");
     var queued = Array.isArray(ChatState.offlineQueue) ? ChatState.offlineQueue : [];
     ChatState.offlineQueue = [];
@@ -165,4 +160,4 @@ ChatState.ws.onopen = function () {
   };
 }
 
-// cache-bust: 1783796400
+// cache-bust: 20260905a

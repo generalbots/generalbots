@@ -120,6 +120,16 @@ window.GBTabs = {
     if (opts.sessionId) tab.sessionId = opts.sessionId;
     if (opts.botId) tab.botId = opts.botId;
     if (opts.faviconGlyph) tab.faviconGlyph = opts.faviconGlyph;
+    // Enforce the strip cap: drop the OLDEST unpinned tab when full.
+    if (GBTabs.state.tabs.length >= 10) {
+      var dropIdx = -1;
+      for (var i = 0; i < GBTabs.state.tabs.length; i++) {
+        if (!GBTabs.state.tabs[i].pinned) { dropIdx = i; break; }
+      }
+      if (dropIdx === -1) dropIdx = 1; // all pinned: drop the second (oldest non-default)
+      var dropped = GBTabs.state.tabs.splice(dropIdx, 1)[0];
+      delete GBTabs.unread[dropped.id];
+    }
     GBTabs.state.tabs.push(tab);
     GBTabs.focusTab(tab.id);
     writeLocal(GBTabs.state.tabs);
@@ -262,10 +272,26 @@ window.GBTabs = {
    * last-writer-wins by updated_at; the winner is written back both ways
    * (heal) when they differ.
    */
+  var MAX_TABS = 10;
+
+  /** Keep the strip usable: the newest MAX_TABS tabs, default tab first.
+   *  A leaked/accumulated store (hundreds of "Chat 1" rows) made the strip
+   *  unusable and slowed every render. */
+  function capTabs(tabs) {
+    if (!Array.isArray(tabs) || tabs.length <= MAX_TABS) return tabs || [];
+    var pinnedFirst = tabs.slice().sort(function (a, b) {
+      return (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+    });
+    var kept = pinnedFirst.slice(0, MAX_TABS);
+    // Preserve original relative order of the survivors.
+    return tabs.filter(function (t) { return kept.indexOf(t) !== -1; });
+  }
+
   GBTabs.restore = function () {
     var local = readLocal();
     if (local && Array.isArray(local.tabs)) {
-      GBTabs.state.tabs = local.tabs.slice();
+      GBTabs.state.tabs = capTabs(local.tabs);
+      if (GBTabs.state.tabs.length !== local.tabs.length) writeLocal(GBTabs.state.tabs);
     }
     if (!token()) {
       maybeActivateFrom(local ? recordUpdatedAt(local) : "");
@@ -283,10 +309,10 @@ window.GBTabs = {
         var localStamp = local ? recordUpdatedAt(local) : "";
         var serverStamp = recordUpdatedAt(server);
         if (localStamp && serverStamp && localStamp >= serverStamp) {
-          GBTabs.state.tabs = local.tabs.slice();
+          GBTabs.state.tabs = capTabs(local.tabs);
           persistToServer(GBTabs.state.tabs);
         } else {
-          GBTabs.state.tabs = serverTabs.slice();
+          GBTabs.state.tabs = capTabs(serverTabs);
           writeLocal(GBTabs.state.tabs);
         }
         maybeActivateFrom(serverStamp || localStamp);

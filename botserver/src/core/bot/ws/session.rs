@@ -50,9 +50,18 @@ pub async fn handle_ws(
     let (ws_sender, mut ws_receiver) = socket.split();
     let ws_sender = Arc::new(tokio::sync::Mutex::new(ws_sender));
     let (tx, mut rx) = mpsc::channel::<botlib::models::BotResponse>(100);
+    let key = session_id.to_string();
+    // Keep a handle so disconnect can prove ownership of the map entry.
+    let tx_handle = tx.clone();
     {
         let mut channels = state.response_channels.lock().await;
-        channels.insert(session_id.to_string(), tx);
+        // #1288 — parallel chat tabs mean MULTIPLE sockets can carry the same
+        // session_id. Overwriting the previous sender dropped it, ending that
+        // socket's recv loop and closing it (stock tab vs parallel tab
+        // flapping accept/close forever). First socket wins the entry: each
+        // socket still receives replies to its OWN messages via its local rx;
+        // the map only routes async/pushed frames.
+        channels.entry(key.clone()).or_insert(tx);
     }
     info!("WebSocket connected: bot={bot}, session={session_id}", bot = bot_name);
 
@@ -127,7 +136,15 @@ pub async fn handle_ws(
 
     {
         let mut channels = state.response_channels.lock().await;
-        channels.remove(&session_id.to_string());
+        // #1288 — remove only OUR registration: with parallel tabs another
+        // socket may own this session key, and a blind remove would leave it
+        // without an entry for pushed frames.
+        if channels
+            .get(&key)
+            .is_some_and(|stored| stored.same_channel(&tx_handle))
+        {
+            channels.remove(&key);
+        }
     }
     if let Ok(mut hear_map) = state.hear_channels.lock() {
         hear_map.remove(&session_id);

@@ -1307,7 +1307,12 @@ fn lookup_admin_credentials_user_id(email: &str, password: &str) -> Option<Strin
         base.join("../botserver-stack/conf/directory/admin-credentials.json"),
     ];
     for candidate in candidates {
-        let content = std::fs::read_to_string(&candidate).ok()?;
+        // Missing/unreadable file: try the NEXT candidate — an early `?` here
+        // silently disabled the dev fallback whenever botserver's cwd was not
+        // the repo root (first candidate simply did not exist).
+        let Ok(content) = std::fs::read_to_string(&candidate) else {
+            continue;
+        };
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) {
             let cred_email = json.get("email").and_then(|v| v.as_str()).unwrap_or("");
             if cred_email.eq_ignore_ascii_case(email) {
