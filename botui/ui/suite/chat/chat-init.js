@@ -244,6 +244,23 @@ window.ChatSwitchBot = function (botName) {
     }
   }
 
+  // #1289 — launcher bot tiles deep-link the Chat window to a specific bot
+  // (catalog entries carry deep_link_params { bot: slug }). The param wins
+  // over the stored/path-derived bot ONLY inside this chat window instance,
+  // letting the desktop host several bot chats side by side.
+  function readRequestedBot() {
+    try {
+      if (window.__gbAppParams__ && window.__gbAppParams__.bot) {
+        var bot = String(window.__gbAppParams__.bot);
+        delete window.__gbAppParams__.bot;
+        return bot;
+      }
+      return new URLSearchParams(window.location.search).get("bot") || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
   // Replays a stored conversation into #messages before the WebSocket opens,
   // so the user sees prior turns when opening a conversation from history.
   function loadSessionHistory(sessionId) {
@@ -280,6 +297,13 @@ function proceedWithChatInit() {
   var botName = (typeof window.GBResolveActiveBot === "function")
     ? window.GBResolveActiveBot()
     : (window.__INITIAL_BOT_NAME__ || "default");
+  // #1289 — a launcher deep-link (bot param) retargets THIS chat window to
+  // the requested bot; the desktop-wide selected bot is left untouched.
+  var requestedBot = readRequestedBot();
+  if (requestedBot && requestedBot !== botName) {
+    botName = requestedBot;
+    ChatState.currentBotName = botName;
+  }
   var storageKey = "gb_chat_" + botName;
   var requestedSession = readRequestedSession();
 

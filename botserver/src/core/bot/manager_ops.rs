@@ -368,8 +368,15 @@ pub async fn check_bot_access(
         .get()
         .map_err(|e| format!("DB connection error: {}", e))?;
 
+    // #1289 — the URL/launcher identifies bots by SLUG ("helper-bot") while
+    // older rows carry a display name with spaces ("Helper Bot"). Accept
+    // either: name first, then slug.
     let bot_record = bots_dsl::bots
-        .filter(bots_dsl::name.eq(bot_name))
+        .filter(
+            bots_dsl::name
+                .eq(bot_name)
+                .or(bots_dsl::slug.eq(bot_name)),
+        )
         .select((bots_dsl::is_public, bots_dsl::org_id))
         .first::<(bool, Uuid)>(&mut *conn)
         .optional()
@@ -404,12 +411,16 @@ pub async fn check_access_handler(
     axum::extract::State(state): axum::extract::State<Arc<botcore::shared::state::AppState>>,
     axum::extract::Path(bot_name): axum::extract::Path<String>,
     req: axum::extract::Request,
-) -> impl axum::response::IntoResponse {
-    let is_public = {
+) -> impl axum::response::IntoResponse {        let is_public = {
         use botcore::shared::schema::bots::dsl as bots_dsl;
         if let Ok(mut conn) = state.conn.get() {
+            // #1289 — accept slug as well as name (launcher/URL use slugs).
             bots_dsl::bots
-                .filter(bots_dsl::name.eq(&bot_name))
+                .filter(
+                    bots_dsl::name
+                        .eq(&bot_name)
+                        .or(bots_dsl::slug.eq(&bot_name)),
+                )
                 .select(bots_dsl::is_public)
                 .first::<bool>(&mut *conn)
                 .unwrap_or(false)
