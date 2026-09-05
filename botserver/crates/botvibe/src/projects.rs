@@ -40,12 +40,14 @@ CREATE INDEX IF NOT EXISTS idx_vibe_projects_source_control ON vibe_projects(sou
 ";
 
 /// Kinds of Vibe projects (REST API enum surface).
+/// #1291 — the former `custom` kind is now `apps`; `custom` remains a
+/// deprecated input alias (and matches legacy DB rows on read).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ProjectKind {
     Bot,
     Website,
-    Custom,
+    Apps,
 }
 
 impl ProjectKind {
@@ -53,7 +55,7 @@ impl ProjectKind {
         match self {
             Self::Bot => "bot",
             Self::Website => "website",
-            Self::Custom => "custom",
+            Self::Apps => "apps",
         }
     }
 
@@ -61,7 +63,7 @@ impl ProjectKind {
         match s {
             "bot" => Self::Bot,
             "website" => Self::Website,
-            _ => Self::Custom,
+            _ => Self::Apps,
         }
     }
 }
@@ -507,10 +509,13 @@ mod tests {
     fn project_kind_round_trip() {
         assert_eq!(ProjectKind::parse("bot"), ProjectKind::Bot);
         assert_eq!(ProjectKind::parse("website"), ProjectKind::Website);
-        assert_eq!(ProjectKind::parse("bogus"), ProjectKind::Custom);
+        assert_eq!(ProjectKind::parse("apps"), ProjectKind::Apps);
+        // #1291 — deprecated alias still resolves to the apps kind.
+        assert_eq!(ProjectKind::parse("custom"), ProjectKind::Apps);
+        assert_eq!(ProjectKind::parse("bogus"), ProjectKind::Apps);
         assert_eq!(ProjectKind::Bot.as_str(), "bot");
         assert_eq!(ProjectKind::Website.as_str(), "website");
-        assert_eq!(ProjectKind::Custom.as_str(), "custom");
+        assert_eq!(ProjectKind::Apps.as_str(), "apps");
     }
 
     #[test]

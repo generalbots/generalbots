@@ -351,6 +351,98 @@ fn bot_launcher_apps() -> Vec<serde_json::Value> {
         .collect()
 }
 
+/// #1291 — vibe-published apps as launcher tiles. Every `apps`/`website`
+/// project whose publish recorded a launcher entry (`payload.launcher.enabled`)
+/// surfaces with id `vibeapp-{slug}`; the tile opens the shared Browser
+/// window deep-linked to the app URL (workspace serve route, which proxies
+/// through the platform with auth). Query is best-effort: a DB hiccup
+/// degrades to the static catalog only.
+fn published_app_launcher_apps() -> Vec<serde_json::Value> {
+    use diesel::prelude::*;
+    use uuid::Uuid;
+    let pool = match botcore::shared::utils::create_conn() {
+        Ok(p) => p,
+        Err(e) => {
+            log::warn!("apps catalog: published apps listing skipped (db: {e})");
+            return Vec::new();
+        }
+    };
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct AppRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        name: String,
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        project_type: String,
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+        framework: Option<String>,
+        #[diesel(sql_type = diesel::sql_types::Jsonb)]
+        launcher: serde_json::Value,
+    }
+    let mut conn = match pool.get() {
+        Ok(c) => c,
+        Err(e) => {
+            log::warn!("apps catalog: published apps listing skipped (pool: {e})");
+            return Vec::new();
+        }
+    };
+    let rows: Vec<AppRow> = diesel::sql_query(
+        // The launcher flag is the explicit publish-time opt-in (payload.
+        // launcher.enabled); project `status` tracks the VM lifecycle and
+        // stays `pending` for proxy-published sites, so it must NOT gate
+        // the tile.
+        "SELECT id, name, project_type, framework, payload->'launcher' AS launcher \
+         FROM vibe_projects \
+         WHERE payload->'launcher'->>'enabled' = 'true' \
+         ORDER BY updated_at DESC LIMIT 40",
+    )
+    .load(&mut conn)
+    .unwrap_or_default();
+    rows.into_iter()
+        .map(|a| {
+            let slug = a
+                .name
+                .to_lowercase()
+                .replace(' ', "-")
+                .replace('_', "-")
+                .chars()
+                .filter(|c| c.is_ascii_alphanumeric() || *c == '-')
+                .collect::<String>();
+            // Browser tile: the workspace serve route renders the app's own
+            // index.html through the platform; the Browser app auto-appends
+            // the auth token for same-origin /serve/ paths.
+            let app_url = format!("/api/vibe/projects/{}/serve/index.html", a.id);
+            json!({
+                "id": format!("vibeapp-{slug}"),
+                "title": a.name,
+                "category": "dev",
+                "color": "#7c3aed",
+                "url": "/suite/browser/browser.html",
+                "description": format!(
+                    "Vibe-published {} app ({}, {}) — click to open.",
+                    if a.project_type == "website" { "website" } else { "runtime" },
+                    a.framework.as_deref().unwrap_or("static"),
+                    a.launcher
+                        .get("kind")
+                        .and_then(|k| k.as_str())
+                        .unwrap_or("app")
+                ),
+                "keywords": format!("vibe app published {slug}"),
+                "icon": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"14\" rx=\"2\"/><path d=\"M8 2v4M16 2v4M3 10h18\"/>",
+                "kind": "app",
+                "widget": serde_json::Value::Null,
+                "launcher_default": true,
+                "enabled": true,
+                "compiled": true,
+                "commands": [],
+                "deep_link_params": { "url": app_url },
+            })
+        })
+        .collect()
+}
+
 pub async fn catalog_handler() -> Json<serde_json::Value> {
     let apps = registry::all_apps();
 
@@ -416,6 +508,7 @@ pub async fn catalog_handler() -> Json<serde_json::Value> {
     // since bot ids are namespaced `bot-`).
     let mut all_items = items;
     all_items.extend(bot_launcher_apps());
+    all_items.extend(published_app_launcher_apps());
     Json(json!({
         "apps": all_items,
         "categories": registry::CATEGORIES

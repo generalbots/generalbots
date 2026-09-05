@@ -119,7 +119,7 @@ async fn llm_scaffold(
     let prompt = format!(
         "Create the starter application for a {project_type} project named \"{project_name}\"\
          {brief}. Framework: {fw}. Project kind notes: website projects are static sites (index.html \
-         with inline CSS/JS, no CDN); custom projects run as an always-on service (node → index.js \
+         with inline CSS/JS, no CDN); apps projects run as an always-on service (node → index.js \
          with a /health endpoint reading PORT env, python → app.py). Return the JSON file map now."
     );
     let result = tokio::time::timeout(
@@ -223,7 +223,7 @@ mod tests {
 
         let key = "calc";
         let source =
-            scaffold_project_workspace(key, "Calculator", "custom", Some("node"), None).await
+            scaffold_project_workspace(key, "Calculator", "apps", Some("node"), None).await
                 .expect("scaffold");
         assert_eq!(source, ScaffoldSource::Template);
         let entries = crate::harness::list_rel(key, "", 0).expect("list");
@@ -234,7 +234,7 @@ mod tests {
 
         // Second call is a no-op (workspace populated).
         let source =
-            scaffold_project_workspace(key, "Calculator", "custom", Some("node"), None).await
+            scaffold_project_workspace(key, "Calculator", "apps", Some("node"), None).await
                 .expect("re-scaffold");
         assert_eq!(source, ScaffoldSource::Existing);
 

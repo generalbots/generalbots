@@ -163,6 +163,10 @@ if (typeof window.WindowManager === "undefined") {
               hxGet: a.url,
               description: a.description,
               icon: a.icon,
+              // #1289/#1291 — bot and vibe-app tiles deep-link their window
+              // (chat bot binding, browser URL); launchFromMenu passes them
+              // to openDeepLink.
+              deep_link_params: a.deep_link_params || null,
             };
           });
         var known = {};
@@ -789,7 +793,14 @@ if (typeof window.WindowManager === "undefined") {
       categories.forEach(function (cat) {
         var apps = (window.APPS_REGISTRY || APPS_REGISTRY).filter(function (a) { return a.category === cat; });
         if (enabledApps) {
-          apps = apps.filter(function (a) { return enabledApps.has(a.id); });
+          apps = apps.filter(function (a) {
+            // #1289/#1291 — dynamic catalog tiles (user bots `bot-*`,
+            // vibe-published apps `vibeapp-*`) never appear in the static
+            // product `apps=` list; their presence in the catalog already IS
+            // the server's visibility decision, so exempt them here.
+            if (a.id.startsWith("bot-") || a.id.startsWith("vibeapp-")) return true;
+            return enabledApps.has(a.id);
+          });
         }
         if (!apps.length) return;
         html += `<div class="start-menu-category" data-category="${cat}"><div class="start-menu-section-title">${CATEGORY_LABELS[cat] || cat}</div><div class="start-menu-grid">`;
@@ -858,6 +869,14 @@ if (typeof window.WindowManager === "undefined") {
 
     launchFromMenu(id, title, hxGet) {
       this.closeStartMenu();
+      // #1289/#1291 — catalog tiles may carry deep-link params (chat bot
+      // binding, vibe app URL). Route through openDeepLink so the params
+      // reach the app window (__gbAppParams__ + gb:deep-link retarget).
+      const app = (window.APPS_REGISTRY || APPS_REGISTRY).find((a) => a.id === id);
+      if (app && app.deep_link_params && Object.keys(app.deep_link_params).length) {
+        this.openDeepLink(id, app.deep_link_params);
+        return;
+      }
       const existed = this.getWindow(id) !== null;
       // The Vibe workbench keeps the glass chrome but no status bar.
       this.open(id, title, "", {

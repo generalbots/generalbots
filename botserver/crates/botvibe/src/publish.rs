@@ -334,7 +334,7 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
     // container (the proxy cannot see its filesystem). One early return
     // covers both kinds; every side effect below (deployment history,
     // launcher, domain binding) is shared with the normal path.
-    let is_python_project = project.project_type == "custom"
+    let is_python_project = (project.project_type == "apps" || project.project_type == "custom")
         && project
             .framework
             .as_deref()
@@ -455,12 +455,13 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
     };
 
     let files = collect_workspace_files(&project)?;
-    // The Vibe project registry uses the user-facing kinds `custom` and
+    // The Vibe project registry uses the user-facing kinds `apps` and
     // `website`, while the deployment API accepts `app-*` and `site`.
-    // Translate at the boundary so a calculator/custom app is deployable.
+    // Translate at the boundary so a calculator/apps app is deployable.
+    // (#1291 — legacy rows keep the `custom` kind and translate identically.)
     let deployment_type = match project.project_type.as_str() {
         "website" => "site".to_string(),
-        "custom" => format!("app-{}", project.framework.as_deref().unwrap_or("node")),
+        "apps" | "custom" => format!("app-{}", project.framework.as_deref().unwrap_or("node")),
         other if other == "site" || other == "bot" || other.starts_with("app-") => {
             other.to_string()
         }

@@ -371,7 +371,7 @@ mod tests {
         std::env::set_var("VIBE_WORKSPACE_ROOT", &tmp);
         let key = "calculator";
 
-        seed_project_workspace(key, "Calculator", "custom", Some("node")).expect("seed");
+        seed_project_workspace(key, "Calculator", "apps", Some("node")).expect("seed");
         let entries = crate::harness::list_rel(key, "", 0).expect("list");
         for want in [
             "calc.js",
@@ -391,7 +391,7 @@ mod tests {
         assert!(calc.contains("evaluate"), "calc.js must export evaluate");
 
         // Second seed is a no-op (workspace already populated).
-        seed_project_workspace(key, "Calculator", "custom", Some("node")).expect("re-seed");
+        seed_project_workspace(key, "Calculator", "apps", Some("node")).expect("re-seed");
         let after = crate::harness::list_rel(key, "", 0).expect("list after");
         assert_eq!(after.len(), entries.len());
 
@@ -419,11 +419,11 @@ mod tests {
         // python framework seeds app.py; node framework seeds index.js
         // (each on its own fresh workspace — seeding never clobbers).
         let py_key = "py-app";
-        seed_project_workspace(py_key, "Py App", "custom", Some("python")).expect("seed2");
+        seed_project_workspace(py_key, "Py App", "apps", Some("python")).expect("seed2");
         let entries = crate::harness::list_rel(py_key, "", 0).expect("list after");
         assert!(entries.iter().any(|e| e == "app.py"), "{entries:?}");
         let node_key = "node-app";
-        seed_project_workspace(node_key, "Node App", "custom", Some("node")).expect("seed3");
+        seed_project_workspace(node_key, "Node App", "apps", Some("node")).expect("seed3");
         let entries = crate::harness::list_rel(node_key, "", 0).expect("list after2");
         assert!(entries.iter().any(|e| e == "index.js"), "{entries:?}");
 

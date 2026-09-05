@@ -11,7 +11,7 @@
     var KINDS = [
         { id: "bot", name: "Bot", sub: "Conversational bot (BASIC)", project_type: "bot" },
         { id: "website", name: "Website", sub: "Static site, Caddy-served", project_type: "website" },
-        { id: "custom", name: "Custom", sub: "Runtime VM + runner", project_type: "custom" }
+        { id: "apps", name: "Apps", sub: "Runtime app (node/python) + runner", project_type: "apps" }
     ];
     var TIERS = ["small", "medium", "large"];
     // #1271 — Source control mode. "Internal": the project lives on the
@@ -30,8 +30,8 @@
         website: ["htmx"],
         // Runtime apps are node or python — the two runtimes the dev VM and
         // the prod Deploy actually launch as an always-on service. htmx/html
-        // belong only to the Website kind (Caddy/static), not to a custom app.
-        custom: ["node", "python"]
+        // belong only to the Website kind (Caddy/static), not to an apps app.
+        apps: ["node", "python"]
     };
 
     // name kept in state so Kind/Tier re-renders do not discard the user's
@@ -309,7 +309,7 @@
         var payload = {
             env: env,
             tier: tier,
-            runner_enabled: kindId === "custom" && env === "development"
+            runner_enabled: kindId === "apps" && env === "development"
         };
         try {
             await vibeAuthFetch("/api/vibe/projects/" + project.id + "/vms", {
