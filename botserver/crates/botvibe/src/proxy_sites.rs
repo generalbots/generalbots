@@ -31,7 +31,13 @@ use std::collections::HashSet;
 use std::path::Path;
 use std::sync::LazyLock;
 
-/// Websites root INSIDE the proxy container (matches prod layout).
+use crate::site_env::{SiteEnv, SiteTarget};
+
+/// Websites root INSIDE the proxy container (matches prod layout). Production
+/// site dirs stay `{root}/{slug}`; the dev environment appends `-dev`
+/// (see [`crate::site_env::SiteTarget`]). Referenced by the unit tests that
+/// pin the site-block shape; production code goes through SiteTarget.
+#[cfg(test)]
 const PROXY_SITES_ROOT: &str = "/opt/gbo/data/websites";
 
 /// Caddyfile inside the proxy container (matches prod layout).
@@ -131,12 +137,25 @@ pub fn validate_slug(slug: &str) -> Result<(), String> {
 }
 
 /// Deterministic per-site port for python services (20000-29999). Stable
-/// across restarts so the Caddy route never churns.
+/// across restarts so the Caddy route never churns. The dev environment
+/// hashes a DIFFERENT string (`{slug}-dev`) so prod and dev services of the
+/// same site never share a port.
 pub fn python_port(slug: &str) -> u16 {
     let hash: u32 = slug
         .bytes()
         .fold(5381u32, |acc, b| acc.wrapping_mul(33).wrapping_add(b as u32));
     (20000 + (hash % 9999)) as u16
+}
+
+/// Port for a (slug, env) pair — dev sites derive from the dev dir name so
+/// they cannot collide with the prod service of the same site.
+fn python_port_for(target: &SiteTarget, slug: &str) -> u16 {
+    let key = if target.host.starts_with(&format!("{slug}-dev.")) {
+        format!("{slug}-dev")
+    } else {
+        slug.to_string()
+    };
+    python_port(&key)
 }
 
 /// `true` when `dir` is absent (free to create) or vibe-owned (marker file).
@@ -408,21 +427,32 @@ fn tls_internal_from_env() -> bool {
         .unwrap_or(false)
 }
 
+/// Test-mode block for the LEGACY prod target (kept for the unit tests that
+/// pin the site-block shape against regressions).
+#[cfg(test)]
 fn site_block_with_mode(slug: &str, python: bool, tls_internal: bool) -> String {
-    let site_host = format!("{slug}.{}", super::publish::published_domain());
+    let target = SiteTarget::new(
+        slug,
+        SiteEnv::Production,
+        &super::publish::published_domain(),
+    );
+    site_block_for_target(&target, slug, python, tls_internal)
+}
+
+/// Render the block for an arbitrary target (prod or dev). The dev python
+/// port differs from prod's so both services can run at once.
+fn site_block_for_target(target: &SiteTarget, slug: &str, python: bool, tls_internal: bool) -> String {
+    let site_host = target.host.clone();
     let tls = tls_directive(tls_internal);
     if python {
-        let port = python_port(slug);
+        let port = python_port_for(target, slug);
         format!("{site_host} {{\n{tls}\treverse_proxy 127.0.0.1:{port}\n}}\n")
     } else {
         format!(
-            "{site_host} {{\n{tls}\troot * {PROXY_SITES_ROOT}/{slug}\n\tfile_server\n\tencode zstd gzip\n}}\n"
+            "{site_host} {{\n{tls}\troot * {dir}\n\tfile_server\n\tencode zstd gzip\n}}\n",
+            dir = target.dir
         )
     }
-}
-
-fn site_block(slug: &str, python: bool) -> String {
-    site_block_with_mode(slug, python, tls_internal_from_env())
 }
 
 /// Pull the proxy Caddyfile to a local temp file. Caller owns the temp file.
@@ -517,16 +547,16 @@ fn validate_candidate(candidate: &Path) -> Result<(), String> {
 
 /// Reload caddy against the LIVE config path. The harness runs commands
 /// with a cleared environment, so `CADDY_ADMIN` is passed explicitly as an
-/// argv env assignment: when the admin endpoint binds a wildcard address
-/// (`admin 0.0.0.0:2019`), Caddy's origin enforcement rejects a CLI dial
-/// with Host `0.0.0.0:2019` (HTTP 403) — dialing `127.0.0.1` is always an
-/// allowed origin.
+/// argv env assignment. The admin endpoint binds `0.0.0.0:2019`; Caddy's
+/// origin enforcement only accepts the dial host `localhost` (the CLI
+/// normalizes `127.0.0.1` to Host `0.0.0.0:2019`, which is rejected with
+/// HTTP 403 — verified against the dev proxy).
 fn reload_caddy() -> Result<(), String> {
     must_run(
         "caddy reload",
         &[
             "env".to_string(),
-            "CADDY_ADMIN=127.0.0.1:2019".to_string(),
+            "CADDY_ADMIN=localhost:2019".to_string(),
             "caddy".to_string(),
             "reload".to_string(),
             "--adapter".to_string(),
@@ -749,11 +779,17 @@ fn remove_site_config(site_host: &str) -> Result<(), String> {
 }
 
 /// Install (or refresh) the per-site python systemd service inside the
-/// proxy: venv + dependency install + unit + start. Idempotent.
-fn ensure_python_service(slug: &str) -> Result<u16, String> {
+/// proxy: venv + dependency install + unit + start. Idempotent. The unit
+/// name and payload dir come from the (slug, env) target so prod and dev
+/// services of the same site run side by side on distinct ports.
+fn ensure_python_service_for(
+    slug: &str,
+    site_dir: &str,
+    port: u16,
+    env: SiteEnv,
+) -> Result<u16, String> {
     check_python_runtime()?;
-    let site_dir = format!("{PROXY_SITES_ROOT}/{slug}");
-    let port = python_port(slug);
+    let unit_name = if env == SiteEnv::Dev { format!("{slug}-dev") } else { slug.to_string() };
 
     // venv + deps (idempotent; pip resolves the locked set every publish).
     must_run(
@@ -785,18 +821,20 @@ fn ensure_python_service(slug: &str) -> Result<u16, String> {
         )?;
     }
 
-    // systemd unit — pushed as a file (no shell needed).
+    // systemd unit — pushed as a file (no shell needed). Unit name is
+    // env-suffixed for dev (gb-vibe-{slug}-dev) so it never clashes with the
+    // prod service of the same site.
     let unit = format!(
-        "[Unit]\nDescription=GB vibe site {slug}\nAfter=network.target\n\n[Service]\nWorkingDirectory={site_dir}\nEnvironment=PORT={port}\nExecStart={site_dir}/.venv/bin/python {site_dir}/app.py\nRestart=always\nRestartSec=3\n\n[Install]\nWantedBy=multi-user.target\n"
+        "[Unit]\nDescription=GB vibe site {unit_name}\nAfter=network.target\n\n[Service]\nWorkingDirectory={site_dir}\nEnvironment=PORT={port}\nExecStart={site_dir}/.venv/bin/python {site_dir}/app.py\nRestart=always\nRestartSec=3\n\n[Install]\nWantedBy=multi-user.target\n"
     );
-    let unit_tmp = std::env::temp_dir().join(format!("gb-vibe-{slug}.service"));
+    let unit_tmp = std::env::temp_dir().join(format!("gb-vibe-{unit_name}.service"));
     std::fs::write(&unit_tmp, unit).map_err(|e| format!("write unit: {e}"))?;
-    let unit_target = format!("proxy/etc/systemd/system/gb-vibe-{slug}.service");
+    let unit_target = format!("proxy/etc/systemd/system/gb-vibe-{unit_name}.service");
     // Pre-delete the unit: `incus file push` cannot overwrite a file owned
     // by another uid (EACCES) — seen when a previous botserver ran as a
     // different user.
     let _ = proxy_exec(
-        &["rm".to_string(), "-f".to_string(), format!("/etc/systemd/system/gb-vibe-{slug}.service")],
+        &["rm".to_string(), "-f".to_string(), format!("/etc/systemd/system/gb-vibe-{unit_name}.service")],
         15,
     );
     let pushed = crate::harness::cmd::run(
@@ -819,7 +857,7 @@ fn ensure_python_service(slug: &str) -> Result<u16, String> {
     must_run("daemon-reload", &["systemctl".to_string(), "daemon-reload".to_string()], 30)?;
     must_run(
         "service restart",
-        &["systemctl".to_string(), "restart".to_string(), format!("gb-vibe-{slug}")],
+        &["systemctl".to_string(), "restart".to_string(), format!("gb-vibe-{unit_name}")],
         60,
     )?;
     Ok(port)
@@ -917,15 +955,23 @@ fn verify_route_serving(site_host: &str) -> Result<(), String> {
 }
 
 /// Blocking core of [`deploy_site_to_proxy`] — runs under the publish lock.
-fn deploy_site_to_proxy_sync(
+/// #1290 — parameterized on the environment target (prod keeps the legacy
+/// `{slug}` dir/host; dev stages into `{slug}-dev` at `{slug}-dev.{domain}`).
+fn deploy_site_to_target_sync(
     project: &crate::projects::Project,
     python: bool,
     verify: bool,
+    target: &SiteTarget,
+    env: SiteEnv,
 ) -> Result<(String, String), String> {
     let _guard = lock_publish();
     let slug = site_slug(&project.name);
     validate_slug(&slug)?;
-    let site_dir = format!("{PROXY_SITES_ROOT}/{slug}");
+    if env == SiteEnv::Dev {
+        // The dev suffix must itself be a legal host label.
+        validate_slug(&format!("{slug}-dev"))?;
+    }
+    let site_dir = target.dir.clone();
     if !dir_is_vibe_owned(&site_dir)? {
         return Err(format!(
             "refusing to publish: {site_dir} already exists and is not vibe-managed \
@@ -937,19 +983,22 @@ fn deploy_site_to_proxy_sync(
     stage_payload(project, &site_dir)?;
     let mut service_note = String::new();
     if python {
-        let port = ensure_python_service(&slug)?;
+        let port = python_port_for(target, &slug);
+        ensure_python_service_for(&slug, &site_dir, port, env)?;
         probe_python_service(port)?;
-        service_note = format!("gb-vibe-{slug}@127.0.0.1:{port}");
+        let unit_slug = if env == SiteEnv::Dev { format!("{slug}-dev") } else { slug.clone() };
+        service_note = format!("gb-vibe-{unit_slug}@127.0.0.1:{port}");
     }
-    upsert_site_config(&format!("{slug}.{}", super::publish::published_domain()), &site_block(&slug, python))?;
+    upsert_site_config(&target.host, &site_block_for_target(target, &slug, python, tls_internal_from_env()))?;
     if verify {
-        verify_route_serving(&format!("{slug}.{}", super::publish::published_domain()))?;
+        verify_route_serving(&target.host)?;
     }
-    let host = format!("{slug}.{}", super::publish::published_domain());
-    let url = format!("https://{host}/");
+    let url = format!("https://{}/", target.host);
     log::info!(
-        "Vibe publish {}: staged site to proxy {site_dir} host {host} {}",
+        "Vibe publish {} ({}): staged site to proxy {site_dir} host {} {}",
         project.name,
+        env.as_str(),
+        target.host,
         service_note
     );
     Ok((url, service_note))
@@ -962,22 +1011,126 @@ pub async fn deploy_site_to_proxy(
     project: &crate::projects::Project,
     python: bool,
 ) -> Result<(String, String), String> {
-    let p = project.clone();
-    tokio::task::spawn_blocking(move || deploy_site_to_proxy_sync(&p, python, true))
-        .await
-        .map_err(|e| format!("publish task: {e}"))?
+    deploy_site_to_proxy_env(project, python, SiteEnv::Production).await
 }
 
-/// Blocking core of [`rollback_site`].
-fn rollback_site_sync(slug: &str) -> Result<String, String> {
+/// #1290 — env-aware deploy: `production` keeps the legacy `{slug}` target,
+/// `development` publishes `{slug}-dev.{domain}` from `websites/{slug}-dev`
+/// with its own release ring and python service.
+pub async fn deploy_site_to_proxy_env(
+    project: &crate::projects::Project,
+    python: bool,
+    env: SiteEnv,
+) -> Result<(String, String), String> {
+    let p = project.clone();
+    let domain = super::publish::published_domain();
+    tokio::task::spawn_blocking(move || {
+        let slug = site_slug(&p.name);
+        let target = SiteTarget::new(&slug, env, &domain);
+        deploy_site_to_target_sync(&p, python, true, &target, env)
+    })
+    .await
+    .map_err(|e| format!("publish task: {e}"))?
+}
+
+/// #1290 — promote the current DEV release of a site to PROD. The dev live
+/// payload is archived (tar) and staged into the prod target through the
+/// same swap path as a normal publish, so the prod `.prev-N` ring, route
+/// and (for python) service are refreshed exactly like a direct deploy.
+pub async fn promote_site_dev_to_prod(project: &crate::projects::Project, python: bool) -> Result<String, String> {
+    let slug = site_slug(&project.name);
+    let domain = super::publish::published_domain();
+    let (prod, dev) = crate::site_env::both_targets(&slug, &domain);
+    let promote: Result<String, String> = tokio::task::spawn_blocking(move || {
+        let _guard = lock_publish();
+        validate_slug(&slug)?;
+        // The dev payload must exist and be vibe-owned.
+        let marker = proxy_exec(
+            &["test".to_string(), "-f".to_string(), format!("{dir}/{MARKER_FILE}", dir = dev.dir)],
+            15,
+        )?;
+        if marker.exit_code != Some(0) {
+            return Err(format!(
+                "no dev release for '{slug}' — publish to the dev environment first"
+            ));
+        }
+        // Prod target must be free or vibe-owned.
+        if !dir_is_vibe_owned(&prod.dir)? {
+            return Err(format!(
+                "refusing to promote: {} exists and is not vibe-managed",
+                prod.dir
+            ));
+        }
+        // Stage: archive dev payload inside the proxy, extract into the prod
+        // staging dir, then reuse the standard swap.
+        let arch = format!("/tmp/gb-promote-{}.tar", std::process::id());
+        let _ = proxy_exec(&["rm".to_string(), "-f".to_string(), arch.clone()], 15);
+        must_run(
+            "archive dev payload",
+            &[
+                "tar".to_string(),
+                "-cf".to_string(),
+                arch.clone(),
+                "-C".to_string(),
+                dev.dir.clone(),
+                ".".to_string(),
+            ],
+            120,
+        )?;
+        let new_dir = format!("{}.new", prod.dir);
+        let _ = must_run("cleanup promote staging", &["rm".to_string(), "-rf".to_string(), new_dir.clone()], 30);
+        must_run("mkdir promote staging", &["mkdir".to_string(), "-p".to_string(), new_dir.clone()], 20)?;
+        let extract = must_run(
+            "extract promote staging",
+            &["tar".to_string(), "-xf".to_string(), arch.clone(), "-C".to_string(), new_dir.clone()],
+            120,
+        );
+        let _ = proxy_exec(&["rm".to_string(), "-f".to_string(), arch.clone()], 20);
+        extract?;
+        // The marker must survive the copy; add it if the archive missed it.
+        let _ = proxy_exec(&["touch".to_string(), format!("{new_dir}/{MARKER_FILE}")], 15);
+        // Refresh the prod release ring and swap payloads.
+        rotate_release(&prod.dir)?;
+        let old_dir = format!("{}.old", prod.dir);
+        let _ = proxy_exec(&["rm".to_string(), "-rf".to_string(), old_dir.clone()], 30);
+        let _ = proxy_exec(&["mv".to_string(), prod.dir.clone(), old_dir.clone()], 20);
+        must_run("promote dev→prod", &["mv".to_string(), new_dir, prod.dir.clone()], 20)?;
+        let _ = proxy_exec(&["rm".to_string(), "-rf".to_string(), old_dir], 30);
+        // Service + route refresh identical to a direct prod deploy: the
+        // caller's python flag decides the mode (the promoted payload carries
+        // app.py exactly when the dev site is python).
+        let py = python;
+        let mut service_note = String::new();
+        if py {
+            let port = python_port_for(&prod, &slug);
+            ensure_python_service_for(&slug, &prod.dir, port, SiteEnv::Production)?;
+            probe_python_service(port)?;
+            service_note = format!("gb-vibe-{slug}@127.0.0.1:{port}");
+        }
+        upsert_site_config(&prod.host, &site_block_for_target(&prod, &slug, py, tls_internal_from_env()))?;
+        verify_route_serving(&prod.host)?;
+        log::info!("Vibe promote {slug}: dev release promoted to {}", prod.host);
+        Ok(format!("https://{}/ ({service_note})", prod.host))
+    })
+    .await
+    .map_err(|e| format!("promote task: {e}"))?;
+    promote
+}
+
+/// Blocking core of [`rollback_site`] — #1290: env-aware via the target.
+fn rollback_site_for_sync(slug: &str, target: &SiteTarget, env: SiteEnv) -> Result<String, String> {
     let _guard = lock_publish();
     validate_slug(slug)?;
-    let site_dir = format!("{PROXY_SITES_ROOT}/{slug}");
+    let site_dir = target.dir.clone();
     // `.prev-1` must exist and be vibe-owned.
     let prev = format!("{site_dir}.prev-1");
     let marker = proxy_exec(&["test".to_string(), "-f".to_string(), format!("{prev}/{MARKER_FILE}")], 15)?;
     if marker.exit_code != Some(0) {
-        return Err(format!("no previous release retained for '{slug}' — nothing to roll back"));
+        return Err(format!(
+            "no previous release retained for '{}' ({}) — nothing to roll back",
+            slug,
+            env.as_str()
+        ));
     }
     // Current payload becomes .prev-1 (the target) → swap through .old.
     let old_dir = format!("{site_dir}.old");
@@ -993,16 +1146,14 @@ fn rollback_site_sync(slug: &str) -> Result<String, String> {
     )?
     .exit_code == Some(0);
     if py {
-        let port = ensure_python_service(slug)?;
+        let port = python_port_for(target, slug);
+        ensure_python_service_for(slug, &site_dir, port, env)?;
         probe_python_service(port)?;
     }
-    upsert_site_config(
-        &format!("{slug}.{}", super::publish::published_domain()),
-        &site_block(slug, py),
-    )?;
-    verify_route_serving(&format!("{slug}.{}", super::publish::published_domain()))?;
-    let url = format!("https://{slug}.{}/", super::publish::published_domain());
-    log::info!("Vibe rollback {slug}: previous release reactivated");
+    upsert_site_config(&target.host, &site_block_for_target(target, slug, py, tls_internal_from_env()))?;
+    verify_route_serving(&target.host)?;
+    let url = format!("https://{}/", target.host);
+    log::info!("Vibe rollback {slug} ({}): previous release reactivated", env.as_str());
     Ok(url)
 }
 
@@ -1010,16 +1161,26 @@ fn rollback_site_sync(slug: &str) -> Result<String, String> {
 /// refresh its Caddy route / python service. Serialized with publishes.
 pub async fn rollback_site(slug: &str) -> Result<String, String> {
     let slug = slug.to_string();
-    tokio::task::spawn_blocking(move || rollback_site_sync(&slug))
+    let target = SiteTarget::new(&slug, SiteEnv::Production, &super::publish::published_domain());
+    tokio::task::spawn_blocking(move || rollback_site_for_sync(&slug, &target, SiteEnv::Production))
         .await
         .map_err(|e| format!("rollback task: {e}"))?
 }
 
-/// Blocking core of [`unpublish_site`].
-fn unpublish_site_sync(slug: &str, purge: bool) -> Result<(), String> {
+/// #1290 — roll back the DEV release (`{slug}-dev`).
+pub async fn rollback_site_dev(slug: &str) -> Result<String, String> {
+    let slug = slug.to_string();
+    let target = SiteTarget::new(&slug, SiteEnv::Dev, &super::publish::published_domain());
+    tokio::task::spawn_blocking(move || rollback_site_for_sync(&slug, &target, SiteEnv::Dev))
+        .await
+        .map_err(|e| format!("rollback task: {e}"))?
+}
+
+/// Blocking core of [`unpublish_site`] — #1290: env-aware via the target.
+fn unpublish_site_for_sync(slug: &str, purge: bool, target: &SiteTarget, env: SiteEnv) -> Result<(), String> {
     let _guard = lock_publish();
     validate_slug(slug)?;
-    let site_dir = format!("{PROXY_SITES_ROOT}/{slug}");
+    let site_dir = target.dir.clone();
     // Nothing published → nothing to unpublish (idempotent for deletes and
     // project eviction; the caller logs a warning otherwise).
     let exists = proxy_exec(
@@ -1040,16 +1201,18 @@ fn unpublish_site_sync(slug: &str, purge: bool) -> Result<(), String> {
         ));
     }
     // 1. Route out first (the public face goes away immediately).
-    remove_site_config(&format!("{slug}.{}", super::publish::published_domain()))?;
-    // 2. Stop + disable + remove the python service when present.
-    let unit = format!("/etc/systemd/system/gb-vibe-{slug}.service");
+    remove_site_config(&target.host)?;
+    // 2. Stop + disable + remove the python service when present. The unit
+    //    name is env-suffixed for dev so prod and dev services are distinct.
+    let unit_name = if env == SiteEnv::Dev { format!("{slug}-dev") } else { slug.to_string() };
+    let unit = format!("/etc/systemd/system/gb-vibe-{unit_name}.service");
     let has_unit = proxy_exec(&["test".to_string(), "-f".to_string(), unit.clone()], 15)?;
     if has_unit.exit_code == Some(0) {
         let _ = proxy_exec(
             &[
                 "systemctl".to_string(),
                 "stop".to_string(),
-                format!("gb-vibe-{slug}"),
+                format!("gb-vibe-{unit_name}"),
             ],
             30,
         );
@@ -1057,7 +1220,7 @@ fn unpublish_site_sync(slug: &str, purge: bool) -> Result<(), String> {
             &[
                 "systemctl".to_string(),
                 "disable".to_string(),
-                format!("gb-vibe-{slug}"),
+                format!("gb-vibe-{unit_name}"),
             ],
             30,
         );
@@ -1080,7 +1243,7 @@ fn unpublish_site_sync(slug: &str, purge: bool) -> Result<(), String> {
         ],
         20,
     );
-    log::info!("Vibe unpublish {slug}: route removed, payload retired (purge={purge})");
+    log::info!("Vibe unpublish {slug} ({}): route removed, payload retired (purge={purge})", env.as_str());
     Ok(())
 }
 
@@ -1088,9 +1251,23 @@ fn unpublish_site_sync(slug: &str, purge: bool) -> Result<(), String> {
 /// (retained as `<site>.unpublished` unless `purge` is set).
 pub async fn unpublish_site(slug: &str, purge: bool) -> Result<(), String> {
     let slug = slug.to_string();
-    tokio::task::spawn_blocking(move || unpublish_site_sync(&slug, purge))
-        .await
-        .map_err(|e| format!("unpublish task: {e}"))?
+    let target = SiteTarget::new(&slug, SiteEnv::Production, &super::publish::published_domain());
+    tokio::task::spawn_blocking(move || {
+        unpublish_site_for_sync(&slug, purge, &target, SiteEnv::Production)
+    })
+    .await
+    .map_err(|e| format!("unpublish task: {e}"))?
+}
+
+/// #1290 — take the DEV site (`{slug}-dev`) off the proxy.
+pub async fn unpublish_site_dev(slug: &str, purge: bool) -> Result<(), String> {
+    let slug = slug.to_string();
+    let target = SiteTarget::new(&slug, SiteEnv::Dev, &super::publish::published_domain());
+    tokio::task::spawn_blocking(move || {
+        unpublish_site_for_sync(&slug, purge, &target, SiteEnv::Dev)
+    })
+    .await
+    .map_err(|e| format!("unpublish task: {e}"))?
 }
 
 /// Which workspace filenames indicate a python project (used by publish to

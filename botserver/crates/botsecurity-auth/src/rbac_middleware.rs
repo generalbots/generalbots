@@ -1236,6 +1236,13 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/vibe/metrics/**", "GET", ""),
         RoutePermission::new("/api/vibe/runs/**", "GET", ""),
         RoutePermission::new("/api/vibe/tools/**", "GET", ""),
+        // #1290 — tool execution endpoints (e.g. publish/project, domain/bind)
+        // live under /api/vibe/tools/**; without a POST rule the default-deny
+        // catalog rejects every tool call from the UI with "No matching route
+        // permission found". Role enforcement for deploy-grade tools happens
+        // inside the handlers (RBAC + metering), so the route opens to any
+        // authenticated user here.
+        RoutePermission::new("/api/vibe/tools/**", "POST", ""),
         RoutePermission::new("/api/vibe/events/**", "GET", ""),
         RoutePermission::new("/api/vibe/teams/**", "GET", ""),
         RoutePermission::new("/api/vibe/run/**", "POST", ""),
