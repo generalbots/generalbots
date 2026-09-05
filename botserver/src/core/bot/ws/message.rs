@@ -207,27 +207,20 @@ pub async fn run_start_bas_on_connect(
 
     let work_path = botcore::shared::utils::get_work_path();
 
-    // Try {bot_name}.gborg/ path first, then {bot_name}.gbai/ (legacy)
+    // Cross-layout lookup: bot-named org bucket, standalone bucket, or org workspace.
     let ast_content = {
-        let paths = [
-            format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/start.ast"),
-            format!("{bot_name}.gbai/{bot_name}.gbdialog/start.ast"),
-        ];
         let mut found = String::new();
-        for rel_path in &paths {
-            let safe = verify_path_within_workdir(rel_path);
-            info!("start.bas: trying path='{}' safe={} work_path='{}'", rel_path, safe, work_path);
-            if !safe {
-                continue;
+        let rel = format!("{bot_name}.gbdialog/start.ast");
+        match botcore::shared::utils::read_bot_file_across_layouts(&work_path, bot_name, &rel).await {
+            Some(c) => {
+                info!("start.bas: found start.ast for {bot_name} ({} bytes)", c.len());
+                found = c;
             }
-            let full_path = format!("{work_path}/{rel_path}");
-            match tokio::fs::read_to_string(&full_path).await {
-                Ok(c) if !c.is_empty() => { found = c; info!("start.bas: found at {}", full_path); break; }
-                _ => {
-                    let bas_path = full_path.replace(".ast", ".bas");
-                    if let Ok(c) = tokio::fs::read_to_string(&bas_path).await {
-                        if !c.is_empty() { found = c; info!("start.bas: found at {}", bas_path); break; }
-                    }
+            None => {
+                let bas_rel = format!("{bot_name}.gbdialog/start.bas");
+                if let Some(c) = botcore::shared::utils::read_bot_file_across_layouts(&work_path, bot_name, &bas_rel).await {
+                    info!("start.bas: found start.bas (uncompiled) for {bot_name}");
+                    found = c;
                 }
             }
         }

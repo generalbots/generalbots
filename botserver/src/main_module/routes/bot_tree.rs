@@ -10,6 +10,93 @@ use uuid::Uuid;
 
 use botcore::shared::state::AppState;
 
+/// Workspace name of the branch that backs the **default** org on every
+/// environment: `{branch}.gbai/` inside the `default.gborg` bucket. Bots
+/// created through the suite UI live there (drive_monitor discovers bots
+/// from `{branch}.gbai/{bot}.gbdialog/*` object keys).
+const DEFAULT_WORKSPACE_PREFIX: &str = "default.gbai";
+const DEFAULT_GBORG_BUCKET: &str = "default.gborg";
+
+fn slugify_bot_name(name: &str) -> String {
+    name.to_lowercase()
+        .replace(' ', "-")
+        .replace('_', "-")
+        .chars()
+        .filter(|c| c.is_alphanumeric() || *c == '-')
+        .collect()
+}
+
+/// #1289 — a bot can only chat if its drive objects exist: drive_monitor
+/// discovers bots from `{branch}.gbai/{bot}.gbdialog/*` keys, the WS session
+/// runs `{bot}.gbdialog/start.bas`, and `.gbot/` carries per-bot config.
+/// Seed the minimal working set into Drive right after the DB row insert
+/// (best-effort: a Drive outage must not block bot creation, matching the
+/// signup flow's non-fatal bucket creation).
+async fn seed_bot_drive_objects(
+    state: &Arc<AppState>,
+    bot_slug: &str,
+    bot_name: &str,
+) -> Result<(), String> {
+    let s3 = state
+        .drive
+        .as_ref()
+        .ok_or_else(|| "drive storage unavailable".to_string())?;
+    let bucket = DEFAULT_GBORG_BUCKET;
+    let prefix = DEFAULT_WORKSPACE_PREFIX;
+
+    // 1. start.bas — the session entry point (double quotes: BASIC syntax).
+    let start_bas = format!(
+        "REM {bot_name} - session entry point (auto-generated at bot creation)\n\
+         ADD_SUGGESTION \"What can you do?\"\n\
+         ADD_SUGGESTION \"Tell me about yourself\"\n\
+         TALK \"Hello! I'm {bot_name}. How can I help you today?\"\n"
+    );
+    s3.put_object(
+        bucket,
+        &format!("{prefix}/{bot_slug}.gbdialog/start.bas"),
+        start_bas.into_bytes(),
+        Some("text/plain"),
+    )
+    .await
+    .map_err(|e| format!("seed start.bas: {e}"))?;
+
+    // 2. config.bas — an empty tool table (kept for parity with templates).
+    s3.put_object(
+        bucket,
+        &format!("{prefix}/{bot_slug}.gbdialog/config.bas"),
+        b"REM placeholder tool configuration\n".to_vec(),
+        Some("text/plain"),
+    )
+    .await
+    .map_err(|e| format!("seed config.bas: {e}"))?;
+
+    // 3. {bot}.gbot/config.csv — per-bot configuration header.
+    let config_csv = "name,value\n".to_string();
+    s3.put_object(
+        bucket,
+        &format!("{prefix}/{bot_slug}.gbot/config.csv"),
+        config_csv.into_bytes(),
+        Some("text/csv"),
+    )
+    .await
+    .map_err(|e| format!("seed gbot config: {e}"))?;
+
+    // 4. {bot}.gbkb/docs/.keep — knowledge-base directory marker.
+    s3.put_object(
+        bucket,
+        &format!("{prefix}/{bot_slug}.gbkb/docs/.keep"),
+        Vec::new(),
+        Some("text/plain"),
+    )
+    .await
+    .map_err(|e| format!("seed gbkb marker: {e}"))?;
+
+    log::info!(
+        "Seeded drive objects for bot '{bot_slug}' in {bucket}/{prefix} (gbdialog, gbot, gbkb)"
+    );
+    Ok(())
+}
+
 fn html_escape(s: &str) -> String {
     s.replace('&', "&amp;")
         .replace('<', "&lt;")
@@ -359,16 +446,36 @@ pub async fn handle_bot_create(
 
     let bot_id = Uuid::new_v4();
     let branch_id = uuid::Uuid::nil();
+    // #1289 — org scope: bots.org_id is NOT NULL; drive-created bots resolve
+    // the default org. Resolve the default org the same way (any existing
+    // bot's org, falling back to the bootstrap default org UUID).
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct OrgId {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        org_id: Uuid,
+    }
+    let org_id: Uuid = diesel::sql_query(
+        "SELECT org_id FROM bots WHERE org_id IS NOT NULL ORDER BY created_at ASC LIMIT 1",
+    )
+    .get_result::<OrgId>(&mut conn)
+    .map(|r| r.org_id)
+    .unwrap_or_else(|_| Uuid::from_u128(0xf47ac10b58cc4372a5670e02b2c3d479));
+    // #1289 — is_public: the WS gateway denies connections to non-public
+    // bots (`WS access denied` / close 1006). Bots created by a signed-in
+    // user must be chattable immediately, exactly like the drive-discovered
+    // ones on dev.
     let result = diesel::sql_query(
-        "INSERT INTO bots (id, name, description, parent_bot_id, branch_id, llm_provider, llm_config, \
+        "INSERT INTO bots (id, name, description, parent_bot_id, org_id, branch_id, llm_provider, llm_config, \
                 context_provider, context_config, enabled_tabs_json, is_active, is_public, created_at, updated_at) \
-         VALUES ($1, $2, $3, $4, $5, 'openai', '{}', 'openai', '{}', '[\"chat\"]', true, false, NOW(), NOW())",
+         VALUES ($1, $2, $3, $4, $6, $5, 'openai', '{}', 'openai', '{}', '[\"chat\"]', true, true, NOW(), NOW())",
     )
     .bind::<diesel::sql_types::Uuid, _>(bot_id)
     .bind::<diesel::sql_types::Text, _>(&name)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(description)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Uuid>, _>(parent_bot_id)
     .bind::<diesel::sql_types::Uuid, _>(branch_id)
+    .bind::<diesel::sql_types::Uuid, _>(org_id)
     .execute(&mut conn);
 
     if let Err(e) = result {
@@ -379,7 +486,30 @@ pub async fn handle_bot_create(
             .into_response();
     }
 
-    Json(serde_json::json!({ "success": true, "id": bot_id })).into_response()
+    // #1289 — seed the drive objects so the bot can actually chat and the
+    // launcher can link to it. Non-fatal (mirrors the signup flow): the DB
+    // row exists; a drive failure is reported but does not roll back.
+    let bot_slug = slugify_bot_name(&name);
+    let mut drive_seeded = true;
+    let mut drive_error = String::new();
+    if bot_slug.is_empty() {
+        drive_seeded = false;
+        drive_error = "bot name produced an empty slug".to_string();
+    } else if let Err(e) = seed_bot_drive_objects(&state, &bot_slug, &name).await {
+        log::error!("drive seeding for new bot '{bot_slug}' failed: {e}");
+        drive_seeded = false;
+        drive_error = e;
+    }
+
+    Json(serde_json::json!({
+        "success": true,
+        "id": bot_id,
+        "slug": bot_slug,
+        "chat_url": format!("/{bot_slug}"),
+        "drive_seeded": drive_seeded,
+        "drive_error": drive_error,
+    }))
+    .into_response()
 }
 
 pub fn configure_bot_tree_routes() -> Router<Arc<AppState>> {

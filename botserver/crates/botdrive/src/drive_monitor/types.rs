@@ -78,12 +78,29 @@ impl DriveMonitor {
                     if !already_exists {
                         if let Ok(mut conn) = self.state.conn.get() {
                             use diesel::RunQueryDsl;
+                            // #1289 — org scope: bots.org_id is NOT NULL. Resolve
+                            // the default org like the bootstrap path (any existing
+                            // bot's org → bootstrap default UUID) so a monitor for a
+                            // drive-only bot does not crash on every scan.
+                            #[derive(diesel::QueryableByName)]
+                            #[diesel(check_for_backend(diesel::pg::Pg))]
+                            struct OrgId {
+                                #[diesel(sql_type = diesel::sql_types::Uuid)]
+                                org_id: uuid::Uuid,
+                            }
+                            let org_id: uuid::Uuid = diesel::sql_query(
+                                "SELECT org_id FROM bots WHERE org_id IS NOT NULL ORDER BY created_at ASC LIMIT 1",
+                            )
+                            .get_result::<OrgId>(&mut conn)
+                            .map(|r| r.org_id)
+                            .unwrap_or_else(|_| uuid::Uuid::from_u128(0xf47ac10b58cc4372a5670e02b2c3d479));
                             if let Err(e) = diesel::sql_query(
-                                "INSERT INTO bots (id, name, llm_provider, llm_config, context_provider, context_config, is_public, created_at, updated_at) \
-                                 VALUES ($1, $2, 'openai', '{}', 'openai', '{}', false, NOW(), NOW()) ON CONFLICT (id) DO NOTHING"
+                                "INSERT INTO bots (id, name, org_id, llm_provider, llm_config, context_provider, context_config, is_public, created_at, updated_at) \
+                                 VALUES ($1, $2, $3, 'openai', '{}', 'openai', '{}', true, NOW(), NOW()) ON CONFLICT (id) DO NOTHING"
                             )
                             .bind::<diesel::sql_types::Uuid, _>(self.bot_id)
                             .bind::<diesel::sql_types::Text, _>(bot_name)
+                            .bind::<diesel::sql_types::Uuid, _>(org_id)
                             .execute(&mut conn) {
                                 log::error!("Failed to auto-create bot {} in database: {}", bot_name, e);
                             } else {

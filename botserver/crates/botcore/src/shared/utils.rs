@@ -117,6 +117,84 @@ pub fn get_work_path() -> String {
     get_work_path_default()
 }
 
+/// Resolve and read a bot file across all supported Drive layouts.
+///
+/// A bot's materialized files can live under the work path in three layouts:
+/// 1. Bot-named org bucket (legacy primary): `{bot}.gborg/{bot}.gbai/{file_sub}`
+/// 2. Standalone bucket:                     `{bot}.gbai/{file_sub}`
+/// 3. Org workspace (SaaS):                  `{org}.gborg/{branch}.gbai/{file_sub}`
+///
+/// `file_sub` is the path **inside** the `.gbai` bucket, e.g.
+/// `{bot}.gbdialog/start.ast`. Layout 3 is discovered by scanning
+/// `{work_path}/*.gborg/*.gbai/` because callers (e.g. WebSocket handlers)
+/// usually only know the bot name — not the org or branch the bot was synced
+/// under. Returns the first non-empty hit.
+pub async fn read_bot_file_across_layouts(
+    work_path: &str,
+    bot_name: &str,
+    file_sub: &str,
+) -> Option<String> {
+    // Safety: reject traversal in the bucket-relative portion.
+    let sub = std::path::Path::new(file_sub);
+    if sub.is_absolute()
+        || file_sub.contains("..")
+        || bot_name.contains("..")
+        || bot_name.contains('/')
+    {
+        warn!("read_bot_file_across_layouts: unsafe path rejected: bot={bot_name} sub={file_sub}");
+        return None;
+    }
+
+    // Layouts 1 and 2 — deterministic, no scan needed.
+    for rel in [
+        format!("{work_path}/{bot_name}.gborg/{bot_name}.gbai/{file_sub}"),
+        format!("{work_path}/{bot_name}.gbai/{file_sub}"),
+    ] {
+        if let Ok(content) = tokio::fs::read_to_string(&rel).await {
+            if !content.is_empty() {
+                debug!("read_bot_file_across_layouts: found {rel}");
+                return Some(content);
+            }
+        }
+    }
+
+    // Layout 3 — scan org workspaces: {work_path}/{org}.gborg/{branch}.gbai/{file_sub}
+    let mut dirs = match tokio::fs::read_dir(work_path).await {
+        Ok(d) => d,
+        Err(e) => {
+            warn!("read_bot_file_across_layouts: cannot list {work_path}: {e}");
+            return None;
+        }
+    };
+    while let Ok(Some(entry)) = dirs.next_entry().await {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if !name.ends_with(".gborg") {
+            continue;
+        }
+        let org_dir = entry.path();
+        let mut branches = match tokio::fs::read_dir(&org_dir).await {
+            Ok(b) => b,
+            Err(_) => continue,
+        };
+        while let Ok(Some(branch)) = branches.next_entry().await {
+            let bname = branch.file_name();
+            let bname = bname.to_string_lossy();
+            if !bname.ends_with(".gbai") {
+                continue;
+            }
+            let full = branch.path().join(sub);
+            if let Ok(content) = tokio::fs::read_to_string(&full).await {
+                if !content.is_empty() {
+                    debug!("read_bot_file_across_layouts: found {}", full.display());
+                    return Some(content);
+                }
+            }
+        }
+    }
+    None
+}
+
 /// Returns the current org ID for bot file path isolation.
 ///
 /// Currently always returns Uuid::nil() until real multi-tenant auth

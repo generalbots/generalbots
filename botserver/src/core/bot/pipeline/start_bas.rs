@@ -39,23 +39,16 @@ pub async fn run_start_bas(
 
     let work_path = botcore::shared::utils::get_work_path();
     let ast_content = {
-        let paths = [
-            format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/start.ast"),
-            format!("{bot_name}.gbai/{bot_name}.gbdialog/start.ast"),
-        ];
         let mut found = String::new();
-        for rel_path in &paths {
-            let safe = crate::core::bot::ws::handler::verify_path_within_workdir(rel_path);
-            if !safe { continue; }
-            let full_path = format!("{work_path}/{rel_path}");
-            match tokio::fs::read_to_string(&full_path).await {
-                Ok(c) if !c.is_empty() => { found = c; break; }
-                _ => {
-                    let bas_path = full_path.replace(".ast", ".bas");
-                    if let Ok(c) = tokio::fs::read_to_string(&bas_path).await {
-                        if !c.is_empty() { found = c; break; }
-                    }
-                }
+        let rel = format!("{bot_name}.gbdialog/start.ast");
+        if let Some(c) = botcore::shared::utils::read_bot_file_across_layouts(&work_path, bot_name, &rel).await {
+            log::info!("start.bas: found start.ast for {bot_name} ({} bytes)", c.len());
+            found = c;
+        } else {
+            let bas_rel = format!("{bot_name}.gbdialog/start.bas");
+            if let Some(c) = botcore::shared::utils::read_bot_file_across_layouts(&work_path, bot_name, &bas_rel).await {
+                log::info!("start.bas: found start.bas (uncompiled) for {bot_name}");
+                found = c;
             }
         }
         found

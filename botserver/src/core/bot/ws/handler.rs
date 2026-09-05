@@ -72,7 +72,10 @@ fn lookup_bot_id(state: &Arc<AppState>, bot_name: &str) -> Uuid {
                 .first::<Uuid>(&mut conn)
                 .unwrap_or(Uuid::nil())
         } else {
-            bots.filter(name.eq(&bot_name))
+            // #1289 — the launcher/URL identifies bots by SLUG; accept either
+            // name or slug so a freshly created bot connects immediately.
+            use botcorebot::schema::bots::dsl::slug;
+            bots.filter(name.eq(&bot_name).or(slug.eq(&bot_name)))
                 .select(id)
                 .first::<Uuid>(&mut conn)
                 .unwrap_or_else(|_| {

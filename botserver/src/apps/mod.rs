@@ -283,6 +283,74 @@ fn is_app_compiled(id: &str) -> bool {
     }
 }
 
+/// #1289/#1291 — user bots as first-class launcher apps. Every active bot
+/// becomes a chat tile (`bot-{slug}`) that opens the Chat window bound to
+/// THAT bot via the `bot` deep-link param (chat-init consumes
+/// `__gbAppParams__.bot` and calls ChatSwitchBot). Query is best-effort: a
+/// DB hiccup degrades to the static catalog only.
+fn bot_launcher_apps() -> Vec<serde_json::Value> {
+    use diesel::prelude::*;
+    let pool = match botcore::shared::utils::create_conn() {
+        Ok(p) => p,
+        Err(e) => {
+            log::warn!("apps catalog: bots listing skipped (db: {e})");
+            return Vec::new();
+        }
+    };
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct BotRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        name: String,
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+        description: Option<String>,
+    }
+    let mut conn = match pool.get() {
+        Ok(c) => c,
+        Err(e) => {
+            log::warn!("apps catalog: bots listing skipped (pool: {e})");
+            return Vec::new();
+        }
+    };
+    let rows: Vec<BotRow> = diesel::sql_query(
+        "SELECT name, description FROM bots WHERE is_active = true ORDER BY created_at DESC LIMIT 40",
+    )
+    .load(&mut conn)
+    .unwrap_or_default();
+    rows.into_iter()
+        .map(|b| {
+            // Slug must be URL/launcher-safe: names like "Helper Bot" would
+            // otherwise produce ids with spaces and deep-links that never
+            // match the bot's chat route.
+            let slug = b
+                .name
+                .to_lowercase()
+                .replace(' ', "-")
+                .replace('_', "-")
+                .chars()
+                .filter(|c| c.is_ascii_alphanumeric() || *c == '-')
+                .collect::<String>();
+            json!({
+                "id": format!("bot-{slug}"),
+                "title": b.name,
+                "category": "ai",
+                "color": "#84d669",
+                "url": "/suite/partials/chat.html",
+                "description": b.description.unwrap_or_else(|| format!("Chat with the {} assistant.", b.name)),
+                "keywords": format!("bot chat assistant {slug}"),
+                "icon": "<rect x=\"4\" y=\"8\" width=\"16\" height=\"12\" rx=\"2\"/><path d=\"M12 8V4M8 4h8\"/><circle cx=\"9\" cy=\"13\" r=\"1\"/><circle cx=\"15\" cy=\"13\" r=\"1\"/>",
+                "kind": "app",
+                "widget": serde_json::Value::Null,
+                "launcher_default": true,
+                "enabled": true,
+                "compiled": true,
+                "commands": [],
+                "deep_link_params": { "bot": slug },
+            })
+        })
+        .collect()
+}
+
 pub async fn catalog_handler() -> Json<serde_json::Value> {
     let apps = registry::all_apps();
 
@@ -343,8 +411,13 @@ pub async fn catalog_handler() -> Json<serde_json::Value> {
         .collect();
 
     let _derived_count = derived.len();
+    // #1289/#1291 — append user bots after the static registry so they always
+    // surface in the launcher (frontend merges by id; static wins nothing
+    // since bot ids are namespaced `bot-`).
+    let mut all_items = items;
+    all_items.extend(bot_launcher_apps());
     Json(json!({
-        "apps": items,
+        "apps": all_items,
         "categories": registry::CATEGORIES
             .iter()
             .map(|(k, l)| json!({"id": k, "label": l}))
