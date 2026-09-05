@@ -412,9 +412,11 @@ impl VMetering {
         match plan {
             MeterPlan::PrivateCloud => Ok(()),
             MeterPlan::Free => {
-                let is_custom = project_type.eq_ignore_ascii_case("custom");
-                if is_custom {
-                    return Err("custom projects require the private-cloud plan".to_string());
+                // #1291 — kind renamed custom→apps; legacy rows keep "custom".
+                let is_apps = project_type.eq_ignore_ascii_case("apps")
+                    || project_type.eq_ignore_ascii_case("custom");
+                if is_apps {
+                    return Err("apps projects require the private-cloud plan".to_string());
                 }
                 let count = self.project_count(org_id, project_type)?;
                 if count >= 1 {

@@ -256,7 +256,7 @@ fn resolve_project(
             let org_id = user.organization_id.unwrap_or_else(Uuid::nil);
             let create = CreateProjectRequest {
                 name: name.clone(),
-                project_type: Some("custom".to_string()),
+                project_type: Some("apps".to_string()),
                 repository: Some(name.clone()),
                 framework: None,
                 custom_domain: None,
@@ -296,7 +296,7 @@ fn resolve_project(
                                 crate::scaffold::scaffold_project_workspace(
                                     &scaffold_key,
                                     &scaffold_name,
-                                    "custom",
+                                    "apps",
                                     scaffold_framework.as_deref(),
                                     Some(&scaffold_intent),
                                 ),
@@ -559,10 +559,23 @@ async fn execute_tool_direct(
     // otherwise they are refused here (no approval surface on this path).
     let mode = api.permissions.mode().await;
     let needs_approval = api.permissions.requires_approval(false, &tool_name, mode);
+    let mut arguments = body.arguments;
+    // #1280/#1291 — publish is deploy-role gated downstream; the tool runs
+    // server-side without a session, so stamp the CALLING user's id into the
+    // arguments exactly like the agent loop does (never silently privileged:
+    // the deployment handler enforces the same RBAC for this id).
+    if tool_name == "publish/project" {
+        if let Some(args) = arguments.as_object_mut() {
+            args.insert(
+                "on_behalf_of_user".to_string(),
+                serde_json::Value::String(user.user_id.to_string()),
+            );
+        }
+    }
     let mut call = crate::types::VibeToolCall::new(
         Uuid::nil(),
         tool_name.clone(),
-        body.arguments,
+        arguments,
         needs_approval,
     );
     if matches!(mode, crate::permissions::PermissionMode::Bypass) {
