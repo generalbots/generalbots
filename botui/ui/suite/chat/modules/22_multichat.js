@@ -294,6 +294,21 @@
     } else if (!t.ws || t.ws.readyState >= WebSocket.CLOSING) {
       connectTab(t);
     }
+    // Session routing: parallel tabs send on their OWN socket (sendInTab),
+    // so ChatState.currentSessionId must stay bound to the STOCK session —
+    // #1288: rebinding it to a parallel tab made a stock reconnect dial the
+    // TAB's session, whose server channel was already owned by the tab's
+    // socket — the two sockets then closed each other in an endless flap.
+    // The send router (installSendRouter) and the ws.send tab-stamp already
+    // direct parallel-tab traffic to the right session without touching
+    // ChatState.
+    if (window.ChatState && (t.usesStockDom || t.id === "tab-default")) {
+      t.sessionId = t.sessionId || ChatState.currentSessionId;
+      ChatState.currentSessionId = t.sessionId;
+    }
+    // Mirror the session onto the GBTabs state entry: the #1168 ws.send
+    // hook stamps outgoing frames with GBTabs.activeTab().sessionId.
+    GBTabs.state.tabs.forEach(function (st) { if (st.id === t.id) st.sessionId = t.sessionId; });
     GBTabs.focusTab(id);
     schedulePersist();
   }
@@ -320,7 +335,14 @@
         if (t.sessionId && auth.session_id && requestedSessionRebind(t)) {
           /* keep stored binding */
         }
-        if (!t.sessionId) t.sessionId = auth.session_id;
+        if (!t.sessionId) {
+          t.sessionId = auth.session_id;
+          // Keep the GBTabs entry in sync so the ws.send hook stamps the
+          // tab's OWN session on outgoing frames.
+          GBTabs.state.tabs.forEach(function (st) {
+            if (st.id === t.id) st.sessionId = t.sessionId;
+          });
+        }
         t.userId = auth.user_id;
         t.botId = auth.bot_id || "default";
 
@@ -397,26 +419,50 @@
   /* ── Background-tab frame handling ── */
 
   function handleBotFrame(t, data) {
-    if (t.id === MC.activeId && t.pane && q("messages") && q("messages").__mcTabId === t.id) {
-      // Active tab: stock pipeline already renders via ChatState.ws; this
-      // tab's socket should not exist in that case, but guard anyway.
-      return;
-    }
+    // Parallel tabs' frames ALWAYS arrive on their own socket (the stock
+    // pipeline never sees them) — render unconditionally. When the tab is
+    // the active one its pane IS #messages, so appendToContainer lands in
+    // the visible surface; background tabs render into their parked pane.
     if (data.is_complete) {
-      if (t.streamingEl) {
-        t.streamingEl = null;
-        t.streamingContent = "";
-      } else if (data.content && data.content.trim()) {
+      // Drop the live-streaming placeholder, if any.
+      if (t.streamingEl && t.streamingEl.nodeType) {
+        t.streamingEl.remove();
+      }
+      t.streamingEl = null;
+      t.streamingContent = "";
+      if (data.content && data.content.trim()) {
         appendToContainer(t.pane, "bot", data.content);
         pushScrollback(t, "bot", data.content);
       }
       bumpUnread(t);
       schedulePersist();
     } else if ((data.content && data.content.trim()) || data.reasoning) {
-      // Accumulate only; full render happens on completion (a background
-      // tab needs no per-chunk DOM work — cheap parallel streaming).
       t.streamingContent = (t.streamingContent || "") + (data.content || "");
-      t.streamingEl = t.streamingEl || { placeholder: true };
+      // Active + mounted: live-stream into the visible pane (Claude-Code-
+      // style parallel agents must stream in their own tab, not appear all
+      // at once on completion).
+      var activeMounted = t.id === MC.activeId && t.pane &&
+        q("messages") && q("messages").__mcTabId === t.id;
+      if (activeMounted) {
+        if (!t.streamingEl || !t.streamingEl.nodeType) {
+          var holder = t.pane.querySelector(".chat-pane-messages");
+          if (holder) {
+            var div = document.createElement("div");
+            div.className = "message bot";
+            div.innerHTML = '<div class="message-content bot-message"></div>';
+            holder.appendChild(div);
+            t.streamingEl = div;
+          }
+        }
+        if (t.streamingEl && t.streamingEl.nodeType) {
+          var body = t.streamingEl.querySelector(".message-content");
+          if (body) body.textContent = t.streamingContent;
+          var msgsEl = t.pane.querySelector(".chat-pane-messages");
+          if (msgsEl) msgsEl.scrollTop = msgsEl.scrollHeight;
+        }
+      } else {
+        t.streamingEl = t.streamingEl || { placeholder: true };
+      }
     }
   }
 
@@ -437,41 +483,74 @@
     var t = MC.tabs[tabId];
     if (!t || !text || !text.trim()) return;
     text = text.trim();
-    if (t.id === MC.activeId) {
-      // Active tab: route through the stock pipeline (suggestions, mentions,
-      // offline queue, TTS...). It renders into the mounted pane.
-      var input = q("messageInput");
-      if (input) {
-        input.value = text;
-        if (typeof window.sendMessage === "function") window.sendMessage(text);
-      }
-      pushScrollback(t, "user", text);
-      schedulePersist();
-      return;
-    }
+    // Parallel tabs ALWAYS use their own socket + session: the stock
+    // pipeline's socket is bound to the default conversation, so routing
+    // through it sent the message (and received the reply) under the WRONG
+    // session — parallel tabs shared one history. The tab's own socket is
+    // connected with the tab's session id.
     appendToContainer(t.pane, "user", text);
     pushScrollback(t, "user", text);
     schedulePersist();
-    var send = function () {
-      var payload = {
-        bot_id: t.botId || "default",
-        user_id: t.userId || "",
-        session_id: t.sessionId,
-        channel: "web",
-        content: text,
-        message_type: 1,
-        timestamp: new Date().toISOString(),
-      };
-      t.pending = t.pending || [];
-      if (t.ws && t.ws.readyState === WebSocket.OPEN) {
-        t.ws.send(JSON.stringify(payload));
-      } else {
-        t.pending.push(payload);
-        if ((!t.ws || t.ws.readyState >= WebSocket.CLOSING)) connectTab(t);
-      }
+    var payload = {
+      bot_id: t.botId || "default",
+      user_id: t.userId || "",
+      session_id: t.sessionId,
+      channel: "web",
+      content: text,
+      message_type: 1,
+      timestamp: new Date().toISOString(),
     };
-    send();
+    t.pending = t.pending || [];
+    if (t.ws && t.ws.readyState === WebSocket.OPEN) {
+      t.ws.send(JSON.stringify(payload));
+    } else {
+      t.pending.push(payload);
+      if (!t.ws || t.ws.readyState >= WebSocket.CLOSING) connectTab(t);
+    }
   };
+
+  // Stock-render guard: while a PARALLEL tab is mounted, stock-pipeline
+  // frames for the default conversation (boot greeting, late async replies)
+  // still call addMessage() → getElementById('messages') — which resolves to
+  // the MOUNTED pane, dropping them into the wrong conversation. Re-point
+  // the canonical id to the parked stock surface for the duration of the
+  // call so stock frames always land in the stock conversation.
+  function installStockRenderGuard() {
+    if (window.addMessage && !window.addMessage.__mcGuarded) {
+      var origAdd = window.addMessage;
+      var guarded = function (sender, content, msgId, reasoning) {
+        var stockMain = document.querySelector("main[data-mc-stock]");
+        var parallelActive = MC.activeId && MC.tabs[MC.activeId] &&
+          !MC.tabs[MC.activeId].usesStockDom;
+        if (!parallelActive || !stockMain) return origAdd.apply(this, arguments);
+        var paneMsgs = document.getElementById("messages");
+        if (paneMsgs) paneMsgs.removeAttribute("id");
+        stockMain.id = "messages";
+        try {
+          return origAdd.apply(this, arguments);
+        } finally {
+          stockMain.removeAttribute("id");
+          if (paneMsgs) paneMsgs.id = "messages";
+        }
+      };
+      guarded.__mcGuarded = true;
+      window.addMessage = guarded;
+    }
+  }
+
+  // Flush queued parallel-tab frames once their socket opens.
+  (function () {
+    // connectTab is private; wrap its socket-open behavior by observing the
+    // pending queue on every state change instead of patching the closure.
+    setInterval(function () {
+      Object.keys(MC.tabs).forEach(function (id) {
+        var t = MC.tabs[id];
+        if (t && t.pending && t.pending.length && t.ws && t.ws.readyState === WebSocket.OPEN) {
+          MC.sendPending(t);
+        }
+      });
+    }, 1000);
+  })();
 
   MC.tabByElement = function (el) {
     var id = el && el.getAttribute ? el.getAttribute("data-tab-id") : null;
@@ -501,6 +580,7 @@
     var t = ensureTab(tab.id, tab.title, null);
     mountActive(t);
     connectTab(t);
+    installSendRouter();
     var input = q("messageInput");
     if (input) input.focus();
   }, true);
@@ -510,6 +590,7 @@
   var _started = false;
   var _bootId = null;
   MC.start = function () {
+    installStockRenderGuard();
     // Track the window injection we booted against: the WM re-injects the
     // chat fragment on every open WITHOUT a page reload, so module state
     // (including _started) survives. Re-bind whenever the #messages element
@@ -546,21 +627,101 @@
     MC.tabs = {};
     _started = true;
     // Track the ORIGINAL conversation as the first tab so it is never lost
-    // when the user opens parallel ones.
+    // when the user opens parallel ones. activate() alone creates the
+    // canonical "tab-default" — creating ANOTHER tab here produced a
+    // duplicate "Default" tab whose click could never restore the stock
+    // surface (it was not in MC.tabs).
     var orig = GBTabs.defaultTab();
+    if (!GBTabs.state.tabs.length) GBTabs.activate();
     var first = GBTabs.state.tabs[0] || GBTabs.createTab({ kind: "chat", title: orig.title, pinned: true });
     var t = ensureTab(first.id, first.title, window.ChatState ? ChatState.currentSessionId : null);
+    // The canonical default tab always represents the STOCK surface, even if
+    // it came back from a persisted store without a multichat record.
+    t.usesStockDom = true;
+    t.pane = null;
     // The original pane IS the existing #messages + footer structure: no
     // detaching needed — the stock pipeline owns it while this tab is active.
     t.usesStockDom = true;
     t.pane = null;
     MC.activeId = first.id;
     var restored = restore();
+    // Self-heal: restore()/server merge can add tabs to GBTabs.state.tabs
+    // AFTER our boot snapshot — any state tab without an MC record here is a
+    // zombie (its pane/session died with the previous injection). Register a
+    // record for it so clicks land on a real tab, or the tab is a ghost that
+    // swallows clicks ("clicking a tab does nothing"). Only tab-default may
+    // own the stock surface. A restored tab with NO session cannot restore
+    // any conversation — pruning it instead of resurrecting prevents the
+    // zombie-tab pileup (dozens of dead "Chat N" tiles).
+    for (var i = GBTabs.state.tabs.length - 1; i >= 0; i--) {
+      var st = GBTabs.state.tabs[i];
+      if (MC.tabs[st.id]) continue;
+      var isDefault = st.id === "tab-default";
+      if (!isDefault && !st.sessionId) {
+        GBTabs.state.tabs.splice(i, 1);
+        continue;
+      }
+      var rec = ensureTab(st.id, st.title, !isDefault && st.sessionId ? st.sessionId : null);
+      if (isDefault) {
+        rec.usesStockDom = true;
+        rec.pane = null;
+        if (MC.activeId !== rec.id && !MC.activeId) MC.activeId = rec.id;
+      }
+    }
+    // Drop MC records whose state tab vanished (cap pruning, remote delete).
+    Object.keys(MC.tabs).forEach(function (id) {
+      if (id === "tab-default") return;
+      if (!GBTabs.state.tabs.some(function (st) { return st.id === id; })) {
+        var rec = MC.tabs[id];
+        if (rec && rec.pane && rec.pane.parentElement) rec.pane.parentElement.removeChild(rec.pane);
+        if (rec && rec.ws && rec.ws.readyState < WebSocket.CLOSING) { try { rec.ws.close(); } catch (e) {} }
+        delete MC.tabs[id];
+        if (MC.activeId === id) MC.activeId = "tab-default";
+      }
+    });
     if (!restored) GBTabs.renderStrip();
   };
 
+  // Late merge: restore()'s server fetch resolves AFTER start() — when it
+  // swaps GBTabs.state.tabs, re-run the heal so new/removed tabs stay live.
+  var _origRestore = null;
+  function hookServerMerge() {
+    if (!window.GBTabs || !GBTabs.restore || GBTabs.restore.__mcHooked) return;
+    _origRestore = GBTabs.restore;
+    GBTabs.restore = function () {
+      var r = _origRestore.apply(this, arguments);
+      setTimeout(function () { if (window.GBMultiChat) MC.start(); }, 800);
+      return r;
+    };
+    GBTabs.restore.__mcHooked = true;
+  }
+  hookServerMerge();
+
   MC.switchTo = switchTo;
   MC.active = function () { return MC.activeId; };
+
+  // Route sends: when a PARALLEL tab is active, the composer must go to
+  // that tab's own socket/session — never through the stock pipeline (whose
+  // socket belongs to the default conversation). tab-default keeps the full
+  // stock path (mentions, offline queue, TTS, file attach...).
+  function installSendRouter() {
+    if (window.sendMessage && !window.sendMessage.__mcRouted) {
+      var stockSend = window.sendMessage;
+      var routed = function (messageContent) {
+        var t = MC.activeId && MC.tabs[MC.activeId];
+        if (!t || t.usesStockDom) return stockSend.apply(this, arguments);
+        var input = q("messageInput");
+        var text = messageContent || (input ? input.value : "");
+        if (input && !messageContent) {
+          input.value = "";
+          input.focus();
+        }
+        if (text && text.trim()) MC.sendInTab(t.id, text);
+      };
+      routed.__mcRouted = true;
+      window.sendMessage = routed;
+    }
+  }
 
   // Boot independently of 21_tabs_events' init: the fragment scripts execute
   // after the chat DOM is in place, and an eager retry closes the race where

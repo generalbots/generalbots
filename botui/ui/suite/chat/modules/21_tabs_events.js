@@ -304,28 +304,35 @@
   // ── Boot ──
 
   function init() {
-    var s = stripEl();
-    if (!s) {
-      GBTabs.renderStrip();
-      s = stripEl();
-    }
-    if (!s) return;
-    s.addEventListener("pointerdown", onPointerDown);
-    s.addEventListener("click", onClick);
-    s.addEventListener("dblclick", onDblClick);
-    s.addEventListener("contextmenu", function (e) {
+    // Event DELEGATION on document: the strip is created dynamically by
+    // GBTabs.renderStrip(), and this module's init can run before that (or
+    // before every WM re-injection). Binding to a strip element that does
+    // not exist yet (or to a node that is later replaced) silently killed
+    // every tab click — clicking a tab did nothing. document-level capture
+    // survives all strip re-creations.
+    document.addEventListener("pointerdown", function (e) {
+      if (!e.target.closest || !e.target.closest("#gbTabStrip")) return;
+      onPointerDown(e);
+    }, true);
+    document.addEventListener("click", function (e) {
+      if (!e.target.closest || !e.target.closest("#gbTabStrip")) return;
+      onClick(e);
+    });
+    document.addEventListener("dblclick", function (e) {
+      if (!e.target.closest || !e.target.closest("#gbTabStrip")) return;
+      onDblClick(e);
+    });
+    document.addEventListener("contextmenu", function (e) {
+      if (!e.target.closest || !e.target.closest("#gbTabStrip")) return;
       var id = tabIdFromEvent(e);
       if (!id || e.target.closest(".gb-tab-close")) return;
       e.preventDefault();
       openTabMenu(e.clientX, e.clientY, id);
     });
-    s.addEventListener("middleclick", function (e) {
-      var id = tabIdFromEvent(e);
-      if (id) closeTabGuarded(id);
-    });
     // #1283 — middle-click (auxclick button 1) closes the tab.
-    s.addEventListener("auxclick", function (e) {
+    document.addEventListener("auxclick", function (e) {
       if (e.button !== 1) return;
+      if (!e.target.closest || !e.target.closest("#gbTabStrip")) return;
       var id = tabIdFromEvent(e);
       if (id) { e.preventDefault(); closeTabGuarded(id); }
     });
