@@ -14,7 +14,7 @@ use axum::{
     Json,
 };
 use diesel::prelude::*;
-use log::{error, info};
+use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -504,6 +504,14 @@ pub fn router(
         .route("/api/vibe/events/:run_id", axum::routing::get(get_run_events))
         .route("/api/vibe/run/:run_id/grounding", axum::routing::get(crate::grounding::get_run_grounding))
         .route("/api/vibe/run/:run_id/execute", axum::routing::post(execute_run))
+        // #1290 — direct single-tool execution: the UI/REST callers invoke
+        // `publish/project` etc. without spinning up a run. RBAC route rules
+        // open POST /api/vibe/tools/** to authenticated users; deploy-grade
+        // tools enforce roles + metering inside their handlers. The tool
+        // name is a QUERY param (`?name=publish/project`) because axum's
+        // matchit params never match `/`, and every vibe tool name contains
+        // one (e.g. `publish/project`, `git/log`).
+        .route("/api/vibe/tools/call", axum::routing::post(execute_tool_direct))
         .route("/api/vibe/graph/:use_case", axum::routing::get(crate::knowledge_graph::get_knowledge_graph))
         .route("/api/vibe/graph/run/:run_id", axum::routing::get(crate::knowledge_graph::get_run_graph))
         .route(
@@ -516,7 +524,84 @@ pub fn router(
         // #1288 — enterprise site lifecycle on the proxy container.
         .route("/api/vibe/projects/:project_id/site", axum::routing::delete(unpublish_project_site))
         .route("/api/vibe/projects/:project_id/site/rollback", axum::routing::post(rollback_project_site))
+        // #1290 — promote the current DEV release to PROD; `?env=development`
+        // rolls the DEV site back instead.
+        .route("/api/vibe/projects/:project_id/site/promote", axum::routing::post(promote_project_site))
         .layer(axum::Extension(api))
+}
+
+#[derive(Debug, Deserialize)]
+struct DirectToolRequest {
+    #[serde(flatten)]
+    arguments: serde_json::Value,
+}
+
+#[derive(Debug, Deserialize)]
+struct DirectToolParams {
+    name: String,
+}
+
+/// #1290 — POST /api/vibe/tools/call?name=publish/project — execute a single
+/// registered vibe tool directly (no run). The payload body is passed to the
+/// tool as its arguments. Tools flagged `requires_approval` are refused here:
+/// the direct path has no approval surface — callers go through the run flow
+/// instead.
+async fn execute_tool_direct(
+    Extension(api): Extension<Arc<VibeApiInner>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Query(params): Query<DirectToolParams>,
+    Json(body): Json<DirectToolRequest>,
+) -> Response {
+    let tool_name = params.name;
+    info!("Vibe direct tool call '{tool_name}' by user {}", user.user_id);
+    // Honor the global permission mode exactly like the agent loop: in
+    // Bypass mode destructive/deploy tools run without the approval gate;
+    // otherwise they are refused here (no approval surface on this path).
+    let mode = api.permissions.mode().await;
+    let needs_approval = api.permissions.requires_approval(false, &tool_name, mode);
+    let mut call = crate::types::VibeToolCall::new(
+        Uuid::nil(),
+        tool_name.clone(),
+        body.arguments,
+        needs_approval,
+    );
+    if matches!(mode, crate::permissions::PermissionMode::Bypass) {
+        call.approved = true;
+    }
+    let result = api
+        .tool_executor
+        .execute(&mut call, crate::types::VibeUseCase::SoftwareDevelopment, api.state.as_ref())
+        .await;
+    match result {
+        Ok(()) => {
+            let payload = call
+                .result
+                .as_ref()
+                .map(|r| r.data.clone())
+                .unwrap_or_else(|| serde_json::json!({ "executed": true }));
+            Json(serde_json::json!({ "success": true, "tool": tool_name, "result": payload }))
+                .into_response()
+        }
+        Err(e) => {
+            let needs_approval = call.requires_approval;
+            warn!("Vibe direct tool '{tool_name}' failed: {e}");
+            let status = if needs_approval {
+                axum::http::StatusCode::ACCEPTED
+            } else {
+                axum::http::StatusCode::UNPROCESSABLE_ENTITY
+            };
+            (
+                status,
+                Json(serde_json::json!({
+                    "success": false,
+                    "tool": tool_name,
+                    "error": e,
+                    "requires_approval": needs_approval,
+                })),
+            )
+                .into_response()
+        }
+    }
 }
 
 async fn create_run(
@@ -1482,6 +1567,24 @@ struct UnpublishSiteRequest {
     /// Drop the retained `.prev-*` releases and the retired payload too.
     #[serde(default)]
     purge: bool,
+    /// #1290 — "development" targets the DEV site ({slug}-dev).
+    #[serde(default)]
+    env: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Default)]
+struct SiteEnvQuery {
+    #[serde(default)]
+    env: Option<String>,
+}
+
+/// Resolve the site environment from `?env=` (query wins over body).
+fn parse_site_env_param(
+    query: &Option<String>,
+    body: Option<&str>,
+) -> Option<crate::site_env::SiteEnv> {
+    let raw = query.as_deref().or(body)?;
+    crate::site_env::SiteEnv::parse(raw)
 }
 
 /// DELETE /api/vibe/projects/:project_id/site — take a published site off
@@ -1491,6 +1594,7 @@ async fn unpublish_project_site(
     Extension(api): Extension<Arc<VibeApiInner>>,
     Extension(user): Extension<AuthenticatedUser>,
     Path(project_id): Path<Uuid>,
+    Query(env_q): Query<SiteEnvQuery>,
     body: Option<Json<UnpublishSiteRequest>>,
 ) -> Response {
     info!("Vibe site unpublish requested: project {project_id}");
@@ -1498,9 +1602,21 @@ async fn unpublish_project_site(
         Ok(p) => p,
         Err((status, msg)) => return (status, msg).into_response(),
     };
-    let purge = body.map(|Json(b)| b.purge).unwrap_or(false);
+    let (purge, body_env) = match body {
+        Some(Json(b)) => (b.purge, b.env),
+        None => (false, None),
+    };
     let slug = crate::proxy_sites::site_slug(&project.name);
-    match crate::proxy_sites::unpublish_site(&slug, purge).await {
+    // #1290 — `?env=development` (or the JSON body) targets the DEV site;
+    // production stays the default.
+    let env = parse_site_env_param(&env_q.env, body_env.as_deref());
+    let result = match env {
+        Some(crate::site_env::SiteEnv::Dev) => {
+            crate::proxy_sites::unpublish_site_dev(&slug, purge).await
+        }
+        _ => crate::proxy_sites::unpublish_site(&slug, purge).await,
+    };
+    match result {
         Ok(()) => Json(serde_json::json!({
             "success": true,
             "message": format!("site '{slug}' unpublished (purge={purge})"),
@@ -1520,6 +1636,7 @@ async fn rollback_project_site(
     Extension(api): Extension<Arc<VibeApiInner>>,
     Extension(user): Extension<AuthenticatedUser>,
     Path(project_id): Path<Uuid>,
+    Query(env_q): Query<SiteEnvQuery>,
 ) -> Response {
     info!("Vibe site rollback requested: project {project_id}");
     let project = match guard_site_admin(&api, &user, project_id) {
@@ -1527,16 +1644,54 @@ async fn rollback_project_site(
         Err((status, msg)) => return (status, msg).into_response(),
     };
     let slug = crate::proxy_sites::site_slug(&project.name);
-    match crate::proxy_sites::rollback_site(&slug).await {
+    // #1290 — `?env=development` targets the DEV site's release ring.
+    let env = parse_site_env_param(&env_q.env, None);
+    let result = match env {
+        Some(crate::site_env::SiteEnv::Dev) => crate::proxy_sites::rollback_site_dev(&slug).await,
+        _ => crate::proxy_sites::rollback_site(&slug).await,
+    };
+    match result {
         Ok(url) => Json(serde_json::json!({
             "success": true,
             "message": format!("site '{slug}' rolled back to the previous release"),
             "site": slug,
+            "env": env.map(|e| e.as_str()).unwrap_or("production"),
             "url": url,
         }))
         .into_response(),
         Err(e) => {
             error!("Vibe site rollback failed for {slug}: {e}");
+            site_error_response(e)
+        }
+    }
+}
+
+/// #1290 — POST /api/vibe/projects/:project_id/site/promote — copy the
+/// current DEV release of the site to the PROD target (route + service
+/// refreshed exactly like a direct prod deploy).
+async fn promote_project_site(
+    Extension(api): Extension<Arc<VibeApiInner>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(project_id): Path<Uuid>,
+) -> Response {
+    info!("Vibe site promote requested: project {project_id}");
+    let project = match guard_site_admin(&api, &user, project_id) {
+        Ok(p) => p,
+        Err((status, msg)) => return (status, msg).into_response(),
+    };
+    let is_python = crate::proxy_sites::looks_like_python(
+        &crate::publish::collect_workspace_files(&project).unwrap_or_default(),
+    );
+    match crate::proxy_sites::promote_site_dev_to_prod(&project, is_python).await {
+        Ok(url) => Json(serde_json::json!({
+            "success": true,
+            "message": "dev release promoted to production",
+            "site": crate::proxy_sites::site_slug(&project.name),
+            "url": url,
+        }))
+        .into_response(),
+        Err(e) => {
+            error!("Vibe site promote failed for {}: {e}", project.name);
             site_error_response(e)
         }
     }

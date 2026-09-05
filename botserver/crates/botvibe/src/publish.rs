@@ -340,21 +340,34 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
             .as_deref()
             .map(|f| f.eq_ignore_ascii_case("python") || f.eq_ignore_ascii_case("python3") || f.eq_ignore_ascii_case("flask"))
             .unwrap_or(false);
-    if env == "production"
-        && (project.project_type == "website" || is_python_project)
-    {
-        let (proxy_url, route) =
-            crate::proxy_sites::deploy_site_to_proxy(&project, is_python_project).await?;
-        let deployment = serde_json::json!({
-            "env": env,
-            "at": chrono::Utc::now().to_rfc3339(),
-            "url": proxy_url,
-            "container": "proxy",
-            "deploy_target": "proxy-websites",
-            "caddy_route": route,
-            "domain": domain.clone().unwrap_or_default(),
-            "track": "ok",
-        });
+    // #1290 — dev publishes of site projects go to the proxy's dev target
+    // (`{slug}-dev.{domain}` from `websites/{slug}-dev`) instead of raising
+    // an expensive per-site dev VM; production keeps the `{slug}` target.
+    let site_env = if env == "production" {
+        Some(crate::site_env::SiteEnv::Production)
+    } else if env == "development" {
+        Some(crate::site_env::SiteEnv::Dev)
+    } else {
+        None
+    };
+    if let Some(site_env) = site_env {
+        if project.project_type == "website" || is_python_project {
+            let (proxy_url, route) = crate::proxy_sites::deploy_site_to_proxy_env(
+                &project,
+                is_python_project,
+                site_env,
+            )
+            .await?;
+            let deployment = serde_json::json!({
+                "env": env,
+                "at": chrono::Utc::now().to_rfc3339(),
+                "url": proxy_url,
+                "container": "proxy",
+                "deploy_target": "proxy-websites",
+                "caddy_route": route,
+                "domain": domain.clone().unwrap_or_default(),
+                "track": "ok",
+            });
         registry
             .append_deployment(project_id, &deployment)
             .map_err(|e| format!("record deployment: {e}"))?;
@@ -400,6 +413,7 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
             "launcher": launch_info,
             "history_key": "deployments",
         }));
+        }
     }
 
     #[cfg(not(target_os = "windows"))]
