@@ -41,6 +41,7 @@ pub async fn handle_designer_edit_page(
     State(_state): State<Arc<DesignerState>>,
     Path(dialog_id): Path<Uuid>,
 ) -> Html<String> {
+    let dialog_id_safe = dialog_id;
     let html = format!(r#"<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0"><title>Edit Dialog</title><style>
 *{{box-sizing:border-box;margin:0;padding:0}}body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#1e1e1e;color:#d4d4d4;height:100vh;display:flex;flex-direction:column}}
@@ -59,7 +60,7 @@ pub async fn handle_designer_edit_page(
 <div class="node-item">&#128278; Condition</div><div class="node-item">&#9889; Action</div></div>
 <div class="canvas" id="canvas"></div><div class="properties"><div class="section-title">PROPERTIES</div>
 <div id="propertiesContent">Select a node to edit</div></div></div>
-<script>const dialogId='{dialog_id}';async function loadDialog(){{try{{const r=await fetch('/api/ui/designer/dialogs/'+dialogId);const d=await r.json();document.getElementById('dialogName').textContent=d.name||'Untitled'}}catch(e){{console.error(e)}}}}
+<script>const dialogId='{dialog_id_safe}';async function loadDialog(){{try{{const r=await fetch('/api/ui/designer/dialogs/'+dialogId);const d=await r.json();document.getElementById('dialogName').textContent=d.name||'Untitled'}}catch(e){{console.error(e)}}}}
 async function saveDialog(){{alert('Save functionality - implement based on canvas state')}}loadDialog()</script></body></html>"#);
     Html(html)
 }

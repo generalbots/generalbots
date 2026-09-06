@@ -3393,7 +3393,7 @@ pub async fn workspace_detail(
         .as_deref()
         .map(html_escape)
         .unwrap_or_else(|| "No description".to_string());
-    let icon = workspace.icon_value.as_deref().unwrap_or("📁");
+    let icon = workspace.icon_value.as_deref().map(html_escape).unwrap_or_else(|| "📁".to_string());
     let created = workspace.created_at.format("%Y-%m-%d %H:%M").to_string();
     let updated = workspace.updated_at.format("%Y-%m-%d %H:%M").to_string();
 
@@ -3581,7 +3581,7 @@ pub async fn page_detail(
     };
 
     let title = html_escape(&page.title);
-    let icon = page.icon_value.as_deref().unwrap_or("📄");
+    let icon = page.icon_value.as_deref().map(html_escape).unwrap_or_else(|| "📄".to_string());
     let created = page.created_at.format("%Y-%m-%d %H:%M").to_string();
     let updated = page.updated_at.format("%Y-%m-%d %H:%M").to_string();
     let workspace_id = page.workspace_id;
