@@ -290,6 +290,14 @@ fn detect_chromedriver_for_version(major_version: &str) -> Option<PathBuf> {
 }
 
 async fn download_file(url: &str, dest: &PathBuf) -> Result<()> {
+    // Only fetch over https or loopback http — never send tokens elsewhere.
+    let parsed = url::Url::parse(url)?;
+    anyhow::ensure!(
+        parsed.scheme() == "https"
+            || (parsed.scheme() == "http"
+                && matches!(parsed.host_str(), Some("localhost") | Some("127.0.0.1") | Some("[::1]"))),
+        "download URL must be https or loopback http"
+    );
     info!("Downloading: {}", url);
 
     let response = reqwest::get(url).await?;

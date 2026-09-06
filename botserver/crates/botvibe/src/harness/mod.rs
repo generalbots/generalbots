@@ -119,9 +119,12 @@ pub fn resolve_workspace_path(project: &str, rel: &str) -> Result<PathBuf, Strin
     Ok(root.join(rel))
 }
 
-/// Ensure the workspace subdir for a project exists.
+/// Ensure the workspace subdir for a project exists. The project id is
+/// sanitized first so a user-controlled name can never traverse outside the
+/// workspaces root (path-injection guard).
 pub fn ensure_workspace(project: &str) -> Result<PathBuf, String> {
-    let root = workspace_root().join(sanitize_project_id(project)?);
+    let safe = sanitize_project_id(project)?;
+    let root = workspace_root().join(safe);
     std::fs::create_dir_all(&root).map_err(|e| format!("create workspace: {e}"))?;
     Ok(root)
 }

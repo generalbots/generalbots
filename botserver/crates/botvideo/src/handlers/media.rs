@@ -83,7 +83,11 @@ pub async fn upload_media(
 }
 
 fn sanitize_filename(name: &str) -> String {
-    name.chars()
+    // Path-injection guard: map every non-safe char to '_', then collapse any
+    // separator/dot sequences so the stored name can never contain path
+    // components (`..`, `/`, `\`) or sneak out of the upload dir.
+    let flattened: String = name
+        .chars()
         .map(|c| {
             if c.is_alphanumeric() || c == '.' || c == '-' || c == '_' {
                 c
@@ -91,7 +95,15 @@ fn sanitize_filename(name: &str) -> String {
                 '_'
             }
         })
-        .collect()
+        .collect();
+    let collapsed = flattened
+        .replace("..", "_")
+        .replace(['/', '\\'], "_");
+    if collapsed.is_empty() {
+        "upload.bin".to_string()
+    } else {
+        collapsed
+    }
 }
 
 pub async fn get_preview_frame(

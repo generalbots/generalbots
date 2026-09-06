@@ -62,7 +62,9 @@ pub fn resolve_user_id(
     }
 
     let row: Option<SessionRow> = diesel::sql_query(
-        "SELECT user_data FROM login_sessions WHERE token = $1 LIMIT 1",
+        // user_data is jsonb: cast to text so the Text decode always succeeds
+        // (a raw jsonb result would silently fail and reject valid sessions).
+        "SELECT user_data::text AS user_data FROM login_sessions WHERE token = $1 LIMIT 1",
     )
     .bind::<diesel::sql_types::Text, _>(&token)
     .get_result(&mut conn)
@@ -182,6 +184,14 @@ pub struct NotifPrefsForm {
     pub push_sound: Option<String>,
     pub desktop_notifications: Option<String>,
     pub badge_count: Option<String>,
+}
+
+fn html_escape(input: &str) -> String {
+    input
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
 }
 
 fn on_or_true(v: &Option<String>) -> bool {
@@ -319,7 +329,7 @@ pub async fn groups_create(
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .execute(&mut conn);
 
-    (StatusCode::OK, Html(format!("Group <strong>{display}</strong> created")))
+    (StatusCode::OK, Html(format!("Group <strong>{}</strong> created", html_escape(&display))))
 }
 
 #[derive(Deserialize)]
@@ -372,7 +382,7 @@ pub async fn users_create(
     .execute(&mut conn);
 
     match inserted {
-        Ok(1) => (StatusCode::OK, Html(format!("User <strong>{username}</strong> created"))),
+        Ok(1) => (StatusCode::OK, Html(format!("User <strong>{}</strong> created", html_escape(&username)))),
         Ok(_) => (StatusCode::CONFLICT, Html("A user with this email already exists".to_string())),
         Err(e) => {
             log::error!("users_create insert failed: {e}");

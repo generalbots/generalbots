@@ -73,11 +73,15 @@ pub struct SharePointClient {
 }
 
 impl SharePointClient {
+    /// Microsoft Graph host — request URLs are always checked against this
+    /// constant before use, so tokens cannot be sent to a different server.
+    pub const GRAPH_HOST: &str = "https://graph.microsoft.com/v1.0";
+
     pub fn new(tenant_id: String, access_token: String) -> Self {
         Self {
             tenant_id,
             access_token,
-            graph_base_url: "https://graph.microsoft.com/v1.0".into(),
+            graph_base_url: Self::GRAPH_HOST.to_string(),
             http_client: reqwest::blocking::Client::builder()
                 .timeout(std::time::Duration::from_secs(30))
                 .build()
@@ -85,19 +89,41 @@ impl SharePointClient {
         }
     }
 
-    pub fn list_sites_url(&self) -> String {
-        format!("{}/sites?search=*", self.graph_base_url)
-    }
-
-    pub fn site_drives_url(&self, site_id: &str) -> String {
-        format!("{}/sites/{}/drives", self.graph_base_url, site_id)
-    }
-
-    pub fn drive_items_url(&self, drive_id: &str, path: Option<&str>) -> String {
-        match path {
-            Some(p) => format!("{}/drives/{}/root:/{}:/children", self.graph_base_url, drive_id, p),
-            None => format!("{}/drives/{}/root/children", self.graph_base_url, drive_id),
+    /// Server-side request forgery guard for every URL built on top of the
+    /// Graph base: the host must be the pinned Microsoft Graph endpoint.
+    pub fn validate_url_for_graph(url: &str) -> Result<(), String> {
+        let parsed = url::Url::parse(url).map_err(|e| format!("invalid Graph URL: {e}"))?;
+        let host = parsed.host_str().unwrap_or("");
+        if parsed.scheme() != "https" || host != "graph.microsoft.com" {
+            return Err(format!("Graph requests must target graph.microsoft.com, got {host}"));
         }
+        Ok(())
+    }
+
+    pub fn list_sites_url(&self) -> Result<String, String> {
+        let url = format!("{}/sites?search=*", self.graph_base_url);
+        Self::validate_url_for_graph(&url)?;
+        Ok(url)
+    }
+
+    pub fn site_drives_url(&self, site_id: &str) -> Result<String, String> {
+        let encoded: String = site_id.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' { c } else { '_' }).collect();
+        let url = format!("{}/sites/{encoded}/drives", self.graph_base_url);
+        Self::validate_url_for_graph(&url)?;
+        Ok(url)
+    }
+
+    pub fn drive_items_url(&self, drive_id: &str, path: Option<&str>) -> Result<String, String> {
+        let encoded: String = drive_id.chars().map(|c| if c.is_ascii_alphanumeric() || c == '-' { c } else { '_' }).collect();
+        let url = match path {
+            Some(p) => {
+                let p = p.replace('/', "%2F");
+                format!("{}/drives/{encoded}/root:/{p}:/children", self.graph_base_url)
+            }
+            None => format!("{}/drives/{encoded}/root/children", self.graph_base_url),
+        };
+        Self::validate_url_for_graph(&url)?;
+        Ok(url)
     }
 
     pub fn build_auth_header(&self) -> String {

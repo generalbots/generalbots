@@ -85,7 +85,7 @@ async fn list_sites(
     Json(req): Json<ListSitesRequest>,
 ) -> Result<Json<Vec<SharePointSite>>, (StatusCode, String)> {
     let client = SharePointClient::new(req.tenant_id, req.access_token);
-    let url = client.list_sites_url();
+    let url = client.list_sites_url().map_err(|e| (StatusCode::BAD_REQUEST, e))?;
     let client_clone = client;
     let result = tokio::task::spawn_blocking(move || -> Result<Vec<SharePointSite>, String> {
         let resp = client_clone
@@ -146,7 +146,7 @@ async fn list_drives(
     Json(req): Json<ListDrivesRequest>,
 ) -> Result<Json<Vec<SharePointDrive>>, (StatusCode, String)> {
     let client = SharePointClient::new(req.tenant_id, req.access_token);
-    let url = client.site_drives_url(&req.site_id);
+    let url = client.site_drives_url(&req.site_id).map_err(|e| (StatusCode::BAD_REQUEST, e))?;
     let result = tokio::task::spawn_blocking(move || -> Result<Vec<SharePointDrive>, String> {
         let resp = client
             .http_client
@@ -196,7 +196,7 @@ async fn list_items(
     Json(req): Json<ListItemsRequest>,
 ) -> Result<Json<Vec<SharePointItem>>, (StatusCode, String)> {
     let client = SharePointClient::new(req.tenant_id, req.access_token);
-    let url = client.drive_items_url(&req.drive_id, req.path.as_deref());
+    let url = client.drive_items_url(&req.drive_id, req.path.as_deref()).map_err(|e| (StatusCode::BAD_REQUEST, e))?;
     let result = tokio::task::spawn_blocking(move || -> Result<Vec<SharePointItem>, String> {
         let resp = client
             .http_client

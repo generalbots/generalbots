@@ -123,6 +123,12 @@ INSTALL_LOCK = true
 
 /// Fetch a Forgejo runner registration token using the botserver API token.
 async fn fetch_runner_token(base_url: &str, api_token: &str) -> anyhow::Result<String> {
+    // SSRF guard: the admin token must only be sent to the configured ALM host.
+    let parsed = url::Url::parse(base_url).map_err(|e| anyhow::anyhow!("invalid ALM url: {e}"))?;
+    anyhow::ensure!(
+        matches!(parsed.scheme(), "http" | "https") && parsed.host_str().is_some(),
+        "ALM url must be an absolute http(s) URL"
+    );
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(30))
         .build()

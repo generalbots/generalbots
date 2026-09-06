@@ -5,6 +5,7 @@ pub mod login;
 pub mod proxy;
 pub mod suite;
 pub mod suite_ops;
+pub mod tls_policy;
 pub mod ws;
 
 pub use self::assets::serve_favicon;

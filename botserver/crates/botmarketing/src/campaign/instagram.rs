@@ -7,6 +7,19 @@ use reqwest::Client;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+/// Server-side request forgery guard: Instagram tokens ride in the query
+/// string, so every Graph URL must target graph.facebook.com over https.
+fn validate_graph_url(url: &str) -> anyhow::Result<()> {
+    let parsed = url::Url::parse(url).with_context(|| format!("invalid Graph URL: {url}"))?;
+    let host = parsed.host_str().unwrap_or("");
+    anyhow::ensure!(
+        parsed.scheme() == "https" && host == "graph.facebook.com",
+        "Instagram Graph requests must target graph.facebook.com, got {host}"
+    );
+    Ok(())
+}
+
+
 pub struct InstagramService {
     client: Client,
     config: Arc<RwLock<InstagramConfig>>,
@@ -129,6 +142,7 @@ impl InstagramService {
     pub async fn create_media_container(&self, image_url: &str, caption: &str) -> Result<String> {
         let config = self.config.read().await;
         let url = format!("{}/{}/media", config.api_base_url, config.business_account_id);
+        validate_graph_url(&url)?;
 
         let response = self
             .client
@@ -160,6 +174,7 @@ impl InstagramService {
     pub async fn publish_container(&self, container_id: &str) -> Result<String> {
         let config = self.config.read().await;
         let url = format!("{}/{}/media_publish", config.api_base_url, config.business_account_id);
+        validate_graph_url(&url)?;
 
         let response = self
             .client
@@ -220,6 +235,7 @@ impl InstagramService {
     pub async fn get_post_insights(&self, post_id: &str) -> Result<InstagramInsights> {
         let config = self.config.read().await;
         let url = format!("{}/{}", config.api_base_url, post_id);
+        validate_graph_url(&url)?;
 
         let fields = [
             "impressions", "reach", "engagement", "likes", "comments",

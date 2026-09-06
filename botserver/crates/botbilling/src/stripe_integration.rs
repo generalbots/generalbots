@@ -7,7 +7,6 @@ pub struct StripeClient {
     api_key: String,
     webhook_secret: Option<String>,
     client: reqwest::Client,
-    base_url: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -236,12 +235,16 @@ impl std::fmt::Display for StripeError {
 impl std::error::Error for StripeError {}
 
 impl StripeClient {
+    /// Stripe API base URL is a compile-time constant: it must never be
+    /// configurable at runtime, which would open a server-side request
+    /// forgery path (credentials would be sent to an attacker-chosen host).
+    const API_BASE: &str = "https://api.stripe.com/v1";
+
     pub fn new(api_key: String, webhook_secret: Option<String>) -> Self {
         Self {
             api_key,
             webhook_secret,
             client: reqwest::Client::new(),
-            base_url: "https://api.stripe.com/v1".to_string(),
         }
     }
 
@@ -260,7 +263,7 @@ impl StripeClient {
 
         let response = self
             .client
-            .post(format!("{}/customers", self.base_url))
+            .post(format!("{}/customers", Self::API_BASE))
             .basic_auth(&self.api_key, Option::<&str>::None)
             .form(&form)
             .send()
@@ -273,7 +276,7 @@ impl StripeClient {
     pub async fn get_customer(&self, customer_id: &str) -> Result<StripeCustomer, StripeError> {
         let response = self
             .client
-            .get(format!("{}/customers/{}", self.base_url, customer_id))
+            .get(format!("{}/customers/{}", Self::API_BASE, customer_id))
             .basic_auth(&self.api_key, Option::<&str>::None)
             .send()
             .await
@@ -305,7 +308,7 @@ impl StripeClient {
 
         let response = self
             .client
-            .post(format!("{}/checkout/sessions", self.base_url))
+            .post(format!("{}/checkout/sessions", Self::API_BASE))
             .basic_auth(&self.api_key, Option::<&str>::None)
             .form(&form)
             .send()
@@ -321,7 +324,7 @@ impl StripeClient {
     ) -> Result<StripeCheckoutSession, StripeError> {
         let response = self
             .client
-            .get(format!("{}/checkout/sessions/{}", self.base_url, session_id))
+            .get(format!("{}/checkout/sessions/{}", Self::API_BASE, session_id))
             .basic_auth(&self.api_key, Option::<&str>::None)
             .send()
             .await
@@ -341,7 +344,7 @@ impl StripeClient {
 
         let response = self
             .client
-            .post(format!("{}/billing_portal/sessions", self.base_url))
+            .post(format!("{}/billing_portal/sessions", Self::API_BASE))
             .basic_auth(&self.api_key, Option::<&str>::None)
             .form(&form)
             .send()
@@ -354,7 +357,7 @@ impl StripeClient {
     pub async fn get_subscription(&self, subscription_id: &str) -> Result<StripeSubscription, StripeError> {
         let response = self
             .client
-            .get(format!("{}/subscriptions/{}", self.base_url, subscription_id))
+            .get(format!("{}/subscriptions/{}", Self::API_BASE, subscription_id))
             .basic_auth(&self.api_key, Option::<&str>::None)
             .send()
             .await
@@ -370,7 +373,7 @@ impl StripeClient {
             vec![]
         };
 
-        let url = format!("{}/subscriptions/{}", self.base_url, subscription_id);
+        let url = format!("{}/subscriptions/{}", Self::API_BASE, subscription_id);
 
         let request = if at_period_end {
             self.client.post(&url).form(&form)
@@ -409,7 +412,7 @@ impl StripeClient {
 
         let response = self
             .client
-            .post(format!("{}/subscriptions/{}", self.base_url, subscription_id))
+            .post(format!("{}/subscriptions/{}", Self::API_BASE, subscription_id))
             .basic_auth(&self.api_key, Option::<&str>::None)
             .form(&form)
             .send()
@@ -422,7 +425,7 @@ impl StripeClient {
     pub async fn list_invoices(&self, customer_id: &str, limit: u32) -> Result<Vec<StripeInvoice>, StripeError> {
         let response = self
             .client
-            .get(format!("{}/invoices", self.base_url))
+            .get(format!("{}/invoices", Self::API_BASE))
             .basic_auth(&self.api_key, Option::<&str>::None)
             .query(&[("customer", customer_id), ("limit", &limit.to_string())])
             .send()
@@ -445,7 +448,7 @@ impl StripeClient {
     ) -> Result<Option<StripeCustomer>, StripeError> {
         let response = self
             .client
-            .get(format!("{}/customers", self.base_url))
+            .get(format!("{}/customers", Self::API_BASE))
             .basic_auth(&self.api_key, Option::<&str>::None)
             .query(&[("email", email), ("limit", "1")])
             .send()
@@ -479,7 +482,7 @@ impl StripeClient {
 
         let response = self
             .client
-            .post(format!("{}/setup_intents", self.base_url))
+            .post(format!("{}/setup_intents", Self::API_BASE))
             .basic_auth(&self.api_key, Option::<&str>::None)
             .form(&form)
             .send()
@@ -495,7 +498,7 @@ impl StripeClient {
     ) -> Result<StripeSetupIntent, StripeError> {
         let response = self
             .client
-            .get(format!("{}/setup_intents/{}", self.base_url, setup_intent_id))
+            .get(format!("{}/setup_intents/{}", Self::API_BASE, setup_intent_id))
             .basic_auth(&self.api_key, Option::<&str>::None)
             .send()
             .await
@@ -524,7 +527,7 @@ impl StripeClient {
 
         let response = self
             .client
-            .post(format!("{}/checkout/sessions", self.base_url))
+            .post(format!("{}/checkout/sessions", Self::API_BASE))
             .basic_auth(&self.api_key, Option::<&str>::None)
             .form(&form)
             .send()
@@ -546,7 +549,7 @@ impl StripeClient {
 
         let response = self
             .client
-            .post(format!("{}/payment_methods/{}/attach", self.base_url, payment_method_id))
+            .post(format!("{}/payment_methods/{}/attach", Self::API_BASE, payment_method_id))
             .basic_auth(&self.api_key, Option::<&str>::None)
             .form(&form)
             .send()
@@ -563,7 +566,7 @@ impl StripeClient {
     ) -> Result<StripePaymentMethod, StripeError> {
         let response = self
             .client
-            .post(format!("{}/payment_methods/{}/detach", self.base_url, payment_method_id))
+            .post(format!("{}/payment_methods/{}/detach", Self::API_BASE, payment_method_id))
             .basic_auth(&self.api_key, Option::<&str>::None)
             .send()
             .await
@@ -585,7 +588,7 @@ impl StripeClient {
 
         let response = self
             .client
-            .post(format!("{}/customers/{}", self.base_url, customer_id))
+            .post(format!("{}/customers/{}", Self::API_BASE, customer_id))
             .basic_auth(&self.api_key, Option::<&str>::None)
             .form(&form)
             .send()
@@ -598,7 +601,7 @@ impl StripeClient {
     pub async fn get_payment_methods(&self, customer_id: &str) -> Result<Vec<StripePaymentMethod>, StripeError> {
         let response = self
             .client
-            .get(format!("{}/payment_methods", self.base_url))
+            .get(format!("{}/payment_methods", Self::API_BASE))
             .basic_auth(&self.api_key, Option::<&str>::None)
             .query(&[("customer", customer_id), ("type", "card")])
             .send()

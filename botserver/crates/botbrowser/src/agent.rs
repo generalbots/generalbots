@@ -78,6 +78,13 @@ impl AgentObservation {
 }
 
 async fn call_llm(prompt: &str, config: &LlmConfig) -> Result<String> {
+    // SSRF guard: the configured LLM endpoint must be an absolute http(s) URL
+    // with an explicit host before any request is issued.
+    let parsed = url::Url::parse(&config.url).context("invalid LLM endpoint URL")?;
+    anyhow::ensure!(
+        matches!(parsed.scheme(), "http" | "https") && parsed.host_str().is_some(),
+        "LLM endpoint must be an absolute http(s) URL"
+    );
     let client = reqwest::Client::new();
     let response = client
         .post(&config.url)

@@ -360,7 +360,10 @@ pub async fn oauth_unlink(
     let Some(provider) = OAuthProvider::parse(&provider_name_lower) else {
         return (
             StatusCode::BAD_REQUEST,
-            Html(format!("Unsupported OAuth provider: {provider_name}")),
+            Html(format!(
+                "Unsupported OAuth provider: {}",
+                provider_name.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;")
+            )),
         );
     };
 

@@ -13,7 +13,7 @@ impl WeChatProvider {
     ) -> Result<QRCodeResult, ChannelError> {
         let url = format!(
             "{}/cgi-bin/qrcode/create?access_token={}",
-            self.api_base_url, access_token
+            Self::API_BASE, access_token
         );
 
         let response = self
@@ -67,7 +67,7 @@ impl WeChatProvider {
     ) -> Result<String, ChannelError> {
         let url = format!(
             "{}/cgi-bin/shorturl?access_token={}",
-            self.api_base_url, access_token
+            Self::API_BASE, access_token
         );
 
         let request_body = serde_json::json!({

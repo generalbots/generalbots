@@ -28,6 +28,7 @@ env_logger = { workspace = true }
 chrono = { workspace = true, features = ["serde", "clock"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
+url = { workspace = true }
 uuid = { workspace = true, features = ["serde", "v4"] }
 toml = { workspace = true }
 tokio = { workspace = true, features = ["sync", "time"] }

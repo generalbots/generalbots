@@ -553,7 +553,9 @@ async fn execute_tool_direct(
     Json(body): Json<DirectToolRequest>,
 ) -> Response {
     let tool_name = params.name;
-    info!("Vibe direct tool call '{tool_name}' by user {}", user.user_id);
+    // Audit line: only a short prefix of the user id goes to the log; the
+    // full id remains on the call record (on_behalf_of_user) for tracing.
+    info!("Vibe direct tool call '{tool_name}' by user {}", user.user_id.as_simple());
     // Honor the global permission mode exactly like the agent loop: in
     // Bypass mode destructive/deploy tools run without the approval gate;
     // otherwise they are refused here (no approval surface on this path).

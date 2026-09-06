@@ -1664,6 +1664,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tower-http",
+ "url",
  "urlencoding",
  "uuid",
 ]
@@ -1905,6 +1906,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "url",
  "uuid",
 ]
 
@@ -2038,6 +2040,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "toml 0.8.2",
+ "url",
  "uuid",
 ]
 
@@ -2446,6 +2449,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "toml 0.8.2",
+ "url",
  "uuid",
 ]
 
@@ -2529,6 +2533,7 @@ dependencies = [
  "serde_json",
  "tokio",
  "tracing",
+ "url",
  "uuid",
 ]
 
@@ -3390,6 +3395,7 @@ dependencies = [
  "serde_json",
  "thiserror 2.0.18",
  "tokio",
+ "url",
  "uuid",
  "zip 2.4.2",
 ]
@@ -3485,6 +3491,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "url",
  "uuid",
  "which 7.0.3",
  "wiremock",
@@ -3556,6 +3563,7 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "tower-http",
+ "url",
 ]
 
 [[package]]

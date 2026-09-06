@@ -38,6 +38,9 @@ fn default_project_id() -> String {
 #[derive(Debug, Clone)]
 pub struct ZitadelClient {
     config: ZitadelConfig,
+    /// API base rebuilt from parsed URL components (scheme://host[:port]) so
+    /// bearer tokens can never be redirected to a tampered host (SSRF guard).
+    api_base: String,
     http_client: reqwest::Client,
     access_token: Arc<RwLock<Option<String>>>,
     token_expires_at: Arc<RwLock<Option<Instant>>>,
@@ -47,7 +50,27 @@ pub struct ZitadelClient {
 }
 
 impl ZitadelClient {
+    /// Rebuilds the API base from validated URL components, dropping any
+    /// userinfo, path or query that could retarget the request.
+    fn sanitize_api_base(raw: &str) -> Result<String> {
+        let parsed = url::Url::parse(raw).map_err(|e| anyhow!("invalid Zitadel api_url: {e}"))?;
+        let host = parsed.host_str().ok_or_else(|| anyhow!("Zitadel api_url requires a host"))?.to_string();
+        // Bearer tokens and user data travel to this host: require https,
+        // allowing plain http only for loopback (traffic never leaves the host).
+        let loopback = host == "localhost" || host.starts_with("127.") || host == "[::1]";
+        anyhow::ensure!(
+            parsed.scheme() == "https" || (parsed.scheme() == "http" && loopback),
+            "Zitadel api_url must be https (or http on loopback)"
+        );
+        let mut base = format!("{}://{}", parsed.scheme(), host);
+        if let Some(port) = parsed.port() {
+            base.push_str(&format!(":{port}"));
+        }
+        Ok(base)
+    }
+
     pub fn new(config: ZitadelConfig) -> Result<Self> {
+        let api_base = Self::sanitize_api_base(&config.api_url)?;
         let http_client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
@@ -55,6 +78,7 @@ impl ZitadelClient {
 
         Ok(Self {
             config,
+            api_base,
             http_client,
             access_token: Arc::new(RwLock::new(None)),
             token_expires_at: Arc::new(RwLock::new(None)),
@@ -70,6 +94,7 @@ impl ZitadelClient {
         username: String,
         password: String,
     ) -> Result<Self> {
+        let api_base = Self::sanitize_api_base(&config.api_url)?;
         let http_client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
@@ -77,6 +102,7 @@ impl ZitadelClient {
 
         Ok(Self {
             config,
+            api_base,
             http_client,
             access_token: Arc::new(RwLock::new(None)),
             token_expires_at: Arc::new(RwLock::new(None)),
@@ -86,6 +112,7 @@ impl ZitadelClient {
     }
 
     pub fn with_pat_token(config: ZitadelConfig, pat_token: String) -> Result<Self> {
+        let api_base = Self::sanitize_api_base(&config.api_url)?;
         let http_client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
@@ -93,6 +120,7 @@ impl ZitadelClient {
 
         Ok(Self {
             config,
+            api_base,
             http_client,
             access_token: Arc::new(RwLock::new(None)),
             token_expires_at: Arc::new(RwLock::new(None)),
@@ -106,7 +134,7 @@ impl ZitadelClient {
     }
 
     pub fn api_url(&self) -> String {
-        self.config.api_url.clone()
+        self.api_base.clone()
     }
 
     pub fn client_id(&self) -> String {
@@ -165,7 +193,7 @@ impl ZitadelClient {
             }
         }
 
-        let token_url = format!("{}/oauth/v2/token", self.config.api_url);
+        let token_url = format!("{}/oauth/v2/token", self.api_base);
         log::info!("Requesting access token from: {}", token_url);
 
         // Build params dynamically based on auth method
@@ -245,7 +273,7 @@ impl ZitadelClient {
         let token = self.get_access_token().await?;
         // Note: This Zitadel build (Jan 2024) does not expose /v2/users/human via HTTP.
         // The management API /management/v1/users/human uses firstName/lastName fields.
-        let url = format!("{}/management/v1/users/human", self.config.api_url);
+        let url = format!("{}/management/v1/users/human", self.api_base);
 
         let mut body = serde_json::json!({
             "userName": username.unwrap_or(email),
@@ -316,7 +344,7 @@ impl ZitadelClient {
 
     pub async fn get_user(&self, user_id: &str) -> Result<serde_json::Value> {
         let token = self.get_access_token().await?;
-        let url = format!("{}/v2/users/{}", self.config.api_url, user_id);
+        let url = format!("{}/v2/users/{}", self.api_base, user_id);
 
         let response = self
             .http_client
@@ -343,7 +371,7 @@ impl ZitadelClient {
         let token = self.get_access_token().await?;
         let url = format!(
             "{}/management/v1/users/_search?limit={}&offset={}",
-            self.config.api_url, limit, offset
+            self.api_base, limit, offset
         );
 
         let response = self
@@ -376,7 +404,7 @@ impl ZitadelClient {
 
     pub async fn search_users(&self, query: &str) -> Result<Vec<serde_json::Value>> {
         let token = self.get_access_token().await?;
-        let url = format!("{}/management/v1/users/_search", self.config.api_url);
+        let url = format!("{}/management/v1/users/_search", self.api_base);
 
         let body = serde_json::json!({
             "queries": [{
@@ -417,7 +445,7 @@ impl ZitadelClient {
 
     pub async fn search_users_by_phone(&self, phone: &str) -> Result<Vec<serde_json::Value>> {
         let token = self.get_access_token().await?;
-        let url = format!("{}/management/v1/users/_search", self.config.api_url);
+        let url = format!("{}/management/v1/users/_search", self.api_base);
 
         let body = serde_json::json!({
             "queries": [{
@@ -458,7 +486,7 @@ impl ZitadelClient {
 
     pub async fn search_users_by_email(&self, email: &str) -> Result<Vec<serde_json::Value>> {
         let token = self.get_access_token().await?;
-        let url = format!("{}/management/v1/users/_search", self.config.api_url);
+        let url = format!("{}/management/v1/users/_search", self.api_base);
 
         let body = serde_json::json!({
             "queries": [{
@@ -499,7 +527,7 @@ impl ZitadelClient {
 
     pub async fn search_users_by_metadata(&self, key: &str, value: &str) -> Result<Vec<serde_json::Value>> {
         let token = self.get_access_token().await?;
-        let url = format!("{}/management/v1/users/_search", self.config.api_url);
+        let url = format!("{}/management/v1/users/_search", self.api_base);
 
         let body = serde_json::json!({
             "queries": [{
@@ -579,7 +607,7 @@ impl ZitadelClient {
         let token = self.get_access_token().await?;
         let url = format!(
             "{}/v2/users/{}/memberships?limit={}&offset={}",
-            self.config.api_url, user_id, limit, offset
+            self.api_base, user_id, limit, offset
         );
 
         let response = self
@@ -612,7 +640,7 @@ impl ZitadelClient {
         let token = self.get_access_token().await?;
         let url = format!(
             "{}/v2/organizations/{}/members",
-            self.config.api_url, org_id
+            self.api_base, org_id
         );
 
         let body = serde_json::json!({
@@ -641,7 +669,7 @@ impl ZitadelClient {
         let token = self.get_access_token().await?;
         let url = format!(
             "{}/v2/organizations/{}/members/{}",
-            self.config.api_url, org_id, user_id
+            self.api_base, org_id, user_id
         );
 
         let response = self
@@ -664,7 +692,7 @@ impl ZitadelClient {
         let token = self.get_access_token().await?;
         let url = format!(
             "{}/v2/organizations/{}/members",
-            self.config.api_url, org_id
+            self.api_base, org_id
         );
 
         let response = self
@@ -696,7 +724,7 @@ impl ZitadelClient {
 
     pub async fn get_organization(&self, org_id: &str) -> Result<serde_json::Value> {
         let token = self.get_access_token().await?;
-        let url = format!("{}/v2/organizations/{}", self.config.api_url, org_id);
+        let url = format!("{}/v2/organizations/{}", self.api_base, org_id);
 
         let response = self
             .http_client
@@ -720,7 +748,7 @@ impl ZitadelClient {
     }
 
     pub async fn introspect_token(&self, token: &str) -> Result<serde_json::Value> {
-        let url = format!("{}/oauth/v2/introspect", self.config.api_url);
+        let url = format!("{}/oauth/v2/introspect", self.api_base);
 
         let params = [
             ("token", token),
@@ -756,7 +784,7 @@ impl ZitadelClient {
         resource: &str,
     ) -> Result<bool> {
         let token = self.get_access_token().await?;
-        let url = format!("{}/v2/permissions/check", self.config.api_url);
+        let url = format!("{}/v2/permissions/check", self.api_base);
 
         let check_payload = serde_json::json!({
             "userId": user_id,
@@ -791,7 +819,7 @@ impl ZitadelClient {
 
     pub async fn set_user_password(&self, user_id: &str, password: &str, change_required: bool) -> Result<()> {
         let token = self.get_access_token().await?;
-        let url = format!("{}/v2/users/{}/password", self.config.api_url, user_id);
+        let url = format!("{}/v2/users/{}/password", self.api_base, user_id);
 
         let body = serde_json::json!({
             "newPassword": {
@@ -821,7 +849,7 @@ impl ZitadelClient {
         let token = self.get_access_token().await?;
         let url = format!(
             "{}/management/v1/orgs/_search?limit={}&offset={}",
-            self.config.api_url, limit, offset
+            self.api_base, limit, offset
         );
 
         let response = self
@@ -856,7 +884,7 @@ impl ZitadelClient {
         let token = self.get_access_token().await?;
         // Note: Use management API (/management/v1/orgs) because this Zitadel build
         // does not expose /v2/organizations via HTTP.
-        let url = format!("{}/management/v1/orgs", self.config.api_url);
+        let url = format!("{}/management/v1/orgs", self.api_base);
 
         let body = serde_json::json!({ "name": name });
 
@@ -891,7 +919,7 @@ impl ZitadelClient {
 
     pub async fn update_organization_metadata(&self, org_id: &str, metadata: serde_json::Value) -> Result<()> {
         let token = self.get_access_token().await?;
-        let url = format!("{}/v2/organizations/{}", self.config.api_url, org_id);
+        let url = format!("{}/v2/organizations/{}", self.api_base, org_id);
 
         let body = serde_json::json!({
             "metadata": metadata
@@ -916,7 +944,7 @@ impl ZitadelClient {
 
     pub async fn create_pat(&self, user_id: &str, display_name: &str, expiration_date: Option<&str>) -> Result<String> {
         let token = self.get_access_token().await?;
-        let url = format!("{}/v2/users/{}/pat", self.config.api_url, user_id);
+        let url = format!("{}/v2/users/{}/pat", self.api_base, user_id);
 
         let body = if let Some(expiry) = expiration_date {
             serde_json::json!({

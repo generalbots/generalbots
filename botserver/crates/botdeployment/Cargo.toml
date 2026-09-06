@@ -21,6 +21,7 @@ uuid = { workspace = true, features = ["v4", "serde"] }
 chrono = { workspace = true, features = ["serde"] }
 toml = { workspace = true }
 botsecurity-auth = { workspace = true }
+url = { workspace = true }
 
 [lints]
 workspace = true

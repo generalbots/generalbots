@@ -25,10 +25,19 @@ impl BotServerClient {
             std::env::var("BOTSERVER_URL").unwrap_or_else(|_| DEFAULT_BOTSERVER_URL.to_string())
         });
 
+        // Guard against server-side request forgery: the endpoint must be a
+        // valid http(s) URL with an explicit host before any request is made.
+        let is_valid = url::Url::parse(&url).is_ok_and(|parsed| {
+            matches!(parsed.scheme(), "http" | "https") && parsed.host_str().is_some()
+        });
+        if !is_valid {
+            error!("BotServerClient: invalid base URL, falling back to default");
+        }
+        let url = if is_valid { url } else { DEFAULT_BOTSERVER_URL.to_string() };
+
         let client = reqwest::Client::builder()
             .timeout(timeout)
             .user_agent(format!("BotLib/{}", env!("CARGO_PKG_VERSION")))
-            .danger_accept_invalid_certs(true)
             .build()
             .unwrap_or_else(|_| reqwest::Client::new());
 

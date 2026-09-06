@@ -86,17 +86,21 @@ impl OutlookService {
         Self { client }
     }
 
-    pub fn me_messages_url(&self, top: u32) -> String {
-        format!("{}/me/messages?$top={}", self.client.graph_base_url, top)
+    pub fn me_messages_url(&self, top: u32) -> Result<String, String> {
+        let url = format!("{}/me/messages?$top={}", self.client.graph_base_url, top);
+        SharePointClient::validate_url_for_graph(&url)?;
+        Ok(url)
     }
 
-    pub fn me_calendar_view_url(&self, start: DateTime<Utc>, end: DateTime<Utc>) -> String {
-        format!(
+    pub fn me_calendar_view_url(&self, start: DateTime<Utc>, end: DateTime<Utc>) -> Result<String, String> {
+        let url = format!(
             "{}/me/calendarView?startDateTime={}&endDateTime={}",
             self.client.graph_base_url,
             start.to_rfc3339(),
             end.to_rfc3339()
-        )
+        );
+        SharePointClient::validate_url_for_graph(&url)?;
+        Ok(url)
     }
 
     pub fn send_mail_url(&self) -> String {

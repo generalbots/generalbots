@@ -64,6 +64,7 @@ futures-util = { workspace = true }
 http = { workspace = true }
 log = { workspace = true }
 mime_guess.workspace = true
+url = { workspace = true }
 native-tls = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
 rust-embed = { workspace = true, optional = true }

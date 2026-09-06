@@ -13,7 +13,7 @@ impl WeChatProvider {
     ) -> Result<(), ChannelError> {
         let url = format!(
             "{}/cgi-bin/menu/create?access_token={}",
-            self.api_base_url, access_token
+            Self::API_BASE, access_token
         );
 
         let response = self
@@ -43,7 +43,7 @@ impl WeChatProvider {
     pub async fn delete_menu(&self, access_token: &str) -> Result<(), ChannelError> {
         let url = format!(
             "{}/cgi-bin/menu/delete?access_token={}",
-            self.api_base_url, access_token
+            Self::API_BASE, access_token
         );
 
         let response = self

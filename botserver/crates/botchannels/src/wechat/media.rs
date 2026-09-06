@@ -17,7 +17,7 @@ impl WeChatProvider {
     ) -> Result<MediaUploadResult, ChannelError> {
         let url = format!(
             "{}/cgi-bin/media/upload?access_token={}&type={}",
-            self.api_base_url,
+            Self::API_BASE,
             access_token,
             media_type.as_str()
         );
@@ -80,7 +80,7 @@ impl WeChatProvider {
     ) -> Result<PermanentMediaResult, ChannelError> {
         let url = format!(
             "{}/cgi-bin/material/add_material?access_token={}&type={}",
-            self.api_base_url,
+            Self::API_BASE,
             access_token,
             media_type.as_str()
         );

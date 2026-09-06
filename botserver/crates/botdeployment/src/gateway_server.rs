@@ -362,12 +362,33 @@ async fn deploy_to_caddy(
     _container_name: &str,
     request: &DeployGatewayRequest,
 ) -> Result<String, String> {
-    let site_dir = format!("{}/{}/{}", state.sites_root, request.org, request.app_name);
+    // Path-injection guard: `org` and `app_name` come from the deploy request
+    // body and become a filesystem path (and Caddy/hostname labels). Only
+    // alphanumeric/dash/underscore components are accepted — no separators,
+    // no `..`, no traversal out of the sites root.
+    let sanitize_component = |v: &str| -> Result<String, String> {
+        let cleaned: String = v
+            .chars()
+            .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+            .collect();
+        if cleaned.is_empty() {
+            return Err(format!("invalid deploy identifier: '{v}'"));
+        }
+        Ok(cleaned)
+    };
+    let safe_org = sanitize_component(&request.org)?;
+    let safe_app = sanitize_component(&request.app_name)?;
+    let site_dir = format!("{}/{}/{}", state.sites_root, safe_org, safe_app);
     tokio::fs::create_dir_all(&site_dir).await
         .map_err(|e| format!("Failed to create site dir: {e}"))?;
 
     if !request.artifact_url.is_empty() && request.artifact_url.starts_with("file://") {
         let artifact_path = request.artifact_url.strip_prefix("file://").unwrap_or_default();
+        // The artifact path is likewise request-controlled: refuse traversal
+        // before handing it to `tar -C`.
+        if artifact_path.contains("..") || artifact_path.contains('\0') {
+            return Err(format!("invalid artifact path: {artifact_path}"));
+        }
         let output = tokio::process::Command::new("tar")
             .args(["-xzf", artifact_path, "-C", &site_dir])
             .output().await
@@ -395,13 +416,24 @@ async fn deploy_to_caddy(
         "match": [{ "host": [format!("{app_name}{env_suffix}.{domain}")] }],
     });
 
-    let client = reqwest::Client::new();
-    let _ = client
-        .post(format!("{}/config/apps/http/servers/srv0/routes", state.caddy_api_url))
-        .json(&caddy_route)
-        .send().await;
+    // SSRF guard: the Caddy admin API URL comes from configuration; require an
+    // absolute http(s) URL with an explicit host before posting to it.
+    let caddy_ok = url::Url::parse(&state.caddy_api_url).is_ok_and(|parsed| {
+        matches!(parsed.scheme(), "http" | "https") && parsed.host_str().is_some()
+    });
+    let published_url = if caddy_ok {
+        let client = reqwest::Client::new();
+        let _ = client
+            .post(format!("{}/config/apps/http/servers/srv0/routes", state.caddy_api_url))
+            .json(&caddy_route)
+            .send().await;
+        format!("https://{app_name}{env_suffix}.{domain}/")
+    } else {
+        log::warn!("Deployment skipped: invalid Caddy API URL configuration");
+        String::new()
+    };
 
-    Ok(format!("https://{app_name}{env_suffix}.{domain}/"))
+    Ok(published_url)
 }
 
 async fn run_incus_command(state: &GatewayState, args: &[&str]) -> Result<String, String> {

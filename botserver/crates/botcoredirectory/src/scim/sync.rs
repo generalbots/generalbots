@@ -73,9 +73,13 @@ impl AzureAdSyncer {
     }
 
     pub async fn get_access_token(&self) -> Result<String, String> {
+        // The tenant segment is constrained to hostname-safe characters so the
+        // token endpoint always stays on login.microsoftonline.com (SSRF guard).
+        let encoded: String = self.config.tenant_id.chars()
+            .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '.' { c } else { '_' })
+            .collect();
         let token_url = format!(
-            "https://login.microsoftonline.com/{}/oauth2/v2.0/token",
-            self.config.tenant_id
+            "https://login.microsoftonline.com/{encoded}/oauth2/v2.0/token"
         );
 
         let params = [

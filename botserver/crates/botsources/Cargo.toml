@@ -22,6 +22,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["rt-multi-thread", "macros", "sync"] }
+url = { workspace = true }
 uuid = { workspace = true, features = ["v4", "serde"] }
 zip = { workspace = true }
 pdf-extract = { workspace = true, optional = true }

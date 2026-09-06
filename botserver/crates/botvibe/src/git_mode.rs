@@ -34,7 +34,9 @@ pub async fn ensure_git_repo(project: &Project) -> Result<(), String> {
     if project.source_control != "git" {
         return Ok(());
     }
-    let cwd = ensure_workspace(&project.name)?;
+    // Path-injection guard: restrict the user-controlled project name to the
+    // workspace-safe charset before it reaches any filesystem join.
+    let cwd = ensure_workspace(&crate::harness::sanitize_project_id(&project.name)?)?;
     let remote = match run(
         "git",
         &["remote".to_string(), "get-url".to_string(), "origin".to_string()],
@@ -138,7 +140,12 @@ pub async fn ensure_github_clone(project: &Project) -> Result<(), String> {
     if project.source_control != "github" {
         return Ok(());
     }
-    let cwd = ensure_workspace(&project.name)?;
+    // Path-injection guard: the project name arrives from the REST body and
+    // becomes a filesystem path below (temp clone dir + rename target).
+    // Restrict it to the same charset `ensure_workspace` will accept so the
+    // join can never traverse outside the workspaces root.
+    let safe_name = crate::harness::sanitize_project_id(&project.name)?;
+    let cwd = ensure_workspace(&safe_name)?;
     if cwd.join(".git").exists() {
         info!("Vibe github-mode {}: workspace already cloned", project.name);
         return Ok(());
@@ -163,7 +170,7 @@ pub async fn ensure_github_clone(project: &Project) -> Result<(), String> {
     let parent = cwd
         .parent()
         .ok_or_else(|| "workspace has no parent dir".to_string())?;
-    let tmp = parent.join(format!(".clone-{}", project.name));
+    let tmp = parent.join(format!(".clone-{safe_name}"));
     if tmp.exists() {
         std::fs::remove_dir_all(&tmp).map_err(|e| format!("clean temp clone: {e}"))?;
     }
@@ -222,7 +229,8 @@ pub fn snapshot_deploy_branch(project: &Project) -> Result<Option<String>, Strin
     if project.source_control != "git" {
         return Ok(None);
     }
-    let cwd = ensure_workspace(&project.name)?;
+    // Path-injection guard (same as ensure_git_repo/ensure_github_clone).
+    let cwd = ensure_workspace(&crate::harness::sanitize_project_id(&project.name)?)?;
     if !cwd.join(".git").exists() {
         return Ok(None);
     }

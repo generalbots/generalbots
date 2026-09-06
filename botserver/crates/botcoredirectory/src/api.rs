@@ -240,13 +240,19 @@ pub async fn check_services_status(State(state): State<Arc<DirectoryApiState>>) 
     status.database = state.conn.get().is_ok();
 
     let client = reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
         .timeout(std::time::Duration::from_secs(2))
         .build()
         .unwrap_or_default();
 
-    if let Ok(response) = client.get(format!("{}/healthz", state.base_url)).send().await {
-        status.directory = response.status().is_success();
+    // Server-side request forgery guard: the configured directory base URL
+    // must be an http(s) URL with an explicit host before it is requested.
+    let directory_ok = url::Url::parse(&state.base_url).is_ok_and(|parsed| {
+        matches!(parsed.scheme(), "http" | "https") && parsed.host_str().is_some()
+    });
+    if directory_ok {
+        if let Ok(response) = client.get(format!("{}/healthz", state.base_url)).send().await {
+            status.directory = response.status().is_success();
+        }
     }
 
     if let Ok(response) = client.get("https://localhost:8025/health").send().await {

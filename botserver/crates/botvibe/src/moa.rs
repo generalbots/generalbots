@@ -114,6 +114,10 @@ impl MoaEngine {
         } else {
             req.roles.clone()
         };
+        // Hard cap: the role list is request-controlled and must never drive
+        // unbounded parallel LLM fan-out.
+        const MAX_ROLES: usize = 12;
+        let roles = if roles.len() > MAX_ROLES { roles[..MAX_ROLES].to_vec() } else { roles };
         let seed = MoaRun {
             run_id,
             prompt: req.prompt.clone(),
