@@ -894,9 +894,8 @@ async fn rotate_secret(component: &str) -> Result<()> {
             println!("Run this SQL command:");
             let default_username = "postgres".to_string();
             println!(
-                "  ALTER USER {} WITH PASSWORD '{}';",
-                secrets.get("username").unwrap_or(&default_username),
-                new_password
+                "  ALTER USER {} WITH PASSWORD '[REDACTED — see Vault secret/gbo/tables]';",
+                secrets.get("username").unwrap_or(&default_username)
             );
             println!();
             println!(
@@ -932,8 +931,8 @@ async fn rotate_secret(component: &str) -> Result<()> {
             println!();
             println!("Run these commands:");
             println!(
-                "  mc admin user add myminio {} {}",
-                new_accesskey, new_secret
+                "  mc admin user add myminio {} [REDACTED — see Vault secret/gbo/drive]",
+                new_accesskey
             );
             println!(
                 "  mc admin policy attach myminio readwrite --user {}",
@@ -966,7 +965,7 @@ async fn rotate_secret(component: &str) -> Result<()> {
             println!("⚠️  WARNING: You must update Valkey/Redis with the new password!");
             println!();
             println!("Run this command:");
-            println!("  redis-cli CONFIG SET requirepass '{}'", new_password);
+            println!("  redis-cli CONFIG SET requirepass '[REDACTED — see Vault secret/gbo/cache]'");
             println!();
             println!(
                 "New password: {}...",
@@ -1180,9 +1179,8 @@ async fn rotate_all_secrets() -> Result<()> {
         .await?;
     let default_username = "postgres".to_string();
     println!(
-        "✓ tables: ALTER USER {} WITH PASSWORD '{}';",
-        tables.get("username").unwrap_or(&default_username),
-        tables_password
+        "✓ tables: ALTER USER {} WITH PASSWORD '[REDACTED — see Vault secret/gbo/tables]';",
+        tables.get("username").unwrap_or(&default_username)
     );
 
     let drive_accesskey = generate_access_key();
@@ -1195,18 +1193,15 @@ async fn rotate_all_secrets() -> Result<()> {
     drive.insert("secret".to_string(), drive_secret.clone());
     manager.put_secret(SecretPaths::DRIVE, drive).await?;
     println!(
-        "✓ drive: mc admin user add myminio {} {}",
-        drive_accesskey, drive_secret
+        "✓ drive: mc admin user add myminio {} [REDACTED]",
+        drive_accesskey
     );
 
     let cache_password = generate_password(32);
     let mut cache: HashMap<String, String> = HashMap::new();
     cache.insert("password".to_string(), cache_password.clone());
     manager.put_secret(SecretPaths::CACHE, cache).await?;
-    println!(
-        "✓ cache: redis-cli CONFIG SET requirepass '{}'",
-        cache_password
-    );
+    println!("✓ cache: redis-cli CONFIG SET requirepass '[REDACTED]'");
 
     let email_password = generate_password(24);
     let mut email = manager
@@ -1215,7 +1210,7 @@ async fn rotate_all_secrets() -> Result<()> {
         .unwrap_or_default();
     email.insert("password".to_string(), email_password.clone());
     manager.put_secret(SecretPaths::EMAIL, email).await?;
-    println!("✓ email: new password = {}", email_password);
+    println!("✓ email: new password set ({} chars)", email_password.len());
 
     let directory_secret = generate_password(48);
     let mut directory = manager

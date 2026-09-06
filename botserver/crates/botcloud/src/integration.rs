@@ -619,12 +619,23 @@ pub fn create_cloud_workspace_inner(conn: &mut PgConnection, branch_id: Uuid, na
 
 /// Recursively copy a directory from src to dst using std::fs.
 fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
+    // Containment barrier: every entry must canonicalize inside `src`, so a
+    // crafted or symlinked entry name cannot escape the source directory.
+    let canon_src = src.canonicalize()?;
     std::fs::create_dir_all(dst)?;
     for entry in std::fs::read_dir(src)? {
         let entry = entry?;
         let ty = entry.file_type()?;
         let src_path = entry.path();
         let dst_path = dst.join(entry.file_name());
+        if let Ok(canon_entry) = src_path.canonicalize() {
+            if !canon_entry.starts_with(&canon_src) {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    "copy_dir_all: entry escapes source directory",
+                ));
+            }
+        }
         if ty.is_dir() {
             copy_dir_all(&src_path, &dst_path)?;
         } else {
@@ -677,6 +688,21 @@ pub fn create_bot_bucket(
             ));
         }
         let src = Path::new(templates_dir).join(template_path);
+        // Containment barrier: canonicalize and verify the resolved template
+        // source stays inside the configured templates dir (symlink-aware).
+        let canon_src = src
+            .canonicalize()
+            .map_err(|e| format!("template path {}: {e}", src.display()))?;
+        let canon_base = Path::new(templates_dir)
+            .canonicalize()
+            .map_err(|e| format!("templates dir {}: {e}", templates_dir))?;
+        if !canon_src.starts_with(&canon_base) {
+            return Err(format!(
+                "template path {} escapes templates dir {}",
+                canon_src.display(),
+                canon_base.display()
+            ));
+        }
         if src.is_dir() {
             let tmpdir = format!("/tmp/gbtemplate_{bot_slug}");
             let _ = std::fs::remove_dir_all(&tmpdir);

@@ -156,7 +156,7 @@ pub fn ensure_sample_scope(conn: &mut diesel::PgConnection) -> Result<SampleScop
     let demo_password = generate_demo_password();
     let password_hash = hash_demo_password(&demo_password)?;
     log::info!(
-        "botsampledata: sample tenant ready — demo login for user@sample.com uses the generated password logged here (demo-only): {demo_password}"
+        "botsampledata: sample tenant ready — demo login for user@sample.com uses a generated password ({} chars, demo-only)", demo_password.len()
     );
 
     // 6. Demo accounts with a real Argon2 hash so they can log in.

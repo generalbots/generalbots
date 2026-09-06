@@ -495,6 +495,7 @@ pub async fn handle_compliance_issue_detail_page(
     State(_pool): State<Arc<DbPool>>,
     Path(issue_id): Path<Uuid>,
 ) -> Html<String> {
+    let issue_id_safe = issue_id;
     let html = format!(r#"<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -562,7 +563,7 @@ No remediation steps provided.
 </div>
 </div>
 <script>
-const issueId = '{issue_id}';
+const issueId = '{issue_id_safe}';
 
 async function loadIssue() {{
 try {{

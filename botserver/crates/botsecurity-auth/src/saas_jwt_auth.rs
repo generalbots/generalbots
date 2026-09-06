@@ -48,10 +48,7 @@ impl AuthProvider for SaasJwtAuthProvider {
     }
 
     async fn authenticate(&self, token: &str) -> Result<AuthenticatedUser, AuthError> {
-        log::info!(
-            "saas-jwt provider validating token (secret fp {:?})",
-            &self.secret[..8.min(self.secret.len())]
-        );
+        log::info!("saas-jwt provider validating token");
         let mut validation = Validation::new(Algorithm::HS256);
         validation.validate_exp = true;
         validation.required_spec_claims = HashSet::from(["exp".to_string()]);

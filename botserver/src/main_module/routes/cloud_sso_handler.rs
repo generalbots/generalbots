@@ -141,9 +141,23 @@ try {{
 
 fn sanitize_redirect(url: &str) -> String {
     // Only allow relative paths or same-origin absolute URLs
-    if url.starts_with('/') {
+    let forbidden = |s: &str| {
+        s.contains('"')
+            || s.contains('\'')
+            || s.contains('\\')
+            || s.contains('<')
+            || s.contains('>')
+            || s.contains('\n')
+            || s.contains('\r')
+    };
+    if url.starts_with('/') && !forbidden(url) {
         url.to_string()
-    } else if url.starts_with("http://") || url.starts_with("https://") {
+    } else if (url.starts_with("http://") || url.starts_with("https://"))
+        && !forbidden(url)
+        && url::Url::parse(url)
+            .map(|u| u.host_str().is_some())
+            .unwrap_or(false)
+    {
         url.to_string()
     } else {
         "/".to_string()
@@ -190,7 +204,7 @@ pub(crate) async fn create_suite_session(
         persist_session(&api_token, &session_user);
     }
 
-    log::info!("Created Suite session for {} (token: {}...)", email, &api_token[..20.min(api_token.len())]);
+    log::info!("Created Suite session for {} (token: {}...)", email, &api_token[..6.min(api_token.len())]);
     api_token
 }
 

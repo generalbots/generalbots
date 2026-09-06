@@ -82,6 +82,28 @@ pub fn sanitize_project_id(project: &str) -> Result<String, String> {
     Ok(project.to_string())
 }
 
+/// Containment barrier: canonicalizes `path` and verifies it stays inside
+/// `base`. This is the canonical defense against path injection — symlinks
+/// and `..` components are resolved by the filesystem itself, so the check
+/// cannot be bypassed by crafted names. Both paths must exist (or have an
+/// existing ancestor) for canonicalization to succeed.
+pub fn ensure_contained(path: &Path, base: &Path) -> Result<PathBuf, String> {
+    let canon_path = path
+        .canonicalize()
+        .map_err(|e| format!("canonicalize {}: {e}", path.display()))?;
+    let canon_base = base
+        .canonicalize()
+        .map_err(|e| format!("canonicalize {}: {e}", base.display()))?;
+    if !canon_path.starts_with(&canon_base) {
+        return Err(format!(
+            "path {} escapes workspace root {}",
+            canon_path.display(),
+            canon_base.display()
+        ));
+    }
+    Ok(canon_path)
+}
+
 /// Resolve a path inside the project workspace, refusing `..` escapes and
 /// absolute paths.
 pub fn resolve_workspace_path(project: &str, rel: &str) -> Result<PathBuf, String> {
@@ -124,8 +146,12 @@ pub fn resolve_workspace_path(project: &str, rel: &str) -> Result<PathBuf, Strin
 /// workspaces root (path-injection guard).
 pub fn ensure_workspace(project: &str) -> Result<PathBuf, String> {
     let safe = sanitize_project_id(project)?;
-    let root = workspace_root().join(safe);
+    let base = workspace_root();
+    let root = base.join(safe);
     std::fs::create_dir_all(&root).map_err(|e| format!("create workspace: {e}"))?;
+    // Containment barrier: canonicalize and verify the created workspace is
+    // inside the workspaces root (path-injection defense, symlink-aware).
+    ensure_contained(&root, &base)?;
     Ok(root)
 }
 

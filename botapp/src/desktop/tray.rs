@@ -306,7 +306,6 @@ impl ServiceMonitor {
         }
 
         let Ok(client) = reqwest::Client::builder()
-            .danger_accept_invalid_certs(true)
             .timeout(std::time::Duration::from_secs(2))
             .build()
         else {

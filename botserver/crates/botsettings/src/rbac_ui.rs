@@ -132,8 +132,8 @@ pub async fn rbac_users_list(State(state): State<Arc<AppState>>) -> impl IntoRes
                         <div class="user-badges">{badges}</div>
                     </div>"##,
                     user_id = user.id,
-                    username = user.username,
-                    email = user.email,
+                    username = html_escape(&user.username),
+                    email = html_escape(&user.email),
                     badges = admin_badge
                 ));
             }
@@ -441,8 +441,8 @@ pub async fn user_assignment_panel(State(state): State<Arc<AppState>>, Path(user
                 htmx.process(btn);
             }}
             </script>"##,
-                username = user.username,
-                email = user.email,
+                username = html_escape(&user.username),
+                email = html_escape(&user.email),
                 uid = user_id
             );
             Html(html).into_response()
@@ -634,4 +634,12 @@ pub async fn assigned_groups_for_user(State(state): State<Arc<AppState>>, Path(u
             Html(render_error("assigned_groups_for_user")).into_response()
         }
     }
+}
+
+fn html_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#x27;")
 }

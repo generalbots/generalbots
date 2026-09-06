@@ -158,6 +158,7 @@ pub async fn handle_research_detail_page<S: ResearchState>(
     State(_state): State<Arc<S>>,
     Path(project_id): Path<Uuid>,
 ) -> Html<String> {
+    let project_id_safe = project_id;
     let html = format!(r#"<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -227,7 +228,7 @@ body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans
 </div>
 </div>
 <script>
-const projectId = '{project_id}';
+const projectId = '{project_id_safe}';
 
 async function loadProject() {{
 try {{

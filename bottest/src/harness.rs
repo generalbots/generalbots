@@ -520,7 +520,6 @@ impl BotServerInstance {
             log::info!("Waiting for botserver to start (max {max_wait}s)...");
 
             let client = reqwest::Client::builder()
-                .danger_accept_invalid_certs(true)
                 .timeout(std::time::Duration::from_secs(5))
                 .build()
                 .unwrap_or_default();

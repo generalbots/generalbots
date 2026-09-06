@@ -254,10 +254,7 @@ async fn search_qdrant_with_real_embeddings(
         .or_else(|| std::env::var("VECTORDB_API_KEY").ok())
         .unwrap_or_default();
 
-    let client = reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .build()
-        .map_err(|e| format!("HTTP client error: {e}"))?;
+    let client = botlib::security::create_tls_client(None);
 
     let check_url = format!("{}/collections/{}", qdrant_url.trim_end_matches('/'), collection_name);
     let dim = match client.get(&check_url).header("api-key", &api_key).send().await {

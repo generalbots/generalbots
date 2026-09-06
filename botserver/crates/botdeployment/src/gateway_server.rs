@@ -381,6 +381,16 @@ async fn deploy_to_caddy(
     let site_dir = format!("{}/{}/{}", state.sites_root, safe_org, safe_app);
     tokio::fs::create_dir_all(&site_dir).await
         .map_err(|e| format!("Failed to create site dir: {e}"))?;
+    // Containment barrier: after creation, canonicalize and prove the site
+    // directory still resolves inside the configured sites root.
+    let canon_root = std::path::Path::new(&state.sites_root).canonicalize()
+        .map_err(|e| format!("sites root unavailable: {e}"))?;
+    let canon_site = std::path::Path::new(&site_dir).canonicalize()
+        .map_err(|e| format!("site dir unavailable: {e}"))?;
+    if !canon_site.starts_with(&canon_root) {
+        return Err(format!("site dir escapes sites root: {}", canon_site.display()));
+    }
+    let site_dir = canon_site.display().to_string();
 
     if !request.artifact_url.is_empty() && request.artifact_url.starts_with("file://") {
         let artifact_path = request.artifact_url.strip_prefix("file://").unwrap_or_default();
@@ -389,8 +399,16 @@ async fn deploy_to_caddy(
         if artifact_path.contains("..") || artifact_path.contains('\0') {
             return Err(format!("invalid artifact path: {artifact_path}"));
         }
+        // Containment barrier: canonicalize the artifact and require it to
+        // exist as a regular file before extraction.
+        let canon_artifact = std::path::Path::new(artifact_path).canonicalize()
+            .map_err(|e| format!("artifact path unavailable: {e}"))?;
+        if !canon_artifact.is_file() {
+            return Err(format!("artifact is not a regular file: {}", canon_artifact.display()));
+        }
+        let artifact_path = canon_artifact.display().to_string();
         let output = tokio::process::Command::new("tar")
-            .args(["-xzf", artifact_path, "-C", &site_dir])
+            .args(["-xzf", &artifact_path, "-C", &site_dir])
             .output().await
             .map_err(|e| format!("Failed to extract artifact: {e}"))?;
         if !output.status.success() {

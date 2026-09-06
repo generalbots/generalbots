@@ -1426,12 +1426,13 @@ pub async fn handle_social_post_page(
     State(_state): State<Arc<SocialState>>,
     Path(post_id): Path<Uuid>,
 ) -> Html<String> {
+    let post_id_safe = post_id;
     let html = format!(
         r#"<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Post Details</title><style>
 *{{box-sizing:border-box;margin:0;padding:0}}body{{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f5f5f5}}.container{{max-width:900px;margin:0 auto;padding:24px}}.post-card{{background:white;border-radius:12px;padding:32px;box-shadow:0 2px 8px rgba(0,0,0,.08);margin-bottom:24px}}.post-content{{font-size:18px;line-height:1.6;margin-bottom:20px}}.btn{{padding:10px 20px;border:none;border-radius:8px;cursor:pointer;font-size:14px}}.btn-danger{{background:#ffebee;color:#c62828}}
 </style></head><body><div class="container"><a href="/suite/social" style="color:#0066cc;text-decoration:none;">&#8592; Back to Social</a><div class="post-card"><div class="post-content" id="postContent">Loading...</div><button class="btn btn-danger" onclick="deletePost()">Delete Post</button></div></div><script>
-const postId='{post_id}';async function loadPost(){{try{{const r=await fetch(`/api/social/posts/${{postId}}`);const p=await r.json();if(p)document.getElementById('postContent').textContent=p.content;}}catch(e){{console.error(e);}}}}async function deletePost(){{if(!confirm('Delete this post?'))return;try{{await fetch(`/api/social/posts/${{postId}}`,{{method:'DELETE'}});window.location='/suite/social';}}catch(e){{alert('Failed');}}}}loadPost();
+const postId='{post_id_safe}';async function loadPost(){{try{{const r=await fetch(`/api/social/posts/${{postId}}`);const p=await r.json();if(p)document.getElementById('postContent').textContent=p.content;}}catch(e){{console.error(e);}}}}async function deletePost(){{if(!confirm('Delete this post?'))return;try{{await fetch(`/api/social/posts/${{postId}}`,{{method:'DELETE'}});window.location='/suite/social';}}catch(e){{alert('Failed');}}}}loadPost();
 </script></body></html>"#
     );
     Html(html)

@@ -10,7 +10,7 @@ use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;
 
-use crate::models::{CrmDeal, html_escape};
+use crate::models::CrmDeal;
 use crate::schema::{crm_deals, crm_contacts, crm_accounts};
 use crate::CrateState;
 
@@ -79,7 +79,10 @@ pub async fn handle_crm_pipeline(
         .unwrap_or_default();
 
     if leads.is_empty() {
-        return Html(format!(r#"<div class="pipeline-empty"><p>No {stage} items yet</p></div>"#));
+        return Html(format!(
+            r#"<div class="pipeline-empty"><p>No {} items yet</p></div>"#,
+            html_escape(&stage)
+        ));
     }
 
     let mut html = String::new();
@@ -624,4 +627,12 @@ pub async fn handle_crm_opportunities_search(
         ));
     }
     Html(html)
+}
+
+fn html_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#x27;")
 }

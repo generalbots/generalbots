@@ -6,7 +6,7 @@ resolver = "2"
 
 [dependencies.botlib]
 workspace = true
-features = ["database", "i18n"]
+features = ["database", "i18n", "http-client"]
 
 [features]
 # ===== DEFAULT =====
