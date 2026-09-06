@@ -20,7 +20,6 @@ pub struct E2ETestContext {
 async fn is_service_running(url: &str) -> bool {
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(2))
-        .danger_accept_invalid_certs(true)
         .build()
         .unwrap_or_default();
 
@@ -354,11 +353,7 @@ async fn test_existing_stack_connection() {
 
     match E2ETestContext::setup().await {
         Ok(ctx) => {
-            let mut client_builder = reqwest::Client::builder();
-            if ctx.api_url().starts_with("http://localhost") || ctx.api_url().starts_with("http://127.0.0.1") {
-                client_builder = client_builder.danger_accept_invalid_certs(true);
-            }
-            let client = client_builder.build().unwrap();
+            let client = reqwest::Client::builder().build().unwrap();
 
             let health_url = format!("{}/health", ctx.api_url());
             match client.get(&health_url).send().await {

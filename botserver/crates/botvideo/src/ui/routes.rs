@@ -99,6 +99,7 @@ pub async fn handle_video_detail_page(
     axum::extract::State(_state): axum::extract::State<Arc<AppState>>,
     axum::extract::Path(video_id): axum::extract::Path<uuid::Uuid>,
 ) -> axum::response::Html<String> {
+    let video_id_safe = video_id;
     let html = format!(r#"<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -134,7 +135,7 @@ body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans
 </div>
 </div>
 <script>
-const videoId = '{video_id}';
+const videoId = '{video_id_safe}';
 async function loadVideo() {{
 try {{
 const response = await fetch('/api/video/projects/' + videoId);

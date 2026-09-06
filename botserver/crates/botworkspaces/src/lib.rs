@@ -3101,7 +3101,11 @@ fn render_workspace_card(workspace: &DbWorkspace, member_count: i64, page_count:
         .unwrap_or_else(|| "No description".to_string());
     let updated = workspace.updated_at.format("%Y-%m-%d %H:%M").to_string();
     let id = workspace.id;
-    let icon = workspace.icon_value.as_deref().unwrap_or("📁");
+    let icon = workspace
+        .icon_value
+        .as_deref()
+        .map(html_escape)
+        .unwrap_or_else(|| "📁".to_string());
 
     format!(
         r##"<div class="workspace-card" data-id="{id}">
@@ -3161,9 +3165,13 @@ fn render_workspace_row(workspace: &DbWorkspace, member_count: i64, page_count: 
 
 fn render_page_item(page: &DbWorkspacePage, child_count: i64) -> String {
     let title = html_escape(&page.title);
+    let icon_escaped = page
+        .icon_value
+        .as_deref()
+        .map(html_escape)
+        .unwrap_or_else(|| "📄".to_string());
     let id = page.id;
     let workspace_id = page.workspace_id;
-    let icon = page.icon_value.as_deref().unwrap_or("📄");
     let updated = page.updated_at.format("%Y-%m-%d %H:%M").to_string();
     let has_children = if child_count > 0 {
         format!(
@@ -3179,7 +3187,7 @@ fn render_page_item(page: &DbWorkspacePage, child_count: i64) -> String {
         r##"<div class="page-item" data-id="{id}">
 <div class="page-row">
 {has_children}
-<span class="page-icon">{icon}</span>
+<span class="page-icon">{icon_escaped}</span>
 <a class="page-title" href="#" hx-get="/api/ui/pages/{id}" hx-target="#page-content" hx-swap="innerHTML">{title}</a>
 <span class="page-updated">{updated}</span>
 <div class="page-actions">

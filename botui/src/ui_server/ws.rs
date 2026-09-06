@@ -6,7 +6,7 @@ use axum::{
     response::IntoResponse,
 };
 use futures_util::{SinkExt, StreamExt};
-use log::{debug, error, info};
+use log::{debug, error, info, warn};
 use serde::Deserialize;
 use tokio_tungstenite::{
     connect_async_tls_with_config,
@@ -64,11 +64,15 @@ async fn handle_api_ws_proxy(
     info!("Proxying API WebSocket to: {backend_url}");
 
     let backend_socket = if backend_url.starts_with("wss://") {
-        let insecure = crate::ui_server::tls_policy::ws_insecure_tls_allowed(&backend_url);
         let mut tls_builder = native_tls::TlsConnector::builder();
-        if insecure {
-            tls_builder.danger_accept_invalid_certs(true);
-            tls_builder.danger_accept_invalid_hostnames(true);
+        let ca_path = botlib::security::ca_cert_path();
+        if let Ok(pem) = std::fs::read(&ca_path) {
+            match native_tls::Certificate::from_pem(&pem) {
+                Ok(cert) => {
+                    tls_builder.add_root_certificate(cert);
+                }
+                Err(e) => warn!("Invalid platform CA PEM at {ca_path}: {e}"),
+            }
         }
         let Ok(tls_connector) = tls_builder.build()
         else {
@@ -187,11 +191,15 @@ async fn handle_ws_proxy(
     info!("Proxying WebSocket to: {backend_url}");
 
     let backend_socket = if backend_url.starts_with("wss://") {
-        let insecure = crate::ui_server::tls_policy::ws_insecure_tls_allowed(&backend_url);
         let mut tls_builder = native_tls::TlsConnector::builder();
-        if insecure {
-            tls_builder.danger_accept_invalid_certs(true);
-            tls_builder.danger_accept_invalid_hostnames(true);
+        let ca_path = botlib::security::ca_cert_path();
+        if let Ok(pem) = std::fs::read(&ca_path) {
+            match native_tls::Certificate::from_pem(&pem) {
+                Ok(cert) => {
+                    tls_builder.add_root_certificate(cert);
+                }
+                Err(e) => warn!("Invalid platform CA PEM at {ca_path}: {e}"),
+            }
         }
         let Ok(tls_connector) = tls_builder.build()
         else {
@@ -293,11 +301,15 @@ async fn handle_task_progress_ws_proxy(
     info!("Proxying task-progress WebSocket to: {backend_url}");
 
     let backend_socket = if backend_url.starts_with("wss://") {
-        let insecure = crate::ui_server::tls_policy::ws_insecure_tls_allowed(&backend_url);
         let mut tls_builder = native_tls::TlsConnector::builder();
-        if insecure {
-            tls_builder.danger_accept_invalid_certs(true);
-            tls_builder.danger_accept_invalid_hostnames(true);
+        let ca_path = botlib::security::ca_cert_path();
+        if let Ok(pem) = std::fs::read(&ca_path) {
+            match native_tls::Certificate::from_pem(&pem) {
+                Ok(cert) => {
+                    tls_builder.add_root_certificate(cert);
+                }
+                Err(e) => warn!("Invalid platform CA PEM at {ca_path}: {e}"),
+            }
         }
         let Ok(tls_connector) = tls_builder.build()
         else {

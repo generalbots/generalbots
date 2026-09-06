@@ -88,7 +88,7 @@ async fn start_oauth(
                 r#"<!DOCTYPE html><html><head><title>Error</title></head><body>
                 <h1>Invalid OAuth Provider</h1><p>Provider '{}' is not supported.</p>
                 <a href="/auth/login">Back to Login</a></body></html>"#,
-                provider_name
+                html_escape(&provider_name)
             )),
         )
             .into_response();
@@ -258,7 +258,7 @@ async fn oauth_callback(
 
     let redirect_url = oauth_state.redirect_after.unwrap_or_else(|| "/".to_string());
 
-    debug!("OAuth complete, redirecting to {} with session {}", redirect_url, session_token);
+    debug!("OAuth complete, redirecting to {}", redirect_url);
 
     Response::builder()
         .status(StatusCode::SEE_OTHER)
@@ -449,3 +449,11 @@ async fn create_user_session(state: &OAuthState_, user_id: Uuid) -> anyhow::Resu
 }
 
 
+
+fn html_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#x27;")
+}

@@ -292,6 +292,7 @@ pub async fn handle_meet_room_page(
     State(_state): State<Arc<AppState>>,
     Path(room_id): Path<Uuid>,
 ) -> Html<String> {
+    let room_id_safe = room_id;
     let html = format!(r#"<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -394,7 +395,7 @@ pub async fn handle_meet_room_page(
         </div>
     </div>
     <script>
-        const roomId = '{room_id}';
+        const roomId = '{room_id_safe}';
         let micEnabled = true;
         let camEnabled = true;
         let screenSharing = false;

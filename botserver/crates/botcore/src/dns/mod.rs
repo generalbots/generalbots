@@ -217,7 +217,23 @@ impl DynamicDnsService {
             }
         }
 
-        fs::write(&self.config.zone_file_path, zone_content)?;
+        // Containment barrier: canonicalize and prove the zone file resolves
+        // inside the stack configuration directory before writing.
+        let zone_path = self.config.zone_file_path.clone();
+        if let Some(parent) = zone_path.parent() {
+            let canon_parent = parent.canonicalize()
+                .map_err(|e| anyhow::anyhow!("zone dir unavailable: {e}"))?;
+            let stack_root = std::path::PathBuf::from(crate::shared::utils::get_stack_path())
+                .canonicalize()
+                .unwrap_or(canon_parent.clone());
+            if !canon_parent.starts_with(&stack_root) {
+                return Err(anyhow::anyhow!(
+                    "zone file escapes stack root: {}",
+                    canon_parent.display()
+                ));
+            }
+        }
+        fs::write(&zone_path, zone_content)?;
         Ok(())
     }
 

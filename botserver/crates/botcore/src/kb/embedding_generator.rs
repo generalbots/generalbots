@@ -553,11 +553,10 @@ impl KbEmbeddingGenerator {
 
             // Add Authorization header if API key is provided
             if let Some(ref api_key) = self.config.read().unwrap().embedding_key.clone() {
-                if api_key.len() >= 8 {
-                    info!("Using Cloudflare API key ending with: ...{}", &api_key[api_key.len()-8..]);
-                } else {
-                    info!("Using Cloudflare API key (short): {}", api_key);
-                }
+                info!(
+                    "Using Cloudflare embedding API key ({} chars)",
+                    api_key.len()
+                );
                 request_builder = request_builder.header("Authorization", format!("Bearer {}", api_key));
             } else {
                 warn!("Cloudflare API key is NOT SET — embeddings will fail with 401");

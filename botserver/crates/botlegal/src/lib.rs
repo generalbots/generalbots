@@ -1256,6 +1256,7 @@ pub async fn handle_legal_detail_page(
     State(_pool): State<Arc<DbPool>>,
     Path(doc_id): Path<Uuid>,
 ) -> Html<String> {
+    let doc_id_safe = doc_id;
     let html = format!(r#"<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -1322,7 +1323,7 @@ body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans
 </div>
 </div>
 <script>
-const docId = '{doc_id}';
+const docId = '{doc_id_safe}';
 
 async function loadDocument() {{
 try {{

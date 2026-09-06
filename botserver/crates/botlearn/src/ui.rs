@@ -192,6 +192,7 @@ pub async fn handle_learn_list_page() -> Html<String> {
 pub async fn handle_learn_course_page(
     Path(course_id): Path<Uuid>,
 ) -> Html<String> {
+    let course_id_safe = course_id;
     let html = format!(r#"<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -277,7 +278,7 @@ pub async fn handle_learn_course_page(
         </div>
     </div>
     <script>
-        const courseId = '{course_id}';
+        const courseId = '{course_id_safe}';
         let currentLessonIndex = 0;
 
         async function loadCourse() {{

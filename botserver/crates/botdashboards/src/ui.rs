@@ -168,6 +168,7 @@ pub async fn handle_dashboard_detail_page(
     State(_state): State<Arc<DashboardsState>>,
     Path(dashboard_id): Path<Uuid>,
 ) -> Html<String> {
+    let dashboard_id_safe = dashboard_id;
     let html = format!(r#"<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -225,7 +226,7 @@ body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans
 </div>
 </div>
 <script>
-const dashboardId = '{dashboard_id}';
+const dashboardId = '{dashboard_id_safe}';
 
 async function loadDashboard() {{
 try {{

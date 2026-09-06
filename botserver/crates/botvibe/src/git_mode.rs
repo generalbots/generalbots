@@ -36,7 +36,12 @@ pub async fn ensure_git_repo(project: &Project) -> Result<(), String> {
     }
     // Path-injection guard: restrict the user-controlled project name to the
     // workspace-safe charset before it reaches any filesystem join.
-    let cwd = ensure_workspace(&crate::harness::sanitize_project_id(&project.name)?)?;
+    let safe_name = crate::harness::sanitize_project_id(&project.name)?;
+    let cwd = ensure_workspace(&safe_name)?;
+    // Containment barrier: canonicalize and verify the workspace stays inside
+    // the workspaces root (defense against path injection; symlink-aware).
+    let root = crate::harness::workspace_root();
+    crate::harness::ensure_contained(&cwd, &root)?;
     let remote = match run(
         "git",
         &["remote".to_string(), "get-url".to_string(), "origin".to_string()],
@@ -146,6 +151,9 @@ pub async fn ensure_github_clone(project: &Project) -> Result<(), String> {
     // join can never traverse outside the workspaces root.
     let safe_name = crate::harness::sanitize_project_id(&project.name)?;
     let cwd = ensure_workspace(&safe_name)?;
+    // Containment barrier for the github-clone flow (temp dir + rename below).
+    let root = crate::harness::workspace_root();
+    crate::harness::ensure_contained(&cwd, &root)?;
     if cwd.join(".git").exists() {
         info!("Vibe github-mode {}: workspace already cloned", project.name);
         return Ok(());
@@ -171,6 +179,7 @@ pub async fn ensure_github_clone(project: &Project) -> Result<(), String> {
         .parent()
         .ok_or_else(|| "workspace has no parent dir".to_string())?;
     let tmp = parent.join(format!(".clone-{safe_name}"));
+    crate::harness::ensure_contained(&tmp, &root)?;
     if tmp.exists() {
         std::fs::remove_dir_all(&tmp).map_err(|e| format!("clean temp clone: {e}"))?;
     }
@@ -196,6 +205,7 @@ pub async fn ensure_github_clone(project: &Project) -> Result<(), String> {
         let entry = entry.map_err(|e| format!("read temp clone entry: {e}"))?;
         let from = entry.path();
         let to = cwd.join(entry.file_name());
+        crate::harness::ensure_contained(&to, &cwd)?;
         std::fs::rename(&from, &to).map_err(|e| format!("move {} into workspace: {e}", entry.file_name().to_string_lossy()))?;
     }
     std::fs::remove_dir_all(&tmp).map_err(|e| format!("remove temp clone: {e}"))?;

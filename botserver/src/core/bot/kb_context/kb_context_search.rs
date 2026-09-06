@@ -73,9 +73,7 @@ pub async fn search_qdrant(
 
     let search_url = format!("{}/collections/{}/points/search", qdrant_url.trim_end_matches('/'), collection_name);
 
-    let client = reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .build()?;
+    let client = botlib::security::create_tls_client(None);
 
     let check_url = format!("{}/collections/{}", qdrant_url.trim_end_matches('/'), collection_name);
     let dim = {
@@ -284,16 +282,7 @@ pub async fn search_keyword_only(
     query: &str,
     limit: usize,
 ) -> Vec<KbSearchResult> {
-    let client = match reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .build()
-    {
-        Ok(c) => c,
-        Err(e) => {
-            warn!("Failed to build HTTP client for keyword search: {e}");
-            return Vec::new();
-        }
-    };
+    let client = botlib::security::create_tls_client(None);
     let qdrant_url = get_vectordb_url();
     let api_key = get_vectordb_api_key();
     search_qdrant_by_keyword(&client, &qdrant_url, collection_name, query, limit, &api_key)

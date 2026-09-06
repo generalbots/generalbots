@@ -20,7 +20,7 @@ pub async fn get_group_kbs(
         Err(_) => {
             return Html(format!(
                 "<div class='alert alert-danger m-3 text-center'><div class='fs-3 mb-2'>🚫</div>Invalid Group ID Format: {}</div>",
-                group_id_str
+                html_escape(&group_id_str)
             ));
         }
     };
@@ -258,4 +258,12 @@ pub async fn toggle_group_kb(
         }
         _ => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
     }
+}
+
+fn html_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#x27;")
 }

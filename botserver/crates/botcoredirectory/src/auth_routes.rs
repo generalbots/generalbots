@@ -368,7 +368,7 @@ pub async fn login(
             {
                 let mut cache = SESSION_CACHE.write().await;
                 cache.insert(api_token.clone(), session_user.clone());
-                info!("Session cached for user: {} with token: {}...", req.email, &api_token[..std::cmp::min(20, api_token.len())]);
+                info!("Session cached for user: {}", req.email);
                 persist_session(&api_token, &session_user);
             }
 
