@@ -54,6 +54,29 @@ pub async fn upload_media(
         let file_size = data.len() as u64;
         let safe_name = format!("{}_{}", project_id, sanitize_filename(&file_name));
         let file_path = format!("{}/{}", upload_dir, safe_name);
+        // Containment barrier: canonicalize the destination and prove it stays
+        // inside the upload directory before writing.
+        let canon_dir = match std::path::Path::new(&upload_dir).canonicalize() {
+            Ok(d) => d,
+            Err(e) => {
+                log::error!("Upload dir unavailable: {e}");
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    axum::Json(serde_json::json!({ "error": SafeErrorResponse::internal_error() })),
+                );
+            }
+        };
+        let canon_file = std::path::Path::new(&file_path).canonicalize().unwrap_or_else(|_| {
+            // New file: parent must be the canonical upload dir.
+            canon_dir.join(&safe_name)
+        });
+        if !canon_file.starts_with(&canon_dir) {
+            return (
+                StatusCode::BAD_REQUEST,
+                axum::Json(serde_json::json!({ "error": "Invalid file path" })),
+            );
+        }
+        let file_path = canon_file.display().to_string();
 
         if let Err(e) = std::fs::write(&file_path, &data) {
             log::error!("Failed to write uploaded file: {e}");
