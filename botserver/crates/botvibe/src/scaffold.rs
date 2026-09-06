@@ -184,6 +184,12 @@ fn write_files(
             Some(s) => s,
             None => return Err(format!("scaffold file {path:?} is not a string")),
         };
+        // Platform rule: NEVER use CDN links — all assets must be local. The
+        // scaffold prompt already instructs the model, but LLMs occasionally
+        // emit `unpkg`/`cdnjs`/`<script src="https://…">` tags anyway. Strip
+        // remote resource tags (inline logic stays) so the app works offline
+        // and complies with the local-assets directive.
+        let text = strip_remote_resources(text);
         total += text.len();
         if total > MAX_SCAFFOLD_BYTES {
             return Err(format!(
@@ -196,6 +202,50 @@ fn write_files(
         crate::harness::write_rel_file(key, "README.md", b"# Project\n\nScaffolded from your description by Vibe's AI.\n")?;
     }
     Ok(())
+}
+
+/// Removes remote (CDN) resource references from scaffolded HTML/CSS/JS so
+/// every emitted app respects the local-assets-only directive. Tags whose
+/// `src`/`href` point at `http(s)://` are dropped; the surrounding inline
+/// code is preserved.
+fn strip_remote_resources(text: &str) -> String {
+    use std::sync::OnceLock;
+    use std::sync::atomic::{AtomicBool, Ordering};
+    static STRIPPED: OnceLock<AtomicBool> = OnceLock::new();
+
+    // <script src="http…">…</script> (self-closing or paired)
+    let script = regex::Regex::new(
+        r#"(?is)<script\b[^>]*\ssrc\s*=\s*["']https?://[^"']*["'][^>]*>.*?</script>"#,
+    )
+    .ok();
+    // <link href="http…" …> and <link rel=… href="http…" …>
+    let link = regex::Regex::new(
+        r#"(?is)<link\b[^>]*\shref\s*=\s*["']https?://[^"']*["'][^>]*/?>"#,
+    )
+    .ok();
+    // CSS @import url(http…);
+    let css_import = regex::Regex::new(
+        r#"(?i)@import\s+url\(\s*["']?https?://[^)]*\)?\s*;?"#,
+    )
+    .ok();
+
+    let mut out = text.to_string();
+    if let Some(re) = script.as_ref() {
+        out = re.replace_all(&out, "<!-- remote script removed (local assets only) -->").into_owned();
+    }
+    if let Some(re) = link.as_ref() {
+        out = re.replace_all(&out, "<!-- remote stylesheet removed (local assets only) -->").into_owned();
+    }
+    if let Some(re) = css_import.as_ref() {
+        out = re.replace_all(&out, "/* remote import removed (local assets only) */").into_owned();
+    }
+    if out != text {
+        let flag = STRIPPED.get_or_init(|| AtomicBool::new(false));
+        if !flag.swap(true, Ordering::Relaxed) {
+            warn!("Vibe scaffold: stripped remote CDN references from LLM output (local-assets-only rule)");
+        }
+    }
+    out
 }
 
 #[cfg(test)]

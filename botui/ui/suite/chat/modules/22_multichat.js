@@ -99,7 +99,14 @@
     ids.forEach(function (id) {
       var saved = rec.tabs[id];
       var tab = ensureTab(id, saved.title || "Chat", saved.sessionId || null);
-      tab.scrollback = Array.isArray(saved.scrollback) ? saved.scrollback.slice(-100) : [];
+      // The stock tab's conversation IS the stock DOM — never resurrect a
+      // persisted scrollback for it (pre-fix versions accumulated one
+      // greeting copy per window open here).
+      if (tab.usesStockDom || id === "tab-default") {
+        tab.scrollback = [];
+      } else {
+        tab.scrollback = Array.isArray(saved.scrollback) ? saved.scrollback.slice(-100) : [];
+      }
       tab.needsHistoryReplay = tab.scrollback.length === 0 && !!tab.sessionId;
       tab.scrollback.forEach(function (m) {
         appendToContainer(tab.pane, m.sender === "user" ? "user" : "bot", m.content);
@@ -289,7 +296,13 @@
     var t = MC.tabs[id];
     if (!t) return;
     mountActive(t);
-    if (t.ws && t.ws.readyState === WebSocket.OPEN) {
+    // The stock tab rides the stock pipeline's socket (ChatState) — giving
+    // it a second WS on the same session made every server frame arrive
+    // twice (duplicated greetings rendered AND recorded into scrollback,
+    // piling up across window re-opens).
+    if (t.usesStockDom) {
+      // keep stock socket
+    } else if (t.ws && t.ws.readyState === WebSocket.OPEN) {
       /* already live */
     } else if (!t.ws || t.ws.readyState >= WebSocket.CLOSING) {
       connectTab(t);
@@ -419,6 +432,10 @@
   /* ── Background-tab frame handling ── */
 
   function handleBotFrame(t, data) {
+    // Stock tab: the stock pipeline renders these frames — a parallel
+    // record here would duplicate them (double greeting) and inflate
+    // the persisted scrollback on every boot.
+    if (t.usesStockDom) return;
     // Parallel tabs' frames ALWAYS arrive on their own socket (the stock
     // pipeline never sees them) — render unconditionally. When the tab is
     // the active one its pane IS #messages, so appendToContainer lands in
