@@ -13,7 +13,7 @@ impl WeChatProvider {
     ) -> Result<WeChatUser, ChannelError> {
         let url = format!(
             "{}/cgi-bin/user/info?access_token={}&openid={}&lang=zh_CN",
-            self.api_base_url, access_token, openid
+            Self::API_BASE, access_token, openid
         );
 
         let response = self
@@ -71,7 +71,7 @@ impl WeChatProvider {
     ) -> Result<FollowerList, ChannelError> {
         let mut url = format!(
             "{}/cgi-bin/user/get?access_token={}",
-            self.api_base_url, access_token
+            Self::API_BASE, access_token
         );
 
         if let Some(openid) = next_openid {

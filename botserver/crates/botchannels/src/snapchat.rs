@@ -12,22 +12,23 @@ use serde::{Deserialize, Serialize};
 /// Snapchat Marketing API provider
 pub struct SnapchatProvider {
     client: reqwest::Client,
-    api_base_url: String,
-    oauth_base_url: String,
 }
 
 impl SnapchatProvider {
+    /// Provider endpoints are compile-time constants: tokens are scoped to
+    /// these hosts and must never be sent to a runtime-configured one.
+    const API_BASE: &str = "https://adsapi.snapchat.com/v1";
+    const OAUTH_BASE: &str = "https://accounts.snapchat.com";
+
     pub fn new() -> Self {
         Self {
             client: reqwest::Client::new(),
-            api_base_url: "https://adsapi.snapchat.com/v1".to_string(),
-            oauth_base_url: "https://accounts.snapchat.com".to_string(),
         }
     }
 
     /// Get authenticated user info
     pub async fn get_me(&self, access_token: &str) -> Result<SnapchatUser, ChannelError> {
-        let url = format!("{}/me", self.api_base_url);
+        let url = format!("{}/me", Self::API_BASE);
 
         let response = self
             .client
@@ -57,7 +58,7 @@ impl SnapchatProvider {
         &self,
         access_token: &str,
     ) -> Result<Vec<Organization>, ChannelError> {
-        let url = format!("{}/me/organizations", self.api_base_url);
+        let url = format!("{}/me/organizations", Self::API_BASE);
 
         let response = self
             .client
@@ -92,7 +93,7 @@ impl SnapchatProvider {
     ) -> Result<Vec<AdAccount>, ChannelError> {
         let url = format!(
             "{}/organizations/{}/adaccounts",
-            self.api_base_url, organization_id
+            Self::API_BASE, organization_id
         );
 
         let response = self
@@ -129,7 +130,7 @@ impl SnapchatProvider {
     ) -> Result<Campaign, ChannelError> {
         let url = format!(
             "{}/adaccounts/{}/campaigns",
-            self.api_base_url, ad_account_id
+            Self::API_BASE, ad_account_id
         );
 
         let request_body = serde_json::json!({
@@ -183,7 +184,7 @@ impl SnapchatProvider {
     ) -> Result<Vec<Campaign>, ChannelError> {
         let url = format!(
             "{}/adaccounts/{}/campaigns",
-            self.api_base_url, ad_account_id
+            Self::API_BASE, ad_account_id
         );
 
         let response = self
@@ -218,7 +219,7 @@ impl SnapchatProvider {
         campaign_id: &str,
         ad_squad: &AdSquadCreateRequest,
     ) -> Result<AdSquad, ChannelError> {
-        let url = format!("{}/campaigns/{}/adsquads", self.api_base_url, campaign_id);
+        let url = format!("{}/campaigns/{}/adsquads", Self::API_BASE, campaign_id);
 
         let request_body = serde_json::json!({
             "adsquads": [{
@@ -276,7 +277,7 @@ impl SnapchatProvider {
     ) -> Result<Creative, ChannelError> {
         let url = format!(
             "{}/adaccounts/{}/creatives",
-            self.api_base_url, ad_account_id
+            Self::API_BASE, ad_account_id
         );
 
         let request_body = serde_json::json!({
@@ -332,7 +333,7 @@ impl SnapchatProvider {
         ad_squad_id: &str,
         ad: &AdCreateRequest,
     ) -> Result<Ad, ChannelError> {
-        let url = format!("{}/adsquads/{}/ads", self.api_base_url, ad_squad_id);
+        let url = format!("{}/adsquads/{}/ads", Self::API_BASE, ad_squad_id);
 
         let request_body = serde_json::json!({
             "ads": [{
@@ -380,7 +381,7 @@ impl SnapchatProvider {
         ad_account_id: &str,
         media: &MediaUploadRequest,
     ) -> Result<Media, ChannelError> {
-        let url = format!("{}/adaccounts/{}/media", self.api_base_url, ad_account_id);
+        let url = format!("{}/adaccounts/{}/media", Self::API_BASE, ad_account_id);
 
         let request_body = serde_json::json!({
             "media": [{
@@ -431,7 +432,7 @@ impl SnapchatProvider {
     ) -> Result<(), ChannelError> {
         let url = format!(
             "{}/adaccounts/{}/media/{}/upload",
-            self.api_base_url, ad_account_id, media_id
+            Self::API_BASE, ad_account_id, media_id
         );
 
         let part = reqwest::multipart::Part::bytes(chunk_data.to_vec())
@@ -472,7 +473,7 @@ impl SnapchatProvider {
     ) -> Result<Media, ChannelError> {
         let url = format!(
             "{}/adaccounts/{}/media/{}/complete",
-            self.api_base_url, ad_account_id, media_id
+            Self::API_BASE, ad_account_id, media_id
         );
 
         let request_body = serde_json::json!({
@@ -514,7 +515,7 @@ impl SnapchatProvider {
     ) -> Result<Media, ChannelError> {
         let url = format!(
             "{}/adaccounts/{}/media/{}",
-            self.api_base_url, ad_account_id, media_id
+            Self::API_BASE, ad_account_id, media_id
         );
 
         let response = self
@@ -550,7 +551,7 @@ impl SnapchatProvider {
     ) -> Result<Audience, ChannelError> {
         let url = format!(
             "{}/adaccounts/{}/segments",
-            self.api_base_url, ad_account_id
+            Self::API_BASE, ad_account_id
         );
 
         let request_body = serde_json::json!({
@@ -603,7 +604,7 @@ impl SnapchatProvider {
         start_time: &str,
         end_time: &str,
     ) -> Result<CampaignStats, ChannelError> {
-        let url = format!("{}/campaigns/{}/stats", self.api_base_url, campaign_id);
+        let url = format!("{}/campaigns/{}/stats", Self::API_BASE, campaign_id);
 
         let response = self
             .client
@@ -638,7 +639,7 @@ impl SnapchatProvider {
         client_secret: &str,
         refresh_token: &str,
     ) -> Result<OAuthTokenResponse, ChannelError> {
-        let url = format!("{}/login/oauth2/access_token", self.oauth_base_url);
+        let url = format!("{}/login/oauth2/access_token", Self::OAUTH_BASE);
 
         let response = self
             .client
@@ -676,7 +677,7 @@ impl SnapchatProvider {
     ) -> String {
         format!(
             "{}/login/oauth2/authorize?client_id={}&redirect_uri={}&response_type=code&scope={}&state={}",
-            self.oauth_base_url,
+            Self::OAUTH_BASE,
             client_id,
             urlencoding::encode(redirect_uri),
             urlencoding::encode(scope),
@@ -692,7 +693,7 @@ impl SnapchatProvider {
         code: &str,
         redirect_uri: &str,
     ) -> Result<OAuthTokenResponse, ChannelError> {
-        let url = format!("{}/login/oauth2/access_token", self.oauth_base_url);
+        let url = format!("{}/login/oauth2/access_token", Self::OAUTH_BASE);
 
         let response = self
             .client

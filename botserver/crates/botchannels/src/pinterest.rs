@@ -13,22 +13,23 @@ use std::collections::HashMap;
 /// Pinterest API v5 provider for pins, boards, and ads
 pub struct PinterestProvider {
     client: reqwest::Client,
-    api_base_url: String,
-    oauth_base_url: String,
 }
 
 impl PinterestProvider {
+    /// Provider endpoints are compile-time constants: tokens are scoped to
+    /// this host and must never be sent to a runtime-configured one.
+    const API_BASE: &str = "https://api.pinterest.com/v5";
+    const OAUTH_BASE: &str = "https://api.pinterest.com/v5/oauth";
+
     pub fn new() -> Self {
         Self {
             client: reqwest::Client::new(),
-            api_base_url: "https://api.pinterest.com/v5".to_string(),
-            oauth_base_url: "https://api.pinterest.com/v5/oauth".to_string(),
         }
     }
 
     /// Get authenticated user info
     pub async fn get_user(&self, access_token: &str) -> Result<PinterestUser, ChannelError> {
-        let url = format!("{}/user_account", self.api_base_url);
+        let url = format!("{}/user_account", Self::API_BASE);
 
         let response = self
             .client
@@ -57,7 +58,7 @@ impl PinterestProvider {
         access_token: &str,
         pin: &PinCreateRequest,
     ) -> Result<Pin, ChannelError> {
-        let url = format!("{}/pins", self.api_base_url);
+        let url = format!("{}/pins", Self::API_BASE);
 
         let response = self
             .client
@@ -85,7 +86,7 @@ impl PinterestProvider {
         access_token: &str,
         pin_id: &str,
     ) -> Result<Pin, ChannelError> {
-        let url = format!("{}/pins/{}", self.api_base_url, pin_id);
+        let url = format!("{}/pins/{}", Self::API_BASE, pin_id);
 
         let response = self
             .client
@@ -111,7 +112,7 @@ impl PinterestProvider {
         access_token: &str,
         pin_id: &str,
     ) -> Result<(), ChannelError> {
-        let url = format!("{}/pins/{}", self.api_base_url, pin_id);
+        let url = format!("{}/pins/{}", Self::API_BASE, pin_id);
 
         let response = self
             .client
@@ -140,7 +141,7 @@ impl PinterestProvider {
         board_id: &str,
         board_section_id: Option<&str>,
     ) -> Result<Pin, ChannelError> {
-        let url = format!("{}/pins/{}/save", self.api_base_url, pin_id);
+        let url = format!("{}/pins/{}/save", Self::API_BASE, pin_id);
 
         let mut request_body = serde_json::json!({
             "board_id": board_id
@@ -176,7 +177,7 @@ impl PinterestProvider {
         access_token: &str,
         board: &BoardCreateRequest,
     ) -> Result<Board, ChannelError> {
-        let url = format!("{}/boards", self.api_base_url);
+        let url = format!("{}/boards", Self::API_BASE);
 
         let response = self
             .client
@@ -207,7 +208,7 @@ impl PinterestProvider {
         access_token: &str,
         options: &BoardListOptions,
     ) -> Result<BoardListResponse, ChannelError> {
-        let url = format!("{}/boards", self.api_base_url);
+        let url = format!("{}/boards", Self::API_BASE);
 
         let mut query_params = vec![];
 
@@ -251,7 +252,7 @@ impl PinterestProvider {
         access_token: &str,
         board_id: &str,
     ) -> Result<Board, ChannelError> {
-        let url = format!("{}/boards/{}", self.api_base_url, board_id);
+        let url = format!("{}/boards/{}", Self::API_BASE, board_id);
 
         let response = self
             .client
@@ -281,7 +282,7 @@ impl PinterestProvider {
         board_id: &str,
         update: &BoardUpdateRequest,
     ) -> Result<Board, ChannelError> {
-        let url = format!("{}/boards/{}", self.api_base_url, board_id);
+        let url = format!("{}/boards/{}", Self::API_BASE, board_id);
 
         let response = self
             .client
@@ -312,7 +313,7 @@ impl PinterestProvider {
         access_token: &str,
         board_id: &str,
     ) -> Result<(), ChannelError> {
-        let url = format!("{}/boards/{}", self.api_base_url, board_id);
+        let url = format!("{}/boards/{}", Self::API_BASE, board_id);
 
         let response = self
             .client
@@ -340,7 +341,7 @@ impl PinterestProvider {
         board_id: &str,
         options: &PinListOptions,
     ) -> Result<PinListResponse, ChannelError> {
-        let url = format!("{}/boards/{}/pins", self.api_base_url, board_id);
+        let url = format!("{}/boards/{}/pins", Self::API_BASE, board_id);
 
         let mut query_params = vec![];
 
@@ -381,7 +382,7 @@ impl PinterestProvider {
         board_id: &str,
         section: &BoardSectionCreateRequest,
     ) -> Result<BoardSection, ChannelError> {
-        let url = format!("{}/boards/{}/sections", self.api_base_url, board_id);
+        let url = format!("{}/boards/{}/sections", Self::API_BASE, board_id);
 
         let response = self
             .client
@@ -413,7 +414,7 @@ impl PinterestProvider {
         board_id: &str,
         options: &PaginationOptions,
     ) -> Result<BoardSectionListResponse, ChannelError> {
-        let url = format!("{}/boards/{}/sections", self.api_base_url, board_id);
+        let url = format!("{}/boards/{}/sections", Self::API_BASE, board_id);
 
         let mut query_params = vec![];
 
@@ -454,7 +455,7 @@ impl PinterestProvider {
         query: &str,
         options: &SearchOptions,
     ) -> Result<PinSearchResponse, ChannelError> {
-        let url = format!("{}/search/pins", self.api_base_url);
+        let url = format!("{}/search/pins", Self::API_BASE);
 
         let mut query_params = vec![("query", query.to_string())];
 
@@ -498,7 +499,7 @@ impl PinterestProvider {
         access_token: &str,
         options: &PaginationOptions,
     ) -> Result<AdAccountListResponse, ChannelError> {
-        let url = format!("{}/ad_accounts", self.api_base_url);
+        let url = format!("{}/ad_accounts", Self::API_BASE);
 
         let mut query_params = vec![];
 
@@ -541,7 +542,7 @@ impl PinterestProvider {
     ) -> Result<Campaign, ChannelError> {
         let url = format!(
             "{}/ad_accounts/{}/campaigns",
-            self.api_base_url, ad_account_id
+            Self::API_BASE, ad_account_id
         );
 
         let response = self
@@ -576,7 +577,7 @@ impl PinterestProvider {
     ) -> Result<CampaignListResponse, ChannelError> {
         let url = format!(
             "{}/ad_accounts/{}/campaigns",
-            self.api_base_url, ad_account_id
+            Self::API_BASE, ad_account_id
         );
 
         let mut query_params = vec![];
@@ -624,7 +625,7 @@ impl PinterestProvider {
     ) -> Result<AdGroup, ChannelError> {
         let url = format!(
             "{}/ad_accounts/{}/ad_groups",
-            self.api_base_url, ad_account_id
+            Self::API_BASE, ad_account_id
         );
 
         let response = self
@@ -657,7 +658,7 @@ impl PinterestProvider {
         ad_account_id: &str,
         ad: &AdCreateRequest,
     ) -> Result<Ad, ChannelError> {
-        let url = format!("{}/ad_accounts/{}/ads", self.api_base_url, ad_account_id);
+        let url = format!("{}/ad_accounts/{}/ads", Self::API_BASE, ad_account_id);
 
         let response = self
             .client
@@ -688,7 +689,7 @@ impl PinterestProvider {
         end_date: &str,
         metric_types: &[&str],
     ) -> Result<PinAnalytics, ChannelError> {
-        let url = format!("{}/pins/{}/analytics", self.api_base_url, pin_id);
+        let url = format!("{}/pins/{}/analytics", Self::API_BASE, pin_id);
 
         let metrics = metric_types.join(",");
 
@@ -728,7 +729,7 @@ impl PinterestProvider {
         end_date: &str,
         metric_types: &[&str],
     ) -> Result<UserAnalytics, ChannelError> {
-        let url = format!("{}/user_account/analytics", self.api_base_url);
+        let url = format!("{}/user_account/analytics", Self::API_BASE);
 
         let metrics = metric_types.join(",");
 
@@ -771,7 +772,7 @@ impl PinterestProvider {
         client_secret: &str,
         refresh_token: &str,
     ) -> Result<OAuthTokenResponse, ChannelError> {
-        let url = format!("{}/token", self.oauth_base_url);
+        let url = format!("{}/token", Self::OAUTH_BASE);
 
         let credentials = base64::Engine::encode(
             &base64::engine::general_purpose::STANDARD,
@@ -829,7 +830,7 @@ impl PinterestProvider {
         code: &str,
         redirect_uri: &str,
     ) -> Result<OAuthTokenResponse, ChannelError> {
-        let url = format!("{}/token", self.oauth_base_url);
+        let url = format!("{}/token", Self::OAUTH_BASE);
 
         let credentials = base64::Engine::encode(
             &base64::engine::general_purpose::STANDARD,

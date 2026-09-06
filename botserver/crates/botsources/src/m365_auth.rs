@@ -82,11 +82,18 @@ impl M365OAuthClient {
         url
     }
 
+    /// Keeps the host pinned to the Microsoft login endpoint regardless of
+    /// tenant input, so credentials cannot be redirected to another server.
+    fn token_endpoint(tenant: &str) -> String {
+        let encoded: String = tenant
+            .chars()
+            .map(|c| if c.is_ascii_alphanumeric() || c == '-' || c == '.' { c } else { '_' })
+            .collect();
+        format!("https://login.microsoftonline.com/{encoded}/oauth2/v2.0/token")
+    }
+
     pub fn exchange_code(&self, code: &str) -> Result<M365Token, String> {
-        let url = format!(
-            "https://login.microsoftonline.com/{}/oauth2/v2.0/token",
-            self.credentials.tenant_id
-        );
+        let url = Self::token_endpoint(&self.credentials.tenant_id);
         let mut form = vec![
             ("client_id", self.credentials.client_id.clone()),
             ("scope", self.credentials.scopes.join(" ")),
@@ -111,10 +118,7 @@ impl M365OAuthClient {
     }
 
     pub fn refresh(&self, refresh_token: &str) -> Result<M365Token, String> {
-        let url = format!(
-            "https://login.microsoftonline.com/{}/oauth2/v2.0/token",
-            self.credentials.tenant_id
-        );
+        let url = Self::token_endpoint(&self.credentials.tenant_id);
         let mut form = vec![
             ("client_id", self.credentials.client_id.clone()),
             ("scope", self.credentials.scopes.join(" ")),

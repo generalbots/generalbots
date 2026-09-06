@@ -5,14 +5,16 @@ use crate::{
 
 pub struct ThreadsProvider {
     client: reqwest::Client,
-    base_url: String,
 }
 
 impl ThreadsProvider {
+    /// Threads Graph API base URL is a compile-time constant: tokens are
+    /// scoped to this host and must never be sent to a configured one.
+    const API_BASE: &str = "https://graph.threads.net/v1.0";
+
     pub fn new() -> Self {
         Self {
             client: reqwest::Client::new(),
-            base_url: "https://graph.threads.net/v1.0".to_string(),
         }
     }
 
@@ -41,7 +43,7 @@ impl ThreadsProvider {
 
         let response = self
             .client
-            .post(format!("{}/{}/threads", self.base_url, user_id))
+            .post(format!("{}/{}/threads", Self::API_BASE, user_id))
             .form(&params)
             .send()
             .await
@@ -84,7 +86,7 @@ impl ThreadsProvider {
 
         let response = self
             .client
-            .post(format!("{}/{}/threads_publish", self.base_url, user_id))
+            .post(format!("{}/{}/threads_publish", Self::API_BASE, user_id))
             .form(&params)
             .send()
             .await
@@ -117,7 +119,7 @@ impl ThreadsProvider {
     async fn get_user_profile(&self, access_token: &str) -> Result<ThreadsUser, ChannelError> {
         let response = self
             .client
-            .get(format!("{}/me", self.base_url))
+            .get(format!("{}/me", Self::API_BASE))
             .query(&[
                 ("fields", "id,username,threads_profile_picture_url"),
                 ("access_token", access_token),
@@ -246,7 +248,7 @@ impl ChannelProvider for ThreadsProvider {
 
         let response = self
             .client
-            .get(format!("{}/refresh_access_token", self.base_url))
+            .get(format!("{}/refresh_access_token", Self::API_BASE))
             .query(&[
                 ("grant_type", "th_refresh_token"),
                 ("access_token", &access_token),

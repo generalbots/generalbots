@@ -132,7 +132,12 @@ impl PlannerExecutor {
         }
 
         // 2. EXECUTE — parallel forks, one per step (bounded by forks param).
-        let fork_count = (req.forks.max(1) as usize).min(plan.len());
+        // Hard caps: both values are request/LLM-influenced, so they must never
+        // drive unbounded task fan-out.
+        const MAX_FORKS: usize = 16;
+        let fork_count = (req.forks.max(1) as usize)
+            .min(plan.len())
+            .min(MAX_FORKS);
         let mut handles = Vec::with_capacity(fork_count);
         for i in 0..fork_count {
             let settings = settings.clone();

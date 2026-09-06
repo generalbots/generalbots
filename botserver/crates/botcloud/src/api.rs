@@ -394,6 +394,14 @@ async fn handle_signup(
         let parts: Vec<&str> = body.name.splitn(2, ' ').collect();
         let first_name = parts.first().unwrap_or(&"");
         let last_name = parts.get(1).unwrap_or(&"");
+        // Signup passwords are transmitted to the directory service: require
+        // https, allowing plain http only for loopback (never leaves the host).
+        let dir_parsed = url::Url::parse(dir_url).ok();
+        let dir_secure = dir_parsed.is_some_and(|p| {
+            let host = p.host_str().unwrap_or("");
+            let loopback = host == "localhost" || host.starts_with("127.") || host == "[::1]";
+            p.scheme() == "https" || (p.scheme() == "http" && loopback)
+        });
         let client = reqwest::Client::new();
 
         let mut create_req = client
@@ -405,6 +413,9 @@ async fn handle_signup(
                 "email": { "email": &body.email, "isVerified": true },
                 "password": body.password.as_deref().unwrap_or(""),
             }));
+        if !dir_secure {
+            return Err((StatusCode::INTERNAL_SERVER_ERROR, "Directory service URL must use https".to_string()));
+        }
         if let Some(host) = &service.config.directory_external_domain {
             create_req = create_req.header("Host", host);
         }

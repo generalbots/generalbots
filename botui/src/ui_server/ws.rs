@@ -64,10 +64,13 @@ async fn handle_api_ws_proxy(
     info!("Proxying API WebSocket to: {backend_url}");
 
     let backend_socket = if backend_url.starts_with("wss://") {
-        let Ok(tls_connector) = native_tls::TlsConnector::builder()
-            .danger_accept_invalid_certs(true)
-            .danger_accept_invalid_hostnames(true)
-            .build()
+        let insecure = crate::ui_server::tls_policy::ws_insecure_tls_allowed(&backend_url);
+        let mut tls_builder = native_tls::TlsConnector::builder();
+        if insecure {
+            tls_builder.danger_accept_invalid_certs(true);
+            tls_builder.danger_accept_invalid_hostnames(true);
+        }
+        let Ok(tls_connector) = tls_builder.build()
         else {
             error!("Failed to build TLS connector for API WebSocket proxy");
             return;
@@ -184,10 +187,13 @@ async fn handle_ws_proxy(
     info!("Proxying WebSocket to: {backend_url}");
 
     let backend_socket = if backend_url.starts_with("wss://") {
-        let Ok(tls_connector) = native_tls::TlsConnector::builder()
-            .danger_accept_invalid_certs(true)
-            .danger_accept_invalid_hostnames(true)
-            .build()
+        let insecure = crate::ui_server::tls_policy::ws_insecure_tls_allowed(&backend_url);
+        let mut tls_builder = native_tls::TlsConnector::builder();
+        if insecure {
+            tls_builder.danger_accept_invalid_certs(true);
+            tls_builder.danger_accept_invalid_hostnames(true);
+        }
+        let Ok(tls_connector) = tls_builder.build()
         else {
             error!("Failed to build TLS connector for WebSocket proxy");
             return;
@@ -287,10 +293,13 @@ async fn handle_task_progress_ws_proxy(
     info!("Proxying task-progress WebSocket to: {backend_url}");
 
     let backend_socket = if backend_url.starts_with("wss://") {
-        let Ok(tls_connector) = native_tls::TlsConnector::builder()
-            .danger_accept_invalid_certs(true)
-            .danger_accept_invalid_hostnames(true)
-            .build()
+        let insecure = crate::ui_server::tls_policy::ws_insecure_tls_allowed(&backend_url);
+        let mut tls_builder = native_tls::TlsConnector::builder();
+        if insecure {
+            tls_builder.danger_accept_invalid_certs(true);
+            tls_builder.danger_accept_invalid_hostnames(true);
+        }
+        let Ok(tls_connector) = tls_builder.build()
         else {
             error!("Failed to build TLS connector for task-progress");
             return;

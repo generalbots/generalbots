@@ -663,6 +663,19 @@ pub fn create_bot_bucket(
 
     if let Some(template_path) = template {
         let templates_dir = &config.templates_dir;
+        // Path-injection guard: the template path arrives from the signup
+        // request body. Only relative single-component segments under the
+        // configured templates dir are allowed — no `..`, no absolute paths,
+        // no separators beyond the single level of `sub/name.gbai`.
+        if template_path.contains('\\')
+            || template_path.contains('\0')
+            || template_path.starts_with('/')
+            || template_path.split('/').any(|seg| seg == ".." || seg.is_empty() || seg == ".")
+        {
+            return Err(format!(
+                "invalid template path: {template_path} (must be relative segments under the templates dir)"
+            ));
+        }
         let src = Path::new(templates_dir).join(template_path);
         if src.is_dir() {
             let tmpdir = format!("/tmp/gbtemplate_{bot_slug}");

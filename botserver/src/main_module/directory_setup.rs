@@ -80,7 +80,7 @@ async fn resolve_directory_config() -> crate::directory::ZitadelConfig {
         Ok(config) => {
             info!(
                 "Loaded Zitadel config from Vault (secret/gbo/directory): url={}",
-                config.api_url
+                config.api_url.split('?').next().unwrap_or("")
             );
             config
         }

@@ -921,6 +921,16 @@ impl MediaUploadService {
         let content_type = &upload.content_type;
 
         let client = reqwest::Client::new();
+        // The storage account becomes part of the hostname; constrain it to
+        // hostname-safe characters so the upload cannot be retargeted.
+        let account: String = account
+            .chars()
+            .map(|c| if c.is_ascii_alphanumeric() || c == '-' { c } else { '_' })
+            .collect();
+        let container: String = container
+            .chars()
+            .map(|c| if c.is_ascii_alphanumeric() || c == '-' { c } else { '_' })
+            .collect();
         let url = format!(
             "https://{}.blob.core.windows.net/{}/{}",
             account, container, blob_name

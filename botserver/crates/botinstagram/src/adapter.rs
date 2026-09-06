@@ -9,7 +9,6 @@ pub struct InstagramAdapter {
     access_token: String,
     verify_token: String,
     page_id: String,
-    api_version: String,
     instagram_account_id: String,
 }
 
@@ -20,18 +19,20 @@ impl Default for InstagramAdapter {
 }
 
 impl InstagramAdapter {
+    /// Graph API version is a compile-time constant; the access token travels
+    /// in the query string and must only ever reach graph.facebook.com.
+    const API_VERSION: &str = "v17.0";
+
     pub fn new() -> Self {
         let access_token = String::new();
         let verify_token = "webhook_verify".to_string();
         let page_id = String::new();
-        let api_version = "v17.0".to_string();
         let instagram_account_id = String::new();
 
         Self {
             access_token,
             verify_token,
             page_id,
-            api_version,
             instagram_account_id,
         }
     }
@@ -48,7 +49,6 @@ impl InstagramAdapter {
             access_token,
             verify_token,
             page_id,
-            api_version: "v17.0".to_string(),
             instagram_account_id,
         }
     }
@@ -64,7 +64,7 @@ impl InstagramAdapter {
 
         let url = format!(
             "https://graph.facebook.com/{}/{}/instagram_business_account",
-            self.api_version, self.page_id
+            Self::API_VERSION, self.page_id
         );
 
         let response = client
@@ -98,7 +98,7 @@ impl InstagramAdapter {
 
         let container_url = format!(
             "https://graph.facebook.com/{}/{}/media",
-            self.api_version, account_id
+            Self::API_VERSION, account_id
         );
 
         let container_response = client
@@ -123,7 +123,7 @@ impl InstagramAdapter {
 
         let publish_url = format!(
             "https://graph.facebook.com/{}/{}/media_publish",
-            self.api_version, account_id
+            Self::API_VERSION, account_id
         );
 
         let publish_response = client
@@ -153,7 +153,7 @@ impl InstagramAdapter {
 
         let url = format!(
             "https://graph.facebook.com/{}/{}/messages",
-            self.api_version, self.page_id
+            Self::API_VERSION, self.page_id
         );
 
         let payload = serde_json::json!({
@@ -189,7 +189,7 @@ impl InstagramAdapter {
 
         let url = format!(
             "https://graph.facebook.com/{}/{}/messages",
-            self.api_version, self.page_id
+            Self::API_VERSION, self.page_id
         );
 
         let attachment_type = match media_type {
@@ -241,7 +241,7 @@ impl InstagramAdapter {
 
         let url = format!(
             "https://graph.facebook.com/{}/{}",
-            self.api_version, user_id
+            Self::API_VERSION, user_id
         );
 
         let response = client

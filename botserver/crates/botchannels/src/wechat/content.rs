@@ -13,7 +13,7 @@ impl WeChatProvider {
     ) -> Result<String, ChannelError> {
         let url = format!(
             "{}/cgi-bin/draft/add?access_token={}",
-            self.api_base_url, access_token
+            Self::API_BASE, access_token
         );
 
         let request_body = serde_json::json!({
@@ -61,7 +61,7 @@ impl WeChatProvider {
     ) -> Result<PublishResult, ChannelError> {
         let url = format!(
             "{}/cgi-bin/freepublish/submit?access_token={}",
-            self.api_base_url, access_token
+            Self::API_BASE, access_token
         );
 
         let request_body = serde_json::json!({
@@ -111,7 +111,7 @@ impl WeChatProvider {
     ) -> Result<PublishStatus, ChannelError> {
         let url = format!(
             "{}/cgi-bin/freepublish/get?access_token={}",
-            self.api_base_url, access_token
+            Self::API_BASE, access_token
         );
 
         let request_body = serde_json::json!({

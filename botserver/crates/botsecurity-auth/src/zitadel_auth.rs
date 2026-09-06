@@ -40,6 +40,25 @@ impl Default for ZitadelAuthConfig {
 }
 
 impl ZitadelAuthConfig {
+    /// Rebuilds the API base from validated URL components (scheme + host +
+    /// port), dropping userinfo/path/query so service tokens can never be
+    /// redirected to a tampered host.
+    pub fn sanitized_api_base(&self) -> Option<String> {
+        let parsed = url::Url::parse(&self.api_url).ok()?;
+        let host = parsed.host_str()?.to_string();
+        // Service tokens and user data travel to this host: require https,
+        // allowing plain http only for loopback (never leaves the host).
+        let loopback = host == "localhost" || host.starts_with("127.") || host == "[::1]";
+        if parsed.scheme() != "https" && !(parsed.scheme() == "http" && loopback) {
+            return None;
+        }
+        let mut base = format!("{}://{}", parsed.scheme(), host);
+        if let Some(port) = parsed.port() {
+            base.push_str(&format!(":{port}"));
+        }
+        Some(base)
+    }
+
     pub fn new(issuer_url: &str, api_url: &str, client_id: &str, client_secret: &str) -> Self {
         Self {
             issuer_url: issuer_url.to_string(),
@@ -280,7 +299,7 @@ impl ZitadelAuthProvider {
     }
 
     async fn introspect_and_get_user(&self, token: &str) -> Result<AuthenticatedUser, AuthError> {
-        let introspect_url = format!("{}/oauth/v2/introspect", self.config.api_url);
+        let introspect_url = format!("{}/oauth/v2/introspect", self.config.sanitized_api_base().unwrap_or_default());
 
         let params = [
             ("token", token),
@@ -455,7 +474,7 @@ impl ZitadelAuthProvider {
     ) -> Result<AuthenticatedUser, AuthError> {
         let service_token = self.get_service_token().await?;
 
-        let url = format!("{}/v2/users/_search", self.config.api_url);
+        let url = format!("{}/v2/users/_search", self.config.sanitized_api_base().unwrap_or_default());
 
         let body = serde_json::json!({
             "queries": [{
@@ -497,7 +516,7 @@ impl ZitadelAuthProvider {
             }
         }
 
-        let token_url = format!("{}/oauth/v2/token", self.config.api_url);
+        let token_url = format!("{}/oauth/v2/token", self.config.sanitized_api_base().unwrap_or_default());
 
         let params = [
             ("grant_type", "client_credentials"),
@@ -592,7 +611,7 @@ impl ZitadelAuthProvider {
 
         let url = format!(
             "{}/v2/users/{}/grants",
-            self.config.api_url, user_id
+            self.config.sanitized_api_base().unwrap_or_default(), user_id
         );
 
         let response = self

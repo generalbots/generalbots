@@ -155,23 +155,25 @@ pub struct TwilioSmsChannel {
     config: TwilioConfig,
     http_client: Client,
     conversations: Arc<RwLock<HashMap<String, ConversationContext>>>,
-    base_url: String,
 }
 
 impl TwilioSmsChannel {
+    /// Twilio API base URL is a compile-time constant: credentials are scoped
+    /// to this host and must never be sent to a runtime-configured one.
+    const API_BASE: &str = "https://api.twilio.com/2010-04-01";
+
     pub fn new(config: TwilioConfig) -> Self {
         Self {
             config,
             http_client: Client::new(),
             conversations: Arc::new(RwLock::new(HashMap::new())),
-            base_url: "https://api.twilio.com/2010-04-01".to_string(),
         }
     }
 
     pub async fn send_sms(&self, request: SendSmsRequest) -> Result<SmsMessage, TwilioError> {
         let url = format!(
             "{}/Accounts/{}/Messages.json",
-            self.base_url, self.config.account_sid
+            Self::API_BASE, self.config.account_sid
         );
 
         let mut params: HashMap<&str, String> = HashMap::new();
@@ -278,7 +280,7 @@ impl TwilioSmsChannel {
     pub async fn get_message(&self, message_sid: &str) -> Result<SmsMessage, TwilioError> {
         let url = format!(
             "{}/Accounts/{}/Messages/{}.json",
-            self.base_url, self.config.account_sid, message_sid
+            Self::API_BASE, self.config.account_sid, message_sid
         );
 
         let response = self
@@ -319,7 +321,7 @@ impl TwilioSmsChannel {
     ) -> Result<Vec<SmsMessage>, TwilioError> {
         let mut url = format!(
             "{}/Accounts/{}/Messages.json",
-            self.base_url, self.config.account_sid
+            Self::API_BASE, self.config.account_sid
         );
 
         let mut query_params = Vec::new();
@@ -378,7 +380,7 @@ impl TwilioSmsChannel {
     pub async fn delete_message(&self, message_sid: &str) -> Result<(), TwilioError> {
         let url = format!(
             "{}/Accounts/{}/Messages/{}.json",
-            self.base_url, self.config.account_sid, message_sid
+            Self::API_BASE, self.config.account_sid, message_sid
         );
 
         let response = self
@@ -408,7 +410,7 @@ impl TwilioSmsChannel {
     pub async fn cancel_scheduled_message(&self, message_sid: &str) -> Result<SmsMessage, TwilioError> {
         let url = format!(
             "{}/Accounts/{}/Messages/{}.json",
-            self.base_url, self.config.account_sid, message_sid
+            Self::API_BASE, self.config.account_sid, message_sid
         );
 
         let response = self
@@ -594,7 +596,7 @@ impl TwilioSmsChannel {
     pub async fn get_phone_numbers(&self) -> Result<Vec<TwilioPhoneNumber>, TwilioError> {
         let url = format!(
             "{}/Accounts/{}/IncomingPhoneNumbers.json",
-            self.base_url, self.config.account_sid
+            Self::API_BASE, self.config.account_sid
         );
 
         let response = self

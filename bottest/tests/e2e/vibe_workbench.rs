@@ -36,10 +36,11 @@ async fn js_bool(browser: &Browser, script: &str) -> bool {
 // per-window status bar). This is checked over HTTP so a stale browser cache
 // or injected old script can never make the assertion flaky.
 async fn served_toolbar_has_no_chip(base_url: &str) -> bool {
-    let client = reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .build()
-        .unwrap_or_default();
+    let mut client_builder = reqwest::Client::builder();
+    if base_url.starts_with("http://localhost") || base_url.starts_with("http://127.0.0.1") {
+        client_builder = client_builder.danger_accept_invalid_certs(true);
+    }
+    let client = client_builder.build().unwrap_or_default();
     let url = format!("{base_url}/suite/vibe/vibe-shell/10_toolbar.js?nocache={}",
         std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH)
             .map(|d| d.as_millis())

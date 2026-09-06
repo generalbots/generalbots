@@ -45,7 +45,10 @@ pub async fn stream_llm_response(
         if let Ok(val) = std::env::var("LLM_URL") { if !val.is_empty() { llm_url = val; } }
         if let Ok(val) = std::env::var("LLM_KEY") { if !val.is_empty() { llm_key = val; } }
         if let Ok(val) = std::env::var("LLM_MODEL") { if !val.is_empty() { llm_model = val; } }
-        log::info!("BOT {} LLM CONFIG: url=[{}] key_len=[{}] model=[{}] provider=[{}]", bot_uuid, llm_url, llm_key.len(), llm_model, llm_provider);
+        let llm_host = url::Url::parse(&llm_url).ok()
+            .and_then(|u| u.host_str().map(|h| h.to_string()))
+            .unwrap_or_else(|| "<unparseable>".to_string());
+        log::info!("BOT {bot_uuid} LLM CONFIG: host=[{llm_host}] key_len=[{}] model=[{llm_model}] provider=[{llm_provider}]", llm_key.len());
         if !llm_url.is_empty() {
             let explicit = if llm_provider.is_empty() { None } else { crate::llm::llm_provider_type_from_name(&llm_provider) };
             let provider = crate::llm::create_llm_provider_from_url(

@@ -202,6 +202,13 @@ impl DynamicDnsService {
         if !entries.is_empty() {
             zone_content.push_str("; Dynamic entries\n");
             for (hostname, entry) in entries.iter() {
+                // Defense in depth: every stored hostname must have passed
+                // `is_valid_hostname` at registration; skip (never write) any
+                // entry that no longer matches, so the zone file cannot be
+                // poisoned with crafted content.
+                if !Self::is_valid_hostname(hostname) {
+                    continue;
+                }
                 let _ = writeln!(
                     zone_content,
                     "{:<16} IN      A       {}",

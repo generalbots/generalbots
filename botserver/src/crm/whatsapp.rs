@@ -112,6 +112,11 @@ impl WhatsAppChannel {
     }
 
     fn post_request(&self, url: &str, body: serde_json::Value) -> Result<(), String> {
+        // Bearer credentials must only ever reach the WhatsApp Graph host.
+        let parsed = url::Url::parse(url).map_err(|e| format!("invalid Graph URL: {e}"))?;
+        if parsed.host_str() != Some("graph.facebook.com") || parsed.scheme() != "https" {
+            return Err("WhatsApp Graph requests must target graph.facebook.com".to_string());
+        }
         let client = reqwest::blocking::Client::new();
         let resp = client
             .post(url)

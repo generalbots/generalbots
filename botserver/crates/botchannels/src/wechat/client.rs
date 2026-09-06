@@ -9,16 +9,18 @@ use tokio::sync::RwLock;
 /// WeChat API provider for Official Accounts and Mini Programs
 pub struct WeChatProvider {
     pub(crate) client: reqwest::Client,
-    pub(crate) api_base_url: String,
     /// Cache for access tokens (app_id -> token info)
     pub(crate) token_cache: Arc<RwLock<HashMap<String, CachedToken>>>,
 }
 
 impl WeChatProvider {
+    /// WeChat API base URL is a compile-time constant: credentials are scoped
+    /// to this host and must never be sent to a runtime-configured one.
+    pub(crate) const API_BASE: &str = "https://api.weixin.qq.com";
+
     pub fn new() -> Self {
         Self {
             client: reqwest::Client::new(),
-            api_base_url: "https://api.weixin.qq.com".to_string(),
             token_cache: Arc::new(RwLock::new(HashMap::new())),
         }
     }
@@ -42,7 +44,7 @@ impl WeChatProvider {
         // Fetch new token
         let url = format!(
             "{}/cgi-bin/token?grant_type=client_credential&appid={}&secret={}",
-            self.api_base_url, app_id, app_secret
+            Self::API_BASE, app_id, app_secret
         );
 
         let response = self

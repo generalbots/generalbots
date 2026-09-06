@@ -15,7 +15,9 @@ pub async fn list_messages(
     Json(req): Json<ListMessagesRequest>,
 ) -> Result<Json<Vec<EmailMessage>>, (StatusCode, String)> {
     let client = SharePointClient::new(req.tenant_id, req.access_token);
-    let url = OutlookService::new(client.clone()).me_messages_url(req.top);
+    let url = OutlookService::new(client.clone())
+        .me_messages_url(req.top)
+        .map_err(|e| (StatusCode::BAD_REQUEST, e))?;
     let result = tokio::task::spawn_blocking(move || -> Result<Vec<EmailMessage>, String> {
         let resp = client
             .http_client

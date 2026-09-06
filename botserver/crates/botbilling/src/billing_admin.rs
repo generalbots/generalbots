@@ -274,7 +274,7 @@ pub async fn handle_upgrade(State(state): State<Arc<BillingApiState>>, axum::ext
     .bind::<diesel::sql_types::Text, _>(&plan)
     .execute(&mut conn);
 
-    (StatusCode::OK, Html(format!("Subscription upgraded to <strong>{plan}</strong>")))
+    (StatusCode::OK, Html(format!("Subscription upgraded to <strong>{}</strong>", html_escape(&plan))))
 }
 
 pub async fn handle_accept_offer(State(state): State<Arc<BillingApiState>>, axum::extract::Form(form): axum::extract::Form<OfferForm>) -> impl IntoResponse {

@@ -132,7 +132,7 @@ pub async fn handle_batch_evaluate_ai(
             format!("Batch size {} exceeds maximum of {}", req.prompts.len(), MAX_BATCH_SIZE),
         ));
     }
-    let mut results = Vec::with_capacity(req.prompts.len());
+    let mut results = Vec::with_capacity(req.prompts.len().min(MAX_BATCH_SIZE));
     let mut cached_count = 0usize;
     let mut fresh_count = 0usize;
 

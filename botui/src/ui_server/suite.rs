@@ -21,10 +21,7 @@ pub struct SuiteQueryParams {
 /// Resolve a hostname to a bot name via the botserver domain API.
 async fn resolve_bot_from_host(state: &AppState, host: &str) -> Option<String> {
     let resolve_url = format!("{}/api/domains/resolve?host={}", state.client.base_url(), urlencoding(host));
-    let client = reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .build()
-        .unwrap_or_else(|_| reqwest::Client::new());
+    let client = crate::ui_server::tls_policy::backend_http_client(&state.client.base_url().to_string());
     match client.get(&resolve_url).send().await {
         Ok(resp) if resp.status().is_success() => {
             if let Ok(data) = resp.json::<serde_json::Value>().await {
@@ -188,10 +185,7 @@ pub async fn index(
             });
 
         let target_url = format!("{}/api/bots/{}/access", state.client.base_url(), bot);
-        let client = reqwest::Client::builder()
-            .danger_accept_invalid_certs(true)
-            .build()
-            .unwrap_or_else(|_| reqwest::Client::new());
+        let client = crate::ui_server::tls_policy::backend_http_client(&state.client.base_url().to_string());
 
         let mut req = client.get(&target_url);
         if let Some(ref auth) = auth_header {
