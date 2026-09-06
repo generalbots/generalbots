@@ -45,7 +45,7 @@ function connectWebSocket() {
     "&user_id=" + ChatState.currentUserId +
     "&bot_name=" + ChatState.currentBotName;
 
-  ChatState.ws = new WebSocket(url);
+  var ws = (ChatState.ws = new WebSocket(url));
   if (window.GBAppLifecycle) GBAppLifecycle.socket("chat", ChatState.ws);  ChatState.ws.onmessage = function (event) {
     try {
       var data = JSON.parse(event.data);
@@ -105,6 +105,12 @@ function connectWebSocket() {
   };
 
   ChatState.ws.onclose = function () {
+    // A newer socket already replaced this one (deliberate reconnect/
+    // takeover): the replacement's lifecycle owns the connection now.
+    // Scheduling another dial here would close the healthy replacement
+    // and re-arm the loop — the endless 1s connect/close flap seen after
+    // chat windows are closed and re-opened (#1288 family).
+    if (ChatState.ws !== ws) return;
     updateConnectionStatus("disconnected");
     if (!ChatState.disconnectNotified) {
       notify("Disconnected from chat server", "error");
@@ -118,6 +124,8 @@ function connectWebSocket() {
   };
 
   ChatState.ws.onopen = function () {
+    // Stale socket racing its replacement: ignore its lifecycle entirely.
+    if (ChatState.ws !== ws) return;
     // Reset streaming state and reveal the app (the original onopen — its
     // logic was silently DISCARDED by a second onopen assignment below,
     // leaving the loading overlay stuck on every reconnect).
