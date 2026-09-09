@@ -123,6 +123,15 @@
 
             /* ── Fullscreen Mode ── */
             body.fullscreen .chat-sidebar { display: none !important; }
+
+            /* Anonymous visitors on PUBLIC bots: sidebar stays visible (Sign in,
+               theme, new chat), only management sections are hidden. The
+               .anon-limited class is only applied when no auth token exists at
+               boot; after login the page reloads without it. */
+            .chat-sidebar.anon-limited #sidebarAppsNav { display: none !important; }
+            .chat-sidebar.anon-limited .chat-sidebar-section-label { display: none !important; }
+            .chat-sidebar.anon-limited #chatConversations { display: none !important; }
+            .chat-sidebar.anon-limited #sidebarUser { display: flex !important; }
             body.fullscreen .toolbar-v15 { display: none !important; }
             body.fullscreen .workspace-v15 { height: 100vh !important; }
             body.fullscreen .main-wrapper { height: 100vh !important; }
@@ -489,7 +498,13 @@
                                     } catch (e) {}
                                 }
                                 const sidebar = document.getElementById('chatSidebar');
-                                if (sidebar && !isAuth) sidebar.style.display = 'none';
+                                if (sidebar && !isAuth) {
+                                    // Public bot + anonymous visitor: KEEP the sidebar
+                                    // visible (it hosts the Sign in affordance, theme and
+                                    // new-chat entry point) and hide only management
+                                    // sections via the .anon-limited CSS rules.
+                                    sidebar.classList.add('anon-limited');
+                                }
                             } else {
                                 window.__BOT_IS_PUBLIC__ = false;
                                 var isAuthPriv = !!(window.getGBAccessToken && window.getGBAccessToken());
