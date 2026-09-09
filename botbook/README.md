@@ -195,7 +195,7 @@ DELETE_HTTP        ' WRONG!
 
 #### Required Icons
 ```
-ui/suite/assets/icons/
+botui/ui/suite/assets/icons/
 ├── gb-logo.svg        # Main GB logo
 ├── gb-bot.svg         # Bot/assistant
 ├── gb-analytics.svg   # Analytics

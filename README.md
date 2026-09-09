@@ -547,7 +547,7 @@ When `botui/ui/suite/` folder not found, botserver uses **embedded UI** compiled
 
 ### Vendor Libraries Location
 ```
-ui/suite/js/vendor/
+botui/ui/suite/js/vendor/
 ├── htmx.min.js
 ├── htmx-ws.js
 ├── marked.min.js

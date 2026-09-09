@@ -75,7 +75,7 @@ HTMX extends HTML with attributes that define:
 ### File Structure
 
 ```
-ui/suite/
+botui/ui/suite/
 ├── index.html          # Main entry point with navigation
 ├── base.html           # Base template
 ├── home.html           # Home page

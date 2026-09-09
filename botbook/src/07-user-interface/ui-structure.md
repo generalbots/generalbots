@@ -53,7 +53,7 @@ ui/
 
 ## Suite Interface
 
-The Suite interface (`ui/suite/`) delivers a comprehensive, desktop-class experience with multi-application integration. It includes Chat, Drive, Tasks, and Mail modules in a unified workspace.
+The Suite interface (`botui/ui/suite/`) delivers a comprehensive, desktop-class experience with multi-application integration. It includes Chat, Drive, Tasks, and Mail modules in a unified workspace.
 
 The Suite interface provides multi-application integration with seamless navigation between modules, rich interactions for complex workflows, and responsive design that adapts across desktop, tablet, and mobile form factors. Customizable GBUI templates allow you to choose between `default.gbui` for the full layout or `single.gbui` for a chat-focused experience. Tauri integration enables native desktop packaging for distribution outside the browser.
 
@@ -63,7 +63,7 @@ You can access the Suite interface via web at `http://localhost:9000/suite` or a
 
 ## Minimal Interface
 
-The Minimal interface (`ui/minimal/`) prioritizes speed and simplicity. It loads fast, uses minimal resources, and focuses on essential chat interactions.
+The Minimal interface (`botui/ui/minimal/`) prioritizes speed and simplicity. It loads fast, uses minimal resources, and focuses on essential chat interactions.
 
 This lightweight interface provides core chat and basic interactions only, fast loading with minimal dependencies, and low resource usage suitable for constrained environments. The design supports easy embedding into existing applications and takes a mobile-first approach to responsive layout.
 
@@ -189,17 +189,17 @@ Users can switch between interfaces by navigating to the appropriate URL. For pr
 
 ```rust
 // Serve minimal at root (default)
-match fs::read_to_string("ui/minimal/index.html")
+match fs::read_to_string("botui/ui/minimal/index.html")
 
 // Or serve suite at root
-match fs::read_to_string("ui/suite/index.html")
+match fs::read_to_string("botui/ui/suite/index.html")
 ```
 
 ## Troubleshooting
 
-If you encounter 404 errors, clear your browser cache, rebuild the project with `cargo clean && cargo build`, and verify the files exist in the `ui/suite/` or `ui/minimal/` directories.
+If you encounter 404 errors, clear your browser cache, rebuild the project with `cargo clean && cargo build`, and verify the files exist in the `botui/ui/suite/` or `botui/ui/minimal/` directories.
 
-For Tauri build failures, check that `tauri.conf.json` has the correct `frontendDist` path and ensure `ui/suite/index.html` exists.
+For Tauri build failures, check that `tauri.conf.json` has the correct `frontendDist` path and ensure `botui/ui/suite/index.html` exists.
 
 When static files aren't loading, verify the `ServeDir` configuration in the router and check that subdirectories (js, css, public) exist with their expected contents.
 
@@ -207,8 +207,8 @@ Debug commands can help diagnose issues:
 
 ```bash
 # Verify UI structure
-ls -la ui/suite/
-ls -la ui/minimal/
+ls -la botui/ui/suite/
+ls -la botui/ui/minimal/
 
 # Test interfaces
 curl http://localhost:9000/
