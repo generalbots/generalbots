@@ -4,7 +4,7 @@ The `single.gbui` template provides a streamlined, single-page chat interface fo
 
 ## Overview
 
-Location: `ui/suite/single.gbui`
+Location: `botui/ui/suite/single.gbui`
 
 This minimalist chat interface delivers a clean, focused chat experience with WebSocket real-time messaging, dark mode support, mobile-responsive design, and fast loading under 50KB.
 

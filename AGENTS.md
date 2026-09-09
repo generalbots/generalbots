@@ -47,9 +47,9 @@
 
 | Port | Service | Domain | Content | Auth | Routing |
 |------|---------|--------|---------|------|---------|
-| **3000** | Suite (botui) | `localhost:3000` | `ui/suite/*.html` — HTMX apps, chat, desktop | ✅ GB_LOGIN_URL injected | Reverse proxy → botserver `/api/*`, `/ws` |
-| **4000** | Cloud (botui) | `localhost:4000` | `ui/cloud/*.html` — store, dashboard, plans, offers | ❌ No login/signup — redirects → 5000 | URL rewriting (`/store` → `store.html`), GB_LOGIN_URL injected |
-| **5000** | Login (botui) | `login.pragmatismo.com.br` | `ui/login/*.html` — login, signup | ✅ Only domain with auth | Serves CSS/JS/images from cloud via proxy |
+| **3000** | Suite (botui) | `localhost:3000` | `botui/ui/suite/*.html` — HTMX apps, chat, desktop | ✅ GB_LOGIN_URL injected | Reverse proxy → botserver `/api/*`, `/ws` |
+| **4000** | Cloud (botui) | `localhost:4000` | `botui/ui/cloud/*.html` — store, dashboard, plans, offers | ❌ No login/signup — redirects → 5000 | URL rewriting (`/store` → `store.html`), GB_LOGIN_URL injected |
+| **5000** | Login (botui) | `login.pragmatismo.com.br` | `botui/ui/login/*.html` — login, signup | ✅ Only domain with auth | Serves CSS/JS/images from cloud via proxy |
 | **8080** | API (botserver) | `localhost:8080` | API endpoints + fragments | ✅ Bearer token | `/api/*`, `/cloud/partials/*`, `/ws` |
 | **—** | Desktop (botapp) | Tauri 2 | Shell wrapper | N/A | N/A |
 
@@ -57,12 +57,12 @@
 
 | Port | Serves | Does Not Serve |
 |------|--------|----------------|
-| **3000** (suite) | `ui/suite/*` — chat, apps, desktop | ❌ `/cloud/*` (explicit 404) |
-| **4000** (cloud) | `ui/cloud/*.html` — store, dashboard, plans, offers | ❌ `/login`, `/signup` (redirects 307 → 5000) |
-| **5000** (login) | `ui/login/*.html` — login, signup | Auth only |
+| **3000** (suite) | `botui/ui/suite/*` — chat, apps, desktop | ❌ `/cloud/*` (explicit 404) |
+| **4000** (cloud) | `botui/ui/cloud/*.html` — store, dashboard, plans, offers | ❌ `/login`, `/signup` (redirects 307 → 5000) |
+| **5000** (login) | `botui/ui/login/*.html` — login, signup | Auth only |
 | **8080** (botserver) | API (`/api/cloud/*`), fragments (`/cloud/partials/*`), WebSocket | ❌ Complete HTML pages |
 
-**Rule:** botserver NEVER serves complete HTMX pages — only API endpoints and HTML fragments. Complete cloud pages are statically served by botui from `ui/cloud/`.
+**Rule:** botserver NEVER serves complete HTMX pages — only API endpoints and HTML fragments. Complete cloud pages are statically served by botui from `botui/ui/cloud/`.
 
 **`GB_LOGIN_URL` Injection:** Both 3000 and 4000 inject `<script>window.GB_LOGIN_URL = "http://localhost:5000";</script>` into `<head>`, letting the frontend redirect to port 5000 without hardcoding. Controlled by `LOGIN_URL` env var (default `http://localhost:5000`).
 
