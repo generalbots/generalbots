@@ -1064,18 +1064,21 @@ async fn handle_login(
                 // across logins.
                 #[derive(QueryableByName)]
                 struct StableUserRow {
+                    // QueryableByName resolves columns by field name — the
+                    // SQL alias MUST match this field (a mismatch fails at
+                    // runtime, silently, and the login 401s with no log).
                     #[diesel(sql_type = diesel::sql_types::Uuid)]
-                    user_row_id: Uuid,
+                    user_id: Uuid,
                 }
                 diesel::sql_query(
-                    "SELECT id FROM users WHERE email = $1 AND is_active = true LIMIT 1",
+                    "SELECT id AS user_id FROM users WHERE email = $1 AND is_active = true LIMIT 1",
                 )
                 .bind::<diesel::sql_types::Text, _>(body.email.as_str())
                 .get_result::<StableUserRow>(&mut conn)
                 .optional()
                 .ok()
                 .flatten()
-                .map(|r| r.user_row_id.to_string())
+                .map(|r| r.user_id.to_string())
             } else {
                 None
             }
