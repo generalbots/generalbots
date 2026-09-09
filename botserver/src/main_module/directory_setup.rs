@@ -156,6 +156,7 @@ async fn load_directory_config_from_vault() -> anyhow::Result<crate::directory::
             .unwrap_or_else(|| "default".to_string()),
         api_url: url,
         service_account_key: secrets.get("service_account_key").cloned(),
+        allow_insecure_http: false,
     })
 }
 
@@ -180,6 +181,7 @@ fn default_zitadel_config() -> crate::directory::ZitadelConfig {
         project_id: "default".to_string(),
         api_url: "".to_string(),
         service_account_key: None,
+        allow_insecure_http: false,
     }
 }
 
