@@ -29,6 +29,11 @@ pub struct ZitadelConfig {
     pub api_url: String,
     #[serde(default, alias = "service_token")]
     pub service_account_key: Option<String>,
+    /// Operator opt-in: allow plain http for the configured api_url even when
+    /// the host is a public DNS name (e.g. an internal reverse proxy fronting
+    /// Zitadel on a trusted network). Never enable on public internet deployments.
+    #[serde(default)]
+    pub allow_insecure_http: bool,
 }
 
 fn default_project_id() -> String {
@@ -51,16 +56,18 @@ pub struct ZitadelClient {
 
 impl ZitadelClient {
     /// Rebuilds the API base from validated URL components, dropping any
-    /// userinfo, path or query that could retarget the request.
-    fn sanitize_api_base(raw: &str) -> Result<String> {
+    /// userinfo, path or query that could retarget the request (SSRF guard).
+    fn sanitize_api_base(raw: &str, allow_insecure_http: bool) -> Result<String> {
         let parsed = url::Url::parse(raw).map_err(|e| anyhow!("invalid Zitadel api_url: {e}"))?;
         let host = parsed.host_str().ok_or_else(|| anyhow!("Zitadel api_url requires a host"))?.to_string();
-        // Bearer tokens and user data travel to this host: require https,
-        // allowing plain http only for loopback (traffic never leaves the host).
-        let loopback = host == "localhost" || host.starts_with("127.") || host == "[::1]";
+        // Bearer tokens and user data travel to this host: require https for
+        // public destinations. Plain http is allowed when traffic provably
+        // stays inside a trusted perimeter (loopback/private networks) or when
+        // the operator explicitly opted in via `allow_insecure_http`.
         anyhow::ensure!(
-            parsed.scheme() == "https" || (parsed.scheme() == "http" && loopback),
-            "Zitadel api_url must be https (or http on loopback)"
+            parsed.scheme() == "https"
+                || (parsed.scheme() == "http" && (allow_insecure_http || is_private_host(&host))),
+            "Zitadel api_url must be https (or http on loopback/private networks; set allow_insecure_http to override)"
         );
         let mut base = format!("{}://{}", parsed.scheme(), host);
         if let Some(port) = parsed.port() {
@@ -70,7 +77,7 @@ impl ZitadelClient {
     }
 
     pub fn new(config: ZitadelConfig) -> Result<Self> {
-        let api_base = Self::sanitize_api_base(&config.api_url)?;
+        let api_base = Self::sanitize_api_base(&config.api_url, config.allow_insecure_http)?;
         let http_client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
@@ -94,7 +101,7 @@ impl ZitadelClient {
         username: String,
         password: String,
     ) -> Result<Self> {
-        let api_base = Self::sanitize_api_base(&config.api_url)?;
+        let api_base = Self::sanitize_api_base(&config.api_url, config.allow_insecure_http)?;
         let http_client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
@@ -112,7 +119,7 @@ impl ZitadelClient {
     }
 
     pub fn with_pat_token(config: ZitadelConfig, pat_token: String) -> Result<Self> {
-        let api_base = Self::sanitize_api_base(&config.api_url)?;
+        let api_base = Self::sanitize_api_base(&config.api_url, config.allow_insecure_http)?;
         let http_client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
@@ -983,5 +990,96 @@ impl ZitadelClient {
             .to_string();
 
         Ok(pat_token)
+    }
+}
+
+/// True when the host provably stays inside a trusted perimeter: loopback,
+/// RFC1918/ULA private addresses or link-local. DNS hostnames cannot be
+/// verified as private without resolution (SSRF risk) and always need https.
+fn is_private_host(host: &str) -> bool {
+    let h = host.trim_start_matches('[').trim_end_matches(']');
+    if h == "localhost" || h.starts_with("127.") {
+        return true;
+    }
+    if let Ok(addr) = h.parse::<std::net::IpAddr>() {
+        return match addr {
+            std::net::IpAddr::V4(v4) => v4.is_loopback() || v4.is_private() || v4.is_link_local(),
+            std::net::IpAddr::V6(v6) => {
+                v6.is_loopback() || (v6.segments()[0] & 0xfe00) == 0xfc00 || v6.is_unicast_link_local()
+            }
+        };
+    }
+    false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_sanitize_accepts_https_public_host() {
+        let base = ZitadelClient::sanitize_api_base("https://auth.example.com", false).unwrap();
+        assert_eq!(base, "https://auth.example.com");
+    }
+
+    #[test]
+    fn test_sanitize_accepts_http_private_ipv4() {
+        let base = ZitadelClient::sanitize_api_base("http://10.157.134.9:9000", false).unwrap();
+        assert_eq!(base, "http://10.157.134.9:9000");
+    }
+
+    #[test]
+    fn test_sanitize_accepts_http_172_16_range() {
+        let base = ZitadelClient::sanitize_api_base("http://172.16.0.10:8080", false).unwrap();
+        assert_eq!(base, "http://172.16.0.10:8080");
+    }
+
+    #[test]
+    fn test_sanitize_accepts_http_localhost() {
+        let base = ZitadelClient::sanitize_api_base("http://localhost:9000", false).unwrap();
+        assert_eq!(base, "http://localhost:9000");
+    }
+
+    #[test]
+    fn test_sanitize_accepts_http_bracketed_v6_loopback() {
+        let base = ZitadelClient::sanitize_api_base("http://[::1]:9000", false).unwrap();
+        assert_eq!(base, "http://[::1]:9000");
+    }
+
+    #[test]
+    fn test_sanitize_rejects_http_public_host() {
+        assert!(ZitadelClient::sanitize_api_base("http://auth.example.com", false).is_err());
+    }
+
+    #[test]
+    fn test_sanitize_rejects_http_public_ip() {
+        assert!(ZitadelClient::sanitize_api_base("http://203.0.113.5", false).is_err());
+    }
+
+    #[test]
+    fn test_sanitize_rejects_http_dns_name() {
+        assert!(ZitadelClient::sanitize_api_base("http://directory.internal:9000", false).is_err());
+    }
+
+    #[test]
+    fn test_sanitize_opt_in_allows_http_public_host() {
+        let base = ZitadelClient::sanitize_api_base("http://login.example.com:8080", true).unwrap();
+        assert_eq!(base, "http://login.example.com:8080");
+    }
+
+    #[test]
+    fn test_sanitize_drops_path_userinfo_and_query() {
+        let base = ZitadelClient::sanitize_api_base("https://user:pass@auth.example.com/path?q=1", false).unwrap();
+        assert_eq!(base, "https://auth.example.com");
+    }
+
+    #[test]
+    fn test_config_deserializes_with_and_without_flag() {
+        let without: ZitadelConfig = serde_json::from_str(r#"{"api_url": "https://a.b"}"#).unwrap();
+        assert!(!without.allow_insecure_http);
+        let with: ZitadelConfig =
+            serde_json::from_str(r#"{"base_url": "http://a.b", "allow_insecure_http": true}"#).unwrap();
+        assert!(with.allow_insecure_http);
+        assert_eq!(with.api_url, "http://a.b");
     }
 }
