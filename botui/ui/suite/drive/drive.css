@@ -2,6 +2,7 @@
 
 @import url("/suite/drive/styles/layout.css");
 @import url("/suite/drive/styles/bots.css");
-@import url("/suite/drive/styles/components.css");
+@import url("/suite/drive/styles/components.p1.css");
+@import url("/suite/drive/styles/components.p2.css");
 @import url("/suite/drive/styles/context-menu.css");
 @import url("/suite/drive/styles/modals.css");
