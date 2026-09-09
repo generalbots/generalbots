@@ -11,9 +11,12 @@
 }
 
 /* Drive Module Styles v1.0 */
-
-.drive-container {
+/* .gb-app qualifier: beats the generic `.gb-app { flex-direction: column }`
+   from desktop shell sheets (mindfulness.css) that load after drive.css —
+   same specificity otherwise, and column stacking broke the sidebar/main row. */
+.gb-app.drive-container {
     display: flex;
+    flex-direction: row;
     height: 100%;
     min-height: 0;
     background: var(--bg, var(--bg-primary, #0a0a0f));
