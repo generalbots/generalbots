@@ -266,13 +266,33 @@
       {
         label: "Logout",
         run: function () {
-          try {
-            localStorage.removeItem("gb-access-token");
-            sessionStorage.removeItem("gb-access-token");
-          } catch (e) {}
-          var login = window.GB_LOGIN_URL || "/login";
-          window.location.href =
-            login + "?redirect=" + encodeURIComponent(window.location.href);
+          // Full logout: same surface as sidebar.js — clears the suite
+          // token, the cloud management session and the GBSecurity
+          // closure, or the next page load re-authenticates from the
+          // surviving management_token (login → logout → login bug).
+          sessionStorage.setItem("gb-signed-out", "true");
+          fetch("/api/auth/logout", { method: "POST" }).finally(function () {
+            ["gb-access-token", "management_token", "management_email",
+             "management_name", "management_is_admin", "gb-selected-bot",
+             "gb_selected_bot", "token", "id_token", "gb_token"]
+              .forEach(function (k) {
+                localStorage.removeItem(k);
+                sessionStorage.removeItem(k);
+              });
+            var keys = [];
+            for (var i = 0; i < localStorage.length; i++) {
+              var k = localStorage.key(i);
+              if (k && k.indexOf("gb_chat_") === 0) keys.push(k);
+            }
+            keys.forEach(function (k) { localStorage.removeItem(k); });
+            if (window.GBSecurity) {
+              if (window.GBSecurity.clearTokens) window.GBSecurity.clearTokens();
+              if (window.GBSecurity.broadcastLogout) window.GBSecurity.broadcastLogout();
+            }
+            var login = window.GB_LOGIN_URL || "/login";
+            window.location.href =
+              login + "?redirect=" + encodeURIComponent(window.location.href);
+          });
         },
       },
     ];
