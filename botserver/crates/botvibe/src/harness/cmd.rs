@@ -83,6 +83,7 @@ fn prepare_command(
     args: &[String],
     cwd: &std::path::Path,
 ) -> Result<std::process::Command, GuardError> {
+    validate_program(program)?;
     if !ALLOWED_COMMANDS.contains(program) {
         return Err(GuardError::CommandNotAllowed(program.into()));
     }
@@ -152,6 +153,35 @@ fn validate_arg(arg: &str) -> Result<(), GuardError> {
                 "forbidden character '{ch}' in argument"
             )));
         }
+    }
+    // Control characters can alter argument parsing semantics even without
+    // shell metacharacters — reject anything non-printable (#1297).
+    if arg
+        .chars()
+        .any(|ch| ch.is_control() || char::is_whitespace(ch) && (ch != ' ' && ch != '\t'))
+    {
+        return Err(GuardError::InvalidArgument(
+            "argument contains control characters".into(),
+        ));
+    }
+    Ok(())
+}
+
+/// The program name itself must be a plain executable name or absolute path
+/// with no traversal or metacharacters (#1297).
+fn validate_program(program: &str) -> Result<(), GuardError> {
+    if program.is_empty() {
+        return Err(GuardError::InvalidArgument("empty program".into()));
+    }
+    if program.chars().any(|ch| FORBIDDEN_SHELL_CHARS.contains(&ch)) {
+        return Err(GuardError::ShellInjection(format!(
+            "forbidden character in program name '{program}'"
+        )));
+    }
+    if program.contains("..") {
+        return Err(GuardError::InvalidArgument(
+            "program path must not contain traversal sequences".into(),
+        ));
     }
     Ok(())
 }

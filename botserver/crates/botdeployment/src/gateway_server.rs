@@ -111,6 +111,28 @@ fn validate_deploy_key(headers: &HeaderMap, state: &GatewayState) -> Result<(), 
     }
 }
 
+/// #1297 — org/app identifiers flow from HTTP bodies straight into
+/// `incus` argv. Restrict them to a safe charset so no shell/control
+/// characters or option-looking tokens can reach the command line.
+fn sanitize_identifier_part(part: &str) -> Result<String, StatusCode> {
+    let cleaned: String = part
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
+        .take(64)
+        .collect();
+    if cleaned.is_empty() || cleaned.starts_with('-') {
+        log::warn!("Rejected deploy identifier: empty or option-like");
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    Ok(cleaned)
+}
+
+fn container_name_from_parts(org: &str, app_name: &str) -> Result<String, StatusCode> {
+    let org = sanitize_identifier_part(org)?;
+    let app_name = sanitize_identifier_part(app_name)?;
+    Ok(format!("{org}-{app_name}"))
+}
+
 pub async fn gateway_deploy(
     State((state, registry)): State<(Arc<GatewayState>, Arc<ContainerRegistry>)>,
     headers: HeaderMap,
@@ -126,7 +148,7 @@ pub async fn gateway_deploy(
         request.environment
     );
 
-    let container_name = format!("{}-{}", request.org, request.app_name);
+    let container_name = container_name_from_parts(&request.org, &request.app_name)?;
     let deploy_url = match &request.project_type {
         ProjectType::Bot => {
             return Ok(Json(DeployGatewayResponse {
@@ -209,7 +231,7 @@ pub async fn gateway_stop(
 
     let app_name = body.get("app_name").and_then(|v| v.as_str()).unwrap_or_default();
     let org = body.get("org").and_then(|v| v.as_str()).unwrap_or_default();
-    let container_name = format!("{org}-{app_name}");
+    let container_name = container_name_from_parts(org, app_name)?;
 
     log::info!("Gateway stop: {container_name}");
 
@@ -241,7 +263,7 @@ pub async fn gateway_start(
 
     let app_name = body.get("app_name").and_then(|v| v.as_str()).unwrap_or_default();
     let org = body.get("org").and_then(|v| v.as_str()).unwrap_or_default();
-    let container_name = format!("{org}-{app_name}");
+    let container_name = container_name_from_parts(org, app_name)?;
 
     log::info!("Gateway start: {container_name}");
 
@@ -271,7 +293,7 @@ pub async fn gateway_status(
 ) -> Result<Json<DeployGatewayResponse>, StatusCode> {
     validate_deploy_key(&headers, &state)?;
 
-    let container_name = format!("{org}-{app_name}");
+    let container_name = container_name_from_parts(&org, &app_name)?;
 
     let containers = registry.containers.read().await;
     if let Some(info) = containers.get(&container_name) {

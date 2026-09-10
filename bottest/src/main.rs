@@ -482,6 +482,20 @@ async fn setup_test_dependencies() -> Result<(PathBuf, PathBuf)> {
 }
 
 async fn start_chromedriver(chromedriver_path: &PathBuf, port: u16) -> Result<std::process::Child> {
+    // #1297 — the driver path is resolved from the download cache at runtime.
+    // Only ever execute a chromedriver binary that lives inside the tool cache
+    // before it reaches the command line.
+    let cache_dir = get_cache_dir().canonicalize()?;
+    let canonical = chromedriver_path.canonicalize()?;
+    let file_name = canonical
+        .file_name()
+        .and_then(|n| n.to_str())
+        .unwrap_or_default()
+        .to_string();
+    if !canonical.starts_with(&cache_dir) || !file_name.starts_with("chromedriver") {
+        anyhow::bail!("refusing to execute unexpected binary: {}", canonical.display());
+    }
+
     info!("Starting ChromeDriver on port {}...", port);
 
     let child = std::process::Command::new(chromedriver_path)

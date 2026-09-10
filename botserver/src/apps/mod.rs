@@ -15,6 +15,8 @@ use serde_json::json;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
 
+use uuid::Uuid;
+
 /// Core apps that are always present regardless of feature flags.
 const CORE_APPS: &[&str] = &["settings", "auth", "admin"];
 
@@ -288,7 +290,7 @@ fn is_app_compiled(id: &str) -> bool {
 /// THAT bot via the `bot` deep-link param (chat-init consumes
 /// `__gbAppParams__.bot` and calls ChatSwitchBot). Query is best-effort: a
 /// DB hiccup degrades to the static catalog only.
-fn bot_launcher_apps() -> Vec<serde_json::Value> {
+fn bot_launcher_apps(bearer: Option<&str>) -> Vec<serde_json::Value> {
     use diesel::prelude::*;
     let pool = match botcore::shared::utils::create_conn() {
         Ok(p) => p,
@@ -312,11 +314,36 @@ fn bot_launcher_apps() -> Vec<serde_json::Value> {
             return Vec::new();
         }
     };
-    let rows: Vec<BotRow> = diesel::sql_query(
-        "SELECT name, description FROM bots WHERE is_active = true ORDER BY created_at DESC LIMIT 40",
-    )
-    .load(&mut conn)
-    .unwrap_or_default();
+    // #1296 — the launcher must list only the caller's organization bots,
+    // not every active bot across all tenants. The user→org binding comes
+    // from user_organizations (same source as the cloud login flow); when
+    // the caller is anonymous or unbound, fall back to the global default
+    // bot only (is_default_for_branch), so the catalog never leaks other
+    // orgs' bots.
+    // Tenant scope minted at login (with_tenant_scope) — extracted the same
+    // unverified way as `sub` in workspace_tabs.rs (signature already checked
+    // by the upstream auth middleware when present). No claim → no org filter
+    // → the fallback lists ONLY default bots, never another org's bots.
+    let org_filter = bearer
+        .and_then(token_org_id)
+        .and_then(|org| Uuid::parse_str(&org).ok());
+    let rows: Vec<BotRow> = match org_filter {
+        Some(org_id) => diesel::sql_query(
+            "SELECT name, description FROM bots \
+             WHERE is_active = true AND org_id = $1 \
+             ORDER BY created_at DESC LIMIT 40",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(org_id)
+        .load(&mut conn)
+        .unwrap_or_default(),
+        None => diesel::sql_query(
+            "SELECT name, description FROM bots \
+             WHERE is_active = true AND is_default_for_branch = true \
+             ORDER BY created_at DESC LIMIT 40",
+        )
+        .load(&mut conn)
+        .unwrap_or_default(),
+    };
     rows.into_iter()
         .map(|b| {
             // Slug must be URL/launcher-safe: names like "Helper Bot" would
@@ -443,7 +470,26 @@ fn published_app_launcher_apps() -> Vec<serde_json::Value> {
         .collect()
 }
 
-pub async fn catalog_handler() -> Json<serde_json::Value> {
+/// Extracts the tenant `org_id` claim from a JWT the same unverified way
+/// `jwt_subject` works in workspace_tabs.rs: signature verification happens
+/// upstream; here we only read the claim value for list scoping.
+fn token_org_id(token: &str) -> Option<String> {
+    use base64::Engine as _;
+    let payload_b64 = token.split('.').nth(1)?;
+    let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
+        .decode(payload_b64)
+        .or_else(|_| base64::engine::general_purpose::STANDARD_NO_PAD.decode(payload_b64))
+        .ok()?;
+    let value: serde_json::Value = serde_json::from_slice(&bytes).ok()?;
+    value["org_id"].as_str().map(|s| s.to_string())
+}
+
+pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json::Value> {
+    let bearer = headers
+        .get("authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .map(|s| s.to_string());
     let apps = registry::all_apps();
 
     let enabled: std::collections::HashSet<String> = botcore::product::PRODUCT_CONFIG
@@ -507,7 +553,7 @@ pub async fn catalog_handler() -> Json<serde_json::Value> {
     // surface in the launcher (frontend merges by id; static wins nothing
     // since bot ids are namespaced `bot-`).
     let mut all_items = items;
-    all_items.extend(bot_launcher_apps());
+    all_items.extend(bot_launcher_apps(bearer.as_deref()));
     all_items.extend(published_app_launcher_apps());
     Json(json!({
         "apps": all_items,
