@@ -237,20 +237,27 @@ pub async fn use_for_vibe(
             ))
         })?;
 
-    let credentials = state.vault.load_strict(&row.vault_path).await?;
-    let api_key = credentials
-        .as_object()
-        .and_then(|entries| {
-            // Accept either the canonical `api_key` field or a generic `key`.
-            entries
-                .get("api_key")
-                .or_else(|| entries.get("key"))
-                .and_then(|v| v.as_str())
-        })
-        .filter(|k| !k.is_empty())
-        .ok_or_else(|| {
-            IntegrationError::Validation("connection has no stored API key".to_string())
-        })?;
+    // Keyless providers (free gateway models) carry no Vault secret; the
+    // connection may be stored without any secrets envelope at all.
+    let api_key = if crate::llm_providers::llm_provider_keyless(&row.provider_slug) {
+        String::new()
+    } else {
+        let credentials = state.vault.load_strict(&row.vault_path).await?;
+        credentials
+            .as_object()
+            .and_then(|entries| {
+                // Accept either the canonical `api_key` field or a generic `key`.
+                entries
+                    .get("api_key")
+                    .or_else(|| entries.get("key"))
+                    .and_then(|v| v.as_str())
+            })
+            .filter(|k| !k.is_empty())
+            .ok_or_else(|| {
+                IntegrationError::Validation("connection has no stored API key".to_string())
+            })?
+            .to_string()
+    };
 
     let config = botcore::config::ConfigManager::new(state.pool.clone());
     let write = |key: &str, value: &str| {
@@ -262,7 +269,7 @@ pub async fn use_for_vibe(
     write(&format!("{prefix}provider"), &row.provider_slug)?;
     write(&format!("{prefix}url"), default_url)?;
     write(&format!("{prefix}model"), default_model)?;
-    write(&format!("{prefix}key"), api_key)?;
+    write(&format!("{prefix}key"), &api_key)?;
 
     let mut conn = state.pool.get()?;
     record_outcome(
