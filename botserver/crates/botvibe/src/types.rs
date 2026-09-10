@@ -103,6 +103,9 @@ pub struct VibeRunConfig {
     pub llm_key: Option<String>,
     /// Per-bot LLM endpoint override (over env `LLM_URL`).
     pub llm_url: Option<String>,
+    /// Vibe agent slot this run uses: `reasoning` | `agentic` | `fast`.
+    /// Resolves the per-agent LLM provider configured in Settings → Vibe.
+    pub agent: Option<String>,
     pub budget_cents: u64,
     /// Vibe project this run operates on (uuid string); drives the deploy
     /// pipeline stage args and the agent's `project` workspace key.
@@ -128,6 +131,7 @@ impl Default for VibeRunConfig {
             model: None,
             llm_key: None,
             llm_url: None,
+            agent: None,
             budget_cents: 0,
             project_id: None,
             project_name: None,
@@ -323,6 +327,14 @@ pub trait VibeState: Send + Sync {
     /// keys from Drive config.csv (bot_configuration table). `None` means
     /// "use environment".
     fn llm_config(&self, bot_id: &Uuid) -> Option<LlmConfig>;
+
+    /// Per-bot LLM settings for a specific Vibe agent type
+    /// (`reasoning` | `agentic` | `fast`, or any custom slot). Falls back to
+    /// [`Self::llm_config`] when the agent slot is not configured.
+    fn llm_config_for(&self, bot_id: &Uuid, agent: &str) -> Option<LlmConfig> {
+        let _ = (bot_id, agent);
+        self.llm_config(bot_id)
+    }
 }
 
 /// LLM provider settings resolved for a specific bot (Issue #795).

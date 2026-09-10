@@ -174,6 +174,7 @@ impl TeamCoordinator {
             model: None,
             llm_key: None,
             llm_url: None,
+            agent: None,
             budget_cents: 0,
             project_id: None,
             project_name: None,

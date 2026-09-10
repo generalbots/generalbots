@@ -65,6 +65,9 @@ pub struct CreateRunRequest {
     pub max_tool_calls: Option<u32>,
     pub timeout_seconds: Option<u64>,
     pub model: Option<String>,
+    /// Vibe agent slot: `reasoning` | `agentic` | `fast`. Resolves the
+    /// per-agent LLM provider configured in Settings → Vibe.
+    pub agent: Option<String>,
     pub budget_cents: Option<u64>,
     /// vibe33 #811 — when "deploy", the run executes through the graph
     /// (PipelineEngine, approval-gated deploy pipeline) instead of the
@@ -690,6 +693,7 @@ async fn create_run(
         model: req.model,
         llm_key: None,
         llm_url: None,
+        agent: req.agent,
         budget_cents: req.budget_cents.unwrap_or(0),
         project_id,
         project_name: project_name.clone(),

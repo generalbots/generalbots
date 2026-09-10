@@ -14,6 +14,7 @@ pub mod oauth;
 pub mod providers;
 pub mod repository;
 pub mod request;
+pub mod llm_providers;
 pub mod routes;
 pub mod rows;
 pub mod scope;

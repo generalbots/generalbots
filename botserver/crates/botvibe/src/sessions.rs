@@ -167,6 +167,8 @@ pub struct ResumeRequest {
     pub max_tool_calls: Option<u32>,
     pub timeout_seconds: Option<u64>,
     pub model: Option<String>,
+    /// Vibe agent slot: `reasoning` | `agentic` | `fast`.
+    pub agent: Option<String>,
     pub lang: Option<String>,
 }
 
@@ -280,6 +282,7 @@ async fn resume_session(
         model: req.model,
         llm_key: None,
         llm_url: None,
+        agent: req.agent,
         budget_cents: session.budget_cents,
         project_id: None,
         project_name: None,

@@ -2,6 +2,7 @@ mod developer;
 mod featured;
 mod finance;
 mod lifestyle;
+mod llm;
 mod productivity;
 mod small_business;
 mod social_messaging;
@@ -48,6 +49,7 @@ pub(crate) fn all() -> Vec<&'static ProviderSeed> {
         finance::PROVIDERS,
         social_messaging::PROVIDERS,
         lifestyle::PROVIDERS,
+        llm::PROVIDERS,
     ]
     .into_iter()
     .flat_map(|group| group.iter())
