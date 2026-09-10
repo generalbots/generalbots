@@ -98,68 +98,18 @@ pub async fn upsert_route_to(domain: &str, dial: &str, access: &str) -> Result<C
     let client = client()?;
     let rid = route_id(domain);
 
-    // Remove ALL previous routes matching this host before inserting. Two
-    // removal passes are needed:
-    //   1. by @id — the id scheme is stable today, but...
-    //   2. by match host via the routes LIST INDEX — duplicate @ids make the
-    //      id index unresolvable (DELETE /config/id/{rid} returns 500
-    //      `invalid traversal path` when duplicates exist, observed in
-    //      production), and older id schemes never match. Caddy serves the
-    //      FIRST matching route, so a stale duplicate can 502 the app even
-    //      when a correct route also exists (#1265). Walking the list from
-    //      the END backwards keeps earlier indices valid as items shift.
+    // Remove ALL previous routes matching this host before inserting. Caddy
+    // serves the FIRST matching route, so a stale duplicate can 502 the app
+    // even when a correct route also exists (#1265). Duplicate @ids also make
+    // the id index unresolvable (DELETE /config/id/{rid} returns 500
+    // `invalid traversal path`), so removal goes through the routes LIST
+    // INDEX: snapshot once, collect every matching index, then delete from
+    // the HIGHEST index down. Deleting a higher index never shifts lower
+    // ones, so each captured index stays valid for the whole pass — no
+    // arithmetic on the index itself (a subtracted `removed` counter here
+    // once deleted foreign hosts' routes; see #1305).
     let routes_path = "config/apps/http/servers/srv0/routes";
-    for _ in 0..16 {
-        let resp = client
-            .delete(format!("{base}/config/id/{rid}"))
-            .send()
-            .await;
-        match resp {
-            Ok(r) if r.status().is_success() => continue,
-            _ => break,
-        }
-    }
-    if let Ok(resp) = client.get(format!("{base}/{routes_path}")).send().await {
-        if resp.status().is_success() {
-            if let Ok(routes) = resp.json::<Vec<serde_json::Value>>().await {
-                let mut removed = 0usize;
-                for (index, route) in routes.iter().enumerate().rev() {
-                    let matches_host = route
-                        .get("match")
-                        .and_then(|m| m.as_array())
-                        .map(|arr| {
-                            arr.iter().any(|m| {
-                                m.get("host")
-                                    .and_then(|h| h.as_array())
-                                    .map(|hosts| {
-                                        hosts.iter().any(|h| h.as_str() == Some(domain))
-                                    })
-                                    .unwrap_or(false)
-                            })
-                        })
-                        .unwrap_or(false);
-                    if !matches_host {
-                        continue;
-                    }
-                    let delete_url = format!(
-                        "{base}/{routes_path}/{}",
-                        index.saturating_sub(removed)
-                    );
-                    removed += 1;
-                    if let Ok(resp) = client.delete(delete_url).send().await {
-                        if !resp.status().is_success() {
-                            log::warn!(
-                                "Caddy dedupe: index delete for {domain} returned {}",
-                                resp.status()
-                            );
-                        }
-                    }
-                }
-            }
-        } else {
-            log::debug!("Caddy dedupe: routes list unavailable ({})", resp.status());
-        }
-    }
+    delete_routes_matching_host(&base, &client, routes_path, domain).await?;
 
     let body = route_payload(domain, dial, &rid, access);
     let resp = client
@@ -197,6 +147,17 @@ pub async fn upsert_route_to(domain: &str, dial: &str, access: &str) -> Result<C
 /// broken edit is never pushed (the edit happens on a temp copy).
 fn persist_route_block(container: &str, domain: &str, dial: &str) {
     use std::io::Write;
+    // Hostname guard: the domain is interpolated into the Caddyfile, so only
+    // plain hostname characters are accepted — no braces/newlines/spaces that
+    // could inject Caddyfile directives.
+    let valid_domain = !domain.is_empty()
+        && domain
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '-');
+    if !valid_domain {
+        log::warn!("Caddyfile persistence skipped: invalid domain '{domain}'");
+        return;
+    }
     let block = format!(
         "\n{domain} {{ \n\timport tls_config\n\treverse_proxy {dial}\n}}\n"
     );
@@ -242,7 +203,24 @@ fn persist_route_block(container: &str, domain: &str, dial: &str) {
         let mut f = std::fs::File::create(&edited).map_err(|e| format!("open: {e}"))?;
         f.write_all(out.as_bytes()).map_err(|e| format!("write: {e}"))?;
         drop(f);
+        // Never push an unvalidated edit over the live config: stage the
+        // candidate inside the proxy, run `caddy validate` against it, and
+        // only on success back up the live file and swap. A rejected edit
+        // leaves the production Caddyfile untouched.
+        let candidate = "/tmp/gbo-caddy-candidate.cfg";
+        let backup = "/tmp/gbo-caddy-config.prev";
+        run(&["file", "push", edited.to_str().ok_or("edited path")?, &format!("{container}{candidate}")])?;
+        let validate = run(&[
+            "exec", container, "--", "caddy", "validate",
+            "--adapter", "caddyfile", "--config", candidate,
+        ]);
+        if validate.is_err() {
+            let _ = run(&["exec", container, "--", "rm", "-f", candidate]);
+            return Err("candidate Caddyfile rejected by caddy validate".to_string());
+        }
+        run(&["exec", container, "--", "cp", conf, backup])?;
         run(&["file", "push", edited.to_str().ok_or("edited path")?, &format!("{container}{conf}")])?;
+        let _ = run(&["exec", container, "--", "rm", "-f", candidate]);
         let _ = std::fs::remove_file(&tmp);
         let _ = std::fs::remove_file(&edited);
         Ok(())
@@ -255,60 +233,95 @@ fn persist_route_block(container: &str, domain: &str, dial: &str) {
 pub async fn remove_route(domain: &str) -> Result<(), String> {
     let base = caddy_api_url();
     let client = client()?;
-    let rid = route_id(domain);
-    // 1. By @id — the normal path. Caddy 500s (`invalid traversal path`)
-    //    when duplicate @ids exist, so...
+    // Single authoritative sweep by match-host list index (see upsert for
+    // why the id path is not used). Best-effort: a 404 (nothing to remove)
+    // is a normal outcome; the snapshot-and-delete pass covers duplicates.
+    let routes_path = "config/apps/http/servers/srv0/routes";
+    delete_routes_matching_host(&base, &client, routes_path, domain).await
+}
+
+/// True when a Caddy route's `match` targets `domain` in any of its host
+/// matchers. Only exact host equality qualifies — never a prefix or suffix
+/// match, so `app.example.com` cannot touch `example.com` or a shared
+/// wildcard route.
+fn route_matches_host(route: &serde_json::Value, domain: &str) -> bool {
+    route
+        .get("match")
+        .and_then(|m| m.as_array())
+        .map(|arr| {
+            arr.iter().any(|m| {
+                m.get("host")
+                    .and_then(|h| h.as_array())
+                    .map(|hosts| hosts.iter().any(|h| h.as_str() == Some(domain)))
+                    .unwrap_or(false)
+            })
+        })
+        .unwrap_or(false)
+}
+
+/// Snapshot the routes array once, then delete every route matching
+/// `domain` from the highest index down. Safety properties:
+///
+/// 1. Each index is captured from ONE consistent snapshot and used as-is —
+///    reverse-order deletion keeps lower indices stable, so only routes
+///    verified to match `domain` are ever removed.
+/// 2. A bulk-delete guard aborts when more than `MAX_DELETES` routes match:
+///    that signals a corrupted config, and blindly wiping it could take
+///    down unrelated production sites.
+///
+/// Fails only when the proxy is unreachable; a missing list (404) and a
+/// failed individual delete are tolerated (logged), matching the previous
+/// best-effort behavior.
+const MAX_HOST_ROUTE_DELETES: usize = 8;
+
+async fn delete_routes_matching_host(
+    base: &str,
+    client: &reqwest::Client,
+    routes_path: &str,
+    domain: &str,
+) -> Result<(), String> {
     let resp = client
-        .delete(format!("{base}/config/id/{rid}"))
+        .get(format!("{base}/{routes_path}"))
         .send()
         .await
         .map_err(|e| format!("caddy proxy unreachable: {e}"))?;
-    let id_removed = resp.status().is_success();
-    // 2. By match-host list index — removes duplicates and stale routes the
-    //    id path cannot resolve (same walk-backwards dedupe as upsert). A
-    //    successful id delete still needs this pass when duplicates existed.
-    let routes_path = "config/apps/http/servers/srv0/routes";
-    let mut index_removed = 0usize;
-    if let Ok(resp) = client.get(format!("{base}/{routes_path}")).send().await {
-        if resp.status().is_success() {
-            if let Ok(routes) = resp.json::<Vec<serde_json::Value>>().await {
-                for (index, route) in routes.iter().enumerate().rev() {
-                    let matches_host = route
-                        .get("match")
-                        .and_then(|m| m.as_array())
-                        .map(|arr| {
-                            arr.iter().any(|m| {
-                                m.get("host")
-                                    .and_then(|h| h.as_array())
-                                    .map(|hosts| hosts.iter().any(|h| h.as_str() == Some(domain)))
-                                    .unwrap_or(false)
-                            })
-                        })
-                        .unwrap_or(false);
-                    if !matches_host {
-                        continue;
-                    }
-                    let delete_url = format!(
-                        "{base}/{routes_path}/{}",
-                        index.saturating_sub(index_removed)
-                    );
-                    index_removed += 1;
-                    if let Ok(resp) = client.delete(delete_url).send().await {
-                        if !resp.status().is_success() {
-                            log::warn!(
-                                "Caddy remove: index delete for {domain} returned {}",
-                                resp.status()
-                            );
-                        }
-                    }
-                }
+    if !resp.status().is_success() {
+        log::debug!("Caddy: routes list unavailable ({}) for {domain}", resp.status());
+        return Ok(());
+    }
+    let routes: Vec<serde_json::Value> = match resp.json().await {
+        Ok(r) => r,
+        Err(e) => {
+            log::warn!("Caddy: routes list not JSON for {domain}: {e}");
+            return Ok(());
+        }
+    };
+    let mut indices: Vec<usize> = routes
+        .iter()
+        .enumerate()
+        .filter(|(_, route)| route_matches_host(route, domain))
+        .map(|(i, _)| i)
+        .collect();
+    if indices.len() > MAX_HOST_ROUTE_DELETES {
+        return Err(format!(
+            "caddy safety abort: {} routes match {domain} (max {MAX_HOST_ROUTE_DELETES}) — refusing bulk delete",
+            indices.len()
+        ));
+    }
+    // Highest index first; each raw captured index stays valid.
+    indices.sort_unstable();
+    for index in indices.into_iter().rev() {
+        log::info!("Caddy: removing stale route index {index} for {domain}");
+        let url = format!("{base}/{routes_path}/{index}");
+        if let Ok(resp) = client.delete(url).send().await {
+            if !resp.status().is_success() {
+                log::warn!(
+                    "Caddy: index delete for {domain} at {index} returned {}",
+                    resp.status()
+                );
             }
         }
     }
-    // Removal is best-effort on both paths: a 404 (nothing to remove) and a
-    // 500 on the id path (duplicate ids) are both covered by the host-index
-    // pass, which is the authoritative sweep.
-    let _ = id_removed;
     Ok(())
 }
 
@@ -328,6 +341,21 @@ mod tests {
         assert!(text.contains("proj-prod.incus:80"));
         assert!(text.contains("app.example.com"));
         assert!(!text.contains("forward_auth"));
+    }
+
+    #[test]
+    fn host_matcher_is_exact_only() {
+        let route = serde_json::json!({
+            "match": [{ "host": ["app.example.com"] }],
+            "handle": []
+        });
+        assert!(route_matches_host(&route, "app.example.com"));
+        assert!(!route_matches_host(&route, "example.com"));
+        assert!(!route_matches_host(&route, "other.example.com"));
+        let wildcard = serde_json::json!({ "match": [{ "host": ["*.example.com"] }] });
+        assert!(!route_matches_host(&wildcard, "app.example.com"));
+        let bare = serde_json::json!({ "handle": [] });
+        assert!(!route_matches_host(&bare, "app.example.com"));
     }
 
     #[test]
