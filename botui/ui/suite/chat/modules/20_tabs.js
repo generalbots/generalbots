@@ -328,10 +328,12 @@ window.GBTabs = {
       GBTabs.activate();
       return;
     }
-    if (GBTabs.state.tabs.length > 1) {
-      GBTabs.activate();
-      if (stamp) writeLocal(GBTabs.state.tabs);
-    }
+    // The flag-off default was a dead end: the "+" affordance that activates
+    // tabs only rendered AFTER activation, so single-tab users could never
+    // discover the feature. Render the strip (default tab + "+") always —
+    // one slim bar above the chat; closing tabs down to one keeps it usable.
+    GBTabs.activate();
+    if (stamp) writeLocal(GBTabs.state.tabs);
   }
 
   /**
@@ -393,4 +395,19 @@ window.GBTabs = {
   } else {
     GBTabs.restore();
   }
+  // The chat window body is injected AFTER DOMContentLoaded (lazy fetch in
+  // openDeepLink), so #chatContentWrapper does not exist when restore() first
+  // runs and renderStrip() early-returns. Retry once when the chat window
+  // actually opens so the tab strip mounts in single-chat mode too.
+  document.addEventListener("gb-window-changed", function (e) {
+    var d = (e && e.detail) || {};
+    if (d.id !== "chat" || d.action !== "open") return;
+    if (!document.getElementById("chatContentWrapper")) return;
+    if (GBTabs.state.enabled) {
+      GBTabs.renderStrip();
+    } else if (!window.__gbTabsChatRetried) {
+      window.__gbTabsChatRetried = true;
+      GBTabs.restore();
+    }
+  });
 })();

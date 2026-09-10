@@ -284,29 +284,60 @@
         document.getElementById('crm-modal').classList.remove('open');
     };
 
-    // Drag and drop for pipeline
-    const pipelineCards = document.querySelectorAll('.pipeline-cards');
-    pipelineCards.forEach(column => {
+    // Drag and drop for pipeline (#1298).
+    // Cards are server-rendered via HTMX after this script runs, so listeners
+    // are delegated on the pipeline container instead of bound per column.
+    // Fix 1: cards rendered draggable server-side (crm_ui.rs); here we supply
+    // the drag payload via dragstart, which was previously never set.
+    const pipelineRoot = document.getElementById('crm-pipeline-view');
+    pipelineRoot.addEventListener('dragstart', e => {
+        const card = e.target.closest('.pipeline-card');
+        if (!card) return;
+        e.dataTransfer.setData('text/plain', card.dataset.id || '');
+        e.dataTransfer.effectAllowed = 'move';
+        card.classList.add('dragging');
+    });
+    pipelineRoot.addEventListener('dragend', () => {
+        pipelineRoot.querySelectorAll('.pipeline-card.dragging')
+            .forEach(c => c.classList.remove('dragging'));
+    });
+
+    pipelineRoot.querySelectorAll('.pipeline-cards').forEach(column => {
         column.addEventListener('dragover', e => {
             e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
             column.classList.add('drag-over');
         });
 
-        column.addEventListener('dragleave', () => {
-            column.classList.remove('drag-over');
+        column.addEventListener('dragleave', (e) => {
+            if (!column.contains(e.relatedTarget)) {
+                column.classList.remove('drag-over');
+            }
         });
 
         column.addEventListener('drop', e => {
             e.preventDefault();
             column.classList.remove('drag-over');
             const cardId = e.dataTransfer.getData('text/plain');
+            const card = pipelineRoot.querySelector(`.pipeline-card[data-id="${cardId}"]`);
             const newStage = column.closest('.pipeline-column').dataset.stage;
+            if (!cardId || !newStage) return;
+            if (card && card.closest('.pipeline-column') === column.closest('.pipeline-column')) return;
 
-            // Update via HTMX
-            htmx.ajax('POST', `/api/crm/opportunity/${cardId}/stage`, {
-                values: { stage: newStage }
-            });
+            // Move card visually, then persist via PUT /api/crm/leads/:id/stage
+            // (the old code POSTed to a nonexistent opportunity route).
+            if (card) column.appendChild(card);
+            htmx.ajax('PUT', `/api/crm/leads/${cardId}/stage?stage=${encodeURIComponent(newStage)}`, { swap: 'none' })
+                .then(() => {
+                    // Refresh stage counts after the move
+                    htmx.trigger(document.body, 'crm:stage-changed');
+                });
         });
+    });
+
+    // Keep counts in sync after any stage change
+    document.body.addEventListener('crm:stage-changed', function() {
+        document.querySelectorAll('.pipeline-count').forEach(el => htmx.trigger(el, 'load'));
     });
 
     // Initialize i18n if available

@@ -125,6 +125,65 @@ body[data-wallpaper="paper"] .workspace-v15 {
     radial-gradient(ellipse at 85% 85%, rgba(150, 120, 60, 0.1) 0%, transparent 55%);
 }
 
+/* #1293 — six additional wallpaper samples (16 total with the originals) */
+
+body[data-wallpaper="desert"] .workspace-v15 {
+  --wall:
+    radial-gradient(ellipse at 50% 110%, rgba(220, 140, 50, 0.35) 0%, transparent 60%),
+    linear-gradient(180deg, #2a1a0a 0%, #8a4a1a 45%, #d98a3d 75%, #f0b060 100%);
+  --wall-vignette:
+    radial-gradient(ellipse at 50% 0%, rgba(255, 220, 150, 0.25) 0%, transparent 55%),
+    linear-gradient(180deg, transparent 60%, rgba(40, 20, 5, 0.45) 100%);
+}
+
+body[data-wallpaper="sakura"] .workspace-v15 {
+  --wall:
+    radial-gradient(circle at 15% 20%, rgba(255, 180, 200, 0.35) 0 2px, transparent 2.5px),
+    radial-gradient(circle at 45% 60%, rgba(255, 160, 190, 0.3) 0 3px, transparent 3.5px),
+    radial-gradient(circle at 80% 30%, rgba(255, 190, 210, 0.35) 0 2px, transparent 2.5px),
+    linear-gradient(180deg, #fdf0f5 0%, #f8d8e4 45%, #efb8cc 100%);
+  --wall-vignette:
+    radial-gradient(ellipse at 50% 40%, rgba(255, 255, 255, 0.7) 0%, transparent 60%),
+    radial-gradient(ellipse at 90% 90%, rgba(200, 100, 140, 0.15) 0%, transparent 55%);
+}
+
+body[data-wallpaper="mint"] .workspace-v15 {
+  --wall: linear-gradient(160deg, #eafaf4 0%, #c8f0e0 40%, #a0e0c8 75%, #78c8a8 100%);
+  --wall-vignette:
+    radial-gradient(ellipse at 30% 30%, rgba(255, 255, 255, 0.8) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 80%, rgba(40, 140, 100, 0.15) 0%, transparent 55%);
+}
+
+body[data-wallpaper="graphite"] .workspace-v15 {
+  --wall:
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.015) 0 2px, transparent 2px 6px),
+    linear-gradient(180deg, #1a1d24 0%, #242830 50%, #16181e 100%);
+  --wall-vignette:
+    radial-gradient(ellipse at 50% 20%, rgba(120, 140, 180, 0.12) 0%, transparent 55%),
+    linear-gradient(180deg, transparent 65%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+body[data-wallpaper="nebula"] .workspace-v15 {
+  --wall:
+    radial-gradient(ellipse at 25% 30%, rgba(140, 80, 220, 0.4) 0%, transparent 45%),
+    radial-gradient(ellipse at 75% 60%, rgba(60, 140, 220, 0.35) 0%, transparent 50%),
+    radial-gradient(ellipse at 55% 85%, rgba(220, 80, 160, 0.25) 0%, transparent 45%),
+    linear-gradient(180deg, #0b0714 0%, #150d26 55%, #0a0612 100%);
+  --wall-vignette:
+    radial-gradient(ellipse at 50% 50%, rgba(180, 140, 255, 0.1) 0%, transparent 60%),
+    linear-gradient(180deg, transparent 60%, rgba(5, 2, 12, 0.5) 100%);
+}
+
+body[data-wallpaper="coral"] .workspace-v15 {
+  --wall:
+    radial-gradient(ellipse at 20% 80%, rgba(255, 110, 90, 0.4) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(255, 160, 120, 0.35) 0%, transparent 50%),
+    linear-gradient(160deg, #fff4ec 0%, #ffd8c2 45%, #f5a882 100%);
+  --wall-vignette:
+    radial-gradient(ellipse at 50% 45%, rgba(255, 255, 255, 0.65) 0%, transparent 60%),
+    radial-gradient(ellipse at 85% 85%, rgba(200, 80, 50, 0.15) 0%, transparent 55%);
+}
+
 /* Wallpaper picker (used inside the Settings window) */
 .wallpaper-grid {
   display: grid;
