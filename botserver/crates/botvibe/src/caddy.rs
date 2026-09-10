@@ -255,18 +255,61 @@ fn persist_route_block(container: &str, domain: &str, dial: &str) {
 pub async fn remove_route(domain: &str) -> Result<(), String> {
     let base = caddy_api_url();
     let client = client()?;
+    let rid = route_id(domain);
+    // 1. By @id — the normal path. Caddy 500s (`invalid traversal path`)
+    //    when duplicate @ids exist, so...
     let resp = client
-        .delete(format!("{base}/config/id/{}", route_id(domain)))
+        .delete(format!("{base}/config/id/{rid}"))
         .send()
         .await
         .map_err(|e| format!("caddy proxy unreachable: {e}"))?;
-    if resp.status().is_success() || resp.status().as_u16() == 404 {
-        Ok(())
-    } else {
-        let status = resp.status();
-        let text = resp.text().await.unwrap_or_default();
-        Err(format!("caddy route removal returned {status}: {text}"))
+    let id_removed = resp.status().is_success();
+    // 2. By match-host list index — removes duplicates and stale routes the
+    //    id path cannot resolve (same walk-backwards dedupe as upsert). A
+    //    successful id delete still needs this pass when duplicates existed.
+    let routes_path = "config/apps/http/servers/srv0/routes";
+    let mut index_removed = 0usize;
+    if let Ok(resp) = client.get(format!("{base}/{routes_path}")).send().await {
+        if resp.status().is_success() {
+            if let Ok(routes) = resp.json::<Vec<serde_json::Value>>().await {
+                for (index, route) in routes.iter().enumerate().rev() {
+                    let matches_host = route
+                        .get("match")
+                        .and_then(|m| m.as_array())
+                        .map(|arr| {
+                            arr.iter().any(|m| {
+                                m.get("host")
+                                    .and_then(|h| h.as_array())
+                                    .map(|hosts| hosts.iter().any(|h| h.as_str() == Some(domain)))
+                                    .unwrap_or(false)
+                            })
+                        })
+                        .unwrap_or(false);
+                    if !matches_host {
+                        continue;
+                    }
+                    let delete_url = format!(
+                        "{base}/{routes_path}/{}",
+                        index.saturating_sub(index_removed)
+                    );
+                    index_removed += 1;
+                    if let Ok(resp) = client.delete(delete_url).send().await {
+                        if !resp.status().is_success() {
+                            log::warn!(
+                                "Caddy remove: index delete for {domain} returned {}",
+                                resp.status()
+                            );
+                        }
+                    }
+                }
+            }
+        }
     }
+    // Removal is best-effort on both paths: a 404 (nothing to remove) and a
+    // 500 on the id path (duplicate ids) are both covered by the host-index
+    // pass, which is the authoritative sweep.
+    let _ = id_removed;
+    Ok(())
 }
 
 #[cfg(test)]

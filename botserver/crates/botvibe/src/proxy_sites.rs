@@ -1181,8 +1181,12 @@ fn unpublish_site_for_sync(slug: &str, purge: bool, target: &SiteTarget, env: Si
     let _guard = lock_publish();
     validate_slug(slug)?;
     let site_dir = target.dir.clone();
-    // Nothing published → nothing to unpublish (idempotent for deletes and
-    // project eviction; the caller logs a warning otherwise).
+    // 1. Route out FIRST — the public face goes away immediately even when
+    //    the payload dir is absent (VM-deployed sites have no payload dir;
+    //    the early return below would otherwise leak the Caddy route).
+    remove_site_config(&target.host)?;
+    // Nothing published → nothing else to unpublish (idempotent for deletes
+    // and project eviction; the caller logs a warning otherwise).
     let exists = proxy_exec(
         &["test".to_string(), "-d".to_string(), site_dir.clone()],
         15,
@@ -1200,8 +1204,6 @@ fn unpublish_site_for_sync(slug: &str, purge: bool, target: &SiteTarget, env: Si
             "refusing to unpublish: {site_dir} is not vibe-managed (missing {MARKER_FILE})"
         ));
     }
-    // 1. Route out first (the public face goes away immediately).
-    remove_site_config(&target.host)?;
     // 2. Stop + disable + remove the python service when present. The unit
     //    name is env-suffixed for dev so prod and dev services are distinct.
     let unit_name = if env == SiteEnv::Dev { format!("{slug}-dev") } else { slug.to_string() };

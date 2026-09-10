@@ -124,6 +124,12 @@ impl VmLifecycle {
         Self { pool }
     }
 
+    /// Expose the DB pool so asset cleanup (domain unbind etc.) can share
+    /// the same connection pool instead of opening its own.
+    pub fn pool(&self) -> &DbPool {
+        &self.pool
+    }
+
     fn conn(
         &self,
     ) -> Result<

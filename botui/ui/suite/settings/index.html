@@ -2921,6 +2921,7 @@
                     merged[p.id] = { slug: p.id, name: p.name, docs: p.website || "", models: (p.models || []).map(function (m) { return m.name; }) };
                 });
                 catalog.forEach(function (p) {
+                    if (!p.llm_available) return;
                     if (!merged[p.id]) {
                         merged[p.id] = { slug: p.id, name: p.name, docs: "", models: [] };
                     }
