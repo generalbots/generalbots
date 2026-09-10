@@ -1,6 +1,8 @@
 //! Org API keys (#1172 backend): generation (48 random chars from two UUIDv4
-//! concatenations), SHA-256 storage-only hashing, authentication and the
-//! `/api/cloud/orgkeys` CRUD handlers. Raw keys are returned exactly once.
+//! concatenations), HMAC-SHA256 storage-only hashing (#1297), authentication
+//! and the `/api/cloud/orgkeys` CRUD handlers. Raw keys are returned exactly
+//! once. Legacy SHA-256 hashes are accepted with a transparent re-hash on
+//! successful authentication.
 
 use axum::{
     extract::{Path, State},
@@ -18,6 +20,54 @@ use crate::api::{bearer_token, is_admin_claims, jwt_payload};
 use crate::models::{KeyCreateBody, OrgApiKeyRow};
 use crate::schema::org_api_keys;
 use crate::AgentService;
+
+/// Server-side pepper for key hashing (#1297). Required in production — the
+/// value comes from the environment, never from source. When unset, an
+/// ephemeral pepper is used so hashes reset on restart (keys must be re-authed
+/// via the legacy path… which is also ephemeral; operators should set the env).
+static KEY_HASH_PEPPER: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+
+fn key_hash_pepper() -> &'static str {
+    KEY_HASH_PEPPER.get_or_init(|| {
+        std::env::var("GB_API_KEY_HASH_PEPPER").unwrap_or_else(|_| {
+            tracing::warn!(
+                "GB_API_KEY_HASH_PEPPER not set; falling back to ephemeral pepper — hashes reset on restart"
+            );
+            Uuid::new_v4().to_string()
+        })
+    })
+}
+
+fn hmac_hash(raw: &str, pepper: &str) -> String {
+    // Standard HMAC (RFC 2104) over SHA-256, implemented directly so there is
+    // no panic path from key-length errors. Pepper is normalized to the
+    // 64-byte block size first (hashed when longer).
+    let mut block = [0u8; 64];
+    let pepper_bytes = pepper.as_bytes();
+    if pepper_bytes.len() > 64 {
+        block[..32].copy_from_slice(&Sha256::digest(pepper_bytes));
+    } else {
+        block[..pepper_bytes.len()].copy_from_slice(pepper_bytes);
+    }
+    let ipad: Vec<u8> = block.iter().map(|b| b ^ 0x36).collect();
+    let opad: Vec<u8> = block.iter().map(|b| b ^ 0x5c).collect();
+    let mut inner = Sha256::new();
+    inner.update(&ipad);
+    inner.update(raw.as_bytes());
+    let inner_digest = inner.finalize();
+    let mut outer = Sha256::new();
+    outer.update(&opad);
+    outer.update(inner_digest);
+    hex_encode(&outer.finalize())
+}
+
+fn hex_encode(bytes: &[u8]) -> String {
+    let mut hex = String::with_capacity(bytes.len() * 2);
+    for byte in bytes {
+        hex.push_str(&format!("{byte:02x}"));
+    }
+    hex
+}
 
 /// Identity resolved from a presented API key.
 #[derive(Debug, Clone)]
@@ -50,12 +100,10 @@ pub fn generate_api_key() -> String {
 }
 
 pub fn hash_key(raw: &str) -> String {
-    let digest = Sha256::digest(raw.as_bytes());
-    let mut hex = String::with_capacity(digest.len() * 2);
-    for byte in digest {
-        hex.push_str(&format!("{byte:02x}"));
-    }
-    hex
+    // #1297 — plain SHA-256 over high-entropy keys is flagged as weak hashing
+    // on sensitive data; HMAC-SHA256 with a server-side pepper hardens it
+    // against offline rainbow/dictionary attacks on a leaked DB.
+    hmac_hash(raw, key_hash_pepper())
 }
 
 /// Authenticate an `Authorization` header carrying an org API key
@@ -73,14 +121,33 @@ pub fn authenticate_key(
         return Err(unauthorized("Invalid API key"));
     }
 
-    use crate::schema::org_api_keys::dsl::{key_hash, org_api_keys, revoked_at};
+    use crate::schema::org_api_keys::dsl::{id, key_hash, org_api_keys, revoked_at};
+    // #1297 — accept legacy SHA-256 hashes during the transition window and
+    // transparently re-hash with HMAC on successful authentication.
+    let legacy_hash = {
+        let digest = Sha256::digest(token.as_bytes());
+        hex_encode(&digest)
+    };
+    let current_hash = hash_key(token);
     let row: OrgApiKeyRow = org_api_keys
-        .filter(key_hash.eq(hash_key(token)))
+        .filter(
+            key_hash
+                .eq(&current_hash)
+                .or(key_hash.eq(&legacy_hash)),
+        )
         .filter(revoked_at.is_null())
         .first(conn)
         .optional()
         .map_err(|e| internal(format!("org_api_keys select: {e}")))?
         .ok_or_else(|| unauthorized("Invalid API key"))?;
+    if row.key_hash == legacy_hash {
+        if let Err(e) = diesel::update(org_api_keys.filter(id.eq(row.id)))
+            .set(key_hash.eq(&current_hash))
+            .execute(conn)
+        {
+            tracing::warn!("org_api_keys re-hash failed for key {}: {e}", row.id);
+        }
+    }
 
     let context = KeyContext {
         key_id: row.id,
@@ -98,7 +165,7 @@ pub fn authenticate_key(
     };
 
     // Best-effort usage stamping — never fail the request over it.
-    use crate::schema::org_api_keys::dsl::{id, last_used_at, org_api_keys as keys};
+    use crate::schema::org_api_keys::dsl::{last_used_at, org_api_keys as keys};
     if let Err(e) = diesel::update(keys.filter(id.eq(row.id)))
         .set(last_used_at.eq(Utc::now()))
         .execute(conn)

@@ -610,7 +610,9 @@ mod tests {
 
     #[test]
     fn test_encrypt_decrypt_aes_gcm() {
-        let key = vec![0u8; KEY_SIZE];
+        // #1297 — key material must never be a compile-time constant, even in
+        // tests: derive it from the OS CSPRNG like production does.
+        let key = EncryptionKey::generate(KeyPurpose::DataEncryption).key_data;
         let plaintext = b"Hello, World!";
 
         let (nonce, ciphertext) = encrypt_aes_gcm(plaintext, &key).expect("Encrypt failed");
@@ -672,7 +674,8 @@ mod tests {
 
     #[test]
     fn test_field_encryption() {
-        let key = vec![0u8; KEY_SIZE];
+        // #1297 — random per-run key instead of a hardcoded one.
+        let key = EncryptionKey::generate(KeyPurpose::DataEncryption).key_data;
         let plaintext = "sensitive_data";
 
         let encrypted = encrypt_field(plaintext, &key).expect("Encrypt failed");

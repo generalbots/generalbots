@@ -94,7 +94,7 @@ pub async fn handle_crm_pipeline(
         let contact_name = lead.contact_id.map(|_| "Contact").unwrap_or("-");
 
         let card_html = format!(
-            r##"<div class="pipeline-card" data-id="{}">
+            r##"<div class="pipeline-card" draggable="true" data-id="{}">
 <div class="pipeline-card-header">
 <span class="lead-title">{}</span>
 <span class="lead-value">{}</span>

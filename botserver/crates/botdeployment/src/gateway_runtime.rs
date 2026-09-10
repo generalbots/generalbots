@@ -94,6 +94,16 @@ async fn run_incus_exec(
     container_name: &str,
     script: &str,
 ) -> Result<String, String> {
+    // #1297 — the container name originates from deploy requests; restrict it
+    // to a safe charset before it reaches the incus argv.
+    if container_name.is_empty()
+        || !container_name
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+        || container_name.starts_with('-')
+    {
+        return Err(format!("invalid container name: {container_name}"));
+    }
     let mut cmd = tokio::process::Command::new("incus");
     cmd.args(["exec", container_name, "--", "bash", "-c", script]);
     cmd.env("INCUS_SOCKET", &state.incus_socket);
