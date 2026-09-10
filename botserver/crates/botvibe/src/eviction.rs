@@ -43,7 +43,7 @@ pub fn pick_evictions(existing: &[(DateTime<Utc>, String)], max: usize) -> Vec<S
 /// Delete every asset owned by a project (best-effort, errors returned as
 /// strings for the caller to log). Shared by explicit DELETE and eviction.
 /// Steps: Incus VMs (rows + containers) → published proxy site (purge) →
-/// on-disk workspace directory.
+/// bound project_domains (Caddy routes + rows) → on-disk workspace directory.
 pub async fn delete_project_assets(p: &Project, lifecycle: &VmLifecycle) -> Vec<String> {
     let mut errors = Vec::new();
 
@@ -59,6 +59,23 @@ pub async fn delete_project_assets(p: &Project, lifecycle: &VmLifecycle) -> Vec<
         if let Err(e) = crate::proxy_sites::unpublish_site(&slug, true).await {
             errors.push(format!("site unpublish: {e}"));
         }
+    }
+
+    // 2b. Unbind every domain binding for the project (Caddy route removal
+    //     via the admin API + project_domains row delete). VM-deployed sites
+    //     have no proxy payload dir, so the site unpublish above cannot
+    //     remove their routes — without this step the deleted project's
+    //     domain keeps answering (502) and the row lingers forever.
+    let domains = crate::domains::ProjectDomains::new(lifecycle.pool().clone());
+    match domains.list(p.id) {
+        Ok(binds) => {
+            for bind in binds {
+                if let Err(e) = domains.unbind(bind.id).await {
+                    errors.push(format!("domain unbind {}: {e}", bind.domain));
+                }
+            }
+        }
+        Err(e) => errors.push(format!("domain list: {e}")),
     }
 
     // 3. Remove the workspace directory (the disk leak — it can hold node_modules,
