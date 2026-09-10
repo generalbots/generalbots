@@ -337,6 +337,11 @@
       if (id) { e.preventDefault(); closeTabGuarded(id); }
     });
     document.addEventListener("click", function (e) {
+      // The SAME click that opens the picker on "+" also reaches this
+      // closer: the strip delegation runs first and appends the menu, then
+      // this listener fires with the button still as event.target, closing
+      // the picker in the same tick it opened. Skip opener-origin clicks.
+      if (e.target.closest && e.target.closest("#gbTabNew")) return;
       if (!e.target.closest(".gb-context-menu")) closeMenus();
     });
     document.addEventListener("keydown", function (e) {
