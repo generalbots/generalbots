@@ -53,6 +53,10 @@ pub fn configure_connection_routes() -> Router<Arc<IntegrationState>> {
             post(handlers_lifecycle::rotate),
         )
         .route(
+            "/api/bots/:bot_id/integration-connections/:connection_id/use-for-vibe",
+            post(handlers_lifecycle::use_for_vibe),
+        )
+        .route(
             "/api/bots/:bot_id/integration-connections/:connection_id/events",
             get(handlers_lifecycle::list_events),
         )

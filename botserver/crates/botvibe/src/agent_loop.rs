@@ -474,10 +474,16 @@ impl AgentLoop {
     }
 
     /// Resolves (model, api_key, api_url) for a run: explicit run overrides >
+    /// the run's agent slot provider (Settings → Vibe, per-agent type) >
     /// per-bot config (Vault for secrets, Drive config.csv for the rest) >
     /// environment > built-in defaults.
     fn resolve_llm(&self, run: &VibeRun) -> (String, String, String) {
-        let llm = self.state.llm_config(&run.bot_id);
+        let llm = run
+            .config
+            .agent
+            .as_deref()
+            .and_then(|agent| self.state.llm_config_for(&run.bot_id, agent))
+            .or_else(|| self.state.llm_config(&run.bot_id));
         let model = run
             .config
             .model

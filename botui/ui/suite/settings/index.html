@@ -74,6 +74,12 @@
                 </svg>
                 <span>Integrations</span>
             </a>
+            <a href="#vibe" class="nav-item" onclick="showSection('vibe', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                <span>Vibe</span>
+            </a>
             <a href="#privacy" class="nav-item" onclick="showSection('privacy', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
@@ -1062,6 +1068,17 @@
                 <p class="subtitle">Connect external services and manage API access</p>
             </div>
 
+            <!-- LLM Providers (BYOK) -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>LLM Providers</h2>
+                    <span class="subtitle">Bring your own key for any LLM provider — then assign providers to Vibe agent types in the Vibe section</span>
+                </div>
+                <div class="llm-providers-list" id="llm-providers-list">
+                    <div class="empty-state"><p>Loading providers…</p></div>
+                </div>
+            </div>
+
             <!-- API Keys -->
             <div class="setting-card">
                 <div class="card-header">
@@ -1167,6 +1184,24 @@
                 </div>
                 <div class="oauth-accounts" id="oauth-accounts-fragment">
                     <div class="empty-state"><p>Loading linked accounts…</p></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Vibe Section -->
+        <section id="vibe-section" class="settings-section">
+            <div class="section-header">
+                <h1>Vibe</h1>
+                <p class="subtitle">Assign an LLM provider to each Vibe agent type. Providers are defined in Integrations → LLM Providers (BYOK) or the Cloud store.</p>
+            </div>
+
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Agent LLM Providers</h2>
+                    <span class="subtitle">Each agent type routes its runs to the provider selected here for this branch</span>
+                </div>
+                <div class="vibe-agent-slots" id="vibe-agent-slots">
+                    <div class="empty-state"><p>Loading agent providers…</p></div>
                 </div>
             </div>
         </section>
@@ -2840,5 +2875,279 @@
             }
         };
         document.head.appendChild(script);
+    })();
+</script>
+<script>
+    // LLM providers (BYOK): union of the integration catalog's LLM seeds and
+    // the Cloud store catalog (/api/cloud/llm-providers). Connect = store the
+    // API key in Vault; the Vibe section then assigns providers to agent types.
+    (function () {
+        "use strict";
+        var root = document.getElementById("llm-providers-list");
+        if (!root) return;
+
+        function apiFetch(url, opts) {
+            var headers = Object.assign(
+                { "Content-Type": "application/json" },
+                (opts && opts.headers) || {}
+            );
+            var token = window.getGBAccessToken
+                ? window.getGBAccessToken()
+                : (localStorage.getItem("gb-access-token") ||
+                    sessionStorage.getItem("gb-access-token") ||
+                    localStorage.getItem("management_token") || "");
+            if (token) headers["Authorization"] = "Bearer " + token;
+            return fetch(url, Object.assign({ headers: headers }, opts || {}));
+        }
+
+        function escapeHtml(text) {
+            return String(text == null ? "" : text)
+                .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        // Provider catalog: integration seeds (with docs urls) merged with the
+        // Cloud store catalog (models per provider). Integration entries win
+        // on slug so docs links survive.
+        function loadCatalog() {
+            var merged = {};
+            return Promise.all([
+                apiFetch("/api/apps/integrations/catalog").then(function (r) { return r.json(); }).catch(function () { return { providers: [] }; }),
+                apiFetch("/api/cloud/llm-providers").then(function (r) { return r.json(); }).catch(function () { return { providers: [] }; }),
+            ]).then(function (parts) {
+                var catalog = parts[0].providers || [];
+                var store = parts[1].providers || [];
+                store.forEach(function (p) {
+                    merged[p.id] = { slug: p.id, name: p.name, docs: p.website || "", models: (p.models || []).map(function (m) { return m.name; }) };
+                });
+                catalog.forEach(function (p) {
+                    if (!merged[p.id]) {
+                        merged[p.id] = { slug: p.id, name: p.name, docs: "", models: [] };
+                    }
+                    if (p.official_docs) merged[p.id].docs = p.official_docs;
+                });
+                return Object.keys(merged).sort().map(function (k) { return merged[k]; });
+            });
+        }
+
+        function render() {
+            loadCatalog().then(function (providers) {
+                return apiFetch("/api/apps/integrations/context")
+                    .then(function (r) { return r.json(); })
+                    .then(function (ctx) {
+                        var botId = ctx.bot_id || "";
+                        if (!botId) {
+                            root.innerHTML = '<div class="empty-state"><p>No active bot — connect a bot first.</p></div>';
+                            return;
+                        }
+                        return Promise.all([
+                            Promise.resolve(botId),
+                            apiFetch("/api/bots/" + encodeURIComponent(botId) + "/integration-connections")
+                                .then(function (r) { return r.json(); })
+                                .catch(function () { return { items: [] }; }),
+                            Promise.resolve(providers),
+                        ]);
+                    })
+                    .then(function (parts) {
+                        if (!parts) return;
+                        var botId = parts[0];
+                        var conns = (parts[1].items || []);
+                        var providers = parts[2];
+                        var rows = providers.map(function (p) {
+                            var conn = conns.find(function (c) { return c.provider_slug === p.slug && c.status !== "revoked"; });
+                            return (
+                                '<div class="llm-provider-row" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border,#262b36);flex-wrap:wrap">' +
+                                '<div style="flex:1;min-width:180px">' +
+                                '<div style="font-weight:600">' + escapeHtml(p.name) + "</div>" +
+                                '<div style="font-size:12px;color:var(--text-muted,#8b93a7)">' +
+                                (conn ? "Connected" : "Not connected") +
+                                (p.models && p.models.length ? " · " + escapeHtml(p.models.join(", ")) : "") +
+                                "</div>" +
+                                "</div>" +
+                                (p.docs ? '<a href="' + p.docs + '" target="_blank" rel="noopener" style="font-size:12px;color:var(--accent,#4a6cf7)">Docs</a>' : "") +
+                                (conn
+                                    ? '<span class="badge" style="background:#22c55e22;color:#22c55e;padding:2px 8px;border-radius:10px;font-size:11px">Connected</span>'
+                                    : '<button type="button" class="btn-primary btn-sm" data-connect-llm="' + p.slug + '" data-bot="' + botId + '">Connect</button>') +
+                                "</div>"
+                            );
+                        });
+                        root.innerHTML = rows.join("");
+                        bindEvents(botId);
+                    });
+            }).catch(function (e) {
+                root.innerHTML = '<div class="empty-state"><p>Providers unavailable: ' + escapeHtml((e && e.message) || e) + "</p></div>";
+            });
+        }
+
+        function bindEvents(botId) {
+            root.querySelectorAll("[data-connect-llm]").forEach(function (btn) {
+                btn.addEventListener("click", function () {
+                    var slug = btn.getAttribute("data-connect-llm");
+                    var key = window.prompt("Paste your API key for " + slug + ":");
+                    if (!key || !key.trim()) return;
+                    btn.disabled = true;
+                    btn.textContent = "Connecting…";
+                    apiFetch("/api/bots/" + encodeURIComponent(botId) + "/integration-connections", {
+                        method: "POST",
+                        body: JSON.stringify({
+                            provider_slug: slug,
+                            display_name: slug,
+                            auth_kind: "api_key",
+                            configuration: { purpose: "llm" },
+                            secrets: { api_key: key.trim() },
+                            granted_scopes: [],
+                            visibility: "private",
+                        }),
+                    })
+                        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
+                        .then(function (res) {
+                            if (res.ok) {
+                                window.alert(slug + " connected. Assign it to an agent type in the Vibe section.");
+                                render();
+                            } else {
+                                window.alert("Connect failed: " + ((res.body && (res.body.error || res.body.message)) || "unknown error"));
+                                render();
+                            }
+                        })
+                        .catch(function (e) {
+                            window.alert("Connect failed: " + ((e && e.message) || e));
+                            render();
+                        });
+                });
+            });
+        }
+
+        render();
+    })();
+</script>
+
+<script>
+    // Vibe agent LLM slots: three combos (Reasoning / Agentic / Fast), each
+    // selecting a connected LLM provider for this branch.
+    (function () {
+        "use strict";
+        var AGENTS = [
+            { id: "reasoning", label: "Reasoning", hint: "Deep planning, analysis and complex multi-step reasoning" },
+            { id: "agentic", label: "Agentic", hint: "Autonomous tool-using agent loops (default)" },
+            { id: "fast", label: "Fast", hint: "Low-latency quick turns and scaffolding" },
+        ];
+        var root = document.getElementById("vibe-agent-slots");
+        if (!root) return;
+
+        function apiFetch(url, opts) {
+            var headers = Object.assign(
+                { "Content-Type": "application/json" },
+                (opts && opts.headers) || {}
+            );
+            var token = window.getGBAccessToken
+                ? window.getGBAccessToken()
+                : (localStorage.getItem("gb-access-token") ||
+                    sessionStorage.getItem("gb-access-token") ||
+                    localStorage.getItem("management_token") || "");
+            if (token) headers["Authorization"] = "Bearer " + token;
+            return fetch(url, Object.assign({ headers: headers }, opts || {}));
+        }
+
+        function escapeHtml(text) {
+            return String(text == null ? "" : text)
+                .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+        }
+
+        function render() {
+            var botId = null;
+            apiFetch("/api/apps/integrations/context")
+                .then(function (r) { return r.json(); })
+                .then(function (ctx) {
+                    botId = ctx.bot_id || "";
+                    if (!botId) {
+                        root.innerHTML = '<div class="empty-state"><p>No active bot — connect a bot first.</p></div>';
+                        return null;
+                    }
+                    return apiFetch("/api/bots/" + encodeURIComponent(botId) + "/integration-connections")
+                        .then(function (r) { return r.json(); })
+                        .catch(function () { return { items: [] }; });
+                })
+                .then(function (j) {
+                    if (!j) return;
+                    var conns = (j.items || []).filter(function (c) {
+                        return c.status !== "revoked" && /^(groq|siliconflow|gemini|zai|zhipu|alibaba|deepseek|minimax|yi|openai|anthropic|google|meta|mistral|amazon)$/.test(c.provider_slug || "");
+                    });
+                    var options = '<option value="">— none —</option>' + conns.map(function (c) {
+                        return '<option value="' + escapeHtml(c.id) + '">' + escapeHtml(c.provider_slug) + "</option>";
+                    }).join("");
+
+                    var html = AGENTS.map(function (a) {
+                        return (
+                            '<div style="padding:14px 0;border-bottom:1px solid var(--border,#262b36)">' +
+                            '<label style="display:block;font-weight:600;margin-bottom:2px">' + a.label + "</label>" +
+                            '<div style="font-size:12px;color:var(--text-muted,#8b93a7);margin-bottom:8px">' + a.hint + "</div>" +
+                            '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">' +
+                            '<select class="vibe-agent-select" data-agent="' + a.id + '" data-bot="' + botId + '" style="padding:8px 10px;border:1px solid var(--border,#334155);border-radius:6px;background:var(--bg,#14142a);color:var(--text,#eee);min-width:220px">' + options + "</select>" +
+                            '<button type="button" class="btn-primary btn-sm vibe-agent-save" data-agent="' + a.id + '" data-bot="' + botId + '">Assign</button>' +
+                            '<span class="vibe-agent-status" data-status="' + a.id + '" style="font-size:12px;color:var(--text-muted,#8b93a7)"></span>' +
+                            "</div></div>"
+                        );
+                    }).join("");
+                    root.innerHTML = html;
+
+                    // Load current assignments from per-bot config.
+                    var cfgUrl = "/api/bot/config?bot_name=" + encodeURIComponent(window.__INITIAL_BOT_NAME__ || "default");
+                    apiFetch(cfgUrl)
+                        .then(function (r) { return r.json().catch(function () { return {}; }); })
+                        .then(function (cfg) {
+                            AGENTS.forEach(function (a) {
+                                var provider = cfg["vibe-llm-" + a.id + "-provider"] || "";
+                                var model = cfg["vibe-llm-" + a.id + "-model"] || "";
+                                var sel = root.querySelector('[data-agent="' + a.id + '"]');
+                                if (!sel) return;
+                                // Match by connection whose provider_slug equals the stored provider.
+                                var match = conns.find(function (c) { return c.provider_slug === provider; });
+                                if (match) sel.value = match.id;
+                                var status = root.querySelector('[data-status="' + a.id + '"]');
+                                if (status) status.textContent = provider ? (provider + (model ? " · " + model : "")) : "not assigned";
+                            });
+                            bindEvents(botId, conns);
+                        })
+                        .catch(function () { bindEvents(botId, conns); });
+                })
+                .catch(function (e) {
+                    root.innerHTML = '<div class="empty-state"><p>Vibe agents unavailable: ' + escapeHtml((e && e.message) || e) + "</p></div>";
+                });
+        }
+
+        function bindEvents(botId, conns) {
+            root.querySelectorAll(".vibe-agent-save").forEach(function (btn) {
+                btn.addEventListener("click", function () {
+                    var agent = btn.getAttribute("data-agent");
+                    var sel = root.querySelector('[data-agent="' + agent + '"]');
+                    var connId = sel ? sel.value : "";
+                    var status = root.querySelector('[data-status="' + agent + '"]');
+                    if (!connId) {
+                        if (status) status.textContent = "select a provider first";
+                        return;
+                    }
+                    btn.disabled = true;
+                    btn.textContent = "Saving…";
+                    apiFetch("/api/bots/" + encodeURIComponent(botId) + "/integration-connections/" + encodeURIComponent(connId) + "/use-for-vibe", {
+                        method: "POST",
+                        body: JSON.stringify({ agent: agent }),
+                    })
+                        .then(function (r) { return r.json(); })
+                        .then(function (j) {
+                            if (!j.success) throw new Error(j.error || "assign failed");
+                            if (status) status.textContent = j.provider + " · " + j.model + " ✔";
+                            window.alert("Vibe " + agent + " agent → " + j.provider + " (" + j.model + ")");
+                            render();
+                        })
+                        .catch(function (e) {
+                            if (status) status.textContent = "error: " + ((e && e.message) || e);
+                            render();
+                        });
+                });
+            });
+        }
+
+        render();
     })();
 </script>
