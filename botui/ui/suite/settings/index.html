@@ -2983,21 +2983,24 @@
             root.querySelectorAll("[data-connect-llm]").forEach(function (btn) {
                 btn.addEventListener("click", function () {
                     var slug = btn.getAttribute("data-connect-llm");
-                    var key = window.prompt("Paste your API key for " + slug + ":");
-                    if (!key || !key.trim()) return;
+                    // Keyless gateway providers (kilo-*, llm7-*) need no key.
+                    var keyless = /^(kilo-|llm7-)/.test(slug);
+                    var key = keyless ? "" : window.prompt("Paste your API key for " + slug + ":");
+                    if (!keyless && (!key || !key.trim())) return;
                     btn.disabled = true;
                     btn.textContent = "Connecting…";
+                    var body = {
+                        provider_slug: slug,
+                        display_name: slug,
+                        auth_kind: "api_key",
+                        configuration: { purpose: "llm" },
+                        granted_scopes: [],
+                        visibility: "private",
+                    };
+                    if (!keyless) body.secrets = { api_key: key.trim() };
                     apiFetch("/api/bots/" + encodeURIComponent(botId) + "/integration-connections", {
                         method: "POST",
-                        body: JSON.stringify({
-                            provider_slug: slug,
-                            display_name: slug,
-                            auth_kind: "api_key",
-                            configuration: { purpose: "llm" },
-                            secrets: { api_key: key.trim() },
-                            granted_scopes: [],
-                            visibility: "private",
-                        }),
+                        body: JSON.stringify(body),
                     })
                         .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
                         .then(function (res) {
@@ -3071,7 +3074,7 @@
                 .then(function (j) {
                     if (!j) return;
                     var conns = (j.items || []).filter(function (c) {
-                        return c.status !== "revoked" && /^(groq|siliconflow|gemini|zai|zhipu|alibaba|deepseek|minimax|yi|openai|anthropic|google|meta|mistral|amazon)$/.test(c.provider_slug || "");
+                        return c.status !== "revoked" && /^(kilo-|llm7-)/.test(c.provider_slug || "");
                     });
                     var options = '<option value="">— none —</option>' + conns.map(function (c) {
                         return '<option value="' + escapeHtml(c.id) + '">' + escapeHtml(c.provider_slug) + "</option>";

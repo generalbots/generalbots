@@ -9,66 +9,46 @@
 /// Default (chat-completions url, model) for an LLM provider slug.
 /// Returns `None` for unknown slugs so callers can reject non-LLM
 /// connections.
+/// The Kilo gateway — keyless free-tier OpenAI-compatible models.
+pub const KILO_BASE_URL: &str = "https://api.kilo.ai/api/gateway/chat/completions";
+/// The LLM7 gateway — OpenAI-compatible, single-concurrent free tier.
+pub const LLM7_BASE_URL: &str = "https://api.llm7.io/v1/chat/completions";
+
+/// Default (chat-completions url, model) for an LLM provider slug.
+/// Returns `None` for unknown slugs so callers can reject non-LLM
+/// connections.
 pub fn llm_provider_defaults(provider_slug: &str) -> Option<(&'static str, &'static str)> {
-    match provider_slug {
-        "groq" => Some((
-            "https://api.groq.com/openai/v1/chat/completions",
-            "openai/gpt-oss-120b",
-        )),
-        "siliconflow" => Some((
-            "https://api.siliconflow.cn/v1/chat/completions",
-            "Qwen/Qwen3-8B",
-        )),
-        "gemini" => Some((
-            "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-            "gemini-3.5-flash-lite",
-        )),
-        "zai" | "zhipu" => Some((
-            "https://open.bigmodel.cn/api/paas/v4/chat/completions",
-            "glm-4.7-flash",
-        )),
-        "alibaba" => Some((
-            "https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions",
-            "qwen-3.6-plus",
-        )),
-        "deepseek" => Some((
-            "https://api.deepseek.com/chat/completions",
-            "deepseek-v4-flash",
-        )),
-        "minimax" => Some((
-            "https://api.minimaxi.com/v1/text/chatcompletion_v2",
-            "MiniMax-Text-01",
-        )),
-        "yi" => Some((
-            "https://api.lingyiwanwu.com/v1/chat/completions",
-            "yi-lightning",
-        )),
-        "openai" => Some((
-            "https://api.openai.com/v1/chat/completions",
-            "gpt-5.4",
-        )),
-        "anthropic" => Some((
-            "https://api.anthropic.com/v1/chat/completions",
-            "claude-sonnet-4-5",
-        )),
-        "google" => Some((
-            "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
-            "gemini-3.5-flash-lite",
-        )),
-        "meta" => Some((
-            "https://api.ai.meta.com/v1/chat/completions",
-            "llama-4-maverick",
-        )),
-        "mistral" => Some((
-            "https://api.mistral.ai/v1/chat/completions",
-            "mistral-large-latest",
-        )),
-        "amazon" => Some((
-            "https://bedrock-runtime.us-east-1.amazonaws.com/model/anthropic.claude-3-5-sonnet/v1/chat/completions",
-            "anthropic.claude-3-5-sonnet",
-        )),
-        _ => None,
-    }
+    let url_model = match provider_slug {
+        "kilo-dots" => (KILO_BASE_URL, "dots-studio/dots-3-note-preview:free"),
+        "kilo-nex" => (KILO_BASE_URL, "nex-agi/nex-n2.5-pro:free"),
+        "kilo-ling" => (KILO_BASE_URL, "inclusionai/ling-3.0-flash-fin:free"),
+        "kilo-openrouter" => (KILO_BASE_URL, "openrouter/free"),
+        "kilo-nemotron-ultra" => (KILO_BASE_URL, "nvidia/nemotron-3-ultra-550b-a55b:free"),
+        "kilo-nemotron-super" => (KILO_BASE_URL, "nvidia/nemotron-3-super-120b-a12b:free"),
+        "kilo-nemotron-lightning" => (KILO_BASE_URL, "nvidia/nemotron-3.5-lightning:free"),
+        "kilo-cohere" => (KILO_BASE_URL, "cohere/north-mini-code:free"),
+        "kilo-stepfun" => (KILO_BASE_URL, "stepfun/step-3.7-flash:free"),
+        "llm7-minimax" => (LLM7_BASE_URL, "minimax-m2.7"),
+        _ => return None,
+    };
+    Some(url_model)
+}
+
+/// True when the provider requires no API key (keyless gateway models).
+pub fn llm_provider_keyless(provider_slug: &str) -> bool {
+    matches!(
+        provider_slug,
+        "kilo-dots"
+            | "kilo-nex"
+            | "kilo-ling"
+            | "kilo-openrouter"
+            | "kilo-nemotron-ultra"
+            | "kilo-nemotron-super"
+            | "kilo-nemotron-lightning"
+            | "kilo-cohere"
+            | "kilo-stepfun"
+            | "llm7-minimax"
+    )
 }
 
 #[cfg(test)]
@@ -78,14 +58,27 @@ mod tests {
     #[test]
     fn known_providers_have_defaults() {
         for slug in [
-            "groq", "siliconflow", "gemini", "zai", "zhipu", "alibaba", "deepseek", "minimax",
-            "yi", "openai", "anthropic", "google", "meta", "mistral", "amazon",
+            "kilo-dots", "kilo-nex", "kilo-ling", "kilo-openrouter", "kilo-nemotron-ultra",
+            "kilo-nemotron-super", "kilo-nemotron-lightning", "kilo-cohere", "kilo-stepfun",
+            "llm7-minimax",
         ] {
             let (url, model) =
                 llm_provider_defaults(slug).unwrap_or_else(|| panic!("{slug} must have defaults"));
             assert!(url.starts_with("https://"), "{slug} url must be https");
             assert!(!model.is_empty(), "{slug} model must not be empty");
         }
+    }
+
+    #[test]
+    fn verified_providers_are_keyless() {
+        for slug in [
+            "kilo-dots", "kilo-nex", "kilo-ling", "kilo-openrouter", "kilo-nemotron-ultra",
+            "kilo-nemotron-super", "kilo-nemotron-lightning", "kilo-cohere", "kilo-stepfun",
+            "llm7-minimax",
+        ] {
+            assert!(llm_provider_keyless(slug), "{slug} must be keyless");
+        }
+        assert!(!llm_provider_keyless("github"));
     }
 
     #[test]

@@ -204,6 +204,15 @@ pub(crate) static MICROSOFT_OAUTH2: AuthProfile = AuthProfile {
     least_privilege: "Prefer delegated permissions and the narrowest Graph scopes required by enabled actions.",
 };
 
+/// No credentials required (e.g. free-tier gateway models with no auth).
+pub(crate) static KEYLESS: AuthProfile = AuthProfile {
+    method: AuthMethod::ApiKey,
+    fields: &[],
+    instructions:
+        "This provider requires no API key — free gateway models are used as-is.",
+    least_privilege: "No credentials are collected or stored for this provider.",
+};
+
 pub(crate) static API_KEY: AuthProfile = AuthProfile {
     method: AuthMethod::ApiKey,
     fields: API_KEY_FIELDS,
