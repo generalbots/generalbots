@@ -19,6 +19,7 @@ when disabled. Backend entry points are additive namespaces (`/api/agent/*`,
 - [Skills Marketplace](./marketplace.md)
 - [Memory OS](./memory-os.md)
 - [Consent System](./consent.md)
+- [Unified Settings](./unified-settings.md)
 
 ## Feature flags (botserver Cargo features)
 
