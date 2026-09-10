@@ -38,7 +38,7 @@
 
         <!-- GB Fluent CSS modules -->
         <link rel="stylesheet" href="/suite/css/desktop/motion.css?v=1" />
-        <link rel="stylesheet" href="/suite/css/desktop/windows.css?v=12" />
+        <link rel="stylesheet" href="/suite/css/desktop/windows.css?v=13" />
         <link rel="stylesheet" href="/suite/css/desktop/wallpaper.css?v=2" />
         <link rel="stylesheet" href="/suite/css/desktop/taskbar.css?v=1" />
         <link rel="stylesheet" href="/suite/css/desktop/sidebar.css?v=5" />
@@ -301,16 +301,13 @@
                     <div class="chat-sidebar-user" id="sidebarUser"></div>
                 </div>
                 <div class="chat-sidebar-collapsed-icons">
-                    <div class="chat-sidebar-collapsed-icon" title="Home" onclick="if(window.openHomeWindow) window.openHomeWindow();">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                    </div>
                     <div class="chat-sidebar-collapsed-icon" title="Chat" onclick="window.openDeepLink('chat', {})">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                     </div>
                     <div class="chat-sidebar-collapsed-icon" title="Terminal" onclick="window.openDeepLink('terminal', {})">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
                     </div>
-                    <div class="chat-sidebar-collapsed-icon" title="Settings" onclick="fetch('/suite/admin/organization-settings.html').then(r=>r.text()).then(html=>{window.WindowManager.open('settings','Settings',html);});">
+                    <div class="chat-sidebar-collapsed-icon" title="Settings" onclick="window.openDeepLink && window.openDeepLink('settings', {})">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                     </div>
                     <div class="chat-sidebar-collapsed-icon" id="sidebarUserCollapsed" title="Account"></div>
@@ -624,7 +621,7 @@
                     menu.style.left = Math.min(x, window.innerWidth - 190) + "px";
                     menu.style.top = Math.min(y, window.innerHeight - 150) + "px";
                     menu.innerHTML =
-                        '<div class="desktop-context-item" onclick="var t=window.open(\'/suite/settings/index.html\',\'_blank\');if(t)setTimeout(function(){window.focus();},50);">' +
+                        '<div class="desktop-context-item" onclick="if(window.openDeepLink){window.openDeepLink(\'settings\',{});}else{var t=window.open(\'/suite/settings/index.html\',\'_blank\');if(t)setTimeout(function(){window.focus();},50);}">' +
                         '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>' +
                         '<span>Settings</span></div>' +
                         '<div class="desktop-context-item" onclick="window.location.reload()">' +

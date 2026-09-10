@@ -199,6 +199,15 @@
    two: Runner Log | Knowledge Graph Canvas Metrics Database | Source Control
    Members) each sit on exactly ONE line with the groups left-aligned — no
    internal wrap to a third row. */
+/* #1300 — Calculator opens compact (phone-style), not stretched across the
+   generic 1000×500 default window. Keys keep a natural size and the window
+   floats beside real work instead of dominating the desktop. */
+#window-calculator {
+  width: 380px !important;
+  height: 560px !important;
+  min-width: 340px;
+}
+
 #window-vibe {
   width: 1200px !important;
   min-width: 1000px;

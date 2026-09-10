@@ -256,7 +256,12 @@
     background: rgba(212, 245, 5, 0.05);
 }
 
-/* Pipeline Card */
+/* Drag feedback (#1298) */
+.pipeline-card.dragging {
+    opacity: 0.45;
+    border-style: dashed;
+}
+
 .pipeline-card {
     padding: 12px;
     background: var(--bg, #0a0a0a);

@@ -31,6 +31,8 @@
       item.title = app.title;
       item.innerHTML = '<span class="gb-side-pin-icon">' + base().iconOf(app) + "</span>";
       item.addEventListener("click", function () {
+        // #1302 — clicking a pinned app OPENS it (launch behavior kept);
+        // removal lives in the per-pin context menu and the Add-pin picker.
         if (window.openDeepLink) window.openDeepLink(id, {});
       });
       item.addEventListener("contextmenu", function (e) {
@@ -50,12 +52,63 @@
     var plus = document.createElement("div");
     plus.className = "gb-side-pin gb-side-pin-plus";
     plus.innerHTML = '<span class="gb-side-pin-icon">+</span>';
-    plus.title = "All apps (Start Menu)";
-    plus.addEventListener("click", function () {
-      if (window.WindowManager) window.WindowManager.toggleStartMenu();
+    // #1302 — the + button opens a pin picker instead of the Start Menu:
+    // users clicked it expecting to ADD a pin, not to launch an app.
+    plus.title = "Add pin";
+    plus.addEventListener("click", function (e) {
+      e.stopPropagation();
+      openPinPicker(plus, e.clientX, e.clientY);
     });
     strip.appendChild(plus);
     host.appendChild(strip);
+  }
+
+  // #1302 — picker listing every registered app not yet pinned. Choosing an
+  // entry PINS it (left-click never launches from this panel anymore).
+  function openPinPicker(anchor, x, y) {
+    closeExistingMenus();
+    var state = base().state;
+    var reg = window.APPS_REGISTRY || [];
+    var menu = document.createElement("div");
+    menu.className = "desktop-context-menu gb-launcher-menu";
+    menu.style.maxHeight = "320px";
+    menu.style.overflowY = "auto";
+    var pinned = state.pinned.slice();
+    var added = 0;
+    reg.forEach(function (app) {
+      if (pinned.indexOf(app.id) !== -1) return;
+      added++;
+      var entry = document.createElement("div");
+      entry.className = "desktop-context-item";
+      entry.textContent = app.title || app.id;
+      entry.addEventListener("click", function () {
+        state.pinned.push(app.id);
+        base().savePins();
+        renderPins();
+        menu.remove();
+      });
+      menu.appendChild(entry);
+    });
+    if (!added) {
+      var empty = document.createElement("div");
+      empty.className = "desktop-context-item";
+      empty.style.opacity = "0.6";
+      empty.textContent = "All apps are already pinned";
+      menu.appendChild(empty);
+    }
+    document.body.appendChild(menu);
+    var mw = menu.offsetWidth || 210;
+    var mh = menu.offsetHeight || 200;
+    var left = Math.max(8, Math.min(x, window.innerWidth - mw - 8));
+    var top = Math.max(8, Math.min(y, window.innerHeight - mh - 8));
+    menu.style.left = left + "px";
+    menu.style.top = top + "px";
+    document.addEventListener("click", function dismiss() { menu.remove(); }, { once: true });
+  }
+
+  function closeExistingMenus() {
+    var menus = document.querySelectorAll(".gb-launcher-menu");
+    for (var i = 0; i < menus.length; i++) menus[i].remove();
   }
 
   function openUnpinMenu(appId, x, y) {
@@ -182,9 +235,10 @@
         },
       },
       {
-        label: "New bot",
+        // #1303 — Explorer replaces Terminal in the quick actions.
+        label: "Explorer",
         run: function () {
-          if (window.openDeepLink) window.openDeepLink("admin", {});
+          if (window.openDeepLink) window.openDeepLink("drive", {});
         },
       },
       {
@@ -194,9 +248,10 @@
         },
       },
       {
-        label: "Terminal",
+        // #1303 — Vibe replaces the New bot shortcut.
+        label: "Vibe",
         run: function () {
-          if (window.openDeepLink) window.openDeepLink("terminal", {});
+          if (window.openDeepLink) window.openDeepLink("vibe", {});
         },
       },
     ];
@@ -248,8 +303,6 @@
     var menu = document.createElement("div");
     menu.id = "gbUserMenu";
     menu.className = "desktop-context-menu gb-launcher-menu";
-    menu.style.left = "12px";
-    menu.style.bottom = "64px";
     var items = [
       {
         label: "Settings",
@@ -306,7 +359,26 @@
       });
       menu.appendChild(item);
     });
-    document.body.appendChild(menu);
+    // #1294 — anchor the menu to the avatar/user card instead of a fixed
+    // bottom-left offset: on tall or narrow viewports the fixed position
+    // drifted far away from the card that was clicked. Measured after the
+    // items are appended so the real menu size is known.
+    (function positionMenu() {
+      menu.style.visibility = "hidden";
+      menu.style.left = "0px";
+      menu.style.top = "0px";
+      document.body.appendChild(menu);
+      var rect = card.getBoundingClientRect();
+      var realW = menu.offsetWidth || 200;
+      var realH = menu.offsetHeight || 120;
+      var left = Math.max(8, Math.min(rect.left, window.innerWidth - realW - 8));
+      var top = rect.top - realH - 8; // default: open above the card
+      if (top < 8) top = rect.bottom + 8; // not enough room above → below
+      top = Math.max(8, Math.min(top, window.innerHeight - realH - 8));
+      menu.style.left = left + "px";
+      menu.style.top = top + "px";
+      menu.style.visibility = "";
+    })();
     document.addEventListener(
       "click",
       function dismiss() {

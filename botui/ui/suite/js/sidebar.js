@@ -166,18 +166,23 @@
   function openSettingsWindow() {
     var m2 = document.getElementById("user-menu");
     if (m2) m2.remove();
-    fetch("/suite/admin/organization-settings.html")
-      .then(function (r) { return r.text(); })
-      .then(function (html) {
-        // organization-settings.html is a full HTML document; extract
-        // only the <body> content.  Injecting a complete <!DOCTYPE html>
-        // into a WindowManager body frame produces invalid nested markup.
-        var bodyMatch = html.match(/<body[^>]*>([\s\S]*)<\/body>/i);
-        var content = bodyMatch ? bodyMatch[1] : html;
-        if (window.WindowManager) {
-          window.WindowManager.open("settings", "Settings", content);
-        }
-      });
+    // #1294 — the avatar/menu entry must open the USER settings, not the
+    // org-settings page. Route through the unified Settings app (#1295):
+    // RBAC hides admin sections, so non-admins get their profile page only.
+    if (window.openDeepLink) {
+      window.openDeepLink("settings", {});
+      return;
+    }
+    if (window.WindowManager) {
+      window.WindowManager.open("settings", "Settings", "");
+      fetch("/suite/settings/index.html")
+        .then(function (r) { return r.text(); })
+        .then(function (html) {
+          if (window.WindowManager._injectBodyContent) {
+            window.WindowManager._injectBodyContent("settings", html);
+          }
+        });
+    }
   }
 
   function openSidebarUserMenu(displayName, email) {
@@ -337,18 +342,8 @@
     refreshUser: refreshUser,
   };
 
-  // Home window helper used by the collapsed rail icons.
-  window.openHomeWindow = function () {
-    if (!window.WindowManager) return;
-    var name = getActiveUsername();
-    window.WindowManager.open("home", "Home",
-      '<div style="padding:32px;text-align:center;">' +
-      "<h2 style=\"font-size:22px;color:var(--text);margin-bottom:8px;\">Welcome, " + name + "</h2>" +
-      '<p style="font-size:15px;color:var(--text-secondary);">General Bots OS</p>' +
-      '<p style="font-size:13px;color:var(--text-secondary);margin-top:16px;">Press <kbd style="background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:4px;">Ctrl+K</kbd> to open command palette</p>' +
-      "</div>"
-    );
-  };
+  // #1299 — Home app removed: the welcome-only window added no capability
+  // beyond the command palette it advertised.
 
   // ── Init ────────────────────────────────────────────────────────
   // Sidebar visibility is toggled by the existing .chat-sidebar-toggle

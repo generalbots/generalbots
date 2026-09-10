@@ -89,11 +89,11 @@
             </a>
 
             <!-- Admin Section Divider -->
-            <div class="nav-divider">
+            <div class="nav-divider" data-admin-only="true">
                 <span>Administration</span>
             </div>
 
-            <a href="#users" class="nav-item" onclick="showSection('users', this)">
+            <a href="#users" class="nav-item" data-admin-only="true" onclick="showSection('users', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                     <circle cx="9" cy="7" r="4"></circle>
@@ -102,7 +102,7 @@
                 </svg>
                 <span data-i18n="admin-users">Users</span>
             </a>
-            <a href="#groups" class="nav-item" onclick="showSection('groups', this)">
+            <a href="#groups" class="nav-item" data-admin-only="true" onclick="showSection('groups', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                     <circle cx="9" cy="7" r="4"></circle>
@@ -111,7 +111,7 @@
                 </svg>
                 <span data-i18n="admin-groups">Groups</span>
             </a>
-            <a href="#bots" class="nav-item" onclick="showSection('bots', this)">
+            <a href="#bots" class="nav-item" data-admin-only="true" onclick="showSection('bots', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="11" width="18" height="10" rx="2"></rect>
                     <circle cx="12" cy="5" r="2"></circle>
@@ -121,7 +121,7 @@
                 </svg>
                 <span data-i18n="admin-bots">Bots</span>
             </a>
-            <a href="#dns" class="nav-item" onclick="showSection('dns', this)">
+            <a href="#dns" class="nav-item" data-admin-only="true" onclick="showSection('dns', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"></circle>
                     <line x1="2" y1="12" x2="22" y2="12"></line>
@@ -131,7 +131,7 @@
                 </svg>
                 <span data-i18n="admin-dns">DNS</span>
             </a>
-            <a href="#audit" class="nav-item" onclick="showSection('audit', this)">
+            <a href="#audit" class="nav-item" data-admin-only="true" onclick="showSection('audit', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                     <polyline points="14 2 14 8 20 8"></polyline>
@@ -140,6 +140,14 @@
                     <polyline points="10 9 9 9 8 9"></polyline>
                 </svg>
                 <span data-i18n="admin-audit">Audit Log</span>
+            </a>
+            <a href="#organizations" class="nav-item" data-admin-only="true" onclick="showSection('organizations', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 21h18"></path>
+                    <path d="M5 21V7l8-4v18"></path>
+                    <path d="M19 21V11l-6-4"></path>
+                </svg>
+                <span data-i18n="nav-organizations">Organizations</span>
             </a>
             <a href="#about" class="nav-item" hx-get="/suite/about/about.html" hx-target="#main-content"
                 hx-push-url="/#about">
@@ -763,6 +771,50 @@
                     </div>
                 </div>
             </div>
+
+            <!-- #1293 — Desktop wallpaper picker (restored in unified Settings) -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Desktop Wallpaper</h2>
+                    <p>Choose a background for your desktop</p>
+                </div>
+                <div class="wallpaper-grid" id="wallpaper-grid"></div>
+            </div>
+        </section>
+
+        <!-- Organizations & Bots Section (Admin) — #1295 unified from the orphan
+             settings/organizations.html page -->
+        <section id="organizations-section" class="settings-section" data-admin-only="true">
+            <div class="section-header">
+                <h1>Organizations &amp; Bots</h1>
+                <p class="subtitle">Manage your organizations and bot hierarchy</p>
+            </div>
+
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Current Organization</h2>
+                    <p>Select the organization you want to manage</p>
+                </div>
+                <div hx-get="/api/user/organizations" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading organizations...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Bot Tree</h2>
+                    <p>Bots belonging to the selected organization</p>
+                </div>
+                <div hx-get="/api/admin/bots" hx-trigger="load" hx-swap="innerHTML">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p>Loading bots...</p>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <!-- Notifications Section -->
@@ -1291,7 +1343,7 @@
         </section>
 
         <!-- Users Section (Admin) -->
-        <section id="users-section" class="settings-section">
+        <section id="users-section" class="settings-section" data-admin-only="true">
             <div class="section-header">
                 <h1 data-i18n="admin-users">Users</h1>
                 <p class="subtitle" data-i18n="admin-users-subtitle">Manage user accounts and permissions</p>
@@ -1320,7 +1372,7 @@
         </section>
 
         <!-- Groups Section (Admin) -->
-        <section id="groups-section" class="settings-section">
+        <section id="groups-section" class="settings-section" data-admin-only="true">
             <div class="section-header">
                 <h1 data-i18n="admin-groups">Groups</h1>
                 <p class="subtitle" data-i18n="admin-groups-subtitle">Manage groups and team permissions</p>
@@ -1349,7 +1401,7 @@
         </section>
 
         <!-- Bots Section (Admin) -->
-        <section id="bots-section" class="settings-section">
+        <section id="bots-section" class="settings-section" data-admin-only="true">
             <div class="section-header">
                 <h1 data-i18n="admin-bots">Bots</h1>
                 <p class="subtitle" data-i18n="admin-bots-subtitle">Manage bot instances and deployments</p>
@@ -1369,7 +1421,7 @@
         </section>
 
         <!-- DNS Section (Admin) -->
-        <section id="dns-section" class="settings-section">
+        <section id="dns-section" class="settings-section" data-admin-only="true">
             <div class="section-header">
                 <h1 data-i18n="admin-dns">DNS Management</h1>
                 <p class="subtitle" data-i18n="admin-dns-subtitle">Configure custom domains and DNS settings</p>
@@ -1398,7 +1450,7 @@
         </section>
 
         <!-- Audit Section (Admin) -->
-        <section id="audit-section" class="settings-section">
+        <section id="audit-section" class="settings-section" data-admin-only="true">
             <div class="section-header">
                 <h1 data-i18n="admin-audit">Audit Log</h1>
                 <p class="subtitle" data-i18n="admin-audit-subtitle">Track system events and user actions</p>
@@ -2541,6 +2593,33 @@
         }
     });
 
+    // #1295 — Admin Panel deep-links (formerly /suite/admin/index.html) land
+    // here with ?view=admin: open the first admin-only section after RBAC
+    // has run. Admin entries may be hidden for non-admins, so resolve the
+    // target at that point, not before.
+    (function () {
+        var params = new URLSearchParams(window.location.search);
+        if (params.get('view') === 'admin') {
+            var openAdminView = function () {
+                // Only land on an admin section that survived RBAC gating;
+                // hidden entries (non-admin) fall back to Profile.
+                var adminNav = Array.prototype.filter.call(
+                    document.querySelectorAll('.nav-item[data-admin-only="true"]'),
+                    function (n) { return n.offsetParent !== null; });
+                var target = adminNav[0]
+                    || document.querySelector('.nav-item[href="#profile"]');
+                if (target) target.click();
+            };
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', function () {
+                    setTimeout(openAdminView, 0);
+                });
+            } else {
+                setTimeout(openAdminView, 0);
+            }
+        }
+    })();
+
     // Theme selection - handle both .theme-card and .theme-option elements
     document.querySelectorAll('.theme-card').forEach(card => {
         card.addEventListener('click', function () {
@@ -2554,6 +2633,7 @@
     });
 
     // Desktop wallpaper picker
+    // #1293 — 16 wallpaper samples (mirrors css/desktop/wallpaper.css presets)
     var WALLPAPERS = [
         { id: 'default', name: 'Default', css: 'linear-gradient(135deg, #0a0a0a 0%, #1a2338 50%, #0a0a0a 100%)' },
         { id: 'mountains', name: 'Mountains', css: 'linear-gradient(180deg, #7ea8d8 0%, #b8d4ef 35%, #6b96c9 70%, #3b5a8c 100%)' },
@@ -2564,7 +2644,13 @@
         { id: 'night', name: 'Night Sky', css: 'linear-gradient(180deg, #0b1026 0%, #131a3a 50%, #0a0e22 100%)' },
         { id: 'aurora', name: 'Aurora', css: 'linear-gradient(180deg, #060a1a 0%, #0d1530 55%, #0a0e22 100%)' },
         { id: 'retro', name: 'Retro', css: 'linear-gradient(180deg, #f72585 0%, #7209b7 45%, #190c38 100%)' },
-        { id: 'paper', name: 'Paper', css: 'linear-gradient(180deg, #fbfaf6 0%, #f4f1e8 60%, #eae5d8 100%)' }
+        { id: 'paper', name: 'Paper', css: 'linear-gradient(180deg, #fbfaf6 0%, #f4f1e8 60%, #eae5d8 100%)' },
+        { id: 'desert', name: 'Desert', css: 'linear-gradient(180deg, #2a1a0a 0%, #8a4a1a 45%, #d98a3d 75%, #f0b060 100%)' },
+        { id: 'sakura', name: 'Sakura', css: 'linear-gradient(180deg, #fdf0f5 0%, #f8d8e4 45%, #efb8cc 100%)' },
+        { id: 'mint', name: 'Mint', css: 'linear-gradient(160deg, #eafaf4 0%, #c8f0e0 40%, #a0e0c8 75%, #78c8a8 100%)' },
+        { id: 'graphite', name: 'Graphite', css: 'linear-gradient(180deg, #1a1d24 0%, #242830 50%, #16181e 100%)' },
+        { id: 'nebula', name: 'Nebula', css: 'linear-gradient(180deg, #0b0714 0%, #150d26 55%, #0a0612 100%)' },
+        { id: 'coral', name: 'Coral', css: 'linear-gradient(160deg, #fff4ec 0%, #ffd8c2 45%, #f5a882 100%)' }
     ];
 
     function getWallpaper() {
@@ -2602,6 +2688,57 @@
 
     initWallpapers();
     applyWallpaper(getWallpaper());
+
+    // #1295 — RBAC gating for admin-only sections. Signal precedence:
+    // gb-user roles in localStorage, then management_is_admin; refreshed
+    // from /api/auth/me when available. The backend API still enforces
+    // authorization — this only hides navigation.
+    function currentUserIsAdmin() {
+        try {
+            var raw = localStorage.getItem('gb-user');
+            if (raw) {
+                var u = JSON.parse(raw);
+                if (u && u.roles && u.roles.length) {
+                    return u.roles.some(function (r) {
+                        var rl = (r || '').toLowerCase();
+                        return rl.indexOf('admin') !== -1 || rl.indexOf('super') !== -1;
+                    });
+                }
+            }
+        } catch (e) {}
+        return localStorage.getItem('management_is_admin') === 'true';
+    }
+
+    function applySettingsRbac() {
+        var admin = currentUserIsAdmin();
+        document.querySelectorAll('[data-admin-only="true"]').forEach(function (el) {
+            el.style.display = admin ? '' : 'none';
+        });
+        if (!admin) {
+            var active = document.querySelector('.settings-section.active');
+            if (active && active.dataset.adminOnly === 'true') {
+                var first = document.querySelector('.nav-item[href="#profile"]');
+                if (first) first.click();
+            }
+        }
+    }
+
+    applySettingsRbac();
+    fetch('/api/auth/me')
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (me) {
+            var u = me && (me.user || me);
+            if (u && u.roles && u.roles.length) {
+                try {
+                    var stored = {};
+                    try { stored = JSON.parse(localStorage.getItem('gb-user') || '{}') || {}; } catch (e) {}
+                    stored.roles = u.roles;
+                    localStorage.setItem('gb-user', JSON.stringify(stored));
+                } catch (e) {}
+                applySettingsRbac();
+            }
+        })
+        .catch(function () {});
 
     // Live-update desktop wallpaper when changed in another tab
     window.addEventListener('storage', function (e) {
