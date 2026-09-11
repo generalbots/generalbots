@@ -174,6 +174,16 @@
     '    <input type="checkbox" name="is_primary" id="account-primary" />',
     '    <span>Set as primary account</span>',
     '  </label>',
+    // Microsoft 365, Outlook.com and Gmail refuse a static password over
+    // IMAP/SMTP, so those mailboxes are connected through the provider's own
+    // consent screen instead of this form.
+    '  <div class="oauth-connect">',
+    '    <p class="oauth-hint">Microsoft 365, Outlook.com and Gmail sign in through the provider. Fill in the email address above, then choose the provider.</p>',
+    '    <div class="oauth-buttons">',
+    '      <button type="button" class="btn-secondary" data-provider="microsoft" onclick="connectMailProvider(\'microsoft\')">Connect Microsoft 365</button>',
+    '      <button type="button" class="btn-secondary" data-provider="google" onclick="connectMailProvider(\'google\')">Connect Google</button>',
+    '    </div>',
+    '  </div>',
     '  <div class="modal-footer">',
     '    <button type="button" class="btn-secondary" onclick="closeAddAccount()">Cancel</button>',
     '    <button type="submit" class="btn-primary" onclick="saveAccount(event)">Add Account</button>',
@@ -234,6 +244,47 @@
         });
     });
   }
+
+  // Starts the provider consent flow for an OAuth2 mailbox. The address is
+  // required because the provider account it is connected to has to match the
+  // mailbox being stored; the response carries the consent URL to visit.
+  window.connectMailProvider = function (provider) {
+    var email =
+      ((document.getElementById("account-email") || {}).value || "").trim();
+    if (!email) {
+      if (typeof window.showNotification === "function") {
+        window.showNotification(
+          "Enter the mailbox address before connecting a provider",
+          "error"
+        );
+      }
+      return;
+    }
+
+    fetch("/api/email/oauth/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider: provider, email: email }),
+    })
+      .then(function (r) {
+        return r.json().then(function (data) {
+          return { ok: r.ok, data: data };
+        });
+      })
+      .then(function (res) {
+        var url = res.data && res.data.data && res.data.data.url;
+        if (res.ok && url) {
+          window.location.href = url;
+          return;
+        }
+        throw new Error((res.data && res.data.message) || "Failed to start the provider sign-in");
+      })
+      .catch(function (err) {
+        if (typeof window.showNotification === "function") {
+          window.showNotification("Sign-in error: " + err.message, "error");
+        }
+      });
+  };
 
   if (window.GBAppLifecycle) GBAppLifecycle.end("mail");
 })();

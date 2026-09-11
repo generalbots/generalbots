@@ -87,13 +87,37 @@ pub struct TrackingStatsResponse {
 pub struct EmailAccountRequest {
     pub email: String,
     pub display_name: Option<String>,
+    /// IMAP host. Optional for OAuth2 accounts, which fall back to the
+    /// provider's default host when this is empty.
+    #[serde(default)]
     pub imap_server: String,
+    #[serde(default = "default_imap_port")]
     pub imap_port: u16,
+    #[serde(default)]
     pub smtp_server: String,
+    #[serde(default = "default_smtp_port")]
     pub smtp_port: u16,
+    #[serde(default)]
     pub username: String,
+    /// Password for `auth_mode = "password"`; unused for OAuth2 accounts.
+    #[serde(default)]
     pub password: String,
+    #[serde(default)]
     pub is_primary: bool,
+    /// `password` (default) or `oauth2`.
+    #[serde(default)]
+    pub auth_mode: Option<String>,
+    /// Provider identifier when `auth_mode` is `oauth2` (`microsoft`, `google`).
+    #[serde(default)]
+    pub oauth_provider: Option<String>,
+}
+
+fn default_imap_port() -> u16 {
+    993
+}
+
+fn default_smtp_port() -> u16 {
+    587
 }
 
 #[derive(Debug, Serialize)]
@@ -108,6 +132,12 @@ pub struct EmailAccountResponse {
     pub is_primary: bool,
     pub is_active: bool,
     pub created_at: String,
+    /// `password` or `oauth2`.
+    pub auth_mode: String,
+    /// Timestamp of the last successful sync pass, when one has completed.
+    pub last_sync_at: Option<String>,
+    /// Failure reported by the last sync pass, when the mailbox is unreachable.
+    pub last_error: Option<String>,
 }
 
 #[derive(Debug, Serialize)]

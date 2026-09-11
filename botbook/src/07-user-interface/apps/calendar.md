@@ -226,6 +226,29 @@ Calendar is your scheduling hub in General Bots Suite. Create events, manage app
 
 ---
 
+## Syncing with a Calendar Client (CalDAV)
+
+Calendar clients that speak CalDAV (Thunderbird, Apple Calendar, DAVx5 on
+Android) can read and write the calendars of a bot:
+
+| Setting | Value |
+|---------|-------|
+| Server URL | `https://<host>/.well-known/caldav` (redirects to `/caldav`) |
+| Username | Your account address (the value is not checked against the token) |
+| Password | A GeneralBots token for your account |
+| Authentication | Basic |
+
+Supported operations: discovery (`PROPFIND`), event queries by time range and
+by href (`REPORT` with `calendar-query` / `calendar-multiget`), and reading,
+writing and deleting individual events (`GET`, `PUT`, `DELETE` on
+`/caldav/calendars/<calendar>/<event>.ics`).
+
+Calendar properties such as display name and colour are not editable through
+the protocol, so `PROPPATCH` is answered with `403`, which calendar clients
+treat as "use the server's value".
+
+---
+
 ## Integration with Tasks
 
 Tasks with due dates automatically appear on your calendar. When you complete a task, it's marked as done on the calendar too.
@@ -240,6 +263,8 @@ Tasks with due dates automatically appear on your calendar. When you complete a 
 2. Check internet connection
 3. Verify calendar is enabled in sidebar
 4. Wait a few minutes for sync
+5. In an external client, confirm the server URL is `/.well-known/caldav` and
+   the password is a GeneralBots token
 
 ### Can't Create Events
 

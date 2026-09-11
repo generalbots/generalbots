@@ -4,7 +4,10 @@ use axum::{
 };
 use base64::{engine::general_purpose, Engine as _};
 use diesel::prelude::*;
-use lettre::{transport::smtp::authentication::Credentials, Message, SmtpTransport, Transport};
+use lettre::{
+    transport::smtp::authentication::{Credentials, Mechanism},
+    Message, SmtpTransport, Transport,
+};
 use log::info;
 #[cfg(feature = "mail")]
 use mailparse::{parse_mail, MailHeaderMap};
@@ -166,7 +169,7 @@ pub async fn send_email(
         let mut db_conn = pool.get().map_err(|e| format!("DB connection error: {e}"))?;
 
         let result: SmtpCredentialsRow = diesel::sql_query(
-            "SELECT email, display_name, smtp_port, smtp_server, username, password_encrypted
+            "SELECT email, display_name, smtp_port, smtp_server, username, password_encrypted, auth_mode
              FROM user_email_accounts WHERE id = $1 AND is_active = true"
         )
             .bind::<diesel::sql_types::Uuid, _>(account_uuid)
@@ -179,12 +182,31 @@ pub async fn send_email(
     .map_err(|e| EmailError(format!("Task join error: {e}")))?
     .map_err(EmailError)?;
 
-    let (from_email, display_name, smtp_port, smtp_server, username, encrypted_password) = (
+    let (from_email, display_name, smtp_port, smtp_server, username, encrypted_password, auth_mode) = (
         account_info.email, account_info.display_name,
         account_info.smtp_port, account_info.smtp_server,
-        account_info.username, account_info.password_encrypted,
+        account_info.username, account_info.password_encrypted, account_info.auth_mode,
     );
-    let password = decrypt_password(&encrypted_password).map_err(EmailError)?;
+
+    // Password accounts authenticate with the stored password. OAuth2 accounts
+    // (Microsoft 365, Outlook.com, Gmail) carry a bearer token, and the
+    // mechanism must be declared explicitly or the server rejects the AUTH.
+    let (credentials, oauth_mechanism) = if auth_mode == "oauth2" {
+        let credentials_pool = state.pool.clone();
+        let token = tokio::task::spawn_blocking(move || {
+            let mut db_conn = credentials_pool
+                .get()
+                .map_err(|e| format!("DB connection error: {e}"))?;
+            crate::oauth::resolve_credentials(&mut db_conn, account_uuid).map(|c| c.secret)
+        })
+        .await
+        .map_err(|e| EmailError(format!("Task join error: {e}")))?
+        .map_err(EmailError)?;
+        (Credentials::new(username.clone(), token), Some(Mechanism::Xoauth2))
+    } else {
+        let password = decrypt_password(&encrypted_password).map_err(EmailError)?;
+        (Credentials::new(username.clone(), password), None)
+    };
 
     let from_addr = if display_name.is_empty() {
         from_email.clone()
@@ -215,12 +237,14 @@ pub async fn send_email(
 
     let email = email_builder.body(final_body).map_err(|e| EmailError(format!("Failed to build email: {e}")))?;
 
-    let creds = Credentials::new(username, password);
-    let mailer = SmtpTransport::relay(&smtp_server)
+    let mut transport = SmtpTransport::relay(&smtp_server)
         .map_err(|e| EmailError(format!("Failed to create SMTP transport: {e}")))?
         .port(u16::try_from(smtp_port).unwrap_or(587))
-        .credentials(creds)
-        .build();
+        .credentials(credentials);
+    if let Some(mechanism) = oauth_mechanism {
+        transport = transport.authentication(vec![mechanism]);
+    }
+    let mailer = transport.build();
 
     mailer.send(&email).map_err(|e| EmailError(format!("Failed to send email: {e}")))?;
 

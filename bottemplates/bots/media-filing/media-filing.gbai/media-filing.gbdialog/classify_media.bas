@@ -8,7 +8,7 @@
 ' an arbitrary folder.
 
 TAXONOMY = "invoice,receipt,contract,identity,report,unsorted"
-PROMPT = "Classifique o conteudo a seguir com uma unica palavra, apenas uma destas: " + TAXONOMY + ". Responda somente a palavra." + "\n\n"
+PROMPT = "Classifique o conteudo a seguir com uma unica palavra, apenas uma destas: " + TAXONOMY + ". Responda somente a palavra.\n\n"
 MAX_ANALYSIS_CHARS = 4000
 
 ' 1. Perception: images are described by the vision model, documents are read
@@ -27,7 +27,9 @@ ELSE
 END IF
 
 ' 2. Classification: one closed-set decision over the perceived content.
-answer = LCASE(TRIM(LLM PROMPT + LEFT(content, MAX_ANALYSIS_CHARS)))
+prompt = PROMPT + LEFT(content, MAX_ANALYSIS_CHARS)
+raw_answer = LLM prompt
+answer = LCASE(TRIM(raw_answer))
 answer = REPLACE(answer, ".", "")
 answer = REPLACE(answer, ",", "")
 answer = REPLACE(answer, ":", "")
@@ -48,12 +50,15 @@ NEXT
 parts = SPLIT(path, "/")
 leaf = LAST(parts)
 
-month = STR(TODAY.month)
+' The date is bound to a variable first: TODAY is a map, and property access on
+' a variable is the form used everywhere else in a bot script.
+today = TODAY
+month = STR(today.month)
 IF LEN(month) = 1 THEN
     month = "0" + month
 END IF
 
-destination = "media/" + STR(TODAY.year) + "/" + month + "/" + category + "/" + leaf
+destination = "media/" + STR(today.year) + "/" + month + "/" + category + "/" + leaf
 MOVE path, destination
 
 ' 4. Audit trail next to the filed item: keeps the decision reproducible

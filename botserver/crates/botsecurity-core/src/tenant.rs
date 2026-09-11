@@ -9,6 +9,7 @@
 //! to obtain the authoritative tenant, then apply `branch_id = ?` in queries.
 
 use axum::http::HeaderMap;
+use base64::Engine as _;
 use uuid::Uuid;
 
 /// Minimal URL-safe base64 decoder (JWT payload decoding).
@@ -34,17 +35,56 @@ pub fn base64url_decode(input: &str) -> Option<Vec<u8>> {
     Some(out)
 }
 
+/// Extracts the caller's token from an `Authorization` header value.
+///
+/// `Bearer <token>` is the native form. `Basic <base64>` is accepted as well
+/// because native clients (calendar, mail) authenticate with HTTP Basic and
+/// have no field for a bearer token: the password field is expected to carry a
+/// GeneralBots token, and the username is ignored because the token already
+/// identifies the caller. The returned token is still verified on the normal
+/// authentication path, so this widens the transport, not the trust.
+pub fn token_from_authorization(auth: &str) -> Option<String> {
+    if let Some(token) = auth
+        .strip_prefix("Bearer ")
+        .or_else(|| auth.strip_prefix("bearer "))
+    {
+        let token = token.trim();
+        return if token.is_empty() {
+            None
+        } else {
+            Some(token.to_string())
+        };
+    }
+
+    const BASIC_PREFIX_LEN: usize = "basic ".len();
+    // `get` keeps the split on a character boundary, so a non-ASCII header is
+    // refused instead of panicking.
+    let head = auth.get(..BASIC_PREFIX_LEN)?;
+    if !head.eq_ignore_ascii_case("basic ") {
+        return None;
+    }
+    let decoded = base64::engine::general_purpose::STANDARD
+        .decode(auth[BASIC_PREFIX_LEN..].trim())
+        .ok()?;
+    let credentials = String::from_utf8(decoded).ok()?;
+    let (_, token) = credentials.split_once(':')?;
+    let token = token.trim();
+    if token.is_empty() {
+        return None;
+    }
+    Some(token.to_string())
+}
+
 /// Extracts the JWT payload object (middle segment) from the Authorization
-/// header. Accepts `Bearer`/`bearer` prefixes. Invalid tokens yield `None`.
+/// header, for either the `Bearer` or the `Basic` transport. Invalid tokens
+/// yield `None`.
 fn jwt_payload(headers: &HeaderMap) -> Option<serde_json::Value> {
     let auth = headers
         .get("authorization")
         .or_else(|| headers.get("Authorization"))?
         .to_str()
         .ok()?;
-    let token = auth
-        .strip_prefix("Bearer ")
-        .or_else(|| auth.strip_prefix("bearer "))?;
+    let token = token_from_authorization(auth)?;
     if !token.contains('.') {
         return None;
     }
@@ -52,7 +92,7 @@ fn jwt_payload(headers: &HeaderMap) -> Option<serde_json::Value> {
     if parts.len() != 3 {
         return None;
     }
-    let payload = base64url_decode(&parts[1].trim_end_matches('='))?;
+    let payload = base64url_decode(parts[1].trim_end_matches('='))?;
     serde_json::from_slice(&payload).ok()
 }
 

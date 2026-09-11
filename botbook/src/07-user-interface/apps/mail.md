@@ -263,9 +263,51 @@ Mail is the email application in General Bots Suite. Read, compose, and organize
 
 ---
 
+## Connecting a Mailbox
+
+The Mail application supports two ways of authenticating a mailbox, and the
+account form offers both.
+
+### Password (IMAP/SMTP)
+
+Fill in the mailbox address, the password and the IMAP/SMTP hosts. The accounts
+is verified against the server before it is stored, so a host that cannot be
+reached is rejected with the reason instead of appearing as an empty inbox. A
+mailbox that requires an app password (Gmail with two-factor authentication, for
+example) is added the same way, using the app password.
+
+### Provider sign-in (Microsoft 365, Outlook.com, Gmail)
+
+Microsoft no longer accepts a password over IMAP/SMTP, so those mailboxes are
+connected through the provider's own consent screen:
+
+1. Enter the mailbox address in the account form.
+2. Choose **Connect Microsoft 365** or **Connect Google**.
+3. Approve the requested mail scopes on the provider's page.
+
+The refresh token is stored with the account, so the connection is renewed in
+the background and the mailbox keeps syncing without a new sign-in.
+
+An administrator configures the client credentials and the signing secret:
+
+```
+MAIL_OAUTH_MICROSOFT_CLIENT_ID / MAIL_OAUTH_MICROSOFT_CLIENT_SECRET
+MAIL_OAUTH_GOOGLE_CLIENT_ID / MAIL_OAUTH_GOOGLE_CLIENT_SECRET
+MAIL_OAUTH_STATE_SECRET
+MAIL_OAUTH_REDIRECT_BASE   # optional, defaults to the request host
+```
+
+### Sync Health
+
+Every account shows a **Sync error** badge while the last background pass failed.
+Hover the badge for the reason. Without it an unreachable mailbox was
+indistinguishable from an empty one.
+
+---
+
 ## Configuration
 
-Configure email in `config.csv`:
+Configure email defaults in `config.csv`:
 
 ```csv
 key,value
@@ -276,8 +318,6 @@ imap-port,993
 email-from,Your Name <you@gmail.com>
 ```
 
-**Note:** Use app-specific passwords for Gmail, not your main password.
-
 ---
 
 ## Troubleshooting
@@ -287,7 +327,8 @@ email-from,Your Name <you@gmail.com>
 1. Check internet connection
 2. Verify email credentials
 3. Check IMAP settings
-4. Refresh the page
+4. Look for the **Sync error** badge on the account and read its reason
+5. Refresh the page
 
 ### Send Fails
 

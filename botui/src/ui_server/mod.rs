@@ -137,6 +137,16 @@ pub fn configure_router() -> Router {
             .route("/suite/:dir/partials/*path", any(proxy_api));
     }
 
+    // CalDAV clients probe the well-known path first and then speak DAV against
+    // /caldav. The reverse proxy in front of this server forwards every
+    // non-/api path here, so without an explicit route the desktop shell
+    // answered with HTML and no calendar client could ever sync. Both paths are
+    // proxied to the backend, which owns the DAV router.
+    router = router
+        .route("/.well-known/caldav", any(proxy_api))
+        .route("/caldav", any(proxy_api))
+        .route("/caldav/*path", any(proxy_api));
+
     router = add_static_routes(router, &suite_path);
 
     router.fallback(get(index)).with_state(state)

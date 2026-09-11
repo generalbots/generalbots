@@ -6,7 +6,6 @@
 //! Inserts are UID-deduped per account so a repeated pass is idempotent even
 //! if the mailbox changes between passes.
 
-use base64::{engine::general_purpose, Engine as _};
 use diesel::prelude::*;
 use diesel::sql_types::{
     BigInt, Bool, Integer, Jsonb, Nullable, Text, Timestamptz, Uuid as SqlUuid,
@@ -49,8 +48,6 @@ struct SyncAccount {
     imap_port: i32,
     #[diesel(sql_type = Text)]
     username: String,
-    #[diesel(sql_type = Text)]
-    password_encrypted: String,
 }
 
 #[derive(Debug, QueryableByName)]
@@ -82,7 +79,10 @@ async fn sync_all_accounts(pool: &DbPool) -> Result<(), String> {
     let accounts = tokio::task::spawn_blocking(move || {
         let mut conn = closure_pool.get().map_err(|e| format!("DB pool error: {e}"))?;
         diesel::sql_query(
-            "SELECT id, imap_server, imap_port, username, password_encrypted \
+            // The stored credential is not read here: the worker authenticates
+            // through `imap_auth::resolve_imap_auth`, which resolves a password
+            // or a bearer token and refreshes the latter when it has expired.
+            "SELECT id, imap_server, imap_port, username \
              FROM user_email_accounts WHERE is_active = true",
         )
         .load::<SyncAccount>(&mut conn)
@@ -92,11 +92,53 @@ async fn sync_all_accounts(pool: &DbPool) -> Result<(), String> {
     .map_err(|e| format!("Task join error: {e}"))??;
 
     for account in &accounts {
-        if let Err(e) = sync_account(pool.clone(), account).await {
-            warn!("IMAP sync for account {} failed: {e}", account.id);
+        match sync_account(pool.clone(), account).await {
+            Ok(()) => record_sync_outcome(pool, account.id, None).await,
+            Err(e) => {
+                warn!("IMAP sync for account {} failed: {e}", account.id);
+                record_sync_outcome(pool, account.id, Some(&e)).await;
+            }
         }
     }
     Ok(())
+}
+
+/// Records the outcome of a sync pass on the account row.
+///
+/// Without this the Mail application cannot tell an unreachable mailbox from an
+/// empty one: the failure existed only as a warning in the server log.
+async fn record_sync_outcome(pool: &DbPool, account_id: Uuid, error: Option<&str>) {
+    let pool = pool.clone();
+    let error = error.map(str::to_string);
+
+    let handle = tokio::task::spawn_blocking(move || -> Result<(), String> {
+        let mut conn = pool.get().map_err(|e| format!("DB pool error: {e}"))?;
+        let outcome = match error {
+            Some(message) => diesel::sql_query(
+                "UPDATE user_email_accounts SET last_error = $1, last_error_at = now() \
+                 WHERE id = $2",
+            )
+            .bind::<Text, _>(message)
+            .bind::<SqlUuid, _>(account_id)
+            .execute(&mut conn),
+            None => diesel::sql_query(
+                "UPDATE user_email_accounts SET last_sync_at = now(), last_error = NULL, \
+                 last_error_at = NULL WHERE id = $1",
+            )
+            .bind::<SqlUuid, _>(account_id)
+            .execute(&mut conn),
+        };
+        outcome
+            .map(|_| ())
+            .map_err(|e| format!("Failed to record the sync outcome: {e}"))
+    })
+    .await;
+
+    match handle {
+        Ok(Ok(())) => {}
+        Ok(Err(e)) => warn!("Sync outcome for account {account_id} was not recorded: {e}"),
+        Err(e) => warn!("Sync outcome task for account {account_id} failed: {e}"),
+    }
 }
 
 async fn sync_account(pool: DbPool, account: &SyncAccount) -> Result<(), String> {
@@ -105,7 +147,6 @@ async fn sync_account(pool: DbPool, account: &SyncAccount) -> Result<(), String>
         imap_server: account.imap_server.clone(),
         imap_port: account.imap_port,
         username: account.username.clone(),
-        password_encrypted: account.password_encrypted.clone(),
     };
     let inserted = tokio::task::spawn_blocking(move || {
         let mut conn = pool.get().map_err(|e| format!("DB pool error: {e}"))?;
@@ -121,14 +162,15 @@ async fn sync_account(pool: DbPool, account: &SyncAccount) -> Result<(), String>
 }
 
 fn fetch_and_store(conn: &mut diesel::PgConnection, account: &SyncAccount) -> Result<usize, String> {
-    let password = decrypt_password(&account.password_encrypted)?;
+    // Password and OAuth2 accounts are resolved in one place so the sync worker
+    // and the send path always authenticate the same way.
+    let auth = crate::imap_auth::resolve_imap_auth(conn, account.id)?;
 
-    let client = imap::ClientBuilder::new(account.imap_server.as_str(), account.imap_port as u16)
-        .connect()
-        .map_err(|e| format!("IMAP connect failed: {e:?}"))?;
-    let mut session = client
-        .login(&account.username, &password)
-        .map_err(|(e, _)| format!("IMAP login failed: {e:?}"))?;
+    let mut session = crate::imap_auth::open_session(
+        account.imap_server.as_str(),
+        account.imap_port as u16,
+        &auth,
+    )?;
     session
         .select("INBOX")
         .map_err(|e| format!("IMAP select INBOX failed: {e:?}"))?;
@@ -265,15 +307,6 @@ fn insert_message(conn: &mut diesel::PgConnection, message: &StoredMessage) -> R
     .execute(conn)
     .map_err(|e| format!("Failed to insert email message: {e}"))?;
     Ok(())
-}
-
-fn decrypt_password(encrypted: &str) -> Result<String, String> {
-    general_purpose::STANDARD
-        .decode(encrypted)
-        .map_err(|e| format!("Password decryption failed: {e}"))
-        .and_then(|bytes| {
-            String::from_utf8(bytes).map_err(|e| format!("Password is not UTF-8: {e}"))
-        })
 }
 
 fn non_empty(value: &str) -> Option<String> {

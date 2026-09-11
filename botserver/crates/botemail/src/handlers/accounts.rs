@@ -1,6 +1,6 @@
 use axum::{
     extract::{Path, State},
-    response::IntoResponse,
+    response::{IntoResponse, Response},
     Json,
 };
 use base64::{engine::general_purpose, Engine as _};
@@ -8,6 +8,8 @@ use diesel::prelude::*;
 use std::sync::Arc;
 use uuid::Uuid;
 
+#[cfg(feature = "mail")]
+use crate::imap_auth::{verify_connectivity, ImapAuth};
 use crate::models::{
     extract_user_from_session, AppState, EmailAccountBasicRow, EmailError,
 };
@@ -23,14 +25,85 @@ fn encrypt_password(password: &str) -> String {
     general_purpose::STANDARD.encode(password.as_bytes())
 }
 
+fn escape_html(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#39;")
+}
+
+/// Verifies that a mailbox accepts the supplied credentials.
+///
+/// The IMAP client is blocking and has no connect timeout of its own, so the
+/// check runs on a blocking thread under a strict deadline: a request must not
+/// hang on an unreachable host. A check that overruns the deadline is reported
+/// as a failure while the blocked thread finishes in the background.
+#[cfg(feature = "mail")]
+async fn validate_mailbox(host: String, port: u16, auth: ImapAuth) -> Result<(), String> {
+    let check = tokio::task::spawn_blocking(move || verify_connectivity(&host, port, &auth));
+    match tokio::time::timeout(std::time::Duration::from_secs(15), check).await {
+        Ok(Ok(Ok(()))) => Ok(()),
+        Ok(Ok(Err(e))) => Err(e),
+        Ok(Err(e)) => Err(format!("The mailbox check could not run: {e}")),
+        Err(_) => Err("Timed out while connecting to the mail server".to_string()),
+    }
+}
+
 pub async fn add_email_account(
     State(state): State<Arc<AppState>>,
     headers: axum::http::HeaderMap,
     Json(request): Json<EmailAccountRequest>,
-) -> Result<Json<ApiResponse<EmailAccountResponse>>, EmailError> {
+) -> Result<Json<ApiResponse<EmailAccountResponse>>, Response> {
     let Ok(current_user_id) = extract_user_from_session(&headers) else {
-        return Err(EmailError("Authentication required".to_string()));
+        return Err(EmailError("Authentication required".to_string()).into_response());
     };
+
+    let auth_mode = request
+        .auth_mode
+        .clone()
+        .unwrap_or_else(|| "password".to_string());
+    if auth_mode != "password" && auth_mode != "oauth2" {
+        return Err(EmailError(format!("Unsupported auth_mode '{auth_mode}'")).into_response());
+    }
+    if auth_mode == "oauth2" {
+        // An OAuth2 account needs tokens, which only the provider consent flow
+        // can supply. Storing one without them would create a mailbox that can
+        // never authenticate.
+        return Err(EmailError(
+            "OAuth2 accounts are connected through the provider consent flow"
+                .to_string(),
+        )
+        .into_response());
+    }
+    if request.email.trim().is_empty() || request.username.trim().is_empty() {
+        return Err(EmailError("Email address and username are required".to_string()).into_response());
+    }
+    if request.imap_server.trim().is_empty() || request.smtp_server.trim().is_empty() {
+        return Err(
+            EmailError("IMAP and SMTP servers are required".to_string()).into_response(),
+        );
+    }
+
+    #[cfg(feature = "mail")]
+    {
+        let auth = ImapAuth::Password {
+            username: request.username.clone(),
+            password: request.password.clone(),
+        };
+        if let Err(e) = validate_mailbox(request.imap_server.clone(), request.imap_port, auth).await
+        {
+            // The account is rejected rather than stored: an unreachable host
+            // would otherwise fail on every background pass while the user sees
+            // an empty inbox with no explanation.
+            return Err(EmailError(format!(
+                "Could not connect to {}: {e}",
+                request.imap_server
+            ))
+            .into_response());
+        }
+    }
 
     let account_id = Uuid::new_v4();
     let encrypted_password = encrypt_password(&request.password);
@@ -56,8 +129,8 @@ pub async fn add_email_account(
 
         diesel::sql_query(
             "INSERT INTO user_email_accounts
-            (id, user_id, email, display_name, imap_server, imap_port, smtp_server, smtp_port, username, password_encrypted, is_primary, is_active)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)"
+            (id, user_id, email, display_name, imap_server, imap_port, smtp_server, smtp_port, username, password_encrypted, is_primary, is_active, auth_mode)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)"
         )
             .bind::<diesel::sql_types::Uuid, _>(account_id)
             .bind::<diesel::sql_types::Uuid, _>(current_user_id)
@@ -71,14 +144,15 @@ pub async fn add_email_account(
             .bind::<diesel::sql_types::Text, _>(&encrypted_password)
             .bind::<diesel::sql_types::Bool, _>(request.is_primary)
             .bind::<diesel::sql_types::Bool, _>(true)
+            .bind::<diesel::sql_types::Text, _>("password")
             .execute(&mut db_conn)
             .map_err(|e| format!("Failed to insert account: {e}"))?;
 
         Ok::<_, String>(account_id)
     })
     .await
-    .map_err(|e| EmailError(format!("Task join error: {e}")))?
-    .map_err(EmailError)?;
+    .map_err(|e| EmailError(format!("Task join error: {e}")).into_response())?
+    .map_err(|e| EmailError(e).into_response())?;
 
     Ok(Json(ApiResponse {
         success: true,
@@ -93,6 +167,9 @@ pub async fn add_email_account(
             is_primary: resp_is_primary,
             is_active: true,
             created_at: chrono::Utc::now().to_rfc3339(),
+            auth_mode: "password".to_string(),
+            last_sync_at: None,
+            last_error: None,
         }),
         message: Some("Email account added successfully".to_string()),
     }))
@@ -115,7 +192,7 @@ pub async fn list_email_accounts_htmx(
         let mut db_conn = pool.get().map_err(|e| format!("DB connection error: {e}"))?;
 
         diesel::sql_query(
-            "SELECT id, email, display_name, is_primary FROM user_email_accounts WHERE user_id = $1 AND is_active = true ORDER BY is_primary DESC"
+            "SELECT id, email, display_name, is_primary, last_error FROM user_email_accounts WHERE user_id = $1 AND is_active = true ORDER BY is_primary DESC"
         )
             .bind::<diesel::sql_types::Uuid, _>(_user_id)
             .load::<EmailAccountBasicRow>(&mut db_conn)
@@ -142,14 +219,23 @@ pub async fn list_email_accounts_htmx(
         } else {
             ""
         };
+        // A mailbox whose last sync failed is marked, so the empty list of
+        // messages is explained instead of looking like an idle inbox.
+        let health_badge = match account.last_error.as_deref() {
+            Some(error) => format!(
+                r#"<span class="badge badge-error" title="{}">Sync error</span>"#,
+                escape_html(error)
+            ),
+            None => String::new(),
+        };
         use std::fmt::Write;
         let _ = write!(
             html,
             r#"<div class="account-item" data-account-id="{}">
                 <span>{}</span>
-                {}
+                {}{}
             </div>"#,
-            account.id, name, primary_badge
+            account.id, name, primary_badge, health_badge
         );
     }
 
@@ -175,22 +261,26 @@ pub async fn list_email_accounts(
             .select((
                 id, email, display_name, imap_server, imap_port,
                 smtp_server, smtp_port, is_primary, is_active, created_at,
+                crate::schema::user_email_accounts::auth_mode,
+                crate::schema::user_email_accounts::last_sync_at,
+                crate::schema::user_email_accounts::last_error,
             ))
             .load::<(
                 Uuid, String, Option<String>, String, i32,
                 String, i32, bool, bool, chrono::DateTime<chrono::Utc>,
+                String, Option<chrono::DateTime<chrono::Utc>>, Option<String>,
             )>(&mut db_conn)
             .map_err(|e| format!("Query failed: {e}"))?;
 
         Ok::<_, String>(results)
     })
     .await
-    .map_err(|e| EmailError(format!("Task join error: {e}")))?
-    .map_err(EmailError)?;
+    .map_err(|e| EmailError(format!("Task join error: {e}")))?;
+    let accounts = accounts.map_err(EmailError)?;
 
     let account_list: Vec<EmailAccountResponse> = accounts
         .into_iter()
-        .map(|(acc_id, acc_email, acc_display_name, acc_imap_server, acc_imap_port, acc_smtp_server, acc_smtp_port, acc_is_primary, acc_is_active, acc_created_at)| {
+        .map(|(acc_id, acc_email, acc_display_name, acc_imap_server, acc_imap_port, acc_smtp_server, acc_smtp_port, acc_is_primary, acc_is_active, acc_created_at, acc_auth_mode, acc_last_sync_at, acc_last_error)| {
             EmailAccountResponse {
                 id: acc_id.to_string(),
                 email: acc_email,
@@ -202,6 +292,9 @@ pub async fn list_email_accounts(
                 is_primary: acc_is_primary,
                 is_active: acc_is_active,
                 created_at: acc_created_at.to_rfc3339(),
+                auth_mode: acc_auth_mode,
+                last_sync_at: acc_last_sync_at.map(|at| at.to_rfc3339()),
+                last_error: acc_last_error,
             }
         })
         .collect();
