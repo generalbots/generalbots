@@ -261,13 +261,11 @@ fn is_app_compiled(id: &str) -> bool {
         "tax" => cfg!(feature = "tax"),
         "social" => cfg!(feature = "social"),
         "attendant" => cfg!(feature = "attendant"),
-        "editor" | "bas-editor" => true,
+        "editor" => true,
         "database" => cfg!(feature = "database"),
         "browser" => cfg!(feature = "browser"),
-        "versions" => true,
         "integrations" => cfg!(feature = "integrations"),
         "sources" => cfg!(feature = "sources"),
-        "tools" => cfg!(feature = "automation"),
         "terminal" => cfg!(feature = "terminal"),
         "canvas" => cfg!(feature = "canvas"),
         "workspace" => cfg!(feature = "workspaces"),
@@ -327,15 +325,32 @@ fn bot_launcher_apps(bearer: Option<&str>) -> Vec<serde_json::Value> {
     let org_filter = bearer
         .and_then(token_org_id)
         .and_then(|org| Uuid::parse_str(&org).ok());
+    // #1320 — scope bots to the caller's org AND branch. Without the branch
+    // predicate a user belonging to one workspace saw every bot of the org's
+    // other branches in the launcher.
+    let branch_filter = bearer
+        .and_then(token_branch_id)
+        .and_then(|branch| Uuid::parse_str(&branch).ok());
     let rows: Vec<BotRow> = match org_filter {
-        Some(org_id) => diesel::sql_query(
-            "SELECT name, description FROM bots \
-             WHERE is_active = true AND org_id = $1 \
-             ORDER BY created_at DESC LIMIT 40",
-        )
-        .bind::<diesel::sql_types::Uuid, _>(org_id)
-        .load(&mut conn)
-        .unwrap_or_default(),
+        Some(org_id) => match branch_filter {
+            Some(branch_id) => diesel::sql_query(
+                "SELECT name, description FROM bots \
+                 WHERE is_active = true AND org_id = $1 AND branch_id = $2 \
+                 ORDER BY created_at DESC LIMIT 40",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(org_id)
+            .bind::<diesel::sql_types::Uuid, _>(branch_id)
+            .load(&mut conn)
+            .unwrap_or_default(),
+            None => diesel::sql_query(
+                "SELECT name, description FROM bots \
+                 WHERE is_active = true AND org_id = $1 \
+                 ORDER BY created_at DESC LIMIT 40",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(org_id)
+            .load(&mut conn)
+            .unwrap_or_default(),
+        },
         None => diesel::sql_query(
             "SELECT name, description FROM bots \
              WHERE is_active = true AND is_default_for_branch = true \
@@ -384,7 +399,7 @@ fn bot_launcher_apps(bearer: Option<&str>) -> Vec<serde_json::Value> {
 /// window deep-linked to the app URL (workspace serve route, which proxies
 /// through the platform with auth). Query is best-effort: a DB hiccup
 /// degrades to the static catalog only.
-fn published_app_launcher_apps() -> Vec<serde_json::Value> {
+fn published_app_launcher_apps(bearer: Option<&str>) -> Vec<serde_json::Value> {
     use diesel::prelude::*;
     use uuid::Uuid;
     let pool = match botcore::shared::utils::create_conn() {
@@ -415,6 +430,18 @@ fn published_app_launcher_apps() -> Vec<serde_json::Value> {
             return Vec::new();
         }
     };
+    // #1320 — the launcher must only show apps published by the caller's
+    // tenant. Without this filter every org's published sites leaked into
+    // every other org's launcher. The org/branch claims come from the same
+    // tenant scope the rest of the app uses (bot listing above); an
+    // unauthenticated or unbound caller sees only the global (nil) scope.
+    let org_filter = bearer
+        .and_then(token_org_id)
+        .and_then(|org| Uuid::parse_str(&org).ok());
+    let branch_filter = bearer
+        .and_then(token_branch_id)
+        .and_then(|branch| Uuid::parse_str(&branch).ok());
+    let nil = Uuid::nil();
     let rows: Vec<AppRow> = diesel::sql_query(
         // The launcher flag is the explicit publish-time opt-in (payload.
         // launcher.enabled); project `status` tracks the VM lifecycle and
@@ -423,8 +450,11 @@ fn published_app_launcher_apps() -> Vec<serde_json::Value> {
         "SELECT id, name, project_type, framework, payload->'launcher' AS launcher \
          FROM vibe_projects \
          WHERE payload->'launcher'->>'enabled' = 'true' \
+           AND org_id = $1 AND branch_id = $2 \
          ORDER BY updated_at DESC LIMIT 40",
     )
+    .bind::<diesel::sql_types::Uuid, _>(org_filter.unwrap_or(nil))
+    .bind::<diesel::sql_types::Uuid, _>(branch_filter.unwrap_or(nil))
     .load(&mut conn)
     .unwrap_or_default();
     rows.into_iter()
@@ -482,6 +512,19 @@ fn token_org_id(token: &str) -> Option<String> {
         .ok()?;
     let value: serde_json::Value = serde_json::from_slice(&bytes).ok()?;
     value["org_id"].as_str().map(|s| s.to_string())
+}
+
+/// Branch claim from the same tenant scope minted at login (used by the
+/// session/workspace flows). Absent for anonymous or single-branch sessions.
+fn token_branch_id(token: &str) -> Option<String> {
+    use base64::Engine as _;
+    let payload_b64 = token.split('.').nth(1)?;
+    let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
+        .decode(payload_b64)
+        .or_else(|_| base64::engine::general_purpose::STANDARD_NO_PAD.decode(payload_b64))
+        .ok()?;
+    let value: serde_json::Value = serde_json::from_slice(&bytes).ok()?;
+    value["branch_id"].as_str().map(|s| s.to_string())
 }
 
 pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json::Value> {
@@ -554,7 +597,7 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
     // since bot ids are namespaced `bot-`).
     let mut all_items = items;
     all_items.extend(bot_launcher_apps(bearer.as_deref()));
-    all_items.extend(published_app_launcher_apps());
+    all_items.extend(published_app_launcher_apps(bearer.as_deref()));
     Json(json!({
         "apps": all_items,
         "categories": registry::CATEGORIES
