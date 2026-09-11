@@ -705,6 +705,9 @@
         cmdRow1.appendChild(buildButton("New Project", "New Project", function () { if (window.VibeNewProject) window.VibeNewProject.open(); else if (window.VibeWindows) window.VibeWindows.openNewProject(); }, "vibe-shell-tb-new"));
         cmdRow1.appendChild(tbSep());
         cmdRow1.appendChild(buildButton("Terminal", "Terminal", openTerminal));
+        cmdRow1.appendChild(buildButton("Run", "Run", function () { if (window.VibeRun) window.VibeRun.start(); }, "vibe-shell-tb-run"));
+        cmdRow1.appendChild(buildButton("Stop", "Stop", function () { if (window.VibeRun) window.VibeRun.stop(); }, "vibe-shell-tb-stop"));
+        cmdRow1.appendChild(buildButton("Pause", "Pause", function () { if (window.VibeRun) window.VibeRun.pause(); }, "vibe-shell-tb-pause"));
         // Browser loads the selected project's app. Prefers the dev VM run
         // (real node process, #1271), falls back to the static workspace
         // stream, then to a deployed preview URL.
@@ -751,6 +754,23 @@
         cmdRow2.appendChild(buildButton("Members", "Members", function () { if (window.VibeWindows) window.VibeWindows.openMembers(); }));
         cmds.appendChild(cmdRow2);
         bar.appendChild(cmds);
+
+        // #1325 — project-gated commands: when no project is selected every
+        // command that needs one is disabled; New Project and Close All stay
+        // enabled. Re-evaluated whenever the selection changes.
+        function refreshCommandState() {
+            var hasProject = !!S.projectId();
+            Array.prototype.forEach.call(bar.querySelectorAll(".vibe-shell-tb-btn"), function (b) {
+                if (b.classList.contains("vibe-shell-tb-new") || b.classList.contains("vibe-shell-tb-closeall")) return;
+                b.disabled = !hasProject;
+                b.classList.toggle("vibe-shell-tb-disabled", !hasProject);
+            });
+        }
+        bar.__refreshCommandState = refreshCommandState;
+        refreshCommandState();
+        document.addEventListener("gb:vibe-project", refreshCommandState);
+        document.addEventListener("gb:vibe-project-created", refreshCommandState);
+
 
         /* ── Close-all ✕ — closes every vibe window at once ─────── */
         var closeGroup = el("div", "vibe-shell-tb-group vibe-shell-tb-close-group");

@@ -602,3 +602,11 @@ body.vibe-toolbar-mode .vibe-shell-flow {
     display: block;
     background: #fff;
 }
+/* #1325 — project-gated toolbar commands */
+.vibe-shell-tb-btn:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+.vibe-shell-tb-btn.vibe-shell-tb-disabled:hover {
+  filter: none;
+}

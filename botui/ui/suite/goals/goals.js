@@ -113,7 +113,10 @@
       const response = await fetch("/api/goals/objectives");
       if (response.ok) {
         const data = await response.json();
-        state.objectives = data.objectives || [];
+        // #1323 — the API returns a bare array (Json<Vec<Objective>>); accept
+        // both the array and the wrapped { objectives: [...] } shape so the
+        // list never silently renders empty.
+        state.objectives = Array.isArray(data) ? data : (data.objectives || []);
         renderObjectives();
       }
     } catch (e) {

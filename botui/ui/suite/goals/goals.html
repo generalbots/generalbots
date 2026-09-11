@@ -12,7 +12,7 @@
                 class="btn-icon"
                 id="new-objective-btn"
                 title="New Objective"
-                hx-get="/api/goals/objectives/new"
+                hx-get="/api/ui/goals/new-objective"
                 hx-target="#goals-modal"
                 hx-swap="innerHTML"
             >
@@ -58,16 +58,16 @@
                 hx-target="#main-content"
                 hx-swap="innerHTML"
             >
-                <span class="btn-icon">🔗</span>
+                <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg></span>
                 <span data-i18n="goals-alignment">Alignment</span>
             </button>
             <button
                 class="sidebar-btn"
-                hx-get="/api/goals/ai/suggest"
+                hx-post="/api/goals/ai/suggest"
                 hx-target="#goals-modal"
                 hx-swap="innerHTML"
             >
-                <span class="btn-icon">✨</span>
+                <span class="btn-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/></svg></span>
                 <span>AI Suggestions</span>
             </button>
         </div>
@@ -95,7 +95,7 @@
                 </div>
                 <button
                     class="btn-primary"
-                    hx-get="/api/goals/objectives/new"
+                    hx-get="/api/ui/goals/new-objective"
                     hx-target="#goals-modal"
                     hx-swap="innerHTML"
                 >
@@ -107,21 +107,21 @@
         <!-- Stats Cards -->
         <div class="stats-grid">
             <div class="stat-card">
-                <div class="stat-icon">🎯</div>
+                <div class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></div>
                 <div class="stat-content">
                     <div class="stat-value" id="total-objectives">--</div>
                     <div class="stat-label">Objectives</div>
                 </div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">🔑</div>
+                <div class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.5 12.5L21 2"/><path d="M17 6l2.5 2.5"/><path d="M14 9l2.5 2.5"/></svg></div>
                 <div class="stat-content">
                     <div class="stat-value" id="total-krs">--</div>
                     <div class="stat-label">Key Results</div>
                 </div>
             </div>
             <div class="stat-card progress-card">
-                <div class="stat-icon">📈</div>
+                <div class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 17 9 11 13 15 21 7"/><polyline points="15 7 21 7 21 13"/></svg></div>
                 <div class="stat-content">
                     <div class="stat-value" id="avg-progress">--</div>
                     <div class="stat-label">Avg Progress</div>
@@ -134,7 +134,7 @@
                 </div>
             </div>
             <div class="stat-card">
-                <div class="stat-icon">⚠️</div>
+                <div class="stat-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
                 <div class="stat-content">
                     <div class="stat-value at-risk" id="at-risk-count">--</div>
                     <div class="stat-label">At Risk</div>
@@ -192,12 +192,12 @@
 
         <!-- Empty State -->
         <div id="goals-empty" class="empty-state">
-            <div class="empty-state-icon">🎯</div>
+            <div class="empty-state-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/></svg></div>
             <h2>No Objectives Yet</h2>
             <p>Create your first objective to start tracking your OKRs</p>
             <button
                 class="btn-primary"
-                hx-get="/api/goals/objectives/new"
+                hx-get="/api/ui/goals/new-objective"
                 hx-target="#goals-modal"
                 hx-swap="innerHTML"
             >
