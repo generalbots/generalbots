@@ -1,0 +1,42 @@
+<link rel="stylesheet" href="/suite/photos/photos-editor.css?v=1" />
+
+<!-- Photo Editor (#1306) — opens when a .png/.jpg/… in Drive is opened.
+     Loads the image from Drive, lets the user adjust (rotate/flip/
+     brightness/contrast/saturation/blur) and Save back to Drive (same path)
+     or Save As a copy. All editing is canvas-based; no external services. -->
+<div class="gb-app photo-editor" data-gb-app="photo-editor" id="photoEditorRoot">
+    <div class="pe-toolbar">
+        <span class="pe-filename" id="peFileName">image</span>
+        <span class="pe-spacer"></span>
+        <button type="button" class="pe-btn" id="peRotateBtn" title="Rotate 90°">⟳ Rotate</button>
+        <button type="button" class="pe-btn" id="peFlipHBtn" title="Flip horizontal">⇋ Flip H</button>
+        <button type="button" class="pe-btn" id="peFlipVBtn" title="Flip vertical">⇅ Flip V</button>
+        <button type="button" class="pe-btn" id="peResetBtn" title="Revert all edits">↺ Reset</button>
+        <span class="pe-sep"></span>
+        <button type="button" class="pe-btn pe-primary" id="peSaveBtn" title="Save to Drive (same file)">💾 Save</button>
+        <button type="button" class="pe-btn" id="peSaveAsBtn" title="Save as a copy in Drive">Save As…</button>
+    </div>
+
+    <div class="pe-adjust">
+        <label>Brightness <input type="range" id="peBrightness" min="0" max="200" value="100" /> <span id="peBrightnessVal">100</span>%</label>
+        <label>Contrast <input type="range" id="peContrast" min="0" max="200" value="100" /> <span id="peContrastVal">100</span>%</label>
+        <label>Saturation <input type="range" id="peSaturation" min="0" max="200" value="100" /> <span id="peSaturationVal">100</span>%</label>
+        <label>Blur <input type="range" id="peBlur" min="0" max="10" value="0" step="0.5" /> <span id="peBlurVal">0</span>px</label>
+        <label>Grayscale <input type="checkbox" id="peGrayscale" /></label>
+        <label>Sepia <input type="checkbox" id="peSepia" /></label>
+        <label>Invert <input type="checkbox" id="peInvert" /></label>
+    </div>
+
+    <div class="pe-canvas-wrap" id="peCanvasWrap">
+        <div class="pe-loading" id="peLoading">Loading image…</div>
+        <canvas id="peCanvas"></canvas>
+    </div>
+
+    <div class="pe-statusbar">
+        <span id="peStatus">Ready</span>
+        <span class="pe-spacer"></span>
+        <span id="peMeta"></span>
+    </div>
+</div>
+
+<script src="/suite/photos/photos-editor.js?v=1"></script>

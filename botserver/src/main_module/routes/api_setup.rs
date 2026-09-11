@@ -53,6 +53,7 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
             .route("/api/files/read", axum_post(crate::drive::drive_handlers::read_file))
             .route("/api/files/download", axum_post(crate::drive::drive_handlers::download_file))
             .route("/api/files/download-binary", axum_post(crate::drive::drive_handlers::download_file_binary))
+            .route("/api/files/download-inline", axum_post(crate::drive::drive_handlers::download_file_inline))
             .route("/api/files/delete", axum_post(crate::drive::drive_handlers::delete_file))
             .route("/api/files/createFolder", axum_post(crate::drive::drive_handlers::create_folder))
             .route("/api/files/copy", axum_post(crate::drive::drive_handlers::copy_file))
