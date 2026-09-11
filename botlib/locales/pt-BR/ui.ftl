@@ -1779,3 +1779,8 @@ meet-recordings-empty = Nenhuma gravação ainda
 
 
 # Dashboards widget editing
+
+
+# ── Navegação de configurações (issue #1304) ───────────────────────
+nav-about = Sobre
+nav-organizations = Organizações

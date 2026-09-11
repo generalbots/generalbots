@@ -555,3 +555,16 @@ admin-selected-count = { $count ->
     [one] { $count } item selecionado
    *[other] { $count } itens selecionados
 }
+
+
+# ── Navegação de configurações (issue #1304) ───────────────────────
+admin-audit = Auditoria
+admin-audit-subtitle = Trilha de atividade do sistema
+admin-users = Usuários
+admin-users-subtitle = Pessoas com acesso a este workspace
+admin-groups = Grupos
+admin-groups-subtitle = Papéis e permissões
+admin-bots = Bots
+admin-bots-subtitle = Gerenciar bots assistentes
+admin-dns = DNS
+admin-dns-subtitle = Registros de domínio e roteamento

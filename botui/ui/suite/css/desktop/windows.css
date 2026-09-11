@@ -593,3 +593,14 @@ body.window-maximized .window-element {
 .gb-ws-tab-x:hover { color: #dc2626; }
 .gb-ws-tab-add { border: 1px dashed var(--gb-border, #cbd5e1); background: transparent; border-radius: 4px; cursor: pointer; padding: 0 0.5rem; font-size: 0.9rem; margin-bottom: 3px; color: var(--gb-text-dim, #64748b); }
 .gb-ws-tab-add:hover { color: var(--gb-accent, #2563eb); border-color: var(--gb-accent, #2563eb); }
+
+/* #1304 — Settings/Admin open as a fixed-size modal dialog: no resize grip,
+   no maximize, no window-level scrollbars (the app scrolls its own panes). */
+.window-element-glass.window-settings-modal,
+.window-element.window-settings-modal {
+  resize: none !important;
+  overflow: hidden;
+}
+.window-settings-modal .window-dot-maximize {
+  display: none;
+}

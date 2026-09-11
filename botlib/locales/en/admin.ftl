@@ -555,3 +555,18 @@ admin-selected-count = { $count ->
     [one] { $count } item selected
    *[other] { $count } items selected
 }
+
+
+# ── Settings navigation (issue #1304) ──────────────────────────────
+# The settings sidebar referenced these ids directly; without them the menu
+# rendered the raw key instead of the label ("[id] instead of real text").
+admin-audit = Audit Log
+admin-audit-subtitle = System activity trail
+admin-users = Users
+admin-users-subtitle = People with access to this workspace
+admin-groups = Groups
+admin-groups-subtitle = Roles and permissions
+admin-bots = Bots
+admin-bots-subtitle = Manage assistant bots
+admin-dns = DNS
+admin-dns-subtitle = Domain records and routing
