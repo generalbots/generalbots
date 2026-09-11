@@ -11,9 +11,26 @@ function resolveRedirect() {
   const raw = (new URLSearchParams(window.location.search)).get('redirect')
     || (new URLSearchParams(window.location.search)).get('return_to');
   if (!raw) return null;
+
+  // #1324 — never return to an auth page. A `redirect` pointing at /login or
+  // /signup makes every hop nest another ?redirect= until the URL explodes
+  // ("can't be reached"). Fall back to the default destination instead.
+  function isAuthTarget(value) {
+    try {
+      const path = new URL(value, window.location.origin).pathname;
+      return /\/(login|signup)\/?$/.test(path);
+    } catch (_) {
+      return /\/(login|signup)(\?|$)/.test(value);
+    }
+  }
+  if (isAuthTarget(raw)) return null;
+
   if (/^https?:\/\//i.test(raw)) return raw;
   if (raw.startsWith('/') && document.referrer) {
-    try { return new URL(raw, document.referrer).href; } catch (_) { return null; }
+    try {
+      const resolved = new URL(raw, document.referrer).href;
+      return isAuthTarget(resolved) ? null : resolved;
+    } catch (_) { return null; }
   }
   return null;
 }

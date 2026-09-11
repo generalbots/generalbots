@@ -247,6 +247,19 @@ pub async fn index(
                     } else {
                         format!("{scheme}://{host}{}?{clean_query}", uri.path())
                     };
+                    // #1324 — never point the login redirect at an auth page.
+                    // When the gated path is itself /login or /signup the
+                    // redirect chain nests `?redirect=` on every hop until the
+                    // URL explodes and the browser gives up ("can't be
+                    // reached"). Auth pages return to the default destination
+                    // instead of asking to return to themselves.
+                    let path_is_auth = {
+                        let p = uri.path().trim_end_matches('/').to_lowercase();
+                        p.ends_with("/login") || p.ends_with("/signup") || p == "/login" || p == "/signup"
+                    };
+                    if path_is_auth {
+                        return Redirect::to(&login_url).into_response();
+                    }
                     return Redirect::to(&format!(
                         "{}?redirect={}",
                         login_url,
