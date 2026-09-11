@@ -30,7 +30,7 @@ regex = { workspace = true }
 log = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls", "json"] }
 
-tokio = { workspace = true, features = ["sync", "rt", "macros"] }
+tokio = { workspace = true, features = ["sync", "rt", "macros", "fs"] }
 url = { workspace = true }
 botcore = { path = "../botcore" }
 botsecurity = { path = "../botsecurity" }

@@ -4,6 +4,8 @@ pub mod crm;
 pub mod data_operations;
 pub mod db_api;
 pub mod detect;
+#[cfg(feature = "drive")]
+pub mod document_text;
 pub mod find;
 pub mod get;
 pub mod import_export;
