@@ -1,5 +1,6 @@
 pub mod accounts;
 pub mod messages;
+pub mod oauth;
 pub mod tracking;
 pub mod signatures;
 pub mod htmx;

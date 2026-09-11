@@ -456,6 +456,8 @@ pub const ALL_ROUTES: &[ApiEndpoint] = &[
     ApiEndpoint { method: "POST", path: "/api/email/meeting/resolve", summary: "registered in crates/botemail/src/routes.rs" },
     ApiEndpoint { method: "POST", path: "/api/email/nudge/dismiss", summary: "registered in crates/botemail/src/routes.rs" },
     ApiEndpoint { method: "POST", path: "/api/email/nudges", summary: "registered in crates/botemail/src/routes.rs" },
+    ApiEndpoint { method: "GET", path: "/api/email/oauth/callback", summary: "registered in crates/botemail/src/routes.rs" },
+    ApiEndpoint { method: "POST", path: "/api/email/oauth/start", summary: "registered in crates/botemail/src/routes.rs" },
     ApiEndpoint { method: "POST", path: "/api/email/refine-draft", summary: "registered in crates/botemail/src/routes.rs" },
     ApiEndpoint { method: "POST", path: "/api/email/rules", summary: "registered in crates/botemail/src/routes.rs" },
     ApiEndpoint { method: "POST", path: "/api/email/send", summary: "registered in crates/botemail/src/routes.rs" },

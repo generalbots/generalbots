@@ -1,4 +1,11 @@
+pub mod caldav;
+pub mod caldav_xml;
 pub mod conflict_resolution;
+
+mod caldav_http;
+mod caldav_store;
+
+pub use caldav::create_caldav_router;
 
 use axum::{
     extract::{Path, Query, State},
@@ -1420,17 +1427,8 @@ fn detect_conflicts(
         .load::<CalendarEventRecord>(conn)
 }
 
-pub fn create_caldav_router() -> Router<Arc<DbPool>> {
-    Router::new()
-        .route("/caldav", get(caldav_root))
-        .route("/caldav/principals", get(caldav_principals))
-        .route("/caldav/calendars", get(caldav_calendars))
-        .route("/caldav/calendars/:calendar_id", get(caldav_calendar))
-        .route(
-            "/caldav/calendars/{calendar_id}/{event_id}.ics",
-            get(caldav_event).put(caldav_put_event),
-        )
-}
+// The DAV router lives in the `caldav` module; it is re-exported above so the
+// server keeps mounting it through `botcalendar::create_caldav_router`.
 
 async fn caldav_root() -> impl IntoResponse {
     Response::builder()

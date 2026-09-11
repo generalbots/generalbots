@@ -39,6 +39,11 @@ impl Default for AuthConfig {
                 // Host→bot lookup used by the UI server (botui) when rendering
                 // the suite for a domain/subdomain before any user auth exists.
                 "/api/domains/resolve".to_string(),
+                // Mailbox OAuth2 consent callback. The provider redirects the
+                // user's browser here without any Authorization header; the
+                // request is authenticated by the signed `state` parameter
+                // instead (see botemail::handlers::oauth).
+                "/api/email/oauth/callback".to_string(),
             ],
             public_paths: vec![
                 "/static".to_string(),

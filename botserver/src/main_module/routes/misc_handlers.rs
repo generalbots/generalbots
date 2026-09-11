@@ -36,6 +36,26 @@ fn branch_id_for(conn: &mut diesel::PgConnection) -> Uuid {
     .unwrap_or(Uuid::nil())
 }
 
+/// Resolves the branch's default bot. `calendar_events.bot_id` is `NOT NULL`
+/// without a default, so a write that omits it is rejected by PostgreSQL.
+fn bot_id_for(conn: &mut diesel::PgConnection, branch_id: Uuid) -> Uuid {
+    use diesel::prelude::*;
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct BotRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        bot_id: Uuid,
+    }
+    diesel::sql_query(
+        "SELECT id AS bot_id FROM bots WHERE branch_id = $1 \
+         ORDER BY is_default_for_branch DESC, created_at ASC LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch_id)
+    .get_result::<BotRow>(conn)
+    .map(|r| r.bot_id)
+    .unwrap_or(Uuid::nil())
+}
+
 fn pool_conn(
     state: &Arc<AppState>,
 ) -> Result<diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>, (StatusCode, String)>
@@ -77,6 +97,7 @@ pub async fn handle_calendar_event_save(
         Err(e) => return Html(format!("<div class=\"calendar-error\">{}</div>", html_escape(&e.1))),
     };
     let branch = branch_id_for(&mut conn);
+    let bot = bot_id_for(&mut conn, branch);
 
     let start_str = payload.start.unwrap_or_default();
     let end_str = payload.end.unwrap_or_default();
@@ -92,20 +113,38 @@ pub async fn handle_calendar_event_save(
     let end = parse(&end_str).unwrap_or(start + chrono::Duration::hours(1));
     let all_day = matches!(payload.all_day.as_deref(), Some("on") | Some("true"));
 
-    let _ = diesel::sql_query(
-        "INSERT INTO calendar_events (id, org_id, branch_id, calendar_id, owner_id, title, location, start_time, end_time, all_day, status, visibility, busy_status, reminders, attendees, metadata) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'confirmed', 'default', 'busy', '[]', '[]', '{}')",
+    // All three scope columns are required: org_id, bot_id and branch_id.
+    let insert = diesel::sql_query(
+        "INSERT INTO calendar_events \
+         (id, org_id, bot_id, branch_id, calendar_id, owner_id, title, description, location, \
+          start_time, end_time, all_day, status, visibility, busy_status, reminders, attendees, \
+          metadata) \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, 'confirmed', 'default', \
+                 'busy', '[]', '[]', '{}')",
     )
     .bind::<diesel::sql_types::Uuid, _>(&id)
     .bind::<diesel::sql_types::Uuid, _>(&Uuid::nil())
+    .bind::<diesel::sql_types::Uuid, _>(&bot)
     .bind::<diesel::sql_types::Uuid, _>(&branch)
     .bind::<diesel::sql_types::Uuid, _>(&Uuid::nil())
     .bind::<diesel::sql_types::Uuid, _>(&Uuid::nil())
     .bind::<diesel::sql_types::Text, _>(&title)
+    .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&payload.description)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&payload.location)
     .bind::<diesel::sql_types::Timestamptz, _>(&start)
     .bind::<diesel::sql_types::Timestamptz, _>(&end)
     .bind::<diesel::sql_types::Bool, _>(all_day)
     .execute(&mut conn);
+
+    // The result used to be discarded, so the form confirmed a save that had
+    // failed. Surface the failure instead of reporting a phantom event.
+    if let Err(e) = insert {
+        log::error!("Failed to save calendar event '{title}': {e}");
+        return Html(
+            "<div class=\"calendar-error\">The event could not be saved. Please try again.</div>"
+                .to_string(),
+        );
+    }
 
     Html(format!(
         r#"<div class="event-saved" data-event-id="{id}"><p>Event "{title}" saved</p></div>"#,

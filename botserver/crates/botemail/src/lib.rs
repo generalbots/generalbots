@@ -8,6 +8,9 @@ pub mod unified_inbox;
 pub mod threading;
 pub mod search_handler;
 pub mod draft_handler;
+pub mod oauth;
+#[cfg(feature = "mail")]
+pub mod imap_auth;
 #[cfg(feature = "mail")]
 pub mod poller;
 

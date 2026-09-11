@@ -36,6 +36,10 @@ pub struct EmailAccountBasicRow {
     pub display_name: Option<String>,
     #[diesel(sql_type = Bool)]
     pub is_primary: bool,
+    /// Failure reported by the last sync pass, surfaced next to the account so
+    /// an unreachable mailbox is distinguishable from an empty one.
+    #[diesel(sql_type = Nullable<Text>)]
+    pub last_error: Option<String>,
 }
 
 #[derive(Debug, QueryableByName)]
@@ -64,6 +68,8 @@ pub struct SmtpCredentialsRow {
     pub username: String,
     #[diesel(sql_type = Text)]
     pub password_encrypted: String,
+    #[diesel(sql_type = Text)]
+    pub auth_mode: String,
 }
 
 #[derive(Debug, QueryableByName)]

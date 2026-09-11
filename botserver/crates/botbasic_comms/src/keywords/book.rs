@@ -1,14 +1,14 @@
 use botcore::shared::schema::calendar_events;
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
-use chrono::{DateTime, Duration, Timelike, Utc};
+use chrono::{DateTime, Duration, Utc};
 use log::{info, trace};
 use rhai::{Dynamic, Engine};
 
 
 #[derive(Debug)]
 pub struct CalendarEngine {
-    _db: botcore::shared::utils::DbPool,
+    db: botcore::shared::utils::DbPool,
 }
 
 #[derive(Debug)]
@@ -47,13 +47,75 @@ pub struct RecurrenceRule {
 impl CalendarEngine {
     #[must_use]
     pub fn new(db: botcore::shared::utils::DbPool) -> Self {
-        Self { _db: db }
+        Self { db }
     }
 
+    /// Persists a calendar event and returns it with the stored identifier.
+    ///
+    /// `calendars` and `calendar_events` carry three scope columns that are all
+    /// `NOT NULL` without defaults (`org_id`, `bot_id`, `branch_id`), so the
+    /// write resolves the branch scope first and provisions a default calendar
+    /// when the scope has none. Callers previously received `Ok(event)` here,
+    /// which made `BOOK` report a confirmed booking that was never stored.
     pub fn create_event(
         &self,
         event: CalendarEvent,
     ) -> Result<CalendarEvent, Box<dyn std::error::Error>> {
+        let mut conn = self
+            .db
+            .get()
+            .map_err(|e| format!("Database pool unavailable: {e}"))?;
+
+        let scope = resolve_event_scope(&mut conn)?;
+        let calendar_id = ensure_default_calendar(&mut conn, &scope)?;
+        let owner_id = Uuid::parse_str(&event.organizer).unwrap_or(Uuid::nil());
+        let reminders = match event.reminder_minutes {
+            Some(minutes) => {
+                serde_json::json!([{ "minutes_before": minutes, "type": "notification" }])
+            }
+            None => serde_json::json!([]),
+        };
+        let attendees = serde_json::json!(event.attendees.clone());
+        let recurrence_rule = event
+            .recurrence_rule
+            .as_ref()
+            .map(recurrence_rule_to_string);
+        let status = match &event.status {
+            EventStatus::Confirmed => "confirmed",
+            EventStatus::Tentative => "tentative",
+            EventStatus::Cancelled => "cancelled",
+        };
+
+        diesel::sql_query(
+            "INSERT INTO calendar_events \
+             (id, org_id, bot_id, branch_id, calendar_id, owner_id, title, description, \
+              location, start_time, end_time, all_day, recurrence_rule, status, visibility, \
+              busy_status, reminders, attendees, metadata) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, false, $12, $13, \
+                     'default', 'busy', $14, $15, '{}')",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(event.id)
+        .bind::<diesel::sql_types::Uuid, _>(scope.org_id)
+        .bind::<diesel::sql_types::Uuid, _>(scope.bot_id)
+        .bind::<diesel::sql_types::Uuid, _>(scope.branch_id)
+        .bind::<diesel::sql_types::Uuid, _>(calendar_id)
+        .bind::<diesel::sql_types::Uuid, _>(owner_id)
+        .bind::<diesel::sql_types::Text, _>(&event.title)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&event.description)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&event.location)
+        .bind::<diesel::sql_types::Timestamptz, _>(event.start_time)
+        .bind::<diesel::sql_types::Timestamptz, _>(event.end_time)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&recurrence_rule)
+        .bind::<diesel::sql_types::Text, _>(status)
+        .bind::<diesel::sql_types::Jsonb, _>(reminders)
+        .bind::<diesel::sql_types::Jsonb, _>(attendees)
+        .execute(&mut conn)
+        .map_err(|e| format!("Failed to persist the calendar event: {e}"))?;
+
+        info!(
+            "Persisted calendar event {} ('{}') in calendar {}",
+            event.id, event.title, calendar_id
+        );
         Ok(event)
     }
 
@@ -169,8 +231,7 @@ pub fn book_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mu
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    engine
-        .register_custom_syntax(
+    if let Err(e) = engine.register_custom_syntax(
             [
                 "BOOK", "$expr$", ",", "$expr$", ",", "$expr$", ",", "$expr$", ",", "$expr$",
             ],
@@ -239,13 +300,14 @@ pub fn book_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mu
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register a booking keyword: {e}");
+    }
 
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
-    engine
-        .register_custom_syntax(
+    if let Err(e) = engine.register_custom_syntax(
             ["BOOK_MEETING", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
@@ -301,12 +363,13 @@ pub fn book_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mu
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register a booking keyword: {e}");
+    }
 
     let state_clone3 = Arc::clone(&state);
 
-    engine
-        .register_custom_syntax(
+    if let Err(e) = engine.register_custom_syntax(
             ["CHECK_AVAILABILITY", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
@@ -354,7 +417,9 @@ pub fn book_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mu
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register a booking keyword: {e}");
+    }
 }
 
 fn execute_book(
@@ -520,8 +585,14 @@ fn check_availability(
     let date = parse_date_string(date_str)?;
     let calendar_engine = get_calendar_engine(state)?;
 
-    let business_start = date.with_hour(9).expect("valid hour").with_minute(0).expect("valid minute");
-    let business_end = date.with_hour(17).expect("valid hour").with_minute(0).expect("valid minute");
+    let build_at = |hour: u32| -> Result<DateTime<Utc>, String> {
+        date.date_naive()
+            .and_hms_opt(hour, 0, 0)
+            .map(|naive| DateTime::from_naive_utc_and_offset(naive, Utc))
+            .ok_or_else(|| format!("Could not build the business-hours window for {date}"))
+    };
+    let business_start = build_at(9)?;
+    let business_end = build_at(17)?;
 
     let events = calendar_engine
         .get_events_range(business_start, business_end)
@@ -579,13 +650,12 @@ fn parse_time_string(time_str: &str) -> Result<DateTime<Utc>, String> {
     if time_str.contains("tomorrow") {
         let tomorrow = Utc::now() + Duration::days(1);
         if let Some(hour) = extract_hour_from_string(time_str) {
-            return Ok(tomorrow
-                .with_hour(hour)
-                .expect("valid hour")
-                .with_minute(0)
-                .expect("valid minute")
-                .with_second(0)
-                .expect("valid second"));
+            let at_hour = tomorrow
+                .date_naive()
+                .and_hms_opt(hour.min(23), 0, 0)
+                .map(|naive| DateTime::from_naive_utc_and_offset(naive, Utc))
+                .ok_or_else(|| format!("Could not parse time: {time_str}"))?;
+            return Ok(at_hour);
         }
     }
 
@@ -614,7 +684,9 @@ fn parse_date_string(date_str: &str) -> Result<DateTime<Utc>, String> {
 
     for format in formats {
         if let Ok(dt) = chrono::NaiveDate::parse_from_str(date_str, format) {
-            return Ok(dt.and_hms_opt(0, 0, 0).expect("valid time").and_utc());
+            if let Some(naive) = dt.and_hms_opt(0, 0, 0) {
+                return Ok(naive.and_utc());
+            }
         }
     }
 
@@ -666,6 +738,119 @@ fn log_booking(
 fn get_calendar_engine(state: &dyn BasicRuntime) -> Result<Arc<CalendarEngine>, String> {
     let calendar_engine = Arc::new(CalendarEngine::new(state.db_pool().clone()));
     Ok(calendar_engine)
+}
+
+/// Tenant scope written alongside every calendar row. The three identifiers
+/// are `NOT NULL` in the database and none of them has a default, so a write
+/// that omits any of them is rejected by PostgreSQL.
+#[derive(Debug, Clone, Copy)]
+struct EventScope {
+    org_id: Uuid,
+    bot_id: Uuid,
+    branch_id: Uuid,
+}
+
+/// Resolves the scope used for calendar writes from the oldest branch, using
+/// that branch's default bot. Mirrors the resolution performed by the server
+/// bootstrap so bookings land in the same scope the Calendar application reads.
+fn resolve_event_scope(
+    conn: &mut diesel::PgConnection,
+) -> Result<EventScope, Box<dyn std::error::Error>> {
+    #[derive(diesel::QueryableByName)]
+    struct ScopeRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        branch_id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        org_id: Uuid,
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        bot_id: Uuid,
+    }
+
+    let row = diesel::sql_query(
+        "SELECT b.id AS branch_id, b.org_id, \
+                COALESCE((SELECT id FROM bots WHERE branch_id = b.id \
+                          ORDER BY is_default_for_branch DESC, created_at ASC LIMIT 1), \
+                         '00000000-0000-0000-0000-000000000000') AS bot_id \
+         FROM branches b ORDER BY b.created_at ASC LIMIT 1",
+    )
+    .get_result::<ScopeRow>(conn)
+    .optional()?;
+
+    match row {
+        Some(r) => Ok(EventScope {
+            org_id: r.org_id,
+            bot_id: r.bot_id,
+            branch_id: r.branch_id,
+        }),
+        None => Err("No branch is configured, so the event cannot be scoped".into()),
+    }
+}
+
+/// Returns the identifier of the scope's primary calendar, provisioning one
+/// when the scope has none. `calendar_events.calendar_id` is `NOT NULL`, so a
+/// booking cannot be stored until a calendar exists.
+fn ensure_default_calendar(
+    conn: &mut diesel::PgConnection,
+    scope: &EventScope,
+) -> Result<Uuid, Box<dyn std::error::Error>> {
+    #[derive(diesel::QueryableByName)]
+    struct CalendarIdRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
+
+    let existing = diesel::sql_query(
+        "SELECT id FROM calendars WHERE org_id = $1 AND bot_id = $2 AND branch_id = $3 \
+         ORDER BY is_primary DESC, created_at ASC LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(scope.org_id)
+    .bind::<diesel::sql_types::Uuid, _>(scope.bot_id)
+    .bind::<diesel::sql_types::Uuid, _>(scope.branch_id)
+    .get_result::<CalendarIdRow>(conn)
+    .optional()?;
+
+    if let Some(row) = existing {
+        return Ok(row.id);
+    }
+
+    let calendar_id = Uuid::new_v4();
+    diesel::sql_query(
+        "INSERT INTO calendars \
+         (id, org_id, bot_id, branch_id, owner_id, name, description, color, timezone, \
+          is_primary, is_visible, is_shared) \
+         VALUES ($1, $2, $3, $4, '00000000-0000-0000-0000-000000000000', 'Default', \
+                 'Your default calendar', '#3b82f6', 'UTC', true, true, false)",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(calendar_id)
+    .bind::<diesel::sql_types::Uuid, _>(scope.org_id)
+    .bind::<diesel::sql_types::Uuid, _>(scope.bot_id)
+    .bind::<diesel::sql_types::Uuid, _>(scope.branch_id)
+    .execute(conn)?;
+
+    info!(
+        "Provisioned default calendar {calendar_id} for branch {}",
+        scope.branch_id
+    );
+    Ok(calendar_id)
+}
+
+/// Renders the in-memory recurrence rule as an iCalendar `RRULE` value, which
+/// is the representation stored in `calendar_events.recurrence_rule`.
+fn recurrence_rule_to_string(rule: &RecurrenceRule) -> String {
+    let mut parts = vec![format!("FREQ={}", rule.frequency.to_uppercase())];
+    if rule.interval > 0 {
+        parts.push(format!("INTERVAL={}", rule.interval));
+    }
+    if let Some(count) = rule.count {
+        parts.push(format!("COUNT={count}"));
+    }
+    if let Some(until) = rule.until {
+        parts.push(format!("UNTIL={}", until.format("%Y%m%dT%H%M%SZ")));
+    }
+    if let Some(days) = rule.by_day.as_ref().filter(|days| !days.is_empty()) {
+        parts.push(format!("BYDAY={}", days.join(",")));
+    }
+    parts.join(";")
 }
 
 fn send_meeting_invite(

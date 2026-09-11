@@ -30,8 +30,14 @@ pub fn extract_user_from_request(
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
     {
-        if let Some(token) = auth_header.strip_prefix(&config.bearer_prefix) {
-            let mut user = validate_bearer_token_sync(token)?;
+        // `Basic user:token` is how native clients (calendar, mail) present the
+        // credential, since they have no field for a bearer token.
+        let token = auth_header
+            .strip_prefix(&config.bearer_prefix)
+            .map(str::to_string)
+            .or_else(|| basic_password_as_token(auth_header));
+        if let Some(token) = token {
+            let mut user = validate_bearer_token_sync(&token)?;
 
             if let Some(bot_id) = extract_bot_id_from_request(request, config) {
                 user = user.with_current_bot(bot_id);
@@ -254,6 +260,34 @@ pub fn is_jwt_format(token: &str) -> bool {
     parts.len() == 3
 }
 
+/// Returns the token carried by an HTTP Basic credential.
+///
+/// Basic has a username and a password field and no place for a bearer token,
+/// so native clients are given the credential as `Basic base64(user:token)` and
+/// the password field supplies the token. The username is ignored because the
+/// token identifies the caller on its own. Returns `None` for any other scheme
+/// or for a malformed value.
+pub fn basic_password_as_token(auth_header: &str) -> Option<String> {
+    use base64::Engine as _;
+    const BASIC_PREFIX_LEN: usize = "basic ".len();
+    // `get` keeps the split on a character boundary, so a non-ASCII header is
+    // refused instead of panicking.
+    let head = auth_header.get(..BASIC_PREFIX_LEN)?;
+    if !head.eq_ignore_ascii_case("basic ") {
+        return None;
+    }
+    let decoded = base64::engine::general_purpose::STANDARD
+        .decode(auth_header[BASIC_PREFIX_LEN..].trim())
+        .ok()?;
+    let credentials = String::from_utf8(decoded).ok()?;
+    let (_, token) = credentials.split_once(':')?;
+    let token = token.trim();
+    if token.is_empty() {
+        return None;
+    }
+    Some(token.to_string())
+}
+
 pub struct ExtractedAuthData {
     pub api_key: Option<String>,
     pub bearer_token: Option<String>,
@@ -296,10 +330,10 @@ impl ExtractedAuthData {
             .and_then(|v| v.to_str().ok());
 
         if let Some(auth) = raw_auth {
-            debug!(
-                "Raw Authorization header: {}",
-                &auth[..std::cmp::min(50, auth.len())]
-            );
+            // Truncate on a character boundary: slicing a fixed byte offset can
+            // split a multi-byte character and panic.
+            let preview: String = auth.chars().take(50).collect();
+            debug!("Raw Authorization header: {preview}");
         } else {
             warn!(
                 "No Authorization header found in request to {}",
@@ -307,23 +341,33 @@ impl ExtractedAuthData {
             );
         }
 
-        let bearer_token: Option<String> = raw_auth.and_then(|s| {
+        // Native clients (calendar, mail) authenticate with HTTP Basic, which
+        // has no field for a bearer token. The password field carries the token
+        // so those clients reach the same verified path as `Bearer`. The token
+        // is still validated below; only the transport is widened.
+        let basic_token: Option<String> = raw_auth.and_then(basic_password_as_token);
+
+        let bearer_token: Option<String> = basic_token.or_else(|| raw_auth.and_then(|s| {
             // Try exact prefix first
             if let Some(token) = s.strip_prefix(&config.bearer_prefix) {
                 return Some(token.to_string());
             }
-            // Case-insensitive fallback for proxies that normalize header values
+            // Case-insensitive fallback for proxies that normalize header values.
+            // `get` keeps the slice on a character boundary, so a header that is
+            // not ASCII cannot panic the request path.
             let prefix_len = config.bearer_prefix.len();
-            if s.len() > prefix_len && s[..prefix_len].eq_ignore_ascii_case(&config.bearer_prefix) {
-                return Some(s[prefix_len..].to_string());
+            if let Some(head) = s.get(..prefix_len) {
+                if head.eq_ignore_ascii_case(&config.bearer_prefix) {
+                    return Some(s[prefix_len..].to_string());
+                }
             }
+            let preview: String = s.chars().take(20).collect();
             warn!(
-                "Authorization header present but failed to extract bearer token. Prefix expected: '{}', raw: '{}...'",
+                "Authorization header present but failed to extract bearer token. Prefix expected: '{}', raw: '{preview}...'",
                 config.bearer_prefix,
-                &s[..std::cmp::min(20, s.len())]
             );
             None
-        });
+        }));
 
         let session_id = extract_session_from_cookies(request, &config.session_cookie_name);
 

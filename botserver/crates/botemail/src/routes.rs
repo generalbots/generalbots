@@ -15,6 +15,11 @@ pub fn configure(state: Arc<crate::models::AppState>) -> Router {
         .route("/api/email/accounts", get(accounts::list_email_accounts))
         .route("/api/email/accounts/add", post(accounts::add_email_account))
         .route("/api/email/accounts/:account_id", delete(accounts::delete_email_account))
+        // Mailbox OAuth2 consent flow (Microsoft 365, Outlook.com, Gmail). The
+        // callback is reached by a browser redirect from the provider and is
+        // authenticated by its signed `state`, not by a bearer token.
+        .route("/api/email/oauth/start", post(oauth::start_mail_oauth))
+        .route("/api/email/oauth/callback", get(oauth::mail_oauth_callback))
         .route("/api/email/list", post(messages::list_emails))
         .route("/api/email/send", post(messages::send_email))
         .route("/api/email/draft", post(messages::save_draft))

@@ -1093,3 +1093,70 @@ input:checked + .toggle-switch::after {
     font-size: 0.75rem;
     cursor: pointer;
 }
+
+/* Account list — rendered by GET /api/ui/email/accounts */
+#accounts-list .account-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 10px;
+    font-size: 13px;
+    color: var(--text);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+#accounts-list .account-item:hover {
+    background: var(--surface-hover, rgba(255, 255, 255, 0.06));
+}
+
+#accounts-list .account-item > span:first-child {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#accounts-list .account-item .badge {
+    flex: none;
+    padding: 1px 6px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    border-radius: 999px;
+    background: var(--accent, #3b82f6);
+    color: #fff;
+}
+
+/* The mailbox could not be reached on the last sync pass, so an empty inbox is
+   a failure rather than an absence of mail. The full reason is in the title. */
+#accounts-list .account-item .badge-error {
+    background: #dc2626;
+    cursor: help;
+}
+
+/* Provider sign-in — Microsoft 365, Outlook.com and Gmail mailboxes cannot be
+   added with a password, so the add-account modal offers the consent flow. */
+.account-form .oauth-connect {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border, rgba(255, 255, 255, 0.1));
+}
+
+.account-form .oauth-hint {
+    margin: 0 0 8px;
+    font-size: 12px;
+    color: var(--text-muted, #94a3b8);
+}
+
+.account-form .oauth-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.account-form .oauth-buttons button {
+    flex: 1 1 auto;
+    white-space: nowrap;
+}
