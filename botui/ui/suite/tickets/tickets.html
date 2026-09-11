@@ -1,6 +1,12 @@
 <!-- Tickets - AI-Assisted Support Cases -->
 <!-- Dynamics nomenclature: Case, Resolution, Activity -->
 
+<!-- #1317 — htmx JSON extension: the create-case form posts to /api/tickets,
+     whose handler decodes a JSON body. Without json-enc the browser sends
+     urlencoded data and axum rejects it with 415. -->
+<script src="/suite/js/vendor/htmx.min.js"></script>
+<script src="/suite/js/vendor/htmx-json-enc.js"></script>
+
 <link rel="stylesheet" href="/suite/tickets/tickets.p1.css?v=1" />
 <link rel="stylesheet" href="/suite/tickets/tickets.p2.css?v=1" />
 <link rel="stylesheet" href="/suite/tickets/tickets.p3.css?v=1" />
