@@ -308,11 +308,20 @@ if (typeof window.WindowManager === "undefined") {
         calculator: { width: 320, height: 420 },
         clock: { width: 360, height: 300 },
         notepad: { width: 420, height: 320 },
+        // #1304 — Settings is a fixed-size dialog, not a resizable workspace.
+        settings: { width: 940, height: 680 },
+        admin: { width: 940, height: 680 },
       };
       const defSize = APP_DEFAULT_SIZE[id];
       if (defSize) {
-        windowEl.style.width = `${defSize.width}px`;
-        windowEl.style.height = `${defSize.height}px`;
+        // Clamp to the viewport so the fixed footprint always fits.
+        windowEl.style.width = `min(${defSize.width}px, calc(100vw - 40px))`;
+        windowEl.style.height = `min(${defSize.height}px, calc(100vh - 96px))`;
+      }
+      // #1304 — Settings/Admin are modal dialogs: fixed footprint, no resize
+      // grip and no maximize button (the layout is designed for one size).
+      if (id === "settings" || id === "admin") {
+        windowEl.classList.add("window-settings-modal");
       }
       this._injectBodyContent(id, htmlContent);
       this._addTaskbarDockItem(id);

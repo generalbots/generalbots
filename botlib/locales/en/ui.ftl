@@ -1805,3 +1805,8 @@ dashboards-height = Height
 dashboards-data-source = Data source
 dashboards-x-axis = X axis field
 dashboards-y-axis = Y axis field
+
+
+# ── Settings navigation (issue #1304) ──────────────────────────────
+nav-about = About
+nav-organizations = Organizations

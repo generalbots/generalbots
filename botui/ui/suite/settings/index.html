@@ -67,7 +67,9 @@
                 </svg>
                 <span>Storage</span>
             </a>
-            <a href="#integrations" class="nav-item" onclick="showSection('integrations', this)">
+            <!-- #1304 — Integrations is its own application window (provider
+                 catalog, connections, OAuth). Settings only links to it. -->
+            <a href="#integrations" class="nav-item" onclick="return openIntegrationsWindow();">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="16 18 22 12 16 6"></polyline>
                     <polyline points="8 6 2 12 8 18"></polyline>
@@ -524,6 +526,17 @@
                         });
                     }
 
+                    // #1304 — the <select> calls changeLanguage(value) but only
+                    // selectLanguage(locale, element) existed, so choosing a
+                    // language threw a ReferenceError and nothing happened.
+                    window.changeLanguage = function (locale) {
+                        var element = null;
+                        document.querySelectorAll('.language-option[data-locale]').forEach(function (btn) {
+                            if (btn.dataset.locale === locale) element = btn;
+                        });
+                        window.selectLanguage(locale, element);
+                    };
+
                     window.selectLanguage = function (locale, element) {
                         var buttons = document.querySelectorAll('.language-option[data-locale]');
                         buttons.forEach(function (btn) {
@@ -612,77 +625,18 @@
                 <p class="subtitle">Customize how the application looks</p>
             </div>
 
-            <!-- Theme Selection -->
+            <!-- Theme Selection — driven by the shared ThemeManager (#1304).
+                 Settings must not carry its own palette: the sidebar combobox
+                 and this card both read ThemeManager.getAvailableThemes() and
+                 call ThemeManager.loadTheme(), so the choice stays in sync. -->
             <div class="setting-card">
                 <div class="card-header">
-                    <h2>Theme</h2>
-                    <p>Choose your preferred color theme</p>
+                    <h2 data-i18n="settings-theme">Theme</h2>
+                    <p data-i18n="settings-theme-desc">Choose your preferred color theme</p>
                 </div>
-                <div class="theme-grid">
-                    <button class="theme-option" data-theme="dark" onclick="setTheme('dark', this)">
-                        <div class="theme-preview dark">
-                            <div class="preview-sidebar"></div>
-                            <div class="preview-content">
-                                <div class="preview-header"></div>
-                                <div class="preview-body"></div>
-                            </div>
-                        </div>
-                        <span>Dark</span>
-                    </button>
-                    <button class="theme-option" data-theme="light" onclick="setTheme('light', this)">
-                        <div class="theme-preview light">
-                            <div class="preview-sidebar"></div>
-                            <div class="preview-content">
-                                <div class="preview-header"></div>
-                                <div class="preview-body"></div>
-                            </div>
-                        </div>
-                        <span>Light</span>
-                    </button>
-                    <button class="theme-option" data-theme="blue" onclick="setTheme('blue', this)">
-                        <div class="theme-preview blue">
-                            <div class="preview-sidebar"></div>
-                            <div class="preview-content">
-                                <div class="preview-header"></div>
-                                <div class="preview-body"></div>
-                            </div>
-                        </div>
-                        <span>Blue</span>
-                    </button>
-                    <button class="theme-option" data-theme="purple" onclick="setTheme('purple', this)">
-                        <div class="theme-preview purple">
-                            <div class="preview-sidebar"></div>
-                            <div class="preview-content">
-                                <div class="preview-header"></div>
-                                <div class="preview-body"></div>
-                            </div>
-                        </div>
-                        <span>Purple</span>
-                    </button>
-                    <button class="theme-option" data-theme="green" onclick="setTheme('green', this)">
-                        <div class="theme-preview green">
-                            <div class="preview-sidebar"></div>
-                            <div class="preview-content">
-                                <div class="preview-header"></div>
-                                <div class="preview-body"></div>
-                            </div>
-                        </div>
-                        <span>Green</span>
-                    </button>
-                    <button class="theme-option" data-theme="orange" onclick="setTheme('orange', this)">
-                        <div class="theme-preview orange">
-                            <div class="preview-sidebar"></div>
-                            <div class="preview-content">
-                                <div class="preview-header"></div>
-                                <div class="preview-body"></div>
-                            </div>
-                        </div>
-                        <span>Orange</span>
-                    </button>
-                </div>
+                <div class="theme-grid" id="settings-theme-grid"></div>
             </div>
 
-            <!-- Layout Preferences -->
             <div class="setting-card">
                 <div class="card-header">
                     <h2>Desktop Wallpaper</h2>
@@ -2574,6 +2528,19 @@
 </button>
 
 <script>
+    // #1304 — Integrations lives in its own app window; Settings just opens
+    // it (window manager when available, desktop route otherwise).
+    window.openIntegrationsWindow = function () {
+        if (window.WindowManager && typeof window.WindowManager.openDeepLink === 'function') {
+            window.WindowManager.openDeepLink('integrations', {});
+        } else if (window.openDeepLink) {
+            window.openDeepLink('integrations', {});
+        } else {
+            window.open('/suite/desktop.html?app=integrations', '_blank', 'noopener');
+        }
+        return false;
+    };
+
     function showSection(sectionId, element) {
         // Hide all sections
         document.querySelectorAll('.settings-section').forEach(section => {
@@ -2862,6 +2829,55 @@
             } else {
                 card.classList.remove('active');
             }
+        });
+    })();
+
+    // #1304 — the theme card is fed by the shared ThemeManager so Settings and
+    // the sidebar combobox can never drift apart. Clicking an option applies
+    // the theme immediately through the same code path the combobox uses.
+    (function initSettingsThemeGrid() {
+        function render() {
+            var grid = document.getElementById('settings-theme-grid');
+            var tm = window.ThemeManager;
+            if (!grid || !tm || typeof tm.getAvailableThemes !== 'function') return false;
+
+            var themes = tm.getAvailableThemes() || [];
+            var active = document.documentElement.getAttribute('data-theme') || '';
+            grid.innerHTML = '';
+            themes.forEach(function (theme) {
+                var id = theme.id || theme.name || '';
+                var label = theme.label || theme.name || id;
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'theme-option' + (id === active ? ' active' : '');
+                btn.setAttribute('data-theme', id);
+                btn.innerHTML = '<span>' + label + '</span>';
+                btn.addEventListener('click', function () {
+                    tm.loadTheme(id);
+                    Array.prototype.forEach.call(grid.children, function (other) {
+                        other.classList.toggle('active', other === btn);
+                    });
+                });
+                grid.appendChild(btn);
+            });
+            return true;
+        }
+
+        if (!render()) {
+            var tries = 0;
+            var timer = setInterval(function () {
+                tries += 1;
+                if (render() || tries > 20) clearInterval(timer);
+            }, 150);
+        }
+        // Keep the active highlight in sync when the theme changes elsewhere.
+        window.addEventListener('gb:themechange', function () {
+            var grid = document.getElementById('settings-theme-grid');
+            if (!grid) return;
+            var active = document.documentElement.getAttribute('data-theme') || '';
+            Array.prototype.forEach.call(grid.children, function (btn) {
+                btn.classList.toggle('active', btn.getAttribute('data-theme') === active);
+            });
         });
     })();
 
