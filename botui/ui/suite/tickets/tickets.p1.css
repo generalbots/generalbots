@@ -29,6 +29,9 @@
     font-size: 20px;
     font-weight: 600;
     margin: 0;
+    /* #1317 — the header inherited the window body colour, which washed
+       out the toolbar title on light backgrounds. */
+    color: var(--text, var(--text-primary, #f8fafc));
 }
 
 .tickets-tabs {
@@ -41,7 +44,8 @@
     background: transparent;
     border: none;
     border-radius: 6px;
-    color: var(--text-secondary, #888);
+    /* #1317 — the fallback was too faint on the panel background. */
+    color: var(--text-secondary, #6b7280);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
@@ -55,7 +59,8 @@
 
 .tickets-tab.active {
     background: var(--accent, #d4f505);
-    color: #000;
+    color: var(--accent-contrast, #000);
+    font-weight: 600;
 }
 
 .tickets-header-right {

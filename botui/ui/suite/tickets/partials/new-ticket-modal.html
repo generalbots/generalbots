@@ -1,7 +1,11 @@
 <div id="tickets-modal" class="tickets-modal">
     <div class="tickets-modal-backdrop" onclick="closeTicketsModal()"></div>
     <div class="tickets-modal-content" id="tickets-modal-content">
-        <form class="ticket-form" hx-post="/api/tickets" hx-target="#tickets-list-body" hx-on::after-request="closeTicketsModal()">
+        <!-- #1317 — json-enc sends the JSON body /api/tickets expects; the
+             response is a ticket object, so swap nothing and refresh the
+             list instead of dumping raw JSON into the table body. -->
+        <form class="ticket-form" hx-ext="json-enc" hx-post="/api/tickets" hx-swap="none"
+              hx-on::after-request="closeTicketsModal(); if (window.refreshTicketsList) window.refreshTicketsList();">
             <div class="ticket-form-header">
                 <h2 class="ticket-form-title" data-i18n="tickets-new-case">New Support Case</h2>
                 <button type="button" class="form-close" onclick="closeTicketsModal()">
