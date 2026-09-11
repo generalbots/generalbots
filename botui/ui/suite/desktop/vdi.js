@@ -672,6 +672,22 @@ var activeSessions = new Map();
         applyResolution: applyResolution,
         applyScaling: applyScaling,
         onProtocolChange: onProtocolChange,
+        // #1313 — vdi-connection.js runs right after this file and used to
+        // call these bare names, which are scoped to this IIFE: the resulting
+        // ReferenceError aborted its init and no VDI button was ever wired.
+        loadConnections: loadConnections,
+        startSession: startSession,
+        startSessionWithId: startSessionWithId,
+        init: bindVdiControls,
+        // #1313 — these were IIFE-private too, so the companion module threw
+        // ReferenceErrors on delete/notify paths.
+        toast: toast,
+        renderConnections: renderConnections,
+        getConnections: function () { return CONNECTIONS; },
+        removeConnection: function (id) {
+            CONNECTIONS = CONNECTIONS.filter(function (c) { return c.id !== id; });
+            renderConnections();
+        },
     };
 
     function bindVdiControls() {
