@@ -41,22 +41,17 @@
         }
         var app = (window.APPS_REGISTRY || []).find(function (a) { return a.id === appId; });
         if (app) {
-            // Standalone fallback (no desktop WindowManager): the app
-            // partials read deep-link params from the query string
-            // (browser.html deepLinkUrl reads ?url=...). Losing the url here
-            // is exactly "Run opens the Browser but the window is blank" —
-            // so append it when the caller supplied one.
-            var target = app.hxGet;
-            var url = params && params.url;
-            if (url) {
-                try {
-                    var q = new URLSearchParams(target.split("?")[1] || "");
-                    q.set("url", String(url));
-                    target = target.split("?")[0] + "?" + q.toString();
-                } catch (e) {
-                    target += (target.indexOf("?") === -1 ? "?" : "&") + "url=" + encodeURIComponent(String(url));
-                }
-            }
+            // Standalone fallback (no desktop WindowManager): app partials
+            // are HTMX fragments — a raw _blank open renders an
+            // unbootstrapped empty shell. Route through the desktop shell
+            // (/suite/desktop.html#/{app}) so the fragment boots inside the
+            // real desktop; params travel via the query string (browser.html
+            // deepLinkUrl reads ?url=...).
+            var params2 = params || {};
+            var qs = Object.keys(params2).map(function (k) {
+                return encodeURIComponent(k) + "=" + encodeURIComponent(String(params2[k]));
+            }).join("&");
+            var target = "/suite/desktop.html?app=" + encodeURIComponent(appId) + (qs ? "&" + qs : "");
             window.open(target, "_blank", "noopener");
         }
     }
@@ -809,6 +804,10 @@
 
         loadProjects();
         document.addEventListener("gb:vibe-project", function () {
+            // #1307 — the delete path dispatches `gb:vibe-project` right after
+            // loadVibeProjects(): a combo reload here removes the deleted
+            // site from the toolbar dropdown instead of leaving it listed.
+            loadProjects();
             syncProjectSelect();
             loadBranches();
         });
