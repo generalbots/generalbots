@@ -585,11 +585,12 @@
 
   /* ── Hook: "+" button creates a PARALLEL conversation tab ── */
 
-  // The stock picker opens app entries / recent sessions; a plain "+" shift
-  // click (or the keyboard shortcut) starts a fresh parallel chat instead.
+  // ANY click on "+" starts a fresh parallel chat (capture phase, so the
+  // stock click handler never sees it). Right-click on "+" still opens the
+  // history picker (21_tabs_events contextmenu) — the strip is for
+  // conversations, never for apps.
   document.addEventListener("click", function (e) {
     if (!e.target.closest || !e.target.closest("#gbTabNew")) return;
-    if (!(e.shiftKey || e.altKey)) return; // plain click = stock picker
     if (MC.blocked) return; // boot pending — ignore creates until surfaces are ready
     e.stopPropagation();
     e.preventDefault();

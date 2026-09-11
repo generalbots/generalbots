@@ -3,18 +3,15 @@
 /**
  * Workspace tabs (#1168-fe) — event wiring.
  * Pointer-drag reorder, inline dblclick rename, pin context menu, the "+"
- * mini picker (recent sessions + static app entries) and the zero-edit
+ * right-click picker (recent conversations only) and the zero-edit
  * history integration: a document-level contextmenu listener on
  * .chat-sidebar-conv-item items dispatches "gb-open-history-tab".
+ *
+ * The tab strip is for CONVERSATIONS only — apps never appear here; they
+ * open as desktop windows via the launcher/openDeepLink.
  */
 
 (function () {
-  var APP_ENTRIES = [
-    { id: "vibe", title: "Vibe", glyph: "\u26A1", path: "/vibe" },
-    { id: "research", title: "Research", glyph: "\u{1F52C}", path: "/research" },
-    { id: "drive", title: "Drive", glyph: "\u{1F4C1}", path: "/drive" },
-  ];
-
   function stripEl() { return document.getElementById("gbTabStrip"); }
 
   function tabIdFromEvent(e) {
@@ -76,10 +73,8 @@
   function onClick(e) {
     if (drag && drag.moved) return;
     if (e.target.closest("#gbTabNew")) {
-      // Shift/alt click = parallel multi-chat tab (handled by the capture
-      // listener in 22_multichat.js); plain click = stock picker.
-      if (e.shiftKey || e.altKey) return;
-      openPicker(e);
+      // Handled by 22_multichat's capture listener: every plain click on
+      // "+" opens a NEW CHAT tab. History picker lives on right-click.
       return;
     }
     var id = tabIdFromEvent(e);
@@ -176,7 +171,7 @@
     menu.style.top = Math.min(y, window.innerHeight - r.height - 8) + "px";
   }
 
-  // ── "+" mini picker: recent sessions + static app entries ──
+  // ── "+" right-click history picker (recent sessions only) ──
 
   function resolveBotName() {
     return (window.GBResolveActiveBot && GBResolveActiveBot()) ||
@@ -198,7 +193,7 @@
     closeMenus();
     var picker = document.createElement("div");
     picker.className = "gb-context-menu gb-tab-picker";
-    picker.innerHTML = '<div class="gb-tab-picker-title">Open in new tab</div>' +
+    picker.innerHTML = '<div class="gb-tab-picker-title">Open conversation in new tab</div>' +
       '<div class="gb-tab-picker-body"><div class="gb-tab-picker-empty">Loading…</div></div>';
     document.body.appendChild(picker);
     var anchor = clickEvent && clickEvent.target.getBoundingClientRect
@@ -213,16 +208,9 @@
         '<div class="gb-tab-picker-empty">Nothing to open</div>';
     }
 
-    var appRows = ['<div class="gb-tab-picker-section">Apps</div>'];
-    APP_ENTRIES.forEach(function (app, i) {
-      appRows.push('<button type="button" class="gb-tab-picker-row" data-app-idx="' + i + '">' +
-        '<span class="gb-tab-picker-glyph">' + app.glyph + "</span>" +
-        "<span>" + escapeHtml(app.title) + "</span></button>");
-    });
-
     Promise.all([fetchRecentSessions()]).then(function (results) {
       var sessions = results[0] || [];
-      var rows = appRows.slice();
+      var rows = [];
       if (sessions.length) {
         rows.push('<div class="gb-tab-picker-section">Recent conversations</div>');
         sessions.forEach(function (s, i) {
@@ -237,16 +225,7 @@
         var row = e.target.closest(".gb-tab-picker-row");
         closeMenus();
         if (!row) return;
-        var appIdx = row.getAttribute("data-app-idx");
         var sessIdx = row.getAttribute("data-session-idx");
-        if (appIdx !== null) {
-          var app = APP_ENTRIES[parseInt(appIdx, 10)];
-          // Decision: apps open in a NEW browser tab via the desktop shell
-          // route so the chat workspace stays intact. Raw /suite/{app}/…
-          // paths are fragments and would render an unbootstrapped shell.
-          window.open(app.path, "_blank", "noopener");
-          return;
-        }
         if (sessIdx !== null) {
           var s = sessions[parseInt(sessIdx, 10)];
           if (s && s.session_id) {
@@ -324,6 +303,12 @@
     });
     document.addEventListener("contextmenu", function (e) {
       if (!e.target.closest || !e.target.closest("#gbTabStrip")) return;
+      // Right-click on "+": open the history picker (recent conversations).
+      if (e.target.closest("#gbTabNew")) {
+        e.preventDefault();
+        openPicker(e);
+        return;
+      }
       var id = tabIdFromEvent(e);
       if (!id || e.target.closest(".gb-tab-close")) return;
       e.preventDefault();
