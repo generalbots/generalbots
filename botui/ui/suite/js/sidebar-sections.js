@@ -69,6 +69,10 @@
     closeExistingMenus();
     var state = base().state;
     var reg = window.APPS_REGISTRY || [];
+    // #1312 — Vibe toolwindows (knowledge graph, metrics, members, deploy,
+    // db, metering) are accessory windows owned by the Vibe toolbar; they
+    // are not user-pinnable apps.
+    reg = reg.filter(function (a) { return !a.toolwindow && String(a.id).indexOf("vibe-") !== 0; });
     var menu = document.createElement("div");
     menu.className = "desktop-context-menu gb-launcher-menu";
     menu.style.maxHeight = "320px";
@@ -209,7 +213,7 @@
     var lower = name.toLowerCase();
     if (/\.(xlsx?|csv)$/.test(lower)) return "sheet";
     if (/\.(docx?|odt|pdf|txt)$/.test(lower)) return "docs";
-    if (/\.bas$/.test(lower)) return "bas-editor";
+    if (/\.bas$/.test(lower)) return "vibe";
     if (/\.(mp4|mp3|wav|webm|avi)$/.test(lower)) return "player";
     return "drive";
   }
@@ -217,7 +221,7 @@
   function fileIcon(name) {
     var app = appForFile(name);
     var glyph =
-      app === "sheet" ? "▦" : app === "docs" ? "▧" : app === "bas-editor" ? "▶" : app === "player" ? "▶" : "▧";
+      app === "sheet" ? "▦" : app === "docs" ? "▧" : app === "vibe" ? "▶" : app === "player" ? "▶" : "▧";
     return glyph;
   }
 

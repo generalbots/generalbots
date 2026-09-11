@@ -9,17 +9,17 @@ if (typeof window.WindowManager === "undefined") {
     { id: "vibe", title: "Vibe", category: "ai", color: "#84d669", hxGet: "/suite/partials/vibe.html",
       icon: '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
 
-    { id: "vibe-graph", title: "Knowledge Graph", category: "ai", color: "#7c3aed", hxGet: "/suite/vibe/graph.html",
+    { id: "vibe-graph", title: "Knowledge Graph", category: "ai", color: "#7c3aed", toolwindow: true, hxGet: "/suite/vibe/graph.html",
       icon: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>' },
-    { id: "vibe-metrics", title: "Vibe Metrics", category: "ai", color: "#f59e0b", hxGet: "/suite/vibe/metrics.html",
+    { id: "vibe-metrics", title: "Vibe Metrics", category: "ai", color: "#f59e0b", toolwindow: true, hxGet: "/suite/vibe/metrics.html",
       icon: '<path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>' },
-    { id: "vibe-members", title: "Project Members", category: "ai", color: "#06b6d4", hxGet: "/suite/vibe/members.html",
+    { id: "vibe-members", title: "Project Members", category: "ai", color: "#06b6d4", toolwindow: true, hxGet: "/suite/vibe/members.html",
       icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
-    { id: "vibe-deploy", title: "Vibe Deploy", category: "dev", color: "#22c55e", hxGet: "/suite/vibe/deploy.html",
+    { id: "vibe-deploy", title: "Vibe Deploy", category: "dev", color: "#22c55e", toolwindow: true, hxGet: "/suite/vibe/deploy.html",
       icon: '<path d="M4 17l6-6-6-6"/><path d="M12 19h8"/>' },
-    { id: "vibe-db", title: "Vibe Database", category: "dev", color: "#3b82f6", hxGet: "/suite/vibe/db.html",
+    { id: "vibe-db", title: "Vibe Database", category: "dev", color: "#3b82f6", toolwindow: true, hxGet: "/suite/vibe/db.html",
       icon: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>' },
-    { id: "vibe-metering", title: "Compute Metering", category: "system", color: "#f97316", hxGet: "/suite/vibe/metering.html",
+    { id: "vibe-metering", title: "Compute Metering", category: "system", color: "#f97316", toolwindow: true, hxGet: "/suite/vibe/metering.html",
       icon: '<path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
     { id: "crm", title: "CRM", category: "business", color: "#3b82f6", hxGet: "/suite/crm/crm.html",
       icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
@@ -41,14 +41,10 @@ if (typeof window.WindowManager === "undefined") {
       icon: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>' },
     { id: "designer", title: "Designer", category: "office", color: "#ec4899", hxGet: "/suite/designer.html",
       icon: '<path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/>' },
-    { id: "bas-editor", title: "BASIC", category: "dev", color: "#84d669", hxGet: "/suite/partials/vibe.html?mode=bas",
-      icon: '<polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" y2="20"/>' },
     { id: "browser", title: "Browser", category: "system", color: "#3b82f6", hxGet: "/suite/browser/browser.html?v=2",
       icon: '<circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>' },
     { id: "canvas", title: "Canvas", category: "office", color: "#0ea5e9", hxGet: "/suite/canvas/canvas.html",
       icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/><circle cx="8" cy="8" r="1.5"/>' },
-    { id: "versions", title: "Versions", category: "dev", color: "#8b5cf6", hxGet: "/suite/partials/versions-panel.html",
-      icon: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>' },
     { id: "database", title: "Database", category: "dev", color: "#f59e0b", hxGet: "/suite/database/database.html",
       icon: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>' },
     { id: "vdi", title: "VDI", category: "system", color: "#06b6d4", hxGet: "/suite/desktop/vdi.html",
@@ -304,6 +300,20 @@ if (typeof window.WindowManager === "undefined") {
       }
 
       workspace.appendChild(windowEl);
+      // #1315 — per-app default window size. Timer (and other small
+      // utilities) open compact; users can still resize/maximize freely.
+      const APP_DEFAULT_SIZE = {
+        timer: { width: 360, height: 300 },
+        timeclock: { width: 400, height: 320 },
+        calculator: { width: 320, height: 420 },
+        clock: { width: 360, height: 300 },
+        notepad: { width: 420, height: 320 },
+      };
+      const defSize = APP_DEFAULT_SIZE[id];
+      if (defSize) {
+        windowEl.style.width = `${defSize.width}px`;
+        windowEl.style.height = `${defSize.height}px`;
+      }
       this._injectBodyContent(id, htmlContent);
       this._addTaskbarDockItem(id);
       this._makeDraggable(windowEl);
@@ -793,7 +803,10 @@ if (typeof window.WindowManager === "undefined") {
       }
 
       categories.forEach(function (cat) {
-        var apps = (window.APPS_REGISTRY || APPS_REGISTRY).filter(function (a) { return a.category === cat; });
+        var apps = (window.APPS_REGISTRY || APPS_REGISTRY).filter(function (a) {
+          // #1312 — Vibe toolwindows open from the Vibe toolbar only.
+          return !a.toolwindow && String(a.id).indexOf("vibe-") !== 0 && a.category === cat;
+        });
         if (enabledApps) {
           apps = apps.filter(function (a) {
             // #1289/#1291 — dynamic catalog tiles (user bots `bot-*`,

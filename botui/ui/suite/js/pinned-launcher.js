@@ -42,6 +42,11 @@
     return null;
   }
 
+  // #1312 — Vibe toolwindows are not user-pinnable apps.
+  function isPinnable(app) {
+    return app && !app.toolwindow && String(app.id).indexOf("vibe-") !== 0;
+  }
+
   function iconFor(item) {
     var svg = "";
     if (item.kind === "app") {
@@ -228,7 +233,7 @@
 
   function pinApp(appId) {
     var app = findApp(appId);
-    if (!app) return false;
+    if (!isPinnable(app)) return false; // #1312 — toolwindows not pinnable
     return add({ kind: "app", appId: appId, title: app.title });
   }
 

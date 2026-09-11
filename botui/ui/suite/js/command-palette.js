@@ -39,7 +39,8 @@
   function appsForQuery() {
     var q = state.query.toLowerCase().trim();
     var apps = (window.APPS_REGISTRY || []).filter(function (a) {
-      return a.enabled !== false && a.compiled !== false;
+      // #1312 — Vibe toolwindows launch from the Vibe toolbar, not the palette.
+      return a.enabled !== false && a.compiled !== false && !a.toolwindow && String(a.id).indexOf("vibe-") !== 0;
     });
     if (!apps.length) {
       apps = state.catalog.filter(function (a) { return a.enabled !== false && a.compiled !== false; });
