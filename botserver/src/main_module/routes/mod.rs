@@ -6,6 +6,7 @@ pub mod chat_history;
 pub mod misc_handlers;
 pub mod cloud_sso_handler;
 pub mod catalog;
+pub mod channel_support;
 pub mod feature_routers;
 pub mod org_handlers;
 pub mod product_handlers;

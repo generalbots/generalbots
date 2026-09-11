@@ -421,7 +421,8 @@ pub(super) fn make_telegram_router(app_state: &Arc<AppState>) -> Router<()> {
             let branch = resolve_default_branch(conn);
             (branch, "default".to_string())
         }),
-        get_config: Arc::new(|_: &uuid::Uuid, _: &str, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
+        get_config: super::channel_support::make_channel_config_reader(app_state),
+        put_media: super::channel_support::make_put_media_fn(app_state),
         stream_response: {
             let app_state = app_state.clone();
             Arc::new(move |msg: botlib::models::UserMessage, tx: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {
@@ -442,7 +443,7 @@ pub(super) fn make_telegram_router(app_state: &Arc<AppState>) -> Router<()> {
 #[cfg(feature = "instagram")]
 pub(super) fn make_instagram_router(app_state: &Arc<AppState>) -> Router<()> {
     crate::instagram::webhook::configure().with_state(Arc::new(botinstagram::state::ChannelState {
-        get_config: Arc::new(|_: &str, _: &str, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
+        get_config: super::channel_support::make_channel_config_reader_by_handle(app_state),
         stream_response: {
             let app_state = app_state.clone();
             Arc::new(move |msg: botlib::models::UserMessage, tx: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {
@@ -468,7 +469,7 @@ pub(super) fn make_msteams_router(app_state: &Arc<AppState>) -> Router<()> {
             let branch = resolve_default_branch(conn);
             (branch, "default".to_string())
         }),
-        get_config: Arc::new(|_: &uuid::Uuid, _: &str, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
+        get_config: super::channel_support::make_channel_config_reader(app_state),
         stream_response: {
             let app_state = app_state.clone();
             Arc::new(move |msg: botlib::models::UserMessage, tx: tokio::sync::mpsc::Sender<botlib::models::BotResponse>| {

@@ -346,26 +346,14 @@ pub async fn get_from_bucket(
             return Err("drive operation timed out".into());
         }
     };
-    let content = if file_path.to_ascii_lowercase().ends_with(".pdf") {
-        #[cfg(feature = "drive")]
-        match pdf_extract::extract_text_from_mem(&bytes) {
-            Ok(text) => text,
-            Err(e) => {
-                log::error!("PDF extraction failed: {}", e);
-                return Err(format!("PDF extraction failed: {}", e).into());
-            }
-        }
-        #[cfg(not(feature = "drive"))]
-        {
-            return Err("PDF extraction requires drive feature".into());
-        }
-    } else {
-        match String::from_utf8(bytes) {
-            Ok(text) => text,
-            Err(_) => {
-                log::error!("File content is not valid UTF-8 text");
-                return Err("File content is not valid UTF-8 text".into());
-            }
+    // Every supported document format is decoded here; PDFs and plain text in
+    // memory, office formats through the shared document processor.
+    let content = match crate::keywords::document_text::extract_document_text(file_path, bytes).await
+    {
+        Ok(content) => content,
+        Err(e) => {
+            log::error!("document extraction failed for {file_path}: {e}");
+            return Err(e);
         }
     };
     trace!(

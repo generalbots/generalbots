@@ -1,6 +1,8 @@
 pub mod adapter;
 pub mod channel;
 pub mod handlers;
+pub mod media;
+mod media_names;
 pub mod schema;
 pub mod session;
 pub mod state;

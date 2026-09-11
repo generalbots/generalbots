@@ -52,7 +52,7 @@ pub fn find_or_create_session(
         return Ok(session);
     }
 
-    let bot_uuid = (state.get_default_bot)(&mut conn).0;
+    let (bot_uuid, branch_uuid) = resolve_bot_scope(state, &mut conn);
     let session_uuid = Uuid::new_v4();
 
     let context = serde_json::json!({
@@ -66,7 +66,7 @@ pub fn find_or_create_session(
     diesel::insert_into(user_sessions)
         .values((
             crate::schema::user_sessions::id.eq(session_uuid),
-            crate::schema::user_sessions::branch_id.eq(Uuid::nil()),
+            crate::schema::user_sessions::branch_id.eq(branch_uuid),
             crate::schema::user_sessions::bot_id.eq(bot_uuid),
             crate::schema::user_sessions::session_id.eq(session_uuid.to_string()),
             crate::schema::user_sessions::user_id.eq(Some(&telegram_user_id)),
@@ -90,6 +90,48 @@ pub fn find_or_create_session(
         .first(&mut conn)?;
 
     Ok(new_session)
+}
+
+#[derive(Debug, diesel::QueryableByName)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+struct BotScopeRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    branch_id: Uuid,
+}
+
+/// Resolves the bot and branch backing a channel session.
+///
+/// The channel wiring hands the adapter the workspace's default branch as the
+/// bot handle, so the row is looked up by bot id or by branch id. Without this
+/// lookup the session stored the handle as its `bot_id` and `Uuid::nil()` as its
+/// `branch_id`, leaving channel work unscoped.
+fn resolve_bot_scope(state: &Arc<ChannelState>, conn: &mut PgConnection) -> (Uuid, Uuid) {
+    let handle = (state.get_default_bot)(conn);
+
+    if handle.0.is_nil() {
+        return (handle.0, Uuid::nil());
+    }
+
+    let row = diesel::sql_query(
+        "SELECT id, branch_id FROM bots WHERE id = $1 OR branch_id = $1 LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(handle.0)
+    .get_result::<BotScopeRow>(&mut *conn)
+    .optional();
+
+    match row {
+        Ok(Some(row)) => (row.id, row.branch_id),
+        Ok(None) => (handle.0, Uuid::nil()),
+        Err(e) => {
+            log::warn!(
+                "Could not resolve the bot behind channel handle {}: {e}",
+                handle.0
+            );
+            (handle.0, Uuid::nil())
+        }
+    }
 }
 
 pub async fn route_to_bot(

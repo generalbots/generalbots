@@ -1,3 +1,5 @@
+use crate::adapter::TelegramAdapter;
+use crate::media::message_content;
 use crate::state::ChannelState;
 use crate::session::{find_or_create_session, route_to_attendant, route_to_bot};
 
@@ -164,7 +166,7 @@ pub struct TelegramCallbackQuery {
     pub data: Option<String>,
 }
 
-fn extract_message_content(message: &TelegramMessage) -> String {
+pub(crate) fn extract_message_content(message: &TelegramMessage) -> String {
     if let Some(text) = &message.text {
         return text.clone();
     }
@@ -240,21 +242,29 @@ async fn process_message(
         })
         .unwrap_or_else(|| "Unknown".to_string());
 
-    let content = extract_message_content(message);
+    let session = find_or_create_session(&state, &chat_id, &user_name)?;
+
+    let adapter = TelegramAdapter::new(
+        state.conn.clone(),
+        session.bot_id,
+        state.get_config.clone(),
+    );
+
+    // Media is fetched into Drive before routing, so the bot receives the
+    // stored path instead of a placeholder.
+    let content = message_content(&state, &adapter, message, session.bot_id).await;
 
     if content.is_empty() {
         debug!("Empty message content, skipping");
         return Ok(());
     }
 
+    let preview: String = content.chars().take(50).collect();
+
     info!(
         "Processing Telegram message from {} (chat_id={}): {}",
-        user_name,
-        chat_id,
-        if content.len() > 50 { &content[..50] } else { &content }
+        user_name, chat_id, preview
     );
-
-    let session = find_or_create_session(&state, &chat_id, &user_name)?;
 
     let assigned_to = session
         .context_data

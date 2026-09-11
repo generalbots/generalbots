@@ -224,6 +224,58 @@ impl TelegramAdapter {
         Ok(())
     }
 
+    /// Resolves a Telegram `file_id` into the temporary path that
+    /// `download_file` can serve (`POST getFile`).
+    pub async fn get_file(
+        &self,
+        file_id: &str,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        #[derive(Serialize)]
+        struct GetFile<'a> {
+            file_id: &'a str,
+        }
+
+        let response = self
+            .send_telegram_request("getFile", &GetFile { file_id })
+            .await?;
+
+        response
+            .result
+            .as_ref()
+            .and_then(|result| result.get("file_path"))
+            .and_then(|path| path.as_str())
+            .map(|path| path.to_string())
+            .ok_or_else(|| "Telegram getFile returned no file_path".into())
+    }
+
+    /// Downloads a file previously resolved by `get_file`. Telegram caps
+    /// `getFile` at 20 MB per file.
+    pub async fn download_file(
+        &self,
+        file_path: &str,
+    ) -> Result<Vec<u8>, Box<dyn std::error::Error + Send + Sync>> {
+        if self.bot_token.is_empty() {
+            return Err("Telegram bot token not configured".into());
+        }
+
+        let url = format!(
+            "https://api.telegram.org/file/bot{}/{}",
+            self.bot_token, file_path
+        );
+
+        let response = reqwest::Client::new().get(&url).send().await?;
+
+        if !response.status().is_success() {
+            return Err(format!(
+                "Telegram file download failed with status {}",
+                response.status()
+            )
+            .into());
+        }
+
+        Ok(response.bytes().await?.to_vec())
+    }
+
     pub async fn set_webhook(
         &self,
         webhook_url: &str,
