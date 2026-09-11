@@ -201,6 +201,26 @@ async function previewFile(path) {
             });
             return;
         }
+        if (app === "photo-editor" && window.WindowManager) {
+            // #1306 — image files open the Photo Editor as an APP WINDOW:
+            // never window.open, never a raw fragment navigation.
+            var bucket = getEffectiveBucket();
+            var fileName = path.split("/").pop() || "Photo";
+            var ts = Date.now();
+            var winId = "photo-editor-" + ts;
+            window.__PHOTO_FILE_BUCKET = bucket;
+            window.__PHOTO_FILE_PATH = path;
+            window.__PHOTO_FILE_SCOPE = currentScope;
+            window.__PHOTO_BOOT = Promise.resolve();
+            window.WindowManager.open(winId, fileName, "");
+            fetch("/suite/photos/photos-editor.html").then(function (r) { return r.text(); }).then(function (html) {
+                window.WindowManager._injectBodyContent(winId, html);
+                if (window.GBPhotoEditor && typeof window.GBPhotoEditor.init === "function") {
+                    window.GBPhotoEditor.init(winId);
+                }
+            });
+            return;
+        }
         if (app === "editor" && window.WindowManager) {
             var bucket = getEffectiveBucket();
             var fileName = path.split("/").pop() || "Untitled";

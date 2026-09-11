@@ -296,6 +296,38 @@ pub async fn download_file_binary(
     Ok((headers, data).into_response())
 }
 
+/// #1306 — raw file bytes served INLINE (no Content-Disposition attachment),
+/// so apps like the Photo Editor can load Drive images into a canvas with
+/// `fetch` + `createObjectURL` instead of base64 round-trips.
+pub async fn download_file_inline(
+    State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Json(req): Json<DownloadFileBody>,
+) -> Result<axum::response::Response, (StatusCode, Json<serde_json::Value>)> {
+    let drive = get_drive(&state)?;
+    let scope = req.scope.unwrap_or_default();
+    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let prefix = resolve_scope_prefix(&scope, &uid);
+    let key = format!("{prefix}{}", normalize_path(&req.path));
+
+    let data = drive
+        .get_object(&bucket, &key)
+        .await
+        .map_err(|e| err(StatusCode::NOT_FOUND, &format!("File not found: {e}")))?;
+
+    let file_name = req.path.rsplit('/').next().unwrap_or("download").to_string();
+    let mime = guess_mime(&file_name);
+
+    use axum::response::IntoResponse;
+    let headers = [
+        (axum::http::header::CONTENT_TYPE, mime.to_string()),
+        (axum::http::header::CONTENT_LENGTH, data.len().to_string()),
+        (axum::http::header::CACHE_CONTROL, "no-store".to_string()),
+    ];
+    Ok((headers, data).into_response())
+}
+
 fn guess_mime(file_name: &str) -> &'static str {
     let ext = file_name.rsplit('.').next().unwrap_or("").to_ascii_lowercase();
     match ext.as_str() {
@@ -690,6 +722,11 @@ pub async fn open_file(
         "draw" => (
             "canvas".to_string(),
             format!("/suite/canvas/canvas.html?bucket={bucket}&path={path}"),
+        ),
+        // #1306 — images open the Photo Editor APP WINDOW (never a raw tab).
+        "png" | "jpg" | "jpeg" | "gif" | "webp" | "bmp" | "avif" => (
+            "photo-editor".to_string(),
+            format!("/suite/photos/photos-editor.html?bucket={bucket}&path={path}"),
         ),
         _ => ("preview".to_string(), format!("/suite/docs/?file={path}")),
     };
