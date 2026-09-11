@@ -1,21 +1,17 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8" />
-    <title>Weather</title>
-    <link rel="stylesheet" href="/suite/weather/weather.css" />
-</head>
-<body>
-    <div class="gb-weather" id="gb-weather">
-        <div class="weather-search">
-            <input type="text" id="weatherCity" placeholder="Search city… (e.g. São Paulo)" autocomplete="off" />
-            <button id="weatherGo">Search</button>
-        </div>
-        <div class="weather-current" id="weatherCurrent">
-            <div class="weather-empty">Search for a city to see current conditions.</div>
-        </div>
-        <div class="weather-forecast" id="weatherForecast"></div>
+<!-- Weather app fragment (#1311). No <html>/<head>/<body> wrappers: the desktop
+     window manager injects this markup with innerHTML, so a full document would
+     never fire DOMContentLoaded again and its script wiring would stay dead. -->
+<link rel="stylesheet" href="/suite/weather/weather.css" />
+
+<div class="gb-weather" id="gb-weather" data-gb-app="weather">
+    <div class="weather-search">
+        <input type="text" id="weatherCity" placeholder="Search city… (e.g. São Paulo)" autocomplete="off" />
+        <button id="weatherGo" type="button">Search</button>
     </div>
-    <script src="/suite/weather/weather.js"></script>
-</body>
-</html>
+    <div class="weather-current" id="weatherCurrent">
+        <div class="weather-empty">Search for a city to see current conditions.</div>
+    </div>
+    <div class="weather-forecast" id="weatherForecast"></div>
+</div>
+
+<script src="/suite/weather/weather.js"></script>
