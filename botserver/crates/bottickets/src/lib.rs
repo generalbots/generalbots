@@ -357,10 +357,32 @@ fn generate_ticket_number(conn: &mut diesel::PgConnection, branch_id: Uuid) -> S
     format!("TKT-{:06}", count + 1)
 }
 
+/// Accepts both JSON (API clients) and urlencoded payloads (plain HTML forms
+/// and HTMX's default encoding). Requiring JSON alone made every HTMX form
+/// submission fail with 415 Unsupported Media Type.
+fn decode_create_ticket(
+    headers: &axum::http::HeaderMap,
+    body: &[u8],
+) -> Result<CreateTicketRequest, (StatusCode, String)> {
+    let is_json = headers
+        .get(axum::http::header::CONTENT_TYPE)
+        .and_then(|v| v.to_str().ok())
+        .is_some_and(|ct| ct.to_ascii_lowercase().contains("json"));
+    if is_json {
+        serde_json::from_slice(body)
+            .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid JSON body: {e}")))
+    } else {
+        serde_urlencoded::from_bytes(body)
+            .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid form body: {e}")))
+    }
+}
+
 pub async fn create_ticket(
     State(state): State<Arc<TicketsState>>,
-    Json(req): Json<CreateTicketRequest>,
+    headers: axum::http::HeaderMap,
+    body: axum::body::Bytes,
 ) -> Result<Json<SupportTicket>, (StatusCode, String)> {
+    let req = decode_create_ticket(&headers, &body)?;
     let mut conn = state.pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
