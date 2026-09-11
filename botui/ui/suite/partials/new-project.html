@@ -204,7 +204,14 @@ if (!window.newProject) {
                 if (result.success || result.status) {
                     status.className = 'publish-status success';
                     status.textContent = 'Project created! URL: ' + (result.url || 'pending');
-                    setTimeout(() => this.close(), 2000);
+                    // #1308 — close immediately and tell the Vibe toolbar to
+                    // reload its Projects combo (it listens for this event).
+                    try {
+                        document.dispatchEvent(new CustomEvent('gb:vibe-project-created', {
+                            detail: { project: name }
+                        }));
+                    } catch (e) { /* best-effort */ }
+                    setTimeout(() => this.close(), 400);
                 } else {
                     status.className = 'publish-status error';
                     status.textContent = 'Error: ' + (result.error || 'Unknown');
