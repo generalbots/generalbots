@@ -130,3 +130,14 @@
 
 @media(max-width:768px){.tc-stats{grid-template-columns:1fr 1fr}.tc-clock-time{font-size:48px}}
 @media(max-width:480px){.tc-stats{grid-template-columns:1fr}}
+
+/* #1316 — missing styles for the overtime dialog and live clock sections */
+.tc-modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.tc-btn-primary{background:var(--accent,#3b82f6);color:#fff;border-color:var(--accent,#3b82f6)}
+.tc-btn-primary:hover{filter:brightness(1.1)}
+.tc-modal form label{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;color:var(--text-secondary,#94a3b8);margin-bottom:10px}
+.tc-modal form input,.tc-modal form textarea{background:var(--bg-primary,#0f172a);border:1px solid var(--border-color,#334155);border-radius:6px;color:var(--text-primary,#f8fafc);padding:8px 10px;font-size:13px;font-family:inherit}
+.tc-modal form input:focus,.tc-modal form textarea:focus{outline:none;border-color:var(--accent,#3b82f6)}
+.tc-live-clock{display:flex;flex-direction:column;align-items:center;gap:2px;padding:18px 12px;background:var(--bg-secondary,#1e293b);border:1px solid var(--border-color,#334155);border-radius:10px;margin-bottom:12px}
+.tc-clock-time{font-size:42px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text-primary,#f8fafc);letter-spacing:2px}
+.tc-clock-date{font-size:13px;color:var(--text-secondary,#94a3b8);text-transform:capitalize}

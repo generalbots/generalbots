@@ -42,6 +42,13 @@
     background: var(--bg, var(--surface, #1a1a24));
     border-color: var(--border, var(--border-color, #2a2a3a));
     color: var(--text, #e5e5e5);
+    /* #1319: the rounded border must continue into the chat area — overlap
+       the strip's bottom border so the active tab body merges seamlessly
+       with the conversation panel below (same --bg background). */
+    position: relative;
+    z-index: 1;
+    margin-bottom: -1px;
+    padding-bottom: 7px;
 }
 
 .gb-tab.dragging {

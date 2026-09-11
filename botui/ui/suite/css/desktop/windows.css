@@ -274,12 +274,10 @@
   display: flex;
   gap: 8px;
   flex-shrink: 0;
-  /* Product spec: the window control buttons (▪ ▪ ✕) sit on the LEFT
-     (MacOS traffic-light style) before the title. The DOM renders title
-     first; flex `order` places the dots first (left) and the title fills
-     the remaining width. */
-  order: -1;
-  margin-right: 6px;
+  /* Product spec (#1318): the window control buttons (▪ ▪ ✕) sit on the
+     RIGHT end of the titlebar (Windows/Delphi style). The DOM renders the
+     title first; the title has flex:1 so the dots land flush right. */
+  margin-left: 6px;
 }
 
 .window-header-glass .window-title {
