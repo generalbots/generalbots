@@ -56,15 +56,47 @@
         }
     };
 
-    namespace.authHeaders = function (extra) {
-        var token = localStorage.getItem("gb-access-token") ||
+    namespace.currentToken = function () {
+        // #1322 — the desktop session keeps the live token in the
+        // security-bootstrap module; storage copies can be missing or stale
+        // (for example right after an SSO hop), which made the app show
+        // "Sign in" while the user was already authenticated.
+        try {
+            if (window.GBSecurity && typeof window.GBSecurity.getToken === "function") {
+                var live = window.GBSecurity.getToken();
+                if (live) return live;
+            }
+        } catch (ignore) { /* fall through to storage */ }
+        return localStorage.getItem("gb-access-token") ||
             sessionStorage.getItem("gb-access-token") ||
             localStorage.getItem("management_token") || "";
+    };
+
+    namespace.authHeaders = function (extra) {
+        var token = namespace.currentToken();
         var headers = { "Accept": "application/json" };
         if (token) {
             headers["Authorization"] = "Bearer " + token;
         }
         return Object.assign(headers, extra && typeof extra === "object" ? extra : {});
+    };
+
+    /* Resolve once a usable token exists — either immediately, on the next
+       `gb:security:ready` event, or after a short bounded wait. */
+    namespace.waitForToken = function () {
+        if (namespace.currentToken()) return Promise.resolve(true);
+        return new Promise(function (resolve) {
+            var done = false;
+            function finish(value) {
+                if (done) return;
+                done = true;
+                window.removeEventListener("gb:security:ready", onReady);
+                resolve(value);
+            }
+            function onReady() { finish(!!namespace.currentToken()); }
+            window.addEventListener("gb:security:ready", onReady);
+            setTimeout(function () { finish(!!namespace.currentToken()); }, 1500);
+        });
     };
 
     namespace.fetchJson = async function (url, options) {
@@ -80,6 +112,15 @@
             body: config.body === undefined ? undefined : JSON.stringify(config.body)
         });
         if (!response.ok) {
+            // #1322 — a single 401 is not proof the user is signed out: the
+            // first request can race the security bootstrap. Wait briefly for
+            // a token, then retry once before surfacing the error.
+            if ((response.status === 401 || response.status === 403) && !config.__retried) {
+                var waited = await namespace.waitForToken();
+                if (waited || namespace.currentToken()) {
+                    return namespace.fetchJson(url, Object.assign({}, config, { __retried: true }));
+                }
+            }
             var failure = new Error("Request failed with status " + response.status);
             failure.status = response.status;
             throw failure;
