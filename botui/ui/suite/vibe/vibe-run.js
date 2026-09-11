@@ -173,6 +173,22 @@
         if (["completed", "failed", "cancelled"].indexOf(String(state.run.state)) !== -1) {
             state.phase = defaultPhase(state.run.state);
             freezeElapsed();
+            // #1309 — terminal state is also a status-bar outcome, so the bar
+            // never keeps spinning on a stale RUNNING text.
+            var outcomeIcon = state.run.state === "completed" ? "\u2705 "
+                : state.run.state === "failed" ? "\u274C " : "\u23F9 ";
+            updateRibbonStatus(outcomeIcon + String(state.run.state).toUpperCase(),
+                state.run.state === "completed" ? "ok" : "error");
+        } else {
+            // #1309 — narrate run progress on the Vibe status bar (mirrors
+            // vibeRibbonStatus every 800ms) until the run completes: phase,
+            // progress percent and tool-call count, e.g.
+            // "ACTING · 45% · 12 tool calls".
+            var pct = Math.max(2, Math.min(100, Math.round(state.progress)));
+            var bits = [String(state.phase || defaultPhase(state.run.state)).toUpperCase()];
+            if (state.progress > 0) bits.push(pct + "%");
+            bits.push((state.run.tool_call_count || 0) + " tool calls");
+            updateRibbonStatus(bits.join(" \u00B7 "), "running");
         }
         syncRunDock();
         var phaseEl = q("vibeRunPhase");
