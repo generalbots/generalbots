@@ -6,6 +6,10 @@
   if (window.GBWeather) return;
 
   const CACHE_KEY = "gb-weather-cache";
+  // #1311 — the chosen city is persisted for the user: locally for instant
+  // restore and in the user profile (settings → Profile, `location` field) so
+  // it follows the account across browsers/devices.
+  const CITY_KEY = "gb-weather-city";
   const FALLBACK = [
     { city: "São Paulo", temp: 24, desc: "Partly cloudy", emoji: "⛅", humidity: 65, wind: 12 },
     { city: "Lisbon", temp: 22, desc: "Sunny", emoji: "☀️", humidity: 55, wind: 14 },
@@ -23,6 +27,68 @@
     try {
       localStorage.setItem(CACHE_KEY, JSON.stringify(data));
     } catch (e) {}
+  }
+
+  function readCity() {
+    try {
+      return localStorage.getItem(CITY_KEY) || "";
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function writeCity(city) {
+    try {
+      localStorage.setItem(CITY_KEY, city);
+    } catch (e) {}
+    persistCityToProfile(city);
+  }
+
+  // Best-effort: mirrors the city into the user profile so other devices see
+  // it. The endpoint expects form data and renders HTML; failures are ignored.
+  function persistCityToProfile(city) {
+    try {
+      if (!window.GBSecurity || typeof window.GBSecurity.getToken !== "function") return;
+      var token = window.GBSecurity.getToken();
+      if (!token) return;
+      fetch("/api/user/profile", {
+        method: "PUT",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: "Bearer " + token,
+        },
+        body: "location=" + encodeURIComponent(city),
+      }).catch(function () {});
+    } catch (e) {}
+  }
+
+  // Restores a previously saved city from the user profile when this browser
+  // has no local copy yet.
+  function restoreCityFromProfile(done) {
+    try {
+      if (!window.GBSecurity || typeof window.GBSecurity.getToken !== "function") {
+        done("");
+        return;
+      }
+      var token = window.GBSecurity.getToken();
+      if (!token) {
+        done("");
+        return;
+      }
+      fetch("/api/user/profile", {
+        credentials: "same-origin",
+        headers: { Authorization: "Bearer " + token },
+      })
+        .then(function (r) { return r.ok ? r.text() : ""; })
+        .then(function (html) {
+          var m = /name="location"[^>]*value="([^"]*)"/.exec(html || "");
+          done(m && m[1] ? m[1] : "");
+        })
+        .catch(function () { done(""); });
+    } catch (e) {
+      done("");
+    }
   }
 
   function emojiFor(code) {
@@ -76,6 +142,7 @@
           }),
         };
         writeCache(data);
+        writeCity(city);
         render(data);
       })
       .catch(function () {
@@ -116,21 +183,46 @@
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
+  // #1311 — the desktop injects this file into a window body, so the script
+  // runs AFTER the page's own DOMContentLoaded: listening for it left the
+  // search box permanently dead. Initialise immediately, and fall back to the
+  // event only when opened as a standalone document.
+  function boot() {
     const input = document.getElementById("weatherCity");
+    if (!input || input.dataset.gbWeatherBound === "1") return;
+    input.dataset.gbWeatherBound = "1";
+
     const btn = document.getElementById("weatherGo");
-    const doSearch = function () { if (input && input.value.trim()) search(input.value.trim()); };
+    const doSearch = function () { if (input.value.trim()) search(input.value.trim()); };
     if (btn) btn.addEventListener("click", doSearch);
-    if (input) {
-      input.addEventListener("keydown", function (e) { if (e.key === "Enter") doSearch(); });
-      const cached = readCache();
-      if (cached) {
-        render(cached);
+    input.addEventListener("keydown", function (e) { if (e.key === "Enter") doSearch(); });
+
+    const cached = readCache();
+    const saved = readCity();
+    if (saved) input.value = saved;
+    if (cached) {
+      render(cached);
+      return;
+    }
+    if (saved) {
+      search(saved);
+      return;
+    }
+    restoreCityFromProfile(function (profileCity) {
+      if (profileCity) {
+        input.value = profileCity;
+        search(profileCity);
       } else {
         search("São Paulo");
       }
-    }
-  });
+    });
+  }
 
-  window.GBWeather = { search: search };
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
+
+  window.GBWeather = { search: search, boot: boot };
 })();
