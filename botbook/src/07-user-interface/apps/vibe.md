@@ -202,6 +202,36 @@ The Pragmatismo payload (`start.bas`, `PROMPT.md`, `config.csv`, MCP tool defs) 
 
 ---
 
+## Quality Gate (CI)
+
+Every merge to Vibe's agent loop is gated by the `boteval` benchmark suite
+(`vibe-200.json` — 210 deterministic contract checks, including 14 live
+harness entries). CI runs `boteval-run --gate botserver/crates/boteval/ci/gate.toml`:
+exit code 0 allows the merge, 1 blocks it.
+
+There is exactly **one** gate configuration:
+`botserver/crates/boteval/ci/gate.toml`. Both consumers read that copy —
+the GitHub workflow (`boteval.yml`) and the compiled-in default in
+`botserver/crates/boteval/src/ci_gate.rs`. The root
+`botserver/crates/boteval/gate.toml` is only a pointer stub; editing it has
+no effect.
+
+| Setting | Value | Meaning |
+|---------|-------|---------|
+| `min_pass_rate` | 0.95 | Overall contract-check pass-rate floor |
+| `max_failures` | 0 | Any failed entry blocks the merge |
+| `required_tags` | software_development, customer_support, financial_analysis, general, harness | Tags that must be present and evaluated |
+| `tag_pass_rates` | 0.90 per required tag | Per-tag floors |
+| `max_cost_per_task` | 0.05 USD | Average LLM cost cap (0 disables) |
+| `harness_min_tool_calls` | 2 | Minimum tool calls per harness entry |
+
+A unit test (`gate_toml_is_valid_and_complete`) parses the shipped config on
+every build so an invalid TOML edit can never silently disable the gate, and
+a guard test (`only_one_gate_config_exists`) keeps the root file a
+comment-only stub.
+
+---
+
 ## Enabling Vibe
 
 Vibe is always available in the suite — no feature gate required. Access it from the desktop icon or via `http://localhost:3000/suite/vibe`.
