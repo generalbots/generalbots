@@ -105,7 +105,7 @@ pub fn register_products_keywords(state: Arc<dyn BasicRuntime>, _user: UserSessi
         }
     });
 
-    engine
+    let registered = engine
         .register_custom_syntax(
             ["SEARCH", "PRODUCTS", "$expr$", ",", "$expr$"],
             false,
@@ -125,10 +125,12 @@ pub fn register_products_keywords(state: Arc<dyn BasicRuntime>, _user: UserSessi
                     Ok(utils::json_value_to_dynamic(&result))
                 }
             },
-        )
-        .expect("valid syntax");
+        );
+    if let Err(e) = registered {
+        log::error!("Failed to register PRODUCTS SEARCH syntax: {e}");
+    }
 
-    engine
+    let registered = engine
         .register_custom_syntax(["SEARCH", "PRODUCTS", "$expr$"], false, {
             let conn = connection.clone();
             move |context, inputs| {
@@ -142,8 +144,10 @@ pub fn register_products_keywords(state: Arc<dyn BasicRuntime>, _user: UserSessi
 
                 Ok(utils::json_value_to_dynamic(&result))
             }
-        })
-        .expect("valid syntax");
+        });
+    if let Err(e) = registered {
+        log::error!("Failed to register SEARCH PRODUCTS syntax: {e}");
+    }
 
     engine.register_fn("SEARCH_PRODUCTS", {
         let conn = connection.clone();
@@ -189,7 +193,7 @@ pub fn register_products_keywords(state: Arc<dyn BasicRuntime>, _user: UserSessi
 
     let state_barcode = state.clone();
     let user_barcode = _user.clone();
-    engine
+    let registered_barcode = engine
         .register_custom_syntax(["SCAN", "BARCODE", "$expr$"], false, {
             move |context, inputs| {
                 let image_path = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -232,8 +236,10 @@ pub fn register_products_keywords(state: Arc<dyn BasicRuntime>, _user: UserSessi
                     ))),
                 }
             }
-        })
-        .expect("valid syntax");
+        });
+    if let Err(e) = registered_barcode {
+        log::error!("Failed to register SCAN BARCODE syntax: {e}");
+    }
 
     engine.register_fn("SCAN_BARCODE", {
         let state_clone = state.clone();
