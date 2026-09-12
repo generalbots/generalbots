@@ -249,6 +249,30 @@ treat as "use the server's value".
 
 ---
 
+## Storage and Scope
+
+Every calendar and event row is written inside a tenant scope. The `calendars`
+and `calendar_events` tables each declare three scope columns, and all three are
+`NOT NULL` without a default:
+
+| Column | Meaning |
+|--------|---------|
+| `org_id` | Owning organization |
+| `bot_id` | Default bot of the branch |
+| `branch_id` | Branch derived from the caller's token |
+
+Requests resolve that scope from the `Authorization` header: the branch comes
+from the server-minted token claim, with a fallback to the user-to-organization
+binding; the organization is the branch's owning tenant, and the bot is the
+branch's default bot. Anonymous callers fall back to the global (nil) scope.
+
+All four writers — the desktop save form, the REST API, `BOOK` / `BOOK MEETING`
+and CalDAV — write through that same scope, against a single table definition
+held in `botschema`. When a write fails, the caller receives an error rather
+than a success message: a booking is only confirmed after the row is stored.
+
+---
+
 ## Integration with Tasks
 
 Tasks with due dates automatically appear on your calendar. When you complete a task, it's marked as done on the calendar too.

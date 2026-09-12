@@ -1,8 +1,15 @@
 use crate::core::{branches};
 
+// `calendars` and `calendar_events` carry three scope columns that are all
+// `NOT NULL` without a default: `org_id`, `bot_id` and `branch_id`. The table
+// definitions here are the single source of truth for every reader and writer,
+// so each one declares all three — a definition that omits any of them was the
+// cause of silent insert failures (see issue #1338).
 diesel::table! {
     calendars (id) {
         id -> Uuid,
+        org_id -> Uuid,
+        bot_id -> Uuid,
         branch_id -> Uuid,
         owner_id -> Uuid,
         name -> Varchar,
@@ -20,6 +27,8 @@ diesel::table! {
 diesel::table! {
     calendar_events (id) {
         id -> Uuid,
+        org_id -> Uuid,
+        bot_id -> Uuid,
         branch_id -> Uuid,
         calendar_id -> Uuid,
         owner_id -> Uuid,

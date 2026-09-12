@@ -27,16 +27,38 @@ use uuid::Uuid;
 
 pub type DbPool = diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>;
 
-/// Resolves the caller's (org_id, bot_id) scope from the Authorization
+/// Tenant scope written alongside every calendar row. `calendars` and
+/// `calendar_events` declare all three columns as `NOT NULL` without a default,
+/// so a write that omits any of them is rejected by PostgreSQL.
+#[derive(Debug, Clone, Copy)]
+struct CalendarScope {
+    org_id: Uuid,
+    bot_id: Uuid,
+    branch_id: Uuid,
+}
+
+impl CalendarScope {
+    /// The global scope, used when no branch can be resolved (anonymous caller
+    /// or unreachable database). The read paths have always fallen back to it,
+    /// and the write paths still need concrete values for the `NOT NULL`
+    /// columns rather than a failed insert.
+    const NIL: Self = Self {
+        org_id: Uuid::nil(),
+        bot_id: Uuid::nil(),
+        branch_id: Uuid::nil(),
+    };
+}
+
+/// Resolves the caller's org, bot and branch scope from the Authorization
 /// header. The branch comes from the server-minted JWT claim or the
 /// user→org binding fallback (botsecurity-core); the org is the branch's
 /// owning tenant and the bot is the branch's default bot. Falls back to nil
 /// (global/default scope) for anonymous callers — matching the legacy
 /// behavior while making authenticated requests see their own data.
-fn resolve_scope(
+fn resolve_calendar_scope(
     headers: &axum::http::HeaderMap,
     conn: &mut diesel::PgConnection,
-) -> (Uuid, Uuid) {
+) -> CalendarScope {
     use diesel::sql_query;
     let Some(branch_id) = botsecurity_core::tenant::branch_from_claims(headers)
         .or_else(|| {
@@ -45,7 +67,7 @@ fn resolve_scope(
                 .and_then(|email| botsecurity_core::tenant::branch_from_user_binding(conn, &email))
         })
     else {
-        return (Uuid::nil(), Uuid::nil());
+        return CalendarScope::NIL;
     };
 
     #[derive(diesel::QueryableByName)]
@@ -66,8 +88,28 @@ fn resolve_scope(
     .ok()
     .flatten();
     match row {
-        Some(r) => (r.org_id, r.bot_id),
-        None => (Uuid::nil(), Uuid::nil()),
+        Some(r) => CalendarScope {
+            org_id: r.org_id,
+            bot_id: r.bot_id,
+            branch_id,
+        },
+        None => CalendarScope::NIL,
+    }
+}
+
+/// Resolves the caller's (org_id, bot_id) scope for the read paths, which
+/// filter on those two columns only.
+fn resolve_scope(headers: &axum::http::HeaderMap, conn: &mut diesel::PgConnection) -> (Uuid, Uuid) {
+    let scope = resolve_calendar_scope(headers, conn);
+    (scope.org_id, scope.bot_id)
+}
+
+/// Scope used by the write paths, resolved from request headers with a graceful
+/// fallback to the global scope when the database is unreachable.
+fn write_scope_from_headers(state: &Arc<DbPool>, headers: &axum::http::HeaderMap) -> CalendarScope {
+    match state.get() {
+        Ok(mut conn) => resolve_calendar_scope(headers, &mut conn),
+        Err(_) => CalendarScope::NIL,
     }
 }
 
@@ -91,87 +133,12 @@ pub trait DefaultBotProvider: Send + Sync + 'static {
 
 pub trait CalendarEngineProvider: Send + Sync + 'static {}
 
-diesel::table! {
-    calendars (id) {
-        id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
-        owner_id -> Uuid,
-        name -> Varchar,
-        description -> Nullable<Text>,
-        color -> Nullable<Varchar>,
-        timezone -> Nullable<Varchar>,
-        is_primary -> Bool,
-        is_visible -> Bool,
-        is_shared -> Bool,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    calendar_events (id) {
-        id -> Uuid,
-        org_id -> Uuid,
-        bot_id -> Uuid,
-        calendar_id -> Uuid,
-        owner_id -> Uuid,
-        title -> Varchar,
-        description -> Nullable<Text>,
-        location -> Nullable<Varchar>,
-        start_time -> Timestamptz,
-        end_time -> Timestamptz,
-        all_day -> Bool,
-        recurrence_rule -> Nullable<Text>,
-        recurrence_id -> Nullable<Uuid>,
-        color -> Nullable<Varchar>,
-        status -> Varchar,
-        visibility -> Varchar,
-        busy_status -> Varchar,
-        reminders -> Jsonb,
-        attendees -> Jsonb,
-        conference_data -> Nullable<Jsonb>,
-        metadata -> Jsonb,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    calendar_event_attendees (id) {
-        id -> Uuid,
-        event_id -> Uuid,
-        email -> Varchar,
-        name -> Nullable<Varchar>,
-        status -> Varchar,
-        role -> Varchar,
-        rsvp_time -> Nullable<Timestamptz>,
-        comment -> Nullable<Text>,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    calendar_shares (id) {
-        id -> Uuid,
-        calendar_id -> Uuid,
-        shared_with_user_id -> Nullable<Uuid>,
-        shared_with_email -> Nullable<Varchar>,
-        permission -> Varchar,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::joinable!(calendar_events -> calendars (calendar_id));
-diesel::joinable!(calendar_event_attendees -> calendar_events (event_id));
-diesel::joinable!(calendar_shares -> calendars (calendar_id));
-
-diesel::allow_tables_to_appear_in_same_query!(
-    calendars,
-    calendar_events,
-    calendar_event_attendees,
-    calendar_shares,
-);
+// The calendar tables are declared once, in `botschema`, so every reader and
+// writer compiles against the same columns. This crate used to carry its own
+// duplicates, which omitted `branch_id` — a column that is `NOT NULL` without a
+// default, so every calendar write was rejected by PostgreSQL while the handler
+// still reported success (see issue #1338).
+use botschema::{calendar_event_attendees, calendar_events, calendar_shares, calendars};
 
 const API_CALENDAR_EVENTS: &str = "/api/calendar/events";
 const API_CALENDAR_EVENT_BY_ID: &str = "/api/calendar/events/{id}";
@@ -183,6 +150,7 @@ pub struct CalendarRecord {
     pub id: Uuid,
     pub org_id: Uuid,
     pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub owner_id: Uuid,
     pub name: String,
     pub description: Option<String>,
@@ -201,6 +169,7 @@ pub struct CalendarEventRecord {
     pub id: Uuid,
     pub org_id: Uuid,
     pub bot_id: Uuid,
+    pub branch_id: Uuid,
     pub calendar_id: Uuid,
     pub owner_id: Uuid,
     pub title: String,
@@ -488,10 +457,8 @@ pub async fn create_calendar(
     Json(input): Json<CreateCalendarRequest>,
 ) -> Result<Json<CalendarRecord>, StatusCode> {
     let pool = state.clone();
-    let (org_id, bot_id) = match state.get() {
-        Ok(mut conn) => resolve_scope(&headers, &mut conn),
-        Err(_) => (Uuid::nil(), Uuid::nil()),
-    };
+    let scope = write_scope_from_headers(&state, &headers);
+    let (org_id, bot_id) = (scope.org_id, scope.bot_id);
     let owner_id = Uuid::nil();
     let now = Utc::now();
 
@@ -499,6 +466,7 @@ pub async fn create_calendar(
         id: Uuid::new_v4(),
         org_id,
         bot_id,
+        branch_id: scope.branch_id,
         owner_id,
         name: input.name,
         description: input.description,
@@ -533,10 +501,8 @@ pub async fn list_calendars_db(
     State(state): State<Arc<DbPool>>, headers: axum::http::HeaderMap,
 ) -> Result<Json<Vec<CalendarRecord>>, StatusCode> {
     let pool = state.clone();
-    let (org_id, bot_id) = match state.get() {
-        Ok(mut conn) => resolve_scope(&headers, &mut conn),
-        Err(_) => (Uuid::nil(), Uuid::nil()),
-    };
+    let scope = write_scope_from_headers(&state, &headers);
+    let (org_id, bot_id, branch_id) = (scope.org_id, scope.bot_id, scope.branch_id);
 
     let result = tokio::task::spawn_blocking(
         move || -> Result<Vec<CalendarRecord>, StatusCode> {
@@ -557,6 +523,7 @@ pub async fn list_calendars_db(
                     id: Uuid::new_v4(),
                     org_id,
                     bot_id,
+                    branch_id,
                     owner_id: Uuid::nil(),
                     name: "Default".to_string(),
                     description: Some("Your default calendar".to_string()),
@@ -778,10 +745,8 @@ pub async fn create_event(
     Json(input): Json<CalendarEventInput>,
 ) -> Result<Json<CalendarEvent>, StatusCode> {
     let pool = state.clone();
-    let (org_id, bot_id) = match state.get() {
-        Ok(mut conn) => resolve_scope(&headers, &mut conn),
-        Err(_) => (Uuid::nil(), Uuid::nil()),
-    };
+    let scope = write_scope_from_headers(&state, &headers);
+    let (org_id, bot_id) = (scope.org_id, scope.bot_id);
     let owner_id = Uuid::nil();
     let now = Utc::now();
 
@@ -797,6 +762,7 @@ pub async fn create_event(
         id: Uuid::new_v4(),
         org_id,
         bot_id,
+        branch_id: scope.branch_id,
         calendar_id,
         owner_id,
         title: input.title.clone(),
@@ -1026,10 +992,8 @@ pub async fn import_ical(
     body: String,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let pool = state.clone();
-    let (org_id, bot_id) = match state.get() {
-        Ok(mut conn) => resolve_scope(&headers, &mut conn),
-        Err(_) => (Uuid::nil(), Uuid::nil()),
-    };
+    let scope = write_scope_from_headers(&state, &headers);
+    let (org_id, bot_id, branch_id) = (scope.org_id, scope.bot_id, scope.branch_id);
     let owner_id = Uuid::nil();
 
     let events = import_from_ical(&body, &owner_id.to_string(), calendar_id);
@@ -1044,6 +1008,7 @@ pub async fn import_ical(
                 id: event.id,
                 org_id,
                 bot_id,
+                branch_id,
                 calendar_id,
                 owner_id,
                 title: event.title,
@@ -1667,10 +1632,8 @@ async fn caldav_put_event(
     }
 
     let event = parsed_events[0].clone();
-    let (org_id, bot_id) = match state.get() {
-        Ok(mut conn) => resolve_scope(&headers, &mut conn),
-        Err(_) => (Uuid::nil(), Uuid::nil()),
-    };
+    let scope = write_scope_from_headers(&state, &headers);
+    let (org_id, bot_id) = (scope.org_id, scope.bot_id);
     let owner_id = Uuid::nil();
     let now = Utc::now();
 
@@ -1678,6 +1641,7 @@ async fn caldav_put_event(
         id: event_id,
         org_id,
         bot_id,
+        branch_id: scope.branch_id,
         calendar_id,
         owner_id,
         title: event.title.clone(),
@@ -2480,4 +2444,236 @@ pub fn configure_calendar_ui_routes() -> Router<Arc<DbPool>> {
         .route("/api/ui/calendar/day", get(ui_day_events))
         .route("/api/ui/calendar/new-event", get(ui_new_event_form))
         .route("/api/ui/calendar/new-calendar", get(ui_new_calendar_form))
+}
+
+#[cfg(test)]
+mod calendar_scope_tests {
+    use super::*;
+
+    /// Scope columns that both calendar tables declare as `NOT NULL` with no
+    /// default. A definition that omits any of them makes every write fail with
+    /// a constraint violation while the handler still reports success, which is
+    /// the defect reported in issue #1338.
+    const SCOPE_COLUMNS: [&str; 3] = ["org_id", "bot_id", "branch_id"];
+
+    fn fixture_scope() -> (Uuid, Uuid, Uuid) {
+        (Uuid::new_v4(), Uuid::new_v4(), Uuid::new_v4())
+    }
+
+    fn sample_calendar(scope: (Uuid, Uuid, Uuid)) -> CalendarRecord {
+        let (org_id, bot_id, branch_id) = scope;
+        let now = Utc::now();
+        CalendarRecord {
+            id: Uuid::new_v4(),
+            org_id,
+            bot_id,
+            branch_id,
+            owner_id: Uuid::new_v4(),
+            name: "Fixture".to_string(),
+            description: Some("Fixture calendar".to_string()),
+            color: Some("#3b82f6".to_string()),
+            timezone: Some("UTC".to_string()),
+            is_primary: true,
+            is_visible: true,
+            is_shared: false,
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
+    fn sample_event(scope: (Uuid, Uuid, Uuid), calendar_id: Uuid) -> CalendarEventRecord {
+        let (org_id, bot_id, branch_id) = scope;
+        let now = Utc::now();
+        CalendarEventRecord {
+            id: Uuid::new_v4(),
+            org_id,
+            bot_id,
+            branch_id,
+            calendar_id,
+            owner_id: Uuid::new_v4(),
+            title: "Fixture event".to_string(),
+            description: None,
+            location: None,
+            start_time: now,
+            end_time: now + chrono::Duration::hours(1),
+            all_day: false,
+            recurrence_rule: None,
+            recurrence_id: None,
+            color: None,
+            status: "confirmed".to_string(),
+            visibility: "default".to_string(),
+            busy_status: "busy".to_string(),
+            reminders: serde_json::json!([]),
+            attendees: serde_json::json!([]),
+            conference_data: None,
+            metadata: serde_json::json!({}),
+            created_at: now,
+            updated_at: now,
+        }
+    }
+
+    fn insert_sql(calendar: &CalendarRecord) -> String {
+        diesel::debug_query::<diesel::pg::Pg, _>(
+            &diesel::insert_into(calendars::table).values(calendar),
+        )
+        .to_string()
+    }
+
+    fn insert_event_sql(event: &CalendarEventRecord) -> String {
+        diesel::debug_query::<diesel::pg::Pg, _>(
+            &diesel::insert_into(calendar_events::table).values(event),
+        )
+        .to_string()
+    }
+
+    #[test]
+    fn calendar_insert_names_every_scope_column() {
+        let sql = insert_sql(&sample_calendar(fixture_scope()));
+        for column in SCOPE_COLUMNS {
+            assert!(sql.contains(column), "calendars insert omits {column}: {sql}");
+        }
+    }
+
+    #[test]
+    fn calendar_event_insert_names_every_scope_column() {
+        let scope = fixture_scope();
+        let sql = insert_event_sql(&sample_event(scope, Uuid::new_v4()));
+        for column in SCOPE_COLUMNS {
+            assert!(
+                sql.contains(column),
+                "calendar_events insert omits {column}: {sql}"
+            );
+        }
+    }
+
+    /// Both tables are read with `all_columns`, so the shared definition must
+    /// expose the three scope columns as well.
+    #[test]
+    fn shared_schema_exposes_every_scope_column() {
+        let selects = [
+            diesel::debug_query::<diesel::pg::Pg, _>(&calendars::table.select(calendars::all_columns))
+                .to_string(),
+            diesel::debug_query::<diesel::pg::Pg, _>(
+                &calendar_events::table.select(calendar_events::all_columns),
+            )
+            .to_string(),
+        ];
+        for sql in selects {
+            for column in SCOPE_COLUMNS {
+                assert!(
+                    sql.contains(column),
+                    "shared schema omits {column}: {sql}"
+                );
+            }
+        }
+    }
+
+    /// The fallback scope must still be writable: an anonymous caller resolves
+    /// to nil rather than to a missing value, so the insert satisfies the
+    /// `NOT NULL` columns instead of failing the request.
+    #[test]
+    fn nil_scope_is_a_complete_write_scope() {
+        let scope = CalendarScope::NIL;
+        assert_eq!(scope.org_id, Uuid::nil());
+        assert_eq!(scope.bot_id, Uuid::nil());
+        assert_eq!(scope.branch_id, Uuid::nil());
+        let sql = insert_sql(&sample_calendar((scope.org_id, scope.bot_id, scope.branch_id)));
+        for column in SCOPE_COLUMNS {
+            assert!(sql.contains(column), "nil-scope insert omits {column}");
+        }
+    }
+
+    /// Round trip against a live database: a calendar and an event written for
+    /// the resolved scope must both be readable again. Skipped unless
+    /// `DATABASE_URL` points at a database carrying the calendar schema; the
+    /// fixture rows are removed afterwards.
+    #[test]
+    fn calendar_and_event_round_trip_for_resolved_scope() {
+        let Ok(database_url) = std::env::var("DATABASE_URL") else {
+            return;
+        };
+        let Ok(mut conn) = diesel::PgConnection::establish(&database_url) else {
+            log::warn!("Skipping the calendar round trip: DATABASE_URL is unreachable");
+            return;
+        };
+        let Some(scope) = fixture_scope_from_database(&mut conn) else {
+            log::warn!("Skipping the calendar round trip: no branch is configured");
+            return;
+        };
+
+        let calendar = sample_calendar(scope);
+        diesel::insert_into(calendars::table)
+            .values(&calendar)
+            .execute(&mut conn)
+            .expect("a calendar must be insertable for a resolved scope");
+
+        let event = sample_event(scope, calendar.id);
+        diesel::insert_into(calendar_events::table)
+            .values(&event)
+            .execute(&mut conn)
+            .expect("an event must be insertable for a resolved scope");
+
+        let stored_calendars = calendars::table
+            .filter(calendars::branch_id.eq(scope.2))
+            .load::<CalendarRecord>(&mut conn)
+            .expect("the calendar must be readable back");
+        assert!(
+            stored_calendars.iter().any(|row| row.id == calendar.id),
+            "the calendar written for the resolved scope must be readable"
+        );
+
+        let stored_events = calendar_events::table
+            .filter(calendar_events::branch_id.eq(scope.2))
+            .load::<CalendarEventRecord>(&mut conn)
+            .expect("the event must be readable back");
+        assert!(
+            stored_events.iter().any(|row| row.id == event.id),
+            "the event written for the resolved scope must be readable"
+        );
+
+        diesel::delete(calendar_events::table.filter(calendar_events::id.eq(event.id)))
+            .execute(&mut conn)
+            .ok();
+        diesel::delete(calendars::table.filter(calendars::id.eq(calendar.id)))
+            .execute(&mut conn)
+            .ok();
+    }
+
+    /// Resolves the oldest branch and its default bot, matching the scope the
+    /// request handlers compute for an authenticated caller.
+    fn fixture_scope_from_database(conn: &mut diesel::PgConnection) -> Option<(Uuid, Uuid, Uuid)> {
+        #[derive(diesel::QueryableByName)]
+        struct ScopeRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            branch_id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            org_id: Uuid,
+        }
+
+        let row = diesel::sql_query(
+            "SELECT id AS branch_id, org_id FROM branches ORDER BY created_at ASC LIMIT 1",
+        )
+        .get_result::<ScopeRow>(conn)
+        .optional()
+        .ok()
+        .flatten()?;
+
+        #[derive(diesel::QueryableByName)]
+        struct BotRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            id: Uuid,
+        }
+
+        let bot = diesel::sql_query(
+            "SELECT id FROM bots WHERE branch_id = $1 \
+             ORDER BY is_default_for_branch DESC, created_at ASC LIMIT 1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(row.branch_id)
+        .get_result::<BotRow>(conn)
+        .optional()
+        .ok()
+        .flatten()?;
+
+        Some((row.org_id, bot.id, row.branch_id))
+    }
 }
