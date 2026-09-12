@@ -237,17 +237,66 @@ fn build_base_router(
     let use_embedded_ui = !ui_path_exists && crate::embedded_ui::has_embedded_ui();
 
     if ui_path_exists {
+        // Unmatched paths serve the desktop shell, because the suite routes its
+        // applications on the client. A path belonging to a machine-facing
+        // surface is not an application route though: answering the shell meant
+        // `200 text/html` was returned to callers that expected JSON, DAV XML or
+        // an acknowledgement, which is how a whole family of unreachable
+        // endpoints stayed invisible (see the axum 0.7 `:param` spelling).
+        let shell_path = format!("{}/desktop.html", ui_path);
         base_router
             .nest_service("/auth", ServeDir::new(format!("{}/auth", ui_path)))
             .nest_service("/suite", ServeDir::new(&ui_path))
             .nest_service("/themes", ServeDir::new(format!("{}/../themes", ui_path)))
-            .fallback_service(
-                tower_http::services::ServeFile::new(format!("{}/desktop.html", ui_path))
-            )
+            .fallback(move |uri: axum::http::Uri| {
+                let shell_path = shell_path.clone();
+                async move { fallback_response(&uri, &shell_path).await }
+            })
     } else if use_embedded_ui {
         base_router.merge(crate::embedded_ui::embedded_ui_router())
     } else {
         base_router
+    }
+}
+
+/// Answers a request no route matched.
+///
+/// An application route receives the desktop shell. A path that belongs to the
+/// API, the DAV router or an inbound webhook receives a `404` naming the path,
+/// so a route that is missing — or declared with the wrong parameter syntax — is
+/// reported instead of being masked by a successful HTML response.
+async fn fallback_response(
+    uri: &axum::http::Uri,
+    shell_path: &str,
+) -> axum::response::Response {
+    use axum::response::IntoResponse;
+
+    let path = uri.path();
+    let machine_facing = ["/api/", "/caldav", "/webhook", "/.well-known/"]
+        .iter()
+        .any(|prefix| path.starts_with(prefix));
+    if machine_facing {
+        return (
+            axum::http::StatusCode::NOT_FOUND,
+            axum::Json(serde_json::json!({
+                "error": "not_found",
+                "message": "No route matches this path",
+                "path": path,
+            })),
+        )
+            .into_response();
+    }
+
+    match tokio::fs::read(shell_path).await {
+        Ok(bytes) => (
+            [(axum::http::header::CONTENT_TYPE, "text/html; charset=utf-8")],
+            bytes,
+        )
+            .into_response(),
+        Err(error) => {
+            log::error!("Failed to read the desktop shell at {shell_path}: {error}");
+            axum::http::StatusCode::INTERNAL_SERVER_ERROR.into_response()
+        }
     }
 }
 
