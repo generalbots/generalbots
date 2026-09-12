@@ -109,7 +109,7 @@ struct BotScopeRow {
 /// bot handle, so the row is looked up by bot id or by branch id. Without this
 /// lookup the session stored the handle as its `bot_id` and `Uuid::nil()` as its
 /// `branch_id`, leaving channel work unscoped.
-fn resolve_bot_scope(state: &Arc<ChannelState>, conn: &mut PgConnection) -> (Uuid, Uuid) {
+pub(crate) fn resolve_bot_scope(state: &Arc<ChannelState>, conn: &mut PgConnection) -> (Uuid, Uuid) {
     let handle = (state.get_default_bot)(conn);
 
     if handle.0.is_nil() {

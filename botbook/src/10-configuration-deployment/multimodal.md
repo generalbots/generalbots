@@ -147,6 +147,53 @@ python -m uvicorn src.main:app \
     --ssl-certfile cert.pem
 ```
 
+## Media Auto-Task (inbound media → classification → filing)
+
+A photo or document sent to the Telegram channel becomes a filed item without
+any user instruction. The chain is:
+
+1. The channel stores the attachment in the bot's Drive (`inbox/…`) and the
+   conversation carries the `[image] inbox/9f3c.jpg` marker (see
+   [Telegram Channel](../06-channels/telegram-channel.md)).
+2. The agent passes that path to the `classify_media` tool shipped in the
+   `media-filing` template, which is the only supported way to file inbound
+   media.
+3. The tool perceives the content (`DESCRIBE IMAGE` for pictures, `GET` for
+   documents), asks the model for one word of a **closed taxonomy**
+   (`invoice`, `receipt`, `contract`, `identity`, `report`, `unsorted`) and
+   moves the file to `media/{year}/{month}/{category}/`, writing a
+   `.meta.txt` audit trail next to it.
+
+The taxonomy being closed is the safety property: a model answer that is not
+one of those words degrades to `unsorted`, so a misclassification can never
+create an arbitrary folder. Every keyword involved already exists
+(`DESCRIBE IMAGE`, `GET`, `LLM`, `MOVE`, `CREATE FILE`, `SPLIT`, `LAST`,
+`FIRST`, `STR`, `LEN`, `LCASE`, `INSTR`, `TRIM`, `REPLACE`, `LEFT`, `TODAY`).
+
+### When the vision service is unavailable
+
+The flow degrades instead of failing. If `DESCRIBE IMAGE` (or the document
+read) raises an error — BotModels not running, model missing, unsupported
+format — the tool falls back to the caption already carried by the marker,
+still applies the closed taxonomy, and files the item; the reply notes that the
+content analysis was unavailable. With no caption either, the item is filed as
+`unsorted`. Installing/preparing BotModels therefore upgrades classification
+quality with no script change.
+
+`DESCRIBE IMAGE` requires two conditions, and both must hold:
+
+- the bot configuration has `botmodels-enabled,true` (see
+  [Configuration](#configuration)), and
+- the service is actually reachable at the address the server uses, e.g.
+  `BOTMODELS_HOST=http://<bot-host>:8082` in the botserver unit.
+
+Check reachability — a connection-refused (`000`) result is the usual cause of
+a degraded classification:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}\n' http://<botmodels-host>:<port>/api/health
+```
+
 ## BotModels API Endpoints
 
 The botmodels service exposes these REST endpoints:

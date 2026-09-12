@@ -25,7 +25,7 @@ external_sync = ["automation", "cache"]
 # ===== CORE INFRASTRUCTURE (Can be used standalone) =====
 scripting = ["dep:rhai"]
 automation = ["scripting", "dep:cron"]
-drive = ["dep:pdf-extract", "dep:rust-s3", "botcore/drive"]
+drive = ["dep:pdf-extract", "dep:rust-s3", "botcore/drive", "botbasic_data/drive"]
 cache = ["dep:redis"]
 directory = ["rbac", "botsecurity/directory"]
 rbac = []

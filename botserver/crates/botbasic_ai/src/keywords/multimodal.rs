@@ -59,364 +59,362 @@ pub fn register_multimodal_keywords(
 }
 
 fn register_generate_image(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["GENERATE", "IMAGE", "$expr$"],
-            false,
-            move |context, inputs| {
-                let prompt = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_multimodal("generate-image", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    client.generate_image(&prompt).await
-                })
-            },
-        )
-        .expect("valid syntax registration for GENERATE IMAGE");
+    if let Err(e) = engine.register_custom_syntax(
+        ["GENERATE", "IMAGE", "$expr$"],
+        false,
+        move |context, inputs| {
+            let prompt = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_multimodal("generate-image", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                client.generate_image(&prompt).await
+            })
+        },
+    ) {
+        log::error!("GENERATE IMAGE registration failed: {e}");
+    }
 }
 
 fn register_describe_image(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["DESCRIBE", "IMAGE", "$expr$"],
-            false,
-            move |context, inputs| {
-                let source = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_multimodal("describe-image", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    client.describe_image(&source).await
-                })
-            },
-        )
-        .expect("valid syntax registration for DESCRIBE IMAGE");
+    if let Err(e) = engine.register_custom_syntax(
+        ["DESCRIBE", "IMAGE", "$expr$"],
+        false,
+        move |context, inputs| {
+            let source = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_multimodal("describe-image", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                client.describe_image(&source).await
+            })
+        },
+    ) {
+        log::error!("DESCRIBE IMAGE registration failed: {e}");
+    }
 }
 
 fn register_read_text(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["READ", "TEXT", "$expr$"],
-            false,
-            move |context, inputs| {
-                let source = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_multimodal("read-text", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    client.describe_image(&source).await
-                })
-            },
-        )
-        .expect("valid syntax registration for READ TEXT");
+    if let Err(e) =
+        engine.register_custom_syntax(["READ", "TEXT", "$expr$"], false, move |context, inputs| {
+            let source = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_multimodal("read-text", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                client.describe_image(&source).await
+            })
+        })
+    {
+        log::error!("READ TEXT registration failed: {e}");
+    }
 }
 
 fn register_scan_barcode(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["SCAN", "BARCODE", "$expr$"],
-            false,
-            move |context, inputs| {
-                let source = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_multimodal("scan-barcode", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    client.scan_barcode(&source).await
-                })
-            },
-        )
-        .expect("valid syntax registration for SCAN BARCODE");
+    if let Err(e) = engine.register_custom_syntax(
+        ["SCAN", "BARCODE", "$expr$"],
+        false,
+        move |context, inputs| {
+            let source = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_multimodal("scan-barcode", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                client.scan_barcode(&source).await
+            })
+        },
+    ) {
+        log::error!("SCAN BARCODE registration failed: {e}");
+    }
 }
 
 fn register_detect_objects(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["DETECT", "OBJECTS", "$expr$"],
-            false,
-            move |context, inputs| {
-                let source = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_multimodal("detect-objects", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    client.describe_image(&source).await
-                })
-            },
-        )
-        .expect("valid syntax registration for DETECT OBJECTS");
+    if let Err(e) = engine.register_custom_syntax(
+        ["DETECT", "OBJECTS", "$expr$"],
+        false,
+        move |context, inputs| {
+            let source = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_multimodal("detect-objects", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                client.describe_image(&source).await
+            })
+        },
+    ) {
+        log::error!("DETECT OBJECTS registration failed: {e}");
+    }
 }
 
 fn register_read_plate(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["READ", "PLATE", "$expr$"],
-            false,
-            move |context, inputs| {
-                let source = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_multimodal("read-plate", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    let raw = client.scan_barcode(&source).await?;
-                    Ok(format!("plate-scan:{raw}"))
-                })
-            },
-        )
-        .expect("valid syntax registration for READ PLATE");
+    if let Err(e) = engine.register_custom_syntax(
+        ["READ", "PLATE", "$expr$"],
+        false,
+        move |context, inputs| {
+            let source = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_multimodal("read-plate", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                let raw = client.scan_barcode(&source).await?;
+                Ok(format!("plate-scan:{raw}"))
+            })
+        },
+    ) {
+        log::error!("READ PLATE registration failed: {e}");
+    }
 }
 
 fn register_detect_damage(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["DETECT", "DAMAGE", "$expr$"],
-            false,
-            move |context, inputs| {
-                let source = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_multimodal("detect-damage", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    let description = client.describe_image(&source).await?;
-                    Ok(format!("damage-assessment:{description}"))
-                })
-            },
-        )
-        .expect("valid syntax registration for DETECT DAMAGE");
+    if let Err(e) = engine.register_custom_syntax(
+        ["DETECT", "DAMAGE", "$expr$"],
+        false,
+        move |context, inputs| {
+            let source = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_multimodal("detect-damage", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                let description = client.describe_image(&source).await?;
+                Ok(format!("damage-assessment:{description}"))
+            })
+        },
+    ) {
+        log::error!("DETECT DAMAGE registration failed: {e}");
+    }
 }
 
 fn register_generate_video(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["GENERATE", "VIDEO", "$expr$"],
-            false,
-            move |context, inputs| {
-                let prompt = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_multimodal("generate-video", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    client.generate_video(&prompt).await
-                })
-            },
-        )
-        .expect("valid syntax registration for GENERATE VIDEO");
+    if let Err(e) = engine.register_custom_syntax(
+        ["GENERATE", "VIDEO", "$expr$"],
+        false,
+        move |context, inputs| {
+            let prompt = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_multimodal("generate-video", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                client.generate_video(&prompt).await
+            })
+        },
+    ) {
+        log::error!("GENERATE VIDEO registration failed: {e}");
+    }
 }
 
 fn register_speech_to_text(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["SPEECH", "TO", "TEXT", "$expr$"],
-            false,
-            move |context, inputs| {
-                let source = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_multimodal("speech-to-text", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    client.speech_to_text(&source).await
-                })
-            },
-        )
-        .expect("valid syntax registration for SPEECH TO TEXT");
+    if let Err(e) = engine.register_custom_syntax(
+        ["SPEECH", "TO", "TEXT", "$expr$"],
+        false,
+        move |context, inputs| {
+            let source = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_multimodal("speech-to-text", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                client.speech_to_text(&source).await
+            })
+        },
+    ) {
+        log::error!("SPEECH TO TEXT registration failed: {e}");
+    }
 }
 
 fn register_text_to_speech(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["TEXT", "TO", "SPEECH", "$expr$"],
-            false,
-            move |context, inputs| {
-                let text = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_multimodal("text-to-speech", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    client.generate_audio(&text, None, Some("pt-BR")).await
-                })
-            },
-        )
-        .expect("valid syntax registration for TEXT TO SPEECH");
+    if let Err(e) = engine.register_custom_syntax(
+        ["TEXT", "TO", "SPEECH", "$expr$"],
+        false,
+        move |context, inputs| {
+            let text = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_multimodal("text-to-speech", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                client.generate_audio(&text, None, Some("pt-BR")).await
+            })
+        },
+    ) {
+        log::error!("TEXT TO SPEECH registration failed: {e}");
+    }
 }
 
 fn register_analyze_image(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["ANALYZE", "IMAGE", "$expr$"],
-            false,
-            move |context, inputs| {
-                let source = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_multimodal("analyze-image", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    client.describe_image(&source).await
-                })
-            },
-        )
-        .expect("valid syntax registration for ANALYZE IMAGE");
+    if let Err(e) = engine.register_custom_syntax(
+        ["ANALYZE", "IMAGE", "$expr$"],
+        false,
+        move |context, inputs| {
+            let source = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_multimodal("analyze-image", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                client.describe_image(&source).await
+            })
+        },
+    ) {
+        log::error!("ANALYZE IMAGE registration failed: {e}");
+    }
 }
 
 fn register_compare_images(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["COMPARE", "IMAGES", "$expr$", "WITH", "$expr$"],
-            false,
-            move |context, inputs| {
-                let a = eval_string(context, &inputs[0])?;
-                let b = eval_string(context, &inputs[1])?;
-                let combined = format!("{a}|{b}");
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_multimodal("compare-images", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    client.describe_image(&combined).await
-                })
-            },
-        )
-        .expect("valid syntax registration for COMPARE IMAGES");
+    if let Err(e) = engine.register_custom_syntax(
+        ["COMPARE", "IMAGES", "$expr$", "WITH", "$expr$"],
+        false,
+        move |context, inputs| {
+            let a = eval_string(context, &inputs[0])?;
+            let b = eval_string(context, &inputs[1])?;
+            let combined = format!("{a}|{b}");
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_multimodal("compare-images", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                client.describe_image(&combined).await
+            })
+        },
+    ) {
+        log::error!("COMPARE IMAGES registration failed: {e}");
+    }
 }
 
 fn register_classify_image(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["CLASSIFY", "IMAGE", "$expr$"],
-            false,
-            move |context, inputs| {
-                let source = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_multimodal("classify-image", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    client.describe_image(&source).await
-                })
-            },
-        )
-        .expect("valid syntax registration for CLASSIFY IMAGE");
+    if let Err(e) = engine.register_custom_syntax(
+        ["CLASSIFY", "IMAGE", "$expr$"],
+        false,
+        move |context, inputs| {
+            let source = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_multimodal("classify-image", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                client.describe_image(&source).await
+            })
+        },
+    ) {
+        log::error!("CLASSIFY IMAGE registration failed: {e}");
+    }
 }
 
 fn register_detect_defects(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["DETECT", "DEFECTS", "$expr$"],
-            false,
-            move |context, inputs| {
-                let source = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_multimodal("detect-defects", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    client.describe_image(&source).await
-                })
-            },
-        )
-        .expect("valid syntax registration for DETECT DEFECTS");
+    if let Err(e) = engine.register_custom_syntax(
+        ["DETECT", "DEFECTS", "$expr$"],
+        false,
+        move |context, inputs| {
+            let source = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_multimodal("detect-defects", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                client.describe_image(&source).await
+            })
+        },
+    ) {
+        log::error!("DETECT DEFECTS registration failed: {e}");
+    }
 }
 
 fn register_detect_faces(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["DETECT", "FACES", "$expr$"],
-            false,
-            move |context, inputs| {
-                let source = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_multimodal("detect-faces", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    client.describe_image(&source).await
-                })
-            },
-        )
-        .expect("valid syntax registration for DETECT FACES");
+    if let Err(e) = engine.register_custom_syntax(
+        ["DETECT", "FACES", "$expr$"],
+        false,
+        move |context, inputs| {
+            let source = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_multimodal("detect-faces", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                client.describe_image(&source).await
+            })
+        },
+    ) {
+        log::error!("DETECT FACES registration failed: {e}");
+    }
 }
 
 fn register_extract_colors(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["EXTRACT", "COLORS", "$expr$"],
-            false,
-            move |context, inputs| {
-                let source = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_multimodal("extract-colors", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    client.describe_image(&source).await
-                })
-            },
-        )
-        .expect("valid syntax registration for EXTRACT COLORS");
+    if let Err(e) = engine.register_custom_syntax(
+        ["EXTRACT", "COLORS", "$expr$"],
+        false,
+        move |context, inputs| {
+            let source = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_multimodal("extract-colors", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                client.describe_image(&source).await
+            })
+        },
+    ) {
+        log::error!("EXTRACT COLORS registration failed: {e}");
+    }
 }
 
 fn register_assess_image(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["ASSESS", "IMAGE", "$expr$"],
-            false,
-            move |context, inputs| {
-                let source = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_multimodal("assess-image", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    client.describe_image(&source).await
-                })
-            },
-        )
-        .expect("valid syntax registration for ASSESS IMAGE");
+    if let Err(e) = engine.register_custom_syntax(
+        ["ASSESS", "IMAGE", "$expr$"],
+        false,
+        move |context, inputs| {
+            let source = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_multimodal("assess-image", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                client.describe_image(&source).await
+            })
+        },
+    ) {
+        log::error!("ASSESS IMAGE registration failed: {e}");
+    }
 }
 
 #[cfg(test)]
