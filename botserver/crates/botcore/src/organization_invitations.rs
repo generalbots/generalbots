@@ -1227,10 +1227,12 @@ mod tests {
     /// `organization_invitations` table must exist); returns `None` when the
     /// env var is absent so unit runs without a database are skipped.
     fn test_service() -> Option<InvitationService> {
-        use diesel::r2d2::ConnectionManager;
+        use diesel::r2d2::{ConnectionManager, Pool};
         let url = std::env::var("DATABASE_URL").ok()?;
         let manager = ConnectionManager::<diesel::PgConnection>::new(url);
-        let pool = Pool::new(manager).ok()?;
+        // The pool type has to be named explicitly: `Pool::new` alone leaves
+        // the connection manager's parameter unconstrained.
+        let pool: DbPool = Pool::builder().max_size(2).build(manager).ok()?;
         Some(InvitationService::new(pool))
     }
 
