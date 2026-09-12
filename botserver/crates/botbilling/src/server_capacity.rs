@@ -10,13 +10,33 @@ pub struct ServerCapacityConfig {
 impl Default for ServerCapacityConfig {
     fn default() -> Self {
         Self {
-            cpu_pause_threshold: 80.0,
-            ram_pause_threshold: 85.0,
-            disk_pause_threshold: 90.0,
+            // Thresholds are operator-tunable so the signup gate can be adjusted
+            // for a host without a rebuild. A host legitimately sitting a fraction
+            // over a hardcoded 90% disk vetoed every free/shared signup with a 503
+            // (#1343).
+            cpu_pause_threshold: env_pause_threshold("SAAS_CPU_PAUSE_THRESHOLD", 80.0),
+            ram_pause_threshold: env_pause_threshold("SAAS_RAM_PAUSE_THRESHOLD", 85.0),
+            disk_pause_threshold: env_pause_threshold("SAAS_DISK_PAUSE_THRESHOLD", 90.0),
             ram_per_free_account_mb: 128.0,
             ram_per_shared_account_mb: 512.0,
             free_ram_allocation_fraction: 0.70,
         }
+    }
+}
+
+/// Pause threshold read from the environment, falling back to the built-in
+/// default. Values outside 0-100 (or unparsable) are ignored with a warning so a
+/// malformed environment variable can never disable or crash the gate.
+fn env_pause_threshold(key: &str, fallback: f32) -> f32 {
+    match std::env::var(key) {
+        Ok(raw) => match raw.trim().parse::<f32>() {
+            Ok(value) if (0.0..=100.0).contains(&value) => value,
+            _ => {
+                log::warn!("{key}={raw:?} is not a percentage between 0 and 100; using {fallback}");
+                fallback
+            }
+        },
+        Err(_) => fallback,
     }
 }
 

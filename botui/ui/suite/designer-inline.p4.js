@@ -173,3 +173,14 @@
                 alert('Error restoring version: ' + e.message);
             }
         }
+
+        // Bootstrap — this is the last `designer-inline` part, so every function
+        // `initDesigner` depends on (initKeyboardShortcuts in p2, initContextMenu
+        // and updateStatusBar in p3, …) is defined before it runs. Starting the
+        // designer from p1 threw "initKeyboardShortcuts is not defined" on HTMX
+        // injection because p2/p3 had not been evaluated yet (#1342).
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initDesigner);
+        } else {
+            initDesigner();
+        }

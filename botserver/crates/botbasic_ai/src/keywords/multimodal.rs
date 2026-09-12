@@ -6,23 +6,20 @@
 |  █████  █████ █   ███ █████ ██  ██ ██  ██ █████   ████   █████   █   ███    |
 |                                                                             |
 | General Bots Copyright (c) pragmatismo.com.br. All rights reserved.         |
-| Licensed under the AGPL-3.0.                                                |
+| Licensed under the MIT License.                                             |
 |                                                                             |
-| According to our dual licensing model, this program can be used either      |
-| under the terms of the GNU Affero General Public License, version 3,        |
-| or under a proprietary license.                                             |
+| This program is free software: you can redistribute it and/or modify        |
+| it under the terms of the MIT License.                                      |
 |                                                                             |
-| The texts of the GNU Affero General Public License with an additional       |
-| permission and of our proprietary license can be found at and               |
-| in the LICENSE file you have received along with this program.              |
+| The text of the MIT License can be found in the LICENSE file you have       |
+| received along with this program.                                           |
 |                                                                             |
 | This program is distributed in the hope that it will be useful,             |
 | but WITHOUT ANY WARRANTY, without even the implied warranty of              |
-| MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the                |
-| GNU Affero General Public License for more details.                         |
+| MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.                        |
 |                                                                             |
 | "General Bots" is a registered trademark of pragmatismo.com.br.             |
-| The licensing of the program under the AGPLv3 does not imply a              |
+| The licensing of the program under the MIT License does not imply a         |
 | trademark license. Therefore any rights, title and interest in              |
 | our trademarks remain entirely with us.                                     |
 |                                                                             |
@@ -32,7 +29,7 @@ use botbasic_types::{BasicRuntime, UserSession};
 use rhai::Engine;
 use std::sync::Arc;
 
-use super::multimodal_helpers::{build_client, eval_string, spawn_multimodal};
+use super::multimodal_helpers::{build_client, eval_string, resolve_media_source, spawn_multimodal};
 
 pub fn register_multimodal_keywords(
     state: Arc<dyn BasicRuntime>,
@@ -92,7 +89,10 @@ fn register_describe_image(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                 if !client.is_enabled() {
                     return Err("BotModels is not enabled in bot configuration".into());
                 }
-                client.describe_image(&source).await
+                let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+                let outcome = client.describe_image(media.reference()).await;
+                media.cleanup();
+                outcome
             })
         },
     ) {
@@ -111,7 +111,10 @@ fn register_read_text(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &
                 if !client.is_enabled() {
                     return Err("BotModels is not enabled in bot configuration".into());
                 }
-                client.describe_image(&source).await
+                let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+                let outcome = client.describe_image(media.reference()).await;
+                media.cleanup();
+                outcome
             })
         })
     {
@@ -132,7 +135,10 @@ fn register_scan_barcode(state: Arc<dyn BasicRuntime>, user: UserSession, engine
                 if !client.is_enabled() {
                     return Err("BotModels is not enabled in bot configuration".into());
                 }
-                client.scan_barcode(&source).await
+                let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+                let outcome = client.scan_barcode(media.reference()).await;
+                media.cleanup();
+                outcome
             })
         },
     ) {
@@ -153,7 +159,10 @@ fn register_detect_objects(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                 if !client.is_enabled() {
                     return Err("BotModels is not enabled in bot configuration".into());
                 }
-                client.describe_image(&source).await
+                let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+                let outcome = client.describe_image(media.reference()).await;
+                media.cleanup();
+                outcome
             })
         },
     ) {
@@ -174,7 +183,9 @@ fn register_read_plate(state: Arc<dyn BasicRuntime>, user: UserSession, engine: 
                 if !client.is_enabled() {
                     return Err("BotModels is not enabled in bot configuration".into());
                 }
-                let raw = client.scan_barcode(&source).await?;
+                let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+                let raw = client.scan_barcode(media.reference()).await?;
+                media.cleanup();
                 Ok(format!("plate-scan:{raw}"))
             })
         },
@@ -196,7 +207,9 @@ fn register_detect_damage(state: Arc<dyn BasicRuntime>, user: UserSession, engin
                 if !client.is_enabled() {
                     return Err("BotModels is not enabled in bot configuration".into());
                 }
-                let description = client.describe_image(&source).await?;
+                let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+                let description = client.describe_image(media.reference()).await?;
+                media.cleanup();
                 Ok(format!("damage-assessment:{description}"))
             })
         },
@@ -239,7 +252,10 @@ fn register_speech_to_text(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                 if !client.is_enabled() {
                     return Err("BotModels is not enabled in bot configuration".into());
                 }
-                client.speech_to_text(&source).await
+                let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+                let outcome = client.speech_to_text(media.reference()).await;
+                media.cleanup();
+                outcome
             })
         },
     ) {
@@ -281,7 +297,10 @@ fn register_analyze_image(state: Arc<dyn BasicRuntime>, user: UserSession, engin
                 if !client.is_enabled() {
                     return Err("BotModels is not enabled in bot configuration".into());
                 }
-                client.describe_image(&source).await
+                let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+                let outcome = client.describe_image(media.reference()).await;
+                media.cleanup();
+                outcome
             })
         },
     ) {
@@ -325,7 +344,10 @@ fn register_classify_image(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                 if !client.is_enabled() {
                     return Err("BotModels is not enabled in bot configuration".into());
                 }
-                client.describe_image(&source).await
+                let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+                let outcome = client.describe_image(media.reference()).await;
+                media.cleanup();
+                outcome
             })
         },
     ) {
@@ -346,7 +368,10 @@ fn register_detect_defects(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                 if !client.is_enabled() {
                     return Err("BotModels is not enabled in bot configuration".into());
                 }
-                client.describe_image(&source).await
+                let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+                let outcome = client.describe_image(media.reference()).await;
+                media.cleanup();
+                outcome
             })
         },
     ) {
@@ -367,7 +392,10 @@ fn register_detect_faces(state: Arc<dyn BasicRuntime>, user: UserSession, engine
                 if !client.is_enabled() {
                     return Err("BotModels is not enabled in bot configuration".into());
                 }
-                client.describe_image(&source).await
+                let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+                let outcome = client.describe_image(media.reference()).await;
+                media.cleanup();
+                outcome
             })
         },
     ) {
@@ -388,7 +416,10 @@ fn register_extract_colors(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                 if !client.is_enabled() {
                     return Err("BotModels is not enabled in bot configuration".into());
                 }
-                client.describe_image(&source).await
+                let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+                let outcome = client.describe_image(media.reference()).await;
+                media.cleanup();
+                outcome
             })
         },
     ) {
@@ -409,7 +440,10 @@ fn register_assess_image(state: Arc<dyn BasicRuntime>, user: UserSession, engine
                 if !client.is_enabled() {
                     return Err("BotModels is not enabled in bot configuration".into());
                 }
-                client.describe_image(&source).await
+                let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+                let outcome = client.describe_image(media.reference()).await;
+                media.cleanup();
+                outcome
             })
         },
     ) {

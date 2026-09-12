@@ -6,23 +6,20 @@
 |  █████  █████ █   ███ █████ ██  ██ ██  ██ █████   ████   █████   █   ███    |
 |                                                                             |
 | General Bots Copyright (c) pragmatismo.com.br. All rights reserved.         |
-| Licensed under the AGPL-3.0.                                                |
+| Licensed under the MIT License.                                             |
 |                                                                             |
-| According to our dual licensing model, this program can be used either      |
-| under the terms of the GNU Affero General Public License, version 3,        |
-| or under a proprietary license.                                             |
+| This program is free software: you can redistribute it and/or modify        |
+| it under the terms of the MIT License.                                      |
 |                                                                             |
-| The texts of the GNU Affero General Public License with an additional       |
-| permission and of our proprietary license can be found at and               |
-| in the LICENSE file you have received along with this program.              |
+| The text of the MIT License can be found in the LICENSE file you have       |
+| received along with this program.                                           |
 |                                                                             |
 | This program is distributed in the hope that it will be useful,             |
 | but WITHOUT ANY WARRANTY, without even the implied warranty of              |
-| MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the                |
-| GNU Affero General Public License for more details.                         |
+| MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.                        |
 |                                                                             |
 | "General Bots" is a registered trademark of pragmatismo.com.br.             |
-| The licensing of the program under the AGPLv3 does not imply a              |
+| The licensing of the program under the MIT License does not imply a         |
 | trademark license. Therefore any rights, title and interest in              |
 | our trademarks remain entirely with us.                                     |
 |                                                                             |
@@ -33,6 +30,8 @@ use botmultimodal::{BotModelsClient, ConfigProvider};
 use rhai::{Dynamic, Engine, EvalAltResult};
 use std::sync::Arc;
 use uuid::Uuid;
+
+use super::multimodal_helpers::resolve_media_source;
 
 const DEFAULT_TIMEOUT_SECS: u64 = 180;
 
@@ -126,122 +125,133 @@ pub fn register_video_keywords(
 /// the camera feed. The actual monitoring loop is scheduled server-side and the
 /// supplied callback tool will be invoked when an event is detected.
 fn register_monitor_camera(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["MONITOR", "CAMERA", "$expr$"],
-            false,
-            move |context, inputs| {
-                let source = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_video("monitor-camera", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    let description = client.describe_video(&source).await?;
-                    Ok(format!("camera-session:{description}"))
-                })
-            },
-        )
-        .expect("valid syntax registration for MONITOR CAMERA");
+    if let Err(e) = engine.register_custom_syntax(
+        ["MONITOR", "CAMERA", "$expr$"],
+        false,
+        move |context, inputs| {
+            let source = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_video("monitor-camera", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+                let description = client.describe_video(media.reference()).await?;
+                media.cleanup();
+                Ok(format!("camera-session:{description}"))
+            })
+        },
+    ) {
+        log::error!("MONITOR CAMERA registration failed: {e}");
+    }
 }
 
 fn register_describe_video(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["DESCRIBE", "VIDEO", "$expr$"],
-            false,
-            move |context, inputs| {
-                let source = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_video("describe-video", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    client.describe_video(&source).await
-                })
-            },
-        )
-        .expect("valid syntax registration for DESCRIBE VIDEO");
+    if let Err(e) = engine.register_custom_syntax(
+        ["DESCRIBE", "VIDEO", "$expr$"],
+        false,
+        move |context, inputs| {
+            let source = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_video("describe-video", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+                let outcome = client.describe_video(media.reference()).await;
+                media.cleanup();
+                outcome
+            })
+        },
+    ) {
+        log::error!("DESCRIBE VIDEO registration failed: {e}");
+    }
 }
 
 /// `DETECT EVENT "url" WITH "intrusion"`: returns the first matching event
 /// description or an empty string when none is found.
 fn register_detect_event(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["DETECT", "EVENT", "$expr$"],
-            false,
-            move |context, inputs| {
-                let source = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_video("detect-event", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    let raw = client.describe_video(&source).await?;
-                    Ok(format!("event:{raw}"))
-                })
-            },
-        )
-        .expect("valid syntax registration for DETECT EVENT");
+    if let Err(e) = engine.register_custom_syntax(
+        ["DETECT", "EVENT", "$expr$"],
+        false,
+        move |context, inputs| {
+            let source = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_video("detect-event", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+                let raw = client.describe_video(media.reference()).await?;
+                media.cleanup();
+                Ok(format!("event:{raw}"))
+            })
+        },
+    ) {
+        log::error!("DETECT EVENT registration failed: {e}");
+    }
 }
 
 /// `COUNT PEOPLE "url"`: returns a count of detected people, parsed from the
 /// description produced by `describe_video`. Falls back to 0 when the
 /// description does not expose a numeric value.
 fn register_count_people(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["COUNT", "PEOPLE", "$expr$"],
-            false,
-            move |context, inputs| {
-                let source = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_video("count-people", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    let description = client.describe_video(&source).await?;
-                    let count = description
-                        .split_whitespace()
-                        .find_map(|tok| tok.trim_matches(|c: char| !c.is_ascii_digit()).parse::<i64>().ok())
-                        .unwrap_or(0);
-                    Ok(count.to_string())
-                })
-            },
-        )
-        .expect("valid syntax registration for COUNT PEOPLE");
+    if let Err(e) = engine.register_custom_syntax(
+        ["COUNT", "PEOPLE", "$expr$"],
+        false,
+        move |context, inputs| {
+            let source = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_video("count-people", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+                let description = client.describe_video(media.reference()).await?;
+                media.cleanup();
+                let count = description
+                    .split_whitespace()
+                    .find_map(|tok| tok.trim_matches(|c: char| !c.is_ascii_digit()).parse::<i64>().ok())
+                    .unwrap_or(0);
+                Ok(count.to_string())
+            })
+        },
+    ) {
+        log::error!("COUNT PEOPLE registration failed: {e}");
+    }
 }
 
 fn register_motion_detected(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            ["MOTION", "DETECTED", "$expr$"],
-            false,
-            move |context, inputs| {
-                let source = eval_string(context, &inputs[0])?;
-                let runtime = Arc::clone(&state);
-                let bot_id = user.bot_id;
-                spawn_video("motion-detected", async move {
-                    let client = build_client(runtime.as_ref(), bot_id);
-                    if !client.is_enabled() {
-                        return Err("BotModels is not enabled in bot configuration".into());
-                    }
-                    let description = client.describe_video(&source).await?;
-                    let lower = description.to_ascii_lowercase();
-                    let motion_keywords = ["motion", "moving", "movimento", "andando", "caminhando"];
-                    let detected = motion_keywords.iter().any(|kw| lower.contains(kw));
-                    Ok(if detected { "true" } else { "false" }.to_string())
-                })
-            },
-        )
-        .expect("valid syntax registration for MOTION DETECTED");
+    if let Err(e) = engine.register_custom_syntax(
+        ["MOTION", "DETECTED", "$expr$"],
+        false,
+        move |context, inputs| {
+            let source = eval_string(context, &inputs[0])?;
+            let runtime = Arc::clone(&state);
+            let bot_id = user.bot_id;
+            spawn_video("motion-detected", async move {
+                let client = build_client(runtime.as_ref(), bot_id);
+                if !client.is_enabled() {
+                    return Err("BotModels is not enabled in bot configuration".into());
+                }
+                let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+                let description = client.describe_video(media.reference()).await?;
+                media.cleanup();
+                let lower = description.to_ascii_lowercase();
+                let motion_keywords = ["motion", "moving", "movimento", "andando", "caminhando"];
+                let detected = motion_keywords.iter().any(|kw| lower.contains(kw));
+                Ok(if detected { "true" } else { "false" }.to_string())
+            })
+        },
+    ) {
+        log::error!("MOTION DETECTED registration failed: {e}");
+    }
 }

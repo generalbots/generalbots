@@ -9,7 +9,7 @@ use crate::api::{
     ResourceEstimateResponse, RiskResponse, TaskActionResponse,
 };
 use crate::execution::script_for;
-use crate::intent_classifier::IntentClassifier;
+use crate::intent_classifier::{ClassifiedEntities, IntentClassifier, IntentType};
 use crate::intent_compiler::IntentCompiler;
 use crate::ClassifiedIntent;
 use crate::types::{BotInfo, DbPool};
@@ -20,7 +20,7 @@ use axum::{
 };
 use diesel::prelude::*;
 use diesel::sql_query;
-use diesel::sql_types::{BigInt, Text, Uuid as DieselUuid};
+use diesel::sql_types::{BigInt, Float8, Text, Uuid as DieselUuid};
 use log::{info, warn};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -312,17 +312,118 @@ fn error_compile(intent: &str, e: &dyn std::error::Error) -> Json<CompileIntentR
     })
 }
 
+/// Persisted classification row backing an executable plan.
+#[derive(diesel::QueryableByName)]
+struct PlanRow {
+    #[diesel(sql_type = DieselUuid)]
+    id: Uuid,
+    #[diesel(sql_type = DieselUuid)]
+    bot_id: Uuid,
+    #[diesel(sql_type = Text)]
+    original_text: String,
+    #[diesel(sql_type = Text)]
+    intent_type: String,
+    #[diesel(sql_type = Float8)]
+    confidence: f64,
+    #[diesel(sql_type = diesel::sql_types::Nullable<Text>)]
+    suggested_name: Option<String>,
+}
+
+fn load_plan(api: &AutoTaskApi, plan_id: Uuid) -> Result<Option<PlanRow>, String> {
+    let mut conn = api.state().db_pool().get().map_err(|e| format!("db pool: {e}"))?;
+    sql_query(
+        "SELECT id, bot_id, original_text, intent_type, confidence, suggested_name \
+         FROM intent_classifications WHERE id = $1",
+    )
+    .bind::<DieselUuid, _>(plan_id)
+    .get_result::<PlanRow>(&mut conn)
+    .optional()
+    .map_err(|e| format!("load plan: {e}"))
+}
+
+/// Execute a previously classified plan for real.
+///
+/// The plan id identifies a persisted `intent_classifications` row; the row is
+/// rebuilt into a `ClassifiedIntent`, the offline pipeline regenerates the
+/// BASIC, and the script is uploaded to the bot's Drive `gbdialog` folder —
+/// exactly the path `create_and_execute` takes, so DriveMonitor compiles and
+/// runs the automation. The response reports the real outcome; it never
+/// fabricates a `scheduled` status with no side effect.
 pub async fn execute_plan(
-    State(_api): State<Arc<AutoTaskApi>>,
+    State(api): State<Arc<AutoTaskApi>>,
     Json(req): Json<ExecutePlanRequest>,
 ) -> impl IntoResponse {
-    info!("API execute plan: {}", req.plan_id);
-    Json(ExecutePlanResponse {
-        success: true,
-        task_id: Some(Uuid::new_v4().to_string()),
-        status: Some("scheduled".to_string()),
-        error: None,
-    })
+    info!(
+        "API execute plan: {} (mode: {:?}, priority: {:?})",
+        req.plan_id, req.execution_mode, req.priority
+    );
+    let plan_uuid = match Uuid::parse_str(&req.plan_id) {
+        Ok(u) => u,
+        Err(_) => {
+            return Json(ExecutePlanResponse {
+                success: false,
+                task_id: None,
+                status: Some("invalid".to_string()),
+                error: Some("Invalid plan id".to_string()),
+            });
+        }
+    };
+
+    let row = match load_plan(&api, plan_uuid) {
+        Ok(Some(row)) => row,
+        Ok(None) => {
+            return Json(ExecutePlanResponse {
+                success: false,
+                task_id: Some(req.plan_id.clone()),
+                status: Some("not_found".to_string()),
+                error: Some("Plan not found".to_string()),
+            });
+        }
+        Err(e) => {
+            warn!("execute_plan lookup failed for {}: {e}", req.plan_id);
+            return Json(ExecutePlanResponse {
+                success: false,
+                task_id: Some(req.plan_id.clone()),
+                status: Some("failed".to_string()),
+                error: Some(e),
+            });
+        }
+    };
+
+    let plan_id = row.id.to_string();
+    let classification = ClassifiedIntent {
+        id: plan_id.clone(),
+        original_text: row.original_text,
+        intent_type: IntentType::from(row.intent_type.as_str()),
+        confidence: row.confidence,
+        entities: ClassifiedEntities::default(),
+        suggested_name: row.suggested_name,
+        requires_clarification: false,
+        clarification_question: None,
+        alternative_types: Vec::new(),
+        classified_at: chrono::Utc::now(),
+    };
+    let (relative_path, body) = script_for(&classification, None);
+    match persist_script(&api, row.bot_id, &relative_path, &body) {
+        Ok((bucket, key)) => {
+            info!("execute_plan persisted automation to {bucket}/{key}");
+            Json(ExecutePlanResponse {
+                success: true,
+                task_id: Some(plan_id),
+                status: Some("created".to_string()),
+                error: None,
+            })
+        }
+        Err(e) => {
+            warn!("execute_plan persist failed: {e}");
+            Json(ExecutePlanResponse {
+                success: false,
+                task_id: Some(plan_id),
+                status: Some("failed".to_string()),
+                error: Some(e),
+            })
+        }
+    }
 }
 
 /// BASIC-only pipeline: classify → compile → persist `.bas` to the bot's

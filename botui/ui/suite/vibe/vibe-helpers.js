@@ -1,7 +1,21 @@
-function vibeAuthFetch(path, options) {
-    options = options || {};
-    options.headers = Object.assign({}, options.headers || {});
-    var token =
+// #1340 — the Vibe route is entered with the JWT in the URL (`#vibe?token=…`,
+// carried by the login redirect). Until that token was read here, the first
+// calls after landing — creating a Site/Website project and raising its dev VM
+// — went out without an Authorization header, and the API answered
+// `missing_token`. Resolve it from the URL as a last resort and persist it so
+// later navigations and embedded previews keep the session.
+function vibeUrlToken() {
+    try {
+        var raw = (window.location.hash || "") + "&" + (window.location.search || "");
+        var m = /[?&]token=([^&]+)/.exec(raw);
+        return m ? decodeURIComponent(m[1]) : "";
+    } catch (e) {
+        return "";
+    }
+}
+
+function vibeAccessToken() {
+    var stored =
         (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) ||
         localStorage.getItem("token") ||
         localStorage.getItem("id_token") ||
@@ -9,6 +23,22 @@ function vibeAuthFetch(path, options) {
         sessionStorage.getItem("gb-access-token") ||
         localStorage.getItem("management_token") ||
         "";
+    if (stored) return stored;
+    var fromUrl = vibeUrlToken();
+    if (fromUrl) {
+        // Persist only when no stored token was available, so a refreshed token
+        // is never replaced by an older one still carried in the URL.
+        try {
+            localStorage.setItem("gb-access-token", fromUrl);
+        } catch (e) {}
+    }
+    return fromUrl;
+}
+
+function vibeAuthFetch(path, options) {
+    options = options || {};
+    options.headers = Object.assign({}, options.headers || {});
+    var token = vibeAccessToken();
     if (token) options.headers.Authorization = "Bearer " + token;
     return fetch(path, options);
 }

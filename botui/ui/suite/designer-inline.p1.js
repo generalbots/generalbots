@@ -161,13 +161,11 @@
             loadFromUrlParams();
         }
 
-        // Run on DOMContentLoaded (for direct page load)
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initDesigner);
-        } else {
-            // DOM already loaded (HTMX injection case)
-            initDesigner();
-        }
+        // The auto-run bootstrap lives at the end of the last part
+        // (designer-inline.p4.js). This file is evaluated before p2/p3 define
+        // initKeyboardShortcuts and initContextMenu, so initializing here threw
+        // "initKeyboardShortcuts is not defined" whenever the designer was
+        // injected via HTMX (#1342).
 
         // Also run when HTMX swaps content
         document.body.addEventListener('htmx:afterSwap', (e) => {
