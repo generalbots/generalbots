@@ -215,7 +215,7 @@ impl KbContextManager {
         _max_len: usize,
     ) -> String {
         // This would call the KB service (Qdrant) to retrieve relevant chunks
-        // For now, returns empty - actual implementation depends on botkb crate
+        // For now, returns empty - KB retrieval lives in the `sources`/Qdrant path
         info!("KB injection requested: bot={}, query={}", bot_name, query);
         
         // Placeholder - actual KB retrieval would go here
