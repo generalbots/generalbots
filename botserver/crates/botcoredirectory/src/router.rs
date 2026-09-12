@@ -26,19 +26,19 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/users/:user_id/profile/update", put(users::update_user))
         // --- Users organization ---
         .route(
-            "/users/{user_id}/organization",
+            "/users/:user_id/organization",
             post(users::assign_organization),
         )
         .route(
-            "/users/{user_id}/organization/{org_id}",
+            "/users/:user_id/organization/:org_id",
             delete(users::remove_from_organization),
         )
         .route(
-            "/users/{user_id}/organization/{org_id}/roles",
+            "/users/:user_id/organization/:org_id/roles",
             put(users::update_user_roles),
         )
         .route(
-            "/users/{user_id}/memberships",
+            "/users/:user_id/memberships",
             get(users::get_user_memberships),
         )
         // --- Users settings / permissions / roles ---
@@ -50,24 +50,24 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/users/:user_id/activity", get(users::get_user_activity))
         // --- Users security ---
         .route(
-            "/users/{user_id}/security/2fa/enable",
+            "/users/:user_id/security/2fa/enable",
             post(users::enable_2fa),
         )
         .route(
-            "/users/{user_id}/security/2fa/disable",
+            "/users/:user_id/security/2fa/disable",
             post(users::disable_2fa),
         )
         .route(
-            "/users/{user_id}/security/devices",
+            "/users/:user_id/security/devices",
             get(users::get_user_devices),
         )
         .route(
-            "/users/{user_id}/security/sessions",
+            "/users/:user_id/security/sessions",
             get(users::get_user_sessions),
         )
         // --- Users notifications ---
         .route(
-            "/users/{user_id}/notifications/preferences/update",
+            "/users/:user_id/notifications/preferences/update",
             put(users::update_notification_preferences),
         )
         // --- Groups CRUD ---
@@ -79,11 +79,11 @@ pub fn configure() -> Router<Arc<AppState>> {
         // --- Groups members ---
         .route("/groups/:group_id/members", get(groups::get_group_members))
         .route(
-            "/groups/{group_id}/members/add",
+            "/groups/:group_id/members/add",
             post(groups::add_group_member),
         )
         .route(
-            "/groups/{group_id}/members/roles",
+            "/groups/:group_id/members/roles",
             post(groups::update_group_member_roles),
         )
         // --- Groups KBs ---
@@ -92,33 +92,33 @@ pub fn configure() -> Router<Arc<AppState>> {
         // --- Groups info ---
         .route("/groups/:group_id/settings", get(groups::get_group_settings))
         .route(
-            "/groups/{group_id}/permissions",
+            "/groups/:group_id/permissions",
             get(groups::get_group_permissions),
         )
         .route(
-            "/groups/{group_id}/analytics",
+            "/groups/:group_id/analytics",
             get(groups::get_group_analytics),
         )
         // --- Groups join requests ---
         .route(
-            "/groups/{group_id}/join/request",
+            "/groups/:group_id/join/request",
             post(groups::request_join_group),
         )
         .route(
-            "/groups/{group_id}/join/approve",
+            "/groups/:group_id/join/approve",
             post(groups::approve_join_request),
         )
         .route(
-            "/groups/{group_id}/join/reject",
+            "/groups/:group_id/join/reject",
             post(groups::reject_join_request),
         )
         // --- Groups invites ---
         .route(
-            "/groups/{group_id}/invites/send",
+            "/groups/:group_id/invites/send",
             post(groups::send_group_invite),
         )
         .route(
-            "/groups/{group_id}/invites/list",
+            "/groups/:group_id/invites/list",
             get(groups::list_group_invites),
         )
 }

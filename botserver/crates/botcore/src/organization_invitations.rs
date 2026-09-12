@@ -894,20 +894,20 @@ pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
         .route("/organizations/:org_id/invitations", get(list_invitations))
         .route(
-            "/organizations/{org_id}/invitations",
+            "/organizations/:org_id/invitations",
             post(create_invitation),
         )
         .route("/organizations/:org_id/invitations/bulk", post(bulk_invite))
         .route(
-            "/organizations/{org_id}/invitations/{invitation_id}",
+            "/organizations/:org_id/invitations/:invitation_id",
             get(get_invitation),
         )
         .route(
-            "/organizations/{org_id}/invitations/{invitation_id}",
+            "/organizations/:org_id/invitations/:invitation_id",
             delete(revoke_invitation),
         )
         .route(
-            "/organizations/{org_id}/invitations/{invitation_id}/resend",
+            "/organizations/:org_id/invitations/:invitation_id/resend",
             post(resend_invitation),
         )
         .route("/invitations/accept", post(accept_invitation))

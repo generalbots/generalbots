@@ -148,7 +148,7 @@ pub fn configure_routes(state: Arc<WebaState>) -> Router {
         .route("/apps/:id", get(get_app).put(update_app).delete(delete_app))
         .route("/apps/:id/pages", get(list_pages).post(create_page))
         .route(
-            "/apps/{id}/pages/{page_id}",
+            "/apps/:id/pages/:page_id",
             get(get_page).put(update_page).delete(delete_page),
         )
         .route("/apps/:id/publish", post(publish_app))

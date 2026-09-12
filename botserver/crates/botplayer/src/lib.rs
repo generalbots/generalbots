@@ -228,25 +228,25 @@ pub fn configure_player_routes() -> Router<Arc<AppState>> {
             get(playlists::list_playlists).post(playlists::create_playlist),
         )
         .route(
-            "/api/player/playlists/{id}",
+            "/api/player/playlists/:id",
             get(playlists::get_playlist)
                 .patch(playlists::update_playlist)
                 .delete(playlists::delete_playlist),
         )
         .route(
-            "/api/player/playlists/{id}/items",
+            "/api/player/playlists/:id/items",
             post(playlists::add_item),
         )
         .route(
-            "/api/player/playlists/{id}/items/{item_id}",
+            "/api/player/playlists/:id/items/:item_id",
             delete(playlists::remove_item),
         )
         .route(
-            "/api/player/playlists/{id}/reorder",
+            "/api/player/playlists/:id/reorder",
             put(playlists::reorder_items),
         )
         .route(
-            "/api/player/playlists/{id}/analytics",
+            "/api/player/playlists/:id/analytics",
             get(playlists::playlist_analytics),
         )
         .route("/api/player/playbacks", post(playlists::record_playback))

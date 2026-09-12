@@ -1329,40 +1329,40 @@ pub fn configure_canvas_routes() -> Router<Arc<CanvasState>> {
         )
         .route("/api/canvas", get(list_canvases).post(create_canvas))
         .route(
-            "/api/canvas/{canvas_id}",
+            "/api/canvas/:canvas_id",
             get(get_canvas).put(update_canvas).delete(delete_canvas),
         )
         .route(
-            "/api/canvas/{canvas_id}/elements",
+            "/api/canvas/:canvas_id/elements",
             get(list_elements).post(create_element),
         )
         .route(
-            "/api/canvas/{canvas_id}/elements/{element_id}",
+            "/api/canvas/:canvas_id/elements/:element_id",
             put(update_element).delete(delete_element),
         )
         .route("/api/canvas/:canvas_id/export", post(export_canvas))
         .route(
-            "/api/canvas/{canvas_id}/collaborators",
+            "/api/canvas/:canvas_id/collaborators",
             get(list_collaborators).post(add_collaborator),
         )
         .route(
-            "/api/canvas/{canvas_id}/collaborators/{user_id}",
+            "/api/canvas/:canvas_id/collaborators/:user_id",
             axum::routing::delete(remove_collaborator),
         )
         .route(
-            "/api/canvas/{canvas_id}/comments",
+            "/api/canvas/:canvas_id/comments",
             get(list_comments).post(create_comment),
         )
         .route(
-            "/api/canvas/{canvas_id}/comments/{comment_id}/resolve",
+            "/api/canvas/:canvas_id/comments/:comment_id/resolve",
             put(resolve_comment),
         )
         .route(
-            "/api/canvas/{canvas_id}/versions",
+            "/api/canvas/:canvas_id/versions",
             get(list_versions).post(create_version),
         )
         .route(
-            "/api/canvas/{canvas_id}/collaborate",
+            "/api/canvas/:canvas_id/collaborate",
             get(get_collaboration_info),
         )
 }

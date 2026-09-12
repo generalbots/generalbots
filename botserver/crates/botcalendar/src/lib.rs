@@ -141,7 +141,13 @@ pub trait CalendarEngineProvider: Send + Sync + 'static {}
 use botschema::{calendar_event_attendees, calendar_events, calendar_shares, calendars};
 
 const API_CALENDAR_EVENTS: &str = "/api/calendar/events";
-const API_CALENDAR_EVENT_BY_ID: &str = "/api/calendar/events/{id}";
+// The router runs on axum 0.7, whose path parameters are written `:name`.
+// `{name}` is axum 0.8 syntax and is treated as a literal segment here, so a
+// route declared that way never matches a real identifier — the request fell
+// through to the desktop-shell fallback and answered `200 text/html`, which is
+// how an unreachable endpoint stayed invisible. RBAC accepts both spellings, so
+// only the router strings had to change.
+const API_CALENDAR_EVENT_BY_ID: &str = "/api/calendar/events/:id";
 const API_CALENDAR_UPCOMING_JSON: &str = "/api/calendar/events/upcoming";
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Insertable, AsChangeset)]
@@ -1295,7 +1301,7 @@ pub fn configure_calendar_routes() -> Router<Arc<DbPool>> {
     Router::new()
         .route("/api/calendar/calendars", get(list_calendars_db).post(create_calendar))
         .route(
-            "/api/calendar/calendars/{id}",
+            "/api/calendar/calendars/:id",
             get(get_calendar).put(update_calendar).delete(delete_calendar),
         )
         .route("/api/calendar/calendars/:id/share", post(share_calendar))

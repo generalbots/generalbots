@@ -211,11 +211,11 @@ pub fn configure_plan_routes() -> Router {
     Router::new()
         .route("/ws/plan/:plan_id", get(handle_plan_websocket))
         .route(
-            "/api/plan/{plan_id}/collaborators",
+            "/api/plan/:plan_id/collaborators",
             get(handle_get_plan_collaborators),
         )
         .route(
-            "/api/plan/{plan_id}/presence",
+            "/api/plan/:plan_id/presence",
             get(handle_get_plan_presence),
         )
         .route("/api/plan/:plan_id/typing", get(handle_get_plan_typing))
