@@ -13,7 +13,13 @@ name=General Bots
 #                 meet, research, integrations, analytics, admin, monitoring, settings,
 #                 products, billing, people, tickets, social, compliance
 # Only listed apps will be visible in the UI and have their APIs enabled.
-apps=admin,analytics,attendant,banking,bas-editor,billing,biometry,browser,calculator,calendar,campaigns,canvas,chat,clockapp,compliance,concierge,crm,database,designer,drive,editor,fraud,goals,handoff,hr,integrations,itsm,jukebox,kyc,learn,lists,mail,meet,minutes,monitoring,notepad,notes,o365,paper,people,photos,plan,player,pos,products,project,recycle,research,retail,sales,settings,sheet,snapshot,social,store,tasks,tax,templates,terminal,tickets,timeclock,timer,tools,vdi,versions,vibe,video,vision,weather,workspace
+apps=admin,bas-editor,billing,browser,calculator,calendar,campaigns,canvas,chat,clockapp,crm,database,drive,editor,goals,integrations,itsm,jukebox,lists,mail,meet,notepad,notes,paper,people,photos,player,products,project,recycle,sales,settings,sheet,snapshot,store,tasks,terminal,timer,tools,vdi,versions,vibe,weather,workspace
+
+# Preview applications (comma-separated list)
+# These do NOT appear in the launcher or the sidebar by default. They are
+# revealed only while Preview mode is on, which the user toggles with the
+# Preview switch in the left sidebar.
+preview_apps=analytics,attendant,banking,biometry,compliance,concierge,consent,dashboards,designer,docs,fraud,gl,handoff,hr,inventory,kyc,learn,marketplace,minutes,monitoring,o365,plan,pos,research,retail,slides,social,tax,templates,timeclock,timeseries,tickets,video,vision,weba
 
 
 # Sidebar visibility

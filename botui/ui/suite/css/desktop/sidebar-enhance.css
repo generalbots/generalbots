@@ -367,6 +367,38 @@
   }
 }
 
+/* Preview mode (#1348): the switch that reveals applications the product file
+   holds back under `preview_apps`. It sits above the grid so it stays reachable
+   while the apps panel itself is collapsed. */
+.gb-side-preview {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 2px 6px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--shell-border, rgba(255, 255, 255, 0.08));
+}
+
+.gb-side-preview-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-secondary, #999);
+}
+
+.gb-side-app-tile-preview {
+  background: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 4px,
+    var(--surface-hover, rgba(255, 255, 255, 0.05)) 4px,
+    var(--surface-hover, rgba(255, 255, 255, 0.05)) 8px
+  );
+  outline: 1px dashed var(--shell-border, rgba(255, 255, 255, 0.18));
+  outline-offset: -1px;
+}
+
 .gb-side-apps-search {
   width: 100%;
   box-sizing: border-box;

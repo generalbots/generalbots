@@ -71,9 +71,32 @@ window.GBSidebarApps = window.GBSidebarApps || {};
     var grid = document.createElement("div");
     grid.className = "gb-side-apps-grid";
 
+    // Preview mode (#1348): reveals the applications the product file lists
+    // under `preview_apps`. They are absent from the launcher until this
+    // switch is on, which is what keeps unreleased apps out of the way.
+    var previewRow = document.createElement("div");
+    previewRow.className = "gb-side-preview";
+    var previewLabel = document.createElement("span");
+    previewLabel.className = "gb-side-preview-label";
+    previewLabel.textContent = "Preview mode";
+    var previewSwitchLabel = document.createElement("label");
+    previewSwitchLabel.className = "gb-side-switch";
+    previewSwitchLabel.title = "Show the applications that are still in preview";
+    var previewSwitch = document.createElement("input");
+    previewSwitch.type = "checkbox";
+    previewSwitch.checked = !!(window.GBPreviewMode && window.GBPreviewMode.isOn());
+    previewSwitch.setAttribute("aria-label", "Toggle preview mode");
+    var previewSlider = document.createElement("span");
+    previewSlider.className = "gb-side-switch-slider";
+    previewSwitchLabel.appendChild(previewSwitch);
+    previewSwitchLabel.appendChild(previewSlider);
+    previewRow.appendChild(previewLabel);
+    previewRow.appendChild(previewSwitchLabel);
+
     body.appendChild(search);
     body.appendChild(grid);
     wrap.appendChild(head);
+    wrap.appendChild(previewRow);
     wrap.appendChild(body);
     nav.appendChild(wrap);
 
@@ -82,13 +105,17 @@ window.GBSidebarApps = window.GBSidebarApps || {};
         return String(a.title || a.id).localeCompare(String(b.title || b.id));
       });
       title.textContent = "Apps";
-      count.textContent = String(reg.length);
       grid.innerHTML = "";
+      var previewCount = 0;
       reg.forEach(function (app) {
+        if (app.preview) previewCount += 1;
         var tile = document.createElement("div");
-        tile.className = "gb-side-app-tile";
+        tile.className = app.preview
+          ? "gb-side-app-tile gb-side-app-tile-preview"
+          : "gb-side-app-tile";
         tile.setAttribute("data-app-id", app.id);
-        tile.setAttribute("title", app.title);
+        tile.setAttribute("title", app.preview ? app.title + " (preview)" : app.title);
+        if (app.preview) tile.setAttribute("data-preview", "1");
         tile.innerHTML =
           '<span class="gb-side-app-icon" style="color:' +
           (app.color || "#88ccff") +
@@ -102,6 +129,11 @@ window.GBSidebarApps = window.GBSidebarApps || {};
         });
         grid.appendChild(tile);
       });
+      // The count names the preview share so it is obvious why the grid grew
+      // when the switch was turned on.
+      count.textContent = previewCount
+        ? reg.length + " (+ " + previewCount + " preview)"
+        : String(reg.length);
       filter();
     }
 
@@ -122,6 +154,13 @@ window.GBSidebarApps = window.GBSidebarApps || {};
       try {
         localStorage.setItem(SWITCH_KEY, sw.checked ? "1" : "0");
       } catch (e) {}
+    });
+    previewSwitch.addEventListener("change", function () {
+      // Persisting calls refreshAppsCatalog(), which re-dispatches
+      // `gb-apps-catalog-loaded`; fill() runs again from that event, so the
+      // grid is not rebuilt twice here.
+      if (window.GBPreviewMode) window.GBPreviewMode.set(previewSwitch.checked);
+      else fill();
     });
     search.addEventListener("input", filter);
 

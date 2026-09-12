@@ -535,9 +535,17 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
         .map(|s| s.to_string());
     let apps = registry::all_apps();
 
-    let enabled: std::collections::HashSet<String> = botcore::product::PRODUCT_CONFIG
+    let (enabled, preview): (
+        std::collections::HashSet<String>,
+        std::collections::HashSet<String>,
+    ) = botcore::product::PRODUCT_CONFIG
         .read()
-        .map(|c| c.get_enabled_apps().into_iter().collect())
+        .map(|c| {
+            (
+                c.get_enabled_apps().into_iter().collect(),
+                c.get_preview_apps().into_iter().collect(),
+            )
+        })
         .unwrap_or_default();
 
     let derived: Vec<crate::core::bot::commands_derived::DerivedCommand> =
@@ -549,6 +557,10 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
             let id = a.id.as_str();
             let compiled = is_app_compiled(id) || CORE_APPS.contains(&id);
             let is_enabled = enabled.contains(id) || CORE_APPS.contains(&id);
+            // A preview application is listed by `.product`'s `preview_apps`
+            // instead of `apps`, so the launcher can withhold it until the user
+            // turns Preview mode on (#1348).
+            let is_preview = preview.contains(id) && !is_enabled;
             // Merge curated commands with the harvested on-the-fly surface.
             let app_derived: Vec<serde_json::Value> = derived
                 .iter()
@@ -584,6 +596,7 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
                 "widget": a.widget,
                 "launcher_default": a.launcher_default,
                 "enabled": is_enabled,
+                "preview": is_preview,
                 "compiled": compiled,
                 "commands": commands,
                 "deep_link_params": commands::deep_link_params_for_app(id),

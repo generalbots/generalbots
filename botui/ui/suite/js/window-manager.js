@@ -141,6 +141,125 @@ if (typeof window.WindowManager === "undefined") {
 
   window.APPS_REGISTRY = APPS_REGISTRY;
 
+  // Preview mode (#1348). Applications listed under `preview_apps` in the
+  // `.product` file are withheld from every launcher — the start menu, the apps
+  // menu and the sidebar all read APPS_REGISTRY — until the user turns the
+  // Preview switch on. The preference is per browser, like the other sidebar
+  // switches.
+  var PREVIEW_KEY = "gb-preview-mode";
+  window.GBPreviewMode = {
+    isOn: function () {
+      try {
+        return localStorage.getItem(PREVIEW_KEY) === "1";
+      } catch (e) {
+        return false;
+      }
+    },
+    set: function (on) {
+      try {
+        localStorage.setItem(PREVIEW_KEY, on ? "1" : "0");
+      } catch (e) {
+        /* storage unavailable — the switch still applies to this page */
+      }
+      refreshAppsCatalog();
+    },
+  };
+
+  // State the rebuild reads: the embedded list (offline fallback), the
+  // authoritative catalog once it answers, and the preview identifiers the
+  // product file declares.
+  var embeddedApps = APPS_REGISTRY.slice();
+  var catalogApps = null;
+  var catalogLoaded = false;
+  var productPreviewIds = {};
+
+  function isPreviewId(id) {
+    if (productPreviewIds[id]) return true;
+    if (!catalogApps) return false;
+    for (var i = 0; i < catalogApps.length; i++) {
+      if (catalogApps[i].id === id && catalogApps[i].preview) return true;
+    }
+    return false;
+  }
+
+  // The catalog speaks its own shape (`url`, `enabled`, `compiled`); the
+  // embedded list is already in registry shape.
+  function toRegistryApp(a) {
+    if (a.hxGet !== undefined) return a;
+    return {
+      id: a.id,
+      title: a.title,
+      category: a.category,
+      color: a.color,
+      hxGet: a.url,
+      description: a.description,
+      icon: a.icon,
+      // #1289/#1291 — bot and vibe-app tiles deep-link their window (chat bot
+      // binding, browser URL); launchFromMenu passes them to openDeepLink.
+      deep_link_params: a.deep_link_params || null,
+    };
+  }
+
+  function rebuildAppsRegistry() {
+    var previewOn = window.GBPreviewMode.isOn();
+    var base = catalogApps && catalogApps.length ? catalogApps : embeddedApps;
+    var merged = [];
+    var known = {};
+
+    base.forEach(function (a) {
+      if (a.compiled === false) return;
+      var preview = !!a.preview || isPreviewId(a.id);
+      // A preview application is surfaced only while Preview mode is on.
+      if (preview && !previewOn) return;
+      if (!preview && a.hxGet === undefined && a.enabled === false) return;
+      var app = toRegistryApp(a);
+      app.preview = preview;
+      merged.push(app);
+      known[app.id] = true;
+    });
+
+    // Embedded-only tiles (the true offline fallback, e.g. Calculator) survive
+    // a catalog load — but never a preview app the switch is holding back.
+    embeddedApps.forEach(function (a) {
+      if (known[a.id]) return;
+      var preview = isPreviewId(a.id);
+      if (preview && !previewOn) return;
+      a.preview = preview;
+      merged.push(a);
+      known[a.id] = true;
+    });
+
+    window.APPS_REGISTRY = merged;
+    if (catalogLoaded) window.__gbAppsCatalogLoaded = true;
+    window.dispatchEvent(
+      new CustomEvent("gb-apps-catalog-loaded", {
+        detail: { apps: merged, preview: previewOn },
+      })
+    );
+  }
+
+  function refreshAppsCatalog() {
+    rebuildAppsRegistry();
+  }
+  window.refreshAppsCatalog = refreshAppsCatalog;
+
+  // The public product endpoint carries `preview_apps`, so the switch holds
+  // preview applications back even when the authenticated catalog cannot
+  // answer (anonymous desktop): the embedded registry is all there is then.
+  (function loadProductPreviewList() {
+    fetch("/api/product")
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || !Array.isArray(data.preview_apps)) return;
+        productPreviewIds = {};
+        data.preview_apps.forEach(function (id) {
+          productPreviewIds[String(id)] = true;
+        });
+        rebuildAppsRegistry();
+      })
+      .catch(function () { /* embedded list stays authoritative */ });
+  })();
+
   // Load the authoritative catalog from the backend and MERGE it with the
   // embedded registry: backend entries win on id conflicts, while
   // embedded-only apps (true offline fallback, e.g. Calculator) survive a
@@ -150,34 +269,9 @@ if (typeof window.WindowManager === "undefined") {
       .then(function (r) { if (!r.ok) throw new Error("catalog unavailable"); return r.json(); })
       .then(function (data) {
         if (!data || !Array.isArray(data.apps) || !data.apps.length) return;
-        var merged = data.apps
-          .filter(function (a) { return a.enabled !== false && a.compiled !== false; })
-          .map(function (a) {
-            return {
-              id: a.id,
-              title: a.title,
-              category: a.category,
-              color: a.color,
-              hxGet: a.url,
-              description: a.description,
-              icon: a.icon,
-              // #1289/#1291 — bot and vibe-app tiles deep-link their window
-              // (chat bot binding, browser URL); launchFromMenu passes them
-              // to openDeepLink.
-              deep_link_params: a.deep_link_params || null,
-            };
-          });
-        var known = {};
-        merged.forEach(function (a) { known[a.id] = true; });
-        APPS_REGISTRY.forEach(function (a) {
-          if (!known[a.id]) merged.push(a);
-        });
-        window.APPS_REGISTRY = merged;
-        window.dispatchEvent(
-          new CustomEvent("gb-apps-catalog-loaded", {
-            detail: { apps: merged },
-          })
-        );
+        catalogApps = data.apps;
+        catalogLoaded = true;
+        rebuildAppsRegistry();
       })
       .catch(function () { /* keep embedded fallback */ });
   })();
