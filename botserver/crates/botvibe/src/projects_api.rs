@@ -15,7 +15,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use botsecurity_auth::auth_api::types::AuthenticatedUser;
+use botsecurity_auth::auth_api::types::{AuthenticatedUser, Role};
 
 use crate::harness;
 use crate::metering::VMetering;
@@ -900,6 +900,16 @@ async fn preview_vm_app(
     Path(project_id): Path<Uuid>,
     Query(query): Query<VmPreviewQuery>,
 ) -> Response {
+    // #1340 — same iframe transport as `serve_project_file` (see
+    // `resolve_iframe_user`): header-less requests authenticate via `?token=`.
+    let user = if user.is_authenticated() {
+        user
+    } else {
+        match resolve_iframe_user(query.token.clone()) {
+            Some(u) => u,
+            None => return (StatusCode::UNAUTHORIZED, "unauthorized").into_response(),
+        }
+    };
     if let Err(e) = rbac.require_role(user.user_id, project_id, ProjectRole::Viewer) {
         log::warn!("Vibe vm-preview forbidden: {e}");
         return (StatusCode::FORBIDDEN, "forbidden").into_response();
@@ -1130,6 +1140,50 @@ async fn switch_project_branch(
 // MIME type; HTML responses have relative asset URLs rewritten to carry the
 // auth token (iframes cannot set headers).
 
+/// #1340 — resolve the iframe-auth `?token=` capability for the two
+/// same-origin Vibe routes (`serve`, `vm-preview`). A browser iframe cannot
+/// set an Authorization header, and the auth middleware runs before the
+/// handler, so an embedded preview arrives anonymous and gets `missing_token`
+/// before RBAC is ever consulted. The handler therefore re-runs the
+/// middleware's own session-cache lookup (`botsecurity_core::lookup_session_cache`,
+/// the same capability store the terminal WS gate uses) and rebuilds the
+/// `AuthenticatedUser` from the cached entry. Tokens are opaque `gb_*` session
+/// ids: every invalid value resolves to `None` and is rejected — the route is
+/// never open, it just accepts the header-less transport.
+fn resolve_iframe_user(token: Option<String>) -> Option<AuthenticatedUser> {
+    let token = token?;
+    if token.trim().is_empty() {
+        return None;
+    }
+    let entry = botsecurity_core::lookup_session_cache(&token)?;
+    let user_id = uuid::Uuid::parse_str(&entry.user_id).unwrap_or_else(|_| {
+        uuid::Uuid::new_v5(
+            &uuid::Uuid::NAMESPACE_DNS,
+            format!("zitadel:{}", entry.user_id).as_bytes(),
+        )
+    });
+    let mut user = AuthenticatedUser::new(user_id, entry.email.clone()).with_session(token);
+    for role_str in &entry.roles {
+        user = user.with_role(match role_str.to_lowercase().as_str() {
+            "admin" | "administrator" => Role::Admin,
+            "superadmin" | "super_admin" => Role::SuperAdmin,
+            "moderator" => Role::Moderator,
+            "bot_owner" => Role::BotOwner,
+            "bot_operator" => Role::BotOperator,
+            "bot_viewer" => Role::BotViewer,
+            "service" => Role::Service,
+            _ => Role::User,
+        });
+    }
+    if entry.roles.is_empty() {
+        user = user.with_role(Role::User);
+    }
+    if let Some(org) = entry.organization_id {
+        user = user.with_organization(org);
+    }
+    Some(user)
+}
+
 #[derive(Debug, Deserialize)]
 struct ServeQuery {
     token: Option<String>,
@@ -1346,6 +1400,16 @@ async fn serve_project_file(
     Path((id, path)): Path<(Uuid, String)>,
     Query(query): Query<ServeQuery>,
 ) -> Response {
+    // #1340 — an anonymous request here is the embedded-iframe transport
+    // (no Authorization header possible): re-authenticate via `?token=`.
+    let user = if user.is_authenticated() {
+        user
+    } else {
+        match resolve_iframe_user(query.token.clone()) {
+            Some(u) => u,
+            None => return (StatusCode::UNAUTHORIZED, "unauthorized").into_response(),
+        }
+    };
     if let Err(e) = rbac.require_role(user.user_id, id, ProjectRole::Viewer) {
         log::warn!("Vibe serve forbidden: {e}");
         return (StatusCode::FORBIDDEN, "forbidden").into_response();
