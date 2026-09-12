@@ -261,6 +261,11 @@
             detailRequest: 0,
             catalogRequest: 0,
             connectedRequest: 0,
+            sourcesStatus: "idle",
+            sourcesRequest: 0,
+            activeSource: "mcp",
+            mcpServers: [],
+            sourcesHtml: "",
             lastFocus: null
         };
         namespace.states.set(root, state);

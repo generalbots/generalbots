@@ -74,6 +74,24 @@ Track data synchronization status:
 - **Conflict Resolution** — Handle data conflicts during sync
 - **Error Log** — View and retry failed sync operations
 
+### Data Sources
+
+The **Data Sources** tab folds the former standalone Sources page into the
+Integrations app, so outbound actions and inbound ingestion share one home.
+It surfaces the same live `botsources` backend — no new endpoints:
+
+| Section | Contents | Served by |
+|---------|----------|-----------|
+| **MCP Servers** | Registered Model Context Protocol servers, tool counts, enable/disable | `GET /api/sources/mcp`, `POST /api/sources/mcp/:name/enable\|disable` |
+| **Repositories** | Git repositories available as task context | `GET /api/ui/sources/repositories` |
+| **Models** | Language models and the active configuration | `GET /api/ui/sources/models` |
+| **Accounts** | IMAP accounts connected as LLM context sources | `GET /api/ui/sources/accounts` |
+| **API Keys** | BYOK keys for LLM providers | `GET /api/ui/sources/api-keys` |
+
+The `/sources` URL resolves to the Integrations app (desktop alias), and the
+legacy standalone `botui/ui/suite/sources/` page has been removed — this tab
+is its replacement.
+
 ---
 
 ## Keyboard Shortcuts
@@ -158,7 +176,10 @@ Track data synchronization status:
 
 ## Related Pages
 
-- [Sources](./sources.md) — Configure external data sources
 - [Database](./database.md) — Direct database connections
 - [Analytics](./analytics.md) — Visualize data from integrations
 - [Admin](./admin.md) — Integration permissions and administration
+
+> The standalone Sources app page was merged into this app's **Data Sources**
+> tab. MCP server configuration (`mcp.csv`), @mention behavior and BYOK keys
+> work exactly as described there — see the MCP section below.
