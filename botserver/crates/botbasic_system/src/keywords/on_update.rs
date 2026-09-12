@@ -19,12 +19,17 @@ pub fn execute_on_update_registration(
 
     use botschema::system_automations::dsl::*;
 
+    // branch_id is NOT NULL (migration 6.5.23); resolve it from the bot before
+    // inserting so the trigger registration is branch-scoped.
+    let bot_branch = botschema::system_automation_branch_id(conn, bot_uuid)?;
+
     let new_automation = (
         bot_id.eq(bot_uuid),
         kind.eq(trigger_kind_val),
         target.eq(table_name),
         param.eq(script_name),
         is_active.eq(true),
+        branch_id.eq(bot_branch),
     );
 
     diesel::insert_into(system_automations)

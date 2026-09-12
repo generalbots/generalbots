@@ -232,25 +232,7 @@ pub async fn login(
             )
         })?;
 
-    // Try to get admin token: first PAT file, then OAuth client credentials
-    let stack = get_stack_path();
-    let pat_path = std::path::PathBuf::from(format!("{}/conf/directory/admin-pat.txt", stack));
-    let admin_token = std::fs::read_to_string(pat_path)
-        .map(|s| s.trim().to_string())
-        .unwrap_or_default();
-
-    let admin_token = if admin_token.is_empty() {
-        info!("Admin PAT token not found, using OAuth client credentials flow");
-        match get_oauth_token(&http_client, &*auth_service).await {
-            Ok(token) => Some(token),
-            Err(e) => {
-                log::warn!("Failed to get OAuth token (will try local auth): {}", e);
-                None
-            }
-        }
-    } else {
-        Some(admin_token)
-    };
+    let admin_token = resolve_admin_token(&http_client, &*auth_service).await;
 
     // If we have an admin token, try Zitadel sessions API first
     if let Some(ref admin_token) = admin_token {
@@ -264,6 +246,10 @@ pub async fn login(
 
         let mut session_response: Option<reqwest::Response> = None;
         let mut session_error: Option<String> = None;
+        // Set when the address was resolved to a user id before the password
+        // check (the email fallback below), so the id does not have to be
+        // recovered from the session afterwards.
+        let mut resolved_user_id: Option<String> = None;
 
         for login_name in &login_names {
             let session_url = format!("{}/v2/sessions", auth_service.api_url());
@@ -311,6 +297,66 @@ pub async fn login(
             }
         }
 
+        // Last resort before failing: the form collects an email, but Zitadel
+        // only accepts login names — an account created with a bare username
+        // (e.g. `contato`) is unreachable by its address. Resolve the email to
+        // a user id and retry the password check against that id.
+        if session_response.is_none() {
+            if let Some(user_id) = resolve_user_id_by_email(
+                &http_client,
+                &*auth_service,
+                admin_token.as_str(),
+                &req.email,
+            )
+            .await
+            {
+                let session_url = format!("{}/v2/sessions", auth_service.api_url());
+                let session_body = serde_json::json!({
+                    "checks": {
+                        "user": {
+                            "userId": user_id
+                        },
+                        "password": {
+                            "password": req.password
+                        }
+                    }
+                });
+
+                match http_client
+                    .post(&session_url)
+                    .bearer_auth(admin_token)
+                    .json(&session_body)
+                    .send()
+                    .await
+                {
+                    Ok(resp) if resp.status().is_success() => {
+                        info!("Session created for '{}' via resolved user id", req.email);
+                        resolved_user_id = Some(user_id.clone());
+                        session_response = Some(resp);
+                    }
+                    Ok(resp) => {
+                        let status = resp.status();
+                        let err = resp.text().await.unwrap_or_default();
+                        log::warn!(
+                            "Zitadel sessions API returned {} for the user resolved from '{}': {}",
+                            status,
+                            req.email,
+                            err
+                        );
+                        session_error = Some(format!("{status} {err}"));
+                    }
+                    Err(e) => {
+                        log::warn!(
+                            "Zitadel sessions API request failed for the user resolved from '{}': {}",
+                            req.email,
+                            e
+                        );
+                        session_error = Some(e.to_string());
+                    }
+                }
+            }
+        }
+
         if let Some(resp) = session_response {
             let session_data: serde_json::Value = resp.json().await.map_err(|e| {
                 log::error!("Failed to parse session response: {}", e);
@@ -333,22 +379,57 @@ pub async fn login(
                 .and_then(|s| s.as_str())
                 .map(String::from);
 
-            let user_id_str = session_data
-                .get("factors")
-                .and_then(|f| f.get("user"))
-                .and_then(|u| u.get("userId").or_else(|| u.get("id")))
-                .and_then(|v| v.as_str())
-                .map(String::from)
-                .ok_or_else(|| {
-                    log::error!("No user ID in session response for: {}", req.email);
-                    (
-                        StatusCode::UNAUTHORIZED,
-                        Json(ErrorResponse {
-                            error: "Invalid email or password".to_string(),
-                            details: None,
-                        }),
-                    )
-                })?;
+            // Zitadel returns only a sessionId/sessionToken when the session
+            // is created; `factors` (and therefore the user id) appear once the
+            // session is resolved. Requiring them here rejected every valid
+            // login with "No user ID in session response". Use, in order: the
+            // id from the email resolution, factors if the API included them,
+            // then a follow-up session read (the id is `factors.user.id`, not
+            // `userId`).
+            let user_id_str = match resolved_user_id.take() {
+                Some(id) => id,
+                None => {
+                    let from_factors = session_data
+                        .get("factors")
+                        .and_then(|f| f.get("user"))
+                        .and_then(|u| u.get("id").or_else(|| u.get("userId")))
+                        .and_then(|v| v.as_str())
+                        .map(String::from);
+
+                    match from_factors {
+                        Some(id) => id,
+                        None => {
+                            let resolved = match session_id.as_deref() {
+                                Some(id) => {
+                                    resolve_session_user_id(
+                                        &http_client,
+                                        &auth_service.api_url(),
+                                        admin_token,
+                                        id,
+                                    )
+                                    .await
+                                }
+                                None => None,
+                            };
+
+                            resolved.ok_or_else(|| {
+                                log::error!(
+                                    "Could not resolve the user id for a valid session ({}): {}",
+                                    req.email,
+                                    session_data
+                                );
+                                (
+                                    StatusCode::UNAUTHORIZED,
+                                    Json(ErrorResponse {
+                                        error: "Invalid email or password".to_string(),
+                                        details: None,
+                                    }),
+                                )
+                            })?
+                        }
+                    }
+                }
+            };
 
             let api_token = format!("gb_{}_{}", uuid::Uuid::new_v4(), chrono::Utc::now().timestamp());
 
@@ -868,6 +949,130 @@ pub async fn bootstrap_admin(
         user_id: Some(new_user_id),
         organization_id: new_org_id,
     }))
+}
+
+/// Admin token for the Zitadel API. Sources, in order: the PAT file written
+/// during provisioning, the `service_token` stored in Vault — Vault is the
+/// canonical secret store, and a deployment that never wrote the PAT file (or
+/// whose OAuth client credentials are unset) otherwise had no admin token at
+/// all, which rejected every interactive login before Zitadel was ever asked —
+/// and finally an OAuth client-credentials token.
+async fn resolve_admin_token(
+    http_client: &reqwest::Client,
+    auth_service: &dyn botlib::traits::AuthServiceTrait,
+) -> Option<String> {
+    let stack = get_stack_path();
+    let pat_path = std::path::PathBuf::from(format!("{}/conf/directory/admin-pat.txt", stack));
+    if let Ok(contents) = std::fs::read_to_string(&pat_path) {
+        let token = contents.trim();
+        if !token.is_empty() {
+            return Some(token.to_string());
+        }
+    }
+
+    if let Ok(manager) = botcoresecrets::manager::SecretsManager::get() {
+        match manager.get_secret("gbo/directory").await {
+            Ok(secret) => {
+                if let Some(token) = secret
+                    .get("service_token")
+                    .map(|t| t.trim())
+                    .filter(|t| !t.is_empty())
+                {
+                    info!("Using the directory service token from Vault as the admin token");
+                    return Some(token.to_string());
+                }
+            }
+            Err(e) => log::warn!("Directory secret unavailable in Vault: {}", e),
+        }
+    }
+
+    info!("Admin PAT token not found, using OAuth client credentials flow");
+    match get_oauth_token(http_client, auth_service).await {
+        Ok(token) => Some(token),
+        Err(e) => {
+            log::warn!("Failed to get OAuth token (will try local auth): {}", e);
+            None
+        }
+    }
+}
+
+/// Reads the user id back from an existing session. The session-creation
+/// response carries only `sessionId`/`sessionToken`; the user factor (and its
+/// id, exposed as `factors.user.id`) is available on the session resource.
+async fn resolve_session_user_id(
+    http_client: &reqwest::Client,
+    api_url: &str,
+    admin_token: &str,
+    session_id: &str,
+) -> Option<String> {
+    let url = format!("{api_url}/v2/sessions/{session_id}");
+    let response = http_client
+        .get(&url)
+        .bearer_auth(admin_token)
+        .send()
+        .await
+        .ok()?;
+
+    if !response.status().is_success() {
+        log::warn!(
+            "Session read failed for {}: {} {}",
+            session_id,
+            response.status(),
+            response.text().await.unwrap_or_default()
+        );
+        return None;
+    }
+
+    let data: serde_json::Value = response.json().await.ok()?;
+    data.get("session")
+        .and_then(|s| s.get("factors"))
+        .and_then(|f| f.get("user"))
+        .and_then(|u| u.get("id").or_else(|| u.get("userId")))
+        .and_then(|v| v.as_str())
+        .map(String::from)
+}
+
+/// Resolves a login form's email address to the Zitadel user id. Zitadel
+/// matches `loginName` against the account's login names, which for accounts
+/// created with a bare username do not include the email — resolving the id
+/// keeps "sign in with your email" working for every account.
+async fn resolve_user_id_by_email(
+    http_client: &reqwest::Client,
+    auth_service: &dyn botlib::traits::AuthServiceTrait,
+    admin_token: &str,
+    email: &str,
+) -> Option<String> {
+    let url = format!("{}/management/v1/users/_search", auth_service.api_url());
+    let body = serde_json::json!({
+        "queries": [{
+            "emailQuery": { "emailAddress": email, "method": "TEXT_QUERY_METHOD_EQUALS" }
+        }]
+    });
+
+    let response = http_client
+        .post(&url)
+        .bearer_auth(admin_token)
+        .json(&body)
+        .send()
+        .await
+        .ok()?;
+
+    if !response.status().is_success() {
+        log::warn!(
+            "User lookup by email failed: {} {}",
+            response.status(),
+            response.text().await.unwrap_or_default()
+        );
+        return None;
+    }
+
+    let data: serde_json::Value = response.json().await.ok()?;
+    data.get("result")
+        .and_then(|r| r.as_array())
+        .and_then(|users| users.first())
+        .and_then(|user| user.get("id"))
+        .and_then(|id| id.as_str())
+        .map(String::from)
 }
 
 async fn get_oauth_token(

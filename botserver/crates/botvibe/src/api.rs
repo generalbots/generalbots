@@ -1586,7 +1586,7 @@ struct UnpublishSiteRequest {
     /// Drop the retained `.prev-*` releases and the retired payload too.
     #[serde(default)]
     purge: bool,
-    /// #1290 — "development" targets the DEV site ({slug}-dev).
+    /// #1290 — `test` (or the legacy `development`) targets the -test site.
     #[serde(default)]
     env: Option<String>,
 }
@@ -1626,12 +1626,12 @@ async fn unpublish_project_site(
         None => (false, None),
     };
     let slug = crate::proxy_sites::site_slug(&project.name);
-    // #1290 — `?env=development` (or the JSON body) targets the DEV site;
-    // production stays the default.
+    // #1290 — `?env=test` (or the legacy `development`) targets the test
+    // twin; production stays the default.
     let env = parse_site_env_param(&env_q.env, body_env.as_deref());
     let result = match env {
-        Some(crate::site_env::SiteEnv::Dev) => {
-            crate::proxy_sites::unpublish_site_dev(&slug, purge).await
+        Some(crate::site_env::SiteEnv::Test) => {
+            crate::proxy_sites::unpublish_site_test(&slug, purge).await
         }
         _ => crate::proxy_sites::unpublish_site(&slug, purge).await,
     };
@@ -1666,7 +1666,7 @@ async fn rollback_project_site(
     // #1290 — `?env=development` targets the DEV site's release ring.
     let env = parse_site_env_param(&env_q.env, None);
     let result = match env {
-        Some(crate::site_env::SiteEnv::Dev) => crate::proxy_sites::rollback_site_dev(&slug).await,
+        Some(crate::site_env::SiteEnv::Test) => crate::proxy_sites::rollback_site_test(&slug).await,
         _ => crate::proxy_sites::rollback_site(&slug).await,
     };
     match result {
@@ -1686,8 +1686,10 @@ async fn rollback_project_site(
 }
 
 /// #1290 — POST /api/vibe/projects/:project_id/site/promote — copy the
-/// current DEV release of the site to the PROD target (route + service
-/// refreshed exactly like a direct prod deploy).
+/// current TEST release of the site to the PRODUCTION target (route + service
+/// refreshed exactly like a direct production deploy). This is the sanctioned
+/// way to move a change from `{slug}-test.{domain}` to `{slug}.{domain}`
+/// without editing the public payload in place.
 async fn promote_project_site(
     Extension(api): Extension<Arc<VibeApiInner>>,
     Extension(user): Extension<AuthenticatedUser>,
@@ -1701,10 +1703,10 @@ async fn promote_project_site(
     let is_python = crate::proxy_sites::looks_like_python(
         &crate::publish::collect_workspace_files(&project).unwrap_or_default(),
     );
-    match crate::proxy_sites::promote_site_dev_to_prod(&project, is_python).await {
+    match crate::proxy_sites::promote_site_test_to_prod(&project, is_python).await {
         Ok(url) => Json(serde_json::json!({
             "success": true,
-            "message": "dev release promoted to production",
+            "message": "test release promoted to production",
             "site": crate::proxy_sites::site_slug(&project.name),
             "url": url,
         }))

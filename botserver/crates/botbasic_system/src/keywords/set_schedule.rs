@@ -303,12 +303,17 @@ pub fn execute_set_schedule(
 
     use botschema::system_automations::dsl::*;
 
+    // branch_id is NOT NULL (migration 6.5.23); resolve it from the bot before
+    // inserting so the schedule is branch-scoped.
+    let bot_branch = botschema::system_automation_branch_id(conn, bot_uuid)?;
+
     let new_automation = (
         bot_id.eq(bot_uuid),
         kind.eq(TriggerKind::Scheduled as i32),
         schedule.eq(&cron),
         param.eq(script_name),
         is_active.eq(true),
+        branch_id.eq(bot_branch),
     );
 
     let update_result = diesel::update(system_automations)

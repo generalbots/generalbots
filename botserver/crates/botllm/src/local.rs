@@ -211,12 +211,22 @@ let llm_url = if llm_url.is_empty() && llm_server_enabled {
         info!("LLM_MODEL not set, skipping LLM server");
     }
     if !embedding_running && !embedding_model.is_empty() {
-        info!("Starting Embedding server...");
-        tasks.push(tokio::spawn(start_embedding_server(
-            llm_server_path.clone(),
-            embedding_model_path.clone(),
-            embedding_url.clone(),
-        )));
+        // The local llama-server needs the GGUF model on disk. Deployments that
+        // embed through a remote provider (Cloudflare/OpenAI-compatible) never
+        // install it, so a missing file is an expected configuration, not a
+        // failure: skip the spawn instead of logging an error on every boot.
+        if std::path::Path::new(&embedding_model_path).exists() {
+            info!("Starting Embedding server...");
+            tasks.push(tokio::spawn(start_embedding_server(
+                llm_server_path.clone(),
+                embedding_model_path.clone(),
+                embedding_url.clone(),
+            )));
+        } else {
+            warn!(
+                "Embedding model '{embedding_model}' is not installed at {embedding_model_path}; skipping the local embedding server (embeddings use the configured remote provider)"
+            );
+        }
     } else if embedding_model.is_empty() {
         info!("EMBEDDING_MODEL not set, skipping Embedding server");
     }
@@ -575,8 +585,10 @@ pub async fn start_embedding_server(
     };
 
     if !std::path::Path::new(&full_model_path).exists() {
-        log::error!("Embedding model file not found: {full_model_path}");
-        return Err(format!("Embedding model file not found: {full_model_path}").into());
+        log::warn!(
+            "Embedding model '{model_path}' is not installed at {full_model_path}; local embedding server not started"
+        );
+        return Err(format!("Embedding model not installed: {full_model_path}").into());
     }
 
     info!("Starting embedding server on port {port} with model: {model_path}");

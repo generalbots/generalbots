@@ -90,6 +90,7 @@ diesel::table! {
         param -> Text,
         is_active -> Bool,
         last_triggered -> Nullable<Timestamptz>,
+        branch_id -> Uuid,
     }
 }
 
@@ -450,3 +451,23 @@ diesel::allow_tables_to_appear_in_same_query!(
     kb_group_associations,
     branches,
 );
+
+/// Resolve the branch that owns `bot` for a branch-scoped `system_automations` row.
+///
+/// Migration `6.5.23-branch-scope-cleanup` made `system_automations.branch_id`
+/// `NOT NULL` with a foreign key to `branches`, so every trigger registration
+/// must supply it. Registrations that omit it are rejected by PostgreSQL with a
+/// not-null violation, which is why `ON UPDATE OF`/`WEBHOOK`/`SET SCHEDULE`
+/// compilation used to fail. Returns the error instead of guessing a branch so
+/// callers can report which bot could not be resolved.
+pub fn system_automation_branch_id(
+    conn: &mut diesel::PgConnection,
+    bot: uuid::Uuid,
+) -> Result<uuid::Uuid, diesel::result::Error> {
+    use diesel::prelude::*;
+
+    bots::table
+        .filter(bots::id.eq(bot))
+        .select(bots::branch_id)
+        .first::<uuid::Uuid>(conn)
+}

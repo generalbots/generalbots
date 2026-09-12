@@ -121,10 +121,24 @@ async fn preview(
         Ok(_) => {}
         Err(e) => return forbidden(e),
     }
-    let deployments = match routes.registry.list_deployments(pid, Some(&query.env)) {
+    let mut deployments = match routes.registry.list_deployments(pid, Some(&query.env)) {
         Ok(rows) => rows,
         Err(e) => return err(e),
     };
+    // A site project records its working copy under the canonical `test` env
+    // while legacy callers ask for `development` (and vice versa). Resolve the
+    // twin spelling before giving up, so the Browser window opens the release
+    // that actually exists instead of reporting "no live preview".
+    if deployments.is_empty() {
+        if let Some(canonical) = crate::site_env::SiteEnv::parse(&query.env) {
+            if canonical.as_str() != query.env.as_str() {
+                deployments = routes
+                    .registry
+                    .list_deployments(pid, Some(canonical.as_str()))
+                    .unwrap_or_default();
+            }
+        }
+    }
     let deployed_url = deployments.iter().find_map(|row| {
         row.get("url")
             .and_then(|value| value.as_str())
@@ -217,11 +231,17 @@ async fn rollback(
         None => return err(format!("deployment index {idx} not found (have {})", rows.len())),
     };
     let domain = target.get("domain").and_then(|v| v.as_str()).unwrap_or("").to_string();
-    match crate::publish::do_publish(
-        json!({ "project_id": project_id, "env": "production", "domain": domain }),
-        routes.pool.clone(),
-    )
-    .await
+    // Admin-gated revert of a recorded deployment: an explicit operator
+    // action, so it may write a site project's public slug. The stamp is
+    // added server-side here (never taken from the client payload).
+    let mut args = json!({ "project_id": project_id, "env": "production", "domain": domain });
+    if let Some(obj) = args.as_object_mut() {
+        obj.insert(
+            crate::publish::PUBLISH_PRODUCTION_STAMP.to_string(),
+            serde_json::Value::Bool(true),
+        );
+    }
+    match crate::publish::do_publish(args, routes.pool.clone()).await
     {
         Ok(published) => ok(json!({ "rolled_back": true, "to_index": idx, "published": published })),
         Err(e) => err(e),

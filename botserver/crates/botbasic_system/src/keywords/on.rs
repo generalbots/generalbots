@@ -7,14 +7,16 @@ use log::trace;
 use rhai::Dynamic;
 use rhai::Engine;
 use serde_json::{json, Value};
+use uuid::Uuid;
 pub fn register_on_keywords(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     on_keyword(&state, user, engine);
 }
 
-pub fn on_keyword(state: &Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
+pub fn on_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
-    engine
-        .register_custom_syntax(
+    let bot_uuid = user.bot_id;
+    let branch_uuid = user.branch_id;
+    let registration = engine.register_custom_syntax(
             ["ON", "$ident$", "OF", "$string$"],
             true,
             move |context, inputs| {
@@ -37,31 +39,47 @@ pub fn on_keyword(state: &Arc<dyn BasicRuntime>, _user: UserSession, engine: &mu
                     .db_pool()
                     .get()
                     .map_err(|e| format!("DB error: {}", e))?;
-                let result = execute_on_trigger(&mut conn, kind, &table, &name)
-                    .map_err(|e| format!("DB error: {}", e))?;
+                let result =
+                    execute_on_trigger(&mut conn, kind, &table, &name, bot_uuid, branch_uuid)
+                        .map_err(|e| format!("DB error: {}", e))?;
                 if let Some(rows_affected) = result.get("rows_affected") {
                     Ok(Dynamic::from(rows_affected.as_i64().unwrap_or(0)))
                 } else {
                     Err("No rows affected".into())
                 }
             },
-        )
-        .expect("valid syntax registration");
+    );
+    if let Err(e) = registration {
+        log::error!("Failed to register ON keyword: {e}");
+    }
 }
 pub fn execute_on_trigger(
     conn: &mut diesel::PgConnection,
     kind: TriggerKind,
     table: &str,
     param: &str,
+    bot: Uuid,
+    branch: Uuid,
 ) -> Result<Value, String> {
     use botschema::system_automations;
+    // bot_id and branch_id are both NOT NULL: bot_id scopes the trigger to the bot
+    // and branch_id (migration 6.5.23) scopes it to the branch. ON CONFLICT keeps
+    // re-registration idempotent instead of raising a duplicate key error.
     let new_automation = (
+        system_automations::bot_id.eq(bot),
+        system_automations::branch_id.eq(branch),
         system_automations::kind.eq(kind as i32),
         system_automations::target.eq(table),
         system_automations::param.eq(param),
     );
     let result = diesel::insert_into(system_automations::table)
         .values(&new_automation)
+        .on_conflict((
+            system_automations::bot_id,
+            system_automations::kind,
+            system_automations::param,
+        ))
+        .do_nothing()
         .execute(conn)
         .map_err(|e| {
             log::error!("SQL execution error: {}", e);

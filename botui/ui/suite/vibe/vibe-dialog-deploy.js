@@ -54,11 +54,15 @@
         probe.addEventListener("click", probeEnv);
         var preview = D.el("button", "vibe-btn", "🌐 Preview App");
         preview.addEventListener("click", previewApp);
+        var promote = D.el("button", "vibe-btn", "⬆ Promote test → public");
+        promote.title = "Copy the tested release ({slug}-test) to the public site ({slug})";
+        promote.addEventListener("click", promoteSite);
         var deployBtn = D.el("button", "vibe-btn primary", "🚀 Deploy pipeline");
         deployBtn.addEventListener("click", deployPipeline);
         toolbar.appendChild(label);
         toolbar.appendChild(spacer);
         toolbar.appendChild(probe);
+        toolbar.appendChild(promote);
         toolbar.appendChild(preview);
         toolbar.appendChild(deployBtn);
 
@@ -291,6 +295,39 @@
             if (grid) grid.innerHTML = html;
         }).catch(function (err) {
             if (grid) grid.innerHTML = '<div class="vibe-empty">Probe error: ' + D.esc(err) + "</div>";
+        });
+    }
+
+    // Every website/python project keeps TWO websites: the working copy at
+    // {slug}-test.{domain} (where in-flight changes land) and the public page
+    // at {slug}.{domain}. Promote copies the tested release — the exact
+    // payload that was served and verified as the test site — onto the public
+    // slug, so nobody has to edit the live page directly.
+    function promoteSite() {
+        if (!state.projectId) return;
+        var grid = document.getElementById("vibeDeployMain");
+        if (grid) grid.innerHTML = '<div class="vibe-empty">Promoting the tested release to the public site…</div>';
+        D.api(
+            "/api/vibe/projects/" + encodeURIComponent(state.projectId) + "/site/promote",
+            { method: "POST", body: {} }
+        ).then(function (data) {
+            var url = data && (data.url || (data.data && data.data.url));
+            if (grid) {
+                grid.innerHTML = '<div class="vibe-card" style="margin-bottom:10px;padding:12px;border:1px solid var(--accent,#84d669);">' +
+                    '<div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">✅ PUBLIC SITE UPDATED</div>' +
+                    (url
+                        ? '<a href="' + D.esc(url) + '" target="_blank" rel="noopener" style="font-size:14px;font-weight:700;color:var(--accent,#84d669);text-decoration:none;">' + D.esc(url) + " ↗</a>"
+                        : "<div>Promoted.</div>") +
+                    "</div>";
+            }
+            loadHistory();
+            loadSecurity();
+        }).catch(function (err) {
+            var message = err && err.message ? err.message : String(err);
+            if (grid) {
+                grid.innerHTML = '<div class="vibe-empty">Promote unavailable: ' + D.esc(message) +
+                    ' — publish the project to its test site first.</div>';
+            }
         });
     }
 
