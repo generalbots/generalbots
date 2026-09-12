@@ -92,8 +92,34 @@ You do **not** need to configure these services manually. The Directory service 
 4. **Audit access** - Monitor external API usage through logs
 5. **Infrastructure credentials** - Managed automatically by Directory service
 
+## Inbound Channel Webhooks
+
+Chat platforms deliver messages by posting to the bot server from their own
+infrastructure, with no token of ours to present. Three registrations are
+required for every such route, and missing any one of them makes the channel
+silently unreachable:
+
+1. an **anonymous auth path** (the middleware otherwise answers `401`),
+2. a **CSRF exemption** (external POSTs cannot carry a CSRF token),
+3. an **anonymous RBAC route permission** (an unmatched `/api/...` path is
+   denied outright).
+
+The routes, their handlers and the documented credential resolution are:
+
+| Channel | Inbound route | Handler auth |
+|---------|---------------|--------------|
+| Telegram | `POST /webhook/telegram` | optional `telegram-webhook-secret` (`X-Telegram-Bot-Api-Secret-Token`) |
+| Teams | `POST /api/msteams/messages` | Bot Framework activity validation |
+| Instagram | `GET/POST /api/instagram/webhook` | verification token (`hub.verify_token`) + payload signature |
+| WhatsApp | `GET/POST /webhook/whatsapp` | Meta verify token (`hub.verify_token`) |
+
+Channels addressed directly (outside `/api`) also need a proxy route in the UI
+server, which is what `/webhook/*path` provides.
+
 ## See Also
 
+- [Telegram Channel](./telegram-channel.md) - Setup, media ingestion, troubleshooting
+- [Teams Channel](./teams-channel.md) - Teams app credentials and activities
 - [Service Catalog](./catalog.md) - Detailed service documentation
 - [LLM Providers](./llm-providers.md) - AI model configuration
 - [Weather API](./weather.md) - Weather service setup
