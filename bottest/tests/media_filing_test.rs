@@ -156,7 +156,7 @@ fn filing_writes_the_audit_trail_and_reports_the_category() {
     );
     assert!(
         script.contains("\"media/\" + STR(today.year)"),
-        "filing must use the media/{year}/{month}/{category} layout"
+        "filing must use the media/{{year}}/{{month}}/{{category}} layout"
     );
     for key in ["category=", "kind=", "path=", "caption=", "perception="] {
         assert!(

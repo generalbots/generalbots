@@ -32,7 +32,7 @@ fn env_pause_threshold(key: &str, fallback: f32) -> f32 {
         Ok(raw) => match raw.trim().parse::<f32>() {
             Ok(value) if (0.0..=100.0).contains(&value) => value,
             _ => {
-                log::warn!("{key}={raw:?} is not a percentage between 0 and 100; using {fallback}");
+                tracing::warn!("{key}={raw:?} is not a percentage between 0 and 100; using {fallback}");
                 fallback
             }
         },
