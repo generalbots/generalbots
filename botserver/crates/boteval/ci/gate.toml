@@ -1,9 +1,23 @@
-# CI gate for the vibe-200 benchmark (#800).
+# CI gate for the vibe-200 benchmark (#800). This is the SINGLE authoritative
+# gate configuration — both consumers read this exact file:
+#   - .github/workflows/boteval.yml  (--gate botserver/crates/boteval/ci/gate.toml)
+#   - botserver/crates/boteval/src/ci_gate.rs (include_str!("../ci/gate.toml"),
+#     compiled-in default for `boteval-run`)
+#
+# The root botserver/crates/boteval/gate.toml is a pointer stub, not a config:
+# editing it does nothing (#1345 — the two copies had drifted to different
+# cost ceilings and tag sets, so a run could pass against one and fail in CI).
+#
 # NOTE: past versions used `key: value` (JSON-ish) — that is INVALID TOML and
 # toml::from_str always rejected it, so the gate silently never ran.
+#
+# required_tags rationale: "general" covers the plain-LLM chat entries and
+# "harness" the 14 live-agent-loop entries (which must additionally satisfy
+# harness_min_tool_calls below). Both tag sets are present in
+# datasets/vibe-200.json.
 min_pass_rate = 0.95
 max_failures = 0
-required_tags = ["software_development", "customer_support", "financial_analysis", "general"]
+required_tags = ["software_development", "customer_support", "financial_analysis", "general", "harness"]
 max_cost_per_task = 0.05
 harness_min_tool_calls = 2
 
@@ -12,3 +26,4 @@ software_development = 0.90
 customer_support = 0.90
 financial_analysis = 0.90
 general = 0.90
+harness = 0.90

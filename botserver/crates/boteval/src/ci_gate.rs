@@ -202,16 +202,38 @@ mod tests {
         assert_eq!(cfg.max_failures, 0);
         assert_eq!(cfg.max_cost_per_task, 0.05);
         assert_eq!(cfg.harness_min_tool_calls, 2);
-        assert_eq!(cfg.required_tags.len(), 4);
+        assert_eq!(cfg.required_tags.len(), 5);
         // tag_pass_rates must contain ONLY tag keys (a section placed too
         // late would swallow top-level keys like max_cost_per_task).
-        assert_eq!(cfg.tag_pass_rates.len(), 4);
-        for tag in ["software_development", "customer_support", "financial_analysis", "general"] {
+        assert_eq!(cfg.tag_pass_rates.len(), 5);
+        for tag in [
+            "software_development",
+            "customer_support",
+            "financial_analysis",
+            "general",
+            "harness",
+        ] {
             assert!(
                 cfg.tag_pass_rates.contains_key(tag),
                 "missing tag_pass_rates entry for {tag}"
             );
         }
+    }
+
+    #[test]
+    fn only_one_gate_config_exists() {
+        // #1345 — the gate config was duplicated (root gate.toml vs ci/gate.toml)
+        // and the copies diverged: CI read the copy nobody edited. ci/gate.toml is
+        // now the single source of truth and the root file must stay a comment-only
+        // stub so editing it can never silently override or diverge from CI.
+        let raw = include_str!("../gate.toml");
+        let parsed: toml::Value =
+            toml::from_str(raw).expect("../gate.toml must remain valid TOML");
+        assert!(
+            parsed.as_table().map(|t| t.is_empty()).unwrap_or(true),
+            "botserver/crates/boteval/gate.toml must stay a comment-only stub; \
+             the single gate config is ci/gate.toml"
+        );
     }
 
     #[test]
