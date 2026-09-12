@@ -43,7 +43,7 @@ pub fn register_search_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
     let user_roles = UserRoles::from_user_session(&user);
 
     // SEARCH table, query, limit
-    engine
+if let Err(e) =     engine
         .register_custom_syntax(
             ["SEARCH", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -102,10 +102,12 @@ pub fn register_search_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     // SEARCH table, query (default limit = 10)
-    engine
+if let Err(e) =     engine
         .register_custom_syntax(["SEARCH", "$expr$", ",", "$expr$"], false, {
             let conn = connection.clone();
             let roles = user_roles.clone();
@@ -155,7 +157,9 @@ pub fn register_search_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
                 }
             }
         })
-        .expect("valid syntax registration");
+        {
+            log::error!("Failed to register the custom syntax: {e}");
+        }
 
     // Register AUTOCOMPLETE function for quick suggestions
     let conn_autocomplete = connection.clone();

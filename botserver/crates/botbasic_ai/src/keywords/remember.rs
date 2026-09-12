@@ -8,7 +8,7 @@ pub fn remember_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine:
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["REMEMBER", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -98,12 +98,14 @@ pub fn remember_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine:
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["RECALL", "$expr$"], false, move |context, inputs| {
             let key = context.eval_expression_tree(&inputs[0])?.to_string();
 
@@ -166,7 +168,9 @@ pub fn remember_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine:
                 ))),
             }
         })
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 fn parse_duration(

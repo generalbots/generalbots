@@ -9,7 +9,7 @@ use rhai::{Dynamic, Engine};
 /// LLM deadlocks in this codebase.
 pub fn llm_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["LLM", "$expr$"], false, move |context, inputs| {
             let first_input = inputs.first().ok_or_else(|| {
                 Box::new(rhai::EvalAltResult::ErrorRuntime(
@@ -62,7 +62,9 @@ pub fn llm_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mu
                 ))),
             }
         })
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 fn build_llm_prompt(user_text: &str) -> String {

@@ -23,7 +23,7 @@ pub fn register_find_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, en
     let connection = state.db_pool().clone();
     let user_roles = UserRoles::from_user_session(&user);
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["FIND", "$expr$", ",", "$expr$"], false, {
             move |context, inputs| {
                 let table_name = context.eval_expression_tree(&inputs[0])?;
@@ -71,7 +71,9 @@ pub fn register_find_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, en
                 }
             }
         })
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn execute_find(

@@ -53,7 +53,7 @@ pub struct WebhookRegistration {
 pub fn webhook_keyword(state: &Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
     let _state_clone = state.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["WEBHOOK", "$expr$"], false, move |context, inputs| {
             let endpoint = context.eval_expression_tree(&inputs[0])?.to_string();
 
@@ -61,7 +61,9 @@ pub fn webhook_keyword(state: &Arc<dyn BasicRuntime>, _user: UserSession, engine
 
             Ok(Dynamic::from(format!("webhook:{}", endpoint)))
         })
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn execute_webhook_registration(

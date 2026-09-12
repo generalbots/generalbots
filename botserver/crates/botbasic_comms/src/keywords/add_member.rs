@@ -9,7 +9,7 @@ pub fn add_member_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engin
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["ADD_MEMBER", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -75,12 +75,14 @@ pub fn add_member_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engin
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["CREATE_TEAM", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -150,7 +152,9 @@ pub fn add_member_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engin
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn execute_add_member(
@@ -233,7 +237,7 @@ fn execute_create_team(
         "chat_enabled": true,
         "file_sharing": true
     }))
-    .expect("valid syntax registration");
+    .map_err(|e| format!("Failed to serialize team permissions: {e}"))?;
 
     let query = query
         .bind::<diesel::sql_types::Text, _>(&user_id_str)

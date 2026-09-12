@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 pub fn register_set_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
     let state_clone = state;
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["SET", "$expr$", ",", "$expr$", ",", "$expr$"], false, {
             move |context, inputs| {
                 let table_name = context.eval_expression_tree(&inputs[0])?;
@@ -38,7 +38,9 @@ pub fn register_set_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, en
                 }
             }
         })
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn execute_set(

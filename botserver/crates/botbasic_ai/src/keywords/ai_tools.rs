@@ -11,7 +11,7 @@ pub fn register_ai_tools_keywords(state: Arc<dyn BasicRuntime>, user: UserSessio
 }
 
 fn register_translate_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["TRANSLATE", "$expr$", ",", "$expr$"],
             false,
@@ -45,13 +45,15 @@ fn register_translate_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession,
                 }
             },
         )
-        .expect("valid syntax registration");
+{
+    log::error!("Failed to register the custom syntax: {e}");
+}
 
     debug!("Registered TRANSLATE keyword");
 }
 
 fn register_ocr_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["OCR", "$expr$"], false, move |context, inputs| {
             let image_path = context.eval_expression_tree(&inputs[0])?.to_string();
             trace!("OCR {}", image_path);
@@ -80,13 +82,15 @@ fn register_ocr_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engin
                 ))),
             }
         })
-        .expect("valid syntax registration");
+{
+    log::error!("Failed to register the custom syntax: {e}");
+}
 
     debug!("Registered OCR keyword");
 }
 
 fn register_sentiment_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["SENTIMENT", "$expr$"], false, move |context, inputs| {
             let text = context.eval_expression_tree(&inputs[0])?.to_string();
             trace!("SENTIMENT analysis");
@@ -113,7 +117,9 @@ fn register_sentiment_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession,
                 Err(_) => Ok(analyze_sentiment_quick(&text)),
             }
         })
-        .expect("valid syntax registration");
+{
+    log::error!("Failed to register the custom syntax: {e}");
+}
 
     engine.register_fn("SENTIMENT_QUICK", |text: &str| -> Dynamic {
         analyze_sentiment_quick(text)
@@ -123,7 +129,7 @@ fn register_sentiment_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession,
 }
 
 fn register_classify_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["CLASSIFY", "$expr$", ",", "$expr$"],
             false,
@@ -172,7 +178,9 @@ fn register_classify_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, 
                 }
             },
         )
-        .expect("valid syntax registration");
+{
+    log::error!("Failed to register the custom syntax: {e}");
+}
 
     debug!("Registered CLASSIFY keyword");
 }

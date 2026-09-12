@@ -51,7 +51,7 @@ pub fn register_generate_pdf_keyword(state: Arc<dyn BasicRuntime>, user: UserSes
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["GENERATE", "PDF", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -119,14 +119,16 @@ pub fn register_generate_pdf_keyword(state: Arc<dyn BasicRuntime>, user: UserSes
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_merge_pdf_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["MERGE", "PDF", "$expr$", ",", "$expr$"],
             false,
@@ -197,7 +199,9 @@ pub fn register_merge_pdf_keyword(state: Arc<dyn BasicRuntime>, user: UserSessio
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub async fn execute_generate_pdf(

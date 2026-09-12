@@ -51,7 +51,7 @@ fn register_on_email(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &
     let state_clone = state.clone();
     let bot_id = user.bot_id;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["ON", "EMAIL", "$string$"], true, move |context, inputs| {
             let email_address = context
                 .eval_expression_tree(&inputs[0])?
@@ -85,14 +85,16 @@ fn register_on_email(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &
                 Err("Failed to register email monitor".into())
             }
         })
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 fn register_on_email_from(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
     let bot_id = user.bot_id;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["ON", "EMAIL", "$string$", "FROM", "$string$"],
             true,
@@ -148,14 +150,16 @@ fn register_on_email_from(state: &Arc<dyn BasicRuntime>, user: UserSession, engi
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 fn register_on_email_subject(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
     let bot_id = user.bot_id;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["ON", "EMAIL", "$string$", "SUBJECT", "$string$"],
             true,
@@ -210,7 +214,9 @@ fn register_on_email_subject(state: &Arc<dyn BasicRuntime>, user: UserSession, e
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn execute_on_email(

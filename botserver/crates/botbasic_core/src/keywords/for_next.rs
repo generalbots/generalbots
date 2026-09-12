@@ -4,12 +4,14 @@ use botbasic_types::BasicRuntime;
 use rhai::Dynamic;
 use rhai::Engine;
 pub fn for_keyword(_state: &Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["EXIT", "FOR"], false, |_context, _inputs| {
             Err("EXIT FOR".into())
         })
-        .expect("valid syntax registration");
-    engine
+{
+    log::error!("Failed to register the custom syntax: {e}");
+}
+    if let Err(e) = engine
         .register_custom_syntax(
             [
                 "FOR", "EACH", "$ident$", "IN", "$expr$", "$block$", "NEXT", "$ident$",
@@ -59,5 +61,7 @@ pub fn for_keyword(_state: &Arc<dyn BasicRuntime>, _user: UserSession, engine: &
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("valid syntax registration");
+        {
+            log::error!("Failed to register the custom syntax: {e}");
+        }
 }

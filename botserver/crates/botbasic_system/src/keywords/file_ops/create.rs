@@ -42,7 +42,7 @@ pub fn register_create_file_keyword(state: Arc<dyn BasicRuntime>, user: UserSess
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["CREATE", "FILE", "$expr$", "WITH", "$expr$"],
             false,
@@ -102,5 +102,7 @@ pub fn register_create_file_keyword(state: Arc<dyn BasicRuntime>, user: UserSess
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }

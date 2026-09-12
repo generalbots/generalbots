@@ -109,7 +109,7 @@ pub fn register_send_sms_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SEND_SMS", "$expr$", ",", "$expr$"],
             false,
@@ -185,7 +185,9 @@ pub fn register_send_sms_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_send_sms_with_third_arg_keyword(
@@ -196,7 +198,7 @@ pub fn register_send_sms_with_third_arg_keyword(
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SEND_SMS", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -289,7 +291,9 @@ pub fn register_send_sms_with_third_arg_keyword(
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_send_sms_full_keyword(
@@ -300,7 +304,7 @@ pub fn register_send_sms_full_keyword(
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SEND_SMS", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -383,12 +387,14 @@ pub fn register_send_sms_full_keyword(
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             [
                 "SEND_SMS", "$expr$", ",", "$expr$", ",", "$expr$", ",", "$expr$",
@@ -473,7 +479,9 @@ pub fn register_send_sms_full_keyword(
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 async fn execute_send_sms(

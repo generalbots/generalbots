@@ -8,7 +8,7 @@ pub fn post_to_at_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engin
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             [
                 "POST", "TO", "$expr$", "AT", "$expr$", "$expr$", ",", "$expr$",
@@ -75,7 +75,9 @@ pub fn post_to_at_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engin
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     debug!("Registered POST TO AT keyword");
 }

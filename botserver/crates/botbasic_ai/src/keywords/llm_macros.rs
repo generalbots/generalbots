@@ -108,7 +108,7 @@ fn run_llm_with_timeout(
 pub fn register_calculate_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["CALCULATE", "$expr$", ",", "$expr$"],
             false,
@@ -129,7 +129,9 @@ pub fn register_calculate_keyword(state: Arc<AppState>, _user: UserSession, engi
                 parse_calculate_result(&result)
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 fn build_calculate_prompt(formula: &str, variables: &Dynamic) -> String {
@@ -187,7 +189,7 @@ fn parse_calculate_result(result: &str) -> Result<Dynamic, Box<rhai::EvalAltResu
 pub fn register_validate_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["VALIDATE", "$expr$", ",", "$expr$"],
             false,
@@ -204,7 +206,9 @@ pub fn register_validate_keyword(state: Arc<AppState>, _user: UserSession, engin
                 parse_validate_result(&result)
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 fn build_validate_prompt(data: &Dynamic, rules: &str) -> String {
@@ -293,7 +297,7 @@ fn parse_validate_result(result: &str) -> Result<Dynamic, Box<rhai::EvalAltResul
 pub fn register_translate_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["TRANSLATE", "$expr$", ",", "$expr$"],
             false,
@@ -313,7 +317,9 @@ pub fn register_translate_keyword(state: Arc<AppState>, _user: UserSession, engi
                 run_llm_with_timeout(state_for_task, prompt, 120).map(Dynamic::from)
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 fn build_translate_prompt(text: &str, language: &str) -> String {
@@ -333,7 +339,7 @@ Translation:",
 pub fn register_summarize_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["SUMMARIZE", "$expr$"], false, move |context, inputs| {
             let text = context.eval_expression_tree(&inputs[0])?.to_string();
 
@@ -344,7 +350,9 @@ pub fn register_summarize_keyword(state: Arc<AppState>, _user: UserSession, engi
 
             run_llm_with_timeout(state_for_task, prompt, 120).map(Dynamic::from)
         })
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 fn build_summarize_prompt(text: &str) -> String {

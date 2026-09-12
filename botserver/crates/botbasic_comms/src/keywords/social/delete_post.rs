@@ -9,7 +9,7 @@ pub fn delete_post_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["DELETE", "POST", "$expr$"],
             false,
@@ -35,7 +35,9 @@ pub fn delete_post_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                 Ok(Dynamic::from(result))
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     debug!("Registered DELETE POST keyword");
 }

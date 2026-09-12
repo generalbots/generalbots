@@ -33,7 +33,7 @@ pub fn weather_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: 
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["WEATHER", "$expr$"], false, move |context, inputs| {
             let location = context.eval_expression_tree(&inputs[0])?.to_string();
 
@@ -81,12 +81,14 @@ pub fn weather_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: 
                 ))),
             }
         })
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["FORECAST", "$expr$", ",", "$expr$"],
             false,
@@ -144,7 +146,9 @@ pub fn weather_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: 
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 async fn get_weather(

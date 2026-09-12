@@ -88,7 +88,7 @@ fn register_hear_basic(state: &Arc<dyn BasicRuntime>, user: UserSession, engine:
     let session_id = user.id;
     let state_clone = Arc::clone(state);
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["HEAR", "$ident$"], true, move |context, inputs| {
             let variable_name = inputs[0]
                 .get_string_value()
@@ -107,14 +107,16 @@ fn register_hear_basic(state: &Arc<dyn BasicRuntime>, user: UserSession, engine:
             context.scope_mut().set_or_push(&variable_name, value.clone());
             Ok(value)
         })
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 fn register_hear_as_type(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let session_id = user.id;
     let state_clone = Arc::clone(state);
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["HEAR", "$expr$", "as", "$ident$"],
             true,
@@ -145,14 +147,16 @@ fn register_hear_as_type(state: &Arc<dyn BasicRuntime>, user: UserSession, engin
                 Ok(value)
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 fn register_hear_as_menu(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let session_id = user.id;
     let state_clone = Arc::clone(state);
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["HEAR", "$expr$", "as", "$ident$"],
             true,
@@ -175,7 +179,9 @@ fn register_hear_as_menu(state: &Arc<dyn BasicRuntime>, user: UserSession, engin
                 Ok(value)
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 fn read_hear_timeout_from_vault() -> Option<u64> {

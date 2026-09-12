@@ -9,7 +9,7 @@ pub fn create_task_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             [
                 "CREATE_TASK",
@@ -94,12 +94,14 @@ pub fn create_task_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["ASSIGN_SMART", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -172,7 +174,9 @@ pub fn create_task_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 fn execute_create_task(

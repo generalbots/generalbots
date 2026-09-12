@@ -8,7 +8,7 @@ pub fn get_posts_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["GET", "$ident$", "POSTS"],
             false,
@@ -42,7 +42,9 @@ pub fn get_posts_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine
                 Ok(Dynamic::from(posts_array))
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     debug!("Registered GET POSTS keyword");
 }

@@ -31,7 +31,7 @@ pub fn get_instagram_metrics_keyword(state: Arc<dyn BasicRuntime>, user: UserSes
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["GET", "INSTAGRAM", "METRICS", "$expr$"],
             false,
@@ -75,7 +75,9 @@ pub fn get_instagram_metrics_keyword(state: Arc<dyn BasicRuntime>, user: UserSes
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     debug!("Registered GET INSTAGRAM METRICS keyword");
 }
@@ -84,7 +86,7 @@ pub fn get_facebook_metrics_keyword(state: Arc<dyn BasicRuntime>, user: UserSess
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["GET", "FACEBOOK", "METRICS", "$expr$"],
             false,
@@ -128,7 +130,9 @@ pub fn get_facebook_metrics_keyword(state: Arc<dyn BasicRuntime>, user: UserSess
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     debug!("Registered GET FACEBOOK METRICS keyword");
 }
@@ -137,7 +141,7 @@ pub fn get_linkedin_metrics_keyword(state: Arc<dyn BasicRuntime>, user: UserSess
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["GET", "LINKEDIN", "METRICS", "$expr$"],
             false,
@@ -181,7 +185,9 @@ pub fn get_linkedin_metrics_keyword(state: Arc<dyn BasicRuntime>, user: UserSess
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     debug!("Registered GET LINKEDIN METRICS keyword");
 }
@@ -190,7 +196,7 @@ pub fn get_twitter_metrics_keyword(state: Arc<dyn BasicRuntime>, user: UserSessi
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["GET", "TWITTER", "METRICS", "$expr$"],
             false,
@@ -234,7 +240,9 @@ pub fn get_twitter_metrics_keyword(state: Arc<dyn BasicRuntime>, user: UserSessi
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     debug!("Registered GET TWITTER METRICS keyword");
 }
