@@ -32,6 +32,7 @@ pub mod linear;
 pub mod monday;
 pub mod plain;
 pub mod github;
+pub mod instagram;
 pub mod rest_client;
 pub mod stripe;
 
@@ -330,6 +331,7 @@ pub fn registry() -> Vec<Arc<dyn ProviderAdapter>> {
         Arc::new(generic::GenericAdapter::new(&generic::community::MOLTBOOK_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::community::ARENA_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::finplatform::RIPPLING_SPEC)),
+        Arc::new(instagram::InstagramAdapter),
         Arc::new(plain::PlainAdapter),
         Arc::new(ashby::AshbyAdapter),
         Arc::new(bluesky::BlueskyAdapter),
@@ -587,7 +589,7 @@ mod tests {
             "upstash_redis", "vercel", "webflow", "whop",
             "wise", "woocommerce", "x", "xero_accounting",
             "ynab", "youtube_analytics", "zendesk", "zoom",
-            "plain", "ashby", "bluesky",
+            "plain", "ashby", "bluesky", "instagram",
             "ups", "fedex", "monday", "linear",
         ];
         let registered = registry();

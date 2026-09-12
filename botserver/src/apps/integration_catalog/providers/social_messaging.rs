@@ -2,11 +2,33 @@ use super::super::actions::{
     ANALYTICS_ACTIONS, CALENDAR_ACTIONS, CONTENT_ACTIONS, MARKETING_ACTIONS, MESSAGING_ACTIONS,
     SOCIAL_ACTIONS,
 };
-use super::super::auth::{API_KEY, GOOGLE_OAUTH2, OAUTH2, TOKEN, UNKNOWN, UNSUPPORTED};
+use super::super::auth::{
+    API_KEY, GOOGLE_OAUTH2, INSTAGRAM_OAUTH2, OAUTH2, TOKEN, UNKNOWN, UNSUPPORTED,
+};
 use super::super::types::{Category, Priority, ProviderSeed, Status, Strategy};
 use super::provider;
 
 pub(super) const PROVIDERS: &[ProviderSeed] = &[
+    // Instagram is a live adapter (`botintegrations::providers::instagram`),
+    // so the seed flips llm_available while `action_is_implemented` keeps the
+    // per-action truth in sync with the registered adapter. Status stays
+    // Partial because the Graph API exposes no media search and no media
+    // delete for Instagram, so only list/get/publish execute today.
+    ProviderSeed {
+        llm_available: true,
+        ..provider(
+            "instagram",
+            "Instagram",
+            Category::SocialMessaging,
+            Strategy::Integrate,
+            Status::Partial,
+            Priority::Must,
+            Some("botinstagram"),
+            Some("https://developers.facebook.com/docs/instagram-platform"),
+            &INSTAGRAM_OAUTH2,
+            SOCIAL_ACTIONS,
+        )
+    },
     provider(
         "facebook_pages",
         "Facebook Pages",
