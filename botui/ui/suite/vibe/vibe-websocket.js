@@ -60,6 +60,42 @@ function connectVibeWs() {
     vibeSafeStatus("connecting");
 
     var botName = window.__INITIAL_BOT_NAME__ || "default";
+
+    // A private bot answers the WS upgrade with 401 and the browser hides that
+    // response, leaving only an unexplained offline badge. Probe the public
+    // flag once: an anonymous visitor gets an explicit "sign in" state.
+    if (!connectVibeWs.accessChecked) {
+        connectVibeWs.accessChecked = true;
+        fetch("/api/bot/public?bot_name=" + encodeURIComponent(botName), {
+            credentials: "same-origin",
+        })
+            .then(function (r) { return r.ok ? r.json() : {}; })
+            .then(function (info) {
+                var isPublic =
+                    info.is_public === true || String(info.is_public) === "true";
+                var token =
+                    window.GBSecurity && typeof GBSecurity.getToken === "function"
+                        ? GBSecurity.getToken()
+                        : null;
+                if (!isPublic && !token) {
+                    vibeSafeStatus("auth-required");
+                    if (window.GBAlerts) {
+                        GBAlerts.warning(
+                            "Vibe",
+                            "This bot is private — sign in to connect the assistant.",
+                        );
+                    }
+                    console.warn(
+                        "[Vibe] bot '" + botName + "' is private; WebSocket not attempted",
+                    );
+                    return;
+                }
+                connectVibeWs();
+            })
+            .catch(function () { connectVibeWs(); });
+        return;
+    }
+
     vibeAuthFetch("/api/auth?bot_name=" + encodeURIComponent(botName))
         .then(function (r) {
             return r.json();

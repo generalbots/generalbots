@@ -335,7 +335,11 @@ impl ExtractedAuthData {
             let preview: String = auth.chars().take(50).collect();
             debug!("Raw Authorization header: {preview}");
         } else {
-            warn!(
+            // An absent Authorization header is the normal case for anonymous
+            // traffic on public endpoints (/health, /ws, /api/bot/public, the
+            // pre-login desktop calls). The authorization decision is made
+            // below, so this is diagnostic only and must not be a warning.
+            debug!(
                 "No Authorization header found in request to {}",
                 request.uri().path()
             );

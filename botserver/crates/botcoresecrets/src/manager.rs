@@ -168,6 +168,8 @@ impl SecretsManager {
             }
         };
 
+        let data = sanitize_field_values(path, data);
+
         if self.cache_ttl > 0 {
             self.cache_secret(path, data.clone()).await;
         }
@@ -197,6 +199,7 @@ impl SecretsManager {
             .ok_or_else(|| anyhow!("No Vault client"))?;
 
         let data: HashMap<String, String> = kv2::read(client.as_ref(), "secret", path).await?;
+        let data = sanitize_field_values(path, data);
 
         if self.cache_ttl > 0 {
             self.cache_secret(path, data.clone()).await;
@@ -273,6 +276,33 @@ impl SecretsManager {
     fn get_from_env_static(path: &str) -> Result<HashMap<String, String>> {
         get_from_env(path)
     }
+}
+
+/// Vault values are occasionally written as a whole `FIELD=value` assignment
+/// — e.g. `vault kv put secret/gbo/llm EMBEDDING_KEY=abc EMBEDDING_URL=…` —
+/// which stores the literal assignment as the value. Every consumer that
+/// expects the bare value then fails, most visibly as a 401 from a provider
+/// because the Authorization header carries `Bearer EMBEDDING_KEY=abc`.
+/// Strip the redundant leading `FIELD=` so a mislabelled write cannot silently
+/// break authentication.
+fn sanitize_field_values(path: &str, data: HashMap<String, String>) -> HashMap<String, String> {
+    let mut cleaned = HashMap::with_capacity(data.len());
+    for (key, value) in data {
+        let stripped = match value.split_once('=') {
+            Some((name, rest))
+                if !rest.is_empty() && name.eq_ignore_ascii_case(&key) =>
+            {
+                warn!(
+                    "Secret '{}': field '{}' was stored as a 'FIELD=value' assignment; using the bare value",
+                    path, key
+                );
+                rest.to_string()
+            }
+            _ => value,
+        };
+        cleaned.insert(key, stripped);
+    }
+    cleaned
 }
 
 fn get_stack_path() -> String {

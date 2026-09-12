@@ -131,6 +131,21 @@ fn response_with_headers(
 
 const PUBLISH_DEFAULT_ENV: &str = "production";
 
+/// Server-side stamp that authorizes writing a site project's PUBLIC slug
+/// (`{slug}.{domain}`). Only the deploy pipeline and the admin ops paths set
+/// it; an agent tool call can never supply it (the schema does not expose the
+/// field and the server overwrites it), so an in-flight change always lands on
+/// the project's `-test` twin instead of the live site.
+pub const PUBLISH_PRODUCTION_STAMP: &str = "_deploy_approved";
+
+/// `true` when the caller was sanctioned by the deploy pipeline to write the
+/// public slug.
+fn production_approved(args: &Value) -> bool {
+    args.get(PUBLISH_PRODUCTION_STAMP)
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+}
+
 /// Env var overriding the maximum total bytes the publish path will read
 /// into memory for a single project archive (#934).
 const PUBLISH_MAX_BYTES_ENV: &str = "VIBE_PUBLISH_MAX_BYTES";
@@ -157,7 +172,7 @@ pub fn publish_project_schema() -> ToolSchema {
             "type": "object",
             "properties": {
                 "project_id": { "type": "string", "description": "UUID of the project to publish" },
-                "env": { "type": "string", "enum": ["development", "staging", "production"], "default": "production" },
+                "env": { "type": "string", "enum": ["test", "development", "staging", "production"], "default": "production", "description": "Target environment. Website and python projects keep two websites: the working copy at {slug}-test.{domain} and the public page at {slug}.{domain}. A publish from this tool always lands on the test twin unless the Deploy pipeline is the caller, so ask for 'test' when the user wants to see a change before it goes public." },
                 "domain": { "type": "string", "description": "Optional custom domain to bind" },
                 "launcher": { "type": "boolean", "description": "When true, the published app auto-pins to the desktop launcher (desktop category) for workspace users (#1160)." },
                 "widget": { "type": "boolean", "description": "When true, the published app is registered as a desktop widget (always-visible tile) instead of a windowed app (#1160)." },
@@ -340,26 +355,65 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
             .as_deref()
             .map(|f| f.eq_ignore_ascii_case("python") || f.eq_ignore_ascii_case("python3") || f.eq_ignore_ascii_case("flask"))
             .unwrap_or(false);
-    // #1290 — dev publishes of site projects go to the proxy's dev target
-    // (`{slug}-dev.{domain}` from `websites/{slug}-dev`) instead of raising
-    // an expensive per-site dev VM; production keeps the `{slug}` target.
-    let site_env = if env == "production" {
+    // #1290 — site publishes go to the proxy's targets instead of raising an
+    // expensive per-site VM: the working copy at `{slug}-test.{domain}`
+    // (`websites/{slug}-test`) and the public page at `{slug}.{domain}`
+    // (`websites/{slug}`).
+    //
+    // Two websites per project: a site publish defaults to the TEST twin, so
+    // an edit under test can never blank the live page. The public slug is
+    // written only when the deploy pipeline (or an admin ops rollback) stamps
+    // the request as approved — an agent that asks for `env=production` on its
+    // own still lands on the test twin, and the response says so.
+    let wants_site = project.project_type == "website" || is_python_project;
+    let approved = production_approved(&args);
+    let requested_production = matches!(
+        crate::site_env::SiteEnv::parse(&env),
         Some(crate::site_env::SiteEnv::Production)
-    } else if env == "development" {
-        Some(crate::site_env::SiteEnv::Dev)
-    } else {
+    );
+    let site_env = if !wants_site {
         None
+    } else if requested_production && approved {
+        Some(crate::site_env::SiteEnv::Production)
+    } else {
+        Some(crate::site_env::SiteEnv::Test)
     };
     if let Some(site_env) = site_env {
-        if project.project_type == "website" || is_python_project {
-            let (proxy_url, route) = crate::proxy_sites::deploy_site_to_proxy_env(
-                &project,
-                is_python_project,
-                site_env,
-            )
-            .await?;
+        {
+            // Sanctioned production publish: stage the workspace into the test
+            // twin first, then promote THAT release to the public slug. Both
+            // websites stay in step, the public page is always a payload that
+            // has already been served (and verified) as the test site, and the
+            // production `.prev-N` ring still holds the previous release.
+            let (proxy_url, route) = if site_env == crate::site_env::SiteEnv::Production {
+                // The test twin's URL is intentionally discarded: the public
+                // release is what this call reports, and the twin's own route
+                // is refreshed by the staging deploy above.
+                crate::proxy_sites::deploy_site_to_proxy_env(
+                    &project,
+                    is_python_project,
+                    crate::site_env::SiteEnv::Test,
+                )
+                .await?;
+                let promoted = crate::proxy_sites::promote_site_test_to_prod(
+                    &project,
+                    is_python_project,
+                )
+                .await?;
+                (promoted, "promoted-from-test-twin".to_string())
+            } else {
+                crate::proxy_sites::deploy_site_to_proxy_env(
+                    &project,
+                    is_python_project,
+                    site_env,
+                )
+                .await?
+            };
+            // The recorded env is the canonical site env (test/production) so
+            // the UI can resolve the right preview URL per environment.
+            let site_env_name = site_env.as_str();
             let deployment = serde_json::json!({
-                "env": env,
+                "env": site_env_name,
                 "at": chrono::Utc::now().to_rfc3339(),
                 "url": proxy_url,
                 "container": "proxy",
@@ -376,7 +430,7 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
                 "enabled": true,
                 "kind": if widget_requested { "widget" } else { "app" },
                 "at": chrono::Utc::now().to_rfc3339(),
-                "env": env,
+                "env": site_env_name,
             });
             registry
                 .set_launcher(project_id, &launch)
@@ -389,7 +443,7 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
             Some(d) => {
                 let bind_req = BindDomainRequest {
                     domain: d.clone(),
-                    env: env.clone(),
+                    env: site_env_name.to_string(),
                     access: None,
                     allowed_emails: None,
                 };
@@ -400,10 +454,24 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
             }
             None => serde_json::json!({ "bound": false, "error": "no domain provided" }),
         };
+        // A production request that was not sanctioned by the deploy pipeline
+        // is served by the test twin; report where the release actually went
+        // so the agent (and the user) never assume the live page changed.
+        let note = if requested_production && !approved {
+            format!(
+                "release published to the test site ({}) — the public site ({}) is only updated by the Deploy action",
+                deployment["url"].as_str().unwrap_or_default(),
+                format!("https://{}.{}", crate::proxy_sites::site_slug(&project.name), super::publish::published_domain()),
+            )
+        } else {
+            String::new()
+        };
         return Ok(serde_json::json!({
             "published": true,
             "project": project.name,
-            "env": env,
+            "env": site_env_name,
+            "requested_env": env,
+            "note": note,
             "container": "proxy",
             "deploy_target": "proxy-websites",
             "url": proxy_url,

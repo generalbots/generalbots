@@ -1,6 +1,6 @@
 use crate::adapter::TelegramAdapter;
 use crate::channel::ChannelAdapter;
-use crate::schema::user_sessions::dsl::*;
+use crate::schema::user_sessions;
 use crate::state::{AttendantNotification, ChannelState};
 use botlib::models::BotResponse;
 use chrono::Utc;
@@ -39,14 +39,16 @@ pub fn find_or_create_session(
 
     let telegram_user_id = telegram_user_uuid.to_string();
 
-    let existing: Option<UserSession> = user_sessions
-        .filter(user_id.eq(&telegram_user_id))
+    let existing: Option<UserSession> = user_sessions::table
+        .filter(user_sessions::user_id.eq(&telegram_user_id))
         .order(crate::schema::user_sessions::updated_at.desc())
         .first(&mut conn)
         .optional()?;
 
     if let Some(session) = existing {
-        diesel::update(user_sessions.filter(crate::schema::user_sessions::id.eq(session.id)))
+        diesel::update(
+            user_sessions::table.filter(crate::schema::user_sessions::id.eq(session.id)),
+        )
             .set(crate::schema::user_sessions::updated_at.eq(Utc::now()))
             .execute(&mut conn)?;
         return Ok(session);
@@ -63,7 +65,7 @@ pub fn find_or_create_session(
 
     let now = Utc::now();
 
-    diesel::insert_into(user_sessions)
+    diesel::insert_into(user_sessions::table)
         .values((
             crate::schema::user_sessions::id.eq(session_uuid),
             crate::schema::user_sessions::branch_id.eq(branch_uuid),
@@ -85,7 +87,7 @@ pub fn find_or_create_session(
         session_uuid, chat_id
     );
 
-    let new_session = user_sessions
+    let new_session = user_sessions::table
         .filter(crate::schema::user_sessions::id.eq(session_uuid))
         .first(&mut conn)?;
 

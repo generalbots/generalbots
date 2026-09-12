@@ -17,6 +17,15 @@ use uuid::Uuid;
 use crate::schema::ensure_schema_sql;
 use crate::types::DbPool;
 
+/// Containers already reported missing by the prod-VM guard. The guard runs on
+/// a timer, so without this it repeats the same warning for the same rows on
+/// every cycle; the warning is emitted once per missing container instead.
+fn missing_container_reports() -> &'static std::sync::Mutex<std::collections::HashSet<String>> {
+    static REPORTS: std::sync::OnceLock<std::sync::Mutex<std::collections::HashSet<String>>> =
+        std::sync::OnceLock::new();
+    REPORTS.get_or_init(|| std::sync::Mutex::new(std::collections::HashSet::new()))
+}
+
 pub const VM_INSTANCES_SCHEMA: &str = r"
 CREATE TABLE IF NOT EXISTS vm_instances (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -38,7 +47,10 @@ CREATE INDEX IF NOT EXISTS idx_vm_instances_branch ON vm_instances(branch_id);
 CREATE INDEX IF NOT EXISTS idx_vm_instances_status ON vm_instances(status);
 ";
 
-pub const VALID_ENVS: &[&str] = &["development", "staging", "production"];
+/// Valid deployment environments. `test` is the site twin of a
+/// website/python project (`{slug}-test.{domain}`); `staging` stays available
+/// for VM projects that need a third tier.
+pub const VALID_ENVS: &[&str] = &["test", "development", "staging", "production"];
 pub const VALID_TIERS: &[&str] = &["small", "medium", "large"];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -343,32 +355,52 @@ impl VmLifecycle {
                 continue;
             }
             match self.linux_exists(&vm.container_name) {
-                Ok(false) => log::warn!(
-                    "Vibe prod-VM guard: {} row exists but container is missing — redeploy to recreate",
-                    vm.container_name
-                ),
-                Ok(true) => match self.linux_running(&vm.container_name) {
-                    Ok(true) => {}
-                    Ok(false) => match self.linux_start(&vm.container_name) {
-                        Ok(()) => {
-                            if let Err(e) = self.set_status(&vm.id, "running") {
-                                log::error!(
-                                    "Vibe prod-VM guard: sync status for {} failed: {e}",
-                                    vm.container_name
-                                );
+                Ok(false) => {
+                    let already_reported = missing_container_reports()
+                        .lock()
+                        .map(|mut reported| !reported.insert(vm.container_name.clone()))
+                        .unwrap_or(false);
+                    if already_reported {
+                        log::debug!(
+                            "Vibe prod-VM guard: {} still missing (already reported)",
+                            vm.container_name
+                        );
+                    } else {
+                        log::warn!(
+                            "Vibe prod-VM guard: {} row exists but container is missing — redeploy to recreate",
+                            vm.container_name
+                        );
+                    }
+                }
+                Ok(true) => {
+                    // The container is back: allow a future disappearance to
+                    // warn again instead of staying suppressed.
+                    if let Ok(mut reported) = missing_container_reports().lock() {
+                        reported.remove(&vm.container_name);
+                    }
+                    match self.linux_running(&vm.container_name) {
+                        Ok(true) => {}
+                        Ok(false) => match self.linux_start(&vm.container_name) {
+                            Ok(()) => {
+                                if let Err(e) = self.set_status(&vm.id, "running") {
+                                    log::error!(
+                                        "Vibe prod-VM guard: sync status for {} failed: {e}",
+                                        vm.container_name
+                                    );
+                                }
+                                started.push(vm.container_name.clone());
                             }
-                            started.push(vm.container_name.clone());
-                        }
+                            Err(e) => log::error!(
+                                "Vibe prod-VM guard: start {} failed: {e}",
+                                vm.container_name
+                            ),
+                        },
                         Err(e) => log::error!(
-                            "Vibe prod-VM guard: start {} failed: {e}",
+                            "Vibe prod-VM guard: check {} failed: {e}",
                             vm.container_name
                         ),
-                    },
-                    Err(e) => log::error!(
-                        "Vibe prod-VM guard: check {} failed: {e}",
-                        vm.container_name
-                    ),
-                },
+                    }
+                }
                 Err(e) => log::error!(
                     "Vibe prod-VM guard: probe {} failed: {e}",
                     vm.container_name

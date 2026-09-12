@@ -355,18 +355,49 @@ pub async fn get_public_bot_config(
     Ok(axum::Json(serde_json::to_value(&map).unwrap_or_default()))
 }
 
+/// Why a bot access check failed. Callers map this to a response so a client
+/// can tell "this bot is private, sign in" apart from "no such bot" and from a
+/// genuine internal failure — a bare 403 left the chat window reporting
+/// "connection failed" for a private bot with no way to recover.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BotAccessDenial {
+    /// No bot row matches the requested name or slug.
+    NotFound,
+    /// The bot is private and the caller is not a member of its organization.
+    AuthRequired,
+    /// The check itself could not complete (database unavailable, etc.).
+    Internal(String),
+}
+
 pub async fn check_bot_access(
     state: &Arc<botcore::shared::state::AppState>,
     bot_name: &str,
     user_id: Uuid,
 ) -> Result<(), String> {
+    check_bot_access_typed(state, bot_name, user_id)
+        .await
+        .map_err(|denial| match denial {
+            BotAccessDenial::NotFound => "Bot not found".to_string(),
+            BotAccessDenial::AuthRequired => "Access denied".to_string(),
+            BotAccessDenial::Internal(e) => e,
+        })
+}
+
+/// Typed variant of [`check_bot_access`] used by the WebSocket gateway so the
+/// handshake can answer 404 (unknown bot) / 401 (private bot, sign-in
+/// required) instead of a blanket 403.
+pub async fn check_bot_access_typed(
+    state: &Arc<botcore::shared::state::AppState>,
+    bot_name: &str,
+    user_id: Uuid,
+) -> Result<(), BotAccessDenial> {
     use botcore::shared::schema::bots::dsl as bots_dsl;
     use botcore::shared::schema::user_organizations::dsl as uo_dsl;
 
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| format!("DB connection error: {}", e))?;
+        .map_err(|e| BotAccessDenial::Internal(format!("DB connection error: {}", e)))?;
 
     // #1289 — the URL/launcher identifies bots by SLUG ("helper-bot") while
     // older rows carry a display name with spaces ("Helper Bot"). Accept
@@ -380,11 +411,11 @@ pub async fn check_bot_access(
         .select((bots_dsl::is_public, bots_dsl::org_id))
         .first::<(bool, Uuid)>(&mut *conn)
         .optional()
-        .map_err(|e| format!("DB query error: {}", e))?;
+        .map_err(|e| BotAccessDenial::Internal(format!("DB query error: {}", e)))?;
 
     let (is_public, org_id) = match bot_record {
         Some(record) => record,
-        None => return Err("Bot not found".to_string()),
+        None => return Err(BotAccessDenial::NotFound),
     };
 
     if is_public {
@@ -397,14 +428,14 @@ pub async fn check_bot_access(
             .filter(uo_dsl::org_id.eq(org_id))
             .count()
             .get_result::<i64>(&mut *conn)
-            .map_err(|e| format!("DB query error: {}", e))? > 0;
+            .map_err(|e| BotAccessDenial::Internal(format!("DB query error: {}", e)))? > 0;
 
         if is_member {
             return Ok(());
         }
     }
 
-    Err("Access denied".to_string())
+    Err(BotAccessDenial::AuthRequired)
 }
 
 pub async fn check_access_handler(

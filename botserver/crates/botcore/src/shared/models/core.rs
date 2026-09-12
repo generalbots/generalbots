@@ -52,6 +52,7 @@ pub struct Automation {
     pub param: String,
     pub is_active: bool,
     pub last_triggered: Option<DateTime<Utc>>,
+    pub branch_id: Uuid,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, Selectable)]

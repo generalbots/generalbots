@@ -2,7 +2,7 @@ use std::sync::Arc;
 use axum::extract::ws::Message;
 use botcore::shared::state::AppState;
 use futures_util::SinkExt;
-use log::{info, warn};
+use log::{debug, info, warn};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
@@ -91,7 +91,19 @@ pub fn load_bot_styles_css(bot_name: &str) -> String {
                         c
                     }
                     Err(e2) => {
-                        warn!("No styles.css/ style.css found at {} or {}: {}, {}", css_path, alt_path, e1, e2);
+                        // A bot without a custom stylesheet is the normal case, so an
+                        // absent file is not a warning; only a real IO failure
+                        // (permissions, broken symlink) is worth reporting.
+                        if e2.kind() == std::io::ErrorKind::NotFound {
+                            debug!(
+                                "No styles.css/style.css for this bot at {gbot_dir}; using platform styles"
+                            );
+                        } else {
+                            warn!(
+                                "Failed to read styles.css at {} or {}: {}, {}",
+                                css_path, alt_path, e1, e2
+                            );
+                        }
                         String::new()
                     }
                 }

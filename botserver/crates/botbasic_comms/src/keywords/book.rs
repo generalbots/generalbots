@@ -125,7 +125,7 @@ impl CalendarEngine {
         end: DateTime<Utc>,
         _user: &str,
     ) -> Result<Vec<CalendarEvent>, Box<dyn std::error::Error>> {
-        let mut conn = self._db.get()?;
+        let mut conn = self.db.get()?;
 
         // Find events that overlap with the given time range
         // Overlap condition: event.start < query.end AND event.end > query.start
@@ -178,7 +178,7 @@ impl CalendarEngine {
         start: DateTime<Utc>,
         end: DateTime<Utc>,
     ) -> Result<Vec<CalendarEvent>, Box<dyn std::error::Error>> {
-        let mut conn = self._db.get()?;
+        let mut conn = self.db.get()?;
 
         // Get all events within the time range
         let rows: Vec<(Uuid, String, Option<String>, DateTime<Utc>, DateTime<Utc>, Option<String>, String)> = calendar_events::table

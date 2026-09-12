@@ -325,14 +325,27 @@ impl PipelineEngine {
                 serde_json::json!({ "intent": intent })
             } else {
                 match stage.kind {
-                    PipelineStageKind::PublishApp => serde_json::json!({
-                        "project_id": project_id.unwrap_or(""),
-                        "env": "production",
+                    PipelineStageKind::PublishApp => {
                         // #1280 — deployment API enforces deploy RBAC even on
                         // internal (X-Internal-Token) calls; without the acting
                         // user the request is rejected as anonymous.
-                        "on_behalf_of_user": user_id.to_string(),
-                    }),
+                        let mut args = serde_json::json!({
+                            "project_id": project_id.unwrap_or(""),
+                            "env": "production",
+                            "on_behalf_of_user": user_id.to_string(),
+                        });
+                        // The deploy pipeline is the ONLY sanctioned writer of
+                        // a site project's public slug. Without this stamp a
+                        // production publish is redirected to the `-test` twin,
+                        // so a change under test cannot blank the live site.
+                        if let Some(obj) = args.as_object_mut() {
+                            obj.insert(
+                                crate::publish::PUBLISH_PRODUCTION_STAMP.to_string(),
+                                serde_json::Value::Bool(true),
+                            );
+                        }
+                        args
+                    }
                     PipelineStageKind::BindDomain => serde_json::json!({
                         "project_id": project_id.unwrap_or(""),
                         "env": "production",

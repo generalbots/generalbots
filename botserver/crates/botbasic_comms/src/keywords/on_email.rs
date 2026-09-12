@@ -223,11 +223,17 @@ pub fn execute_on_email(
 ) -> Result<Value, String> {
     use botschema::system_automations;
 
+    // branch_id is NOT NULL (migration 6.5.23); resolve it from the bot before
+    // inserting so the email trigger is branch-scoped.
+    let bot_branch = botschema::system_automation_branch_id(conn, bot_id)
+        .map_err(|e| format!("Failed to resolve branch for bot {bot_id}: {e}"))?;
+
     let new_automation = (
         system_automations::kind.eq(TriggerKind::EmailReceived as i32),
         system_automations::target.eq(email_address),
         system_automations::param.eq(script_path),
         system_automations::bot_id.eq(bot_id),
+        system_automations::branch_id.eq(bot_branch),
     );
 
     let result = diesel::insert_into(system_automations::table)
