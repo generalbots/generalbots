@@ -459,6 +459,12 @@ mod tests {
     fn test_sanitize_search_query() {
         let query = "test' OR '1'='1";
         let safe = query.replace('\'', "''").replace('\\', "\\\\");
-        assert!(!safe.contains("' OR '"));
+
+        // Doubling every quote keeps the value inside a single literal. The
+        // assertion is the doubling itself: a substring check for "' OR '"
+        // cannot work, because doubling legitimately turns "' OR '" into
+        // "'' OR ''", which still contains that sequence.
+        assert_eq!(safe, "test'' OR ''1''=''1");
+        assert_eq!(safe.matches("''").count(), query.matches('\'').count());
     }
 }

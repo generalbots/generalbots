@@ -313,14 +313,17 @@ pub async fn get_from_bucket(
     }
     let drive_repo = state.drive_repository().ok_or("S3 client not configured")?;
     let client = drive_repo.as_ref();
+    // Kept under a name of its own: inside the table DSL block below, `bot_id`
+    // would name the column unit struct imported by the glob, not this value.
+    let requested_bot = bot_id;
     let bot_name: String = {
         use botbasic_types::schema::bots::dsl::*;
         let mut db_conn = state.db_pool().get().map_err(|e| format!("DB error: {}", e))?;
-        bots.filter(id.eq(&bot_id))
+        bots.filter(id.eq(&requested_bot))
             .select(name)
             .first(&mut *db_conn)
             .map_err(|e| {
-                log::error!("Failed to query bot name for {}: {}", bot_id, e);
+                log::error!("Failed to query bot name for {requested_bot}: {e}");
                 e
             })?
     };
