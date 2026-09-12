@@ -3,7 +3,7 @@ name = "botbasic_data"
 version.workspace = true
 edition = "2021"
 description = "BASIC data keywords - database operations, tables, memory, KB, CRM, products"
-license = "AGPL-3.0"
+license = "MIT"
 
 [features]
 default = []

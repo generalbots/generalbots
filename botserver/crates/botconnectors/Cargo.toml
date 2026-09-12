@@ -3,7 +3,7 @@ name = "botconnectors"
 version = "0.1.0"
 edition = "2021"
 description = "Enterprise knowledge connectors - permissioned indexing, redaction and search backend over external chat, mail and drive sources."
-license = "AGPL-3.0"
+license = "MIT"
 authors = ["Pragmatismo.com.br", "General Bots Community"]
 repository = "https://github.com/GeneralBots/BotServer"
 

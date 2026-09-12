@@ -3,7 +3,7 @@ name = "botbasic_core"
 version.workspace = true
 edition = "2021"
 description = "BASIC language core keywords - arrays, math, validation, datetime, strings, control flow, hearing, procedures, errors"
-license = "AGPL-3.0"
+license = "MIT"
 
 [features]
 default = []

@@ -3,7 +3,7 @@ name = "botconsent"
 version = "0.1.0"
 edition = "2021"
 description = "General Bots per-app agent consent system - grants, pending prompts and audit for application action classes"
-license = "AGPL-3.0"
+license = "MIT"
 authors = ["Pragmatismo.com.br", "General Bots Community"]
 repository = "https://github.com/GeneralBots/BotServer"
 

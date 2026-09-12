@@ -3,7 +3,7 @@ name = "botbrazil"
 version.workspace = true
 edition = "2021"
 description = "Brazilian tax compliance crate (NFe, NFSe, CTe, MDFe, SPED, EFD, ICMS modules)"
-license = "AGPL-3.0"
+license = "MIT"
 authors = ["Pragmatismo.com.br", "General Bots Community"]
 repository = "https://github.com/GeneralBots/BotServer"
 

@@ -2,7 +2,7 @@
 name = "botsampledata"
 version.workspace = true
 edition = "2021"
-license = "AGPL-3.0"
+license = "MIT"
 authors = ["Pragmatismo.com.br", "General Bots Community"]
 repository = "https://github.com/GeneralBots/BotServer"
 description = "Idempotent demo data seeding for a production-ready General Bots instance."

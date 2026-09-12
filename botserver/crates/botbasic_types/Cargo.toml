@@ -3,7 +3,7 @@ name = "botbasic_types"
 version.workspace = true
 edition = "2021"
 description = "Shared types and runtime trait for BASIC keyword crates"
-license = "AGPL-3.0"
+license = "MIT"
 
 [features]
 default = []

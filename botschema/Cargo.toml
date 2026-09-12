@@ -3,7 +3,7 @@ name = "botschema"
 version.workspace = true
 edition = "2021"
 description = "Diesel database schema definitions - single source of truth for all table macros"
-license = "AGPL-3.0"
+license = "MIT"
 
 [features]
 default = []

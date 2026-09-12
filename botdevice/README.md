@@ -287,4 +287,4 @@ chromium-browser --kiosk --app=http://localhost:9000/embedded/
 
 ## License
 
-AGPL-3.0
+MIT

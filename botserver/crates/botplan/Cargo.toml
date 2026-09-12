@@ -3,7 +3,7 @@ name = "botplan"
 version.workspace = true
 edition = "2021"
 description = "General Bots project planner (Gantt + Kanban) with real-time collaboration"
-license = "AGPL-3.0"
+license = "MIT"
 authors = ["Pragmatismo.com.br", "General Bots Community"]
 repository = "https://github.com/GeneralBots/BotServer"
 

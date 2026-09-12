@@ -3,7 +3,7 @@ name = "botbasic_ai"
 version.workspace = true
 edition = "2021"
 description = "BASIC AI/intelligence keywords - LLM, AI tools, MCP, sandbox, orchestration, web scraping"
-license = "AGPL-3.0"
+license = "MIT"
 
 [features]
 default = []

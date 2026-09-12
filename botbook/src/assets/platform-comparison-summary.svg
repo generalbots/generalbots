@@ -73,7 +73,7 @@
     <g transform="translate(20, 115)">
       <circle cx="10" cy="12" r="8" fill="url(#successGradient)"/>
       <text x="8" y="16" text-anchor="middle" font-size="10" font-weight="700" class="white-text">✓</text>
-      <text x="30" y="16" font-size="13" font-weight="500" class="main-text">Open Source (AGPL)</text>
+      <text x="30" y="16" font-size="13" font-weight="500" class="main-text">Open Source (MIT)</text>
     </g>
     <g transform="translate(20, 150)">
       <circle cx="10" cy="12" r="8" fill="url(#successGradient)"/>

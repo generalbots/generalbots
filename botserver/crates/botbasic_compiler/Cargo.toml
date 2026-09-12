@@ -3,7 +3,7 @@ name = "botbasic_compiler"
 version.workspace = true
 edition = "2021"
 description = "BASIC compiler - syntax transforms, goto logic, save conversion, tool parsing"
-license = "AGPL-3.0"
+license = "MIT"
 
 [features]
 default = []

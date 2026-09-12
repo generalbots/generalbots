@@ -8,12 +8,12 @@ General Bots provides a unique combination of capabilities that differentiate it
 
 ### Self-Hosted & Open Source
 
-General Bots runs entirely on your infrastructure. Your data never leaves your servers, and you have full access to the source code under AGPL licensing.
+General Bots runs entirely on your infrastructure. Your data never leaves your servers, and you have full access to the source code under MIT licensing.
 
 | Capability | General Bots |
 |------------|-------------|
 | Self-hosted deployment | ✅ Full control |
-| Open source | ✅ AGPL licensed |
+| Open source | ✅ MIT licensed |
 | Data sovereignty | ✅ Your infrastructure |
 | Custom modifications | ✅ Full source access |
 | Per-user licensing | ✅ None required |
