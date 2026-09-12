@@ -24,6 +24,11 @@ pub struct ProductConfig {
     /// Set of active apps
     pub apps: HashSet<String>,
 
+    /// Applications that are only surfaced while Preview mode is on (#1348).
+    /// A preview app is deliberately absent from `apps`, so it stays out of the
+    /// launcher and the sidebar until the user turns the switch on.
+    pub preview_apps: HashSet<String>,
+
     /// Default theme
     pub theme: String,
 
@@ -129,6 +134,7 @@ impl Default for ProductConfig {
         Self {
             name: "General Bots".to_string(),
             apps,
+            preview_apps: HashSet::new(),
             theme: "sentient".to_string(),
             logo: None,
             favicon: None,
@@ -199,6 +205,15 @@ impl ProductConfig {
                             let app = app.trim().to_lowercase();
                             if !app.is_empty() {
                                 config.apps.insert(app);
+                            }
+                        }
+                    }
+                    "preview_apps" => {
+                        config.preview_apps.clear();
+                        for app in value.split(',') {
+                            let app = app.trim().to_lowercase();
+                            if !app.is_empty() {
+                                config.preview_apps.insert(app);
                             }
                         }
                     }
@@ -277,6 +292,21 @@ impl ProductConfig {
     /// Check if an app is enabled
     pub fn is_app_enabled(&self, app: &str) -> bool {
         self.apps.contains(&app.to_lowercase())
+    }
+
+    /// Check whether an app is a preview application, i.e. one that is only
+    /// surfaced while Preview mode is on (#1348). Preview applications are not
+    /// part of `apps`, so `is_app_enabled` still answers `false` for them: the
+    /// switch decides what is visible, never whether the app is installed.
+    pub fn is_app_preview(&self, app: &str) -> bool {
+        self.preview_apps.contains(&app.to_lowercase())
+    }
+
+    /// Preview applications, sorted so the catalog and the manifest are stable.
+    pub fn get_preview_apps(&self) -> Vec<String> {
+        let mut preview: Vec<String> = self.preview_apps.iter().cloned().collect();
+        preview.sort();
+        preview
     }
 
     /// Get the product name
@@ -362,6 +392,16 @@ pub fn is_app_enabled(app: &str) -> bool {
         .unwrap_or(true)
 }
 
+/// Helper function to check whether an app is a preview application (#1348).
+/// When the product configuration cannot be read, the answer is `false`: an
+/// unreadable configuration must not promote unreleased apps into the launcher.
+pub fn is_app_preview(app: &str) -> bool {
+    PRODUCT_CONFIG
+        .read()
+        .map(|c| c.is_app_preview(app))
+        .unwrap_or(false)
+}
+
 /// Helper function to get default theme
 pub fn get_default_theme() -> String {
     PRODUCT_CONFIG
@@ -400,6 +440,7 @@ pub fn get_product_config_json() -> serde_json::Value {
         Some(c) => serde_json::json!({
             "name": c.name,
             "apps": effective_apps,
+            "preview_apps": c.get_preview_apps(),
             "compiled_features": compiled,
             "version": env!("CARGO_PKG_VERSION"),
             "theme": c.theme,
@@ -415,6 +456,7 @@ pub fn get_product_config_json() -> serde_json::Value {
         None => serde_json::json!({
             "name": "General Bots",
             "apps": compiled, // If no config, show all compiled
+            "preview_apps": Vec::<String>::new(),
             "compiled_features": compiled,
             "version": env!("CARGO_PKG_VERSION"),
             "theme": "sentient",
@@ -581,6 +623,32 @@ theme=dark
             config.replace_branding("Welcome to General Bots"),
             "Welcome to Acme Bot"
         );
+    }
+
+    #[test]
+    fn test_preview_apps_are_parsed_and_stay_disabled() {
+        let content = "apps=chat,drive\npreview_apps=designer, marketPlace ,fraud";
+        let config = ProductConfig::parse(content).unwrap();
+
+        assert!(config.is_app_preview("designer"));
+        assert!(config.is_app_preview("DESIGNER"));
+        assert!(config.is_app_preview("marketplace"));
+        assert!(!config.is_app_preview("chat"));
+
+        // A preview application is not an active application: the Preview
+        // switch decides what is visible, not whether the app is installed.
+        assert!(!config.is_app_enabled("designer"));
+        assert_eq!(
+            config.get_preview_apps(),
+            vec!["designer", "fraud", "marketplace"]
+        );
+    }
+
+    #[test]
+    fn test_missing_preview_key_leaves_the_set_empty() {
+        let config = ProductConfig::parse("apps=chat").unwrap();
+        assert!(config.get_preview_apps().is_empty());
+        assert!(!config.is_app_preview("chat"));
     }
 
     #[test]
