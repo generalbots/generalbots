@@ -106,7 +106,9 @@ async function deployBot(){
     var desc=document.getElementById('tpl-bot-desc').value;
     if(!name){showFeedback('Bot name is required','error');return}
     if(!selectedTemplate){showFeedback('No template selected','error');return}
-    var data=await apiCall('/api/templates/deploy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({template_id:selectedTemplate.id,bot_name:name,description:desc})});
+    // The route is `/api/templates/deploy/:id`; posting to the bare path 404s and
+    // the template id belongs in the path, not the body.
+    var data=await apiCall('/api/templates/deploy/'+selectedTemplate.id,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({bot_name:name,description:desc})});
     if(data){hideModal('tpl-deploy-modal');showFeedback('Bot deployed successfully!','success');selectedTemplate=null}
 }
 

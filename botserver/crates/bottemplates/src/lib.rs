@@ -76,4 +76,36 @@ mod tests {
             "classification must default to 'unsorted'"
         );
     }
+
+    #[test]
+    fn media_filing_handles_voice_audio_and_video_markers() {
+        let script = std::fs::read_to_string(media_filing_dialog_dir().join("classify_media.bas"))
+            .expect("classify_media.bas should be readable");
+
+        // Voice notes and videos are binary: they must be perceived by the
+        // speech-to-text and video models rather than the document extractor,
+        // which cannot read them and used to leave every voice note unsorted
+        // (#1356).
+        assert!(
+            script.contains("SPEECH TO TEXT path"),
+            "audio is not routed to the speech-to-text model"
+        );
+        assert!(
+            script.contains("DESCRIBE VIDEO path"),
+            "video is not routed to the video model"
+        );
+
+        // The closed taxonomy admits the new kinds and the audit trail records
+        // which one was filed, so a reclassification can be reasoned about.
+        for category in ["audio", "video"] {
+            assert!(
+                script.contains(category),
+                "closed taxonomy entry '{category}' is missing"
+            );
+        }
+        assert!(
+            script.contains("kind = \"audio\"") && script.contains("kind = \"video\""),
+            "the media kind is not recorded for the audit trail"
+        );
+    }
 }

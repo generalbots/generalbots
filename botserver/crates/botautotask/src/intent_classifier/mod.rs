@@ -318,8 +318,12 @@ Respond with JSON only:
         let subject = classification.entities.subject.clone().unwrap_or_else(|| "data".to_string());
         let condition = classification.entities.condition.clone().unwrap_or_else(|| "changes".to_string());
         let handler_name = format!("monitor_{}.bas", subject.to_lowercase().replace(' ', "_"));
+        // `ON CHANGE` / `END ON` are unregistered (#1359), and `condition` is
+        // free text rather than a Rhai expression, so the old body failed to
+        // compile twice over. Emit the supported subset until the event
+        // subsystem ships.
         let basic_code = format!(
-            "' Monitor: {subject}\n' Condition: {condition}\n' Created: {}\n\nON CHANGE \"{subject}\"\ncurrent_value = GET \"{subject}\"\nIF {condition} THEN\n  TALK \"Alert: {subject} has changed\"\nEND IF\nEND ON\n",
+            "' Monitor: {subject}\n' Condition: {condition}\n' Created: {}\n\nTALK \"Monitor active for {subject} ({condition})\"\n",
             Utc::now().format("%Y-%m-%d %H:%M")
         );
         let event_path = format!("events/{handler_name}");
@@ -358,8 +362,12 @@ Respond with JSON only:
             }, ts.time.as_deref().unwrap_or("9:00 AM"))
         }).unwrap_or_else(|| "Every day at 9:00 AM".to_string());
         let scheduler_file = format!("{schedule_name}.bas");
+        // `SET SCHEDULE` is a compiler directive consumed by the preprocessor
+        // (which registers the cron), so it must not be paired with an
+        // `END SCHEDULE` block: that keyword is unregistered and the script
+        // failed to compile (#1359).
         let basic_code = format!(
-            "' Scheduler: {schedule_name}\n' Schedule: {time_spec}\n' Created: {}\n\nSET SCHEDULE \"{time_spec}\"\nTALK \"Running scheduled task: {schedule_name}\"\nEND SCHEDULE\n",
+            "' Scheduler: {schedule_name}\n' Schedule: {time_spec}\n' Created: {}\n\nSET SCHEDULE \"{time_spec}\"\nTALK \"Running scheduled task: {schedule_name}\"\n",
             Utc::now().format("%Y-%m-%d %H:%M")
         );
         let scheduler_path = format!("schedulers/{scheduler_file}");
@@ -380,8 +388,10 @@ Respond with JSON only:
         info!("Handling GOAL intent");
         let goal_name = classification.suggested_name.clone().unwrap_or_else(|| "goal".to_string());
         let target = classification.entities.target_value.clone().unwrap_or_else(|| "unspecified".to_string());
+        // `SET GOAL` / `GET_METRIC` / `END GOAL` are not registered in the Rhai
+        // engine (#1359); emit the supported subset so the script compiles.
         let basic_code = format!(
-            "' Goal: {goal_name}\n' Target: {target}\n' Created: {}\n\nSET GOAL \"{goal_name}\"\nTARGET = \"{target}\"\ncurrent = GET_METRIC \"{goal_name}\"\nTALK \"Goal progress: \" + current + \" / \" + TARGET\nEND GOAL\n",
+            "' Goal: {goal_name}\n' Target: {target}\n' Created: {}\n\nTALK \"Goal {goal_name} registered with target: {target}\"\n",
             Utc::now().format("%Y-%m-%d %H:%M")
         );
         let goal_file = format!("{}.bas", goal_name.to_lowercase().replace(' ', "-"));
@@ -406,8 +416,11 @@ Respond with JSON only:
         } else { classification.entities.trigger_phrases.clone() };
         let triggers_str = triggers.iter().map(|t| format!("\"{}\"", t)).collect::<Vec<_>>().join(", ");
         let tool_file = format!("{tool_name}.bas");
+        // `TRIGGER` / `END TRIGGER` are not registered in the Rhai engine
+        // (#1359); the triggers are recorded as comments and the tool is
+        // associated by its filename, so the script compiles today.
         let basic_code = format!(
-            "' Tool: {tool_name}\n' Triggers: {triggers_str}\n' Created: {}\n\nTRIGGER {triggers_str}\nTALK \"Running command: {tool_name}\"\nEND TRIGGER\n",
+            "' Tool: {tool_name}\n' Triggers: {triggers_str}\n' Created: {}\n\nTALK \"Running command: {tool_name}\"\n",
             Utc::now().format("%Y-%m-%d %H:%M")
         );
         let tool_path = format!("tools/{tool_file}");

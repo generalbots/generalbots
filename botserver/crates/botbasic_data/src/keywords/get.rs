@@ -331,13 +331,22 @@ pub async fn get_from_bucket(
                 e
             })?
     };
-    let bucket_name = {
-        let bucket = format!("{}.gbai", bot_name);
-        bucket
+    let bucket_name = format!("{bot_name}.gbai");
+    // `GET path` must address the bot's `.gbdrive` exactly like every other file
+    // keyword (MOVE / CREATE FILE / the Telegram inbound stager): the object key
+    // is `{bot}.gbdrive/{path}` inside the `{bot}.gbai` bucket. Callers that
+    // already pass a qualified key are normalized rather than double-prefixed.
+    let gbdrive_prefix = format!("{bot_name}.gbdrive/");
+    let object_key = if file_path.starts_with(&gbdrive_prefix) {
+        file_path.to_string()
+    } else if let Some(stripped) = file_path.strip_prefix("gbdrive/") {
+        format!("{gbdrive_prefix}{stripped}")
+    } else {
+        format!("{gbdrive_prefix}{file_path}")
     };
     let bytes: Vec<u8> = match tokio::time::timeout(Duration::from_secs(30), async {
         client
-            .get_object(&bucket_name, file_path)
+            .get_object(&bucket_name, &object_key)
             .await
             .map_err(|e| format!("S3 operation failed: {}", e))
     })
@@ -345,7 +354,7 @@ pub async fn get_from_bucket(
     {
         Ok(Ok(data)) => data,
         Ok(Err(e)) => {
-            log::error!("drive read failed: {}", e);
+            log::error!("drive read failed for {bucket_name}/{object_key}: {e}");
             return Err(format!("S3 operation failed: {}", e).into());
         }
         Err(_) => {

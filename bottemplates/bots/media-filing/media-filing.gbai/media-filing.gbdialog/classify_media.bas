@@ -1,4 +1,4 @@
-' classify_media.bas - classify an inbound image or document and file it in Drive.
+' classify_media.bas - classify an inbound image, document, audio or video and file it in Drive.
 '
 ' Tool arguments injected by the runtime before this script runs: path, caption.
 ' Result layout: media/{year}/{month}/{category}/{file}
@@ -8,21 +8,53 @@
 ' arbitrary folder.
 '
 ' Perception degrades instead of failing the task. When the image model
-' (BotModels) is unreachable or a document cannot be read, the caption is used
-' for the decision and the item is still filed under the same closed taxonomy.
-' Provisioning BotModels restores content-based classification with no script
-' change; the file itself is the one carried by the [image]/[document] marker.
+' (BotModels) is unreachable, a document cannot be read, or an audio/video item
+' cannot be perceived, the caption is used for the decision and the item is still
+' filed under the same closed taxonomy. Provisioning BotModels restores
+' content-based classification with no script change; the file itself is the one
+' carried by the [image]/[document]/[voice]/[audio]/[video] marker.
+'
+' Audio and video are perceived with the speech-to-text and video models. They
+' must never reach the document text extractor, which cannot read binary payloads
+' and used to leave every voice note "unsorted" (or failing) by accident.
 
-TAXONOMY = "invoice,receipt,contract,identity,report,unsorted"
+TAXONOMY = "invoice,receipt,contract,identity,report,audio,video,unsorted"
 PROMPT = "Classifique o conteudo a seguir com uma unica palavra, apenas uma destas: " + TAXONOMY + ". Responda somente a palavra.\n\n"
 MAX_ANALYSIS_CHARS = 4000
 
 ' 1. Which kind of perception applies. Images are described by the vision model,
-'    documents are read through text extraction (PDF and office formats).
+'    documents are read through text extraction (PDF and office formats), audio
+'    is transcribed and video is described. The marker cannot be read, so the
+'    file extension carried by `path` selects the branch.
 lower_path = LCASE(path)
+
 is_image = 0
 IF INSTR(lower_path, ".jpg") > 0 OR INSTR(lower_path, ".jpeg") > 0 OR INSTR(lower_path, ".png") > 0 OR INSTR(lower_path, ".webp") > 0 OR INSTR(lower_path, ".gif") > 0 THEN
     is_image = 1
+END IF
+
+is_audio = 0
+IF INSTR(lower_path, ".ogg") > 0 OR INSTR(lower_path, ".oga") > 0 OR INSTR(lower_path, ".opus") > 0 OR INSTR(lower_path, ".mp3") > 0 OR INSTR(lower_path, ".m4a") > 0 OR INSTR(lower_path, ".wav") > 0 OR INSTR(lower_path, ".aac") > 0 OR INSTR(lower_path, ".amr") > 0 THEN
+    is_audio = 1
+END IF
+
+is_video = 0
+IF INSTR(lower_path, ".mp4") > 0 OR INSTR(lower_path, ".mov") > 0 OR INSTR(lower_path, ".mkv") > 0 OR INSTR(lower_path, ".webm") > 0 OR INSTR(lower_path, ".avi") > 0 OR INSTR(lower_path, ".3gp") > 0 THEN
+    is_video = 1
+END IF
+
+IF is_image = 1 THEN
+    kind = "image"
+ELSE
+    IF is_audio = 1 THEN
+        kind = "audio"
+    ELSE
+        IF is_video = 1 THEN
+            kind = "video"
+        ELSE
+            kind = "document"
+        END IF
+    END IF
 END IF
 
 ' 2. Perception. Errors are trapped: an unavailable model must not end the task
@@ -39,10 +71,28 @@ IF is_image = 1 THEN
         CLEAR ERROR
     END IF
 ELSE
-    content = GET path
-    IF ERROR THEN
-        perception = "unavailable"
-        CLEAR ERROR
+    IF is_audio = 1 THEN
+        content = SPEECH TO TEXT path
+        perception = "transcription"
+        IF ERROR THEN
+            perception = "unavailable"
+            CLEAR ERROR
+        END IF
+    ELSE
+        IF is_video = 1 THEN
+            content = DESCRIBE VIDEO path
+            perception = "description"
+            IF ERROR THEN
+                perception = "unavailable"
+                CLEAR ERROR
+            END IF
+        ELSE
+            content = GET path
+            IF ERROR THEN
+                perception = "unavailable"
+                CLEAR ERROR
+            END IF
+        END IF
     END IF
 END IF
 
@@ -100,7 +150,7 @@ MOVE path, destination
 
 ' 5. Audit trail next to the filed item: keeps the decision reproducible
 '    without a read-modify-write over a shared index file.
-CREATE FILE destination + ".meta.txt" WITH "category=" + category + "\n" + "path=" + destination + "\n" + "caption=" + caption + "\n" + "perception=" + perception
+CREATE FILE destination + ".meta.txt" WITH "category=" + category + "\n" + "kind=" + kind + "\n" + "path=" + destination + "\n" + "caption=" + caption + "\n" + "perception=" + perception
 
 IF perception = "content" THEN
     TALK "Arquivo classificado como " + category + " e arquivado em " + destination

@@ -29,7 +29,7 @@ if (typeof window.WindowManager === "undefined") {
       icon: '<line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>' },
     { id: "templates", title: "Templates", category: "office", color: "#ec4899", hxGet: "/suite/templates/templates.html",
       icon: '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>' },
-    { id: "tasks", title: "Tasks", category: "office", color: "#22c55e", hxGet: "/suite/tasks/task-window.html",
+    { id: "tasks", title: "Tasks", category: "office", color: "#22c55e", hxGet: "/suite/tasks/tasks.html",
       icon: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
     { id: "chat", title: "Chat", category: "ai", color: "#84d669", hxGet: "/suite/partials/chat.html?v=4",
       icon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },

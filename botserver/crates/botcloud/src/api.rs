@@ -269,9 +269,25 @@ async fn handle_signup(
             capacity.new_signups_allowed
         );
         if !capacity.new_signups_allowed {
+            // Name the metric that tripped the gate: a silent 503 left the
+            // operator guessing which resource was over its threshold (#1343).
+            let cpu_pct = capacity.cpu_usage_pct;
+            let ram_pct = if capacity.ram_total_gb > 0.0 {
+                capacity.ram_used_gb / capacity.ram_total_gb * 100.0
+            } else {
+                0.0
+            };
+            let disk_pct = if capacity.disk_total_gb > 0.0 {
+                capacity.disk_used_gb / capacity.disk_total_gb * 100.0
+            } else {
+                0.0
+            };
+            tracing::warn!(
+                "signup blocked: server at capacity (cpu={cpu_pct:.1}% ram={ram_pct:.1}% disk={disk_pct:.1}%) plan={chosen_plan}"
+            );
             return Err((StatusCode::SERVICE_UNAVAILABLE, format!(
-                "{{ \"error\": \"server_at_capacity\", \"message\": \"{} plan temporarily unavailable. Please try again later or upgrade.\", \"capacity_health\": \"{}\" }}",
-                chosen_plan, capacity.capacity_health
+                "{{ \"error\": \"server_at_capacity\", \"message\": \"{chosen_plan} plan temporarily unavailable (cpu {cpu_pct:.0}%, memory {ram_pct:.0}%, disk {disk_pct:.0}%). Please try again later.\", \"capacity_health\": \"{health}\", \"retry_after_seconds\": 300 }}",
+                health = capacity.capacity_health
             )));
         }
     }
@@ -402,61 +418,70 @@ async fn handle_signup(
             let loopback = host == "localhost" || host.starts_with("127.") || host == "[::1]";
             p.scheme() == "https" || (p.scheme() == "http" && loopback)
         });
-        let client = reqwest::Client::new();
-
-        let mut create_req = client
-            .post(format!("{dir_url}/management/v1/users/human"))
-            .header("Authorization", format!("Bearer {dir_token}"))
-            .json(&serde_json::json!({
-                "userName": &body.email,
-                "profile": { "firstName": first_name, "lastName": last_name, "displayName": &body.name },
-                "email": { "email": &body.email, "isVerified": true },
-                "password": body.password.as_deref().unwrap_or(""),
-            }));
+        // Identity creation is non-fatal: the organization, branch, bot, invoice
+        // and cloud workspace are already committed above. A misconfigured,
+        // non-https directory URL must therefore not fail the whole signup with a
+        // misleading 500 (#1344), and the signup password must never be sent over
+        // plain http to a non-loopback host.
         if !dir_secure {
-            return Err((StatusCode::INTERNAL_SERVER_ERROR, "Directory service URL must use https".to_string()));
-        }
-        if let Some(host) = &service.config.directory_external_domain {
-            create_req = create_req.header("Host", host);
-        }
-        let create_resp = create_req.send().await;
+            tracing::warn!(
+                "Directory service URL is not https (and not loopback); skipping directory identity creation for {}",
+                body.email
+            );
+        } else {
+            let client = reqwest::Client::new();
 
-        match create_resp {
-            Ok(resp) if resp.status().is_success() => {
-                if let Ok(data) = resp.json::<serde_json::Value>().await {
-                    if let Some(user_id) = data.get("userId").and_then(|v| v.as_str()) {
-                        if let Some(password) = &body.password {
-                            // #1287 — this Zitadel build (v4.13.1) stores an EMPTY
-                            // hash when the password is set through v2
-                            // /v2/users/{id}/password: it returns 200 and flips
-                            // `passwordChanged`, but every later session check fails
-                            // with "passwap: password does not match hash: " (empty
-                            // hash) — the account can never log in. The v1
-                            // management endpoint persists the hash correctly, so
-                            // signup MUST use it.
-                            let mut pw_req = client
-                                .post(format!("{dir_url}/management/v1/users/{user_id}/password"))
-                                .header("Authorization", format!("Bearer {dir_token}"))
-                                .json(&serde_json::json!({
-                                    "password": password,
-                                    "noVerification": true
-                                }));
-                            if let Some(host) = &service.config.directory_external_domain {
-                                pw_req = pw_req.header("Host", host);
+            let mut create_req = client
+                .post(format!("{dir_url}/management/v1/users/human"))
+                .header("Authorization", format!("Bearer {dir_token}"))
+                .json(&serde_json::json!({
+                    "userName": &body.email,
+                    "profile": { "firstName": first_name, "lastName": last_name, "displayName": &body.name },
+                    "email": { "email": &body.email, "isVerified": true },
+                    "password": body.password.as_deref().unwrap_or(""),
+                }));
+            if let Some(host) = &service.config.directory_external_domain {
+                create_req = create_req.header("Host", host);
+            }
+            let create_resp = create_req.send().await;
+
+            match create_resp {
+                Ok(resp) if resp.status().is_success() => {
+                    if let Ok(data) = resp.json::<serde_json::Value>().await {
+                        if let Some(user_id) = data.get("userId").and_then(|v| v.as_str()) {
+                            if let Some(password) = &body.password {
+                                // #1287 — this Zitadel build (v4.13.1) stores an EMPTY
+                                // hash when the password is set through v2
+                                // /v2/users/{id}/password: it returns 200 and flips
+                                // `passwordChanged`, but every later session check fails
+                                // with "passwap: password does not match hash: " (empty
+                                // hash) — the account can never log in. The v1
+                                // management endpoint persists the hash correctly, so
+                                // signup MUST use it.
+                                let mut pw_req = client
+                                    .post(format!("{dir_url}/management/v1/users/{user_id}/password"))
+                                    .header("Authorization", format!("Bearer {dir_token}"))
+                                    .json(&serde_json::json!({
+                                        "password": password,
+                                        "noVerification": true
+                                    }));
+                                if let Some(host) = &service.config.directory_external_domain {
+                                    pw_req = pw_req.header("Host", host);
+                                }
+                                let _ = pw_req.send().await
+                                    .map(|r| {
+                                        if !r.status().is_success() {
+                                            tracing::warn!("Zitadel password set returned {}", r.status());
+                                        }
+                                    })
+                                    .unwrap_or_else(|e| tracing::warn!("Zitadel password set failed: {e}"));
                             }
-                            let _ = pw_req.send().await
-                                .map(|r| {
-                                    if !r.status().is_success() {
-                                        tracing::warn!("Zitadel password set returned {}", r.status());
-                                    }
-                                })
-                                .unwrap_or_else(|e| tracing::warn!("Zitadel password set failed: {e}"));
                         }
                     }
                 }
+                Ok(resp) => tracing::warn!("Zitadel user creation returned {}", resp.status()),
+                Err(e) => tracing::warn!("Zitadel user creation failed: {e}"),
             }
-            Ok(resp) => tracing::warn!("Zitadel user creation returned {}", resp.status()),
-            Err(e) => tracing::warn!("Zitadel user creation failed: {e}"),
         }
     }
 

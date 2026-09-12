@@ -7,7 +7,7 @@ use crate::bootstrap::bootstrap_utils::{
 use crate::package_manager::{InstallMode, PackageManager};
 use anyhow::Context;
 use diesel::RunQueryDsl;
-use log::{info, warn};
+use log::{debug, info, warn};
 use std::path::Path;
 use std::time::Duration;
 use tokio::time::sleep;
@@ -322,6 +322,20 @@ impl BootstrapManager {
         }
     }
 
+    /// Every shipped template is laid out as `bots/<name>/<name>.gbai/`. Both
+    /// the database sync and the Drive upload must operate on the `.gbai`
+    /// directory itself: collecting every `*.gbai` recursively is what makes the
+    /// catalog discoverable — the previous single-level scan matched no entry at
+    /// all (zero templates synced, #1354) and copied the wrapper directory name,
+    /// producing a Drive layout no runtime resolver discovers (#1355).
+    fn template_gbai_dirs(&self) -> Vec<(String, PathBuf)> {
+        let root = self.templates_source_dir();
+        let mut found = Vec::new();
+        collect_gbai_dirs_recursive(&root, 3, &mut found);
+        found.sort_by(|a, b| a.0.cmp(&b.0));
+        found
+    }
+
     /// Sync the on-disk template bots into the `app_templates` table so the
     /// templates API lists real, persisted entries. Each `*.gbai` directory
     /// becomes one row; existing names are refreshed (version/description),
@@ -341,30 +355,8 @@ impl BootstrapManager {
         let branch_id = crate::shared::utils::current_org_id();
 
         let mut synced = 0usize;
-        let entries = std::fs::read_dir(&source)
-            .with_context(|| format!("Failed to read templates dir {}", source.display()))?;
-        for entry in entries {
-            let entry = match entry {
-                Ok(e) => e,
-                Err(e) => {
-                    warn!("Skipping unreadable template entry: {e}");
-                    continue;
-                }
-            };
-            let path = entry.path();
-            if !path.is_dir() {
-                continue;
-            }
-            let dir_name = match entry.file_name().into_string() {
-                Ok(name) => name,
-                Err(_) => continue,
-            };
-            let Some(bot_name) = dir_name.strip_suffix(".gbai") else {
-                continue;
-            };
-            if bot_name.is_empty() {
-                continue;
-            }
+        for (bot_name, source_dir) in self.template_gbai_dirs() {
+            debug!("Template {bot_name} discovered at {}", source_dir.display());
 
             // Idempotent by (name, branch): refresh an existing row, insert a
             // new one otherwise — never duplicate templates across restarts.
@@ -372,7 +364,7 @@ impl BootstrapManager {
                 "UPDATE app_templates SET version = '1.0' \
                  WHERE name = $1 AND branch_id = $2",
             )
-            .bind::<diesel::sql_types::Text, _>(bot_name.to_string())
+            .bind::<diesel::sql_types::Text, _>(bot_name.clone())
             .bind::<diesel::sql_types::Uuid, _>(branch_id)
             .execute(&mut conn)
             .with_context(|| format!("Failed to update template {bot_name}"))?;
@@ -383,7 +375,7 @@ impl BootstrapManager {
                      VALUES ($1, $2, '', 'bot', '1.0', '', $3)",
                 )
                 .bind::<diesel::sql_types::Uuid, _>(id)
-                .bind::<diesel::sql_types::Text, _>(bot_name.to_string())
+                .bind::<diesel::sql_types::Text, _>(bot_name.clone())
                 .bind::<diesel::sql_types::Uuid, _>(branch_id)
                 .execute(&mut conn)
                 .with_context(|| format!("Failed to insert template {bot_name}"))?;
@@ -419,33 +411,66 @@ impl BootstrapManager {
         }
 
         let mut uploaded = 0usize;
-        let entries = std::fs::read_dir(&source)
-            .with_context(|| format!("Failed to read templates dir {}", source.display()))?;
-        for entry in entries {
-            let entry = match entry {
-                Ok(e) => e,
-                Err(e) => {
-                    warn!("Skipping unreadable template entry: {e}");
-                    continue;
-                }
-            };
-            let path = entry.path();
-            if !path.is_dir() {
-                continue;
-            }
-            let dir_name = match entry.file_name().into_string() {
-                Ok(name) => name,
-                Err(_) => continue,
-            };
-            let target = target_root.join(&dir_name);
-            if let Err(e) = copy_dir_recursive(&path, &target) {
-                warn!("Failed to copy template {dir_name}: {e}");
+        for (bot_name, source_dir) in self.template_gbai_dirs() {
+            // Org layout `{org}.gborg/{bot}.gbai/…` — the shape every runtime
+            // resolver (tool exec, prompt load, drive_monitor) expects (#1355).
+            // Copying the wrapper directory instead produced
+            // `{org}.gborg/{name}/…`, which no resolver discovers.
+            let target = target_root.join(format!("{bot_name}.gbai"));
+            if let Err(e) = copy_dir_recursive(&source_dir, &target) {
+                warn!("Failed to copy template {bot_name}: {e}");
                 continue;
             }
             uploaded += 1;
         }
         info!("Uploaded {uploaded} templates to drive work path");
         Ok(())
+    }
+}
+
+/// Collect every `*.gbai` directory under `root`, recursively (bounded by
+/// `depth`). The bot name is the `.gbai` directory's own name, which is what the
+/// runtime resolvers and the drive monitor key on. Unreadable directories and
+/// entries are warned about and skipped — a malformed template must never abort
+/// startup.
+fn collect_gbai_dirs_recursive(dir: &Path, depth: usize, out: &mut Vec<(String, PathBuf)>) {
+    if depth == 0 {
+        return;
+    }
+    let entries = match std::fs::read_dir(dir) {
+        Ok(e) => e,
+        Err(e) => {
+            warn!("Skipping unreadable template dir {}: {e}", dir.display());
+            return;
+        }
+    };
+    for entry in entries {
+        let entry = match entry {
+            Ok(e) => e,
+            Err(e) => {
+                warn!(
+                    "Skipping unreadable template entry in {}: {e}",
+                    dir.display()
+                );
+                continue;
+            }
+        };
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let name = match entry.file_name().into_string() {
+            Ok(name) => name,
+            Err(_) => continue,
+        };
+        if let Some(bot_name) = name.strip_suffix(".gbai") {
+            if !bot_name.is_empty() {
+                out.push((bot_name.to_string(), path));
+            }
+            // A `.gbai` directory holds bot files, never nested templates.
+            continue;
+        }
+        collect_gbai_dirs_recursive(&path, depth - 1, out);
     }
 }
 

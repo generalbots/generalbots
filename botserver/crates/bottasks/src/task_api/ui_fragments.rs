@@ -1,6 +1,6 @@
 //! HTMX fragment endpoints for the Tasks app.
 //!
-//! The Tasks UI (`task-window.html`) loads its list via
+//! The Tasks UI (`tasks.html`) loads its list via
 //! `GET /api/ui/tasks?filter=all` and related routes. These handlers render
 //! HTML fragments directly from the live `tasks` table so the app shows the
 //! current task list without requiring a chat session.

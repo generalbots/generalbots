@@ -64,9 +64,11 @@ pub fn script_body(
                 .subject
                 .clone()
                 .unwrap_or_else(|| "data".to_string());
-            format!(
-                "' Monitor: {subject}\nON CHANGE \"{subject}\"\nTALK \"Alert: {subject} state changed\"\nEND ON\n{body}"
-            )
+            // `ON CHANGE` / `END ON` are not registered in the Rhai engine yet
+            // (#1359): emitting them produced a script the compiler rejected, so
+            // the monitor never became runnable. Until the event subsystem is
+            // wired, express the monitor in the supported subset.
+            format!("' Monitor: {subject}\nTALK \"Alert: {subject} state changed\"\n{body}")
         }
         IntentType::Tool => {
             let triggers = if classification.entities.trigger_phrases.is_empty() {

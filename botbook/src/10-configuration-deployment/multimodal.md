@@ -158,17 +158,21 @@ any user instruction. The chain is:
 2. The agent passes that path to the `classify_media` tool shipped in the
    `media-filing` template, which is the only supported way to file inbound
    media.
-3. The tool perceives the content (`DESCRIBE IMAGE` for pictures, `GET` for
-   documents), asks the model for one word of a **closed taxonomy**
-   (`invoice`, `receipt`, `contract`, `identity`, `report`, `unsorted`) and
-   moves the file to `media/{year}/{month}/{category}/`, writing a
-   `.meta.txt` audit trail next to it.
+3. The tool perceives the content according to the file extension:
+   `DESCRIBE IMAGE` for pictures, `SPEECH TO TEXT` for `[voice]`/`[audio]`
+   notes, `DESCRIBE VIDEO` for `[video]` and `GET` for documents. Binary audio
+   and video never reach the document text extractor, which cannot read them.
+4. It asks the model for one word of a **closed taxonomy**
+   (`invoice`, `receipt`, `contract`, `identity`, `report`, `audio`, `video`,
+   `unsorted`) and moves the file to `media/{year}/{month}/{category}/`,
+   writing a `.meta.txt` audit trail next to it.
 
 The taxonomy being closed is the safety property: a model answer that is not
 one of those words degrades to `unsorted`, so a misclassification can never
 create an arbitrary folder. Every keyword involved already exists
-(`DESCRIBE IMAGE`, `GET`, `LLM`, `MOVE`, `CREATE FILE`, `SPLIT`, `LAST`,
-`FIRST`, `STR`, `LEN`, `LCASE`, `INSTR`, `TRIM`, `REPLACE`, `LEFT`, `TODAY`).
+(`DESCRIBE IMAGE`, `DESCRIBE VIDEO`, `SPEECH TO TEXT`, `GET`, `LLM`, `MOVE`,
+`CREATE FILE`, `SPLIT`, `LAST`, `FIRST`, `STR`, `LEN`, `LCASE`, `INSTR`,
+`TRIM`, `REPLACE`, `LEFT`, `TODAY`).
 
 ### When the vision service is unavailable
 
@@ -193,6 +197,35 @@ a degraded classification:
 ```bash
 curl -s -o /dev/null -w '%{http_code}\n' http://<botmodels-host>:<port>/api/health
 ```
+
+### Deploying the template
+
+The template ships as `bottemplates/bots/media-filing/media-filing.gbai/` and is
+staged by `POST /api/templates/deploy/{id}` (the id returned by
+`GET /api/templates/list`) into the **org layout** every runtime resolver keys
+on:
+
+```
+{org}.gborg/{bot}.gbai/{bot}.gbdialog/    # scripts, incl. classify_media
+{org}.gborg/{bot}.gbai/{bot}.gbot/        # PROMPT-TELEGRAM.md
+```
+
+`{bot}` is the name chosen in the Templates app (it defaults to the template
+name). The template's inner `.gbdialog`/`.gbot` directories are renamed to the
+bot name while staging, because the tool-execution, prompt and MCP resolvers
+look those directories up by bot name — a bot whose dialog directory kept the
+template name would load no scripts. The drive monitor then uploads the staged
+tree to MinIO and registers the bot, the same mechanism bootstrap uses for the
+shipped catalog.
+
+Telegram also needs a bot token before the channel can be reached. Provide it at
+deploy time through the `telegram_token` field of the deploy request, or later by
+writing the `telegram-bot-token` configuration key for the bot. The key is
+recognised as sensitive, so it is stored in Vault at
+`secret/gbo/{org_id}/{branch_id}/{bot_id}` and never in the database — the value
+comes from BotFather. This step is best-effort: if the bot row does not exist yet
+(the drive monitor creates it after the upload), the deploy response reports
+`telegram.status = "pending"` and the token can be written again afterwards.
 
 ## BotModels API Endpoints
 

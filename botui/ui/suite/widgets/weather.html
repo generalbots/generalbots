@@ -14,7 +14,19 @@
   var root = document.currentScript
     ? document.currentScript.closest(".gb-widget")
     : null;
-  var CACHE_KEY = "gb-weather-cache";
+  // #1341 — the desktop widget used to share `gb-weather-cache` with the
+  // Weather app while writing a different schema, so each overwrote the other
+  // and the user's chosen city was replaced by this widget's hardcoded default.
+  // Keep a private cache and follow the app's persisted city instead.
+  var CACHE_KEY = "gb-widget-weather-cache";
+  var CITY_KEY = "gb-weather-city";
+  var DEFAULT_CITY = "São Paulo";
+  var DEFAULT_LAT = -23.55;
+  var DEFAULT_LON = -46.63;
+
+  function savedCity() {
+    try { return localStorage.getItem(CITY_KEY) || ""; } catch (e) { return ""; }
+  }
 
   function host() {
     return root || document.querySelector(".gb-widget");
@@ -34,24 +46,19 @@
     var city = box.querySelector(".gb-wweather-city");
     var temp = box.querySelector(".gb-wweather-temp");
     var desc = box.querySelector(".gb-wweather-desc");
-    if (city) city.textContent = data.city;
-    if (temp) temp.textContent = data.temp;
-    if (desc) desc.textContent = data.desc;
+    if (city) city.textContent = data.city || DEFAULT_CITY;
+    if (temp) temp.textContent = data.temp || "--°C";
+    if (desc) desc.textContent = data.desc || "--";
   }
 
-  // Read the cached forecast first so the widget renders instantly, then
-  // refresh from the free Open-Meteo API (no key) when reachable.
-  function refresh(box) {
-    try {
-      var cached = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
-      if (cached) render(box, cached);
-    } catch (e) {}
-    fetch("https://api.open-meteo.com/v1/forecast?latitude=-23.55&longitude=-46.63&current=temperature_2m,weather_code&timezone=auto")
+  function fetchFor(box, lat, lon, cityLabel) {
+    fetch("https://api.open-meteo.com/v1/forecast?latitude=" + lat +
+      "&longitude=" + lon + "&current=temperature_2m,weather_code&timezone=auto")
       .then(function (r) { return r.json(); })
       .then(function (wx) {
         if (!wx || !wx.current) return;
         var data = {
-          city: "São Paulo",
+          city: cityLabel || DEFAULT_CITY,
           temp: Math.round(wx.current.temperature_2m) + "°C",
           desc: label(wx.current.weather_code),
         };
@@ -59,6 +66,30 @@
         render(box, data);
       })
       .catch(function () {});
+  }
+
+  // Render the cached forecast instantly, then refresh from the free Open-Meteo
+  // API (no key). The city follows the one the user picked in the Weather app:
+  // it is geocoded so the coordinates match the choice, falling back to the
+  // built-in default when nothing is saved or geocoding fails.
+  function refresh(box) {
+    try {
+      var cached = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
+      if (cached) render(box, cached);
+    } catch (e) {}
+    var city = savedCity();
+    if (!city) {
+      fetchFor(box, DEFAULT_LAT, DEFAULT_LON, DEFAULT_CITY);
+      return;
+    }
+    fetch("https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(city) + "&count=1&language=en&format=json")
+      .then(function (r) { return r.json(); })
+      .then(function (geo) {
+        var hit = geo && geo.results && geo.results[0];
+        if (!hit) { fetchFor(box, DEFAULT_LAT, DEFAULT_LON, city); return; }
+        fetchFor(box, hit.latitude, hit.longitude, city);
+      })
+      .catch(function () { fetchFor(box, DEFAULT_LAT, DEFAULT_LON, city); });
   }
 
   function boot() {

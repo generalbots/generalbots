@@ -83,6 +83,7 @@
         <script src="/suite/js/alt-tab.js?v=1"></script>
         <script src="/suite/js/taskbar-previews.js?v=1"></script>
         <script src="/suite/js/gb-toasts.js?v=1"></script>
+        <script src="/suite/js/gb-datetime.js?v=1"></script>
         <script src="/suite/js/control-center.js?v=1"></script>
         <script src="/suite/js/lock-screen.js?v=2"></script>
         <script src="/suite/js/spotlight.js?v=1"></script>
@@ -735,17 +736,29 @@
                 setTimeout(initAuthUI, 1000);
             }
 
-            // Simple Clock implementation matching the screenshot bottom right corner
-            setInterval(() => {
-                const now = new Date();
-                document.getElementById("clock-time").textContent =
-                    now.toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                    });
-                document.getElementById("clock-date").textContent =
-                    now.toLocaleDateString();
-            }, 1000);
+            // Taskbar clock. The date/time format comes from Settings ->
+            // Language through the shared GBDateTime helper, and a preference
+            // change re-renders immediately (#1339).
+            (() => {
+                function renderClock() {
+                    const now = new Date();
+                    const timeEl = document.getElementById("clock-time");
+                    const dateEl = document.getElementById("clock-date");
+                    const formatted = window.GBDateTime
+                        ? window.GBDateTime.now()
+                        : {
+                              time: now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+                              date: now.toLocaleDateString(),
+                          };
+                    if (timeEl) timeEl.textContent = formatted.time;
+                    if (dateEl) dateEl.textContent = formatted.date;
+                }
+                renderClock();
+                setInterval(renderClock, 1000);
+                window.addEventListener("storage", (e) => {
+                    if (e.key === "gb-date-format" || e.key === "gb-time-format") renderClock();
+                });
+            })();
         </script>
 
         <script>

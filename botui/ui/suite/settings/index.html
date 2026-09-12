@@ -175,15 +175,6 @@
             </a>
         </nav>
 
-        <div class="settings-footer">
-            <a href="/suite" class="back-link">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="19" y1="12" x2="5" y2="12"></line>
-                    <polyline points="12 19 5 12 12 5"></polyline>
-                </svg>
-                Back to Suite
-            </a>
-        </div>
     </aside>
 
     <!-- Main Content Area -->
@@ -666,7 +657,7 @@
                         <span class="setting-desc">Always show navigation sidebar</span>
                     </div>
                     <label class="toggle">
-                        <input type="checkbox" name="show_sidebar" checked>
+                        <input type="checkbox" name="show_sidebar" checked onchange="toggleShowSidebar(this)">
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
@@ -676,70 +667,15 @@
                         <span class="setting-desc">Enable UI animations and transitions</span>
                     </div>
                     <label class="toggle">
-                        <input type="checkbox" name="animations" checked>
+                        <input type="checkbox" name="animations" checked onchange="toggleAnimations(this)">
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
             </div>
 
-            <!-- Language Selection -->
-            <div class="setting-card">
-                <div class="card-header">
-                    <h2 data-i18n="settings-language">Language</h2>
-                    <p data-i18n="settings-language-desc">Choose your preferred language</p>
-                </div>
-                <div class="language-selector-container">
-                    <div class="setting-row">
-                        <div class="setting-info">
-                            <span class="setting-title" data-i18n="settings-display-language">Display Language</span>
-                            <span class="setting-desc" data-i18n="settings-language-affects">Affects all text in the
-                                application</span>
-                        </div>
-                        <select id="language-select" class="form-select" onchange="changeLanguage(this.value)">
-                            <option value="en">🇺🇸 English</option>
-                            <option value="pt-BR">🇧🇷 Português (Brasil)</option>
-                            <option value="es">🇪🇸 Español</option>
-                            <option value="zh-CN">🇨🇳 简体中文</option>
-                            <option value="fr">🇫🇷 Français</option>
-                            <option value="de">🇩🇪 Deutsch</option>
-                            <option value="ja">🇯🇵 日本語</option>
-                            <option value="ko">🇰🇷 한국어</option>
-                        </select>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-info">
-                            <span class="setting-title" data-i18n="settings-date-format">Date Format</span>
-                            <span class="setting-desc" data-i18n="settings-date-format-desc">How dates are
-                                displayed</span>
-                        </div>
-                        <select id="date-format-select" class="form-select" onchange="changeDateFormat(this.value)">
-                            <option value="MM/DD/YYYY">MM/DD/YYYY (US)</option>
-                            <option value="DD/MM/YYYY">DD/MM/YYYY (EU/BR)</option>
-                            <option value="YYYY-MM-DD">YYYY-MM-DD (ISO)</option>
-                        </select>
-                    </div>
-                    <div class="setting-row">
-                        <div class="setting-info">
-                            <span class="setting-title" data-i18n="settings-time-format">Time Format</span>
-                            <span class="setting-desc" data-i18n="settings-time-format-desc">12-hour or 24-hour
-                                clock</span>
-                        </div>
-                        <select id="time-format-select" class="form-select" onchange="changeTimeFormat(this.value)">
-                            <option value="12h">12-hour (1:30 PM)</option>
-                            <option value="24h">24-hour (13:30)</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- #1293 — Desktop wallpaper picker (restored in unified Settings) -->
-            <div class="setting-card">
-                <div class="card-header">
-                    <h2>Desktop Wallpaper</h2>
-                    <p>Choose a background for your desktop</p>
-                </div>
-                <div class="wallpaper-grid" id="wallpaper-grid"></div>
-            </div>
+            <!-- Language, date and time formats live in the Language section.
+                 Duplicating the controls here (and their element ids) made the
+                 selects ambiguous and the wallpaper picker appear twice (#1339). -->
         </section>
 
         <!-- Organizations & Bots Section (Admin) — #1295 unified from the orphan
@@ -941,43 +877,6 @@
                 </div>
             </div>
 
-            <!-- Sync Settings -->
-            <div class="setting-card">
-                <div class="card-header">
-                    <h2>Sync Settings</h2>
-                </div>
-                <div class="setting-row">
-                    <div class="setting-info">
-                        <span class="setting-title">Auto-Sync</span>
-                        <span class="setting-desc">Automatically sync files across devices</span>
-                    </div>
-                    <label class="toggle">
-                        <input type="checkbox" name="auto_sync" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-                <div class="setting-row">
-                    <div class="setting-info">
-                        <span class="setting-title">Sync on Wi-Fi Only</span>
-                        <span class="setting-desc">Only sync when connected to Wi-Fi</span>
-                    </div>
-                    <label class="toggle">
-                        <input type="checkbox" name="wifi_only">
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-                <div class="setting-row">
-                    <div class="setting-info">
-                        <span class="setting-title">Offline Access</span>
-                        <span class="setting-desc">Keep recent files available offline</span>
-                    </div>
-                    <label class="toggle">
-                        <input type="checkbox" name="offline_access" checked>
-                        <span class="toggle-slider"></span>
-                    </label>
-                </div>
-            </div>
-
             <!-- Connected Storage -->
             <div class="setting-card">
                 <div class="card-header">
@@ -995,7 +894,7 @@
                             <span class="connection-name">Google Drive</span>
                             <span class="connection-status">Not connected</span>
                         </div>
-                        <button class="btn-secondary btn-sm">Connect</button>
+                        <button class="btn-secondary btn-sm" onclick="return openIntegrationsWindow()">Connect</button>
                     </div>
                     <div class="connection-item">
                         <div class="connection-icon dropbox">
@@ -1009,7 +908,7 @@
                             <span class="connection-name">Dropbox</span>
                             <span class="connection-status">Not connected</span>
                         </div>
-                        <button class="btn-secondary btn-sm">Connect</button>
+                        <button class="btn-secondary btn-sm" onclick="return openIntegrationsWindow()">Connect</button>
                     </div>
                 </div>
             </div>
@@ -1177,7 +1076,7 @@
                         <span class="setting-title">Profile Visibility</span>
                         <span class="setting-desc">Who can see your profile</span>
                     </div>
-                    <select name="profile_visibility" class="select-sm">
+                    <select name="profile_visibility" class="select-sm" data-pref="gb-privacy-profile-visibility">
                         <option value="public">Public</option>
                         <option value="contacts">Contacts Only</option>
                         <option value="private">Private</option>
@@ -1189,7 +1088,7 @@
                         <span class="setting-desc">Show when you're online</span>
                     </div>
                     <label class="toggle">
-                        <input type="checkbox" name="show_online" checked>
+                        <input type="checkbox" name="show_online" checked data-pref="gb-privacy-online">
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
@@ -1199,7 +1098,7 @@
                         <span class="setting-desc">Let others know when you've read messages</span>
                     </div>
                     <label class="toggle">
-                        <input type="checkbox" name="read_receipts" checked>
+                        <input type="checkbox" name="read_receipts" checked data-pref="gb-privacy-read-receipts">
                         <span class="toggle-slider"></span>
                     </label>
                 </div>
@@ -1259,8 +1158,8 @@
                         </div>
                     </div>
                     <div class="plan-actions">
-                        <button class="btn-secondary">Change Plan</button>
-                        <button class="btn-text">Cancel Subscription</button>
+                        <button class="btn-secondary" onclick="return openCloudBilling()">Change Plan</button>
+                        <button class="btn-text" onclick="return openCloudBilling()">Cancel Subscription</button>
                     </div>
                 </div>
             </div>
@@ -2582,6 +2481,144 @@
             document.body.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
         }
+    }
+
+    // Layout, locale and notification preferences. Every control persists to
+    // localStorage so the choice survives reloads; the desktop clock reads the
+    // date/time keys through the shared GBDateTime helper (#1339).
+    function persistPref(key, value) {
+        try {
+            localStorage.setItem(key, String(value));
+        } catch (e) {}
+    }
+
+    var PREFERENCE_KEYS = {
+        compact_mode: 'gb-compact-mode',
+        show_sidebar: 'gb-show-sidebar',
+        animations: 'gb-animations',
+        push_enabled: 'gb-push-enabled',
+        push_sound: 'gb-push-sound',
+        desktop_notifications: 'gb-desktop-notifications',
+        badge_count: 'gb-badge-count'
+    };
+
+    function applyPreferenceToggles() {
+        Object.keys(PREFERENCE_KEYS).forEach(function (name) {
+            var input = document.querySelector('[name="' + name + '"]');
+            if (!input) return;
+            var saved = localStorage.getItem(PREFERENCE_KEYS[name]);
+            if (saved === null) return;
+            input.checked = saved === 'true';
+        });
+        document.body.classList.toggle('compact-mode', localStorage.getItem('gb-compact-mode') === 'true');
+        document.body.classList.toggle('no-animations', localStorage.getItem('gb-animations') === 'false');
+    }
+
+    function restoreLocaleSelects() {
+        var selects = {
+            'date-format-select': 'gb-date-format',
+            'time-format-select': 'gb-time-format',
+            'timezone-select': 'gb-timezone',
+            'first-day-select': 'gb-first-day'
+        };
+        Object.keys(selects).forEach(function (id) {
+            var select = document.getElementById(id);
+            var saved = localStorage.getItem(selects[id]);
+            if (select && saved) select.value = saved;
+        });
+    }
+
+    window.toggleCompactMode = function (checkbox) {
+        persistPref('gb-compact-mode', checkbox.checked);
+        document.body.classList.toggle('compact-mode', checkbox.checked);
+        showToast(checkbox.checked ? 'Compact mode enabled' : 'Compact mode disabled');
+    };
+
+    window.toggleShowSidebar = function (checkbox) {
+        persistPref('gb-show-sidebar', checkbox.checked);
+        showToast(checkbox.checked ? 'Sidebar shown' : 'Sidebar hidden');
+    };
+
+    window.toggleAnimations = function (checkbox) {
+        persistPref('gb-animations', checkbox.checked);
+        document.body.classList.toggle('no-animations', !checkbox.checked);
+        showToast(checkbox.checked ? 'Animations enabled' : 'Animations disabled');
+    };
+
+    window.changeDateFormat = function (format) {
+        persistPref('gb-date-format', format);
+        showToast('Date format updated');
+    };
+
+    window.changeTimeFormat = function (format) {
+        persistPref('gb-time-format', format);
+        showToast('Time format updated');
+    };
+
+    window.changeTimezone = function (tz) {
+        if (!tz) return;
+        persistPref('gb-timezone', tz);
+        showToast('Timezone updated');
+    };
+
+    window.changeFirstDay = function (day) {
+        if (!day) return;
+        persistPref('gb-first-day', day);
+        showToast('First day of week updated');
+    };
+
+    window.togglePushNotifications = function (checkbox) {
+        persistPref('gb-push-enabled', checkbox.checked);
+        if (checkbox.checked && window.Notification && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+        showToast(checkbox.checked ? 'Push notifications enabled' : 'Push notifications disabled');
+    };
+
+    // Cloud portal deep-link for Billing (plans, subscription, invoices live
+    // on the cloud host, not in the suite) (#1339).
+    window.openCloudBilling = function () {
+        var base = window.GB_CLOUD_URL;
+        if (!base) {
+            base = (window.location.origin || '').replace(/:(3000|8080)$/, ':4000');
+        }
+        window.open(base.replace(/\/$/, '') + '/cloud/billing', '_blank', 'noopener');
+        return false;
+    };
+
+    // Controls marked with `data-pref` persist themselves under that key: the
+    // Privacy page uses this so its selects and toggles stop resetting on every
+    // visit (#1339).
+    function bindDataPrefs() {
+        var controls = document.querySelectorAll('[data-pref]');
+        Array.prototype.forEach.call(controls, function (control) {
+            var key = control.getAttribute('data-pref');
+            var saved = localStorage.getItem(key);
+            if (saved !== null) {
+                if (control.type === 'checkbox') {
+                    control.checked = saved === 'true';
+                } else {
+                    control.value = saved;
+                }
+            }
+            control.addEventListener('change', function () {
+                var value = control.type === 'checkbox' ? control.checked : control.value;
+                persistPref(key, value);
+                showToast('Preference saved');
+            });
+        });
+    }
+
+    function initPreferences() {
+        applyPreferenceToggles();
+        restoreLocaleSelects();
+        bindDataPrefs();
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPreferences);
+    } else {
+        initPreferences();
     }
 
     // Handle hash navigation on load

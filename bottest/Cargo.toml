@@ -3,7 +3,7 @@ name = "bottest"
 version.workspace = true
 edition = "2021"
 description = "Comprehensive test suite for General Bots - Unit, Integration, and E2E testing"
-license = "AGPL-3.0"
+license = "MIT"
 repository = "https://github.com/GeneralBots/BotServer"
 readme = "README.md"
 keywords = ["testing", "bot", "integration-testing", "e2e", "general-bots"]
@@ -78,6 +78,14 @@ required-features = ["integration"]
 name = "e2e"
 path = "tests/e2e/mod.rs"
 required-features = ["e2e"]
+
+# Offline contract test for the media-filing chain (#1357). Declared explicitly
+# because a `[[test]]` table disables test-target auto-discovery, and this one
+# must run with `cargo test -p bottest media_filing` in CI without a database,
+# MinIO or an LLM.
+[[test]]
+name = "media_filing"
+path = "tests/media_filing_test.rs"
 
 [[bin]]
 name = "bottest"

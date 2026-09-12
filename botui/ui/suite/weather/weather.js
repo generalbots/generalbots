@@ -103,30 +103,18 @@
     return "🌡";
   }
 
-  function search(city) {
-    const current = document.getElementById("weatherCurrent");
-    const forecast = document.getElementById("weatherForecast");
-    if (!current) return;
-    current.innerHTML = '<div class="weather-empty">Searching…</div>';
-    forecast.innerHTML = "";
-
-    const geoUrl = "https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(city) + "&count=1&language=en&format=json";
-    fetch(geoUrl)
+  function fetchForecast(lat, lon, cityLabel) {
+    const wxUrl =
+      "https://api.open-meteo.com/v1/forecast?latitude=" + lat +
+      "&longitude=" + lon +
+      "&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m" +
+      "&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=5";
+    return fetch(wxUrl)
       .then(function (r) { return r.json(); })
-      .then(function (geo) {
-        const hit = geo && geo.results && geo.results[0];
-        if (!hit) throw new Error("not found");
-        const wxUrl =
-          "https://api.open-meteo.com/v1/forecast?latitude=" + hit.latitude +
-          "&longitude=" + hit.longitude +
-          "&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m" +
-          "&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=5";
-        return fetch(wxUrl).then(function (r) { return r.json(); });
-      })
       .then(function (wx) {
         if (!wx || !wx.current) throw new Error("no data");
-        const data = {
-          city: city,
+        return {
+          city: cityLabel,
           temp: Math.round(wx.current.temperature_2m),
           desc: "Current conditions",
           emoji: emojiFor(wx.current.weather_code),
@@ -141,12 +129,76 @@
             };
           }),
         };
+      });
+  }
+
+  function search(city) {
+    const current = document.getElementById("weatherCurrent");
+    const forecast = document.getElementById("weatherForecast");
+    if (!current) return;
+    current.innerHTML = '<div class="weather-empty">Searching…</div>';
+    forecast.innerHTML = "";
+
+    const geoUrl = "https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(city) + "&count=1&language=en&format=json";
+    fetch(geoUrl)
+      .then(function (r) { return r.json(); })
+      .then(function (geo) {
+        const hit = geo && geo.results && geo.results[0];
+        if (!hit) throw new Error("not found");
+        return fetchForecast(hit.latitude, hit.longitude, city);
+      })
+      .then(function (data) {
         writeCache(data);
         writeCity(city);
         render(data);
       })
       .catch(function () {
         renderFallback(city);
+      });
+  }
+
+  // #1341 — a user with no saved city previously saw an empty panel. Offer a
+  // default derived from the device location, falling back to the built-in city
+  // when geolocation is unavailable, denied or too slow. The auto-detected
+  // result is cached but never written as the user's explicit choice.
+  function searchDefaultLocation() {
+    const fallbackCity = FALLBACK[0].city;
+    if (!navigator.geolocation) {
+      search(fallbackCity);
+      return;
+    }
+    let settled = false;
+    const fallback = function () {
+      if (settled) return;
+      settled = true;
+      search(fallbackCity);
+    };
+    const timer = setTimeout(fallback, 4000);
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        searchByCoords(pos.coords.latitude, pos.coords.longitude);
+      },
+      fallback,
+      { timeout: 4000, maximumAge: 600000 }
+    );
+  }
+
+  function searchByCoords(lat, lon) {
+    const current = document.getElementById("weatherCurrent");
+    const forecast = document.getElementById("weatherForecast");
+    if (!current) return;
+    current.innerHTML = '<div class="weather-empty">Locating…</div>';
+    forecast.innerHTML = "";
+    fetchForecast(lat, lon, "My location")
+      .then(function (data) {
+        writeCache(data);
+        render(data);
+      })
+      .catch(function () {
+        renderFallback(FALLBACK[0].city);
       });
   }
 
@@ -158,7 +210,7 @@
       '<div class="weather-emoji" style="font-size:44px">' + data.emoji + "</div>" +
       '<div class="weather-temp">' + data.temp + "°C</div>" +
       '<div class="weather-desc">' + escapeHtml(data.desc) + "</div>" +
-      '<div class="weather-city">' + escapeHtml(data.city) + "</div>" +
+      '<div class="weather-city">' + escapeHtml(data.city || "") + "</div>" +
       '<div class="weather-meta"><span>💧 ' + data.humidity + "%</span><span>🌬 " + data.wind + " km/h</span></div>";
     forecast.innerHTML = (data.daily || [])
       .map(function (d) {
@@ -213,7 +265,7 @@
         input.value = profileCity;
         search(profileCity);
       } else {
-        search("São Paulo");
+        searchDefaultLocation();
       }
     });
   }
@@ -224,5 +276,7 @@
     boot();
   }
 
-  window.GBWeather = { search: search, boot: boot };
+  // `savedCity` is exposed so the desktop weather widget renders the user's
+  // chosen city instead of its own hardcoded default (#1341).
+  window.GBWeather = { search: search, boot: boot, savedCity: readCity };
 })();

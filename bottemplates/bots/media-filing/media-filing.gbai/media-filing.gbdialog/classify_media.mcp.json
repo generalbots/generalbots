@@ -1,6 +1,6 @@
 {
   "name": "classify_media",
-  "description": "Classify an inbound image or document and file it in Drive under media/{year}/{month}/{category}/. Call it once per received media item, before answering anything else, passing the path from the [image]/[document] marker. Never invent a path and never pick a category yourself: use the category returned by the tool.",
+  "description": "Classify an inbound image, document, audio or video and file it in Drive under media/{year}/{month}/{category}/. Call it once per received media item, before answering anything else, passing the path from the [image]/[document]/[voice]/[audio]/[video] marker. Never invent a path and never pick a category yourself: use the category returned by the tool.",
   "input_schema": {
     "type": "object",
     "properties": {
