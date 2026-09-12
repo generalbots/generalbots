@@ -1,16 +1,17 @@
 use crate::adapter::TelegramAdapter;
 use crate::media::message_content;
 use crate::state::ChannelState;
-use crate::session::{find_or_create_session, route_to_attendant, route_to_bot};
+use crate::session::{find_or_create_session, resolve_bot_scope, route_to_attendant, route_to_bot};
 
 use axum::{
     extract::State,
+    http::HeaderMap,
     http::StatusCode,
     response::IntoResponse,
     routing::post,
     Json, Router,
 };
-use log::{debug, info};
+use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -203,10 +204,73 @@ pub fn configure() -> Router<Arc<ChannelState>> {
         .route("/api/telegram/send", post(crate::handlers::send_message))
 }
 
+/// Header Telegram sends on every delivery once the webhook is registered with
+/// `secret_token` (Bot API `setWebhook`).
+const SECRET_HEADER: &str = "x-telegram-bot-api-secret-token";
+
+/// Bot config key holding the expected secret token. When it is absent or
+/// empty the endpoint accepts unsigned deliveries, which is the behaviour for
+/// every existing installation and the documented default.
+const SECRET_CONFIG_KEY: &str = "telegram-webhook-secret";
+
+/// Outcome of the webhook authenticity gate.
+enum WebhookGate {
+    Allowed,
+    Rejected(StatusCode),
+}
+
+/// A webhook is accepted when no secret is configured, or when the delivered
+/// header matches the configured secret exactly. An empty delivery never
+/// satisfies a configured secret.
+fn secret_matches(expected: &str, provided: &str) -> bool {
+    let expected = expected.trim();
+    if expected.is_empty() {
+        return true;
+    }
+    !provided.is_empty() && provided.trim() == expected
+}
+
+/// Reads the configured secret from the default bot and compares it with the
+/// delivered header. Returns `500` when the configuration cannot be read: the
+/// message would fail later anyway (the session needs the same database), and
+/// failing closed keeps a spoofed delivery out during a database outage.
+fn verify_webhook_secret(state: &Arc<ChannelState>, headers: &HeaderMap) -> WebhookGate {
+    let mut conn = match state.conn.get() {
+        Ok(conn) => conn,
+        Err(e) => {
+            log::error!("Telegram webhook secret check failed, no database connection: {e}");
+            return WebhookGate::Rejected(StatusCode::INTERNAL_SERVER_ERROR);
+        }
+    };
+
+    let (bot_id, _) = resolve_bot_scope(state, &mut conn);
+    let expected = (state.get_config)(&bot_id, SECRET_CONFIG_KEY, None).unwrap_or_default();
+
+    let provided = headers
+        .get(SECRET_HEADER)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default();
+
+    if secret_matches(&expected, provided) {
+        WebhookGate::Allowed
+    } else {
+        warn!(
+            "Telegram webhook delivery for bot {bot_id} rejected: {SECRET_HEADER} missing or mismatched"
+        );
+        WebhookGate::Rejected(StatusCode::UNAUTHORIZED)
+    }
+}
+
 pub async fn handle_webhook(
     State(state): State<Arc<ChannelState>>,
+    headers: HeaderMap,
     Json(update): Json<TelegramUpdate>,
 ) -> impl IntoResponse {
+    match verify_webhook_secret(&state, &headers) {
+        WebhookGate::Allowed => {}
+        WebhookGate::Rejected(status) => return status,
+    }
+
     info!("Telegram webhook received: update_id={}", update.update_id);
 
     if let Some(message) = update.message.or(update.edited_message) {
@@ -315,4 +379,30 @@ async fn process_callback(
     route_to_bot(state, &session, &data, &chat_id).await?;
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{secret_matches, SECRET_HEADER};
+
+    #[test]
+    fn unsigned_delivery_is_accepted_when_no_secret_is_configured() {
+        assert!(secret_matches("", ""));
+        assert!(secret_matches("   ", ""));
+        assert!(secret_matches("", "anything"));
+    }
+
+    #[test]
+    fn configured_secret_requires_the_exact_header_value() {
+        assert!(secret_matches("s3cret", "s3cret"));
+        assert!(secret_matches(" s3cret ", "s3cret"));
+        assert!(!secret_matches("s3cret", ""));
+        assert!(!secret_matches("s3cret", "s3cre"));
+        assert!(!secret_matches("s3cret", "S3CRET"));
+    }
+
+    #[test]
+    fn secret_header_name_matches_the_bot_api() {
+        assert_eq!(SECRET_HEADER, "x-telegram-bot-api-secret-token");
+    }
 }
