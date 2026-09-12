@@ -55,10 +55,11 @@ async fn inner_build_sub_router(
     #[cfg(feature = "erp")]
     { *api_router = api_router.clone().merge(boterp::configure()); }
 
-    // botintegrations and botsources both expose /api/integrations/* — sources owns the
-    // namespace when both are compiled (its handlers are the superset: sync, run, create).
-    #[cfg(all(feature = "integrations", not(feature = "sources")))]
-    { *api_router = api_router.clone().merge(botintegrations::configure()); }
+    // botsources owns the /api/integrations/* namespace (connectors + ETL);
+    // the legacy botintegrations router that used to shadow-mount here is
+    // deleted (#1350). The modern connection control plane below occupies a
+    // different namespace (/api/bots/:bot_id/integration-*) and mounts
+    // unconditionally.
 
     // Canonical tenant-scoped integration connection control plane (#939).
     // Mounted only when the secrets manager initializes; a Vault outage skips

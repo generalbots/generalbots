@@ -1,6 +1,5 @@
 pub mod db;
 pub mod error;
-pub mod handlers;
 pub mod handlers_actions;
 pub mod handlers_connections;
 pub mod handlers_context;
@@ -23,5 +22,5 @@ pub mod state;
 pub mod storage;
 pub mod token_refresh;
 
-pub use routes::{configure, configure_connection_routes};
+pub use routes::configure_connection_routes;
 pub use state::IntegrationState;

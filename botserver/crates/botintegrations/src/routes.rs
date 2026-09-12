@@ -3,7 +3,6 @@ use std::sync::Arc;
 use axum::routing::{get, post};
 use axum::Router;
 
-use crate::handlers;
 use crate::handlers_actions;
 use crate::handlers_automations;
 use crate::handlers_connections;
@@ -12,24 +11,13 @@ use crate::handlers_lifecycle;
 use crate::handlers_mentions;
 use crate::state::IntegrationState;
 
-pub fn configure<S: Clone + Send + Sync + 'static>() -> Router<S> {
-    Router::new()
-        .route(
-            "/api/integrations/connectors",
-            get(handlers::list_connectors),
-        )
-        .route(
-            "/api/integrations/connectors/:id/connect",
-            post(handlers::connect_connector),
-        )
-        .route(
-            "/api/integrations/connectors/:id/disconnect",
-            post(handlers::disconnect_connector),
-        )
-        .route("/api/integrations/etl", get(handlers::list_etl))
-}
-
 /// Canonical tenant-scoped integration connection control plane (#939).
+///
+/// The legacy `/api/integrations/connectors` + `/api/integrations/etl` router
+/// that used to live here is gone: `botsources` serves that namespace as a
+/// strict superset (templates, test, sync, run, create) in every build that
+/// compiles both features, and the default bundle enables both — the legacy
+/// handlers were unreachable dead code (#1350).
 ///
 /// All routes resolve the caller's tenant scope server-side from the
 /// authenticated user extension; credentials never appear in responses -
