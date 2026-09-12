@@ -59,6 +59,13 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
             .add_anonymous_path("/api/marketing/track/")
             .add_anonymous_path("/api/suggestions")
             .add_anonymous_path("/api/client-errors")
+            // #1342 — the app catalog feeds the desktop launcher, which must
+            // render for anonymous visitors of a public bot (the reported
+            // "Design app won't open" is the launcher grid failing on the
+            // 401). The handler already scopes per-tenant and degrades to the
+            // global (nil) scope for unbound callers, so anonymous reads
+            // never leak other orgs' bots or published apps.
+            .add_anonymous_path("/api/apps/catalog")
             .add_anonymous_path("/ws")
             // Terminal WS: the browser WebSocket API cannot send an
             // Authorization header, so the upgrade is anonymous and gated by
