@@ -42,8 +42,6 @@ pub const SUITE_DIRS: &[&str] = &[
     // Research & Learning
     #[cfg(feature = "research")]
     "research",
-    #[cfg(feature = "sources")]
-    "sources",
     #[cfg(feature = "learn")]
     "learn",
     // Analytics
