@@ -18,7 +18,7 @@ pub fn register_detect_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
     let state_clone = Arc::clone(&state);
     let bot_id = user.bot_id;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["DETECT", "$expr$"], false, move |context, inputs| {
             let first_input = inputs.first().ok_or_else(|| {
                 Box::new(rhai::EvalAltResult::ErrorRuntime(
@@ -70,7 +70,9 @@ pub fn register_detect_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
                 ))),
             }
         })
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 async fn detect_anomalies_in_table(

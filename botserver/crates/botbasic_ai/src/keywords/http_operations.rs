@@ -24,7 +24,7 @@ pub fn register_http_operations(state: Arc<dyn BasicRuntime>, user: UserSession,
 pub fn register_post_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["POST", "$expr$", ",", "$expr$"],
             false,
@@ -78,13 +78,15 @@ pub fn register_post_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, e
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_put_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["PUT", "$expr$", ",", "$expr$"],
             false,
@@ -138,13 +140,15 @@ pub fn register_put_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, en
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_patch_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["PATCH", "$expr$", ",", "$expr$"],
             false,
@@ -198,7 +202,9 @@ pub fn register_patch_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, 
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_delete_http_keyword(
@@ -206,7 +212,7 @@ pub fn register_delete_http_keyword(
     _user: UserSession,
     engine: &mut Engine,
 ) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["DELETE", "HTTP", "$expr$"],
             false,
@@ -257,7 +263,9 @@ pub fn register_delete_http_keyword(
                 }
             },
         )
-        .expect("valid syntax registration");
+{
+    log::error!("Failed to register the custom syntax: {e}");
+}
 }
 
 pub fn register_set_header_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
@@ -265,7 +273,7 @@ pub fn register_set_header_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSes
     let headers_clone = Arc::clone(&headers);
     let headers_clone2 = Arc::clone(&headers);
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SET", "HEADER", "$expr$", ",", "$expr$"],
             false,
@@ -286,9 +294,11 @@ pub fn register_set_header_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSes
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SET_HEADER", "$expr$", ",", "$expr$"],
             false,
@@ -309,7 +319,9 @@ pub fn register_set_header_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSes
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("valid syntax registration");
+        {
+            log::error!("Failed to register the custom syntax: {e}");
+        }
 }
 
 pub fn register_clear_headers_keyword(
@@ -317,7 +329,7 @@ pub fn register_clear_headers_keyword(
     _user: UserSession,
     engine: &mut Engine,
 ) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["CLEAR", "HEADERS"], false, move |_context, _inputs| {
             trace!("CLEAR HEADERS");
 
@@ -327,9 +339,11 @@ pub fn register_clear_headers_keyword(
 
             Ok(Dynamic::UNIT)
         })
-        .expect("valid syntax registration");
+{
+    log::error!("Failed to register the custom syntax: {e}");
+}
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["CLEAR_HEADERS"], false, move |_context, _inputs| {
             trace!("CLEAR_HEADERS");
 
@@ -339,13 +353,15 @@ pub fn register_clear_headers_keyword(
 
             Ok(Dynamic::UNIT)
         })
-        .expect("valid syntax registration");
+        {
+            log::error!("Failed to register the custom syntax: {e}");
+        }
 }
 
 pub fn register_graphql_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["GRAPHQL", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -400,13 +416,15 @@ pub fn register_graphql_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_soap_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SOAP", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -461,7 +479,9 @@ pub fn register_soap_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, e
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 async fn execute_http_request(

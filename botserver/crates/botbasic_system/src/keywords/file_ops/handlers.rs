@@ -61,7 +61,7 @@ pub fn register_file_operations(state: &Arc<dyn BasicRuntime>, user: UserSession
 }
 
 pub fn register_read_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["READ", "$expr$"], false, move |context, inputs| {
             let path = context.eval_expression_tree(&inputs[0])?.to_string();
 
@@ -110,14 +110,16 @@ pub fn register_read_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, en
                 ))),
             }
         })
-        .expect("valid syntax registration");
+{
+    log::error!("Failed to register the custom syntax: {e}");
+}
 }
 
 pub fn register_write_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["WRITE", "$expr$", ",", "$expr$"],
             false,
@@ -176,7 +178,9 @@ pub fn register_write_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_delete_file_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
@@ -185,7 +189,7 @@ pub fn register_delete_file_keyword(state: Arc<dyn BasicRuntime>, user: UserSess
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["DELETE", "FILE", "$expr$"],
             false,
@@ -238,9 +242,11 @@ pub fn register_delete_file_keyword(state: Arc<dyn BasicRuntime>, user: UserSess
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["DELETE", "FILE", "$expr$"],
             false,
@@ -293,14 +299,16 @@ pub fn register_delete_file_keyword(state: Arc<dyn BasicRuntime>, user: UserSess
                 }
             },
         )
-        .expect("valid syntax registration");
+        {
+            log::error!("Failed to register the custom syntax: {e}");
+        }
 }
 
 pub fn register_copy_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["COPY", "$expr$", ",", "$expr$"],
             false,
@@ -355,14 +363,16 @@ pub fn register_copy_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, en
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_move_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["MOVE", "$expr$", ",", "$expr$"],
             false,
@@ -417,14 +427,16 @@ pub fn register_move_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, en
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_list_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["LIST", "$expr$"], false, move |context, inputs| {
             let path = context.eval_expression_tree(&inputs[0])?.to_string();
 
@@ -476,14 +488,16 @@ pub fn register_list_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, en
                 ))),
             }
         })
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_compress_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["COMPRESS", "$expr$", ",", "$expr$"],
             false,
@@ -554,14 +568,16 @@ pub fn register_compress_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_extract_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["EXTRACT", "$expr$", ",", "$expr$"],
             false,
@@ -619,14 +635,16 @@ pub fn register_extract_keyword(state: Arc<dyn BasicRuntime>, user: UserSession,
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_upload_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["UPLOAD", "$expr$", ",", "$expr$"],
             false,
@@ -682,14 +700,16 @@ pub fn register_upload_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_download_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["DOWNLOAD", "$expr$", ",", "$expr$"],
             false,
@@ -744,5 +764,7 @@ pub fn register_download_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }

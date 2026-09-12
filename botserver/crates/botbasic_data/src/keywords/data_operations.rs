@@ -103,7 +103,7 @@ fn register_save_variants(state: Arc<dyn BasicRuntime>, user: UserSession, user_
         let state_clone = Arc::clone(&state);
         let user_roles_clone = user_roles.clone();
         let user_clone = user.clone();
-        engine
+        if let Err(e) = engine
             .register_custom_syntax(
                 ["SAVE", "$expr$", ",", "$expr$"],
                 false,
@@ -183,7 +183,9 @@ fn register_save_variants(state: Arc<dyn BasicRuntime>, user: UserSession, user_
                     Ok(json_value_to_dynamic(&result))
                 },
             )
-            .expect("valid syntax registration");
+        {
+            log::error!("Failed to register the custom syntax: {e}");
+        }
     }
 }
 
@@ -192,7 +194,7 @@ pub fn register_insert_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
     let user_clone = user.clone();
     let user_roles = UserRoles::from_user_session(&user);
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["INSERT", "$expr$", ",", "$expr$"],
             true,
@@ -231,7 +233,9 @@ let mut conn = match bot_pool {
                 Ok(json_value_to_dynamic(&result))
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_update_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
@@ -239,7 +243,7 @@ pub fn register_update_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
     let user_clone = user.clone();
     let user_roles = UserRoles::from_user_session(&user);
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["UPDATE", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -298,7 +302,9 @@ pub fn register_update_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
                 Ok(Dynamic::from(row_count))
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_delete_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
@@ -306,7 +312,7 @@ pub fn register_delete_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
     let user_clone = user.clone();
     let user_roles = UserRoles::from_user_session(&user);
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["DELETE", "$expr$", ",", "$expr$"],
             false,
@@ -386,10 +392,12 @@ pub fn register_delete_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     let state_clone2 = state.clone();
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["DELETE", "$expr$"], false, move |context, inputs| {
             let target = context.eval_expression_tree(&inputs[0])?.to_string();
 
@@ -450,14 +458,16 @@ pub fn register_delete_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
                 }
             }
         })
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_merge_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
     let user_clone = user.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["MERGE", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -486,11 +496,13 @@ pub fn register_merge_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
                 Ok(json_value_to_dynamic(&result))
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_fill_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["FILL", "$expr$", ",", "$expr$"],
             false,
@@ -505,11 +517,13 @@ pub fn register_fill_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, 
                 Ok(result)
             },
         )
-        .expect("valid syntax registration");
+{
+    log::error!("Failed to register the custom syntax: {e}");
+}
 }
 
 pub fn register_map_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["MAP", "$expr$", ",", "$expr$"],
             false,
@@ -524,11 +538,13 @@ pub fn register_map_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, e
                 Ok(result)
             },
         )
-        .expect("valid syntax registration");
+{
+    log::error!("Failed to register the custom syntax: {e}");
+}
 }
 
 pub fn register_filter_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["FILTER", "$expr$", ",", "$expr$"],
             false,
@@ -543,11 +559,13 @@ pub fn register_filter_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession
                 Ok(result)
             },
         )
-        .expect("valid syntax registration");
+{
+    log::error!("Failed to register the custom syntax: {e}");
+}
 }
 
 pub fn register_aggregate_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["AGGREGATE", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -563,11 +581,13 @@ pub fn register_aggregate_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSess
                 Ok(result)
             },
         )
-        .expect("valid syntax registration");
+{
+    log::error!("Failed to register the custom syntax: {e}");
+}
 }
 
 pub fn register_join_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["JOIN", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -583,11 +603,13 @@ pub fn register_join_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, 
                 Ok(result)
             },
         )
-        .expect("valid syntax registration");
+{
+    log::error!("Failed to register the custom syntax: {e}");
+}
 }
 
 pub fn register_pivot_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["PIVOT", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -603,11 +625,13 @@ pub fn register_pivot_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession,
                 Ok(result)
             },
         )
-        .expect("valid syntax registration");
+{
+    log::error!("Failed to register the custom syntax: {e}");
+}
 }
 
 pub fn register_group_by_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["GROUP_BY", "$expr$", ",", "$expr$"],
             false,
@@ -622,7 +646,9 @@ pub fn register_group_by_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSessi
                 Ok(result)
             },
         )
-        .expect("valid syntax registration");
+{
+    log::error!("Failed to register the custom syntax: {e}");
+}
 }
 
 fn execute_save(

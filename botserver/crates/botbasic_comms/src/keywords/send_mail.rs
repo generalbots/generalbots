@@ -6,7 +6,7 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             [
                 "SEND", "MAIL", "$expr$", ",", "$expr$", ",", "$expr$", ",", "$expr$",
@@ -90,12 +90,14 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             [
                 "SEND", "MAIL", "$expr$", ",", "$expr$", ",", "$expr$", "USING", "$expr$",
@@ -166,12 +168,14 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SEND_TEMPLATE", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -249,7 +253,9 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     // Register send_mail as a regular function (for function call style: send_mail(to, subject, body, []))
     let state_fn = Arc::clone(&state);

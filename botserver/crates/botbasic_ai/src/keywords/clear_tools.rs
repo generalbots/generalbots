@@ -8,7 +8,7 @@ pub fn clear_tools_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["CLEAR", "TOOLS"], false, move |_context, _inputs| {
             trace!(
                 "CLEAR TOOLS command executed for session: {}",
@@ -56,7 +56,9 @@ pub fn clear_tools_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                 ))),
             }
         })
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 fn clear_all_tools_from_session(state: &dyn BasicRuntime, user: &UserSession) -> Result<String, String> {

@@ -30,7 +30,7 @@ pub fn clear_suggestions_keyword(
     let cache2 = state.cache_client().clone();
     let user_session2 = user_session.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["CLEAR", "SUGGESTIONS"], true, move |_context, _inputs| {
             if let Some(cache_client) = &cache {
                 // TODO(#477): Pass org when available (UserSession does not carry org yet)
@@ -62,7 +62,9 @@ pub fn clear_suggestions_keyword(
 
             Ok(Dynamic::UNIT)
         })
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     engine
         .register_fn("CLEAR_SUGGESTIONS", move || {
@@ -92,7 +94,7 @@ pub fn add_suggestion_keyword(
     let user_session4 = user_session.clone();
 
     // ADD_SUGGESTION_TOOL "tool_name" as "button text"
-    engine
+if let Err(e) =     engine
         .register_custom_syntax(
             ["ADD_SUGGESTION_TOOL", "$expr$", "as", "$expr$"],
             true,
@@ -111,10 +113,12 @@ pub fn add_suggestion_keyword(
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     // ADD_SUGGESTION_TEXT "text_value" as "button text"
-    engine
+if let Err(e) =     engine
         .register_custom_syntax(
             ["ADD_SUGGESTION_TEXT", "$expr$", "as", "$expr$"],
             true,
@@ -127,10 +131,12 @@ pub fn add_suggestion_keyword(
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("valid syntax registration");
+        {
+            log::error!("Failed to register the custom syntax: {e}");
+        }
 
     // ADD_SUGGESTION "context_name" as "button text" (register BEFORE simple form so simple form has higher priority)
-    engine
+if let Err(e) =     engine
         .register_custom_syntax(
             ["ADD_SUGGESTION", "$expr$", "as", "$expr$"],
             true,
@@ -148,11 +154,13 @@ pub fn add_suggestion_keyword(
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("valid syntax registration");
+        {
+            log::error!("Failed to register the custom syntax: {e}");
+        }
 
     // ADD_SUGGESTION "button text" (simple form - sends message on click)
     // Registered LAST so it has HIGHEST priority — Rhai tries this first, falls back to 2-arg form
-    engine
+if let Err(e) =     engine
         .register_custom_syntax(
             ["ADD_SUGGESTION", "$expr$"],
             true,
@@ -169,7 +177,9 @@ pub fn add_suggestion_keyword(
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("valid syntax registration");
+        {
+            log::error!("Failed to register the custom syntax: {e}");
+        }
 }
 
 fn add_context_suggestion(

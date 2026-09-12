@@ -9,7 +9,7 @@ pub fn post_to_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: 
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["POST", "TO", "$expr$", "$expr$", ",", "$expr$"],
             false,
@@ -63,7 +63,9 @@ pub fn post_to_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: 
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     register_platform_shortcuts(state, user, engine);
 }
@@ -74,7 +76,7 @@ fn register_platform_shortcuts(state: Arc<dyn BasicRuntime>, user: UserSession, 
         let user_clone = user.clone();
         let platform_lower = platform.to_lowercase();
 
-        engine
+        if let Err(e) = engine
             .register_custom_syntax(
                 ["POST", "TO", platform, "$expr$", ",", "$expr$"],
                 false,
@@ -124,7 +126,9 @@ fn register_platform_shortcuts(state: Arc<dyn BasicRuntime>, user: UserSession, 
                     }
                 },
             )
-            .expect("valid syntax registration");
+        {
+            log::error!("Failed to register the custom syntax: {e}");
+        }
     }
 }
 

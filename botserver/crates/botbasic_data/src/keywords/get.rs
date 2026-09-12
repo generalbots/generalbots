@@ -20,7 +20,7 @@ struct JsonRow {
 
 pub fn register_get_keyword(state: Arc<dyn BasicRuntime>, user_session: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["GET", "$expr$"], false, move |context, inputs| {
             let url = context.eval_expression_tree(&inputs[0])?;
             let url_str = url.to_string();
@@ -76,7 +76,9 @@ pub fn register_get_keyword(state: Arc<dyn BasicRuntime>, user_session: UserSess
                 ))),
             }
         })
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_get_from_fn(
@@ -144,7 +146,7 @@ pub fn register_get_from_keyword(
 ) {
     let state_for_closure = state.clone();
     let user_for_closure = user_session;
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["GET", "FROM", "$expr$", "WHERE", "$expr$"],
             false,
@@ -177,7 +179,9 @@ pub fn register_get_from_keyword(
                 Ok(dynamic)
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 fn execute_get_from(

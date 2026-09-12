@@ -64,7 +64,7 @@ pub fn talk_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &m
     let state_clone2 = Arc::clone(state);
     let user_clone2 = user.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["TALK", "TO", "$expr$", ",", "$expr$"],
             false,
@@ -101,9 +101,11 @@ pub fn talk_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &m
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["TALK", "$expr$"], false, move |context, inputs| {
             let message = context.eval_expression_tree(&inputs[0])?.to_string();
             let state_for_talk = Arc::clone(&state_clone);
@@ -115,5 +117,7 @@ pub fn talk_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &m
 
             Ok(Dynamic::UNIT)
         })
-        .expect("valid syntax registration");
+        {
+            log::error!("Failed to register the custom syntax: {e}");
+        }
 }

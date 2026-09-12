@@ -7,7 +7,7 @@ pub fn use_tool_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine:
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["USE", "TOOL", "$expr$"], false, move |context, inputs| {
             let tool_path = context.eval_expression_tree(&inputs[0])?;
             let tool_path_str = tool_path.to_string().trim_matches('"').to_string();
@@ -51,7 +51,9 @@ pub fn use_tool_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine:
                 ))),
             }
         })
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     // Register use_tool(tool_name) function for preprocessor compatibility
     let state_clone2 = Arc::clone(&state);

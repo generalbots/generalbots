@@ -36,61 +36,15 @@ pub fn register_universal_messaging(state: Arc<AppState>, user: UserSession, eng
     register_broadcast(state, user, engine);
 }
 
-// DEPRECATED: TALK TO functionality moved to hear_talk.rs talk_keyword function
-// to avoid syntax conflicts between TALK and TALK TO
-/*
-fn register_talk_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    let state_clone = Arc::clone(&state);
-
-    engine
-        .register_custom_syntax(
-            ["TALK", "TO", "$expr$", ",", "$expr$"],
-            false,
-            move |context, inputs| {
-                let recipient = context.eval_expression_tree(&inputs[0])?.to_string();
-                let message = context.eval_expression_tree(&inputs[1])?.to_string();
-
-                trace!("TALK TO: Sending message to {}", recipient);
-
-                let state_for_send = Arc::clone(&state_clone);
-                let user_for_send = user.clone();
-
-                let (tx, rx) = std::sync::mpsc::channel();
-                std::thread::spawn(move || {
-                    let rt = tokio::runtime::Builder::new_current_thread()
-                        .enable_all()
-                        .build();
-                    let result: Result<(), String> = match rt {
-                        Ok(rt) => rt.block_on(async {
-                            send_message_to_recipient(
-                                state_for_send,
-                                &user_for_send,
-                                &recipient,
-                                &message,
-                            )
-                            .await
-                            .map_err(|e| format!("{}", e))
-                        }),
-                        Err(_) => Err("Failed to create runtime".into()),
-                    };
-                    let _ = tx.send(result);
-                });
-                rx.recv().unwrap_or(Err("Failed to receive result".into()))
-                    .map_err(|e| format!("Failed to send message: {}", e))?;
-
-                Ok(Dynamic::UNIT)
-            },
-        )
-        .expect("valid syntax registration");
-}
-*/
+// TALK TO lives in hear_talk.rs (`talk_keyword`): registering it here as well
+// collided with the TALK syntax.
 
 fn register_send_file_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_arc = Arc::new(user);
 
     let user_clone = Arc::clone(&user_arc);
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SEND", "FILE", "TO", "$expr$", ",", "$expr$"],
             false,
@@ -123,12 +77,14 @@ fn register_send_file_to(state: Arc<AppState>, user: UserSession, engine: &mut E
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = Arc::clone(&user_arc);
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SEND", "FILE", "TO", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -168,14 +124,16 @@ fn register_send_file_to(state: Arc<AppState>, user: UserSession, engine: &mut E
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 fn register_send_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SEND", "TO", "$expr$", ",", "$expr$"],
             false,
@@ -208,7 +166,9 @@ fn register_send_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     // Also register send_to as regular function for .ast compatibility
     let state_fn = Arc::clone(&state);
@@ -246,7 +206,7 @@ fn register_send_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine
 fn register_broadcast(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["BROADCAST", "$expr$", "TO", "$expr$"],
             false,
@@ -280,7 +240,9 @@ fn register_broadcast(state: Arc<AppState>, user: UserSession, engine: &mut Engi
                 Ok(results)
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub async fn send_message_to_recipient(

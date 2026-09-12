@@ -14,7 +14,7 @@ pub fn register_web_data_keywords(state: Arc<dyn BasicRuntime>, user: UserSessio
 }
 
 fn register_rss_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["RSS", "$expr$"], false, move |context, inputs| {
             let url = context.eval_expression_tree(&inputs[0])?.to_string();
             trace!("RSS {}", url);
@@ -43,7 +43,9 @@ fn register_rss_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engin
                 ))),
             }
         })
-        .expect("valid syntax registration");
+{
+    log::error!("Failed to register the custom syntax: {e}");
+}
 
     engine
         .register_custom_syntax(

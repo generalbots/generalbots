@@ -51,7 +51,7 @@ pub fn clear_switchers_keyword(
     let cache2 = state.cache_client().clone();
     let user_session2 = user_session.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["CLEAR", "SWITCHERS"], true, move |_context, _inputs| {
             if let Some(cache_client) = &cache {
                 let redis_key = botlib::key_utils::build_key("", &["switchers", &user_session.bot_id.to_string(), &user_session.id.to_string()]);
@@ -82,7 +82,9 @@ pub fn clear_switchers_keyword(
 
             Ok(Dynamic::UNIT)
         })
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     engine
         .register_fn("CLEAR_SWITCHERS", move || {
@@ -104,7 +106,7 @@ pub fn add_switcher_keyword(
     let cache = state.cache_client().clone();
     let user_session_clone = user_session.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["ADD_SWITCHER", "$expr$", "as", "$expr$"],
             true,
@@ -122,7 +124,9 @@ pub fn add_switcher_keyword(
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 fn add_switcher(

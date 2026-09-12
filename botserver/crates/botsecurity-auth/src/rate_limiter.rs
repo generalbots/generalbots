@@ -251,7 +251,7 @@ mod tests {
     fn test_extract_user_id_none() {
         let request = Request::builder()
             .body(Body::empty())
-            .expect("valid syntax registration");
+            .expect("request builds");
         assert!(extract_user_id(&request).is_none());
     }
 }

@@ -44,7 +44,7 @@ pub fn register_qr_code_keyword(state: Arc<dyn BasicRuntime>, user: UserSession,
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["QR", "CODE", "$expr$"], false, move |context, inputs| {
             let data = context.eval_expression_tree(&inputs[0])?.to_string();
 
@@ -81,7 +81,9 @@ pub fn register_qr_code_keyword(state: Arc<dyn BasicRuntime>, user: UserSession,
                 ))),
             }
         })
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_qr_code_with_size_keyword(
@@ -92,7 +94,7 @@ pub fn register_qr_code_with_size_keyword(
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["QR", "CODE", "$expr$", ",", "$expr$"],
             false,
@@ -146,14 +148,16 @@ pub fn register_qr_code_with_size_keyword(
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_qr_code_full_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["QR_CODE", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -209,7 +213,9 @@ pub fn register_qr_code_full_keyword(state: Arc<dyn BasicRuntime>, user: UserSes
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 fn execute_qr_code_generation(

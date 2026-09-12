@@ -16,7 +16,7 @@ pub fn set_bot_memory_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
     let user_clone = user.clone();
 
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SET", "BOT", "MEMORY", "$expr$", ",", "$expr$"],
             false,
@@ -121,7 +121,9 @@ pub fn set_bot_memory_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     // Also register as underscore function for tools (SET_BOT_MEMORY(key, value))
     let state_clone2 = Arc::clone(&state);

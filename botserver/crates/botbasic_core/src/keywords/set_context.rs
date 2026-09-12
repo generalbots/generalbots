@@ -7,7 +7,7 @@ use std::sync::Arc;
 pub fn set_context_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let cache = state.cache_client().clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SET", "CONTEXT", "$expr$", "AS", "$expr$"],
             true,
@@ -83,5 +83,7 @@ pub fn set_context_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, eng
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }

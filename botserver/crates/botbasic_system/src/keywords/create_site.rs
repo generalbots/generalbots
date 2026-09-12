@@ -22,7 +22,7 @@ mod llm_impl {
         let state_clone = state;
         let user_clone = user;
 
-        engine
+        if let Err(e) = engine
             .register_custom_syntax(
                 ["CREATE", "SITE", "$expr$", ",", "$expr$", ",", "$expr$"],
                 true,
@@ -76,7 +76,9 @@ mod llm_impl {
                     Ok(Dynamic::from(result))
                 },
             )
-            .expect("valid syntax registration");
+        {
+            log::error!("Failed to register the custom syntax: {e}");
+        }
     }
 
     struct SiteCreationParams {

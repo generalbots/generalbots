@@ -52,7 +52,7 @@ pub fn use_website_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
 
     // Register syntax for USE WEBSITE "url" REFRESH "interval" (case insensitive)
     // Register both uppercase and lowercase variants
-    engine
+if let Err(e) =     engine
         .register_custom_syntax(
             ["USE", "WEBSITE", "$expr$", "REFRESH", "$expr$"],
             false,
@@ -118,13 +118,15 @@ pub fn use_website_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 
     // Register syntax for USE WEBSITE "url" (without REFRESH)
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["USE", "WEBSITE", "$expr$"],
             false,
@@ -184,7 +186,9 @@ pub fn use_website_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 /// Register USE_WEBSITE as a regular function instead of custom syntax
@@ -741,7 +745,7 @@ pub fn clear_websites_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["CLEAR", "WEBSITES"], true, move |_context, _inputs| {
             info!(
                 "CLEAR WEBSITES keyword executed for session: {}",
@@ -774,7 +778,9 @@ pub fn clear_websites_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
                 }
             }
         })
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 fn clear_all_websites(

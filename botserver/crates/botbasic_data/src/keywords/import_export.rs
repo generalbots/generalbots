@@ -17,7 +17,7 @@ pub fn register_import_export(state: Arc<dyn BasicRuntime>, user: UserSession, e
 
 pub fn register_import_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["IMPORT", "$expr$"], false, move |context, inputs| {
             let file_path = context.eval_expression_tree(&inputs[0])?.to_string();
 
@@ -64,13 +64,15 @@ pub fn register_import_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
                 ))),
             }
         })
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 pub fn register_export_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["EXPORT", "$expr$", ",", "$expr$"],
             false,
@@ -129,7 +131,9 @@ let result = execute_export_json(
                 }
             },
         )
-        .expect("valid syntax registration");
+    {
+        log::error!("Failed to register the custom syntax: {e}");
+    }
 }
 
 fn execute_import_json(
