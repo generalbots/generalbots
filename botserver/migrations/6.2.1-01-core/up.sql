@@ -1,3 +1,7 @@
+-- The statements below used to exist in both this file and
+-- 6.2.1-00-refresh-policy/up.sql, byte-identical (#1347). The pair is
+-- collapsed: this is now the only copy.
+--
 -- Add refresh_policy column to website_crawls table
 -- This column stores the user-configured refresh interval (e.g., "1d", "1w", "1m", "1y")
 

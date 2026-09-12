@@ -1,13 +1,14 @@
--- Add refresh_policy column to website_crawls table
--- This column stores the user-configured refresh interval (e.g., "1d", "1w", "1m", "1y")
-
-ALTER TABLE website_crawls
-ADD COLUMN IF NOT EXISTS refresh_policy VARCHAR(20);
-
--- Update existing records to have a default refresh policy (1 month)
-UPDATE website_crawls
-SET refresh_policy = '1m'
-WHERE refresh_policy IS NULL;
-
--- Add comment for documentation
-COMMENT ON COLUMN website_crawls.refresh_policy IS 'User-configured refresh interval (e.g., "1d", "1w", "1m", "1y") - shortest interval is used when duplicates exist';
+-- Collapsed into 6.2.1-01-core (#1347).
+--
+-- This migration's up.sql was byte-identical to 6.2.1-01-core/up.sql, so on a
+-- fresh install the same SQL ran twice (harmlessly — the statements are
+-- idempotent). This file is now a no-op stub:
+--
+--   * Databases that already applied it carry the recorded version, so the
+--     content is never re-read and nothing changes for them.
+--   * Fresh installs run this stub and then the real statements from
+--     6.2.1-01-core, reaching the identical final schema.
+--
+-- The real statements (refresh_policy column on website_crawls, backfill and
+-- comment) live in 6.2.1-01-core/up.sql only.
+SELECT 1;

@@ -1,5 +1,13 @@
 -- 9.15.1-consolidated: up.sql (was 6.5.0-consolidated, moved after 9.15-org-branches for branch_id ordering)
 -- Consolidated schema creation from scratch
+--
+-- ROLE OF THIS FILE (#1347): this is a fresh-install accelerator, NOT a
+-- second source of schema truth. Every CREATE TABLE here is IF NOT EXISTS
+-- and mirrors the statement that some earlier migration originally issued;
+-- when editing any other migration, update the matching statement here in
+-- the same change. Fresh installs run this file and skip the older DDL it
+-- subsumes (versions already recorded); existing databases skip it
+-- entirely. It must never REPLACE a migration that alters live data.
 
 -- Ensure branch_id and tenant_id columns exist on all tables that need them
 -- (tables may have been created by earlier migrations without these columns).
