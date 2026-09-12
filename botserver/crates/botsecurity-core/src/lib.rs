@@ -12,6 +12,7 @@ pub mod path_guard;
 pub mod prompt_security;
 pub mod request_id;
 pub mod safe_unwrap;
+pub mod scope;
 pub mod security_monitoring;
 pub mod sql_guard;
 pub mod tenant;
