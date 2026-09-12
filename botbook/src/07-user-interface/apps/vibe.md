@@ -108,6 +108,18 @@ API token/runner token) during botserver bootstrap. Consumers resolve
 `FORGEJO_URL → ALM_URL → http://localhost:4747` (no hardcoded remote URL).
 Real-time progress streams via the task progress WebSocket, shown in the chat panel.
 
+### Project Templates
+Starter content for a new project is owned by the codebase itself
+(`botvibe/src/templates.rs`): a calculator project is seeded with a working
+arithmetic service (`calc.js`, `index.js`, `test.js`, `package.json`) and any
+other project gets a minimal README starter. Seeding never clobbers existing
+work — a non-empty workspace is left untouched.
+
+Because the templates are compiled in, no sample project tree ships at the
+repository root; the former `sample-node-app/` fixture was removed (#1326). To
+try a hosted Node application, create a project in Vibe and publish it through
+the publish path above.
+
 ---
 
 ## Vibe Agent Gateway (project registry + tool harness)
