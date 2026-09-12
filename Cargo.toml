@@ -62,7 +62,6 @@ members = [
   "botserver/crates/botdrive",
   "botserver/crates/botemail",
   "botserver/crates/botinstagram",
-  "botserver/crates/botkb",
   "botserver/crates/botlearn",
   "botserver/crates/botlegal",
   "botserver/crates/botllm",
@@ -174,7 +173,6 @@ botconnectors = { path = "botserver/crates/botconnectors" }
 botconsent = { path = "botserver/crates/botconsent" }
 botdocs = { path = "botserver/crates/botdocs" }
 botemail = { path = "botserver/crates/botemail" }
-botkb = { path = "botserver/crates/botkb" }
 botlearn = { path = "botserver/crates/botlearn" }
 botlegal = { path = "botserver/crates/botlegal" }
 botllm = { path = "botserver/crates/botllm" }

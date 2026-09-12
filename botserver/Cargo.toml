@@ -137,7 +137,8 @@ retail = ["automation", "drive", "cache", "dep:botretail"]
 banking = ["automation", "drive", "cache", "dep:botbanking"]
 m365 = ["automation", "drive", "cache", "dep:botm365"]
 vibe = ["automation", "dep:botvibe", "botbasic_system/vibe"]
-kb = ["automation", "drive", "cache", "dep:botkb"]
+# `kb` was removed (#1347): the optional `botkb` crate had zero call sites —
+# KB behaviour lives in `botmodelsbridge`/`botqdrant` and the `sources` feature.
 multimodal = ["automation", "drive", "cache", "dep:botmultimodal"]
 search = ["automation", "drive", "cache", "dep:botsearch"]
 desktop = ["automation", "drive", "cache", "dep:botdesktop"]
@@ -163,7 +164,7 @@ allbutooxmlsdk = [
     "attendant", "settings",
     "whatsapp", "telegram", "instagram", "msteams",
     "compliance", "timeseries", "weba", "contacts", "products", "legal", "attendance",
-    "vibe", "kb", "multimodal", "search", "desktop",
+    "vibe", "multimodal", "search", "desktop",
     "browser", "terminal", "external_sync", "nvidia",
     "deployment",
     "tax", "vision", "erp", "integrations", "hr", "sales", "minutes", "templates",
@@ -384,7 +385,6 @@ botdeployment = { workspace = true, optional = true }
 botmonitoring = { workspace = true, optional = true }
 botresearch = { workspace = true, optional = true }
 botlearn = { workspace = true, optional = true }
-botkb = { workspace = true, optional = true }
 botllm = { workspace = true, optional = true }
 botqdrant = { workspace = true, optional = true }
 botnvidia = { workspace = true, optional = true }
