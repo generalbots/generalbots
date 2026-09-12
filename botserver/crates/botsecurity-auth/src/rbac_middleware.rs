@@ -1077,6 +1077,24 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/api/instagram/webhook", "POST", "").with_anonymous(true),
         RoutePermission::new("/api/msteams/messages", "POST", "").with_anonymous(true),
 
+        // CalDAV. Native clients (Thunderbird, Apple Calendar, DAVx5) probe
+        // `/.well-known/caldav` and then speak the DAV verbs against `/caldav`,
+        // authenticating with HTTP Basic — the only scheme they implement. The
+        // DAV router authorizes each calendar itself, so these entries only need
+        // to admit an authenticated caller: without them RBAC answers "No
+        // matching route permission found" (403) even for a valid credential and
+        // no client can ever sync (#1335, #1336).
+        RoutePermission::new("/.well-known/caldav", "GET", ""),
+        RoutePermission::new("/.well-known/caldav", "PROPFIND", ""),
+        RoutePermission::new("/caldav/**", "OPTIONS", ""),
+        RoutePermission::new("/caldav/**", "GET", ""),
+        RoutePermission::new("/caldav/**", "HEAD", ""),
+        RoutePermission::new("/caldav/**", "PUT", ""),
+        RoutePermission::new("/caldav/**", "DELETE", ""),
+        RoutePermission::new("/caldav/**", "PROPFIND", ""),
+        RoutePermission::new("/caldav/**", "PROPPATCH", ""),
+        RoutePermission::new("/caldav/**", "REPORT", ""),
+
         // Auth routes - login must be anonymous
         RoutePermission::new("/api/auth", "GET", "").with_anonymous(true),
 
@@ -1952,6 +1970,40 @@ mod tests {
             .await
             .is_allowed();
         assert!(allowed_skill, "POST /api/people/:id/skills should be allowed");
+    }
+
+    #[tokio::test]
+    async fn test_caldav_verbs_allowed_for_authenticated_client() {
+        // Regression for #1335/#1336: Thunderbird, Apple Calendar and DAVx5
+        // authenticate with HTTP Basic and speak DAV verbs against /caldav. No
+        // route permission existed for those verbs, so RBAC answered "No
+        // matching route permission found" (403) even with a valid credential
+        // and no client could ever sync. The DAV router keeps its own
+        // per-calendar authorization, so a plain authenticated user must be
+        // admitted here.
+        let routes = build_default_route_permissions();
+        let manager = RbacManager::with_defaults();
+        manager.register_routes(routes).await;
+        let user = AuthenticatedUser::new(Uuid::new_v4(), "calendar@example.com".to_string())
+            .with_role(Role::User);
+
+        for (path, method) in [
+            ("/.well-known/caldav", "GET"),
+            ("/caldav", "OPTIONS"),
+            ("/caldav", "PROPFIND"),
+            ("/caldav", "REPORT"),
+            ("/caldav", "GET"),
+            ("/caldav/calendars/user/calendar.ics", "GET"),
+            ("/caldav/calendars/user/event.ics", "PUT"),
+            ("/caldav/calendars/user/event.ics", "DELETE"),
+            ("/caldav/calendars/user", "PROPFIND"),
+        ] {
+            let decision = manager.check_route_access(path, method, &user).await;
+            assert!(
+                decision.is_allowed(),
+                "{method} {path} must be allowed for an authenticated DAV client"
+            );
+        }
     }
 
     #[tokio::test]
