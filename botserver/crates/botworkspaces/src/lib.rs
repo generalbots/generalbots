@@ -1465,21 +1465,21 @@ pub fn configure_workspaces_routes() -> Router<Arc<WorkspacesState>> {
     Router::new()
         .route("/api/workspaces", get(list_workspaces).post(create_workspace))
         .route(
-            "/api/workspaces/{workspace_id}",
+            "/api/workspaces/:workspace_id",
             get(get_workspace).put(update_workspace).delete(delete_workspace),
         )
         .route(
-            "/api/workspaces/{workspace_id}/pages",
+            "/api/workspaces/:workspace_id/pages",
             get(list_pages).post(create_page),
         )
         .route("/api/workspaces/:workspace_id/members", post(add_member))
         .route(
-            "/api/workspaces/{workspace_id}/members/{user_id}",
+            "/api/workspaces/:workspace_id/members/:user_id",
             delete(remove_member),
         )
         .route("/api/workspaces/:workspace_id/search", get(search_pages))
         .route(
-            "/api/pages/{page_id}",
+            "/api/pages/:page_id",
             get(get_page).put(update_page).delete(delete_page),
         )
         .route("/api/workspaces/commands", get(get_slash_commands_handler))

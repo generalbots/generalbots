@@ -34,7 +34,7 @@ pub fn configure() -> Router {
             "/api/retail/branches",
             get(mutations::list_branches).post(mutations::create_branch),
         )
-        .route("/api/retail/branches/{id}", put(mutations::update_branch))
+        .route("/api/retail/branches/:id", put(mutations::update_branch))
         .route(
             "/api/retail/promotions",
             get(mutations::list_promotions).post(mutations::create_promotion),

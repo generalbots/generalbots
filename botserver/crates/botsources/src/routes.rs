@@ -28,7 +28,7 @@ pub fn configure_sources_api_routes() -> Router<Arc<AppState>> {
         .route("/examples", get(handle_get_mcp_examples))
         .route("/tools", get(handle_list_all_tools))
         .route(
-            "/{name}",
+            "/:name",
             get(handle_get_mcp_server)
                 .put(handle_update_mcp_server)
                 .delete(handle_delete_mcp_server),
@@ -37,18 +37,18 @@ pub fn configure_sources_api_routes() -> Router<Arc<AppState>> {
         .route("/:name/tools", get(handle_list_mcp_server_tools))
         .route("/:name/enable", axum::routing::post(handle_enable_mcp_server))
         .route(
-            "/{name}/disable",
+            "/:name/disable",
             axum::routing::post(handle_disable_mcp_server),
         );
 
     let ui_sources_routes = Router::new()
         .route("/repositories", get(handle_list_repositories))
         .route(
-            "/repositories/{id}/connect",
+            "/repositories/:id/connect",
             axum::routing::post(handle_connect_repository),
         )
         .route(
-            "/repositories/{id}/disconnect",
+            "/repositories/:id/disconnect",
             axum::routing::post(handle_disconnect_repository),
         )
         .route("/apps", get(handle_list_apps))

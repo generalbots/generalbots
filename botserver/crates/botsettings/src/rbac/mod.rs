@@ -17,19 +17,19 @@ pub fn configure_rbac_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/rbac/roles", get(handlers::list_roles).post(handlers::create_role))
         .route(
-            "/api/rbac/roles/{role_id}",
+            "/api/rbac/roles/:role_id",
             get(handlers::get_role)
                 .put(handlers::update_role)
                 .delete(handlers::delete_role),
         )
         .route(
-            "/api/rbac/roles/{role_id}/permissions",
+            "/api/rbac/roles/:role_id/permissions",
             get(handlers::get_role_permissions).post(handlers::update_role_permissions),
         )
         .route("/api/rbac/permissions", get(handlers::list_permissions))
         .route("/api/rbac/groups", get(handlers::list_groups).post(handlers::create_group))
         .route(
-            "/api/rbac/groups/{group_id}",
+            "/api/rbac/groups/:group_id",
             get(handlers::get_group)
                 .put(handlers::update_group)
                 .delete(handlers::delete_group),
@@ -37,17 +37,17 @@ pub fn configure_rbac_routes() -> Router<Arc<AppState>> {
         .route("/api/rbac/users", get(handlers::list_users_with_roles))
         .route("/api/rbac/users/:user_id/roles", get(handlers::get_user_roles))
         .route(
-            "/api/rbac/users/{user_id}/roles/{role_id}",
+            "/api/rbac/users/:user_id/roles/:role_id",
             post(handlers::assign_role_to_user).delete(handlers::remove_role_from_user),
         )
         .route("/api/rbac/users/:user_id/groups", get(handlers::get_user_groups))
         .route(
-            "/api/rbac/users/{user_id}/groups/{group_id}",
+            "/api/rbac/users/:user_id/groups/:group_id",
             post(handlers::add_user_to_group).delete(handlers::remove_user_from_group),
         )
         .route("/api/rbac/groups/:group_id/roles", get(handlers::get_group_roles))
         .route(
-            "/api/rbac/groups/{group_id}/roles/{role_id}",
+            "/api/rbac/groups/:group_id/roles/:role_id",
             post(handlers::assign_role_to_group).delete(handlers::remove_role_from_group),
         )
         .route("/api/rbac/users/:user_id/permissions", get(handlers::get_effective_permissions))
