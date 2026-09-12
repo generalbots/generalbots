@@ -2,7 +2,7 @@
 name = "botbrowserpolicy"
 version.workspace = true
 edition = "2021"
-license = "AGPL-3.0"
+license = "MIT"
 authors = ["Pragmatismo.com.br", "General Bots Community"]
 repository = "https://github.com/GeneralBots/BotServer"
 description = "Hardened agentic browsing control plane: domain policy, budgets, browsing memory and task orchestration API (#1175 backend)."

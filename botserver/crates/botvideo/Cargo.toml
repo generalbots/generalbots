@@ -2,7 +2,7 @@
 name = "botvideo"
 version.workspace = true
 edition = "2021"
-license = "AGPL-3.0"
+license = "MIT"
 authors = ["Pragmatismo.com.br", "General Bots Community"]
 repository = "https://github.com/GeneralBots/BotServer"
 

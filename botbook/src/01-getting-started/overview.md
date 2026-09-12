@@ -170,7 +170,7 @@ Example bots in the `templates/` directory demonstrate common patterns. Test sui
 
 ### Contributing
 
-General Bots is open source under the AGPL (GNU Affero General Public License). The GitHub repository hosts all development activity. Issue tracking manages bug reports and feature requests. Pull requests from the community are welcome and encouraged.
+General Bots is open source under the MIT License. The GitHub repository hosts all development activity. Issue tracking manages bug reports and feature requests. Pull requests from the community are welcome and encouraged.
 
 
 ## Codebase Statistics

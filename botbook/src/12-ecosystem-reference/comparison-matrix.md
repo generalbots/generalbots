@@ -15,7 +15,7 @@ General Bots uniquely combines self-hosted deployment, open source licensing, na
 | Capability | General Bots | Microsoft 365 | Google Workspace | n8n | Notion | Perplexity | Claude | Make/Zapier |
 |------------|-------------|---------------|------------------|-----|--------|------------|--------|-------------|
 | Self-hosted | ✅ Full | ❌ Cloud only | ❌ Cloud only | ✅ Available | ❌ Cloud only | ❌ Cloud only | ❌ Cloud only | ❌ Cloud only |
-| Open source | ✅ AGPL | ❌ Proprietary | ❌ Proprietary | ✅ Fair-code | ❌ Proprietary | ❌ Proprietary | ❌ Proprietary | ❌ Proprietary |
+| Open source | ✅ MIT | ❌ Proprietary | ❌ Proprietary | ✅ Fair-code | ❌ Proprietary | ❌ Proprietary | ❌ Proprietary | ❌ Proprietary |
 | Data sovereignty | ✅ Your servers | ❌ Microsoft servers | ❌ Google servers | ✅ Self-host option | ❌ AWS/GCP | ❌ Their servers | ❌ Anthropic servers | ❌ Their servers |
 | Per-user licensing | ✅ None | ❌ $12-57/user/mo | ❌ $6-18/user/mo | ⚠️ Cloud version | ❌ $10-15/user/mo | ❌ $20/mo | ❌ $20/mo | ❌ Per-task pricing |
 | Source code access | ✅ Full | ❌ None | ❌ None | ✅ Available | ❌ None | ❌ None | ❌ None | ❌ None |

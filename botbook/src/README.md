@@ -109,7 +109,7 @@ General Bots is built on a modern Rust technology stack. The application uses Ru
 
 ## Project Information
 
-The current version is 6.0.8 released under the AGPL-3.0 license. The source repository is available at https://github.com/GeneralBots/botserver. The project is maintained by open-source contributors from Pragmatismo.com.br and the broader community.
+The current version is 6.0.8 released under the MIT license. The source repository is available at https://github.com/GeneralBots/botserver. The project is maintained by open-source contributors from Pragmatismo.com.br and the broader community.
 
 
 ## Documentation Status

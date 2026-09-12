@@ -3,7 +3,7 @@ name = "botmultimodal"
 version.workspace = true
 edition = "2021"
 description = "General Bots multimodal AI client (image, video, audio, speech)"
-license = "AGPL-3.0"
+license = "MIT"
 authors = ["Pragmatismo.com.br", "General Bots Community"]
 repository = "https://github.com/GeneralBots/BotServer"
 

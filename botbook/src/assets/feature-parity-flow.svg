@@ -248,7 +248,7 @@
       <circle cx="25" cy="25" r="15" fill="url(#successGradient)"/>
       <text x="25" y="31" text-anchor="middle" font-size="10" font-weight="700" class="white-text">OSS</text>
       <text x="55" y="22" font-size="12" font-weight="600" class="main-text">Open Source</text>
-      <text x="55" y="38" font-size="10" class="secondary-text">AGPL Licensed</text>
+      <text x="55" y="38" font-size="10" class="secondary-text">MIT Licensed</text>
     </g>
 
     <!-- Benefit 5 -->

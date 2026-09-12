@@ -3,7 +3,7 @@ name = "botbasic_system"
 version.workspace = true
 edition = "2021"
 description = "BASIC system keywords - bot management, file ops, scheduling, security, app server, face API"
-license = "AGPL-3.0"
+license = "MIT"
 
 [features]
 default = []

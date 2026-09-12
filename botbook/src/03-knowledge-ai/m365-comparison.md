@@ -216,7 +216,7 @@ TALK response
 
 | Component | Monthly Cost | Notes |
 |-----------|--------------|-------|
-| Software | $0 | AGPL licensed |
+| Software | $0 | MIT licensed |
 | Infrastructure | $50-200 | Your servers |
 | LLM API (optional) | $50-500 | Pay per use |
 | **Total** | **$100-700** | **Unlimited users** |

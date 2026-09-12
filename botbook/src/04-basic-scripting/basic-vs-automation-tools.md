@@ -24,7 +24,7 @@ General Bots BASIC provides a conversational-first approach to automation. This 
 | **Multi-Channel** | Limited | Limited | Limited | Limited | ✅ Native |
 | **LLM Integration** | Plugin | Plugin | Plugin | GPT-5 | ✅ Any model |
 | **Self-Hosted** | ❌ | ✅ | ❌ | ❌ | ✅ |
-| **Open Source** | ❌ | ✅ | ❌ | ❌ | ✅ AGPL |
+| **Open Source** | ❌ | ✅ | ❌ | ❌ | ✅ MIT |
 
 ---
 

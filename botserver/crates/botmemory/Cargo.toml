@@ -3,7 +3,7 @@ name = "botmemory"
 version = "0.1.0"
 edition = "2021"
 description = "General Bots durable per-user and per-branch memory store - extraction hook, recall injection and import/export (issue #1178)"
-license = "AGPL-3.0"
+license = "MIT"
 authors = ["Pragmatismo.com.br", "General Bots Community"]
 repository = "https://github.com/GeneralBots/BotServer"
 

@@ -357,7 +357,7 @@ Every dependency you add increases build time, binary size, and maintenance burd
 
 ### Check License Compatibility
 
-All dependencies must have licenses compatible with AGPL-3.0. The `cargo-license` tool helps audit your dependency licenses:
+All dependencies must have licenses compatible with MIT. The `cargo-license` tool helps audit your dependency licenses:
 
 ```bash
 cargo install cargo-license

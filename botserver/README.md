@@ -422,7 +422,7 @@ docs/
 
 ## 🛡️ Security
 
-- **AGPL-3.0 License** - True open source with contribution requirements
+- **MIT License** - Permissive open source
 - **Self-hosted** - Your data stays on your infrastructure
 - **Enterprise-grade** - 5+ years of stability
 - **No vendor lock-in** - Open protocols and standards
@@ -474,9 +474,9 @@ We welcome contributions! Please read our contributing guidelines before submitt
 ## 📄 License
 
 General Bot Copyright (c) pragmatismo.com.br. All rights reserved.  
-Licensed under the **AGPL-3.0**.
+Licensed under the **MIT License**.
 
-According to our dual licensing model, this program can be used either under the terms of the GNU Affero General Public License, version 3, or under a proprietary license.
+This program is free software, released under the MIT License. You may use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, subject to the conditions in the LICENSE file. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
 
 ---
 

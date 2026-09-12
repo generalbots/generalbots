@@ -298,7 +298,7 @@ The default bot is ready. Ask it anything. Modify `templates/default.gbai/` to c
 
 ## Community
 
-General Bots is open source (AGPL-3.0) developed by Pragmatismo.com.br and contributors worldwide.
+General Bots is open source (MIT) developed by Pragmatismo.com.br and contributors worldwide.
 
 - **GitHub**: https://github.com/GeneralBots/botserver
 - **Version**: 6.1.0

@@ -3,7 +3,7 @@ name = "botbilling"
 version.workspace = true
 edition = "2021"
 description = "General Bots billing, invoicing, quotas, and subscription management"
-license = "AGPL-3.0"
+license = "MIT"
 authors = ["Pragmatismo.com.br", "General Bots Community"]
 repository = "https://github.com/GeneralBots/BotServer"
 

@@ -221,7 +221,7 @@ botserver --start
 
 | **Aspect** | **Traditional SaaS** | **General Bots** |
 |------------|---------------------|------------------|
-| Licensing | Per-user monthly fees | Open source (AGPL) |
+| Licensing | Per-user monthly fees | Open source (MIT) |
 | Data Location | Vendor cloud | Your choice |
 | Customization | Limited | Unlimited |
 | AI Models | Fixed provider | Any provider |
@@ -266,7 +266,7 @@ Pragmatismo develops General Bots as an open-source platform for enterprise AI a
 
 **Repository:** [github.com/GeneralBots/botserver](https://github.com/GeneralBots/botserver)
 
-**License:** AGPL-3.0
+**License:** MIT
 
 ---
 

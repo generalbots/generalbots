@@ -3,7 +3,7 @@ name = "botchannelbindings"
 version = "0.1.0"
 edition = "2021"
 description = "General Bots channel bindings - per-bot default phone, WhatsApp and Telegram identities plus call logs"
-license = "AGPL-3.0"
+license = "MIT"
 authors = ["Pragmatismo.com.br", "General Bots Community"]
 repository = "https://github.com/GeneralBots/BotServer"
 
