@@ -118,7 +118,7 @@ fn eval_string(context: &mut rhai::EvalContext, input: &rhai::Expression) -> Res
 fn register_branch_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
-    engine
+    let registered = engine
         .register_custom_syntax(
             ["IF", "$expr$", "THEN", "$expr$"],
             false,
@@ -164,8 +164,10 @@ fn register_branch_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                     Err(e) => Err(runtime_error(format!("branch failed: {e}"))),
                 }
             },
-        )
-        .expect("valid syntax for IF THEN");
+        );
+    if let Err(e) = registered {
+        log::error!("Failed to register IF/THEN DAG syntax: {e}");
+    }
 }
 
 /// `PARALLEL "name" WITH "label1" AND "label2"`: declares a parallel section
@@ -173,7 +175,7 @@ fn register_branch_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engi
 fn register_parallel_start(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
-    engine
+    let registered = engine
         .register_custom_syntax(
             ["PARALLEL", "$expr$", "WITH", "$expr$", "AND", "$expr$"],
             false,
@@ -221,8 +223,10 @@ fn register_parallel_start(state: Arc<dyn BasicRuntime>, user: UserSession, engi
                     Err(e) => Err(runtime_error(format!("parallel failed: {e}"))),
                 }
             },
-        )
-        .expect("valid syntax for PARALLEL WITH AND");
+        );
+    if let Err(e) = registered {
+        log::error!("Failed to register PARALLEL WITH AND syntax: {e}");
+    }
 }
 
 /// `MERGE "name"`: marks a join point that waits for all branches declared
@@ -230,7 +234,7 @@ fn register_parallel_start(state: Arc<dyn BasicRuntime>, user: UserSession, engi
 fn register_merge_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
-    engine
+    let registered = engine
         .register_custom_syntax(
             ["MERGE", "$expr$"],
             false,
@@ -275,8 +279,10 @@ fn register_merge_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engin
                     Err(e) => Err(runtime_error(format!("merge failed: {e}"))),
                 }
             },
-        )
-        .expect("valid syntax for MERGE");
+        );
+    if let Err(e) = registered {
+        log::error!("Failed to register MERGE syntax: {e}");
+    }
 }
 
 /// `ON ERROR CALL "handler_tool"`: attaches an error handler to the most
@@ -285,7 +291,7 @@ fn register_merge_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engin
 fn register_error_handler(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
-    engine
+    let registered = engine
         .register_custom_syntax(
             ["ON", "ERROR", "CALL", "$expr$"],
             false,
@@ -330,8 +336,10 @@ fn register_error_handler(state: Arc<dyn BasicRuntime>, user: UserSession, engin
                     Err(e) => Err(runtime_error(format!("on error failed: {e}"))),
                 }
             },
-        )
-        .expect("valid syntax for ON ERROR CALL");
+        );
+    if let Err(e) = registered {
+        log::error!("Failed to register ON ERROR CALL syntax: {e}");
+    }
 }
 
 async fn upsert_dag_node(
