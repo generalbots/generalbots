@@ -142,9 +142,15 @@ pub fn configure_router() -> Router {
     // non-/api path here, so without an explicit route the desktop shell
     // answered with HTML and no calendar client could ever sync. Both paths are
     // proxied to the backend, which owns the DAV router.
+    //
+    // `/caldav/` is listed separately because the catch-all does not match a
+    // bare trailing slash here, and the DAV root is exactly where the discovery
+    // redirect lands — without it the client received the static layer's
+    // `405 GET,HEAD` for the root collection (#1336).
     router = router
         .route("/.well-known/caldav", any(proxy_api))
         .route("/caldav", any(proxy_api))
+        .route("/caldav/", any(proxy_api))
         .route("/caldav/*path", any(proxy_api));
 
     // Inbound channel deliveries live outside /api: Telegram posts to

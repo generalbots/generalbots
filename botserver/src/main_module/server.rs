@@ -108,6 +108,13 @@ pub async fn run_axum_server(
             // Inbound channel webhooks arrive from the provider, which cannot
             // hold a CSRF token; each handler proves the call itself (#1327).
             "/webhook/telegram".into(), "/api/instagram/webhook".into(), "/api/msteams/messages".into(),
+            // CalDAV clients (Thunderbird, Apple Calendar, DAVx5) authenticate
+            // with HTTP Basic and their write verbs — PROPFIND, REPORT, PUT,
+            // DELETE — are not in the exempt method list, so a CSRF check
+            // rejected every discovery request and no client could sync. The
+            // DAV router authenticates and authorizes each request itself
+            // (#1335).
+            "/caldav*".into(), "/.well-known/caldav".into(),
         ],
         ..Default::default()
     };
