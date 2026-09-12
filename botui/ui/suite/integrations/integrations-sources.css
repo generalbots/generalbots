@@ -1,0 +1,136 @@
+/* Data Sources tab styles (#1352) — follows the integrations design tokens
+   defined on .integrations-app in integrations.css. */
+
+.integrations-app .integrations-sources-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.integrations-app .integrations-chip {
+    border: 1px solid var(--integrations-border);
+    background: var(--integrations-surface);
+    color: var(--integrations-muted);
+    border-radius: 999px;
+    padding: 7px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+
+.integrations-app .integrations-chip:hover {
+    background: var(--integrations-soft);
+    color: var(--integrations-text);
+}
+
+.integrations-app .integrations-chip[aria-pressed="true"] {
+    background: var(--integrations-accent);
+    border-color: var(--integrations-accent);
+    color: #fff;
+}
+
+.integrations-app .integrations-sources-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+}
+
+.integrations-app .integrations-source-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: var(--integrations-surface);
+    border: 1px solid var(--integrations-border-soft);
+    border-radius: var(--integrations-radius);
+    box-shadow: var(--integrations-shadow);
+    padding: 18px;
+}
+
+.integrations-app .integrations-source-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.integrations-app .integrations-source-card-header h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--integrations-text);
+}
+
+.integrations-app .integrations-source-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--integrations-radius-sm);
+    background: var(--integrations-soft);
+    font-size: 16px;
+    flex: none;
+}
+
+.integrations-app .integrations-source-description {
+    margin: 0;
+    color: var(--integrations-muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.integrations-app .integrations-source-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: auto;
+}
+
+.integrations-app .integrations-sources-fragment {
+    background: var(--integrations-surface);
+    border: 1px solid var(--integrations-border-soft);
+    border-radius: var(--integrations-radius);
+    box-shadow: var(--integrations-shadow);
+    padding: 20px;
+    overflow-x: auto;
+}
+
+.integrations-app .integrations-sources-fragment h2,
+.integrations-app .integrations-sources-fragment h3 {
+    color: var(--integrations-text);
+}
+
+.integrations-app .integrations-sources-fragment table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.integrations-app .integrations-sources-fragment th,
+.integrations-app .integrations-sources-fragment td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--integrations-border-soft);
+    font-size: 13px;
+    color: var(--integrations-muted);
+}
+
+.integrations-app .integrations-sources-fragment th {
+    color: var(--integrations-faint);
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+}
+
+.integrations-app .integrations-sources-fragment button {
+    font: inherit;
+    cursor: pointer;
+}
+
+@media (max-width: 720px) {
+    .integrations-app .integrations-sources-grid {
+        grid-template-columns: 1fr;
+    }
+}

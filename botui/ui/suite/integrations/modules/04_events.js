@@ -150,6 +150,12 @@
         if (name === "connected" && state.connectedStatus === "idle") {
             namespace.loadConnected(root);
         }
+        if (name === "sources" && state.sourcesStatus === "idle") {
+            if (!root.querySelector("[data-source-filters]").childElementCount) {
+                root.querySelector("[data-source-filters]").innerHTML = namespace.sourceChips(state.activeSource);
+            }
+            namespace.loadSources(root);
+        }
     }
 
     function clearFilters(root) {
@@ -188,6 +194,10 @@
             }
         } else if (action === "refresh-connected" || action === "retry-connected") {
             namespace.loadConnected(root);
+        } else if (action === "refresh-sources" || action === "retry-sources") {
+            namespace.loadSources(root);
+        } else if (action === "mcp-toggle" && button && button.dataset.mcpName) {
+            namespace.toggleMcpServer(root, button.dataset.mcpName, button.dataset.mcpEnabled === "true");
         } else if (action === "retry-catalog") {
             namespace.loadCatalog(root);
         } else if (action === "clear-filters") {
@@ -209,6 +219,11 @@
         var tab = event.target.closest("[data-tab]");
         if (tab && root.contains(tab)) {
             setTab(root, tab.dataset.tab, false);
+            return;
+        }
+        var chip = event.target.closest("[data-source]");
+        if (chip && root.contains(chip)) {
+            namespace.setSource(root, chip.dataset.source);
             return;
         }
         var actionButton = event.target.closest("[data-action]");

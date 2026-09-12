@@ -161,6 +161,11 @@
         '</div>';
     }
 
+    /* Shared with the Data Sources tab (07_sources.js) — one definition, no copies. */
+    namespace.stateView = stateView;
+    namespace.query = query;
+    namespace.skeletonCards = skeletonCards;
+
     namespace.renderExplore = function (root) {
         var state = namespace.getState(root);
         var catalog = query(root, "[data-catalog-view]");

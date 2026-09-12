@@ -4,6 +4,7 @@
 <link rel="stylesheet" href="/suite/integrations/integrations-panel.css">
 <link rel="stylesheet" href="/suite/integrations/integrations-detail-content.css">
 <link rel="stylesheet" href="/suite/integrations/integrations-responsive.css">
+<link rel="stylesheet" href="/suite/integrations/integrations-sources.css">
 
 <div class="gb-app integrations-app" data-integrations-app data-gb-app="integrations">
     <div class="integrations-shell">
@@ -35,6 +36,8 @@
                     aria-selected="false" tabindex="-1">Connected</button>
                 <button class="integrations-tab" type="button" role="tab" data-tab="automations"
                     aria-selected="false" tabindex="-1">Automations</button>
+                <button class="integrations-tab" type="button" role="tab" data-tab="sources"
+                    aria-selected="false" tabindex="-1">Data Sources</button>
             </div>
         </nav>
 
@@ -131,6 +134,21 @@
                 <div data-automations-view aria-busy="true"></div>
             </section>
 
+            <section class="integrations-panel" role="tabpanel" data-panel="sources" hidden>
+                <div class="integrations-section-heading">
+                    <div>
+                        <p class="integrations-eyebrow">Inbound ingestion</p>
+                        <h2>Data Sources</h2>
+                        <p>MCP servers, repositories, models, mail accounts and BYOK keys that feed the agent with external context.</p>
+                    </div>
+                    <button class="integrations-button integrations-button-subtle" type="button"
+                        data-action="refresh-sources">Refresh sources</button>
+                </div>
+                <div class="integrations-sources-toolbar" data-source-filters role="group" aria-label="Data source categories"></div>
+                <p class="integrations-result-status" data-sources-status role="status" aria-live="polite">Loading data sources</p>
+                <div data-sources-view aria-busy="true"></div>
+            </section>
+
         </main>
 
     </div>
@@ -162,4 +180,5 @@
 <script src="/suite/integrations/modules/04_events.js"></script>
 <script src="/suite/integrations/modules/05_runner.js"></script>
 <script src="/suite/integrations/modules/06_automations.js"></script>
+<script src="/suite/integrations/modules/07_sources.js"></script>
 <script src="/suite/integrations/modules/99_init.js"></script>
