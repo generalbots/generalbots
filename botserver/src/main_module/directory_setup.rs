@@ -1,7 +1,7 @@
 //! directory_setup - extracted from bootstrap.rs
 
 use botcore::shared::utils::get_stack_path;
-use log::{info, warn};
+use log::{error, info, warn};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -31,6 +31,38 @@ pub(crate) fn resolve_saas_jwt_secret() -> String {
             info!("SAAS_JWT_SECRET not set, using development default secret");
             "dev-secret-key-change-in-production-minimum-32-chars".to_string()
         });
+
+    // The embedded/SBC sample config ships a placeholder JWT secret
+    // (#1347). Serving with it means every token is forgeable by anyone who
+    // read the repository. Dev builds may continue (explicitly warned);
+    // release builds get a random per-boot secret instead — nothing is
+    // forgeable, and the fix is forced by tokens no longer surviving a
+    // restart until a real secret is configured.
+    const PLACEHOLDER_SECRETS: [&str; 2] = [
+        "embedded-change-me-in-production",
+        "dev-secret-key-change-in-production-minimum-32-chars",
+    ];
+    let secret = if PLACEHOLDER_SECRETS.contains(&secret.as_str()) {
+        if cfg!(debug_assertions) {
+            warn!(
+                "JWT secret is a known placeholder; tokens minted with it are NOT secure - set SAAS_JWT_SECRET or JWT_SECRET"
+            );
+            secret
+        } else {
+            use rand::Rng;
+            const CHARSET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
+            let random: String = (0..48)
+                .map(|_| CHARSET[rand::rng().random_range(0..CHARSET.len())] as char)
+                .collect();
+            error!(
+                "JWT secret is a known placeholder; a random per-boot secret was generated so tokens are not forgeable. \
+                 Cloud logins will not survive restarts until SAAS_JWT_SECRET or JWT_SECRET is configured."
+            );
+            random
+        }
+    } else {
+        secret
+    };
 
     if let Ok(content) = std::fs::read_to_string(&config_path) {
         if let Ok(mut json) = serde_json::from_str::<serde_json::Value>(&content) {
