@@ -1067,6 +1067,16 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         RoutePermission::new("/webhook/whatsapp/{bot_id}", "GET", "").with_anonymous(true),
         RoutePermission::new("/webhook/whatsapp/{bot_id}", "POST", "").with_anonymous(true),
 
+        // Inbound channel webhooks - anonymous because the provider posts from
+        // its own infrastructure and holds no token. The alternative is worse:
+        // an unmatched path under `/api/...` is denied outright, so the
+        // Instagram and Teams deliveries would never reach their handler. Each
+        // handler verifies the call itself (#1327).
+        RoutePermission::new("/webhook/telegram", "POST", "").with_anonymous(true),
+        RoutePermission::new("/api/instagram/webhook", "GET", "").with_anonymous(true),
+        RoutePermission::new("/api/instagram/webhook", "POST", "").with_anonymous(true),
+        RoutePermission::new("/api/msteams/messages", "POST", "").with_anonymous(true),
+
         // Auth routes - login must be anonymous
         RoutePermission::new("/api/auth", "GET", "").with_anonymous(true),
 

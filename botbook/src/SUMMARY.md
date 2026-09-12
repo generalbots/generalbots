@@ -152,6 +152,7 @@
     - [WhatsApp Admin Automation](./06-channels/whatsapp-admin-automation.md)
     - [WhatsApp Webhooks](./06-channels/whatsapp-webhooks.md)
    - [Teams Channel](./06-channels/teams-channel.md)
+   - [Telegram Channel](./06-channels/telegram-channel.md)
    - [SMS Providers](./06-channels/sms-providers.md)
    - [Attendance Queue](./06-channels/attendance-queue.md)
    - [LLM Providers](./06-channels/llm-providers.md)

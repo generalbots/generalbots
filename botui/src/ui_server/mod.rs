@@ -147,6 +147,13 @@ pub fn configure_router() -> Router {
         .route("/caldav", any(proxy_api))
         .route("/caldav/*path", any(proxy_api));
 
+    // Inbound channel deliveries live outside /api: Telegram posts to
+    // /webhook/telegram and Meta to /webhook/whatsapp. The platform proxy
+    // routes every non-/api path to this server, so without an explicit route
+    // the static layer answered (GET 200, POST 405) and no channel could ever
+    // receive a message on a bot host (#1327).
+    router = router.route("/webhook/*path", any(proxy_api));
+
     router = add_static_routes(router, &suite_path);
 
     router.fallback(get(index)).with_state(state)

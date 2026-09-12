@@ -69,6 +69,14 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
             .add_anonymous_path("/webhook/whatsapp")
             .add_anonymous_path("/api/whatsapp/webhook")
             .add_anonymous_path("/api/facebook/webhook")
+            // Inbound channel deliveries carry no token: the provider posts
+            // straight from its own infrastructure. Each handler proves the
+            // call itself (Telegram secret token / Instagram verify token +
+            // signature), so the transport gate must let them in — otherwise
+            // the whole channel is unreachable in production (#1327, #1330).
+            .add_anonymous_path("/webhook/telegram")
+            .add_anonymous_path("/api/instagram/webhook")
+            .add_anonymous_path("/api/msteams/messages")
             .add_anonymous_path("/api/catalog")
             // Only the bot access-check endpoint is anonymous: it must answer
             // whether a bot is public before the caller has a token. The

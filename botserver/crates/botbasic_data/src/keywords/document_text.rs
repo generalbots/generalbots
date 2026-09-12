@@ -27,14 +27,18 @@ fn is_plain_text(format: DocumentFormat) -> bool {
 /// Extracts the text of a Drive object.
 ///
 /// Unknown extensions keep the historical behaviour of being read as UTF-8 so
-/// scripts that store their own `.log`/`.ini` files keep working.
+/// scripts that store their own `.log`/`.ini` files keep working; a binary
+/// payload under an unknown extension now names the extension instead of
+/// reporting a bare UTF-8 failure.
 pub async fn extract_document_text(
     file_path: &str,
     bytes: Vec<u8>,
 ) -> Result<String, Box<dyn Error + Send + Sync>> {
     let Some(format) = DocumentFormat::from_extension(Path::new(file_path)) else {
-        return decode_utf8(bytes);
+        return decode_utf8_or_unsupported(file_path, bytes);
     };
+
+    enforce_size_cap(file_path, format, bytes.len())?;
 
     if is_plain_text(format) {
         return decode_utf8(bytes);
@@ -88,8 +92,48 @@ async fn extract_through_temp_file(
     Ok(text)
 }
 
+/// Refuses a document before any conversion runs when it exceeds the limit the
+/// format declares, and reports both sizes so the caller can tell why the file
+/// was refused instead of receiving an extraction error later.
+fn enforce_size_cap(
+    file_path: &str,
+    format: DocumentFormat,
+    size: usize,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let limit = format.max_size();
+
+    if size > limit {
+        return Err(format!(
+            "{file_path}: {format:?} document is {size} bytes, above the {limit} byte limit"
+        )
+        .into());
+    }
+
+    Ok(())
+}
+
 fn decode_utf8(bytes: Vec<u8>) -> Result<String, Box<dyn Error + Send + Sync>> {
     String::from_utf8(bytes).map_err(|_| "File content is not valid UTF-8 text".into())
+}
+
+/// Unknown extension: text passes through unchanged, binary content produces an
+/// error naming the extension — the only actionable information for a caller
+/// that cannot know which format the object was meant to be.
+fn decode_utf8_or_unsupported(
+    file_path: &str,
+    bytes: Vec<u8>,
+) -> Result<String, Box<dyn Error + Send + Sync>> {
+    match String::from_utf8(bytes) {
+        Ok(text) => Ok(text),
+        Err(_) => {
+            let extension = Path::new(file_path)
+                .extension()
+                .and_then(|extension| extension.to_str())
+                .unwrap_or("(none)");
+
+            Err(format!("{file_path}: unsupported document format '.{extension}'").into())
+        }
+    }
 }
 
 #[cfg(test)]
@@ -116,12 +160,31 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn binary_unknown_extension_reports_utf8_failure() {
+    async fn binary_unknown_extension_names_the_extension() {
         let result = extract_document_text("blob.bin", vec![0xff, 0xfe]).await;
 
         assert_eq!(
             result.map_err(|e| e.to_string()),
-            Err("File content is not valid UTF-8 text".to_string())
+            Err("blob.bin: unsupported document format '.bin'".to_string())
         );
+    }
+
+    #[test]
+    fn oversized_document_is_refused_before_conversion() {
+        let above_pdf_limit = DocumentFormat::PDF.max_size() + 1;
+
+        let refused = enforce_size_cap("huge.pdf", DocumentFormat::PDF, above_pdf_limit)
+            .map_err(|e| e.to_string());
+
+        assert_eq!(
+            refused,
+            Err(format!(
+                "huge.pdf: PDF document is {above_pdf_limit} bytes, above the {} byte limit",
+                DocumentFormat::PDF.max_size()
+            ))
+        );
+
+        // A document at the limit still extracts.
+        assert!(enforce_size_cap("ok.pdf", DocumentFormat::PDF, DocumentFormat::PDF.max_size()).is_ok());
     }
 }
