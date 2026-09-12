@@ -62,7 +62,7 @@ pub fn email_from_session(headers: &HeaderMap) -> Option<String> {
     if token.contains('.') {
         return None;
     }
-    botsecurity_core::lookup_session_cache(token).map(|u| u.email)
+    crate::lookup_session_cache(token).map(|u| u.email)
 }
 
 /// Resolves a suite user's email from the `X-User-ID` header used by the
@@ -152,7 +152,7 @@ pub fn branch_from_jwt(
     // Fall back to the user→org→branch binding when no CRM contact owns the
     // email (issue #808: prod admins without a crm_contacts row were scoped
     // to the nil branch → empty grids).
-    contact_branch.or_else(|| botsecurity_core::tenant::branch_from_user_binding(conn, &email))
+    contact_branch.or_else(|| crate::tenant::branch_from_user_binding(conn, &email))
 }
 
 /// Resolves the branch for the caller using a connection from the pool,
