@@ -105,6 +105,9 @@ pub async fn run_axum_server(
             "/api/auth/suite-sso".into(),
             "/api/auth/unified-login".into(), "/api/catalog".into(), "/ws".into(),
             "/ws/".into(), "/webhook/whatsapp".into(), "/api/whatsapp/webhook".into(), "/api/facebook/webhook".into(), "/webhook".into(),
+            // Inbound channel webhooks arrive from the provider, which cannot
+            // hold a CSRF token; each handler proves the call itself (#1327).
+            "/webhook/telegram".into(), "/api/instagram/webhook".into(), "/api/msteams/messages".into(),
         ],
         ..Default::default()
     };
