@@ -8,16 +8,17 @@ use super::{llm_actions, provider_by_id, search};
 #[test]
 fn provider_ids_and_names_are_unique() {
     let catalog = search(None, None, None);
-    assert_eq!(catalog.provider_count, 129);
-    assert_eq!(catalog.action_count, 701);
+    assert_eq!(catalog.provider_count, 130);
+    assert_eq!(catalog.action_count, 706);
     assert_eq!(catalog.categories.len(), 8);
-    assert_eq!(catalog.totals.providers, 129);
-    assert_eq!(catalog.totals.actions, 701);
+    assert_eq!(catalog.totals.providers, 130);
+    assert_eq!(catalog.totals.actions, 706);
     // Slices 1-2 (#950): AWS, GitHub and Stripe have live adapters; all of
     // their catalog actions are implemented when the integrations feature
-    // compiles the registry in (13 + 9 + 10), and none otherwise.
+    // compiles the registry in (13 + 9 + 10), and none otherwise. Instagram
+    // adds its three implementable Graph API actions on top of that.
     #[cfg(feature = "integrations")]
-    assert_eq!(catalog.totals.implemented_actions, 32);
+    assert_eq!(catalog.totals.implemented_actions, 35);
     #[cfg(not(feature = "integrations"))]
     assert_eq!(catalog.totals.implemented_actions, 0);
     let mut ids = HashSet::new();

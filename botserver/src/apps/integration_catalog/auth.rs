@@ -204,6 +204,13 @@ pub(crate) static MICROSOFT_OAUTH2: AuthProfile = AuthProfile {
     least_privilege: "Prefer delegated permissions and the narrowest Graph scopes required by enabled actions.",
 };
 
+pub(crate) static INSTAGRAM_OAUTH2: AuthProfile = AuthProfile {
+    method: AuthMethod::OAuth2,
+    fields: OAUTH_FIELDS,
+    instructions: "Authorize through the Meta app consent screen with Instagram Graph API permissions. The connected Instagram account must be a Business or Creator account linked to a Facebook Page; Instagram personal accounts are not supported.",
+    least_privilege: "Request only instagram_basic, instagram_content_publish, pages_show_list and pages_read_engagement; prefer a dedicated Meta app per tenant over a shared app.",
+};
+
 /// No credentials required (e.g. free-tier gateway models with no auth).
 pub(crate) static KEYLESS: AuthProfile = AuthProfile {
     method: AuthMethod::ApiKey,

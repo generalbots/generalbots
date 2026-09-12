@@ -8,14 +8,65 @@ use std::sync::Arc;
 
 use botcore::shared::state::AppState;
 
-pub async fn get_accounts_social(State(_state): State<Arc<AppState>>) -> Html<String> {
-Html(r##"<div class="accounts-list">
-<div class="account-item"><span class="account-icon">📷</span><span class="account-name">Instagram</span><span class="account-status disconnected">Not connected</span></div>
-<div class="account-item"><span class="account-icon">📘</span><span class="account-name">Facebook</span><span class="account-status disconnected">Not connected</span></div>
-<div class="account-item"><span class="account-icon">🐦</span><span class="account-name">Twitter/X</span><span class="account-status disconnected">Not connected</span></div>
-<div class="account-item"><span class="account-icon">💼</span><span class="account-name">LinkedIn</span><span class="account-status disconnected">Not connected</span></div>
+/// Social account rows list the integration catalog providers and file them
+/// under those catalog ids, so "Connected" reflects the real
+/// `integration_connections` state written by the integrations app and its
+/// OAuth callback rather than a static placeholder.
+const SOCIAL_PROVIDERS: &[(&str, &str, &str)] = &[
+    ("📷", "Instagram", "instagram"),
+    ("📘", "Facebook", "facebook_pages"),
+    ("🐦", "Twitter/X", "x"),
+    ("💼", "LinkedIn", "linkedin_ads"),
+];
 
-</div>"##.to_string()) }
+fn active_connection_counts(state: &Arc<AppState>) -> Vec<(String, i64)> {
+    let Some(mut conn) = crate::settings_api::get_conn(state) else {
+        return Vec::new();
+    };
+
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct ProviderRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        provider_slug: String,
+        #[diesel(sql_type = diesel::sql_types::BigInt)]
+        total: i64,
+    }
+
+    let rows: Vec<ProviderRow> = diesel::sql_query(
+        "SELECT provider_slug, COUNT(*)::bigint AS total \
+         FROM integration_connections WHERE status = 'active' \
+         GROUP BY provider_slug",
+    )
+    .load::<ProviderRow>(&mut conn)
+    .unwrap_or_default();
+
+    rows.into_iter()
+        .map(|row| (row.provider_slug, row.total))
+        .collect()
+}
+
+pub async fn get_accounts_social(State(state): State<Arc<AppState>>) -> Html<String> {
+    let connected = active_connection_counts(&state);
+    let mut html = String::from("<div class=\"accounts-list\">");
+    for &(icon, name, slug) in SOCIAL_PROVIDERS {
+        let total = connected
+            .iter()
+            .find(|(provider, _)| provider == slug)
+            .map(|(_, total)| *total)
+            .unwrap_or(0);
+        let status = if total > 0 {
+            format!("<span class=\"account-status connected\">Connected ({total})</span>")
+        } else {
+            "<span class=\"account-status disconnected\">Not connected</span>".to_string()
+        };
+        html.push_str(&format!(
+            "<div class=\"account-item\"><span class=\"account-icon\">{icon}</span><span class=\"account-name\">{name}</span>{status}</div>"
+        ));
+    }
+    html.push_str("</div>");
+    Html(html)
+}
 
 pub async fn get_accounts_messaging(State(_state): State<Arc<AppState>>) -> Html<String> {
 Html(r##"<div class="accounts-list">

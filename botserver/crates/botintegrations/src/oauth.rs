@@ -191,6 +191,21 @@ pub(crate) fn provider_config(slug: &str) -> Option<OAuthProviderConfig> {
             "",
             false,
         ),
+        // Instagram publishing runs on the Instagram Graph API through a
+        // Meta app, so the consent screen is Facebook Login. Both entries
+        // share one Meta app; scopes are comma-separated per Meta's spec.
+        "instagram" => (
+            "https://www.facebook.com/v21.0/dialog/oauth",
+            "https://graph.facebook.com/v21.0/oauth/access_token",
+            "instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management",
+            false,
+        ),
+        "facebook_pages" => (
+            "https://www.facebook.com/v21.0/dialog/oauth",
+            "https://graph.facebook.com/v21.0/oauth/access_token",
+            "pages_show_list,pages_read_engagement,pages_manage_posts",
+            false,
+        ),
         _ => return None,
     };
     Some(OAuthProviderConfig {
@@ -227,6 +242,53 @@ fn parse_uuid(value: &str) -> Result<Uuid, Response> {
 
 fn urlencode(value: &str) -> String {
     urlencoding::encode(value).into_owned()
+}
+
+/// Providers whose consent and token endpoints belong to Meta. Their code
+/// exchange returns a token that expires in about an hour, which is shorter
+/// than any publish workflow, so [`callback`] upgrades it in place.
+fn is_meta_provider(provider: &str) -> bool {
+    matches!(provider, "instagram" | "facebook_pages")
+}
+
+/// Replaces a short-lived Meta user token with the long-lived one. Returns
+/// `None` on any failure so the caller can keep the short-lived token rather
+/// than failing the whole connect flow.
+async fn exchange_long_lived_meta_token(
+    http: &reqwest::Client,
+    config: &OAuthProviderConfig,
+    client_id: &str,
+    client_secret: &str,
+    short_lived: &str,
+) -> Option<(String, Option<i64>)> {
+    let response = http
+        .get(config.token_url)
+        .query(&[
+            ("grant_type", "fb_exchange_token"),
+            ("client_id", client_id),
+            ("client_secret", client_secret),
+            ("fb_exchange_token", short_lived),
+        ])
+        .send()
+        .await
+        .map_err(|error| log::warn!("meta long-lived token exchange failed: {error}"))
+        .ok()?;
+    if !response.status().is_success() {
+        log::warn!(
+            "meta long-lived token exchange returned {}",
+            response.status()
+        );
+        return None;
+    }
+    let body: Value = response.json().await.ok()?;
+    let token = body.get("access_token").and_then(Value::as_str)?;
+    if token.trim().is_empty() {
+        return None;
+    }
+    Some((
+        token.to_string(),
+        body.get("expires_in").and_then(Value::as_i64),
+    ))
 }
 
 fn request_base(headers: &axum::http::HeaderMap) -> Option<String> {
@@ -474,13 +536,36 @@ pub async fn callback(
         log::warn!("oauth token exchange returned {status} for {provider}");
         return Err(error_response(StatusCode::BAD_GATEWAY, IntegrationError::VaultUnavailable));
     }
-    let access_token = body
+    // Meta answers the code exchange with a token that lives about an hour.
+    // Instagram publishing needs a Page or system-user token, and the Page
+    // token is derived at call time from a long-lived user token, so upgrade
+    // before storing. A failed upgrade keeps the short-lived token.
+    let short_lived = body
         .get("access_token")
         .and_then(Value::as_str)
         .ok_or_else(|| error_response(StatusCode::BAD_GATEWAY, IntegrationError::VaultUnavailable))?
         .to_string();
+    let mut expires_in = body.get("expires_in").and_then(Value::as_i64);
+    let access_token = if is_meta_provider(&provider) {
+        match exchange_long_lived_meta_token(
+            &http,
+            &config,
+            &client_id,
+            &client_secret,
+            &short_lived,
+        )
+        .await
+        {
+            Some((long_lived, long_expires_in)) => {
+                expires_in = long_expires_in.or(expires_in);
+                long_lived
+            }
+            None => short_lived,
+        }
+    } else {
+        short_lived
+    };
     let refresh_token = body.get("refresh_token").and_then(Value::as_str).map(str::to_string);
-    let expires_in = body.get("expires_in").and_then(Value::as_i64);
     let granted_scopes = body.get("scope").cloned().unwrap_or(Value::Null);
 
     let connection_id = Uuid::now_v7();

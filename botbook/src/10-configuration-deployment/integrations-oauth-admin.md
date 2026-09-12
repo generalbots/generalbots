@@ -21,6 +21,7 @@ vendor console. Register the callback exactly as shown, replacing
 | Notion | notion.so/my-integrations → External OAuth | `.../integrations/oauth/notion/callback` |
 | Google (Drive, Calendar, Sheets, Tasks, Photos, Forms, YouTube Analytics) | console.cloud.google.com → OAuth consent screen + OAuth client (Web) | One client may serve all: `.../integrations/oauth/<google_slug>/callback` for every slug in use; add scopes listed in §3 to the consent screen and mark the app production |
 | Microsoft (Outlook, Outlook Calendar, OneDrive, SharePoint) | portal.azure.com → App registrations → Web redirect URI | `.../integrations/oauth/<ms_slug>/callback`; enable `offline_access` |
+| Meta (Instagram, Facebook Pages) | developers.facebook.com → My Apps → Facebook Login → Settings | `.../integrations/oauth/<slug>/callback`; one app serves both slugs. Add the Facebook Page and the Instagram Business/Creator account linked to it as app testers while the app is in Development mode |
 
 The botserver builds `redirect_uri` from the incoming request host, so stage
 and production environments are registered separately.
@@ -56,6 +57,8 @@ makes the Authorize button answer HTTP 412 with an explanatory message.
 | google_forms | `https://www.googleapis.com/auth/forms.body` |
 | youtube_analytics | `https://www.googleapis.com/auth/yt-analytics.readonly` |
 | outlook / outlook_calendar / onedrive / sharepoint | `offline_access https://graph.microsoft.com/.default` |
+| instagram | `instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management` |
+| facebook_pages | `pages_show_list,pages_read_engagement,pages_manage_posts` |
 
 Least privilege: request only what enabled actions need; rotate client
 secrets on the vendor console and update Vault in the same window.
@@ -66,6 +69,24 @@ Access tokens, rotated refresh tokens and expiry are persisted automatically
 (`token_refresh` worker runs hourly and refreshes anything expiring within two
 hours). No administrator action is required after initial configuration other
 than keeping the Vault envelope current when vendors rotate secrets.
+
+### Meta (Instagram, Facebook Pages)
+
+The Meta code exchange answers with a user token that expires in about one
+hour, which is far shorter than any publishing workflow. The callback upgrades
+it in place with `grant_type=fb_exchange_token` and stores the resulting
+long-lived token (about 60 days); if the upgrade call fails the short-lived
+token is kept and the connection simply needs re-authorizing sooner.
+
+Instagram publishing additionally requires a Facebook Page token rather than
+the user token. The adapter resolves it at call time from
+`/me/accounts?fields=instagram_business_account,access_token`, so:
+
+- the authorized user must manage the Page the Instagram account is linked to;
+- the Instagram account must be a Business or Creator account (personal
+  accounts cannot publish through the Graph API);
+- a system-user token, or an envelope carrying `ig_user_id` together with
+  `page_access_token`, bypasses the discovery call.
 
 ## 5. Troubleshooting
 
