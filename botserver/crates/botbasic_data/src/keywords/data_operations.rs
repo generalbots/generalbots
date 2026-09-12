@@ -1322,10 +1322,15 @@ mod tests {
     fn test_sanitize_identifier() {
         assert_eq!(sanitize_identifier("users"), "users");
         assert_eq!(sanitize_identifier("user_name"), "user_name");
+        // Only [a-z0-9_] survives and the result is folded to lower case, so a
+        // statement separator or keyword smuggled into a name cannot come back
+        // out of the filter.
         assert_eq!(
             sanitize_identifier("users; DROP TABLE users;"),
-            "usersDROPTABLEusers"
+            "usersdroptableusers"
         );
+        assert_eq!(sanitize_identifier("Users"), "users");
+        assert!(!sanitize_identifier("users; DROP TABLE users;").contains(';'));
     }
 
     #[test]
