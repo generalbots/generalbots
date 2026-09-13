@@ -156,6 +156,5 @@ document.querySelectorAll('[data-i18n]').forEach(el => {
 
 ## See Also
 
-- [BotUI Development](../07-user-interface/web-interface.md) — Frontend interface
 - [Admin API](./admin-api.md) — System configuration
 - [Organizations API](./organizations-api.md) — Organization settings

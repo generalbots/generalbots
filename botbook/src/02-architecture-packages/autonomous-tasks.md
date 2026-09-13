@@ -309,7 +309,6 @@ The dev chat uses the same `user_data` system for history storage.
 
 ## See Also
 
-- [Autonomous Tasks Chapter](../17-autonomous-tasks/README.md) - Complete guide
 - [CREATE SITE](../04-basic-scripting/keyword-create-site.md) - The keyword behind it
 - [REST API](../08-rest-api-tools/README.md) - API reference
 - [HTMX Architecture](../07-user-interface/htmx-architecture.md) - Frontend patterns

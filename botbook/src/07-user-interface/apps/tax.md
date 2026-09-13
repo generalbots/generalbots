@@ -154,7 +154,3 @@ through the `service.tax` command with dynamic rates loaded per branch from
 
 ## Related Pages
 
-- [NFe](../nfe.md) — Electronic invoice details
-- [NFSe](../nfse.md) — Service invoice details
-- [CT-e](../cte.md) — Transport document details
-- [SPED](../sped.md) — Fiscal report generation

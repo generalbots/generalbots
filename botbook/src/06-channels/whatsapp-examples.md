@@ -1407,4 +1407,4 @@ def test_verification_code_capture():
 9. **Handle timeouts** - Set appropriate timeouts for API calls
 10. **Provide feedback** - Always acknowledge user actions with confirmations
 
-For more information on webhook configuration, see [Webhook Configuration Guide](./webhooks.md).
+For more information on webhook configuration, see Webhook Configuration Guide.

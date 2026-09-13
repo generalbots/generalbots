@@ -126,4 +126,3 @@ server, which is what `/webhook/*path` provides.
 - [Channel Integrations](./channels.md) - Messaging platform setup
 - [Storage Services](./storage.md) - S3-compatible storage
 - [Directory Services](./directory.md) - User authentication
-- [Environment Variables](../appendix-env-vars/README.md) - DIRECTORY_* configuration

@@ -273,4 +273,3 @@ reflection-min-messages,3
 - [DELEGATE TO BOT](./keyword-delegate-to-bot.md) - Delegation details
 - [BOT REFLECTION](./keyword-bot-reflection.md) - Reflection details
 - [Multi-Agent Orchestration](../03-knowledge-ai/multi-agent-orchestration.md) - Complete guide
-- [A2A Protocol](../03-knowledge-ai/a2a-protocol.md) - Protocol details

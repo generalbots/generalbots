@@ -95,7 +95,5 @@ The `website_crawls` table stores:
 
 **Related Keywords**
 
-- [CLEAR WEBSITES](./keyword-clear-websites.md) - Remove all website associations from session
 - [USE KB](./keyword-use-kb.md) - Similar functionality for knowledge base files
 - [FIND](./keyword-find.md) - Search within loaded websites and KBs
-- [LLM](./keyword-llm.md) - Process search results with AI

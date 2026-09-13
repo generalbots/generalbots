@@ -104,7 +104,7 @@ SET USER MEMORY "fact_company", "Acme Corp"
 | [`GET USER MEMORY`](./keyword-get-user-memory.md) | Retrieve user-level persisted data |
 | [`SET BOT MEMORY`](./keyword-set-bot-memory.md) | Store data at bot level |
 | [`GET BOT MEMORY`](./keyword-get-bot-memory.md) | Retrieve bot-level data |
-| [`USER FACTS`](./keyword-user-facts.md) | Get all stored user facts |
+| `USER FACTS` | Get all stored user facts |
 
 ## Database Storage
 

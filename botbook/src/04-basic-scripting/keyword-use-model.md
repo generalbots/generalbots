@@ -159,7 +159,7 @@ When `USE MODEL "auto"` is active, the system considers:
 
 | Keyword | Description |
 |---------|-------------|
-| [`LLM`](./keyword-llm.md) | Query the language model |
+| `LLM` | Query the language model |
 | [`SET CONTEXT`](./keyword-set-context.md) | Add context for LLM |
 | [`BEGIN SYSTEM PROMPT`](./prompt-blocks.md) | Define AI persona |
 

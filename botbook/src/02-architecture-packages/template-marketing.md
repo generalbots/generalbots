@@ -450,7 +450,6 @@ The Instagram Campaign Creator integrates AI-powered campaign generation directl
 
 - [CRM](./template-crm.md) - Customer relationship management
 - [Contacts](./template-crm-contacts.md) - Contact list management
-- [Broadcast](./template-broadcast.md) - General message broadcasting
 - [Analytics](./template-analytics.md) - Marketing analytics
 
 ---

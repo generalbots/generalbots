@@ -438,8 +438,6 @@ Test various phrasings to ensure tool invocation:
 
 - [LLM Server](./template-llm-server.md) - Headless API with LLM processing
 - [CRM](./template-crm.md) - CRM with many tool examples
-- [Store](./template-store.md) - E-commerce with product tools
-- [Talk to Data](./template-talk-to-data.md) - Data query tools
 
 ---
 

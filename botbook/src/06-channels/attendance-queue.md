@@ -441,7 +441,6 @@ Configure these templates in your WhatsApp Business account:
 
 ## See Also
 
-- [Human Approval](../04-basic-scripting/keyword-human-approval.md)
 - [SEND TEMPLATE](../04-basic-scripting/keyword-send-template.md)
 - [SET SCHEDULE](../04-basic-scripting/keyword-set-schedule.md)
 - [CREATE LEAD](../04-basic-scripting/keywords-lead-scoring.md)

@@ -301,5 +301,3 @@ END
 ## See Also
 
 - [Calendar Integration](../07-user-interface/apps/calendar.md)
-- [Google Calendar Setup](../appendix-external-services/google-calendar.md)
-- [Microsoft Outlook Integration](../appendix-external-services/outlook.md)

@@ -444,4 +444,3 @@ mod my_feature;
 - [Testing Overview](./README.md) - Testing strategy and structure
 - [Performance Testing](./performance.md) - Benchmarks and load tests
 - [Test Architecture](./architecture.md) - Design patterns and best practices
-- [Integration Testing](./integration.md) - Multi-component testing

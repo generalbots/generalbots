@@ -690,5 +690,3 @@ X-Signature: sha256=...
 ## See Also
 
 - [Compliance App](./compliance.md) - User interface guide
-- [How To: Configure Compliance](../how-to/configure-compliance.md)
-- [BASIC Compliance Keywords](../../04-basic-scripting/keywords-reference.md)

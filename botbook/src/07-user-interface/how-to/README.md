@@ -1,253 +1,127 @@
-# How To... Tutorials 🟡 BETA
+# How To... Tutorials
 
-> **📖 Step-by-Step Guides for General Bots Suite**
->
-> *Clear instructions for common tasks, inspired by classic computer manuals*
-
----
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                                                                         │
-│    ╔═══════════════════════════════════════════════════════════════╗    │
-│    ║                                                               ║    │
-│    ║   ██╗  ██╗ ██████╗ ██╗    ██╗    ████████╗ ██████╗            ║    │
-│    ║   ██║  ██║██╔═══██╗██║    ██║    ╚══██╔══╝██╔═══██╗           ║    │
-│    ║   ███████║██║   ██║██║ █╗ ██║       ██║   ██║   ██║           ║    │
-│    ║   ██╔══██║██║   ██║██║███╗██║       ██║   ██║   ██║           ║    │
-│    ║   ██║  ██║╚██████╔╝╚███╔███╔╝       ██║   ╚██████╔╝    ██╗    ║    │
-│    ║   ╚═╝  ╚═╝ ╚═════╝  ╚══╝╚══╝        ╚═╝    ╚═════╝     ╚═╝    ║    │
-│    ║                                                               ║    │
-│    ╚═══════════════════════════════════════════════════════════════╝    │
-│                                                                         │
-│                   Your Guide to General Bots Suite                      │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+> **Step-by-step guides for common tasks in the General Bots Suite.**
 
 ---
 
 ## About These Tutorials
 
-These tutorials are designed like the classic computer manuals of the early 1990s — clear, numbered steps with visual diagrams showing exactly what to do. Each tutorial follows the same format:
+Each tutorial follows the same format:
 
-- **Objective** — What you'll accomplish
-- **Time Required** — How long it takes
-- **Prerequisites** — What you need before starting
-- **Steps** — Numbered instructions with screenshots
-- **Troubleshooting** — Common problems and solutions
-- **Next Steps** — What to learn next
-
----
-
-## 🚀 Getting Started
-
-| Tutorial | Description | Time |
-|----------|-------------|------|
-| [Create Your First Bot](./create-first-bot.md) | Set up a working bot from scratch | 10 min |
-| [Your First Conversation](../../01-getting-started/first-conversation.md) | Talk to your bot and understand responses | 5 min |
-| [Understanding the Interface](./understanding-interface.md) | Navigate the Suite like a pro | 10 min |
+- **Objective** — what you will accomplish
+- **Prerequisites** — what you need before starting
+- **Steps** — numbered instructions
+- **Troubleshooting** — common problems and solutions
+- **Next Steps** — what to read next
 
 ---
 
-## 💬 Chat & Conversations
+## Getting Started
 
-| Tutorial | Description | Time |
-|----------|-------------|------|
-| [Ask Questions Effectively](./ask-questions.md) | Get better answers from your AI assistant | 5 min |
-| [Use Voice Input](./voice-input.md) | Talk instead of type | 3 min |
-| [Create Chat Shortcuts](./chat-shortcuts.md) | Set up quick commands | 10 min |
-| [Export Conversations](./export-conversations.md) | Save chat history for reference | 5 min |
+| Tutorial | Description |
+|----------|-------------|
+| [Create Your First Bot](./create-first-bot.md) | Set up a working bot from scratch |
+| [Your First Conversation](../../01-getting-started/first-conversation.md) | Talk to your bot and understand responses |
 
 ---
 
-## 📁 File Management (Drive)
+## Knowledge Base
 
-| Tutorial | Description | Time |
-|----------|-------------|------|
-| [Upload Your First File](./upload-files.md) | Add documents to Drive | 3 min |
-| [Organize with Folders](./organize-folders.md) | Create a logical file structure | 10 min |
-| [Share Files Securely](./share-files.md) | Grant access to team members | 5 min |
-| [Search for Documents](./search-documents.md) | Find files instantly | 5 min |
+| Tutorial | Description |
+|----------|-------------|
+| [Add Documents to Knowledge Base](./add-kb-documents.md) | Teach your bot from files |
 
----
-
-## 📚 Knowledge Base
-
-| Tutorial | Description | Time |
-|----------|-------------|------|
-| [Add Documents to Knowledge Base](./add-kb-documents.md) | Teach your bot from files | 15 min |
-| [Import a Website](./import-website.md) | Crawl and learn from web pages | 10 min |
-| [Create FAQ Responses](./create-faq.md) | Define question-answer pairs | 15 min |
-| [Manage Collections](./manage-collections.md) | Organize knowledge by topic | 10 min |
+See also [Knowledge Base](../../03-knowledge-ai/knowledge-base.md) for collections, indexing and retrieval modes.
 
 ---
 
-## 🔧 BASIC Dialogs
+## BASIC Dialogs
 
-| Tutorial | Description | Time |
-|----------|-------------|------|
-| [Write Your First Dialog](./write-first-dialog.md) | Create a simple conversation script | 20 min |
-| [Use HEAR and TALK](./hear-and-talk.md) | Gather and display information | 10 min |
-| [Store User Information](./store-user-info.md) | Remember data between conversations | 15 min |
-| [Call External APIs](./call-external-apis.md) | Connect to web services | 20 min |
-| [Send Automated Messages](./send-automated.md) | Schedule broadcasts and reminders | 15 min |
+| Tutorial | Description |
+|----------|-------------|
+| [Write Your First Dialog](./write-first-dialog.md) | Create a simple conversation script |
+
+For the full picture, continue with [BASIC Scripting](../../04-basic-scripting/README.md), which documents every keyword.
 
 ---
 
-## 📱 Messaging Channels
+## Messaging Channels
 
-| Tutorial | Description | Time |
-|----------|-------------|------|
-| [Connect WhatsApp](./connect-whatsapp.md) | Set up WhatsApp Business integration | 30 min |
-| [Configure Email](./configure-email.md) | Enable email conversations | 15 min |
-| [Set Up SMS](./setup-sms.md) | Add text message support | 15 min |
-| [Embed Web Chat](./embed-web-chat.md) | Add chat to your website | 10 min |
+| Tutorial | Description |
+|----------|-------------|
+| [Connect WhatsApp](./connect-whatsapp.md) | Set up the WhatsApp Business integration |
 
----
-
-## 📊 Analytics & Monitoring
-
-| Tutorial | Description | Time |
-|----------|-------------|------|
-| [View Bot Statistics](./view-statistics.md) | Understand usage metrics | 10 min |
-| [Monitor Live Sessions](./monitor-sessions.md) | Watch conversations in real-time | 10 min |
-| [Create Custom Reports](./create-reports.md) | Build dashboards for insights | 20 min |
-| [Export Analytics Data](./export-analytics.md) | Download metrics for external analysis | 10 min |
+For the other channels, see [Channels](../../06-channels/README.md).
 
 ---
 
-## 🎨 Customization
+## Analytics and Monitoring
 
-| Tutorial | Description | Time |
-|----------|-------------|------|
-| [Change Your Bot's Theme](./change-theme.md) | Customize colors and appearance | 10 min |
-| [Add a Custom Logo](./add-logo.md) | Brand your bot interface | 5 min |
-| [Create Custom Cards](./create-cards.md) | Design rich message layouts | 20 min |
-| [Modify the Welcome Message](./welcome-message.md) | Personalize the first interaction | 5 min |
+| Tutorial | Description |
+|----------|-------------|
+| [Monitor Live Sessions](./monitor-sessions.md) | Watch conversations in real time |
 
 ---
 
-## 🏢 Templates
+## Keyboard Shortcuts
 
-| Tutorial | Description | Time |
-|----------|-------------|------|
-| [Install the CRM Template](./install-crm.md) | Set up customer relationship management | 20 min |
-| [Use the HR Template](./use-hr-template.md) | Deploy employee self-service | 15 min |
-| [Configure Compliance Bot](./configure-compliance.md) | Enable privacy request handling | 25 min |
-| [Build from Template](./build-from-template.md) | Customize a template for your needs | 30 min |
+These are the shortcuts implemented in the Suite client. They are declared in the
+frontend sources under `botui/ui/suite/js/`.
 
----
+| Shortcut | Action | Source |
+|----------|--------|--------|
+| `Ctrl/⌘ + K` | Open the command palette | `command-palette.js`, `suite_app.js` |
+| `Ctrl + L` | Open the control center | `control-center.js` |
+| `Ctrl + Space` | Open spotlight search | `spotlight.js` |
+| `Ctrl + ↑` | Toggle mission control | `mission-control.js` |
+| `Ctrl + Shift + 1…9` | Switch virtual desktop | `virtual-desktops.js` |
+| `Ctrl + Shift + ←/→` | Move between virtual desktops | `virtual-desktops.js` |
+| `Ctrl + S` | Save (Editor) | `editor.js` |
+| `Ctrl + Shift + L` | Toggle auto-filter (Sheets) | `modules-sheet-advanced/01_core.js` |
+| `Ctrl + Enter` | Run query (Database) | `database.js` |
+| `Alt` | Open the window menu | `suite_app.js`, `base.js` |
 
-## 🔒 Security & Administration
-
-| Tutorial | Description | Time |
-|----------|-------------|------|
-| [Set Up User Authentication](./setup-auth.md) | Enable secure login | 20 min |
-| [Configure Permissions](./configure-permissions.md) | Control who can do what | 15 min |
-| [Enable Audit Logging](./enable-audit.md) | Track all system activities | 10 min |
-| [Backup Your Bot](./backup-bot.md) | Protect your configuration and data | 15 min |
-
----
-
-## 🐛 Troubleshooting
-
-| Tutorial | Description | Time |
-|----------|-------------|------|
-| [Debug Dialog Errors](./debug-dialogs.md) | Fix common BASIC script problems | 15 min |
-| [Resolve Connection Issues](./resolve-connections.md) | Troubleshoot network problems | 10 min |
-| [Fix Knowledge Base Gaps](./fix-kb-gaps.md) | Improve bot answers | 20 min |
-| [Performance Optimization](./performance-tips.md) | Make your bot faster | 15 min |
+Desktop applications also carry their own shortcuts — see
+[Suite Manual](../suite-manual.md) for the per-application tables.
 
 ---
 
-## Quick Reference Card
+## Getting Help
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        QUICK REFERENCE CARD                             │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  KEYBOARD SHORTCUTS                                                     │
-│  ─────────────────                                                      │
-│  Ctrl + Enter ........ Send message                                     │
-│  Ctrl + K ............ Quick command palette                            │
-│  Ctrl + / ............ Toggle voice input                               │
-│  Ctrl + N ............ New item (context-aware)                         │
-│  Ctrl + S ............ Save current work                                │
-│  Escape .............. Close dialog/panel                               │
-│                                                                         │
-│  COMMON BASIC KEYWORDS                                                  │
-│  ────────────────────                                                   │
-│  TALK "message" ...... Display message to user                          │
-│  HEAR variable ....... Wait for user input                              │
-│  SET BOT MEMORY ...... Store bot-wide data                              │
-│  GET USER MEMORY ..... Retrieve user-specific data                      │
-│  USE KB "name" ....... Activate knowledge base                          │
-│  SEND MAIL ........... Send email notification                          │
-│                                                                         │
-│  WHERE TO GET HELP                                                      │
-│  ─────────────────                                                      │
-│  • Type "help" in Chat for assistance                                   │
-│  • Press F1 anywhere for context help                                   │
-│  • Visit community.pragmatismo.com for forums                           │
-│  • Email support@pragmatismo.com for enterprise support                 │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+- The **Chat** application can answer questions about the Suite itself.
+- Configuration and deployment questions are covered in
+  [Configuration and Deployment](../../10-configuration-and-deployment/README.md).
+- Bugs and feature requests go to the issue tracker linked from this book's
+  [home page](../../README.md).
 
 ---
 
 ## Tips for Following Tutorials
 
-### ✅ Before You Start
+### Before you start
 
-1. **Bookmark this page** — You'll return to it often
-2. **Have the Suite open** — Follow along step-by-step
-3. **Take notes** — Write down customizations you make
-4. **Don't skip steps** — Each step builds on the previous
+1. Keep the Suite open and follow along step by step.
+2. Read an entire step before performing the action.
 
-### ✅ While Following Steps
+### If something goes wrong
 
-1. **Read the entire step first** — Then perform the action
-2. **Match the screenshots** — If your screen looks different, stop and check
-3. **Use exact values** — Type what the tutorial shows, then customize later
-4. **Check results** — Verify each step worked before moving on
-
-### ✅ If Something Goes Wrong
-
-1. **Don't panic** — Most problems have simple solutions
-2. **Re-read the step** — You may have missed something
-3. **Check Troubleshooting** — Each tutorial has a help section
-4. **Ask for help** — The Chat assistant can guide you
+1. Re-read the step — the value must match exactly before you customise it.
+2. Check the **Troubleshooting** section at the end of each tutorial.
+3. Ask the **Chat** application for assistance.
 
 ---
 
-## Icon Legend
+## Marker Legend
 
-Throughout these tutorials, you'll see these indicators:
+Throughout the book you will see these indicators:
 
-| Icon | Meaning |
-|------|---------|
-| 💡 | **Tip** — Helpful suggestion to work more efficiently |
-| ⚠️ | **Warning** — Important caution to avoid problems |
-| 📝 | **Note** — Additional information or context |
-| ✅ | **Checkpoint** — Verify your progress before continuing |
-| 🔧 | **Configuration** — Settings you may need to adjust |
-
----
-
-## Version Information
-
-These tutorials are written for:
-- **General Bots Suite** version 5.0+
-- **Browser**: Chrome, Firefox, Safari, or Edge (latest versions)
-- **Last Updated**: 2025
-
-If you're using an older version, some screens may look different.
+| Marker | Meaning |
+|--------|---------|
+| 🟢 | **GA** — generally available |
+| 🟡 | **PREVIEW** — usable, still changing |
+| ℹ️ | **Note** — additional context |
+| ⚠️ | **Warning** — a caution worth reading |
 
 ---
 
-*"The best way to learn is to do."*
-
-**Start with [Create Your First Bot](./create-first-bot.md)** →
+**Start with [Create Your First Bot](./create-first-bot.md).**

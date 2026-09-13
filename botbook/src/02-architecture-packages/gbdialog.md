@@ -218,7 +218,7 @@ TALK "What would you like to know about our products?"
 ## Advanced Features
 
 ### Memory Management
-See [Storage documentation](../08-rest-api-tools.md) for persistent data options.
+See Storage documentation for persistent data options.
 ```basic
 SET BOT MEMORY "company_policy", policy_text
 ' Available across all sessions
@@ -236,7 +236,7 @@ SET BOT MEMORY "api_summary", summary
 ```
 
 ### Suggestions
-See [UI Interface](../07-user-interface/ui-interface.md) for UI integration.
+See UI Interface for UI integration.
 ```basic
 ADD SUGGESTION "Schedule Meeting" AS "schedule"
 ADD SUGGESTION "View Products" AS "products"

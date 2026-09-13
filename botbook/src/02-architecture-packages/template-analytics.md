@@ -419,7 +419,6 @@ POST "https://bi-tool.example.com/webhook", data
 ## Related Templates
 
 - [BI Template](./template-bi.md) - Business Intelligence reporting
-- [Talk to Data](./template-talk-to-data.md) - Natural language data queries
 - [CRM](./template-crm.md) - CRM analytics and pipeline reports
 
 ---

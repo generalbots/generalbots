@@ -352,10 +352,8 @@ Generated apps use HTMX to communicate directly with botserver:
 
 ## See Also
 
-- [Autonomous Tasks - Complete Guide](../../17-autonomous-tasks/README.md) — Full documentation
 - [Task Workflow](../../05-multi-agent/workflow.md) — How tasks execute step by step
 - [App Generation](../../05-multi-agent/app-generation.md) — Understanding generated apps
 - [Data Model](../../05-multi-agent/data-model.md) — How tables work
-- [Examples](../../17-autonomous-tasks/examples.md) — Real-world use cases
 - [Designer](./designer.md) — Modify apps through conversation
 - [HTMX Architecture](../htmx-architecture.md) — How the UI works

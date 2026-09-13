@@ -411,7 +411,6 @@ CMD ["npm", "start"]
 ## Related Templates
 
 - [LLM Tools](./template-llm-tools.md) - LLM with tool/function calling
-- [Store](./template-store.md) - Full e-commerce with order processing
 - [API Client](./template-api-client.md) - API integration examples
 
 ---

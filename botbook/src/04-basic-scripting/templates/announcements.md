@@ -386,7 +386,6 @@ TALK "Announcement published and distributed."
 
 - [broadcast.bas](./broadcast.md) - Mass messaging to employees
 - [edu.bas](./edu.md) - Educational announcements
-- [hr-employees.bas](./hr-employees.md) - Employee communications
 
 ---
 

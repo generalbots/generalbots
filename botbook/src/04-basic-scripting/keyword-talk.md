@@ -395,7 +395,6 @@ result_status = "ok"
 
 ## Related Keywords
 
-- [SEND FILE TO](./keyword-send-file-to.md) - Send files to specific recipients
 - [SEND MAIL](./keyword-send-mail.md) - Send emails with subject and attachments
 - [HEAR](./keyword-hear.md) - Receive input from users
 - [PRINT](./keyword-print.md) - Alias for TALK (debug output)

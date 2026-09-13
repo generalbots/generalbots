@@ -290,4 +290,3 @@ NEXT
 - [SET](./keyword-set.md) - Update database records
 - [GET](./keyword-get.md) - Retrieve single values
 - [FOR EACH](./keyword-for-each.md) - Iterate over results
-- [LLM](./keyword-llm.md) - Process found data with AI

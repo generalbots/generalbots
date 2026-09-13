@@ -309,7 +309,6 @@ END IF
 ## Related Templates
 
 - [talk-to-data.md](./talk-to-data.md) - Query structured data with natural language
-- [crawler.md](./crawler.md) - Crawl websites to build knowledge bases
 
 ---
 

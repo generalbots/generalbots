@@ -244,5 +244,4 @@ alert-memory-warning,90
 - [Suite Manual](../suite-manual.md) - Complete user guide
 - [Admin Panel](./admin.md) - System administration
 - [Analytics](./analytics.md) - Business metrics
-- [BASIC Monitoring Keywords](../../04-basic-scripting/keyword-monitoring.md) - Script integration
 - [Enterprise Agent Governance](../../09-security/enterprise-agent-governance.md) - Governance dashboard, kill switches & security auditing

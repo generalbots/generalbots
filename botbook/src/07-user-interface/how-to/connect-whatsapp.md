@@ -698,4 +698,3 @@ whatsapp-business-account-id,987654321098765
 - [Chat App](../apps/chat.md) - Web chat interface
 - [Sources App](../apps/sources.md) - Bot configuration
 - [Compliance App](../apps/compliance.md) - Data privacy for WhatsApp
-- [BASIC Keywords](../../04-basic-scripting/keywords-reference.md) - WhatsApp-specific keywords

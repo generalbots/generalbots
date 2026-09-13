@@ -132,7 +132,4 @@ Or deploy with default settings by typing "Deploy with defaults."
 
 ## Related Pages
 
-- [Bot Builder](../bot-builder.md) — Visual bot creation tool
 - [Marketplace](../../13-ai-os/marketplace.md) — Community templates marketplace
-- [Deployment](../deployment.md) — Bot deployment guides
-- [Custom Bots](../custom-bots.md) — Building bots from scratch

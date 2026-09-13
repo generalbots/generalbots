@@ -389,7 +389,7 @@ See [Contributing Guidelines](./contributing-guidelines.md) for:
 
 ## Next Steps
 
-- Read the [Architecture Overview](../04-basic-scripting/architecture.md)
+- Read the Architecture Overview
 - Explore the [BASIC Language Reference](../07-user-interface/README.md)
 - Review [Code Standards](./standards.md)
 - Start with a [good first issue](https://github.com/GeneralBots/botserver/labels/good%20first%20issue)

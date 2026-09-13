@@ -464,8 +464,6 @@ Use `TRY...CATCH` for:
 
 ## Related Keywords
 
-- [THROW](keyword-throw.md) — Raise custom errors
-- [ASSERT](keyword-assert.md) — Assert conditions
 - [PRINT](keyword-print.md) — Debug output for error logging
 - [WAIT](keyword-wait.md) — Delay before retry
 

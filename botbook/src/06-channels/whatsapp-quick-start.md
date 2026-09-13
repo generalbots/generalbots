@@ -219,8 +219,8 @@ END ON
 
 - 📖 [Full Documentation](./README.md)
 - 🔧 [Troubleshooting Guide](../12-ecosystem-reference/troubleshooting.md)
-- 💻 [Code Examples](./examples.md)
-- 🌐 [Webhook Configuration](./webhooks.md)
+- 💻 Code Examples
+- 🌐 Webhook Configuration
 - 💬 [Community Discord](https://discord.gg/general-bots)
 
 ## Verification Checklist

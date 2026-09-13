@@ -347,5 +347,4 @@ NEXT
 
 - [Task Management](../07-user-interface/apps/tasks.md) - Task app integration
 - [Calendar Integration](../07-user-interface/apps/calendar.md) - Scheduling
-- [Forms Integration](./forms.md) - Task intake forms
 - [BASIC Reference](../04-basic-scripting/keywords.md) - Automation keywords

@@ -595,5 +595,4 @@ CREATE TABLE sent_email_tracking (
 
 - [SEND MAIL Keyword](../04-basic-scripting/keyword-send-mail.md) - BASIC email
 - [CREATE DRAFT Keyword](../04-basic-scripting/keyword-create-draft.md) - Draft creation
-- [External Services](../appendix-external-services/README.md) - Service configuration
 - [Configuration Parameters](../10-configuration-deployment/parameters.md) - email-read-pixel setting

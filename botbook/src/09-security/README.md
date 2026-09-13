@@ -82,7 +82,6 @@ These permissions are enforced during vector search, ensuring users only see con
 ## Quick Links
 
 - [Authentication & Permissions](../09-security/README.md) - Basic auth setup
-- [API Security](../08-rest-api-tools/authentication.md) - API authentication
 - [Subscription & Billing](../12-ecosystem-reference/billing.md) - Plan-based access control
 
 ## Best Practices
