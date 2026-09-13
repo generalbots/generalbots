@@ -610,4 +610,3 @@
    - [Glossary](./glossary.md)
    - [Contact](./contact/README.md)
    - [Features](./features.md)
-   - [Attendance](./attendance.md)
