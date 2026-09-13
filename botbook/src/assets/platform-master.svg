@@ -1,0 +1,293 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="2078" viewBox="0 0 1500 2078" role="img">
+  <defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#8b949e"/></marker></defs>
+  <text x="750.0" y="56" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="30" font-weight="700" fill="#8b949e" text-anchor="middle">General Bots — Platform Architecture</text>
+  <text x="750.0" y="82" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="15" font-weight="400" fill="#6e7781" text-anchor="middle">Self-hosted multi-agent platform · single Rust workspace · no cloud dependency</text>
+  <rect x="355.0" y="96" width="150" height="30" rx="15" fill="none" stroke="#7c3aed" stroke-opacity="0.5" stroke-width="1.5"/>
+  <text x="430.0" y="116" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#7c3aed" text-anchor="middle">1 Request</text>
+  <rect x="515.0" y="96" width="150" height="30" rx="15" fill="none" stroke="#7c3aed" stroke-opacity="0.5" stroke-width="1.5"/>
+  <text x="590.0" y="116" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#7c3aed" text-anchor="middle">2 Process</text>
+  <rect x="675.0" y="96" width="150" height="30" rx="15" fill="none" stroke="#7c3aed" stroke-opacity="0.5" stroke-width="1.5"/>
+  <text x="750.0" y="116" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#7c3aed" text-anchor="middle">3 Decide</text>
+  <rect x="835.0" y="96" width="150" height="30" rx="15" fill="none" stroke="#7c3aed" stroke-opacity="0.5" stroke-width="1.5"/>
+  <text x="910.0" y="116" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#7c3aed" text-anchor="middle">4 Execute</text>
+  <rect x="995.0" y="96" width="150" height="30" rx="15" fill="none" stroke="#7c3aed" stroke-opacity="0.5" stroke-width="1.5"/>
+  <text x="1070.0" y="116" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#7c3aed" text-anchor="middle">5 Respond</text>
+  <rect x="26" y="142" width="1448" height="206" rx="14" fill="none" stroke="#8b949e" stroke-opacity="0.32" stroke-width="1.5"/>
+  <rect x="26" y="142" width="4" height="206" rx="2" fill="#7c3aed" fill-opacity="0.55"/>
+  <text x="48" y="174" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="19" font-weight="700" fill="#7c3aed" text-anchor="start">Clients &amp; Channels</text>
+  <text x="1452" y="174" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="end">every surface is a first-class entry point</text>
+  <rect x="48.0" y="194" width="224.0" height="62" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="160.0" y="220.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Web Chat</text>
+  <text x="160.0" y="242.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">botui suite · 80 apps</text>
+  <rect x="284.0" y="194" width="224.0" height="62" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="396.0" y="220.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">botapp</text>
+  <text x="396.0" y="242.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">Tauri · desktop &amp; mobile</text>
+  <rect x="520.0" y="194" width="224.0" height="62" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="632.0" y="220.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">botdevice</text>
+  <text x="632.0" y="242.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">Android · AOSP / Magisk</text>
+  <rect x="756.0" y="194" width="224.0" height="62" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="868.0" y="220.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">WhatsApp</text>
+  <text x="868.0" y="242.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">Business API</text>
+  <rect x="992.0" y="194" width="224.0" height="62" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1104.0" y="220.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">MS Teams</text>
+  <text x="1104.0" y="242.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">Bot Framework</text>
+  <rect x="1228.0" y="194" width="224.0" height="62" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1340.0" y="220.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Telegram</text>
+  <text x="1340.0" y="242.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">Bot API</text>
+  <rect x="48.0" y="266" width="224.0" height="62" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="160.0" y="292.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Instagram</text>
+  <text x="160.0" y="314.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">messaging</text>
+  <rect x="284.0" y="266" width="224.0" height="62" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="396.0" y="292.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Email</text>
+  <text x="396.0" y="314.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">IMAP / SMTP · Stalwart</text>
+  <rect x="520.0" y="266" width="224.0" height="62" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="632.0" y="292.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Voice &amp; Video</text>
+  <text x="632.0" y="314.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">LiveKit · meeting bots</text>
+  <rect x="756.0" y="266" width="224.0" height="62" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="868.0" y="292.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">REST API</text>
+  <text x="868.0" y="314.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">Bearer · OAuth 2.0</text>
+  <rect x="992.0" y="266" width="224.0" height="62" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1104.0" y="292.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Webhooks</text>
+  <text x="1104.0" y="314.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">inbound &amp; outbound</text>
+  <rect x="1228.0" y="266" width="224.0" height="62" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1340.0" y="292.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Subdomains</text>
+  <text x="1340.0" y="314.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">{bot}.generalbots.org</text>
+  <rect x="26" y="364" width="1448" height="118" rx="14" fill="none" stroke="#8b949e" stroke-opacity="0.32" stroke-width="1.5"/>
+  <rect x="26" y="364" width="4" height="118" rx="2" fill="#7c3aed" fill-opacity="0.55"/>
+  <text x="48" y="396" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="19" font-weight="700" fill="#7c3aed" text-anchor="start">Edge</text>
+  <text x="1452" y="396" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="end">TLS, routing, name resolution</text>
+  <rect x="48.0" y="416" width="460.0" height="54" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="278.0" y="438.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Caddy</text>
+  <text x="278.0" y="460.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">TLS termination · reverse proxy</text>
+  <rect x="520.0" y="416" width="460.0" height="54" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="750.0" y="438.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">CoreDNS</text>
+  <text x="750.0" y="460.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">zone per domain · wildcard {bot}</text>
+  <rect x="992.0" y="416" width="460.0" height="54" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1222.0" y="438.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Port map</text>
+  <text x="1222.0" y="460.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">3000 suite · 4000 cloud · 5000 login · 8080 API/WS</text>
+  <rect x="26" y="498" width="1448" height="148" rx="14" fill="none" stroke="#8b949e" stroke-opacity="0.32" stroke-width="1.5"/>
+  <rect x="26" y="498" width="4" height="148" rx="2" fill="#7c3aed" fill-opacity="0.55"/>
+  <text x="48" y="530" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="19" font-weight="700" fill="#7c3aed" text-anchor="start">botui — Front Ends  (Rust · Axum · one binary, three ports)</text>
+  <rect x="48.0" y="550" width="460.0" height="68" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="278.0" y="579.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">suite :3000</text>
+  <text x="278.0" y="601.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">desktop shell · window manager · 80 HTMX apps</text>
+  <rect x="520.0" y="550" width="460.0" height="68" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="750.0" y="579.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">cloud :4000</text>
+  <text x="750.0" y="601.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">store · plans · offers · dashboard — no login</text>
+  <rect x="992.0" y="550" width="460.0" height="68" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1222.0" y="579.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">login :5000</text>
+  <text x="1222.0" y="601.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">the only auth surface: login, signup, SSO</text>
+  <rect x="26" y="662" width="1448" height="668" rx="14" fill="none" stroke="#8b949e" stroke-opacity="0.32" stroke-width="1.5"/>
+  <rect x="26" y="662" width="4" height="668" rx="2" fill="#7c3aed" fill-opacity="0.55"/>
+  <text x="48" y="694" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="19" font-weight="700" fill="#7c3aed" text-anchor="start">botserver — Core Runtime  (Rust · Axum · 113 domain crates)</text>
+  <text x="48" y="718" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#8b949e" text-anchor="start">Transport &amp; surfaces</text>
+  <rect x="48.0" y="726" width="224.0" height="54" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="160.0" y="748.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">HTTP routes</text>
+  <text x="160.0" y="770.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">~20 route modules</text>
+  <rect x="284.0" y="726" width="224.0" height="54" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="396.0" y="748.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">WebSocket /ws</text>
+  <text x="396.0" y="770.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">session · streaming</text>
+  <rect x="520.0" y="726" width="224.0" height="54" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="632.0" y="748.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Channel adapters</text>
+  <text x="632.0" y="770.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">per-channel inbound</text>
+  <rect x="756.0" y="726" width="224.0" height="54" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="868.0" y="748.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">SSO &amp; anonymous</text>
+  <text x="868.0" y="770.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">cloud + chat tokens</text>
+  <rect x="992.0" y="726" width="224.0" height="54" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1104.0" y="748.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Task progress WS</text>
+  <text x="1104.0" y="770.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">long-running jobs</text>
+  <rect x="1228.0" y="726" width="224.0" height="54" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1340.0" y="748.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Health &amp; metrics</text>
+  <text x="1340.0" y="770.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">/health · dashboards</text>
+  <text x="48" y="816" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#8b949e" text-anchor="start">Message pipeline</text>
+  <rect x="48.0" y="828" width="171.42857142857142" height="62" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.5"/>
+  <text x="133.71428571428572" y="855.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">channel_entry</text>
+  <text x="133.71428571428572" y="876.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="middle">normalise</text>
+  <line x1="219.42857142857142" y1="859.0" x2="253.42857142857142" y2="859.0" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.6" marker-end="url(#a)"/>
+  <rect x="253.42857142857142" y="828" width="171.42857142857142" height="62" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.5"/>
+  <text x="339.1428571428571" y="855.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">consent_gate</text>
+  <text x="339.1428571428571" y="876.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="middle">policy</text>
+  <line x1="424.85714285714283" y1="859.0" x2="458.85714285714283" y2="859.0" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.6" marker-end="url(#a)"/>
+  <rect x="458.85714285714283" y="828" width="171.42857142857142" height="62" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.5"/>
+  <text x="544.5714285714286" y="855.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">start.bas</text>
+  <text x="544.5714285714286" y="876.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="middle">once / session</text>
+  <line x1="630.2857142857142" y1="859.0" x2="664.2857142857142" y2="859.0" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.6" marker-end="url(#a)"/>
+  <rect x="664.2857142857142" y="828" width="171.42857142857142" height="62" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.5"/>
+  <text x="749.9999999999999" y="855.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">kb · RAG</text>
+  <text x="749.9999999999999" y="876.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="middle">rag_modes</text>
+  <line x1="835.7142857142857" y1="859.0" x2="869.7142857142857" y2="859.0" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.6" marker-end="url(#a)"/>
+  <rect x="869.7142857142857" y="828" width="171.42857142857142" height="62" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.5"/>
+  <text x="955.4285714285713" y="855.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">api_catalog</text>
+  <text x="955.4285714285713" y="876.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="middle">RBAC filtered</text>
+  <line x1="1041.142857142857" y1="859.0" x2="1075.142857142857" y2="859.0" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.6" marker-end="url(#a)"/>
+  <rect x="1075.142857142857" y="828" width="171.42857142857142" height="62" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.5"/>
+  <text x="1160.857142857143" y="855.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">tool_exec</text>
+  <text x="1160.857142857143" y="876.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="middle">type 6 · no LLM</text>
+  <line x1="1246.5714285714284" y1="859.0" x2="1280.5714285714284" y2="859.0" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.6" marker-end="url(#a)"/>
+  <rect x="1280.5714285714284" y="828" width="171.42857142857142" height="62" rx="9" fill="none" stroke="#7c3aed" stroke-opacity="0.7" stroke-width="1.5"/>
+  <text x="1366.2857142857142" y="855.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#7c3aed" text-anchor="middle">sink</text>
+  <text x="1366.2857142857142" y="876.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="middle">stream out</text>
+  <text x="48" y="910" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="start">side hooks:  memory_hook  ·  mentions  ·  agent_vm_hook  ·  multimedia</text>
+  <text x="48" y="936" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#8b949e" text-anchor="start">Engines</text>
+  <rect x="48.0" y="948" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="183.6" y="972.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">BASIC interpreter</text>
+  <text x="183.6" y="994.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">Rhai · 124 keywords · 7 crates</text>
+  <rect x="331.2" y="948" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="466.79999999999995" y="972.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Drive compiler</text>
+  <text x="466.79999999999995" y="994.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">.bas → .ast at sync time</text>
+  <rect x="614.4" y="948" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="750.0" y="972.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">App registry + ui_plan</text>
+  <text x="750.0" y="994.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">the LLM's UI automation surface</text>
+  <rect x="897.5999999999999" y="948" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1033.1999999999998" y="972.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">API command catalog</text>
+  <text x="1033.1999999999998" y="994.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">declarative, role-filtered</text>
+  <rect x="1180.8" y="948" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1316.3999999999999" y="972.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">AutoTask</text>
+  <text x="1316.3999999999999" y="994.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">plans, schedules, executes</text>
+  <text x="48" y="1040" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#8b949e" text-anchor="start">Security rails</text>
+  <rect x="48.0" y="1052" width="696.0" height="56" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="396.0" y="1075.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">botsecurity-auth</text>
+  <text x="396.0" y="1097.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">JWT · MFA · CSRF · RBAC · Zitadel · rate limiter</text>
+  <rect x="756.0" y="1052" width="696.0" height="56" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1104.0" y="1075.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">botsecurity-core</text>
+  <text x="1104.0" y="1097.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">SafeCommand · sql_guard · path_guard · DLP · audit · headers</text>
+  <text x="48" y="1142" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#8b949e" text-anchor="start">113 domain crates, grouped</text>
+  <rect x="48.0" y="1154" width="343.5" height="52" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="219.75" y="1175.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Core runtime · 11</text>
+  <text x="219.75" y="1197.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">api · core · corebot · coredirectory · …</text>
+  <rect x="401.5" y="1154" width="343.5" height="52" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="573.25" y="1175.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">BASIC engine · 7</text>
+  <text x="573.25" y="1197.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">basic_types · basic_core · basic_data · …</text>
+  <rect x="755.0" y="1154" width="343.5" height="52" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="926.75" y="1175.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">AI &amp; knowledge · 15</text>
+  <text x="926.75" y="1197.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">agent · llm · qdrant · modelsbridge · gl · …</text>
+  <rect x="1108.5" y="1154" width="343.5" height="52" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1280.25" y="1175.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Channels · 8</text>
+  <text x="1280.25" y="1197.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">channels · channels-core · whatsapp · …</text>
+  <rect x="48.0" y="1216" width="343.5" height="52" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="219.75" y="1237.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Business · 18</text>
+  <text x="219.75" y="1259.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">people · contacts · tickets · attendance · …</text>
+  <rect x="401.5" y="1216" width="343.5" height="52" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="573.25" y="1237.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Productivity · 14</text>
+  <text x="573.25" y="1259.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">calendar · docs · sheet · sheet-core · …</text>
+  <rect x="755.0" y="1216" width="343.5" height="52" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="926.75" y="1237.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Security &amp; compliance · 12</text>
+  <text x="926.75" y="1259.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">security · security-auth · security-core · …</text>
+  <rect x="1108.5" y="1216" width="343.5" height="52" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1280.25" y="1237.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Platform &amp; operations · 28</text>
+  <text x="1280.25" y="1259.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">cloud · workspaces · deployment · m365 · …</text>
+  <rect x="26" y="1346" width="1448" height="184" rx="14" fill="none" stroke="#8b949e" stroke-opacity="0.32" stroke-width="1.5"/>
+  <rect x="26" y="1346" width="4" height="184" rx="2" fill="#7c3aed" fill-opacity="0.55"/>
+  <text x="48" y="1378" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="19" font-weight="700" fill="#7c3aed" text-anchor="start">AI Layer</text>
+  <text x="1452" y="1378" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="end">model-agnostic, with graceful degradation</text>
+  <rect x="48.0" y="1398" width="342.0" height="60" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="219.0" y="1423.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">botllm routing</text>
+  <text x="219.0" y="1445.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">smart router · council · breaker</text>
+  <rect x="402.0" y="1398" width="342.0" height="60" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="573.0" y="1423.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Response cache</text>
+  <text x="573.0" y="1445.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">semantic cache · episodic memory</text>
+  <rect x="756.0" y="1398" width="342.0" height="60" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="927.0" y="1423.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Quality</text>
+  <text x="927.0" y="1445.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">hallucination detector · evaluation</text>
+  <rect x="1110.0" y="1398" width="342.0" height="60" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1281.0" y="1423.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Providers</text>
+  <text x="1281.0" y="1445.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">Claude · Bedrock · Vertex · GLM · Kimi</text>
+  <rect x="48.0" y="1468" width="342.0" height="60" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="219.0" y="1493.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Local models</text>
+  <text x="219.0" y="1515.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">llama.cpp · OpenAI-compatible</text>
+  <rect x="402.0" y="1468" width="342.0" height="60" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="573.0" y="1493.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">RAG</text>
+  <text x="573.0" y="1515.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">Qdrant · chunking · embeddings</text>
+  <rect x="756.0" y="1468" width="342.0" height="60" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="927.0" y="1493.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">botmodels</text>
+  <text x="927.0" y="1515.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">Python: image, video, speech</text>
+  <rect x="1110.0" y="1468" width="342.0" height="60" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1281.0" y="1493.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Bot memories</text>
+  <text x="1281.0" y="1515.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">bot memory · session context</text>
+  <rect x="26" y="1546" width="1448" height="184" rx="14" fill="none" stroke="#8b949e" stroke-opacity="0.32" stroke-width="1.5"/>
+  <rect x="26" y="1546" width="4" height="184" rx="2" fill="#7c3aed" fill-opacity="0.55"/>
+  <text x="48" y="1578" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="19" font-weight="700" fill="#7c3aed" text-anchor="start">Data &amp; Platform Services</text>
+  <text x="1452" y="1578" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="end">each runs in its own container</text>
+  <rect x="48.0" y="1598" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="183.6" y="1622.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">PostgreSQL</text>
+  <text x="183.6" y="1644.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">state · migrations · tables</text>
+  <rect x="331.2" y="1598" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="466.79999999999995" y="1622.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Vault</text>
+  <text x="466.79999999999995" y="1644.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">per-bot secrets · LLM keys</text>
+  <rect x="614.4" y="1598" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="750.0" y="1622.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Valkey</text>
+  <text x="750.0" y="1644.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">cache · sessions · limits</text>
+  <rect x="897.5999999999999" y="1598" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1033.1999999999998" y="1622.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">MinIO (S3)</text>
+  <text x="1033.1999999999998" y="1644.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">drive: {bot}.gbai</text>
+  <rect x="1180.8" y="1598" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1316.3999999999999" y="1622.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Zitadel</text>
+  <text x="1316.3999999999999" y="1644.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">OIDC identity provider</text>
+  <rect x="48.0" y="1666" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="183.6" y="1690.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Qdrant</text>
+  <text x="183.6" y="1712.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">vectors, per tenant</text>
+  <rect x="331.2" y="1666" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="466.79999999999995" y="1690.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Stalwart</text>
+  <text x="466.79999999999995" y="1712.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">mail server · DKIM</text>
+  <rect x="614.4" y="1666" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="750.0" y="1690.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">LiveKit</text>
+  <text x="750.0" y="1712.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">voice &amp; video rooms</text>
+  <rect x="897.5999999999999" y="1666" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1033.1999999999998" y="1690.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">NocoDB</text>
+  <text x="1033.1999999999998" y="1712.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">table editor</text>
+  <rect x="1180.8" y="1666" width="271.2" height="58" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1316.3999999999999" y="1690.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Roundcube</text>
+  <text x="1316.3999999999999" y="1712.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">webmail</text>
+  <rect x="26" y="1746" width="1448" height="172" rx="14" fill="none" stroke="#8b949e" stroke-opacity="0.32" stroke-width="1.5"/>
+  <rect x="26" y="1746" width="4" height="172" rx="2" fill="#7c3aed" fill-opacity="0.55"/>
+  <text x="48" y="1778" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="19" font-weight="700" fill="#7c3aed" text-anchor="start">Tenancy &amp; Drive Model</text>
+  <text x="1452" y="1778" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="end">configuration lives in the drive, not on disk</text>
+  <rect x="48.0" y="1798" width="171.42857142857142" height="56" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.5"/>
+  <text x="133.71428571428572" y="1822.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">{org}.gborg</text>
+  <text x="133.71428571428572" y="1843.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="middle">tenant</text>
+  <line x1="219.42857142857142" y1="1826.0" x2="253.42857142857142" y2="1826.0" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.6" marker-end="url(#a)"/>
+  <rect x="253.42857142857142" y="1798" width="171.42857142857142" height="56" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.5"/>
+  <text x="339.1428571428571" y="1822.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">{workspace}.gbai</text>
+  <text x="339.1428571428571" y="1843.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="middle">branch</text>
+  <line x1="424.85714285714283" y1="1826.0" x2="458.85714285714283" y2="1826.0" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.6" marker-end="url(#a)"/>
+  <rect x="458.85714285714283" y="1798" width="171.42857142857142" height="56" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.5"/>
+  <text x="544.5714285714286" y="1822.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">{bot}</text>
+  <text x="544.5714285714286" y="1843.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="middle">agent</text>
+  <line x1="630.2857142857142" y1="1826.0" x2="664.2857142857142" y2="1826.0" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.6" marker-end="url(#a)"/>
+  <rect x="664.2857142857142" y="1798" width="171.42857142857142" height="56" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.5"/>
+  <text x="749.9999999999999" y="1822.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">{bot}.gbot</text>
+  <text x="749.9999999999999" y="1843.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="middle">LLM config → Vault</text>
+  <line x1="835.7142857142857" y1="1826.0" x2="869.7142857142857" y2="1826.0" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.6" marker-end="url(#a)"/>
+  <rect x="869.7142857142857" y="1798" width="171.42857142857142" height="56" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.5"/>
+  <text x="955.4285714285713" y="1822.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">{bot}.gbdialog</text>
+  <text x="955.4285714285713" y="1843.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="middle">scripts, tools, tables</text>
+  <line x1="1041.142857142857" y1="1826.0" x2="1075.142857142857" y2="1826.0" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.6" marker-end="url(#a)"/>
+  <rect x="1075.142857142857" y="1798" width="171.42857142857142" height="56" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.5"/>
+  <text x="1160.857142857143" y="1822.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">{bot}.gbkb</text>
+  <text x="1160.857142857143" y="1843.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="middle">knowledge base</text>
+  <line x1="1246.5714285714284" y1="1826.0" x2="1280.5714285714284" y2="1826.0" stroke="#8b949e" stroke-opacity="0.5" stroke-width="1.6" marker-end="url(#a)"/>
+  <rect x="1280.5714285714284" y="1798" width="171.42857142857142" height="56" rx="9" fill="none" stroke="#7c3aed" stroke-opacity="0.7" stroke-width="1.5"/>
+  <text x="1366.2857142857142" y="1822.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#7c3aed" text-anchor="middle">{bot}.gbdrive</text>
+  <text x="1366.2857142857142" y="1843.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="middle">files &amp; reports</text>
+  <text x="48" y="1876" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="start">drive_monitors watches MinIO, discovers tenants and bots, compiles .bas → .ast, registers tools  ·  LLM settings resolve per-bot → nil → global secret/gbo/llm</text>
+  <rect x="26" y="1934" width="1448" height="134" rx="14" fill="none" stroke="#8b949e" stroke-opacity="0.32" stroke-width="1.5"/>
+  <rect x="26" y="1934" width="4" height="134" rx="2" fill="#7c3aed" fill-opacity="0.55"/>
+  <text x="48" y="1966" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="19" font-weight="700" fill="#7c3aed" text-anchor="start">Operations</text>
+  <text x="1452" y="1966" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#6e7781" text-anchor="end">deploys itself: push to ALM, CI builds, CI deploys</text>
+  <rect x="48.0" y="1992" width="271.2" height="54" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="183.6" y="2014.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Forgejo :4747</text>
+  <text x="183.6" y="2036.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">git server</text>
+  <rect x="331.2" y="1992" width="271.2" height="54" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="466.79999999999995" y="2014.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">CI runner</text>
+  <text x="466.79999999999995" y="2036.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">build · test · deploy</text>
+  <rect x="614.4" y="1992" width="271.2" height="54" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="750.0" y="2014.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">systemd</text>
+  <text x="750.0" y="2036.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">botserver · botui · services</text>
+  <rect x="897.5999999999999" y="1992" width="271.2" height="54" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1033.1999999999998" y="2014.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Backups</text>
+  <text x="1033.1999999999998" y="2036.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">snapshots + remote S3</text>
+  <rect x="1180.8" y="1992" width="271.2" height="54" rx="9" fill="none" stroke="#8b949e" stroke-opacity="0.45" stroke-width="1.5"/>
+  <text x="1316.3999999999999" y="2014.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="16" font-weight="600" fill="#8b949e" text-anchor="middle">Monitoring</text>
+  <text x="1316.3999999999999" y="2036.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="400" fill="#6e7781" text-anchor="middle">health · alerts</text>
+</svg>

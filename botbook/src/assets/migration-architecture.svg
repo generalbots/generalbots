@@ -346,7 +346,7 @@
 
     // Listen for theme changes if possible
     try {
-      if (window.parent && window.parent !== window) {
+      if (window.parent &amp;&amp; window.parent !== window) {
         // Try to observe parent document changes
         const observer = new MutationObserver(updateTheme);
         observer.observe(window.parent.document.documentElement, {

@@ -133,7 +133,7 @@
     <!-- BASIC Interpreter -->
     <rect x="230" y="75" width="200" height="45" rx="6" fill="#FEF3C7" stroke="#FCD34D" stroke-width="1"/>
     <text x="330" y="95" text-anchor="middle" font-size="11" font-weight="600" class="main-text">BASIC Interpreter</text>
-    <text x="330" y="110" text-anchor="middle" font-size="9" class="mono-text">90+ Keywords</text>
+    <text x="330" y="110" text-anchor="middle" font-size="9" class="mono-text">124 Keywords</text>
 
     <!-- LLM Integration -->
     <rect x="20" y="130" width="200" height="45" rx="6" fill="#F5F3FF" stroke="#DDD6FE" stroke-width="1"/>
@@ -163,7 +163,7 @@
     <!-- Data services bar -->
     <rect x="20" y="235" width="410" height="35" rx="6" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
     <text x="60" y="257" text-anchor="middle" font-size="9" class="mono-text">PostgreSQL</text>
-    <text x="140" y="257" text-anchor="middle" font-size="9" class="mono-text">SeaweedFS</text>
+    <text x="140" y="257" text-anchor="middle" font-size="9" class="mono-text">MinIO</text>
     <text x="220" y="257" text-anchor="middle" font-size="9" class="mono-text">Valkey</text>
     <text x="300" y="257" text-anchor="middle" font-size="9" class="mono-text">Zitadel</text>
     <text x="380" y="257" text-anchor="middle" font-size="9" class="mono-text">Stalwart</text>
@@ -198,7 +198,7 @@
     <rect x="0" y="160" width="220" height="50" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" filter="url(#cardShadow)"/>
     <circle cx="30" cy="185" r="15" fill="url(#cyanGrad)"/>
     <text x="28" y="190" text-anchor="middle" font-size="10" font-weight="700" class="white-text">📊</text>
-    <text x="130" y="182" text-anchor="middle" font-size="12" font-weight="500" class="main-text">Data & Files</text>
+    <text x="130" y="182" text-anchor="middle" font-size="12" font-weight="500" class="main-text">Data &amp; Files</text>
     <text x="130" y="196" text-anchor="middle" font-size="10" class="mono-text">Drive, Mail, Calendar</text>
   </g>
 

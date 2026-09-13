@@ -144,7 +144,7 @@
     <text x="460" y="535" text-anchor="middle" font-size="12" class="secondary-text">Vector Search</text>
 
     <rect x="550" y="480" width="160" height="70" class="neon-purple" rx="6.5"/>
-    <text x="630" y="515" text-anchor="middle" font-size="18" font-weight="500" class="main-text">SeaweedFS</text>
+    <text x="630" y="515" text-anchor="middle" font-size="18" font-weight="500" class="main-text">MinIO</text>
     <text x="630" y="535" text-anchor="middle" font-size="12" class="secondary-text">Object Storage</text>
 
     <rect x="730" y="480" width="140" height="70" class="neon-cyan" rx="6.5"/>

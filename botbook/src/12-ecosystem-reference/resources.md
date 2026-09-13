@@ -108,7 +108,7 @@ Professional services templates cover client onboarding, project management work
 
 ### High Availability
 
-For production deployments requiring high availability, configure PostgreSQL replication for database resilience, load-balanced botserver instances for horizontal scaling, distributed SeaweedFS storage for file redundancy, and Redis/Valkey clustering for cache availability.
+For production deployments requiring high availability, configure PostgreSQL replication for database resilience, load-balanced botserver instances for horizontal scaling, distributed MinIO storage for file redundancy, and Redis/Valkey clustering for cache availability.
 
 ### Backup Strategy
 
@@ -121,7 +121,7 @@ SET SCHEDULE "every day at 2am"
 result = POST "https://backup.internal/postgres", #{database: "botserver"}
 
 ' File storage backup
-result = POST "https://backup.internal/seaweedfs", #{bucket: "all"}
+result = POST "https://backup.internal/minio", #{bucket: "all"}
 
 ' Notify on completion
 SEND MAIL TO "ops@company.com" SUBJECT "Backup Complete" BODY result

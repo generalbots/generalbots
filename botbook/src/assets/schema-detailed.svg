@@ -254,4 +254,6 @@
 
     <text x="180" y="45" fill="#a0a0a0" font-family="system-ui, sans-serif" font-size="10">JSONB = JSON Binary</text>
     <text x="180" y="65" fill="#a0a0a0" font-family="system-ui, sans-serif" font-size="10">TIMESTAMPTZ = Timestamp w/ TZ</text>
-    <text x="180" y="85" fill="#a0a0a0" font
+    <text x="180" y="85" fill="#a0a0a0" font-family="system-ui, sans-serif" font-size="10">UUID = Universally Unique Identifier</text>
+  </g>
+</svg>

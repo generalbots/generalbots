@@ -123,9 +123,9 @@
     <rect x="370" y="420" width="150" height="60" class="neon-green" rx="6.5"/>
     <text x="445" y="458" text-anchor="middle" font-size="22" font-weight="500" class="main-text">Qdrant Vectors</text>
 
-    <!-- SeaweedFS -->
+    <!-- MinIO -->
     <rect x="540" y="420" width="150" height="60" class="neon-cyan" rx="6.5"/>
-    <text x="615" y="458" text-anchor="middle" font-size="22" font-weight="500" class="main-text">SeaweedFS</text>
+    <text x="615" y="458" text-anchor="middle" font-size="22" font-weight="500" class="main-text">MinIO</text>
 
     <!-- Storage Contents Box -->
     <rect x="720" y="420" width="350" height="60" class="neon-gray" rx="6.5"/>
@@ -221,6 +221,6 @@
     Rust-powered single binary serving web UI, BASIC scripting, LLM orchestration, and multi-channel messaging
   </text>
   <text x="700" y="845" text-anchor="middle" font-size="21" class="secondary-text">
-    Auto-installed infrastructure: PostgreSQL, Valkey, Qdrant, SeaweedFS, Zitadel - zero external dependencies
+    Auto-installed infrastructure: PostgreSQL, Valkey, Qdrant, MinIO, Zitadel - zero external dependencies
   </text>
 </svg>

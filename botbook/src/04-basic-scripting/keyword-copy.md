@@ -152,7 +152,7 @@ No specific configuration required. Uses bot's standard drive settings from `con
 
 ```csv
 name,value
-drive-provider,seaweedfs
+drive-provider,minio
 drive-url,http://localhost:8333
 drive-bucket,my-bot
 ```

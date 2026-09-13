@@ -53,7 +53,7 @@ TALK "Your appointment is confirmed for " + FORMAT(appointment_time, "MMMM d 'at
 
 ### Files and Storage
 
-Cloud storage APIs handle file operations, versioning, and sharing. SeaweedFS provides S3-compatible storage with full versioning support.
+Cloud storage APIs handle file operations, versioning, and sharing. MinIO provides S3-compatible storage with full versioning support.
 
 | Enterprise API | General Bots Equivalent | Implementation |
 |----------------|------------------------|----------------|
@@ -171,7 +171,7 @@ TALK response
 |------------------|------------------|--------------|--------|
 | Email | Cloud mail service | Stalwart Mail | ✅ Complete |
 | Calendar | Cloud calendar | CalDAV + Calendar API | ✅ Complete |
-| Files | Cloud storage | SeaweedFS | ✅ Complete |
+| Files | Cloud storage | MinIO | ✅ Complete |
 | Video | Cloud meetings | LiveKit | ✅ Complete |
 | Chat | Cloud messaging | Multi-channel | ✅ Complete |
 | Tasks | Cloud tasks | Tasks Module | ✅ Complete |

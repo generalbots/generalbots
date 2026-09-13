@@ -10,12 +10,12 @@ The database schema follows several key design principles. All tables use UUID p
 
 ## Entity Relationship Overview
 
-<img src="./assets/schema-overview.svg" alt="Database Schema Overview" style="max-height: 400px; width: 100%; object-fit: contain;">
+<img src="../assets/schema-overview.svg" alt="Database Schema Overview" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 ### Core Tables Structure
 ## Detailed Schema
 
-<img src="./assets/schema-detailed.svg" alt="Database Entity Details" style="max-height: 400px; width: 100%; object-fit: contain;">
+<img src="../assets/schema-detailed.svg" alt="Database Entity Details" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 ## Schema Categories
 
@@ -43,11 +43,11 @@ The `basic_tools` table stores BASIC script tool definitions compiled from `.bas
 
 ### Session Flow
 
-<img src="./assets/session-flow.svg" alt="Session Flow Diagram" style="max-height: 400px; width: 100%; object-fit: contain;">
+<img src="../assets/session-flow.svg" alt="Session Flow Diagram" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 ### Knowledge Base Access
 
-<img src="./assets/kb-access.svg" alt="Knowledge Base Access" style="max-height: 400px; width: 100%; object-fit: contain;">
+<img src="../assets/kb-access.svg" alt="Knowledge Base Access" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 ### Primary Relationships
 

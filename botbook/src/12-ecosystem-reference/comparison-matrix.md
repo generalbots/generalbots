@@ -27,7 +27,7 @@ General Bots uniquely combines self-hosted deployment, open source licensing, na
 |------------|-------------|---------------|------------------|-----|--------|------------|--------|-------------|
 | Email | ✅ Stalwart | ✅ Exchange | ✅ Gmail | ❌ None | ❌ None | ❌ None | ❌ None | ❌ None |
 | Calendar | ✅ CalDAV | ✅ Outlook | ✅ Calendar | ❌ None | ❌ Basic | ❌ None | ❌ None | ❌ None |
-| File storage | ✅ SeaweedFS | ✅ OneDrive | ✅ Drive | ❌ None | ⚠️ Limited | ❌ None | ❌ None | ❌ None |
+| File storage | ✅ MinIO | ✅ OneDrive | ✅ Drive | ❌ None | ⚠️ Limited | ❌ None | ❌ None | ❌ None |
 | Tasks/Projects | ✅ Full | ✅ Planner | ✅ Tasks | ❌ None | ✅ Strong | ❌ None | ❌ None | ❌ None |
 | Video meetings | ✅ LiveKit | ✅ Teams | ✅ Meet | ❌ None | ❌ None | ❌ None | ❌ None | ❌ None |
 | Team chat | ✅ Multi-channel | ✅ Teams | ✅ Chat | ❌ None | ⚠️ Comments | ❌ None | ❌ None | ❌ None |

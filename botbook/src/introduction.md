@@ -309,7 +309,7 @@ Ready to build your bot? Turn to [Chapter 01](./01-getting-started/README.md) an
 ---
 
 <div align="center">
-  <img src="./assets/general-bots-logo.svg" alt="General Bots" width="200">
+  <img src="./assets/general-bots-2017.svg" alt="General Bots" width="200">
   <br>
   <em>Built with ❤️ from Brazil since 2017</em>
 </div>

@@ -177,7 +177,7 @@
     <g transform="translate(15, 172)">
       <rect x="0" y="0" width="230" height="28" rx="4" fill="#dcfce7"/>
       <text x="10" y="18" font-size="10" font-weight="600" fill="#16a34a">STEP 5 • LOW</text>
-      <text x="105" y="18" font-size="10" class="secondary-text">Deploy & test</text>
+      <text x="105" y="18" font-size="10" class="secondary-text">Deploy &amp; test</text>
     </g>
   </g>
 

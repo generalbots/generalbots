@@ -98,7 +98,7 @@
       <!-- Upload -->
       <rect x="0" y="0" width="140" height="55" rx="6.5" fill="none" class="neon-blue"/>
       <text x="70" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="15" font-weight="500" class="main-text">Upload</text>
-      <text x="70" y="43" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" class="secondary-text">Drag & Drop</text>
+      <text x="70" y="43" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" class="secondary-text">Drag &amp; Drop</text>
 
       <!-- Download -->
       <rect x="155" y="0" width="140" height="55" rx="6.5" fill="none" class="neon-green"/>
@@ -129,7 +129,7 @@
     <!-- Storage Backend -->
     <g transform="translate(750, 160)">
       <rect x="0" y="0" width="200" height="70" rx="6.5" fill="none" class="neon-green"/>
-      <text x="100" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="500" class="main-text">SeaweedFS</text>
+      <text x="100" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="500" class="main-text">MinIO</text>
       <text x="100" y="52" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">Object Storage</text>
     </g>
 
@@ -239,13 +239,13 @@
     <text x="275" y="33" font-family="Arial, sans-serif" font-size="14" class="secondary-text">Context menu actions</text>
 
     <rect x="500" y="20" width="16" height="16" rx="3" fill="none" class="neon-green" stroke-width="2"/>
-    <text x="525" y="33" font-family="Arial, sans-serif" font-size="14" class="secondary-text">SeaweedFS object storage</text>
+    <text x="525" y="33" font-family="Arial, sans-serif" font-size="14" class="secondary-text">MinIO object storage</text>
 
     <rect x="780" y="20" width="16" height="16" rx="3" fill="none" class="neon-cyan" stroke-width="2"/>
     <text x="805" y="33" font-family="Arial, sans-serif" font-size="14" class="secondary-text">Grid/List view toggle</text>
 
     <rect x="1020" y="20" width="16" height="16" rx="3" fill="none" class="neon-blue" stroke-width="2"/>
-    <text x="1045" y="33" font-family="Arial, sans-serif" font-size="14" class="secondary-text">Star & label files</text>
+    <text x="1045" y="33" font-family="Arial, sans-serif" font-size="14" class="secondary-text">Star &amp; label files</text>
   </g>
 
   <!-- Keyboard shortcuts -->

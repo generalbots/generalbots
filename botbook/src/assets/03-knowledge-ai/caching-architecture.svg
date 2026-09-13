@@ -96,7 +96,7 @@
 
   <!-- User Query -->
   <rect x="50" y="70" width="130" height="45" fill="url(#userQueryGrad)" stroke="#667eea" stroke-width="2" rx="8" filter="url(#shadow)"/>
-  <text x="115" y="95" text-anchor="middle" font-family="system-ui" sans-serif" font-size="20" font-weight="600" fill="#1e293b">User Query</text>
+  <text x="115" y="95" text-anchor="middle" font-family="system-ui, sans-serif" font-size="20" font-weight="600" fill="#1e293b">User Query</text>
   <text x="115" y="108" text-anchor="middle" font-family="system-ui, sans-serif" font-size="16" fill="#475569">"What's the policy?"</text>
 
   <!-- Arrow to Generate Key -->

@@ -187,4 +187,4 @@ END FUNCTION
 
 ## Status Updates
 
-Check the [GitHub repository](https://github.com/generalbots/botserver) for updates on Calendar API implementation status.
+Check the [GitHub repository](https://github.com/generalbots/generalbots) for updates on Calendar API implementation status.

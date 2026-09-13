@@ -254,7 +254,7 @@ Configure upload settings in `config.csv`:
 
 ```csv
 name,value
-drive-provider,seaweedfs
+drive-provider,minio
 drive-url,http://localhost:8333
 drive-bucket,my-bot
 upload-max-size,52428800

@@ -90,7 +90,7 @@
     <text x="175" y="24" font-size="12" class="secondary-text">🔒</text>
     <text x="195" y="24" font-size="12" class="main-text">https://docs.generalbots.ai</text>
 
-    <!-- Bookmark & Menu -->
+    <!-- Bookmark &amp; Menu -->
     <g transform="translate(710, 8)">
       <rect x="0" y="0" width="28" height="24" rx="4" class="icon-btn"/>
       <text x="14" y="17" text-anchor="middle" font-size="14" class="secondary-text">☆</text>

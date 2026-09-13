@@ -204,6 +204,6 @@ Virtual classrooms enable remote learning at scale. One-on-one tutoring provides
 
 ## Status Updates
 
-Check the [GitHub repository](https://github.com/generalbots/botserver) for updates on Calls API implementation status.
+Check the [GitHub repository](https://github.com/generalbots/generalbots) for updates on Calls API implementation status.
 
 For immediate voice and video needs, consider integrating with established providers like Twilio, Zoom, or Teams rather than waiting for the native implementation.

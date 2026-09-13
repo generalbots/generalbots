@@ -45,9 +45,9 @@
     <text x="330" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#059669">✓ Configure</text>
     <text x="330" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#059669">✓ Start</text>
 
-    <!-- SeaweedFS -->
+    <!-- MinIO -->
     <rect x="420" y="260" width="140" height="100" fill="none" stroke="#38A169" stroke-width="2" rx="8"/>
-    <text x="490" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#047857">SeaweedFS</text>
+    <text x="490" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#047857">MinIO</text>
     <text x="490" y="305" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#059669">Storage</text>
     <text x="490" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#059669">✓ Install</text>
     <text x="490" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#059669">✓ Configure</text>
