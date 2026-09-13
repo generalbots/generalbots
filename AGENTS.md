@@ -1,6 +1,8 @@
 # General Bots AI Agent Guidelines
 
-## 🚨 Non-Negotiable Rules
+<p align="center"><img src="logo.svg" alt="General Bots" width="200"></p>
+
+## Non-Negotiable Rules
 
 | Rule | Directive |
 |------|-----------|
@@ -20,12 +22,12 @@
 - Test login here: http://localhost:5000/login
 - **Login/Signup exclusivity:** `login.pragmatismo.com.br` (port 5000) is the **only** domain serving login/signup. Port 4000 (cloud) does NOT serve them — `/login` or `/signup` on 4000 redirects to 5000.
 
-### 🧪 Mandatory Browser Testing
+### Mandatory Browser Testing
 - 🚨 **ALL bot tests MUST be done via browser (Chrome CDP port 9222).** ❌ FORBIDDEN to use WebSocket (node wscat, direct WS scripts) — only the browser reflects the real state of chat, suggestions, buttons, network errors.
 - 🚨 EVERY web-facing task (login, dashboard, settings, etc.) MUST be browser-tested before marking complete. **One tab per use case, NEVER close the browser** — tabs are living trace evidence.
 - Tool trouble? Go to the official website for proper install/instructions.
 
-### 🔐 Secrets & IPs
+### Secrets & IPs
 - ❌ NEVER create files with secrets in the repository root. Secret files go in `/tmp/` only (cleared on reboot, not git-tracked, standard Unix practice, prevents accidental commits):
   - ✅ `/tmp/vault-token-gb` — Vault root token
   - ✅ `/tmp/vault-unseal-key-gb` — Vault unseal key
@@ -41,7 +43,7 @@
 
 ---
 
-## 📁 Workspace Structure
+## Workspace Structure
 
 ### Ports & Services
 
@@ -76,7 +78,7 @@
 - BotUI serves static HTML/JS/CSS directly from `botui/ui/` — **NO recompilation needed** for frontend changes; refresh the page.
 - Only Rust changes in `botui/src/` require rebuild (`cargo build -p botui`).
 
-### ⚠️ Absolute Paths for HTMX Apps
+### Absolute Paths for HTMX Apps
 Subdirectory apps (e.g. `/suite/social/social.html`) injected into `/suite/desktop.html` via HTMX: relative paths resolve against `/suite/desktop.html`, NOT the app's directory → 404s (`/suite/social.css`).
 
 **Fix:** ALL resource references in subdirectory app HTMLs MUST use absolute paths starting with `/suite/`:
@@ -92,7 +94,7 @@ Subdirectory apps (e.g. `/suite/social/social.html`) injected into `/suite/deskt
 
 ---
 
-## 🏗️ Architecture Overview
+## Architecture Overview
 
 ### Chat Flow
 
@@ -126,7 +128,7 @@ User Message (WebSocket) → botserver/src/main_module/ws/handler.rs
 
 ---
 
-## 📝 Bot Scripts Architecture
+## Bot Scripts Architecture
 
 ### start.bas — Session Entry Point
 - Runs on WebSocket connect; runs again on first user message (blocking, once per session)
@@ -193,11 +195,11 @@ result = DETECT "folha_salarios"   ' Analyze table for anomalies (requires table
 
 ---
 
-## 🗄️ Drive & Vault Operations — MANDATORY
+## Drive & Vault Operations — MANDATORY
 
 **❌ NEVER manipulate bot files on the local filesystem directly.** ALL bot files (`.bas`, `.gbkb`, `.gbdrive`, config, etc.) live exclusively in MinIO Drive buckets (`{bot}.gbai`). Use `mc` for any bot file operation.
 
-### 📂 Drive Bucket Hierarchy — Two Layouts
+### Drive Bucket Hierarchy — Two Layouts
 
 **Layout 1 — Standalone bot (no org):** bucket `{bot}.gbai` at the top level (e.g. `default.gbai`):
 ```
@@ -249,7 +251,7 @@ DRIVE_PORT=$($VAULT_BIN kv get -field=port secret/gbo/drive)
 /tmp/mc mb local/{bot}.gbai && /tmp/mc cp --recursive botserver-stack/data/system/work/{bot}.gbai/ local/{bot}.gbai/  # Upload bot
 ```
 
-### 🔧 LLM Configuration — Vault (single source of truth)
+### LLM Configuration — Vault (single source of truth)
 **Location (ALL LLM settings):** Vault per-bot path `secret/gbo/{org_id}/{branch_id}/{bot_id}`
 **Global fallback:** `secret/gbo/llm` (read at boot for the base provider)
 
@@ -281,7 +283,7 @@ vault kv put secret/gbo/llm url=<chat-completions-url> model=<model> openai_key=
 
 ---
 
-## 🖥️ Chrome CDP Testing (9222)
+## Chrome CDP Testing (9222)
 
 ### Start Chrome (reuse profile for persistent sessions)
 ```bash
@@ -301,7 +303,7 @@ Check first: `ps aux | grep "chrome.*remote-debugging-port=9222" | grep -v grep`
 4. 🚨 **NEVER close the browser** — tabs are trace evidence. Close only when explicitly requested.
 5. Screenshots at `/tmp/{bot}_case{N}_{desc}.png`.
 
-### 🚨 Suite Apps — ALWAYS Open Inside Desktop (NEVER Direct URL)
+### Suite Apps — ALWAYS Open Inside Desktop (NEVER Direct URL)
 **❌ NEVER open a suite app page directly** (`/suite/drive/drive.html`, `/suite/chat/chat.html`, etc.) — they are HTMX fragments requiring the desktop shell (`desktop.html`) to bootstrap JS modules, security context, window manager. Direct URL = broken empty shell.
 
 **✅ Correct flow — navigate to the desktop route, never the HTML file:**
@@ -322,7 +324,7 @@ Check first: `ps aux | grep "chrome.*remote-debugging-port=9222" | grep -v grep`
 
 ---
 
-## 💬 BASIC Keywords Reference
+## BASIC Keywords Reference
 
 ### Language Guidelines
 Use formal language in comments and documentation — no slang, neologisms, or informal expressions; maintain professional tone.
@@ -452,7 +454,7 @@ AI-driven task execution: 1) Analyze user intent ("Send email to all customers")
 
 ---
 
-## 🧭 LLM Navigation Guide
+## LLM Navigation Guide
 
 `/opt/gbo/data` also holds bots. **For LLMs analyzing this codebase:**
 0. Bots are in drive; each bucket is a bot. Respect LOAD_ONLY.
@@ -465,7 +467,7 @@ AI-driven task execution: 1) Analyze user intent ("Send email to all customers")
 
 ---
 
-## 🔄 Reset Process Notes
+## Reset Process Notes
 
 - **Purpose:** reset.sh cleans and restarts the dev environment; bootstrap takes 3-5 min (Vault, PostgreSQL, Valkey, MinIO, Zitadel, LLM)
 - **Timeout risk:** script can timeout on "Step 3/4: Waiting for BotServer to bootstrap"
@@ -497,14 +499,14 @@ BOTMODELS_HOST="http://localhost:8085" BOTMODELS_API_KEY="starter" RUST_LOG=info
   nohup ./target/debug/botserver --noconsole > botserver.log 2>&1 &
 ```
 
-### 🧪 Staging Environment (STAGE-GBO)
+### Staging Environment (STAGE-GBO)
 - `chat.stage.pragmatismo.com.br` uses `10.0.3.x` subnet for container IPs (e.g. `10.0.3.10` system container)
 - Route testing via host gateway `10.0.0.1` or hit container IPs directly inside the staging host
 - Do NOT confuse staging IP ranges (`10.0.3.x`) with production ranges
 
 ---
 
-## 🔐 Security Directives — MANDATORY
+## Security Directives — MANDATORY
 
 ### 1. Error Handling — NO PANICS IN PRODUCTION
 `botserver` serves thousands of simultaneous sessions 24/7; any `panic!` crashes the process and interrupts all users. Every error path must propagate via `Result` or be handled locally. `unwrap`, `expect`, `panic!`, `todo!`, `unimplemented!` are strictly forbidden outside tests.
@@ -585,7 +587,7 @@ validate_table_name(&safe_table)?;
 
 ---
 
-## ✅ Mandatory Code Patterns
+## Mandatory Code Patterns
 
 ```rust
 impl MyStruct { fn new() -> Self { Self { } } }        // Self, not MyStruct
@@ -595,7 +597,7 @@ format!("Hello {name}")                               // Inline args, not format
 match x { A | B => do_thing(), C => other() }         // Combine identical arms
 ```
 
-## ❌ Absolute Prohibitions
+## Absolute Prohibitions
 
 - NEVER search the `/target` folder — it is binary compiled
 - ❌ NEVER build in release mode / use `--release` — ONLY debug builds
@@ -617,7 +619,7 @@ match x { A | B => do_thing(), C => other() }         // Combine identical arms
 
 ---
 
-## 📏 File Size Limits — MANDATORY
+## File Size Limits — MANDATORY
 
 **NEVER let a single file exceed 450 lines — split proactively at 350 lines.** When growing beyond:
 1. Identify logical groups → 2. Create subdirectory module (`handlers/` Rust, `modules/` JS) → 3. Split by responsibility (`types.rs`, `handlers.rs`, `operations.rs`, `utils.rs`, `mod.rs`) → 4. Keep files focused → 5. Update `mod.rs` re-exports.
@@ -638,7 +640,7 @@ modules/
 
 ---
 
-## 🔥 Error Fixing Workflow
+## Error Fixing Workflow
 
 ### Mode 1: OFFLINE Batch Fix (PREFERRED)
 1. Read ENTIRE error list first → 2. Group errors by file → 3. For EACH file: view → fix ALL errors → write once → 4. Move to next file → 5. Repeat until all addressed → 6. **ONLY THEN** verify with build/diagnostics. **NEVER run cargo during fixing.**
@@ -649,10 +651,10 @@ LOOP UNTIL (0 warnings AND 0 errors):
   Run diagnostics → pick file → read entire file → fix ALL issues → write once → verify → CONTINUE
 ```
 
-### ⚡ Streaming Build Rule
+### Streaming Build Rule
 Do NOT wait for `cargo` to finish. As soon as the first errors appear, cancel the build, fix those errors immediately, re-run.
 
-### 🔀 Parallel & Non-Blocking Execution Philosophy
+### Parallel & Non-Blocking Execution Philosophy
 1. **NEVER WAIT** — long-running tools (cargo check/clippy/builds) run in background via `nohup`
 2. **ALWAYS PARALLEL** — launch multiple independent checks simultaneously
 3. **KEEP THINKING** — while processes run, analyze code, plan fixes, read files, write edits
@@ -674,12 +676,12 @@ ps aux | grep 'cargo check' | grep -v grep
 - ✅ logs to `/tmp/` only · ✅ check running procs before launching (`ps aux | grep cargo`)
 - ✅ kill stale procs before re-launching (`pkill -f "cargo check -p <crate>"`) · ✅ continue analysis while running
 
-### 🐍 Python Batch-Fix Scripts (5+ errors sharing a pattern)
+### Python Batch-Fix Scripts (5+ errors sharing a pattern)
 Script: reads `/tmp/<crate>_check.log` → parses file:line:col → applies regex fixes per file → writes all at once → reports. Save to `/tmp/fix_*.py`, run `python3 /tmp/fix_*.py`.
 
 **LLM-enabled scripts:** for semantic fixes use `openai` package with `DEV_LLM_URL`/`DEV_LLM_KEY` from `.env` (DEV-only keys, never committed). Script sends error + code context, LLM returns fixed code.
 
-### 🧠 Memory Management (process "Killed")
+### Memory Management (process "Killed")
 ```bash
 pkill -9 cargo; pkill -9 rustc; pkill -9 botserver
 CARGO_BUILD_JOBS=1 cargo check -p botserver 2>&1 | tail -200
@@ -687,7 +689,7 @@ CARGO_BUILD_JOBS=1 cargo check -p botserver 2>&1 | tail -200
 
 ---
 
-## 🎯 Automatic Bot Testing Workflow
+## Automatic Bot Testing Workflow
 
 **When user says "test bot" — do this autonomously:**
 1. **Ask** "What bot would you like to test today?" (do NOT assume a bot name)
@@ -743,12 +745,12 @@ curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/health   # health c
 grep -E "ERROR|WARN|drive_monitor" botserver.log | tail -20
 ```
 
-### ⚠️ Vibe Testing — REUSE the Same Project (VM disk space)
+### Vibe Testing — REUSE the Same Project (VM disk space)
 Each Vibe project raises its own Incus VM (`incus launch images:ubuntu/24.04`, see `botserver/crates/botvibe/src/vm_incus.rs`). Every new project spawns a fresh Ubuntu container that consumes host disk — repeated "New Project" runs during testing stack up VMs and can exhaust the disk (this machine hit **100% full**). **When testing Vibe, reuse an existing project instead of creating a new one.** Only create a new project when a clean, isolated VM is genuinely required, and clean up after: `incus delete --force <container>` (or reuse the VM). Before spawning more VMs check `df -h /` and `incus list`.
 
 ---
 
-## ☁️ Cloud SaaS Product Architecture (CRM + Default Bot)
+## Cloud SaaS Product Architecture (CRM + Default Bot)
 
 Products live in the `botproducts` crate, NOT in CRM. They share the `org_id`/`bot_id`/`branch_id` scope but are separate domains with no FK between them.
 
@@ -812,7 +814,7 @@ All crates MUST use `Some(...)` when the corresponding feature is active:
 | Dashboard | `botui/ui/cloud/dashboard.html` | Current plan + usage |
 | Signup | `botui/ui/login/signup.html` (port 5000) | Plan selector |
 
-### ⚠️ Important LLM Rules
+### Important LLM Rules
 - **NEVER create a separate admin products HTML page** — products show through existing Store/Plans/Dashboard pages
 - **Products are NOT CRM entities** — same scope, separate tables, no FK relationship
 - **Seeding is idempotent** — checks `products::table.filter(branch_id)` before inserting
@@ -832,7 +834,7 @@ All crates MUST use `Some(...)` when the corresponding feature is active:
 
 ---
 
-## 🌐 Domain Management — Platform Subdomains + Custom DNS → Bot Mapping
+## Domain Management — Platform Subdomains + Custom DNS → Bot Mapping
 
 **Managed in cloud manager UI** (`/domains` on port 4000, admin-only via super admin check). Associates hostnames (e.g. `chat.pragmatismo.com.br`) with specific bots.
 
@@ -907,7 +909,7 @@ Browser GET http://chat.generalbots.org/ (Host header) → Caddy/Proxy (80/443 �
 
 ---
 
-## ☁️ Cloud Management Testing
+## Cloud Management Testing
 
 ### Ports
 | Service | Port | Description |
@@ -955,7 +957,7 @@ async def test_cloud_plans():
 
 ---
 
-## ➕ Adding New Features Workflow
+## Adding New Features Workflow
 
 ### Step 1: Plan
 **Understand:** What problem does this solve? Which module owns it? What data structures? Security implications?
@@ -1018,7 +1020,7 @@ git push origin main
 
 ---
 
-## 🧪 Testing Strategy
+## Testing Strategy
 
 - **Unit tests:** per-crate `tests/` or inline `#[cfg(test)]`; naming `test_` prefix; run `cargo test -p <crate>`
 - **Integration tests:** `bottest/` crate — full workflows across crates; run `cargo test -p bottest`
@@ -1032,9 +1034,9 @@ git push origin main
 
 ---
 
-## 🐛 Debugging Rules
+## Debugging Rules
 
-### 🚨 CRITICAL ERROR HANDLING RULE
+### CRITICAL ERROR HANDLING RULE
 **STOP EVERYTHING WHEN ERRORS APPEAR.** When ANY error appears in logs during startup or operation:
 1. **IMMEDIATELY STOP** — don't continue other tasks → 2. **IDENTIFY** the error + context → 3. **FIX** the root cause, not symptoms → 4. **VERIFY** resolution → 5. **ONLY THEN CONTINUE**. Never ignore or work around errors. **NEVER restart servers to "fix" errors — FIX THE ACTUAL PROBLEM.**
 
@@ -1072,7 +1074,7 @@ git push origin main
 
 ---
 
-## 🎨 Frontend & Performance Standards
+## Frontend & Performance Standards
 
 ### HTMX-First Approach
 Use HTMX to minimize JavaScript; server returns HTML fragments, not JSON; use `hx-get`, `hx-post`, `hx-target`, `hx-swap`; WebSocket via htmx-ws extension.
@@ -1094,7 +1096,7 @@ Error-handling debt (`unwrap`/`expect` in production), performance debt (excessi
 
 ---
 
-## 📋 Continuation Prompt (new sessions)
+## Continuation Prompt (new sessions)
 
 ```
 Continue on gb/ workspace. Follow AGENTS.md strictly:
@@ -1219,9 +1221,9 @@ sshpass -p "$PASS" ssh root@<SRV1_HOST> "sudo incus exec bot -- systemctl stop b
 
 ---
 
-## 🖥️ Production Operations Guide
+## Production Operations Guide
 
-### ⚠️ CRITICAL SAFETY RULES
+### CRITICAL SAFETY RULES
 1. **NEVER modify iptables rules without explicit confirmation** — always confirm exact rules, source IPs, ports, destinations before applying
 2. **NEVER touch the PROD project without asking first** — no changes to production services/configs/containers without user approval
 3. **ALWAYS backup files to `/tmp` before editing** — `cp /path/to/file /tmp/$(basename /path/to/file).bak-$(date +%Y%m%d%H%M%S)`
@@ -1382,7 +1384,7 @@ sudo incus copy <container>/test-base <container>-test && sudo incus start <cont
 
 ---
 
-## 🔧 Common Bug Fixes
+## Common Bug Fixes
 
 ### IF/THEN/ELSE Panic (`dag.rs`)
 - **Symptom:** `IF/THEN/ELSE syntax: ParseError(BadInput(ImproperSymbol("$stmt$")))` during Rhai engine registration
@@ -1401,7 +1403,7 @@ sudo incus copy <container>/test-base <container>-test && sudo incus start <cont
 
 ---
 
-## ✅ Reference: SaaS Product Listing Test Results (2026-06-28)
+## Reference: SaaS Product Listing Test Results (2026-06-28)
 
 ### Ports After Fix
 | Port | Service | Cloud Access? | Suite Access? |

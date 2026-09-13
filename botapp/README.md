@@ -1,5 +1,7 @@
 # BotApp - General Bots Desktop Application
 
+<p align="center"><img src="../logo.svg" alt="General Bots" width="200"></p>
+
 **Version:** 6.2.0  
 **Purpose:** Desktop application wrapper (Tauri 2)
 
@@ -9,7 +11,7 @@
 
 BotApp is the Tauri-based desktop wrapper for General Bots, providing native desktop and mobile capabilities on top of the pure web UI from [botui](https://github.com/GeneralBots/botui). It extends the web interface with native file system access, system tray functionality, and desktop-specific features while maintaining a clean separation from the pure web UI.
 
-For comprehensive documentation, see **[docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)** or the **[BotBook](../botbook)** for detailed guides, API references, and tutorials.
+For comprehensive documentation, see **[docs.generalbots.org](https://docs.generalbots.org)** or the **[BotBook](../botbook)** for detailed guides, API references, and tutorials.
 
 ---
 
@@ -145,7 +147,7 @@ Binaries will be in `target/release/bundle/`.
 
 ---
 
-## 🖥️ Tauri Command Pattern
+## Tauri Command Pattern
 
 ```rust
 use tauri::command;
@@ -191,7 +193,7 @@ const result = await window.__TAURI__.invoke('my_command', {
 
 ---
 
-## 🔐 Security Directives
+## Security Directives
 
 ### Path Validation
 
@@ -230,7 +232,7 @@ async fn read_file(app: tauri::AppHandle, filename: String) -> Result<String, St
 
 ---
 
-## 🎨 Icons - MANDATORY
+## Icons - MANDATORY
 
 **NEVER generate icons with LLM. Use official SVG icons from `botui/ui/suite/assets/icons/`**
 
@@ -248,7 +250,7 @@ All icons use `stroke="currentColor"` for CSS theming.
 
 ---
 
-## ⚙️ Configuration (tauri.conf.json)
+## Configuration (tauri.conf.json)
 
 ```json
 {
@@ -270,7 +272,7 @@ All icons use `stroke="currentColor"` for CSS theming.
 
 ---
 
-## 🎯 How App Extensions Work
+## How App Extensions Work
 
 BotApp injects `js/app-extensions.js` into botui's suite at runtime. This script:
 
@@ -289,7 +291,7 @@ if (window.BotApp?.isApp) {
 
 ---
 
-## ✅ ZERO TOLERANCE POLICY
+## ZERO TOLERANCE POLICY
 
 **EVERY SINGLE WARNING MUST BE FIXED. NO EXCEPTIONS.**
 
@@ -328,7 +330,7 @@ struct MyStruct { }
 
 ---
 
-## 📦 Key Dependencies
+## Key Dependencies
 
 | Library | Version | Purpose |
 |---------|---------|---------|
@@ -341,7 +343,7 @@ struct MyStruct { }
 
 ---
 
-## 🧪 Testing and Safety Tooling
+## Testing and Safety Tooling
 
 BotApp follows General Bots' commitment to code quality and safety.
 
@@ -390,17 +392,17 @@ For most use cases, comprehensive testing with the tools above provides adequate
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 For complete documentation, guides, and API references:
 
-- **[docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)** - Full online documentation
+- **[docs.generalbots.org](https://docs.generalbots.org)** - Full online documentation
 - **[BotBook](../botbook)** - Local comprehensive guide with tutorials and examples
 - **[Testing & Safety Tooling](../botbook/src/07-gbapp/testing-safety.md)** - Complete testing documentation
 
 ---
 
-## 🔑 Remember
+## Remember
 
 - **ZERO WARNINGS** - Every clippy warning must be fixed
 - **NO ALLOW IN CODE** - Never use #[allow()] in source files
@@ -414,7 +416,7 @@ For complete documentation, guides, and API references:
 
 ---
 
-## 🔗 Related Projects
+## Related Projects
 
 - [botui](https://github.com/GeneralBots/botui) - Pure web UI
 - [botserver](https://github.com/GeneralBots/botserver) - Backend server

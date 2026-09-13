@@ -1,27 +1,27 @@
 # General Bots Documentation (BotBook)
 
+<p align="center"><img src="../logo.svg" alt="General Bots" width="200"></p>
+
 **Version:** 6.2.0  
 **Purpose:** Comprehensive documentation for General Bots (mdBook format)
-
-![General Bots Logo](https://github.com/GeneralBots/botserver/blob/main/logo.png?raw=true)
 
 ---
 
 ## Overview
 
-BotBook is the official documentation repository for General Bots, built using [mdBook](https://rust-lang.github.io/mdBook/). It provides comprehensive guides, API references, tutorials, and architectural documentation for the entire General Bots platform - an enterprise-grade LLM orchestrator and AI automation platform.
+BotBook is the official documentation set for General Bots, written in [mdBook](https://rust-lang.github.io/mdBook/). It covers the guides, API references, tutorials and architecture notes for the whole platform.
 
-For the latest live documentation, visit **[docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)**.
+The published version is at **[docs.generalbots.org](https://docs.generalbots.org)**.
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 <img src="src/assets/platform-architecture.svg" alt="General Bots Platform Architecture" style="max-width: 100%; height: auto;">
 
 ---
 
-## 📦 General Bots Repositories
+## General Bots Repositories
 
 | Repository | Description | Status |
 |------------|-------------|--------|
@@ -34,7 +34,7 @@ For the latest live documentation, visit **[docs.pragmatismo.com.br](https://doc
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -87,29 +87,29 @@ mdbook serve --open
 
 ---
 
-## ✨ Key Features
+## Key Features
 
-### 🤖 Multi-Vendor LLM API
+### Multi-Vendor LLM API
 Unified interface for OpenAI, Groq, Claude, Anthropic, and local models.
 
-### 🔧 MCP + LLM Tools Generation
+### MCP + LLM Tools Generation
 Instant tool creation from code and functions - no complex configurations.
 
-### 💾 Semantic Caching
+### Semantic Caching
 Intelligent response caching achieving **70% cost reduction** on LLM calls.
 
-### 🌐 Web Automation Engine
+### Web Automation Engine
 Browser automation combined with AI intelligence for complex workflows.
 
-### 📊 Enterprise Data Connectors
+### Enterprise Data Connectors
 Native integrations with CRM, ERP, databases, and external services.
 
-### 🔄 Git-like Version Control
+### Git-like Version Control
 Full history with rollback capabilities for all configurations and data.
 
 ---
 
-## 🎯 4 Essential Keywords
+## 4 Essential Keywords
 
 General Bots provides a minimal, focused system:
 
@@ -122,7 +122,7 @@ CLEAR TOOLS                ' Remove all tools from session
 
 ---
 
-## 📁 Documentation Structure
+## Documentation Structure
 
 ```
 botbook/
@@ -145,9 +145,9 @@ botbook/
 
 ---
 
-## 📚 Documentation Writing Guidelines
+## Documentation Writing Guidelines
 
-### ✅ Keyword Naming Rules - MANDATORY
+### Keyword Naming Rules - MANDATORY
 
 **Keywords NEVER use underscores. Always use spaces.**
 
@@ -171,7 +171,7 @@ SET BOT MEMORY key, value
 KB STATISTICS
 ```
 
-#### ❌ NEVER Use Underscores
+#### NEVER Use Underscores
 ```basic
 SEND_MAIL          ' WRONG!
 GENERATE_PDF       ' WRONG!
@@ -180,7 +180,7 @@ DELETE_HTTP        ' WRONG!
 
 ---
 
-### 🎨 Official Icons - MANDATORY
+### Official Icons - MANDATORY
 
 **NEVER generate icons with LLM. Use official SVG icons from `botui/ui/suite/assets/icons/`**
 
@@ -212,18 +212,18 @@ All icons use `stroke="currentColor"` for CSS theming.
 
 ---
 
-### 🚫 NO ASCII Diagramrams - MANDATORY
+### NO ASCII Diagramrams - MANDATORY
 
 **NEVER use ASCII art diagrams. ALL diagrams must be SVG.**
 
-#### ❌ Prohibited ASCII Patterns
+#### Prohibited ASCII Patterns
 ```
 ┌─────────┐    ╔═══════╗    +-------+
 │  Box    │    ║ Box   ║    | Box   |
 └─────────┘    ╚═══════╝    +-------+
 ```
 
-#### ✅ What to Use Instead
+#### What to Use Instead
 
 | Instead of... | Use... |
 |---------------|--------|
@@ -233,7 +233,7 @@ All icons use `stroke="currentColor"` for CSS theming.
 
 ---
 
-### 🎨 SVG Diagram Guidelines
+### SVG Diagram Guidelines
 
 All SVGs must support light/dark modes:
 
@@ -251,7 +251,7 @@ All SVGs must support light/dark modes:
 
 ---
 
-### 💬 Conversation Examples
+### Conversation Examples
 
 Use WhatsApp-style HTML format for bot interactions:
 
@@ -274,7 +274,7 @@ Use WhatsApp-style HTML format for bot interactions:
 
 ---
 
-### 📋 Source Code References
+### Source Code References
 
 | Topic | Source Location |
 |-------|-----------------|
@@ -286,7 +286,7 @@ Use WhatsApp-style HTML format for bot interactions:
 
 ---
 
-### 📖 Documentation Accuracy Rules
+### Documentation Accuracy Rules
 
 ```
 - All documentation MUST match actual source code
@@ -298,7 +298,7 @@ Use WhatsApp-style HTML format for bot interactions:
 
 ---
 
-## 🏛️ Architecture Details
+## Architecture Details
 
 ### botserver (Core)
 The main API server handling:
@@ -331,18 +331,18 @@ Common Rust code shared across projects:
 
 ---
 
-## 🛡️ Security
+## Security
 
 - **MIT License** - Permissive open source
 - **Self-hosted** - Your data stays on your infrastructure
 - **Enterprise-grade** - 5+ years of stability
 - **No vendor lock-in** - Open protocols and standards
 
-Report security issues to: **security@pragmatismo.com.br**
+Report security issues to: **security@generalbots.org**
 
 ---
 
-## 🆚 Why General Bots?
+## Why General Bots?
 
 | vs. Alternative | General Bots Advantage |
 |-----------------|----------------------|
@@ -353,10 +353,10 @@ Report security issues to: **security@pragmatismo.com.br**
 
 ---
 
-## 🔗 Links
+## Links
 
-- **Website:** [pragmatismo.com.br](https://pragmatismo.com.br)
-- **Documentation:** [docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)
+- **Website:** [generalbots.org](https://generalbots.org)
+- **Documentation:** [docs.generalbots.org](https://docs.generalbots.org)
 - **BotBook:** [Complete Documentation](https://github.com/GeneralBots/botbook)
 - **Quick Start:** [Get Started in Minutes](https://github.com/GeneralBots/botserver/blob/main/docs/QUICK_START.md)
 - **API Reference:** [REST API Documentation](https://github.com/GeneralBots/botserver/blob/main/docs/src/chapter-10-api/README.md)
@@ -366,7 +366,7 @@ Report security issues to: **security@pragmatismo.com.br**
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! See our [Contributing Guidelines](https://github.com/GeneralBots/botserver/blob/main/docs/src/chapter-13-community/README.md).
 
@@ -378,7 +378,7 @@ We welcome contributions! See our [Contributing Guidelines](https://github.com/G
 
 ---
 
-## 🔑 Remember
+## Remember
 
 - **Accuracy** - Must match botserver source code
 - **Completeness** - No placeholder sections
@@ -391,13 +391,13 @@ We welcome contributions! See our [Contributing Guidelines](https://github.com/G
 
 ---
 
-## 📄 License
+## License
 
 General Bots is licensed under the **MIT License**.
 
 This program is free software, released under the MIT License. You may use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, subject to the conditions in the LICENSE file. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
 
-Copyright (c) pragmatismo.com.br. All rights reserved.
+Copyright (c) generalbots.org. All rights reserved.
 
 ---
 

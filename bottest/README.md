@@ -1,5 +1,7 @@
 # Bottest - General Bots Test Infrastructure
 
+<p align="center"><img src="../logo.svg" alt="General Bots" width="200"></p>
+
 **Version:** 6.2.0  
 **Purpose:** Test infrastructure for General Bots ecosystem
 
@@ -11,11 +13,11 @@ Bottest provides the comprehensive testing infrastructure for the General Bots e
 
 The test harness handles service orchestration, mock servers, fixtures, and browser automation, making it easy to write comprehensive tests that cover the entire system from database operations to full user flows.
 
-For comprehensive documentation, see **[docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)** or the **[BotBook](../botbook/src/17-testing)** for detailed guides and testing best practices.
+For comprehensive documentation, see **[docs.generalbots.org](https://docs.generalbots.org)** or the **[BotBook](../botbook/src/17-testing)** for detailed guides and testing best practices.
 
 ---
 
-## 🏗️ Testing Architecture
+## Testing Architecture
 
 E2E tests use `USE_BOTSERVER_BOOTSTRAP=1` mode. The botserver handles all service installation during bootstrap.
 
@@ -40,7 +42,7 @@ TestHarness::full() / E2E Tests
 
 ---
 
-## 🧪 Test Categories
+## Test Categories
 
 ### Unit Tests (no services)
 
@@ -88,7 +90,7 @@ async fn test_user_flow() {
 
 ---
 
-## 🎭 Mock Server Patterns
+## Mock Server Patterns
 
 ### Expect specific calls
 
@@ -116,7 +118,7 @@ ctx.mock_zitadel().expect_login_success("user@example.com", "password");
 
 ---
 
-## 🏭 Fixture Patterns
+## Fixture Patterns
 
 ### Factory functions
 
@@ -148,7 +150,7 @@ fn custom_bot() -> Bot {
 
 ---
 
-## ⚡ Parallel Safety
+## Parallel Safety
 
 - Each test gets unique ports via PortAllocator
 - Each test gets unique temp directory
@@ -157,7 +159,7 @@ fn custom_bot() -> Bot {
 
 ---
 
-## ✅ ZERO TOLERANCE POLICY
+## ZERO TOLERANCE POLICY
 
 **EVERY SINGLE WARNING MUST BE FIXED. NO EXCEPTIONS.**
 
@@ -199,7 +201,7 @@ format!("Hello {name}")  // ✅ Not format!("{}", name)
 
 ---
 
-## 🚀 Running Tests
+## Running Tests
 
 ### Run all tests
 
@@ -234,7 +236,7 @@ cargo test -p bottest -j 8
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 bottest/
@@ -258,7 +260,7 @@ bottest/
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 ### Testing Documentation
 
@@ -273,13 +275,13 @@ All testing documentation is located in `botbook/src/17-testing/`:
 
 ### Additional Resources
 
-- **[docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)** - Full online documentation
+- **[docs.generalbots.org](https://docs.generalbots.org)** - Full online documentation
 - **[BotBook](../botbook)** - Local comprehensive guide
 - **[Testing Best Practices](../botbook/src/17-testing/best-practices.md)** - Detailed testing guidelines
 
 ---
 
-## 🔗 Related Projects
+## Related Projects
 
 | Project | Description |
 |---------|-------------|
@@ -290,7 +292,7 @@ All testing documentation is located in `botbook/src/17-testing/`:
 
 ---
 
-## 🔑 Remember
+## Remember
 
 - **ZERO WARNINGS** - Every clippy warning must be fixed
 - **NO ALLOW ATTRIBUTES** - Never silence warnings
@@ -305,6 +307,6 @@ All testing documentation is located in `botbook/src/17-testing/`:
 
 ---
 
-## 📄 License
+## License
 
 MIT - See [LICENSE](LICENSE) for details.
