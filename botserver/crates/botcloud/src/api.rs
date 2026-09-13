@@ -239,6 +239,9 @@ pub fn configure_cloud_api_routes(config: SaasConfig) -> Router<Arc<SaasService>
 /// must not skip identity creation in that topology — it did once and left
 /// new organizations with logins that could never succeed. Only passwords to
 /// PUBLIC hosts over plain http are refused.
+/// True when the host provably stays inside a trusted perimeter: loopback,
+/// RFC1918/ULA private addresses or link-local. DNS hostnames cannot be
+/// verified as private without resolution (SSRF risk) and always need https.
 fn directory_url_allows_password(dir_url: &str, allow_insecure_http: bool) -> bool {
     if allow_insecure_http {
         return true;
@@ -258,6 +261,31 @@ fn directory_url_allows_password(dir_url: &str, allow_insecure_http: bool) -> bo
             }
         });
     parsed.scheme() == "https" || (parsed.scheme() == "http" && private)
+}
+
+/// Provision the local `users` row for a freshly created directory identity.
+/// The id is the canonical UUIDv5 of `zitadel:{directory_user_id}` (same
+/// derivation `resolve_login_subject` and RBAC use), so login's stable-subject
+/// resolution finds the row on the very first sign-in. Without it, password
+/// verification succeeds but no subject can be resolved and the login 401s
+/// forever (#1365).
+fn provision_user_row(conn: &mut diesel::PgConnection, zitadel_user_id: &str, email: &str) {
+    let derived = Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{zitadel_user_id}").as_bytes());
+    let username = email.split('@').next().unwrap_or(email).to_string();
+    let result = diesel::sql_query(
+        "INSERT INTO users (id, username, email, password_hash, created_at, updated_at, is_active) \
+         VALUES ($1, $2, $3, '', NOW(), NOW(), true) \
+         ON CONFLICT (id) DO NOTHING",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(derived)
+    .bind::<diesel::sql_types::Text, _>(username)
+    .bind::<diesel::sql_types::Text, _>(email)
+    .execute(conn);
+    match result {
+        Ok(n) if n > 0 => tracing::info!("Provisioned users row {derived} for directory identity {zitadel_user_id}"),
+        Ok(_) => {}
+        Err(e) => tracing::warn!("users row provisioning failed for {email}: {e} (login still resolvable by email)"),
+    }
 }
 
 async fn handle_signup(
@@ -481,6 +509,9 @@ async fn handle_signup(
                 Ok(resp) if resp.status().is_success() => {
                     if let Ok(data) = resp.json::<serde_json::Value>().await {
                         if let Some(user_id) = data.get("userId").and_then(|v| v.as_str()) {
+                            // Provision the local users row immediately so the
+                            // first login resolves a stable subject (#1365).
+                            provision_user_row(&mut conn, user_id, &body.email);
                             if let Some(password) = &body.password {
                                 // #1287 — this Zitadel build (v4.13.1) stores an EMPTY
                                 // hash when the password is set through v2
@@ -1127,15 +1158,46 @@ async fn handle_login(
                     #[diesel(sql_type = diesel::sql_types::Uuid)]
                     user_id: Uuid,
                 }
-                diesel::sql_query(
+                match diesel::sql_query(
                     "SELECT id AS user_id FROM users WHERE email = $1 AND is_active = true LIMIT 1",
                 )
                 .bind::<diesel::sql_types::Text, _>(body.email.as_str())
                 .get_result::<StableUserRow>(&mut conn)
                 .optional()
-                .ok()
-                .flatten()
-                .map(|r| r.user_id.to_string())
+                {
+                    Ok(Some(row)) => Some(row.user_id.to_string()),
+                    _ => {
+                        // Password just verified but no users row exists: this
+                        // is a legacy hollow account (created before signup
+                        // provisioned users rows — #1365). Provision one now,
+                        // keyed by a deterministic UUIDv5 of the verified
+                        // email, so future logins resolve the same subject.
+                        let derived = Uuid::new_v5(
+                            &Uuid::NAMESPACE_DNS,
+                            format!("zitadel:{}", body.email).as_bytes(),
+                        );
+                        let username = body.email.split('@').next().unwrap_or(&body.email).to_string();
+                        match diesel::sql_query(
+                            "INSERT INTO users (id, username, email, password_hash, created_at, updated_at, is_active) \
+                             VALUES ($1, $2, $3, '', NOW(), NOW(), true) \
+                             ON CONFLICT (id) DO NOTHING",
+                        )
+                        .bind::<diesel::sql_types::Uuid, _>(derived)
+                        .bind::<diesel::sql_types::Text, _>(username)
+                        .bind::<diesel::sql_types::Text, _>(body.email.as_str())
+                        .execute(&mut conn)
+                        {
+                            Ok(_) => {
+                                tracing::info!("Provisioned users row {derived} for verified legacy login {}", body.email);
+                                Some(derived.to_string())
+                            }
+                            Err(e) => {
+                                tracing::warn!("users row provisioning failed for {}: {e}", body.email);
+                                None
+                            }
+                        }
+                    }
+                }
             } else {
                 None
             }
