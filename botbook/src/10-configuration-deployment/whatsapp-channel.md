@@ -54,8 +54,7 @@ Before configuring WhatsApp, you need:
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `whatsapp-business-account-id` | WhatsApp Business Account ID | Not set |
-| `whatsapp-api-version` | Graph API version | `v17.0` |
-| `whatsapp-webhook-url` | Custom webhook URL | `/webhooks/whatsapp` |
+| `whatsapp-verify-token` | Token for webhook verification | Not set |
 
 ### Complete Example
 
@@ -65,7 +64,6 @@ whatsapp-api-key,EAABsBcDeFgHiJkLmNoPqRsTuVwXyZ123456789
 whatsapp-phone-number-id,123456789012345
 whatsapp-verify-token,my-super-secret-verify-token-2024
 whatsapp-business-account-id,987654321098765
-whatsapp-api-version,v17.0
 ```
 
 ---

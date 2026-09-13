@@ -181,20 +181,13 @@ END IF
 
 ## Config.csv Options
 
-```csv
-name,value
-a2a-enabled,true
-a2a-timeout,30
-a2a-max-hops,5
-a2a-retry-count,3
-```
+**No `a2a-*` configuration keys exist.** Delegation depth, timeouts and retries are
+not settings: the A2A keywords are implemented in
+`botbasic_system/src/keywords/a2a_protocol.rs` and read no configuration. The
+block previously shown here was not read by the server.
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `a2a-enabled` | `true` | Enable agent-to-agent communication |
-| `a2a-timeout` | `30` | Default timeout in seconds |
-| `a2a-max-hops` | `5` | Maximum delegation chain depth |
-| `a2a-retry-count` | `3` | Number of retry attempts on failure |
 
 ## Best Practices
 

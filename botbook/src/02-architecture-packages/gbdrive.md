@@ -125,9 +125,14 @@ Each user has configurable storage limits:
 
 | Setting | Default | Description |
 |---------|---------|-------------|
-| `user-storage-quota` | 100MB | Maximum total storage per user |
-| `user-file-limit` | 5MB | Maximum single file size |
-| `user-file-count` | 500 | Maximum number of files |
+| Drive storage per tenant | 10 GiB | `MAX_DRIVE_STORAGE_BYTES` |
+| Single file | 100 MiB | `MAX_FILE_SIZE_BYTES` |
+| Upload | 50 MiB | `MAX_UPLOAD_SIZE_BYTES` |
+
+These are compile-time constants in `botlib/src/limits/types.rs`, and they are
+per tenant rather than per user. `user-storage-quota`, `user-file-limit` and
+`user-file-count` are not read by the server — see
+[System Limits](../10-configuration-deployment/system-limits.md).
 
 Configure in `config.csv`:
 ```csv

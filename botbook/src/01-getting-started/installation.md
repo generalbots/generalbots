@@ -103,7 +103,7 @@ drive-secret,my-secret-key
 | PostgreSQL | 5432 | `DATABASE_URL` |
 | Drive API | 9000 | `DRIVE_SERVER` |
 | Drive Console | 9001 | - |
-| LLM Server | 8081 | `llm-server-port` |
+| LLM Server | 8081 | internal |
 | Embedding | 8082 | `embedding-url` |
 | Cache | 6379 | Internal |
 

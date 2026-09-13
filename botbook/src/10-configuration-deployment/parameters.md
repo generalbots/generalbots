@@ -39,8 +39,7 @@ Complete reference of all available parameters in `config.csv`.
 |-----------|-------------|---------|------|
 | `llm-server` | Run embedded server | `false` | Boolean |
 | `llm-server-path` | Server binary path | `botserver-stack/bin/llm/build/bin` | Path |
-| `llm-server-host` | Server bind address | `0.0.0.0` | IP address |
-| `llm-server-port` | Server port | `8081` | Number |
+| `llm-server-path` | Server binary directory | `botserver-stack/bin/llm/build/bin` | Path |
 | `llm-server-gpu-layers` | GPU offload layers | `0` | Number |
 | `llm-server-n-moe` | MoE experts count | `0` | Number |
 | `llm-server-ctx-size` | Context size | `4096` | Tokens |
@@ -105,13 +104,16 @@ llm-model,mixtral-8x7b-32768
 
 ## Email Parameters
 
+There are **no `email-*` delivery settings**. Outbound mail is handed to the
+bundled mail server, which owns the relay configuration; the platform does not
+read SMTP host, port, user or password from bot configuration. An earlier
+revision of this page listed `email-from`, `email-server`, `email-port`,
+`email-user`, `email-pass`, `email-username` and `email-password` — none of them
+are read by the server, and setting them has no effect. SMTP credentials belong to
+the mail server's own configuration, and secrets live in Vault.
+
 | Parameter | Description | Default | Type |
 |-----------|-------------|---------|------|
-| `email-from` | Sender address | Required for email | Email |
-| `email-server` | SMTP hostname | Required for email | Hostname |
-| `email-port` | SMTP port | `587` | Number |
-| `email-user` | SMTP username | Required for email | String |
-| `email-pass` | SMTP password | Required for email | String |
 | `email-read-pixel` | Enable read tracking pixel in HTML emails | `false` | Boolean |
 
 ### Email Read Tracking
@@ -222,8 +224,11 @@ These parameters configure external database connections for use with BASIC keyw
 
 | Parameter | Description | Default | Type |
 |-----------|-------------|---------|------|
-| `sms-provider` | SMS provider (`twilio`, `aws`, `vonage`, `messagebird`, `custom`) | Not set | String |
-| `sms-fallback-provider` | Fallback provider if primary fails | Not set | String |
+| `sms-provider` | SMS provider (`twilio`, `aws`, `vonage`, `messagebird`) | Not set | String |
+| `sms-default-priority` | Default priority applied to outbound messages | Not set | String |
+
+There is no fallback-provider setting: a failed send fails, and it is not retried
+against a second provider.
 
 ### Twilio Parameters
 
@@ -264,13 +269,10 @@ These parameters configure external database connections for use with BASIC keyw
 
 ### Custom Provider Parameters
 
-| Parameter | Description | Default | Type |
-|-----------|-------------|---------|------|
-| `sms-custom-url` | API endpoint URL | Not set | URL |
-| `sms-custom-method` | HTTP method (`POST`, `GET`) | `POST` | String |
-| `sms-custom-auth-header` | Authorization header value | Not set | String |
-| `sms-custom-body-template` | JSON body with `{{to}}`, `{{message}}` placeholders | Not set | String |
-| `sms-custom-from` | Sender number for custom provider | Not set | String |
+**Not implemented.** A `custom` provider value and the `sms-custom-*` keys
+(`sms-custom-url`, `sms-custom-method`, `sms-custom-body-template`,
+`sms-custom-auth-header`, `sms-custom-from`) do not exist in the code. Use one of
+the supported providers above.
 
 ### Example: Twilio Configuration
 ```csv
@@ -299,7 +301,9 @@ See [SMS Provider Configuration](./sms-providers.md) for detailed setup instruct
 | `whatsapp-phone-number-id` | Phone number ID from WhatsApp Business | Not set | String |
 | `whatsapp-verify-token` | Token for webhook verification | Not set | String |
 | `whatsapp-business-account-id` | WhatsApp Business Account ID | Not set | String |
-| `whatsapp-api-version` | Graph API version | `v17.0` | String |
+
+The Graph API version is not configurable — it is set by the client, not by a bot
+setting.
 
 ### Example: WhatsApp Configuration
 ```csv
@@ -314,15 +318,13 @@ See [WhatsApp Channel Configuration](./whatsapp-channel.md) for detailed setup i
 ## Multi-Agent Parameters
 
 ### Agent-to-Agent (A2A) Communication
-| Parameter | Description | Default | Type |
-|-----------|-------------|---------|------|
-| `a2a-enabled` | Enable agent-to-agent communication | `true` | Boolean |
-| `a2a-timeout` | Default delegation timeout | `30` | Seconds |
-| `a2a-max-hops` | Maximum delegation chain depth | `5` | Number |
-| `a2a-retry-count` | Retry attempts on failure | `3` | Number |
-| `a2a-queue-size` | Maximum pending messages | `100` | Number |
-| `a2a-protocol-version` | A2A protocol version | `1.0` | String |
-| `a2a-persist-messages` | Persist A2A messages to database | `false` | Boolean |
+
+The A2A keywords exist (`botbasic_system/src/keywords/a2a_protocol.rs`), but
+**there are no `a2a-*` configuration keys.** Hop limits, timeouts, retry counts,
+queue sizes, protocol version and message persistence are not settings; an
+earlier revision of this page listed seven of them, and none are read by the
+server. See [Multi-Agent Keywords](../04-basic-scripting/keywords-multi-agent.md)
+for what the protocol does and how delegation depth is actually bounded.
 
 ### Bot Reflection
 | Parameter | Description | Default | Type |
@@ -354,11 +356,13 @@ bot-improvement-threshold,7.0
 ## Memory Parameters
 
 ### User Memory (Cross-Bot)
-| Parameter | Description | Default | Type |
-|-----------|-------------|---------|------|
-| `user-memory-enabled` | Enable user-level memory | `true` | Boolean |
-| `user-memory-max-keys` | Maximum keys per user | `1000` | Number |
-| `user-memory-default-ttl` | Default time-to-live (0=no expiry) | `0` | Seconds |
+
+`SET USER MEMORY` / `GET USER MEMORY` are implemented
+(`botbasic_data/src/keywords/user_memory.rs`), but **there are no
+`user-memory-*` configuration keys.** Memory is not enabled or sized by a bot
+setting: entries are written as they are set and have no configurable expiry. The
+`user-memory-enabled`, `user-memory-max-keys` and `user-memory-default-ttl` keys
+listed here previously are not read by the server.
 
 ### Episodic Memory (Context Compaction)
 | Parameter | Description | Default | Type |
@@ -528,7 +532,7 @@ Multiple values separated by commas: `value1,value2,value3`
 
 ### Required for Features
 - **LLM**: `llm-model` must be set
-- **Email**: `email-from`, `email-server`, `email-user`
+- **Email**: no bot-level settings — the bundled mail server owns delivery
 - **Embeddings**: `embedding-model` for knowledge base
 - **Custom DB**: `custom-database` if using external database
 
@@ -577,11 +581,8 @@ sandbox-memory-mb,128
 
 ### For Multi-Agent Systems
 ```csv
-a2a-enabled,true
-a2a-timeout,30
-a2a-max-hops,5
-a2a-retry-count,3
-a2a-persist-messages,true
+bot-reflection-enabled,true
+bot-reflection-interval,10
 bot-reflection-enabled,true
 bot-reflection-interval,10
 user-memory-enabled,true

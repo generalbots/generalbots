@@ -438,11 +438,10 @@ All LLM configuration belongs in `config.csv`, not environment variables:
 |-----------|-------------|---------|
 | `llm-provider` | Provider name | `openai`, `anthropic`, `local` |
 | `llm-model` | Model identifier | `gpt-5` |
-| `llm-server-url` | API endpoint (local only) | `http://localhost:8081` |
+| `llm-url` | API endpoint | — |
 | `llm-server-ctx-size` | Context window size | `128000` |
 | `llm-temperature` | Response randomness (0-2) | `0.7` |
-| `llm-max-tokens` | Maximum response length | `4096` |
-| `llm-cache-enabled` | Enable semantic caching | `true` |
+| `llm-cache` | Enable response caching | `false` |
 | `llm-cache-ttl` | Cache time-to-live (seconds) | `3600` |
 
 ### API Keys

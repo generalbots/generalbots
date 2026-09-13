@@ -64,8 +64,6 @@ From the Mail UI, users type natural language commands like:
 
 | config.csv key | Description | Default |
 |----------------|-------------|---------|
-| `email-triage-enabled` | Enable triaging | `true` |
-| `email-triage-model` | LLM model for classification | `gpt-4o` |
 | `calendar-work-hours-start` | Start of work day | `09:00` |
 | `calendar-work-hours-end` | End of work day | `18:00` |
 
