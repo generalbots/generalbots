@@ -62,6 +62,6 @@ rag-top-k,10
 - **[KB System Architecture](../03-knowledge-ai/README.md)** - Technical deep dive
 - **[Semantic Search](../03-knowledge-ai/semantic-search.md)** - How search works
 - **[Document Indexing](../03-knowledge-ai/indexing.md)** - Processing pipeline
-- **[Hybrid Search](./hybrid-search.md)** - RAG 2.0 configuration
+- **[Retrieval and RAG](./hybrid-search.md)** - The `rag-mode` setting and the six retrieval modes
 - **[USE KB Keyword](../04-basic-scripting/keyword-use-kb.md)** - Complete reference
 - **[.gbkb Package](../02-architecture-packages/gbkb.md)** - Folder structure

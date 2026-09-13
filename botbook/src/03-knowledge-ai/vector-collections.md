@@ -8,9 +8,11 @@ This chapter explains how botserver organizes knowledge into vector collections,
 
 Vector collections emerge automatically from the folder structure within your .gbkb directory. Each folder you create becomes a distinct collection, indexed separately and activated independently. This direct mapping between physical organization and logical collections makes knowledge management intuitive—organize files into folders by topic, and those folders become the collections you reference in your scripts.
 
-When botserver encounters a .gbkb folder, it scans for documents in supported formats including PDF, DOCX, TXT, HTML, and Markdown. Each file's content is extracted, split into manageable chunks, converted to vector embeddings, and stored in the vector database. The folder name becomes the collection identifier you use with the USE KB keyword.
+When botserver encounters a .gbkb folder, it scans for documents in supported formats including PDF, DOCX, TXT, HTML, and Markdown. Each file's content is extracted, converted to a vector embedding, and stored in the vector database as a record carrying the file path, type, bucket and tags. The folder name becomes the collection identifier you use with the USE KB keyword.
 
-This automatic process means no manual indexing configuration is required. Add files to a folder, and they become searchable. Remove files, and they disappear from search results. The system tracks file changes through hash comparisons, triggering reindexing only when content actually changes.
+This automatic process means no manual indexing configuration is required. Add files to a folder, and they become searchable. Remove files, and they disappear from search results.
+
+> **Accuracy note (September 2026).** Documents are indexed as whole-file records. There is no text chunking step and no overlap between chunks, which is why long documents can lose precision — see [Retrieval and RAG](./hybrid-search.md#limits--what-these-modes-are-not).
 
 ## The Indexing Pipeline
 
@@ -18,11 +20,17 @@ Understanding the indexing pipeline helps diagnose issues and optimize performan
 
 For each file requiring processing, text extraction pulls readable content from the document regardless of its format. PDF extraction handles complex layouts, DOCX processing unwraps the underlying XML, and plain text formats are read directly. The extracted text preserves paragraph structure and meaningful breaks.
 
-The chunking phase splits long documents into smaller pieces suitable for embedding and retrieval. Each chunk contains approximately 500 tokens with overlap between adjacent chunks to preserve context across boundaries. This sizing balances granularity—enabling precise matches—against coherence—keeping related information together.
+Embedding generation converts the extracted text into a numerical vector representation. The model depends on configuration:
 
-Embedding generation converts each text chunk into a numerical vector representation. botserver uses the BGE embedding model by default, producing 384-dimensional vectors that capture semantic meaning. These embeddings enable the similarity comparisons that power semantic search.
+| Path | Model | Dimensions |
+|------|-------|-----------|
+| Local embedding service (default) | `sentence-transformers/all-MiniLM-L6-v2` | 384 |
+| OpenAI | `text-embedding-3-small` | 1536 |
+| Fallback when generation fails | deterministic hash | 1536 |
 
-Finally, the vectors and their associated metadata are stored in the vector database, organized by collection. Each entry includes the embedding vector, the original text chunk, the source file path, and position information enabling reconstruction of context.
+The hash fallback carries no semantic meaning — see the accuracy note on [semantic search](./semantic-search.md#when-there-is-no-embedding-model).
+
+Finally, the vectors and their associated metadata are stored in the vector database, organized by collection. Each entry includes the embedding vector, the extracted text, the source file path and the file's metadata.
 
 ## Working with Collections
 
@@ -54,9 +62,9 @@ This entire process happens transparently. Developers don't write search queries
 
 ## Embedding Configuration
 
-The embedding model determines how meaning is captured in vectors and significantly influences search quality. botserver uses a locally-running BGE model by default, configured through the embedding URL and model path settings in config.csv.
+The embedding model determines how meaning is captured in vectors and significantly influences search quality. botserver uses a locally-running `sentence-transformers/all-MiniLM-L6-v2` service by default; supplying an OpenAI API key switches to `text-embedding-3-small`. The embedding endpoint is part of the bot's configuration.
 
-The default model provides good general-purpose performance for English content. Organizations with specialized vocabulary or multilingual requirements might benefit from alternative models. The embedding infrastructure supports any compatible model, allowing customization for specific domains.
+The default model provides good general-purpose performance for English content. Organizations with specialized vocabulary or multilingual requirements might benefit from alternative models, as the infrastructure accepts any compatible embedding endpoint.
 
 Changing embedding models requires reindexing existing collections since embeddings from different models aren't comparable. Plan model changes carefully, accounting for the reprocessing time required for large document collections.
 

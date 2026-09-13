@@ -61,7 +61,7 @@
     - [Semantic Caching](./03-knowledge-ai/caching.md)
     - [AI Sheet Cache](./03-knowledge-ai/ai-sheet-cache.md)
     - [AI and LLM Integration](./03-knowledge-ai/ai-llm.md)
-   - [Hybrid RAG Search](./03-knowledge-ai/hybrid-search.md)
+   - [Retrieval and RAG](./03-knowledge-ai/hybrid-search.md)
    - [Memory Management](./03-knowledge-ai/memory-management.md)
    - [Conversation Management](./03-knowledge-ai/conversation.md)
    - [Automation](./03-knowledge-ai/automation.md)

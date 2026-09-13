@@ -1,120 +1,125 @@
-# Hybrid RAG Search 🟡 BETA
+# Retrieval and RAG 🟡 BETA
 
-Hybrid search combines dense (semantic) and sparse (keyword) retrieval for better search quality than either method alone.
+Retrieval decides what the model knows when it answers. This page is the authoritative description of how General Bots retrieves text today, which retrieval strategies exist, and which ones the field has moved on to that this platform does not implement.
 
-## Overview
+> **Verified September 2026** against `botserver/src/core/bot/kb_context/`. If a claim here disagrees with the code, the code is right — please open an issue.
 
-| Method | Strengths | Weaknesses |
-|--------|-----------|------------|
-| **Dense (Semantic)** | Synonyms, meaning, paraphrasing | Rare terms, exact matches |
-| **Sparse (BM25)** | Exact terms, product codes, names | No semantic understanding |
-| **Hybrid** | Best of both | Slightly more computation |
+## Retrieval modes
 
-## How It Works
+Retrieval is selected per bot with a single setting, `rag-mode`. Six modes are implemented and all of them are reachable from chat.
+
+| Mode | What it actually does | Cost |
+|------|----------------------|------|
+| `standard` | Embeds the query, searches Qdrant by cosine similarity, drops results scoring below **0.20** | One embedding call |
+| `hybrid` | Runs the dense search and a keyword search, then merges both with **Reciprocal Rank Fusion**, `k = 60`. Falls back to whichever side returned results | One embedding call + one scroll |
+| `corrective` | Asks the LLM for 2–3 search variants, searches each, merges and de-duplicates, then has the LLM **grade every chunk 0–10** and keeps those scoring 3 or better. If nothing is found locally it tries a **web crawl** (depth 1, up to 3 pages) | 1 + N embedding calls, one grading call per chunk |
+| `graph` | Has the LLM extract up to 5 named entities, searches each entity separately, then merges them with the original query's results. This is **entity-expansion retrieval**, not a knowledge graph — see the limits below | 1 + N embedding calls |
+| `agentic` | Has the LLM **decompose** the query into 2–3 focused sub-queries, searches each, then merges and re-ranks by score | 1 + N embedding calls |
+| `multimodal` | Expands the query into three variants biased toward visual language, searches each, then boosts chunks containing terms like `diagram`, `chart`, `figure` or `screenshot` | 1 + 3 embedding calls |
+
+Every mode degrades rather than failing: if the LLM is unavailable, the LLM-assisted modes fall back to heuristic splitting (`expand_query`, `decompose_query`) instead of returning nothing.
+
+### Which mode to choose
+
+| Situation | Start with |
+|---|---|
+| General questions over a clean knowledge base | `standard` |
+| Documents full of exact terms — part numbers, product codes, names | `hybrid` |
+| Users ask vague or badly-phrased questions | `corrective` |
+| Questions naming several things at once | `graph` |
+| Complex questions that span several documents | `agentic` |
+| Knowledge base with diagrams and screenshots | `multimodal` |
+
+`standard` is the default. Raising the mode raises both latency and token cost — `corrective` in particular makes one LLM call per candidate chunk, so it is the expensive one.
+
+## Configuring the mode
+
+The mode is a per-bot configuration value named `rag-mode`, read by the retrieval layer from the bot's configuration store:
+
+| Key | Values | Default |
+|---|---|---|
+| `rag-mode` | `standard`, `hybrid`, `corrective`, `graph`, `agentic`, `multimodal` | `standard` |
+
+An unrecognised value is treated as `standard` rather than failing.
+
+The same setting applies to knowledge bases and to websites registered with `USE WEBSITE`.
+
+## The pipeline underneath
 
 ```
-User Query
-    │
-    ├──────────────────┐
-    ▼                  ▼
-Dense Search      Sparse Search
-(Weight: 0.7)     (Weight: 0.3)
-    │                  │
-    └────────┬─────────┘
-             ▼
-    Reciprocal Rank Fusion
-             │
-             ▼
-    Optional Reranking
-             │
-             ▼
-       Final Results
+User question
+      │
+      ▼
+Query embedding ──► if no embedding model is configured
+      │             └─► keyword search (Qdrant scroll + term matching)
+      ▼
+Qdrant vector search (cosine)  ──► drop score < 0.20
+      │
+      ▼
+Mode-specific step (fusion, grading, entity merge, decomposition, boost)
+      │
+      ▼
+Top results, up to 10 per source
+      │
+      ▼
+Context assembled into the model prompt
 ```
 
-**Reciprocal Rank Fusion (RRF):**
-```
-RRF_score(d) = Σ 1 / (k + rank_i(d))
-```
+### Embeddings and their fallbacks
 
-## Configuration
+| Path | Model | Notes |
+|---|---|---|
+| Local embedding service | `sentence-transformers/all-MiniLM-L6-v2` | Default. Input truncated to 600 tokens |
+| OpenAI | `text-embedding-3-small` | Used when an API key is supplied |
+| **Hash embedding** | none — deterministic hash | Last resort when embedding generation fails. It is **not semantic**; matching becomes effectively random. If retrieval results look nonsensical, this is the first thing to check |
 
-In `config.csv`:
+A knowledge base only searches semantically when an embedding model is configured. Without one, retrieval silently becomes keyword matching — worth knowing before blaming the corpus.
 
-```csv
-name,value
-rag-hybrid-enabled,true
-rag-dense-weight,0.7
-rag-sparse-weight,0.3
-rag-top-k,10
-rag-rrf-k,60
-rag-reranker-enabled,false
-```
+### Ingestion
 
-## Weight Tuning
+Files are indexed from Drive into Qdrant collections with cosine distance, carrying `bucket`, `file_path`, `file_name`, `file_type` and `tags` as payload filters. Email is indexed separately when the `mail` feature is compiled in.
 
-| Content Type | Dense | Sparse | Use Case |
-|--------------|-------|--------|----------|
-| **Balanced** | 0.7 | 0.3 | General purpose |
-| **Semantic-Heavy** | 0.9 | 0.1 | Conversational, multilingual |
-| **Keyword-Heavy** | 0.4 | 0.6 | Technical docs, product catalogs |
-| **Equal** | 0.5 | 0.5 | When unsure |
+## Limits — what these modes are not
 
-## Reranking
+Being precise here matters more than looking advanced:
 
-Optional LLM-based reranking for highest quality:
+| Technique | Status |
+|---|---|
+| Real graph RAG (a graph index over entities and relations, with traversal) | **Not implemented.** `graph` mode is entity-expansion over the same vector index; there is no graph store |
+| Cross-encoder or LLM **re-ranking model** | **Not implemented** in the retrieval path. `corrective` grades chunks with an LLM, which is a relevance filter, not a re-ranker |
+| Late-interaction retrieval (ColBERT-style multi-vector) | **Not implemented** |
+| Learned fusion weights | **Not implemented.** Fusion is fixed-weight RRF at `k = 60` |
+| Contextual chunking (chunk-aware summaries or surrounding context) | **Not implemented** |
+| Semantic chunking of files | **Not implemented.** Files are streamed and indexed as whole records; the 16 MB constant in the ingester is a *read buffer*, not a chunk size |
+| Multi-hop retrieval with verification between hops | **Not implemented.** `agentic` decomposes once, then merges — it does not iterate on its own results |
+| Retrieval evaluation harness (MRR, Recall@k, golden sets) | **Not implemented.** There is no measured retrieval-quality number to quote |
 
-```csv
-name,value
-rag-reranker-enabled,true
-rag-reranker-model,quality
-rag-reranker-top-n,20
-```
+There is a second, **unconnected** hybrid implementation in `botqdrant/src/hybrid_search.rs` (BM25 index with `k1`/`b` tuning, stemming and stopword options, a re-ranker configuration and an LLM query decomposer). Nothing outside that crate constructs it, so none of it runs. Do not configure against it — if `bm25-*` or `rag-*` keys are set anywhere, they have no effect on the live path.
 
-| Aspect | Without | With Reranking |
-|--------|---------|----------------|
-| Latency | ~50ms | ~500ms |
-| Quality | Good | Excellent |
-| Cost | None | LLM API cost |
+## Where the field is, and where this is heading
 
-**Use for:** Legal, medical, financial, compliance-critical queries.
+The 2026–2027 direction of retrieval is less about the search call and more about what surrounds it. The honest position for this platform:
 
-## Usage
-
-Hybrid search is automatic when enabled. No code changes needed:
-
-```basic
-USE KB "company-policies"
-' Queries automatically use hybrid search
-```
-
-## Performance
-
-| Metric | Target |
-|--------|--------|
-| MRR (Mean Reciprocal Rank) | > 0.7 |
-| Recall@10 | > 0.9 |
-| Latency P95 | < 200ms |
-| Cache Hit Rate | > 40% |
-
-### Caching
-
-```csv
-name,value
-rag-cache-enabled,true
-rag-cache-ttl,3600
-rag-cache-max-size,10000
-```
+- **Retrieval is already agentic in shape.** `agentic`, `corrective` and `graph` modes decompose, grade and merge — they are early forms of what the field now calls agentic RAG.
+- **Re-ranking is the cheapest quality win available.** A cross-encoder re-ranker over the top 50 candidates typically beats any query-rewriting trick, and the configuration surface for it already exists in the unwired crate.
+- **Graph retrieval needs a graph.** Entity expansion is not a substitute; anything advertised as GraphRAG requires an actual graph index and traversal, which does not exist here yet.
+- **Evaluation is the gap that blocks everything else.** Without a golden set and a measured metric, mode selection is guesswork. This is the first thing worth building.
+- **Chunking strategy is unexplored.** Whole-file records mean long documents lose precision. Chunking with overlap is standard practice and is not done yet.
 
 ## Troubleshooting
 
-| Issue | Solution |
-|-------|----------|
-| Poor results | Adjust weights for content type |
-| High latency | Reduce `rag-top-k`, enable caching, disable reranking |
-| Missing expected results | Check document indexed, verify no filters excluding it |
+| Symptom | Likely cause |
+|---|---|
+| No results at all | No embedding model configured and the keyword fallback found nothing; or the collection is empty |
+| Results unrelated to the question | Falling back to hash embeddings — check whether embedding generation is failing in the logs |
+| Exact terms missing from results | Use `hybrid`, which adds keyword matching |
+| Answers miss documents that exist | Document was never indexed, or sits in a collection that is not active |
+| Slow responses | A mode that makes several LLM calls per question — `corrective` and `agentic`. Try `standard` or `hybrid` first |
 
 ## See Also
 
-- [Semantic Search](../03-knowledge-ai/semantic-search.md) - Dense search details
-- [Document Indexing](../03-knowledge-ai/indexing.md) - How documents are processed
-- [Knowledge Base](./knowledge-base.md) - KB overview
+- [Knowledge Base](./knowledge-base.md) - Working with KB collections
+- [Semantic Search](./semantic-search.md) - The dense search step
+- [Document Indexing](./indexing.md) - How documents get into the index
+- [Vector Collections](./vector-collections.md) - Collection structure
+- [USE KB](../04-basic-scripting/keyword-use-kb.md) - Keyword reference

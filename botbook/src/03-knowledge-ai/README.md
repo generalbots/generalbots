@@ -33,7 +33,7 @@ Quick reference for all General Bots knowledge and AI capabilities.
 - [Email Integration](./email.md) - Email features
 - [Storage and Data](./storage.md) - Data persistence
 - [Multi-Channel Support](./channels.md) - Communication channels
-- [Hybrid Search](./hybrid-search.md) - RAG 2.0
+- [Retrieval and RAG](./hybrid-search.md) - The six retrieval modes and how they work
 - [Memory Management](./memory-management.md) - Context handling
 - [Multi-Agent](./multi-agent-orchestration.md) - Agent coordination
 

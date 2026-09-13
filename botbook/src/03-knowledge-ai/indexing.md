@@ -13,15 +13,16 @@ Indexing occurs when:
 ## Processing Pipeline
 
 ```
-Document → Extract Text → Chunk → Embed → Store in Qdrant
+Document → Extract Text → Embed → Store in Qdrant
 ```
 
 | Stage | Description |
 |-------|-------------|
 | **Extract** | Pull text from PDF, DOCX, DOC, XLSX, XLS, ODS, PPTX, PPT, ODP, EPUB, ODT, HTML, MD, TXT, CSV, JSON, YAML, TOML, and more |
-| **Chunk** | Split into ~500 token segments with 50 token overlap |
-| **Embed** | Generate vectors using BGE model |
-| **Store** | Save to Qdrant with metadata |
+| **Embed** | Generate one vector per document with the configured embedding model |
+| **Store** | Save to Qdrant with the file path, type, bucket and tag metadata that retrieval filters on |
+
+> **No chunking stage (September 2026).** A document becomes a single record. There is no splitting into segments and no overlap, so precision degrades on long documents. This is a known limitation, not a setting.
 
 ## Supported File Types
 
@@ -63,13 +64,14 @@ USE WEBSITE "https://docs.example.com"
 
 ## Configuration
 
-In `config.csv`:
+The embedding endpoint is part of the bot's configuration. Two models are supported:
 
-```csv
-name,value
-embedding-url,http://localhost:8082
-embedding-model,../../../../data/llm/bge-small-en-v1.5-f32.gguf
-```
+| Setting | Model | Dimensions |
+|---------|-------|-----------|
+| Local embedding service (default) | `sentence-transformers/all-MiniLM-L6-v2` | 384 |
+| OpenAI | `text-embedding-3-small` | 1536 |
+
+Input is truncated to 600 tokens before embedding with the local model. If no embedding endpoint is configured, retrieval degrades to keyword matching, and if embedding generation fails at query time a non-semantic hash vector is substituted — see [Retrieval and RAG](./hybrid-search.md#embeddings-and-their-fallbacks).
 
 ## Using Indexed Content
 
