@@ -1,138 +1,93 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sales">
   <defs>
-    <style>
-      @media (prefers-color-scheme: dark) {
-        .bg { fill: #1a1a2e; }
-        .panel-bg { fill: #16213e; }
-        .card-bg { fill: #0f3460; }
-        .main-text { fill: #e0e0e0; }
-        .secondary-text { fill: #b0b0b0; }
-        .muted-text { fill: #808080; }
-        .white-text { fill: #ffffff; }
-        .accent-text { fill: #22c55e; }
-        .border { stroke: #2a2a4a; stroke-width: 1; fill: none; }
-        .card-border { stroke: #2a2a4a; stroke-width: 1; fill: #0f3460; }
-        .icon-btn { fill: #2a2a4a; }
-        .tab-active { fill: #22c55e; }
-        .tab-inactive { fill: #2a2a4a; }
-        .badge-lead { fill: #f59e0b; }
-        .badge-opportunity { fill: #3b82f6; }
-        .badge-won { fill: #22c55e; }
-        .search-bg { fill: #0f3460; }
-        .btn-new { fill: #22c55e; }
-      }
-      @media (prefers-color-scheme: light) {
-        .bg { fill: #f5f5f5; }
-        .panel-bg { fill: #ffffff; }
-        .card-bg { fill: #f8fafc; }
-        .main-text { fill: #1e293b; }
-        .secondary-text { fill: #475569; }
-        .muted-text { fill: #94a3b8; }
-        .white-text { fill: #ffffff; }
-        .accent-text { fill: #16a34a; }
-        .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
-        .card-border { stroke: #e2e8f0; stroke-width: 1; fill: #f8fafc; }
-        .icon-btn { fill: #e2e8f0; }
-        .tab-active { fill: #16a34a; }
-        .tab-inactive { fill: #e2e8f0; }
-        .badge-lead { fill: #f59e0b; }
-        .badge-opportunity { fill: #3b82f6; }
-        .badge-won { fill: #22c55e; }
-        .search-bg { fill: #f1f5f9; }
-        .btn-new { fill: #22c55e; }
-      }
-    </style>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
   </defs>
-
-  <!-- Background -->
-  <rect class="bg" width="900" height="600" rx="0"/>
-
-  <!-- Title -->
-  <text x="450" y="40" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="22" font-weight="700" class="main-text">Sales CRM</text>
-
-  <!-- Main Panel -->
-  <rect class="panel-bg" x="20" y="60" width="860" height="520" rx="8" stroke-width="1"/>
-  <rect class="border" x="20" y="60" width="860" height="520" rx="8"/>
-
-  <!-- Tab Bar -->
-  <rect class="tab-active" x="40" y="75" width="90" height="30" rx="6"/>
-  <text x="85" y="95" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" class="white-text">Pipeline</text>
-  <rect class="tab-inactive" x="140" y="75" width="90" height="30" rx="6"/>
-  <text x="185" y="95" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="secondary-text">Contacts</text>
-  <rect class="tab-inactive" x="240" y="75" width="90" height="30" rx="6"/>
-  <text x="285" y="95" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="secondary-text">Activities</text>
-  <rect class="tab-inactive" x="340" y="75" width="90" height="30" rx="6"/>
-  <text x="385" y="95" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="secondary-text">Forecast</text>
-
-  <!-- Search Bar -->
-  <rect class="search-bg" x="500" y="75" width="250" height="30" rx="6"/>
-  <text x="520" y="95" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="muted-text">Search deals...</text>
-  <circle class="icon-btn" cx="735" cy="90" r="10"/>
-  <text x="735" y="94" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="10" class="main-text">&#x1F50D;</text>
-
-  <!-- New Deal Button -->
-  <rect class="btn-new" x="770" y="75" width="100" height="30" rx="6"/>
-  <text x="820" y="95" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="12" font-weight="600" class="white-text">+ New Deal</text>
-
-  <!-- Kanban Columns -->
-  <!-- Lead Column -->
-  <rect x="40" y="120" width="260" height="440" rx="8" fill="none" stroke-width="1"/>
-  <rect x="40" y="120" width="260" height="36" rx="8" fill="none"/>
-  <rect class="badge-lead" x="40" y="120" width="260" height="36" rx="8" opacity="0.15"/>
-  <text x="60" y="143" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" class="main-text">Lead</text>
-  <text x="280" y="143" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">2</text>
-
-  <!-- Lead Card 1 -->
-  <rect class="card-border" x="55" y="168" width="230" height="80" rx="6"/>
-  <rect class="card-bg" x="56" y="169" width="228" height="78" rx="5"/>
-  <text x="70" y="190" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" class="main-text">Acme Corp Deal</text>
-  <text x="70" y="208" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="accent-text">$45,000</text>
-  <text x="180" y="208" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Acme Corp</text>
-  <text x="70" y="230" font-family="system-ui, -apple-system, sans-serif" font-size="10" class="muted-text">Contact: John Smith</text>
-
-  <!-- Lead Card 2 -->
-  <rect class="card-border" x="55" y="258" width="230" height="80" rx="6"/>
-  <rect class="card-bg" x="56" y="259" width="228" height="78" rx="5"/>
-  <text x="70" y="280" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" class="main-text">Beta Inc Project</text>
-  <text x="70" y="298" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="accent-text">$12,500</text>
-  <text x="180" y="298" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Beta Inc</text>
-  <text x="70" y="320" font-family="system-ui, -apple-system, sans-serif" font-size="10" class="muted-text">Contact: Jane Doe</text>
-
-  <!-- Opportunity Column -->
-  <rect x="320" y="120" width="260" height="440" rx="8" fill="none" stroke-width="1"/>
-  <rect x="320" y="120" width="260" height="36" rx="8" fill="none"/>
-  <rect class="badge-opportunity" x="320" y="120" width="260" height="36" rx="8" opacity="0.15"/>
-  <text x="340" y="143" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" class="main-text">Opportunity</text>
-  <text x="560" y="143" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">2</text>
-
-  <!-- Opportunity Card 1 -->
-  <rect class="card-border" x="335" y="168" width="230" height="80" rx="6"/>
-  <rect class="card-bg" x="336" y="169" width="228" height="78" rx="5"/>
-  <text x="350" y="190" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" class="main-text">Gamma Solutions</text>
-  <text x="350" y="208" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="accent-text">$78,000</text>
-  <text x="460" y="208" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Gamma Ltd</text>
-  <text x="350" y="230" font-family="system-ui, -apple-system, sans-serif" font-size="10" class="muted-text">Contact: Bob Wilson</text>
-
-  <!-- Opportunity Card 2 -->
-  <rect class="card-border" x="335" y="258" width="230" height="80" rx="6"/>
-  <rect class="card-bg" x="336" y="259" width="228" height="78" rx="5"/>
-  <text x="350" y="280" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" class="main-text">Delta Upgrade</text>
-  <text x="350" y="298" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="accent-text">$23,000</text>
-  <text x="460" y="298" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Delta Corp</text>
-  <text x="350" y="320" font-family="system-ui, -apple-system, sans-serif" font-size="10" class="muted-text">Contact: Alice Brown</text>
-
-  <!-- Closed Won Column -->
-  <rect x="600" y="120" width="260" height="440" rx="8" fill="none" stroke-width="1"/>
-  <rect x="600" y="120" width="260" height="36" rx="8" fill="none"/>
-  <rect class="badge-won" x="600" y="120" width="260" height="36" rx="8" opacity="0.15"/>
-  <text x="620" y="143" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" class="main-text">Closed Won</text>
-  <text x="840" y="143" text-anchor="end" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">1</text>
-
-  <!-- Closed Won Card 1 -->
-  <rect class="card-border" x="615" y="168" width="230" height="80" rx="6"/>
-  <rect class="card-bg" x="616" y="169" width="228" height="78" rx="5"/>
-  <text x="630" y="190" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="600" class="main-text">Epsilon Contract</text>
-  <text x="630" y="208" font-family="system-ui, -apple-system, sans-serif" font-size="12" class="accent-text">$156,000</text>
-  <text x="740" y="208" font-family="system-ui, -apple-system, sans-serif" font-size="11" class="muted-text">Epsilon SA</text>
-  <text x="630" y="230" font-family="system-ui, -apple-system, sans-serif" font-size="10" class="muted-text">Won: May 28, 2026</text>
+  <style>
+    .bg { fill: #ffffff; }
+    .titlebar { fill: #f8fafc; }
+    .sidebar-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #2563eb; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .chip { fill: #f1f5f9; }
+    .chip-active { fill: #dbeafe; }
+    .row { fill: #f8fafc; }
+    .bar { fill: #e2e8f0; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .titlebar { fill: #1e293b; }
+      .sidebar-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .border { stroke: #334155; }
+      .chip { fill: #334155; }
+      .chip-active { fill: #1e3a5f; }
+      .row { fill: #1e293b; }
+      .bar { fill: #334155; }
+    }
+  </style>
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Sales</text>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+  <path d="M30 52 a12 12 0 0 1 12 -12 h816 a12 12 0 0 1 12 12 v32 h-840 z" class="titlebar"/>
+  <text x="46" y="61" font-size="13.5" font-weight="600" class="main-text">Sales</text>
+  <text x="816" y="67" text-anchor="middle" font-size="13" class="muted-text">–</text>
+  <text x="840" y="67" text-anchor="middle" font-size="13" class="muted-text">✕</text>
+  <line x1="30" y1="84" x2="870" y2="84" class="border"/>
+  <rect x="46" y="87" width="73" height="26" rx="6" class="chip"/>
+  <text x="82" y="104" text-anchor="middle" font-size="11.5" class="secondary-text">Pipeline</text>
+  <rect x="127" y="87" width="53" height="26" rx="6" class="chip"/>
+  <text x="153" y="104" text-anchor="middle" font-size="11.5" class="secondary-text">Leads</text>
+  <rect x="188" y="87" width="73" height="26" rx="6" class="chip"/>
+  <text x="224" y="104" text-anchor="middle" font-size="11.5" class="secondary-text">Contacts</text>
+  <rect x="269" y="87" width="60" height="26" rx="6" class="chip"/>
+  <text x="298" y="104" text-anchor="middle" font-size="11.5" class="secondary-text">Quotes</text>
+  <rect x="336" y="87" width="60" height="26" rx="6" class="chip"/>
+  <text x="366" y="104" text-anchor="middle" font-size="11.5" class="secondary-text">Orders</text>
+  <rect x="404" y="87" width="86" height="26" rx="6" class="chip"/>
+  <text x="447" y="104" text-anchor="middle" font-size="11.5" class="secondary-text">Activities</text>
+  <rect x="498" y="87" width="73" height="26" rx="6" class="chip"/>
+  <text x="534" y="104" text-anchor="middle" font-size="11.5" class="secondary-text">Forecast</text>
+  <line x1="30" y1="128" x2="870" y2="128" class="border"/>
+  <rect x="46" y="142" width="371.68" height="44" rx="7" class="row"/>
+  <rect x="58" y="154" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="157" width="156" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="172" width="97" height="6" rx="3" class="bar"/>
+  <rect x="46" y="194" width="371.68" height="44" rx="7" class="row"/>
+  <rect x="58" y="206" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="209" width="156" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="224" width="97" height="6" rx="3" class="bar"/>
+  <rect x="46" y="246" width="371.68" height="44" rx="7" class="row"/>
+  <rect x="58" y="258" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="261" width="156" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="276" width="97" height="6" rx="3" class="bar"/>
+  <rect x="46" y="298" width="371.68" height="44" rx="7" class="row"/>
+  <rect x="58" y="310" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="313" width="156" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="328" width="97" height="6" rx="3" class="bar"/>
+  <rect x="46" y="350" width="371.68" height="44" rx="7" class="row"/>
+  <rect x="58" y="362" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="365" width="156" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="380" width="97" height="6" rx="3" class="bar"/>
+  <rect x="46" y="402" width="371.68" height="44" rx="7" class="row"/>
+  <rect x="58" y="414" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="417" width="156" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="432" width="97" height="6" rx="3" class="bar"/>
+  <rect x="46" y="454" width="371.68" height="44" rx="7" class="row"/>
+  <rect x="58" y="466" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="469" width="156" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="484" width="97" height="6" rx="3" class="bar"/>
+  <rect x="434" y="142" width="420" height="76" rx="8" class="row"/>
+  <text x="448" y="168" font-size="12.5" font-weight="600" class="main-text">Details</text>
+  <rect x="448" y="182" width="339" height="7" rx="3.5" class="bar"/>
+  <rect x="448" y="196" width="241" height="7" rx="3.5" class="bar"/>
+  <!-- regen: scripts/docs_app_screens.py -->
 </svg>

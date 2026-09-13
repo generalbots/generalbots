@@ -1,0 +1,90 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="JukeBox">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+  <style>
+    .bg { fill: #ffffff; }
+    .titlebar { fill: #f8fafc; }
+    .sidebar-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #2563eb; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .chip { fill: #f1f5f9; }
+    .chip-active { fill: #dbeafe; }
+    .row { fill: #f8fafc; }
+    .bar { fill: #e2e8f0; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .titlebar { fill: #1e293b; }
+      .sidebar-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .border { stroke: #334155; }
+      .chip { fill: #334155; }
+      .chip-active { fill: #1e3a5f; }
+      .row { fill: #1e293b; }
+      .bar { fill: #334155; }
+    }
+  </style>
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">JukeBox</text>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+  <path d="M30 52 a12 12 0 0 1 12 -12 h816 a12 12 0 0 1 12 12 v32 h-840 z" class="titlebar"/>
+  <text x="46" y="61" font-size="13.5" font-weight="600" class="main-text">JukeBox</text>
+  <text x="816" y="67" text-anchor="middle" font-size="13" class="muted-text">–</text>
+  <text x="840" y="67" text-anchor="middle" font-size="13" class="muted-text">✕</text>
+  <line x1="30" y1="84" x2="870" y2="84" class="border"/>
+
+  <line x1="30" y1="128" x2="870" y2="128" class="border"/>
+  <rect x="46" y="145" width="66" height="26" rx="6" class="chip"/>
+  <text x="79" y="162" text-anchor="middle" font-size="11.5" class="secondary-text">Ambient</text>
+  <rect x="120" y="145" width="106" height="26" rx="6" class="chip"/>
+  <text x="173" y="162" text-anchor="middle" font-size="11.5" class="secondary-text">Lo-fi Hip Hop</text>
+  <rect x="234" y="145" width="46" height="26" rx="6" class="chip"/>
+  <text x="257" y="162" text-anchor="middle" font-size="11.5" class="secondary-text">Jazz</text>
+  <rect x="288" y="145" width="79" height="26" rx="6" class="chip"/>
+  <text x="328" y="162" text-anchor="middle" font-size="11.5" class="secondary-text">Classical</text>
+  <rect x="376" y="145" width="86" height="26" rx="6" class="chip"/>
+  <text x="419" y="162" text-anchor="middle" font-size="11.5" class="secondary-text">Electronic</text>
+  <rect x="470" y="145" width="79" height="26" rx="6" class="chip"/>
+  <text x="509" y="162" text-anchor="middle" font-size="11.5" class="secondary-text">Synthwave</text>
+  <rect x="557" y="145" width="119" height="26" rx="6" class="chip"/>
+  <text x="617" y="162" text-anchor="middle" font-size="11.5" class="secondary-text">Brazilian Bossa</text>
+  <rect x="46" y="184" width="808" height="44" rx="7" class="row"/>
+  <rect x="58" y="196" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="199" width="339" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="214" width="210" height="6" rx="3" class="bar"/>
+  <rect x="46" y="236" width="808" height="44" rx="7" class="row"/>
+  <rect x="58" y="248" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="251" width="339" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="266" width="210" height="6" rx="3" class="bar"/>
+  <rect x="46" y="288" width="808" height="44" rx="7" class="row"/>
+  <rect x="58" y="300" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="303" width="339" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="318" width="210" height="6" rx="3" class="bar"/>
+  <rect x="46" y="340" width="808" height="44" rx="7" class="row"/>
+  <rect x="58" y="352" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="355" width="339" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="370" width="210" height="6" rx="3" class="bar"/>
+  <rect x="46" y="392" width="808" height="44" rx="7" class="row"/>
+  <rect x="58" y="404" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="407" width="339" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="422" width="210" height="6" rx="3" class="bar"/>
+  <rect x="46" y="444" width="808" height="44" rx="7" class="row"/>
+  <rect x="58" y="456" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="459" width="339" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="474" width="210" height="6" rx="3" class="bar"/>
+  <rect x="46" y="496" width="808" height="44" rx="7" class="row"/>
+  <rect x="58" y="508" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="511" width="339" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="526" width="210" height="6" rx="3" class="bar"/>
+  <!-- regen: scripts/docs_app_screens.py -->
+</svg>
