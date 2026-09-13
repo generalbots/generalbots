@@ -805,6 +805,16 @@ async fn run_project_app(
         Err(e) => return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "success": false, "error": e }))),
     };
     let branch_id = resolve_org_branch(&registry, project.org_id).unwrap_or(project.branch_id);
+    // #1371 — website projects NEVER provision a dev VM: they are static
+    // HTMX/HTML pages served from the proxy container's shared websites dir
+    // (same path as Deploy). Run stages the workspace into the project's two
+    // proxy sites — the test twin `{slug}-test.{domain}` and, when the
+    // request is approval-gated for production, the public `{slug}.{domain}`
+    // — and returns the site URL directly. Only VM-backed kinds (`bot`,
+    // `apps`) reach the `create_project_vm` path below.
+    if project.project_type == "website" {
+        return run_website_via_proxy(&registry, &project).await;
+    }
     let vm = match lifecycle.create_project_vm(
         project_id,
         branch_id,
@@ -834,6 +844,61 @@ async fn run_project_app(
                 "project": project.name,
             })),
         ),
+        Err(e) => (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "success": false, "error": e })),
+        ),
+    }
+}
+
+/// #1371 — Run for website projects: stage the workspace into the proxy
+/// container's websites dir (no VM, no Incus resources) and return the site
+/// URL. Mirrors the publish path's two-sites-per-project model: every Run
+/// refreshes the TEST twin so an edit under test can never blank the live
+/// page; the public slug is only written when the caller carries the
+/// sanctioned production approval (same guard as `publish_project`).
+async fn run_website_via_proxy(
+    registry: &ProjectRegistryRef,
+    project: &crate::projects::Project,
+) -> (StatusCode, Json<serde_json::Value>) {
+    // Reuse the publish path verbatim: it enforces metering, resolves the
+    // site env with the production approval guard (Run without the deploy
+    // stamp always lands on the test twin), stages the release, records the
+    // deployment history and returns the site URL. Run defaults to `test` —
+    // a preview must never touch the live slug.
+    let args = serde_json::json!({ "project_id": project.id.to_string(), "env": "test" });
+    match crate::publish::do_publish(args, registry.pool().clone()).await {
+        Ok(data) => {
+            let url = data
+                .get("url")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or_default()
+                .to_string();
+            let env = data
+                .get("env")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or("test")
+                .to_string();
+            let note = data
+                .get("note")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or_default()
+                .to_string();
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "success": true,
+                    "url": url,
+                    "host_url": url,
+                    "container": "proxy",
+                    "deploy_target": "proxy-websites",
+                    "env": env,
+                    "note": note,
+                    "vm": serde_json::Value::Null,
+                    "project": project.name,
+                })),
+            )
+        }
         Err(e) => (
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({ "success": false, "error": e })),
