@@ -1,16 +1,15 @@
 
-<center>
-<img src="botui/ui/cloud/images/logo-square.svg" alt="General Bots" width="400" />
-</center>
+<p align="center"><img src="logo.svg" alt="General Bots" width="200"></p>
 
+# General Bots
 
-General Bots is a comprehensive AI automation platform built with Rust, providing a unified workspace for building AI-powered bots, web interfaces, desktop applications, and integration tools. The workspace follows a modular architecture with independent subprojects that can be developed and deployed separately while sharing common libraries and standards.
+General Bots is an AI automation platform written in Rust. It gives you one workspace for building AI-powered bots, web interfaces, desktop applications and the integrations that connect them. The workspace is modular: each subproject can be developed and deployed on its own, while shared libraries and standards keep them consistent.
 
-For comprehensive documentation, see **[docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)** or the **[BotBook](./botbook)** for detailed guides, API references, and tutorials.
+Documentation lives at **[docs.generalbots.org](https://docs.generalbots.org)**, and the **[BotBook](./botbook)** holds the local guides, API references and tutorials.
 
 ---
 
-## 📁 Workspace Structure
+## Workspace Structure
 
 | Crate | Purpose | Port | Tech Stack |
 |-------|---------|------|------------|
@@ -62,31 +61,22 @@ Place local bot packages in `/opt/gbo/data/` for automatic loading and monitorin
 
 ---
 
-## 🏗️ BotServer Component Architecture
+## BotServer Component Architecture
 
-### 🔧 Infrastructure Components (Auto-Managed)
+### Infrastructure Components
 
-BotServer automatically installs, configures, and manages all infrastructure components on first run. **DO NOT manually start these services** - BotServer handles everything.
+BotServer installs, configures and runs its own infrastructure on first start, so none of these services need to be launched by hand. On boot it starts the stack, connects to Vault, loads each service's credentials from the `bot_configuration` table, and authenticates with them before serving traffic.
 
-**Automatic Service Lifecycle:**
-1. **Start**: When botserver starts, it automatically launches all infrastructure components (PostgreSQL, Vault, MinIO, Valkey, Qdrant, etc.)
-2. **Credentials**: BotServer retrieves all service credentials (passwords, tokens, API keys) from Vault
-3. **Connection**: BotServer uses these credentials to establish secure connections to each service
-4. **Query**: All database queries, cache operations, and storage requests are authenticated using Vault-managed credentials
-
-**Credential Flow:**
 ```
 botserver starts
     ↓
-Launch PostgreSQL, MinIO, Valkey, Qdrant
+launches PostgreSQL, MinIO, Valkey, Qdrant
     ↓
-Connect to Vault
+connects to Vault, loads service credentials
     ↓
-Retrieve service credentials (from database)
+authenticates against every service
     ↓
-Authenticate with each service using retrieved credentials
-    ↓
-Ready to handle requests
+ready to handle requests
 ```
 
 | Component | Purpose | Port | Binary Location | Credentials From |
@@ -99,7 +89,7 @@ Ready to handle requests
 | **Valkey** | Cache/Queue (Redis-compatible) | 6379 | `botserver-stack/bin/cache/valkey-server` | Vault → database |
 | **Llama.cpp** | Local LLM server | 8081 | `botserver-stack/bin/llm/build/bin/llama-server` | Vault → database |
 
-### 📦 Component Installation System
+### Component Installation System
 
 Components are defined in `botserver/3rdparty.toml` and managed by the `PackageManager` (`botserver/src/core/package_manager/`):
 
@@ -127,42 +117,30 @@ filename = "llama-b7345-bin-ubuntu-x64.zip"
 - Subsequent runs: Only starts existing components (uses cached binaries)
 - Config stored in: `botserver-stack/conf/system/bootstrap.json`
 
-### 🚀 PROPER STARTUP PROCEDURES
+### Starting BotServer
 
-**❌ FORBIDDEN:**
-- NEVER manually start infrastructure components (Vault, PostgreSQL, MinIO, etc.)
-- NEVER run `cargo run` or `cargo build` for botserver directly without ./restart.sh
-- NEVER modify botserver-stack/ files manually (use botserver API)
+Reach for `./restart.sh` in development. It stops lingering processes, builds botserver and botui in sequence so the builds cannot race, starts both with logging, and prints the process IDs and URLs.
 
-**✅ REQUIRED:**
-
-**Option 1: Development (Recommended)**
 ```bash
 ./restart.sh
 ```
-This script:
-1. Kills existing processes cleanly
-2. Builds botserver and botui sequentially (no race conditions)
-3. Starts botserver in background with logging to `botserver.log`
-4. Starts botui in background with logging to `botui.log`
-5. Shows process IDs and access URLs
 
-**Option 2: Production/Release**
+Let BotServer own the infrastructure: do not launch Vault, PostgreSQL, MinIO or the rest yourself, do not run `cargo run` on botserver directly, and do not hand-edit files under `botserver-stack/`.
+
+For a release build:
+
 ```bash
-# Build release binary first
 cargo build --release -p botserver
-
-# Start with release binary
 RUST_LOG=info ./target/release/botserver --noconsole 2>&1 | tee botserver.log &
 ```
 
-**Option 3: Using Exec (Systemd/Supervisord)**
-```bash
-# In systemd service or similar
-ExecStart=/home/rodriguez/src/gb/target/release/botserver --noconsole
+Under systemd or another supervisor, point `ExecStart` at the built binary:
+
+```ini
+ExecStart=/opt/gbo/bin/botserver --noconsole
 ```
 
-### 🔒 Component Communication
+### Component Communication
 
 All components communicate through internal networks with mTLS:
 - **Vault**: mTLS for secrets access
@@ -172,7 +150,7 @@ All components communicate through internal networks with mTLS:
 
 Certificates auto-generated in: `botserver-stack/conf/system/certificates/`
 
-### 📊 Component Status
+### Component Status
 
 Check component status anytime:
 ```bash
@@ -191,7 +169,7 @@ cd botserver-stack/bin/cache && ./valkey-cli ping
 
 ---
 
-## 🏗️ Component Dependency Graph
+## Component Dependency Graph
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -229,7 +207,7 @@ cd botserver-stack/bin/cache && ./valkey-cli ping
 
 **Key Principle:** `botlib` contains ONLY shared types and utilities. No business logic. All business logic lives in botserver or specialized crates.
 
-## 📦 Module Responsibility Matrix
+## Module Responsibility Matrix
 
 ### botserver/src/ Module Structure
 
@@ -305,34 +283,18 @@ cd botserver-stack/bin/cache && ./valkey-cli ping
 
 ## Quick Start
 
-### 🚀 Simple Startup (ALWAYS USE restart.sh)
+### Starting Locally
 
 ```bash
 ./restart.sh
 ```
 
-**⚠️ CRITICAL: ALWAYS use restart.sh - NEVER start servers individually!**
+One command is enough. The script stops anything already running, builds botserver and botui in order, starts botserver (which brings up PostgreSQL, Vault, MinIO, Valkey and Qdrant and authenticates against them), then starts botui as the proxy in front of it.
 
-The script handles BOTH servers properly:
-1. Stop existing processes cleanly
-2. Build botserver and botui sequentially (no race conditions)
-3. Start botserver in background → **automatically starts all infrastructure services (PostgreSQL, Vault, MinIO, Valkey, Qdrant)**
-4. BotServer retrieves credentials from Vault and authenticates with all services
-5. Start botui in background → proxy to botserver
-6. Show process IDs and monitoring commands
-
-**Infrastructure services are fully automated - no manual configuration required!**
-
-**Monitor startup:**
-```bash
-tail -f botserver.log botui.log
-```
-
-**Access:**
 - Web UI: http://localhost:3000
 - API: http://localhost:9000
 
-### 📊 Monitor & Debug
+### Monitor & Debug
 
 ```bash
 tail -f botserver.log botui.log
@@ -348,109 +310,74 @@ ps aux | grep -E "botserver|botui" | grep -v grep
 grep -E " E |W |CLIENT:" botserver.log | tail -20
 ```
 
-### 🔧 Manual Startup (If needed)
+### Manual Startup (If needed)
 
-**⚠️ WARNING: Only use if restart.sh fails. Always prefer restart.sh!**
+Only reach for this if `restart.sh` fails.
 
 ```bash
 cd botserver && cargo run -- --noconsole > ../botserver.log 2>&1 &
 cd botui && BOTSERVER_URL="http://localhost:9000" cargo run > ../botui.log 2>&1 &
 ```
 
-### 🛑 Stop Servers
+### Stop Servers
 
 ```bash
 pkill -f botserver; pkill -f botui
 ```
 
-### ⚠️ Common Issues
+### Common Issues
 
-**Vault init error?** Delete stale state:
+If Vault fails to initialise, clear the stale state and restart:
 ```bash
 rm -rf botserver-stack/data/vault botserver-stack/conf/vault/init.json && ./restart.sh
 ```
 
-**Port in use?** Find and kill:
+If a port is already taken, find and free it:
 ```bash
 lsof -ti:9000 | xargs kill -9
 lsof -ti:3000 | xargs kill -9
 ```
 
-**⚠️ IMPORTANT: Stack Services Management**
-All infrastructure services (PostgreSQL, Vault, Redis, Qdrant, MinIO, etc.) are **automatically started by botserver** and managed through `botserver-stack/` directory, NOT global system installations. The system uses:
+### Where the Stack Lives
 
-- **Local binaries:** `botserver-stack/bin/` (PostgreSQL, Vault, Redis, etc.)
-- **Configurations:** `botserver-stack/conf/`
-- **Data storage:** `botserver-stack/data/`
-- **Service logs:** `botserver-stack/logs/` (check here for troubleshooting)
-- **Credentials:** Stored in Vault, retrieved by botserver at startup
+BotServer starts and manages every infrastructure service itself, and keeps them inside the repository rather than in system-wide installs. Do not install or point at a global PostgreSQL, Redis or Vault.
 
-**Do NOT install or reference global PostgreSQL, Redis, or other services.** When botserver starts, it automatically:
-1. Launches all required stack services
-2. Connects to Vault
-3. Retrieves credentials from the `bot_configuration` database table
-4. Authenticates with each service using retrieved credentials
-5. Begins handling requests with authenticated connections
+| What | Where |
+|------|-------|
+| Binaries | `botserver-stack/bin/` |
+| Configuration | `botserver-stack/conf/` |
+| Data | `botserver-stack/data/` |
+| Logs | `botserver-stack/logs/` |
+| Credentials | Vault, read by BotServer at startup |
 
-If you encounter service errors, check the individual service logs in `./botserver-stack/logs/[service]/` directories.
+Service errors surface in `botserver-stack/logs/<service>/`, which is the first place to look.
 
-### UI File Deployment - Production Options
+### Deploying UI Files
 
-**Option 1: Embedded UI (Recommended for Production)**
+**Embedded UI (recommended for production)**
 
-The `embed-ui` feature compiles UI files directly into the botui binary, eliminating the need for separate file deployment:
+The `embed-ui` feature compiles the UI straight into the botui binary, so there are no separate files to deploy:
 
 ```bash
-# Build with embedded UI files
 cargo build --release -p botui --features embed-ui
-
-# The binary now contains all UI files - no additional deployment needed!
-# The botui binary is self-contained and production-ready
 ```
 
-**Benefits of embed-ui:**
-- ✅ Single binary deployment (no separate UI files)
-- ✅ Faster startup (no filesystem access)
-- ✅ Smaller attack surface
-- ✅ Simpler deployment process
+You end up with one self-contained binary, a faster start because nothing is read from disk, and a smaller attack surface.
 
-**Option 2: Filesystem Deployment (Development Only)**
+**Filesystem (development)**
 
-For development, UI files are served from the filesystem:
+Development builds read the UI from `botui/ui/suite/` on disk, so edits are picked up on refresh.
 
-```bash
-# UI files must exist at botui/ui/suite/
-# This is automatically available in development builds
-```
+**Manual deployment (legacy)**
 
-**Option 3: Manual File Deployment (Legacy)**
-
-If you need to deploy UI files separately (not recommended):
+Only if you must ship the UI files separately:
 
 ```bash
-# Deploy UI files to production location
 ./botserver/deploy/deploy-ui.sh /opt/gbo
-
-# Verify deployment
 ls -la /opt/gbo/bin/ui/suite/index.html
 ```
 
 See `botserver/deploy/README.md` for deployment scripts.
-
-### Start Both Servers (Automated)
-```bash
-# Use restart script (RECOMMENDED)
-./restart.sh
-```
-
-### Start Both Servers (Manual)
-```bash
-# Terminal 1: botserver
-cd botserver && cargo run -- --noconsole
-
-# Terminal 2: botui  
-cd botui && BOTSERVER_URL="http://localhost:9000" cargo run
-```
 
 ### Build Commands
 ```bash
@@ -466,13 +393,13 @@ cargo test -p bottest
 
 ---
 
-## 🤖 AI Agent Guidelines
+## AI Agent Guidelines
 
 > **For LLM instructions, coding rules, security directives, testing workflows, and error handling patterns, see [AGENTS.md](./AGENTS.md).**
 
 ---
 
-## 📖 Glossary
+## Glossary
 
 | Term | Definition | Usage |
 |------|-----------|-------|
@@ -492,7 +419,7 @@ cargo test -p bottest
 
 
 
-## 🖥️ UI Architecture (botui + botserver)
+## UI Architecture (botui + botserver)
 
 ### Two Servers During Development
 
@@ -528,7 +455,7 @@ When `botui/ui/suite/` folder not found, botserver uses **embedded UI** compiled
 
 ---
 
-## 🎨 Frontend Standards
+## Frontend Standards
 
 ### HTMX-First Approach
 - Use HTMX to minimize JavaScript
@@ -556,7 +483,7 @@ botui/ui/suite/js/vendor/
 
 ---
 
-## 📋 Project-Specific Guidelines
+## Project-Specific Guidelines
 
 Each crate has its own README.md with specific guidelines:
 
@@ -577,17 +504,17 @@ Each crate has its own README.md with specific guidelines:
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 For complete documentation, guides, and API references:
 
-- **[docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)** - Full online documentation
+- **[docs.generalbots.org](https://docs.generalbots.org)** - Full online documentation
 - **[BotBook](./botbook)** - Local comprehensive guide with tutorials and examples
 - **[General Bots Repository](https://github.com/GeneralBots/BotServer)** - Main project repository
 
 ---
 
-## 🔧 Technical Debt
+## Technical Debt
 
 ### Critical Issues to Address
 
@@ -620,61 +547,46 @@ cargo audit
 
 ---
 
-## Git Structure
+## Repository Layout
 
-**Note:** Each subproject has its own git repository. This root repository only tracks workspace-level files:
+This is one repository. Every subproject lives in it as an ordinary directory - there are no git submodules - so a root commit covers workspace files and subproject code together.
 
-- `Cargo.toml` - Workspace configuration
-- `README.md` - This file
-- `.gitignore` - Ignore patterns
-- `ADDITIONAL-SUGGESTIONS.md` - Enhancement ideas
-- `TODO-*.md` - Task tracking files
+There are two remotes:
 
-Subprojects (botapp, botserver, botui, etc.) are **independent repositories referenced as git submodules**.
+| Remote | Host | Purpose |
+|--------|------|---------|
+| `origin` | github.com/generalbots/generalbots | Public mirror |
+| `alm` | alm.pragmatismo.com.br/GeneralBots/BotServer | Primary; pushing here triggers CI/CD |
 
-### ⚠️ CRITICAL: Submodule Push Workflow
+```bash
+git push origin main
+git push alm main
+```
 
-When making changes to any submodule (botserver, botui, botlib, etc.):
-
-1. **Commit and push changes within the submodule directory:**
-   ```bash
-   cd botserver
-   git add .
-   git commit -m "Your changes"
-   git push pragmatismo main
-   git push github main
-   ```
-
-2. **Update the global gb repository submodule reference:**
-   ```bash
-   cd ..  # Back to gb root
-   git add botserver
-   git commit -m "Update botserver submodule to latest commit"
-   git push pragmatismo main
-   git push github main
-   ```
-
-**Failure to push the global gb repository will cause submodule changes to not trigger CI/CD pipelines.**
-
-Both repositories must be pushed for changes to take effect in production.
+Pushing to `alm` is not routine: it drives the pipeline that builds and deploys to production, so confirm before doing it.
 
 ---
 
 ## Development Workflow
 
-1. Read this README.md (workspace structure)
-2. Read **[AGENTS.md](./AGENTS.md)** (coding rules & workflows)
-3. **BEFORE creating any .md file, search botbook/ for existing documentation**
-4. Read `<project>/README.md` (project-specific rules)
-5. Use diagnostics tool to check warnings
-6. Fix all warnings with full file rewrites
-7. Verify with diagnostics after each file
-8. Never suppress warnings with `#[allow()]`
+1. Read this README for the workspace layout.
+2. Read **[AGENTS.md](./AGENTS.md)** for coding rules and workflows.
+3. Before creating any `.md` file, search `botbook/` for existing documentation.
+4. Read the relevant `<project>/README.md` for project-specific rules.
+5. Run diagnostics and fix every warning; never silence them with `#[allow()]`.
 
 ---
 
-
-
 ## License
 
-See individual project repositories for license information.
+General Bots is released under the MIT License. Each subproject carries its own LICENSE file:
+
+| Project | License file |
+|---------|--------------|
+| Root | `LICENSE` |
+| botserver | `botserver/LICENSE` |
+| botui | `botui/LICENSE` |
+| botapp | `botapp/LICENSE` |
+| botlib | `botlib/LICENSE.txt` |
+| botbook | `botbook/LICENSE` |
+| botplugin | `botplugin/LICENSE` |

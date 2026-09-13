@@ -1,5 +1,7 @@
 # BotServer Crates Reference
 
+<p align="center"><img src="../logo.svg" alt="General Bots" width="200"></p>
+
 Quick reference for all crates in `botserver/crates/`. For full rules, see root `AGENTS.md`.
 
 ## Core Infrastructure

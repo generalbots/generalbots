@@ -1,5 +1,7 @@
 # BotDevice - Android, HarmonyOS & IoT powered by General Bots
 
+<p align="center"><img src="../logo.svg" alt="General Bots" width="200"></p>
+
 **BotDevice** transforms any Android, HarmonyOS, or embedded device into a dedicated General Bots system, removing all manufacturer bloatware (Samsung, Huawei, Xiaomi, Honor, etc) and replacing it with the GB interface.
 
 ## Supported Platforms

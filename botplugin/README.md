@@ -1,6 +1,8 @@
 # General Bots Chrome Extension
 
-A professional-grade Chrome extension developed by [pragmatismo.com.br](https://pragmatismo.com.br) that enhances WhatsApp Web with server-side message processing capabilities and UI improvements.
+<p align="center"><img src="../logo.svg" alt="General Bots" width="200"></p>
+
+A professional-grade Chrome extension developed by [generalbots.org](https://generalbots.org) that enhances WhatsApp Web with server-side message processing capabilities and UI improvements.
 
 ## Features
 
@@ -47,4 +49,4 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Contact
 
-For support or questions, please contact [pragmatismo.com.br](https://pragmatismo.com.br).
+For support or questions, please contact [generalbots.org](https://generalbots.org).

@@ -1,5 +1,7 @@
 # BotModels - AI Inference Service
 
+<p align="center"><img src="../logo.svg" alt="General Bots" width="200"></p>
+
 **Version:** 1.0.0  
 **Purpose:** Multimodal AI inference service for General Bots
 
@@ -11,7 +13,7 @@ BotModels is a Python-based AI inference service that provides multimodal capabi
 
 While botserver handles business logic, networking, and systems-level operations, BotModels exists solely to leverage the extensive Python AI/ML ecosystem for inference tasks that are impractical to implement in Rust.
 
-For comprehensive documentation, see **[docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)** or the **[BotBook](../botbook)** for detailed guides, API references, and tutorials.
+For comprehensive documentation, see **[docs.generalbots.org](https://docs.generalbots.org)** or the **[BotBook](../botbook)** for detailed guides, API references, and tutorials.
 
 ---
 
@@ -82,7 +84,7 @@ python -m uvicorn src.main:app --host 0.0.0.0 --port 8085 --ssl-keyfile key.pem 
 
 ---
 
-## 🐍 Philosophy & Scope
+## Philosophy & Scope
 
 ### Why Python?
 
@@ -98,7 +100,7 @@ python -m uvicorn src.main:app --host 0.0.0.0 --port 8085 --ssl-keyfile key.pem 
 
 ---
 
-## 🛠 Technology Stack
+## Technology Stack
 
 - **Runtime**: Python 3.10+
 - **Web Framework**: FastAPI (preferred over Flask for async/performance)
@@ -107,7 +109,7 @@ python -m uvicorn src.main:app --host 0.0.0.0 --port 8085 --ssl-keyfile key.pem 
 
 ---
 
-## 📡 API Endpoints
+## API Endpoints
 
 All endpoints require the `X-API-Key` header for authentication.
 
@@ -236,7 +238,7 @@ Interactive API documentation:
 
 ---
 
-## 🔗 Integration with BotServer
+## Integration with BotServer
 
 ### Configuration (config.csv)
 
@@ -278,7 +280,7 @@ TALK caption
 
 ---
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────┐     HTTPS      ┌─────────────┐
@@ -300,7 +302,7 @@ TALK caption
 
 ---
 
-## ⚡️ Development Guidelines
+## Development Guidelines
 
 ### Modern Model Usage
 
@@ -350,7 +352,7 @@ botmodels/
 
 ---
 
-## 🧪 Testing
+## Testing
 
 ```bash
 pytest tests/
@@ -358,7 +360,7 @@ pytest tests/
 
 ---
 
-## 🔒 Security
+## Security
 
 1. **Always use HTTPS in production**
 2. Use strong, unique API keys
@@ -368,17 +370,17 @@ pytest tests/
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 For complete documentation, guides, and API references:
 
-- **[docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)** - Full online documentation
+- **[docs.generalbots.org](https://docs.generalbots.org)** - Full online documentation
 - **[BotBook](../botbook)** - Local comprehensive guide with tutorials and examples
 - **[General Bots Repository](https://github.com/GeneralBots/BotServer)** - Main project repository
 
 ---
 
-## 📦 Requirements
+## Requirements
 
 - Python 3.10+
 - CUDA-capable GPU (recommended, 8GB+ VRAM)
@@ -386,7 +388,7 @@ For complete documentation, guides, and API references:
 
 ---
 
-## 🔗 Resources
+## Resources
 
 ### Education
 
@@ -408,7 +410,7 @@ For complete documentation, guides, and API references:
 
 ---
 
-## 🔑 Remember
+## Remember
 
 - **Inference Only**: No business state, just predictions
 - **Modern Models**: Use HuggingFace Transformers, Diffusers
@@ -420,6 +422,6 @@ For complete documentation, guides, and API references:
 
 ---
 
-## 📄 License
+## License
 
 See LICENSE file for details.# trigger

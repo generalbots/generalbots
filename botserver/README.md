@@ -1,21 +1,21 @@
 # General Bots - Enterprise-Grade LLM Orchestrator
 
+<p align="center"><img src="../logo.svg" alt="General Bots" width="200"></p>
+
 **Version:** 6.2.0  
 **Purpose:** Main API server for General Bots (Axum + Diesel + Rhai BASIC)
 
 ---
 
-![General Bot Logo](https://github.com/GeneralBots/botserver/blob/main/logo.png?raw=true)
-
 ## Overview
 
-General Bots is a **self-hosted AI automation platform** and strongly-typed LLM conversational platform focused on convention over configuration and code-less approaches. It serves as the core API server handling LLM orchestration, business logic, database operations, and multi-channel communication.
+General Bots is a self-hosted AI automation platform built around convention over configuration, so most bots are assembled from scripts and data rather than custom code. This crate is the core API server: it handles LLM orchestration, business logic, database access, and multi-channel messaging.
 
-For comprehensive documentation, see **[docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)** or the **[BotBook](../botbook)** for detailed guides, API references, and tutorials.
+Full documentation lives at **[docs.generalbots.org](https://docs.generalbots.org)**; the **[BotBook](../botbook)** has the longer guides and API references.
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -51,7 +51,7 @@ cargo run -- --container     # LXC container mode
 
 ---
 
-## ✨ Key Features
+## Key Features
 
 ### Multi-Vendor LLM API
 Unified interface for OpenAI, Groq, Claude, Anthropic, and local models.
@@ -73,7 +73,7 @@ Full history with rollback capabilities for all configurations and data.
 
 ---
 
-## 🎯 4 Essential Keywords
+## 4 Essential Keywords
 
 ```basic
 USE KB "kb-name"        ' Load knowledge base into vector database
@@ -97,7 +97,7 @@ TALK "Welcome! How can I help you today?"
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 src/
@@ -121,7 +121,7 @@ botserver-stack/    # Stack deployment files
 
 ---
 
-## ✅ ZERO TOLERANCE POLICY
+## ZERO TOLERANCE POLICY
 
 **EVERY SINGLE WARNING MUST BE FIXED. NO EXCEPTIONS.**
 
@@ -143,7 +143,7 @@ botserver-stack/    # Stack deployment files
 
 ---
 
-## 🔐 Security Requirements
+## Security Requirements
 
 ### Error Handling
 
@@ -230,7 +230,7 @@ let sanitized = log_and_sanitize(&e, "context", None);
 
 ---
 
-## ✅ Mandatory Code Patterns
+## Mandatory Code Patterns
 
 ### Format Strings - Inline Variables
 
@@ -289,7 +289,7 @@ date.with_hour(9).and_then(|d| d.with_minute(0)).unwrap_or(date)
 
 ---
 
-## 📏 File Size Limits - MANDATORY
+## File Size Limits - MANDATORY
 
 ### Maximum 450 Lines Per File
 
@@ -321,7 +321,7 @@ Standing rule: any file you touch should come out under 450 lines, or smaller th
 
 ---
 
-## 🗄️ Database Standards
+## Database Standards
 
 - **TABLES AND INDEXES ONLY** (no stored procedures, nothing, no views, no triggers, no functions)
 - **JSON columns:** use TEXT with `_json` suffix
@@ -330,7 +330,7 @@ Standing rule: any file you touch should come out under 450 lines, or smaller th
 
 ---
 
-## 🎨 Frontend Rules
+## Frontend Rules
 
 - **Use HTMX** - minimize JavaScript
 - **NO external CDN** - all assets local
@@ -338,7 +338,7 @@ Standing rule: any file you touch should come out under 450 lines, or smaller th
 
 ---
 
-## 📦 Key Dependencies
+## Key Dependencies
 
 | Library | Version | Purpose |
 |---------|---------|---------|
@@ -352,7 +352,7 @@ Standing rule: any file you touch should come out under 450 lines, or smaller th
 
 ---
 
-## 🚀 CI/CD Workflow
+## CI/CD Workflow
 
 When configuring CI/CD pipelines (e.g., Forgejo Actions):
 
@@ -378,7 +378,7 @@ When configuring CI/CD pipelines (e.g., Forgejo Actions):
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 ### Documentation Structure
 
@@ -400,14 +400,14 @@ docs/
 
 ### Additional Resources
 
-- **[docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)** - Full online documentation
+- **[docs.generalbots.org](https://docs.generalbots.org)** - Full online documentation
 - **[BotBook](../botbook)** - Local comprehensive guide with tutorials and examples
 - **[API Reference](docs/api/README.md)** - REST and WebSocket endpoints
 - **[BASIC Language](docs/reference/basic-language.md)** - Dialog scripting reference
 
 ---
 
-## 🔗 Related Projects
+## Related Projects
 
 | Project | Description |
 |---------|-------------|
@@ -419,18 +419,18 @@ docs/
 
 ---
 
-## 🛡️ Security
+## Security
 
 - **MIT License** - Permissive open source
 - **Self-hosted** - Your data stays on your infrastructure
 - **Enterprise-grade** - 5+ years of stability
 - **No vendor lock-in** - Open protocols and standards
 
-Report security issues to: **security@pragmatismo.com.br**
+Report security issues to: **security@generalbots.org**
 
 ---
 
-## 🤝 Contributing
+## Contributing
 
 We welcome contributions! Please read our contributing guidelines before submitting PRs.
 
@@ -442,7 +442,7 @@ We welcome contributions! Please read our contributing guidelines before submitt
 
 ---
 
-## 🔑 Remember
+## Remember
 
 - **ZERO WARNINGS** - Fix every clippy warning
 - **ZERO COMMENTS** - No comments, no doc comments
@@ -460,19 +460,19 @@ We welcome contributions! Please read our contributing guidelines before submitt
 
 ---
 
-## 📄 License
+## License
 
-General Bot Copyright (c) pragmatismo.com.br. All rights reserved.  
+General Bot Copyright (c) generalbots.org. All rights reserved.  
 Licensed under the **MIT License**.
 
 This program is free software, released under the MIT License. You may use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, subject to the conditions in the LICENSE file. THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND.
 
 ---
 
-## 🔗 Links
+## Links
 
-- **Website:** [pragmatismo.com.br](https://pragmatismo.com.br)
-- **Documentation:** [docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)
+- **Website:** [generalbots.org](https://generalbots.org)
+- **Documentation:** [docs.generalbots.org](https://docs.generalbots.org)
 - **GitHub:** [github.com/GeneralBots/botserver](https://github.com/GeneralBots/botserver)
 - **Stack Overflow:** Tag questions with `generalbots`
 - **Video Tutorial:** [7 AI General Bots LLM Templates](https://www.youtube.com/watch?v=KJgvUPXi3Fw)

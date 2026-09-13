@@ -1,5 +1,7 @@
 # Infrastructure Operations Guide — Generic Across Incus Projects
 
+<p align="center"><img src="logo.svg" alt="General Bots" width="200"></p>
+
 NEVER INCLUDE CREDENTIALS OR COMPANY INFORMATION — THIS IS COMPANY AGNOSTIC.
 
 ## CRITICAL RULES — READ FIRST
@@ -1062,7 +1064,7 @@ If quick fixes don't work:
 
 ---
 
-## 🔧 Production Deploy — Quick Reference
+## Production Deploy — Quick Reference
 
 ### Manual binary update (when ALM/CI unavailable)
 

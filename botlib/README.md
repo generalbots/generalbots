@@ -1,5 +1,7 @@
 # BotLib - General Bots Shared Library
 
+<p align="center"><img src="../logo.svg" alt="General Bots" width="200"></p>
+
 **Version:** 6.2.0  
 **Purpose:** Shared library for General Bots workspace
 
@@ -9,11 +11,11 @@
 
 BotLib is the foundational shared library for the General Bots workspace, providing common types, error handling, HTTP client functionality, and utilities used across all projects. It serves as the core dependency for botserver, botui, botapp, and other workspace members, ensuring consistency and reducing code duplication.
 
-For comprehensive documentation, see **[docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)** or the **[BotBook](../botbook)** for detailed guides and API references.
+For comprehensive documentation, see **[docs.generalbots.org](https://docs.generalbots.org)** or the **[BotBook](../botbook)** for detailed guides and API references.
 
 ---
 
-## 🏗️ Module Structure
+## Module Structure
 
 ```
 src/
@@ -28,7 +30,7 @@ src/
 
 ---
 
-## ✅ ZERO TOLERANCE POLICY
+## ZERO TOLERANCE POLICY
 
 **EVERY SINGLE WARNING MUST BE FIXED. NO EXCEPTIONS.**
 
@@ -47,7 +49,7 @@ src/
 
 ---
 
-## 📦 Key Dependencies
+## Key Dependencies
 
 | Library | Version | Purpose |
 |---------|---------|---------|
@@ -61,7 +63,7 @@ src/
 
 ---
 
-## 🔧 Features
+## Features
 
 ### Feature Gates
 
@@ -85,7 +87,7 @@ features = ["http-client"]  # Enable HTTP client
 
 ---
 
-## ✅ Mandatory Code Patterns
+## Mandatory Code Patterns
 
 ### Error Handling
 
@@ -131,17 +133,17 @@ struct MyStruct { }
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 For complete documentation, guides, and API references:
 
-- **[docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)** - Full online documentation
+- **[docs.generalbots.org](https://docs.generalbots.org)** - Full online documentation
 - **[BotBook](../botbook)** - Local comprehensive guide with tutorials and examples
 - **[General Bots Repository](https://github.com/GeneralBots/BotServer)** - Main project repository
 
 ---
 
-## 🔗 Related Projects
+## Related Projects
 
 - **[botserver](https://github.com/GeneralBots/botserver)** - Main API server
 - **[botui](https://github.com/GeneralBots/botui)** - Web UI interface
@@ -150,7 +152,7 @@ For complete documentation, guides, and API references:
 
 ---
 
-## 🔑 Remember
+## Remember
 
 - **ZERO WARNINGS** - Every clippy warning must be fixed
 - **NO ALLOW IN CODE** - Never use #[allow()] in source files
@@ -165,6 +167,6 @@ For complete documentation, guides, and API references:
 
 ---
 
-## 📄 License
+## License
 
 MIT - See [LICENSE](LICENSE) for details.

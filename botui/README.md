@@ -1,5 +1,7 @@
 # BotUI - General Bots Web Interface
 
+<p align="center"><img src="../logo.svg" alt="General Bots" width="200"></p>
+
 **Version:** 6.2.0  
 **Purpose:** Web UI server for General Bots (Axum + HTMX + CSS)
 
@@ -11,7 +13,7 @@ BotUI is a modern web interface for General Bots, built with Rust, Axum, and HTM
 
 The interface supports multiple features including chat, file management, tasks, calendar, analytics, and more - all served through a fast, efficient Rust backend with a focus on server-rendered HTML and minimal client-side JavaScript.
 
-For comprehensive documentation, see **[docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)** or the **[BotBook](./botbook)** for detailed guides and API references.
+For comprehensive documentation, see **[docs.generalbots.org](https://docs.generalbots.org)** or the **[BotBook](./botbook)** for detailed guides and API references.
 
 ---
 
@@ -37,7 +39,7 @@ cargo tauri dev
 
 ---
 
-## ❌ ABSOLUTE PROHIBITIONS
+## ABSOLUTE PROHIBITIONS
 
 ```
 ❌ NEVER use #![allow()] or #[allow()] in source code
@@ -53,7 +55,7 @@ cargo tauri dev
 
 ---
 
-## 🏗️ ARCHITECTURE
+## ARCHITECTURE
 
 ### Dual Modes
 
@@ -87,7 +89,7 @@ ui/
 
 ---
 
-## 🎨 HTMX-FIRST FRONTEND
+## HTMX-FIRST FRONTEND
 
 ### Core Principle
 - **Use HTMX** to minimize JavaScript
@@ -117,7 +119,7 @@ ui/
 
 ---
 
-## 📦 LOCAL ASSETS ONLY - NO CDN
+## LOCAL ASSETS ONLY - NO CDN
 
 ```
 ui/suite/js/vendor/
@@ -138,7 +140,7 @@ ui/suite/js/vendor/
 
 ---
 
-## 🎨 OFFICIAL ICONS - MANDATORY
+## OFFICIAL ICONS - MANDATORY
 
 **NEVER generate icons with LLM. Use official SVG icons:**
 
@@ -160,7 +162,7 @@ All icons use `stroke="currentColor"` for CSS theming.
 
 ---
 
-## 🔒 SECURITY ARCHITECTURE
+## SECURITY ARCHITECTURE
 
 ### Centralized Auth Engine
 
@@ -194,7 +196,7 @@ fetch("/api/data");
 
 ---
 
-## 🎨 DESIGN SYSTEM
+## DESIGN SYSTEM
 
 ### Layout Standards
 
@@ -244,7 +246,7 @@ fetch("/api/data");
 
 ---
 
-## ✅ CODE PATTERNS
+## CODE PATTERNS
 
 ### Error Handling
 
@@ -280,7 +282,7 @@ struct MyStruct { }
 
 ---
 
-## 📦 KEY DEPENDENCIES
+## KEY DEPENDENCIES
 
 | Library | Version | Purpose |
 |---------|---------|---------|
@@ -291,17 +293,17 @@ struct MyStruct { }
 
 ---
 
-## 📚 Documentation
+## Documentation
 
 For complete documentation, guides, and API references:
 
-- **[docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)** - Full online documentation
+- **[docs.generalbots.org](https://docs.generalbots.org)** - Full online documentation
 - **[BotBook](./botbook)** - Local comprehensive guide
 - **[General Bots Repository](https://github.com/GeneralBots/BotServer)** - Main project repository
 
 ---
 
-## 🔑 REMEMBER
+## REMEMBER
 
 - **ZERO WARNINGS** - Every clippy warning must be fixed
 - **NO ALLOW IN CODE** - Never use #[allow()] in source files
