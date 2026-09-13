@@ -645,6 +645,20 @@ fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
     Ok(())
 }
 
+/// Resolves the MinIO client binary. Bare `mc` is dangerous: GNU Midnight
+/// Commander installs as /usr/bin/mc on some images, and invoking it instead
+/// of the MinIO client silently broke bucket provisioning at signup (the
+/// wrong binary printed its help text and no `.gborg` bucket was created).
+/// Preference order: the configured path, then the standard stack locations.
+pub fn resolve_mc_binary(configured: &str) -> String {
+    for cand in [configured, "/opt/gbo/bin/mc", "/tmp/mc", "/usr/local/bin/mc"] {
+        if Path::new(cand).exists() {
+            return cand.to_string();
+        }
+    }
+    configured.to_string()
+}
+
 /// Creates MinIO `.gborg` bucket for the org and uploads bot files.
 /// If a `template` path is provided (e.g. "core/default.gbai"), copies the
 /// corresponding directory from `config.templates_dir` into the bucket and
@@ -657,9 +671,10 @@ pub fn create_bot_bucket(
     template: Option<&str>,
 ) -> Result<(), String> {
     let alias = &config.mc_alias;
+    let mc = resolve_mc_binary(&config.mc_path);
     let org_bucket = format!("{alias}/{org_slug}.gborg");
 
-    let mb = SafeCommand::new("mc")
+    let mb = SafeCommand::new(&mc)
         .and_then(|c| c.arg("mb"))
         .and_then(|c| c.arg(&org_bucket))
         .and_then(|c| c.arg("--ignore-existing"))
@@ -723,7 +738,7 @@ pub fn create_bot_bucket(
                     }
                 }
                 // Upload recursively via mc cp
-                let cp = SafeCommand::new("mc")
+                let cp = SafeCommand::new(&mc)
                     .and_then(|c| c.arg("cp"))
                     .and_then(|c| c.arg("--recursive"))
                     .and_then(|c| c.arg(&tmpdir))
@@ -754,7 +769,7 @@ pub fn create_bot_bucket(
         .map_err(|e| format!("Failed to write temp file: {e}"))?;
     drop(f);
 
-    let cp = SafeCommand::new("mc")
+    let cp = SafeCommand::new(&mc)
         .and_then(|c| c.arg("cp"))
         .and_then(|c| c.arg(&tmpfile))
         .and_then(|c| c.arg(&remote_path))
