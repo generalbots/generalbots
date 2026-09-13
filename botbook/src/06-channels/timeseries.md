@@ -82,4 +82,4 @@ Ports: 8086 (HTTP API), 8083 (RPC)
 ## See Also
 
 - [Analytics Module](../07-user-interface/apps/analytics.md)
-- [Observability Setup](./observability.md)
+- [Observability Setup](../02-architecture-packages/observability.md)

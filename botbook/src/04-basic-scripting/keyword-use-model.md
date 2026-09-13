@@ -182,4 +182,4 @@ When `USE MODEL "auto"` is active, the system considers:
 
 - [LLM Configuration](../10-configuration-deployment/llm-config.md) - Model setup
 - [Multi-Agent Orchestration](../03-knowledge-ai/multi-agent-orchestration.md) - Model routing in multi-agent systems
-- [Cost Tracking](../03-knowledge-ai/observability.md#cost-tracking) - Monitor model costs
+- [Cost Tracking](../02-architecture-packages/observability.md#cost-tracking) - Monitor model costs

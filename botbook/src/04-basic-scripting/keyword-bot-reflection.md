@@ -236,5 +236,5 @@ reflection-store-insights,true
 ## See Also
 
 - [Multi-Agent Orchestration](../03-knowledge-ai/multi-agent-orchestration.md) - Multi-agent systems
-- [Observability](../03-knowledge-ai/observability.md) - Monitoring and metrics
+- [Observability](../02-architecture-packages/observability.md) - Monitoring and metrics
 - [LLM Configuration](../10-configuration-deployment/llm-config.md) - Model setup

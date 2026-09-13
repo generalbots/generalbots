@@ -277,9 +277,9 @@ rm .env
 
 ## Documentation
 
-- **[Full Installation Guide](docs/src/01-getting-started/installation.md)** - Detailed bootstrap explanation
-- **[Tool Definition](docs/src/08-rest-api-tools/tool-definition.md)** - Creating tools
-- **[BASIC Keywords](docs/src/07-user-interface/keywords.md)** - Language reference
+- **[Full Installation Guide](installation.md)** - Detailed bootstrap explanation
+- **[Tool Definition](../08-rest-api-tools/tool-definition.md)** - Creating tools
+- **[BASIC Keywords](../04-basic-scripting/keywords.md)** - Language reference
 - **[Package System](docs/src/02-architecture-packages/README.md)** - Creating bots
 - **[Architecture](docs/src/04-basic-scripting/architecture.md)** - How it works
 

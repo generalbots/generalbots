@@ -492,6 +492,6 @@ If suggestions seem generic:
 ## See Also
 
 - [Transfer to Human](./transfer-to-human.md) - Bot-to-human handoff
-- [Attendance Queue](../appendix-external-services/attendance-queue.md) - Queue configuration
+- [Attendance Queue](../06-channels/attendance-queue.md) - Queue configuration
 - [LLM Configuration](../10-configuration-deployment/llm-config.md) - LLM setup
 - [config.csv Format](../10-configuration-deployment/config-csv.md) - Configuration reference

@@ -662,7 +662,7 @@ CHANNEL_LOG_LEVEL=debug
 
 ## Related Topics
 
-- [POST TO Keyword](../06-gbdialog/keyword-post-to.md) - Posting from BASIC
-- [Social Media Keywords](../06-gbdialog/keywords-social-media.md) - Full social media reference
+- [POST TO Keyword](../04-basic-scripting/keyword-post-to.md) - Posting from BASIC
+- [Social Media Keywords](../04-basic-scripting/keywords-social-media.md) - Full social media reference
 - [Multi-Channel Architecture](./channels.md) - System design
 - [Accounts Settings](../10-configuration-deployment/accounts.md) - UI configuration

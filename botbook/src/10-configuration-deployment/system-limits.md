@@ -462,7 +462,7 @@ When limits are exceeded, the system returns:
 
 ## Related Documentation
 
-- [Session Management](../01-introduction/sessions.md)
-- [Package Structure](../02-templates/gbai.md)
+- [Session Management](../01-getting-started/sessions.md)
+- [Package Structure](../02-architecture-packages/gbai.md)
 - [Knowledge Base](../03-knowledge-base/README.md)
 - [API Reference](../08-rest-api-tools/README.md)

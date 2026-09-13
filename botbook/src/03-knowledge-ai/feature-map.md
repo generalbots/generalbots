@@ -338,6 +338,6 @@ if COMPILED_FEATURES.contains(&"mail") {
 
 ## See Also
 
-- [Building from Source](../07-gbapp/building.md)
-- [Cargo Tools Reference](../07-gbapp/cargo-tools.md)
+- [Building from Source](../02-architecture-packages/building.md)
+- [Cargo Tools Reference](../02-architecture-packages/cargo-tools.md)
 - [White Label Configuration](../12-ecosystem-reference/README.md)

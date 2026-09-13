@@ -673,6 +673,6 @@ https://developers.facebook.com/apps/YOUR_APP_ID/usage/
 ---
 
 **For detailed documentation:** See [README.md](./README.md)  
-**For troubleshooting:** See [troubleshooting.md](./troubleshooting.md)  
+**For troubleshooting:** See [troubleshooting.md](../12-ecosystem-reference/troubleshooting.md)  
 **For code examples:** See [examples.md](./examples.md)  
 **For webhook setup:** See [webhooks.md](./webhooks.md)

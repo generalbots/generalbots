@@ -87,6 +87,6 @@ Bot starts with these accounts enabled.
 
 ## Related
 
-- [USE ACCOUNT Keyword](../06-gbdialog/keyword-use-account.md)
-- [SEND MAIL Keyword](../06-gbdialog/keyword-send-mail.md)
+- [USE ACCOUNT Keyword](../04-basic-scripting/keyword-use-account.md)
+- [SEND MAIL Keyword](../04-basic-scripting/keyword-send-mail.md)
 - [System Limits](system-limits.md)

@@ -282,6 +282,6 @@ With GPU acceleration enabled:
 
 ## Next Steps
 
-- [Installation Guide](./installation.md) - Complete botserver setup
+- [Installation Guide](../01-getting-started/installation.md) - Complete botserver setup
 - [Quick Start](./quick-start.md) - Create your first bot
 - [Configuration Reference](../02-architecture-packages/gbot.md) - All GPU-related parameters

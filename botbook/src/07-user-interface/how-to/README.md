@@ -45,7 +45,7 @@ These tutorials are designed like the classic computer manuals of the early 1990
 | Tutorial | Description | Time |
 |----------|-------------|------|
 | [Create Your First Bot](./create-first-bot.md) | Set up a working bot from scratch | 10 min |
-| [Your First Conversation](./first-conversation.md) | Talk to your bot and understand responses | 5 min |
+| [Your First Conversation](../../01-getting-started/first-conversation.md) | Talk to your bot and understand responses | 5 min |
 | [Understanding the Interface](./understanding-interface.md) | Navigate the Suite like a pro | 10 min |
 
 ---

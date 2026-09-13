@@ -312,7 +312,7 @@ USE MCP "slack", "send_message", {"channel": "#general", "text": "Hello!"}
 | PostgreSQL | `@modelcontextprotocol/server-postgres` | Database queries |
 | Slack | `@modelcontextprotocol/server-slack` | Messaging |
 
-See [USE MCP](../../06-gbdialog/keyword-use-mcp.md) for complete documentation.
+See [USE MCP](../../04-basic-scripting/keyword-use-mcp.md) for complete documentation.
 
 ---
 
@@ -421,4 +421,4 @@ NEXT
 
 - [Tasks](./tasks.md) - Execute work on repositories and apps
 - [Chat](./chat.md) - Use @mentions in conversation
-- [Autonomous Task AI](../../07-gbapp/autonomous-tasks.md) - How context flows to tasks
+- [Autonomous Task AI](../../02-architecture-packages/autonomous-tasks.md) - How context flows to tasks

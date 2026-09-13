@@ -27,4 +27,4 @@ plus the `ticket_cis` and `ticket_kb_articles` tables. The dead in-memory ITSM d
 ## Related
 
 - [Tickets](./tickets.md)
-- [ITSM API](../08-rest-api-tools/tickets-api.md)
+- [ITSM API](../../08-rest-api-tools/tickets-api.md)

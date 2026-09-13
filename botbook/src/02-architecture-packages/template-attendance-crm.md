@@ -411,4 +411,4 @@ Set up alerts for:
 - [Transfer to Human](../03-knowledge-ai/transfer-to-human.md) - Handoff details
 - [LLM-Assisted Attendant](../03-knowledge-ai/attendant-llm-assist.md) - AI copilot features
 - [Sales CRM Template](./template-crm.md) - Full CRM without attendance
-- [Attendance Queue Module](../appendix-external-services/attendance-queue.md) - Queue configuration
+- [Attendance Queue Module](../06-channels/attendance-queue.md) - Queue configuration
