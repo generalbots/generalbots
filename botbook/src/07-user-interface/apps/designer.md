@@ -1,5 +1,7 @@
 # Designer 🟡 PREVIEW - Visual Builder
 
+<img src="../../assets/suite/designer-flow.svg" alt="Designer pipeline flow" style="max-width: 100%; height: auto;">
+
 > **Your no-code bot building studio**
 
 <img src="../../assets/suite/designer-screen.svg" alt="Designer Interface Screen" style="max-width: 100%; height: auto;">

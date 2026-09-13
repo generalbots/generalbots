@@ -141,15 +141,13 @@ These pages document part of the suite that cannot be opened from the app menu: 
 | `templates-app` | not in the catalogue — the launcher entry for templates is `templates` |
 | `tools` | security dashboard without a catalogue entry |
 
-## Screen diagrams with no catalog app
+## Screens for surfaces outside the catalog
 
-Diagrams for applications that no longer exist in the catalog. Delete them or restore the app.
+These diagrams illustrate surfaces that are documented but are not launcher applications, so they have no catalog id to match. They are all in use — this list exists to keep the naming distinction visible, not to flag them for removal.
 
 - `about-screen.svg`
 - `auth-screen.svg`
 - `desktop-screen.svg`
-- `erp-screen.svg`
-- `itsm-screen.svg`
 - `sources-screen.svg`
 - `suite-screen.svg`
 - `templates-app-screen.svg`
@@ -164,7 +162,7 @@ Progress is stated as counts, not dates — nothing here promises a release wind
 | App pages | 73 documented | 0 applications have no page |
 | Screen diagrams | 47 apps have a screen | 26 applications have none |
 | Non-app pages | 12 classified | 0 pages still need a decision |
-| Screen diagrams for removed apps | 0 resolved | 9 diagrams have no catalog app |
+| Screens for non-catalog surfaces | 7 documented | 0 removed |
 
 Per-application migration to the documented set is tracked in the issue tracker rather than on this page, so the two cannot disagree.
 

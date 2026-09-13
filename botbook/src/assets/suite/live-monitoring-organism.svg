@@ -216,7 +216,7 @@
     <!-- Label -->
     <text y="110" text-anchor="middle" fill="#e2e8f0" font-family="system-ui, sans-serif" font-size="16" font-weight="bold">BotServer</text>
     <text y="128" text-anchor="middle" fill="#22c55e" font-family="monospace" font-size="12">● RUNNING</text>
-    <text y="145" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="11">v5.0.2 • Rust</text>
+    <text y="145" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="11">v6.3.1 • Rust</text>
 
     <!-- Heartbeat indicator -->
     <g transform="translate(-40, -100)">
@@ -249,7 +249,7 @@
     </circle>
 
     <text y="70" text-anchor="middle" fill="#22c55e" font-family="monospace" font-size="11">● HEALTHY</text>
-    <text y="85" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="10">v16.2</text>
+    <text y="85" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="10">v17.2.0</text>
   </g>
 
   <!-- Feature box for PostgreSQL -->
@@ -287,7 +287,7 @@
     </circle>
 
     <text y="70" text-anchor="middle" fill="#22c55e" font-family="monospace" font-size="11">● HEALTHY</text>
-    <text y="85" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="10">v1.9.2</text>
+    <text y="85" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="10">v1.12.0</text>
   </g>
 
   <!-- Feature box for Qdrant -->
@@ -316,7 +316,7 @@
     </circle>
 
     <text y="70" text-anchor="middle" fill="#22c55e" font-family="monospace" font-size="11">● HEALTHY</text>
-    <text y="85" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="10">v2024.01</text>
+
   </g>
 
   <!-- ==================== RIGHT SIDE: Services ==================== -->
@@ -344,7 +344,7 @@
     </circle>
 
     <text y="70" text-anchor="middle" fill="#22c55e" font-family="monospace" font-size="11">● RUNNING</text>
-    <text y="85" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="10">v2.1.0</text>
+
   </g>
 
   <!-- Feature box for BotModels -->
@@ -371,7 +371,7 @@
     </circle>
 
     <text y="70" text-anchor="middle" fill="#22c55e" font-family="monospace" font-size="11">● SEALED</text>
-    <text y="85" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="10">v1.15.0</text>
+    <text y="85" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="10">v1.18.2</text>
   </g>
 
   <!-- Redis -->
@@ -381,7 +381,7 @@
     <!-- Lightning bolt for speed -->
     <text x="0" y="-15" text-anchor="middle" font-size="24">⚡</text>
 
-    <text x="0" y="5" text-anchor="middle" fill="white" font-family="system-ui, sans-serif" font-size="14" font-weight="bold">Redis Cache</text>
+    <text x="0" y="5" text-anchor="middle" fill="white" font-family="system-ui, sans-serif" font-size="14" font-weight="bold">Valkey Cache</text>
     <text x="0" y="22" text-anchor="middle" fill="#a5f3fc" font-family="monospace" font-size="10">Hit Rate: 94.2%</text>
     <text x="0" y="37" text-anchor="middle" fill="#a5f3fc" font-family="monospace" font-size="10">Keys: 8,421</text>
     <text x="0" y="52" text-anchor="middle" fill="#a5f3fc" font-family="monospace" font-size="10">Memory: 256MB</text>
@@ -391,7 +391,7 @@
     </circle>
 
     <text y="70" text-anchor="middle" fill="#22c55e" font-family="monospace" font-size="11">● CONNECTED</text>
-    <text y="85" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="10">v7.2.4</text>
+    <text y="85" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="10">v8.1.5</text>
   </g>
 
   <!-- ==================== BOTTOM: Analytics ==================== -->
@@ -426,7 +426,7 @@
     </circle>
 
     <text y="70" text-anchor="middle" fill="#22c55e" font-family="monospace" font-size="11">● RECORDING</text>
-    <text y="85" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="10">v2.7.3</text>
+    <text y="85" text-anchor="middle" fill="#94a3b8" font-family="monospace" font-size="10">v2.7.10</text>
   </g>
 
   <!-- ==================== STATUS PANEL ==================== -->

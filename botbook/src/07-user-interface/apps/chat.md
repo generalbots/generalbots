@@ -1,5 +1,7 @@
 # Chat 🟢 GA - AI Assistant
 
+<img src="../../assets/suite/chat-flow.svg" alt="Chat message flow" style="max-width: 100%; height: auto;">
+
 > **Your intelligent conversation partner**
 
 <img src="../../assets/suite/chat-screen.svg" alt="Chat Interface Screen" style="max-width: 100%; height: auto;">

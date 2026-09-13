@@ -1,5 +1,9 @@
 # Sources 🟡 PREVIEW
 
+<img src="../../assets/suite/sources-flow.svg" alt="Source ingestion flow" style="max-width: 100%; height: auto;">
+
+<img src="../../assets/suite/sources-screen.svg" alt="Sources configuration screen" style="max-width: 100%; height: auto;">
+
 > **Repositories, Apps, Prompts, Templates & MCP Servers**
 
 > **Not a launcher app.** feature-flagged with no catalogue entry, so it cannot be launched today. This page is kept here because it documents part of the suite, but it does not appear in the app menu and has no [stability](./README.md) classification.

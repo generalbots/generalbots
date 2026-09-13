@@ -1,5 +1,7 @@
 # Calendar 🟡 PREVIEW - Scheduling
 
+<img src="../../assets/suite/calendar-flow.svg" alt="Calendar event flow" style="max-width: 100%; height: auto;">
+
 > **Your personal scheduling assistant**
 
 <img src="../../assets/suite/calendar-screen.svg" alt="Calendar Interface Screen" style="max-width: 100%; height: auto;">

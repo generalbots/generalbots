@@ -1,5 +1,7 @@
 # Compliance 🟡 PREVIEW - ISO 27001
 
+<img src="../../assets/suite/compliance-flow.svg" alt="Compliance request flow" style="max-width: 100%; height: auto;">
+
 > **Information security compliance**
 
 <img src="../../assets/suite/compliance-screen.svg" alt="Compliance Interface Screen" style="max-width: 100%; height: auto;">

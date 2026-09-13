@@ -1,5 +1,7 @@
 # Mail 🟡 PREVIEW (advanced) - Email Client
 
+<img src="../../assets/suite/mail-flow.svg" alt="Mail delivery flow" style="max-width: 100%; height: auto;">
+
 > **Your intelligent inbox**
 
 > **Preview — advanced.** Mail is functional and close to stable, but is not yet part of the supported surface. It is the most advanced of the larger preview apps, alongside [Sheets](./sheet.md).

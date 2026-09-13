@@ -1,5 +1,7 @@
 # Slides 🟡 PREVIEW — IN TEST
 
+<img src="../../assets/suite/slides-screen.svg" alt="Slides editor screen" style="max-width: 100%; height: auto;">
+
 > **In test.** Slides is a preview application and is **not part of the supported surface**. It is functional and actively being tested, but behaviour and interface may change, and edge cases are not guaranteed. Do not commit a live presentation to it without a rehearsal.
 
 Slides is the suite's presentation editor: a canvas of slides with shape and media tools, a presenter mode with audience engagement, and version history.

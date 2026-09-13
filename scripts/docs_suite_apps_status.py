@@ -148,7 +148,7 @@ def main():
             non_app[d] = text
         else:
             extra.append(d)
-    orphan_svgs = sorted(
+    non_catalog_screens = sorted(
         s
         for s in svgs
         if s.endswith("-screen") and s[:-7] not in {a["id"] for a in apps}
@@ -238,13 +238,15 @@ def main():
             out.append(f"- `{e}`")
         out.append("")
 
-    if orphan_svgs:
-        out.append("## Screen diagrams with no catalog app\n")
+    if non_catalog_screens:
+        out.append("## Screens for surfaces outside the catalog\n")
         out.append(
-            "Diagrams for applications that no longer exist in the catalog. Delete them "
-            "or restore the app.\n"
+            "These diagrams illustrate surfaces that are documented but are not launcher "
+            "applications, so they have no catalog id to match. They are all in use — this "
+            "list exists to keep the naming distinction visible, not to flag them for "
+            "removal.\n"
         )
-        for s in orphan_svgs:
+        for s in non_catalog_screens:
             out.append(f"- `{s}.svg`")
         out.append("")
 
@@ -266,7 +268,7 @@ def main():
         f"| Non-app pages | {len(non_app)} classified | {len(extra)} pages still need a decision |"
     )
     out.append(
-        f"| Screen diagrams for removed apps | 0 resolved | {len(orphan_svgs)} diagrams have no catalog app |"
+        f"| Screens for non-catalog surfaces | {len(non_catalog_screens)} documented | 0 removed |"
     )
     out.append("")
     out.append(
@@ -285,7 +287,10 @@ def main():
     open(OUT, "w", encoding="utf-8").write("\n".join(out))
     print(f"wrote {OUT}")
     print(f"catalog={total} documented={len(covered)} missing={len(missing)} screens={have_svg}")
-    print(f"non-app pages={len(extra)} orphan screens={len(orphan_svgs)}")
+    print(
+        f"unclassified non-app pages={len(extra)} "
+        f"screens for non-catalog surfaces={len(non_catalog_screens)}"
+    )
     return 0
 
 

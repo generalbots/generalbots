@@ -1,5 +1,7 @@
 # Suite Apps 🟡 PREVIEW
 
+<img src="../../assets/suite/app-launcher.svg" alt="Application launcher" style="max-width: 100%; height: auto;">
+
 > **Everything you need, all in one place**
 
 ---

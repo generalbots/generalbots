@@ -9,7 +9,7 @@ Welcome to the General Bots documentation. This guide explains how to install, c
 
 ## About This Documentation
 
-This documentation has been recently updated to accurately reflect the actual implementation of General Bots version 6.0.8.
+This documentation describes General Bots version 6.3.1.
 
 The following chapters now contain accurate, verified documentation: Chapter 02 covering the package system with its template-based `.gbai` structure, Chapter 06 documenting the Rust architecture including the single-crate structure and module overview, Chapter 09 explaining core features, and the Introduction providing architecture and capabilities overview.
 

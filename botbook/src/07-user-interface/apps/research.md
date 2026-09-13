@@ -1,5 +1,7 @@
 # Research 🟡 PREVIEW - AI Search
 
+<img src="../../assets/suite/research-flow.svg" alt="Research pipeline flow" style="max-width: 100%; height: auto;">
+
 > **Your intelligent research assistant**
 
 <img src="../../assets/suite/research-screen.svg" alt="Research Interface Screen" style="max-width: 100%; height: auto;">
