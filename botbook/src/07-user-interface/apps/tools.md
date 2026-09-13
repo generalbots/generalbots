@@ -2,6 +2,9 @@
 
 > **Security dashboard & compliance**
 
+> **Not a launcher app.** security dashboard without a catalogue entry. This page is kept here because it documents part of the suite, but it does not appear in the app menu and has no [stability](./README.md) classification.
+<!-- botbook:not-an-app reason="security dashboard without a catalogue entry" -->
+
 <img src="../../assets/suite/tools-screen.svg" alt="Tools Interface Screen" style="max-width: 100%; height: auto;">
 
 ---

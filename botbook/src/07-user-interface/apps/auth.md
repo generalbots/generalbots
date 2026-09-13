@@ -2,6 +2,9 @@
 
 > **Secure authentication**
 
+> **Not a launcher app.** login and authentication surface, served by the login UI on port 5000. This page is kept here because it documents part of the suite, but it does not appear in the app menu and has no [stability](./README.md) classification.
+<!-- botbook:not-an-app reason="login and authentication surface, served by the login UI on port 5000" -->
+
 <img src="../../assets/suite/auth-screen.svg" alt="Auth Interface Screen" style="max-width: 100%; height: auto;">
 
 ---

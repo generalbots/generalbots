@@ -2,6 +2,9 @@
 
 > **Remote desktop via VNC**
 
+> **Not a launcher app.** the desktop shell itself, not an app running inside it. This page is kept here because it documents part of the suite, but it does not appear in the app menu and has no [stability](./README.md) classification.
+<!-- botbook:not-an-app reason="the desktop shell itself, not an app running inside it" -->
+
 <img src="../../assets/suite/desktop-screen.svg" alt="Desktop Interface Screen" style="max-width: 100%; height: auto;">
 
 ---

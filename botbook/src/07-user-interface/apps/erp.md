@@ -2,6 +2,9 @@
 
 > **Financial, inventory & procurement folded into Billing**
 
+> **Not a launcher app.** redirect note — ERP is unified into Billing. This page is kept here because it documents part of the suite, but it does not appear in the app menu and has no [stability](./README.md) classification.
+<!-- botbook:not-an-app reason="redirect note — ERP is unified into Billing" -->
+
 The former standalone **ERP** app has been **unified into Billing**. There is no separate
 ERP app in the launcher or catalog anymore — inventory, general ledger and procurement
 are available as tabs inside the **Billing** app.

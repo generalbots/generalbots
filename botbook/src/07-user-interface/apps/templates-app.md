@@ -2,6 +2,9 @@
 
 > **Pre-built bot templates for rapid deployment across industries**
 
+> **Not a launcher app.** not in the catalogue — the launcher entry for templates is `templates`. This page is kept here because it documents part of the suite, but it does not appear in the app menu and has no [stability](./README.md) classification.
+<!-- botbook:not-an-app reason="not in the catalogue — the launcher entry for templates is `templates`" -->
+
 <img src="../../assets/suite/templates-app-screen.svg" alt="Templates Interface Screen" style="max-width: 100%; height: auto;">
 
 ---

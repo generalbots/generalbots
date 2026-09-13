@@ -2,6 +2,9 @@
 
 > **What is missing, why it matters, and the order in which it is being fixed.**
 
+> **Not a launcher app.** build plan for the Sheet app, tracked in the issue tracker. This page is kept here because it documents part of the suite, but it does not appear in the app menu and has no [stability](./README.md) classification.
+<!-- botbook:not-an-app reason="build plan for the Sheet app, tracked in the issue tracker" -->
+
 This page is the reference for anyone deciding whether to trust Sheet with a real workbook, and for anyone implementing the work. It is deliberately blunt: a spreadsheet that is almost right is worse than one that is obviously incomplete, because a wrong number looks exactly like a right one.
 
 Tracking issue: [generalbots/generalbots#780](https://github.com/generalbots/generalbots/issues/780).

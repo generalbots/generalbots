@@ -2,6 +2,9 @@
 
 > **IT service management folded into the Tickets app**
 
+> **Not a launcher app.** redirect note — ITSM is unified into Tickets. This page is kept here because it documents part of the suite, but it does not appear in the app menu and has no [stability](./README.md) classification.
+<!-- botbook:not-an-app reason="redirect note — ITSM is unified into Tickets" -->
+
 The former standalone **ITSM** app has been **unified into Tickets**. There is no separate
 ITSM app in the launcher or catalog anymore — all IT service management capabilities are
 available inside the **Tickets** app under the CMDB / KB / Problems / Changes tabs.
