@@ -356,6 +356,8 @@
 
 - [Chapter 12: Ecosystem & Reference](./12-ecosystem-reference/README.md)
    - [Migration Overview](./12-ecosystem-reference/overview.md)   - [Platform Comparison Matrix](./12-ecosystem-reference/comparison-matrix.md)
+   - [OpenClaw and General Bots](./12-ecosystem-reference/openclaw.md)
+   - [OpenAI Frontier and General Bots](./12-ecosystem-reference/openai-frontier.md)
    - [Knowledge Base Migration](./12-ecosystem-reference/kb-migration.md)
    - [Cloud Productivity Migration](./12-ecosystem-reference/google-workspace.md)
    - [Enterprise Platform Migration](./12-ecosystem-reference/microsoft-365.md)
