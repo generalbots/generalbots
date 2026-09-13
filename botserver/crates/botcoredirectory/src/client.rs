@@ -279,8 +279,12 @@ impl ZitadelClient {
     ) -> Result<String> {
         let token = self.get_access_token().await?;
         // Note: This Zitadel build (Jan 2024) does not expose /v2/users/human via HTTP.
-        // The management API /management/v1/users/human uses firstName/lastName fields.
-        let url = format!("{}/management/v1/users/human", self.api_base);
+        // Use _import (not AddHuman): this build silently DROPS the create-time
+        // password on AddHuman, leaving the user uninitialized (init code, no
+        // working hash). _import persists a working hash in the same call.
+        // Same payload shape as AddHuman; legacy builds without _import fall
+        // back below.
+        let url = format!("{}/management/v1/users/human/_import", self.api_base);
 
         let mut body = serde_json::json!({
             "userName": username.unwrap_or(email),
@@ -323,7 +327,37 @@ impl ZitadelClient {
             .map_err(|e| anyhow!("Failed to create user: {}", e))?;
 
         if !response.status().is_success() {
+            let status = response.status();
             let error_text = response.text().await.unwrap_or_default();
+            // Legacy Zitadel builds without the _import endpoint: retry the
+            // classic AddHuman route so user creation still works there (the
+            // password flag is dropped on those builds — caller must set the
+            // password separately).
+            if status == reqwest::StatusCode::NOT_FOUND && url.ends_with("/_import") {
+                let fallback_url = url.trim_end_matches("/_import").to_string();
+                let retry = self
+                    .http_client
+                    .post(&fallback_url)
+                    .bearer_auth(&token)
+                    .json(&body)
+                    .send()
+                    .await
+                    .map_err(|e| anyhow!("Failed to create user: {}", e))?;
+                if !retry.status().is_success() {
+                    let retry_text = retry.text().await.unwrap_or_default();
+                    return Err(anyhow!("Failed to create user: {}", retry_text));
+                }
+                let user_data: serde_json::Value = retry
+                    .json()
+                    .await
+                    .map_err(|e| anyhow!("Failed to parse user response: {}", e))?;
+                let user_id = user_data
+                    .get("userId")
+                    .and_then(|id| id.as_str())
+                    .ok_or_else(|| anyhow!("No userId in response"))?
+                    .to_string();
+                return Ok(user_id);
+            }
             return Err(anyhow!("Failed to create user: {}", error_text));
         }
 

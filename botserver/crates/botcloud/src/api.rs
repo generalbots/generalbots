@@ -451,8 +451,15 @@ async fn handle_signup(
         } else {
             let client = reqwest::Client::new();
 
+            // _import (not AddHuman): this Zitadel build silently DROPS the
+            // password on AddHuman — the user is created uninitialized with an
+            // init code, and both the follow-up password set ("User is not yet
+            // initialized") and #1287's v2 password path (empty hash) fail.
+            // _import persists a working hash in the same call (verified on
+            // prod: /v2/sessions returns 201 with the imported password) and
+            // takes the same payload shape.
             let mut create_req = client
-                .post(format!("{dir_url}/management/v1/users/human"))
+                .post(format!("{dir_url}/management/v1/users/human/_import"))
                 .header("Authorization", format!("Bearer {dir_token}"))
                 .json(&serde_json::json!({
                     "userName": &body.email,
