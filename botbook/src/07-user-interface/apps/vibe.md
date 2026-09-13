@@ -194,13 +194,14 @@ Example `start.bas`:
 
 ```basic
 ' start.bas — Vibe demo
-ADD_SUGGESTION "VIBE RUN \"Criar website institucional\"" as "Criar website"
-ADD_SELECTION "VIBE TOOLS" as "Ver ferramentas do Vibe"
-SET CONTEXT "vibe" AS "You are the Pragmatismo assistant. Use VIBE RUN to create projects."
+ADD_SUGGESTION "VIBE RUN \"Criar website institucional\""
+ADD_SUGGESTION "VIBE TOOLS"
+SET CONTEXT "vibe" = "You are the General Bots assistant. Use VIBE RUN to create projects."
 TALK "Olá! Posso criar projetos com o agente Vibe."
 ```
 
-The Pragmatismo payload (`start.bas`, `PROMPT.md`, `config.csv`, MCP tool defs) is seeded automatically into the `pragmatismo.gbai` bucket when the `sampledata` feature is enabled (#750).
+The demo bot and its `config.csv` are not seeded automatically: create the bot
+in Drive and add these lines to its `start.bas`.
 
 ---
 

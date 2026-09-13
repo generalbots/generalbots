@@ -219,7 +219,7 @@ Remember: The UI is just HTML/CSS/JS talking to the bot via WebSocket. You have 
 - [CSS Customization](./css.md) - Detailed CSS guide
 - [Chapter 4: User Interface](../07-user-interface/README.md) - UI templates
 - [Chapter 6: BASIC](../04-basic-scripting/README.md) - Theme switching in dialogs
-- [GitHub Repository](https://github.com/GeneralBots/botserver) - Contribute to the project
+- [GitHub Repository](https://github.com/generalbots/generalbots) - Contribute to the project
 
 ## Next Step
 

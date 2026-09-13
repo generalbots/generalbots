@@ -11,7 +11,7 @@ Before running the botserver binary, you must install required system libraries 
 Download and run the dependency installer:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/GeneralBots/botserver/main/scripts/install-dependencies.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/generalbots/generalbots/main/scripts/install-dependencies.sh | sudo bash
 ```
 
 Or if you have the script locally:
