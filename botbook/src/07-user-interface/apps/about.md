@@ -2,6 +2,9 @@
 
 > **Product information**
 
+> **Not a launcher app.** product information page — About is not a launcher app. This page is kept here because it documents part of the suite, but it does not appear in the app menu and has no [stability](./README.md) classification.
+<!-- botbook:not-an-app reason="product information page — About is not a launcher app" -->
+
 <img src="../../assets/suite/about-screen.svg" alt="About Interface Screen" style="max-width: 100%; height: auto;">
 
 ---

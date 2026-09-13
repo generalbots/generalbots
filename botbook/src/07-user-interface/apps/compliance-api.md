@@ -2,6 +2,9 @@
 
 > **Programmatic access to privacy and compliance features**
 
+> **Not a launcher app.** REST API reference — belongs with the API chapter, not the app catalogue. This page is kept here because it documents part of the suite, but it does not appear in the app menu and has no [stability](./README.md) classification.
+<!-- botbook:not-an-app reason="REST API reference — belongs with the API chapter, not the app catalogue" -->
+
 ---
 
 ## Overview

@@ -2,6 +2,9 @@
 
 > **Repositories, Apps, Prompts, Templates & MCP Servers**
 
+> **Not a launcher app.** feature-flagged with no catalogue entry, so it cannot be launched today. This page is kept here because it documents part of the suite, but it does not appear in the app menu and has no [stability](./README.md) classification.
+<!-- botbook:not-an-app reason="feature-flagged with no catalogue entry, so it cannot be launched today" -->
+
 ---
 
 <img src="../../assets/07-user-interface/sources-interface.svg" alt="Sources Interface" style="max-width: 100%; height: auto;">

@@ -136,12 +136,18 @@ def main():
 
     covered = [a for a in apps if a["id"] in docs]
     missing = [a for a in apps if a["id"] not in docs]
-    extra = sorted(
-        d
-        for d in docs
-        if d not in {a["id"] for a in apps}
-        and d not in {"README", "suite-apps-status"}
-    )
+    catalog_ids_set = {a["id"] for a in apps}
+    non_app = {}
+    extra = []
+    for d in sorted(docs):
+        if d in catalog_ids_set or d in {"README", "suite-apps-status"}:
+            continue
+        path = os.path.join(DOCS_DIR, f"{d}.md")
+        text = open(path, encoding="utf-8").read()
+        if "botbook:not-an-app" in text:
+            non_app[d] = text
+        else:
+            extra.append(d)
     orphan_svgs = sorted(
         s
         for s in svgs
@@ -204,6 +210,23 @@ def main():
             out.append(f"| `{a['id']}` | {a['title']} | {desc} |")
         out.append("")
 
+    if non_app:
+        out.append("## Documented surfaces that are not launcher apps\n")
+        out.append(
+            "These pages document part of the suite that cannot be opened from the app menu: "
+            "the shells, the authentication surface, API reference material and redirect notes. "
+            "Each states what it is at the top of the page.\n"
+        )
+        out.append("| Page | What it is |")
+        out.append("|---|---|")
+        for name, text in non_app.items():
+            reason = ""
+            m = re.search(r'botbook:not-an-app reason="([^"]+)"', text)
+            if m:
+                reason = m.group(1)
+            out.append(f"| `{name}` | {reason} |")
+        out.append("")
+
     if extra:
         out.append("## Pages that are not catalog apps\n")
         out.append(
@@ -240,7 +263,7 @@ def main():
         f"| Screen diagrams | {have_svg} apps have a screen | {len(apps) - have_svg} applications have none |"
     )
     out.append(
-        f"| Non-app pages | 0 resolved | {len(extra)} pages need folding into their real owner or removal |"
+        f"| Non-app pages | {len(non_app)} classified | {len(extra)} pages still need a decision |"
     )
     out.append(
         f"| Screen diagrams for removed apps | 0 resolved | {len(orphan_svgs)} diagrams have no catalog app |"

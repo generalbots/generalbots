@@ -122,22 +122,24 @@ Chat, Explorer (Drive) and Vibe are the stable surface. Mail and Sheets are the 
 | `weather` | Weather | System & Tools | Preview | ✅ | ❌ |
 | `workspace` | Workspace | System & Tools | Preview | ✅ | ✅ |
 
-## Pages that are not catalog apps
+## Documented surfaces that are not launcher apps
 
-These pages describe something other than a launcher app — a chapter, a build plan, or a surface that is not in the catalog. Each needs to be folded into its real owner, marked as non-app documentation, or removed.
+These pages document part of the suite that cannot be opened from the app menu: the shells, the authentication surface, API reference material and redirect notes. Each states what it is at the top of the page.
 
-- `about`
-- `auth`
-- `compliance-api`
-- `dashboards`
-- `desktop`
-- `erp`
-- `itsm`
-- `sheet-parity-plan`
-- `sources`
-- `suite`
-- `templates-app`
-- `tools`
+| Page | What it is |
+|---|---|
+| `about` | product information page — About is not a launcher app |
+| `auth` | login and authentication surface, served by the login UI on port 5000 |
+| `compliance-api` | REST API reference — belongs with the API chapter, not the app catalogue |
+| `dashboards` | not in the launcher catalogue; dashboard content is reached through Analytics |
+| `desktop` | the desktop shell itself, not an app running inside it |
+| `erp` | redirect note — ERP is unified into Billing |
+| `itsm` | redirect note — ITSM is unified into Tickets |
+| `sheet-parity-plan` | build plan for the Sheet app, tracked in the issue tracker |
+| `sources` | feature-flagged with no catalogue entry, so it cannot be launched today |
+| `suite` | the suite shell itself, not an app running inside it |
+| `templates-app` | not in the catalogue — the launcher entry for templates is `templates` |
+| `tools` | security dashboard without a catalogue entry |
 
 ## Screen diagrams with no catalog app
 
@@ -161,7 +163,7 @@ Progress is stated as counts, not dates — nothing here promises a release wind
 |---|---|---|
 | App pages | 73 documented | 0 applications have no page |
 | Screen diagrams | 47 apps have a screen | 26 applications have none |
-| Non-app pages | 0 resolved | 12 pages need folding into their real owner or removal |
+| Non-app pages | 12 classified | 0 pages still need a decision |
 | Screen diagrams for removed apps | 0 resolved | 9 diagrams have no catalog app |
 
 Per-application migration to the documented set is tracked in the issue tracker rather than on this page, so the two cannot disagree.

@@ -2,6 +2,9 @@
 
 > **Build custom data visualizations with AI-powered insights**
 
+> **Not a launcher app.** not in the launcher catalogue; dashboard content is reached through Analytics. This page is kept here because it documents part of the suite, but it does not appear in the app menu and has no [stability](./README.md) classification.
+<!-- botbook:not-an-app reason="not in the launcher catalogue; dashboard content is reached through Analytics" -->
+
 ---
 
 ## Overview
