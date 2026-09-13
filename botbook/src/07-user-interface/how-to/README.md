@@ -90,9 +90,9 @@ Desktop applications also carry their own shortcuts — see
 
 - The **Chat** application can answer questions about the Suite itself.
 - Configuration and deployment questions are covered in
-  [Configuration and Deployment](../../10-configuration-and-deployment/README.md).
-- Bugs and feature requests go to the issue tracker linked from this book's
-  [home page](../../README.md).
+  [Configuration and Deployment](../../10-configuration-deployment/README.md).
+- Bugs and feature requests are covered by
+  [Instructions for Logging Issues](../../12-ecosystem-reference/contributing-guidelines.md).
 
 ---
 

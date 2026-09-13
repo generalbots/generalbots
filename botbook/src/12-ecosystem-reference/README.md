@@ -216,7 +216,7 @@ support_email=support@mycompany.com
 ### docs_url
 
 **Type:** URL (optional)  
-**Default:** `https://docs.pragmatismo.com.br`
+**Default:** `https://docs.generalbots.org`
 
 URL to your documentation site.
 

@@ -36,7 +36,7 @@ Configure the crawler in `crawler.gbot/config.csv`:
 
 | Parameter | Description | Example |
 |-----------|-------------|---------|
-| `Website` | Target URL to crawl | `https://pragmatismo.com.br/` |
+| `Website` | Target URL to crawl | `https://generalbots.org/` |
 | `website Max Documents` | Maximum pages to crawl | `2` |
 | `Answer Mode` | How to respond to queries | `document` |
 | `Theme Color` | UI theme color | `purple` |
@@ -46,7 +46,7 @@ Configure the crawler in `crawler.gbot/config.csv`:
 
 ```csv
 name,value
-Website,https://pragmatismo.com.br/
+Website,https://generalbots.org/
 website Max Documents,2
 Answer Mode,document
 Theme Color,purple
@@ -120,7 +120,7 @@ Bot:  Based on the website content:
       • Conversational AI consulting
       • Integration services
       
-      📄 Source: pragmatismo.com.br/about
+      📄 Source: generalbots.org/about
 
 User: Do they have any case studies?
 
@@ -131,17 +131,17 @@ Bot:  Yes! According to the website, they have worked
       • Healthcare chatbots
       • E-commerce customer service
       
-      📄 Source: pragmatismo.com.br/cases
+      📄 Source: generalbots.org/cases
 
 User: How can I contact them?
 
 Bot:  Contact information from the website:
       
-      📧 Email: contact@pragmatismo.com.br
+      📧 Email: contact@generalbots.org
       📍 Location: São Paulo, Brazil
-      🌐 Website: pragmatismo.com.br
+      🌐 Website: generalbots.org
       
-      📄 Source: pragmatismo.com.br/contact
+      📄 Source: generalbots.org/contact
 ```
 
 ---

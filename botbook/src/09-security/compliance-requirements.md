@@ -546,9 +546,9 @@ sudo crontab -e
 
 ## Support & Resources
 
-- **Internal Security Team**: security@pragmatismo.com.br
-- **Compliance Officer**: compliance@pragmatismo.com.br
-- **Documentation**: https://docs.pragmatismo.com.br
+- **Internal Security Team**: security@generalbots.org
+- **Compliance Officer**: compliance@generalbots.org
+- **Documentation**: https://docs.generalbots.org
 - **Component Documentation**: See "Component Security Documentation" in security-features.md
 
 ---

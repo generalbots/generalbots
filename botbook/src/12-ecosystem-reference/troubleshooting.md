@@ -587,8 +587,8 @@ RUST_LOG=trace ./botserver
 
 ### Community Support
 
-- GitHub Issues: [github.com/GeneralBots/botserver/issues](https://github.com/GeneralBots/botserver/issues)
-- Documentation: [docs.generalbots.ai](https://docs.generalbots.ai)
+- GitHub Issues: [github.com/generalbots/generalbots/issues](https://github.com/generalbots/generalbots/issues)
+- Documentation: [docs.generalbots.org](https://docs.generalbots.org)
 
 ---
 

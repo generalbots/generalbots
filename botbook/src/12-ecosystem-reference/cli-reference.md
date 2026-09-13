@@ -741,7 +741,7 @@ If you see errors like `error while loading shared libraries: libpq.so.5`, insta
 
 ```bash
 # Quick install (recommended) - run on HOST system
-curl -fsSL https://raw.githubusercontent.com/GeneralBots/botserver/main/scripts/install-dependencies.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/generalbots/generalbots/main/scripts/install-dependencies.sh | sudo bash
 
 # Or manual install (Debian/Ubuntu)
 sudo apt-get install -y libpq5 libssl3 liblzma5 zlib1g ca-certificates curl wget

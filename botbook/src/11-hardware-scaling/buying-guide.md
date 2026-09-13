@@ -220,7 +220,7 @@ ssh pi@mybot.local
 curl -fsSL https://get.generalbots.com | bash
 
 # Or use the deploy script
-git clone https://github.com/GeneralBots/botserver.git
+git clone https://github.com/generalbots/generalbots.git
 cd botserver
 ./scripts/deploy-embedded.sh --local --with-ui
 ```
@@ -295,7 +295,7 @@ http://mybot.local:9000
 
 Once you have your SBC:
 
-1. **[Quick Start Guide](./quick-start.md)** - Get GB running in 5 minutes
+1. **[Chapter Overview](./README.md)** - Get GB running in 5 minutes
 2. **[GPIO Keywords](../04-basic-scripting/keywords-gpio.md)** - Control hardware with BASIC
 3. **[Templates](../02-architecture-packages/template-embedded.md)** - Ready-made automation projects
 4. **[Local LLM](./local-llm.md)** - Add offline AI capabilities

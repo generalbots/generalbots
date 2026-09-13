@@ -285,7 +285,7 @@ llm-gpu-layers,35
 
 ```bash
 # On your VPS
-wget https://github.com/GeneralBots/botserver/releases/latest/botserver
+wget https://github.com/generalbots/generalbots/releases/latest/botserver
 chmod +x botserver
 ```
 

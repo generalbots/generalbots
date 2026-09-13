@@ -7,9 +7,9 @@ General Bots has been powering conversational AI solutions since 2018. We're her
 ### Support
 
 For technical support and documentation:
-- **Documentation**: [https://pragmatismo.com.br](https://pragmatismo.com.br)
+- **Documentation**: [https://generalbots.org](https://generalbots.org)
 - **GitHub**: [https://github.com/GeneralBots](https://github.com/GeneralBots)
-- **Email**: support@pragmatismo.com.br
+- **Email**: support@generalbots.org
 
 ### Business Inquiries
 
@@ -21,8 +21,8 @@ Rio de Janeiro - Brasil
 CNPJ: 40.293.841/0001-59  
 
 📞 **Phone**: +55 21 4040-2160 (24h)  
-📧 **Email**: info@pragmatismo.com.br  
-🌐 **Website**: [pragmatismo.com.br](https://pragmatismo.com.br)
+📧 **Email**: info@generalbots.org  
+🌐 **Website**: [generalbots.org](https://generalbots.org)
 
 ### Schedule a Demo
 
@@ -39,7 +39,7 @@ Want to see General Bots in action? Our team can demonstrate:
 
 **Data Protection Officer (DPO)**  
 Rodrigo Rodriguez  
-📧 security@pragmatismo.com.br
+📧 security@generalbots.org
 
 ### Open Source Community
 
