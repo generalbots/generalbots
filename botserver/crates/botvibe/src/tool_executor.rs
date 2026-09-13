@@ -713,6 +713,24 @@ impl VibeToolExecutor {
             .validate_arguments(&tool_call.tool_name, &tool_call.arguments)
             .await?;
 
+        // Internal orchestration (deploy pipeline) may carry sanctioned
+        // arguments the public schema deliberately hides (e.g. the
+        // `publish/project` production stamp). They are injected here — AFTER
+        // validation, so a client payload containing the key is still refused
+        // as unknown, and only this server-side flag can add it.
+        let arguments = if tool_call.internal {
+            let mut args = tool_call.arguments.clone();
+            if let Some(obj) = args.as_object_mut() {
+                obj.insert(
+                    crate::publish::PUBLISH_PRODUCTION_STAMP.to_string(),
+                    serde_json::Value::Bool(true),
+                );
+            }
+            args
+        } else {
+            tool_call.arguments.clone()
+        };
+
         if descriptor.schema.requires_approval && !tool_call.approved {
             tool_call.requires_approval = true;
             return Err("Aprovação requerida antes da execução".to_string());
@@ -723,7 +741,7 @@ impl VibeToolExecutor {
         let result = if let Some(registered) = tools.get(&tool_call.tool_name) {
             let handler = registered.handler.clone();
             drop(tools);
-            (handler)(tool_call.arguments.clone(), state).await
+            (handler)(arguments, state).await
         } else {
             drop(tools);
             VibeToolResult {
