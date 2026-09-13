@@ -279,6 +279,14 @@ fn is_app_compiled(id: &str) -> bool {
         "biometry" => true,
         "player" => cfg!(feature = "player"),
         "store" | "concierge" | "notes" | "photos" | "timer" | "weather" | "recycle" => true,
+        // Catalog apps that carry no botserver feature flag. They have UI and
+        // routes and were previously hidden because the map answered `false`
+        // for anything it did not recognise (#1381).
+        "automations" => true,
+        "memory" => true,
+        "clock-widget" => true,
+        "vibe-graph" | "vibe-metrics" | "vibe-members" | "vibe-deploy" | "vibe-db"
+        | "vibe-metering" => true,
         _ => false,
     }
 }

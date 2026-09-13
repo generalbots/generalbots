@@ -384,13 +384,6 @@ pub fn get_product_name() -> String {
         .unwrap_or_else(|_| "General Bots".to_string())
 }
 
-/// Helper function to check if an app is enabled
-pub fn is_app_enabled(app: &str) -> bool {
-    PRODUCT_CONFIG
-        .read()
-        .map(|c| c.is_app_enabled(app))
-        .unwrap_or(true)
-}
 
 /// Helper function to check whether an app is a preview application (#1348).
 /// When the product configuration cannot be read, the answer is `false`: an
@@ -426,9 +419,9 @@ pub fn get_product_config_json() -> serde_json::Value {
     // Get current config
     let config = PRODUCT_CONFIG.read().ok();
 
-    // Effective apps come straight from the .product file. The runtime guard
-    // (app_gate_middleware) still rejects routes whose feature is not compiled,
-    // so the frontend menu may show every configured app.
+    // Effective apps come straight from the .product file. There is no runtime
+    // guard: the `apps` list controls what the launcher and sidebar show, and
+    // nothing more. Removing an app from it does not disable its routes.
     let effective_apps: Vec<String> = config
         .as_ref()
         .map(|c| c.get_enabled_apps())
@@ -473,112 +466,6 @@ pub fn get_workspace_manifest() -> serde_json::Value {
     serde_json::to_value(manifest).unwrap_or_else(|_| serde_json::json!({}))
 }
 
-/// Middleware to check if an app is enabled before allowing API access
-pub async fn app_gate_middleware(
-    req: axum::http::Request<axum::body::Body>,
-    next: axum::middleware::Next,
-) -> axum::response::Response {
-    use axum::http::StatusCode;
-    use axum::response::IntoResponse;
-
-    let path = req.uri().path();
-
-    // Map API paths to app names
-    let app_name = match path {
-        p if p.starts_with("/api/calendar") => Some("calendar"),
-        p if p.starts_with("/api/mail") || p.starts_with("/api/email") => Some("mail"),
-        p if p.starts_with("/api/drive") || p.starts_with("/api/files") => Some("drive"),
-        p if p.starts_with("/api/tasks") => Some("tasks"),
-        p if p.starts_with("/api/docs") => Some("docs"),
-        p if p.starts_with("/api/paper") => Some("paper"),
-        p if p.starts_with("/api/sheet") => Some("sheet"),
-        p if p.starts_with("/api/slides") => Some("slides"),
-        p if p.starts_with("/api/meet") => Some("meet"),
-        p if p.starts_with("/api/research") => Some("research"),
-        p if p.starts_with("/api/sources") => Some("sources"),
-        p if p.starts_with("/api/analytics") => Some("analytics"),
-        p if p.starts_with("/api/admin") => Some("admin"),
-        p if p.starts_with("/api/monitoring") => Some("monitoring"),
-        p if p.starts_with("/api/settings") => Some("settings"),
-        p if p.starts_with("/api/crm") || p.starts_with("/api/contacts") || p.starts_with("/api/people") => Some("people"),
-        p if p.starts_with("/api/ui/calendar") => Some("calendar"),
-        p if p.starts_with("/api/ui/mail") => Some("mail"),
-        p if p.starts_with("/api/ui/drive") => Some("drive"),
-        p if p.starts_with("/api/ui/tasks") => Some("tasks"),
-        p if p.starts_with("/api/ui/docs") => Some("docs"),
-        p if p.starts_with("/api/ui/paper") => Some("paper"),
-        p if p.starts_with("/api/ui/sheet") => Some("sheet"),
-        p if p.starts_with("/api/ui/slides") => Some("slides"),
-        p if p.starts_with("/api/ui/meet") => Some("meet"),
-        p if p.starts_with("/api/ui/research") => Some("research"),
-        p if p.starts_with("/api/ui/sources") => Some("sources"),
-        p if p.starts_with("/api/ui/analytics") => Some("analytics"),
-        p if p.starts_with("/api/ui/admin") => Some("admin"),
-        p if p.starts_with("/api/ui/monitoring") => Some("monitoring"),
-        p if p.starts_with("/api/ui/settings") => Some("settings"),
-        p if p.starts_with("/api/ui/crm") || p.starts_with("/api/ui/contacts") || p.starts_with("/api/ui/people") => Some("people"),
-        _ => None, // Allow all other paths
-    };
-
-    // Check if the app is enabled
-    if let Some(app) = app_name {
-        // First check: is it even compiled?
-        // Note: settings, auth, admin are core features usually, but we check anyway if they are in features list
-        // Some core apps like settings might not be in feature flags explicitly or always enabled.
-        // For simplicity, if it's not in compiled features but is a known core route, we might allow it,
-        // but here we enforce strict feature containment.
-        // Exception: 'settings' and 'auth' are often core.
-        if app != "settings" && app != "auth" && !crate::features::is_feature_compiled(app) {
-            let error_response = serde_json::json!({
-                "error": "not_implemented",
-                "message": format!("The '{}' feature is not compiled in this build", app),
-                "code": 501
-            });
-
-            return (StatusCode::NOT_IMPLEMENTED, axum::Json(error_response)).into_response();
-        }
-
-        if !is_app_enabled(app) {
-            let error_response = serde_json::json!({
-                "error": "app_disabled",
-                "message": format!("The '{}' app is not enabled for this installation", app),
-                "code": 403
-            });
-
-            return (StatusCode::FORBIDDEN, axum::Json(error_response)).into_response();
-        }
-    }
-
-    next.run(req).await
-}
-
-/// Get list of disabled apps for logging/debugging
-pub fn get_disabled_apps() -> Vec<String> {
-    let all_apps = vec![
-        "chat",
-        "mail",
-        "calendar",
-        "drive",
-        "tasks",
-        "docs",
-        "paper",
-        "sheet",
-        "slides",
-        "meet",
-        "research",
-        "sources",
-        "analytics",
-        "admin",
-        "monitoring",
-        "settings",
-    ];
-
-    all_apps
-        .into_iter()
-        .filter(|app| !is_app_enabled(app))
-        .map(|s| s.to_string())
-        .collect()
-}
 
 #[cfg(test)]
 mod tests {
