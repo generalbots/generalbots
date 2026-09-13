@@ -1,4 +1,4 @@
-# General Bots Roadmap 2018-2026 🟡 BETA
+# General Bots Roadmap 2018-2027 🟡 BETA
 
 <style>
 .roadmap-btn {
@@ -108,13 +108,13 @@
 </style>
 
 <button class="roadmap-btn" onclick="openRoadmap()">
-  View Interactive Roadmap
+  View Interactive Roadmap (historical plan, 2018-2026)
 </button>
 
 <div class="roadmap-overlay" id="roadmap-overlay" onclick="closeRoadmap(event)">
   <div class="roadmap-popup" onclick="event.stopPropagation()">
     <div class="roadmap-popup-header">
-      <h3 class="roadmap-popup-title">General Bots Roadmap 2018-2026</h3>
+      <h3 class="roadmap-popup-title">General Bots Roadmap 2018-2026 — historical plan</h3>
       <button class="roadmap-popup-close" onclick="closeRoadmap()">X</button>
     </div>
     <iframe class="roadmap-iframe" src="assets/roadmap.html" title="Roadmap"></iframe>
@@ -139,66 +139,92 @@ document.addEventListener('keydown', function(e) {
 
 ---
 
-## Timeline Overview
+> **Last verified September 2026.** This page states what has shipped, what is in progress and what is planned. Every "shipped" entry is traceable to code in this repository. The interactive view above is the **2018–2026 planning artifact** and is not maintained as a status source — this page is.
 
-| Period | Focus | Features | Key Deliverables |
-|--------|-------|----------|------------------|
-| **2018-2024** | v1-v5 Pre-LLM | 12 ✅ | Package System, TALK/HEAR, NLP/BERT, GPT-3.5, QR CODE, SET SCHEDULE |
-| **2024** | v6 Foundation | 8 ✅ | Rust Core, Migration v5→v6, New Architecture, PostgreSQL, Vault, Minimal Flow |
-| **2025 H1** | Rust Migration | 10 ✅ | BASIC Engine, Channels, Drive (S3), Email, REST API, WhatsApp, Telegram, PDF |
-| **2025 H2** | Features & AUTOTASK | 19 ✅ | Tasks AI, KB, Vector DB, Tools, Generators, Multimodal, NVIDIA GPU/LXC, Paper, Research, Calendar, Meet |
-| **2026 Q1** | Tasks AI GO ⭐ | 12 📋 | Production Autonomous, Gmail, Outlook, Google Drive, OneDrive, Google/Outlook Calendars, Transfer to Human |
-| **2026 Q2** | Collaboration | 10 📋 | Multi-Agent, Teams, Google Meet, Zoom, Slack, Discord, Docker, Compliance, Marketplace |
-| **2026 Q3** | Workflow & CRM | 2 📋 | Workflow Designer, CRM Integration |
-| **2026 Q4** | Enterprise | 4 📋 | Mobile Apps, Enterprise SSO, White Label, Advanced Monitoring |
+## Current release state
 
-**Total: 77 Features** (49 Complete ✅ • 28 Planned 📋)
+| Surface | Status |
+|---|---|
+| **Chat**, **Explorer** (Drive), **Vibe** | Stable |
+| **Mail**, **Sheets** | Preview — advanced |
+| **Docs**, **Slides** | Preview — in test |
+| Everything else in the catalog | Preview |
 
----
+Per-application state, with counts generated from the catalog, is in
+[Suite Apps Status](./07-user-interface/apps/suite-apps-status.md).
 
-## Feature Highlights
+## Timeline
 
-### Tasks (AI Autonomous) GO
+"Delivered" counts items actually present in the code today, not items that were scoped.
 
-The flagship feature enabling fully autonomous AI task execution:
+| Period | Focus | Delivered | State |
+|--------|-------|-----------|-------|
+| **2018–2024** | v1–v5, pre-LLM | 12 | ✅ Shipped |
+| **2024** | v6 foundation — Rust core, PostgreSQL, Vault | 8 | ✅ Shipped |
+| **2025 H1** | Rust migration — BASIC engine, channels, Drive (S3), email, REST, WhatsApp, Telegram, PDF | 10 | ✅ Shipped |
+| **2025 H2** | Features and Autotask — tasks AI, knowledge base, vector search, tools, generators, multimodal, NVIDIA GPU/LXC, Paper, Research, Calendar, Meet | 19 | ✅ Shipped |
+| **2026 Q1** | Autonomous tasks, cloud productivity connections | see below | 🟡 Partially shipped |
+| **2026 Q2** | Collaboration and multi-agent | see below | 🟡 Partially shipped |
+| **2026 Q3** | Workflow and CRM — Designer, CRM | 2 | ✅ Shipped |
+| **2026 Q4** | Enterprise — mobile apps, enterprise SSO, white label, advanced monitoring | — | 🔵 In progress |
+| **2027 H1** | Retrieval quality — evaluation harness, re-ranking, chunking | — | 📋 Planned |
+| **2027 H2** | Retrieval depth — graph index, multi-hop verification | — | 📋 Planned |
 
-- Human provides intent in natural language
-- AI creates execution plan
-- AI generates code/content
-- AI deploys result
-- Human reviews and approves
+## 2026 detail — what is actually there
 
-**Available in:** 2025 H2 (scaffolding), Q1 2026 (production)
+| Item | State | Evidence |
+|------|-------|----------|
+| Multi-agent orchestration | ✅ Shipped | `botserver/src/core/bot/` agent pipeline, [docs](./03-knowledge-ai/multi-agent-orchestration.md) |
+| Cloud productivity connections (Google, Outlook, OneDrive, Google Calendar) | ✅ Shipped as integration providers | `botserver/crates/botintegrations/src/providers/` |
+| Messaging providers (Slack, Discord, Teams, Zoom) | ✅ Shipped as integration providers | same provider catalog |
+| White label | ✅ Shipped | the `.product` configuration surface, [docs](./12-ecosystem-reference/README.md) |
+| Enterprise SSO | ✅ Shipped | Zitadel-backed identity, `botcoredirectory` |
+| Advanced monitoring | ✅ Shipped | Monitoring app, `botmonitoring` |
+| App marketplace | ✅ Shipped | `botmarketplace`, App Store app |
+| Workflow designer | ✅ Shipped | Designer app |
+| CRM | ✅ Shipped | CRM, People, Sales and Campaigns apps |
+| Mobile apps | 🔵 In progress | Tauri shell exists for desktop; mobile not verified |
+| Fully autonomous task execution | ⚠️ Partially | Autotask runs, but "production autonomous" as originally scoped is not verifiable as complete — treat as in progress |
 
-### Generators
+## 2027 horizon — planned
 
-| Generator | Purpose |
-|-----------|---------|
-| BOT | Conversational bots |
-| APP | Full applications |
-| SITE | HTMX websites |
-| GENERAL | General content |
-| LANDPAGE | Landing pages |
+Ordered by what unlocks the most, not by what is most visible:
 
----
+1. **Retrieval evaluation harness.** Without a golden set and a measured metric, every other retrieval decision is guesswork. This blocks the rest — see [#1379](https://github.com/generalbots/generalbots/issues/1379).
+2. **Cross-encoder re-ranking.** The cheapest quality win available; the configuration surface already exists in an unconnected crate.
+3. **Real chunking with overlap.** Documents are currently indexed whole, which costs precision on long documents.
+4. **Graph retrieval with an actual graph index**, replacing entity expansion with traversal.
+5. **Latency and cost budgets per retrieval mode**, so mode selection stops being a guess.
 
-## Technology Stack
+## Technology stack — verified
 
-**Backend:** Rust, Actix-Web, Tokio, SQLx  
-**Database:** PostgreSQL  
-**Storage:** MinIO (S3-compatible)  
-**Cache:** Valkey (Redis alternative)  
-**UI:** HTMX, Askama templates  
-**Desktop/Mobile:** Tauri  
+| Layer | Technology |
+|-------|------------|
+| Language | Rust |
+| HTTP | **Axum** (with `axum-server`) |
+| Async runtime | Tokio |
+| Database | PostgreSQL with **Diesel** and `diesel_migrations` |
+| Cache | Valkey |
+| Object storage | MinIO |
+| Vector search | Qdrant |
+| Identity | Zitadel |
+| UI | HTMX with Askama templates |
+| Desktop | Tauri |
 
----
+> **Correction.** Earlier revisions of this page listed **Actix-Web** and **SQLx**. Both were wrong: the repository contains no Actix dependency and no SQLx usage — the HTTP stack is Axum and the data layer is Diesel.
 
-## Status Legend
+## Status legend
 
-| Status | Description |
-|--------|-------------|
-| Complete | Feature is fully implemented and available |
-| In Progress | Feature is currently being developed |
-| Planned | Feature is scheduled for future development |
+| Status | Meaning |
+|--------|---------|
+| ✅ Shipped | Present in the code and reachable by a user today |
+| 🟡 Partially shipped | Some of the scope works; the rest does not |
+| 🔵 In progress | Active work, not yet reachable end to end |
+| 📋 Planned | Scoped, not started |
+| ⚠️ Not verifiable | Claimed previously without evidence — do not rely on it |
 
-Click the **View Interactive Roadmap** button above to explore all 77 features with detailed descriptions. Scroll horizontally to navigate the timeline from 2018 to 2026.
+## How this page is maintained
+
+- A row only says "shipped" if someone traced it to code.
+- Counts that can be derived from the repository are generated by scripts in `scripts/`, not typed by hand.
+- When a plan changes, the old state is corrected rather than deleted, so the record stays honest.
