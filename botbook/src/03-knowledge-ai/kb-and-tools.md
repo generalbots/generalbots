@@ -141,11 +141,11 @@ Token optimization is important for controlling costs. KB chunks add 500-2000 to
 
 ### Vector Database
 
-The vector database configuration uses one collection per bot instance to maintain isolation. The embedding model is text-embedding-ada-002, which produces 1536-dimensional vectors. Distance calculations use cosine similarity for semantic matching. The index uses HNSW (Hierarchical Navigable Small World) with M=16 and ef=100 for fast approximate nearest neighbor search.
+The vector database keeps knowledge in per-collection isolation, one collection per knowledge base folder (and one per registered website). Distance is cosine similarity. Embeddings come from the configured embedding endpoint: `sentence-transformers/all-MiniLM-L6-v2` (384 dimensions) by default, or `text-embedding-3-small` (1536 dimensions) with an OpenAI key. No index parameters are tuned by this project — Qdrant's own defaults apply.
 
 ### File Processing Pipeline
 
-When USE KB processes files, it follows a systematic pipeline. The system scans the specified directory to identify all files. Text is extracted based on each file's type using appropriate parsers. The extracted text is cleaned and normalized to remove artifacts. Content is split into chunks of approximately 1000 characters with 200 character overlap to preserve context across boundaries. Embeddings are generated via the OpenAI API for each chunk. The vectors are stored in the vector database along with metadata about their source. Finally, the session context is updated to reflect the newly available knowledge base.
+When USE KB processes files, it follows a systematic pipeline. The system scans the specified directory to identify all files. Text is extracted based on each file's type using the appropriate parser. The extracted text is embedded as a whole document — there is no chunk splitting at this time — and the vector is stored with metadata about its source (path, type, bucket, tags). Finally, the session context is updated to reflect the newly available knowledge base. Retrieval then runs in the mode selected by `rag-mode`, described in [Retrieval and RAG](./hybrid-search.md).
 
 ### Tool Execution Engine
 
@@ -246,7 +246,7 @@ Follow the principle of least privilege by loading only the resources needed for
 
 ## Configuration
 
-Configuration options for knowledge bases and tools are set in your bot's config.csv file. The vector database connection settings specify where embeddings are stored. Chunk size and overlap parameters control how documents are split. Embedding model selection determines vector quality and dimension. Tool timeout settings prevent long-running operations from blocking conversations.
+Knowledge base behaviour is configured per bot. The `rag-mode` setting selects the retrieval strategy (see [Retrieval and RAG](./hybrid-search.md)), the embedding endpoint determines vector quality and dimension, and the vector database address determines where embeddings are stored. There is no chunk-size or overlap setting, because documents are not chunked. Tool execution is bounded by timeouts so a slow tool cannot block a conversation.
 
 
 ## Troubleshooting
