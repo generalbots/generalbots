@@ -4,8 +4,8 @@ version.workspace = true
 edition = "2021"
 description = "General Bots products, services, inventory, and pricing management"
 license = "MIT"
-authors = ["Pragmatismo.com.br", "General Bots Community"]
-repository = "https://github.com/GeneralBots/BotServer"
+authors = ["General Bots"]
+repository = "https://github.com/generalbots/generalbots"
 
 [dependencies]
 botsecurity-core = { workspace = true }

@@ -4,8 +4,8 @@ version = "0.1.0"
 edition = "2021"
 description = "General Bots SaaS - public checkout & subscriber dashboard using botbilling"
 license = "MIT"
-authors = ["Pragmatismo.com.br", "General Bots Community"]
-repository = "https://github.com/GeneralBots/BotServer"
+authors = ["General Bots"]
+repository = "https://github.com/generalbots/generalbots"
 
 [dependencies]
 argon2 = { workspace = true }

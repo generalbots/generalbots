@@ -3,8 +3,8 @@ name = "bottelegram"
 version.workspace = true
 edition = "2021"
 license = "MIT"
-authors = ["Pragmatismo.com.br", "General Bots Community"]
-repository = "https://github.com/GeneralBots/BotServer"
+authors = ["General Bots"]
+repository = "https://github.com/generalbots/generalbots"
 
 [dependencies]
 async-trait = { workspace = true }

@@ -4,8 +4,8 @@ version.workspace = true
 edition = "2021"
 description = "Shared library for General Bots - common types, utilities, and HTTP client"
 license = "MIT"
-authors = ["Pragmatismo.com.br", "General Bots Community"]
-repository = "https://github.com/GeneralBots/BotServer"
+authors = ["General Bots"]
+repository = "https://github.com/generalbots/generalbots"
 keywords = ["bot", "chatbot", "ai", "conversational", "library"]
 categories = ["api-bindings", "web-programming"]
 
