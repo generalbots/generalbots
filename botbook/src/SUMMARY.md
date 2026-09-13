@@ -1,7 +1,8 @@
 # Summary 🟡 BETA
 
 [Executive Vision](./executive-vision.md)
-[Roadmap 2024-2026](./ROADMAP.md)
+[Roadmap 2018-2027](./ROADMAP.md)
+[Verification Checklist](./VERIFICATION-CHECKLIST.md)
 [Introduction](./introduction.md)
 
 ---
