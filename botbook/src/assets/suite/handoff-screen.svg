@@ -1,103 +1,93 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="900" height="600" viewBox="0 0 900 600">
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Handoff">
   <defs>
-    <style>
-      .bg { fill: #f8fafc; }
-      .panel-bg { fill: #ffffff; }
-      .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
-      .secondary-text { fill: #475569; font-family: system-ui, -apple-system, sans-serif; }
-      .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
-      .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
-      .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
-      .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
-      .icon-btn { fill: #f1f5f9; rx: 6; }
-      @media (prefers-color-scheme: dark) {
-        .bg { fill: #0f172a; }
-        .panel-bg { fill: #1e293b; }
-        .main-text { fill: #f1f5f9; }
-        .secondary-text { fill: #cbd5e1; }
-        .muted-text { fill: #64748b; }
-        .white-text { fill: #f1f5f9; }
-        .accent-text { fill: #60a5fa; }
-        .border { stroke: #334155; }
-        .icon-btn { fill: #334155; }
-      }
-    </style>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
   </defs>
-
-  <!-- Background -->
-  <rect width="900" height="600" class="bg" rx="0"/>
-
-  <!-- Title -->
-  <text x="450" y="36" text-anchor="middle" class="main-text" font-size="18" font-weight="600">Chatbot Handoff &amp; Analytics</text>
-
-  <!-- Main Card -->
-  <rect x="16" y="52" width="868" height="536" rx="8" class="panel-bg"/>
-  <rect x="16" y="52" width="868" height="536" rx="8" class="border"/>
-
-  <!-- Tab Bar -->
-  <rect x="16" y="52" width="130" height="36" rx="6" fill="#3b82f6" opacity="0.1"/>
-  <text x="32" y="75" class="accent-text" font-size="12" font-weight="500">Handoff Queue</text>
-  <text x="164" y="75" class="secondary-text" font-size="12">Analytics</text>
-  <text x="248" y="75" class="secondary-text" font-size="12">Channels</text>
-  <text x="330" y="75" class="secondary-text" font-size="12">CSAT</text>
-
-  <!-- Stats Row -->
-  <!-- Queue -->
-  <rect x="28" y="104" width="200" height="64" rx="8" class="panel-bg"/>
-  <rect x="28" y="104" width="200" height="64" rx="8" class="border"/>
-  <text x="44" y="128" class="muted-text" font-size="11">Queue</text>
-  <text x="44" y="152" class="accent-text" font-size="22" font-weight="700">5</text>
-
-  <!-- Avg Wait -->
-  <rect x="240" y="104" width="200" height="64" rx="8" class="panel-bg"/>
-  <rect x="240" y="104" width="200" height="64" rx="8" class="border"/>
-  <text x="256" y="128" class="muted-text" font-size="11">Avg Wait</text>
-  <text x="256" y="152" class="main-text" font-size="22" font-weight="700">2m</text>
-
-  <!-- Resolved Today -->
-  <rect x="452" y="104" width="200" height="64" rx="8" class="panel-bg"/>
-  <rect x="452" y="104" width="200" height="64" rx="8" class="border"/>
-  <text x="468" y="128" class="muted-text" font-size="11">Resolved Today</text>
-  <text x="468" y="152" fill="#22c55e" font-size="22" font-weight="700" font-family="system-ui, -apple-system, sans-serif">42</text>
-
-  <!-- Queue List Label -->
-  <text x="28" y="200" class="secondary-text" font-size="13" font-weight="600">Waiting Conversations</text>
-
-  <!-- Conversation 1 -->
-  <rect x="28" y="212" width="840" height="64" rx="8" class="panel-bg"/>
-  <rect x="28" y="212" width="840" height="64" rx="8" class="border"/>
-  <circle cx="64" cy="244" r="18" fill="#3b82f6" opacity="0.15"/>
-  <text x="56" y="249" class="accent-text" font-size="13" font-weight="600">MC</text>
-  <text x="92" y="234" class="main-text" font-size="13" font-weight="500">Maria Costa</text>
-  <text x="92" y="254" class="secondary-text" font-size="12">"Preciso de ajuda com meu pedido #4521..."</text>
-  <text x="700" y="234" class="muted-text" font-size="12">WhatsApp</text>
-  <text x="700" y="254" fill="#f59e0b" font-size="12" font-family="system-ui, -apple-system, sans-serif">3m wait</text>
-  <rect x="800" y="228" width="56" height="28" rx="6" fill="#3b82f6"/>
-  <text x="810" y="247" class="white-text" font-size="11" font-weight="500">Take</text>
-
-  <!-- Conversation 2 -->
-  <rect x="28" y="288" width="840" height="64" rx="8" class="panel-bg"/>
-  <rect x="28" y="288" width="840" height="64" rx="8" class="border"/>
-  <circle cx="64" cy="320" r="18" fill="#3b82f6" opacity="0.15"/>
-  <text x="56" y="325" class="accent-text" font-size="13" font-weight="600">JS</text>
-  <text x="92" y="310" class="main-text" font-size="13" font-weight="500">João Silva</text>
-  <text x="92" y="330" class="secondary-text" font-size="12">"Minha conta está bloqueada, não consigo..."</text>
-  <text x="700" y="310" class="muted-text" font-size="12">Web Chat</text>
-  <text x="700" y="330" fill="#f59e0b" font-size="12" font-family="system-ui, -apple-system, sans-serif">5m wait</text>
-  <rect x="800" y="306" width="56" height="28" rx="6" fill="#3b82f6"/>
-  <text x="810" y="325" class="white-text" font-size="11" font-weight="500">Take</text>
-
-  <!-- Conversation 3 -->
-  <rect x="28" y="364" width="840" height="64" rx="8" class="panel-bg"/>
-  <rect x="28" y="364" width="840" height="64" rx="8" class="border"/>
-  <circle cx="64" cy="396" r="18" fill="#3b82f6" opacity="0.15"/>
-  <text x="56" y="401" class="accent-text" font-size="13" font-weight="600">AL</text>
-  <text x="92" y="386" class="main-text" font-size="13" font-weight="500">Ana Lima</text>
-  <text x="92" y="406" class="secondary-text" font-size="12">"Quero cancelar minha assinatura..."</text>
-  <text x="700" y="386" class="muted-text" font-size="12">Instagram</text>
-  <text x="700" y="406" fill="#ef4444" font-size="12" font-family="system-ui, -apple-system, sans-serif">8m wait</text>
-  <rect x="800" y="382" width="56" height="28" rx="6" fill="#3b82f6"/>
-  <text x="810" y="401" class="white-text" font-size="11" font-weight="500">Take</text>
-
-  <line x1="28" y1="444" x2="868" y2="444" class="border"/>
+  <style>
+    .bg { fill: #ffffff; }
+    .titlebar { fill: #f8fafc; }
+    .sidebar-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #2563eb; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .chip { fill: #f1f5f9; }
+    .chip-active { fill: #dbeafe; }
+    .row { fill: #f8fafc; }
+    .bar { fill: #e2e8f0; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .titlebar { fill: #1e293b; }
+      .sidebar-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .border { stroke: #334155; }
+      .chip { fill: #334155; }
+      .chip-active { fill: #1e3a5f; }
+      .row { fill: #1e293b; }
+      .bar { fill: #334155; }
+    }
+  </style>
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Handoff</text>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+  <path d="M30 52 a12 12 0 0 1 12 -12 h816 a12 12 0 0 1 12 12 v32 h-840 z" class="titlebar"/>
+  <text x="46" y="61" font-size="13.5" font-weight="600" class="main-text">Handoff</text>
+  <text x="816" y="67" text-anchor="middle" font-size="13" class="muted-text">–</text>
+  <text x="840" y="67" text-anchor="middle" font-size="13" class="muted-text">✕</text>
+  <line x1="30" y1="84" x2="870" y2="84" class="border"/>
+  <rect x="46" y="87" width="106" height="26" rx="6" class="chip"/>
+  <text x="99" y="104" text-anchor="middle" font-size="11.5" class="secondary-text">Handoff Queue</text>
+  <rect x="160" y="87" width="60" height="26" rx="6" class="chip"/>
+  <text x="190" y="104" text-anchor="middle" font-size="11.5" class="secondary-text">Agents</text>
+  <rect x="227" y="87" width="79" height="26" rx="6" class="chip"/>
+  <text x="267" y="104" text-anchor="middle" font-size="11.5" class="secondary-text">Analytics</text>
+  <rect x="315" y="87" width="73" height="26" rx="6" class="chip"/>
+  <text x="351" y="104" text-anchor="middle" font-size="11.5" class="secondary-text">Channels</text>
+  <rect x="396" y="87" width="46" height="26" rx="6" class="chip"/>
+  <text x="419" y="104" text-anchor="middle" font-size="11.5" class="secondary-text">CSAT</text>
+  <rect x="450" y="87" width="93" height="26" rx="6" class="chip"/>
+  <text x="496" y="104" text-anchor="middle" font-size="11.5" class="secondary-text">Transcripts</text>
+  <rect x="551" y="87" width="93" height="26" rx="6" class="chip"/>
+  <text x="597" y="104" text-anchor="middle" font-size="11.5" class="secondary-text">SLA Monitor</text>
+  <line x1="30" y1="128" x2="870" y2="128" class="border"/>
+  <rect x="46" y="142" width="371.68" height="44" rx="7" class="row"/>
+  <rect x="58" y="154" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="157" width="156" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="172" width="97" height="6" rx="3" class="bar"/>
+  <rect x="46" y="194" width="371.68" height="44" rx="7" class="row"/>
+  <rect x="58" y="206" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="209" width="156" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="224" width="97" height="6" rx="3" class="bar"/>
+  <rect x="46" y="246" width="371.68" height="44" rx="7" class="row"/>
+  <rect x="58" y="258" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="261" width="156" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="276" width="97" height="6" rx="3" class="bar"/>
+  <rect x="46" y="298" width="371.68" height="44" rx="7" class="row"/>
+  <rect x="58" y="310" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="313" width="156" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="328" width="97" height="6" rx="3" class="bar"/>
+  <rect x="46" y="350" width="371.68" height="44" rx="7" class="row"/>
+  <rect x="58" y="362" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="365" width="156" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="380" width="97" height="6" rx="3" class="bar"/>
+  <rect x="46" y="402" width="371.68" height="44" rx="7" class="row"/>
+  <rect x="58" y="414" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="417" width="156" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="432" width="97" height="6" rx="3" class="bar"/>
+  <rect x="46" y="454" width="371.68" height="44" rx="7" class="row"/>
+  <rect x="58" y="466" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="469" width="156" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="484" width="97" height="6" rx="3" class="bar"/>
+  <rect x="434" y="142" width="420" height="76" rx="8" class="row"/>
+  <text x="448" y="168" font-size="12.5" font-weight="600" class="main-text">Details</text>
+  <rect x="448" y="182" width="339" height="7" rx="3.5" class="bar"/>
+  <rect x="448" y="196" width="241" height="7" rx="3.5" class="bar"/>
+  <!-- regen: scripts/docs_app_screens.py -->
 </svg>
