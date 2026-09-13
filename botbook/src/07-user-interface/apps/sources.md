@@ -11,8 +11,6 @@
 
 ---
 
-<img src="../../assets/07-user-interface/sources-interface.svg" alt="Sources Interface" style="max-width: 100%; height: auto;">
-
 ## Overview
 
 Sources is where you connect everything your bot can reference. Add Git repositories, manage generated apps, configure prompts, and connect MCP servers. Most importantly, Sources enables **@mentions** in chat—reference `@botserver` to work on a repository or `@myapp` to modify an app you created.

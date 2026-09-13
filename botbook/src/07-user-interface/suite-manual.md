@@ -30,7 +30,7 @@ General Bots Suite is your all-in-one workspace that combines communication, pro
 
 When the Suite opens, you see:
 
-<img src="../assets/07-user-interface/suite-main-layout.svg" alt="Suite Main Layout" style="max-width: 100%; height: auto;">
+<img src="../assets/suite/suite-layout.svg" alt="Suite desktop layout" style="max-width: 100%; height: auto;">
 
 ### The Apps Menu
 
@@ -132,7 +132,7 @@ Drive is your file storage - like Google Drive or OneDrive. Store documents, ima
 
 ### The Drive Interface
 
-<img src="../assets/07-user-interface/drive-interface.svg" alt="Drive Interface" style="max-width: 100%; height: auto;">
+<img src="../assets/suite/drive-screen.svg" alt="Drive Interface Screen" style="max-width: 100%; height: auto;">
 
 ### Creating and Uploading
 
@@ -194,7 +194,7 @@ Tasks revolutionizes how you work. Instead of manually tracking to-do items, you
 
 ### The Tasks Interface
 
-<img src="../assets/07-user-interface/autotask-interface.svg" alt="Tasks Interface" style="max-width: 100%; height: auto;">
+<img src="../assets/suite/tasks-screen.svg" alt="Tasks Interface Screen" style="max-width: 100%; height: auto;">
 
 ### Creating an Task
 
@@ -270,7 +270,7 @@ Mail connects to your email accounts so you can read, write, and organize emails
 
 ### The Mail Interface
 
-<img src="../assets/07-user-interface/mail-interface.svg" alt="Mail Interface" style="max-width: 100%; height: auto;">
+<img src="../assets/suite/mail-screen.svg" alt="Mail Interface Screen" style="max-width: 100%; height: auto;">
 
 ### Reading Email
 
@@ -336,7 +336,7 @@ Calendar shows your schedule, meetings, and events. Plan your day, week, or mont
 
 ### The Calendar Interface
 
-<img src="../assets/07-user-interface/calendar-interface.svg" alt="Calendar Interface" style="max-width: 100%; height: auto;">
+<img src="../assets/suite/calendar-screen.svg" alt="Calendar Interface Screen" style="max-width: 100%; height: auto;">
 
 ### Creating an Event
 
@@ -411,7 +411,7 @@ Bot: Meeting scheduled:
 
 ### The Meeting Interface
 
-<img src="../assets/07-user-interface/meet-interface.svg" alt="Meet Interface" style="max-width: 100%; height: auto;">
+<img src="../assets/suite/meet-screen.svg" alt="Meet Interface Screen" style="max-width: 100%; height: auto;">
 
 ### Meeting Controls
 
@@ -473,7 +473,7 @@ Paper is your writing space with AI assistance. Write documents, notes, reports 
 
 ### The Paper Interface
 
-<img src="../assets/07-user-interface/paper-interface.svg" alt="Paper Interface" style="max-width: 100%; height: auto;">
+<img src="../assets/suite/paper-screen.svg" alt="Paper Interface Screen" style="max-width: 100%; height: auto;">
 
 ### Creating a Document
 
@@ -540,7 +540,7 @@ Research is like having a research assistant. Search the web, your documents, an
 
 ### The Research Interface
 
-<img src="../assets/07-user-interface/research-interface.svg" alt="Research Interface" style="max-width: 100%; height: auto;">
+<img src="../assets/suite/research-screen.svg" alt="Research Interface Screen" style="max-width: 100%; height: auto;">
 
 ### Search Modes
 
@@ -591,7 +591,7 @@ Analytics shows you reports about usage, conversations, and performance. Underst
 
 ### The Analytics Interface
 
-<img src="../assets/07-user-interface/analytics-interface.svg" alt="Analytics Interface" style="max-width: 100%; height: auto;">
+<img src="../assets/suite/analytics-screen.svg" alt="Analytics Interface Screen" style="max-width: 100%; height: auto;">
 
 ### Key Metrics
 
@@ -630,7 +630,7 @@ Designer lets you create bot conversations visually. Drag and drop blocks to bui
 
 ### The Designer Interface
 
-<img src="../assets/07-user-interface/designer-interface.svg" alt="Designer Interface" style="max-width: 100%; height: auto;">
+<img src="../assets/suite/designer-screen.svg" alt="Designer Interface Screen" style="max-width: 100%; height: auto;">
 
 ### Building a Dialog
 
@@ -699,7 +699,7 @@ Sources is your library of prompts, templates, tools, and AI models. Find and us
 
 ### The Sources Interface
 
-<img src="../assets/07-user-interface/sources-interface.svg" alt="Sources Interface" style="max-width: 100%; height: auto;">
+<img src="../assets/suite/sources-screen.svg" alt="Sources Interface Screen" style="max-width: 100%; height: auto;">
 
 ### Tabs Explained
 
@@ -741,7 +741,7 @@ Sources is your library of prompts, templates, tools, and AI models. Find and us
 
 ### Compliance Scanner
 
-<img src="../assets/07-user-interface/compliance-interface.svg" alt="Compliance Scanner Interface" style="max-width: 100%; height: auto;">
+<img src="../assets/suite/compliance-screen.svg" alt="Compliance Interface Screen" style="max-width: 100%; height: auto;">
 
 **What It Checks:**
 - Hardcoded passwords
