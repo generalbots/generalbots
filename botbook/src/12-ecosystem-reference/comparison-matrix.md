@@ -201,21 +201,29 @@ Read the full positioning in [OpenClaw and General Bots](./openclaw.md) and [Ope
 - Your organization mandates a particular cloud provider
 - You have no infrastructure or IT capacity for self-hosting
 - You need only a single narrow feature (e.g., just document editing)
+- **A managed multi-channel personal assistant is the whole requirement** — [OpenClaw](./openclaw.md) is closer to that shape than a platform you operate yourself
+- **You need agent governance across systems of record** — identity, permissions and audit across existing enterprise systems is what [OpenAI Frontier](./openai-frontier.md) is built for
 
 ## Summary
 
-General Bots provides the most comprehensive feature set for organizations seeking:
-
 | Advantage | Impact |
 |-----------|--------|
-| **75-95% cost reduction** | Eliminate per-user fees, AI add-ons, automation limits |
+| **No per-user licence** | Users are not metered; the cost is infrastructure and model usage |
 | **Complete data control** | Self-hosted, your infrastructure, your rules |
-| **Unified platform** | Email, files, chat, automation, AI in one system |
-| **No artificial limits** | Unlimited users, workflows, API calls, storage |
-| **Full transparency** | Open source code, audit everything |
-| **Future-proof** | No vendor lock-in, standard formats, portable data |
+| **Unified platform** | Email, files, chat, automation and AI in one system |
+| **High ceilings, honestly bounded** | Limits exist and are documented — see [System Limits](../10-configuration-deployment/system-limits.md) |
+| **Full transparency** | Open source, auditable |
+| **Portable data** | Standard formats, no vendor lock-in |
 
-The combination of enterprise productivity features, native AI, powerful automation, and self-hosted deployment makes General Bots unique in the market—delivering capabilities that would otherwise require subscriptions to multiple expensive platforms.
+Cost depends entirely on the infrastructure and model you run; this page does not
+quote a percentage saving, because the comparison depends on which subscriptions
+are actually replaced. The per-platform figures above are the basis for your own
+arithmetic.
+
+The combination of productivity features, native AI, automation and self-hosted
+deployment is what distinguishes General Bots from platforms that require
+per-user subscriptions — but it is not the only shape that fits every
+organisation, which is why the two comparisons above exist.
 
 ## See Also
 

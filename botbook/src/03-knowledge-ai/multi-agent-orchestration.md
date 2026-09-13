@@ -236,18 +236,22 @@ Multi-agent systems benefit from shared knowledge bases with advanced search.
 
 ```csv
 name,value
-rag-hybrid-enabled,true
-rag-dense-weight,0.7
-rag-sparse-weight,0.3
-rag-reranker-enabled,true
+rag-mode,hybrid
 ```
+
+`rag-mode` selects one of six implemented strategies and defaults to `standard`.
+The `rag-hybrid-enabled`, `rag-dense-weight`, `rag-sparse-weight` and
+`rag-reranker-enabled` keys are read only by an unconnected crate and have no
+effect — see [Retrieval and RAG](./hybrid-search.md).
 
 ### How It Works
 
-1. **Dense Search** - Semantic/vector similarity (0.7 weight)
-2. **Sparse Search** - BM25 keyword matching (0.3 weight)
-3. **Fusion** - Reciprocal Rank Fusion combines results
-4. **Reranking** - Optional LLM reranking for quality
+1. **Dense Search** - Semantic/vector similarity over Qdrant
+2. **Keyword Search** - Term matching over the same store (not BM25)
+3. **Fusion** - Reciprocal Rank Fusion, fixed weight, `k = 60`
+4. **Mode step** - Grading (`corrective`), entity expansion (`graph`), decomposition (`agentic`) or visual-term expansion (`multimodal`)
+
+There is no re-ranking stage in the retrieval path.
 
 ```basic
 ' Hybrid search is automatic when enabled

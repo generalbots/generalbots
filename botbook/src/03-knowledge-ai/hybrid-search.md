@@ -34,15 +34,24 @@ Every mode degrades rather than failing: if the LLM is unavailable, the LLM-assi
 
 ## Configuring the mode
 
-The mode is a per-bot configuration value named `rag-mode`, read by the retrieval layer from the bot's configuration store:
+The mode is a per-bot value named `rag-mode`, read through `ConfigManager::get_config`, which resolves keys in this order:
+
+1. the bot's **configuration row in the database** — the source of truth;
+2. the environment variable `RAG_MODE` (`rag-mode` upper-cased, `-` → `_`);
+3. the default.
 
 | Key | Values | Default |
 |---|---|---|
 | `rag-mode` | `standard`, `hybrid`, `corrective`, `graph`, `agentic`, `multimodal` | `standard` |
 
-An unrecognised value is treated as `standard` rather than failing.
+`rag-mode` is **not** part of the LLM secret block, so it is **not** read from Vault, and it is **not** a `config.csv` key — setting it in either place has no effect. An unrecognised value is treated as `standard` rather than failing.
 
 The same setting applies to knowledge bases and to websites registered with `USE WEBSITE`.
+
+> A second, richer configuration surface exists in `botqdrant/src/hybrid_search.rs`
+> (`dense_weight`, `sparse_weight`, `reranker_*`, `rrf_k`, `bm25_*`, read from bot
+> config). Nothing constructs it, so those keys have no effect on retrieval. Do not
+> configure against them — see the note under Limits.
 
 ## The pipeline underneath
 
@@ -65,6 +74,19 @@ Top results, up to 10 per source
 Context assembled into the model prompt
 ```
 
+### The dense step
+
+Every mode except pure keyword fallback starts here, and `standard` is nothing else:
+
+| Stage | Operation | Value |
+|-------|-----------|-------|
+| Embedding | Query to vector | Local `all-MiniLM-L6-v2` (384-d), or `text-embedding-3-small` (1536-d) when an API key is set |
+| Search | Vector similarity | Qdrant, cosine distance |
+| Candidates | Per source | 10 |
+| Relevance cut | Score floor | 0.20 — anything below is discarded |
+
+This is the half that finds a document about "vacation policy" when the user asked about "days off". Keyword fusion is what recovers exact terms that dense similarity misses.
+
 ### Embeddings and their fallbacks
 
 | Path | Model | Notes |
@@ -73,7 +95,7 @@ Context assembled into the model prompt
 | OpenAI | `text-embedding-3-small` | Used when an API key is supplied |
 | **Hash embedding** | none — deterministic hash | Last resort when embedding generation fails. It is **not semantic**; matching becomes effectively random. If retrieval results look nonsensical, this is the first thing to check |
 
-A knowledge base only searches semantically when an embedding model is configured. Without one, retrieval silently becomes keyword matching — worth knowing before blaming the corpus.
+A knowledge base only searches semantically when an embedding model is configured. Without one, retrieval silently becomes keyword matching — worth knowing before blaming the corpus. Both fallbacks are logged; if results look wrong rather than thin, check the logs before assuming the documents are at fault.
 
 ### Ingestion
 
@@ -119,7 +141,6 @@ The 2026–2027 direction of retrieval is less about the search call and more ab
 ## See Also
 
 - [Knowledge Base](./knowledge-base.md) - Working with KB collections
-- [Semantic Search](./semantic-search.md) - The dense search step
 - [Document Indexing](./indexing.md) - How documents get into the index
 - [Vector Collections](./vector-collections.md) - Collection structure
 - [USE KB](../04-basic-scripting/keyword-use-kb.md) - Keyword reference

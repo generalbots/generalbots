@@ -398,88 +398,54 @@ model-fallback-enabled,true
 model-fallback-order,quality,fast
 ```
 
-## Hybrid RAG Search Parameters
+## Retrieval Parameters
 
-General Bots uses hybrid search combining **dense (embedding)** and **sparse (BM25 keyword)** search for optimal retrieval. The BM25 implementation is powered by [Tantivy](https://github.com/quickwit-oss/tantivy), a full-text search engine library similar to Apache Lucene.
-
-| Parameter | Description | Default | Type |
-|-----------|-------------|---------|------|
-| `rag-hybrid-enabled` | Enable hybrid dense+sparse search | `true` | Boolean |
-| `rag-dense-weight` | Weight for semantic results | `0.7` | Float (0-1) |
-| `rag-sparse-weight` | Weight for keyword results | `0.3` | Float (0-1) |
-| `rag-reranker-enabled` | Enable LLM reranking | `false` | Boolean |
-| `rag-reranker-model` | Model for reranking | `cross-encoder/ms-marco-MiniLM-L-6-v2` | String |
-| `rag-reranker-top-n` | Candidates for reranking | `20` | Number |
-| `rag-max-results` | Maximum results to return | `10` | Number |
-| `rag-min-score` | Minimum relevance score threshold | `0.0` | Float (0-1) |
-| `rag-rrf-k` | RRF smoothing constant | `60` | Number |
-| `rag-cache-enabled` | Enable search result caching | `true` | Boolean |
-| `rag-cache-ttl` | Cache time-to-live | `3600` | Seconds |
-
-### BM25 Sparse Search (Tantivy)
-
-BM25 is a keyword-based ranking algorithm that excels at finding exact term matches. It's powered by Tantivy when the `vectordb` feature is enabled.
+Retrieval is selected per bot with one setting, `rag-mode`, which chooses among six
+implemented strategies. [Retrieval and RAG](../03-knowledge-ai/hybrid-search.md)
+describes what each mode actually does, and what retrieval does not yet do.
 
 | Parameter | Description | Default | Type |
 |-----------|-------------|---------|------|
-| `bm25-enabled` | **Enable/disable BM25 sparse search** | `true` | Boolean |
-| `bm25-k1` | Term frequency saturation (0.5-3.0 typical) | `1.2` | Float |
-| `bm25-b` | Document length normalization (0.0-1.0) | `0.75` | Float |
-| `bm25-stemming` | Apply word stemming (running→run) | `true` | Boolean |
-| `bm25-stopwords` | Filter common words (the, a, is) | `true` | Boolean |
+| `rag-mode` | Retrieval strategy: `standard`, `hybrid`, `corrective`, `graph`, `agentic`, `multimodal` | `standard` | String |
 
-### Switching Search Modes
+`rag-mode` is read from the bot's configuration row, falling back to the
+environment variable `RAG_MODE`. It is not part of the Vault LLM secret block, and
+it is not a `config.csv` key — setting it in either place has no effect.
 
-**Hybrid Search (Default - Best for most use cases)**
+### Retrieval keys that have no effect
+
+The keys below are read only by `botqdrant/src/hybrid_search.rs` and
+`botqdrant/src/bm25_config.rs` — a retrieval implementation that nothing in the
+server constructs. Setting them changes nothing about how documents are
+retrieved. They are listed so that existing configuration is not mistaken for
+working settings:
+
+| Parameter | Would do | Status |
+|-----------|----------|--------|
+| `rag-hybrid-enabled` | Toggle dense + sparse fusion | Inert |
+| `rag-dense-weight`, `rag-sparse-weight` | Fusion weights | Inert — fusion is fixed-weight RRF at `k = 60` |
+| `rag-reranker-enabled`, `rag-reranker-model`, `rag-reranker-top-n` | Cross-encoder re-ranking | Inert — no re-ranker runs in the retrieval path |
+| `rag-rrf-k` | RRF smoothing constant | Inert |
+| `rag-cache-enabled`, `rag-cache-ttl` | Search-result caching | Inert |
+| `bm25-enabled`, `bm25-k1`, `bm25-b`, `bm25-stemming`, `bm25-stopwords` | A BM25 sparse index | Inert — there is no BM25 index, and no Tantivy dependency anywhere in the build |
+
+Keyword matching in the live path is a term search over the vector store
+(`search_keyword_only`), not BM25.
+
+### Selecting a mode
+
 ```csv
-bm25-enabled,true
-rag-dense-weight,0.7
-rag-sparse-weight,0.3
+rag-mode,hybrid
 ```
-Uses both semantic understanding AND keyword matching. Best for general queries.
 
-**Dense Only (Semantic Search)**
-```csv
-bm25-enabled,false
-rag-dense-weight,1.0
-rag-sparse-weight,0.0
-```
-Uses only embedding-based search. Faster, good for conceptual/semantic queries where exact words don't matter.
-
-**Sparse Only (Keyword Search)**
-```csv
-bm25-enabled,true
-rag-dense-weight,0.0
-rag-sparse-weight,1.0
-```
-Uses only BM25 keyword matching. Good for exact term searches, technical documentation, or when embeddings aren't available.
-
-### BM25 Parameter Tuning
-
-The `k1` and `b` parameters control BM25 behavior:
-
-- **`bm25-k1`** (Term Saturation): Controls how much additional term occurrences contribute to the score
-  - Lower values (0.5-1.0): Diminishing returns for repeated terms
-  - Higher values (1.5-2.0): More weight to documents with many term occurrences
-  - Default `1.2` works well for most content
-
-- **`bm25-b`** (Length Normalization): Controls document length penalty
-  - `0.0`: No length penalty (long documents scored equally)
-  - `1.0`: Full length normalization (strongly penalizes long documents)
-  - Default `0.75` balances length fairness
-
-**Tuning for specific content:**
-```csv
-# For short documents (tweets, titles)
-bm25-b,0.3
-
-# For long documents (articles, manuals)
-bm25-b,0.9
-
-# For code search (exact matches important)
-bm25-k1,1.5
-bm25-stemming,false
-```
+| Mode | Use when |
+|------|----------|
+| `standard` | General questions over a clean knowledge base — the default |
+| `hybrid` | Documents full of exact terms: part numbers, codes, names |
+| `corrective` | Users ask vague or badly-phrased questions; costs one LLM call per candidate chunk |
+| `graph` | Questions naming several things at once (entity expansion, not a graph index) |
+| `agentic` | Complex questions spanning several documents (single decomposition step) |
+| `multimodal` | Knowledge base with diagrams and screenshots (visual-term expansion) |
 
 ## Code Sandbox Parameters
 
@@ -621,27 +587,21 @@ bot-reflection-interval,10
 user-memory-enabled,true
 ```
 
-### For Hybrid RAG
+### For Retrieval Quality
 ```csv
-rag-hybrid-enabled,true
-rag-dense-weight,0.7
-rag-sparse-weight,0.3
-rag-reranker-enabled,true
-rag-max-results,10
-rag-min-score,0.3
-rag-cache-enabled,true
-bm25-enabled,true
-bm25-k1,1.2
-bm25-b,0.75
+rag-mode,hybrid
 ```
 
-### For Dense-Only Search (Faster)
+`hybrid` adds keyword matching to the dense search. For vague questions,
+`corrective` grade-filters chunks, at the cost of one LLM call per candidate.
+
+### For Lower Retrieval Latency
 ```csv
-bm25-enabled,false
-rag-dense-weight,1.0
-rag-sparse-weight,0.0
-rag-max-results,10
+rag-mode,standard
 ```
+
+`standard` makes a single embedding call and no LLM calls. The `corrective`,
+`agentic` and `graph` modes each add one or more LLM calls per question.
 
 ### For Code Execution
 ```csv
@@ -661,4 +621,4 @@ sandbox-python-packages,numpy,pandas,requests
 4. **Emails**: Must contain @ and domain
 5. **Colors**: Must be valid hex format
 6. **Booleans**: Exactly `true` or `false`
-7. **Weights**: Must sum to 1.0 (e.g., `rag-dense-weight` + `rag-sparse-weight`)
+7. **Mode**: `rag-mode` must be one of the six listed values; an unrecognised value is treated as `standard`
