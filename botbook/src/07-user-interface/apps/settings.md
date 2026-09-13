@@ -112,7 +112,7 @@ Settings is the user preferences application in General Bots Suite. Manage your 
     <div class="wa-bubble">
       <p>🔐 Two-factor authentication setup initiated.</p>
       <p>Scan this QR code with your authenticator app, then enter the 6-digit code to verify:</p>
-      <p><img src="../../assets/suite/2fa-qr-placeholder.svg" alt="QR Code" style="max-width: 200px;"></p>
+      <p><em>[QR code image returned by the bot]</em></p>
       <div class="wa-time">10:15</div>
     </div>
   </div>

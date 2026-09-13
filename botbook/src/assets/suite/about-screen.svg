@@ -57,7 +57,7 @@
 
     <!-- Version Badge -->
     <rect x="-35" y="100" width="70" height="24" rx="12" fill="url(#accentGrad)"/>
-    <text x="0" y="117" text-anchor="middle" font-size="12" font-weight="600" class="white-text">v6.4.0</text>
+    <text x="0" y="117" text-anchor="middle" font-size="12" font-weight="600" class="white-text">v6.3.1</text>
 
     <!-- Description -->
     <text x="0" y="150" text-anchor="middle" font-size="13" class="secondary-text">AI-powered business automation platform</text>
@@ -148,15 +148,15 @@
 
     <g transform="translate(30, 20)">
       <text x="0" y="0" font-size="12" class="muted-text">Runtime</text>
-      <text x="0" y="18" font-size="13" font-weight="500" class="main-text">Rust 1.78.0</text>
+      <text x="0" y="18" font-size="13" font-weight="500" class="main-text">Rust (stable)</text>
     </g>
     <g transform="translate(160, 20)">
       <text x="0" y="0" font-size="12" class="muted-text">Database</text>
-      <text x="0" y="18" font-size="13" font-weight="500" class="main-text">PostgreSQL 16</text>
+      <text x="0" y="18" font-size="13" font-weight="500" class="main-text">PostgreSQL 17</text>
     </g>
     <g transform="translate(300, 20)">
       <text x="0" y="0" font-size="12" class="muted-text">Cache</text>
-      <text x="0" y="18" font-size="13" font-weight="500" class="main-text">Valkey 7.2</text>
+      <text x="0" y="18" font-size="13" font-weight="500" class="main-text">Valkey</text>
     </g>
 
     <g transform="translate(30, 58)">

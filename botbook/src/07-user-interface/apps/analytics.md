@@ -1,5 +1,7 @@
 # Analytics 🟡 PREVIEW - Dashboards
 
+<img src="../../assets/suite/analytics-flow.svg" alt="Analytics pipeline flow" style="max-width: 100%; height: auto;">
+
 > **Your business intelligence center**
 
 <img src="../../assets/suite/analytics-screen.svg" alt="Analytics Interface Screen" style="max-width: 100%; height: auto;">

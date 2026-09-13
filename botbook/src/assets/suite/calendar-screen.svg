@@ -127,6 +127,11 @@
       <text x="120" y="0" text-anchor="middle" font-size="11" class="main-text">29</text>
       <text x="142" y="0" text-anchor="middle" font-size="11" class="main-text">30</text>
     </g>
+
+    <!-- Week 6: March has 31 days, and the 1st falls on a Friday -->
+    <g transform="translate(0, 128)">
+      <text x="10" y="0" text-anchor="middle" font-size="11" class="main-text">31</text>
+    </g>
   </g>
 
   <!-- Calendars List -->

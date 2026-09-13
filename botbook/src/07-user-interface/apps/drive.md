@@ -1,5 +1,7 @@
 # Drive 🟢 GA - File Management
 
+<img src="../../assets/suite/drive-flow.svg" alt="Drive file flow" style="max-width: 100%; height: auto;">
+
 > **Your cloud storage workspace**
 
 <img src="../../assets/suite/drive-screen.svg" alt="Drive Interface Screen" style="max-width: 100%; height: auto;">

@@ -1,5 +1,7 @@
 # Meet 🟡 PREVIEW - Video Calls
 
+<img src="../../assets/suite/meet-flow.svg" alt="Meeting lifecycle flow" style="max-width: 100%; height: auto;">
+
 > **Your virtual meeting room**
 
 <img src="../../assets/suite/meet-screen.svg" alt="Meet Interface Screen" style="max-width: 100%; height: auto;">

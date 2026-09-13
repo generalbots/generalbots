@@ -1,5 +1,7 @@
 # Tasks 🟡 PREVIEW - Autonomous App Builder
 
+<img src="../../assets/suite/tasks-flow.svg" alt="Task execution flow" style="max-width: 100%; height: auto;">
+
 > **Describe what you want, get a working application**
 
 <img src="../../assets/suite/tasks-screen.svg" alt="Tasks Interface Screen" style="max-width: 100%; height: auto;">

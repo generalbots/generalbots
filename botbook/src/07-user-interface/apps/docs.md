@@ -1,5 +1,7 @@
 # Docs 🟡 PREVIEW — IN TEST
 
+<img src="../../assets/suite/docs-screen.svg" alt="Docs editor screen" style="max-width: 100%; height: auto;">
+
 > **In test.** Docs is a preview application and is **not part of the supported surface**. It is functional and actively being tested, but behaviour and interface may change, and edge cases are not guaranteed. Decide accordingly before depending on it.
 
 Docs is the suite's collaborative document editor: rich text, comments, tracked changes and citation support, with AI assistance.

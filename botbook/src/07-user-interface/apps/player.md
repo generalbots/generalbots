@@ -1,5 +1,7 @@
 # Player 🟡 PREVIEW - Media Viewer
 
+<img src="../../assets/suite/player-flow.svg" alt="Media viewer flow" style="max-width: 100%; height: auto;">
+
 > **Integrated viewing for documents, audio, video, and presentations**
 
 <img src="../../assets/suite/player-screen.svg" alt="Player Interface Screen" style="max-width: 100%; height: auto;">
