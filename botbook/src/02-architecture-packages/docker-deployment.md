@@ -1,6 +1,11 @@
 # Docker Deployment 🟡 BETA
 
-> **Note**: Docker support is currently **experimental**.
+> **Note**: Docker support is currently **experimental**, and the repository
+> publishes no container image and contains no `Dockerfile`. The manifests on
+> this page are a starting sketch: you must build and host your own image, then
+> replace `your-registry/botserver:latest` accordingly. Production deployments
+> use the installer and LXC containers instead — see
+> [Container Deployment (LXC)](./containers.md).
 
 ## Deployment Options
 
@@ -20,7 +25,7 @@ docker run -d \
   -p 9000:9000 \
   -v botserver-data:/opt/gbo/data \
   -e ADMIN_PASS=your-secure-password \
-  pragmatismo/botserver:latest
+  your-registry/botserver:latest
 ```
 
 ### Docker Compose
@@ -30,7 +35,7 @@ version: '3.8'
 
 services:
   botserver:
-    image: pragmatismo/botserver:latest
+    image: your-registry/botserver:latest
     restart: unless-stopped
     ports:
       - "8000:8000"
@@ -95,7 +100,7 @@ services:
       - gb-network
 
   botserver:
-    image: pragmatismo/botserver:latest
+    image: your-registry/botserver:latest
     depends_on:
       - postgres
       - minio
@@ -149,7 +154,7 @@ spec:
     spec:
       containers:
       - name: botserver
-        image: pragmatismo/botserver:latest
+        image: your-registry/botserver:latest
         ports:
         - containerPort: 8000
         resources:

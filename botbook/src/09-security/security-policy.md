@@ -25,7 +25,7 @@ Rodrigo Rodriguez serves as the director with overall responsibility for IT secu
 
 ### 1.5 Review Process
 
-We review this policy annually, with the next review scheduled for the date indicated in the document control section. Questions, suggestions, or feedback should be directed to security@pragmatismo.com.br for consideration during the review process or for immediate clarification.
+We review this policy annually, with the next review scheduled for the date indicated in the document control section. Questions, suggestions, or feedback should be directed to security@generalbots.org for consideration during the review process or for immediate clarification.
 
 
 ## 2. Access Control Policy
@@ -125,7 +125,7 @@ Post-incident review occurs within 1 week. The complete incident timeline is doc
 
 ### 5.3 Contact Information
 
-Internal contacts for security matters include the Security Team at security@pragmatismo.com.br, IT Support at support@pragmatismo.com.br, and Management through Rodrigo Rodriguez.
+Internal contacts for security matters include the Security Team at security@generalbots.org, IT Support at support@generalbots.org, and Management through Rodrigo Rodriguez.
 
 External contacts should be maintained in a separate secure document and include local law enforcement authorities, legal counsel, the relevant Data Protection Authority, and the cyber insurance provider.
 
@@ -186,7 +186,7 @@ Test environments progress through stages. Development supports individual devel
 
 ### 8.1 Reporting Security Incidents
 
-Incidents can be reported through several channels. Email reports go to security@pragmatismo.com.br. Phone reports use the security hotline. Web reports use the internal incident reporting portal. In-person reports can be made directly to the IT department.
+Incidents can be reported through several channels. Email reports go to security@generalbots.org. Phone reports use the security hotline. Web reports use the internal incident reporting portal. In-person reports can be made directly to the IT department.
 
 Reportable events include suspicious emails or phishing attempts, lost or stolen devices, unauthorized access or unusual system behavior, malware alerts, data leaks or exposures, policy violations, and any security concerns or vulnerabilities discovered.
 
@@ -395,7 +395,7 @@ The remediation process follows a structured approach. First, the vulnerability 
 
 ### 17.3 Reporting a Vulnerability
 
-External security researchers can report vulnerabilities by email to security@pragmatismo.com.br. A PGP key is available on the website for encrypted communication. Initial response is provided within 48 hours. A bug bounty program provides rewards for qualifying vulnerabilities.
+External security researchers can report vulnerabilities by email to security@generalbots.org. A PGP key is available on the website for encrypted communication. Initial response is provided within 48 hours. A bug bounty program provides rewards for qualifying vulnerabilities.
 
 Internal staff should report vulnerabilities via the internal security portal or email the security team directly for critical issues. Reports should include a description of the vulnerability, affected systems, and steps to reproduce the issue. Response is provided within 24 hours.
 
@@ -435,6 +435,6 @@ Approval authority, approval date, and next review date are recorded in the docu
 
 ## Contact Information
 
-The Security Team can be reached by email at security@pragmatismo.com.br, by phone at the emergency hotline maintained in internal systems, or through the internal security portal.
+The Security Team can be reached by email at security@generalbots.org, by phone at the emergency hotline maintained in internal systems, or through the internal security portal.
 
-Specific inquiries should be directed to appropriate addresses. Security incidents go to security@pragmatismo.com.br. Privacy concerns go to privacy@pragmatismo.com.br. Compliance questions go to compliance@pragmatismo.com.br. General IT support requests go to support@pragmatismo.com.br.
+Specific inquiries should be directed to appropriate addresses. Security incidents go to security@generalbots.org. Privacy concerns go to privacy@generalbots.org. Compliance questions go to compliance@generalbots.org. General IT support requests go to support@generalbots.org.

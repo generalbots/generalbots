@@ -10,11 +10,11 @@ This runbook is the administrator checklist for enabling a provider family.
 
 For every provider family below, create one developer application on the
 vendor console. Register the callback exactly as shown, replacing
-`chat.pragmatismo.com.br` when operating another domain.
+`chat.generalbots.org` when operating another domain.
 
 | Family | Vendor console | Callback URL |
 |---|---|---|
-| HubSpot | app.hubspot.com → App Marketplace → Develop an app | `https://chat.pragmatismo.com.br/api/bots/*/integrations/oauth/hubspot/callback` (register per-bot exact path) |
+| HubSpot | app.hubspot.com → App Marketplace → Develop an app | `https://chat.generalbots.org/api/bots/*/integrations/oauth/hubspot/callback` (register per-bot exact path) |
 | Intercom | app.intercom.io → Developer Hub | `.../integrations/oauth/intercom/callback` |
 | Todoist | developer.todoist.com → Apps | `.../integrations/oauth/todoist/callback` |
 | Zoom | marketplace.zoom.us → Server-to-server is NOT used here; build OAuth app | `.../integrations/oauth/zoom/callback` |

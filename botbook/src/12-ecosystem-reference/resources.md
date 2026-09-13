@@ -169,7 +169,7 @@ Community support is available through GitHub discussions, issue tracking, featu
 
 For enterprise deployments requiring additional support, professional services include migration planning, custom development, training programs, and support contracts.
 
-Contact: partners@pragmatismo.com.br
+Contact: partners@generalbots.org
 
 ## Migration Checklist
 
