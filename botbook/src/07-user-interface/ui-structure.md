@@ -59,7 +59,7 @@ The Suite interface provides multi-application integration with seamless navigat
 
 The Suite interface is best suited for enterprise deployments requiring full functionality, power users working with multiple services simultaneously, desktop application distribution via Tauri builds, and multi-service integrations where context switching between modules matters.
 
-You can access the Suite interface via web at `http://localhost:9000/suite` or as a native desktop application using the `botui` Tauri app (see [BotUI Desktop](../botui/README.md)).
+You can access the Suite interface via web at `http://localhost:9000/suite` or as a native desktop application using the `botui` Tauri app (see BotUI Desktop).
 
 ## Minimal Interface
 
@@ -234,7 +234,6 @@ Planned improvements include dynamic UI selection based on device capabilities t
 
 ## See Also
 
-- [default.gbui Reference](./default-gbui.md) - Full desktop template
 - [single.gbui Reference](./single-gbui.md) - Simple chat template
 - [Console Mode](./console-mode.md) - Terminal interface
 - [Monitoring Dashboard](./monitoring.md) - System observability

@@ -674,5 +674,5 @@ https://developers.facebook.com/apps/YOUR_APP_ID/usage/
 
 **For detailed documentation:** See [README.md](./README.md)  
 **For troubleshooting:** See [troubleshooting.md](../12-ecosystem-reference/troubleshooting.md)  
-**For code examples:** See [examples.md](./examples.md)  
-**For webhook setup:** See [webhooks.md](./webhooks.md)
+**For code examples:** See [WhatsApp Examples](./whatsapp-examples.md)  
+**For webhook setup:** See [WhatsApp Webhooks](./whatsapp-webhooks.md)

@@ -260,4 +260,3 @@ escalation-keywords,billing,security,complaint
 - [Suite Manual](../suite-manual.md) - Complete user guide
 - [Chat App](./chat.md) - Direct messaging
 - [Tickets](./tickets.md) - Support ticket management
-- [BASIC Transfer Keyword](../../04-basic-scripting/keyword-transfer.md) - Script integration

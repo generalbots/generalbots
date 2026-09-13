@@ -486,5 +486,4 @@ curl -X POST \
 ## Related APIs
 
 - [User API](./user-security.md) - User management
-- [WebSocket API](../07-user-interface/web-interface.md) - Real-time notifications
 - [Email API](../04-basic-scripting/keyword-send-mail.md) - Email notifications

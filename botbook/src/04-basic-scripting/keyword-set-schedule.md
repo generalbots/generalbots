@@ -284,7 +284,6 @@ Scheduled tasks are logged automatically:
 
 - [GET BOT MEMORY](./keyword-get-bot-memory.md) - Store schedule state
 - [SET BOT MEMORY](./keyword-set-bot-memory.md) - Persist data between runs
-- [LLM](./keyword-llm.md) - Process data in scheduled tasks
 - [SEND MAIL](./keyword-send-mail.md) - Send scheduled reports
 - [GET](./keyword-get.md) - Fetch data for processing
 

@@ -260,7 +260,6 @@ SEND FILE img, "Low Stock Alert"
 ## Related Templates
 
 - [Platform Analytics](./template-analytics.md) - Platform metrics and monitoring
-- [Talk to Data](./template-talk-to-data.md) - Natural language data queries
 - [CRM](./template-crm.md) - CRM with built-in reporting
 
 ---

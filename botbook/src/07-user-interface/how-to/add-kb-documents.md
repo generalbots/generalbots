@@ -461,9 +461,9 @@ HEAR question
 
 | Next Tutorial | What You'll Learn |
 |---------------|-------------------|
-| [Import a Website](./import-website.md) | Crawl web pages into your KB |
-| [Create FAQ Responses](./create-faq.md) | Define question-answer pairs |
-| [Manage Collections](./manage-collections.md) | Organize knowledge by topic |
+| Import a Website | Crawl web pages into your KB |
+| Create FAQ Responses | Define question-answer pairs |
+| Manage Collections | Organize knowledge by topic |
 
 ---
 
@@ -498,4 +498,4 @@ HEAR question
 
 ---
 
-*Tutorial 3 of 30 • [Back to How-To Index](./README.md) • [Next: Import a Website →](./import-website.md)*
+*Tutorial 3 of 30 • [Back to How-To Index](./README.md) • Next: Import a Website →*

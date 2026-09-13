@@ -299,4 +299,3 @@ collaboration-enabled,true
 - [Suite Manual](../suite-manual.md) - Complete user guide
 - [Drive](./drive.md) - File storage for exports
 - [Chat App](./chat.md) - Create boards via chat
-- [BASIC File Keywords](../../04-basic-scripting/keyword-file.md) - Script integration

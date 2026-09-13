@@ -31,5 +31,3 @@ weather-api-key,your-openweathermap-api-key
 Get a free API key at [openweathermap.org](https://openweathermap.org/api).
 
 ## See Also
-
-- [Weather API Integration](../appendix-external-services/weather.md) - Full documentation

@@ -105,7 +105,6 @@ TALK "Synced " + totalSynced + " records to " + tableName
 - [GET](./keyword-get.md) - HTTP GET requests
 - [MERGE](./keyword-merge.md) - Upsert data operations
 - [SET SCHEDULE](./keyword-set-schedule.md) - Schedule sync jobs
-- [REPORT / RESET REPORT](./keyword-report.md) - Sync statistics
 
 ## Implementation Notes
 

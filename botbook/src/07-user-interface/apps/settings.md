@@ -225,4 +225,3 @@ max-sessions,5
 
 - [Suite Manual](../suite-manual.md) - Complete user guide
 - [Admin Panel](./admin.md) - System-wide settings
-- [Security Guide](../../08-rest-api-tools/security-guide.md) - Best practices

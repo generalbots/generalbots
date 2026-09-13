@@ -280,8 +280,8 @@ rm .env
 - **[Full Installation Guide](installation.md)** - Detailed bootstrap explanation
 - **[Tool Definition](../08-rest-api-tools/tool-definition.md)** - Creating tools
 - **[BASIC Keywords](../04-basic-scripting/keywords.md)** - Language reference
-- **[Package System](docs/src/02-architecture-packages/README.md)** - Creating bots
-- **[Architecture](docs/src/04-basic-scripting/architecture.md)** - How it works
+- **Package System** - Creating bots
+- **Architecture** - How it works
 
 ---
 

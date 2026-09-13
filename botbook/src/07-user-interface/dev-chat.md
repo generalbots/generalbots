@@ -238,6 +238,5 @@ The dev chat widget:
 
 ## See Also
 
-- [Autonomous Tasks](../17-autonomous-tasks/README.md) - How apps are generated
 - [HTMX Architecture](./htmx-architecture.md) - Frontend patterns
 - [REST API](../08-rest-api-tools/README.md) - API reference

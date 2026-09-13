@@ -131,7 +131,3 @@ Or I can extract this from a recent email conversation.
 
 ## Related Pages
 
-- [Contacts](../contacts.md) — Contact management
-- [Activities](../activities.md) — Activity logging
-- [Forecast](../forecast.md) — Revenue prediction
-- [Reports](../reports.md) — Sales analytics

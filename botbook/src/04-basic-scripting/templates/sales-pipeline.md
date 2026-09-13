@@ -729,8 +729,6 @@ TALK "Deal moved to Proposal stage."
 
 ## Related Templates
 
-- [crm/contacts.bas](./contacts.md) - Contact management
-- [marketing.bas](./marketing.md) - Lead generation
 - [store.bas](./store.md) - E-commerce integration
 
 ---

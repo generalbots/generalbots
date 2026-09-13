@@ -15,8 +15,6 @@ General Bots is designed from the ground up to scale horizontally. The architect
 
 - [Sharding Architecture](./sharding.md) - How data is distributed across shards
 - [Database Optimization](./database-optimization.md) - Schema design for billion-scale
-- [Regional Deployment](./regional-deployment.md) - Multi-region setup
-- [Performance Tuning](./performance-tuning.md) - Optimization strategies
 
 ## Key Concepts
 

@@ -207,7 +207,7 @@ reflection-store-insights,true
 
 | Keyword | Description |
 |---------|-------------|
-| [`LLM`](./keyword-llm.md) | Query the language model |
+| `LLM` | Query the language model |
 | [`SET BOT MEMORY`](./keyword-set-bot-memory.md) | Store bot-level data |
 | [`PRINT`](./keyword-print.md) | Debug output |
 

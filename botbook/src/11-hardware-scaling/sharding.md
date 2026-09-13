@@ -306,4 +306,4 @@ To migrate an existing single-database deployment to sharded:
 5. Gradually migrate existing tenants during low-traffic windows
 6. Decommission original database when empty
 
-See [Regional Deployment](./regional-deployment.md) for multi-region considerations.
+See Regional Deployment for multi-region considerations.

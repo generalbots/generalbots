@@ -619,4 +619,3 @@ Content-Type: application/json
 - [Organization Management](../09-security/organizations.md)
 - [RBAC Configuration](../09-security/rbac-configuration.md)
 - [White-Label Setup](./setup.md)
-- [API Authentication](../08-rest-api-tools/authentication.md)

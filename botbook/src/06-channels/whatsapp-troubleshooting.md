@@ -1111,4 +1111,4 @@ If you're still experiencing issues after following this guide:
    - List steps to reproduce
    - Include error messages
 
-For the latest troubleshooting information, see [Webhook Configuration Guide](./webhooks.md) or [Code Examples](./examples.md).
+For the latest troubleshooting information, see Webhook Configuration Guide or Code Examples.

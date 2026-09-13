@@ -105,4 +105,3 @@ PRINT "Welcome! How can I help you?"  ' Works but TALK is clearer
 
 - [TALK](./keyword-talk.md) - Primary message output keyword
 - [TALK TO](./keyword-talk.md#talk-to) - Send to specific recipients
-- [SEND FILE TO](./keyword-send-file-to.md) - Send files to recipients

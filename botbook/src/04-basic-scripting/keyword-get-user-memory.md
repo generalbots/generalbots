@@ -148,7 +148,7 @@ END IF
 | [`SET USER MEMORY`](./keyword-set-user-memory.md) | Store user-level persistent data |
 | [`GET BOT MEMORY`](./keyword-get-bot-memory.md) | Retrieve bot-level data |
 | [`SET BOT MEMORY`](./keyword-set-bot-memory.md) | Store data at bot level |
-| [`USER FACTS`](./keyword-user-facts.md) | Get all stored user facts |
+| `USER FACTS` | Get all stored user facts |
 
 ## Comparison: User Memory vs Bot Memory
 

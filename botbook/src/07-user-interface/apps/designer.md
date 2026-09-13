@@ -404,4 +404,3 @@ finalPrice = orderTotal - discount
 - [Sources App](./sources.md) - Manage prompts and templates
 - [Chat App](./chat.md) - Test your flows
 - [How To: Write Your First Dialog](../how-to/write-first-dialog.md)
-- [BASIC Keywords Reference](../../04-basic-scripting/keywords-reference.md)

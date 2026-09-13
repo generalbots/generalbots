@@ -339,9 +339,6 @@ This template provides AI-assisted document analysis tools. It does not constitu
 
 ## Related Templates
 
-- [HIPAA Medical](./template-hipaa.md) - Healthcare compliance
-- [Talk to Data](./template-talk-to-data.md) - Natural language document queries
-- [AI Search](./template-ai-search.md) - AI-powered document search
 
 ---
 

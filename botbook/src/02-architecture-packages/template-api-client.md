@@ -452,8 +452,6 @@ api_key = GET ENV "MY_API_KEY"
 
 ## Related Templates
 
-- [Public APIs](./template-public-apis.md) - Pre-built integrations for public APIs
-- [Bling ERP](./template-bling.md) - ERP API integration example
 - [LLM Server](./template-llm-server.md) - Building your own API endpoints
 - [CRM](./template-crm.md) - CRM with external API sync
 

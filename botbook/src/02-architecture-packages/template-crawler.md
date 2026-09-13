@@ -317,8 +317,6 @@ END IF
 
 ## Related Templates
 
-- [AI Search](./template-ai-search.md) - AI-powered document search
-- [Talk to Data](./template-talk-to-data.md) - Natural language data queries
 - [Law](./template-law.md) - Legal document processing with similar RAG approach
 
 ---

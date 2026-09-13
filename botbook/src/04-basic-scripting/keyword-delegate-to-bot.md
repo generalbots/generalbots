@@ -176,8 +176,8 @@ END IF
 | Keyword | Description |
 |---------|-------------|
 | [`ADD BOT`](./keyword-add-bot.md) | Add a bot to the current session |
-| [`BROADCAST TO BOTS`](./keyword-broadcast-to-bots.md) | Send message to all bots |
-| [`TRANSFER CONVERSATION`](./keyword-transfer-conversation.md) | Hand off conversation to another bot |
+| `BROADCAST TO BOTS` | Send message to all bots |
+| `TRANSFER CONVERSATION` | Hand off conversation to another bot |
 
 ## Config.csv Options
 
@@ -215,5 +215,4 @@ a2a-retry-count,3
 ## See Also
 
 - [Multi-Agent Orchestration](../03-knowledge-ai/multi-agent-orchestration.md) - Complete multi-agent guide
-- [A2A Protocol](../03-knowledge-ai/a2a-protocol.md) - Technical protocol details
 - [Bot Configuration](../10-configuration-deployment/parameters.md) - Bot setup

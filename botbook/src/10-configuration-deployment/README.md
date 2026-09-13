@@ -115,5 +115,5 @@ theme-title,Company Assistant
 ---
 
 <div align="center">
-  <img src="https://pragmatismo.com.br/icons/general-bots-text.svg" alt="General Bots" width="200">
+  <img src="../assets/gb-logo.svg" alt="General Bots" width="120">
 </div>

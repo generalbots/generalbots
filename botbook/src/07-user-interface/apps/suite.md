@@ -224,4 +224,3 @@ suite-sidebar-collapsed,false
 - [Drive App](./drive.md) - File management
 - [Tasks App](./tasks.md) - Task management
 - [HTMX Architecture](../htmx-architecture.md) - Technical details
-- [Theme Customization](../../07-user-interface-gbtheme/README.md) - Styling

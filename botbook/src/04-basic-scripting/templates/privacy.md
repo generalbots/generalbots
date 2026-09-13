@@ -549,7 +549,6 @@ SAVE "privacy_audit_log.csv", auditLog
 
 - [auth.bas](./auth.md) - Authentication patterns
 - [bank.bas](./bank.md) - Secure financial data handling
-- [hipaa.bas](./hipaa.md) - Healthcare privacy compliance
 
 ---
 

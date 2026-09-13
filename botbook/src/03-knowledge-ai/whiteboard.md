@@ -463,5 +463,3 @@ When meeting is recorded:
 
 - [Meet App](../07-user-interface/apps/meet.md) - Video meetings
 - [Tasks Integration](../07-user-interface/apps/tasks.md) - Create tasks from whiteboard
-- [Drive Storage](./drive.md) - Whiteboard file storage
-- [Export Options](./export.md) - Sharing and formats

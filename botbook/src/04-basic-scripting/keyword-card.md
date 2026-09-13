@@ -189,12 +189,9 @@ END TRY
 
 ## Related Keywords
 
-- [GENERATE IMAGE](./keyword-generate-image.md) - Generate images without text overlay
 - [UPLOAD](./keyword-upload.md) - Upload generated cards to storage
-- [POST TO SOCIAL](./keyword-post-to-social.md) - Publish directly to social media
 - [CREATE DRAFT](./keyword-create-draft.md) - Save as draft for review
 
 ## See Also
 
 - [Social Media Keywords](./keywords-social-media.md)
-- [Image Processing](./keywords-image-processing.md)

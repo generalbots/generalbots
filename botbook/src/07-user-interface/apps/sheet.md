@@ -353,4 +353,3 @@ Charts are not rendered in the grid yet. The definition is stored and returned b
 - [Suite Manual](../suite-manual.md) — complete user guide
 - [Drive](./drive.md) — file storage for imports
 - [Chat App](./chat.md) — create sheets via chat
-- [BASIC Database Keywords](../../04-basic-scripting/keyword-database.md) — script integration

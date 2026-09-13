@@ -143,7 +143,3 @@ Would you like me to:
 
 ## Related Pages
 
-- [Documents](../documents.md) — Document management with OCR
-- [Vehicles](../vehicles.md) — Vehicle database integration
-- [Reports](../reports.md) — Analysis reports and exports
-- [AI Models](../ai-models.md) — Available AI model details

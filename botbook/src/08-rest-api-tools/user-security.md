@@ -637,6 +637,5 @@ Revoke an API key.
 
 ## Related APIs
 
-- [Authentication](../09-security.md) - Auth details
 - [Audit Logs](./monitoring-api.md) - System monitoring
 - [Notifications](./notifications-api.md) - Security alerts

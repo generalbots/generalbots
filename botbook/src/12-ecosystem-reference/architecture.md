@@ -405,6 +405,5 @@ Report Results
 ## References
 
 - [End-to-End Testing Guide](./e2e-testing.md)
-- [Test Harness API](./test-harness.md)
 - [CI/CD Integration](./ci-cd.md)
 - [Performance Benchmarking](./performance.md)

@@ -434,6 +434,5 @@ This approach allows you to:
 **Remember: Vault data loss is permanent. Always backup before migrating!**
 
 For more information, see:
-- [LXC Deployment Guide](../deployment/lxc-deployment.md)
 - [Vault Configuration](./component-reference.md#vault)
 - [Troubleshooting](./troubleshooting.md)

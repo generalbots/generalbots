@@ -163,9 +163,7 @@ The interface works on all modern browsers including Chrome 90+, Firefox 88+, Sa
 
 ## See Also
 
-- [default.gbui](./default-gbui.md) - Full-featured interface
 - [Console Mode](./console-mode.md) - Terminal interface
-- [Chapter 5: Themes](../07-user-interface-gbtheme/README.md) - Custom styling
 - [Chapter 6: BASIC](../04-basic-scripting/README.md) - Dialog scripting
 
 ## Next Step

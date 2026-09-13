@@ -253,9 +253,7 @@ ON ERROR GOTO 0
 ## See Also
 
 - [ON Keyword](./keyword-on.md) - **Recommended**: Event-driven programming
-- [WHILE ... WEND](./keyword-while.md) - Loop construct
 - [FOR EACH ... NEXT](./keyword-for-each.md) - Iteration
-- [SUB / FUNCTION](./keyword-sub.md) - Code organization
 - [ON ERROR](./keyword-on-error.md) - Error handling
 
 ---

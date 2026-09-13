@@ -311,7 +311,7 @@ END IF
 
 | Keyword | Description |
 |---------|-------------|
-| [`LLM`](./keyword-llm.md) | AI-generated code execution |
+| `LLM` | AI-generated code execution |
 | [`GET`](./keyword-get.md) | Fetch data for processing |
 | [`SAVE`](./keyword-save.md) | Store processed results |
 

@@ -495,10 +495,10 @@ For server-side monitoring:
 
 | Next Tutorial | What You'll Learn |
 |---------------|-------------------|
-| [Create Custom Reports](./create-reports.md) | Build dashboards for insights |
-| [Export Analytics Data](./export-analytics.md) | Download metrics for analysis |
-| [Performance Optimization](./performance-tips.md) | Make your bot faster |
+| Create Custom Reports | Build dashboards for insights |
+| Export Analytics Data | Download metrics for analysis |
+| Performance Optimization | Make your bot faster |
 
 ---
 
-*Tutorial 12 of 30 • [Back to How-To Index](./README.md) • [Next: Create Custom Reports →](./create-reports.md)*
+*Tutorial 12 of 30 • [Back to How-To Index](./README.md) • Next: Create Custom Reports →*

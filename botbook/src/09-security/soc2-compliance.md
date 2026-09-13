@@ -433,6 +433,5 @@ Content-Type: application/json
 ## Related Topics
 
 - [RBAC Configuration](./rbac-configuration.md)
-- [Audit Logging](./audit-logging.md)
 - [Security Matrix](./security-matrix.md)
 - [Privacy & GDPR](../09-security/compliance-requirements.md)

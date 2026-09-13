@@ -246,4 +246,3 @@ END SWITCH
 - [SET CONTEXT](./keyword-set-context.md) - Set conversation context
 - [USE KB](./keyword-use-kb.md) - Load knowledge base
 - [GET](./keyword-get.md) - Get variable values
-- [IF/THEN/ELSE](./keyword-if.md) - Conditional branching

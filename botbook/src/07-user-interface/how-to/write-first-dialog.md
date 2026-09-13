@@ -674,9 +674,9 @@ WEND
 
 | Next Tutorial | What You'll Learn |
 |---------------|-------------------|
-| [Store User Information](./store-user-info.md) | Advanced memory patterns |
-| [Call External APIs](./call-external-apis.md) | Connect to web services |
-| [Send Automated Messages](./send-automated.md) | Scheduled broadcasts |
+| Store User Information | Advanced memory patterns |
+| Call External APIs | Connect to web services |
+| Send Automated Messages | Scheduled broadcasts |
 
 ---
 
@@ -692,4 +692,4 @@ WEND
 
 ---
 
-*Tutorial 5 of 30 • [Back to How-To Index](./README.md) • [Next: Store User Information →](./store-user-info.md)*
+*Tutorial 5 of 30 • [Back to How-To Index](./README.md) • Next: Store User Information →*

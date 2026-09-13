@@ -220,7 +220,7 @@ episodic-memory-history,2
 episodic-memory-threshold,4
 theme-color1,#1565C0
 theme-color2,#E3F2FD
-theme-logo,https://pragmatismo.com.br/icons/general-bots.svg
+theme-logo,https://example.com/logo.svg
 theme-title,Template Name - General Bots
 ```
 

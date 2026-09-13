@@ -65,4 +65,3 @@ NEXT
 ## See Also
 
 - [ADD BOT](./keyword-add-bot.md)
-- [User Session Handling](../03-knowledge-ai/user-sessions.md)

@@ -207,4 +207,3 @@ value = RECALL "nonexistent_key"
 ## See Also
 
 - [Memory Management](../03-knowledge-ai/memory-management.md)
-- [User Session Handling](../03-knowledge-ai/user-sessions.md)

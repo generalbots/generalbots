@@ -558,4 +558,3 @@ END IF
 - [Memory Management](./memory-management.md)
 - [Model Routing](../10-configuration-deployment/llm-config.md)
 - [Code Sandbox](../02-architecture-packages/containers.md)
-- [SSE Streaming](./streaming.md)

@@ -629,6 +629,5 @@ POST /api/attendance/resolve/{session_id}
 
 - [LLM-Assisted Attendant](./attendant-llm-assist.md) - AI copilot features
 - [Attendance Queue Module](../06-channels/attendance-queue.md) - Full queue configuration
-- [Human Approval](../04-basic-scripting/keyword-human-approval.md) - Approval workflows
 - [CRM Automations](../06-channels/attendance-queue.md#crm-automations) - Sales, collections, scheduling
 - [WhatsApp Setup](../07-user-interface/how-to/connect-whatsapp.md) - Channel configuration

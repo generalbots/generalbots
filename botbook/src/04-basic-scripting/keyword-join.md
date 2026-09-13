@@ -113,7 +113,6 @@ Returns a string containing all array elements concatenated with the separator.
 
 ## See Also
 
-- [SPLIT](./keyword-split.md) - Split a string into an array (opposite of JOIN)
 - [FOR EACH](./keyword-for-each.md) - Iterate over arrays
 - [FILTER](./keyword-filter.md) - Filter arrays before joining
 
