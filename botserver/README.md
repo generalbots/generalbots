@@ -18,6 +18,7 @@
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/generalbots/generalbots/pulls)
 [![Runs offline](https://img.shields.io/badge/runs-100%25%20offline-success.svg)](#what-it-does)
 [![Multi-agent AI](https://img.shields.io/badge/multi--agent%20AI-7c3aed.svg)](#what-it-does)
+
 <a href="https://github.com/generalbots/generalbots/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=generalbots/generalbots" alt="Contributors to General Bots" />
 </a>
@@ -32,15 +33,15 @@ These are the two faces of the system `botserver` serves. Neither is a separate 
 
 ### Desktop suite — `:3000`
 
-<a href="../generalbots-desktop.png"><img src="../generalbots-desktop.png" alt="The General Bots desktop suite in a browser window: a single workspace with a window manager, taskbar and application launcher" width="100%"></a>
+<a href="../generalbots-desktop.png"><img src="../generalbots-desktop.png" alt="The General Bots desktop suite in its light theme, filling a browser window" width="100%"></a>
 
-The suite shell: a window manager, taskbar and application launcher that hosts all 80 applications in one workspace. Applications are HTMX fragments loaded on demand from `botui/ui/suite/`, so switching between Chat, CRM, Drive and Mail never reloads the page or reconnects the socket.
+The suite shell: a window manager, taskbar and application launcher that hosts all 80 applications in one workspace. Applications are HTMX fragments loaded on demand from `botui/ui/suite/`, so switching between Chat, CRM, Drive and Mail never reloads the page or reconnects the socket. The capture above is its light theme; a theme manager also offers dark and wallpapered variants.
 
 ### Cloud console — `:4000`
 
-<a href="../generalbots-cloud.png"><img src="../generalbots-cloud.png" alt="The General Bots cloud console: the store, plans and offers alongside organisation and workspace management and a usage dashboard" width="100%"></a>
+<a href="../generalbots-cloud.png"><img src="../generalbots-cloud.png" alt="The General Bots cloud console in its dark theme, filling a browser window" width="100%"></a>
 
-The tenant-facing control plane: store, plans and offers, the usage dashboard, and organisation and workspace management. It reads the same product and subscription tables this process owns, and it deliberately carries no login — authentication is served separately at `:5000`.
+The tenant-facing control plane: store, plans and offers, the usage dashboard, and organisation and workspace management. It reads the same product and subscription tables this process owns, and the capture above is its dark theme. It deliberately carries no login — authentication is served separately at `:5000`.
 
 ---
 

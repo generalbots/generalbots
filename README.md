@@ -22,6 +22,7 @@ Self-hosted, open source, and built in Rust. General Bots gives you 80 sovereign
 [![Multi-agent AI](https://img.shields.io/badge/multi--agent%20AI-7c3aed.svg)](#why-general-bots)
 [![Data sovereign](https://img.shields.io/badge/data-sovereign-7c3aed.svg)](#why-general-bots)
 [![Open source since 2017](https://img.shields.io/badge/open%20source-since%202017-blue.svg)](#license)
+
 <a href="https://github.com/generalbots/generalbots/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=generalbots/generalbots" alt="Contributors to General Bots" />
 </a>
@@ -34,15 +35,15 @@ Two surfaces on one platform: the desktop suite where people work, and the cloud
 
 ### Desktop suite — `:3000`
 
-<a href="generalbots-desktop.png"><img src="generalbots-desktop.png" alt="The General Bots desktop suite in a browser window: a single workspace with a window manager, taskbar and application launcher" width="100%"></a>
+<a href="generalbots-desktop.png"><img src="generalbots-desktop.png" alt="The General Bots desktop suite in its light theme, filling a browser window" width="100%"></a>
 
-Every application opens as a window **inside one desktop shell**, so Chat, CRM, Drive, Mail, Calendar and Meetings sit side by side instead of in separate browser tabs. It is a plain web client served by `botui`, and the same client runs unchanged inside the Tauri wrapper (`botapp`) on desktop and mobile.
+Every application opens as a window **inside one desktop shell**, so Chat, CRM, Drive, Mail, Calendar and Meetings sit side by side instead of in separate browser tabs. A theme manager switches the whole workspace between light, dark and wallpapered variants; the capture above is the light one. The suite is a plain web client served by `botui`, and the same client runs unchanged inside the Tauri wrapper (`botapp`) on desktop and mobile.
 
 ### Cloud console — `:4000`
 
-<a href="generalbots-cloud.png"><img src="generalbots-cloud.png" alt="The General Bots cloud console: the store, plans and offers alongside organisation and workspace management and a usage dashboard" width="100%"></a>
+<a href="generalbots-cloud.png"><img src="generalbots-cloud.png" alt="The General Bots cloud console in its dark theme, filling a browser window" width="100%"></a>
 
-The control plane for running General Bots as a service: the **store**, **plans** and **offers**, organisation and workspace management, and the usage dashboard. The console itself never handles credentials — login and signup live on their own surface at `:5000`.
+The control plane for running General Bots as a service: the **store**, **plans** and **offers**, organisation and workspace management, and the usage dashboard. It shares the brand's dark-first visual system, and the capture above is that theme. The console itself never handles credentials — login and signup live on their own surface at `:5000`.
 
 ---
 
