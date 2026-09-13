@@ -361,6 +361,11 @@ async fn main() -> std::io::Result<()> {
     {
         // Wire the DB pool so suite sessions persist across restarts.
         botcoredirectory::auth_routes::set_session_pool(app_state.conn.clone());
+        // #1364 — teach /api/auth/me about cloud management JWTs so signed-in
+        // cloud users are not reported anonymous by the suite sidebar.
+        botcoredirectory::auth_routes::set_external_token_verifier(
+            crate::main_module::routes::anonymous_auth::cloud_jwt_session_user,
+        );
         let session_pool = app_state.conn.clone();
         botsecurity::set_session_cache_lookup(Box::new(move |token: &str| {
             let cache = botcoredirectory::auth_routes::SESSION_CACHE.try_read().ok()?;
