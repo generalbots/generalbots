@@ -254,6 +254,13 @@ pub struct VibeToolCall {
     pub result: Option<VibeToolResult>,
     pub requires_approval: bool,
     pub approved: bool,
+    /// Server-internal orchestration marker (deploy pipeline only). It is
+    /// never part of any request payload, so an agent tool call can neither
+    /// set it nor spoof the privileges it carries (e.g. the
+    /// `publish/project` production stamp). The executor injects the
+    /// sanctioned internal arguments AFTER schema validation.
+    #[serde(default)]
+    pub internal: bool,
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
@@ -267,6 +274,7 @@ impl VibeToolCall {
             result: None,
             requires_approval,
             approved: false,
+            internal: false,
             created_at: chrono::Utc::now(),
         }
     }

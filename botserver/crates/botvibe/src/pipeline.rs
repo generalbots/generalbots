@@ -329,22 +329,16 @@ impl PipelineEngine {
                         // #1280 — deployment API enforces deploy RBAC even on
                         // internal (X-Internal-Token) calls; without the acting
                         // user the request is rejected as anonymous.
-                        let mut args = serde_json::json!({
+                        serde_json::json!({
                             "project_id": project_id.unwrap_or(""),
                             "env": "production",
                             "on_behalf_of_user": user_id.to_string(),
-                        });
+                        })
                         // The deploy pipeline is the ONLY sanctioned writer of
-                        // a site project's public slug. Without this stamp a
-                        // production publish is redirected to the `-test` twin,
-                        // so a change under test cannot blank the live site.
-                        if let Some(obj) = args.as_object_mut() {
-                            obj.insert(
-                                crate::publish::PUBLISH_PRODUCTION_STAMP.to_string(),
-                                serde_json::Value::Bool(true),
-                            );
-                        }
-                        args
+                        // a site project's public slug: the stamp is injected
+                        // by the executor for internal calls (see
+                        // `VibeToolCall::internal`), keeping it out of the
+                        // schema so a client payload can never supply it.
                     }
                     PipelineStageKind::BindDomain => serde_json::json!({
                         "project_id": project_id.unwrap_or(""),
@@ -430,6 +424,9 @@ impl PipelineEngine {
             // The engine is the authorized orchestrator: approval policy is
             // decided upstream (e.g. the agent loop), not per stage here.
             tool_call.approved = true;
+            // Internal pipeline stages may carry sanctioned hidden arguments
+            // (the publish production stamp); agent-loop calls never do.
+            tool_call.internal = true;
             let outcome = executor.execute(&mut tool_call, use_case, state).await;
             let took_ms = start.elapsed().as_millis() as u64;
             let (status, error) = stage_outcome(
