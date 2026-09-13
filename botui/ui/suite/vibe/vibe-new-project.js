@@ -242,8 +242,17 @@
                 creator: "vibe-new"
             }
         };
+        // #1382 — close the window THE MOMENT Create is clicked (the server
+        // scaffold can take tens of seconds; the dialog must never block on
+        // it). Progress reports to the Vibe status bar; failures surface
+        // there and in the Runner Log since the dialog is already gone.
+        var intent = (state.desc || "").trim()
+            || "Scaffold, implement and verify the " + kind.name + " project '" + name + "'";
+        state.name = "";
+        state.desc = "";
+        close();
+        npStatus("CREATING " + name.toUpperCase() + "…", "running");
         try {
-            npStatus("CREATING " + name.toUpperCase() + "…", "running");
             var resp = await vibeAuthFetch("/api/vibe/projects", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -251,18 +260,13 @@
             });
             var data = await resp.json();
             if (!resp.ok || !data.success) {
-                npStatus("CREATE FAILED", "error");
-                if (err) err.textContent = data.error || ("HTTP " + resp.status);
+                npStatus("CREATE FAILED — " + (data.error || "HTTP " + resp.status), "error");
+                if (typeof vibeAddMsg === "function") {
+                    vibeAddMsg("system", "⚠️ Project '" + name + "' creation failed: " + (data.error || "HTTP " + resp.status));
+                }
                 return;
             }
             var project = data.project;
-            // #1382 — close the window the moment Create succeeds; the rest
-            // happens in the status bar, never blocking a dialog.
-            var intent = (state.desc || "").trim()
-                || "Scaffold, implement and verify the " + kind.name + " project '" + name + "'";
-            state.name = "";
-            state.desc = "";
-            close();
             npStatus("PROJECT " + name.toUpperCase() + " CREATED — SEEDING…", "running");
             // Bind the new project as the active one BEFORE the auto-Run so
             // the run edits/scaffolds the right workspace.
@@ -297,8 +301,10 @@
                 npStatus("PROJECT " + name.toUpperCase() + " READY", "idle");
             }
         } catch (e) {
-            npStatus("CREATE FAILED", "error");
-            if (err) err.textContent = "Create failed: " + e.message;
+            npStatus("CREATE FAILED — " + e.message, "error");
+            if (typeof vibeAddMsg === "function") {
+                vibeAddMsg("system", "⚠️ Project '" + name + "' creation failed: " + e.message);
+            }
         }
     }
 
