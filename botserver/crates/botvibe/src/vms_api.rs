@@ -9,7 +9,7 @@ use uuid::Uuid;
 use botsecurity_auth::auth_api::types::AuthenticatedUser;
 
 use crate::metering::VMeteringRef;
-use crate::projects::ProjectRegistryRef;
+use crate::projects::{ProjectKind, ProjectRegistryRef};
 use crate::rbac::{ProjectRbac, ProjectRole};
 use crate::vm_lifecycle::{CreateVmRequest, VmInstance, VmLifecycle, VmResult};
 
@@ -99,6 +99,18 @@ async fn create_vm(
     }
     if let Err(e) = metering.enforce_for_project(project_id, crate::metering::MeterKind::VmHours) {
         return forbidden(e);
+    }
+    // #1382 — website projects never get a VM: they are static HTMX pages
+    // served by the proxy container (see #1371 run_website_via_proxy and
+    // deploy_site_to_proxy_env). A POST /vms on one is a caller bug, not a
+    // provisioning request — reject it so no disk is consumed.
+    if let Ok(Some(project)) = registry.get(project_id) {
+        if ProjectKind::parse_strict(&project.project_type) == Ok(ProjectKind::Website) {
+            return forbidden(format!(
+                "project '{}' is a website: static sites are served by the proxy container and never provision a VM (run/publish instead)",
+                project.name
+            ));
+        }
     }
     let (branch_id, name) = resolve_context(&registry, project_id);
     match lifecycle.create_project_vm(project_id, branch_id, &name, &req) {
