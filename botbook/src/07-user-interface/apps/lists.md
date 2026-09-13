@@ -1,4 +1,4 @@
-# Lists 🟡 BETA - Marketing Lists
+# Lists 🟡 PREVIEW - Marketing Lists
 
 > **Contact segments & lists**
 

@@ -1,4 +1,4 @@
-# CRM 🟡 BETA - Customer Relationship Management
+# CRM 🟡 PREVIEW - Customer Relationship Management
 
 > **Manage your sales pipeline from lead to close**
 

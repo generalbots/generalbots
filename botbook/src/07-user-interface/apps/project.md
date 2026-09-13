@@ -1,4 +1,4 @@
-# Project 🟡 BETA - Project Management
+# Project 🟡 PREVIEW - Project Management
 
 > **Gantt charts, tasks, and resources**
 

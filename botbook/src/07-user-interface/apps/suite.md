@@ -1,4 +1,4 @@
-# Suite 🟡 BETA - Full Desktop Interface
+# Suite 🟡 PREVIEW - Full Desktop Interface
 
 > **Complete productivity suite with integrated applications**
 

@@ -1,4 +1,4 @@
-# Timeclock 🟡 BETA - Time Tracking
+# Timeclock 🟡 PREVIEW - Time Tracking
 
 > **Employee time clock with GPS tracking, overtime management, and attendance reports**
 

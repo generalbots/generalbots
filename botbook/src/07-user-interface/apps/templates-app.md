@@ -1,4 +1,4 @@
-# Templates 🟡 BETA - Bot Templates
+# Templates 🟡 PREVIEW - Bot Templates
 
 > **Pre-built bot templates for rapid deployment across industries**
 

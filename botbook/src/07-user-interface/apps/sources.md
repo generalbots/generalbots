@@ -1,4 +1,4 @@
-# Sources 🟡 BETA
+# Sources 🟡 PREVIEW
 
 > **Repositories, Apps, Prompts, Templates & MCP Servers**
 

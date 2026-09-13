@@ -1,4 +1,4 @@
-# Workspace 🟡 BETA - Pages & Blocks
+# Workspace 🟡 PREVIEW - Pages & Blocks
 
 > **Notion-style page editor**
 

@@ -1,4 +1,4 @@
-# Templates 🟡 BETA - Content
+# Templates 🟡 PREVIEW - Content
 
 > **Reusable content templates**
 

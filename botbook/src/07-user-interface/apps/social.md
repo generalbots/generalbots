@@ -1,4 +1,4 @@
-# Social 🟡 BETA - Community
+# Social 🟡 PREVIEW - Community
 
 > **Internal social feed & communities**
 

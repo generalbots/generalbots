@@ -1,4 +1,4 @@
-# KYC 🟡 BETA - Identity Verification
+# KYC 🟡 PREVIEW - Identity Verification
 
 > **Know Your Customer verification**
 

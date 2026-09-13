@@ -1,6 +1,8 @@
-# Vibe — AI Development Environment 🟡 BETA
+# Vibe — AI Development Environment 🟢 GA
 
 > **Chat-driven coding, deployment, and infrastructure management**
+
+> **Stable.** Vibe is one of the three supported surfaces in the suite, alongside Chat and Explorer. The Vibe specialist apps (Knowledge Graph, Metrics, Deploy, Database, Compute Metering, Project Members) are preview.
 
 <img src="../../assets/suite/vibe-screen.svg" alt="Vibe Interface Screen" style="max-width: 100%; height: auto;">
 

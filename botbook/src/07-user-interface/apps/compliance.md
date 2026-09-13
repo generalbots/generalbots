@@ -1,4 +1,4 @@
-# Compliance 🟡 BETA - ISO 27001
+# Compliance 🟡 PREVIEW - ISO 27001
 
 > **Information security compliance**
 

@@ -1,4 +1,4 @@
-# Products 🟡 BETA - Product & Service Catalog
+# Products 🟡 PREVIEW - Product & Service Catalog
 
 > **Manage your complete product and service offerings**
 

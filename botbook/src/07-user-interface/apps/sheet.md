@@ -1,6 +1,8 @@
-# Sheet 🟡 BETA - Spreadsheets
+# Sheet 🟡 PREVIEW (advanced) - Spreadsheets
 
 > **AI spreadsheet with desktop-grade features**
+
+> **Preview — advanced.** Sheets is functional and close to stable, but is not yet part of the supported surface. It is the most advanced preview app, alongside [Mail](./mail.md).
 
 <img src="../../assets/suite/sheet-screen.svg" alt="Sheet Interface Screen" style="max-width: 100%; height: auto;">
 

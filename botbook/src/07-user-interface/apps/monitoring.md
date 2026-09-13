@@ -1,4 +1,4 @@
-# Monitoring 🟡 BETA - System Health
+# Monitoring 🟡 PREVIEW - System Health
 
 > **Real-time system observability**
 

@@ -1,4 +1,4 @@
-# Billing 🟡 BETA - Invoices, Payments & Quotes
+# Billing 🟡 PREVIEW - Invoices, Payments & Quotes
 
 > **Manage your financial transactions from quote to payment**
 

@@ -1,4 +1,4 @@
-# Sheet — Desktop Spreadsheet Parity Plan 🟡 BETA
+# Sheet — Desktop Spreadsheet Parity Plan 🟡 PREVIEW
 
 > **What is missing, why it matters, and the order in which it is being fixed.**
 

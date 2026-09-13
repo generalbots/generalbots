@@ -1,4 +1,4 @@
-# Handoff 🟡 BETA - Chatbot Analytics
+# Handoff 🟡 PREVIEW - Chatbot Analytics
 
 > **Bot-to-human handoff management**
 

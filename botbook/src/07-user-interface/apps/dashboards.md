@@ -1,4 +1,4 @@
-# Dashboards 🟡 BETA
+# Dashboards 🟡 PREVIEW
 
 > **Build custom data visualizations with AI-powered insights**
 

@@ -1,4 +1,4 @@
-# Tax 🟡 BETA - Fiscal Management
+# Tax 🟡 PREVIEW - Fiscal Management
 
 > **Brazilian fiscal document management — NFe, NFSe, CT-e, and SPED**
 

@@ -1,4 +1,4 @@
-# Meet 🟡 BETA - Video Calls
+# Meet 🟡 PREVIEW - Video Calls
 
 > **Your virtual meeting room**
 

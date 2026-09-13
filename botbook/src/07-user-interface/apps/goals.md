@@ -1,4 +1,4 @@
-# Goals 🟡 BETA - OKR Management
+# Goals 🟡 PREVIEW - OKR Management
 
 > **Objectives & Key Results tracking**
 

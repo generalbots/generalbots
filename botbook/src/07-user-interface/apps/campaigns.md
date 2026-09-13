@@ -1,4 +1,4 @@
-# Campaigns 🟡 BETA - Marketing
+# Campaigns 🟡 PREVIEW - Marketing
 
 > **Multi-channel campaign management**
 

@@ -1,4 +1,4 @@
-# Compliance API Reference 🟡 BETA
+# Compliance API Reference 🟡 PREVIEW
 
 > **Programmatic access to privacy and compliance features**
 

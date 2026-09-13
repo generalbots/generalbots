@@ -1,4 +1,4 @@
-# Suite Apps 🟡 BETA
+# Suite Apps 🟡 PREVIEW
 
 > **Everything you need, all in one place**
 
@@ -8,12 +8,14 @@
 
 The suite ships one **stable** surface and many **preview** applications. This distinction matters when you decide what to put in front of real users.
 
-| Stability | Apps | What it means |
+Every app page carries its status in the title, so you never have to guess:
+
+| Marker | Meaning | Apps |
 |---|---|---|
-| **Stable** | **Chat**, **Explorer** (Drive), **Vibe** | Supported. Safe to depend on. |
-| **Preview — advanced** | **Mail**, **Sheets** | Functional and close to stable. |
-| **Preview — in test** | **Docs**, **Slides** | Under active test. Features may change. |
-| **Preview** | Every other app in the catalog | Usable, but not yet supported. |
+| **🟢 GA** | Supported. Safe to depend on. | **Chat**, **Explorer** (Drive), **Vibe** |
+| **🟡 PREVIEW (advanced)** | Functional and close to stable, but not yet supported. | **Mail**, **Sheets** |
+| **🟡 PREVIEW — IN TEST** | Under active test. Behaviour and interface may change. | **Docs**, **Slides** |
+| **🟡 PREVIEW** | Usable, but not yet supported. | Every other app in the catalog |
 
 Preview applications are **installed and working** — they are simply withheld from the launcher and the sidebar until you turn on the **Preview** switch. That switch lives in the left sidebar and is remembered per browser.
 

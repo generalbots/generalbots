@@ -1,4 +1,4 @@
-# Learn 🟡 BETA - E-Learning
+# Learn 🟡 PREVIEW - E-Learning
 
 > **Courses, certifications & progress**
 

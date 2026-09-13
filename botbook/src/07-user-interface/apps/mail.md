@@ -1,6 +1,8 @@
-# Mail 🟡 BETA - Email Client
+# Mail 🟡 PREVIEW (advanced) - Email Client
 
 > **Your intelligent inbox**
+
+> **Preview — advanced.** Mail is functional and close to stable, but is not yet part of the supported surface. It is the most advanced of the larger preview apps, alongside [Sheets](./sheet.md).
 
 <img src="../../assets/suite/mail-screen.svg" alt="Mail Interface Screen" style="max-width: 100%; height: auto;">
 
