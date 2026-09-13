@@ -1,4 +1,4 @@
-# Banking 🟡 BETA - Financial Reconciliation
+# Banking 🟡 PREVIEW - Financial Reconciliation
 
 > **Transaction matching & reconciliation**
 

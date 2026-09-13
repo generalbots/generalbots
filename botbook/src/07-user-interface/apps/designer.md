@@ -1,4 +1,4 @@
-# Designer 🟡 BETA - Visual Builder
+# Designer 🟡 PREVIEW - Visual Builder
 
 > **Your no-code bot building studio**
 

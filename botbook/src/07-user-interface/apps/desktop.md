@@ -1,4 +1,4 @@
-# Desktop 🟡 BETA - Virtual Desktop
+# Desktop 🟡 PREVIEW - Virtual Desktop
 
 > **Remote desktop via VNC**
 

@@ -1,4 +1,4 @@
-# Sales 🟡 BETA - CRM Pipeline
+# Sales 🟡 PREVIEW - CRM Pipeline
 
 > **Lead to close sales pipeline with kanban board, activity tracking, and forecasting**
 

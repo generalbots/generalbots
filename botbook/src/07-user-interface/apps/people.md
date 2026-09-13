@@ -1,4 +1,4 @@
-# People 🟡 BETA - Contacts
+# People 🟡 PREVIEW - Contacts
 
 > **Contact management & directory**
 

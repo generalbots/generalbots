@@ -1,4 +1,4 @@
-# Browser 🟡 BETA - Web Browser
+# Browser 🟡 PREVIEW - Web Browser
 
 > **Built-in web browser**
 

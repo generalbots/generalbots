@@ -1,4 +1,4 @@
-# Settings 🟡 BETA - User Preferences
+# Settings 🟡 PREVIEW - User Preferences
 
 > **Your profile, security, and preferences**
 

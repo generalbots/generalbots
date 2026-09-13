@@ -1,4 +1,4 @@
-# HR 🟡 BETA - Human Resources
+# HR 🟡 PREVIEW - Human Resources
 
 > **Employee management & payroll**
 

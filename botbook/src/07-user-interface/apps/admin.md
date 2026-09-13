@@ -1,4 +1,4 @@
-# Admin 🟡 BETA - Administration Panel
+# Admin 🟡 PREVIEW - Administration Panel
 
 > **Full system administration console**
 

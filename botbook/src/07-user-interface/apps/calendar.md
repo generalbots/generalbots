@@ -1,4 +1,4 @@
-# Calendar 🟡 BETA - Scheduling
+# Calendar 🟡 PREVIEW - Scheduling
 
 > **Your personal scheduling assistant**
 

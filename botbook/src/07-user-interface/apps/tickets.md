@@ -1,4 +1,4 @@
-# Tickets 🟡 BETA - AI-Assisted Support Cases
+# Tickets 🟡 PREVIEW - AI-Assisted Support Cases
 
 > **Manage customer support with AI-powered resolution suggestions**
 
