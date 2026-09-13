@@ -187,10 +187,10 @@ DELETE_HTTP        ' WRONG!
 #### Usage in Documentation
 ```markdown
 <!-- Reference icons in docs -->
-![Chat](../assets/icons/gb-chat.svg)
+![Chat](../botui/ui/suite/assets/icons/gb-chat.svg)
 
 <!-- With HTML for sizing -->
-<img src="../assets/icons/gb-analytics.svg" alt="Analytics" width="24">
+<img src="../botui/ui/suite/assets/icons/gb-analytics.svg" alt="Analytics" width="24">
 ```
 
 #### Required Icons
@@ -212,7 +212,7 @@ All icons use `stroke="currentColor"` for CSS theming.
 
 ---
 
-### NO ASCII Diagramrams - MANDATORY
+### NO ASCII Diagrams - MANDATORY
 
 **NEVER use ASCII art diagrams. ALL diagrams must be SVG.**
 

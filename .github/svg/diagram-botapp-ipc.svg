@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="288" viewBox="0 0 760 288" role="img">
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#8b949e"/></marker></defs>
+  <rect x="230" y="8" width="300" height="36" rx="8" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <text x="380.0" y="29.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">Native UI (HTML/CSS/JS)</text>
+  <line x1="380" y1="44" x2="380" y2="70" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="392" y="62" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#8b949e" text-anchor="start">Tauri IPC (invoke)</text>
+  <rect x="230" y="70" width="300" height="36" rx="8" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <text x="380.0" y="91.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">Rust #[tauri::command]</text>
+  <line x1="380" y1="106" x2="380" y2="132" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="392" y="124" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#8b949e" text-anchor="start">HTTP (reqwest)</text>
+  <rect x="230" y="132" width="300" height="36" rx="8" fill="none" stroke="#7c3aed" stroke-opacity="0.7" stroke-width="1.5"/>
+  <text x="380.0" y="153.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">botserver API</text>
+  <line x1="380" y1="168" x2="380" y2="194" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M380 194 L380 216" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <rect x="230" y="216" width="300" height="36" rx="8" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <text x="380.0" y="237.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">Business logic + database</text>
+</svg>

@@ -282,23 +282,7 @@ TALK caption
 
 ## Architecture
 
-```
-┌─────────────┐     HTTPS      ┌─────────────┐
-│  botserver  │ ────────────▶  │  botmodels  │
-│   (Rust)    │                │  (Python)   │
-└─────────────┘                └─────────────┘
-      │                              │
-      │ BASIC Keywords               │ AI Models
-      │ - IMAGE                      │ - Stable Diffusion
-      │ - VIDEO                      │ - Zeroscope
-      │ - AUDIO                      │ - TTS/Whisper
-      │ - SEE                        │ - BLIP2
-      ▼                              ▼
-┌─────────────┐                ┌─────────────┐
-│   config    │                │   outputs   │
-│   .csv      │                │  (files)    │
-└─────────────┘                └─────────────┘
-```
+<a href="../.github/svg/diagram-botmodels.svg"><img src="../.github/svg/diagram-botmodels.svg" alt="botserver in Rust calls botmodels in Python over HTTPS: BASIC keywords IMAGE, VIDEO, AUDIO and SEE map to AI models such as Stable Diffusion, Zeroscope, TTS and BLIP2, with config read from CSV and results written as files" width="900"></a>
 
 ---
 

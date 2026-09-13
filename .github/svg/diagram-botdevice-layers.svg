@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="410" viewBox="0 0 900 410" role="img">
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#8b949e"/></marker></defs>
+  <rect x="30" y="12" width="840" height="92" rx="8" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <text x="450.0" y="36.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#8b949e" text-anchor="middle">LEVEL 3 · GSI</text>
+  <text x="450.0" y="54.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">Custom Android AOSP</text>
+  <text x="450.0" y="72.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">Zero manufacturer apps</text>
+  <text x="450.0" y="90.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">GB boot animation, single launcher</text>
+  <rect x="30" y="112" width="840" height="92" rx="8" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <text x="450.0" y="136.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#8b949e" text-anchor="middle">LEVEL 2 · MAGISK MODULE</text>
+  <text x="450.0" y="154.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">Original Android + Magisk</text>
+  <text x="450.0" y="172.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">Bloatware removed via overlay</text>
+  <text x="450.0" y="190.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">BotDevice as privileged system app</text>
+  <rect x="30" y="212" width="840" height="92" rx="8" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <text x="450.0" y="236.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#8b949e" text-anchor="middle">LEVEL 1 · DEBLOAT + APP</text>
+  <text x="450.0" y="254.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">Original Android (Samsung/Huawei/Xiaomi)</text>
+  <text x="450.0" y="272.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">Bloatware removed via ADB (no root)</text>
+  <text x="450.0" y="290.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">BotDevice as default launcher</text>
+  <rect x="30" y="320" width="840" height="76" rx="8" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <text x="450.0" y="345.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#8b949e" text-anchor="middle">BotDevice app (Tauri)</text>
+  <text x="450.0" y="363.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">botui/ui/suite          Tauri Android           src/lib.rs</text>
+  <text x="450.0" y="381.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">(web interface)      (WebView + NDK)      (backend + hardware)</text>
+</svg>

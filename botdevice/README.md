@@ -48,39 +48,7 @@ The installer automatically detects the device and shows available options.
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              LEVEL 3: GSI                                    │
-│  ┌─────────────────────────────────────────────────────────────────────────┐│
-│  │ Custom Android AOSP - Zero manufacturer apps                            ││
-│  │ GB boot animation from startup                                          ││
-│  │ BotDevice integrated as single launcher                                 ││
-│  └─────────────────────────────────────────────────────────────────────────┘│
-├─────────────────────────────────────────────────────────────────────────────┤
-│                           LEVEL 2: MAGISK MODULE                            │
-│  ┌─────────────────────────────────────────────────────────────────────────┐│
-│  │ Original Android + Magisk                                               ││
-│  │ Bloatware removed via overlay                                           ││
-│  │ GB boot animation                                                       ││
-│  │ BotDevice as privileged system app                                      ││
-│  └─────────────────────────────────────────────────────────────────────────┘│
-├─────────────────────────────────────────────────────────────────────────────┤
-│                          LEVEL 1: DEBLOAT + APP                             │
-│  ┌─────────────────────────────────────────────────────────────────────────┐│
-│  │ Original Android (Samsung/Huawei/Xiaomi/etc)                            ││
-│  │ Bloatware removed via ADB (no root)                                     ││
-│  │ BotDevice installed as normal app                                       ││
-│  │ Can be set as default launcher                                          ││
-│  └─────────────────────────────────────────────────────────────────────────┘│
-└─────────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                           BotDevice App (Tauri)                             │
-├─────────────────────────────────────────────────────────────────────────────┤
-│  botui/ui/suite        │  Tauri Android     │  src/lib.rs (Rust)           │
-│  (Web Interface)       │  (WebView + NDK)   │  (Backend + Hardware)        │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+<a href="../.github/svg/diagram-botdevice-layers.svg"><img src="../.github/svg/diagram-botdevice-layers.svg" alt="Three deployment levels: Level 3 is a custom Android AOSP build with zero manufacturer apps, Level 2 uses stock Android with a Magisk module, and Level 1 debloats stock Android over ADB without root; the BotDevice app itself pairs the botui web interface with a Tauri Android WebView and a Rust backend" width="900"></a>
 
 ## Project Structure
 

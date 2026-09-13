@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="340" viewBox="0 0 900 340" role="img">
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#8b949e"/></marker></defs>
+  <rect x="120" y="16" width="280" height="76" rx="10" fill="none" stroke="#7c3aed" stroke-opacity="0.7" stroke-width="1.5"/>
+  <text x="260.0" y="50.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#7c3aed" text-anchor="middle">botserver</text>
+  <text x="260.0" y="68.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">(Rust)</text>
+  <rect x="500" y="16" width="280" height="76" rx="10" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <text x="640.0" y="50.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#8b949e" text-anchor="middle">botmodels</text>
+  <text x="640.0" y="68.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">(Python)</text>
+  <line x1="404" y1="54" x2="496" y2="54" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="450" y="44" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="11" font-weight="400" fill="#8b949e" text-anchor="middle">HTTPS</text>
+  <text x="260" y="128" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">BASIC keywords</text>
+  <text x="640" y="128" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">AI models</text>
+  <text x="260" y="148" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">IMAGE · VIDEO</text>
+  <text x="640" y="148" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">Stable Diffusion</text>
+  <text x="260" y="168" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">AUDIO · SEE</text>
+  <text x="640" y="168" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">Zeroscope · TTS · BLIP2</text>
+  <line x1="260" y1="196" x2="260" y2="244" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="640" y1="196" x2="640" y2="244" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="120" y="244" width="280" height="74" rx="10" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <text x="260.0" y="275.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">config</text>
+  <text x="260.0" y="293.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">.csv</text>
+  <rect x="500" y="244" width="280" height="74" rx="10" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <text x="640.0" y="275.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">outputs</text>
+  <text x="640.0" y="293.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">(files)</text>
+</svg>
