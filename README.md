@@ -572,8 +572,8 @@ Each crate has its own README.md with specific guidelines:
 ### Special Prompts
 | File | Purpose |
 |------|---------|
-| `botserver/src/tasks/README.md` | AutoTask LLM executor |
-| `botserver/src/auto_task/APP_GENERATOR_PROMPT.md` | App generation |
+| `botserver/src/tasks/PROMPT.md` | AutoTask LLM executor |
+| `botserver/crates/botautotask/src/designer_ai.rs` | App generation |
 
 ---
 
@@ -587,13 +587,15 @@ For complete documentation, guides, and API references:
 
 ---
 
-## 🔧 Immediate Technical Debt
+## 🔧 Technical Debt
 
 ### Critical Issues to Address
 
-1. **Error Handling Debt**: 955 instances of `unwrap()`/`expect()` in production code
-2. **Performance Debt**: 12,973 excessive `clone()`/`to_string()` calls
-3. **File Size Debt**: 7 files exceed 450 lines (largest: 3220 lines)
+Counts drift, so each item links to a tracked issue rather than hardcoding a number here. Measure the current state with the command in the issue.
+
+1. **Error Handling Debt**: `.unwrap()`/`.expect()` in production code - #1368
+2. **Performance Debt**: excessive `clone()`/`to_string()` calls - #1369
+3. **File Size Debt**: files exceeding the 450-line limit - #1370
 4. **Test Coverage**: Missing integration tests for critical paths
 5. **Documentation**: Missing inline documentation for complex algorithms
 

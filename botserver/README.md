@@ -101,20 +101,20 @@ TALK "Welcome! How can I help you today?"
 
 ```
 src/
-├── core/           # Bootstrap, config, routes
+├── main.rs         # Entry point
+├── main_module/    # Bootstrap, config, HTTP routes, drive monitors
+├── core/           # Bot pipeline, LLM orchestration, shared types
 ├── basic/          # Rhai BASIC interpreter
 │   └── keywords/   # BASIC keyword implementations
 ├── security/       # Security modules
 │   ├── command_guard.rs     # Safe command execution
 │   ├── error_sanitizer.rs  # Error message sanitization
 │   └── sql_guard.rs        # SQL injection prevention
-├── shared/         # Shared types, models
-├── tasks/          # AutoTask system (2651 lines - NEEDS REFACTORING)
-├── auto_task/      # App generator (2981 lines - NEEDS REFACTORING)
-├── drive/          # File operations (1522 lines - NEEDS REFACTORING)
-├── learn/          # Learning system (2306 lines - NEEDS REFACTORING)
-└── attendance/     # LLM assistance (2053 lines - NEEDS REFACTORING)
+├── apps/           # Suite app registry and LLM automation surface
+└── <feature>/      # Thin shims that re-export a feature crate
+                    # e.g. src/drive/mod.rs -> pub use botdrive::*;
 
+crates/             # Feature crates (bottasks, botlearn, botdrive, botcloud, ...)
 migrations/         # Database migrations
 botserver-stack/    # Stack deployment files
 ```
@@ -145,13 +145,14 @@ botserver-stack/    # Stack deployment files
 
 ## 🔐 Security Requirements
 
-### Error Handling - CRITICAL DEBT
+### Error Handling
 
-**Current Status**: 955 instances of `unwrap()`/`expect()` found in codebase
-**Target**: 0 instances in production code (tests excluded)
+A panic aborts the process and drops every active session, so every error path must propagate via `Result` or be handled locally.
+
+**Target**: 0 `unwrap()`/`expect()` in production code (tests excluded). Tracked in #1368.
 
 ```rust
-// ❌ WRONG - Found 955 times in codebase
+// ❌ WRONG - aborts the process
 let value = something.unwrap();
 let value = something.expect("msg");
 
@@ -165,10 +166,9 @@ let value = something.unwrap_or_else(|e| {
 });
 ```
 
-### Performance Issues - CRITICAL DEBT
+### Performance Issues
 
-**Current Status**: 12,973 excessive `clone()`/`to_string()` calls
-**Target**: Minimize allocations, use references where possible
+**Target**: Minimize allocations, use references where possible. Tracked in #1369.
 
 ```rust
 // ❌ WRONG - Excessive allocations
@@ -308,17 +308,16 @@ When a file grows beyond this limit:
 
 **NEVER let a single file exceed 450 lines - split proactively at 350 lines**
 
-### Files Requiring Immediate Refactoring
+### Files Requiring Refactoring
 
-| File | Lines | Target Split |
-|------|-------|--------------|
-| `auto_task/app_generator.rs` | 2981 | → 7 files |
-| `tasks/mod.rs` | 2651 | → 6 files |  
-| `learn/mod.rs` | 2306 | → 5 files |
-| `attendance/llm_assist.rs` | 2053 | → 5 files |
-| `drive/mod.rs` | 1522 | → 4 files |
+There is no fixed list to work through - oversized files move as the code does. Measure the current set when you need it:
 
+```bash
+find src crates -name '*.rs' -exec wc -l {} + \
+  | awk '$1 > 450 && $2 != "total"' | sort -rn
+```
 
+Standing rule: any file you touch should come out under 450 lines, or smaller than it was. Tracked in #1370.
 
 ---
 
@@ -449,8 +448,8 @@ We welcome contributions! Please read our contributing guidelines before submitt
 - **ZERO COMMENTS** - No comments, no doc comments
 - **NO ALLOW IN CODE** - Configure exceptions in Cargo.toml only
 - **NO DEAD CODE** - Delete unused code
-- **NO UNWRAP/EXPECT** - Use ? or combinators (955 instances to fix)
-- **MINIMIZE CLONES** - Avoid excessive allocations (12,973 instances to optimize)
+- **NO UNWRAP/EXPECT** - Use ? or combinators (#1368)
+- **MINIMIZE CLONES** - Avoid excessive allocations (#1369)
 - **PARAMETERIZED SQL** - Never format! for queries
 - **VALIDATE COMMANDS** - Never pass raw user input
 - **INLINE FORMAT ARGS** - `format!("{name}")` not `format!("{}", name)`
@@ -458,16 +457,6 @@ We welcome contributions! Please read our contributing guidelines before submitt
 - **FILE SIZE LIMIT** - Max 450 lines per file, refactor at 350 lines
 - **Version 6.2.0** - Do not change without approval
 - **GIT WORKFLOW** - ALWAYS push to ALL repositories (github, pragmatismo)
-
----
-
-## 🚨 Immediate Action Required
-
-1. **Replace 955 unwrap()/expect() calls** with proper error handling
-2. **Optimize 12,973 clone()/to_string() calls** for performance  
-3. **Refactor 5 large files** following refactoring plan
-4. **Add missing error handling** in critical paths
-5. **Implement proper logging** instead of panicking
 
 ---
 
