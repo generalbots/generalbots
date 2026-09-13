@@ -21,7 +21,6 @@ Usage:
     python3 scripts/docs_app_screens.py               # rewrite every screen
     python3 scripts/docs_app_screens.py tasks drive   # rewrite a subset
 """
-import json
 import os
 import re
 import sys
@@ -40,7 +39,8 @@ SKIP_TAGS = {"script", "style", "template", "link", "meta", "svg", "path",
              "br", "img", "input", "hr", "g", "defs", "symbol", "use"}
 INVISIBLE = re.compile(r"display\s*:\s*none|visibility\s*:\s*hidden", re.I)
 TRANSIENT = re.compile(r"modal|overlay|dropdown|tooltip|toast|backdrop|"
-                       r"context-menu|slash-menu|popover|loader|spinner", re.I)
+                       r"context-menu|slash-menu|popover|loader|spinner|"
+                       r"dialog|mask|drawer|lightbox", re.I)
 SIDEBAR = re.compile(r"sidebar|aside|nav-rail|explorer", re.I)
 HEADER = re.compile(r"header|toolbar|topbar|appbar|titlebar", re.I)
 BAND = re.compile(r"filter|tabs|tab-bar|status-bar|subheader|breadcrumb|"
@@ -71,11 +71,13 @@ class Tree(HTMLParser):
         self.stack = [self.root]
 
     def handle_starttag(self, tag, attrs):
-        if tag in SKIP_TAGS:
+        # Inputs carry no children, but their placeholder is shipped interface
+        # text (the chat composer), so they are kept as leaves.
+        if tag in SKIP_TAGS and tag not in ("input", "textarea"):
             return
         node = Node(tag, dict(attrs))
         self.stack[-1].kids.append(node)
-        if tag not in ("br", "img", "input", "hr"):
+        if tag not in ("br", "img", "input", "hr", "textarea"):
             self.stack.append(node)
 
     def handle_endtag(self, tag):
@@ -219,12 +221,26 @@ def label_of(node, labels):
     return clean_label(text_of(node, 60))
 
 
+SHARED_DIRS = {"partials", "js", "widgets"}
+
+
 def resolve_entry(app_id, url):
+    """The app's entry document plus the modules that build its surface.
+
+    A few surfaces live in a shared folder (chat is ``partials/chat.html``) or
+    are built entirely by scripts held in the app's own folder. Sweeping a
+    shared folder would pull every other app's markup into the figure, so
+    module collection is scoped to the app's own directory.
+    """
     rel = url.split("?")[0].replace("/suite/", "", 1)
     entry = os.path.join(SUITE, rel)
     if not os.path.exists(entry):
         return None, []
     folder = os.path.dirname(entry)
+    if os.path.basename(folder) in SHARED_DIRS:
+        own = os.path.join(SUITE, app_id)
+        if os.path.isdir(own):
+            folder = own
     files = [entry]
     if os.path.isdir(folder):
         for name in sorted(os.listdir(folder)):
@@ -311,11 +327,28 @@ def controls(node, labels, kinds=("button", "a")):
     return uniq
 
 
+TITLE_HOLDER = re.compile(r"(panel-header|card-header|widget-header|"
+                          r"panel-title|card-title|section-header)", re.I)
+PANEL = re.compile(r"(panel|card|widget|tile|module|block)", re.I)
+# A conversation surface: its content is a message thread, not a table. The
+# names are matched exactly, so a project "timeline" panel is not mistaken for
+# a chat transcript.
+THREAD_NAME = re.compile(r"^(messages|message-list|message-thread|thread|"
+                         r"conversation|chat-log|chat-messages)$", re.I)
+
+
 def sections(node, labels):
-    """Real section or module names declared inside a region."""
+    """Real section or module names declared inside a region.
+
+    A section name appears either as a heading element, as a translatable
+    span, or as the title bar of a panel (the dominant dashboard pattern,
+    where the title is a plain span beside the panel icon).
+    """
     raw = []
     for h in find_all(node, lambda n: n.tag in ("h1", "h2", "h3", "h4")):
         raw.append(text_of(h, 60))
+    for holder in find_all(node, lambda n: TITLE_HOLDER.search(n.cls())):
+        raw.append(text_of(holder, 60))
     for el in find_all(node, lambda n: n.attrs.get("data-i18n")):
         raw.append(label_of(el, labels))
     out, seen = [], set()
@@ -324,6 +357,44 @@ def sections(node, labels):
             seen.add(name.lower())
             out.append(name)
     return out[:6]
+
+
+def panel_titles(body, labels):
+    """Titled panels declared as body children (dashboard grid layout).
+
+    A dashboard is a set of sibling panels that each carry their own title;
+    unlike master-detail there is no selected record, so the layout is a grid
+    of titled panels rather than a list beside a detail pane.
+    """
+    out = []
+    for kid in body.kids:
+        if not visible(kid) or not PANEL.search(kid.cls()):
+            continue
+        title = ""
+        for holder in find_all(kid, lambda n: TITLE_HOLDER.search(n.cls())):
+            title = clean_label(text_of(holder, 40))
+            if title:
+                break
+        if not title:
+            for h in find_all(kid, lambda n: n.tag in ("h1", "h2", "h3", "h4")):
+                title = clean_label(text_of(h, 40))
+                if title:
+                    break
+        if title:
+            out.append(title)
+    seen, uniq = set(), []
+    for name in out:
+        if name.lower() not in seen:
+            seen.add(name.lower())
+            uniq.append(name)
+    return uniq
+
+
+def is_conversation(node):
+    """Whether a node is the message thread of a conversation surface."""
+    if THREAD_NAME.match((node.attrs.get("id") or "").strip()):
+        return True
+    return any(THREAD_NAME.match(tok) for tok in node.cls().split())
 
 
 def esc(t):
@@ -491,6 +562,75 @@ def card_body(names, x, y, w, h):
     return "\n".join(out)
 
 
+def thread_body(x, y, w, h):
+    """Conversation layout: alternating message bubbles, sender on the right."""
+    out, row = [], 58
+    for i in range(max(1, int(h // row))):
+        ry = y + i * row
+        if ry + 44 > y + h:
+            break
+        outgoing = i % 3 == 1
+        bw = w * (0.42 if outgoing else 0.5)
+        bx = x + w - bw if outgoing else x
+        cls = "chip-active" if outgoing else "row"
+        out.append(f'  <rect x="{bx:.0f}" y="{ry:.0f}" width="{bw:.0f}" '
+                   f'height="44" rx="10" class="{cls}"/>')
+        for k in range(2):
+            bar = (bw - 28) * (0.86 - 0.3 * k)
+            out.append(f'  <rect x="{bx + 14:.0f}" y="{ry + 13 + k * 13:.0f}" '
+                       f'width="{bar:.0f}" height="7" rx="3.5" class="bar"/>')
+    return "\n".join(out)
+
+
+def composer_band(text, x, y, w, send):
+    """The message composer, labelled with its own shipped placeholder."""
+    out = [f'  <rect x="{x}" y="{y}" width="{w}" height="40" rx="20" '
+           f'class="row"/>']
+    if text:
+        out.append(f'  <text x="{x + 18}" y="{y + 25}" font-size="12.5" '
+                   f'class="muted-text">{esc(text)}</text>')
+    if send:
+        out.append(f'  <rect x="{x + w - 38}" y="{y + 6}" width="28" '
+                   f'height="28" rx="14" class="chip-active"/>')
+    return "\n".join(out)
+
+
+def composer(root, labels):
+    """The composer's real placeholder text, when the app declares one."""
+    for form in find_all(root, lambda n: n.tag == "form"):
+        for inp in find_all(form, lambda n: n.tag in ("input", "textarea")):
+            key = inp.attrs.get("data-i18n-placeholder")
+            text = clean_label(labels.get(key, ""), 44) if key else ""
+            if not text:
+                text = clean_label(inp.attrs.get("placeholder", ""), 44)
+            if text:
+                return text
+    return ""
+
+
+def panel_grid(titles, x, y, w, h):
+    """Dashboard layout: sibling titled panels, two per row."""
+    out, cols = [], 2 if len(titles) > 1 else 1
+    gap = 16
+    pw = (w - gap * (cols - 1)) / cols
+    rows = max(1, (min(len(titles), 4) + cols - 1) // cols)
+    ph = min((h - gap * (rows - 1)) / rows, 170)
+    for i, name in enumerate(titles[:4]):
+        px = x + (i % cols) * (pw + gap)
+        py = y + (i // cols) * (ph + gap)
+        out.append(f'  <rect x="{px:.0f}" y="{py:.0f}" width="{pw:.0f}" '
+                   f'height="{ph:.0f}" rx="8" class="row"/>')
+        out.append(f'  <text x="{px + 14:.0f}" y="{py + 25:.0f}" font-size="12.5" '
+                   f'font-weight="600" class="main-text">{esc(name)}</text>')
+        out.append(f'  <line x1="{px:.0f}" y1="{py + 36:.0f}" '
+                   f'x2="{px + pw:.0f}" y2="{py + 36:.0f}" class="border"/>')
+        for k in range(3):
+            bw = (pw - 28) * (0.94 - 0.2 * k)
+            out.append(f'  <rect x="{px + 14:.0f}" y="{py + 48 + k * 15:.0f}" '
+                       f'width="{bw:.0f}" height="8" rx="4" class="bar"/>')
+    return "\n".join(out)
+
+
 def columns_of(node):
     """Real table column headers, sanitised like any other label."""
     out = []
@@ -590,22 +730,51 @@ def render(entry, labels, title, scripts=()):
     columns = columns_of(body)
     body_actions = controls(body, labels)
     names = sections(body, labels)
-    if shadow.kids and not columns and len(names) < 2:
-        # Static shell carries too little surface (script-rendered app): fall
-        # back to the markup the scripts themselves build.
+
+    # A conversation surface is declared in static markup; its scripts only
+    # fill it, so it is never replaced by recovered fragments. The wrapper may
+    # hold the thread rather than being the thread, so descendants are checked.
+    # Only the surface itself counts: an app that merely embeds a chat panel
+    # (analytics) is not a conversation app.
+    thread_nodes = ([body] if is_conversation(body) else []) + \
+        [k for k in body.kids if is_conversation(k)]
+    is_thread = bool(thread_nodes)
+    if is_thread:
+        body = thread_nodes[0]
+
+    if not is_thread and shadow.kids and not columns and len(names) < 2:
+        # A static shell that declares fewer than two named sections is not the
+        # whole interface: several apps build their real lists, folders and
+        # tables in script strings (the mail folders, the fraud and tax
+        # columns). That recovered markup is used instead of the bare shell.
         body = shadow
         columns = columns_of(body)
         body_actions = controls(body, labels)
         names = sections(body, labels)
+
     body_y = y + 14
     avail = bottom - body_y - PAD
 
-    # Master-detail is the dominant suite layout: a list pane beside a pane
-    # that shows the selected record. Both panes are declared in the markup.
+    # A dashboard is a set of sibling titled panels; master-detail is a list
+    # beside a selected record. Only the former has several titled panels.
+    tiles = panel_titles(body, labels)
     panes = [k for k in body.kids if visible(k)
              and re.search(r"(list|panel|detail|column|board|pane)", k.cls(),
                            re.I)]
-    if len(panes) >= 2 and not columns:
+
+    # A conversation surface is a message thread with a composer beneath it.
+    if is_thread and not columns:
+        placeholder = composer(root, labels)
+        send = bool(find_all(root, lambda n: n.tag == "button"
+                             and n.attrs.get("id") == "sendBtn"))
+        thread_h = avail - (58 if placeholder else 0)
+        parts.append(thread_body(cx + PAD, body_y, cw - 32, thread_h))
+        if placeholder:
+            parts.append(composer_band(placeholder, cx + PAD,
+                                       body_y + thread_h + 14, cw - 32, send))
+    elif len(tiles) >= 2 and not columns:
+        parts.append(panel_grid(tiles, cx + PAD, body_y, cw - 32, avail))
+    elif len(panes) >= 2 and not columns:
         lw = (cw - 32) * 0.46
         parts.append(list_body(int(avail // 52), cx + PAD, body_y, lw,
                                avail, sections(panes[0], labels)))
@@ -631,11 +800,35 @@ def render(entry, labels, title, scripts=()):
     return "\n".join(parts) + "\n"
 
 
+REGISTRY = os.path.join(ROOT, "botserver/src/apps/registry.rs")
+# app("id", "Title", "category", "#color", "/suite/x.html", "desc", ...)
+REGISTRY_ENTRY = re.compile(
+    r'(?:widget_)?app\(\s*"([^"]+)"\s*,\s*"([^"]+)"\s*,\s*"([^"]+)"\s*,'
+    r'\s*"#[0-9a-fA-F]{3,8}"\s*,\s*"([^"]+)"', re.S)
+
+
 def load_catalog():
-    local = os.path.join(ROOT, "botbook/apps.json")
-    if os.path.exists(local):
-        return json.load(open(local))
-    return json.load(open("/tmp/catalog.json"))
+    """The app catalogue, read from the registry that defines it.
+
+    ``botserver/src/apps/registry.rs`` is authoritative -- it is the list the
+    suite actually renders. There is deliberately no committed snapshot to fall
+    back on, because a copy of the catalogue would drift from the registry the
+    figures are supposed to document.
+    """
+    if not os.path.exists(REGISTRY):
+        raise SystemExit(f"app registry not found: {REGISTRY}")
+    text = open(REGISTRY, encoding="utf-8", errors="replace").read()
+    seen, apps = set(), []
+    for m in REGISTRY_ENTRY.finditer(text):
+        app_id = m.group(1)
+        if app_id in seen:
+            continue
+        seen.add(app_id)
+        apps.append({"id": app_id, "title": m.group(2),
+                     "category": m.group(3), "url": m.group(4)})
+    if not apps:
+        raise SystemExit(f"no apps parsed from {REGISTRY}")
+    return apps
 
 
 def main():
