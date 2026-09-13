@@ -64,7 +64,7 @@ primary_color=
 support_email=
 
 # Documentation URL (optional)
-docs_url=https://docs.pragmatismo.com.br
+docs_url=https://docs.generalbots.org
 
 # Copyright text (optional - {year} will be replaced with current year)
 copyright=© {year} {name}. All rights reserved.

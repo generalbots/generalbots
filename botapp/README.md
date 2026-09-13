@@ -453,7 +453,7 @@ For complete documentation, guides, and API references:
 ## Related Projects
 
 - [botui](https://github.com/GeneralBots/botui) - Pure web UI
-- [botserver](https://github.com/GeneralBots/botserver) - Backend server
+- [botserver](https://github.com/generalbots/generalbots) - Backend server
 - [botlib](https://github.com/GeneralBots/botlib) - Shared Rust library
 
 ---
