@@ -636,14 +636,15 @@
         if (window.VibeWindows && window.VibeWindows.openRunDock) window.VibeWindows.openRunDock();
     }
 
-    /* Toolbar — a 2-row grid, never more than 2 rows (product spec):
+    /* Toolbar — a 2-row grid, never more than 2 rows (product spec #1383):
 
-       │ RUN │ Project │ Deploy │ [Terminal][Browser][Chat][Editor][New][Props] │ ✕ │
-       │ 2r  │ Branch  │        │ [RunnerLog][Graph][Canvas][Metrics][SrcCtl][Members] │
+       │ RUN  DEPLOY │ Project │ [New Project][Browser][Run Logger] │ ✕ │
+       │ (2 rows)    │ Branch  │ [Chat] [Terminal] [Properties]     │
+       │             │         │ … three buttons per line           │
 
-       RUN spans both rows (double height); the Project/Branch combos stack
-       one per row; Deploy sits on its own row beside them; the window
-       commands fill two rows; ✕ closes every vibe window at once. */
+       Run and Deploy sit together at the LEFT (double-height primaries);
+       the Project/Branch combos follow; then groups of stacked window
+       buttons, three per line; ✕ closes every vibe window at once. */
     function build() {
         if (document.getElementById("vibeShellToolbar")) return;
         var container = document.getElementById("vibeWindow");
@@ -654,10 +655,14 @@
         bar.setAttribute("role", "toolbar");
         bar.setAttribute("aria-label", "Vibe commands");
 
-        /* ── RUN — double height (spans both grid rows) ─────────── */
+        /* ── RUN + DEPLOY — the two primaries, together at LEFT ─── */
         var runGroup = el("div", "vibe-shell-tb-group vibe-shell-tb-run-group");
         runGroup.appendChild(buildButton("Run", "Run", openPreview, "vibe-shell-tb-run"));
         bar.appendChild(runGroup);
+
+        var deployGroup = el("div", "vibe-shell-tb-group vibe-shell-tb-deploy-group");
+        deployGroup.appendChild(buildButton("Deploy", "Deploy", deployProject, "vibe-shell-tb-deploy"));
+        bar.appendChild(deployGroup);
 
         /* ── Combos — two rows: Project on top, Branch below ────── */
         var selectors = el("div", "vibe-shell-tb-group vibe-shell-tb-selectors");
@@ -688,11 +693,6 @@
         selectors.appendChild(brWrap);
         bar.appendChild(selectors);
 
-        /* ── DEPLOY — one row, right after the combos ───────────── */
-        var deployGroup = el("div", "vibe-shell-tb-group vibe-shell-tb-deploy-group");
-        deployGroup.appendChild(buildButton("Deploy", "Deploy", deployProject, "vibe-shell-tb-deploy"));
-        bar.appendChild(deployGroup);
-
     /* ── Window commands — two rows, grouped with | separators ── */
         function tbSep() {
             var sep = el("span", "vibe-shell-tb-sep");
@@ -701,13 +701,8 @@
         }
         var cmds = el("div", "vibe-shell-tb-group vibe-shell-tb-cmds");
         var cmdRow1 = el("div", "vibe-shell-tb-cmdrow");
-        // New Project is the FIRST command (product spec).
+        // #1383 — New Project is the FIRST command of the first line.
         cmdRow1.appendChild(buildButton("New Project", "New Project", function () { if (window.VibeNewProject) window.VibeNewProject.open(); else if (window.VibeWindows) window.VibeWindows.openNewProject(); }, "vibe-shell-tb-new"));
-        cmdRow1.appendChild(tbSep());
-        cmdRow1.appendChild(buildButton("Terminal", "Terminal", openTerminal));
-        cmdRow1.appendChild(buildButton("Run", "Run", function () { if (window.VibeRun) window.VibeRun.start(); }, "vibe-shell-tb-run"));
-        cmdRow1.appendChild(buildButton("Stop", "Stop", function () { if (window.VibeRun) window.VibeRun.stop(); }, "vibe-shell-tb-stop"));
-        cmdRow1.appendChild(buildButton("Pause", "Pause", function () { if (window.VibeRun) window.VibeRun.pause(); }, "vibe-shell-tb-pause"));
         // Browser loads the selected project's app. Prefers the dev VM run
         // (real node process, #1271), falls back to the static workspace
         // stream, then to a deployed preview URL.
@@ -726,33 +721,44 @@
                         .catch(function () { openBrowser(null); });
                 });
         }));
-        cmdRow1.appendChild(buildButton("Chat", "Chat", openChat));
-        // Editor opens the project's dev-VM workspace (file tree + editing of
-        // the same files the LLM edits in chat) when a project is selected.
+        // #1383 — stacked groups, THREE buttons per line (issue diagram):
+        // line 1: New Project | Browser | Editor
+        // line 2: Chat | Terminal | Database
+        // line 3: Properties | Run Logger | Source Control
+        // line 4: Knowledge Graph | Canvas | Metrics
+        // line 5: Members
         var editorPid = S.projectId();
         cmdRow1.appendChild(buildButton("Editor", "Editor", function () {
             var pid = S.projectId() || editorPid;
             openSharedApp("editor", pid ? { project: pid } : {});
         }));
-        cmdRow1.appendChild(tbSep());
-        cmdRow1.appendChild(buildButton("Properties", "Properties", openProjectInfo, "vibe-shell-tb-info"));
         cmds.appendChild(cmdRow1);
 
         var cmdRow2 = el("div", "vibe-shell-tb-cmdrow");
-        cmdRow2.appendChild(buildButton("Runner Log", "Runner Log", openRunnerLog));
-        cmdRow2.appendChild(tbSep());
-        cmdRow2.appendChild(buildButton("Knowledge Graph", "Knowledge Graph", function () { if (window.VibeWindows) window.VibeWindows.openGraph(); }));
-        cmdRow2.appendChild(buildButton("Canvas", "Canvas", function () { if (window.VibeWindows) window.VibeWindows.openCanvas(); }));
-        cmdRow2.appendChild(buildButton("Metrics", "Metrics", function () { if (window.VibeWindows) window.VibeWindows.openMetrics(); }));
+        cmdRow2.appendChild(buildButton("Chat", "Chat", openChat));
+        cmdRow2.appendChild(buildButton("Terminal", "Terminal", openTerminal));
         // Database opens the SQL schema editor (same dialog the ribbon's
         // Database command used — #1189).
         cmdRow2.appendChild(buildButton("Database", "Database", function () { if (window.VibeDialogs) window.VibeDialogs.open("db", "Database Schema"); }));
-        cmdRow2.appendChild(tbSep());
-        cmdRow2.appendChild(buildButton("Source Control", "Source Control", openCommit));
+        cmds.appendChild(cmdRow2);
+
+        var cmdRow3 = el("div", "vibe-shell-tb-cmdrow");
+        cmdRow3.appendChild(buildButton("Properties", "Properties", openProjectInfo, "vibe-shell-tb-info"));
+        cmdRow3.appendChild(buildButton("Run Logger", "Runner Log", openRunnerLog));
+        cmdRow3.appendChild(buildButton("Source Control", "Source Control", openCommit));
+        cmds.appendChild(cmdRow3);
+
+        var cmdRow4 = el("div", "vibe-shell-tb-cmdrow");
+        cmdRow4.appendChild(buildButton("Knowledge Graph", "Knowledge Graph", function () { if (window.VibeWindows) window.VibeWindows.openGraph(); }));
+        cmdRow4.appendChild(buildButton("Canvas", "Canvas", function () { if (window.VibeWindows) window.VibeWindows.openCanvas(); }));
+        cmdRow4.appendChild(buildButton("Metrics", "Metrics", function () { if (window.VibeWindows) window.VibeWindows.openMetrics(); }));
+        cmds.appendChild(cmdRow4);
+
         // Members was only reachable from the hidden legacy ribbon — give it
         // a toolbar button so no window exists without one (ghost windows).
-        cmdRow2.appendChild(buildButton("Members", "Members", function () { if (window.VibeWindows) window.VibeWindows.openMembers(); }));
-        cmds.appendChild(cmdRow2);
+        var cmdRow5 = el("div", "vibe-shell-tb-cmdrow");
+        cmdRow5.appendChild(buildButton("Members", "Members", function () { if (window.VibeWindows) window.VibeWindows.openMembers(); }));
+        cmds.appendChild(cmdRow5);
         bar.appendChild(cmds);
 
         // #1325 — project-gated commands: when no project is selected every
