@@ -180,30 +180,30 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
     align-content: center;
     justify-content: start; /* compact: block hugs its content width */
     column-gap: 0;
-    row-gap: 0;
+    row-gap: 3px; /* a little vertical air between the 3 command rows */
 }
 
 /* Command buttons (#1383 review): three rows totaling close to the
    Project/Branch combos height (~52px), left-aligned, compact width —
-   sized up one notch per follow-up review ("a little larger"). */
+   sized up per follow-up reviews ("a little larger", then "+1pt"). */
 .vibe-shell-tb-cmds .vibe-shell-tb-btn {
     min-height: 0;
-    height: 18px;
+    height: 19px;
     padding: 1px 6px;
     gap: 3px;
     justify-content: flex-start;
     border-radius: 3px;
 }
 .vibe-shell-tb-cmds .vibe-shell-tb-icon {
-    font-size: 10px;
+    font-size: 11px;
     display: inline-flex;
 }
 .vibe-shell-tb-cmds .vibe-shell-tb-icon svg {
-    width: 10px;
-    height: 10px;
+    width: 11px;
+    height: 11px;
 }
 .vibe-shell-tb-cmds .vibe-shell-tb-label {
-    font-size: 10px;
+    font-size: 11px;
     white-space: nowrap;
     text-align: left;
 }
