@@ -1,0 +1,108 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Knowledge Graph">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+  <style>
+    .bg { fill: #ffffff; }
+    .titlebar { fill: #f8fafc; }
+    .sidebar-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #2563eb; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .chip { fill: #f1f5f9; }
+    .chip-active { fill: #dbeafe; }
+    .row { fill: #f8fafc; }
+    .bar { fill: #e2e8f0; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .titlebar { fill: #1e293b; }
+      .sidebar-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .border { stroke: #334155; }
+      .chip { fill: #334155; }
+      .chip-active { fill: #1e3a5f; }
+      .row { fill: #1e293b; }
+      .bar { fill: #334155; }
+    }
+  </style>
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Knowledge Graph</text>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+  <path d="M30 52 a12 12 0 0 1 12 -12 h816 a12 12 0 0 1 12 12 v32 h-840 z" class="titlebar"/>
+  <text x="46" y="61" font-size="13.5" font-weight="600" class="main-text">Knowledge Graph</text>
+  <text x="816" y="67" text-anchor="middle" font-size="13" class="muted-text">–</text>
+  <text x="840" y="67" text-anchor="middle" font-size="13" class="muted-text">✕</text>
+  <rect x="46" y="98" width="808" height="32" rx="6" class="chip"/>
+  <text x="58" y="119" font-size="11.5" font-weight="600" class="secondary-text">Env</text>
+  <text x="193" y="119" font-size="11.5" font-weight="600" class="secondary-text">Status</text>
+  <text x="327" y="119" font-size="11.5" font-weight="600" class="secondary-text">Run</text>
+  <text x="462" y="119" font-size="11.5" font-weight="600" class="secondary-text">When</text>
+  <text x="597" y="119" font-size="11.5" font-weight="600" class="secondary-text">Author</text>
+  <text x="731" y="119" font-size="11.5" font-weight="600" class="secondary-text">Message</text>
+  <rect x="46" y="138" width="808" height="40" rx="6" class="row"/>
+  <rect x="58" y="154" width="48" height="9" rx="4.5" class="bar"/>
+  <rect x="193" y="154" width="70" height="9" rx="4.5" class="bar"/>
+  <rect x="327" y="154" width="92" height="9" rx="4.5" class="bar"/>
+  <rect x="462" y="154" width="48" height="9" rx="4.5" class="bar"/>
+  <rect x="597" y="154" width="70" height="9" rx="4.5" class="bar"/>
+  <rect x="731" y="154" width="92" height="9" rx="4.5" class="bar"/>
+  <rect x="46" y="186" width="808" height="40" rx="6" class="row"/>
+  <rect x="58" y="202" width="70" height="9" rx="4.5" class="bar"/>
+  <rect x="193" y="202" width="92" height="9" rx="4.5" class="bar"/>
+  <rect x="327" y="202" width="48" height="9" rx="4.5" class="bar"/>
+  <rect x="462" y="202" width="70" height="9" rx="4.5" class="bar"/>
+  <rect x="597" y="202" width="92" height="9" rx="4.5" class="bar"/>
+  <rect x="731" y="202" width="48" height="9" rx="4.5" class="bar"/>
+  <rect x="46" y="234" width="808" height="40" rx="6" class="row"/>
+  <rect x="58" y="250" width="92" height="9" rx="4.5" class="bar"/>
+  <rect x="193" y="250" width="48" height="9" rx="4.5" class="bar"/>
+  <rect x="327" y="250" width="70" height="9" rx="4.5" class="bar"/>
+  <rect x="462" y="250" width="92" height="9" rx="4.5" class="bar"/>
+  <rect x="597" y="250" width="48" height="9" rx="4.5" class="bar"/>
+  <rect x="731" y="250" width="70" height="9" rx="4.5" class="bar"/>
+  <rect x="46" y="282" width="808" height="40" rx="6" class="row"/>
+  <rect x="58" y="298" width="48" height="9" rx="4.5" class="bar"/>
+  <rect x="193" y="298" width="70" height="9" rx="4.5" class="bar"/>
+  <rect x="327" y="298" width="92" height="9" rx="4.5" class="bar"/>
+  <rect x="462" y="298" width="48" height="9" rx="4.5" class="bar"/>
+  <rect x="597" y="298" width="70" height="9" rx="4.5" class="bar"/>
+  <rect x="731" y="298" width="92" height="9" rx="4.5" class="bar"/>
+  <rect x="46" y="330" width="808" height="40" rx="6" class="row"/>
+  <rect x="58" y="346" width="70" height="9" rx="4.5" class="bar"/>
+  <rect x="193" y="346" width="92" height="9" rx="4.5" class="bar"/>
+  <rect x="327" y="346" width="48" height="9" rx="4.5" class="bar"/>
+  <rect x="462" y="346" width="70" height="9" rx="4.5" class="bar"/>
+  <rect x="597" y="346" width="92" height="9" rx="4.5" class="bar"/>
+  <rect x="731" y="346" width="48" height="9" rx="4.5" class="bar"/>
+  <rect x="46" y="378" width="808" height="40" rx="6" class="row"/>
+  <rect x="58" y="394" width="92" height="9" rx="4.5" class="bar"/>
+  <rect x="193" y="394" width="48" height="9" rx="4.5" class="bar"/>
+  <rect x="327" y="394" width="70" height="9" rx="4.5" class="bar"/>
+  <rect x="462" y="394" width="92" height="9" rx="4.5" class="bar"/>
+  <rect x="597" y="394" width="48" height="9" rx="4.5" class="bar"/>
+  <rect x="731" y="394" width="70" height="9" rx="4.5" class="bar"/>
+  <rect x="46" y="426" width="808" height="40" rx="6" class="row"/>
+  <rect x="58" y="442" width="48" height="9" rx="4.5" class="bar"/>
+  <rect x="193" y="442" width="70" height="9" rx="4.5" class="bar"/>
+  <rect x="327" y="442" width="92" height="9" rx="4.5" class="bar"/>
+  <rect x="462" y="442" width="48" height="9" rx="4.5" class="bar"/>
+  <rect x="597" y="442" width="70" height="9" rx="4.5" class="bar"/>
+  <rect x="731" y="442" width="92" height="9" rx="4.5" class="bar"/>
+  <rect x="46" y="474" width="808" height="40" rx="6" class="row"/>
+  <rect x="58" y="490" width="70" height="9" rx="4.5" class="bar"/>
+  <rect x="193" y="490" width="92" height="9" rx="4.5" class="bar"/>
+  <rect x="327" y="490" width="48" height="9" rx="4.5" class="bar"/>
+  <rect x="462" y="490" width="70" height="9" rx="4.5" class="bar"/>
+  <rect x="597" y="490" width="92" height="9" rx="4.5" class="bar"/>
+  <rect x="731" y="490" width="48" height="9" rx="4.5" class="bar"/>
+  <!-- regen: scripts/docs_app_screens.py -->
+</svg>

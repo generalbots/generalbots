@@ -1,0 +1,73 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Virtual Desktop">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+  </defs>
+  <style>
+    .bg { fill: #ffffff; }
+    .titlebar { fill: #f8fafc; }
+    .sidebar-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #2563eb; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .chip { fill: #f1f5f9; }
+    .chip-active { fill: #dbeafe; }
+    .row { fill: #f8fafc; }
+    .bar { fill: #e2e8f0; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .titlebar { fill: #1e293b; }
+      .sidebar-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .border { stroke: #334155; }
+      .chip { fill: #334155; }
+      .chip-active { fill: #1e3a5f; }
+      .row { fill: #1e293b; }
+      .bar { fill: #334155; }
+    }
+  </style>
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Virtual Desktop</text>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+  <path d="M30 52 a12 12 0 0 1 12 -12 h816 a12 12 0 0 1 12 12 v32 h-840 z" class="titlebar"/>
+  <text x="46" y="61" font-size="13.5" font-weight="600" class="main-text">Virtual Desktop</text>
+  <text x="816" y="67" text-anchor="middle" font-size="13" class="muted-text">–</text>
+  <text x="840" y="67" text-anchor="middle" font-size="13" class="muted-text">✕</text>
+  <rect x="46" y="101" width="112" height="26" rx="6" class="chip"/>
+  <text x="102" y="118" text-anchor="middle" font-size="11.5" class="secondary-text">New Connection</text>
+  <rect x="166" y="101" width="66" height="26" rx="6" class="chip"/>
+  <text x="199" y="118" text-anchor="middle" font-size="11.5" class="secondary-text">Connect</text>
+  <rect x="241" y="101" width="40" height="26" rx="6" class="chip"/>
+  <text x="260" y="118" text-anchor="middle" font-size="11.5" class="secondary-text">CAD</text>
+  <rect x="288" y="101" width="86" height="26" rx="6" class="chip"/>
+  <text x="331" y="118" text-anchor="middle" font-size="11.5" class="secondary-text">Disconnect</text>
+  <rect x="382" y="101" width="60" height="26" rx="6" class="chip"/>
+  <text x="412" y="118" text-anchor="middle" font-size="11.5" class="secondary-text">Cancel</text>
+  <rect x="450" y="101" width="112" height="26" rx="6" class="chip"/>
+  <text x="506" y="118" text-anchor="middle" font-size="11.5" class="secondary-text">Save &amp; Connect</text>
+  <rect x="46" y="140" width="396" height="76" rx="8" class="row"/>
+  <text x="60" y="166" font-size="12.5" font-weight="600" class="main-text">Virtual Desktop</text>
+  <rect x="60" y="180" width="317" height="7" rx="3.5" class="bar"/>
+  <rect x="60" y="194" width="225" height="7" rx="3.5" class="bar"/>
+  <rect x="458" y="140" width="396" height="76" rx="8" class="row"/>
+  <text x="472" y="166" font-size="12.5" font-weight="600" class="main-text">New Connection</text>
+  <rect x="472" y="180" width="317" height="7" rx="3.5" class="bar"/>
+  <rect x="472" y="194" width="225" height="7" rx="3.5" class="bar"/>
+  <rect x="46" y="232" width="396" height="76" rx="8" class="row"/>
+  <text x="60" y="258" font-size="12.5" font-weight="600" class="main-text">VNC Authentication</text>
+  <rect x="60" y="272" width="317" height="7" rx="3.5" class="bar"/>
+  <rect x="60" y="286" width="225" height="7" rx="3.5" class="bar"/>
+  <rect x="458" y="232" width="396" height="76" rx="8" class="row"/>
+  <text x="472" y="258" font-size="12.5" font-weight="600" class="main-text">Connect</text>
+  <rect x="472" y="272" width="317" height="7" rx="3.5" class="bar"/>
+  <rect x="472" y="286" width="225" height="7" rx="3.5" class="bar"/>
+  <!-- regen: scripts/docs_app_screens.py -->
+</svg>
