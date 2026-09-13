@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- General Bots application icon. Part of the Applications menu set. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+     fill="none" stroke="#8b949e" stroke-width="2" stroke-linecap="round"
+     stroke-linejoin="round" role="img" aria-label="General Bots AI Search">
+  <circle cx="10.5" cy="10.5" r="7.5"/><line x1="20" y1="20" x2="15.8" y2="15.8"/><path d="M10.5 6.5 11.9 9.6 15 11 11.9 12.4 10.5 15.5 9.1 12.4 6 11 9.1 9.6z"/>
+</svg>
