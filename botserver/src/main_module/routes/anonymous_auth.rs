@@ -140,7 +140,9 @@ pub(crate) fn resolve_session_user(
 /// a session user for `/api/auth/me`. Same HMAC check as
 /// `resolve_cloud_jwt_user`, but returns the full identity the sidebar
 /// needs (name/email/org from the JWT claims).
-fn cloud_jwt_session_user(token: &str) -> Option<botcoredirectory::auth_routes::SessionUserData> {
+pub(crate) fn cloud_jwt_session_user(
+    token: &str,
+) -> Option<botcoredirectory::auth_routes::SessionUserData> {
     let secret = crate::main_module::directory_setup::resolve_saas_jwt_secret();
 
     let parts: Vec<&str> = token.split('.').collect();
