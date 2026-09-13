@@ -2,6 +2,10 @@
 
 This comprehensive comparison helps organizations evaluate General Bots against major productivity, automation, and AI platforms.
 
+> **Legend:** ✅ provided · ⚠️ partial, integration-only or extra cost · ❌ not offered · — not applicable.
+>
+> **Competitor data verified 2026-09-13.** OpenClaw from `openclaw.ai` and `steipete.me/posts/2026/openclaw`; OpenAI Frontier from OpenAI's launch material and published coverage. OpenClaw became foundation-backed and OpenAI-affiliated in February 2026. Where a vendor has not published a capability, the cell reads — rather than a guess.
+
 <img src="../assets/platform-comparison-summary.svg" alt="Platform Comparison Summary" style="max-height: 450px; width: 100%; object-fit: contain;">
 
 ## Executive Summary
@@ -12,91 +16,110 @@ General Bots uniquely combines self-hosted deployment, open source licensing, na
 
 ### Deployment & Licensing
 
-| Capability | General Bots | Microsoft 365 | Google Workspace | n8n | Notion | Perplexity | Claude | Make/Zapier |
-|------------|-------------|---------------|------------------|-----|--------|------------|--------|-------------|
-| Self-hosted | ✅ Full | ❌ Cloud only | ❌ Cloud only | ✅ Available | ❌ Cloud only | ❌ Cloud only | ❌ Cloud only | ❌ Cloud only |
-| Open source | ✅ MIT | ❌ Proprietary | ❌ Proprietary | ✅ Fair-code | ❌ Proprietary | ❌ Proprietary | ❌ Proprietary | ❌ Proprietary |
-| Data sovereignty | ✅ Your servers | ❌ Microsoft servers | ❌ Google servers | ✅ Self-host option | ❌ AWS/GCP | ❌ Their servers | ❌ Anthropic servers | ❌ Their servers |
-| Per-user licensing | ✅ None | ❌ $12-57/user/mo | ❌ $6-18/user/mo | ⚠️ Cloud version | ❌ $10-15/user/mo | ❌ $20/mo | ❌ $20/mo | ❌ Per-task pricing |
-| Source code access | ✅ Full | ❌ None | ❌ None | ✅ Available | ❌ None | ❌ None | ❌ None | ❌ None |
-| Modify & extend | ✅ Unlimited | ❌ API only | ❌ API only | ✅ Possible | ❌ API only | ❌ None | ❌ None | ❌ None |
+| Capability | General Bots | Microsoft 365 | Google Workspace | n8n | Notion | Perplexity | Claude | Make/Zapier | OpenClaw | OpenAI Frontier |
+|------------|-------------|---------------|------------------|-----|--------|------------|--------|------------- |--------------|----------------------|
+| Self-hosted | ✅ Full | ❌ Cloud only | ❌ Cloud only | ✅ Available | ❌ Cloud only | ❌ Cloud only | ❌ Cloud only | ❌ Cloud only | ✅ Runs on your machine | ❌ Managed cloud |
+| Open source | ✅ MIT | ❌ Proprietary | ❌ Proprietary | ✅ Fair-code | ❌ Proprietary | ❌ Proprietary | ❌ Proprietary | ❌ Proprietary | ✅ Foundation-backed | ❌ Proprietary |
+| Data sovereignty | ✅ Your servers | ❌ Microsoft servers | ❌ Google servers | ✅ Self-host option | ❌ AWS/GCP | ❌ Their servers | ❌ Anthropic servers | ❌ Their servers | ✅ Your devices | ❌ OpenAI-hosted |
+| Per-user licensing | ✅ None | ❌ $12-57/user/mo | ❌ $6-18/user/mo | ⚠️ Cloud version | ❌ $10-15/user/mo | ❌ $20/mo | ❌ $20/mo | ❌ Per-task pricing | ✅ None | ❌ Enterprise contract |
+| Source code access | ✅ Full | ❌ None | ❌ None | ✅ Available | ❌ None | ❌ None | ❌ None | ❌ None | ✅ Full | ❌ None |
+| Modify & extend | ✅ Unlimited | ❌ API only | ❌ API only | ✅ Possible | ❌ API only | ❌ None | ❌ None | ❌ None | ✅ Skills and plugins | ⚠️ APIs and SDKs |
 
 ### Productivity Suite
 
-| Capability | General Bots | Microsoft 365 | Google Workspace | n8n | Notion | Perplexity | Claude | Make/Zapier |
-|------------|-------------|---------------|------------------|-----|--------|------------|--------|-------------|
-| Email | ✅ Stalwart | ✅ Exchange | ✅ Gmail | ❌ None | ❌ None | ❌ None | ❌ None | ❌ None |
-| Calendar | ✅ CalDAV | ✅ Outlook | ✅ Calendar | ❌ None | ❌ Basic | ❌ None | ❌ None | ❌ None |
-| File storage | ✅ MinIO | ✅ OneDrive | ✅ Drive | ❌ None | ⚠️ Limited | ❌ None | ❌ None | ❌ None |
-| Tasks/Projects | ✅ Full | ✅ Planner | ✅ Tasks | ❌ None | ✅ Strong | ❌ None | ❌ None | ❌ None |
-| Video meetings | ✅ LiveKit | ✅ Teams | ✅ Meet | ❌ None | ❌ None | ❌ None | ❌ None | ❌ None |
-| Team chat | ✅ Multi-channel | ✅ Teams | ✅ Chat | ❌ None | ⚠️ Comments | ❌ None | ❌ None | ❌ None |
-| Document editing | ✅ Available | ✅ Office apps | ✅ Docs/Sheets | ❌ None | ✅ Pages | ❌ None | ❌ None | ❌ None |
-| Identity/SSO | ✅ Zitadel | ✅ Entra ID | ✅ Identity | ❌ None | ⚠️ Basic | ❌ None | ❌ None | ❌ None |
+| Capability | General Bots | Microsoft 365 | Google Workspace | n8n | Notion | Perplexity | Claude | Make/Zapier | OpenClaw | OpenAI Frontier |
+|------------|-------------|---------------|------------------|-----|--------|------------|--------|------------- |--------------|----------------------|
+| Email | ✅ Stalwart | ✅ Exchange | ✅ Gmail | ❌ None | ❌ None | ❌ None | ❌ None | ❌ None | ⚠️ Acts on your inbox | ⚠️ Via integrations |
+| Calendar | ✅ CalDAV | ✅ Outlook | ✅ Calendar | ❌ None | ❌ Basic | ❌ None | ❌ None | ❌ None | ⚠️ Acts on your calendar | ⚠️ Via integrations |
+| File storage | ✅ MinIO | ✅ OneDrive | ✅ Drive | ❌ None | ⚠️ Limited | ❌ None | ❌ None | ❌ None | ⚠️ Local filesystem | ⚠️ Connects existing repositories |
+| Tasks/Projects | ✅ Full | ✅ Planner | ✅ Tasks | ❌ None | ✅ Strong | ❌ None | ❌ None | ❌ None | ⚠️ Agent run history | ⚠️ Agent execution engine |
+| Video meetings | ✅ LiveKit | ✅ Teams | ✅ Meet | ❌ None | ❌ None | ❌ None | ❌ None | ❌ None | ❌ None | ❌ None |
+| Team chat | ✅ Multi-channel | ✅ Teams | ✅ Chat | ❌ None | ⚠️ Comments | ❌ None | ❌ None | ❌ None | ✅ WhatsApp, Telegram, Slack, Teams | ❌ None |
+| Document editing | ✅ Available | ✅ Office apps | ✅ Docs/Sheets | ❌ None | ✅ Pages | ❌ None | ❌ None | ❌ None | ❌ None | ❌ None |
+| Identity/SSO | ✅ Zitadel | ✅ Entra ID | ✅ Identity | ❌ None | ⚠️ Basic | ❌ None | ❌ None | ❌ None | ⚠️ Local accounts | ✅ Enterprise identity and governance |
 
 ### AI & Intelligence
 
-| Capability | General Bots | Microsoft 365 | Google Workspace | n8n | Notion | Perplexity | Claude | Make/Zapier |
-|------------|-------------|---------------|------------------|-----|--------|------------|--------|-------------|
-| LLM integration | ✅ Any provider | ⚠️ Copilot ($30/user) | ⚠️ Gemini (extra) | ⚠️ Via nodes | ⚠️ Limited | ✅ Built-in | ✅ Built-in | ⚠️ Via connectors |
-| Custom prompts | ✅ Full control | ⚠️ Limited | ⚠️ Limited | ✅ Available | ⚠️ Basic | ⚠️ Limited | ✅ Available | ⚠️ Limited |
-| RAG/Knowledge base | ✅ Built-in | ⚠️ Extra cost | ⚠️ Extra cost | ⚠️ Custom build | ⚠️ Page search | ⚠️ Pro only | ⚠️ Projects | ❌ None |
-| Image generation | ✅ Local SD | ⚠️ Designer | ⚠️ Limited | ⚠️ Via API | ❌ None | ⚠️ Limited | ✅ Available | ⚠️ Via API |
-| Video generation | ✅ Zeroscope | ❌ None | ❌ None | ⚠️ Via API | ❌ None | ❌ None | ❌ None | ⚠️ Via API |
-| Speech-to-text | ✅ Whisper | ⚠️ Extra | ⚠️ Extra | ⚠️ Via API | ❌ None | ❌ None | ❌ None | ⚠️ Via API |
-| Vision/OCR | ✅ BLIP2 | ⚠️ Extra | ⚠️ Extra | ⚠️ Via API | ❌ None | ❌ None | ✅ Available | ⚠️ Via API |
-| Local/offline AI | ✅ Full support | ❌ None | ❌ None | ⚠️ Possible | ❌ None | ❌ None | ❌ None | ❌ None |
-| AI cost | ✅ Bring your key | ❌ $30/user/mo | ❌ $20/user/mo | ⚠️ API costs | ❌ $10/user/mo | ❌ $20/mo | ❌ $20/mo | ⚠️ Per operation |
+| Capability | General Bots | Microsoft 365 | Google Workspace | n8n | Notion | Perplexity | Claude | Make/Zapier | OpenClaw | OpenAI Frontier |
+|------------|-------------|---------------|------------------|-----|--------|------------|--------|------------- |--------------|----------------------|
+| LLM integration | ✅ Any provider | ⚠️ Copilot ($30/user) | ⚠️ Gemini (extra) | ⚠️ Via nodes | ⚠️ Limited | ✅ Built-in | ✅ Built-in | ⚠️ Via connectors | ✅ Bring your own model | ✅ Multi-vendor agent management |
+| Custom prompts | ✅ Full control | ⚠️ Limited | ⚠️ Limited | ✅ Available | ⚠️ Basic | ⚠️ Limited | ✅ Available | ⚠️ Limited | ✅ Full control | ⚠️ Agent configuration |
+| RAG/Knowledge base | ✅ Built-in | ⚠️ Extra cost | ⚠️ Extra cost | ⚠️ Custom build | ⚠️ Page search | ⚠️ Pro only | ⚠️ Projects | ❌ None | ⚠️ Local files and context | ✅ Shared business context |
+| Image generation | ✅ Local SD | ⚠️ Designer | ⚠️ Limited | ⚠️ Via API | ❌ None | ⚠️ Limited | ✅ Available | ⚠️ Via API | ⚠️ Via provider | ❌ None |
+| Video generation | ✅ Zeroscope | ❌ None | ❌ None | ⚠️ Via API | ❌ None | ❌ None | ❌ None | ⚠️ Via API | ⚠️ Via provider | ❌ None |
+| Speech-to-text | ✅ Whisper | ⚠️ Extra | ⚠️ Extra | ⚠️ Via API | ❌ None | ❌ None | ❌ None | ⚠️ Via API | ⚠️ Via provider | ❌ None |
+| Vision/OCR | ✅ BLIP2 | ⚠️ Extra | ⚠️ Extra | ⚠️ Via API | ❌ None | ❌ None | ✅ Available | ⚠️ Via API | ✅ Via models | ⚠️ Via models |
+| Local/offline AI | ✅ Full support | ❌ None | ❌ None | ⚠️ Possible | ❌ None | ❌ None | ❌ None | ❌ None | ⚠️ Local model setup | ❌ None |
+| AI cost | ✅ Bring your key | ❌ $30/user/mo | ❌ $20/user/mo | ⚠️ API costs | ❌ $10/user/mo | ❌ $20/mo | ❌ $20/mo | ⚠️ Per operation | ✅ Your key or subscription | ❌ Enterprise contract |
 
 ### Automation & Integration
 
-| Capability | General Bots | Microsoft 365 | Google Workspace | n8n | Notion | Perplexity | Claude | Make/Zapier |
-|------------|-------------|---------------|------------------|-----|--------|------------|--------|-------------|
-| Workflow automation | ✅ BASIC scripts | ⚠️ Power Automate ($) | ⚠️ AppSheet ($) | ✅ Visual builder | ⚠️ Basic | ❌ None | ❌ None | ✅ Visual builder |
-| Scheduled tasks | ✅ Cron + natural | ⚠️ Extra license | ⚠️ Limited | ✅ Available | ❌ None | ❌ None | ❌ None | ✅ Available |
-| Webhooks | ✅ Instant creation | ⚠️ Complex setup | ⚠️ Limited | ✅ Available | ⚠️ Limited | ❌ None | ❌ None | ✅ Available |
-| Custom APIs | ✅ One line | ❌ Azure required | ❌ GCP required | ✅ Possible | ❌ None | ❌ None | ✅ API available | ❌ None |
-| Database access | ✅ Direct SQL | ⚠️ Dataverse ($) | ⚠️ BigQuery ($) | ✅ Multiple DBs | ⚠️ Notion DBs | ❌ None | ❌ None | ⚠️ Limited |
-| REST API calls | ✅ GET/POST/etc | ⚠️ Premium connectors | ⚠️ Limited | ✅ HTTP nodes | ❌ None | ❌ None | ❌ None | ✅ HTTP module |
-| GraphQL | ✅ Native | ❌ None | ❌ None | ✅ Available | ❌ None | ❌ None | ❌ None | ⚠️ Limited |
-| SOAP/Legacy | ✅ Supported | ⚠️ Limited | ❌ None | ✅ Available | ❌ None | ❌ None | ❌ None | ⚠️ Limited |
-| Automation pricing | ✅ Unlimited | ❌ Per-flow fees | ❌ Per-run fees | ⚠️ Execution limits | ❌ None | ❌ None | ❌ None | ❌ Per-task fees |
+| Capability | General Bots | Microsoft 365 | Google Workspace | n8n | Notion | Perplexity | Claude | Make/Zapier | OpenClaw | OpenAI Frontier |
+|------------|-------------|---------------|------------------|-----|--------|------------|--------|------------- |--------------|----------------------|
+| Workflow automation | ✅ BASIC scripts | ⚠️ Power Automate ($) | ⚠️ AppSheet ($) | ✅ Visual builder | ⚠️ Basic | ❌ None | ❌ None | ✅ Visual builder | ✅ Skills and agent tasks | ✅ Multi-step agent execution |
+| Scheduled tasks | ✅ Cron + natural | ⚠️ Extra license | ⚠️ Limited | ✅ Available | ❌ None | ❌ None | ❌ None | ✅ Available | ✅ Scheduled agents | ✅ Task queuing and state |
+| Webhooks | ✅ Instant creation | ⚠️ Complex setup | ⚠️ Limited | ✅ Available | ⚠️ Limited | ❌ None | ❌ None | ✅ Available | ⚠️ Via plugins | ⚠️ Via APIs |
+| Custom APIs | ✅ One line | ❌ Azure required | ❌ GCP required | ✅ Possible | ❌ None | ❌ None | ✅ API available | ❌ None | ⚠️ Plugins in TypeScript | ✅ APIs and SDKs |
+| Database access | ✅ Direct SQL | ⚠️ Dataverse ($) | ⚠️ BigQuery ($) | ✅ Multiple DBs | ⚠️ Notion DBs | ❌ None | ❌ None | ⚠️ Limited | ⚠️ Via tools | ✅ Connects data warehouses |
+| REST API calls | ✅ GET/POST/etc | ⚠️ Premium connectors | ⚠️ Limited | ✅ HTTP nodes | ❌ None | ❌ None | ❌ None | ✅ HTTP module | ✅ Via skills | ✅ Via SDKs |
+| GraphQL | ✅ Native | ❌ None | ❌ None | ✅ Available | ❌ None | ❌ None | ❌ None | ⚠️ Limited | — | — |
+| SOAP/Legacy | ✅ Supported | ⚠️ Limited | ❌ None | ✅ Available | ❌ None | ❌ None | ❌ None | ⚠️ Limited | — | — |
+| Automation pricing | ✅ Unlimited | ❌ Per-flow fees | ❌ Per-run fees | ⚠️ Execution limits | ❌ None | ❌ None | ❌ None | ❌ Per-task fees | ✅ No platform fee | ❌ Enterprise contract |
 
 ### Multi-Channel Communication
 
-| Capability | General Bots | Microsoft 365 | Google Workspace | n8n | Notion | Perplexity | Claude | Make/Zapier |
-|------------|-------------|---------------|------------------|-----|--------|------------|--------|-------------|
-| Web chat | ✅ Built-in | ⚠️ Bot Framework | ❌ None | ❌ None | ❌ None | ✅ Web only | ✅ Web only | ❌ None |
-| WhatsApp | ✅ Native | ⚠️ Extra setup | ❌ None | ⚠️ Via nodes | ❌ None | ❌ None | ❌ None | ⚠️ Connector |
-| Teams | ✅ Native | ✅ Native | ❌ None | ⚠️ Via nodes | ❌ None | ❌ None | ❌ None | ⚠️ Connector |
-| Slack | ✅ Native | ⚠️ Connector | ⚠️ Limited | ⚠️ Via nodes | ⚠️ Integration | ❌ None | ⚠️ Integration | ⚠️ Connector |
-| Telegram | ✅ Native | ❌ None | ❌ None | ⚠️ Via nodes | ❌ None | ❌ None | ❌ None | ⚠️ Connector |
-| SMS | ✅ Native | ⚠️ Extra | ❌ None | ⚠️ Via nodes | ❌ None | ❌ None | ❌ None | ⚠️ Connector |
-| Email bot | ✅ Native | ⚠️ Complex | ⚠️ Limited | ⚠️ Via nodes | ❌ None | ❌ None | ❌ None | ⚠️ Connector |
-| Voice | ✅ LiveKit | ⚠️ Extra | ⚠️ Extra | ❌ None | ❌ None | ❌ None | ❌ None | ❌ None |
+| Capability | General Bots | Microsoft 365 | Google Workspace | n8n | Notion | Perplexity | Claude | Make/Zapier | OpenClaw | OpenAI Frontier |
+|------------|-------------|---------------|------------------|-----|--------|------------|--------|------------- |--------------|----------------------|
+| Web chat | ✅ Built-in | ⚠️ Bot Framework | ❌ None | ❌ None | ❌ None | ✅ Web only | ✅ Web only | ❌ None | ⚠️ Desktop and local UI | ❌ Not a chat product |
+| WhatsApp | ✅ Native | ⚠️ Extra setup | ❌ None | ⚠️ Via nodes | ❌ None | ❌ None | ❌ None | ⚠️ Connector | ✅ Native | ❌ None |
+| Teams | ✅ Native | ✅ Native | ❌ None | ⚠️ Via nodes | ❌ None | ❌ None | ❌ None | ⚠️ Connector | ✅ Native | ❌ None |
+| Slack | ✅ Native | ⚠️ Connector | ⚠️ Limited | ⚠️ Via nodes | ⚠️ Integration | ❌ None | ⚠️ Integration | ⚠️ Connector | ✅ Native | ❌ None |
+| Telegram | ✅ Native | ❌ None | ❌ None | ⚠️ Via nodes | ❌ None | ❌ None | ❌ None | ⚠️ Connector | ✅ Native | ❌ None |
+| SMS | ✅ Native | ⚠️ Extra | ❌ None | ⚠️ Via nodes | ❌ None | ❌ None | ❌ None | ⚠️ Connector | ⚠️ Via Twilio or provider | ❌ None |
+| Email bot | ✅ Native | ⚠️ Complex | ⚠️ Limited | ⚠️ Via nodes | ❌ None | ❌ None | ❌ None | ⚠️ Connector | ⚠️ Acts on your inbox | ❌ None |
+| Voice | ✅ LiveKit | ⚠️ Extra | ⚠️ Extra | ❌ None | ❌ None | ❌ None | ❌ None | ❌ None | ✅ Realtime voice models | ❌ None |
 
 ### Developer Experience
 
-| Capability | General Bots | Microsoft 365 | Google Workspace | n8n | Notion | Perplexity | Claude | Make/Zapier |
-|------------|-------------|---------------|------------------|-----|--------|------------|--------|-------------|
-| Scripting language | ✅ BASIC (simple) | ⚠️ Power Fx | ⚠️ Apps Script | ✅ JavaScript | ❌ None | ❌ None | ❌ None | ❌ Visual only |
-| No-code option | ✅ Conversational | ⚠️ Power Apps | ⚠️ AppSheet | ✅ Visual builder | ✅ Pages | ✅ Chat | ✅ Chat | ✅ Visual builder |
-| Custom keywords | ✅ Rust extensible | ❌ None | ❌ None | ✅ Custom nodes | ❌ None | ❌ None | ❌ None | ❌ None |
-| API-first | ✅ Full REST | ✅ Graph API | ✅ Workspace API | ✅ REST API | ⚠️ Limited | ⚠️ Limited | ✅ Full API | ⚠️ Limited |
-| Debugging | ✅ Console + logs | ⚠️ Complex | ⚠️ Complex | ✅ Execution logs | ❌ None | ❌ None | ❌ None | ⚠️ Limited |
-| Version control | ✅ File-based | ⚠️ Limited | ⚠️ Limited | ✅ Git support | ⚠️ Page history | ❌ None | ❌ None | ⚠️ Limited |
+| Capability | General Bots | Microsoft 365 | Google Workspace | n8n | Notion | Perplexity | Claude | Make/Zapier | OpenClaw | OpenAI Frontier |
+|------------|-------------|---------------|------------------|-----|--------|------------|--------|------------- |--------------|----------------------|
+| Scripting language | ✅ BASIC (simple) | ⚠️ Power Fx | ⚠️ Apps Script | ✅ JavaScript | ❌ None | ❌ None | ❌ None | ❌ Visual only | ✅ TypeScript skills | ❌ Not a low-code builder |
+| No-code option | ✅ Conversational | ⚠️ Power Apps | ⚠️ AppSheet | ✅ Visual builder | ✅ Pages | ✅ Chat | ✅ Chat | ✅ Visual builder | ✅ Conversational setup | ⚠️ Agent onboarding flows |
+| Custom keywords | ✅ Rust extensible | ❌ None | ❌ None | ✅ Custom nodes | ❌ None | ❌ None | ❌ None | ❌ None | ⚠️ Skills and plugins | ⚠️ SDKs |
+| API-first | ✅ Full REST | ✅ Graph API | ✅ Workspace API | ✅ REST API | ⚠️ Limited | ⚠️ Limited | ✅ Full API | ⚠️ Limited | ⚠️ Local gateway | ✅ APIs and SDKs |
+| Debugging | ✅ Console + logs | ⚠️ Complex | ⚠️ Complex | ✅ Execution logs | ❌ None | ❌ None | ❌ None | ⚠️ Limited | ⚠️ Local logs | ✅ Auditing and observability |
+| Version control | ✅ File-based | ⚠️ Limited | ⚠️ Limited | ✅ Git support | ⚠️ Page history | ❌ None | ❌ None | ⚠️ Limited | ✅ Git source | — |
 
 ### Security & Compliance
 
-| Capability | General Bots | Microsoft 365 | Google Workspace | n8n | Notion | Perplexity | Claude | Make/Zapier |
-|------------|-------------|---------------|------------------|-----|--------|------------|--------|-------------|
-| Data residency control | ✅ Your choice | ⚠️ Limited regions | ⚠️ Limited regions | ✅ Self-host | ❌ US/EU only | ❌ No control | ❌ No control | ❌ No control |
-| GDPR compliance | ✅ Self-managed | ✅ Available | ✅ Available | ✅ Self-host | ⚠️ Depends | ⚠️ Limited | ⚠️ Limited | ⚠️ Limited |
-| HIPAA capable | ✅ Self-managed | ⚠️ Extra cost | ⚠️ Extra cost | ✅ Self-host | ❌ No | ❌ No | ❌ No | ❌ No |
-| Audit logs | ✅ Full control | ✅ Available | ✅ Available | ✅ Available | ⚠️ Limited | ❌ Limited | ❌ Limited | ⚠️ Limited |
-| Encryption at rest | ✅ Configurable | ✅ Standard | ✅ Standard | ✅ Configurable | ✅ Standard | ✅ Standard | ✅ Standard | ✅ Standard |
-| SSO/OIDC | ✅ Zitadel | ✅ Entra | ✅ Identity | ⚠️ Enterprise | ⚠️ Business | ❌ Basic | ⚠️ Enterprise | ⚠️ Enterprise |
-| MFA | ✅ Built-in | ✅ Built-in | ✅ Built-in | ⚠️ Configure | ⚠️ Basic | ⚠️ Basic | ⚠️ Basic | ⚠️ Basic |
+| Capability | General Bots | Microsoft 365 | Google Workspace | n8n | Notion | Perplexity | Claude | Make/Zapier | OpenClaw | OpenAI Frontier |
+|------------|-------------|---------------|------------------|-----|--------|------------|--------|------------- |--------------|----------------------|
+| Data residency control | ✅ Your choice | ⚠️ Limited regions | ⚠️ Limited regions | ✅ Self-host | ❌ US/EU only | ❌ No control | ❌ No control | ❌ No control | ✅ Your devices | ⚠️ Region terms not published |
+| GDPR compliance | ✅ Self-managed | ✅ Available | ✅ Available | ✅ Self-host | ⚠️ Depends | ⚠️ Limited | ⚠️ Limited | ⚠️ Limited | ⚠️ Self-managed | ✅ Enterprise program |
+| HIPAA capable | ✅ Self-managed | ⚠️ Extra cost | ⚠️ Extra cost | ✅ Self-host | ❌ No | ❌ No | ❌ No | ❌ No | ⚠️ Self-managed | ⚠️ Enterprise agreement |
+| Audit logs | ✅ Full control | ✅ Available | ✅ Available | ✅ Available | ⚠️ Limited | ❌ Limited | ❌ Limited | ⚠️ Limited | ⚠️ Local logs | ✅ Explicit permissions and auditing |
+| Encryption at rest | ✅ Configurable | ✅ Standard | ✅ Standard | ✅ Configurable | ✅ Standard | ✅ Standard | ✅ Standard | ✅ Standard | ⚠️ Configurable | ✅ Standard |
+| SSO/OIDC | ✅ Zitadel | ✅ Entra | ✅ Identity | ⚠️ Enterprise | ⚠️ Business | ❌ Basic | ⚠️ Enterprise | ⚠️ Enterprise | ❌ Personal use | ✅ Enterprise identity |
+| MFA | ✅ Built-in | ✅ Built-in | ✅ Built-in | ⚠️ Configure | ⚠️ Basic | ⚠️ Basic | ⚠️ Basic | ⚠️ Basic | ⚠️ Device-level | ✅ Enterprise |
+
+### Agent Platforms (2026)
+
+The comparison above covers productivity suites and automation tools. The 2026 market also contains dedicated **agent platforms**, which compete with General Bots on different ground. Two matter most:
+
+| Aspect | General Bots | OpenClaw | OpenAI Frontier |
+|--------|--------------|----------|-----------------|
+| What it is | Organisational agent + productivity suite | Personal agent on your own machine | Enterprise agent management layer |
+| Deployment | Self-hosted | Self-hosted (your devices) | Managed cloud |
+| Licence | MIT | Open source (foundation-backed) | Proprietary |
+| Data location | Your servers | Your devices | OpenAI-hosted |
+| Primary user | A team or organisation | An individual | A large enterprise |
+| Channel reach | Web chat, WhatsApp, Teams, Slack, Telegram, SMS, email, voice | WhatsApp, Telegram, Discord, iMessage, Slack, Teams | None — not a chat product |
+| Productivity suite | Included (mail, calendar, files, tasks, meetings, office apps) | Acts on your existing tools | Connects to your systems of record |
+| Governance | RBAC, audit logs, admin console | Device-level, personal use | Permissions, auditing, explicit controls |
+| Self-serve | Yes | Yes | No — enterprise contracts |
+| Maturity | Early preview (Chat, Explorer, Vibe stable) | Widely deployed personal agent | Fortune 500 deployments |
+
+Read the full positioning in [OpenClaw and General Bots](./openclaw.md) and [OpenAI Frontier and General Bots](./openai-frontier.md).
 
 ## Cost Analysis (100 Users, Annual)
 
@@ -108,8 +131,10 @@ General Bots uniquely combines self-hosted deployment, open source licensing, na
 | n8n Cloud + separate tools | $0-6,000 | API costs | Included | None | **$20,000+** |
 | Notion Team + AI | $12,000 | $12,000 | None | Limited | **$24,000** |
 | Multiple point solutions | Varies | Varies | Varies | Varies | **$50,000+** |
+| **OpenClaw** | $0 | Your model spend | $0 | Your own disks | **Model spend only** |
+| **OpenAI Frontier** | Enterprise contract | Included | Included | Enterprise agreement | **Not published** |
 
-*General Bots cost = infrastructure + optional LLM API usage
+*General Bots cost = infrastructure + optional LLM API usage. OpenClaw has no platform fee but runs against a model you pay for, unless you host a local model. OpenAI Frontier is sold as an enterprise agreement and its pricing is not public.
 
 ## Feature Availability by Use Case
 
@@ -194,6 +219,8 @@ The combination of enterprise productivity features, native AI, powerful automat
 
 ## See Also
 
+- [OpenClaw and General Bots](./openclaw.md) - Personal-agent comparison
+- [OpenAI Frontier and General Bots](./openai-frontier.md) - Enterprise agent-platform comparison
 - [Migration Overview](./overview.md) - Getting started
 - [Migration Resources](./resources.md) - Tools and templates
 - [Enterprise Platform Migration](./microsoft-365.md) - Detailed migration guide

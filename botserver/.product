@@ -9,17 +9,21 @@
 name=General Bots
 
 # Active apps (comma-separated list)
-# Available apps: chat, mail, calendar, drive, tasks, docs, paper, sheet, slides,
-#                 meet, research, integrations, analytics, admin, monitoring, settings,
-#                 products, billing, people, tickets, social, compliance
-# Only listed apps will be visible in the UI and have their APIs enabled.
-apps=admin,bas-editor,billing,browser,calculator,calendar,campaigns,canvas,chat,clockapp,crm,database,drive,editor,goals,integrations,itsm,jukebox,lists,mail,meet,notepad,notes,paper,people,photos,player,products,project,recycle,sales,settings,sheet,snapshot,store,tasks,terminal,timer,tools,vdi,versions,vibe,weather,workspace
+# Only the stable surface is listed here: chat, drive (Explorer) and vibe.
+# Every other application is declared under `preview_apps` below.
+# Core surfaces (settings, auth, admin) are always enabled regardless of this
+# list, so they remain reachable.
+apps=chat,drive,vibe
 
 # Preview applications (comma-separated list)
 # These do NOT appear in the launcher or the sidebar by default. They are
 # revealed only while Preview mode is on, which the user toggles with the
 # Preview switch in the left sidebar.
-preview_apps=analytics,attendant,banking,biometry,compliance,concierge,consent,dashboards,designer,docs,fraud,gl,handoff,hr,inventory,kyc,learn,marketplace,minutes,monitoring,o365,plan,pos,research,retail,slides,social,tax,templates,timeclock,timeseries,tickets,video,vision,weba
+# Everything in the suite catalog except chat, drive and vibe is preview.
+# Ids are validated against the catalog in `src/apps/registry.rs` and the
+# feature map in `src/apps/mod.rs::is_app_compiled`; an id in neither place is
+# ignored by the launcher and should not be listed here.
+preview_apps=admin,analytics,attendant,automations,banking,billing,biometry,browser,calendar,campaigns,canvas,compliance,concierge,crm,database,designer,docs,editor,fraud,goals,handoff,hr,integrations,itsm,jukebox,kyc,learn,lists,mail,marketing,meet,memory,minutes,monitoring,notes,o365,paper,people,photos,plan,player,pos,products,project,recycle,research,retail,sales,settings,sheet,slides,social,sources,store,tasks,tax,templates,terminal,tickets,timeclock,timer,vdi,vibe-db,vibe-deploy,vibe-graph,vibe-members,vibe-metering,vibe-metrics,video,vision,weather,workspace
 
 
 # Sidebar visibility

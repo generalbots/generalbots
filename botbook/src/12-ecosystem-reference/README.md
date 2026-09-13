@@ -76,44 +76,56 @@ name=Acme Bot Platform
 **Type:** Comma-separated list  
 **Default:** All apps enabled
 
-Specifies which apps are active in the suite. Only listed apps will:
-
-- Appear in the navigation menu
-- Have their APIs enabled
-- Be accessible to users
-
-**Available apps:**
-
-| App | Description |
-|-----|-------------|
-| `chat` | Main chat interface |
-| `mail` | Email client |
-| `calendar` | Calendar and scheduling |
-| `drive` | File storage |
-| `tasks` | Task management |
-| `docs` | Document editor |
-| `paper` | Notes and quick documents |
-| `sheet` | Spreadsheet editor |
-| `slides` | Presentation editor |
-| `meet` | Video conferencing |
-| `research` | Research assistant |
-| `sources` | Data sources management |
-| `analytics` | Analytics dashboard |
-| `admin` | Administration panel |
-| `monitoring` | System monitoring |
-| `settings` | User settings |
-
-**Example - Minimal setup:**
+Specifies which apps are visible in the suite without turning Preview mode on. The shipped configuration lists only the stable surface:
 
 ```ini
-apps=chat,drive,tasks
+apps=chat,drive,vibe
 ```
 
-**Example - Full productivity suite:**
+Applications not listed here are not removed — they are declared under [`preview_apps`](#preview_apps) instead. To promote an app out of Preview mode, move its id from `preview_apps` to `apps`.
+
+**Example — promoting the advanced apps:**
 
 ```ini
-apps=chat,mail,calendar,drive,tasks,docs,sheet,slides,meet
+apps=chat,drive,vibe,mail,sheet
 ```
+
+### preview_apps
+
+**Type:** Comma-separated list  
+**Default:** Empty
+
+Applications that are installed and fully usable, but withheld from the launcher and the sidebar until the user turns on the **Preview** switch in the left sidebar (#1348). The shipped configuration declares every application except the three stable ones.
+
+```ini
+apps=chat,drive,vibe
+preview_apps=admin,analytics,attendant,automations,banking,billing,biometry,
+             browser,calendar,campaigns,canvas,compliance,concierge,crm,database,
+             designer,docs,editor,fraud,goals,handoff,hr,integrations,jukebox,kyc,
+             learn,lists,mail,marketing,meet,memory,minutes,monitoring,notes,o365,
+             paper,people,photos,plan,player,pos,products,project,recycle,research,
+             retail,sales,settings,sheet,slides,social,sources,store,tasks,tax,
+             templates,terminal,tickets,timeclock,timer,vdi,video,vision,weather,
+             workspace
+```
+
+Rules that matter when editing these lists:
+
+- **Never list the same id in both lists.** A preview app must be absent from `apps`; that absence is what keeps it out of the launcher.
+- **Ids must exist.** They are matched against the catalog in `botserver/src/apps/registry.rs` and the feature map in `botserver/src/apps/mod.rs::is_app_compiled`. An id in neither place is ignored by the launcher.
+- **Core surfaces stay visible.** `settings`, `auth` and `admin` are always enabled regardless of these lists.
+- **Preview controls visibility, not installation.** Preview apps keep working; only their launcher entry is withheld.
+
+### Stability classification
+
+As of **September 2026**:
+
+| Stability | Apps | Notes |
+|---|---|---|
+| **Stable** | `chat`, `drive`, `vibe` | Supported surface |
+| **Preview — advanced** | `mail`, `sheet` | Functional; expected to reach stable next |
+| **Preview — in test** | `docs`, `slides` | Under active test; capability may change |
+| **Preview** | every other app in the catalog | Usable, not yet supported |
 
 ### theme
 
