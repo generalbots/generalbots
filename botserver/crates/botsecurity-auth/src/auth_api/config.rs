@@ -39,6 +39,11 @@ impl Default for AuthConfig {
                 // Host→bot lookup used by the UI server (botui) when rendering
                 // the suite for a domain/subdomain before any user auth exists.
                 "/api/domains/resolve".to_string(),
+                // Caddy on-demand TLS decision endpoint: the proxy itself calls
+                // it during the TLS handshake (before any HTTP request exists,
+                // hence no Authorization header). Returns 200 for active-bot
+                // platform subdomains or mapped custom domains, 403 otherwise.
+                "/api/domains/tls-ask".to_string(),
                 // Mailbox OAuth2 consent callback. The provider redirects the
                 // user's browser here without any Authorization header; the
                 // request is authenticated by the signed `state` parameter
