@@ -25,7 +25,7 @@ fn register_get_sharepoint_lists(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["GET", "SHAREPOINT", "LISTS", "$expr$"],
             false,
@@ -41,7 +41,9 @@ fn register_get_sharepoint_lists(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid GET SHAREPOINT LISTS syntax");
+    {
+        log::error!("valid GET SHAREPOINT LISTS syntax failed: {e}");
+    }
 }
 
 fn register_create_sharepoint_item(
@@ -51,7 +53,7 @@ fn register_create_sharepoint_item(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             [
                 "CREATE", "SHAREPOINT", "ITEM", "$expr$", ",", "$expr$", ",", "$expr$",
@@ -74,7 +76,9 @@ fn register_create_sharepoint_item(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid CREATE SHAREPOINT ITEM syntax");
+    {
+        log::error!("valid CREATE SHAREPOINT ITEM syntax failed: {e}");
+    }
 }
 
 fn register_send_teams_message(

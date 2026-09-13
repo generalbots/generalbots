@@ -322,8 +322,8 @@ impl S3Repository {
             .map_err(|e| anyhow::anyhow!("invalid host header: {}", e))?);
         headers.insert("x-amz-date", long_date.parse()
             .map_err(|e| anyhow::anyhow!("invalid date header: {}", e))?);
-        headers.insert("x-amz-content-sha256", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855".parse().unwrap());
-        headers.insert("x-amz-acl", "private".parse().unwrap());
+        headers.insert("x-amz-content-sha256", http::HeaderValue::from_static("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"));
+        headers.insert("x-amz-acl", http::HeaderValue::from_static("private"));
 
         let url = url::Url::parse(&url_str)
             .map_err(|e| anyhow::anyhow!("bad url: {}", e))?;

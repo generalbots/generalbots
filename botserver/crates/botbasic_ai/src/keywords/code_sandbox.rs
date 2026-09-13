@@ -492,7 +492,7 @@ pub fn run_python_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engin
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["RUN", "PYTHON", "$expr$"],
             false,
@@ -536,14 +536,16 @@ pub fn run_python_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engin
                 }
             },
         )
-        .expect("Failed to register RUN PYTHON syntax");
+    {
+        log::error!("Failed to register RUN PYTHON syntax failed: {e}");
+    }
 }
 
 pub fn run_javascript_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["RUN", "JAVASCRIPT", "$expr$"],
             false,
@@ -587,9 +589,11 @@ pub fn run_javascript_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
                 }
             },
         )
-        .expect("Failed to register RUN JAVASCRIPT syntax");
+    {
+        log::error!("Failed to register RUN JAVASCRIPT syntax failed: {e}");
+    }
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["RUN", "JS", "$expr$"], false, move |context, inputs| {
             let code = context
                 .eval_expression_tree(&inputs[0])?
@@ -627,11 +631,13 @@ pub fn run_javascript_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
                 ))),
             }
         })
-        .expect("Failed to register RUN JS syntax");
+    {
+        log::error!("Failed to register RUN JS syntax failed: {e}");
+    }
 }
 
 pub fn run_bash_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["RUN", "BASH", "$expr$"], false, move |context, inputs| {
             let code = context
                 .eval_expression_tree(&inputs[0])?
@@ -671,14 +677,16 @@ pub fn run_bash_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine:
                 ))),
             }
         })
-        .expect("Failed to register RUN BASH syntax");
+    {
+        log::error!("Failed to register RUN BASH syntax failed: {e}");
+    }
 }
 
 pub fn run_file_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["RUN", "PYTHON", "WITH", "FILE", "$expr$"],
             false,
@@ -726,9 +734,11 @@ pub fn run_file_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine:
                 }
             },
         )
-        .expect("Failed to register RUN PYTHON WITH FILE syntax");
+    {
+        log::error!("Failed to register RUN PYTHON WITH FILE syntax failed: {e}");
+    }
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["RUN", "JAVASCRIPT", "WITH", "FILE", "$expr$"],
             false,
@@ -772,7 +782,9 @@ pub fn run_file_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine:
                 }
             },
         )
-        .expect("Failed to register RUN JAVASCRIPT WITH FILE syntax");
+    {
+        log::error!("Failed to register RUN JAVASCRIPT WITH FILE syntax failed: {e}");
+    }
 }
 
 pub fn generate_python_lxc_config() -> String {

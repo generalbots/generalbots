@@ -182,7 +182,7 @@ pub fn use_model_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["USE", "MODEL", "$expr$"], false, move |context, inputs| {
             let model_name = context
                 .eval_expression_tree(&inputs[0])?
@@ -222,14 +222,16 @@ pub fn use_model_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine
                 ))),
             }
         })
-        .expect("Failed to register USE MODEL syntax");
+    {
+        log::error!("Failed to register USE MODEL syntax failed: {e}");
+    }
 }
 
 pub fn set_model_routing_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SET", "MODEL", "ROUTING", "$expr$"],
             false,
@@ -278,7 +280,9 @@ pub fn set_model_routing_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
                 }
             },
         )
-        .expect("Failed to register SET MODEL ROUTING syntax");
+    {
+        log::error!("Failed to register SET MODEL ROUTING syntax failed: {e}");
+    }
 }
 
 pub fn get_current_model_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {

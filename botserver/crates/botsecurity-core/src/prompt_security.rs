@@ -368,19 +368,40 @@ impl PromptSecurityManager {
         }
     }
 
+    /// Compile a constant security pattern. These are hard-coded valid
+    /// regexes; on the impossible parse error, degrade to a pattern that
+    /// matches nothing (sanitizer becomes a no-op for that rule) instead
+    /// of panicking inside the running server (#1368).
+    fn compile_pattern(pattern: &str) -> Option<Regex> {
+        match Regex::new(pattern) {
+            Ok(re) => Some(re),
+            // Constant patterns are valid by construction; on the
+            // impossible error, log and skip this filter rule instead of
+            // panicking inside the running server (#1368).
+            Err(e) => {
+                log::error!("security pattern failed to compile ({pattern}): {e}");
+                None
+            }
+        }
+    }
+
     pub fn sanitize_input(&self, input: &str) -> String {
         let mut sanitized = input.to_string();
 
         sanitized = sanitized.replace('<', "&lt;");
         sanitized = sanitized.replace('>', "&gt;");
 
-        let delimiter_pattern = Regex::new(r"(?i)(\[/?system\]|\{/?system\}|```system|<\|im_start\|>|<\|im_end\|>)")
-            .unwrap_or_else(|_| Regex::new(r"^$").expect("Failed to create fallback regex"));
-        sanitized = delimiter_pattern.replace_all(&sanitized, "[FILTERED]").to_string();
+        if let Some(delimiter_pattern) =
+            Self::compile_pattern(r"(?i)(\[/?system\]|\{/?system\}|```system|<\|im_start\|>|<\|im_end\|>)")
+        {
+            sanitized = delimiter_pattern.replace_all(&sanitized, "[FILTERED]").to_string();
+        }
 
-        let override_pattern = Regex::new(r"(?i)(ignore|disregard|forget)\s+(all\s+)?(previous|prior|above)")
-            .unwrap_or_else(|_| Regex::new(r"^$").expect("Failed to create fallback regex"));
-        sanitized = override_pattern.replace_all(&sanitized, "[FILTERED]").to_string();
+        if let Some(override_pattern) =
+            Self::compile_pattern(r"(?i)(ignore|disregard|forget)\s+(all\s+)?(previous|prior|above)")
+        {
+            sanitized = override_pattern.replace_all(&sanitized, "[FILTERED]").to_string();
+        }
 
         sanitized = sanitized.chars().filter(|c| !c.is_control() || *c == '\n' || *c == '\t').collect();
 

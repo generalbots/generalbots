@@ -4,6 +4,14 @@ use log::{debug, trace};
 use rhai::{Array, Dynamic, Engine, EvalAltResult, Map, Position};
 use scraper::{Html, Selector};
 
+/// Parse a hard-coded, known-valid CSS selector, propagating failure via
+/// `Result` (#1368 — never panic in the server). The patterns passed here
+/// are constants; an error means the constant itself is malformed.
+fn static_selector(pattern: &str, label: &str) -> Result<Selector, String> {
+    Selector::parse(pattern).map_err(|e| format!("static {label} selector invalid: {e:?}"))
+}
+
+
 pub fn register_web_data_keywords(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     register_rss_keyword(state.clone(), user.clone(), engine);
     register_scrape_keyword(state.clone(), user.clone(), engine);
@@ -47,7 +55,7 @@ fn register_rss_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engin
     log::error!("Failed to register the custom syntax: {e}");
 }
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["RSS", "$expr$", ",", "$expr$"],
             false,
@@ -84,7 +92,9 @@ fn register_rss_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engin
                 }
             },
         )
-        .expect("valid RSS syntax registration");
+    {
+        log::error!("valid RSS syntax registration failed: {e}");
+    }
 
     debug!("Registered RSS keyword");
 }
@@ -131,7 +141,7 @@ async fn fetch_rss(
 }
 
 fn register_scrape_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SCRAPE", "$expr$", ",", "$expr$"],
             false,
@@ -165,13 +175,15 @@ fn register_scrape_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, en
                 }
             },
         )
-        .expect("valid SCRAPE syntax registration");
+    {
+        log::error!("valid SCRAPE syntax registration failed: {e}");
+    }
 
     debug!("Registered SCRAPE keyword");
 }
 
 fn register_scrape_all_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SCRAPE_ALL", "$expr$", ",", "$expr$"],
             false,
@@ -205,13 +217,15 @@ fn register_scrape_all_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession
                 }
             },
         )
-        .expect("valid SCRAPE_ALL syntax registration");
+    {
+        log::error!("valid SCRAPE_ALL syntax registration failed: {e}");
+    }
 
     debug!("Registered SCRAPE_ALL keyword");
 }
 
 fn register_scrape_table_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SCRAPE_TABLE", "$expr$", ",", "$expr$"],
             false,
@@ -245,13 +259,15 @@ fn register_scrape_table_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSessi
                 }
             },
         )
-        .expect("valid SCRAPE_TABLE syntax registration");
+    {
+        log::error!("valid SCRAPE_TABLE syntax registration failed: {e}");
+    }
 
     debug!("Registered SCRAPE_TABLE keyword");
 }
 
 fn register_scrape_links_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SCRAPE_LINKS", "$expr$"],
             false,
@@ -284,13 +300,15 @@ fn register_scrape_links_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSessi
                 }
             },
         )
-        .expect("valid SCRAPE_LINKS syntax registration");
+    {
+        log::error!("valid SCRAPE_LINKS syntax registration failed: {e}");
+    }
 
     debug!("Registered SCRAPE_LINKS keyword");
 }
 
 fn register_scrape_images_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SCRAPE_IMAGES", "$expr$"],
             false,
@@ -323,7 +341,9 @@ fn register_scrape_images_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSess
                 }
             },
         )
-        .expect("valid SCRAPE_IMAGES syntax registration");
+    {
+        log::error!("valid SCRAPE_IMAGES syntax registration failed: {e}");
+    }
 
     debug!("Registered SCRAPE_IMAGES keyword");
 }
@@ -380,9 +400,9 @@ async fn scrape_table(
     let html = fetch_page(url).await?;
     let document = Html::parse_document(&html);
     let table_sel = Selector::parse(selector).map_err(|e| format!("Invalid selector: {:?}", e))?;
-    let tr_sel = Selector::parse("tr").expect("static tr selector");
-    let th_sel = Selector::parse("th").expect("static th selector");
-    let td_sel = Selector::parse("td").expect("static td selector");
+    let tr_sel = static_selector("tr", "tr")?;
+    let th_sel = static_selector("th", "th")?;
+    let td_sel = static_selector("td", "td")?;
     let mut results = Array::new();
     let mut headers: Vec<String> = Vec::new();
     if let Some(table) = document.select(&table_sel).next() {
@@ -416,7 +436,7 @@ async fn scrape_table(
 async fn scrape_links(url: &str) -> Result<Array, Box<dyn std::error::Error + Send + Sync>> {
     let html = fetch_page(url).await?;
     let document = Html::parse_document(&html);
-    let sel = Selector::parse("a[href]").expect("static href selector");
+    let sel = static_selector("a[href]", "href")?;
     let base_url = Url::parse(url)?;
     let mut results = Array::new();
     for el in document.select(&sel) {
@@ -442,7 +462,7 @@ async fn scrape_links(url: &str) -> Result<Array, Box<dyn std::error::Error + Se
 async fn scrape_images(url: &str) -> Result<Array, Box<dyn std::error::Error + Send + Sync>> {
     let html = fetch_page(url).await?;
     let document = Html::parse_document(&html);
-    let sel = Selector::parse("img[src]").expect("static img selector");
+    let sel = static_selector("img[src]", "img")?;
     let base_url = Url::parse(url)?;
     let mut results = Array::new();
     for el in document.select(&sel) {

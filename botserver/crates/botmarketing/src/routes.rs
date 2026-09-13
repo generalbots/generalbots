@@ -1,7 +1,7 @@
 use axum::{
     body::Body,
     extract::{Path, State},
-    http::{header, StatusCode},
+    http::{header, HeaderValue, StatusCode},
     response::Response,
     routing::{get, post},
     Router,
@@ -94,11 +94,11 @@ pub async fn track_email_open_pixel(
     let mut response = Response::new(Body::from(pixel));
     response.headers_mut().insert(
         header::CONTENT_TYPE,
-        "image/png".parse().unwrap(),
+        HeaderValue::from_static("image/png"),
     );
     response.headers_mut().insert(
         header::CACHE_CONTROL,
-        "no-cache, no-store, must-revalidate".parse().unwrap(),
+        HeaderValue::from_static("no-cache, no-store, must-revalidate"),
     );
     response
 }

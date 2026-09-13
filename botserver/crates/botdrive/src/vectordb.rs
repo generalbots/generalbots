@@ -15,6 +15,39 @@ use pdf_extract;
 #[cfg(feature = "vectordb")]
 use botqdrant::{Distance, PointStruct, Qdrant, VectorParams};
 
+/// Strip HTML tags/entities/whitespace noise from a spreadsheet cell
+/// value. The patterns are constants; if one somehow failed to compile
+/// the corresponding step is skipped instead of panicking (#1368).
+#[cfg(feature = "sheet")]
+fn sanitize_cell_text(raw: &str) -> String {
+    fn compile(pattern: &str) -> Option<regex::Regex> {
+        match regex::Regex::new(pattern) {
+            Ok(re) => Some(re),
+            Err(e) => {
+                log::error!("sanitize_cell_text pattern invalid ({pattern}): {e}");
+                None
+            }
+        }
+    }
+    let s1 = compile(r"(?is)<(style|script)[^>]*>.*?</\1>")
+        .map(|re| re.replace_all(raw, "").to_string())
+        .unwrap_or_else(|| raw.to_string());
+    let s2 = compile(r"<[^>]*>")
+        .map(|re| re.replace_all(&s1, "").to_string())
+        .unwrap_or_else(|| s1);
+    let s3 = s2.replace("&nbsp;", " ")
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", "\"");
+    compile(r"\s+")
+        .map(|re| re.replace_all(&s3, " ").to_string())
+        .unwrap_or(s3)
+        .trim()
+        .to_string()
+}
+
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileDocument {
 pub id: String,
@@ -770,13 +803,7 @@ async fn extract_xlsx_text(file_path: &Path) -> Result<String> {
                             | calamine::Data::DateTimeIso(s)
                             | calamine::Data::DurationIso(s) => {
                                 // Remove HTML tags and formatting artifacts
-                                let re_style = regex::Regex::new(r"(?is)<(style|script)[^>]*>.*?</\1>").unwrap_or_else(|_| regex::Regex::new(r"x{0}").unwrap());
-                                let s1 = re_style.replace_all(s, "");
-                                let re_tags = regex::Regex::new(r"<[^>]*>").unwrap_or_else(|_| regex::Regex::new(r"x{0}").unwrap());
-                                let s2 = re_tags.replace_all(&s1, "");
-                                let s3 = s2.replace("&nbsp;", " ").replace("&amp;", "&").replace("&lt;", "<").replace("&gt;", ">").replace("&quot;", "\"");
-                                let re_spaces = regex::Regex::new(r"\s+").unwrap_or_else(|_| regex::Regex::new(r"x{0}").unwrap());
-                                re_spaces.replace_all(&s3, " ").to_string().trim().to_string()
+                                sanitize_cell_text(s)
                             },
                             calamine::Data::Float(f) => f.to_string(),
                             calamine::Data::Int(i) => i.to_string(),
@@ -922,17 +949,7 @@ pub fn extract_xlsx_text_sync(file_path: &Path) -> Result<String> {
                     .map(|cell| match cell {
                         calamine::Data::Empty => String::new(),
                         calamine::Data::String(s) | calamine::Data::DateTimeIso(s) | calamine::Data::DurationIso(s) => {
-                            let re_style = regex::Regex::new(r"(?is)<(style|script)[^>]*>.*?</\1>").unwrap();
-                            let s1 = re_style.replace_all(s, "");
-                            let re_tags = regex::Regex::new(r"<[^>]*>").unwrap();
-                            let s2 = re_tags.replace_all(&s1, "");
-                            let s3 = s2.replace("&nbsp;", " ")
-                                .replace("&amp;", "&")
-                                .replace("&lt;", "<")
-                                .replace("&gt;", ">")
-                                .replace("&quot;", "\"");
-                            let re_spaces = regex::Regex::new(r"\s+").unwrap();
-                            re_spaces.replace_all(&s3, " ").to_string().trim().to_string()
+                            sanitize_cell_text(s)
                         }
                         calamine::Data::Float(f) => f.to_string(),
                         calamine::Data::Int(i) => i.to_string(),

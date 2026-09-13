@@ -177,6 +177,10 @@ fn is_private_ip(ip: IpAddr) -> bool {
     }
 }
 
+#[cfg(test)]
+mod tests {
+use super::*;
+
 #[test]
 fn private_ip_detection() {
     assert!(is_private_ip("127.0.0.1".parse().unwrap()));
@@ -185,6 +189,7 @@ fn private_ip_detection() {
     assert!(is_private_ip("::1".parse().unwrap()));
     assert!(!is_private_ip("8.8.8.8".parse().unwrap()));
     assert!(!is_private_ip("93.184.216.34".parse().unwrap()));
+}
 }
 
 #[derive(Deserialize)]

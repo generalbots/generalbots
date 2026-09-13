@@ -801,7 +801,7 @@ pub fn set_bot_reflection_keyword(state: Arc<dyn BasicRuntime>, user: UserSessio
     let _ = (&state, &user); // Mark as intentionally unused in registration
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SET", "BOT", "REFLECTION", "$expr$"],
             false,
@@ -848,14 +848,16 @@ pub fn set_bot_reflection_keyword(state: Arc<dyn BasicRuntime>, user: UserSessio
                 }
             },
         )
-        .expect("Failed to register SET BOT REFLECTION syntax");
+    {
+        log::error!("Failed to register SET BOT REFLECTION syntax failed: {e}");
+    }
 }
 
 pub fn reflect_on_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["REFLECT", "ON", "$expr$"],
             false,
@@ -905,7 +907,9 @@ pub fn reflect_on_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engin
                 }
             },
         )
-        .expect("Failed to register REFLECT ON syntax");
+    {
+        log::error!("Failed to register REFLECT ON syntax failed: {e}");
+    }
 }
 
 pub fn get_reflection_insights_keyword(

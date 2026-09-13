@@ -19,8 +19,16 @@ pub fn for_keyword(_state: &Arc<dyn BasicRuntime>, _user: UserSession, engine: &
             true,
             |context, inputs| {
 
-                let loop_var = inputs[0].get_string_value().expect("expected string value").to_lowercase();
-                let next_var = inputs[3].get_string_value().expect("expected string value").to_lowercase();
+                // #1368 — a non-string loop variable is a script error,
+                // not a crash: surface it through the runtime error path.
+                let loop_var = inputs[0]
+                    .get_string_value()
+                    .ok_or_else(|| "FOR EACH loop variable: expected identifier".to_string())?
+                    .to_lowercase();
+                let next_var = inputs[3]
+                    .get_string_value()
+                    .ok_or_else(|| "NEXT variable: expected identifier".to_string())?
+                    .to_lowercase();
                 if loop_var != next_var {
                     return Err(format!(
                         "NEXT variable '{}' doesn't match FOR EACH variable '{}'",

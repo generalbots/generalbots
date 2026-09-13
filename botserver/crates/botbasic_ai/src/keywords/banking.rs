@@ -71,7 +71,7 @@ fn register_import_bank_statement(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["IMPORT", "BANK", "STATEMENT", "$expr$"],
             false,
@@ -129,7 +129,9 @@ fn register_import_bank_statement(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid IMPORT BANK STATEMENT syntax");
+    {
+        log::error!("valid IMPORT BANK STATEMENT syntax failed: {e}");
+    }
 }
 
 fn register_import_platform_orders(
@@ -139,7 +141,7 @@ fn register_import_platform_orders(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["IMPORT", "PLATFORM", "ORDERS", "$expr$"],
             false,
@@ -217,7 +219,9 @@ fn register_import_platform_orders(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid IMPORT PLATFORM ORDERS syntax");
+    {
+        log::error!("valid IMPORT PLATFORM ORDERS syntax failed: {e}");
+    }
 }
 
 fn register_reconcile(
@@ -227,7 +231,7 @@ fn register_reconcile(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["RECONCILE", "$expr$", "$expr$"],
             false,
@@ -299,7 +303,9 @@ fn register_reconcile(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid RECONCILE syntax");
+    {
+        log::error!("valid RECONCILE syntax failed: {e}");
+    }
 }
 
 fn register_get_unmatched_deliveries(
@@ -309,7 +315,7 @@ fn register_get_unmatched_deliveries(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["GET", "UNMATCHED", "DELIVERIES", "$expr$"],
             false,
@@ -325,7 +331,9 @@ fn register_get_unmatched_deliveries(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid GET UNMATCHED DELIVERIES syntax");
+    {
+        log::error!("valid GET UNMATCHED DELIVERIES syntax failed: {e}");
+    }
 }
 
 fn register_add_reconcile_rule(
@@ -335,7 +343,7 @@ fn register_add_reconcile_rule(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["ADD", "RECONCILE", "RULE", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -355,7 +363,9 @@ fn register_add_reconcile_rule(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid ADD RECONCILE RULE syntax");
+    {
+        log::error!("valid ADD RECONCILE RULE syntax failed: {e}");
+    }
 }
 
 fn register_delivery_margins(
@@ -365,7 +375,7 @@ fn register_delivery_margins(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["DELIVERY", "MARGINS", "$expr$"], false, move |context, inputs| {
             let deliveries_json = context.eval_expression_tree(&inputs[0])?.to_string();
             trace!("DELIVERY MARGINS");
@@ -404,7 +414,9 @@ fn register_delivery_margins(
             });
             Ok(serde_json_to_dynamic(&result))
         })
-        .expect("valid DELIVERY MARGINS syntax");
+    {
+        log::error!("valid DELIVERY MARGINS syntax failed: {e}");
+    }
 }
 
 fn register_revenue_by_platform(
@@ -414,7 +426,7 @@ fn register_revenue_by_platform(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["REPORT", "REVENUE", "BY", "PLATFORM", "$expr$"],
             false,
@@ -456,7 +468,9 @@ fn register_revenue_by_platform(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid REPORT REVENUE BY PLATFORM syntax");
+    {
+        log::error!("valid REPORT REVENUE BY PLATFORM syntax failed: {e}");
+    }
 }
 
 fn serde_json_to_dynamic(v: &Value) -> Dynamic {
