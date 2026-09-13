@@ -352,7 +352,8 @@ pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
 
     // Load all SaaS config from directory_config.json (written during init from Vault)
     let (base_url, jwt_secret, templates_dir, mc_path, mc_alias,
-         directory_api_url, directory_service_token, directory_external_domain) = {
+         directory_api_url, directory_service_token, directory_external_domain,
+         directory_allow_insecure_http) = {
         let config_path = format!("{}/conf/system/directory_config.json", botcore::shared::utils::get_stack_path());
         match std::fs::read_to_string(&config_path) {
             Ok(content) => {
@@ -383,14 +384,15 @@ pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
                             api_url,
                             service_token,
                             j("external_domain"),
+                            json.get("allow_insecure_http").and_then(|v| v.as_bool()).unwrap_or(false),
                         )
                     }
                     Err(_) => (String::new(), crate::main_module::directory_setup::resolve_saas_jwt_secret(), "work/templates/bots".to_string(),
-                              "/tmp/mc".to_string(), "local".to_string(), None, None, None),
+                              "/tmp/mc".to_string(), "local".to_string(), None, None, None, false),
                 }
             }
             Err(_) => (String::new(), crate::main_module::directory_setup::resolve_saas_jwt_secret(), "work/templates/bots".to_string(),
-                      "/tmp/mc".to_string(), "local".to_string(), None, None, None),
+                      "/tmp/mc".to_string(), "local".to_string(), None, None, None, false),
         }
     };
     let saas_config = SaasConfig {
@@ -402,6 +404,7 @@ pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
         directory_api_url,
         directory_service_token,
         directory_external_domain,
+        directory_allow_insecure_http,
     };
     let saas_config_for_api = saas_config.clone();
     let saas_service = Arc::new(SaasService::new(
