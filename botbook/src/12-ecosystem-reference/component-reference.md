@@ -11,7 +11,7 @@ This reference provides detailed information about each component in the botserv
 | Property | Value |
 |----------|-------|
 | **Service** | HashiCorp Vault |
-| **Current Version** | 1.15.4 |
+| **Current Version** | 1.18.2 |
 | **Default Port** | 8200 |
 | **Binary Path** | `botserver-stack/bin/vault/vault` |
 | **Config Path** | `botserver-stack/conf/vault/` |
@@ -20,7 +20,7 @@ This reference provides detailed information about each component in the botserv
 
 **Download URL:**
 ```
-https://releases.hashicorp.com/vault/1.15.4/vault_1.15.4_linux_amd64.zip
+https://releases.hashicorp.com/vault/1.18.2/vault_1.18.2_linux_amd64.zip
 ```
 
 **Purpose:**
@@ -77,7 +77,7 @@ https://github.com/theseus-rs/postgresql-binaries/releases/download/17.2.0/postg
 | Property | Value |
 |----------|-------|
 | **Service** | Zitadel |
-| **Current Version** | 2.70.4 |
+| **Current Version** | 2.44.0 |
 | **Default Port** | 8080 |
 | **Binary Path** | `botserver-stack/bin/directory/zitadel` |
 | **Config Path** | `botserver-stack/conf/directory/` |
@@ -86,7 +86,7 @@ https://github.com/theseus-rs/postgresql-binaries/releases/download/17.2.0/postg
 
 **Download URL:**
 ```
-https://github.com/zitadel/zitadel/releases/download/v2.70.4/zitadel-linux-amd64.tar.gz
+https://github.com/zitadel/zitadel/releases/download/v2.44.0/zitadel-linux-amd64.tar.gz
 ```
 
 **Purpose:**
@@ -145,7 +145,7 @@ https://dl.min.io/server/minio/release/linux-amd64/minio
 | Property | Value |
 |----------|-------|
 | **Service** | Valkey |
-| **Current Version** | 8.0.2 |
+| **Current Version** | 8.1.5 |
 | **Default Port** | 6379 |
 | **Binary Path** | `botserver-stack/bin/cache/valkey-server` |
 | **Config Path** | `botserver-stack/conf/cache/` |
@@ -154,10 +154,10 @@ https://dl.min.io/server/minio/release/linux-amd64/minio
 
 **Download URL:**
 ```
-https://github.com/valkey-io/valkey/archive/refs/tags/8.0.2.tar.gz
+https://download.valkey.io/releases/valkey-8.1.5-jammy-x86_64.tar.gz
 ```
 
-**Note:** Valkey requires compilation from source. Build dependencies: `gcc`, `make`
+**Note:** installed from a prebuilt release tarball; no compilation is required.
 
 **Purpose:**
 - In-memory caching
@@ -301,7 +301,7 @@ https://github.com/caddyserver/caddy/releases/download/v2.9.1/caddy_2.9.1_linux_
 | Property | Value |
 |----------|-------|
 | **Service** | CoreDNS |
-| **Current Version** | 1.11.1 |
+| **Current Version** | 1.11.3 |
 | **Default Port** | 53 |
 | **Binary Path** | `botserver-stack/bin/dns/coredns` |
 | **Config Path** | `botserver-stack/conf/dns/Corefile` |
@@ -309,7 +309,7 @@ https://github.com/caddyserver/caddy/releases/download/v2.9.1/caddy_2.9.1_linux_
 
 **Download URL:**
 ```
-https://github.com/coredns/coredns/releases/download/v1.11.1/coredns_1.11.1_linux_amd64.tgz
+https://github.com/coredns/coredns/releases/download/v1.11.3/coredns_1.11.3_linux_amd64.tgz
 ```
 
 **Purpose:**
@@ -331,7 +331,7 @@ https://github.com/coredns/coredns/releases/download/v1.11.1/coredns_1.11.1_linu
 | Property | Value |
 |----------|-------|
 | **Service** | Forgejo |
-| **Current Version** | 10.0.2 |
+| **Current Version** | 10.0.1 |
 | **Default Port** | 3000 |
 | **Binary Path** | `botserver-stack/bin/alm/forgejo` |
 | **Config Path** | `botserver-stack/conf/alm/` |
@@ -340,7 +340,7 @@ https://github.com/coredns/coredns/releases/download/v1.11.1/coredns_1.11.1_linu
 
 **Download URL:**
 ```
-https://codeberg.org/forgejo/forgejo/releases/download/v10.0.2/forgejo-10.0.2-linux-amd64
+https://codeberg.org/forgejo/forgejo/releases/download/v10.0.1/forgejo-10.0.1-linux-amd64
 ```
 
 **Purpose:**
@@ -364,7 +364,7 @@ https://codeberg.org/forgejo/forgejo/releases/download/v10.0.2/forgejo-10.0.2-li
 | Property | Value |
 |----------|-------|
 | **Service** | LiveKit |
-| **Current Version** | 2.8.2 |
+| **Current Version** | 2.8.5 |
 | **Default Ports** | 7880 (HTTP), 7881 (RTC) |
 | **Binary Path** | `botserver-stack/bin/meeting/livekit-server` |
 | **Config Path** | `botserver-stack/conf/meeting/` |
@@ -372,7 +372,7 @@ https://codeberg.org/forgejo/forgejo/releases/download/v10.0.2/forgejo-10.0.2-li
 
 **Download URL:**
 ```
-https://github.com/livekit/livekit/releases/download/v2.8.2/livekit_2.8.2_linux_amd64.tar.gz
+https://github.com/livekit/livekit/releases/download/v2.8.5/livekit_2.8.5_linux_amd64.tar.gz
 ```
 
 **Purpose:**
@@ -398,13 +398,13 @@ https://github.com/livekit/livekit/releases/download/v2.8.2/livekit_2.8.2_linux_
 | Property | Value |
 |----------|-------|
 | **Service** | Qdrant |
-| **Current Version** | Latest |
+| **Current Version** | 1.12.0 |
 | **Default Ports** | 6333 (HTTP), 6334 (gRPC) |
 | **Binary Path** | `botserver-stack/bin/vector_db/qdrant` |
 
 **Download URL:**
 ```
-https://github.com/qdrant/qdrant/releases/latest/download/qdrant-x86_64-unknown-linux-gnu.tar.gz
+https://github.com/qdrant/qdrant/releases/download/v1.12.0/qdrant-x86_64-unknown-linux-gnu.tar.gz
 ```
 
 **Purpose:**
@@ -427,13 +427,13 @@ https://github.com/qdrant/qdrant/releases/latest/download/qdrant-x86_64-unknown-
 | Property | Value |
 |----------|-------|
 | **Service** | InfluxDB |
-| **Current Version** | 2.7.5 |
+| **Current Version** | 2.7.10 |
 | **Default Port** | 8086 |
 | **Binary Path** | `botserver-stack/bin/timeseries_db/influxd` |
 
 **Download URL:**
 ```
-https://download.influxdata.com/influxdb/releases/influxdb2-2.7.5-linux-amd64.tar.gz
+https://download.influxdata.com/influxdb/releases/influxdb2-2.7.10-linux-amd64.tar.gz
 ```
 
 **Purpose:**

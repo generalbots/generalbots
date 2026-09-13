@@ -37,13 +37,13 @@ Returns overall system health status.
       "name": "database",
       "status": "healthy",
       "latency_ms": 2,
-      "details": "PostgreSQL 15.3 on tables.local:5432"
+      "details": "PostgreSQL 17.2.0 on tables.local:5432"
     },
     {
       "name": "cache",
       "status": "healthy",
       "latency_ms": 1,
-      "details": "Valkey 7.2 on cache.local:6379"
+      "details": "Valkey 8.1.5 on cache.local:6379"
     },
     {
       "name": "drive",
