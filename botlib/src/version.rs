@@ -107,7 +107,7 @@ impl VersionRegistry {
                 ("description".to_string(), "Core bot server".to_string()),
                 (
                     "repo".to_string(),
-                    "https://github.com/GeneralBots/botserver".to_string(),
+                    "https://github.com/generalbots/generalbots".to_string(),
                 ),
             ]),
         });

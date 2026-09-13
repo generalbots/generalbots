@@ -196,7 +196,7 @@ For complete documentation, guides, and API references:
 
 ## Related Projects
 
-- **[botserver](https://github.com/GeneralBots/botserver)** - Main API server
+- **[botserver](https://github.com/generalbots/generalbots)** - Main API server
 - **[botui](https://github.com/GeneralBots/botui)** - Web UI interface
 - **[botapp](https://github.com/GeneralBots/botapp)** - Desktop application
 - **[botbook](https://github.com/GeneralBots/botbook)** - Documentation
