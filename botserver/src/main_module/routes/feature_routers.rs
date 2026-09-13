@@ -308,17 +308,43 @@ pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
     let stripe = StripeClient::new(stripe_secret, None);
 
     // Configure mc alias from AppState drive config (loaded from Vault)
-    let mc_path = std::env::var("MC_PATH").unwrap_or_else(|_| "/tmp/mc".to_string());
+    // Resolve the real MinIO client: bare `mc` may be GNU Midnight Commander,
+    // whose invocation silently broke bucket provisioning at signup (#1371).
+    let mc_path = {
+        let configured = std::env::var("MC_PATH").unwrap_or_default();
+        let from_config = botcloud::integration::resolve_mc_binary(&configured);
+        // resolve_mc_binary falls back to `configured` when nothing exists on
+        // disk; keep /tmp/mc as the last-resort legacy default in that case.
+        if from_config == "mc" { "/tmp/mc".to_string() } else { from_config }
+    };
     let mc_alias = std::env::var("MC_ALIAS").unwrap_or_else(|_| "local".to_string());
     if let Some(ref cfg) = app_state.config {
         let endpoint = &cfg.drive.endpoint;
         let access_key = &cfg.drive.access_key;
         let secret_key = &cfg.drive.secret_key;
         if !access_key.is_empty() && !secret_key.is_empty() {
-            std::process::Command::new(&mc_path)
-                .args(["alias", "set", &mc_alias, endpoint, access_key, secret_key, "--api", "s3v4"])
-                .output()
-                .ok();
+            match botsecurity::command_guard::SafeCommand::new(&mc_path)
+                .and_then(|c| c.arg("alias"))
+                .and_then(|c| c.arg("set"))
+                .and_then(|c| c.arg(&mc_alias))
+                .and_then(|c| c.arg(endpoint))
+                .and_then(|c| c.arg(access_key))
+                .and_then(|c| c.arg(secret_key))
+                .and_then(|c| c.arg("--api"))
+                .and_then(|c| c.arg("s3v4"))
+            {
+                Ok(cmd) => match cmd.execute() {
+                    Ok(out) if out.status.success() => {
+                        tracing::info!("mc alias '{mc_alias}' configured via {mc_path}");
+                    }
+                    Ok(out) => {
+                        let stderr = String::from_utf8_lossy(&out.stderr);
+                        tracing::error!("mc alias set failed ({}): {}", mc_path, stderr.trim());
+                    }
+                    Err(e) => tracing::error!("mc alias set exec failed: {e}"),
+                },
+                Err(e) => tracing::error!("mc alias set guard rejected: {e}"),
+            }
         } else {
             tracing::info!("Drive credentials from Vault are empty, mc alias not configured");
         }
@@ -352,7 +378,7 @@ pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
                             j("saas_base_url").unwrap_or_default(),
                             j("saas_jwt_secret").unwrap_or_else(crate::main_module::directory_setup::resolve_saas_jwt_secret),
                             j("bot_templates_dir").unwrap_or_else(|| "work/templates/bots".to_string()),
-                            j("mc_path").unwrap_or_else(|| "/tmp/mc".to_string()),
+                            j("mc_path").map(|p| botcloud::integration::resolve_mc_binary(&p)).unwrap_or_else(|| "/tmp/mc".to_string()),
                             j("mc_alias").unwrap_or_else(|| "local".to_string()),
                             api_url,
                             service_token,
