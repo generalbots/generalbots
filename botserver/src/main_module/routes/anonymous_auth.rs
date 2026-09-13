@@ -136,6 +136,66 @@ pub(crate) fn resolve_session_user(
     resolve_cloud_jwt_user(&token)
 }
 
+/// #1364 — verifies a bearer token as a cloud management JWT and maps it to
+/// a session user for `/api/auth/me`. Same HMAC check as
+/// `resolve_cloud_jwt_user`, but returns the full identity the sidebar
+/// needs (name/email/org from the JWT claims).
+fn cloud_jwt_session_user(token: &str) -> Option<botcoredirectory::auth_routes::SessionUserData> {
+    let secret = crate::main_module::directory_setup::resolve_saas_jwt_secret();
+
+    let parts: Vec<&str> = token.split('.').collect();
+    if parts.len() != 3 {
+        return None;
+    }
+    let signing_input = format!("{}.{}", parts[0], parts[1]);
+    let expected = base64_url_decode_impl(parts[2])?;
+
+    use hmac::{Hmac, Mac};
+    use sha2::Sha256;
+    type HmacSha256 = Hmac<Sha256>;
+    let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).ok()?;
+    mac.update(signing_input.as_bytes());
+    if mac.finalize().into_bytes().as_slice() != expected.as_slice() {
+        return None;
+    }
+    let payload_json = base64_url_decode_impl(parts[1])?;
+    let payload: serde_json::Value = serde_json::from_slice(&payload_json).ok()?;
+    let sub = payload.get("sub").and_then(|v| v.as_str()).unwrap_or("");
+    if sub.is_empty() {
+        return None;
+    }
+    // Honor the JWT `exp` claim when present (epoch seconds).
+    if let Some(exp) = payload.get("exp").and_then(|v| v.as_i64()) {
+        if chrono::Utc::now().timestamp() >= exp {
+            return None;
+        }
+    }
+    let email = payload
+        .get("email")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let name = email.split('@').next().unwrap_or("User").to_string();
+    Some(botcoredirectory::auth_routes::SessionUserData {
+        user_id: sub.to_string(),
+        username: name,
+        email,
+        first_name: None,
+        last_name: None,
+        display_name: payload
+            .get("name")
+            .and_then(|v| v.as_str())
+            .map(ToString::to_string),
+        organization_id: payload
+            .get("org_id")
+            .and_then(|v| v.as_str())
+            .map(ToString::to_string),
+        roles: Vec::new(),
+        bucket: None,
+        created_at: chrono::Utc::now().timestamp(),
+    })
+}
+
 /// Validates a cloud management JWT (HMAC-SHA256, SaaS secret) and returns
 /// the verified subject (Zitadel user id) as the chat user identity.
 fn resolve_cloud_jwt_user(token: &str) -> (String, Vec<String>, bool) {
