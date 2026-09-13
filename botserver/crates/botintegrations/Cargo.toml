@@ -2,6 +2,7 @@
 name = "botintegrations"
 version.workspace = true
 edition = "2021"
+license = "MIT"
 
 [dependencies]
 aws-credential-types = { workspace = true }

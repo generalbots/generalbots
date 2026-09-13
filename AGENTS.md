@@ -15,6 +15,7 @@
 | **Bot restarts** | ❌ NEVER restart botserver for `config.csv` changes — DriveMonitor auto-reloads on ETag change (~10s) |
 | **Branching** | ❌ NEVER change git branches without explicit user approval |
 | **Env status** | I AM IN DEV ENV, but sometimes pasting from PROD — do not treat my env as prod! Just fix, push to CI, so I can test in PROD for a while |
+| **License** | The project is **MIT** (relicensed from AGPL-3.0 in `4ef5f58fc`, 2026-09-12) and the copyright holder is **General Bots**. ❌ NEVER describe our own code as AGPL/GPL. ✅ Third-party AGPL notices (MinIO, Stalwart, Forgejo, Garage, Skytable) are correct and MUST stay |
 
 ### Ports (quick reference)
 8080 = botserver API · 3000 = suite · 4000 = cloud · 5000 = login

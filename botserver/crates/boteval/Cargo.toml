@@ -4,8 +4,8 @@ version.workspace = true
 edition = "2021"
 description = "LLM response evaluation framework (datasets, contracts, runner, CI gate)"
 license = "MIT"
-authors = ["Pragmatismo.com.br", "General Bots Community"]
-repository = "https://github.com/GeneralBots/BotServer"
+authors = ["General Bots"]
+repository = "https://github.com/generalbots/generalbots"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }
