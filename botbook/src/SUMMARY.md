@@ -74,7 +74,6 @@
    - [KB and Tools System](./03-knowledge-ai/kb-and-tools.md)
    - [Vector Collections](./03-knowledge-ai/vector-collections.md)
    - [Document Indexing](./03-knowledge-ai/indexing.md)
-   - [Semantic Search](./03-knowledge-ai/semantic-search.md)
    - [Episodic Memory](./03-knowledge-ai/episodic-memory.md)
     - [Semantic Caching](./03-knowledge-ai/caching.md)
     - [AI Sheet Cache](./03-knowledge-ai/ai-sheet-cache.md)

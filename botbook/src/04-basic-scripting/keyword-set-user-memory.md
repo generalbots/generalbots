@@ -122,18 +122,13 @@ User memory is stored in the `user_memory` table with the following structure:
 
 ## Config.csv Options
 
-```csv
-name,value
-user-memory-enabled,true
-user-memory-max-keys,1000
-user-memory-default-ttl,0
-```
+**No `user-memory-*` configuration keys exist.** `SET USER MEMORY` and
+`GET USER MEMORY` are implemented (`botbasic_data/src/keywords/user_memory.rs`);
+memory is not enabled or sized by a setting, and entries have no configurable
+expiry. The block previously shown here was not read by the server.
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `user-memory-enabled` | `true` | Enable/disable user memory |
-| `user-memory-max-keys` | `1000` | Maximum keys per user |
-| `user-memory-default-ttl` | `0` | Default TTL in seconds (0 = no expiry) |
 
 ## Best Practices
 

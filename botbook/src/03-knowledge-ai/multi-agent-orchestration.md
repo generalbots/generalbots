@@ -123,22 +123,13 @@ The Agent-to-Agent (A2A) protocol handles all inter-bot communication.
 
 ### Configuration
 
-```csv
-name,value
-a2a-enabled,true
-a2a-timeout,30
-a2a-max-hops,5
-a2a-retry-count,3
-a2a-queue-size,100
-```
+**No `a2a-*` configuration keys exist.** Delegation depth, timeouts and retries are
+not settings: the A2A keywords are implemented in
+`botbasic_system/src/keywords/a2a_protocol.rs` and read no configuration. The
+block previously shown here was not read by the server.
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `a2a-enabled` | `true` | Enable A2A communication |
-| `a2a-timeout` | `30` | Default timeout (seconds) |
-| `a2a-max-hops` | `5` | Maximum delegation chain depth |
-| `a2a-retry-count` | `3` | Retries on failure |
-| `a2a-queue-size` | `100` | Max pending messages |
 
 ## Memory Management
 
@@ -236,18 +227,22 @@ Multi-agent systems benefit from shared knowledge bases with advanced search.
 
 ```csv
 name,value
-rag-hybrid-enabled,true
-rag-dense-weight,0.7
-rag-sparse-weight,0.3
-rag-reranker-enabled,true
+rag-mode,hybrid
 ```
+
+`rag-mode` selects one of six implemented strategies and defaults to `standard`.
+The `rag-hybrid-enabled`, `rag-dense-weight`, `rag-sparse-weight` and
+`rag-reranker-enabled` keys are read only by an unconnected crate and have no
+effect — see [Retrieval and RAG](./hybrid-search.md).
 
 ### How It Works
 
-1. **Dense Search** - Semantic/vector similarity (0.7 weight)
-2. **Sparse Search** - BM25 keyword matching (0.3 weight)
-3. **Fusion** - Reciprocal Rank Fusion combines results
-4. **Reranking** - Optional LLM reranking for quality
+1. **Dense Search** - Semantic/vector similarity over Qdrant
+2. **Keyword Search** - Term matching over the same store (not BM25)
+3. **Fusion** - Reciprocal Rank Fusion, fixed weight, `k = 60`
+4. **Mode step** - Grading (`corrective`), entity expansion (`graph`), decomposition (`agentic`) or visual-term expansion (`multimodal`)
+
+There is no re-ranking stage in the retrieval path.
 
 ```basic
 ' Hybrid search is automatic when enabled
@@ -524,20 +519,20 @@ Stores reflection analysis results.
 ### Bot Not Responding to Delegation
 
 1. Check bot is registered: `LIST BOTS`
-2. Verify A2A is enabled: `a2a-enabled,true`
+2. A2A has no enable switch — see the note above on `a2a-*` keys
 3. Check timeout is sufficient
 4. Review bot logs for errors
 
 ### Memory Not Sharing Between Bots
 
 1. Ensure using `SET USER MEMORY` not `SET BOT MEMORY`
-2. Check `user-memory-enabled,true`
+2. User memory has no enable switch — see the note on `user-memory-*` keys
 3. Verify same user identity across bots
 
 ### Circular Delegation Detected
 
 1. Review delegation chains
-2. Increase `a2a-max-hops` if legitimately deep
+2. There is no `a2a-max-hops` setting — delegation depth is not configurable
 3. Add guards to prevent loops:
 
 ```basic

@@ -299,11 +299,7 @@ For self-hosted SMS gateways or providers not directly supported.
 
 | Parameter | Description | Example |
 |-----------|-------------|---------|
-| `sms-provider` | Set to `custom` | `custom` |
-| `sms-custom-url` | API endpoint URL | `https://sms.example.com/send` |
-| `sms-custom-method` | HTTP method | `POST` |
-| `sms-custom-auth-header` | Authorization header | `Bearer your-token` |
-| `sms-custom-body-template` | JSON body template | See below |
+| — | **A `custom` provider is not implemented** — the `sms-custom-*` keys are not read by the server | — |
 
 ### Body Template
 

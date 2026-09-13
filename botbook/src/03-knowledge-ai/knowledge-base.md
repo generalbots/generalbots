@@ -7,7 +7,7 @@ The Knowledge Base (KB) system enables semantic search and document retrieval fo
 | Feature | Description |
 |---------|-------------|
 | **Storage** | S3-compatible drive + PostgreSQL metadata + Qdrant vectors |
-| **Search** | Hybrid (semantic + keyword) with optional reranking |
+| **Search** | Dense vector search, optionally fused with keyword matching — chosen per bot by `rag-mode` |
 | **Formats** | PDF, DOCX, DOC, XLSX, XLS, ODS, PPTX, PPT, ODP, EPUB, ODT, TXT, MD, HTML, CSV, JSON, YAML, TOML, and 30+ text-based formats |
 | **Integration** | Automatic context injection into LLM responses |
 
@@ -26,7 +26,7 @@ USE KB "policies"
 - **Semantic Search** - Find content by meaning, not just keywords
 - **Multi-Collection** - Organize documents into focused collections
 - **Auto-Indexing** - Documents indexed automatically when added
-- **Hybrid Search** - Combines dense (semantic) and sparse (BM25) retrieval
+- **Hybrid Search** - Combines dense (semantic) retrieval with term matching, fused by Reciprocal Rank Fusion
 - **Context Management** - Relevant chunks injected into LLM prompts
 
 ## Document Organization
@@ -40,15 +40,19 @@ bot.gbkb/
 
 ## Configuration
 
-Key settings in `config.csv`:
+Retrieval strategy is one per-bot setting:
 
 ```csv
 name,value
-rag-hybrid-enabled,true
-rag-dense-weight,0.7
-rag-sparse-weight,0.3
-rag-top-k,10
+rag-mode,hybrid
 ```
+
+`rag-mode` accepts `standard`, `hybrid`, `corrective`, `graph`, `agentic` or
+`multimodal`, and defaults to `standard`. It is read from the bot's configuration
+row (environment fallback `RAG_MODE`), not from `config.csv`. The older
+`rag-hybrid-enabled` / `rag-dense-weight` / `rag-sparse-weight` keys are read only
+by an unconnected crate and have no effect — see
+[Retrieval and RAG](./hybrid-search.md).
 
 ## Performance Tips
 
@@ -60,7 +64,7 @@ rag-top-k,10
 ## Learn More
 
 - **[KB System Architecture](../03-knowledge-ai/README.md)** - Technical deep dive
-- **[Semantic Search](../03-knowledge-ai/semantic-search.md)** - How search works
+- **[Retrieval and RAG](../03-knowledge-ai/hybrid-search.md)** - How retrieval works
 - **[Document Indexing](../03-knowledge-ai/indexing.md)** - Processing pipeline
 - **[Retrieval and RAG](./hybrid-search.md)** - The `rag-mode` setting and the six retrieval modes
 - **[USE KB Keyword](../04-basic-scripting/keyword-use-kb.md)** - Complete reference

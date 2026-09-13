@@ -206,7 +206,7 @@ Quick lookup for General Bots terms. If you're lost, start here.
 
 **RAG** - Retrieval-Augmented Generation. Pattern where relevant documents are retrieved and provided to the LLM as context.
 
-**Reranking** - Optional LLM-based scoring of search results for improved relevance. Adds latency but improves quality.
+**Reranking** - Re-scoring retrieved candidates with a dedicated model before they are passed to the LLM. **Not implemented** in the retrieval path: the configuration exists in an unconnected crate, and no re-ranker runs. See [Retrieval and RAG](./03-knowledge-ai/hybrid-search.md).
 
 **Rhai** - Rust scripting engine that powers the BASIC interpreter. Sandboxed and safe.
 

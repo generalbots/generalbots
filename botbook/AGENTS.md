@@ -111,10 +111,44 @@ Run from the repository root. All five must pass before committing.
 | `scripts/docs_summary_sync.py --check` | every page is registered in `SUMMARY.md` | 1 when pages are missing |
 | `scripts/docs_component_versions.py --check` | documented versions match `3rdparty.toml` | 1 on drift |
 | `scripts/docs_suite_apps_status.py` | regenerates the Suite Apps status page from the registry | 0 (writes the page) |
-| `scripts/docs_suite_svg_audit.py` | version claims inside the SVG screens | 1 on drift |
+| `scripts/docs_suite_svg_audit.py` | text inside the canvas, plus version claims in the SVG screens | 1 on drift |
+| `scripts/docs_app_screens.py --check` | every app screen extracts from the registry | 1 on a failed app |
 
 `docs_summary_sync.py` without `--check` appends the missing entries to
 `SUMMARY.md`; `docs_suite_svg_wire.py` wires orphaned screens into their pages.
+
+## Regenerating the app screens
+
+Do not redraw an app screen by hand. `scripts/docs_app_screens.py` builds each
+one from the app's own markup, so a screen that disagrees with the product is a
+generator bug rather than an artwork task.
+
+```bash
+python3 scripts/docs_app_screens.py                # rewrite all 73 screens
+python3 scripts/docs_app_screens.py tasks drive    # rewrite a subset
+python3 scripts/docs_app_screens.py --report       # extraction summary only
+```
+
+Its two inputs are authoritative and must not be replaced with copies:
+
+1. **`botserver/src/apps/registry.rs`** — the app list the suite renders. It is
+   read directly; there is no committed catalogue to drift from it.
+2. **`botui/ui/suite/<app>/`** markup, following `hx-get` partials, and
+   **`botlib/locales/en/ui.ftl`** for every `data-i18n` label.
+
+Conventions the generator follows, and that a replacement must keep:
+
+- **Row and card bodies stay neutral.** Region names, tabs, filters, columns and
+  actions are real; record payloads are skeleton blocks. Never invent records.
+- **`display:none` is not absent.** Suite apps ship shells hidden and reveal
+  them on hydration, so those containers are the real interface.
+- **Modals are not the surface.** `TRANSIENT` excludes dialogs, masks and
+  drawers: an app is documented by its shell, not by a dialog.
+- **A conversation surface keeps its declared thread** instead of falling back
+  to recovered script markup.
+
+After regenerating, run the guards above and review the diff: a screen that
+loses real labels has regressed, even if it still parses.
 
 ## Build and read the result
 

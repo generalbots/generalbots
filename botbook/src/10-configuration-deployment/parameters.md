@@ -39,8 +39,7 @@ Complete reference of all available parameters in `config.csv`.
 |-----------|-------------|---------|------|
 | `llm-server` | Run embedded server | `false` | Boolean |
 | `llm-server-path` | Server binary path | `botserver-stack/bin/llm/build/bin` | Path |
-| `llm-server-host` | Server bind address | `0.0.0.0` | IP address |
-| `llm-server-port` | Server port | `8081` | Number |
+| `llm-server-path` | Server binary directory | `botserver-stack/bin/llm/build/bin` | Path |
 | `llm-server-gpu-layers` | GPU offload layers | `0` | Number |
 | `llm-server-n-moe` | MoE experts count | `0` | Number |
 | `llm-server-ctx-size` | Context size | `4096` | Tokens |
@@ -105,13 +104,16 @@ llm-model,mixtral-8x7b-32768
 
 ## Email Parameters
 
+There are **no `email-*` delivery settings**. Outbound mail is handed to the
+bundled mail server, which owns the relay configuration; the platform does not
+read SMTP host, port, user or password from bot configuration. An earlier
+revision of this page listed `email-from`, `email-server`, `email-port`,
+`email-user`, `email-pass`, `email-username` and `email-password` — none of them
+are read by the server, and setting them has no effect. SMTP credentials belong to
+the mail server's own configuration, and secrets live in Vault.
+
 | Parameter | Description | Default | Type |
 |-----------|-------------|---------|------|
-| `email-from` | Sender address | Required for email | Email |
-| `email-server` | SMTP hostname | Required for email | Hostname |
-| `email-port` | SMTP port | `587` | Number |
-| `email-user` | SMTP username | Required for email | String |
-| `email-pass` | SMTP password | Required for email | String |
 | `email-read-pixel` | Enable read tracking pixel in HTML emails | `false` | Boolean |
 
 ### Email Read Tracking
@@ -222,8 +224,11 @@ These parameters configure external database connections for use with BASIC keyw
 
 | Parameter | Description | Default | Type |
 |-----------|-------------|---------|------|
-| `sms-provider` | SMS provider (`twilio`, `aws`, `vonage`, `messagebird`, `custom`) | Not set | String |
-| `sms-fallback-provider` | Fallback provider if primary fails | Not set | String |
+| `sms-provider` | SMS provider (`twilio`, `aws`, `vonage`, `messagebird`) | Not set | String |
+| `sms-default-priority` | Default priority applied to outbound messages | Not set | String |
+
+There is no fallback-provider setting: a failed send fails, and it is not retried
+against a second provider.
 
 ### Twilio Parameters
 
@@ -264,13 +269,10 @@ These parameters configure external database connections for use with BASIC keyw
 
 ### Custom Provider Parameters
 
-| Parameter | Description | Default | Type |
-|-----------|-------------|---------|------|
-| `sms-custom-url` | API endpoint URL | Not set | URL |
-| `sms-custom-method` | HTTP method (`POST`, `GET`) | `POST` | String |
-| `sms-custom-auth-header` | Authorization header value | Not set | String |
-| `sms-custom-body-template` | JSON body with `{{to}}`, `{{message}}` placeholders | Not set | String |
-| `sms-custom-from` | Sender number for custom provider | Not set | String |
+**Not implemented.** A `custom` provider value and the `sms-custom-*` keys
+(`sms-custom-url`, `sms-custom-method`, `sms-custom-body-template`,
+`sms-custom-auth-header`, `sms-custom-from`) do not exist in the code. Use one of
+the supported providers above.
 
 ### Example: Twilio Configuration
 ```csv
@@ -299,7 +301,9 @@ See [SMS Provider Configuration](./sms-providers.md) for detailed setup instruct
 | `whatsapp-phone-number-id` | Phone number ID from WhatsApp Business | Not set | String |
 | `whatsapp-verify-token` | Token for webhook verification | Not set | String |
 | `whatsapp-business-account-id` | WhatsApp Business Account ID | Not set | String |
-| `whatsapp-api-version` | Graph API version | `v17.0` | String |
+
+The Graph API version is not configurable — it is set by the client, not by a bot
+setting.
 
 ### Example: WhatsApp Configuration
 ```csv
@@ -314,15 +318,13 @@ See [WhatsApp Channel Configuration](./whatsapp-channel.md) for detailed setup i
 ## Multi-Agent Parameters
 
 ### Agent-to-Agent (A2A) Communication
-| Parameter | Description | Default | Type |
-|-----------|-------------|---------|------|
-| `a2a-enabled` | Enable agent-to-agent communication | `true` | Boolean |
-| `a2a-timeout` | Default delegation timeout | `30` | Seconds |
-| `a2a-max-hops` | Maximum delegation chain depth | `5` | Number |
-| `a2a-retry-count` | Retry attempts on failure | `3` | Number |
-| `a2a-queue-size` | Maximum pending messages | `100` | Number |
-| `a2a-protocol-version` | A2A protocol version | `1.0` | String |
-| `a2a-persist-messages` | Persist A2A messages to database | `false` | Boolean |
+
+The A2A keywords exist (`botbasic_system/src/keywords/a2a_protocol.rs`), but
+**there are no `a2a-*` configuration keys.** Hop limits, timeouts, retry counts,
+queue sizes, protocol version and message persistence are not settings; an
+earlier revision of this page listed seven of them, and none are read by the
+server. See [Multi-Agent Keywords](../04-basic-scripting/keywords-multi-agent.md)
+for what the protocol does and how delegation depth is actually bounded.
 
 ### Bot Reflection
 | Parameter | Description | Default | Type |
@@ -354,11 +356,13 @@ bot-improvement-threshold,7.0
 ## Memory Parameters
 
 ### User Memory (Cross-Bot)
-| Parameter | Description | Default | Type |
-|-----------|-------------|---------|------|
-| `user-memory-enabled` | Enable user-level memory | `true` | Boolean |
-| `user-memory-max-keys` | Maximum keys per user | `1000` | Number |
-| `user-memory-default-ttl` | Default time-to-live (0=no expiry) | `0` | Seconds |
+
+`SET USER MEMORY` / `GET USER MEMORY` are implemented
+(`botbasic_data/src/keywords/user_memory.rs`), but **there are no
+`user-memory-*` configuration keys.** Memory is not enabled or sized by a bot
+setting: entries are written as they are set and have no configurable expiry. The
+`user-memory-enabled`, `user-memory-max-keys` and `user-memory-default-ttl` keys
+listed here previously are not read by the server.
 
 ### Episodic Memory (Context Compaction)
 | Parameter | Description | Default | Type |
@@ -398,88 +402,54 @@ model-fallback-enabled,true
 model-fallback-order,quality,fast
 ```
 
-## Hybrid RAG Search Parameters
+## Retrieval Parameters
 
-General Bots uses hybrid search combining **dense (embedding)** and **sparse (BM25 keyword)** search for optimal retrieval. The BM25 implementation is powered by [Tantivy](https://github.com/quickwit-oss/tantivy), a full-text search engine library similar to Apache Lucene.
-
-| Parameter | Description | Default | Type |
-|-----------|-------------|---------|------|
-| `rag-hybrid-enabled` | Enable hybrid dense+sparse search | `true` | Boolean |
-| `rag-dense-weight` | Weight for semantic results | `0.7` | Float (0-1) |
-| `rag-sparse-weight` | Weight for keyword results | `0.3` | Float (0-1) |
-| `rag-reranker-enabled` | Enable LLM reranking | `false` | Boolean |
-| `rag-reranker-model` | Model for reranking | `cross-encoder/ms-marco-MiniLM-L-6-v2` | String |
-| `rag-reranker-top-n` | Candidates for reranking | `20` | Number |
-| `rag-max-results` | Maximum results to return | `10` | Number |
-| `rag-min-score` | Minimum relevance score threshold | `0.0` | Float (0-1) |
-| `rag-rrf-k` | RRF smoothing constant | `60` | Number |
-| `rag-cache-enabled` | Enable search result caching | `true` | Boolean |
-| `rag-cache-ttl` | Cache time-to-live | `3600` | Seconds |
-
-### BM25 Sparse Search (Tantivy)
-
-BM25 is a keyword-based ranking algorithm that excels at finding exact term matches. It's powered by Tantivy when the `vectordb` feature is enabled.
+Retrieval is selected per bot with one setting, `rag-mode`, which chooses among six
+implemented strategies. [Retrieval and RAG](../03-knowledge-ai/hybrid-search.md)
+describes what each mode actually does, and what retrieval does not yet do.
 
 | Parameter | Description | Default | Type |
 |-----------|-------------|---------|------|
-| `bm25-enabled` | **Enable/disable BM25 sparse search** | `true` | Boolean |
-| `bm25-k1` | Term frequency saturation (0.5-3.0 typical) | `1.2` | Float |
-| `bm25-b` | Document length normalization (0.0-1.0) | `0.75` | Float |
-| `bm25-stemming` | Apply word stemming (running→run) | `true` | Boolean |
-| `bm25-stopwords` | Filter common words (the, a, is) | `true` | Boolean |
+| `rag-mode` | Retrieval strategy: `standard`, `hybrid`, `corrective`, `graph`, `agentic`, `multimodal` | `standard` | String |
 
-### Switching Search Modes
+`rag-mode` is read from the bot's configuration row, falling back to the
+environment variable `RAG_MODE`. It is not part of the Vault LLM secret block, and
+it is not a `config.csv` key — setting it in either place has no effect.
 
-**Hybrid Search (Default - Best for most use cases)**
+### Retrieval keys that have no effect
+
+The keys below are read only by `botqdrant/src/hybrid_search.rs` and
+`botqdrant/src/bm25_config.rs` — a retrieval implementation that nothing in the
+server constructs. Setting them changes nothing about how documents are
+retrieved. They are listed so that existing configuration is not mistaken for
+working settings:
+
+| Parameter | Would do | Status |
+|-----------|----------|--------|
+| `rag-hybrid-enabled` | Toggle dense + sparse fusion | Inert |
+| `rag-dense-weight`, `rag-sparse-weight` | Fusion weights | Inert — fusion is fixed-weight RRF at `k = 60` |
+| `rag-reranker-enabled`, `rag-reranker-model`, `rag-reranker-top-n` | Cross-encoder re-ranking | Inert — no re-ranker runs in the retrieval path |
+| `rag-rrf-k` | RRF smoothing constant | Inert |
+| `rag-cache-enabled`, `rag-cache-ttl` | Search-result caching | Inert |
+| `bm25-enabled`, `bm25-k1`, `bm25-b`, `bm25-stemming`, `bm25-stopwords` | A BM25 sparse index | Inert — there is no BM25 index, and no Tantivy dependency anywhere in the build |
+
+Keyword matching in the live path is a term search over the vector store
+(`search_keyword_only`), not BM25.
+
+### Selecting a mode
+
 ```csv
-bm25-enabled,true
-rag-dense-weight,0.7
-rag-sparse-weight,0.3
+rag-mode,hybrid
 ```
-Uses both semantic understanding AND keyword matching. Best for general queries.
 
-**Dense Only (Semantic Search)**
-```csv
-bm25-enabled,false
-rag-dense-weight,1.0
-rag-sparse-weight,0.0
-```
-Uses only embedding-based search. Faster, good for conceptual/semantic queries where exact words don't matter.
-
-**Sparse Only (Keyword Search)**
-```csv
-bm25-enabled,true
-rag-dense-weight,0.0
-rag-sparse-weight,1.0
-```
-Uses only BM25 keyword matching. Good for exact term searches, technical documentation, or when embeddings aren't available.
-
-### BM25 Parameter Tuning
-
-The `k1` and `b` parameters control BM25 behavior:
-
-- **`bm25-k1`** (Term Saturation): Controls how much additional term occurrences contribute to the score
-  - Lower values (0.5-1.0): Diminishing returns for repeated terms
-  - Higher values (1.5-2.0): More weight to documents with many term occurrences
-  - Default `1.2` works well for most content
-
-- **`bm25-b`** (Length Normalization): Controls document length penalty
-  - `0.0`: No length penalty (long documents scored equally)
-  - `1.0`: Full length normalization (strongly penalizes long documents)
-  - Default `0.75` balances length fairness
-
-**Tuning for specific content:**
-```csv
-# For short documents (tweets, titles)
-bm25-b,0.3
-
-# For long documents (articles, manuals)
-bm25-b,0.9
-
-# For code search (exact matches important)
-bm25-k1,1.5
-bm25-stemming,false
-```
+| Mode | Use when |
+|------|----------|
+| `standard` | General questions over a clean knowledge base — the default |
+| `hybrid` | Documents full of exact terms: part numbers, codes, names |
+| `corrective` | Users ask vague or badly-phrased questions; costs one LLM call per candidate chunk |
+| `graph` | Questions naming several things at once (entity expansion, not a graph index) |
+| `agentic` | Complex questions spanning several documents (single decomposition step) |
+| `multimodal` | Knowledge base with diagrams and screenshots (visual-term expansion) |
 
 ## Code Sandbox Parameters
 
@@ -562,7 +532,7 @@ Multiple values separated by commas: `value1,value2,value3`
 
 ### Required for Features
 - **LLM**: `llm-model` must be set
-- **Email**: `email-from`, `email-server`, `email-user`
+- **Email**: no bot-level settings — the bundled mail server owns delivery
 - **Embeddings**: `embedding-model` for knowledge base
 - **Custom DB**: `custom-database` if using external database
 
@@ -611,37 +581,28 @@ sandbox-memory-mb,128
 
 ### For Multi-Agent Systems
 ```csv
-a2a-enabled,true
-a2a-timeout,30
-a2a-max-hops,5
-a2a-retry-count,3
-a2a-persist-messages,true
+bot-reflection-enabled,true
+bot-reflection-interval,10
 bot-reflection-enabled,true
 bot-reflection-interval,10
 user-memory-enabled,true
 ```
 
-### For Hybrid RAG
+### For Retrieval Quality
 ```csv
-rag-hybrid-enabled,true
-rag-dense-weight,0.7
-rag-sparse-weight,0.3
-rag-reranker-enabled,true
-rag-max-results,10
-rag-min-score,0.3
-rag-cache-enabled,true
-bm25-enabled,true
-bm25-k1,1.2
-bm25-b,0.75
+rag-mode,hybrid
 ```
 
-### For Dense-Only Search (Faster)
+`hybrid` adds keyword matching to the dense search. For vague questions,
+`corrective` grade-filters chunks, at the cost of one LLM call per candidate.
+
+### For Lower Retrieval Latency
 ```csv
-bm25-enabled,false
-rag-dense-weight,1.0
-rag-sparse-weight,0.0
-rag-max-results,10
+rag-mode,standard
 ```
+
+`standard` makes a single embedding call and no LLM calls. The `corrective`,
+`agentic` and `graph` modes each add one or more LLM calls per question.
 
 ### For Code Execution
 ```csv
@@ -661,4 +622,4 @@ sandbox-python-packages,numpy,pandas,requests
 4. **Emails**: Must contain @ and domain
 5. **Colors**: Must be valid hex format
 6. **Booleans**: Exactly `true` or `false`
-7. **Weights**: Must sum to 1.0 (e.g., `rag-dense-weight` + `rag-sparse-weight`)
+7. **Mode**: `rag-mode` must be one of the six listed values; an unrecognised value is treated as `standard`

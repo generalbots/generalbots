@@ -8,7 +8,7 @@ This chapter explains how botserver manages knowledge base collections, indexing
 | **KB and Tools** | [kb-and-tools.md](kb-and-tools.md) | Integration patterns for knowledge bases and tool systems. |
 | **Vector Collections** | [vector-collections.md](vector-collections.md) | Definition and management of vector collections, including creation, document addition, and usage in dialogs. |
 | **Document Indexing** | [indexing.md](indexing.md) | Process of extracting, chunking, embedding, and storing document vectors in the VectorDB. |
-| **Semantic Search** | [semantic-search.md](semantic-search.md) | How semantic search performs meaning-based retrieval using vector embeddings. |
+| **Retrieval and RAG** | [hybrid-search.md](hybrid-search.md) | The retrieval pipeline: dense search, keyword fusion, the six modes and their limits. |
 | **Episodic Memory** | [episodic-memory.md](episodic-memory.md) | Automatic conversation history management, context compaction, and intelligent summarization. |
 | **Semantic Caching** | [caching.md](caching.md) | Intelligent caching for LLM responses, including semantic similarity matching. |
 
@@ -20,8 +20,7 @@ This chapter explains how botserver manages knowledge base collections, indexing
 |-----------|---------|-------------|
 | `embedding-url` | `http://localhost:8082` | Embedding service endpoint |
 | `embedding-model` | `bge-small-en-v1.5` | Model for vector embeddings |
-| `rag-hybrid-enabled` | `true` | Enable hybrid search |
-| `rag-top-k` | `10` | Number of results to retrieve |
+| `rag-mode` | `standard` | Retrieval strategy: `standard`, `hybrid`, `corrective`, `graph`, `agentic`, `multimodal` |
 
 ### Episodic Memory
 
