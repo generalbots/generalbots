@@ -256,6 +256,78 @@ const PLATFORM_RESERVED_SUBDOMAINS: &[&str] = &[
     "admin", "mail", "smtp", "imap", "ns1", "ns2",
 ];
 
+/// `GET /api/domains/tls-ask?domain=<host>` — Caddy on-demand TLS decision
+/// endpoint (public, unauthenticated). Caddy's `tls on_demand ask` contract:
+/// HTTP 200 = obtain the certificate, any 4xx/5xx = refuse. This adapter
+/// reuses the platform resolution rules so a freshly published bot gets its
+/// certificate with zero infra change:
+///   - exact `bot_domains` row (custom domain mapped in Domain Manager), or
+///   - `{bot}.{GB_PLATFORM_DOMAIN}` where `{bot}` is an active bot
+///     (platform subdomain mode).
+/// Reserved subdomains (chat., www., docs., …) are NOT allowed so wildcard
+/// DNS entries for platform infrastructure cannot farm certificates.
+#[derive(diesel::QueryableByName)]
+struct SubdomainCount {
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    n: i64,
+}
+
+pub async fn tls_ask_domain(
+    State(service): State<Arc<SaasService>>,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> StatusCode {
+    let Some(host) = params
+        .get("domain")
+        .map(|h| h.trim().trim_end_matches('.').to_lowercase())
+        .filter(|h| !h.is_empty())
+    else {
+        return StatusCode::FORBIDDEN;
+    };
+    // Must be a DNS name with at least two labels — never an IP or bare TLD.
+    if host.split('.').count() < 2 {
+        return StatusCode::FORBIDDEN;
+    }
+    let mut conn = match service.pool().get() {
+        Ok(c) => c,
+        Err(_) => return StatusCode::FORBIDDEN,
+    };
+
+    use crate::schema_ext::bot_domains::dsl::{bot_domains, domain as dcol};
+
+    // Allow-list 1: explicit custom-domain mapping.
+    let mapped: Option<i64> = bot_domains
+        .filter(dcol.eq(&host))
+        .select(diesel::dsl::count_star())
+        .first::<i64>(&mut conn)
+        .optional()
+        .unwrap_or(None);
+    if mapped.unwrap_or(0) > 0 {
+        return StatusCode::OK;
+    }
+
+    // Allow-list 2: platform subdomain of an active bot.
+    let pdomain = platform_domain();
+    if let Some(sub) = host.strip_suffix(&format!(".{pdomain}")) {
+        let sub = sub.to_lowercase();
+        if !sub.is_empty() && !PLATFORM_RESERVED_SUBDOMAINS.contains(&sub.as_str()) {
+            let active: Option<i64> = diesel::sql_query(
+                "SELECT COUNT(*) AS n FROM bots WHERE LOWER(name) = $1 AND is_active = true",
+            )
+            .bind::<diesel::sql_types::Text, _>(&sub)
+            .get_result::<SubdomainCount>(&mut conn)
+            .optional()
+            .ok()
+            .flatten()
+            .map(|r| r.n);
+            if active.unwrap_or(0) > 0 {
+                return StatusCode::OK;
+            }
+        }
+    }
+
+    StatusCode::FORBIDDEN
+}
+
 /// `GET /api/domains/resolve?host=<host>` — resolve hostname to bot name (public).
 /// Match order: exact `bot_domains` row → platform subdomain
 /// (`{bot}.{GB_PLATFORM_DOMAIN}`) → wildcard `*.domain` patterns.
