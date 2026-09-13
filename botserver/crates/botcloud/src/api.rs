@@ -457,7 +457,12 @@ async fn handle_signup(
                 .json(&serde_json::json!({
                     "userName": &body.email,
                     "profile": { "firstName": first_name, "lastName": last_name, "displayName": &body.name },
-                    "email": { "email": &body.email, "isVerified": true },
+                    // Zitadel v1 proto field is isEmailVerified — "isVerified" was
+                    // silently dropped, leaving the user uninitialized with an init
+                    // code: the follow-up password set failed with
+                    // "User is not yet initialized (COMMAND-M9dse)" and the account
+                    // could never log in (#1365).
+                    "email": { "email": &body.email, "isEmailVerified": true },
                     "password": body.password.as_deref().unwrap_or(""),
                 }));
             if let Some(host) = &service.config.directory_external_domain {
