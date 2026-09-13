@@ -90,7 +90,7 @@ Send special key combinations to the remote session:
   </div>
   <div class="wa-message bot">
     <div class="wa-bubble">
-      <p>Establishing VNC connection to <code>desktop1.pragmatismo.com.br</code>...</p>
+      <p>Establishing VNC connection to <code>desktop1.generalbots.org</code>...</p>
       <p>Session started. You now have full control of the remote desktop.</p>
       <div class="wa-time">10:30</div>
     </div>

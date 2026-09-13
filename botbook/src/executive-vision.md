@@ -77,9 +77,9 @@ When conversations transfer from bot to human, the LLM continues working as a co
 
 ## DEPLOYMENT OPTIONS
 
-### **Option 1: Pragmatismo Managed Hosting**
+### **Option 1: General Bots Managed Hosting**
 - Fully managed infrastructure
-- Access via: YourCompany.pragmatismo.com.br
+- Access via: YourCompany.generalbots.org
 - Professional support included
 - Complete data ownership
 
@@ -264,7 +264,7 @@ botserver --start
 
 Pragmatismo develops General Bots as an open-source platform for enterprise AI and automation. Our focus is on delivering practical, production-ready solutions that organizations can deploy and customize to meet their specific needs.
 
-**Repository:** [github.com/GeneralBots/botserver](https://github.com/GeneralBots/botserver)
+**Repository:** [github.com/generalbots/generalbots](https://github.com/generalbots/generalbots)
 
 **License:** MIT
 

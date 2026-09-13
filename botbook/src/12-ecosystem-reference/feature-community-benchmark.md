@@ -1,1 +1,0 @@
-# Feature Community Benchmark 🟡 BETA

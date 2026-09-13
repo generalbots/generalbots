@@ -29,7 +29,7 @@ This guide covers setting up a development environment for contributing to Gener
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/GeneralBots/botserver.git
+git clone https://github.com/generalbots/generalbots.git
 cd botserver
 ```
 
@@ -392,4 +392,4 @@ See [Contributing Guidelines](./contributing-guidelines.md) for:
 - Read the Architecture Overview
 - Explore the [BASIC Language Reference](../07-user-interface/README.md)
 - Review [Code Standards](./standards.md)
-- Start with a [good first issue](https://github.com/GeneralBots/botserver/labels/good%20first%20issue)
+- Start with a [good first issue](https://github.com/generalbots/generalbots/labels/good%20first%20issue)

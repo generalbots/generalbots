@@ -243,7 +243,7 @@ Copy the folder to deploy. That's it. No XML, no JSON schemas, no build process.
 
 ### 1. Install (2 minutes)
 ```bash
-wget https://github.com/GeneralBots/botserver/releases/latest/botserver
+wget https://github.com/generalbots/generalbots/releases/latest/botserver
 chmod +x botserver
 ./botserver
 ```
@@ -298,9 +298,9 @@ The default bot is ready. Ask it anything. Modify `templates/default.gbai/` to c
 
 ## Community
 
-General Bots is open source (MIT) developed by Pragmatismo.com.br and contributors worldwide.
+General Bots is open source (MIT) developed by GeneralBots.org and contributors worldwide.
 
-- **GitHub**: https://github.com/GeneralBots/botserver
+- **GitHub**: https://github.com/generalbots/generalbots
 - **Version**: 6.1.0
 - **Status**: Production Ready
 
