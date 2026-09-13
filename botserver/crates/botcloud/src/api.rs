@@ -40,6 +40,7 @@ async fn cloud_jwt_middleware(
     // Skip auth for public endpoints
     if path.starts_with("/api/cloud/auth/")
         || path.starts_with("/api/domains/resolve")
+        || path.starts_with("/api/domains/tls-ask")
         || path == "/api/cloud/tenant/settings/oauth/google/callback"
     {
         return next.run(request).await;
@@ -225,6 +226,8 @@ pub fn configure_cloud_api_routes(config: SaasConfig) -> Router<Arc<SaasService>
         .route("/api/cloud/domains/:id", put(crate::domains::update_domain).delete(crate::domains::delete_domain))
         // Domain resolution (public — no JWT required)
         .route("/api/domains/resolve", get(crate::domains::resolve_domain))
+        // Caddy on-demand TLS decision endpoint (public — the proxy itself calls it)
+        .route("/api/domains/tls-ask", get(crate::domains::tls_ask_domain))
         // JWT auth middleware — protects all routes except /api/cloud/auth/*
         .layer(middleware::from_fn(cloud_jwt_middleware))
         .layer(axum::Extension(jwt_secret))
