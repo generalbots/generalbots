@@ -319,7 +319,7 @@ All testing documentation is located in `botbook/src/17-testing/`:
 
 | Project | Description |
 |---------|-------------|
-| [botserver](https://github.com/GeneralBots/botserver) | Main API server (tested) |
+| [botserver](https://github.com/generalbots/generalbots) | Main API server (tested) |
 | [botui](https://github.com/GeneralBots/botui) | Web UI (E2E tested) |
 | [botlib](https://github.com/GeneralBots/botlib) | Shared library |
 | [botbook](https://github.com/GeneralBots/botbook) | Documentation |
