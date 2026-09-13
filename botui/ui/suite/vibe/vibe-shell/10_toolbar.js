@@ -693,72 +693,65 @@
         selectors.appendChild(brWrap);
         bar.appendChild(selectors);
 
-    /* ── Window commands — two rows, grouped with | separators ── */
-        function tbSep() {
-            var sep = el("span", "vibe-shell-tb-sep");
-            sep.setAttribute("aria-hidden", "true");
-            return sep;
-        }
+    /* ── Window commands — 3 rows × 4 columns (#1383 review): a single
+       full-height separator spans the three lines between column groups ── */
         var cmds = el("div", "vibe-shell-tb-group vibe-shell-tb-cmds");
-        var cmdRow1 = el("div", "vibe-shell-tb-cmdrow");
-        // #1383 — New Project is the FIRST command of the first line.
-        cmdRow1.appendChild(buildButton("New Project", "New Project", function () { if (window.VibeNewProject) window.VibeNewProject.open(); else if (window.VibeWindows) window.VibeWindows.openNewProject(); }, "vibe-shell-tb-new"));
-        // Browser loads the selected project's app. Prefers the dev VM run
-        // (real node process, #1271), falls back to the static workspace
-        // stream, then to a deployed preview URL.
-        cmdRow1.appendChild(buildButton("Browser", "Browser", function () {
-            var pid = S.projectId();
-            if (!pid) { openBrowser(null); return; }
-            startDevVm(pid)
-                .then(function (vm) { openBrowser(vm.url); })
-                .catch(function () {
-                    workspaceServeUrl(pid)
-                        .then(function (url) {
-                            if (url) return url;
-                            return resolvePreviewUrl(pid);
-                        })
-                        .then(function (url) { openBrowser(url); })
-                        .catch(function () { openBrowser(null); });
-                });
-        }));
-        // #1383 — stacked groups, THREE buttons per line (issue diagram):
-        // line 1: New Project | Browser | Editor
-        // line 2: Chat | Terminal | Database
-        // line 3: Properties | Run Logger | Source Control
-        // line 4: Knowledge Graph | Canvas | Metrics
-        // line 5: Members
+        // 12 commands in a 3×4 grid — exactly the revised issue sketch:
+        //   row 1: New Project | Browser        | Editor         | Canvas
+        //   row 2: Chat        | Terminal       | Database       | Knowledge Graph
+        //   row 3: Properties  | Run Logger     | Source Control | Members
         var editorPid = S.projectId();
-        cmdRow1.appendChild(buildButton("Editor", "Editor", function () {
-            var pid = S.projectId() || editorPid;
-            openSharedApp("editor", pid ? { project: pid } : {});
-        }));
-        cmds.appendChild(cmdRow1);
-
-        var cmdRow2 = el("div", "vibe-shell-tb-cmdrow");
-        cmdRow2.appendChild(buildButton("Chat", "Chat", openChat));
-        cmdRow2.appendChild(buildButton("Terminal", "Terminal", openTerminal));
-        // Database opens the SQL schema editor (same dialog the ribbon's
-        // Database command used — #1189).
-        cmdRow2.appendChild(buildButton("Database", "Database", function () { if (window.VibeDialogs) window.VibeDialogs.open("db", "Database Schema"); }));
-        cmds.appendChild(cmdRow2);
-
-        var cmdRow3 = el("div", "vibe-shell-tb-cmdrow");
-        cmdRow3.appendChild(buildButton("Properties", "Properties", openProjectInfo, "vibe-shell-tb-info"));
-        cmdRow3.appendChild(buildButton("Run Logger", "Runner Log", openRunnerLog));
-        cmdRow3.appendChild(buildButton("Source Control", "Source Control", openCommit));
-        cmds.appendChild(cmdRow3);
-
-        var cmdRow4 = el("div", "vibe-shell-tb-cmdrow");
-        cmdRow4.appendChild(buildButton("Knowledge Graph", "Knowledge Graph", function () { if (window.VibeWindows) window.VibeWindows.openGraph(); }));
-        cmdRow4.appendChild(buildButton("Canvas", "Canvas", function () { if (window.VibeWindows) window.VibeWindows.openCanvas(); }));
-        cmdRow4.appendChild(buildButton("Metrics", "Metrics", function () { if (window.VibeWindows) window.VibeWindows.openMetrics(); }));
-        cmds.appendChild(cmdRow4);
-
-        // Members was only reachable from the hidden legacy ribbon — give it
-        // a toolbar button so no window exists without one (ghost windows).
-        var cmdRow5 = el("div", "vibe-shell-tb-cmdrow");
-        cmdRow5.appendChild(buildButton("Members", "Members", function () { if (window.VibeWindows) window.VibeWindows.openMembers(); }));
-        cmds.appendChild(cmdRow5);
+        var defs = [
+            ["New Project", "New Project", function () { if (window.VibeNewProject) window.VibeNewProject.open(); else if (window.VibeWindows) window.VibeWindows.openNewProject(); }, "vibe-shell-tb-new"],
+            ["Browser", "Browser", function () {
+                var pid = S.projectId();
+                if (!pid) { openBrowser(null); return; }
+                startDevVm(pid)
+                    .then(function (vm) { openBrowser(vm.url); })
+                    .catch(function () {
+                        workspaceServeUrl(pid)
+                            .then(function (url) {
+                                if (url) return url;
+                                return resolvePreviewUrl(pid);
+                            })
+                            .then(function (url) { openBrowser(url); })
+                            .catch(function () { openBrowser(null); });
+                    });
+            }, null],
+            ["Editor", "Editor", function () {
+                var pid = S.projectId() || editorPid;
+                openSharedApp("editor", pid ? { project: pid } : {});
+            }, null],
+            ["Canvas", "Canvas", function () { if (window.VibeWindows) window.VibeWindows.openCanvas(); }, null],
+            ["Chat", "Chat", openChat, null],
+            ["Terminal", "Terminal", openTerminal, null],
+            // Database opens the SQL schema editor (same dialog the ribbon's
+            // Database command used — #1189).
+            ["Database", "Database", function () { if (window.VibeDialogs) window.VibeDialogs.open("db", "Database Schema"); }, null],
+            ["Knowledge Graph", "Knowledge Graph", function () { if (window.VibeWindows) window.VibeWindows.openGraph(); }, null],
+            ["Properties", "Properties", openProjectInfo, "vibe-shell-tb-info"],
+            ["Run Logger", "Runner Log", openRunnerLog, null],
+            ["Source Control", "Source Control", openCommit, null],
+            // Members was only reachable from the hidden legacy ribbon — the
+            // toolbar button keeps it reachable (no ghost windows).
+            ["Members", "Members", function () { if (window.VibeWindows) window.VibeWindows.openMembers(); }, null],
+        ];
+        defs.forEach(function (d, i) {
+            var btn = buildButton(d[0], d[1], d[2], d[3]);
+            // Column c (0..3) → grid col 1,3,5,7; separator columns 2,4,6
+            btn.style.gridColumn = String((i % 4) * 2 + 1);
+            btn.style.gridRow = String(Math.floor(i / 4) + 1);
+            cmds.appendChild(btn);
+        });
+        // One separator per column boundary, spanning all 3 rows (Md-file
+        // style single rule instead of a mark on every line).
+        for (var s = 0; s < 3; s++) {
+            var sep = el("span", "vibe-shell-tb-sep vibe-shell-tb-sep3");
+            sep.setAttribute("aria-hidden", "true");
+            sep.style.gridColumn = String(s * 2 + 2);
+            sep.style.gridRow = "1 / 4";
+            cmds.appendChild(sep);
+        }
         bar.appendChild(cmds);
 
         // #1325 — project-gated commands: when no project is selected every
