@@ -1,24 +1,35 @@
 # What's New 🟡 BETA
 
-This page has been consolidated with the Multi-Agent Orchestration documentation.
+What changed recently, with the date it landed. Every entry here is traceable to a
+commit, a route or a page in the repository — this page is a changelog, not a
+feature list. For what exists today rather than what is new, see the
+[Roadmap](../ROADMAP.md) and [Suite Apps Status](../07-user-interface/apps/suite-apps-status.md).
 
-For the latest features including:
+> **Verified 2026-09-13** against the commit history. If an entry here disagrees
+> with the code, the code is right.
 
-- **Agent-to-Agent (A2A) Protocol** - Bots communicate and delegate tasks
-- **Cross-Session User Memory** - User data persists across bots and sessions
-- **Dynamic Model Routing** - Switch LLM models based on task requirements
-- **Six retrieval modes** - `standard`, `hybrid`, `corrective`, `graph`, `agentic` and `multimodal`, selected per bot with `rag-mode`
-- **Code Sandbox** - Safe Python/JavaScript/Bash execution
-- **Agent Reflection** - Self-analysis for continuous improvement
-- **SSE Streaming** - Real-time response streaming
+## September 2026
 
-Please see: **[Multi-Agent Orchestration](./multi-agent-orchestration.md)**
+| Date | Change | Where it lands |
+|---|---|---|
+| 2026-09-13 | **Applications in the menu can be launched again.** Nine catalog apps were unreachable behind a launch gate, which was removed | Launcher; [Suite Apps Status](../07-user-interface/apps/suite-apps-status.md) |
+| 2026-09-13 | **Platform subdomains resolve to their bot**, and the proxy can ask for a certificate during the TLS handshake (`/api/domains/tls-ask`) | [Domain management](../12-ecosystem-reference/README.md) |
+| 2026-09-13 | **The cloud sidebar shows the signed-in identity** — `/api/auth/me` resolves cloud JWTs rather than only chat tokens | Cloud console |
+| 2026-09-13 | **Vibe website projects run on the proxy container**, not a development VM, and an unknown project type is rejected with an explicit error instead of failing quietly | [Vibe](../07-user-interface/apps/vibe.md) |
+| 2026-09-13 | **Signup identities get a local user row and a working password** — account creation now imports the user through the directory instead of writing a row the directory did not know about | [Security](../09-security/README.md) |
+| 2026-09-13 | **The documentation site is `docs.generalbots.org`**, replacing the older domain | This book |
 
----
+## Earlier in 2026
 
-## Quick Links
+The larger arcs — the Rust core, channels, Drive, the productivity suite, workflow
+and CRM — are recorded with their state and evidence in the
+[Roadmap](../ROADMAP.md), which separates **shipped** work from work that is
+in progress or planned. That separation is deliberate: this page should never be
+the place where unfinished work is announced as finished.
 
-- [Multi-Agent Orchestration](./multi-agent-orchestration.md) - Complete guide to multi-agent systems
-- [Memory Management](./memory-management.md) - User and bot memory systems
-- [Hybrid RAG Search](./hybrid-search.md) - Search configuration and tuning
-- [Keywords Reference](../04-basic-scripting/keywords.md) - All BASIC keywords
+## See Also
+
+- [Roadmap](../ROADMAP.md) — what is shipped, in progress and planned
+- [Multi-Agent Orchestration](./multi-agent-orchestration.md) — agents, protocols and routing
+- [Retrieval and RAG](./hybrid-search.md) — how knowledge is retrieved, and what is not implemented
+- [Suite Apps Status](../07-user-interface/apps/suite-apps-status.md) — per-application state

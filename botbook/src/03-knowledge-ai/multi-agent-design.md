@@ -1,4 +1,15 @@
-# Multi-Agent Office Suite - Complete Design Document 🟡 BETA
+# Multi-Agent Office Suite — Design Document (vision and plan) 🟡 BETA
+
+> **This is a design document, not a description of shipped software.** It was
+> written as a plan and mixes three kinds of material: architecture that exists,
+> work that is in progress, and ambitions that have not been built. Read it as a
+> proposal.
+>
+> For what exists today, use [ROADMAP.md](../ROADMAP.md), which marks each item
+> **Shipped**, **In progress** or **Planned** with evidence, and
+> [Multi-Agent Orchestration](./multi-agent-orchestration.md) for the agent
+> system as it actually behaves. Where this page and the code disagree, the code
+> is right.
 
 ## 🎯 Vision: Beat Microsoft 365, Google Workspace & All AI Competitors
 

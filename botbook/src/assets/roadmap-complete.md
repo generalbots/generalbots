@@ -1,4 +1,14 @@
-# General Bots Complete Roadmap 2018-2026 🟡 BETA
+# Historical — planned roadmap 2018-2026 (superseded)
+
+> **This is a historical record, not a current plan.** It merges a proposed timeline
+> with the features that were documented at the time, and it predates the
+> shipped/planned split. It is therefore unreliable about what actually exists:
+> entries were counted from documentation, not from the code.
+>
+> For the current state, use [ROADMAP.md](../ROADMAP.md), which separates shipped,
+> in-progress and planned work and cites evidence for each shipped item, and
+> [Suite Apps Status](../07-user-interface/apps/suite-apps-status.md) for
+> per-application state. Do not quote figures from this page.
 
 ## Merged Timeline: User Requirements + botbook Documentation
 
