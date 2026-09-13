@@ -2,6 +2,9 @@
 
 > **Preview application.** Usable today, not yet part of the supported surface. See [stability](./README.md#what-is-stable-and-what-is-preview).
 
+
+<img src="../../assets/suite/automations-screen.svg" alt="Automations Interface Screen" style="max-width: 100%; height: auto;">
+
 Automations is the suite's scheduler. It runs an agent on a cron schedule and delivers the result to a channel, without anyone typing a request.
 
 ## What it does

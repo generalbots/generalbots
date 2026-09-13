@@ -2,6 +2,9 @@
 
 > **Preview application.** Usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/jukebox-screen.svg" alt="Jukebox Interface Screen" style="max-width: 100%; height: auto;">
+
 JukeBox generates music. You describe what you want — a style, a mood, an instrumental bed — and it produces audio rather than searching for existing tracks.
 
 ## What it does

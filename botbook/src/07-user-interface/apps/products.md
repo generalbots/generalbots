@@ -2,6 +2,9 @@
 
 > **Manage your complete product and service offerings**
 
+
+<img src="../../assets/suite/products-screen.svg" alt="Products Interface Screen" style="max-width: 100%; height: auto;">
+
 ---
 
 ## Overview

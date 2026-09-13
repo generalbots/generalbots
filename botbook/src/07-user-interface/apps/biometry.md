@@ -2,6 +2,9 @@
 
 > **Preview application.** Usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/biometry-screen.svg" alt="Biometry Interface Screen" style="max-width: 100%; height: auto;">
+
 Biometry collects identity verification into one console: document checks, liveness, signatures and the certificates that depend on them.
 
 ## What it does

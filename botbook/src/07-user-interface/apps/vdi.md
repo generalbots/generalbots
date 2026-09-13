@@ -2,6 +2,9 @@
 
 > **Preview application.** Usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/vdi-screen.svg" alt="Vdi Interface Screen" style="max-width: 100%; height: auto;">
+
 VDI connects the suite to remote desktops. Instead of leaving the browser to reach a machine elsewhere, the remote session opens inside the suite as a window.
 
 ## What it does

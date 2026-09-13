@@ -2,6 +2,9 @@
 
 > **Preview application.** Usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/photos-screen.svg" alt="Photos Interface Screen" style="max-width: 100%; height: auto;">
+
 Photos is a gallery over the images already in your [Drive](./drive.md), with a lightbox for viewing and a simple editor for small corrections.
 
 ## What it does

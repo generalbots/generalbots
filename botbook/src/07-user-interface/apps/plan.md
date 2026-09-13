@@ -2,6 +2,9 @@
 
 > **Preview application.** Usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/plan-screen.svg" alt="Plan Interface Screen" style="max-width: 100%; height: auto;">
+
 Plan is a board for tracking work in flight: what is being done, by whom, at what priority and how far along.
 
 ## What it does

@@ -2,6 +2,9 @@
 
 > **Preview application.** Usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/memory-screen.svg" alt="Memory Interface Screen" style="max-width: 100%; height: auto;">
+
 Memory is the profile your assistant builds about you — preferences, context and facts it should carry between conversations. The app is where you read it, correct it and export it.
 
 ## What it does

@@ -2,6 +2,9 @@
 
 > **Preview application.** Usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/notes-screen.svg" alt="Notes Interface Screen" style="max-width: 100%; height: auto;">
+
 Sticky Notes puts short notes on your desktop where you will actually see them, instead of inside a document you have to remember to open.
 
 ## What it does

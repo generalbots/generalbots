@@ -2,6 +2,9 @@
 
 > **Preview application.** Part of the [Vibe](./vibe.md) workspace, usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/vibe-members-screen.svg" alt="Vibe-Members Interface Screen" style="max-width: 100%; height: auto;">
+
 Project Members controls who can work on a Vibe project and who owns it.
 
 ## What it does

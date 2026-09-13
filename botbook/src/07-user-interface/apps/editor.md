@@ -2,6 +2,9 @@
 
 > **Preview application.** Usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/editor-screen.svg" alt="Editor Interface Screen" style="max-width: 100%; height: auto;">
+
 Editor is the suite's text and code editor. It opens files from your Drive, edits them with syntax-aware tooling, and can apply AI improvements to what you have selected.
 
 ## What it does

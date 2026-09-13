@@ -2,6 +2,9 @@
 
 > **Preview application.** Usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/timer-screen.svg" alt="Timer Interface Screen" style="max-width: 100%; height: auto;">
+
 Timer is a countdown and focus timer that lives in the suite, so a session timer does not have to live on another device.
 
 ## What it does
