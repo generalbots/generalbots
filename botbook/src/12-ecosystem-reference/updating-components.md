@@ -24,17 +24,17 @@ Check installed versions:
 Example output:
 ```
 botserver Stack Versions:
-  vault:     1.15.4
+  vault:     1.18.2
   tables:    17.2.0 (PostgreSQL)
-  directory: 2.70.4 (Zitadel)
+  directory: 2.44.0 (Zitadel)
   drive:     latest (MinIO)
-  cache:     8.0.2 (Valkey)
+  cache:     8.1.5 (Valkey)
   llm:       b7345 (llama.cpp)
   email:     0.10.7 (Stalwart)
   proxy:     2.9.1 (Caddy)
-  dns:       1.11.1 (CoreDNS)
-  alm:       10.0.2 (Forgejo)
-  meeting:   2.8.2 (LiveKit)
+  dns:       1.11.3 (CoreDNS)
+  alm:       10.0.1 (Forgejo)
+  meeting:   2.8.5 (LiveKit)
 ```
 
 ### Check Upstream Releases
@@ -220,8 +220,8 @@ Valkey requires compilation from source.
 ```bash
 # Update 3rdparty.toml
 [components.cache]
-url = "https://github.com/valkey-io/valkey/archive/refs/tags/8.0.2.tar.gz"
-filename = "valkey-8.0.2.tar.gz"
+url = "https://download.valkey.io/releases/valkey-8.1.5-jammy-x86_64.tar.gz"
+filename = "valkey-8.1.5-jammy-x86_64.tar.gz"
 
 # Stop cache
 ./botserver stop cache
@@ -248,7 +248,7 @@ pg_dump -d zitadel > zitadel-backup-$(date +%Y%m%d).sql
 
 # Update 3rdparty.toml
 [components.directory]
-url = "https://github.com/zitadel/zitadel/releases/download/v2.70.4/zitadel-linux-amd64.tar.gz"
+url = "https://github.com/zitadel/zitadel/releases/download/v2.44.0/zitadel-linux-amd64.tar.gz"
 filename = "zitadel-linux-amd64.tar.gz"
 
 # Stop directory
@@ -273,8 +273,8 @@ filename = "zitadel-linux-amd64.tar.gz"
 ```bash
 # Update 3rdparty.toml
 [components.vault]
-url = "https://releases.hashicorp.com/vault/1.15.4/vault_1.15.4_linux_amd64.zip"
-filename = "vault_1.15.4_linux_amd64.zip"
+url = "https://releases.hashicorp.com/vault/1.18.2/vault_1.18.2_linux_amd64.zip"
+filename = "vault_1.18.2_linux_amd64.zip"
 
 # Stop Vault
 ./botserver stop vault

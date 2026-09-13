@@ -75,7 +75,7 @@ tls-cert-file /opt/gbo/conf/certificates/redis/server.crt
 tls-key-file /opt/gbo/conf/certificates/redis/server.key
 tls-ca-cert-file /opt/gbo/conf/certificates/ca.crt
 
-# Enable RDB encryption (Redis 7.2+)
+# Enable RDB encryption (Valkey 8.1+)
 rdb-save-incremental-fsync yes
 ```
 
