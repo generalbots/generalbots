@@ -57,6 +57,39 @@ pub fn set_session_pool(pool: DbPool) {
     let _ = SESSION_POOL.set(pool);
 }
 
+/// #1364 — pluggable verifier for token kinds minted OUTSIDE this crate
+/// (e.g. the cloud management JWT signed with the SaaS secret). Wired once at
+/// bootstrap by the owning module; when it returns `Some(user)`,
+/// `get_current_user` treats the bearer as an authenticated identity instead
+/// of falling through to the anonymous response (sidebar showed "Sign in"
+/// while the user was actually signed in on the cloud/SaaS surface).
+static EXTERNAL_TOKEN_VERIFIER: OnceLock<fn(&str) -> Option<SessionUserData>> = OnceLock::new();
+
+pub fn set_external_token_verifier(f: fn(&str) -> Option<SessionUserData>) {
+    let _ = EXTERNAL_TOKEN_VERIFIER.set(f);
+}
+
+/// Resolve an arbitrary bearer token to a session user: suite session cache,
+/// then persisted sessions, then the wired external verifier (cloud JWT).
+pub fn resolve_token_user(token: &str) -> Option<SessionUserData> {
+    if token.is_empty() {
+        return None;
+    }
+    if let Some(user) = SESSION_CACHE.try_read().ok().and_then(|c| c.get(token).cloned()) {
+        if !session_expired(&user) {
+            return Some(user);
+        }
+    }
+    if let Some(user) = session_from_persisted(token) {
+        if !session_expired(&user) {
+            return Some(user);
+        }
+    }
+    EXTERNAL_TOKEN_VERIFIER
+        .get()
+        .and_then(|f| f(token))
+}
+
 pub fn persist_session(token: &str, user: &SessionUserData) {
     let Some(pool) = SESSION_POOL.get() else {
         return;
@@ -99,6 +132,13 @@ pub fn remove_persisted_session(token: &str) {
 /// Rehydrates a session from the `login_sessions` table for in-memory cache
 /// misses (e.g. after a restart). Returns `None` when no row exists for the
 /// token or the stored payload cannot be parsed.
+/// #1364 — bridge to the bootstrap-wired external verifier (cloud JWT).
+/// Kept as a free function so the handler stays concise and the verifier
+/// remains swappable in one place.
+fn resolve_cloud_bearer(token: &str) -> Option<SessionUserData> {
+    EXTERNAL_TOKEN_VERIFIER.get().and_then(|f| f(token))
+}
+
 pub fn session_from_persisted(token: &str) -> Option<SessionUserData> {
     let pool = SESSION_POOL.get()?;
     let mut conn = pool.get().ok()?;
@@ -638,6 +678,25 @@ pub async fn get_current_user(
                     roles: Some(user_data.roles.clone()),
                     organization_id: user_data.organization_id.clone(),
                     bucket: user_data.bucket.clone(),
+                    avatar_url: None,
+                    is_anonymous: false,
+                })
+            } else if let Some(user_data) = resolve_cloud_bearer(session_token) {
+                // #1364 — not a suite session token: it may still be a cloud
+                // management JWT (SaaS surface). Resolve it through the wired
+                // external verifier so signed-in cloud users see their identity
+                // in the suite sidebar instead of a stale "Sign in" affordance.
+                info!("get_current_user: resolved external (cloud JWT) bearer");
+                Json(CurrentUserResponse {
+                    id: Some(user_data.user_id),
+                    username: Some(user_data.username),
+                    email: Some(user_data.email),
+                    first_name: user_data.first_name,
+                    last_name: user_data.last_name,
+                    display_name: user_data.display_name,
+                    roles: Some(user_data.roles),
+                    organization_id: user_data.organization_id,
+                    bucket: user_data.bucket,
                     avatar_url: None,
                     is_anonymous: false,
                 })
