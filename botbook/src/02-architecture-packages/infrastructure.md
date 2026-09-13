@@ -159,7 +159,7 @@ Each tenant or organization gets isolated databases.
 
 Each tenant gets isolated resources with dedicated database schemas, cache namespaces, and vector collections. The router maps tenant IDs to their respective data stores automatically.
 
-Key isolation features include database-per-tenant or schema-per-tenant options, namespace isolation in Valkey cache, collection isolation in Qdrant vectors, and bucket isolation in SeaweedFS storage.
+Key isolation features include database-per-tenant or schema-per-tenant options, namespace isolation in Valkey cache, collection isolation in Qdrant vectors, and bucket isolation in MinIO storage.
 
 Configuration:
 

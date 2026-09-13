@@ -211,6 +211,6 @@ When available, the Whiteboard API will integrate with the [Storage API](./stora
 
 ## Status Updates
 
-Check the [GitHub repository](https://github.com/generalbots/botserver) for updates on Whiteboard API implementation status.
+Check the [GitHub repository](https://github.com/generalbots/generalbots) for updates on Whiteboard API implementation status.
 
 For immediate visual collaboration needs, consider embedding existing solutions like Excalidraw or Miro rather than waiting for the native implementation.

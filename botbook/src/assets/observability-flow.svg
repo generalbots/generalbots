@@ -166,7 +166,7 @@
     <rect width="400" height="160" class="neon-gray" rx="6.5"/>
     <text x="200" y="30" text-anchor="middle" font-size="20" font-weight="500" class="main-text">Log Directory Structure</text>
     <text x="20" y="60" font-family="monospace" font-size="14" class="secondary-text">logs/system/    → BotServer logs</text>
-    <text x="20" y="85" font-family="monospace" font-size="14" class="secondary-text">logs/drive/     → SeaweedFS logs</text>
+    <text x="20" y="85" font-family="monospace" font-size="14" class="secondary-text">logs/drive/     → MinIO logs</text>
     <text x="20" y="110" font-family="monospace" font-size="14" class="secondary-text">logs/tables/    → PostgreSQL logs</text>
     <text x="20" y="135" font-family="monospace" font-size="14" class="secondary-text">logs/cache/     → Valkey logs</text>
     <text x="220" y="60" font-family="monospace" font-size="14" class="secondary-text">logs/vectordb/  → Qdrant</text>
@@ -219,7 +219,7 @@
     <text x="550" y="655" text-anchor="middle" font-size="14" class="secondary-text">Vector Agent</text>
 
     <text x="900" y="600" text-anchor="middle" font-size="16" font-weight="500" class="main-text">Process</text>
-    <text x="900" y="655" text-anchor="middle" font-size="14" class="secondary-text">Parse & Route</text>
+    <text x="900" y="655" text-anchor="middle" font-size="14" class="secondary-text">Parse &amp; Route</text>
 
     <text x="1200" y="600" text-anchor="middle" font-size="16" font-weight="500" class="main-text">Store/Alert</text>
     <text x="1200" y="655" text-anchor="middle" font-size="14" class="secondary-text">InfluxDB/Grafana</text>

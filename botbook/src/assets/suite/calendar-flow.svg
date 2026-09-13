@@ -150,7 +150,7 @@
       <text x="100" y="52" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">Modal/sidebar</text>
     </g>
 
-    <!-- Title & Time -->
+    <!-- Title &amp; Time -->
     <g transform="translate(680, 260)">
       <rect x="0" y="0" width="200" height="60" rx="6.5" fill="none" class="neon-orange"/>
       <text x="100" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="500" class="main-text">Title &amp; Time</text>

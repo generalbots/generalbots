@@ -98,15 +98,19 @@ Beyond the in-browser suite, the same agent layer drives **WhatsApp Business**, 
 
 ## Architecture
 
-Two Rust services, one workspace.
+Two Rust services, one workspace, thirteen platform services behind them.
 
-<a href=".github/svg/diagram-architecture.svg"><img src=".github/svg/diagram-architecture.svg" alt="Architecture: clients reach botui on ports 3000, 4000 and 5000, which proxies to botserver on port 8080, backed by PostgreSQL and Vault for state and secrets, MinIO for drive and files, and Qdrant with llama.cpp for vectors and the local LLM" width="960"></a>
+<a href=".github/svg/diagram-platform.svg"><img src=".github/svg/diagram-platform.svg" alt="Platform architecture: clients and channels reach Caddy, which routes to botui on three ports and to botserver, whose message pipeline runs channel_entry to consent gate to start.bas to knowledge base retrieval to the API catalog to tool execution and out to the client, over the BASIC engine, drive compiler and app registry, with the AI layer, data services and drive tenancy model below" width="1500"></a>
 
-**botserver** is the platform core: LLM orchestration, the BASIC (Rhai) scripting engine, the drive compiler, the suite app registry and the API catalog that lets the LLM act on your data. Business logic lives in `botserver/crates/` — one crate per domain (`botcrm`, `botcalendar`, `botdrive`, `botlearn`, `botcloud`, …).
+The full picture, top to bottom. **Clients and channels** reach **Caddy**, which routes to **botui** (three ports, one binary) and **botserver** (`8080`, HTTP and WebSocket). Inside botserver a message runs `channel_entry → consent_gate → start.bas → kb/RAG → api_catalog → tool_exec → sink`, over the BASIC (Rhai) engine, the drive compiler and the app registry that gives the model a UI automation surface. Below that sit the **AI layer** — `botllm` routing across Claude, Bedrock, Vertex, GLM, Kimi, Kiro or a local llama.cpp — the **data services** (PostgreSQL, Vault, Valkey, MinIO, Zitadel, Qdrant, Stalwart, LiveKit) and the **drive tenancy model** (`{org}.gborg → {workspace}.gbai → {bot}`) that `drive_monitors` discovers from object storage at runtime.
+
+**botserver** is the platform core: 113 domain crates, one per business domain (`botcrm`, `botcalendar`, `botdrive`, `botlearn`, `botcloud`, …). Business logic belongs there, not in the API surface.
 
 **botui** serves the front end on three ports from a single binary: the desktop suite on `3000`, the cloud/SaaS pages on `4000`, and login/signup on `5000`.
 
-A message flows through the system as: WebSocket → session → `start.bas` (once per session) → knowledge-base injection → LLM or direct tool execution → streamed response back over the socket.
+A message flows as: WebSocket → session → `start.bas` (once per session) → knowledge-base injection → LLM or direct tool execution → streamed response. Message type `6` skips the model entirely and runs the compiled `.ast` through Rhai.
+
+The long-form version — every module, the two security crates, the RAG modes — is in **[BotBook → Architecture](botbook/src/02-architecture-packages/architecture.md)**.
 
 ### Ports
 

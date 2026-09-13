@@ -244,7 +244,7 @@
     <text x="200" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="500" class="main-text">Select Block</text>
     <text x="200" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" class="secondary-text">Drag from toolbox</text>
 
-    <text x="500" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="500" class="main-text">Place & Connect</text>
+    <text x="500" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="500" class="main-text">Place &amp; Connect</text>
     <text x="500" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" class="secondary-text">Build flow on canvas</text>
 
     <text x="800" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="500" class="main-text">Configure</text>

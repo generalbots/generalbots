@@ -8,7 +8,7 @@
 
 ## Overview
 
-Drive is your personal cloud storage within General Bots Suite. Upload, organize, and share files with a familiar interface. Built with HTMX for smooth interactions and SeaweedFS for reliable object storage.
+Drive is your personal cloud storage within General Bots Suite. Upload, organize, and share files with a familiar interface. Built with HTMX for smooth interactions and MinIO for reliable object storage.
 
 ---
 
@@ -280,7 +280,7 @@ Located in the Drive sidebar under "Sync Status"
 
 ## Storage Backend
 
-Drive uses SeaweedFS for object storage:
+Drive uses MinIO for object storage:
 
 - **Scalable**: Grows with your needs
 - **Redundant**: Data replicated across nodes

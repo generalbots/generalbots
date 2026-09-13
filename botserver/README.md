@@ -79,6 +79,12 @@ Each application is backed by a crate in [`crates/`](./crates) and a UI under `b
 
 ## Architecture
 
+The whole platform, with botserver as the centre band:
+
+<a href="../.github/svg/diagram-platform.svg"><img src="../.github/svg/diagram-platform.svg" alt="Platform architecture: clients and channels reach Caddy, which routes to botui on three ports and to botserver, whose message pipeline runs channel_entry to consent gate to start.bas to knowledge base retrieval to the API catalog to tool execution and out to the client, over the BASIC engine, drive compiler and app registry, with the AI layer, data services and drive tenancy model below" width="1500"></a>
+
+Zooming into the pipeline that every message runs:
+
 <a href="../.github/svg/diagram-botserver-pipeline.svg"><img src="../.github/svg/diagram-botserver-pipeline.svg" alt="Message pipeline: a connection reaches the WebSocket handler, runs start.bas once per session, then branches into direct tool execution for message type 6 or knowledge-base retrieval and an LLM call for everything else" width="900"></a>
 
 Message types drive the routing, so tools can bypass the model entirely:

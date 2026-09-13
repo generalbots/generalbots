@@ -141,7 +141,7 @@
     <text x="520" y="183" font-size="13" class="secondary-text">Mar 10</text>
   </g>
 
-  <!-- Drag & Drop Zone -->
+  <!-- Drag &amp; Drop Zone -->
   <rect x="185" y="380" width="680" height="100" rx="8" fill="none" stroke="#4A90E2" stroke-width="2" stroke-dasharray="8,4"/>
   <text x="525" y="425" text-anchor="middle" font-size="16" class="secondary-text">📤 Drag files here to upload</text>
   <text x="525" y="450" text-anchor="middle" font-size="13" class="secondary-text">or click + New to create</text>

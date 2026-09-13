@@ -121,7 +121,7 @@
       <text x="55" y="26" font-size="13" font-weight="600" class="main-text">Cloud Storage / Files</text>
       <text x="55" y="44" font-size="11" class="mono-text">Files, Versions, Sharing</text>
       <text x="650" y="35" text-anchor="middle" font-size="20" class="accent-text">→</text>
-      <text x="900" y="26" font-size="13" font-weight="600" class="main-text">SeaweedFS + File Keywords</text>
+      <text x="900" y="26" font-size="13" font-weight="600" class="main-text">MinIO + File Keywords</text>
       <text x="900" y="44" font-size="11" class="mono-text">READ, WRITE, LIST, COPY, MOVE, DELETE</text>
       <rect x="1200" y="15" width="70" height="28" rx="14" fill="url(#successGradient)"/>
       <text x="1235" y="34" text-anchor="middle" font-size="11" font-weight="600" class="white-text">READY</text>
@@ -174,7 +174,7 @@
       <text x="55" y="44" font-size="11" class="mono-text">Flows, Triggers, Connectors</text>
       <text x="650" y="35" text-anchor="middle" font-size="20" class="accent-text">→</text>
       <text x="900" y="26" font-size="13" font-weight="600" class="main-text">BASIC Scripts + SET SCHEDULE</text>
-      <text x="900" y="44" font-size="11" class="mono-text">90+ keywords, webhooks, cron, full logic</text>
+      <text x="900" y="44" font-size="11" class="mono-text">124 keywords, webhooks, cron, full logic</text>
       <rect x="1200" y="15" width="70" height="28" rx="14" fill="url(#gbGradient)"/>
       <text x="1235" y="34" text-anchor="middle" font-size="11" font-weight="600" class="white-text">BETTER</text>
     </g>

@@ -339,5 +339,5 @@ Quick lookup for General Bots terms. If you're lost, start here.
 ---
 
 <div align="center">
-  <img src="./assets/general-bots-logo.svg" alt="General Bots" width="200">
+  <img src="./assets/general-bots-2017.svg" alt="General Bots" width="200">
 </div>

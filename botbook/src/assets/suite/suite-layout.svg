@@ -132,5 +132,5 @@
   <text x="230" y="549" text-anchor="middle" class="sublabel">Tablet 768px</text>
 
   <rect x="290" y="535" width="90" height="20" class="box-filled" />
-  <text x="335" y="549" text-anchor="middle" class="sublabel">Mobile <768</text>
+  <text x="335" y="549" text-anchor="middle" class="sublabel">Mobile &lt;768</text>
 </svg>

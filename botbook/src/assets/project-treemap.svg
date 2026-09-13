@@ -80,7 +80,7 @@
     <text x="580" y="110" font-family="Arial" font-size="9" fill="rgba(255,255,255,0.7)">105,697 lines | Documentation</text>
     <rect x="580" y="120" width="75" height="35" rx="4" fill="rgba(0,0,0,0.2)"/>
     <text x="588" y="138" font-family="Arial" font-size="8" font-weight="bold" fill="#fff">Dialogs</text>
-    <text x="588" y="148" font-family="Arial" font-size="6" fill="rgba(255,255,255,0.5)">90+ keywords</text>
+    <text x="588" y="148" font-family="Arial" font-size="6" fill="rgba(255,255,255,0.5)">124 keywords</text>
     <rect x="663" y="120" width="75" height="35" rx="4" fill="rgba(0,0,0,0.2)"/>
     <text x="671" y="138" font-family="Arial" font-size="8" font-weight="bold" fill="#fff">REST API</text>
     <text x="671" y="148" font-family="Arial" font-size="6" fill="rgba(255,255,255,0.5)">25+ endpoints</text>

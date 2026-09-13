@@ -7,18 +7,24 @@ botserver follows a modular architecture designed for scalability, maintainabili
 
 The architecture diagrams below illustrate the major components and their relationships.
 
+### Platform Overview
+
+Every band of the running platform, from the client surfaces down to the drive tenancy model. Read it top to bottom, or follow the numbered phases: request, process, decide, execute, respond.
+
+<img src="../assets/platform-master.svg" alt="Complete platform architecture: clients and channels, the edge, the botui front ends, botserver's transport surfaces, message pipeline, engines, security rails and 113 grouped domain crates, the AI layer, the data and platform services, the drive tenancy model, and operations" style="width: 100%;">
+
 ### Data Flow Architecture
 
-<img src="../assets/02-architecture-packages/data-flow.svg" alt="botserver Data Flow Architecture" style="max-height: 400px; width: 100%; object-fit: contain;">
+<img src="../assets/02-architecture-packages/chapter-07/data-flow.svg" alt="botserver Data Flow Architecture" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 ### System Architecture
 
-<img src="../assets/02-architecture-packages/system-architecture.svg" alt="botserver System Architecture" style="max-height: 400px; width: 100%; object-fit: contain;">
+<img src="../assets/02-architecture-packages/chapter-07/system-architecture.svg" alt="botserver System Architecture" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 
 ## Module Dependency Graph
 
-<img src="../assets/02-architecture-packages/module-dependency.svg" alt="Module Dependency Graph" style="max-height: 400px; width: 100%; object-fit: contain;">
+<img src="../assets/02-architecture-packages/chapter-07/module-dependency.svg" alt="Module Dependency Graph" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 
 ## Module Organization
@@ -27,7 +33,7 @@ The codebase is organized into modules that group related functionality together
 
 ### Data Flow Through Modules
 
-<img src="../assets/02-architecture-packages/module-data-flow.svg" alt="Data Flow Through Modules" style="max-height: 400px; width: 100%; object-fit: contain;">
+<img src="../assets/02-architecture-packages/chapter-07/module-data-flow.svg" alt="Data Flow Through Modules" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 
 ### Core Modules

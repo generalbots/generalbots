@@ -112,7 +112,7 @@
     <text x="325" y="46" font-size="14" class="main-text">ana.johnson</text>
   </g>
 
-  <!-- Email & Phone Fields -->
+  <!-- Email &amp; Phone Fields -->
   <g transform="translate(220, 340)">
     <text x="0" y="10" font-size="14" font-weight="500" class="secondary-text">Email Address</text>
     <rect x="0" y="20" width="280" height="40" rx="6" class="input-bg"/>

@@ -82,7 +82,7 @@
       <rect x="20" y="60" width="200" height="35" rx="4" fill="none" class="neon-cyan" stroke-width="1.5"/>
       <text x="30" y="83" font-family="Arial, sans-serif" font-size="13" class="secondary-text">What needs to be done?</text>
 
-      <!-- Category & Date -->
+      <!-- Category &amp; Date -->
       <rect x="20" y="105" width="90" height="30" rx="4" fill="none" class="neon-orange" stroke-width="1.5"/>
       <text x="65" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" class="secondary-text">Category</text>
 
@@ -216,10 +216,10 @@
     <text x="200" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" class="secondary-text">Enter description</text>
 
     <text x="530" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="500" class="main-text">Categorize</text>
-    <text x="530" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" class="secondary-text">Set priority & date</text>
+    <text x="530" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" class="secondary-text">Set priority &amp; date</text>
 
     <text x="870" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="500" class="main-text">Track</text>
-    <text x="870" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" class="secondary-text">View & filter tasks</text>
+    <text x="870" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" class="secondary-text">View &amp; filter tasks</text>
 
     <text x="1200" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="500" class="main-text">Complete</text>
     <text x="1200" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" class="secondary-text">Check off done</text>

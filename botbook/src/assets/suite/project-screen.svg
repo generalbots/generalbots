@@ -157,7 +157,7 @@
       <text x="260" y="16" text-anchor="middle" font-size="10" class="white-text">Backend API</text>
     </g>
 
-    <!-- Task 4: Testing & QA (purple) -->
+    <!-- Task 4: Testing &amp; QA (purple) -->
     <g transform="translate(0, 220)">
       <text x="-10" y="14" text-anchor="end" font-size="12" class="main-text">Testing</text>
       <rect x="340" y="0" width="160" height="24" rx="6" class="gantt-bar-purple" opacity="0.9"/>
