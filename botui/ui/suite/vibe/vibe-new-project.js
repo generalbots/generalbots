@@ -4,6 +4,10 @@
  * were removed (2026-08-27): a project is created in development (Run tests
  * dev) and published to production via the toolbar Deploy button — there is
  * no staging and no external hooks.
+ * #1382 — Create closes the window immediately, reports progress in the
+ * Vibe status bar and auto-fires Run when creation finishes. No VM is
+ * raised at creation time: Run picks the runtime (website → proxy site,
+ * apps/bot → dev VM), so nothing is provisioned while the dialog is up.
  */
 (function () {
     "use strict";
@@ -179,6 +183,24 @@
         });
     }
 
+    // #1382 — the dialog is fire-and-forget: Create closes the window
+    // immediately and every subsequent step (seed, auto-Run) reports its
+    // progress to the Vibe status bar (the #vibeRibbonStatus element the
+    // shell mirrors into #window-vibe .window-statusbar-status). No VM is
+    // provisioned here — Run decides the runtime (website → proxy site,
+    // apps/bot → dev VM).
+    function npStatus(text, kind) {
+        var el = document.getElementById("vibeRibbonStatus");
+        if (el) {
+            el.textContent = text || "";
+            el.className = "vibe-ribbon-status" + (kind ? " " + kind : "");
+        }
+        var state = /creat|run|scaffold|seed/i.test(text || "") ? "running"
+            : /fail|error/i.test(text || "") ? "failed"
+            : "idle";
+        document.dispatchEvent(new CustomEvent("gb:vibe-status", { detail: { status: text, state: state } }));
+    }
+
     async function submitCreate() {
         var err = document.getElementById("vnpErr");
         var nameInput = document.getElementById("vnpName");
@@ -221,6 +243,7 @@
             }
         };
         try {
+            npStatus("CREATING " + name.toUpperCase() + "…", "running");
             var resp = await vibeAuthFetch("/api/vibe/projects", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -228,20 +251,29 @@
             });
             var data = await resp.json();
             if (!resp.ok || !data.success) {
+                npStatus("CREATE FAILED", "error");
                 if (err) err.textContent = data.error || ("HTTP " + resp.status);
                 return;
             }
             var project = data.project;
-            await raiseDevVm(project, env, kind.id, tier);
+            // #1382 — close the window the moment Create succeeds; the rest
+            // happens in the status bar, never blocking a dialog.
+            var intent = (state.desc || "").trim()
+                || "Scaffold, implement and verify the " + kind.name + " project '" + name + "'";
+            state.name = "";
+            state.desc = "";
+            close();
+            npStatus("PROJECT " + name.toUpperCase() + " CREATED — SEEDING…", "running");
+            // Bind the new project as the active one BEFORE the auto-Run so
+            // the run edits/scaffolds the right workspace.
+            if (typeof currentProject !== "undefined") currentProject = name;
+            if (typeof currentProjectId !== "undefined") currentProjectId = project.id;
             // Seed project.draw at the ROOT of the project workspace so the
             // Canvas app opens a ready architecture diagram on first click
             // (no generation round-trip needed). The canvas app reads and
-            // edits exactly this file (project root /project.draw).
+            // edits exactly this file (project root /project.draw). Fire and
+            // forget — the run must not wait on a cosmetic seed.
             seedProjectDraw(project.id, name, kind.project_type || kind.id);
-            if (typeof currentProject !== "undefined") currentProject = name;
-            if (typeof currentProjectId !== "undefined") currentProjectId = project.id;
-            state.name = "";
-            close();
             document.dispatchEvent(new CustomEvent("gb:vibe-project", {
                 detail: { project: name, id: project.id }
             }));
@@ -249,9 +281,23 @@
                 detail: { project: name, id: project.id }
             }));
             if (typeof vibeAddMsg === "function") {
-                vibeAddMsg("system", "Project '" + name + "' (" + kind.name + ", " + tier + ") created — dev VM raised.");
+                vibeAddMsg("system", "Project '" + name + "' (" + kind.name + ", " + tier + ") created.");
+            }
+            // #1382 — when creation finishes, Run fires automatically: the
+            // agent scaffolds the starter code from the description (or a
+            // generic intent when none was given) and verifies it.
+            npStatus("STARTING RUN FOR " + name.toUpperCase() + "…", "running");
+            if (window.VibeRun && typeof window.VibeRun.start === "function") {
+                window.VibeRun.start(intent).then(function () {
+                    npStatus("RUN STARTED — " + name.toUpperCase(), "running");
+                }).catch(function () {
+                    npStatus("RUN FAILED TO START — " + name.toUpperCase(), "error");
+                });
+            } else {
+                npStatus("PROJECT " + name.toUpperCase() + " READY", "idle");
             }
         } catch (e) {
+            npStatus("CREATE FAILED", "error");
             if (err) err.textContent = "Create failed: " + e.message;
         }
     }
@@ -303,23 +349,6 @@
             "<path d=\"M306 248H336M578 298H602\" stroke=\"#64748b\" stroke-width=\"3\" stroke-dasharray=\"7 7\"/>" +
             "<text x=\"100\" y=\"360\" font-family=\"system-ui\" font-size=\"12\" fill=\"#64748b\">Architecture seeded at project creation</text>" +
             "</svg>";
-    }
-
-    async function raiseDevVm(project, env, kindId, tier) {
-        var payload = {
-            env: env,
-            tier: tier,
-            runner_enabled: kindId === "apps" && env === "development"
-        };
-        try {
-            await vibeAuthFetch("/api/vibe/projects/" + project.id + "/vms", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            });
-        } catch (e) {
-            console.warn("dev VM raise failed:", e);
-        }
     }
 
     function close() {
