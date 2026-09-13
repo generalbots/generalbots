@@ -133,4 +133,4 @@ Would you like to request overtime or generate a report?
 ## Related Pages
 
 - [Employees](../../04-basic-scripting/templates/employees.md) — Employee management
-- [Attendance](../../attendance.md) — Attendance policies
+- [Attendance Queue](../../06-channels/attendance-queue.md) — Human hand-off queues

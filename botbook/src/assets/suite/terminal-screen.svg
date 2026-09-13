@@ -1,148 +1,79 @@
-<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Terminal">
   <defs>
     <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#22c55e"/>
-      <stop offset="100%" stop-color="#4ade80"/>
+      <stop offset="0%" stop-color="#2563eb"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
     </linearGradient>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.1"/>
-    </filter>
   </defs>
-
   <style>
-    .bg { fill: #1e1b4b; }
-    .panel-bg { fill: #312e81; }
-    .main-text { fill: #e2e8f0; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
-    .secondary-text { fill: #94a3b8; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
-    .muted-text { fill: #64748b; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
-    .white-text { fill: #ffffff; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
-    .accent-text { fill: #22c55e; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
-    .border { stroke: #4338ca; stroke-width: 1; fill: none; }
-    .icon-btn { fill: #312e81; }
-    .prompt-text { fill: #22c55e; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
-    .warning-text { fill: #f59e0b; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
-    .error-text { fill: #ef4444; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
-    .info-text { fill: #3b82f6; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
-    .tab-active { fill: #1e1b4b; }
-    .tab-inactive { fill: #312e81; }
-    .status-bar { fill: #312e81; }
-
+    .bg { fill: #ffffff; }
+    .titlebar { fill: #f8fafc; }
+    .sidebar-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #2563eb; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .chip { fill: #f1f5f9; }
+    .chip-active { fill: #dbeafe; }
+    .row { fill: #f8fafc; }
+    .bar { fill: #e2e8f0; }
     @media (prefers-color-scheme: dark) {
-      .bg { fill: #0f0d2e; }
-      .panel-bg { fill: #1e1b4b; }
+      .bg { fill: #0f172a; }
+      .titlebar { fill: #1e293b; }
+      .sidebar-bg { fill: #1e293b; }
       .main-text { fill: #e2e8f0; }
       .secondary-text { fill: #94a3b8; }
       .muted-text { fill: #64748b; }
-      .accent-text { fill: #4ade80; }
+      .accent-text { fill: #60a5fa; }
       .border { stroke: #334155; }
-      .icon-btn { fill: #1e1b4b; }
-      .tab-active { fill: #0f0d2e; }
-      .tab-inactive { fill: #1e1b4b; }
-      .status-bar { fill: #1e1b4b; }
+      .chip { fill: #334155; }
+      .chip-active { fill: #1e3a5f; }
+      .row { fill: #1e293b; }
+      .bar { fill: #334155; }
     }
   </style>
-
-  <!-- Title -->
-  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Terminal 1</text>
-
-  <!-- Main Container -->
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Terminal</text>
   <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
   <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
-
-  <!-- Tab Bar -->
-  <g transform="translate(30, 40)">
-    <rect x="0" y="0" width="840" height="36" class="panel-bg"/>
-    <line x1="0" y1="36" x2="840" y2="36" class="border"/>
-
-    <!-- Active Tab -->
-    <rect x="10" y="4" width="120" height="28" rx="6" class="tab-active"/>
-    <rect x="10" y="4" width="120" height="28" rx="6" class="border"/>
-    <circle cx="28" cy="18" r="5" fill="#22c55e"/>
-    <text x="40" y="22" font-size="11" class="accent-text">Terminal 1</text>
-
-    <!-- Inactive Tab -->
-    <rect x="140" y="4" width="120" height="28" rx="6" class="tab-inactive"/>
-    <rect x="140" y="4" width="120" height="28" rx="6" class="border"/>
-    <circle cx="158" cy="18" r="5" fill="#f59e0b"/>
-    <text x="170" y="22" font-size="11" class="secondary-text">Terminal 2</text>
-
-    <!-- New Tab -->
-    <text x="280" y="22" font-size="16" class="muted-text">+</text>
-  </g>
-
-  <!-- Terminal Content Area -->
-  <rect x="30" y="76" width="840" height="474" class="bg"/>
-
-  <!-- Terminal Output -->
-  <g transform="translate(50, 100)">
-    <!-- Line 1: Prompt + Command -->
-    <text x="0" y="0" font-size="13" class="prompt-text">user@generalbots:~$ </text>
-    <text x="195" y="0" font-size="13" class="main-text">botserver --status</text>
-
-    <!-- Line 2: Output -->
-    <text x="0" y="22" font-size="13" class="info-text">ℹ</text>
-    <text x="20" y="22" font-size="13" class="secondary-text">Checking BotServer status...</text>
-
-    <!-- Line 3: Output -->
-    <text x="0" y="44" font-size="13" class="accent-text">✓</text>
-    <text x="20" y="44" font-size="13" class="secondary-text">BotServer is running on port 8080</text>
-
-    <!-- Line 4: Output -->
-    <text x="0" y="66" font-size="13" class="accent-text">✓</text>
-    <text x="20" y="66" font-size="13" class="secondary-text">PostgreSQL connected (5432)</text>
-
-    <!-- Line 5: Output -->
-    <text x="0" y="88" font-size="13" class="accent-text">✓</text>
-    <text x="20" y="88" font-size="13" class="secondary-text">Valkey cache active (6379)</text>
-
-    <!-- Line 6: Warning -->
-    <text x="0" y="110" font-size="13" class="warning-text">⚠</text>
-    <text x="20" y="110" font-size="13" class="warning-text">Warning: LLM service on fallback mode</text>
-
-    <!-- Line 7: Empty -->
-    <text x="0" y="132" font-size="13" class="main-text"></text>
-
-    <!-- Line 8: Prompt + Command -->
-    <text x="0" y="154" font-size="13" class="prompt-text">user@generalbots:~$ </text>
-    <text x="195" y="154" font-size="13" class="main-text">docker ps --format "table {{.Names}}\t{{.Status}}"</text>
-
-    <!-- Line 9: Table Header -->
-    <text x="0" y="176" font-size="13" class="main-text">NAMES                 STATUS</text>
-    <line x1="0" y1="184" x2="400" y2="184" class="border"/>
-
-    <!-- Line 10-13: Table Rows -->
-    <text x="0" y="200" font-size="13" class="accent-text">system              </text>
-    <text x="150" y="200" font-size="13" class="secondary-text">Up 2 hours</text>
-    <text x="0" y="220" font-size="13" class="accent-text">tables              </text>
-    <text x="150" y="220" font-size="13" class="secondary-text">Up 2 hours</text>
-    <text x="0" y="240" font-size="13" class="accent-text">drive               </text>
-    <text x="150" y="240" font-size="13" class="secondary-text">Up 2 hours</text>
-    <text x="0" y="260" font-size="13" class="accent-text">cache               </text>
-    <text x="150" y="260" font-size="13" class="secondary-text">Up 2 hours</text>
-
-    <!-- Line 14: Empty -->
-    <text x="0" y="282" font-size="13" class="main-text"></text>
-
-    <!-- Line 15: Prompt -->
-    <text x="0" y="304" font-size="13" class="prompt-text">user@generalbots:~$ </text>
-    <text x="195" y="304" font-size="13" class="main-text">_</text>
-    <!-- Blinking cursor -->
-    <rect x="195" y="292" width="8" height="16" fill="#22c55e">
-      <animate attributeName="opacity" values="1;0;1" dur="1s" repeatCount="indefinite"/>
-    </rect>
-  </g>
-
-  <!-- Status Bar -->
-  <rect x="30" y="550" width="840" height="20" class="status-bar"/>
-  <line x1="30" y1="550" x2="870" y2="550" class="border"/>
-  <g transform="translate(50, 564)">
-    <circle cx="0" cy="-4" r="4" fill="#22c55e"/>
-    <text x="12" y="0" font-size="11" class="accent-text">Connected</text>
-    <text x="110" y="0" font-size="11" class="secondary-text">|</text>
-    <text x="130" y="0" font-size="11" class="secondary-text">80x24</text>
-    <text x="190" y="0" font-size="11" class="secondary-text">|</text>
-    <text x="210" y="0" font-size="11" class="secondary-text">WebSocket</text>
-    <text x="300" y="0" font-size="11" class="secondary-text">|</text>
-    <text x="320" y="0" font-size="11" class="secondary-text">UTF-8</text>
-  </g>
+  <path d="M30 52 a12 12 0 0 1 12 -12 h816 a12 12 0 0 1 12 12 v32 h-840 z" class="titlebar"/>
+  <text x="46" y="61" font-size="13.5" font-weight="600" class="main-text">Terminal</text>
+  <text x="816" y="67" text-anchor="middle" font-size="13" class="muted-text">–</text>
+  <text x="840" y="67" text-anchor="middle" font-size="13" class="muted-text">✕</text>
+  <line x1="30" y1="84" x2="870" y2="84" class="border"/>
+  <rect x="46" y="87" width="53" height="26" rx="6" class="chip"/>
+  <text x="72" y="104" text-anchor="middle" font-size="11.5" class="secondary-text">Clear</text>
+  <rect x="107" y="87" width="46" height="26" rx="6" class="chip"/>
+  <text x="130" y="104" text-anchor="middle" font-size="11.5" class="secondary-text">Find</text>
+  <line x1="30" y1="128" x2="870" y2="128" class="border"/>
+  <rect x="46" y="142" width="808" height="44" rx="7" class="row"/>
+  <rect x="58" y="154" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="157" width="339" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="172" width="210" height="6" rx="3" class="bar"/>
+  <rect x="46" y="194" width="808" height="44" rx="7" class="row"/>
+  <rect x="58" y="206" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="209" width="339" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="224" width="210" height="6" rx="3" class="bar"/>
+  <rect x="46" y="246" width="808" height="44" rx="7" class="row"/>
+  <rect x="58" y="258" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="261" width="339" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="276" width="210" height="6" rx="3" class="bar"/>
+  <rect x="46" y="298" width="808" height="44" rx="7" class="row"/>
+  <rect x="58" y="310" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="313" width="339" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="328" width="210" height="6" rx="3" class="bar"/>
+  <rect x="46" y="350" width="808" height="44" rx="7" class="row"/>
+  <rect x="58" y="362" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="365" width="339" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="380" width="210" height="6" rx="3" class="bar"/>
+  <rect x="46" y="402" width="808" height="44" rx="7" class="row"/>
+  <rect x="58" y="414" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="417" width="339" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="432" width="210" height="6" rx="3" class="bar"/>
+  <rect x="46" y="454" width="808" height="44" rx="7" class="row"/>
+  <rect x="58" y="466" width="20" height="20" rx="5" class="bar"/>
+  <rect x="88" y="469" width="339" height="9" rx="4.5" class="bar"/>
+  <rect x="88" y="484" width="210" height="6" rx="3" class="bar"/>
+  <!-- regen: scripts/docs_app_screens.py -->
 </svg>

@@ -1,187 +1,102 @@
-<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Drive">
   <defs>
     <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="0%" stop-color="#2563eb"/>
       <stop offset="100%" stop-color="#60a5fa"/>
     </linearGradient>
   </defs>
-
   <style>
     .bg { fill: #ffffff; }
+    .titlebar { fill: #f8fafc; }
     .sidebar-bg { fill: #f8fafc; }
-    .header-bg { fill: #ffffff; }
     .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
     .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
     .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
     .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
-    .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #2563eb; font-family: system-ui, -apple-system, sans-serif; }
     .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
-    .icon-btn { fill: #f1f5f9; }
-    .folder-yellow { fill: #fbbf24; }
-    .file-blue { fill: #3b82f6; }
-    .file-green { fill: #22c55e; }
-    .file-red { fill: #ef4444; }
-    .row-hover { fill: #f1f5f9; }
-    .row-selected { fill: #eff6ff; }
-    .checkbox { fill: #ffffff; stroke: #cbd5e1; stroke-width: 1.5; }
-    .checkbox-checked { fill: #3b82f6; stroke: #3b82f6; stroke-width: 1.5; }
-    .storage-bar-bg { fill: #e2e8f0; }
-    .storage-bar-fill { fill: #3b82f6; }
-
+    .chip { fill: #f1f5f9; }
+    .chip-active { fill: #dbeafe; }
+    .row { fill: #f8fafc; }
+    .bar { fill: #e2e8f0; }
     @media (prefers-color-scheme: dark) {
       .bg { fill: #0f172a; }
+      .titlebar { fill: #1e293b; }
       .sidebar-bg { fill: #1e293b; }
-      .header-bg { fill: #0f172a; }
       .main-text { fill: #e2e8f0; }
       .secondary-text { fill: #94a3b8; }
       .muted-text { fill: #64748b; }
       .accent-text { fill: #60a5fa; }
       .border { stroke: #334155; }
-      .icon-btn { fill: #334155; }
-      .row-hover { fill: #1e293b; }
-      .row-selected { fill: #1e3a5f; }
-      .checkbox { fill: #1e293b; stroke: #475569; }
-      .storage-bar-bg { fill: #334155; }
+      .chip { fill: #334155; }
+      .chip-active { fill: #1e3a5f; }
+      .row { fill: #1e293b; }
+      .bar { fill: #334155; }
     }
   </style>
-
-  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Drive - File Manager</text>
-
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Drive</text>
   <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
   <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
-
-  <rect x="30" y="40" width="180" height="530" class="sidebar-bg"/>
-  <line x1="210" y1="40" x2="210" y2="570" class="border"/>
-
-  <g transform="translate(45, 60)">
-    <rect x="0" y="0" width="150" height="40" rx="8" fill="url(#accentGrad)"/>
-    <text x="75" y="26" text-anchor="middle" font-size="14" font-weight="500" class="white-text">+ New</text>
-  </g>
-
-  <g transform="translate(45, 120)">
-    <rect x="-5" y="-8" width="160" height="36" rx="6" class="row-selected"/>
-    <text x="25" y="12" font-size="14" class="main-text">My Drive</text>
-    <text x="0" y="12" font-size="14">📁</text>
-
-    <text x="0" y="52" font-size="14">👥</text>
-    <text x="25" y="52" font-size="14" class="secondary-text">Shared with me</text>
-
-    <text x="0" y="92" font-size="14">⭐</text>
-    <text x="25" y="92" font-size="14" class="secondary-text">Starred</text>
-
-    <text x="0" y="132" font-size="14">🕐</text>
-    <text x="25" y="132" font-size="14" class="secondary-text">Recent</text>
-
-    <text x="0" y="172" font-size="14">🗑️</text>
-    <text x="25" y="172" font-size="14" class="secondary-text">Trash</text>
-  </g>
-
-  <g transform="translate(45, 340)">
-    <text x="0" y="0" font-size="11" font-weight="600" class="muted-text">STORAGE</text>
-    <rect x="0" y="15" width="140" height="6" rx="3" class="storage-bar-bg"/>
-    <rect x="0" y="15" width="91" height="6" rx="3" class="storage-bar-fill"/>
-    <text x="0" y="38" font-size="11" class="secondary-text">6.5 GB of 10 GB</text>
-  </g>
-
-  <g transform="translate(230, 55)">
-    <rect x="0" y="0" width="300" height="36" rx="18" class="icon-btn"/>
-    <rect x="0" y="0" width="300" height="36" rx="18" class="border"/>
-    <text x="20" y="23" font-size="14">🔍</text>
-    <text x="45" y="24" font-size="13" class="muted-text">Search files...</text>
-
-    <rect x="320" y="0" width="36" height="36" rx="8" class="icon-btn"/>
-    <text x="338" y="24" text-anchor="middle" font-size="14">⊞</text>
-
-    <rect x="365" y="0" width="36" height="36" rx="8" class="icon-btn"/>
-    <text x="383" y="24" text-anchor="middle" font-size="14">≡</text>
-
-    <rect x="410" y="0" width="36" height="36" rx="8" class="icon-btn"/>
-    <text x="428" y="24" text-anchor="middle" font-size="14">⚙</text>
-  </g>
-
-  <g transform="translate(230, 105)">
-    <text x="0" y="0" font-size="13" class="secondary-text">My Drive</text>
-    <text x="55" y="0" font-size="13" class="muted-text">/</text>
-    <text x="65" y="0" font-size="13" class="secondary-text">Projects</text>
-    <text x="115" y="0" font-size="13" class="muted-text">/</text>
-    <text x="125" y="0" font-size="13" font-weight="500" class="main-text">2024</text>
-  </g>
-
-  <g transform="translate(230, 125)">
-    <rect x="0" y="0" width="620" height="32" rx="4" class="row-hover"/>
-    <text x="35" y="21" font-size="12" font-weight="500" class="secondary-text">Name</text>
-    <text x="350" y="21" font-size="12" font-weight="500" class="secondary-text">Modified</text>
-    <text x="480" y="21" font-size="12" font-weight="500" class="secondary-text">Size</text>
-    <text x="560" y="21" font-size="12" font-weight="500" class="secondary-text">Owner</text>
-  </g>
-
-  <g transform="translate(230, 165)">
-    <rect x="0" y="0" width="620" height="44" rx="4" class="row-selected"/>
-    <rect x="10" y="14" width="16" height="16" rx="3" class="checkbox-checked"/>
-    <text x="18" y="26" text-anchor="middle" font-size="10" class="white-text">✓</text>
-    <text x="35" y="28" font-size="18">📁</text>
-    <text x="60" y="28" font-size="14" class="main-text">Reports</text>
-    <text x="350" y="28" font-size="13" class="secondary-text">Today, 10:30 AM</text>
-    <text x="480" y="28" font-size="13" class="secondary-text">—</text>
-    <text x="560" y="28" font-size="13" class="secondary-text">me</text>
-  </g>
-
-  <g transform="translate(230, 215)">
-    <rect x="0" y="0" width="620" height="44" rx="4" class="row-hover"/>
-    <rect x="10" y="14" width="16" height="16" rx="3" class="checkbox"/>
-    <text x="35" y="28" font-size="18">📁</text>
-    <text x="60" y="28" font-size="14" class="main-text">Presentations</text>
-    <text x="350" y="28" font-size="13" class="secondary-text">Yesterday</text>
-    <text x="480" y="28" font-size="13" class="secondary-text">—</text>
-    <text x="560" y="28" font-size="13" class="secondary-text">me</text>
-  </g>
-
-  <g transform="translate(230, 265)">
-    <rect x="10" y="14" width="16" height="16" rx="3" class="checkbox"/>
-    <text x="35" y="28" font-size="18">📊</text>
-    <text x="60" y="28" font-size="14" class="main-text">Budget-2024.xlsx</text>
-    <text x="350" y="28" font-size="13" class="secondary-text">Mar 15, 2024</text>
-    <text x="480" y="28" font-size="13" class="secondary-text">245 KB</text>
-    <text x="560" y="28" font-size="13" class="secondary-text">me</text>
-  </g>
-
-  <g transform="translate(230, 310)">
-    <rect x="10" y="14" width="16" height="16" rx="3" class="checkbox"/>
-    <text x="35" y="28" font-size="18">📄</text>
-    <text x="60" y="28" font-size="14" class="main-text">Project-Proposal.docx</text>
-    <text x="350" y="28" font-size="13" class="secondary-text">Mar 14, 2024</text>
-    <text x="480" y="28" font-size="13" class="secondary-text">128 KB</text>
-    <text x="560" y="28" font-size="13" class="secondary-text">me</text>
-  </g>
-
-  <g transform="translate(230, 355)">
-    <rect x="10" y="14" width="16" height="16" rx="3" class="checkbox"/>
-    <text x="35" y="28" font-size="18">📕</text>
-    <text x="60" y="28" font-size="14" class="main-text">Contract-Signed.pdf</text>
-    <text x="350" y="28" font-size="13" class="secondary-text">Mar 10, 2024</text>
-    <text x="480" y="28" font-size="13" class="secondary-text">1.2 MB</text>
-    <text x="560" y="28" font-size="13" class="secondary-text">John D.</text>
-  </g>
-
-  <g transform="translate(230, 400)">
-    <rect x="10" y="14" width="16" height="16" rx="3" class="checkbox"/>
-    <text x="35" y="28" font-size="18">🖼️</text>
-    <text x="60" y="28" font-size="14" class="main-text">Logo-Final.png</text>
-    <text x="350" y="28" font-size="13" class="secondary-text">Mar 8, 2024</text>
-    <text x="480" y="28" font-size="13" class="secondary-text">89 KB</text>
-    <text x="560" y="28" font-size="13" class="secondary-text">me</text>
-  </g>
-
-  <g transform="translate(230, 470)">
-    <rect x="0" y="0" width="620" height="70" rx="8" fill="none" stroke="#3b82f6" stroke-width="2" stroke-dasharray="8,4"/>
-    <text x="310" y="30" text-anchor="middle" font-size="18">📤</text>
-    <text x="310" y="55" text-anchor="middle" font-size="13" class="secondary-text">Drop files here or click + New to upload</text>
-  </g>
-
-  <g transform="translate(230, 555)">
-    <text x="0" y="0" font-size="11" class="muted-text">1 item selected</text>
-    <text x="100" y="0" font-size="11" class="muted-text">•</text>
-    <text x="115" y="0" font-size="11" class="muted-text">6 items</text>
-    <text x="350" y="0" font-size="10" class="muted-text">Ctrl+U Upload | Del Delete | Ctrl+C Copy</text>
-  </g>
+  <path d="M30 52 a12 12 0 0 1 12 -12 h816 a12 12 0 0 1 12 12 v32 h-840 z" class="titlebar"/>
+  <text x="46" y="61" font-size="13.5" font-weight="600" class="main-text">Drive</text>
+  <text x="816" y="67" text-anchor="middle" font-size="13" class="muted-text">–</text>
+  <text x="840" y="67" text-anchor="middle" font-size="13" class="muted-text">✕</text>
+  <rect x="30" y="84" width="200" height="486" class="sidebar-bg"/>
+  <line x1="230" y1="84" x2="230" y2="570" class="border"/>
+  <rect x="40" y="95" width="180" height="28" rx="6" class="chip-active"/>
+  <circle cx="54" cy="109" r="4.5" class="bar"/>
+  <text x="68" y="113" font-size="12.5" class="accent-text">Drive</text>
+  <circle cx="54" cy="143" r="4.5" class="bar"/>
+  <text x="68" y="147" font-size="12.5" class="secondary-text">New Bot</text>
+  <circle cx="54" cy="177" r="4.5" class="bar"/>
+  <text x="68" y="181" font-size="12.5" class="secondary-text">Upload</text>
+  <circle cx="54" cy="211" r="4.5" class="bar"/>
+  <text x="68" y="215" font-size="12.5" class="secondary-text">New Folder</text>
+  <circle cx="54" cy="245" r="4.5" class="bar"/>
+  <text x="68" y="249" font-size="12.5" class="secondary-text">My Drive</text>
+  <circle cx="54" cy="279" r="4.5" class="bar"/>
+  <text x="68" y="283" font-size="12.5" class="secondary-text">Recent</text>
+  <rect x="246" y="101" width="53" height="26" rx="6" class="chip"/>
+  <text x="272" y="118" text-anchor="middle" font-size="11.5" class="secondary-text">Drive</text>
+  <rect x="307" y="101" width="60" height="26" rx="6" class="chip"/>
+  <text x="337" y="118" text-anchor="middle" font-size="11.5" class="secondary-text">Shared</text>
+  <rect x="375" y="101" width="60" height="26" rx="6" class="chip"/>
+  <text x="404" y="118" text-anchor="middle" font-size="11.5" class="secondary-text">Public</text>
+  <rect x="442" y="101" width="132" height="26" rx="6" class="chip"/>
+  <text x="508" y="118" text-anchor="middle" font-size="11.5" class="secondary-text">My Files Personal</text>
+  <rect x="582" y="101" width="46" height="26" rx="6" class="chip"/>
+  <text x="606" y="118" text-anchor="middle" font-size="11.5" class="secondary-text">Bots</text>
+  <rect x="637" y="101" width="86" height="26" rx="6" class="chip"/>
+  <text x="680" y="118" text-anchor="middle" font-size="11.5" class="secondary-text">Root Admin</text>
+  <rect x="731" y="101" width="66" height="26" rx="6" class="chip"/>
+  <text x="764" y="118" text-anchor="middle" font-size="11.5" class="secondary-text">Desktop</text>
+  <rect x="246" y="140" width="608" height="44" rx="7" class="row"/>
+  <rect x="258" y="152" width="20" height="20" rx="5" class="bar"/>
+  <rect x="288" y="155" width="255" height="9" rx="4.5" class="bar"/>
+  <rect x="288" y="170" width="158" height="6" rx="3" class="bar"/>
+  <rect x="246" y="192" width="608" height="44" rx="7" class="row"/>
+  <rect x="258" y="204" width="20" height="20" rx="5" class="bar"/>
+  <rect x="288" y="207" width="255" height="9" rx="4.5" class="bar"/>
+  <rect x="288" y="222" width="158" height="6" rx="3" class="bar"/>
+  <rect x="246" y="244" width="608" height="44" rx="7" class="row"/>
+  <rect x="258" y="256" width="20" height="20" rx="5" class="bar"/>
+  <rect x="288" y="259" width="255" height="9" rx="4.5" class="bar"/>
+  <rect x="288" y="274" width="158" height="6" rx="3" class="bar"/>
+  <rect x="246" y="296" width="608" height="44" rx="7" class="row"/>
+  <rect x="258" y="308" width="20" height="20" rx="5" class="bar"/>
+  <rect x="288" y="311" width="255" height="9" rx="4.5" class="bar"/>
+  <rect x="288" y="326" width="158" height="6" rx="3" class="bar"/>
+  <rect x="246" y="348" width="608" height="44" rx="7" class="row"/>
+  <rect x="258" y="360" width="20" height="20" rx="5" class="bar"/>
+  <rect x="288" y="363" width="255" height="9" rx="4.5" class="bar"/>
+  <rect x="288" y="378" width="158" height="6" rx="3" class="bar"/>
+  <rect x="246" y="400" width="608" height="44" rx="7" class="row"/>
+  <rect x="258" y="412" width="20" height="20" rx="5" class="bar"/>
+  <rect x="288" y="415" width="255" height="9" rx="4.5" class="bar"/>
+  <rect x="288" y="430" width="158" height="6" rx="3" class="bar"/>
+  <rect x="246" y="452" width="608" height="44" rx="7" class="row"/>
+  <rect x="258" y="464" width="20" height="20" rx="5" class="bar"/>
+  <rect x="288" y="467" width="255" height="9" rx="4.5" class="bar"/>
+  <rect x="288" y="482" width="158" height="6" rx="3" class="bar"/>
+  <!-- regen: scripts/docs_app_screens.py -->
 </svg>
