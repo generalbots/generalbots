@@ -131,5 +131,5 @@ Send special key combinations to the remote session:
 ## Related Pages
 
 - [Admin](./admin.md) — Server and container management
-- [ITSM](./itsm.md) — Incident management for remote support
+- [Tickets](./tickets.md) — Support cases, ITSM incidents and problem management
 - [Chat](./chat.md) — Discuss issues while sharing a remote session
