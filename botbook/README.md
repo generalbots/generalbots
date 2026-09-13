@@ -25,7 +25,7 @@ The published version is at **[docs.generalbots.org](https://docs.generalbots.or
 
 | Repository | Description | Status |
 |------------|-------------|--------|
-| [**botserver**](https://github.com/GeneralBots/botserver) | Core API server - LLM orchestration, automation, integrations | ✅ Production |
+| [**botserver**](https://github.com/generalbots/generalbots) | Core API server - LLM orchestration, automation, integrations | ✅ Production |
 | [**botui**](https://github.com/GeneralBots/botui) | Pure web UI - HTMX-based interface (suite & minimal) | ✅ Production |
 | [**botapp**](https://github.com/GeneralBots/botapp) | Tauri desktop wrapper - native file access, system tray | ✅ Production |
 | [**botlib**](https://github.com/GeneralBots/botlib) | Shared Rust library - common types, HTTP client, utilities | ✅ Production |
@@ -46,7 +46,7 @@ The published version is at **[docs.generalbots.org](https://docs.generalbots.or
 
 ```bash
 # Clone and run
-git clone https://github.com/GeneralBots/botserver
+git clone https://github.com/generalbots/generalbots
 cd botserver
 cargo run
 ```
@@ -358,9 +358,9 @@ Report security issues to: **security@generalbots.org**
 - **Website:** [generalbots.org](https://generalbots.org)
 - **Documentation:** [docs.generalbots.org](https://docs.generalbots.org)
 - **BotBook:** [Complete Documentation](https://github.com/GeneralBots/botbook)
-- **Quick Start:** [Get Started in Minutes](https://github.com/GeneralBots/botserver/blob/main/docs/QUICK_START.md)
-- **API Reference:** [REST API Documentation](https://github.com/GeneralBots/botserver/blob/main/docs/src/chapter-10-api/README.md)
-- **Architecture:** [System Architecture Guide](https://github.com/GeneralBots/botserver/blob/main/docs/src/chapter-07-gbapp/README.md)
+- **Quick Start:** [Get Started in Minutes](https://github.com/generalbots/generalbots/blob/main/docs/QUICK_START.md)
+- **API Reference:** [REST API Documentation](https://github.com/generalbots/generalbots/blob/main/docs/src/chapter-10-api/README.md)
+- **Architecture:** [System Architecture Guide](https://github.com/generalbots/generalbots/blob/main/docs/src/chapter-07-gbapp/README.md)
 - **Stack Overflow:** Tag questions with `generalbots`
 - **Video Tutorial:** [7 AI General Bots LLM Templates](https://www.youtube.com/watch?v=KJgvUPXi3Fw)
 
@@ -368,12 +368,12 @@ Report security issues to: **security@generalbots.org**
 
 ## Contributing
 
-We welcome contributions! See our [Contributing Guidelines](https://github.com/GeneralBots/botserver/blob/main/docs/src/chapter-13-community/README.md).
+We welcome contributions! See our [Contributing Guidelines](https://github.com/generalbots/generalbots/blob/main/docs/src/chapter-13-community/README.md).
 
 ### Contributors
 
-<a href="https://github.com/generalbots/botserver/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=generalbots/botserver" />
+<a href="https://github.com/generalbots/generalbots/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=generalbots/generalbots" />
 </a>
 
 ---

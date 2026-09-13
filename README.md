@@ -22,6 +22,9 @@ Self-hosted, open source, and built in Rust. General Bots gives you 80 sovereign
 [![Multi-agent AI](https://img.shields.io/badge/multi--agent%20AI-7c3aed.svg)](#why-general-bots)
 [![Data sovereign](https://img.shields.io/badge/data-sovereign-7c3aed.svg)](#why-general-bots)
 [![Open source since 2017](https://img.shields.io/badge/open%20source-since%202017-blue.svg)](#license)
+<a href="https://github.com/generalbots/generalbots/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=generalbots/generalbots" alt="Contributors to General Bots" />
+</a>
 
 ---
 
@@ -53,33 +56,43 @@ TALK "Hi! I can check orders or open a ticket for you."
 
 ## Applications
 
-Every application is a self-contained module that can be deployed alone or as part of the whole platform. This repository ships **80 suite applications** and **113 backend crates**.
+Every application is a self-contained module that can be deployed alone or as part of the whole platform. This repository ships **80 suite applications** and **113 backend crates**; the catalogue below is the platform map, and every entry has its own icon in [`.github/svg/`](./.github/svg).
 
-|  |  |  |  |
-|:---:|:---:|:---:|:---:|
-| <img src=".github/svg/app-chat.svg" width="24"><br>Chat | <img src=".github/svg/app-mail.svg" width="24"><br>Mail | <img src=".github/svg/app-calendar.svg" width="24"><br>Calendar | <img src=".github/svg/app-drive.svg" width="24"><br>Drive |
-| <img src=".github/svg/app-crm.svg" width="24"><br>CRM | <img src=".github/svg/app-tasks.svg" width="24"><br>Tasks | <img src=".github/svg/app-meet.svg" width="24"><br>Meet | <img src=".github/svg/app-docs.svg" width="24"><br>Documents |
-| <img src=".github/svg/app-sheet.svg" width="24"><br>Sheets | <img src=".github/svg/app-slides.svg" width="24"><br>Slides | <img src=".github/svg/app-search.svg" width="24"><br>Search | <img src=".github/svg/app-learn.svg" width="24"><br>Knowledge |
-| <img src=".github/svg/app-automation.svg" width="24"><br>Automation | <img src=".github/svg/app-monitoring.svg" width="24"><br>Monitoring | <img src=".github/svg/app-security.svg" width="24"><br>Security | <img src=".github/svg/app-billing.svg" width="24"><br>Billing |
+| | Application | What it does |
+|---|-------------|--------------|
+| <img src=".github/svg/server.svg" width="20"> | **Server**<br><sub>Core Platform</sub> | Web server, WebSocket messaging, REST API and request routing. Serves both the API and the web interface. |
+| <img src=".github/svg/auth.svg" width="20"> | **Auth / Identity**<br><sub>Core Platform</sub> | OAuth 2.0, OpenID Connect, JWT validation and session management, with role-based access control on every endpoint. SSO-ready. |
+| <img src=".github/svg/database.svg" width="20"> | **Shared / Database**<br><sub>Core Platform</sub> | PostgreSQL with managed schema definitions, shared models and common utilities used across every application. |
+| <img src=".github/svg/ai-engine.svg" width="20"> | **AI Engine**<br><sub>Core Platform</sub> | LLM provider orchestration across DeepSeek, Qwen, GLM, Kimi, MiniMax, Yi or any OpenAI-compatible API. Automatic failover, token counting, streaming and cost tracking. |
+| <img src=".github/svg/drive.svg" width="20"> | **Drive / Storage**<br><sub>Core Platform</sub> | S3-compatible object storage with upload, download, versioning and automatic indexing for search and RAG. Works with MinIO, AWS S3 and Wasabi. |
+| <img src=".github/svg/dashboards.svg" width="20"> | **Dashboards / Analytics**<br><sub>Core Platform</sub> | Real-time dashboards covering system health, business KPIs and custom visualisations. Exportable and embeddable. |
+| <img src=".github/svg/ai-search.svg" width="20"> | **AI Search**<br><sub>Capabilities</sub> | Retrieval-augmented generation over PDFs, Word and Excel with sub-second semantic retrieval and cited answers. |
+| <img src=".github/svg/bot-factory.svg" width="20"> | **Bot Factory**<br><sub>Capabilities</sub> | Rapid prototyping and multi-bot orchestration. Run many bots with distinct personalities from one dashboard. |
+| <img src=".github/svg/broadcast.svg" width="20"> | **Broadcast**<br><sub>Capabilities</sub> | Omnichannel outbound messaging with AI-driven personalisation across WhatsApp, Telegram and SMS. |
+| <img src=".github/svg/content-gen.svg" width="20"> | **Content Generation**<br><sub>Capabilities</sub> | Generate on-brand, SEO-optimised content in a consistent brand voice. |
+| <img src=".github/svg/apis-in-basic.svg" width="20"> | **APIs in BASIC**<br><sub>Capabilities</sub> | Build REST endpoints using simplified BASIC syntax, for legacy integration and rapid delivery. |
+| <img src=".github/svg/llm-tools.svg" width="20"> | **LLM Tools**<br><sub>Capabilities</sub> | Give the model real capabilities: web search, calculation and custom API calls. |
+| <img src=".github/svg/talk-to-data.svg" width="20"> | **Talk to Data**<br><sub>Capabilities</sub> | Query SQL databases, Excel files and CSVs in plain language. |
+| <img src=".github/svg/training.svg" width="20"> | **Training**<br><sub>Capabilities</sub> | Ingest institutional knowledge from Word, Excel and PDF documents with no coding. |
+| <img src=".github/svg/advanced-rag.svg" width="20"> | **Advanced RAG**<br><sub>Capabilities</sub> | Agentic RAG, Graph RAG, persistent memory and multi-modal retrieval over the knowledge base. |
+| <img src=".github/svg/calendar.svg" width="20"> | **Calendar**<br><sub>Business & Productivity</sub> | CalDAV integration with event creation, conflict detection and automated reminder workflows. Syncs with Google, Outlook and Apple Calendar. |
+| <img src=".github/svg/email.svg" width="20"> | **Email**<br><sub>Business & Productivity</sub> | IMAP/SMTP integration with automatic templating, attachment handling and trigger-based workflows across inbox, starred, sent and scheduled folders. |
+| <img src=".github/svg/meet.svg" width="20"> | **Meet / Video**<br><sub>Business & Productivity</sub> | Video conferencing with screen sharing, recording, transcription and auto-generated meeting notes. |
+| <img src=".github/svg/documents.svg" width="20"> | **Documents, Sheets & Slides**<br><sub>Business & Productivity</sub> | Office-compatible document processing. Read and generate Word, Excel and PowerPoint files from templates. |
+| <img src=".github/svg/channels.svg" width="20"> | **WhatsApp & Teams**<br><sub>Business & Productivity</sub> | WhatsApp Business API and the MS Teams bot framework, with template messages, proactive notifications and rich media. |
+| <img src=".github/svg/crm.svg" width="20"> | **People / CRM**<br><sub>Business & Productivity</sub> | Contact management with CRM-style relationship tracking, tagging, deal pipelines and automated follow-up reminders. |
+| <img src=".github/svg/knowledge-base.svg" width="20"> | **Knowledge Base**<br><sub>AI & Intelligence</sub> | Automatic document ingestion with chunking, embedding and semantic search. PDFs, Word files and web pages all become queryable. |
+| <img src=".github/svg/web-automation.svg" width="20"> | **Web Automation**<br><sub>AI & Intelligence</sub> | Headless browser automation. Scrape sites, fill forms, capture screenshots and trigger workflows when a page changes. |
+| <img src=".github/svg/search.svg" width="20"> | **Search**<br><sub>AI & Intelligence</sub> | Full-text and semantic search across everything indexed, combining keyword and vector matching with faceted filtering. |
+| <img src=".github/svg/security.svg" width="20"> | **Security**<br><sub>Operations</sub> | Encryption, threat detection, audit logging and compliance reporting, built to LGPD, GDPR and HIPAA expectations. |
+| <img src=".github/svg/monitoring.svg" width="20"> | **Monitoring**<br><sub>Operations</sub> | System health monitoring for CPU, memory, disk and network, with alert thresholds, escalation and uptime tracking. |
+| <img src=".github/svg/analytics.svg" width="20"> | **Analytics**<br><sub>Operations</sub> | Event tracking, funnel analysis and conversion metrics across every channel. |
+| <img src=".github/svg/rbac.svg" width="20"> | **RBAC & Multi-Tenancy**<br><sub>Enterprise</sub> | Fine-grained role-based access control and multi-tenant workspaces with complete data isolation between organisations. |
+| <img src=".github/svg/on-premise.svg" width="20"> | **On-Premise Deployment**<br><sub>Enterprise</sub> | Runs entirely inside your own infrastructure with no cloud dependency and no data leaving the network. Air-gapped deployments supported. |
+| <img src=".github/svg/compliance.svg" width="20"> | **Compliance (LGPD, GDPR)**<br><sub>Enterprise</sub> | Data subject requests, right to erasure, audit trails, retention policies and anonymisation tooling. |
 
-Each icon above links to a real application directory under `botui/ui/suite/`. The icons live in [`.github/svg/`](./.github/svg) and follow the same 24×24 stroke style as the menu on [generalbots.org](https://generalbots.org).
+Beyond the in-browser suite, the same agent layer drives **WhatsApp Business**, **MS Teams**, **Telegram** and **email**.
 
-### Grouped by purpose
-
-| Group | Applications |
-|-------|--------------|
-| **Conversation** | `chat`, `concierge`, `attendant`, `handoff`, `tickets`, `email`, `mail` |
-| **CRM & Sales** | `crm`, `people`, `sales`, `campaigns`, `marketing`, `retail`, `products`, `pos` |
-| **Office & Documents** | `paper`, `sheet`, `slides`, `docs`, `notepad`, `notes`, `templates` |
-| **Productivity** | `calendar`, `tasks`, `goals`, `lists`, `project`, `clock`, `timer`, `timeclock` |
-| **Knowledge & AI** | `learn`, `research`, `memory`, `search`, `vision`, `browser`, `vibe`, `designer`, `canvas` |
-| **Operations** | `drive`, `database`, `monitoring`, `analytics`, `dashboards`, `maintenance`, `audit` |
-| **Trust & Compliance** | `compliance`, `governance`, `kyc`, `fraud`, `biometry`, `settings`, `admin` |
-| **Finance** | `billing`, `banking`, `tax`, `inventory` |
-| **Communication** | `meet`, `video`, `minutes`, `social`, `integrations` |
-| **Platform** | `workspace`, `plugins`, `terminal`, `tools`, `store`, `plan` |
-
-Beyond the in-browser suite, the same platform drives **WhatsApp Business**, **MS Teams**, **Telegram** and **email** through the same agent layer.
 
 ---
 
@@ -209,13 +222,6 @@ Read **[AGENTS.md](./AGENTS.md)** before opening a pull request. It carries the 
 
 Before adding a `.md` file, search `botbook/` for existing documentation.
 
-### Contributors
-
-General Bots has been built in the open since 2017. Thanks to everyone who has contributed.
-
-<a href="https://github.com/generalbots/generalbots/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=generalbots/generalbots" alt="Contributors to General Bots" />
-</a>
 
 ---
 
