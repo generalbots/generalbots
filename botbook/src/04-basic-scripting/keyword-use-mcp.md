@@ -340,6 +340,6 @@ Error: Authentication failed for MCP server
 ## See Also
 
 - [Sources](../07-user-interface/apps/sources.md) - Managing MCP servers in the UI
-- [Autonomous Tasks](../07-gbapp/autonomous-tasks.md) - How Tasks use MCP tools
+- [Autonomous Tasks](../02-architecture-packages/autonomous-tasks.md) - How Tasks use MCP tools
 - [MCP Format](../08-rest-api-tools/mcp-format.md) - MCP tool definition format
 - [LLM Tools](../08-rest-api-tools/README.md) - All available tool types

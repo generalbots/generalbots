@@ -427,7 +427,7 @@ CREATE SITE "test-crm", "bottemplates/apps/crud", "..."
 
 ## See Also
 
-- [Autonomous Task AI](../07-gbapp/autonomous-tasks.md) - How the machine does the work
+- [Autonomous Task AI](../02-architecture-packages/autonomous-tasks.md) - How the machine does the work
 - [HTMX Architecture](../07-user-interface/htmx-architecture.md) - UI patterns
-- [.gbdrive Storage](../02-templates/gbdrive.md) - File management
+- [.gbdrive Storage](../02-architecture-packages/gbdrive.md) - File management
 - [API Reference](../08-rest-api-tools/README.md) - botserver endpoints

@@ -132,7 +132,7 @@ Would you like to request overtime or generate a report?
 
 ## Related Pages
 
-- [Employees](../employees.md) — Employee management
-- [Attendance](../attendance.md) — Attendance policies
+- [Employees](../../04-basic-scripting/templates/employees.md) — Employee management
+- [Attendance](../../attendance.md) — Attendance policies
 - [Payroll](../payroll.md) — Payroll integration
 - [Reports](../reports.md) — Reporting and analytics

@@ -32,4 +32,4 @@ branches/tenants.
 ## Related
 
 - [Billing](./billing.md)
-- [Billing API](../08-rest-api-tools/billing-api.md)
+- [Billing API](../../08-rest-api-tools/billing-api.md)

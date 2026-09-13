@@ -569,8 +569,8 @@ If webhooks are configured, delivery status is received automatically. Otherwise
 
 ## Related Documentation
 
-- [SEND SMS Keyword](../06-gbdialog/keyword-sms.md) — BASIC keyword reference
-- [Universal Messaging](../06-gbdialog/universal-messaging.md) — Multi-channel messaging
+- [SEND SMS Keyword](../04-basic-scripting/keyword-sms.md) — BASIC keyword reference
+- [Universal Messaging](../04-basic-scripting/universal-messaging.md) — Multi-channel messaging
 - [Secrets Management](./secrets-management.md) — Secure credential storage
 - [WhatsApp Configuration](./whatsapp-channel.md) — WhatsApp setup guide
 - [Teams Configuration](./teams-channel.md) — Microsoft Teams setup guide

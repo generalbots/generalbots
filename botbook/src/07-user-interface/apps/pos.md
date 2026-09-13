@@ -132,7 +132,7 @@ How would you like to pay?
 
 ## Related Pages
 
-- [Products](../products.md) — Product catalog management
+- [Products](products.md) — Product catalog management
 - [Payments](../payments.md) — Payment gateway configuration
 - [Receipts](../receipts.md) — Receipt template management
 - [Reports](../reports.md) — Sales and inventory reports

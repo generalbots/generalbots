@@ -577,4 +577,4 @@ llm-log-timing,true
 - [config.csv Reference](../10-configuration-deployment/config-csv.md) — Complete configuration guide
 - [Secrets Management](../10-configuration-deployment/secrets-management.md) — Vault integration
 - [Semantic Caching](../03-knowledge-ai/caching.md) — Cache configuration
-- [NVIDIA GPU Setup](../appendix-external-services/nvidia.md) — GPU configuration for local models
+- [NVIDIA GPU Setup](nvidia.md) — GPU configuration for local models

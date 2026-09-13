@@ -451,7 +451,7 @@ Now that you have a working bot, continue learning:
 
 | Next Tutorial | What You'll Learn |
 |---------------|-------------------|
-| [Your First Conversation](./first-conversation.md) | Understanding how conversations work |
+| [Your First Conversation](../../01-getting-started/first-conversation.md) | Understanding how conversations work |
 | [Add Knowledge Base Documents](./add-kb-documents.md) | Teaching your bot from files |
 | [Write Your First Dialog](./write-first-dialog.md) | Creating custom conversation flows |
 
@@ -478,4 +478,4 @@ Now that you have a working bot, continue learning:
 
 ---
 
-*Tutorial 1 of 30 • [Back to How-To Index](./README.md) • [Next: Your First Conversation →](./first-conversation.md)*
+*Tutorial 1 of 30 • [Back to How-To Index](./README.md) • [Next: Your First Conversation →](../../01-getting-started/first-conversation.md)*

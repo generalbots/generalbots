@@ -74,6 +74,6 @@ This means the bot script (`.bas`) is the single source of truth for tool author
 
 ## Related
 
-- [USE TOOL](./keyword-use-tool.md)
+- [USE TOOL](../04-basic-scripting/keyword-use-tool.md)
 - [RBAC Overview](./rbac-overview.md)
 - [RBAC Configuration](./rbac-configuration.md)

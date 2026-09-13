@@ -218,7 +218,7 @@ END ON
 ## Need Help?
 
 - 📖 [Full Documentation](./README.md)
-- 🔧 [Troubleshooting Guide](./troubleshooting.md)
+- 🔧 [Troubleshooting Guide](../12-ecosystem-reference/troubleshooting.md)
 - 💻 [Code Examples](./examples.md)
 - 🌐 [Webhook Configuration](./webhooks.md)
 - 💬 [Community Discord](https://discord.gg/general-bots)
