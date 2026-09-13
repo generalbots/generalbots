@@ -28,7 +28,7 @@ Infrastructure services (database, storage, cache) are automatically managed by 
 
 | Keyword | Service | Config Key |
 |---------|---------|-----------|
-| `LLM` | LLM Provider | `llm-provider`, `llm-api-key` |
+| `LLM` | LLM Provider | `llm-provider`, `llm-key` |
 | `WEATHER` | OpenWeatherMap | `weather-api-key` |
 | `SEND MAIL` | SMTP Server | Managed by Directory service |
 | `SEND WHATSAPP` | WhatsApp Business API | `whatsapp-api-key`, `whatsapp-phone-number-id` |

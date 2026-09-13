@@ -28,7 +28,7 @@ Embedding generation converts the extracted text into a numerical vector represe
 | OpenAI | `text-embedding-3-small` | 1536 |
 | Fallback when generation fails | deterministic hash | 1536 |
 
-The hash fallback carries no semantic meaning — see the accuracy note on [semantic search](./semantic-search.md#when-there-is-no-embedding-model).
+The hash fallback carries no semantic meaning — see the accuracy note under [embeddings and their fallbacks](./hybrid-search.md#embeddings-and-their-fallbacks).
 
 Finally, the vectors and their associated metadata are stored in the vector database, organized by collection. Each entry includes the embedding vector, the extracted text, the source file path and the file's metadata.
 

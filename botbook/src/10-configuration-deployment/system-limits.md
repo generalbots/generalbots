@@ -1,467 +1,154 @@
-# System Limits Reference 🟡 BETA
-
-This document provides a comprehensive reference for all system limits, rate limits, package sizes, and configurable parameters in General Bots. Each limit includes the config.csv key, default value, and the source code location where it's enforced.
-
----
-
-## Quick Reference
-
-| Category | Limit | Default | Config Key |
-|----------|-------|---------|------------|
-| Package Size | Total package | 100 MB | `package-max-size` |
-| Package Size | Single file | 10 MB | `user-file-limit` |
-| Package Size | File count | 1,000 | `user-file-count` |
-| Package Size | Script size | 1 MB | `script-max-size` |
-| Session | Message history | 50 | `session-message-history` |
-| Session | Variable storage | 1 MB | `session-variable-limit` |
-| Session | Concurrent sessions | 1,000 | `session-max-concurrent` |
-| Session | Rate limit | 60/min | `session-rate-limit` |
-| Session | Timeout | 30 min | `session-timeout` |
-| Knowledge Base | Collections | 50 | `kb-max-collections` |
-| Knowledge Base | Document size | 50 MB | `kb-doc-max-size` |
-| File Upload | Per file | 10 MB | `upload-max-size` |
-| File Upload | Attachment | 25 MB | `attachment-max-size` |
-| API | Rate limit | 100/min | `api-rate-limit` |
-| Loop Safety | Max iterations | 100,000 | `loop-max-iterations` |
-| GOTO Safety | Max iterations | 1,000,000 | `goto-max-iterations` |
-
----
-
-## Package Size Limits
-
-Controls the size and composition of `.gbai` packages.
-
-### Total Package Size
-
-| Property | Value |
-|----------|-------|
-| **Config Key** | `package-max-size` |
-| **Default** | 104,857,600 (100 MB) |
-| **Unit** | Bytes |
-| **Source** | `botserver/src/core/package_manager/mod.rs` |
-
-```csv
-name,value
-package-max-size,209715200
-```
-
-### Single Document Size
-
-| Property | Value |
-|----------|-------|
-| **Config Key** | `user-file-limit` |
-| **Default** | 10,485,760 (10 MB) |
-| **Unit** | Bytes |
-| **Source** | `botserver/src/core/package_manager/mod.rs` |
-
-### File Count Per Package
-
-| Property | Value |
-|----------|-------|
-| **Config Key** | `user-file-count` |
-| **Default** | 1,000 |
-| **Unit** | Files |
-| **Source** | `botserver/src/core/package_manager/mod.rs` |
-
-### Script File Size
-
-| Property | Value |
-|----------|-------|
-| **Config Key** | `script-max-size` |
-| **Default** | 1,048,576 (1 MB) |
-| **Unit** | Bytes |
-| **Source** | `botserver/src/basic/compiler/mod.rs` |
-
----
-
-## Session Limits
-
-Controls resource usage per user session.
-
-### Message History
-
-| Property | Value |
-|----------|-------|
-| **Config Key** | `session-message-history` |
-| **Default** | 50 |
-| **Unit** | Messages |
-| **Source** | `botserver/src/core/session/mod.rs` |
-| **Notes** | Messages kept in LLM context window |
-
-### Variable Storage
-
-| Property | Value |
-|----------|-------|
-| **Config Key** | `session-variable-limit` |
-| **Default** | 1,048,576 (1 MB) |
-| **Unit** | Bytes |
-| **Source** | `botserver/src/core/session/mod.rs` |
-| **Notes** | Total size of all session variables |
-
-### Concurrent Sessions
+# System Limits 🟡 BETA
+
+Limits the platform enforces, and where each one is defined. Every value on this
+page is read from the source file named beside it — a limit that is not in the
+code is not on this page.
+
+> **Verified 2026-09-13.** The authority is `botlib/src/limits/types.rs`, which
+> defines `SystemLimits` and its defaults. If a number here disagrees with that
+> file, the file is right.
+
+> **Correction.** An earlier revision of this page listed per-operation
+> configuration keys — `session-timeout`, `llm-max-tokens`, `kb-pdf-max-size`,
+> `upload-max-size`, `rag-chunk-size` and around forty others. **None of those
+> keys exist in the code.** They have been removed rather than softened. The
+> limits themselves are real, but they are compile-time defaults in
+> `SystemLimits`, not per-bot settings, and most are not configurable.
 
-| Property | Value |
-|----------|-------|
-| **Config Key** | `session-max-concurrent` |
-| **Default** | 1,000 |
-| **Unit** | Sessions |
-| **Source** | `botserver/src/core/session/mod.rs` |
-| **Notes** | Per server instance |
+## Where limits come from
+
+| Layer | Defined in | Configurable |
+|---|---|---|
+| Platform limits (`SystemLimits`) | `botlib/src/limits/types.rs` | No — compile-time constants |
+| HTTP request rate | `botserver/crates/botsecurity-auth/src/rate_limiter.rs` | No — three fixed profiles |
+| Code sandbox | `botserver/crates/botbasic_ai/src/keywords/code_sandbox.rs` | Yes — per-bot bot config |
+| Knowledge-base indexing | `botserver/crates/botqdrant/src/drive_vectordb.rs` | No — fixed cap |
+
+## Platform limits
+
+Defaults from `SystemLimits` (`botlib/src/limits/types.rs`).
+
+### Execution
+
+| Limit | Default | Constant |
+|---|---|---|
+| Loop iterations | 100,000 | `MAX_LOOP_ITERATIONS` |
+| Recursion depth | 100 | `MAX_RECURSION_DEPTH` |
+| Script execution time | 300 s | `MAX_SCRIPT_EXECUTION_SECONDS` |
+| Pending tasks | 1,000 | `MAX_PENDING_TASKS` |
+| Tools per bot | 500 | `MAX_TOOLS_PER_BOT` |
+
+`MAX_LOOP_ITERATIONS` and `MAX_RECURSION_DEPTH` exist to stop a runaway script
+from consuming the process. A script that hits either is terminated, not queued.
+
+### Data and memory
 
-### Session Rate Limit
+| Limit | Default | Constant |
+|---|---|---|
+| String length | 10 MiB | `MAX_STRING_LENGTH` |
+| Array length | 1,000,000 elements | `MAX_ARRAY_LENGTH` |
+| Database query results | 10,000 rows | `MAX_DB_QUERY_RESULTS` |
+| Database connections per tenant | 20 | `MAX_DB_CONNECTIONS_PER_TENANT` |
 
-| Property | Value |
-|----------|-------|
-| **Config Key** | `session-rate-limit` |
-| **Default** | 60 |
-| **Unit** | Messages per minute |
-| **Source** | `botserver/src/core/session/mod.rs` |
+### Files and storage
+
+| Limit | Default | Constant |
+|---|---|---|
+| Single file | 100 MiB | `MAX_FILE_SIZE_BYTES` |
+| Upload | 50 MiB | `MAX_UPLOAD_SIZE_BYTES` |
+| Request body | 10 MiB | `MAX_REQUEST_BODY_BYTES` |
+| Drive storage per tenant | 10 GiB | `MAX_DRIVE_STORAGE_BYTES` |
+
+### Knowledge base
+
+| Limit | Default | Constant |
+|---|---|---|
+| Documents per bot | 100,000 | `MAX_KB_DOCUMENTS_PER_BOT` |
+| Document size | 50 MiB | `MAX_KB_DOCUMENT_SIZE_BYTES` |
+
+Separately, the indexer skips any file larger than **10 MiB** regardless of type:
+`drive_vectordb.rs::should_index` returns `false` above that size. The type is
+matched against an allow-list at the same point, so an unsupported type is
+skipped rather than truncated.
+
+### LLM
+
+| Limit | Default | Constant |
+|---|---|---|
+| Tokens per request | 128,000 | `MAX_LLM_TOKENS_PER_REQUEST` |
+| Requests per minute | 60 | `MAX_LLM_REQUESTS_PER_MINUTE` |
+
+### Concurrency and sessions
+
+| Limit | Default | Constant |
+|---|---|---|
+| Concurrent requests per user | 100 | `MAX_CONCURRENT_REQUESTS_PER_USER` |
+| Concurrent requests (global) | 10,000 | `MAX_CONCURRENT_REQUESTS_GLOBAL` |
+| WebSocket connections per user | 10 | `MAX_WEBSOCKET_CONNECTIONS_PER_USER` |
+| WebSocket connections (global) | 50,000 | `MAX_WEBSOCKET_CONNECTIONS_GLOBAL` |
+| Sessions per user | 10 | `MAX_SESSIONS_PER_USER` |
+| Session idle timeout | 3,600 s | `MAX_SESSION_IDLE_SECONDS` |
+| Bots per tenant | 100 | `MAX_BOTS_PER_TENANT` |
+
+### API throughput
+
+| Limit | Default | Constant |
+|---|---|---|
+| API calls per minute | 1,000 | `MAX_API_CALLS_PER_MINUTE` |
+| API calls per hour | 10,000 | `MAX_API_CALLS_PER_HOUR` |
+
+## HTTP rate limiting
+
+Three fixed profiles in `botsecurity-auth/src/rate_limiter.rs`, expressed as
+requests per second with a burst allowance. `CombinedRateLimiter` applies these
+alongside the per-bot limits.
 
-### Session Timeout
+| Profile | Requests / second | Burst | Used by |
+|---|---|---|---|
+| `api()` | 100 | 150 | The API surface, applied at server start |
+| `strict()` | 50 | 100 | Authentication-sensitive routes |
+| `relaxed()` | 500 | 1,000 | High-volume read paths |
 
-| Property | Value |
-|----------|-------|
-| **Config Key** | `session-timeout` |
-| **Default** | 1,800 (30 minutes) |
-| **Unit** | Seconds |
-| **Source** | `botserver/src/core/session/mod.rs` |
+The window for the platform counters is 60 s with a burst multiplier of 1.5
+(`RATE_LIMIT_WINDOW_SECONDS`, `RATE_LIMIT_BURST_MULTIPLIER`).
 
----
+## Code sandbox
 
-## Knowledge Base Limits
+The only limits on this page that are configurable per bot. They are read from the
+bot's configuration, not from `config.csv`:
 
-Controls document ingestion and vector storage.
+| Key | Default | Meaning |
+|---|---|---|
+| `sandbox-enabled` | `true` | Whether sandbox execution is permitted |
+| `sandbox-runtime` | — | Runtime selector |
+| `sandbox-timeout` | 30 s | Wall-clock limit for one execution |
+| `sandbox-memory-mb` (alias `sandbox-memory-limit`) | 256 MiB | Memory ceiling |
+| `sandbox-cpu-percent` (alias `sandbox-cpu-limit`) | 50% | CPU ceiling |
+| `sandbox-network` (alias `sandbox-network-enabled`) | — | Whether the sandbox may reach the network |
+| `sandbox-python-packages` | — | Comma-separated packages made available |
 
-### Maximum Collections
+Source: `botserver/crates/botbasic_ai/src/keywords/code_sandbox.rs`.
 
-| Property | Value |
-|----------|-------|
-| **Config Key** | `kb-max-collections` |
-| **Default** | 50 |
-| **Unit** | Collections |
-| **Source** | `botserver/src/basic/keywords/kb.rs` |
+> An earlier revision cited this file as
+> `botserver/src/basic/keywords/code_sandbox.rs`. That path no longer exists — the
+> module moved into the `botbasic_ai` crate. All of the `sandbox-*` keys above are
+> real; the path was not.
 
-### Document Size by Type
+## Storage quota
 
-| File Type | Max Size | Config Key |
-|-----------|----------|------------|
-| PDF | 50 MB | `kb-pdf-max-size` |
-| Word (.docx) | 25 MB | `kb-word-max-size` |
-| Excel (.xlsx) | 25 MB | `kb-excel-max-size` |
-| Text/Markdown | 10 MB | `kb-text-max-size` |
-| Images | 10 MB | `kb-image-max-size` |
+Drive usage against the tenant quota is reported by `GET /api/files/quota`. The
+quota ceiling itself is `MAX_DRIVE_STORAGE_BYTES` — it is not set per user or per
+bot.
 
-### RAG Parameters
+## What is not configurable
 
-| Config Key | Default | Description |
-|------------|---------|-------------|
-| `rag-top-k` | 10 | Number of chunks to retrieve |
-| `rag-chunk-size` | 512 | Tokens per chunk |
-| `rag-chunk-overlap` | 50 | Overlap between chunks |
-| `rag-hybrid-enabled` | true | Enable hybrid search |
-| `rag-rerank-enabled` | false | Enable reranking |
+There is no supported way to raise or lower the `SystemLimits` values at runtime:
+they are constants compiled into `botlib`. Changing one requires a code change and
+a rebuild. If a workload needs a different ceiling, that is a change to
+`botlib/src/limits/types.rs`, not a setting.
 
----
+## See Also
 
-## File Upload Limits
-
-Controls file upload operations.
-
-### Standard Upload
-
-| Property | Value |
-|----------|-------|
-| **Config Key** | `upload-max-size` |
-| **Default** | 10,485,760 (10 MB) |
-| **Unit** | Bytes |
-| **Source** | `botserver/src/api/upload.rs` |
-
-### Email Attachment
-
-| Property | Value |
-|----------|-------|
-| **Config Key** | `attachment-max-size` |
-| **Default** | 26,214,400 (25 MB) |
-| **Unit** | Bytes |
-| **Source** | `botserver/src/basic/keywords/send_mail.rs` |
-
-### Archive Extraction
-
-| Limit | Default | Config Key |
-|-------|---------|------------|
-| Archive size | 100 MB | `extract-archive-max-size` |
-| Extracted size | 500 MB | `extract-output-max-size` |
-| Files in archive | 10,000 | `extract-max-files` |
-| Path depth | 10 | `extract-max-depth` |
-
----
-
-## API Rate Limits
-
-Controls API request rates.
-
-### General API
-
-| Property | Value |
-|----------|-------|
-| **Config Key** | `api-rate-limit` |
-| **Default** | 100 |
-| **Unit** | Requests per minute |
-| **Source** | `botserver/src/api/middleware/rate_limit.rs` |
-
-### Endpoint-Specific Limits
-
-| Endpoint Category | Limit | Config Key |
-|-------------------|-------|------------|
-| Standard endpoints | 100/min | `api-rate-limit` |
-| Compliance scans | 5/hour | `api-scan-rate-limit` |
-| Report generation | 10/hour | `api-report-rate-limit` |
-| LLM inference | 20/min | `llm-rate-limit` |
-| Embedding | 100/min | `embedding-rate-limit` |
-
-### Rate Limit Headers
-
-All API responses include rate limit headers:
-
-| Header | Description |
-|--------|-------------|
-| `X-RateLimit-Limit` | Maximum requests allowed |
-| `X-RateLimit-Remaining` | Requests remaining in window |
-| `X-RateLimit-Reset` | Unix timestamp when limit resets |
-
----
-
-## Loop Safety Limits
-
-Prevents infinite loops in BASIC scripts.
-
-### WHILE/DO Loops
-
-| Property | Value |
-|----------|-------|
-| **Config Key** | `loop-max-iterations` |
-| **Default** | 100,000 |
-| **Unit** | Iterations |
-| **Source** | `botserver/src/basic/keywords/procedures.rs` |
-
-### GOTO State Machine
-
-| Property | Value |
-|----------|-------|
-| **Config Key** | `goto-max-iterations` |
-| **Default** | 1,000,000 |
-| **Unit** | Iterations |
-| **Source** | `botserver/src/basic/compiler/goto_transform.rs` |
-
----
-
-## Sandbox Limits
-
-Controls code execution sandbox resources.
-
-### Memory Limit
-
-| Property | Value |
-|----------|-------|
-| **Config Key** | `sandbox-memory-mb` |
-| **Default** | 256 |
-| **Unit** | Megabytes |
-| **Source** | `botserver/src/basic/keywords/code_sandbox.rs` |
-
-### CPU Limit
-
-| Property | Value |
-|----------|-------|
-| **Config Key** | `sandbox-cpu-percent` |
-| **Default** | 50 |
-| **Unit** | Percent |
-| **Source** | `botserver/src/basic/keywords/code_sandbox.rs` |
-
-### Execution Timeout
-
-| Property | Value |
-|----------|-------|
-| **Config Key** | `sandbox-timeout` |
-| **Default** | 30 |
-| **Unit** | Seconds |
-| **Source** | `botserver/src/basic/keywords/code_sandbox.rs` |
-
----
-
-## Communication Limits
-
-### WhatsApp
-
-| Limit | Default | Config Key |
-|-------|---------|------------|
-| Messages per second | 10 | `whatsapp-rate-limit` |
-| Broadcast recipients | 1,000 | `whatsapp-broadcast-max` |
-| Template message size | 1,024 | `whatsapp-template-max-size` |
-
-### Email
-
-| Limit | Default | Config Key |
-|-------|---------|------------|
-| Recipients per email | 50 | `email-max-recipients` |
-| Emails per hour | 100 | `email-rate-limit` |
-| Attachment size | 25 MB | `email-attachment-max-size` |
-
-### Delegate to Bot
-
-| Property | Value |
-|----------|-------|
-| **Config Key** | `delegate-message-max-size` |
-| **Default** | 1,048,576 (1 MB) |
-| **Unit** | Bytes |
-| **Source** | `botserver/src/basic/keywords/delegate_to_bot.rs` |
-
-| Property | Value |
-|----------|-------|
-| **Config Key** | `delegate-timeout` |
-| **Default** | 300 |
-| **Unit** | Seconds |
-| **Source** | `botserver/src/basic/keywords/delegate_to_bot.rs` |
-
----
-
-## Storage Limits
-
-### User Storage Quota
-
-| Property | Value |
-|----------|-------|
-| **Config Key** | `user-storage-quota` |
-| **Default** | 104,857,600 (100 MB) |
-| **Unit** | Bytes |
-| **Source** | `botserver/src/basic/keywords/drive.rs` |
-
-### Download Link Expiry
-
-| Property | Value |
-|----------|-------|
-| **Config Key** | `download-link-expiry` |
-| **Default** | 86,400 (24 hours) |
-| **Unit** | Seconds |
-| **Source** | `botserver/src/basic/keywords/download.rs` |
-
----
-
-## LLM Limits
-
-### Token Limits
-
-| Config Key | Default | Description |
-|------------|---------|-------------|
-| `llm-max-tokens` | 4,096 | Max output tokens |
-| `llm-context-window` | 8,192 | Context window size |
-| `llm-temperature` | 0.7 | Default temperature |
-
-### Tokens Per Minute (TPM)
-
-| Property | Value |
-|----------|-------|
-| **Config Key** | `llm-tpm-limit` |
-| **Default** | 20,000 |
-| **Unit** | Tokens per minute |
-| **Source** | `botcoder/src/main.rs` |
-| **Env Var** | `LLM_TPM` |
-
----
-
-## A2A Protocol Limits
-
-### Maximum Hops
-
-| Property | Value |
-|----------|-------|
-| **Config Key** | `a2a-max-hops` |
-| **Default** | 5 |
-| **Unit** | Hops |
-| **Source** | `botserver/src/basic/keywords/a2a_protocol.rs` |
-| **Notes** | Prevents infinite delegation chains |
-
----
-
-## Video/Audio Limits
-
-### Player Limits
-
-| Config Key | Default | Description |
-|------------|---------|-------------|
-| `player-max-file-size-mb` | 100 | Max video file size |
-| `player-default-volume` | 80 | Default volume (0-100) |
-| `player-preload` | metadata | Preload strategy |
-
----
-
-## Configuring Limits
-
-### Via config.csv
-
-Add entries to your bot's `config.csv` file:
-
-```csv
-name,value
-package-max-size,209715200
-session-rate-limit,120
-api-rate-limit,200
-llm-max-tokens,8192
-```
-
-### Via Environment Variables
-
-Some limits can be set via environment variables (overrides config.csv):
-
-| Environment Variable | Config Key |
-|---------------------|------------|
-| `LLM_TPM` | `llm-tpm-limit` |
-| `SESSION_TIMEOUT` | `session-timeout` |
-| `API_RATE_LIMIT` | `api-rate-limit` |
-
-### Via API
-
-Update limits programmatically:
-
-```basic
-SET CONFIG "session-rate-limit" TO "120"
-SET CONFIG "api-rate-limit" TO "200"
-```
-
----
-
-## Monitoring Limits
-
-### Viewing Current Limits
-
-```basic
-config = GET CONFIG "api-rate-limit"
-TALK "Current API rate limit: " + config
-```
-
-### Rate Limit Errors
-
-When limits are exceeded, the system returns:
-
-| HTTP Status | Error Code | Description |
-|-------------|------------|-------------|
-| 429 | `RATE_LIMITED` | Too many requests |
-| 413 | `PAYLOAD_TOO_LARGE` | File/request too large |
-| 507 | `INSUFFICIENT_STORAGE` | Storage quota exceeded |
-
----
-
-## Best Practices
-
-1. **Start Conservative**: Begin with default limits and increase as needed
-2. **Monitor Usage**: Track rate limit headers to understand usage patterns
-3. **Plan for Scale**: Increase limits gradually as traffic grows
-4. **Document Changes**: Track limit changes in your bot's changelog
-5. **Test Limits**: Verify your application handles limit errors gracefully
-
----
-
-## Related Documentation
-
-- [Session Management](../01-getting-started/sessions.md)
-- [Package Structure](../02-architecture-packages/gbai.md)
-- [API Reference](../08-rest-api-tools/README.md)
+- [Configuration Parameters](./parameters.md) — the keys that do exist
+- [Retrieval and RAG](../03-knowledge-ai/hybrid-search.md) — what retrieval does, and its limits
+- [Security](../09-security/README.md) — rate limiting and request guards

@@ -250,10 +250,6 @@ reflection-min-messages,3
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `a2a-enabled` | `true` | Enable agent-to-agent communication |
-| `a2a-timeout` | `30` | Default delegation timeout (seconds) |
-| `a2a-max-hops` | `5` | Maximum delegation chain depth |
-| `a2a-retry-count` | `3` | Retry attempts on failure |
 | `reflection-enabled` | `true` | Enable bot reflection |
 | `reflection-interval` | `10` | Messages between reflections |
 

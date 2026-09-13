@@ -92,5 +92,5 @@ USE KB "documentation"
 ## See Also
 
 - [Knowledge Base System](./README.md) - Architecture overview
-- [Semantic Search](./semantic-search.md) - How search works
+- [Retrieval and RAG](./hybrid-search.md) - How retrieval works
 - [Vector Collections](./vector-collections.md) - Collection management

@@ -140,4 +140,4 @@ END TRY
 
 - [CLEAR KB](./keyword-clear-kb.md) - Deactivate collections
 - [Knowledge Base System](../03-knowledge-ai/README.md) - Technical details
-- [Semantic Search](../03-knowledge-ai/semantic-search.md) - How search works
+- [Retrieval and RAG](../03-knowledge-ai/hybrid-search.md) - How retrieval works
