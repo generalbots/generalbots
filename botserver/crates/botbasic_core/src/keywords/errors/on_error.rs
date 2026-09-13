@@ -56,7 +56,7 @@ pub fn get_error_number() -> i64 {
 }
 
 pub fn register_on_error_keywords(_state: &Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["ON", "ERROR", "RESUME", "NEXT"],
             false,
@@ -67,9 +67,11 @@ pub fn register_on_error_keywords(_state: &Arc<dyn BasicRuntime>, _user: UserSes
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("Failed to register ON ERROR RESUME NEXT");
+    {
+        log::error!("Failed to register ON ERROR RESUME NEXT: {e}");
+    }
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["ON", "ERROR", "GOTO", "$ident$"],
             false,
@@ -84,24 +86,30 @@ pub fn register_on_error_keywords(_state: &Arc<dyn BasicRuntime>, _user: UserSes
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("Failed to register ON ERROR GOTO");
+    {
+        log::error!("Failed to register ON ERROR GOTO: {e}");
+    }
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["CLEAR", "ERROR"], false, move |_context, _inputs| {
             trace!("CLEAR ERROR executed");
             clear_last_error();
             Ok(Dynamic::UNIT)
         })
-        .expect("Failed to register CLEAR ERROR");
+    {
+        log::error!("Failed to register CLEAR ERROR: {e}");
+    }
 
     engine.register_fn("ERROR", || -> bool { get_last_error().is_some() });
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["ERROR", "MESSAGE"], false, move |_context, _inputs| {
             let msg = get_last_error().unwrap_or_default();
             Ok(Dynamic::from(msg))
         })
-        .expect("Failed to register ERROR MESSAGE");
+    {
+        log::error!("Failed to register ERROR MESSAGE: {e}");
+    }
 
     engine.register_fn("ERR", || -> i64 { get_error_number() });
 

@@ -111,11 +111,11 @@ pub fn convert_if_then_syntax(script: &str) -> String {
                 // Extract inline THEN body (everything before ELSE or END IF)
                 let inline_body = if has_inline_else {
                     let else_upper = after_then.to_uppercase();
-                    let else_pos = else_upper.find(" ELSE ").unwrap();
+                    let else_pos = match else_upper.find(" ELSE ") { Some(p) => p, None => continue };
                     after_then[..else_pos].trim().to_string()
                 } else if has_inline_end {
                     let end_upper = after_then.to_uppercase();
-                    let end_pos = end_upper.find(" END IF").unwrap();
+                    let end_pos = match end_upper.find(" END IF") { Some(p) => p, None => continue };
                     after_then[..end_pos].trim().to_string()
                 } else {
                     after_then.to_string()
@@ -129,7 +129,7 @@ pub fn convert_if_then_syntax(script: &str) -> String {
 
                 if has_inline_else {
                     let else_upper = after_then.to_uppercase();
-                    let else_pos = else_upper.find(" ELSE ").unwrap();
+                    let else_pos = match else_upper.find(" ELSE ") { Some(p) => p, None => continue };
                     let after_else = after_then[else_pos + 6..].trim();
                     let else_body = if after_else.to_uppercase().ends_with(" END IF") {
                         after_else[..after_else.len() - 7].trim().to_string()

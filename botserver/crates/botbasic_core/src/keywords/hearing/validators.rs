@@ -38,7 +38,9 @@ pub fn validate_input(input: &str, input_type: &InputType) -> ValidationResult {
 }
 
 fn validate_email(input: &str) -> ValidationResult {
-    let email_regex = Regex::new(r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$").expect("valid regex");
+    let Some(email_regex) = Regex::new(r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$").ok() else {
+        return ValidationResult::invalid("internal validation error".to_string());
+    };
 
     if email_regex.is_match(input) {
         ValidationResult::valid(input.to_lowercase())
@@ -90,7 +92,9 @@ fn validate_date(input: &str) -> ValidationResult {
 }
 
 fn validate_name(input: &str) -> ValidationResult {
-    let name_regex = Regex::new(r"^[\p{L}\s\-']+$").expect("valid regex");
+    let Some(name_regex) = Regex::new(r"^[\p{L}\s\-']+$").ok() else {
+        return ValidationResult::invalid("internal validation error".to_string());
+    };
 
     if input.len() < 2 {
         return ValidationResult::invalid("Name must be at least 2 characters".to_string());
@@ -188,7 +192,9 @@ fn validate_boolean(input: &str) -> ValidationResult {
 }
 
 fn validate_hour(input: &str) -> ValidationResult {
-    let time_24_regex = Regex::new(r"^([01]?\d|2[0-3]):([0-5]\d)$").expect("valid regex");
+    let Some(time_24_regex) = Regex::new(r"^([01]?\d|2[0-3]):([0-5]\d)$").ok() else {
+        return ValidationResult::invalid("internal validation error".to_string());
+    };
     if let Some(caps) = time_24_regex.captures(input) {
         let hour: u32 = caps[1].parse().unwrap_or_default();
         let minute: u32 = caps[2].parse().unwrap_or_default();
@@ -198,9 +204,9 @@ fn validate_hour(input: &str) -> ValidationResult {
         );
     }
 
-    let time_12_regex =
-        Regex::new(r"^(1[0-2]|0?[1-9]):([0-5]\d)\s*(AM|PM|am|pm|a\.m\.|p\.m\.)$").expect("valid regex");
-    if let Some(caps) = time_12_regex.captures(input) {
+    if let Some(caps) = Regex::new(
+        r"^(1[0-2]|0?[1-9]):([0-5]\d)\s*(AM|PM|am|pm|a\.m\.|p\.m\.)$",
+    ).ok().and_then(|re| re.captures(input)) {
         let mut hour: u32 = caps[1].parse().unwrap_or_default();
         let minute: u32 = caps[2].parse().unwrap_or_default();
         let period = caps[3].to_uppercase();
@@ -296,7 +302,9 @@ fn validate_zipcode(input: &str) -> ValidationResult {
         );
     }
 
-    let uk_regex = Regex::new(r"^[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$").expect("valid regex");
+    let Some(uk_regex) = Regex::new(r"^[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$").ok() else {
+        return ValidationResult::invalid("internal validation error".to_string());
+    };
     if uk_regex.is_match(&cleaned.to_uppercase()) {
         return ValidationResult::valid_with_metadata(
             cleaned.to_uppercase(),
@@ -453,7 +461,9 @@ fn validate_url(input: &str) -> ValidationResult {
         input.to_string()
     };
 
-    let url_regex = Regex::new(r"^https?://[a-zA-Z0-9][-a-zA-Z0-9]*(\.[a-zA-Z0-9][-a-zA-Z0-9]*)+(/[-a-zA-Z0-9()@:%_\+.~#?&/=]*)?$").expect("valid regex");
+    let Some(url_regex) = Regex::new(r"^https?://[a-zA-Z0-9][-a-zA-Z0-9]*(\.[a-zA-Z0-9][-a-zA-Z0-9]*)+(/[-a-zA-Z0-9()@:%_\+.~#?&/=]*)?$").ok() else {
+        return ValidationResult::invalid("internal validation error".to_string());
+    };
 
     if url_regex.is_match(&url_str) {
         ValidationResult::valid(url_str)
@@ -498,7 +508,9 @@ fn validate_color(input: &str) -> ValidationResult {
         }
     }
 
-    let hex_regex = Regex::new(r"^#?([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$").expect("valid regex");
+    let Some(hex_regex) = Regex::new(r"^#?([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$").ok() else {
+        return ValidationResult::invalid("internal validation error".to_string());
+    };
     if let Some(caps) = hex_regex.captures(&lower) {
         let hex = caps[1].to_uppercase();
         let full_hex = if hex.len() == 3 {
@@ -514,9 +526,9 @@ fn validate_color(input: &str) -> ValidationResult {
         return ValidationResult::valid(format!("#{}", full_hex));
     }
 
-    let rgb_regex =
-        Regex::new(r"^rgb\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$").expect("valid regex");
-    if let Some(caps) = rgb_regex.captures(&lower) {
+    if let Some(caps) = Regex::new(
+        r"^rgb\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$",
+    ).ok().and_then(|re| re.captures(&lower)) {
         let r: u8 = caps[1].parse().unwrap_or(0);
         let g: u8 = caps[2].parse().unwrap_or(0);
         let b: u8 = caps[3].parse().unwrap_or(0);

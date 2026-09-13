@@ -26,7 +26,7 @@ fn register_verify_face(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["VERIFY", "FACE", "$expr$", ",", "$expr$"],
             false,
@@ -44,7 +44,9 @@ fn register_verify_face(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid VERIFY FACE syntax");
+    {
+        log::error!("valid VERIFY FACE syntax failed: {e}");
+    }
 }
 
 fn register_validate_document(
@@ -54,7 +56,7 @@ fn register_validate_document(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["VALIDATE", "DOCUMENT", "$expr$", ",", "$expr$"],
             false,
@@ -72,7 +74,9 @@ fn register_validate_document(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid VALIDATE DOCUMENT syntax");
+    {
+        log::error!("valid VALIDATE DOCUMENT syntax failed: {e}");
+    }
 }
 
 fn register_capture_signature(
@@ -82,7 +86,7 @@ fn register_capture_signature(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["CAPTURE", "SIGNATURE", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -101,7 +105,9 @@ fn register_capture_signature(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid CAPTURE SIGNATURE syntax");
+    {
+        log::error!("valid CAPTURE SIGNATURE syntax failed: {e}");
+    }
 }
 
 fn register_start_kyc(
@@ -111,7 +117,7 @@ fn register_start_kyc(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["START", "KYC", "$expr$", ",", "$expr$"],
             false,
@@ -130,7 +136,9 @@ fn register_start_kyc(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid START KYC syntax");
+    {
+        log::error!("valid START KYC syntax failed: {e}");
+    }
 }
 
 fn serde_json_to_dynamic(v: &Value) -> Dynamic {

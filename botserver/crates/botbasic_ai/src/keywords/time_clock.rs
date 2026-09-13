@@ -27,7 +27,7 @@ fn register_clock_in(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["CLOCK", "IN"], false, move |_context, _inputs| {
             trace!("CLOCK IN");
             let result = json!({
@@ -38,7 +38,9 @@ fn register_clock_in(
             });
             Ok(serde_json_to_dynamic(&result))
         })
-        .expect("valid CLOCK IN syntax");
+    {
+        log::error!("valid CLOCK IN syntax failed: {e}");
+    }
 }
 
 fn register_clock_out(
@@ -48,7 +50,7 @@ fn register_clock_out(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["CLOCK", "OUT"], false, move |_context, _inputs| {
             trace!("CLOCK OUT");
             let result = json!({
@@ -59,7 +61,9 @@ fn register_clock_out(
             });
             Ok(serde_json_to_dynamic(&result))
         })
-        .expect("valid CLOCK OUT syntax");
+    {
+        log::error!("valid CLOCK OUT syntax failed: {e}");
+    }
 }
 
 fn register_get_banco_horas(
@@ -69,7 +73,7 @@ fn register_get_banco_horas(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["GET", "BANCO", "HORAS", "$expr$"],
             false,
@@ -86,7 +90,9 @@ fn register_get_banco_horas(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid GET BANCO HORAS syntax");
+    {
+        log::error!("valid GET BANCO HORAS syntax failed: {e}");
+    }
 }
 
 fn register_ferias_balance(
@@ -96,7 +102,7 @@ fn register_ferias_balance(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["FERIAS", "BALANCE", "$expr$"],
             false,
@@ -114,7 +120,9 @@ fn register_ferias_balance(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid FERIAS BALANCE syntax");
+    {
+        log::error!("valid FERIAS BALANCE syntax failed: {e}");
+    }
 }
 
 fn register_banco_horas_report(
@@ -124,7 +132,7 @@ fn register_banco_horas_report(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["BANCO", "HORAS", "REPORT", "$expr$", ",", "$expr$"],
             false,
@@ -144,7 +152,9 @@ fn register_banco_horas_report(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid BANCO HORAS REPORT syntax");
+    {
+        log::error!("valid BANCO HORAS REPORT syntax failed: {e}");
+    }
 }
 
 fn serde_json_to_dynamic(v: &Value) -> Dynamic {

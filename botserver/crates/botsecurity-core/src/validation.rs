@@ -86,39 +86,25 @@ impl ValidationResult {
     }
 }
 
-static EMAIL_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
+static EMAIL_REGEX: LazyLock<Option<Regex>> = LazyLock::new(|| Regex::new(
         r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
-    ).expect("Invalid email regex")
-});
+    ).ok());
 
-static URL_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
+static URL_REGEX: LazyLock<Option<Regex>> = LazyLock::new(|| Regex::new(
         r"^https?://[a-zA-Z0-9][-a-zA-Z0-9]*(\.[a-zA-Z0-9][-a-zA-Z0-9]*)+(/[-a-zA-Z0-9()@:%_\+.~#?&/=]*)?$"
-    ).expect("Invalid URL regex")
-});
+    ).ok());
 
-static UUID_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(
+static UUID_REGEX: LazyLock<Option<Regex>> = LazyLock::new(|| Regex::new(
         r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
-    ).expect("Invalid UUID regex")
-});
+    ).ok());
 
-static PHONE_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^\+?[1-9]\d{6,14}$").expect("Invalid phone regex")
-});
+static PHONE_REGEX: LazyLock<Option<Regex>> = LazyLock::new(|| Regex::new(r"^\+?[1-9]\d{6,14}$").ok());
 
-static ALPHANUMERIC_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^[a-zA-Z0-9]+$").expect("Invalid alphanumeric regex")
-});
+static ALPHANUMERIC_REGEX: LazyLock<Option<Regex>> = LazyLock::new(|| Regex::new(r"^[a-zA-Z0-9]+$").ok());
 
-static SLUG_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^[a-z0-9]+(?:-[a-z0-9]+)*$").expect("Invalid slug regex")
-});
+static SLUG_REGEX: LazyLock<Option<Regex>> = LazyLock::new(|| Regex::new(r"^[a-z0-9]+(?:-[a-z0-9]+)*$").ok());
 
-static USERNAME_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-    Regex::new(r"^[a-zA-Z][a-zA-Z0-9_-]{2,31}$").expect("Invalid username regex")
-});
+static USERNAME_REGEX: LazyLock<Option<Regex>> = LazyLock::new(|| Regex::new(r"^[a-zA-Z][a-zA-Z0-9_-]{2,31}$").ok());
 
 pub fn validate_required<'a>(value: Option<&'a str>, field_name: &str) -> Result<&'a str, ValidationError> {
     match value {
@@ -171,7 +157,7 @@ pub fn validate_email(email: &str) -> Result<(), ValidationError> {
         return Err(ValidationError::InvalidEmail(email.to_string()));
     }
 
-    if EMAIL_REGEX.is_match(email) {
+    if EMAIL_REGEX.as_ref().is_some_and(|re| re.is_match(email)) {
         Ok(())
     } else {
         Err(ValidationError::InvalidEmail(email.to_string()))
@@ -183,7 +169,7 @@ pub fn validate_url(url: &str) -> Result<(), ValidationError> {
         return Err(ValidationError::InvalidUrl(url.to_string()));
     }
 
-    if URL_REGEX.is_match(url) {
+    if URL_REGEX.as_ref().is_some_and(|re| re.is_match(url)) {
         Ok(())
     } else {
         Err(ValidationError::InvalidUrl(url.to_string()))
@@ -191,7 +177,7 @@ pub fn validate_url(url: &str) -> Result<(), ValidationError> {
 }
 
 pub fn validate_uuid(uuid: &str) -> Result<(), ValidationError> {
-    if UUID_REGEX.is_match(uuid) {
+    if UUID_REGEX.as_ref().is_some_and(|re| re.is_match(uuid)) {
         Ok(())
     } else {
         Err(ValidationError::InvalidUuid(uuid.to_string()))
@@ -201,7 +187,7 @@ pub fn validate_uuid(uuid: &str) -> Result<(), ValidationError> {
 pub fn validate_phone(phone: &str) -> Result<(), ValidationError> {
     let digits: String = phone.chars().filter(|c| c.is_ascii_digit() || *c == '+').collect();
 
-    if PHONE_REGEX.is_match(&digits) {
+    if PHONE_REGEX.as_ref().is_some_and(|re| re.is_match(&digits)) {
         Ok(())
     } else {
         Err(ValidationError::InvalidPhone(phone.to_string()))
@@ -209,7 +195,7 @@ pub fn validate_phone(phone: &str) -> Result<(), ValidationError> {
 }
 
 pub fn validate_alphanumeric(value: &str, field_name: &str) -> Result<(), ValidationError> {
-    if ALPHANUMERIC_REGEX.is_match(value) {
+    if ALPHANUMERIC_REGEX.as_ref().is_some_and(|re| re.is_match(value)) {
         Ok(())
     } else {
         Err(ValidationError::InvalidFormat {
@@ -220,7 +206,7 @@ pub fn validate_alphanumeric(value: &str, field_name: &str) -> Result<(), Valida
 }
 
 pub fn validate_slug(value: &str, field_name: &str) -> Result<(), ValidationError> {
-    if SLUG_REGEX.is_match(value) {
+    if SLUG_REGEX.as_ref().is_some_and(|re| re.is_match(value)) {
         Ok(())
     } else {
         Err(ValidationError::InvalidFormat {
@@ -231,7 +217,7 @@ pub fn validate_slug(value: &str, field_name: &str) -> Result<(), ValidationErro
 }
 
 pub fn validate_username(value: &str) -> Result<(), ValidationError> {
-    if USERNAME_REGEX.is_match(value) {
+    if USERNAME_REGEX.as_ref().is_some_and(|re| re.is_match(value)) {
         Ok(())
     } else {
         Err(ValidationError::InvalidFormat {
@@ -351,11 +337,13 @@ pub fn sanitize_html(input: &str) -> String {
 }
 
 pub fn strip_html_tags(input: &str) -> String {
-    static HTML_TAG_REGEX: LazyLock<Regex> = LazyLock::new(|| {
-        Regex::new(r"<[^>]*>").expect("Invalid HTML tag regex")
-    });
+    static HTML_TAG_REGEX: LazyLock<Option<Regex>> = LazyLock::new(|| Regex::new(r"<[^>]*>").ok());
 
-    HTML_TAG_REGEX.replace_all(input, "").to_string()
+    match HTML_TAG_REGEX.as_ref() {
+        Some(re) => re.replace_all(input, "").to_string(),
+        // Fail closed: without the sanitizer, strip everything that could be a tag.
+        None => String::new(),
+    }
 }
 
 pub fn validate_no_html(value: &str, field_name: &str) -> Result<(), ValidationError> {

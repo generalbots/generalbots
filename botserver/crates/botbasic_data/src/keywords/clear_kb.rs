@@ -21,7 +21,7 @@ pub fn register_clear_kb_keyword(
     let session_clone = user;
     let state_for_all = state_clone.clone();
 
-    engine.register_custom_syntax(["CLEAR", "KB", "$expr$"], true, move |context, inputs| {
+    if let Err(e) = engine.register_custom_syntax(["CLEAR", "KB", "$expr$"], true, move |context, inputs| {
         let kb_name = context.eval_expression_tree(&inputs[0])?.to_string();
 
         info!(
@@ -54,12 +54,14 @@ pub fn register_clear_kb_keyword(
             }
         }
     })
-    .expect("valid CLEAR KB syntax registration");
+    {
+        log::error!("valid CLEAR KB syntax registration failed: {e}");
+    }
 
     let state_clone2 = state_for_all.clone();
     let session_clone2 = session_clone.clone();
 
-    engine.register_custom_syntax(["CLEAR", "KB"], true, move |_context, _inputs| {
+    if let Err(e) = engine.register_custom_syntax(["CLEAR", "KB"], true, move |_context, _inputs| {
         info!(
             "CLEAR KB (all) keyword executed - Session: {}",
             session_clone2.id
@@ -91,7 +93,9 @@ pub fn register_clear_kb_keyword(
             }
         }
     })
-    .expect("valid CLEAR KB (all) syntax registration");
+    {
+        log::error!("valid CLEAR KB (all) syntax registration failed: {e}");
+    }
 
     let state_fn = state_for_all;
     let user_fn = session_clone;

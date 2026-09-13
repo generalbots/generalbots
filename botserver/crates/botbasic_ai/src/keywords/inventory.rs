@@ -32,7 +32,7 @@ fn register_create_product(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["CREATE", "PRODUCT", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -53,7 +53,9 @@ fn register_create_product(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid CREATE PRODUCT syntax");
+    {
+        log::error!("CREATE PRODUCT syntax failed: {e}");
+    }
 }
 
 fn register_add_variation(
@@ -63,7 +65,7 @@ fn register_add_variation(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             [
                 "ADD", "VARIATION", "$expr$", ",", "$expr$", ",", "$expr$", ",", "$expr$",
@@ -88,7 +90,9 @@ fn register_add_variation(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid ADD VARIATION syntax");
+    {
+        log::error!("ADD VARIATION syntax failed: {e}");
+    }
 }
 
 fn register_set_stock(
@@ -98,7 +102,7 @@ fn register_set_stock(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SET", "STOCK", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -118,7 +122,9 @@ fn register_set_stock(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid SET STOCK syntax");
+    {
+        log::error!("SET STOCK syntax failed: {e}");
+    }
 }
 
 fn register_transfer_stock(
@@ -128,7 +134,7 @@ fn register_transfer_stock(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             [
                 "TRANSFER", "STOCK", "$expr$", ",", "$expr$", ",", "$expr$", ",", "$expr$",
@@ -152,7 +158,9 @@ fn register_transfer_stock(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid TRANSFER STOCK syntax");
+    {
+        log::error!("TRANSFER STOCK syntax failed: {e}");
+    }
 }
 
 fn register_get_stock(
@@ -162,7 +170,7 @@ fn register_get_stock(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["GET", "STOCK", "$expr$"],
             false,
@@ -176,7 +184,9 @@ fn register_get_stock(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid GET STOCK syntax");
+    {
+        log::error!("GET STOCK syntax failed: {e}");
+    }
 }
 
 fn register_set_price(
@@ -186,7 +196,7 @@ fn register_set_price(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SET", "PRICE", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -206,7 +216,9 @@ fn register_set_price(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid SET PRICE syntax");
+    {
+        log::error!("SET PRICE syntax failed: {e}");
+    }
 }
 
 fn register_open_pos_session(
@@ -216,7 +228,7 @@ fn register_open_pos_session(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["OPEN", "POS", "SESSION", "$expr$", ",", "$expr$"],
             false,
@@ -235,7 +247,9 @@ fn register_open_pos_session(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid OPEN POS SESSION syntax");
+    {
+        log::error!("OPEN POS SESSION syntax failed: {e}");
+    }
 }
 
 fn register_add_to_cart(
@@ -245,7 +259,7 @@ fn register_add_to_cart(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["ADD", "TO", "CART", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
@@ -264,7 +278,9 @@ fn register_add_to_cart(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid ADD TO CART syntax");
+    {
+        log::error!("ADD TO CART syntax failed: {e}");
+    }
 }
 
 fn register_checkout(
@@ -274,7 +290,7 @@ fn register_checkout(
 ) {
     let _state_clone = state;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["CHECKOUT", "$expr$", ",", "$expr$"],
             false,
@@ -291,7 +307,9 @@ fn register_checkout(
                 Ok(serde_json_to_dynamic(&result))
             },
         )
-        .expect("valid CHECKOUT syntax");
+    {
+        log::error!("CHECKOUT syntax failed: {e}");
+    }
 }
 
 fn serde_json_to_dynamic(v: &Value) -> Dynamic {

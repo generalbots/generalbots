@@ -28,7 +28,7 @@ pub fn register_procedure_keywords(state: &Arc<dyn BasicRuntime>, user: UserSess
 }
 
 fn register_while_wend(engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["WHILE", "$expr$", "$block$", "WEND"],
             true,
@@ -83,17 +83,21 @@ fn register_while_wend(engine: &mut Engine) {
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("Failed to register WHILE/WEND syntax");
+    {
+        log::error!("Failed to register WHILE/WEND syntax: {e}");
+    }
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["EXIT", "WHILE"], false, |_context, _inputs| {
             Err("EXIT WHILE".into())
         })
-        .expect("Failed to register EXIT WHILE syntax");
+    {
+        log::error!("Failed to register EXIT WHILE syntax: {e}");
+    }
 }
 
 fn register_do_loop(engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["DO", "WHILE", "$expr$", "$block$", "LOOP"],
             true,
@@ -127,9 +131,11 @@ fn register_do_loop(engine: &mut Engine) {
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("Failed to register DO WHILE syntax");
+    {
+        log::error!("Failed to register DO WHILE syntax: {e}");
+    }
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["DO", "UNTIL", "$expr$", "$block$", "LOOP"],
             true,
@@ -163,9 +169,11 @@ fn register_do_loop(engine: &mut Engine) {
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("Failed to register DO UNTIL syntax");
+    {
+        log::error!("Failed to register DO UNTIL syntax: {e}");
+    }
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["DO", "$block$", "LOOP", "WHILE", "$expr$"],
             true,
@@ -199,9 +207,11 @@ fn register_do_loop(engine: &mut Engine) {
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("Failed to register DO...LOOP WHILE syntax");
+    {
+        log::error!("Failed to register DO...LOOP WHILE syntax: {e}");
+    }
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["DO", "$block$", "LOOP", "UNTIL", "$expr$"],
             true,
@@ -235,13 +245,17 @@ fn register_do_loop(engine: &mut Engine) {
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("Failed to register DO...LOOP UNTIL syntax");
+    {
+        log::error!("Failed to register DO...LOOP UNTIL syntax: {e}");
+    }
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["EXIT", "DO"], false, |_context, _inputs| {
             Err("EXIT DO".into())
         })
-        .expect("Failed to register EXIT DO syntax");
+    {
+        log::error!("Failed to register EXIT DO syntax: {e}");
+    }
 }
 
 fn eval_bool_condition(value: &Dynamic) -> bool {
@@ -265,7 +279,7 @@ fn register_call_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engin
     let state_clone = Arc::clone(state);
     let user_clone = user.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["CALL", "$ident$", "(", "$expr$", ")"],
             false,
@@ -280,7 +294,7 @@ fn register_call_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engin
 
                 // Check for in-memory procedure first
                 {
-                    let procedures = PROCEDURES.lock().expect("mutex not poisoned");
+                    let procedures = PROCEDURES.lock().unwrap_or_else(|p| p.into_inner());
                     if procedures.contains_key(&proc_name) {
                         return Ok(Dynamic::UNIT);
                     }
@@ -290,12 +304,14 @@ fn register_call_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engin
                 call_bas_script(&state_clone, &user_clone, &proc_name)
             },
         )
-        .expect("Failed to register CALL with args syntax");
+    {
+        log::error!("Failed to register CALL with args syntax: {e}");
+    }
 
     let state_clone2 = Arc::clone(state);
     let user_clone2 = user.clone();
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["CALL", "$ident$"], false, move |_context, inputs| {
             let proc_name = inputs[0]
                 .get_string_value()
@@ -306,7 +322,7 @@ fn register_call_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engin
 
             // Check for in-memory procedure first
             {
-                let procedures = PROCEDURES.lock().expect("mutex not poisoned");
+                let procedures = PROCEDURES.lock().unwrap_or_else(|p| p.into_inner());
                 if procedures.contains_key(&proc_name) {
                     return Ok(Dynamic::UNIT);
                 }
@@ -315,7 +331,9 @@ fn register_call_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engin
             // Try to execute as .bas file
             call_bas_script(&state_clone2, &user_clone2, &proc_name)
         })
-        .expect("Failed to register CALL without args syntax");
+    {
+        log::error!("Failed to register CALL without args syntax: {e}");
+    }
 }
 
 fn call_bas_script(state: &Arc<dyn BasicRuntime>, user: &UserSession, script_name: &str) -> Result<Dynamic, Box<rhai::EvalAltResult>> {
@@ -371,21 +389,25 @@ fn call_bas_script(state: &Arc<dyn BasicRuntime>, user: &UserSession, script_nam
 }
 
 fn register_return_keyword(engine: &mut Engine) {
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["RETURN", "$expr$"], false, |context, inputs| {
             let value = context.eval_expression_tree(&inputs[0])?;
             trace!("RETURN with value: {:?}", value);
 
             Err(format!("RETURN:{}", value).into())
         })
-        .expect("Failed to register RETURN with value syntax");
+    {
+        log::error!("Failed to register RETURN with value syntax: {e}");
+    }
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(["RETURN"], false, |_context, _inputs| {
             trace!("RETURN (no value)");
             Err("RETURN:".into())
         })
-        .expect("Failed to register RETURN syntax");
+    {
+        log::error!("Failed to register RETURN syntax: {e}");
+    }
 }
 
 pub fn preprocess_subs(input: &str) -> String {
@@ -436,7 +458,7 @@ pub fn preprocess_subs(input: &str) -> String {
             trace!("Registering SUB: {}", sub_name);
             PROCEDURES
                 .lock()
-                .expect("mutex not poisoned")
+                .unwrap_or_else(|p| p.into_inner())
                 .insert(sub_name.clone(), proc);
 
             sub_name.clear();
@@ -513,7 +535,7 @@ pub fn preprocess_functions(input: &str) -> String {
             trace!("Registering FUNCTION: {}", func_name);
             PROCEDURES
                 .lock()
-                .expect("mutex not poisoned")
+                .unwrap_or_else(|p| p.into_inner())
                 .insert(func_name.clone(), proc);
 
             func_name.clear();
@@ -560,7 +582,7 @@ pub fn preprocess_calls(input: &str) -> String {
                 (rest.to_uppercase(), String::new())
             };
 
-            let procedures = PROCEDURES.lock().expect("mutex not poisoned");
+            let procedures = PROCEDURES.lock().unwrap_or_else(|p| p.into_inner());
             if let Some(proc) = procedures.get(&proc_name) {
                 let arg_values: Vec<&str> = if args.is_empty() {
                     Vec::new()
@@ -603,13 +625,13 @@ pub fn preprocess_procedures(input: &str) -> String {
 }
 
 pub fn clear_procedures() {
-    PROCEDURES.lock().expect("mutex not poisoned").clear();
+    PROCEDURES.lock().unwrap_or_else(|p| p.into_inner()).clear();
 }
 
 pub fn get_procedure_names() -> Vec<String> {
     PROCEDURES
-        .lock()
-        .expect("mutex not poisoned")
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
         .keys()
         .cloned()
         .collect()
@@ -617,15 +639,15 @@ pub fn get_procedure_names() -> Vec<String> {
 
 pub fn has_procedure(name: &str) -> bool {
     PROCEDURES
-        .lock()
-        .expect("mutex not poisoned")
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
         .contains_key(&name.to_uppercase())
 }
 
 pub fn get_procedure(name: &str) -> Option<ProcedureDefinition> {
     PROCEDURES
-        .lock()
-        .expect("mutex not poisoned")
+                .lock()
+                .unwrap_or_else(|p| p.into_inner())
         .get(&name.to_uppercase())
         .cloned()
 }

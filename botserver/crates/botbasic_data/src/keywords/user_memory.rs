@@ -18,7 +18,7 @@ pub fn set_user_memory_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
     let state_clone = Arc::clone(&state);
     let user_id = user.user_id;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["SET", "USER", "MEMORY", "$expr$", ",", "$expr$"],
             false,
@@ -49,7 +49,9 @@ pub fn set_user_memory_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("Failed to register SET USER MEMORY syntax");
+    {
+        log::error!("Failed to register SET USER MEMORY syntax failed: {e}");
+    }
 }
 
 pub fn get_user_memory_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
@@ -72,7 +74,7 @@ pub fn remember_user_fact_keyword(state: Arc<dyn BasicRuntime>, user: UserSessio
     let state_clone = Arc::clone(&state);
     let user_id = user.user_id;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["REMEMBER", "USER", "FACT", "$expr$"],
             false,
@@ -92,7 +94,9 @@ pub fn remember_user_fact_keyword(state: Arc<dyn BasicRuntime>, user: UserSessio
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("Failed to register REMEMBER USER FACT syntax");
+    {
+        log::error!("Failed to register REMEMBER USER FACT syntax failed: {e}");
+    }
 }
 
 pub fn get_user_facts_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
@@ -119,7 +123,7 @@ pub fn clear_user_memory_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
     let state_clone = Arc::clone(&state);
     let user_id = user.user_id;
 
-    engine
+    if let Err(e) = engine
         .register_custom_syntax(
             ["CLEAR", "USER", "MEMORY"],
             false,
@@ -137,7 +141,9 @@ pub fn clear_user_memory_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
                 Ok(Dynamic::UNIT)
             },
         )
-        .expect("Failed to register CLEAR USER MEMORY syntax");
+    {
+        log::error!("Failed to register CLEAR USER MEMORY syntax failed: {e}");
+    }
 }
 
 fn set_user_memory(

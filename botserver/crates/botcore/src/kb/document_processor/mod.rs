@@ -311,20 +311,33 @@ impl DocumentProcessor {
 
     #[cfg(feature = "kb-extraction")]
     fn strip_html_tags(s: &str) -> String {
-        let re_style = regex::Regex::new(r"(?is)<(style)[^>]*>.*?</style>|<(script)[^>]*>.*?</script>").unwrap_or_else(|_| regex::Regex::new(r"x{0}").unwrap());
-        let s1 = re_style.replace_all(s, "");
-
-        let re_tags = regex::Regex::new(r"<[^>]*>").unwrap_or_else(|_| regex::Regex::new(r"x{0}").unwrap());
-        let s2 = re_tags.replace_all(&s1, "");
-
+        // #1368 — constant patterns are valid by construction; on the
+        // impossible parse error, skip the step instead of panicking.
+        fn compile(pattern: &str) -> Option<regex::Regex> {
+            match regex::Regex::new(pattern) {
+                Ok(re) => Some(re),
+                Err(e) => {
+                    log::error!("strip_html_tags pattern invalid ({pattern}): {e}");
+                    None
+                }
+            }
+        }
+        let s1 = compile(r"(?is)<(style)[^>]*>.*?</style>|<(script)[^>]*>.*?</script>")
+            .map(|re| re.replace_all(s, "").to_string())
+            .unwrap_or_else(|| s.to_string());
+        let s2 = compile(r"<[^>]*>")
+            .map(|re| re.replace_all(&s1, "").to_string())
+            .unwrap_or_else(|| s1);
         let s3 = s2.replace("&nbsp;", " ")
                    .replace("&amp;", "&")
                    .replace("&lt;", "<")
                    .replace("&gt;", ">")
                    .replace("&quot;", "\"");
-
-        let re_spaces = regex::Regex::new(r"\s+").unwrap_or_else(|_| regex::Regex::new(r"x{0}").unwrap());
-        re_spaces.replace_all(&s3, " ").to_string().trim().to_string()
+        compile(r"\s+")
+            .map(|re| re.replace_all(&s3, " ").to_string())
+            .unwrap_or(s3)
+            .trim()
+            .to_string()
     }
 
     #[cfg(feature = "kb-extraction")]
