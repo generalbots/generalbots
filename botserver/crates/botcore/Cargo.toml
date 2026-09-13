@@ -2,6 +2,7 @@
 name = "botcore"
 version.workspace = true
 edition = "2021"
+license = "MIT"
 
 [dependencies]
 botbasic_types = { workspace = true }

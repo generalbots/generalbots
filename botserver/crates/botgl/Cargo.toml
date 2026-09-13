@@ -2,6 +2,7 @@
 name = "botgl"
 version.workspace = true
 edition = "2021"
+license = "MIT"
 
 [dependencies]
 serde = { version = "1", features = ["derive"] }

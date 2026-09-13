@@ -4,8 +4,8 @@ version.workspace = true
 edition = "2021"
 description = "Research module for General Bots - web search, knowledge base exploration, and deep research"
 license = "MIT"
-authors = ["Pragmatismo.com.br", "General Bots Community"]
-repository = "https://github.com/GeneralBots/BotServer"
+authors = ["General Bots"]
+repository = "https://github.com/generalbots/generalbots"
 keywords = ["bot", "research", "search", "web-search", "knowledge-base"]
 categories = ["api-bindings", "web-programming"]
 

@@ -3,8 +3,8 @@ name = "botdesigner"
 version.workspace = true
 edition = "2021"
 license = "MIT"
-authors = ["Pragmatismo.com.br", "General Bots Community"]
-repository = "https://github.com/GeneralBots/BotServer"
+authors = ["General Bots"]
+repository = "https://github.com/generalbots/generalbots"
 
 [dependencies]
 diesel = { workspace = true, features = ["postgres", "uuid", "chrono", "serde_json", "r2d2", "numeric", "32-column-tables"] }

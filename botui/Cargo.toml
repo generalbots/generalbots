@@ -4,7 +4,7 @@ version.workspace = true
 edition = "2021"
 description = "General Bots UI - Pure web interface"
 license = "MIT"
-repository = "https://github.com/GeneralBots/BotServer"
+repository = "https://github.com/generalbots/generalbots"
 keywords = ["chatbot", "ui", "web-interface", "general-bots"]
 categories = ["web-programming", "gui"]
 

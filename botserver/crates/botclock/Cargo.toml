@@ -2,6 +2,7 @@
 name = "botclock"
 version.workspace = true
 edition = "2021"
+license = "MIT"
 description = "Electronic time clock (Registro de Ponto Eletrônico) with Brazilian CLT rules in botbrazil."
 
 [dependencies]

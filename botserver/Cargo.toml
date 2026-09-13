@@ -2,6 +2,7 @@
 name = "botserver"
 version.workspace = true
 edition = "2021"
+license = "MIT"
 resolver = "2"
 
 [dependencies.botlib]

@@ -2,6 +2,7 @@
 name = "botretail"
 version.workspace = true
 edition = "2021"
+license = "MIT"
 description = "Retail management (Bling-style): products, stock, variations, price lists, POS, NFCe via botbrazil."
 
 [dependencies]

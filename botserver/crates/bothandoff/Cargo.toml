@@ -2,6 +2,7 @@
 name = "bothandoff"
 version.workspace = true
 edition = "2021"
+license = "MIT"
 
 [dependencies]
 axum = { workspace = true }
