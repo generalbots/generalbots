@@ -154,6 +154,14 @@
     display: flex !important;
 }
 
+/* #1382 — a modal parked in the stash host (after close) must stay hidden
+   even though the window-body fill rule below forces display:flex. The
+   parked copy keeps its inline display:none authoritatively. */
+#vibeHiddenPanels #vibeNewProjectModal,
+#vibeHiddenPanels #vibeMembersModal {
+    display: none !important;
+}
+
 /* Members is a compact popup: content-sized, scrollable, no absolute fill. */
 [id^="window-body-"] #vibeMembersModal.vibe-popup-panel {
     position: static;
