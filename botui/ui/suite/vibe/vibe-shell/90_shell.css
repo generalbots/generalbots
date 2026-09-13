@@ -170,26 +170,61 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
     font-size: 11px;
 }
 
-/* Window commands — stacked groups (three per line), then the close-all ✕. */
+/* Window commands — 3 rows × 4 columns (#1383 review), then the close-all ✕. */
 .vibe-shell-tb-cmds {
     grid-column: 4;
     grid-row: 1 / 3;
-    flex-direction: column;
-    gap: 2px;
-    justify-content: center;
+    display: grid;
+    grid-template-columns: auto auto auto auto auto auto auto;
+    grid-template-rows: auto auto auto;
+    align-content: center;
+    justify-content: start; /* compact: block hugs its content width */
+    column-gap: 0;
+    row-gap: 0;
 }
 
+/* Compact command buttons (#1383 review): three rows totaling the combos'
+   height (~52px), left-aligned labels, minimal width per button. */
+.vibe-shell-tb-cmds .vibe-shell-tb-btn {
+    min-height: 0;
+    height: 16px;
+    padding: 0 4px;
+    gap: 3px;
+    justify-content: flex-start;
+    border-radius: 3px;
+}
+.vibe-shell-tb-cmds .vibe-shell-tb-icon {
+    font-size: 9px;
+    display: inline-flex;
+}
+.vibe-shell-tb-cmds .vibe-shell-tb-icon svg {
+    width: 9px;
+    height: 9px;
+}
+.vibe-shell-tb-cmds .vibe-shell-tb-label {
+    font-size: 9px;
+    white-space: nowrap;
+    text-align: left;
+}
+
+/* Full-height column separator — one rule spanning all three rows. */
+.vibe-shell-tb-sep3 {
+    grid-row: 1 / 4;
+    align-self: stretch;
+    margin: 3px 5px;
+}
+
+/* Legacy per-row layout (kept class for compatibility). */
 .vibe-shell-tb-cmdrow {
     display: flex;
     align-items: center;
     gap: 4px;
-    flex-wrap: nowrap; /* product spec: EXACTLY two rows — a command row
-                          must fit on ONE line, never wrap to extra rows */
-    justify-content: flex-start; /* window commands align LEFT */
+    flex-wrap: nowrap;
+    justify-content: flex-start;
     min-width: max-content;
 }
 
-/* | group separator between logical command groups. */
+/* Group separator (single-line variant). */
 .vibe-shell-tb-sep {
     width: 1px;
     align-self: stretch;
