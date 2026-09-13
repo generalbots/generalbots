@@ -216,20 +216,22 @@ llm-server-url,https://api.deepseek.com
 
 ### Amazon Bedrock
 
-AWS managed service for foundation models, supporting Claude, Llama, Titan, and others.
+AWS managed service for foundation models, supporting Claude, Llama, Nova, and others.
 
-| Model | Context | Best For | Speed |
-|-------|---------|----------|-------|
-| Claude 3.5 Sonnet | 200K | High capability tasks | Fast |
-| Llama 3.1 70B | 128K | Open-weight performance | Fast |
+| Model | Best For |
+|-------|----------|
+| Claude Sonnet 4.5 | High capability tasks |
+| Claude Opus 4.1 | Long-horizon reasoning |
+| Llama 3.1 70B | Open-weight performance |
+| Nova Pro | Cost-effective AWS-native |
 
 **Configuration (config.csv):**
 
 ```csv
 name,value
 llm-provider,bedrock
-llm-model,anthropic.claude-3-5-sonnet-20240620-v1:0
-llm-url,https://bedrock-runtime.us-east-1.amazonaws.com/model/anthropic.claude-3-5-sonnet-20240620-v1:0/invoke
+llm-model,anthropic.claude-sonnet-4-5-20250929-v1:0
+llm-url,https://bedrock-runtime.us-east-1.amazonaws.com/model/anthropic.claude-sonnet-4-5-20250929-v1:0/invoke
 llm-key,YOUR_BEDROCK_API_KEY
 ```
 
@@ -242,16 +244,17 @@ llm-key,YOUR_BEDROCK_API_KEY
 
 Enterprise-grade deployment of OpenAI models hosted on Microsoft Azure.
 
-| Model | Context | Best For | Speed |
-|-------|---------|----------|-------|
-| GPT-4o | 128K | Advanced multimodal | Fast |
+| Model | Best For |
+|-------|----------|
+| GPT-5 | Advanced reasoning, flagship |
+| GPT-5 mini | Cost-effective general use |
 
 **Configuration (config.csv):**
 
 ```csv
 name,value
 llm-provider,azureclaude
-llm-model,gpt-4o
+llm-model,gpt-5
 llm-url,https://YOUR_RESOURCE.openai.azure.com/openai/deployments/YOUR_DEPLOYMENT/chat/completions?api-version=2024-02-15-preview
 llm-key,YOUR_AZURE_API_KEY
 ```
@@ -553,20 +556,22 @@ llm-log-responses,false
 llm-log-timing,true
 ```
 
-## 2025 Model Comparison
+## Model Comparison
+
+> **Verified September 2026.** Model generations move faster than releases of this book: treat the specific versions below as examples of the landscape, and confirm the currently sold model names with each provider before committing a configuration. Model availability in General Bots is a matter of configuration only — the platform speaks any OpenAI-compatible chat-completions API.
 
 | Model | Creator | Type | Strengths |
 |-------|---------|------|-----------|
 | GPT-5 | OpenAI | Proprietary | Most advanced all-in-one |
 | Claude Opus/Sonnet 4.5 | Anthropic | Proprietary | Extended thinking, complex reasoning |
-| Gemini 1.5/3 Pro | Google | Proprietary | Benchmarks, reasoning, 2M context |
+| Gemini 3 Pro | Google | Proprietary | Benchmarks, reasoning, long context |
 | Grok 4 | xAI | Proprietary | Real-time X data |
 | Claude / Llama | Amazon Bedrock | Managed API | Enterprise AWS integration |
-| GPT-4o / GPT-5 | Azure OpenAI | Managed API | Enterprise compliance, Azure VNet |
+| GPT-5 | Azure OpenAI | Managed API | Enterprise compliance, Azure VNet |
 | Llama / Open Models | Cerebras | Hardware Cloud | Extreme inference speed |
-| GLM-4 | Zhipu AI | Proprietary | English/Chinese bilingual, up to 1M context |
+| GLM-4.5 | Zhipu AI | Proprietary | English/Chinese bilingual, long context |
 | DeepSeek-V3.1/R1 | DeepSeek | Open (MIT/Apache) | Cost-optimized, reasoning |
-| Llama 4 | Meta | Open-weight | 10M context, multimodal |
+| Llama 4 | Meta | Open-weight | Multimodal, open weights |
 | Qwen3 | Alibaba | Open (Apache) | Efficient MoE |
 | Mixtral-8x22B | Mistral | Open (Apache) | Multi-language, coding |
 | GPT-oss | OpenAI | Open (Apache) | Agent workflows |
