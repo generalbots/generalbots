@@ -183,26 +183,27 @@ body.vibe-toolbar-mode .vibe-shell-toolbar {
     row-gap: 0;
 }
 
-/* Compact command buttons (#1383 review): three rows totaling the combos'
-   height (~52px), left-aligned labels, minimal width per button. */
+/* Command buttons (#1383 review): three rows totaling close to the
+   Project/Branch combos height (~52px), left-aligned, compact width —
+   sized up one notch per follow-up review ("a little larger"). */
 .vibe-shell-tb-cmds .vibe-shell-tb-btn {
     min-height: 0;
-    height: 16px;
-    padding: 0 4px;
+    height: 18px;
+    padding: 1px 6px;
     gap: 3px;
     justify-content: flex-start;
     border-radius: 3px;
 }
 .vibe-shell-tb-cmds .vibe-shell-tb-icon {
-    font-size: 9px;
+    font-size: 10px;
     display: inline-flex;
 }
 .vibe-shell-tb-cmds .vibe-shell-tb-icon svg {
-    width: 9px;
-    height: 9px;
+    width: 10px;
+    height: 10px;
 }
 .vibe-shell-tb-cmds .vibe-shell-tb-label {
-    font-size: 9px;
+    font-size: 10px;
     white-space: nowrap;
     text-align: left;
 }

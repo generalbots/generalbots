@@ -209,8 +209,8 @@
 }
 
 #window-vibe {
-  width: 1200px !important;
-  min-width: 1000px;
+  width: 1000px !important;
+  min-width: 860px;
 }
 
 #window-vibe-metrics {
