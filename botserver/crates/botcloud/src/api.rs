@@ -233,6 +233,30 @@ pub fn configure_cloud_api_routes(config: SaasConfig) -> Router<Arc<SaasService>
 /// `POST /api/cloud/auth/signup`
 ///
 /// Creates organization in DB + contact in CRM, returning the IDs.
+/// Same trust model as `botcoredirectory::client::is_private_host`: an
+/// internal deployment talks to the directory service over plain http on a
+/// private network (container-to-container, e.g. http://10.0.0.x). Signup
+/// must not skip identity creation in that topology — it did once and left
+/// new organizations with logins that could never succeed. Only passwords to
+/// PUBLIC hosts over plain http are refused.
+fn directory_url_allows_password(dir_url: &str) -> bool {
+    let parsed = match url::Url::parse(dir_url) {
+        Ok(p) => p,
+        Err(_) => return false,
+    };
+    let host = parsed.host_str().unwrap_or("");
+    let h = host.trim_start_matches('[').trim_end_matches(']');
+    let private = h == "localhost"
+        || h.starts_with("127.")
+        || h.parse::<std::net::IpAddr>().is_ok_and(|addr| match addr {
+            std::net::IpAddr::V4(v4) => v4.is_loopback() || v4.is_private() || v4.is_link_local(),
+            std::net::IpAddr::V6(v6) => {
+                v6.is_loopback() || (v6.segments()[0] & 0xfe00) == 0xfc00 || v6.is_unicast_link_local()
+            }
+        });
+    parsed.scheme() == "https" || (parsed.scheme() == "http" && private)
+}
+
 async fn handle_signup(
     State(service): State<Arc<SaasService>>,
     Json(body): Json<SignupBody>,
@@ -410,22 +434,14 @@ async fn handle_signup(
         let parts: Vec<&str> = body.name.splitn(2, ' ').collect();
         let first_name = parts.first().unwrap_or(&"");
         let last_name = parts.get(1).unwrap_or(&"");
-        // Signup passwords are transmitted to the directory service: require
-        // https, allowing plain http only for loopback (never leaves the host).
-        let dir_parsed = url::Url::parse(dir_url).ok();
-        let dir_secure = dir_parsed.is_some_and(|p| {
-            let host = p.host_str().unwrap_or("");
-            let loopback = host == "localhost" || host.starts_with("127.") || host == "[::1]";
-            p.scheme() == "https" || (p.scheme() == "http" && loopback)
-        });
-        // Identity creation is non-fatal: the organization, branch, bot, invoice
-        // and cloud workspace are already committed above. A misconfigured,
-        // non-https directory URL must therefore not fail the whole signup with a
-        // misleading 500 (#1344), and the signup password must never be sent over
-        // plain http to a non-loopback host.
-        if !dir_secure {
-            tracing::warn!(
-                "Directory service URL is not https (and not loopback); skipping directory identity creation for {}",
+        // Signup passwords must never cross a PUBLIC network over plain http.
+        // Internal http (private/loopback hosts) is allowed — same model as
+        // botcoredirectory's sanitize_api_base; prod containers reach Zitadel
+        // over http://10.x.x.x and skipping creation there broke logins for
+        // every new signup (see #1371).
+        if !directory_url_allows_password(dir_url) {
+            tracing::error!(
+                "Directory service URL sends passwords over plain http to a public host; skipping directory identity creation for {}",
                 body.email
             );
         } else {
