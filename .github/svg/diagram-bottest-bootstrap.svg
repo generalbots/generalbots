@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="350" viewBox="0 0 820 350" role="img">
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#8b949e"/></marker></defs>
+  <rect x="210" y="8" width="400" height="40" rx="10" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <text x="410.0" y="31.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">TestHarness::full() · E2E tests</text>
+  <line x1="410" y1="48" x2="410" y2="74" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="210" y="78" width="400" height="36" rx="8" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <text x="410.0" y="99.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">Allocate unique ports (15000+)</text>
+  <line x1="410" y1="114" x2="410" y2="140" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="210" y="140" width="400" height="36" rx="8" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <text x="410.0" y="161.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">Create ./tmp/bottest-{uuid}/</text>
+  <line x1="410" y1="176" x2="410" y2="202" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="60" y="202" width="300" height="56" rx="10" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <text x="210.0" y="217.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#8b949e" text-anchor="middle">Start mock servers only</text>
+  <text x="210.0" y="235.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">MockZitadel · MockLLM</text>
+  <text x="210.0" y="253.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">(wiremock)</text>
+  <rect x="460" y="202" width="300" height="56" rx="10" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <text x="610.0" y="217.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="600" fill="#8b949e" text-anchor="middle">botserver --stack-path</text>
+  <text x="610.0" y="235.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">PostgreSQL · MinIO</text>
+  <text x="610.0" y="253.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="14" font-weight="400" fill="#8b949e" text-anchor="middle">Redis (cache)</text>
+  <path d="M410 176 L410 190" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <path d="M210 190 L610 190" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <line x1="210" y1="190" x2="210" y2="202" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="610" y1="190" x2="610" y2="202" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M210 258 L210 272" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <path d="M610 258 L610 272" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <path d="M210 272 L610 272" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <line x1="410" y1="272" x2="410" y2="294" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="210" y="294" width="400" height="36" rx="8" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <text x="410.0" y="315.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">Return TestContext</text>
+</svg>

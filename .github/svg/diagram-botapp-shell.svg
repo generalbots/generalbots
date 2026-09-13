@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="210" viewBox="0 0 900 210" role="img">
+  <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0 10 5 0 10z" fill="#8b949e"/></marker></defs>
+  <text x="255" y="18" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#8b949e" text-anchor="middle">botui (pure web)</text>
+  <text x="645" y="18" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="13" font-weight="600" fill="#8b949e" text-anchor="middle">botapp (Tauri wrapper)</text>
+  <rect x="90" y="32" width="330" height="152" rx="10" fill="none" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5"/>
+  <text x="255.0" y="75.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">suite/</text>
+  <text x="255.0" y="93.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">minimal/</text>
+  <text x="255.0" y="111.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">shared/</text>
+  <text x="255.0" y="129.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle"></text>
+  <text x="255.0" y="147.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">No Tauri dependencies</text>
+  <rect x="480" y="32" width="330" height="152" rx="10" fill="none" stroke="#7c3aed" stroke-opacity="0.7" stroke-width="1.5"/>
+  <text x="645.0" y="75.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">Loads botui's UI</text>
+  <text x="645.0" y="93.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">Injects app-only</text>
+  <text x="645.0" y="111.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">features via JS</text>
+  <text x="645.0" y="129.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle"></text>
+  <text x="645.0" y="147.0" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="12" font-weight="400" fill="#8b949e" text-anchor="middle">Tauri + native APIs</text>
+  <line x1="474" y1="108" x2="428" y2="108" stroke="#8b949e" stroke-opacity="0.55" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="451" y="100" font-family="Inter, -apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="10" font-weight="400" fill="#8b949e" text-anchor="middle"></text>
+</svg>

@@ -79,25 +79,7 @@ Each application is backed by a crate in [`crates/`](./crates) and a UI under `b
 
 ## Architecture
 
-```
-WebSocket / REST / WhatsApp / Teams / Telegram
-                    │
-                    ▼
-        main_module/ws/handler.rs        ← session, rate limits
-                    │
-                    ▼
-        start.bas  (once per session)    ← suggestions, bot memory, context
-                    │
-        ┌───────────┴────────────┐
-        ▼                        ▼
-  message_type = 6          everything else
-  TOOL_EXEC                 USE KB → RAG → LLM
-  runs .ast directly        streamed response
-        │                        │
-        └───────────┬────────────┘
-                    ▼
-              response → client
-```
+<a href="../.github/svg/diagram-botserver-pipeline.svg"><img src="../.github/svg/diagram-botserver-pipeline.svg" alt="Message pipeline: a connection reaches the WebSocket handler, runs start.bas once per session, then branches into direct tool execution for message type 6 or knowledge-base retrieval and an LLM call for everything else" width="900"></a>
 
 Message types drive the routing, so tools can bypass the model entirely:
 

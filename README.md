@@ -100,20 +100,7 @@ Beyond the in-browser suite, the same agent layer drives **WhatsApp Business**, 
 
 Two Rust services, one workspace.
 
-```
-Browser / WhatsApp / Teams / Telegram
-        │
-        ▼
-┌───────────────────────┐        ┌──────────────────────────────┐
-│  botui  :3000 /:4000  │ ─────▶ │  botserver  :8080            │
-│  suite · cloud · login│  proxy │  API · WebSocket · agents    │
-└───────────────────────┘        └──────────────┬───────────────┘
-                                                │
-                     ┌──────────────────────────┼──────────────────────────┐
-                     ▼                          ▼                          ▼
-              PostgreSQL + Vault          MinIO (S3)              Qdrant + llama.cpp
-              state & secrets             drive & files           vectors & local LLM
-```
+<a href=".github/svg/diagram-architecture.svg"><img src=".github/svg/diagram-architecture.svg" alt="Architecture: clients reach botui on ports 3000, 4000 and 5000, which proxies to botserver on port 8080, backed by PostgreSQL and Vault for state and secrets, MinIO for drive and files, and Qdrant with llama.cpp for vectors and the local LLM" width="960"></a>
 
 **botserver** is the platform core: LLM orchestration, the BASIC (Rhai) scripting engine, the drive compiler, the suite app registry and the API catalog that lets the LLM act on your data. Business logic lives in `botserver/crates/` — one crate per domain (`botcrm`, `botcalendar`, `botdrive`, `botlearn`, `botcloud`, …).
 
