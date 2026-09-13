@@ -2,6 +2,9 @@
 
 > **Manage your sales pipeline from lead to close**
 
+
+<img src="../../assets/suite/crm-screen.svg" alt="Crm Interface Screen" style="max-width: 100%; height: auto;">
+
 ---
 
 ## Overview

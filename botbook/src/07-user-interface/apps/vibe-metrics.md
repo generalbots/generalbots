@@ -2,6 +2,9 @@
 
 > **Preview application.** Part of the [Vibe](./vibe.md) workspace, usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/vibe-metrics-screen.svg" alt="Vibe-Metrics Interface Screen" style="max-width: 100%; height: auto;">
+
 Vibe Metrics is the telemetry view of a project: what a run cost, how much budget is left, how many tool calls were made and how active the session was.
 
 ## What it does

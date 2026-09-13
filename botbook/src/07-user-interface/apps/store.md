@@ -2,6 +2,9 @@
 
 > **Preview application.** Usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/store-screen.svg" alt="Store Interface Screen" style="max-width: 100%; height: auto;">
+
 The App Store lists the applications available to this installation and lets you install, pin and manage what appears on your desktop.
 
 ## What it does

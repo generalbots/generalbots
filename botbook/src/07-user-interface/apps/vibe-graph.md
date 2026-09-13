@@ -2,6 +2,9 @@
 
 > **Preview application.** Part of the [Vibe](./vibe.md) workspace, usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/vibe-graph-screen.svg" alt="Vibe-Graph Interface Screen" style="max-width: 100%; height: auto;">
+
 The Knowledge Graph shows how a Vibe project is actually wired: which use cases it answers, which runs executed them, and which tools each run reached for.
 
 ## What it does

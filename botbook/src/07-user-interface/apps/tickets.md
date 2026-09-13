@@ -2,6 +2,9 @@
 
 > **Manage customer support with AI-powered resolution suggestions**
 
+
+<img src="../../assets/suite/tickets-screen.svg" alt="Tickets Interface Screen" style="max-width: 100%; height: auto;">
+
 ---
 
 ## Overview

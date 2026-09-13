@@ -2,6 +2,9 @@
 
 > **Preview application.** Usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/retail-screen.svg" alt="Retail Interface Screen" style="max-width: 100%; height: auto;">
+
 Retail is the operations view for shops that hold stock in more than one place: branch performance, promotions, suppliers and stock alerts in one screen.
 
 ## What it does

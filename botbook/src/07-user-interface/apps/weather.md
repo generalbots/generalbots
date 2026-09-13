@@ -2,6 +2,9 @@
 
 > **Preview application.** Usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/weather-screen.svg" alt="Weather Interface Screen" style="max-width: 100%; height: auto;">
+
 Weather shows current conditions for a city you search for, or for your own location.
 
 ## What it does

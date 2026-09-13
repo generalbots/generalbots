@@ -2,6 +2,9 @@
 
 > **Preview application.** Usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/concierge-screen.svg" alt="Concierge Interface Screen" style="max-width: 100%; height: auto;">
+
 Concierge is an AI front door: you state a goal in natural language and it works out which applications to drive to reach it, instead of you opening each app in turn.
 
 ## What it does

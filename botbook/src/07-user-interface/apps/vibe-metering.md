@@ -2,6 +2,9 @@
 
 > **Preview application.** Administrative surface for the [Vibe](./vibe.md) workspace. Usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/vibe-metering-screen.svg" alt="Vibe-Metering Interface Screen" style="max-width: 100%; height: auto;">
+
 Compute Metering answers the operational question behind agentic development: how much machine time is each project consuming, and what is it allowed to consume?
 
 ## What it does

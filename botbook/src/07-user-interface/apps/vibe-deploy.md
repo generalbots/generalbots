@@ -2,6 +2,9 @@
 
 > **Preview application.** Part of the [Vibe](./vibe.md) workspace, usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/vibe-deploy-screen.svg" alt="Vibe-Deploy Interface Screen" style="max-width: 100%; height: auto;">
+
 Vibe Deploy publishes the selected project to its target environment.
 
 ## What it does

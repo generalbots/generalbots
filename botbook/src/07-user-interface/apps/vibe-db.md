@@ -2,6 +2,9 @@
 
 > **Preview application.** Part of the [Vibe](./vibe.md) workspace, usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/vibe-db-screen.svg" alt="Vibe-Db Interface Screen" style="max-width: 100%; height: auto;">
+
 Vibe Database shows the schema of the selected project's database, so you can see the tables a project actually created rather than reading migration files.
 
 ## What it does

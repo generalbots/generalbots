@@ -2,6 +2,9 @@
 
 > **Preview application.** Usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/recycle-screen.svg" alt="Recycle Interface Screen" style="max-width: 100%; height: auto;">
+
 Recycle Bin holds deleted files so a mistake can be undone. Deleting in [Explorer](./drive.md) moves items here rather than destroying them.
 
 ## What it does

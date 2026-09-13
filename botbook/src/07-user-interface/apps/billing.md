@@ -2,6 +2,9 @@
 
 > **Manage your financial transactions from quote to payment**
 
+
+<img src="../../assets/suite/billing-screen.svg" alt="Billing Interface Screen" style="max-width: 100%; height: auto;">
+
 ---
 
 ## Overview

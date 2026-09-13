@@ -2,6 +2,9 @@
 
 > **Preview application.** Usable today, not yet part of the supported surface.
 
+
+<img src="../../assets/suite/clock-widget-screen.svg" alt="Clock-Widget Interface Screen" style="max-width: 100%; height: auto;">
+
 The Clock is a **desktop widget**, not an application window. It sits on the desktop and shows the current local time and date, refreshing continuously.
 
 ## What it does
