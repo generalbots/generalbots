@@ -42,6 +42,11 @@ pub struct SaasConfig {
     pub directory_api_url: Option<String>,
     pub directory_service_token: Option<String>,
     pub directory_external_domain: Option<String>,
+    /// Operator opt-in (directory_config.json) mirroring
+    /// botcoredirectory's flag: accept plain-http directory URLs for
+    /// password-bearing calls even on non-private hosts (e.g. when Zitadel
+    /// is reached through a local reverse proxy by DNS name).
+    pub directory_allow_insecure_http: bool,
 }
 
 impl SaasService {

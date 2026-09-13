@@ -239,7 +239,10 @@ pub fn configure_cloud_api_routes(config: SaasConfig) -> Router<Arc<SaasService>
 /// must not skip identity creation in that topology — it did once and left
 /// new organizations with logins that could never succeed. Only passwords to
 /// PUBLIC hosts over plain http are refused.
-fn directory_url_allows_password(dir_url: &str) -> bool {
+fn directory_url_allows_password(dir_url: &str, allow_insecure_http: bool) -> bool {
+    if allow_insecure_http {
+        return true;
+    }
     let parsed = match url::Url::parse(dir_url) {
         Ok(p) => p,
         Err(_) => return false,
@@ -434,12 +437,13 @@ async fn handle_signup(
         let parts: Vec<&str> = body.name.splitn(2, ' ').collect();
         let first_name = parts.first().unwrap_or(&"");
         let last_name = parts.get(1).unwrap_or(&"");
-        // Signup passwords must never cross a PUBLIC network over plain http.
-        // Internal http (private/loopback hosts) is allowed — same model as
-        // botcoredirectory's sanitize_api_base; prod containers reach Zitadel
-        // over http://10.x.x.x and skipping creation there broke logins for
-        // every new signup (see #1371).
-        if !directory_url_allows_password(dir_url) {
+        // Signup passwords must never cross a PUBLIC network over plain http
+        // unless the operator explicitly opted in via directory_config.json's
+        // allow_insecure_http (same model as botcoredirectory). Internal http
+        // (private/loopback hosts) is always allowed — prod containers reach
+        // Zitadel over http://10.x.x.x and skipping creation there broke
+        // logins for every new signup (#1365).
+        if !directory_url_allows_password(dir_url, service.config.directory_allow_insecure_http) {
             tracing::error!(
                 "Directory service URL sends passwords over plain http to a public host; skipping directory identity creation for {}",
                 body.email
