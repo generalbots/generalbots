@@ -291,7 +291,10 @@ impl ZitadelClient {
             },
             "email": {
                 "email": email,
-                "isVerified": true
+                // Zitadel v1 proto field is isEmailVerified — "isVerified" is
+                // silently dropped, leaving the user uninitialized with an init
+                // code so later password sets fail with COMMAND-M9dse (#1365).
+                "isEmailVerified": true
             }
         });
 
@@ -299,7 +302,7 @@ impl ZitadelClient {
             if let Some(obj) = body.as_object_mut() {
                 obj.insert("phone".to_string(), serde_json::json!({
                     "phone": phone_number,
-                    "isVerified": true
+                    "isPhoneVerified": true
                 }));
             }
         }
