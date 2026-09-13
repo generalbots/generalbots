@@ -4,9 +4,24 @@
 
 **Multi-agent AI platform for autonomous agents, agentic AI orchestration and LLM workflow automation.**
 
-Self-hosted, open source, and built in Rust. General Bots gives you 40+ sovereign applications — Chat, CRM, Mail, Drive, Calendar, Meetings, Documents and Advanced RAG — that run as one platform on your own infrastructure. Your cloud, your data, your rules.
+Self-hosted, open source, and built in Rust. General Bots gives you 80 sovereign applications — Chat, CRM, Mail, Drive, Calendar, Meetings, Documents and Advanced RAG — that run as one platform on your own infrastructure. Your cloud, your data, your rules.
 
 [Website](https://generalbots.org) · [Documentation](https://docs.generalbots.org) · [Features](https://generalbots.org/features/) · [Blog](https://generalbots.org/blog/) · [BotBook](./botbook)
+
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![Built with Rust](https://img.shields.io/badge/built%20with-Rust-orange.svg?logo=rust&logoColor=white)](https://www.rust-lang.org/)
+[![Version](https://img.shields.io/badge/version-6.3.1-informational.svg)](https://github.com/generalbots/generalbots/releases)
+[![Contributors](https://img.shields.io/github/contributors/generalbots/generalbots?style=flat)](https://github.com/generalbots/generalbots/graphs/contributors)
+[![Stars](https://img.shields.io/github/stars/generalbots/generalbots?style=flat)](https://github.com/generalbots/generalbots/stargazers)
+[![Forks](https://img.shields.io/github/forks/generalbots/generalbots?style=flat)](https://github.com/generalbots/generalbots/network/members)
+[![Issues](https://img.shields.io/github/issues/generalbots/generalbots)](https://github.com/generalbots/generalbots/issues)
+[![Last commit](https://img.shields.io/github/last-commit/generalbots/generalbots)](https://github.com/generalbots/generalbots/commits/main)
+[![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/generalbots/generalbots/pulls)
+[![Self-hosted](https://img.shields.io/badge/self--hosted-yes-success.svg)](#getting-started)
+[![Runs offline](https://img.shields.io/badge/runs-100%25%20offline-success.svg)](#why-general-bots)
+[![Multi-agent AI](https://img.shields.io/badge/multi--agent%20AI-7c3aed.svg)](#why-general-bots)
+[![Data sovereign](https://img.shields.io/badge/data-sovereign-7c3aed.svg)](#why-general-bots)
+[![Open source since 2017](https://img.shields.io/badge/open%20source-since%202017-blue.svg)](#license)
 
 ---
 
@@ -39,6 +54,17 @@ TALK "Hi! I can check orders or open a ticket for you."
 ## Applications
 
 Every application is a self-contained module that can be deployed alone or as part of the whole platform. This repository ships **80 suite applications** and **113 backend crates**.
+
+|  |  |  |  |
+|:---:|:---:|:---:|:---:|
+| <img src=".github/svg/app-chat.svg" width="24"><br>Chat | <img src=".github/svg/app-mail.svg" width="24"><br>Mail | <img src=".github/svg/app-calendar.svg" width="24"><br>Calendar | <img src=".github/svg/app-drive.svg" width="24"><br>Drive |
+| <img src=".github/svg/app-crm.svg" width="24"><br>CRM | <img src=".github/svg/app-tasks.svg" width="24"><br>Tasks | <img src=".github/svg/app-meet.svg" width="24"><br>Meet | <img src=".github/svg/app-docs.svg" width="24"><br>Documents |
+| <img src=".github/svg/app-sheet.svg" width="24"><br>Sheets | <img src=".github/svg/app-slides.svg" width="24"><br>Slides | <img src=".github/svg/app-search.svg" width="24"><br>Search | <img src=".github/svg/app-learn.svg" width="24"><br>Knowledge |
+| <img src=".github/svg/app-automation.svg" width="24"><br>Automation | <img src=".github/svg/app-monitoring.svg" width="24"><br>Monitoring | <img src=".github/svg/app-security.svg" width="24"><br>Security | <img src=".github/svg/app-billing.svg" width="24"><br>Billing |
+
+Each icon above links to a real application directory under `botui/ui/suite/`. The icons live in [`.github/svg/`](./.github/svg) and follow the same 24×24 stroke style as the menu on [generalbots.org](https://generalbots.org).
+
+### Grouped by purpose
 
 | Group | Applications |
 |-------|--------------|
@@ -182,6 +208,14 @@ This is a single repository — there are no git submodules. Push to `origin` fo
 Read **[AGENTS.md](./AGENTS.md)** before opening a pull request. It carries the coding rules, security directives and testing workflow the project holds to: no `unwrap()`/`expect()` in production paths, no `#[allow()]` suppressions, no CDN assets, and files kept under 450 lines.
 
 Before adding a `.md` file, search `botbook/` for existing documentation.
+
+### Contributors
+
+General Bots has been built in the open since 2017. Thanks to everyone who has contributed.
+
+<a href="https://github.com/generalbots/generalbots/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=generalbots/generalbots" alt="Contributors to General Bots" />
+</a>
 
 ---
 
