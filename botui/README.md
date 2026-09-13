@@ -350,7 +350,7 @@ For complete documentation, guides, and API references:
 
 - **[docs.generalbots.org](https://docs.generalbots.org)** - Full online documentation
 - **[BotBook](./botbook)** - Local comprehensive guide
-- **[General Bots Repository](https://github.com/GeneralBots/BotServer)** - Main project repository
+- **[General Bots Repository](https://github.com/generalbots/generalbots)** - Main project repository
 
 ---
 

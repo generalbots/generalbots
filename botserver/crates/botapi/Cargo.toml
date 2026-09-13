@@ -2,6 +2,7 @@
 name = "botapi"
 version.workspace = true
 edition = "2021"
+license = "MIT"
 
 [features]
 default = []
