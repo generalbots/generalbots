@@ -44,6 +44,37 @@ DOCUMENTED_INERT = {
 
 KEY = re.compile(r"`([a-z][a-z0-9]*(?:-[a-z0-9]+)+)`")
 
+# A page that names a key in order to say it does not work is being precise, not
+# making a claim. Such lines are skipped, so the guard keeps reporting only keys
+# that are presented as usable.
+NEGATED = re.compile(
+    r"not implemented|no effect|inert|removed|does not exist|never read|"
+    r"not a `?config|cannot be|not read from|not read by|no longer|"
+    r"there are no|there is no|are not read|is not read|keys exist|"
+    r"not per-|is not configurable|not size-capped", re.I)
+
+# Backticked hyphenated tokens that are not configuration keys.
+NON_KEY = {"botserver-media"}
+
+
+def claimed_keys(text):
+    """Keys this page presents as usable, ignoring keys it says are dead.
+
+    The check is per block rather than per line, because a correction note wraps
+    across lines: the keys and the wording that retires them can sit in separate
+    lines of the same paragraph.
+    """
+    blocks = re.split(r"\n\s*\n", text)
+    out = set()
+    for key in set(KEY.findall(text)):
+        if key in NON_KEY:
+            continue
+        mentions = [re.sub(r"\s+", " ", b) for b in blocks if f"`{key}`" in b]
+        if mentions and all(NEGATED.search(b) for b in mentions):
+            continue
+        out.add(key)
+    return out
+
 
 def crate_names():
     """Crate package names, which are hyphenated but are not config keys."""
@@ -83,7 +114,7 @@ def main():
     for path in book_pages():
         rel = os.path.relpath(path, ROOT)
         text = open(path, encoding="utf-8", errors="replace").read()
-        for key in sorted(set(KEY.findall(text))):
+        for key in sorted(claimed_keys(text)):
             if not key.startswith(KEY_PREFIX):
                 continue
             if key in DOCUMENTED_INERT or key in crates:

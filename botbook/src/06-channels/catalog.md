@@ -10,7 +10,7 @@ This catalog provides detailed information about every external service that Gen
 |----------|-------|
 | **Service URL** | `https://api.openai.com/v1` |
 | **Config Key** | `llm-provider=openai` |
-| **API Key Config** | `llm-api-key` (stored in Vault) |
+| **API Key Config** | `llm-key` (stored in Vault) |
 | **Documentation** | [platform.openai.com/docs](https://platform.openai.com/docs) |
 | **BASIC Keywords** | `LLM` |
 | **Supported Models** | `gpt-5`, `gpt-oss-120b`, `gpt-oss-20b` |
@@ -21,7 +21,7 @@ This catalog provides detailed information about every external service that Gen
 |----------|-------|
 | **Service URL** | `https://api.groq.com/openai/v1` |
 | **Config Key** | `llm-provider=groq` |
-| **API Key Config** | `llm-api-key` (stored in Vault) |
+| **API Key Config** | `llm-key` (stored in Vault) |
 | **Documentation** | [console.groq.com/docs](https://console.groq.com/docs) |
 | **BASIC Keywords** | `LLM` |
 | **Supported Models** | `llama-4-scout`, `llama-4-maverick`, `qwen3`, `mixtral-8x22b` |
@@ -32,7 +32,7 @@ This catalog provides detailed information about every external service that Gen
 |----------|-------|
 | **Service URL** | `https://api.anthropic.com/v1` |
 | **Config Key** | `llm-provider=anthropic` |
-| **API Key Config** | `llm-api-key` (stored in Vault) |
+| **API Key Config** | `llm-key` (stored in Vault) |
 | **Documentation** | [docs.anthropic.com](https://docs.anthropic.com) |
 | **BASIC Keywords** | `LLM` |
 | **Supported Models** | `claude-opus-4.5`, `claude-sonnet-4.5` |
@@ -43,7 +43,7 @@ This catalog provides detailed information about every external service that Gen
 |----------|-------|
 | **Service URL** | `https://{resource}.openai.azure.com/` |
 | **Config Key** | `llm-provider=azure` |
-| **API Key Config** | `llm-api-key` (stored in Vault) |
+| **API Key Config** | `llm-key` (stored in Vault) |
 | **Documentation** | [learn.microsoft.com/azure/ai-services/openai](https://learn.microsoft.com/azure/ai-services/openai) |
 | **BASIC Keywords** | `LLM` |
 
@@ -53,7 +53,7 @@ This catalog provides detailed information about every external service that Gen
 |----------|-------|
 | **Service URL** | `https://generativelanguage.googleapis.com/v1` |
 | **Config Key** | `llm-provider=google` |
-| **API Key Config** | `llm-api-key` (stored in Vault) |
+| **API Key Config** | `llm-key` (stored in Vault) |
 | **Documentation** | [ai.google.dev/docs](https://ai.google.dev/docs) |
 | **BASIC Keywords** | `LLM` |
 | **Supported Models** | `gemini-3-pro`, `gemini-2.5-pro`, `gemini-2.5-flash` |
@@ -64,7 +64,7 @@ This catalog provides detailed information about every external service that Gen
 |----------|-------|
 | **Service URL** | `https://api.x.ai/v1` |
 | **Config Key** | `llm-provider=xai` |
-| **API Key Config** | `llm-api-key` (stored in Vault) |
+| **API Key Config** | `llm-key` (stored in Vault) |
 | **Documentation** | [docs.x.ai](https://docs.x.ai) |
 | **BASIC Keywords** | `LLM` |
 | **Supported Models** | `grok-4` |
@@ -75,7 +75,7 @@ This catalog provides detailed information about every external service that Gen
 |----------|-------|
 | **Service URL** | `https://api.deepseek.com/v1` |
 | **Config Key** | `llm-provider=deepseek` |
-| **API Key Config** | `llm-api-key` (stored in Vault) |
+| **API Key Config** | `llm-key` (stored in Vault) |
 | **Documentation** | [platform.deepseek.com/docs](https://platform.deepseek.com/docs) |
 | **BASIC Keywords** | `LLM` |
 | **Supported Models** | `deepseek-v3.1`, `deepseek-r3` |
@@ -86,7 +86,7 @@ This catalog provides detailed information about every external service that Gen
 |----------|-------|
 | **Service URL** | `https://api.mistral.ai/v1` |
 | **Config Key** | `llm-provider=mistral` |
-| **API Key Config** | `llm-api-key` (stored in Vault) |
+| **API Key Config** | `llm-key` (stored in Vault) |
 | **Documentation** | [docs.mistral.ai](https://docs.mistral.ai) |
 | **BASIC Keywords** | `LLM` |
 | **Supported Models** | `mixtral-8x22b` |
@@ -219,7 +219,7 @@ Email accounts are created and managed through the Directory service.
 
 | Property | Value |
 |----------|-------|
-| **Config Keys** | `smtp-server`, `smtp-port`, `imap-server`, `imap-port`, `email-username`, `email-password` |
+| **Config Keys** | none — the bundled mail server owns relay configuration |
 | **BASIC Keywords** | `SEND MAIL` |
 | **Supported Providers** | Gmail, Outlook, custom SMTP/IMAP |
 

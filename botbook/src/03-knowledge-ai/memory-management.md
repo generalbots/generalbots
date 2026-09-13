@@ -100,18 +100,13 @@ User memory is stored in the `user_memory` table:
 
 ### Configuration
 
-```csv
-name,value
-user-memory-enabled,true
-user-memory-max-keys,1000
-user-memory-default-ttl,0
-```
+**No `user-memory-*` configuration keys exist.** `SET USER MEMORY` and
+`GET USER MEMORY` are implemented (`botbasic_data/src/keywords/user_memory.rs`);
+memory is not enabled or sized by a setting, and entries have no configurable
+expiry. The block previously shown here was not read by the server.
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `user-memory-enabled` | `true` | Enable user memory |
-| `user-memory-max-keys` | `1000` | Max keys per user |
-| `user-memory-default-ttl` | `0` | Default TTL (0 = no expiry) |
 
 ## Bot Memory
 
@@ -439,12 +434,12 @@ END IF
 
 1. Ensure using `USER MEMORY` not `BOT MEMORY`
 2. Verify same user identity
-3. Check `user-memory-enabled` config
+3. User memory has no enable switch — see the note on `user-memory-*` keys
 
 ### Memory Full Errors
 
 1. Clean up old/unused keys
-2. Increase `user-memory-max-keys`
+2. There is no `user-memory-max-keys` setting — memory is not size-capped by configuration
 3. Use TTL for temporary data
 4. Consolidate related keys into objects
 

@@ -230,11 +230,16 @@ Default limits (configurable in `config.csv`):
 
 | Setting | Default | config.csv key |
 |---------|---------|----------------|
-| Total package | 100MB | `package-max-size` |
-| Single document | 10MB | `user-file-limit` |
-| Number of files | 1000 | `user-file-count` |
-| Script size | 1MB | `script-max-size` |
-| Collection count | 50 | `kb-max-collections` |
+| Single file | 100 MiB | `MAX_FILE_SIZE_BYTES` |
+| Upload | 50 MiB | `MAX_UPLOAD_SIZE_BYTES` |
+| Documents per bot | 100,000 | `MAX_KB_DOCUMENTS_PER_BOT` |
+| Drive storage per tenant | 10 GiB | `MAX_DRIVE_STORAGE_BYTES` |
+| Indexed file | 10 MiB | fixed cap in `drive_vectordb.rs::should_index` |
+
+These are compile-time constants in `botlib/src/limits/types.rs`, not per-package
+settings. An earlier revision listed `package-max-size`, `script-max-size`,
+`user-file-limit`, `user-file-count` and `kb-max-collections`; none of those keys
+exist — see [System Limits](../10-configuration-deployment/system-limits.md).
 
 Example override in your bot's `config.csv`:
 

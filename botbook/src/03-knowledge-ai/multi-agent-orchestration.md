@@ -123,22 +123,13 @@ The Agent-to-Agent (A2A) protocol handles all inter-bot communication.
 
 ### Configuration
 
-```csv
-name,value
-a2a-enabled,true
-a2a-timeout,30
-a2a-max-hops,5
-a2a-retry-count,3
-a2a-queue-size,100
-```
+**No `a2a-*` configuration keys exist.** Delegation depth, timeouts and retries are
+not settings: the A2A keywords are implemented in
+`botbasic_system/src/keywords/a2a_protocol.rs` and read no configuration. The
+block previously shown here was not read by the server.
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `a2a-enabled` | `true` | Enable A2A communication |
-| `a2a-timeout` | `30` | Default timeout (seconds) |
-| `a2a-max-hops` | `5` | Maximum delegation chain depth |
-| `a2a-retry-count` | `3` | Retries on failure |
-| `a2a-queue-size` | `100` | Max pending messages |
 
 ## Memory Management
 
@@ -528,20 +519,20 @@ Stores reflection analysis results.
 ### Bot Not Responding to Delegation
 
 1. Check bot is registered: `LIST BOTS`
-2. Verify A2A is enabled: `a2a-enabled,true`
+2. A2A has no enable switch — see the note above on `a2a-*` keys
 3. Check timeout is sufficient
 4. Review bot logs for errors
 
 ### Memory Not Sharing Between Bots
 
 1. Ensure using `SET USER MEMORY` not `SET BOT MEMORY`
-2. Check `user-memory-enabled,true`
+2. User memory has no enable switch — see the note on `user-memory-*` keys
 3. Verify same user identity across bots
 
 ### Circular Delegation Detected
 
 1. Review delegation chains
-2. Increase `a2a-max-hops` if legitimately deep
+2. There is no `a2a-max-hops` setting — delegation depth is not configurable
 3. Add guards to prevent loops:
 
 ```basic
