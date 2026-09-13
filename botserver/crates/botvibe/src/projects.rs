@@ -40,8 +40,13 @@ CREATE INDEX IF NOT EXISTS idx_vibe_projects_source_control ON vibe_projects(sou
 ";
 
 /// Kinds of Vibe projects (REST API enum surface).
-/// #1291 — the former `custom` kind is now `apps`; `custom` remains a
-/// deprecated input alias (and matches legacy DB rows on read).
+/// #1291 — the former `custom` kind is now `apps`; `custom` remains an
+/// accepted input alias (and matches legacy DB rows on read).
+/// #1372 — unknown kinds are REJECTED, never silently coerced: `web`/`site`
+/// map to `website` (static HTMX pages served from the proxy container) and
+/// `app`/`custom`/`node` map to `apps` (VM-backed custom projects; python
+/// frameworks belong here too). Only VM-backed kinds (`bot`, `apps`) spawn
+/// dev VMs — `website` always runs on the proxy container (#1371).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ProjectKind {
@@ -59,12 +64,25 @@ impl ProjectKind {
         }
     }
 
-    pub fn parse(s: &str) -> Self {
+    /// #1372 — strict parse with explicit aliases; unknown kinds return an
+    /// error naming the valid values instead of silently defaulting to
+    /// `apps` (the VM-provisioning kind).
+    pub fn parse_strict(s: &str) -> Result<Self, String> {
         match s {
-            "bot" => Self::Bot,
-            "website" => Self::Website,
-            _ => Self::Apps,
+            "bot" => Ok(Self::Bot),
+            // Static-site aliases: HTMX/HTML pages, no VM.
+            "website" | "web" | "site" | "static" | "html" | "htmx" => Ok(Self::Website),
+            // VM-backed custom-app aliases: node (and python) run in a VM.
+            "apps" | "app" | "custom" | "node" | "nodejs" => Ok(Self::Apps),
+            _ => Err(format!(
+                "unknown project_type '{s}': valid values are bot, website (aliases: web, site, static, html, htmx) and apps (aliases: app, custom, node, nodejs)"
+            )),
         }
+    }
+
+    /// Legacy lenient parse — kept only for tests and non-user-facing reads.
+    pub fn parse(s: &str) -> Self {
+        Self::parse_strict(s).unwrap_or(Self::Apps)
     }
 }
 
@@ -146,6 +164,12 @@ impl ProjectRegistry {
         Self { pool }
     }
 
+    /// #1371 — read-only pool access for handlers composing registry-backed
+    /// flows (website Run reuses the publish path against the same pool).
+    pub fn pool(&self) -> &DbPool {
+        &self.pool
+    }
+
     pub(crate) fn conn(&self) -> Result<diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>, String> {
         self.pool.get().map_err(|e| format!("db pool: {e}"))
     }
@@ -178,7 +202,14 @@ impl ProjectRegistry {
             return Ok(row.into_project());
         }
 
-        let project_type = ProjectKind::parse(req.project_type.as_deref().unwrap_or("bot"));
+        // #1372 — reject unknown kinds instead of silently coercing them to
+        // `apps` (which provisions a VM on Run).
+        let project_type = match ProjectKind::parse_strict(
+            req.project_type.as_deref().unwrap_or("bot"),
+        ) {
+            Ok(kind) => kind,
+            Err(e) => return Err(e),
+        };
         let repository = req.repository.clone().unwrap_or_else(|| req.name.clone());
         let framework = req.framework.clone().unwrap_or_default();
         let custom_domain = req.custom_domain.clone().unwrap_or_default();
@@ -373,7 +404,13 @@ impl ProjectRegistry {
             assignments.push(format!("name = ${}", binds.len()));
         }
         if let Some(ref pt) = req.project_type {
-            binds.push(ProjectKind::parse(pt).as_str().to_string());
+            // #1372 — same strictness on update: an invalid kind must not
+            // flip an existing project onto the VM path.
+            let kind = match ProjectKind::parse_strict(pt) {
+                Ok(kind) => kind,
+                Err(e) => return Err(e),
+            };
+            binds.push(kind.as_str().to_string());
             assignments.push(format!("project_type = ${}", binds.len()));
         }
         if let Some(ref repo) = req.repository {
@@ -510,12 +547,50 @@ mod tests {
         assert_eq!(ProjectKind::parse("bot"), ProjectKind::Bot);
         assert_eq!(ProjectKind::parse("website"), ProjectKind::Website);
         assert_eq!(ProjectKind::parse("apps"), ProjectKind::Apps);
-        // #1291 — deprecated alias still resolves to the apps kind.
+        // #1291/#1372 — deprecated aliases still resolve via the lenient path.
         assert_eq!(ProjectKind::parse("custom"), ProjectKind::Apps);
+        // #1372 — unknown kinds fall back on the lenient path but are
+        // rejected by parse_strict (see project_kind_parse_strict below).
         assert_eq!(ProjectKind::parse("bogus"), ProjectKind::Apps);
         assert_eq!(ProjectKind::Bot.as_str(), "bot");
         assert_eq!(ProjectKind::Website.as_str(), "website");
         assert_eq!(ProjectKind::Apps.as_str(), "apps");
+    }
+
+    /// #1372 — strict parsing: explicit aliases accepted, unknown rejected.
+    #[test]
+    fn project_kind_parse_strict() {
+        // Canonical kinds.
+        assert_eq!(
+            ProjectKind::parse_strict("website").unwrap(),
+            ProjectKind::Website
+        );
+        assert_eq!(ProjectKind::parse_strict("bot").unwrap(), ProjectKind::Bot);
+        assert_eq!(
+            ProjectKind::parse_strict("apps").unwrap(),
+            ProjectKind::Apps
+        );
+        // Website aliases (static/HTMX pages — never a VM).
+        for alias in ["web", "site", "static", "html", "htmx"] {
+            assert_eq!(
+                ProjectKind::parse_strict(alias).unwrap(),
+                ProjectKind::Website,
+                "alias {alias} must map to website"
+            );
+        }
+        // Custom-app aliases (VM-backed node/python apps).
+        for alias in ["app", "custom", "node", "nodejs"] {
+            assert_eq!(
+                ProjectKind::parse_strict(alias).unwrap(),
+                ProjectKind::Apps,
+                "alias {alias} must map to apps"
+            );
+        }
+        // Unknown kinds are rejected, not coerced.
+        assert!(ProjectKind::parse_strict("bogus").is_err());
+        assert!(ProjectKind::parse_strict("").is_err());
+        // Case-sensitive by design (DB rows are lowercase).
+        assert!(ProjectKind::parse_strict("Website").is_err());
     }
 
     #[test]
