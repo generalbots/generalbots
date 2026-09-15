@@ -6,6 +6,11 @@
  * can be inserted (POST row) — so the DB grid is not read-only.
  * #1386 — dev/prod selector: an X-Db-Env header switches the dialog between
  * the project's production database and its `_dev` twin database.
+ * #1386b — project contextualization: the dialog targets the SELECTED Vibe
+ * project's own database pair (X-Vibe-Project header), the same way the
+ * Chat and Terminal panes bind to the current selection. The status bar
+ * always names the connected database so the user never wonders which one
+ * they are looking at.
  */
 (function () {
     "use strict";
@@ -13,13 +18,35 @@
     var D = window.VibeDialogs;
     var state = { tables: [], table: null, page: 1, pageSize: 100, cols: [], rows: [], pk: null, env: "production" };
 
-    // Requests tagged with the selected environment so the backend connects
-    // to the matching database (production default, `dev` = `_dev` twin).
+    // Same resolution order as the Terminal pane: in-memory selection first,
+    // then the persisted one so the dialog still works right after a reload.
+    function projectId() {
+        return (typeof window.currentProjectId !== "undefined" && window.currentProjectId) ||
+            (function () {
+                try { return sessionStorage.getItem("gb-vibe-project-id") || ""; } catch (e) { return ""; }
+            })() || "";
+    }
+
+    // Requests tagged with the selected environment AND the selected project
+    // so the backend connects to that project's matching database
+    // (production default, `dev` = `_dev` twin).
     function apiEnv(path, options) {
         options = options || {};
         options.headers = options.headers || {};
         options.headers["X-Db-Env"] = state.env;
+        var pid = projectId();
+        if (pid) options.headers["X-Vibe-Project"] = pid;
         return D.api(path, options);
+    }
+
+    // Human-readable label of the database this dialog is pointed at.
+    function dbName() {
+        var pid = projectId();
+        if (!pid) return "no project selected";
+        var name = "";
+        try { name = sessionStorage.getItem("gb-vibe-project-name") || ""; } catch (e) { }
+        var slug = String(name).toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 32) || "app";
+        return "app_…_" + slug + (state.env === "dev" ? "_dev" : "");
     }
 
     function sidebar() {
@@ -39,6 +66,7 @@
             state.env = envSel.value;
             state.table = null;
             state.page = 1;
+            refreshCtxChip();
             var label = document.getElementById("vibeDbTableLabel");
             if (label) label.textContent = state.env === "dev" ? "dev database" : "production database";
             loadSchema(false);
@@ -72,6 +100,12 @@
         var toolbar = D.el("div", "vibe-dialog-toolbar");
         var label = D.el("span", "vibe-status info", "no table selected");
         label.id = "vibeDbTableLabel";
+        // #1386b — persistent context chip: the connected database is always
+        // visible, so grid edits can never be mistaken for another project's.
+        var ctx = D.el("span", "vibe-status info");
+        ctx.id = "vibeDbCtx";
+        ctx.style.marginLeft = "10px";
+        ctx.textContent = "⛔ no project selected";
         var refresh = D.el("button", "vibe-btn", "↻ Refresh");
         refresh.addEventListener("click", function () { loadSchema(true); });
         var insert = D.el("button", "vibe-btn", "➕ Insert Row");
@@ -81,6 +115,7 @@
         var exportBtn = D.el("button", "vibe-btn", "Export CSV");
         exportBtn.addEventListener("click", exportCsv);
         toolbar.appendChild(label);
+        toolbar.appendChild(ctx);
         toolbar.appendChild(spacer);
         toolbar.appendChild(insert);
         toolbar.appendChild(refresh);
@@ -102,6 +137,29 @@
         box.appendChild(pager);
         return box;
     }
+
+    // #1386b — keep the context chip in sync with the selection and env.
+    function refreshCtxChip() {
+        var chip = document.getElementById("vibeDbCtx");
+        if (!chip) return;
+        var pid = projectId();
+        if (!pid) {
+            chip.textContent = "⛔ no project selected";
+            chip.className = "vibe-status err";
+            return;
+        }
+        chip.textContent = "🗄️ " + dbName();
+        chip.className = "vibe-status ok";
+    }
+
+    // A project selected in ANY Vibe window (main or specialist) retargets
+    // this dialog and reloads the schema — same broadcast the Terminal uses.
+    document.addEventListener("gb:vibe-project", function () {
+        refreshCtxChip();
+        state.table = null;
+        state.page = 1;
+        loadSchema(false);
+    });
 
     function renderTableList() {
         var list = document.getElementById("vibeDbTableList");
@@ -311,6 +369,18 @@
     }
 
     function loadSchema(quiet) {
+        // #1386b — no selection, no misleading data: without a project the
+        // pane refuses to guess a database (it used to fall back to the
+        // global default bot's, which is exactly the confusion this fixes).
+        if (!projectId()) {
+            state.tables = [];
+            state.table = null;
+            var list0 = document.getElementById("vibeDbTableList");
+            if (list0) list0.innerHTML = '<div class="vibe-empty">Select a Vibe project to inspect its database.</div>';
+            var grid0 = document.getElementById("vibeDbGrid");
+            if (grid0) grid0.innerHTML = '<div class="vibe-empty">No project selected — open a project in Vibe first.</div>';
+            return;
+        }
         if (!quiet) {
             var list = document.getElementById("vibeDbTableList");
             if (list) list.innerHTML = '<div class="vibe-empty">Loading schema...</div>';
@@ -409,6 +479,7 @@
         build: function (body) {
             body.appendChild(sidebar());
             body.appendChild(main());
+            refreshCtxChip();
             loadSchema(false);
             var prev = document.getElementById("vibeDbPrev");
             var next = document.getElementById("vibeDbNext");
