@@ -20,7 +20,8 @@ use botsecurity_auth::auth_api::types::{AuthenticatedUser, Role};
 use crate::harness;
 use crate::metering::VMetering;
 use crate::projects::{
-    CreateProjectRequest, ListProjectsQuery, Project, ProjectRegistryRef, UpdateProjectRequest,
+    CreateProjectRequest, ListProjectsQuery, Project, ProjectRegistry, ProjectRegistryRef,
+    UpdateProjectRequest,
 };
 use crate::rbac::{ProjectRbac, ProjectRole};
 use crate::vm_lifecycle::VmLifecycle;
@@ -196,6 +197,15 @@ async fn create_project(
     }
     match registry.create(&req) {
         Ok(p) => {
+            // #1386 — a `bot`-kind Vibe project IS a real bot: ensure its
+            // `bots` row (branch-scoped, public for the WS gateway) so the
+            // project surfaces in the desktop app launcher (`bot-{slug}`
+            // tile, src/apps/mod.rs), at `/chat/{slug}` and every other
+            // bot-keyed subsystem. Non-fatal: failure logs and the project
+            // continues to work in Vibe itself.
+            if p.project_type == "bot" {
+                ensure_vibe_bot_row(&registry, &p, req.description.as_deref());
+            }
             // Grant ownership BEFORE seeding: a project the caller cannot
             // administer must not be visible in their list (#931).
             if let Err(e) = rbac.set_user_role(p.id, user.user_id, ProjectRole::Owner) {
@@ -467,6 +477,87 @@ pub struct WorkspaceFilesResponse {
 /// Canonical workspace directory key for a project: the ALM repo slug, which
 /// is the same key `collect_workspace_files` (publish) and the agent's
 /// `file/*` tools use for `VIBE_WORKSPACE_ROOT/{key}/`.
+/// Launcher/chat-safe slug: lowercase, spaces/underscores → dashes,
+/// alphanumerics and dashes only — the same normalization the desktop
+/// launcher uses when it builds `bot-{slug}` tiles (src/apps/mod.rs).
+fn bot_slug(name: &str) -> String {
+    name.to_lowercase()
+        .replace(' ', "-")
+        .replace('_', "-")
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric() || *c == '-')
+        .collect()
+}
+
+/// Ensures the `bots` row for a bot-kind Vibe project (#1386). Idempotent
+/// per (slug, branch): an existing row for the same branch is left as-is;
+/// a slug owned by ANOTHER branch is reported and never stolen.
+fn ensure_vibe_bot_row(registry: &ProjectRegistry, project: &Project, description: Option<&str>) {
+    use diesel::sql_types::{BigInt, Text, Uuid as SqlUuid};
+
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct One {
+        #[diesel(sql_type = BigInt)]
+        n: i64,
+    }
+
+    let slug = bot_slug(&project.name);
+    let mut conn = match registry.pool().get() {
+        Ok(c) => c,
+        Err(e) => {
+            log::warn!(
+                "vibe bot row: pool unavailable for project {}: {e}",
+                project.id
+            );
+            return;
+        }
+    };
+    let already: Option<One> = diesel::sql_query(
+        "SELECT COUNT(*) AS n FROM bots WHERE slug = $1 AND branch_id = $2",
+    )
+    .bind::<Text, _>(&slug)
+    .bind::<SqlUuid, _>(project.branch_id)
+    .get_result(&mut conn)
+    .ok();
+    if matches!(already, Some(r) if r.n > 0) {
+        return;
+    }
+    let description = description
+        .map(str::trim)
+        .filter(|d| !d.is_empty())
+        .unwrap_or("Vibe bot project");
+    match diesel::sql_query(
+        "INSERT INTO bots (id, name, slug, description, org_id, branch_id, \
+             llm_provider, llm_config, context_provider, context_config, \
+             is_active, is_public, created_at, updated_at) \
+         VALUES ($1, $2, $3, $4, $5, $6, 'openai', '{}'::jsonb, 'openai', '{}'::jsonb, \
+             true, true, NOW(), NOW()) \
+         ON CONFLICT (slug) DO NOTHING",
+    )
+    .bind::<SqlUuid, _>(project.id)
+    .bind::<Text, _>(&project.name)
+    .bind::<Text, _>(&slug)
+    .bind::<Text, _>(description)
+    .bind::<SqlUuid, _>(project.org_id)
+    .bind::<SqlUuid, _>(project.branch_id)
+    .execute(&mut conn)
+    {
+        Ok(1) => log::info!(
+            "vibe bot row created: slug={slug} branch={} project={}",
+            project.branch_id,
+            project.id
+        ),
+        Ok(_) => log::warn!(
+            "vibe bot row: slug {slug} already owned by another branch — bots row not touched"
+        ),
+        Err(e) => log::error!(
+            "vibe bot row insert failed for project {} (slug {slug}): {e}",
+            project.id
+        ),
+    }
+}
+
 fn workspace_key(project: &Project) -> String {
     VmLifecycle::alm_repo(&project.name)
 }

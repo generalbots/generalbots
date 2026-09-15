@@ -15,8 +15,6 @@ use serde_json::json;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, OnceLock};
 
-use uuid::Uuid;
-
 /// Core apps that are always present regardless of feature flags.
 const CORE_APPS: &[&str] = &["settings", "auth", "admin"];
 
@@ -321,47 +319,54 @@ fn bot_launcher_apps(bearer: Option<&str>) -> Vec<serde_json::Value> {
         }
     };
     // #1296 — the launcher must list only the caller's organization bots,
-    // not every active bot across all tenants. The user→org binding comes
-    // from user_organizations (same source as the cloud login flow); when
-    // the caller is anonymous or unbound, fall back to the global default
-    // bot only (is_default_for_branch), so the catalog never leaks other
-    // orgs' bots.
-    // Tenant scope minted at login (with_tenant_scope) — extracted the same
-    // unverified way as `sub` in workspace_tabs.rs (signature already checked
-    // by the upstream auth middleware when present). No claim → no org filter
-    // → the fallback lists ONLY default bots, never another org's bots.
-    let org_filter = bearer
-        .and_then(token_org_id)
-        .and_then(|org| Uuid::parse_str(&org).ok());
-    // #1320 — scope bots to the caller's org AND branch. Without the branch
-    // predicate a user belonging to one workspace saw every bot of the org's
-    // other branches in the launcher.
-    let branch_filter = bearer
-        .and_then(token_branch_id)
-        .and_then(|branch| Uuid::parse_str(&branch).ok());
-    let rows: Vec<BotRow> = match org_filter {
-        Some(org_id) => match branch_filter {
-            Some(branch_id) => diesel::sql_query(
-                "SELECT name, description FROM bots \
-                 WHERE is_active = true AND org_id = $1 AND branch_id = $2 \
-                 ORDER BY created_at DESC LIMIT 40",
-            )
-            .bind::<diesel::sql_types::Uuid, _>(org_id)
-            .bind::<diesel::sql_types::Uuid, _>(branch_id)
-            .load(&mut conn)
-            .unwrap_or_default(),
-            None => diesel::sql_query(
-                "SELECT name, description FROM bots \
-                 WHERE is_active = true AND org_id = $1 \
-                 ORDER BY created_at DESC LIMIT 40",
-            )
-            .bind::<diesel::sql_types::Uuid, _>(org_id)
-            .load(&mut conn)
-            .unwrap_or_default(),
-        },
-        None => diesel::sql_query(
+    // not every active bot across all tenants.
+    // #1386 — scope resolution now uses the canonical tenant resolver
+    // (botsecurity_core::tenant) instead of hand-rolled claim parsing, so
+    // email-bound sessions resolve the same branch everywhere else does.
+    // #1320 — scope is org AND branch: without the branch predicate a user
+    // belonging to one workspace saw every bot of the org's other branches.
+    // Anonymous/unbound callers get the single global default bot ONLY —
+    // the previous `is_default_for_branch = true` fallback listed 30 bots
+    // from every org in production (cross-tenant leak).
+    let headers = bearer
+        .map(|b| {
+            let mut h = axum::http::HeaderMap::new();
+            h.insert(
+                axum::http::header::AUTHORIZATION,
+                axum::http::HeaderValue::from_str(&format!("Bearer {b}"))
+                    .unwrap_or(axum::http::HeaderValue::from_static("")),
+            );
+            h
+        })
+        .unwrap_or_default();
+    let org_filter = botsecurity_core::tenant::org_from_claims(&headers);
+    let branch_filter = botsecurity_core::tenant::branch_from_claims(&headers);
+    let rows: Vec<BotRow> = match (org_filter, branch_filter) {
+        (Some(org_id), Some(branch_id)) => diesel::sql_query(
             "SELECT name, description FROM bots \
-             WHERE is_active = true AND is_default_for_branch = true \
+             WHERE is_active = true AND org_id = $1 AND branch_id = $2 \
+             ORDER BY created_at DESC LIMIT 40",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(org_id)
+        .bind::<diesel::sql_types::Uuid, _>(branch_id)
+        .load(&mut conn)
+        .unwrap_or_default(),
+        (Some(org_id), None) => {
+            // Branch-less tokens see only this org's DEFAULT bots — every
+            // other org's bots stay invisible even when 30 rows worldwide
+            // are flagged is_default_for_branch.
+            diesel::sql_query(
+                "SELECT name, description FROM bots \
+                 WHERE is_active = true AND org_id = $1 AND is_default_for_branch = true \
+                 ORDER BY created_at DESC LIMIT 40",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(org_id)
+            .load(&mut conn)
+            .unwrap_or_default()
+        }
+        (None, _) => diesel::sql_query(
+            "SELECT name, description FROM bots \
+             WHERE is_active = true AND id = 'f47ac10b-58cc-4372-a567-0e02b2c3d480'::uuid \
              ORDER BY created_at DESC LIMIT 40",
         )
         .load(&mut conn)
@@ -443,12 +448,21 @@ fn published_app_launcher_apps(bearer: Option<&str>) -> Vec<serde_json::Value> {
     // every other org's launcher. The org/branch claims come from the same
     // tenant scope the rest of the app uses (bot listing above); an
     // unauthenticated or unbound caller sees only the global (nil) scope.
-    let org_filter = bearer
-        .and_then(token_org_id)
-        .and_then(|org| Uuid::parse_str(&org).ok());
-    let branch_filter = bearer
-        .and_then(token_branch_id)
-        .and_then(|branch| Uuid::parse_str(&branch).ok());
+    // #1386 — claims are read via the canonical tenant resolver so email-
+    // bound sessions resolve identically to every other branch-scoped API.
+    let headers = bearer
+        .map(|b| {
+            let mut h = axum::http::HeaderMap::new();
+            h.insert(
+                axum::http::header::AUTHORIZATION,
+                axum::http::HeaderValue::from_str(&format!("Bearer {b}"))
+                    .unwrap_or(axum::http::HeaderValue::from_static("")),
+            );
+            h
+        })
+        .unwrap_or_default();
+    let org_filter = botsecurity_core::tenant::org_from_claims(&headers);
+    let branch_filter = botsecurity_core::tenant::branch_from_claims(&headers);
     let nil = Uuid::nil();
     let rows: Vec<AppRow> = diesel::sql_query(
         // The launcher flag is the explicit publish-time opt-in (payload.
@@ -508,32 +522,6 @@ fn published_app_launcher_apps(bearer: Option<&str>) -> Vec<serde_json::Value> {
         .collect()
 }
 
-/// Extracts the tenant `org_id` claim from a JWT the same unverified way
-/// `jwt_subject` works in workspace_tabs.rs: signature verification happens
-/// upstream; here we only read the claim value for list scoping.
-fn token_org_id(token: &str) -> Option<String> {
-    use base64::Engine as _;
-    let payload_b64 = token.split('.').nth(1)?;
-    let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
-        .decode(payload_b64)
-        .or_else(|_| base64::engine::general_purpose::STANDARD_NO_PAD.decode(payload_b64))
-        .ok()?;
-    let value: serde_json::Value = serde_json::from_slice(&bytes).ok()?;
-    value["org_id"].as_str().map(|s| s.to_string())
-}
-
-/// Branch claim from the same tenant scope minted at login (used by the
-/// session/workspace flows). Absent for anonymous or single-branch sessions.
-fn token_branch_id(token: &str) -> Option<String> {
-    use base64::Engine as _;
-    let payload_b64 = token.split('.').nth(1)?;
-    let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
-        .decode(payload_b64)
-        .or_else(|_| base64::engine::general_purpose::STANDARD_NO_PAD.decode(payload_b64))
-        .ok()?;
-    let value: serde_json::Value = serde_json::from_slice(&bytes).ok()?;
-    value["branch_id"].as_str().map(|s| s.to_string())
-}
 
 pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json::Value> {
     let bearer = headers
