@@ -220,8 +220,14 @@ if (typeof window.WindowManager === "undefined") {
 
     // Embedded-only tiles (the true offline fallback, e.g. Calculator) survive
     // a catalog load — but never a preview app the switch is holding back.
+    // #1386c — when the catalog HAS loaded it is authoritative for static
+    // apps: anything it omitted (Database, Terminal, Editor, …) is a Vibe
+    // workbench pane, not a desktop application, and must not resurface from
+    // the embedded list. Embedded-only tiles surface solely when the catalog
+    // is unreachable (offline fallback).
     embeddedApps.forEach(function (a) {
       if (known[a.id]) return;
+      if (catalogLoaded) return;
       var preview = isPreviewId(a.id);
       if (preview && !previewOn) return;
       a.preview = preview;
