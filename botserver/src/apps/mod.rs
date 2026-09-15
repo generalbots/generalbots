@@ -341,10 +341,15 @@ fn bot_launcher_apps(bearer: Option<&str>) -> Vec<serde_json::Value> {
         .unwrap_or_default();
     let org_filter = botsecurity_core::tenant::org_from_claims(&headers);
     let branch_filter = botsecurity_core::tenant::branch_from_claims(&headers);
+    // #1386 follow-up — vibe-origin bots (`bots.origin = 'vibe'`, bot-kind
+    // Vibe projects) are TEST bots: they are reachable through the Vibe
+    // workbench (Run window / Chat button) and /chat/{slug}, never as
+    // launcher tiles. Only drive-origin (production) bots are listed.
     let rows: Vec<BotRow> = match (org_filter, branch_filter) {
         (Some(org_id), Some(branch_id)) => diesel::sql_query(
             "SELECT name, description FROM bots \
              WHERE is_active = true AND org_id = $1 AND branch_id = $2 \
+             AND (origin = 'drive' OR origin IS NULL) \
              ORDER BY created_at DESC LIMIT 40",
         )
         .bind::<diesel::sql_types::Uuid, _>(org_id)
@@ -358,6 +363,7 @@ fn bot_launcher_apps(bearer: Option<&str>) -> Vec<serde_json::Value> {
             diesel::sql_query(
                 "SELECT name, description FROM bots \
                  WHERE is_active = true AND org_id = $1 AND is_default_for_branch = true \
+                 AND (origin = 'drive' OR origin IS NULL) \
                  ORDER BY created_at DESC LIMIT 40",
             )
             .bind::<diesel::sql_types::Uuid, _>(org_id)

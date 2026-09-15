@@ -320,6 +320,26 @@ async fn delete_project(
             }
         }
     }
+    // #1386 follow-up — a bot-kind project owns its `bots` row (created by
+    // ensure_vibe_bot_row); deleting the project removes the row so the
+    // slug/chat identity does not outlive the project. Non-fatal.
+    if project.project_type == "bot" {
+        if let Ok(mut conn) = registry.pool().get() {
+            let slug = bot_slug(&project.name);
+            match diesel::sql_query("DELETE FROM bots WHERE slug = $1 AND origin = 'vibe'")
+                .bind::<diesel::sql_types::Text, _>(&slug)
+                .execute(&mut conn)
+            {
+                Ok(n) if n > 0 => log::info!(
+                    "vibe bot row deleted: slug={slug} project={id}"
+                ),
+                Ok(_) => {}
+                Err(e) => log::error!(
+                    "vibe bot row delete failed for project {id} (slug {slug}): {e}"
+                ),
+            }
+        }
+    }
     match registry.delete(id) {
         Ok(true) => deleted(),
         Ok(false) => err_response(format!("project {id} not found")),
@@ -492,6 +512,9 @@ fn bot_slug(name: &str) -> String {
 /// Ensures the `bots` row for a bot-kind Vibe project (#1386). Idempotent
 /// per (slug, branch): an existing row for the same branch is left as-is;
 /// a slug owned by ANOTHER branch is reported and never stolen.
+/// The row carries `origin='vibe'` — vibe bots are TEST bots: WS/chat
+/// reachable but never desktop-launcher tiles (launcher lists only
+/// `origin='drive'` production bots).
 fn ensure_vibe_bot_row(registry: &ProjectRegistry, project: &Project, description: Option<&str>) {
     use diesel::sql_types::{BigInt, Text, Uuid as SqlUuid};
 
@@ -530,9 +553,9 @@ fn ensure_vibe_bot_row(registry: &ProjectRegistry, project: &Project, descriptio
     match diesel::sql_query(
         "INSERT INTO bots (id, name, slug, description, org_id, branch_id, \
              llm_provider, llm_config, context_provider, context_config, \
-             is_active, is_public, created_at, updated_at) \
+             is_active, is_public, origin, created_at, updated_at) \
          VALUES ($1, $2, $3, $4, $5, $6, 'openai', '{}'::jsonb, 'openai', '{}'::jsonb, \
-             true, true, NOW(), NOW()) \
+             true, true, 'vibe', NOW(), NOW()) \
          ON CONFLICT (slug) DO NOTHING",
     )
     .bind::<SqlUuid, _>(project.id)
