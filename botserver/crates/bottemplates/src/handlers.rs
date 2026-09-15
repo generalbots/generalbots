@@ -179,13 +179,22 @@ pub async fn deploy_template(
 
 /// Bot names become Drive directory names and the bot `slug`, so they are kept to
 /// a strict slug alphabet: no separators, no `..`, no spaces.
+/// #1386 — the `-dev` suffix is RESERVED for Vibe twin bots (the dev
+/// environment of a production bot); a manually created bot must not collide
+/// with a twin or with its `bot_..._dev` database.
 fn validate_bot_name(bot_name: &str) -> Result<(), (StatusCode, String)> {
     let length_ok = (1..=64).contains(&bot_name.len());
     let alphabet_ok = bot_name
         .chars()
         .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-' || c == '_');
-    if length_ok && alphabet_ok {
+    let suffix_reserved = bot_name.ends_with("-dev") || bot_name == "dev";
+    if length_ok && alphabet_ok && !suffix_reserved {
         Ok(())
+    } else if suffix_reserved {
+        Err((
+            StatusCode::BAD_REQUEST,
+            "Bot names ending in '-dev' are reserved for dev-twin bots".to_string(),
+        ))
     } else {
         Err((
             StatusCode::BAD_REQUEST,

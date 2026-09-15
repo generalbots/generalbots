@@ -10,6 +10,7 @@ repository = "https://github.com/generalbots/generalbots"
 default = []
 
 [dependencies]
+botcore = { workspace = true }
 botcoresecrets = { workspace = true }
 botsecurity-core = { workspace = true }
 tar = { workspace = true }

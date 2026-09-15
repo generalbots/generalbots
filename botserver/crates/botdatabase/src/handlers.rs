@@ -261,21 +261,99 @@ fn get_bot_pool(
         .ok_or_else(|| error_response("Bot database not available"))
 }
 
-fn get_bot_conn(
+/// #1386 — environment override for the DB dialog. `X-Db-Env: dev` points
+/// the whole dialog at the bot's dev-twin database (`bot_..._dev`, the
+/// database a `{bot}-dev` twin bot would own) instead of the production one,
+/// so a developer can browse both environments from the same UI. The twin
+/// database is created on demand; production stays untouched.
+fn get_bot_pool_for_env(
     state: &AppState,
     bot_id: uuid::Uuid,
-) -> Result<diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>, (StatusCode, Json<serde_json::Value>)> {
-    let pool = get_bot_pool(state, bot_id)?;
-    let conn = pool
+    env: &str,
+) -> Result<botcore::shared::utils::DbPool, (StatusCode, Json<serde_json::Value>)> {
+    let is_dev = matches!(env.to_ascii_lowercase().as_str(), "dev" | "test" | "development");
+    if !is_dev {
+        return get_bot_pool(state, bot_id);
+    }
+    // Resolve the bot's own database name, derive the `_dev` twin name from
+    // it, and open a dedicated pool. Cached per process (same rationale as
+    // the resolved-name cache above).
+    let pool = db::pool().map_err(|(code, msg)| (code, Json(serde_json::json!({"error": msg}))))?;
+    let mut conn = pool
         .get()
-        .map_err(|e| internal_error(&format!("Database connection error: {e}")))?;
+        .map_err(|e| internal_error(&format!("Main DB connection error: {e}")))?;
 
-    // Always resolve to the bot's OWN database. Previously an empty per-bot
-    // database fell back to the platform's main (botserver) database, which
-    // leaked the internal schema (bots, messages, __diesel_schema_migrations,
-    // …) into the bot-facing DB dialog. An empty bot database now shows an
-    // empty schema instead.
-    Ok(conn)
+    #[derive(diesel::QueryableByName)]
+    struct BotDbRow {
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Varchar>)]
+        database_name: Option<String>,
+    }
+    let row: BotDbRow = diesel::sql_query(
+        "SELECT database_name FROM bots WHERE id = $1 AND is_active = true",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(bot_id)
+    .get_result(&mut conn)
+    .map_err(|_| error_response("Bot not found or inactive"))?;
+
+    let prod_db = row
+        .database_name
+        .ok_or_else(|| error_response("Bot has no database yet"))?;
+    let dev_db = if prod_db.ends_with("_dev") {
+        prod_db.clone()
+    } else {
+        format!("{prod_db}_dev")
+    };
+
+    // Identifier-safe by construction (derived from an existing bot DB name).
+    if dev_db.len() > 63 || !dev_db.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_') {
+        return Err(error_response("Invalid dev database name"));
+    }
+
+    let exists: bool = diesel::sql_query(format!(
+        "SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = '{dev_db}') AS exists"
+    ))
+    .get_result::<ExistsRow>(&mut conn)
+    .map(|r| r.exists)
+    .map_err(|e| internal_error(&format!("Check dev database: {e}")))?;
+    if !exists {
+        diesel::sql_query(format!("CREATE DATABASE {dev_db}"))
+            .execute(&mut conn)
+            .map_err(|e| internal_error(&format!("Create dev database: {e}")))?;
+    }
+    drop(conn);
+
+    let base = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/botserver".to_string());
+    let url = match base.rfind('/') {
+        Some(pos) => format!("{}/{}{}", &base[..pos], dev_db, base[base.rfind('/').unwrap()..].split('?').nth(1).map(|q| format!("?{q}")).unwrap_or_default()),
+        None => format!("{base}/{dev_db}"),
+    };
+    let manager = diesel::r2d2::ConnectionManager::<diesel::PgConnection>::new(url);
+    diesel::r2d2::Pool::builder()
+        .max_size(3)
+        .build(manager)
+        .map_err(|e| internal_error(&format!("Dev database pool: {e}")))
+}
+
+#[derive(diesel::QueryableByName)]
+struct ExistsRow {
+    #[diesel(sql_type = diesel::sql_types::Bool)]
+    exists: bool,
+}
+
+/// #1386 — the bot database connection honoring the `X-Db-Env` selector.
+fn get_bot_conn_for_env(
+    state: &AppState,
+    bot_id: uuid::Uuid,
+    headers: &HeaderMap,
+) -> Result<diesel::r2d2::PooledConnection<diesel::r2d2::ConnectionManager<diesel::PgConnection>>, (StatusCode, Json<serde_json::Value>)> {
+    let env = headers
+        .get("X-Db-Env")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("production");
+    let pool = get_bot_pool_for_env(state, bot_id, env)?;
+    pool.get()
+        .map_err(|e| internal_error(&format!("Database connection error: {e}")))
 }
 
 /// Process-lifetime cache of the resolved per-bot database URL, so the
@@ -387,7 +465,7 @@ pub async fn get_schema(
     headers: HeaderMap,
 ) -> Result<Json<SchemaResponse>, (StatusCode, Json<serde_json::Value>)> {
     let bot_id = extract_bot_id(&headers)?;
-    let mut conn = get_bot_conn(&state, bot_id)?;
+    let mut conn = get_bot_conn_for_env(&state, bot_id, &headers)?;
 
     let tables: Vec<SchemaTable> = sql_query(
         "SELECT t.table_name::text,
@@ -501,7 +579,7 @@ pub async fn get_table_data(
         return Err(error_response("Invalid table name"));
     }
 
-    let mut conn = get_bot_conn(&state, bot_id)?;
+    let mut conn = get_bot_conn_for_env(&state, bot_id, &headers)?;
 
     let page = params.page.unwrap_or(1).max(1);
     let page_size = params
@@ -876,7 +954,7 @@ pub async fn execute_query(
     let start = std::time::Instant::now();
 
     if is_mutation {
-        let mut conn = get_bot_conn(&state, bot_id)?;
+        let mut conn = get_bot_conn_for_env(&state, bot_id, &headers)?;
         let affected = diesel::sql_query(&payload.query)
             .execute(&mut conn)
             .map_err(|e| internal_error(&format!("Query execution failed: {e}")))?;
@@ -933,7 +1011,7 @@ pub async fn insert_row(
         return Err(error_response("Invalid table name"));
     }
 
-    let mut conn = get_bot_conn(&state, bot_id)?;
+    let mut conn = get_bot_conn_for_env(&state, bot_id, &headers)?;
 
     let obj = match payload {
         serde_json::Value::Object(map) => {
@@ -995,7 +1073,7 @@ pub async fn delete_row(
         return Err(error_response("Invalid table name"));
     }
 
-    let mut conn = get_bot_conn(&state, bot_id)?;
+    let mut conn = get_bot_conn_for_env(&state, bot_id, &headers)?;
 
     let pk_info: Vec<PkInfo> = sql_query(
         "SELECT a.attrelid::regclass::text AS table_name,
@@ -1043,7 +1121,7 @@ pub async fn create_table(
         return Err(error_response("Invalid table name"));
     }
 
-    let mut conn = get_bot_conn(&state, bot_id)?;
+    let mut conn = get_bot_conn_for_env(&state, bot_id, &headers)?;
 
     if payload.columns.is_empty() {
         return Err(error_response("At least one column is required"));
@@ -1099,7 +1177,7 @@ pub async fn alter_table(
         return Err(error_response("Invalid table name"));
     }
 
-    let mut conn = get_bot_conn(&state, bot_id)?;
+    let mut conn = get_bot_conn_for_env(&state, bot_id, &headers)?;
     let mut messages = Vec::new();
 
     if let Some(add_cols) = &payload.add_columns {
@@ -1171,7 +1249,7 @@ pub async fn drop_table(
         return Err(error_response("Invalid table name"));
     }
 
-    let mut conn = get_bot_conn(&state, bot_id)?;
+    let mut conn = get_bot_conn_for_env(&state, bot_id, &headers)?;
 
     diesel::sql_query(format!("DROP TABLE IF EXISTS {safe_name}"))
         .execute(&mut conn)
@@ -1206,7 +1284,7 @@ pub async fn add_column(
         .or_else(|| payload.col_type.clone())
         .ok_or_else(|| error_response("Missing column data type"))?;
 
-    let mut conn = get_bot_conn(&state, bot_id)?;
+    let mut conn = get_bot_conn_for_env(&state, bot_id, &headers)?;
 
     let nullable = payload
         .nullable
@@ -1245,7 +1323,7 @@ pub async fn update_row(
         return Err(error_response("Invalid table name"));
     }
 
-    let mut conn = get_bot_conn(&state, bot_id)?;
+    let mut conn = get_bot_conn_for_env(&state, bot_id, &headers)?;
 
     let pk_info: Vec<PkInfo> = sql_query(
         "SELECT a.attrelid::regclass::text AS table_name,
@@ -1339,7 +1417,7 @@ pub async fn update_row_by_pk(
         return Err(error_response("Invalid column name"));
     }
 
-    let mut conn = get_bot_conn(&state, bot_id)?;
+    let mut conn = get_bot_conn_for_env(&state, bot_id, &headers)?;
 
     let pk_info: Vec<PkInfo> = sql_query(
         "SELECT a.attrelid::regclass::text AS table_name,
@@ -1461,7 +1539,7 @@ pub async fn batch_delete(
         return Err(error_response("No rows selected for deletion"));
     }
 
-    let mut conn = get_bot_conn(&state, bot_id)?;
+    let mut conn = get_bot_conn_for_env(&state, bot_id, &headers)?;
 
     let pk_info: Vec<PkInfo> = sql_query(
         "SELECT a.attrelid::regclass::text AS table_name,
@@ -1511,7 +1589,7 @@ pub async fn get_foreign_keys(
         return Err(error_response("Invalid table name"));
     }
 
-    let mut conn = get_bot_conn(&state, bot_id)?;
+    let mut conn = get_bot_conn_for_env(&state, bot_id, &headers)?;
 
     #[derive(QueryableByName, Debug)]
     struct FkRow {

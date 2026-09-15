@@ -801,6 +801,7 @@ fn ensure_python_service_for(
     site_dir: &str,
     port: u16,
     env: SiteEnv,
+    database_url: Option<&str>,
 ) -> Result<u16, String> {
     check_python_runtime()?;
     let unit_name = site_unit_name(slug, env);
@@ -838,8 +839,43 @@ fn ensure_python_service_for(
     // systemd unit — pushed as a file (no shell needed). Unit name is
     // env-suffixed for the test twin (gb-vibe-{slug}-test) so it never
     // clashes with the production service of the same site.
+    // #1386 — the project's database URL lives in a persistent
+    // EnvironmentFile (`/etc/gb-vibe/{unit_name}.env`) written only by the
+    // publish/promote path. Rollback rewrites the unit but NOT the env file,
+    // so a rolled-back release keeps the last-published database URL without
+    // needing database access during the rollback.
+    let env_file = format!("/etc/gb-vibe/{unit_name}.env");
+    if let Some(url) = database_url {
+        let env_content = format!("DATABASE_URL={url}\n");
+        let env_tmp = std::env::temp_dir().join(format!("gb-vibe-{unit_name}.env"));
+        std::fs::write(&env_tmp, env_content).map_err(|e| format!("write env file: {e}"))?;
+        let _ = proxy_exec(
+            &["mkdir".to_string(), "-p".to_string(), "/etc/gb-vibe".to_string()],
+            15,
+        );
+        let _ = proxy_exec(
+            &["rm".to_string(), "-f".to_string(), format!("{env_file}")],
+            15,
+        );
+        let pushed_env = crate::harness::cmd::run(
+            "incus",
+            &[
+                "file".to_string(),
+                "push".to_string(),
+                env_tmp.to_string_lossy().to_string(),
+                format!("proxy{env_file}"),
+            ],
+            Path::new("."),
+            30,
+        )
+        .map_err(|e| format!("incus file push env file: {e}"))?;
+        let _ = std::fs::remove_file(&env_tmp);
+        if pushed_env.exit_code != Some(0) {
+            return Err(format!("env file push failed: {}", pushed_env.stderr.trim()));
+        }
+    }
     let unit = format!(
-        "[Unit]\nDescription=GB vibe site {unit_name}\nAfter=network.target\n\n[Service]\nWorkingDirectory={site_dir}\nEnvironment=PORT={port}\nExecStart={site_dir}/.venv/bin/python {site_dir}/app.py\nRestart=always\nRestartSec=3\n\n[Install]\nWantedBy=multi-user.target\n"
+        "[Unit]\nDescription=GB vibe site {unit_name}\nAfter=network.target\n\n[Service]\nWorkingDirectory={site_dir}\nEnvironment=PORT={port}\nEnvironmentFile=-{env_file}\nExecStart={site_dir}/.venv/bin/python {site_dir}/app.py\nRestart=always\nRestartSec=3\n\n[Install]\nWantedBy=multi-user.target\n"
     );
     let unit_tmp = std::env::temp_dir().join(format!("gb-vibe-{unit_name}.service"));
     std::fs::write(&unit_tmp, unit).map_err(|e| format!("write unit: {e}"))?;
@@ -974,6 +1010,7 @@ fn verify_route_serving(site_host: &str) -> Result<(), String> {
 /// `{slug}-test.{domain}`).
 fn deploy_site_to_target_sync(
     project: &crate::projects::Project,
+    pool: &crate::types::DbPool,
     python: bool,
     verify: bool,
     target: &SiteTarget,
@@ -999,7 +1036,16 @@ fn deploy_site_to_target_sync(
     let mut service_note = String::new();
     if python {
         let port = python_port_for(target, &slug);
-        ensure_python_service_for(&slug, &site_dir, port, env)?;
+        // #1386 — provision the project's own database for this environment
+        // and inject its URL into the service. A failure is fatal for the
+        // publish: a python site without its database would 500 on boot.
+        let database_url = crate::project_db::ensure_project_database(
+            pool,
+            project.branch_id,
+            &project.name,
+            env.as_str(),
+        )?;
+        ensure_python_service_for(&slug, &site_dir, port, env, Some(&database_url))?;
         probe_python_service(port)?;
         let unit_slug = site_unit_name(&slug, env);
         service_note = format!("gb-vibe-{unit_slug}@127.0.0.1:{port}");
@@ -1026,13 +1072,15 @@ pub async fn deploy_site_to_proxy_env(
     project: &crate::projects::Project,
     python: bool,
     env: SiteEnv,
+    pool: &crate::types::DbPool,
 ) -> Result<(String, String), String> {
     let p = project.clone();
     let domain = super::publish::published_domain();
+    let pool = pool.clone();
     tokio::task::spawn_blocking(move || {
         let slug = site_slug(&p.name);
         let target = SiteTarget::new(&slug, env, &domain);
-        deploy_site_to_target_sync(&p, python, true, &target, env)
+        deploy_site_to_target_sync(&p, &pool, python, true, &target, env)
     })
     .await
     .map_err(|e| format!("publish task: {e}"))?
@@ -1043,10 +1091,16 @@ pub async fn deploy_site_to_proxy_env(
 /// through the same swap path as a normal publish, so the production
 /// `.prev-N` ring, route and (for python) service are refreshed exactly like
 /// a direct deploy.
-pub async fn promote_site_test_to_prod(project: &crate::projects::Project, python: bool) -> Result<String, String> {
+pub async fn promote_site_test_to_prod(
+    project: &crate::projects::Project,
+    python: bool,
+    pool: &crate::types::DbPool,
+) -> Result<String, String> {
     let slug = site_slug(&project.name);
     let domain = super::publish::published_domain();
     let (prod, test) = crate::site_env::both_targets(&slug, &domain);
+    let pool = pool.clone();
+    let project = project.clone();
     let promote: Result<String, String> = tokio::task::spawn_blocking(move || {
         let _guard = lock_publish();
         validate_slug(&slug)?;
@@ -1109,7 +1163,16 @@ pub async fn promote_site_test_to_prod(project: &crate::projects::Project, pytho
         let mut service_note = String::new();
         if py {
             let port = python_port_for(&prod, &slug);
-            ensure_python_service_for(&slug, &prod.dir, port, SiteEnv::Production)?;
+            // #1386 — production gets the project's public database (the dev
+            // twin kept the `_dev` one), so promotion never repoints the
+            // public site at test data.
+            let database_url = crate::project_db::ensure_project_database(
+                &pool,
+                project.branch_id,
+                &project.name,
+                SiteEnv::Production.as_str(),
+            )?;
+            ensure_python_service_for(&slug, &prod.dir, port, SiteEnv::Production, Some(&database_url))?;
             probe_python_service(port)?;
             service_note = format!("gb-vibe-{slug}@127.0.0.1:{port}");
         }
@@ -1153,7 +1216,10 @@ fn rollback_site_for_sync(slug: &str, target: &SiteTarget, env: SiteEnv) -> Resu
     .exit_code == Some(0);
     if py {
         let port = python_port_for(target, slug);
-        ensure_python_service_for(slug, &site_dir, port, env)?;
+        // #1386 — rollback rewrites the unit file; the database URL lives in
+        // the persistent environment file written by the last publish, so no
+        // database access is needed here.
+        ensure_python_service_for(slug, &site_dir, port, env, None)?;
         probe_python_service(port)?;
     }
     upsert_site_config(&target.host, &site_block_for_target(target, slug, py, tls_internal_from_env()))?;

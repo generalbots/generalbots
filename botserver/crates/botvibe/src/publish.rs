@@ -393,11 +393,13 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
                     &project,
                     is_python_project,
                     crate::site_env::SiteEnv::Test,
+                    &pool,
                 )
                 .await?;
                 let promoted = crate::proxy_sites::promote_site_test_to_prod(
                     &project,
                     is_python_project,
+                    &pool,
                 )
                 .await?;
                 (promoted, "promoted-from-test-twin".to_string())
@@ -406,6 +408,7 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
                     &project,
                     is_python_project,
                     site_env,
+                    &pool,
                 )
                 .await?
             };
@@ -545,6 +548,7 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
             &vm.container_name,
             &files,
             host_port,
+            None, // Windows WSL path: no project database yet (#1386)
         )?;
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(3))
@@ -639,10 +643,28 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         // on the host) — irrelevant for prod, which is served through the
         // domain route; the app service inside the container
         // (`vibe-app.service`, Restart=always) is what matters.
+        // #1386 — production VMs get the project's PUBLIC database; the dev
+        // twin keeps the `_dev` one (see run_project_app).
+        let prod_db_url = match crate::project_db::ensure_project_database(
+            &pool,
+            project.branch_id,
+            &project.name,
+            "production",
+        ) {
+            Ok(url) => Some(url),
+            Err(e) => {
+                log::warn!(
+                    "Vibe publish {}: project database unavailable, app starts without DATABASE_URL: {e}",
+                    project.name
+                );
+                None
+            }
+        };
         match VmLifecycle::new(pool.clone()).run_dev_app(
             &vm.container_name,
             &files,
             host_port,
+            prod_db_url.as_deref(),
         ) {
             Ok(_) => log::info!(
                 "Vibe publish {}: started app always-on in prod container {}",

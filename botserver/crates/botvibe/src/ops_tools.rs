@@ -225,5 +225,85 @@ pub fn ops_tools() -> Vec<(&'static str, ToolSchema, ToolHandler)> {
             .with_use_cases(vec![VibeUseCase::SoftwareDevelopment]),
         handler(|pool, args| Box::pin(do_backup_restore(pool, args))),
     ));
+    out.push((
+        "db/refresh-dev",
+        ToolSchema::new("db/refresh-dev", "One-way data refresh: copy the project's production database into its _dev twin (DESTROYS all dev data; production is never modified)")
+            .with_parameters(params(json!({ "project_id": { "type": "string" } }), &["project_id"]))
+            .with_approval_if(true)
+            .with_use_cases(vec![VibeUseCase::SoftwareDevelopment]),
+        handler(|pool, args| Box::pin(do_refresh_dev(pool, args))),
+    ));
     out
+}
+
+/// #1386 — one-way prod → dev data refresh via `pg_dump`/`psql` against the
+/// project's two databases. The dev twin is wiped and repopulated; the
+/// production database is only ever READ. Runs on the main PostgreSQL
+/// instance through `psql` with the same credentials as botserver.
+async fn do_refresh_dev(pool: DbPool, args: Value) -> Result<Value, String> {
+    let pid = Uuid::parse_str(&str_arg(&args, "project_id")?).map_err(|e| format!("invalid project_id: {e}"))?;
+    let registry = ProjectRegistry::new(pool.clone());
+    let project = registry
+        .get(pid)?
+        .ok_or_else(|| format!("project {pid} not found"))?;
+    if !crate::project_db::kind_needs_database(&project.project_type) {
+        return Err("website projects have no database".to_string());
+    }
+    let prod_db = crate::project_db::project_database_name(project.branch_id, &project.name, "production");
+    let dev_db = crate::project_db::project_database_name(project.branch_id, &project.name, "test");
+    // Ensure both exist before dumping.
+    crate::project_db::ensure_project_database(&pool, project.branch_id, &project.name, "production")?;
+    crate::project_db::ensure_project_database(&pool, project.branch_id, &project.name, "test")?;
+
+    // Resolve connection parameters from DATABASE_URL (never logged).
+    let url = crate::project_db::database_url_for(&dev_db);
+    let _ = url; // connection string flows to psql below; never logged
+    let base = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/botserver".to_string());
+    let conn_str = crate::project_db::database_url_for(&prod_db);
+    let _ = conn_str;
+
+    tokio::task::spawn_blocking(move || -> Result<Value, String> {
+        // Dump production schema+data to a temp file, then restore into dev.
+        // --clean drops objects before recreate so the dev twin is fully
+        // replaced. --if-exists avoids errors on a fresh dev database.
+        let dump_file = format!("/tmp/gb-refresh-dev-{}.sql", uuid::Uuid::new_v4());
+        let dump = std::process::Command::new("pg_dump")
+            .arg("--dbname")
+            .arg(&base.replace("botserver", &prod_db))
+            .arg("--file")
+            .arg(&dump_file)
+            .arg("--no-owner")
+            .arg("--no-privileges")
+            .output()
+            .map_err(|e| format!("pg_dump spawn: {e}"))?;
+        if !dump.status.success() {
+            let _ = std::fs::remove_file(&dump_file);
+            return Err(format!("pg_dump failed: {}", String::from_utf8_lossy(&dump.stderr)));
+        }
+        let restore = std::process::Command::new("psql")
+            .arg("--dbname")
+            .arg(base.replace("botserver", &dev_db))
+            .arg("--file")
+            .arg(&dump_file)
+            .arg("--set")
+            .arg("ON_ERROR_STOP=on")
+            .output()
+            .map_err(|e| format!("psql spawn: {e}"))?;
+        let stderr = String::from_utf8_lossy(&restore.stderr).to_string();
+        let _ = std::fs::remove_file(&dump_file);
+        if !restore.status.success() {
+            return Err(format!("restore into {dev_db} failed: {stderr}"));
+        }
+        log::info!("Vibe db/refresh-dev {pid}: {prod_db} → {dev_db} complete");
+        Ok(json!({
+            "refreshed": true,
+            "from": prod_db,
+            "to": dev_db,
+            "direction": "production → dev (one-way)",
+            "warning": "all previous dev data was replaced",
+        }))
+    })
+    .await
+    .map_err(|e| format!("refresh task: {e}"))?
 }

@@ -17,6 +17,12 @@
 //! The test target is the DEFAULT for site projects: only an explicit
 //! production publish sanctioned by the deploy pipeline writes the public
 //! slug (see `publish::do_publish`).
+//!
+//! #1386 — python sites additionally own a per-environment DATABASE
+//! (`app_{branch}_{slug}` in production, `app_{branch}_{slug}_dev` for the
+//! test twin; see `project_db.rs`). The URL is injected as `DATABASE_URL`
+//! into the env's systemd unit via a persistent EnvironmentFile, so test
+//! traffic can never mutate production data.
 
 /// Which environment a site operation targets.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

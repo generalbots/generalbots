@@ -8,6 +8,7 @@ pub mod agent_loop;
 pub mod kiro_llm;
 pub mod projects;
 pub mod projects_api;
+pub mod project_db;
 pub mod vm_lifecycle;
 mod vm_incus;
 pub mod vms_api;

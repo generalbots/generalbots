@@ -78,6 +78,12 @@ pub async fn delete_project_assets(p: &Project, lifecycle: &VmLifecycle) -> Vec<
         Err(e) => errors.push(format!("domain list: {e}")),
     }
 
+    // 2c. #1386 — drop the project's per-environment databases (public +
+    //     `_dev` twin). Best-effort: failures are reported, not fatal.
+    for e in crate::project_db::drop_project_databases(lifecycle.pool(), p.branch_id, &p.name) {
+        errors.push(format!("database drop: {e}"));
+    }
+
     // 3. Remove the workspace directory (the disk leak — it can hold node_modules,
     //    venvs and build output for the whole project lifetime).
     let key = VmLifecycle::alm_repo(&p.name);
