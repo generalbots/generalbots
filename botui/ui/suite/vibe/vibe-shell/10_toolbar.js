@@ -187,6 +187,21 @@
     function openChat() {
         var pid = S.projectId();
         var name = S.projectName();
+        var kind = String(
+            (typeof window.currentProjectKind !== "undefined" && window.currentProjectKind) ||
+            (function () { try { return localStorage.getItem("gb-vibe-project-kind") || ""; } catch (e) { return ""; } })()
+        ).toLowerCase();
+        // #1386 follow-up — bot-kind Vibe projects ARE bots (bots row with
+        // origin='vibe'): their Chat window binds to the bot identity via
+        // the { bot: slug } deep-link so the WS session runs as that bot.
+        // They are test bots, launcher-invisible — the Vibe window is their
+        // only entry point. website/apps projects keep the @project mention
+        // (they are agent contexts, not bots).
+        if (pid && name && kind === "bot") {
+            var slug = String(name).toLowerCase().replace(/\s+/g, "-");
+            openSharedApp("chat", { bot: slug });
+            return;
+        }
         var message =
             pid && name && String(name) !== "vibe"
                 ? "@" + name

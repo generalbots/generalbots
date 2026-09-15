@@ -50,6 +50,10 @@ function applyProjectSelection(p, persist) {
     var name = p.name || "Unnamed project";
     if (typeof currentProject !== "undefined") currentProject = name;
     if (typeof currentProjectId !== "undefined") currentProjectId = id;
+    // #1386 follow-up — the toolbar Chat button needs the project kind to
+    // decide between a { bot: slug } deep-link (bot projects run as their
+    // own bot) and the @project mention (website/apps agent contexts).
+    window.currentProjectKind = String(p.project_type || "").toLowerCase();
     // Keep the explicit window properties synchronized for shell modules that
     // read state through window.VibeShell.
     window.currentProject = name;
@@ -63,6 +67,7 @@ function applyProjectSelection(p, persist) {
             // the in-window sync used by loadProjects today.
             localStorage.setItem("gb-vibe-project-id", String(id || ""));
             localStorage.setItem("gb-vibe-project-name", String(name));
+            localStorage.setItem("gb-vibe-project-kind", String(p.project_type || ""));
             sessionStorage.setItem("gb-vibe-project-id", String(id || ""));
             sessionStorage.setItem("gb-vibe-project-name", String(name));
         } catch (_) {
