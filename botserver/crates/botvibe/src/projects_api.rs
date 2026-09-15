@@ -165,6 +165,16 @@ async fn create_project(
     ) {
         return forbidden(e);
     }
+    // #1386 — a bot-kind project cannot take a `-dev`-suffixed name: that
+    // suffix is reserved for the Vibe dev-twin bot (and its
+    // `bot_..._dev` per-environment database).
+    if req.project_type.as_deref().unwrap_or("bot") == "bot"
+        && botcore::bot_database::BotDatabaseManager::is_reserved_dev_bot_name(req.name.trim())
+    {
+        return forbidden(
+            "project names ending in '-dev' are reserved for dev-twin bots".into(),
+        );
+    }
     // Disk-guard eviction: a branch keeps at most
     // VIBE_MAX_PROJECTS_PER_KIND (default 2) projects of each kind. Creating
     // beyond the cap evicts the OLDEST same-kind project with full asset
@@ -829,7 +839,24 @@ async fn run_project_app(
         Err(e) => return (StatusCode::BAD_REQUEST, Json(serde_json::json!({ "success": false, "error": e }))),
     };
     let port = query.port.unwrap_or_else(|| project_run_port(&project));
-    match lifecycle.run_dev_app(&vm.container_name, &files, port) {
+    // #1386 — the dev VM always gets the project's `_dev` database: dev Run
+    // traffic can never read or write the production database.
+    let database_url = if crate::project_db::kind_needs_database(&project.project_type) {
+        match crate::project_db::ensure_project_database(
+            registry.pool(),
+            project.branch_id,
+            &project.name,
+            "test",
+        ) {
+            Ok(url) => Some(url),
+            Err(e) => {
+                return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "success": false, "error": e })));
+            }
+        }
+    } else {
+        None
+    };
+    match lifecycle.run_dev_app(&vm.container_name, &files, port, database_url.as_deref()) {
         Ok(url) => (
             StatusCode::OK,
             Json(serde_json::json!({

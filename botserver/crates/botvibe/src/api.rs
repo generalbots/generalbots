@@ -1703,7 +1703,13 @@ async fn promote_project_site(
     let is_python = crate::proxy_sites::looks_like_python(
         &crate::publish::collect_workspace_files(&project).unwrap_or_default(),
     );
-    match crate::proxy_sites::promote_site_test_to_prod(&project, is_python).await {
+    match crate::proxy_sites::promote_site_test_to_prod(
+        &project,
+        is_python,
+        api.project_registry.pool(),
+    )
+    .await
+    {
         Ok(url) => Json(serde_json::json!({
             "success": true,
             "message": "test release promoted to production",

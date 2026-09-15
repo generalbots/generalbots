@@ -620,6 +620,23 @@ match x { A | B => do_thing(), C => other() }         // Combine identical arms
 
 ---
 
+## Vibe Per-Project Databases (#1386)
+
+Every Vibe project kind owns a **dedicated PostgreSQL database per environment** — dev work can never read or write production data:
+
+| Kind | Production DB | Dev/test DB | Injection |
+|------|---------------|-------------|-----------|
+| **bot** | `bot_{branch}_{bot}` (lazy, `botcore/bot_database.rs`) | `bot_{branch}_{bot}_dev` via the `{bot}-dev` twin bot (automatic — the twin is a normal bot row) | per-bot pool |
+| **apps** (node/python) | `app_{branch}_{slug}` | `app_{branch}_{slug}_dev` | `DATABASE_URL` in the VM `vibe-app.service` / proxy python unit (via persistent `/etc/gb-vibe/{unit}.env` EnvironmentFile) |
+| **website** | — (static) | — (static) | none |
+
+- Naming: `botvibe/src/project_db.rs` (`ensure_project_database`, `drop_project_databases`); `_dev` suffix is **reserved** — manually created bots/apps may not end in `-dev` (`BotDatabaseManager::is_reserved_dev_bot_name`).
+- Promotion copies **code only**; databases are never touched by promote/rollback.
+- The DB dialog (`botui/ui/suite/vibe/vibe-dialog-db.js`) has a **dev/prod selector** sending `X-Db-Env: dev|production`; `botdatabase` handlers resolve the `_dev` twin database (created on demand) when `dev` is selected.
+- Project delete/eviction drops both databases (`WITH (FORCE)`).
+
+---
+
 ## File Size Limits — MANDATORY
 
 **NEVER let a single file exceed 450 lines — split proactively at 350 lines.** When growing beyond:

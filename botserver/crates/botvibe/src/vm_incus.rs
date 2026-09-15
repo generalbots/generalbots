@@ -555,6 +555,7 @@ impl VmLifecycle {
         name: &str,
         files: &[serde_json::Value],
         host_port: u16,
+        database_url: Option<&str>,
     ) -> Result<String, String> {
         self.skip_if_unavailable()?;
         let temp = std::env::temp_dir().join(format!("vibe-deploy-{}", uuid::Uuid::new_v4()));
@@ -622,9 +623,14 @@ impl VmLifecycle {
             }
 
             let service = temp.join("vibe-app.service");
+            let db_line = database_url
+                .map(|url| format!("\nEnvironment=DATABASE_URL={url}"))
+                .unwrap_or_default();
             std::fs::write(
                 &service,
-                "[Unit]\nDescription=Vibe application\nAfter=network.target\n\n[Service]\nType=simple\nWorkingDirectory=/opt/vibe/app\nEnvironment=PORT=3000\nExecStart=/usr/bin/node /opt/vibe/app/index.js\nRestart=always\nRestartSec=2\n\n[Install]\nWantedBy=multi-user.target\n",
+                format!(
+                    "[Unit]\nDescription=Vibe application\nAfter=network.target\n\n[Service]\nType=simple\nWorkingDirectory=/opt/vibe/app\nEnvironment=PORT=3000{db_line}\nExecStart=/usr/bin/node /opt/vibe/app/index.js\nRestart=always\nRestartSec=2\n\n[Install]\nWantedBy=multi-user.target\n"
+                ),
             )
             .map_err(|e| format!("write service unit: {e}"))?;
             self.incus_run(
@@ -758,8 +764,9 @@ impl VmLifecycle {
         name: &str,
         files: &[serde_json::Value],
         host_port: u16,
+        database_url: Option<&str>,
     ) -> Result<String, String> {
-        self.deploy_node_files(name, files, host_port)
+        self.deploy_node_files(name, files, host_port, database_url)
     }
 
     /// Run the project's own app inside the dev container as a REAL process
@@ -779,6 +786,7 @@ impl VmLifecycle {
         name: &str,
         files: &[serde_json::Value],
         host_port: u16,
+        database_url: Option<&str>,
     ) -> Result<String, String> {
         self.skip_if_unavailable()?;
         if !self.linux_running(name)? {
@@ -901,10 +909,16 @@ impl VmLifecycle {
             let is_python = resolved.is_python;
             let entry = resolved.entry;
             let service = temp.join("vibe-app.service");
+            // #1386 — the project's own database URL is injected into the
+            // unit so app code reaches its per-environment database through
+            // the standard `DATABASE_URL` convention.
+            let db_line = database_url
+                .map(|url| format!("\nEnvironment=DATABASE_URL={url}"))
+                .unwrap_or_default();
             std::fs::write(
                 &service,
                 format!(
-                    "[Unit]\nDescription=Vibe application\nAfter=network.target\n\n[Service]\nType=simple\nWorkingDirectory=/opt/vibe/app\nEnvironment=PORT=3000\nExecStart={} /opt/vibe/app/{entry}\nRestart=always\nRestartSec=2\n\n[Install]\nWantedBy=multi-user.target\n",
+                    "[Unit]\nDescription=Vibe application\nAfter=network.target\n\n[Service]\nType=simple\nWorkingDirectory=/opt/vibe/app\nEnvironment=PORT=3000{db_line}\nExecStart={} /opt/vibe/app/{entry}\nRestart=always\nRestartSec=2\n\n[Install]\nWantedBy=multi-user.target\n",
                     if is_python { "/usr/bin/python3" } else { "/usr/bin/node" }
                 ),
             )
@@ -1158,8 +1172,12 @@ impl VmLifecycle {
                     60,
                 )
                 .map_err(|e| format!("push static fallback server: {e}"))?;
-                let unit = "[Unit]\nDescription=Vibe application (static)\nAfter=network.target\n\n[Service]\nType=simple\nWorkingDirectory=/opt/vibe/app\nEnvironment=PORT=3000\nExecStart=/usr/bin/node /opt/vibe/app/server.js\nRestart=always\nRestartSec=2\n\n[Install]\nWantedBy=multi-user.target\n"
-                    .to_string();
+                let db_line = database_url
+                    .map(|url| format!("\nEnvironment=DATABASE_URL={url}"))
+                    .unwrap_or_default();
+                let unit = format!(
+                    "[Unit]\nDescription=Vibe application (static)\nAfter=network.target\n\n[Service]\nType=simple\nWorkingDirectory=/opt/vibe/app\nEnvironment=PORT=3000{db_line}\nExecStart=/usr/bin/node /opt/vibe/app/server.js\nRestart=always\nRestartSec=2\n\n[Install]\nWantedBy=multi-user.target\n"
+                );
                 let unit_path = temp.join("vibe-app-static.service");
                 std::fs::write(&unit_path, unit).map_err(|e| format!("write static unit: {e}"))?;
                 self.incus_run(

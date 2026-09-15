@@ -3580,6 +3580,7 @@ dependencies = [
  "base64 0.22.1",
  "botautotask",
  "botcontacts",
+ "botcore",
  "botcoresecrets",
  "botdeployment",
  "botlib",

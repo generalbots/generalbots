@@ -4,16 +4,46 @@
  * columns, data grid and a SQL runner (/api/database/query).
  * Rows are editable inline (PUT row/:id per cell), deletable, and new rows
  * can be inserted (POST row) — so the DB grid is not read-only.
+ * #1386 — dev/prod selector: an X-Db-Env header switches the dialog between
+ * the project's production database and its `_dev` twin database.
  */
 (function () {
     "use strict";
 
     var D = window.VibeDialogs;
-    var state = { tables: [], table: null, page: 1, pageSize: 100, cols: [], rows: [], pk: null };
+    var state = { tables: [], table: null, page: 1, pageSize: 100, cols: [], rows: [], pk: null, env: "production" };
+
+    // Requests tagged with the selected environment so the backend connects
+    // to the matching database (production default, `dev` = `_dev` twin).
+    function apiEnv(path, options) {
+        options = options || {};
+        options.headers = options.headers || {};
+        options.headers["X-Db-Env"] = state.env;
+        return D.api(path, options);
+    }
 
     function sidebar() {
         var box = document.createElement("div");
         box.className = "vibe-dialog-sidebar";
+
+        // #1386 — environment selector (production database vs `_dev` twin).
+        var envWrap = D.el("div", "vibe-sql-bar");
+        envWrap.style.padding = "6px";
+        var envSel = D.el("select", "vibe-input");
+        envSel.id = "vibeDbEnvSel";
+        envSel.style.width = "100%";
+        envSel.innerHTML =
+            '<option value="production">🏭 production</option>' +
+            '<option value="dev">🧪 dev (_dev twin)</option>';
+        envSel.addEventListener("change", function () {
+            state.env = envSel.value;
+            state.table = null;
+            state.page = 1;
+            var label = document.getElementById("vibeDbTableLabel");
+            if (label) label.textContent = state.env === "dev" ? "dev database" : "production database";
+            loadSchema(false);
+        });
+        envWrap.appendChild(envSel);
 
         var list = D.el("div", "vibe-list");
         list.id = "vibeDbTableList";
@@ -29,6 +59,7 @@
         foot.appendChild(sql);
         foot.appendChild(run);
 
+        box.appendChild(envWrap);
         box.appendChild(list);
         box.appendChild(foot);
         return box;
@@ -136,7 +167,7 @@
         };
         // The row/:id PUT expects a plain column/value body.
         var url = "/api/database/table/" + encodeURIComponent(tableName) + "/row/" + encodeURIComponent(pk);
-        D.api(url, { method: "PUT", body: req }).then(function (data) {
+        apiEnv(url, { method: "PUT", body: req }).then(function (data) {
             input.disabled = false;
             if (data && data.success) {
                 input.dataset.orig = value;
@@ -177,7 +208,7 @@
         var pk = pkValue(row);
         if (!confirm("Delete row with " + (state.pk || "id") + " = " + pk + "?")) return;
         var url = "/api/database/table/" + encodeURIComponent(tableName) + "/row/" + encodeURIComponent(pk);
-        D.api(url, { method: "DELETE" }).then(function (data) {
+        apiEnv(url, { method: "DELETE" }).then(function (data) {
             var status = document.getElementById("vibeDbTableLabel");
             if (data && data.success) {
                 if (status) { status.textContent = "row deleted"; status.className = "vibe-status ok"; }
@@ -210,7 +241,7 @@
             }
         });
         var url = "/api/database/table/" + encodeURIComponent(tableName) + "/row";
-        D.api(url, { method: "POST", body: { data: data } }).then(function (res) {
+        apiEnv(url, { method: "POST", body: { data: data } }).then(function (res) {
             var status = document.getElementById("vibeDbTableLabel");
             if (res && res.success) {
                 if (status) { status.textContent = "row inserted"; status.className = "vibe-status ok"; }
@@ -284,7 +315,7 @@
             var list = document.getElementById("vibeDbTableList");
             if (list) list.innerHTML = '<div class="vibe-empty">Loading schema...</div>';
         }
-        D.api("/api/database/schema").then(function (data) {
+        apiEnv("/api/database/schema").then(function (data) {
             state.tables = (data && data.tables) || [];
             renderTableList();
             if (state.table) loadTableData();
@@ -298,7 +329,7 @@
         if (!state.table) return;
         var grid = document.getElementById("vibeDbGrid");
         if (grid) grid.innerHTML = '<div class="vibe-empty">Loading ' + D.esc(state.table.name) + "...</div>";
-        D.api("/api/database/table/" + encodeURIComponent(state.table.name) + "/data?page=" +
+        apiEnv("/api/database/table/" + encodeURIComponent(state.table.name) + "/data?page=" +
             state.page + "&page_size=" + state.pageSize).then(function (data) {
             if (!data || !data.columns) {
                 if (grid) grid.innerHTML = '<div class="vibe-empty">Table has no data.</div>';
@@ -337,7 +368,7 @@
         if (grid) grid.innerHTML = '<div class="vibe-empty">Running query...</div>';
         // Backend QueryRequest field is `query` (not `sql`) — sending the
         // wrong key returned 422 and the SQL runner never worked.
-        D.api("/api/database/query", {
+        apiEnv("/api/database/query", {
             method: "POST",
             body: { query: sql.value.trim() },
         }).then(function (data) {
@@ -389,7 +420,7 @@
             });
         },
         teardown: function () {
-            state = { tables: [], table: null, page: 1, pageSize: 100, cols: [], rows: [], pk: null };
+            state = { tables: [], table: null, page: 1, pageSize: 100, cols: [], rows: [], pk: null, env: "production" };
         },
     });
 })();

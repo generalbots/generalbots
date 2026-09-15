@@ -205,6 +205,9 @@ impl BotDatabaseManager {
     }
 
     /// Generate a database name for a bot: bot_{branch_slug}_{bot_name}
+    /// #1386 — the `_dev` suffix is reserved for Vibe dev-twin databases:
+    /// a bot named `{bot}-dev` (the twin) naturally resolves to
+    /// `bot_{branch}_{bot}_dev`, never colliding with the production bot.
     pub fn generate_database_name(branch_slug: &str, bot_name: &str) -> String {
         let clean = |s: &str| -> String {
             s.replace(['-', ' '], "_")
@@ -214,6 +217,13 @@ impl BotDatabaseManager {
                 .collect::<String>()
         };
         format!("bot_{}_{}", clean(branch_slug), clean(bot_name))
+    }
+
+    /// #1386 — true when a bot name is reserved for the Vibe dev-twin
+    /// convention (`{bot}-dev`). Manually created bots must not take these
+    /// names, or the twin's per-environment database isolation breaks.
+    pub fn is_reserved_dev_bot_name(bot_name: &str) -> bool {
+        bot_name.ends_with("-dev") || bot_name == "dev"
     }
 
     /// Ensure a bot has a database and update the bots table if needed
@@ -367,7 +377,6 @@ mod tests {
             BotDatabaseManager::generate_database_name("default", "my-bot"),
             "bot_default_my_bot"
         );
-
         assert_eq!(
             BotDatabaseManager::generate_database_name("branch1", "My Bot 2"),
             "bot_branch1_my_bot_2"
@@ -376,6 +385,19 @@ mod tests {
         assert_eq!(
             BotDatabaseManager::generate_database_name("prod", "test@bot!"),
             "bot_prod_testbot"
+        );
+    }
+
+    #[test]
+    fn test_reserved_dev_bot_names() {
+        assert!(BotDatabaseManager::is_reserved_dev_bot_name("mybot-dev"));
+        assert!(BotDatabaseManager::is_reserved_dev_bot_name("dev"));
+        assert!(!BotDatabaseManager::is_reserved_dev_bot_name("developer"));
+        assert!(!BotDatabaseManager::is_reserved_dev_bot_name("mybot"));
+        // Twin naming convention: `{bot}-dev` produces `{bot}_dev` in the DB name.
+        assert_eq!(
+            BotDatabaseManager::generate_database_name("default", "mybot-dev"),
+            "bot_default_mybot_dev"
         );
     }
 }
