@@ -137,10 +137,16 @@ pub fn all_apps() -> Vec<AppDefinition> {
             "Conversational AI assistant with suggestions, tools and memory.",
             "conversation assistant ai bot",
             "<path d=\"M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z\"/>"),
-        app("vibe", "Vibe", "ai", "#84d669", "/suite/partials/vibe.html",
+        // #1386c — the launcher is Vibe-first: Vibe is the only static app
+        // pinned by default. Database, Terminal, Browser, Editor, Canvas etc.
+        // are native panes REUSED INSIDE the Vibe window (toolwindows on its
+        // toolbar), not desktop applications of their own; dynamic tiles
+        // (prod bots `bot-*`, published apps `vibeapp-*`) are appended by the
+        // catalog and always surface.
+        with_launcher_default(app("vibe", "Vibe", "ai", "#84d669", "/suite/partials/vibe.html",
             "Generative agentic workspace for building and running assistants.",
             "agent generator prompt ai",
-            "<path d=\"M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6\"/>"),
+            "<path d=\"M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6\"/>")),
         // Vibe specialists as first-class desktop apps (#1189): each opens its
         // own window with live project data, reachable from the launcher and
         // from chat/WhatsApp via __ui_plan__ ("open knowledge graph").

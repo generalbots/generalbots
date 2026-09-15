@@ -209,6 +209,98 @@ fn extract_bot_id(headers: &HeaderMap) -> Result<uuid::Uuid, (StatusCode, Json<s
     Ok(bot_id)
 }
 
+/// #1386 — Vibe project context for the Database pane. `X-Vibe-Project: <uuid>`
+/// selects the selected Vibe project's OWN database pair
+/// (`app_{branch}_{project}` / `..._dev`), exactly like the Chat and Terminal
+/// panes contextualize on the same selection. The project must belong to the
+/// caller's branch (resolved from the JWT claims — never client input), and
+/// `X-Db-Env` keeps switching between the project's production database and
+/// its dev twin. Project databases are created on demand so a fresh project
+/// can be inspected before its first run.
+fn resolve_project_pool(
+    project_id: uuid::Uuid,
+    headers: &HeaderMap,
+) -> Result<botcore::shared::utils::DbPool, (StatusCode, Json<serde_json::Value>)> {
+    let pool = db::pool().map_err(|(code, msg)| (code, Json(serde_json::json!({"error": msg}))))?;
+    let mut conn = pool
+        .get()
+        .map_err(|e| internal_error(&format!("Main DB connection error: {e}")))?;
+
+    #[derive(diesel::QueryableByName)]
+    struct ProjectRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        name: String,
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        project_type: String,
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        branch_id: uuid::Uuid,
+    }
+    let project: ProjectRow = diesel::sql_query(
+        "SELECT name, project_type, branch_id FROM vibe_projects WHERE id = $1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(project_id)
+    .get_result(&mut conn)
+    .map_err(|_| error_response("Vibe project not found"))?;
+
+    // Website projects are static payloads with no database pair.
+    if !botcore::project_db::project_kind_needs_database(&project.project_type) {
+        return Err(error_response(
+            "Website projects have no database — inspect the deployed files instead",
+        ));
+    }
+
+    // Tenant check: the caller's branch must own the project (nil branch =
+    // global/super-admin scope, same rule as authorize_bot_access).
+    if let Some(branch) = botcore::shared::tenant::branch_from_claims(headers) {
+        if branch != uuid::Uuid::nil() && branch != project.branch_id {
+            return Err((
+                StatusCode::FORBIDDEN,
+                Json(serde_json::json!({"error": "Project not accessible in this workspace"})),
+            ));
+        }
+    }
+
+    let env = headers
+        .get("X-Db-Env")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("production");
+    let db_name =
+        botcore::project_db::project_database_name(project.branch_id, &project.name, env);
+    botcore::project_db::validate_db_name(&db_name)
+        .map_err(|e| error_response(&format!("Invalid project database: {e}")))?;
+
+    let exists: bool = diesel::sql_query(format!(
+        "SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = '{db_name}') AS exists"
+    ))
+    .get_result::<ExistsRow>(&mut conn)
+    .map(|r| r.exists)
+    .map_err(|e| internal_error(&format!("Check project database: {e}")))?;
+    if !exists {
+        diesel::sql_query(format!("CREATE DATABASE {db_name}"))
+            .execute(&mut conn)
+            .map_err(|e| internal_error(&format!("Create project database: {e}")))?;
+        log::info!("apps database: created project database {db_name} on demand");
+    }
+    drop(conn);
+
+    let url = botcore::project_db::database_url_for(&db_name);
+    let manager = diesel::r2d2::ConnectionManager::<diesel::PgConnection>::new(url);
+    diesel::r2d2::Pool::builder()
+        .max_size(3)
+        .build(manager)
+        .map_err(|e| internal_error(&format!("Project database pool: {e}")))
+}
+
+/// Process-lifetime cache of the resolved per-bot database URL, so the
+/// `bots.database_name` lookup does not run on every schema/table/query
+/// request. The resolved name is stable within a process lifetime, so a
+/// static cache is safe here.
+fn bot_db_url_cache() -> &'static std::sync::Mutex<std::collections::HashMap<uuid::Uuid, String>> {
+    static CACHE: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<uuid::Uuid, String>>> =
+        std::sync::OnceLock::new();
+    CACHE.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
+}
+
 /// Tenant authorization for a client-supplied bot id (issue #850, following
 /// the #734 pattern in botbanking::cashflow::resolve_bot_scope): a caller may
 /// only address a bot that belongs to their workspace branch. The caller's
@@ -342,6 +434,9 @@ struct ExistsRow {
 }
 
 /// #1386 — the bot database connection honoring the `X-Db-Env` selector.
+/// When `X-Vibe-Project` is present the connection targets the selected Vibe
+/// project's OWN database pair (same contextualization as the Chat/Terminal
+/// panes); otherwise it targets the bot context database.
 fn get_bot_conn_for_env(
     state: &AppState,
     bot_id: uuid::Uuid,
@@ -351,19 +446,17 @@ fn get_bot_conn_for_env(
         .get("X-Db-Env")
         .and_then(|v| v.to_str().ok())
         .unwrap_or("production");
-    let pool = get_bot_pool_for_env(state, bot_id, env)?;
+    let pool = if let Some(project) = headers
+        .get("X-Vibe-Project")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| uuid::Uuid::parse_str(v).ok())
+    {
+        resolve_project_pool(project, headers)?
+    } else {
+        get_bot_pool_for_env(state, bot_id, env)?
+    };
     pool.get()
         .map_err(|e| internal_error(&format!("Database connection error: {e}")))
-}
-
-/// Process-lifetime cache of the resolved per-bot database URL, so the
-/// `bots.database_name` lookup does not run on every schema/table/query
-/// request. The resolved name is stable within a process lifetime, so a
-/// static cache is safe here.
-fn bot_db_url_cache() -> &'static std::sync::Mutex<std::collections::HashMap<uuid::Uuid, String>> {
-    static CACHE: std::sync::OnceLock<std::sync::Mutex<std::collections::HashMap<uuid::Uuid, String>>> =
-        std::sync::OnceLock::new();
-    CACHE.get_or_init(|| std::sync::Mutex::new(std::collections::HashMap::new()))
 }
 
 async fn get_bot_database_url(

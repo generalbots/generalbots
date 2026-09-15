@@ -11,6 +11,7 @@ pub mod bot;
 pub mod automation;
 pub mod bootstrap;
 pub mod bot_database;
+pub mod project_db;
 pub mod dns;
 pub mod features;
 pub mod i18n;

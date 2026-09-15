@@ -21,70 +21,10 @@
 use diesel::prelude::*;
 use uuid::Uuid;
 
-/// Longest legal PostgreSQL identifier (NAMEDATALEN - 1).
-const MAX_DB_NAME_LEN: usize = 63;
-
-/// Sanitize a path component into a legal database-name fragment.
-/// Mirrors `vm_lifecycle::sanitize_part` but keeps underscores (DB names).
-fn sanitize_db_part(s: &str) -> String {
-    let mut out = String::new();
-    let mut last_underscore = false;
-    for ch in s.chars().take(32) {
-        if ch.is_ascii_alphanumeric() {
-            out.push(ch.to_ascii_lowercase());
-            last_underscore = false;
-        } else if (ch == '-' || ch == '_' || ch.is_whitespace()) && !out.is_empty() && !last_underscore {
-            out.push('_');
-            last_underscore = true;
-        }
-    }
-    if out.is_empty() {
-        "app".to_string()
-    } else {
-        out
-    }
-}
-
-/// Branch fragment for database names: the first UUID group is stable and
-/// short (`alm_org` convention), keeping generated names well under 63 chars.
-fn branch_part(branch_id: Uuid) -> String {
-    sanitize_db_part(&branch_id.to_string().split('-').next().unwrap_or("default"))
-}
-
-/// `true` when `env` resolves to the production environment.
-fn is_production(env: &str) -> bool {
-    crate::site_env::SiteEnv::parse(env)
-        .map(|e| e == crate::site_env::SiteEnv::Production)
-        .unwrap_or(false)
-}
-
-/// Build the database name for a project in one environment.
-///
-/// - `production` → `app_{branch}_{name}`
-/// - anything else (test/development/dev/staging) → `app_{branch}_{name}_dev`
-pub fn project_database_name(branch_id: Uuid, project_name: &str, env: &str) -> String {
-    let suffix = if is_production(env) { "" } else { "_dev" };
-    let max_base = MAX_DB_NAME_LEN - suffix.len();
-    let base = format!("app_{}_{}", branch_part(branch_id), sanitize_db_part(project_name));
-    let base = if base.len() > max_base {
-        base[..max_base].to_string()
-    } else {
-        base
-    };
-    format!("{base}{suffix}")
-}
-
-/// Validate a database name before it reaches SQL. Rejects anything that is
-/// not `[a-z0-9_]` (the only characters we ever generate) or too long.
-fn validate_db_name(name: &str) -> Result<(), String> {
-    if name.is_empty() || name.len() > MAX_DB_NAME_LEN {
-        return Err(format!("invalid database name length: {} chars", name.len()));
-    }
-    if !name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_') {
-        return Err(format!("invalid characters in database name '{name}'"));
-    }
-    Ok(())
-}
+pub use botcore::project_db::{
+    database_url_for, is_production_env, project_database_name, validate_db_name,
+    MAX_DB_NAME_LEN,
+};
 
 /// Whether a project kind needs a database at all. `website` is static HTMX
 /// served by the proxy; bots own their DB through `botcore::bot_database`.
@@ -178,26 +118,6 @@ pub fn drop_project_databases(
         }
     }
     errors
-}
-
-/// Connection URL for a project database, derived from the botserver main
-/// URL (credentials/host) with the database segment replaced. Callers must
-/// inject it as an environment variable and never log it.
-pub fn database_url_for(db_name: &str) -> String {
-    let base = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/botserver".to_string());
-    match base.rfind('/') {
-        Some(pos) => format!("{}/{db_name}{}", &base[..pos], query_suffix(&base)),
-        None => format!("{base}/{db_name}"),
-    }
-}
-
-/// Preserve a query string (`?sslmode=...`) from the original URL.
-fn query_suffix(original: &str) -> String {
-    match original.find('?') {
-        Some(pos) => original[pos..].to_string(),
-        None => String::new(),
-    }
 }
 
 #[cfg(test)]
