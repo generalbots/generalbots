@@ -323,6 +323,7 @@ botautotask = { workspace = true, features = ["llm"] }
 botvibe = { workspace = true, optional = true }
 botbasic_types = { path = "crates/botbasic_types" }
 botcore = { path = "crates/botcore" }
+botsecurity-core = { path = "crates/botsecurity-core" }
 botbasic_core = { path = "crates/botbasic_core" }
 botbasic_data = { path = "crates/botbasic_data" }
 botbasic_comms = { path = "crates/botbasic_comms" }

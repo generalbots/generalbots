@@ -3153,6 +3153,7 @@ dependencies = [
  "botsampledata",
  "botsearch",
  "botsecurity",
+ "botsecurity-core",
  "botsecurity-crypto",
  "botsettings",
  "botsheet",
