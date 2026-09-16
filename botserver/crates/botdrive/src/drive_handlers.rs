@@ -35,8 +35,24 @@ fn resolve_bucket<'a>(
     scope: &FileScope,
     user_id: Option<&'a str>,
     bot_name: Option<&'a str>,
+    user: &AuthenticatedUser,
 ) -> Result<String, (StatusCode, Json<serde_json::Value>)> {
     if let Some(b) = override_bucket {
+        // Tenant isolation (#1401): a client-supplied bucket name is only
+        // honored when it belongs to the caller's own tenant. Admins may
+        // address any bucket (admin tooling); everyone else is validated
+        // against their DB-backed org membership. This blocks cross-tenant
+        // reads like {user-a}.gborg content shown to {user-b}@{other-org}.
+        if !is_admin_user(user) {
+            let allowed = allowed_buckets_for(state, user);
+            if !allowed.iter().any(|a| a == b) {
+                warn!(
+                    "drive: denied bucket override '{}' for user {:?} (not a member)",
+                    b, user.email
+                );
+                return Err(err(StatusCode::FORBIDDEN, "Access denied for this bucket"));
+            }
+        }
         return Ok(b.to_string());
     }
     let default = &state.bucket_name;
@@ -44,6 +60,63 @@ fn resolve_bucket<'a>(
         return Err(err(StatusCode::BAD_REQUEST, "No bucket specified"));
     }
     Ok(user_scope::resolve_bucket_name(scope, user_id, bot_name, default))
+}
+
+/// Buckets the caller is entitled to address: their personal user- bucket,
+/// the instance default bucket, and one {slug}.gborg per org they belong to
+/// (via user_organizations or the signup-derived crm_contacts binding).
+fn allowed_buckets_for(state: &AppState, user: &AuthenticatedUser) -> Vec<String> {
+    let uid = get_user_id(user);
+    let mut allowed = vec![
+        user_scope::get_user_bucket(&uid),
+        state.bucket_name.clone(),
+    ];
+    if let Some(email) = user.email.as_deref().filter(|e| !e.is_empty()) {
+        if let Ok(mut conn) = state.conn.get() {
+            #[derive(diesel::QueryableByName)]
+            struct SlugRow {
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                slug: String,
+            }
+            let rows: Result<Vec<SlugRow>, _> = diesel::sql_query(
+                "SELECT o.slug AS slug FROM user_organizations uo \
+                 JOIN organizations o ON o.org_id = uo.org_id \
+                 JOIN users u ON u.id = uo.user_id \
+                 WHERE lower(u.email) = lower($1) \
+                 UNION \
+                 SELECT o.slug AS slug FROM crm_contacts c \
+                 JOIN branches br ON br.id = c.branch_id \
+                 JOIN organizations o ON o.org_id = br.org_id \
+                 WHERE lower(c.email) = lower($1)",
+            )
+            .bind::<diesel::sql_types::Text, _>(email)
+            .load(&mut conn);
+            match rows {
+                Ok(rows) => {
+                    for r in rows {
+                        allowed.push(format!("{}.gborg", r.slug));
+                    }
+                }
+                Err(e) => {
+                    warn!("drive: membership lookup failed for {email}: {e}");
+                }
+            }
+        }
+    }
+    allowed
+}
+
+/// Effective user-scope id: admins may address another user's scope
+/// (support tooling); everyone else is pinned to their own identity so a
+/// client-supplied user_id cannot impersonate another tenant's prefix.
+fn effective_uid(user: &AuthenticatedUser, requested: Option<&str>) -> String {
+    if is_admin_user(user) {
+        requested
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| get_user_id(user))
+    } else {
+        get_user_id(user)
+    }
 }
 
 fn get_drive(state: &AppState) -> Result<&Arc<dyn botlib::traits::DriveRepository>, (StatusCode, Json<serde_json::Value>)> {
@@ -148,8 +221,8 @@ pub async fn list_files(
 ) -> Result<Json<Vec<FileListItem>>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = params.scope.unwrap_or_default();
-    let uid = params.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
-    let bucket = resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let uid = effective_uid(&user, params.user_id.as_deref());
+    let bucket = resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let sub_path = normalize_path(params.path.as_deref().unwrap_or(""));
     let full_prefix = if sub_path.is_empty() {
@@ -184,8 +257,8 @@ pub async fn upload_file_to_drive(
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let uid = effective_uid(&user, req.user_id.as_deref());
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
 
     // Accept both raw text (designer/editor send the file content verbatim)
@@ -227,8 +300,8 @@ pub async fn read_file(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let uid = effective_uid(&user, req.user_id.as_deref());
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let key = format!("{prefix}{}", normalize_path(&req.path));
 
@@ -248,8 +321,8 @@ pub async fn download_file(
 ) -> Result<Json<DownloadFileResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let uid = effective_uid(&user, req.user_id.as_deref());
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let key = format!("{prefix}{}", normalize_path(&req.path));
 
@@ -271,8 +344,8 @@ pub async fn download_file_binary(
 ) -> Result<axum::response::Response, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let uid = effective_uid(&user, req.user_id.as_deref());
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let key = format!("{prefix}{}", normalize_path(&req.path));
 
@@ -306,8 +379,8 @@ pub async fn download_file_inline(
 ) -> Result<axum::response::Response, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let uid = effective_uid(&user, req.user_id.as_deref());
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let key = format!("{prefix}{}", normalize_path(&req.path));
 
@@ -360,8 +433,8 @@ pub async fn delete_file(
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let uid = effective_uid(&user, req.user_id.as_deref());
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let key = format!("{prefix}{}", normalize_path(&req.path));
 
@@ -381,8 +454,8 @@ pub async fn create_folder(
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let uid = effective_uid(&user, req.user_id.as_deref());
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let parent = normalize_path(&req.path);
     let folder_name = normalize_path(&req.name);
@@ -408,7 +481,7 @@ pub async fn copy_file(
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let uid = effective_uid(&user, req.user_id.as_deref());
     let prefix = resolve_scope_prefix(&scope, &uid);
 
     let src_bucket = req.source_bucket.as_deref().unwrap_or(&state.bucket_name);
@@ -437,7 +510,7 @@ pub async fn move_file(
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let uid = effective_uid(&user, req.user_id.as_deref());
     let prefix = resolve_scope_prefix(&scope, &uid);
 
     let src_bucket = req.source_bucket.as_deref().unwrap_or(&state.bucket_name);
@@ -473,8 +546,8 @@ pub async fn search_files(
 ) -> Result<Json<Vec<FileListItem>>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = params.scope.unwrap_or_default();
-    let uid = params.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
-    let bucket = resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let uid = effective_uid(&user, params.user_id.as_deref());
+    let bucket = resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let query = params.query.unwrap_or_default();
     let query_lower = query.to_lowercase();
@@ -507,8 +580,8 @@ pub async fn recent_files(
 ) -> Result<Json<Vec<FileListItem>>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = params.scope.unwrap_or_default();
-    let uid = params.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
-    let bucket = resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let uid = effective_uid(&user, params.user_id.as_deref());
+    let bucket = resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
 
     if let Ok(mut conn) = state.conn.get() {
@@ -583,14 +656,25 @@ pub async fn list_buckets(
         .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to list buckets: {e}")))?;
 
     let is_admin = is_admin_user(&user);
+
+    // Tenant isolation (#1401): non-admins only discover buckets they are
+    // entitled to — their personal user- bucket, the instance default, and
+    // one {slug}.gborg per org they belong to. Previously the filter let
+    // every non-.gbai bucket through, so ANY signed-in user could see and
+    // then list OTHER orgs' {slug}.gborg buckets (cross-tenant leak).
+    let owned: Vec<String> = if is_admin {
+        Vec::new()
+    } else {
+        allowed_buckets_for(&state, &user)
+    };
+
     let items: Vec<BucketListItem> = bucket_names
         .into_iter()
         .filter(|name| {
-            if !is_admin && !name.ends_with(".gbai") {
-                return true; // non-admins can see non-gbai buckets
-            }
-            if !is_admin && name.ends_with(".gbai") {
-                return false; // non-admins cannot see .gbai buckets
+            if !is_admin {
+                // Personal bucket, instance default, or caller's own org
+                // workspace bucket only. Other tenants are invisible.
+                return owned.iter().any(|a| a == name);
             }
             if let Some(ref bot) = params.bot {
                 let gbai = format!("{bot}.gbai");
@@ -774,7 +858,7 @@ pub async fn list_favorites(
     Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<TrashQueryParams>,
 ) -> Result<Json<Vec<StarItem>>, (StatusCode, Json<serde_json::Value>)> {
-    let uid = params.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let uid = effective_uid(&user, params.user_id.as_deref());
     if let Ok(mut conn) = state.conn.get() {
         #[derive(QueryableByName)]
         struct Row {
@@ -810,7 +894,7 @@ pub async fn toggle_star(
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<StarToggleBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let uid = effective_uid(&user, req.user_id.as_deref());
     let bucket = req.bucket.as_deref().unwrap_or("default");
     let path = &req.path;
 
@@ -842,7 +926,7 @@ pub async fn list_shared(
     Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<TrashQueryParams>,
 ) -> Result<Json<Vec<ShareItem>>, (StatusCode, Json<serde_json::Value>)> {
-    let uid = params.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let uid = effective_uid(&user, params.user_id.as_deref());
     if let Ok(mut conn) = state.conn.get() {
         #[derive(QueryableByName)]
         struct Row {
@@ -913,7 +997,7 @@ pub async fn list_trash(
     Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<TrashQueryParams>,
 ) -> Result<Json<Vec<TrashItem>>, (StatusCode, Json<serde_json::Value>)> {
-    let uid = params.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let uid = effective_uid(&user, params.user_id.as_deref());
     if let Ok(mut conn) = state.conn.get() {
         #[derive(QueryableByName)]
         struct Row {
@@ -966,8 +1050,8 @@ pub async fn trash_file(
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let uid = effective_uid(&user, req.user_id.as_deref());
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let key = format!("{prefix}{}", normalize_path(&req.path));
 
@@ -1007,7 +1091,7 @@ pub async fn restore_trash(
     Json(req): Json<RestoreTrashBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
-    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let uid = effective_uid(&user, req.user_id.as_deref());
 
     if let Ok(mut conn) = state.conn.get() {
         #[derive(QueryableByName)]
@@ -1048,7 +1132,7 @@ pub async fn empty_trash(
     Json(req): Json<EmptyTrashBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
-    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let uid = effective_uid(&user, req.user_id.as_deref());
 
     if let Ok(mut conn) = state.conn.get() {
         #[derive(QueryableByName)]
@@ -1121,8 +1205,8 @@ pub async fn ai_chat_handler(
 
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let uid = effective_uid(&user, req.user_id.as_deref());
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
 
     let mut files_context = String::new();
     if let Ok(objects) = drive.list_objects_with_metadata(&bucket, None).await {
@@ -1221,8 +1305,8 @@ pub async fn create_public_link(
 ) -> Result<Json<CreatePublicLinkResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None)?;
+    let uid = effective_uid(&user, req.user_id.as_deref());
+    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let path = normalize_path(&req.path);
     if path.is_empty() {
@@ -1294,7 +1378,7 @@ pub async fn list_public_links(
     Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<ListPublicLinksParams>,
 ) -> Result<Json<Vec<PublicLinkItem>>, (StatusCode, Json<serde_json::Value>)> {
-    let uid = params.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let uid = effective_uid(&user, params.user_id.as_deref());
     let mut conn = state
         .conn
         .get()
@@ -1344,7 +1428,7 @@ pub async fn revoke_public_link(
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<RevokePublicLinkBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let uid = req.user_id.as_deref().map(|s| s.to_string()).unwrap_or_else(|| get_user_id(&user));
+    let uid = effective_uid(&user, req.user_id.as_deref());
     let mut conn = state
         .conn
         .get()
