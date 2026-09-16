@@ -12,6 +12,18 @@ use tokio::time::{timeout, Duration};
 use uuid::Uuid;
 const DEFAULT_MAX_STEPS: u32 = 50;
 const DEFAULT_TIMEOUT_SECS: u64 = 600;
+
+/// #1386 — hard cap on one run. The default (600s) fits fast providers, but a
+/// large local model or a congested gateway needs several minutes per turn and
+/// every scaffold run then dies as "Agent loop timed out". Operators can raise
+/// the cap with `VIBE_RUN_TIMEOUT_SECS`; an unset/invalid value keeps 600s.
+fn run_timeout_cap() -> u64 {
+    std::env::var("VIBE_RUN_TIMEOUT_SECS")
+        .ok()
+        .and_then(|v| v.trim().parse::<u64>().ok())
+        .filter(|v| *v > 0)
+        .unwrap_or(DEFAULT_TIMEOUT_SECS)
+}
 const MAX_EMPTY_PARSE_RETRIES: u32 = 3;
 const MAX_TOOL_RESULT_CHARS: usize = 4000;
 const MAX_TOOL_RETRIES: u32 = 2;
@@ -77,8 +89,7 @@ impl AgentLoop {
         self.broadcast_event(run, "running", "Autonomous agent loop started", 0);
         let config = run.config.clone();
         let max_steps = config.max_tool_calls.min(DEFAULT_MAX_STEPS);
-        let timeout_duration =
-            Duration::from_secs(config.timeout_seconds.min(DEFAULT_TIMEOUT_SECS));
+        let timeout_duration = Duration::from_secs(config.timeout_seconds.min(run_timeout_cap()));
         // #1270 — shared with the LLM retry loop so it can stop retrying
         // when the remaining run time can no longer fit another attempt.
         let deadline = tokio::time::Instant::now() + timeout_duration;

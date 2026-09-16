@@ -194,6 +194,9 @@ if (typeof window.WindowManager === "undefined") {
       hxGet: a.url,
       description: a.description,
       icon: a.icon,
+      // #1386c — launcher visibility flag; surfaces that list apps to open
+      // (start menu, sidebar rail) honour it, programmatic openers do not.
+      launcher_default: a.launcher_default !== false,
       // #1289/#1291 — bot and vibe-app tiles deep-link their window (chat bot
       // binding, browser URL); launchFromMenu passes them to openDeepLink.
       deep_link_params: a.deep_link_params || null,
@@ -914,7 +917,9 @@ if (typeof window.WindowManager === "undefined") {
       categories.forEach(function (cat) {
         var apps = (window.APPS_REGISTRY || APPS_REGISTRY).filter(function (a) {
           // #1312 — Vibe toolwindows open from the Vibe toolbar only.
-          return !a.toolwindow && String(a.id).indexOf("vibe-") !== 0 && a.category === cat;
+          // #1386c — only apps pinned for the launcher are listed.
+          return !a.toolwindow && String(a.id).indexOf("vibe-") !== 0 &&
+            a.launcher_default !== false && a.category === cat;
         });
         if (enabledApps) {
           apps = apps.filter(function (a) {

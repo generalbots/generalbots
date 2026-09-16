@@ -246,9 +246,6 @@ async fn do_refresh_dev(pool: DbPool, args: Value) -> Result<Value, String> {
     let project = registry
         .get(pid)?
         .ok_or_else(|| format!("project {pid} not found"))?;
-    if !crate::project_db::kind_needs_database(&project.project_type) {
-        return Err("website projects have no database".to_string());
-    }
     let prod_db = crate::project_db::project_database_name(project.branch_id, &project.name, "production");
     let dev_db = crate::project_db::project_database_name(project.branch_id, &project.name, "test");
     // Ensure both exist before dumping.

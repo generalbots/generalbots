@@ -212,11 +212,12 @@ fn extract_bot_id(headers: &HeaderMap) -> Result<uuid::Uuid, (StatusCode, Json<s
 /// #1386 — Vibe project context for the Database pane. `X-Vibe-Project: <uuid>`
 /// selects the selected Vibe project's OWN database pair
 /// (`app_{branch}_{project}` / `..._dev`), exactly like the Chat and Terminal
-/// panes contextualize on the same selection. The project must belong to the
-/// caller's branch (resolved from the JWT claims — never client input), and
-/// `X-Db-Env` keeps switching between the project's production database and
-/// its dev twin. Project databases are created on demand so a fresh project
-/// can be inspected before its first run.
+/// panes contextualize on the same selection. Every project kind owns its
+/// pair (bots, websites and apps). The project must belong to the caller's
+/// branch (resolved from the JWT claims — never client input), and `X-Db-Env`
+/// keeps switching between the project's production database and its dev twin.
+/// Project databases are created on demand so a fresh project can be inspected
+/// before its first run.
 fn resolve_project_pool(
     project_id: uuid::Uuid,
     headers: &HeaderMap,
@@ -230,24 +231,15 @@ fn resolve_project_pool(
     struct ProjectRow {
         #[diesel(sql_type = diesel::sql_types::Text)]
         name: String,
-        #[diesel(sql_type = diesel::sql_types::Text)]
-        project_type: String,
         #[diesel(sql_type = diesel::sql_types::Uuid)]
         branch_id: uuid::Uuid,
     }
     let project: ProjectRow = diesel::sql_query(
-        "SELECT name, project_type, branch_id FROM vibe_projects WHERE id = $1",
+        "SELECT name, branch_id FROM vibe_projects WHERE id = $1",
     )
     .bind::<diesel::sql_types::Uuid, _>(project_id)
     .get_result(&mut conn)
     .map_err(|_| error_response("Vibe project not found"))?;
-
-    // Website projects are static payloads with no database pair.
-    if !botcore::project_db::project_kind_needs_database(&project.project_type) {
-        return Err(error_response(
-            "Website projects have no database — inspect the deployed files instead",
-        ));
-    }
 
     // Tenant check: the caller's branch must own the project (nil branch =
     // global/super-admin scope, same rule as authorize_bot_access).
