@@ -312,13 +312,24 @@ function proceedWithChatInit() {
   try {
     var qs = new URLSearchParams(window.location.search);
     if (qs.get("vibe") !== null || qs.get("run_id") !== null) {
-      if (window.VibeB) {
-        window.VibeB.open({
-          project: qs.get("vibe") || "",
-          run_id: qs.get("run_id") || ""
-        });
-      } else {
-        sessionStorage.setItem("gb_vibe_deeplink", window.location.search);
+      // Respect a remembered close (gb.vibe.closed=1) for the bare ?vibe
+      // case: a reload must not pop the bar back open once the user closed
+      // it. Explicit project/run deep links carry intent and still open.
+      var vibeBare = !qs.get("vibe") && !qs.get("run_id");
+      var vibeClosed = false;
+      try {
+        vibeClosed = vibeBare &&
+          localStorage.getItem("gb.vibe.closed") === "1";
+      } catch (e2) { /* storage unavailable — default to opening */ }
+      if (!vibeClosed) {
+        if (window.VibeB) {
+          window.VibeB.open({
+            project: qs.get("vibe") || "",
+            run_id: qs.get("run_id") || ""
+          });
+        } else {
+          sessionStorage.setItem("gb_vibe_deeplink", window.location.search);
+        }
       }
     }
   } catch (e) { /* non-fatal */ }
