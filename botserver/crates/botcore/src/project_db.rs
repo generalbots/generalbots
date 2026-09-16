@@ -73,12 +73,6 @@ pub fn project_database_name(branch_id: Uuid, project_name: &str, env: &str) -> 
     format!("{base}{suffix}")
 }
 
-/// Whether a project kind needs a database at all. `website` is static HTMX
-/// served by the proxy; bots and apps own real database pairs.
-pub fn project_kind_needs_database(project_type: &str) -> bool {
-    project_type != "website"
-}
-
 /// Validate a database name before it reaches SQL. Rejects anything that is
 /// not `[a-z0-9_]` (the only characters we ever generate) or too long.
 pub fn validate_db_name(name: &str) -> Result<(), String> {

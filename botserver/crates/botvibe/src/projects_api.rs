@@ -203,6 +203,25 @@ async fn create_project(
             // tile, src/apps/mod.rs), at `/chat/{slug}` and every other
             // bot-keyed subsystem. Non-fatal: failure logs and the project
             // continues to work in Vibe itself.
+            // #1386 — every project kind (bot, website, apps) owns its
+            // database pair from creation: `app_{branch}_{name}` and the
+            // `_dev` twin. One project, one database, both environments —
+            // the Database pane, the dev VM and the bot itself must all see
+            // the same database. Best-effort: a failure is reported by the
+            // pane, which creates a missing database on demand.
+            for env in ["production", "test"] {
+                if let Err(e) = crate::project_db::ensure_project_database(
+                    registry.pool(),
+                    p.branch_id,
+                    &p.name,
+                    env,
+                ) {
+                    log::warn!(
+                        "Vibe create: {env} database for project {} unavailable: {e}",
+                        p.name
+                    );
+                }
+            }
             if p.project_type == "bot" {
                 ensure_vibe_bot_row(&registry, &p, req.description.as_deref());
             }
@@ -515,6 +534,13 @@ fn bot_slug(name: &str) -> String {
 /// The row carries `origin='vibe'` — vibe bots are TEST bots: WS/chat
 /// reachable but never desktop-launcher tiles (launcher lists only
 /// `origin='drive'` production bots).
+/// #1386 — a `bot`-kind Vibe project IS a real bot, and its database is the
+/// project's own production database: the bot row carries the same
+/// `database_name` the Database pane resolves for the project, so the data a
+/// bot writes and the data the pane shows are one and the same (previously
+/// the bot fell back to a lazily generated `bot_{branch}_{name}` database,
+/// while the pane showed the project's `app_{branch}_{name}` — two databases
+/// for one project).
 fn ensure_vibe_bot_row(registry: &ProjectRegistry, project: &Project, description: Option<&str>) {
     use diesel::sql_types::{BigInt, Text, Uuid as SqlUuid};
 
@@ -550,11 +576,13 @@ fn ensure_vibe_bot_row(registry: &ProjectRegistry, project: &Project, descriptio
         .map(str::trim)
         .filter(|d| !d.is_empty())
         .unwrap_or("Vibe bot project");
+    let database_name =
+        crate::project_db::project_database_name(project.branch_id, &project.name, "production");
     match diesel::sql_query(
         "INSERT INTO bots (id, name, slug, description, org_id, branch_id, \
-             llm_provider, llm_config, context_provider, context_config, \
+             database_name, llm_provider, llm_config, context_provider, context_config, \
              is_active, is_public, origin, created_at, updated_at) \
-         VALUES ($1, $2, $3, $4, $5, $6, 'openai', '{}'::jsonb, 'openai', '{}'::jsonb, \
+         VALUES ($1, $2, $3, $4, $5, $6, $7, 'openai', '{}'::jsonb, 'openai', '{}'::jsonb, \
              true, true, 'vibe', NOW(), NOW()) \
          ON CONFLICT (slug) DO NOTHING",
     )
@@ -564,6 +592,7 @@ fn ensure_vibe_bot_row(registry: &ProjectRegistry, project: &Project, descriptio
     .bind::<Text, _>(description)
     .bind::<SqlUuid, _>(project.org_id)
     .bind::<SqlUuid, _>(project.branch_id)
+    .bind::<Text, _>(&database_name)
     .execute(&mut conn)
     {
         Ok(1) => log::info!(
@@ -955,20 +984,16 @@ async fn run_project_app(
     let port = query.port.unwrap_or_else(|| project_run_port(&project));
     // #1386 — the dev VM always gets the project's `_dev` database: dev Run
     // traffic can never read or write the production database.
-    let database_url = if crate::project_db::kind_needs_database(&project.project_type) {
-        match crate::project_db::ensure_project_database(
-            registry.pool(),
-            project.branch_id,
-            &project.name,
-            "test",
-        ) {
-            Ok(url) => Some(url),
-            Err(e) => {
-                return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "success": false, "error": e })));
-            }
+    let database_url = match crate::project_db::ensure_project_database(
+        registry.pool(),
+        project.branch_id,
+        &project.name,
+        "test",
+    ) {
+        Ok(url) => Some(url),
+        Err(e) => {
+            return (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({ "success": false, "error": e })));
         }
-    } else {
-        None
     };
     match lifecycle.run_dev_app(&vm.container_name, &files, port, database_url.as_deref()) {
         Ok(url) => (

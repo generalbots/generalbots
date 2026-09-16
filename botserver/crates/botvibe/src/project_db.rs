@@ -9,9 +9,10 @@
 //! | test/dev   | `app_{branch}_{project}_dev` |
 //!
 //! Naming mirrors `botcore::bot_database::generate_database_name`
-//! (`bot_{branch}_{bot}`) so bots and apps share one convention. `website`
-//! projects are static and get no database; they keep the twin layout only
-//! for their payload dirs (see `site_env.rs`).
+//! (`bot_{branch}_{bot}`) so bots and apps share one convention. Every
+//! project kind — bot, website and apps — owns its pair, so the Database
+//! pane is contextualized for all three (a static website's HTMX pages use
+//! its database through the same API as any other project).
 //!
 //! Security: database names are built exclusively from alphanumeric +
 //! underscore fragments and validated before reaching SQL, so identifier
@@ -25,12 +26,6 @@ pub use botcore::project_db::{
     database_url_for, is_production_env, project_database_name, validate_db_name,
     MAX_DB_NAME_LEN,
 };
-
-/// Whether a project kind needs a database at all. `website` is static HTMX
-/// served by the proxy; bots own their DB through `botcore::bot_database`.
-pub fn kind_needs_database(project_type: &str) -> bool {
-    project_type != "website"
-}
 
 #[derive(diesel::QueryableByName)]
 struct DbExistsRow {
@@ -153,14 +148,6 @@ mod tests {
             let db = project_database_name(BRANCH, name, "production");
             assert!(validate_db_name(&db).is_ok(), "{name} → {db}");
         }
-    }
-
-    #[test]
-    fn website_needs_no_db() {
-        assert!(!kind_needs_database("website"));
-        assert!(kind_needs_database("bot"));
-        assert!(kind_needs_database("apps"));
-        assert!(kind_needs_database("custom"));
     }
 
     #[test]

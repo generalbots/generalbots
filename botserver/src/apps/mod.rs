@@ -553,14 +553,17 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
     let derived: Vec<crate::core::bot::commands_derived::DerivedCommand> =
         crate::core::bot::commands_derived::derived_commands();
 
-    // #1386c — Vibe-first launcher: the catalog only advertises static apps
-    // pinned by default (Vibe). Every other native surface is a toolwindow
-    // pane inside the Vibe workbench, not a desktop application; hiding them
-    // from the catalog (not just the menu) also keeps them out of concierge
-    // plans and the app store grid. Dynamic tiles follow below unchanged.
+    // #1386c — Vibe-first launcher: the catalog carries EVERY app, each one
+    // flagged with `launcher_default`. The launcher surfaces (start menu,
+    // sidebar apps rail) show only the flagged ones (Vibe, plus the dynamic
+    // bot/published-app tiles) because every other native surface is a
+    // toolwindow pane of the Vibe workbench instead of a desktop app — but
+    // they must stay in the catalog, since the workbench opens them
+    // programmatically (`Vibe → Chat/Terminal/Browser/Database`) and the
+    // command palette and agent-control resolve them by id. Dynamic tiles
+    // follow below unchanged.
     let items: Vec<serde_json::Value> = apps
         .iter()
-        .filter(|a| a.launcher_default)
         .map(|a| {
             let id = a.id.as_str();
             let compiled = is_app_compiled(id) || CORE_APPS.contains(&id);

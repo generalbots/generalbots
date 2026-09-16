@@ -180,16 +180,29 @@ fn write_files(
         {
             return Err(format!("scaffold rejected unsafe path {path:?}"));
         }
-        let text = match content.as_str() {
-            Some(s) => s,
-            None => return Err(format!("scaffold file {path:?} is not a string")),
+        // A model often returns a data file (`package.json`, `data.json`) as a
+        // structured value instead of a JSON string. The content is what
+        // matters, so serialize it rather than rejecting the whole scaffold
+        // (a rejection drops every generated file and falls back to the
+        // built-in template).
+        let text = match content {
+            serde_json::Value::String(s) => s.clone(),
+            serde_json::Value::Object(_) | serde_json::Value::Array(_) => {
+                serde_json::to_string_pretty(content)
+                    .map_err(|e| format!("scaffold file {path:?} could not be serialized: {e}"))?
+            }
+            other => {
+                return Err(format!(
+                    "scaffold file {path:?} has unsupported value {other}"
+                ))
+            }
         };
         // Platform rule: NEVER use CDN links — all assets must be local. The
         // scaffold prompt already instructs the model, but LLMs occasionally
         // emit `unpkg`/`cdnjs`/`<script src="https://…">` tags anyway. Strip
         // remote resource tags (inline logic stays) so the app works offline
         // and complies with the local-assets directive.
-        let text = strip_remote_resources(text);
+        let text = strip_remote_resources(&text);
         total += text.len();
         if total > MAX_SCAFFOLD_BYTES {
             return Err(format!(
@@ -298,6 +311,19 @@ mod tests {
             Some(v) => std::env::set_var("LLM_KEY", v),
             None => std::env::remove_var("LLM_KEY"),
         }
+    }
+
+    #[test]
+    fn accepts_structured_file_contents() {
+        let mut map = serde_json::Map::new();
+        map.insert(
+            "package.json".into(),
+            serde_json::json!({ "name": "demo", "private": true }),
+        );
+        assert!(write_files("p", &map).is_ok());
+        let mut bool_map = serde_json::Map::new();
+        bool_map.insert("flag".into(), serde_json::Value::Bool(true));
+        assert!(write_files("p", &bool_map).is_err());
     }
 
     #[test]

@@ -101,9 +101,15 @@ window.GBSidebarApps = window.GBSidebarApps || {};
     nav.appendChild(wrap);
 
     function fill() {
-      var reg = (window.APPS_REGISTRY || []).slice().sort(function (a, b) {
-        return String(a.title || a.id).localeCompare(String(b.title || b.id));
-      });
+      var reg = (window.APPS_REGISTRY || [])
+        // #1386c — the rail lists apps the user can open by hand. Every other
+        // native surface is a Vibe workbench pane (opened from the Vibe
+        // toolbar), so it never shows up as a standalone app here.
+        .filter(function (a) { return a.launcher_default !== false; })
+        .slice()
+        .sort(function (a, b) {
+          return String(a.title || a.id).localeCompare(String(b.title || b.id));
+        });
       title.textContent = "Apps";
       grid.innerHTML = "";
       var previewCount = 0;
