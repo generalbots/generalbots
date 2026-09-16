@@ -727,7 +727,8 @@ pub async fn list_buckets(
     // then list OTHER orgs' {slug}.gborg buckets (cross-tenant leak).
     // Bypass is SUPER-admin only: the global RBAC `admin` group also holds
     // plain org admins, who must stay confined to their own tenant.
-    let owned: Vec<String> = if is_platform_admin(&state, &user) {
+    let platform_admin = is_platform_admin(&state, &user);
+    let owned: Vec<String> = if platform_admin {
         Vec::new()
     } else {
         allowed_buckets_for(&state, &user)
@@ -736,7 +737,7 @@ pub async fn list_buckets(
     let items: Vec<BucketListItem> = bucket_names
         .into_iter()
         .filter(|name| {
-            if !is_platform_admin(&state, &user) {
+            if !platform_admin {
                 // Personal bucket, instance default, or caller's own org
                 // workspace bucket only. Other tenants are invisible.
                 return owned.iter().any(|a| a == name);
