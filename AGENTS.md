@@ -1042,6 +1042,7 @@ git push origin main
 
 - **Unit tests:** per-crate `tests/` or inline `#[cfg(test)]`; naming `test_` prefix; run `cargo test -p <crate>`
 - **Integration tests:** `bottest/` crate — full workflows across crates; run `cargo test -p bottest`
+- **Tenant isolation regression suite:** `bottest/tests/integration/tenant_isolation.rs` — MUST stay green; guards drive/CRM/product tenant scoping (#1387, #1388, #1389). Run `cargo test -p bottest --features integration tenant_isolation` before touching any tenant/bucket/org-scoped handler.
 - **Coverage goals:** critical paths 80%+ · ALL error paths tested · all security guards tested
 
 ### WhatsApp Integration Testing

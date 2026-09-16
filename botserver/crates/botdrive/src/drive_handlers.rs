@@ -38,12 +38,13 @@ fn resolve_bucket<'a>(
     user: &AuthenticatedUser,
 ) -> Result<String, (StatusCode, Json<serde_json::Value>)> {
     if let Some(b) = override_bucket {
-        // Tenant isolation (#1401): a client-supplied bucket name is only
-        // honored when it belongs to the caller's own tenant. Admins may
-        // address any bucket (admin tooling); everyone else is validated
-        // against their DB-backed org membership. This blocks cross-tenant
-        // reads like {user-a}.gborg content shown to {user-b}@{other-org}.
-        if !is_super_admin_user(user) {
+        // Tenant isolation (#1401, #1387): a client-supplied bucket name is
+        // only honored when it belongs to the caller's own tenant. PLATFORM
+        // admins may address any bucket (admin tooling); everyone else is
+        // validated against their DB-backed org membership. This blocks
+        // cross-tenant reads like {user-a}.gborg content shown to
+        // {user-b}@{other-org}.
+        if !is_platform_admin(state, user) {
             let allowed = allowed_buckets_for(state, user);
             if !allowed.iter().any(|a| a == b) {
                 warn!(
@@ -128,8 +129,8 @@ fn allowed_buckets_for(state: &AppState, user: &AuthenticatedUser) -> Vec<String
 /// Effective user-scope id: admins may address another user's scope
 /// (support tooling); everyone else is pinned to their own identity so a
 /// client-supplied user_id cannot impersonate another tenant's prefix.
-fn effective_uid(user: &AuthenticatedUser, requested: Option<&str>) -> String {
-    if is_super_admin_user(user) {
+fn effective_uid(state: &AppState, user: &AuthenticatedUser, requested: Option<&str>) -> String {
+    if is_platform_admin(state, user) {
         requested
             .map(|s| s.to_string())
             .unwrap_or_else(|| get_user_id(user))
@@ -231,12 +232,43 @@ fn is_admin_user(user: &AuthenticatedUser) -> bool {
     user.is_admin() || user.is_super_admin()
 }
 
-/// Drive tenant checks (#1401) bypass ONLY for super admins. Plain org
-/// "admin" role stays confined to its own tenant: RBAC's global `admin`
-/// group is also how ORG admins are modeled, so treating them as global
-/// admins let e.g. contato@sentient read pragmatismo's buckets.
-fn is_super_admin_user(user: &AuthenticatedUser) -> bool {
-    user.is_super_admin()
+/// Drive tenant checks (#1401, #1387): the cross-tenant bypass is reserved
+/// for PLATFORM admins — an explicit `superadmin` role or a member of the
+/// reserved root org (`organizations.slug = 'default'`, the first/default
+/// account that owns the seeded cloud catalog). Plain org "admin" role stays
+/// confined to its own tenant: RBAC's global `admin` group is also how ORG
+/// admins are modeled, so treating them as platform admins let e.g.
+/// contato@sentient read pragmatismo's buckets.
+fn is_platform_admin(state: &AppState, user: &AuthenticatedUser) -> bool {
+    if user.is_super_admin() {
+        return true;
+    }
+    let email = match user.email.as_deref().filter(|e| !e.is_empty()) {
+        Some(e) => e,
+        None => return false,
+    };
+    let mut conn = match state.conn.get() {
+        Ok(c) => c,
+        Err(e) => {
+            warn!("drive: platform-admin check skipped (DB pool error): {e}");
+            return false;
+        }
+    };
+    #[derive(diesel::QueryableByName)]
+    struct CountRow {
+        #[diesel(sql_type = BigInt)]
+        count: i64,
+    }
+    diesel::sql_query(
+        "SELECT COUNT(*) AS count FROM user_organizations uo \
+         JOIN organizations o ON o.org_id = uo.org_id \
+         JOIN users u ON u.id = uo.user_id \
+         WHERE lower(u.email) = lower($1) AND o.slug = 'default'",
+    )
+    .bind::<Text, _>(email)
+    .get_result::<CountRow>(&mut conn)
+    .map(|r| r.count > 0)
+    .unwrap_or(false)
 }
 
 #[derive(diesel::QueryableByName)]
@@ -254,7 +286,7 @@ pub async fn list_files(
 ) -> Result<Json<Vec<FileListItem>>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = params.scope.unwrap_or_default();
-    let uid = effective_uid(&user, params.user_id.as_deref());
+    let uid = effective_uid(&state, &user, params.user_id.as_deref());
     let bucket = resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let sub_path = normalize_path(params.path.as_deref().unwrap_or(""));
@@ -290,7 +322,7 @@ pub async fn upload_file_to_drive(
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = effective_uid(&user, req.user_id.as_deref());
+    let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
 
@@ -333,7 +365,7 @@ pub async fn read_file(
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = effective_uid(&user, req.user_id.as_deref());
+    let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let key = format!("{prefix}{}", normalize_path(&req.path));
@@ -354,7 +386,7 @@ pub async fn download_file(
 ) -> Result<Json<DownloadFileResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = effective_uid(&user, req.user_id.as_deref());
+    let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let key = format!("{prefix}{}", normalize_path(&req.path));
@@ -377,7 +409,7 @@ pub async fn download_file_binary(
 ) -> Result<axum::response::Response, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = effective_uid(&user, req.user_id.as_deref());
+    let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let key = format!("{prefix}{}", normalize_path(&req.path));
@@ -412,7 +444,7 @@ pub async fn download_file_inline(
 ) -> Result<axum::response::Response, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = effective_uid(&user, req.user_id.as_deref());
+    let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let key = format!("{prefix}{}", normalize_path(&req.path));
@@ -466,7 +498,7 @@ pub async fn delete_file(
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = effective_uid(&user, req.user_id.as_deref());
+    let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let key = format!("{prefix}{}", normalize_path(&req.path));
@@ -487,7 +519,7 @@ pub async fn create_folder(
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = effective_uid(&user, req.user_id.as_deref());
+    let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let parent = normalize_path(&req.path);
@@ -514,7 +546,7 @@ pub async fn copy_file(
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = effective_uid(&user, req.user_id.as_deref());
+    let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let prefix = resolve_scope_prefix(&scope, &uid);
 
     let src_bucket = req.source_bucket.as_deref().unwrap_or(&state.bucket_name);
@@ -543,7 +575,7 @@ pub async fn move_file(
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = effective_uid(&user, req.user_id.as_deref());
+    let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let prefix = resolve_scope_prefix(&scope, &uid);
 
     let src_bucket = req.source_bucket.as_deref().unwrap_or(&state.bucket_name);
@@ -579,7 +611,7 @@ pub async fn search_files(
 ) -> Result<Json<Vec<FileListItem>>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = params.scope.unwrap_or_default();
-    let uid = effective_uid(&user, params.user_id.as_deref());
+    let uid = effective_uid(&state, &user, params.user_id.as_deref());
     let bucket = resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let query = params.query.unwrap_or_default();
@@ -613,7 +645,7 @@ pub async fn recent_files(
 ) -> Result<Json<Vec<FileListItem>>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = params.scope.unwrap_or_default();
-    let uid = effective_uid(&user, params.user_id.as_deref());
+    let uid = effective_uid(&state, &user, params.user_id.as_deref());
     let bucket = resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
 
@@ -695,7 +727,7 @@ pub async fn list_buckets(
     // then list OTHER orgs' {slug}.gborg buckets (cross-tenant leak).
     // Bypass is SUPER-admin only: the global RBAC `admin` group also holds
     // plain org admins, who must stay confined to their own tenant.
-    let owned: Vec<String> = if is_super_admin_user(&user) {
+    let owned: Vec<String> = if is_platform_admin(&state, &user) {
         Vec::new()
     } else {
         allowed_buckets_for(&state, &user)
@@ -704,7 +736,7 @@ pub async fn list_buckets(
     let items: Vec<BucketListItem> = bucket_names
         .into_iter()
         .filter(|name| {
-            if !is_super_admin_user(&user) {
+            if !is_platform_admin(&state, &user) {
                 // Personal bucket, instance default, or caller's own org
                 // workspace bucket only. Other tenants are invisible.
                 return owned.iter().any(|a| a == name);
@@ -729,8 +761,14 @@ pub async fn list_buckets(
 
 pub async fn create_bot(
     State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<CreateBotRequest>,
 ) -> Result<Json<CreateBotResponse>, (StatusCode, Json<serde_json::Value>)> {
+    // Tenant isolation (#1387): only admins may provision bots, and an org
+    // admin may only provision inside its own tenant (name-scoped below).
+    if !is_admin_user(&user) {
+        return Err(err(StatusCode::FORBIDDEN, "Administrator access required"));
+    }
     let name = req.name.trim().to_lowercase();
     if name.is_empty() || !name.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '-') {
         return Err(err(StatusCode::BAD_REQUEST, "Invalid bot name. Use lowercase letters, numbers, and hyphens (3-50 chars)."));
@@ -792,6 +830,21 @@ pub async fn delete_bot(
     }
     if bot_name.len() < 3 || bot_name.len() > 50 {
         return Err(err(StatusCode::BAD_REQUEST, "Bot name must be between 3 and 50 characters."));
+    }
+
+    // Tenant isolation (#1387): an org admin may only delete bots inside its
+    // own tenant. The client supplies the name, so without this check any
+    // org admin could destroy ANY tenant's bot bucket.
+    if !is_platform_admin(&state, &user) {
+        let gbai = format!("{bot_name}.gbai");
+        let allowed = allowed_buckets_for(&state, &user);
+        if !allowed.iter().any(|a| a == &gbai) {
+            warn!(
+                "drive: denied bot delete '{}' for user {:?} (not a member)",
+                bot_name, user.email
+            );
+            return Err(err(StatusCode::FORBIDDEN, "Access denied for this bot"));
+        }
     }
 
     let bucket_name = format!("{}.gbai", bot_name);
@@ -891,7 +944,7 @@ pub async fn list_favorites(
     Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<TrashQueryParams>,
 ) -> Result<Json<Vec<StarItem>>, (StatusCode, Json<serde_json::Value>)> {
-    let uid = effective_uid(&user, params.user_id.as_deref());
+    let uid = effective_uid(&state, &user, params.user_id.as_deref());
     if let Ok(mut conn) = state.conn.get() {
         #[derive(QueryableByName)]
         struct Row {
@@ -927,7 +980,7 @@ pub async fn toggle_star(
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<StarToggleBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let uid = effective_uid(&user, req.user_id.as_deref());
+    let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = req.bucket.as_deref().unwrap_or("default");
     let path = &req.path;
 
@@ -959,7 +1012,7 @@ pub async fn list_shared(
     Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<TrashQueryParams>,
 ) -> Result<Json<Vec<ShareItem>>, (StatusCode, Json<serde_json::Value>)> {
-    let uid = effective_uid(&user, params.user_id.as_deref());
+    let uid = effective_uid(&state, &user, params.user_id.as_deref());
     if let Ok(mut conn) = state.conn.get() {
         #[derive(QueryableByName)]
         struct Row {
@@ -1030,7 +1083,7 @@ pub async fn list_trash(
     Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<TrashQueryParams>,
 ) -> Result<Json<Vec<TrashItem>>, (StatusCode, Json<serde_json::Value>)> {
-    let uid = effective_uid(&user, params.user_id.as_deref());
+    let uid = effective_uid(&state, &user, params.user_id.as_deref());
     if let Ok(mut conn) = state.conn.get() {
         #[derive(QueryableByName)]
         struct Row {
@@ -1083,7 +1136,7 @@ pub async fn trash_file(
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = effective_uid(&user, req.user_id.as_deref());
+    let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let key = format!("{prefix}{}", normalize_path(&req.path));
@@ -1124,7 +1177,7 @@ pub async fn restore_trash(
     Json(req): Json<RestoreTrashBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
-    let uid = effective_uid(&user, req.user_id.as_deref());
+    let uid = effective_uid(&state, &user, req.user_id.as_deref());
 
     if let Ok(mut conn) = state.conn.get() {
         #[derive(QueryableByName)]
@@ -1165,7 +1218,7 @@ pub async fn empty_trash(
     Json(req): Json<EmptyTrashBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
-    let uid = effective_uid(&user, req.user_id.as_deref());
+    let uid = effective_uid(&state, &user, req.user_id.as_deref());
 
     if let Ok(mut conn) = state.conn.get() {
         #[derive(QueryableByName)]
@@ -1238,7 +1291,7 @@ pub async fn ai_chat_handler(
 
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = effective_uid(&user, req.user_id.as_deref());
+    let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
 
     let mut files_context = String::new();
@@ -1338,7 +1391,7 @@ pub async fn create_public_link(
 ) -> Result<Json<CreatePublicLinkResponse>, (StatusCode, Json<serde_json::Value>)> {
     let drive = get_drive(&state)?;
     let scope = req.scope.unwrap_or_default();
-    let uid = effective_uid(&user, req.user_id.as_deref());
+    let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let path = normalize_path(&req.path);
@@ -1411,7 +1464,7 @@ pub async fn list_public_links(
     Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<ListPublicLinksParams>,
 ) -> Result<Json<Vec<PublicLinkItem>>, (StatusCode, Json<serde_json::Value>)> {
-    let uid = effective_uid(&user, params.user_id.as_deref());
+    let uid = effective_uid(&state, &user, params.user_id.as_deref());
     let mut conn = state
         .conn
         .get()
@@ -1461,7 +1514,7 @@ pub async fn revoke_public_link(
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<RevokePublicLinkBody>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let uid = effective_uid(&user, req.user_id.as_deref());
+    let uid = effective_uid(&state, &user, req.user_id.as_deref());
     let mut conn = state
         .conn
         .get()
