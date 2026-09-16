@@ -18,6 +18,20 @@
 
     function openVibe(params) {
         var p = params || {};
+        // Choke point: a BARE open (no project, no run_id) while the user
+        // has a remembered close (gb.vibe.closed=1) is a no-op. Every caller
+        // (bridge boot, chat-init deeplinks, launcher) goes through here, so
+        // even stale cached callers cannot pop the bar back open once the
+        // user closed it. Explicit project/run opens carry intent and pass.
+        if (!p.project && !p.run_id) {
+            try {
+                if (localStorage.getItem("gb.vibe.closed") === "1") {
+                    return false;
+                }
+            } catch (e) {
+                /* storage unavailable — keep the default open behavior */
+            }
+        }
         if (!window.openDeepLink) return false;
         var q = {};
         if (p.project) q.project = String(p.project);
@@ -32,6 +46,18 @@
     function consumeUrlParams() {
         var q = parseQuery();
         if (!q.open) return;
+        // Respect a remembered close (gb.vibe.closed=1) for bare ?vibe deep
+        // links: a reload of ?vibe must not pop the bar back open once the
+        // user closed it. Explicit project/run deep links (?vibe=<id>,
+        // ?run_id=<id>) carry clear intent and still open the bar.
+        try {
+            if (!q.project && !q.run_id &&
+                localStorage.getItem("gb.vibe.closed") === "1") {
+                return;
+            }
+        } catch (e) {
+            /* storage unavailable — keep the default open behavior */
+        }
         setTimeout(function () {
             openVibe({ project: q.project || null, run_id: q.run_id || null });
         }, 600);
