@@ -43,7 +43,7 @@ fn resolve_bucket<'a>(
         // address any bucket (admin tooling); everyone else is validated
         // against their DB-backed org membership. This blocks cross-tenant
         // reads like {user-a}.gborg content shown to {user-b}@{other-org}.
-        if !is_admin_user(user) {
+        if !is_super_admin_user(user) {
             let allowed = allowed_buckets_for(state, user);
             if !allowed.iter().any(|a| a == b) {
                 warn!(
@@ -77,14 +77,16 @@ fn allowed_buckets_for(state: &AppState, user: &AuthenticatedUser) -> Vec<String
             struct SlugRow {
                 #[diesel(sql_type = diesel::sql_types::Text)]
                 slug: String,
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                org_id: String,
             }
             let rows: Result<Vec<SlugRow>, _> = diesel::sql_query(
-                "SELECT o.slug AS slug FROM user_organizations uo \
+                "SELECT o.slug AS slug, o.org_id::text AS org_id FROM user_organizations uo \
                  JOIN organizations o ON o.org_id = uo.org_id \
                  JOIN users u ON u.id = uo.user_id \
                  WHERE lower(u.email) = lower($1) \
                  UNION \
-                 SELECT o.slug AS slug FROM crm_contacts c \
+                 SELECT o.slug AS slug, o.org_id::text AS org_id FROM crm_contacts c \
                  JOIN branches br ON br.id = c.branch_id \
                  JOIN organizations o ON o.org_id = br.org_id \
                  WHERE lower(c.email) = lower($1)",
@@ -94,7 +96,24 @@ fn allowed_buckets_for(state: &AppState, user: &AuthenticatedUser) -> Vec<String
             match rows {
                 Ok(rows) => {
                     for r in rows {
+                        // Org workspace bucket: {slug}.gborg — plus every bot
+                        // bucket {bot}.gbai owned by the caller's orgs. The
+                        // slug does not always match the deployed bot name
+                        // (org `sentient-org` hosts bot `sentient`, whose
+                        // bucket is sentient.gbai), so derive from bots.
                         allowed.push(format!("{}.gborg", r.slug));
+                        allowed.push(format!("{}.gbai", r.slug));
+                        let bot_rows: Result<Vec<BotName>, _> = diesel::sql_query(
+                            "SELECT b.name AS name FROM bots b WHERE b.org_id = $1::uuid",
+                        )
+                        .bind::<diesel::sql_types::Text, _>(&r.org_id)
+                        .load(&mut conn);
+                        if let Ok(bots) = bot_rows {
+                            for b in bots {
+                                allowed.push(format!("{}.gbai", b.name));
+                                allowed.push(format!("{}.gborg", b.name));
+                            }
+                        }
                     }
                 }
                 Err(e) => {
@@ -110,7 +129,7 @@ fn allowed_buckets_for(state: &AppState, user: &AuthenticatedUser) -> Vec<String
 /// (support tooling); everyone else is pinned to their own identity so a
 /// client-supplied user_id cannot impersonate another tenant's prefix.
 fn effective_uid(user: &AuthenticatedUser, requested: Option<&str>) -> String {
-    if is_admin_user(user) {
+    if is_super_admin_user(user) {
         requested
             .map(|s| s.to_string())
             .unwrap_or_else(|| get_user_id(user))
@@ -210,6 +229,20 @@ fn get_user_id(user: &AuthenticatedUser) -> String {
 
 fn is_admin_user(user: &AuthenticatedUser) -> bool {
     user.is_admin() || user.is_super_admin()
+}
+
+/// Drive tenant checks (#1401) bypass ONLY for super admins. Plain org
+/// "admin" role stays confined to its own tenant: RBAC's global `admin`
+/// group is also how ORG admins are modeled, so treating them as global
+/// admins let e.g. contato@sentient read pragmatismo's buckets.
+fn is_super_admin_user(user: &AuthenticatedUser) -> bool {
+    user.is_super_admin()
+}
+
+#[derive(diesel::QueryableByName)]
+struct BotName {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    name: String,
 }
 
 // ====== Handlers ======
@@ -655,14 +688,14 @@ pub async fn list_buckets(
         .await
         .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to list buckets: {e}")))?;
 
-    let is_admin = is_admin_user(&user);
-
     // Tenant isolation (#1401): non-admins only discover buckets they are
     // entitled to — their personal user- bucket, the instance default, and
     // one {slug}.gborg per org they belong to. Previously the filter let
     // every non-.gbai bucket through, so ANY signed-in user could see and
     // then list OTHER orgs' {slug}.gborg buckets (cross-tenant leak).
-    let owned: Vec<String> = if is_admin {
+    // Bypass is SUPER-admin only: the global RBAC `admin` group also holds
+    // plain org admins, who must stay confined to their own tenant.
+    let owned: Vec<String> = if is_super_admin_user(&user) {
         Vec::new()
     } else {
         allowed_buckets_for(&state, &user)
@@ -671,7 +704,7 @@ pub async fn list_buckets(
     let items: Vec<BucketListItem> = bucket_names
         .into_iter()
         .filter(|name| {
-            if !is_admin {
+            if !is_super_admin_user(&user) {
                 // Personal bucket, instance default, or caller's own org
                 // workspace bucket only. Other tenants are invisible.
                 return owned.iter().any(|a| a == name);

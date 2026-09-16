@@ -203,8 +203,13 @@ pub fn validate_session_sync(session_id: &str) -> Result<AuthenticatedUser, Auth
                 Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{}", user_data.user_id).as_bytes())
             });
 
-            let mut user =
-                AuthenticatedUser::new(user_id, user_data.email.clone()).with_session(session_id);
+            // Carry the email on the identity: drive tenant isolation
+            // (#1401) resolves org membership by email — without it the
+            // entitlement lookup finds no rows and every bucket override
+            // (even the caller's OWN org bucket) gets denied.
+            let mut user = AuthenticatedUser::new(user_id, user_data.email.clone())
+                .with_email(user_data.email.clone())
+                .with_session(session_id);
 
             // Add roles from cached user data
             for role_str in &user_data.roles {
