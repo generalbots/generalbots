@@ -115,46 +115,16 @@ fn base64_url_decode(input: &str) -> Result<Vec<u8>, String> {
 }
 
 fn is_super_admin(svc: &SharedService, headers: &HeaderMap) -> Result<bool, (StatusCode, String)> {
-    let email = headers
-        .get("authorization")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer "))
-        .and_then(jwt_payload)
-        .and_then(|p| p.get("email").and_then(|e| e.as_str()).map(String::from));
-    if email.as_deref() == Some("admin@localhost") {
-        return Ok(true);
-    }
-    #[derive(diesel::QueryableByName)]
-    struct OrgRow {
-        #[diesel(sql_type = diesel::sql_types::Uuid)]
-        org_id: Uuid,
-    }
+    // Canonical platform-admin check (#1387) — same root-org membership
+    // model as drive tenant isolation and botcloud admin gates.
     let mut conn = svc.pool().get().map_err(|e| {
         tracing::error!("browser policy admin check: pool unavailable: {e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Storage failure".to_string())
     })?;
-    let user_org: Option<Uuid> = diesel::sql_query(
-        "SELECT branch_id AS org_id FROM crm_contacts WHERE email = $1 LIMIT 1",
-    )
-    .bind::<diesel::sql_types::Text, _>(email.unwrap_or_default())
-    .get_result::<OrgRow>(&mut conn)
-    .optional()
-    .map_err(|e| {
+    botsecurity_auth::platform_admin::is_platform_admin(&mut conn, headers).map_err(|e| {
         tracing::error!("browser policy admin check query failed: {e}");
         (StatusCode::INTERNAL_SERVER_ERROR, "Storage failure".to_string())
-    })?
-    .map(|r| r.org_id);
-    let default_org: Option<Uuid> = diesel::sql_query(
-        "SELECT id AS org_id FROM organizations WHERE slug = 'default' LIMIT 1",
-    )
-    .get_result::<OrgRow>(&mut conn)
-    .optional()
-    .map_err(|e| {
-        tracing::error!("browser policy default org query failed: {e}");
-        (StatusCode::INTERNAL_SERVER_ERROR, "Storage failure".to_string())
-    })?
-    .map(|r| r.org_id);
-    Ok(user_org.is_some() && user_org == default_org)
+    })
 }
 
 #[derive(Debug, Deserialize)]
