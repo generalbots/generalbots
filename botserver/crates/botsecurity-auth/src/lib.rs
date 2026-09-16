@@ -7,6 +7,7 @@ pub mod csrf;
 pub mod jwt;
 pub mod mfa;
 pub mod password;
+pub mod platform_admin;
 pub mod rate_limiter;
 pub mod rbac_middleware;
 pub mod saas_jwt_auth;

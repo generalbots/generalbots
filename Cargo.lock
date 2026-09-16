@@ -1588,6 +1588,7 @@ version = "6.3.1"
 dependencies = [
  "async-stream",
  "axum",
+ "botsecurity-auth",
  "chrono",
  "diesel",
  "futures",
@@ -1710,6 +1711,7 @@ dependencies = [
  "botproducts",
  "botproviders",
  "botsecurity",
+ "botsecurity-auth",
  "botsecurity-crypto",
  "chrono",
  "diesel",

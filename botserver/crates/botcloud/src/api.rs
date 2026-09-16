@@ -1546,54 +1546,15 @@ pub fn get_branch_id_from_jwt(
 }
 
 /// Check if the authenticated user is the SaaS super-admin.
-/// A user is super-admin if their CRM org is the default organization
-/// (slug = 'default'). In development, the bootstrap admin email
-/// (admin@localhost) is also treated as super-admin.
+/// Delegates to the canonical platform-admin helper (#1387): explicit
+/// membership in the reserved root org (slug = 'default', the first/
+/// default bot's org owning the seeded catalog) via user_organizations ∪
+/// crm_contacts→branches, or the dev bootstrap admin (admin@localhost).
 pub fn is_super_admin(
     headers: &HeaderMap,
     conn: &mut diesel::PgConnection,
 ) -> Result<bool, String> {
-    // Extract email from JWT
-    let user_email = headers.get("authorization")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer "))
-        .and_then(|token| {
-            let parts: Vec<&str> = token.split('.').collect();
-            if parts.len() == 3 {
-                base64_url_decode(parts[1]).ok()
-                    .and_then(|decoded| serde_json::from_slice::<serde_json::Value>(&decoded).ok())
-                    .and_then(|payload| payload.get("email").and_then(|v| v.as_str()).map(|s| s.to_string()))
-            } else { None }
-        });
-
-    // Dev mode: admin@localhost is always super-admin
-    if let Some(ref email) = user_email {
-        if email == "admin@localhost" {
-            return Ok(true);
-        }
-    }
-
-    // Check if user's organization is the default org
-    let user_org_id = get_branch_id_from_jwt(headers, conn)?;
-
-    #[derive(diesel::QueryableByName)]
-    struct DefaultOrgRow {
-        #[diesel(sql_type = diesel::sql_types::Uuid)]
-        org_id: Uuid,
-    }
-
-    let default_org_id: Option<Uuid> = diesel::sql_query(
-        "SELECT org_id FROM organizations WHERE slug = 'default' LIMIT 1"
-    )
-    .get_result::<DefaultOrgRow>(conn)
-    .optional()
-    .map_err(|e| format!("Query default org: {e}?"))?
-    .map(|r| r.org_id);
-
-    match (user_org_id, default_org_id) {
-        (Some(uid), Some(did)) => Ok(uid == did),
-        _ => Ok(false),
-    }
+    botsecurity_auth::platform_admin::is_platform_admin(conn, headers)
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
