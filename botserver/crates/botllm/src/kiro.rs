@@ -298,10 +298,8 @@ impl KiroClient {
         ];
         loop {
             let next = stream.next().await;
-            if let Some(chunk) = &next {
-                if let Ok(bytes) = chunk {
-                    buffer.push_str(&String::from_utf8_lossy(bytes));
-                }
+            if let Some(Ok(bytes)) = &next {
+                buffer.push_str(&String::from_utf8_lossy(bytes));
             }
             // Parse all complete events out of the buffer.
             loop {

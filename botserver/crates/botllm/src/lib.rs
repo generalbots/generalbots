@@ -6,6 +6,7 @@ pub mod kimi;
 pub mod kiro;
 pub mod llm_models;
 pub mod rate_limiter;
+pub mod retry;
 pub mod vertex;
 pub mod cache;
 pub mod ci_gate;
@@ -428,7 +429,10 @@ impl LLMProvider for OpenAIClient {
             "stream": false
         });
 
-        let max_retries = 2;
+        // #1393 — serialize calls process-wide (chat + vibe + scaffold share
+        // one provider key; free tiers enforce per-client concurrency ~1).
+        let _gate = retry::call_gate().acquire().await;
+        let max_retries = 6;
         let mut result = None;
         for attempt in 0..=max_retries {
             let outcome = async {
@@ -441,31 +445,37 @@ impl LLMProvider for OpenAIClient {
                     .await
                     .map_err(|e| format!("HTTP error: {}", e))?;
                 let status = resp.status();
+                let retry_after = resp
+                    .headers()
+                    .get("retry-after")
+                    .and_then(|v| v.to_str().ok().map(str::to_string));
                 let text = resp.text().await.unwrap_or_default();
-                Ok::<(u16, String), String>((status.as_u16(), text))
+                Ok::<(u16, String, Option<String>), String>((status.as_u16(), text, retry_after))
             }.await;
 
             match outcome {
-                Ok((status, text)) if status == 200 => {
+                Ok((200, text, _)) => {
                     result = Some(text);
                     break;
                 }
-                Ok((status, error_text)) => {
-                    if attempt < max_retries {
-                        warn!("LLM generate attempt {} failed (status {}): {}, retrying...", attempt + 1, status, error_text);
-                        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                Ok((status, error_text, retry_after_hdr)) => {
+                    if attempt < max_retries && retry::is_retryable_status(status) {
+                        let wait = retry::wait_for(status, &error_text, retry_after_hdr.as_deref(), attempt);
+                        warn!("LLM generate attempt {} failed (status {}): {} — retrying in {:?}", attempt + 1, status, error_text, wait);
+                        tokio::time::sleep(wait).await;
                     } else {
-                        log::error!("LLM generate error after {} retries: {}", max_retries, error_text);
+                        log::error!("LLM generate error after {} attempts (status {}): {}", attempt + 1, status, error_text);
                         return Err(format!("LLM request failed with status: {}: {}", status, error_text).into());
                     }
                 }
                 Err(e) => {
                     let err_detail = format!("{:#}", e);
                     if attempt < max_retries {
-                        warn!("LLM generate attempt {} failed (connection): {}, retrying...", attempt + 1, err_detail);
-                        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                        let wait = retry::backoff_ms(attempt);
+                        warn!("LLM generate attempt {} failed (connection): {} — retrying in {:?}", attempt + 1, err_detail, wait);
+                        tokio::time::sleep(wait).await;
                     } else {
-                        log::error!("LLM generate connection error after {} retries: {}", max_retries, err_detail);
+                        log::error!("LLM generate connection error after {} attempts: {}", attempt + 1, err_detail);
                         return Err(format!("LLM error: {}", err_detail).into());
                     }
                 }
@@ -613,7 +623,9 @@ impl LLMProvider for OpenAIClient {
 
         let (chunk_tx, mut chunk_rx) = tokio::sync::mpsc::channel::<Result<Vec<u8>, String>>(100000);
 
-        let max_retries = 2;
+        // #1393 — serialize calls process-wide and back off properly on 429.
+        let _gate = retry::call_gate().acquire().await;
+        let max_retries = 6;
         let mut stream_started = false;
         info!("LLM request URL: {}, body size: {} bytes, stream={}", full_url, request_body.to_string().len(), use_stream);
         'retry_loop: for attempt in 0..=max_retries {
@@ -630,11 +642,12 @@ impl LLMProvider for OpenAIClient {
                         let err_msg = format!("HTTP error: {:#}", e);
                         let _ = chunk_tx.send(Err(err_msg.clone())).await;
                         if attempt < max_retries {
-                            warn!("LLM generate_stream attempt {} failed (connection): {}, retrying...", attempt + 1, err_msg);
-                            tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                            let wait = retry::backoff_ms(attempt);
+                            warn!("LLM generate_stream attempt {} failed (connection): {} — retrying in {:?}", attempt + 1, err_msg, wait);
+                            tokio::time::sleep(wait).await;
                             continue;
                         }
-                        log::error!("LLM generate_stream failed after {} retries: {}", max_retries, err_msg);
+                        log::error!("LLM generate_stream failed after {} attempts: {}", attempt + 1, err_msg);
                         return Err("LLM stream request failed after retries".into());
                     }
             };
@@ -642,15 +655,20 @@ impl LLMProvider for OpenAIClient {
             let status = response.status();
             info!("LLM HTTP response status: {} for model {} (attempt {})", status, model, attempt + 1);
             if !status.is_success() {
+                let retry_after_hdr = response
+                    .headers()
+                    .get("retry-after")
+                    .and_then(|v| v.to_str().ok().map(str::to_string));
                 let error_text = response.text().await.unwrap_or_default();
                 warn!("LLM HTTP error body: {}", error_text);
                 let _ = chunk_tx.send(Err(format!("Status {}: {}", status, error_text))).await;
-                if attempt < max_retries {
-                    warn!("LLM generate_stream attempt {} failed (status {}): {}, retrying...", attempt + 1, status, error_text);
-                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
+                if attempt < max_retries && retry::is_retryable_status(status.as_u16()) {
+                    let wait = retry::wait_for(status.as_u16(), &error_text, retry_after_hdr.as_deref(), attempt);
+                    warn!("LLM generate_stream attempt {} failed (status {}): {} — retrying in {:?}", attempt + 1, status, error_text, wait);
+                    tokio::time::sleep(wait).await;
                     continue;
                 }
-                log::error!("LLM generate_stream failed after {} retries (status {}): {}", max_retries, status, error_text);
+                log::error!("LLM generate_stream failed after {} attempts (status {}): {}", attempt + 1, status, error_text);
                 return Err(format!("LLM request failed with status: {}: {}", status, error_text).into());
             }
 
