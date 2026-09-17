@@ -471,18 +471,58 @@
             if (!state.loadedPipeline) loadPipeline();
             if (data.state === "running" || data.state === "awaiting_approval") {
                 api("/api/vibe/events/" + state.runId).then(function (ev) {
-                    if (ev && Array.isArray(ev.events)) {
-                        if (ev.events.length !== state.events.length) {
-                            state.events = ev.events;
-                            renderSources();
-                            renderApproval();
-                        }
-                    } else if (Array.isArray(ev)) {
-                        state.events = ev;
-                    }
+                    var list = null;
+                    if (ev && Array.isArray(ev.events)) list = ev.events;
+                    else if (Array.isArray(ev)) list = ev;
+                    if (!list) return;
+                    var changed = list.length !== state.events.length;
+                    state.events = list;
+                    renderSources();
+                    renderApproval();
+                    // #vibe-verbose — narrate every tool event into the
+                    // Runner Log as it happens; previously the fetched events
+                    // were only counted, leaving the user staring at an idle
+                    // dock between "run started" and the final verdict.
+                    if (changed) renderEventLog();
                 });
             }
         });
+    }
+
+    // #vibe-verbose — live event narration in the Runner Log. Renders the
+    // last N telemetry events (tool calls, verifications, approvals) with
+    // timestamps; new events since the previous poll are appended only.
+    function renderEventLog() {
+        var box = q("vibeRunnerLogList");
+        if (!box) return;
+        var events = state.events.slice(-40);
+        if (!events.length) return;
+        var existing = box.querySelectorAll("[data-ev-id]").length;
+        if (existing === events.length) return; // nothing new
+        box.innerHTML = "";
+        events.forEach(function (e) {
+            var line = document.createElement("div");
+            line.className = "vibe-runner-log-line";
+            line.setAttribute("data-ev-id", e.event_id || "");
+            var when = "";
+            try { when = new Date(e.timestamp).toLocaleTimeString(); } catch (ignore) { when = ""; }
+            var icon = "•";
+            var label = String(e.event_type || "");
+            if (label === "tool_call_started") { icon = "⚙️"; label = "running " + (e.tool_name || "tool"); }
+            else if (label === "tool_call_completed") { icon = e.success === false ? "⚠️" : "✅"; label = (e.success === false ? "failed " : "done ") + (e.tool_name || "tool"); }
+            else if (label === "tool_call_failed") { icon = "⚠️"; label = "failed " + (e.tool_name || "tool"); }
+            else if (label === "run_started") { icon = "▶️"; label = "run started"; }
+            else if (label === "run_completed") { icon = "🏁"; label = "run completed"; }
+            else if (label === "run_failed") { icon = "❌"; label = "run failed"; }
+            else if (label === "approval_requested") { icon = "⏸"; label = "approval requested"; }
+            else if (label === "approval_granted") { icon = "🔓"; label = "approved"; }
+            else if (label === "approval_denied") { icon = "🚫"; label = "denied"; }
+            if (e.error) label += " — " + String(e.error).substring(0, 120);
+            line.innerHTML = '<span class="vibe-runner-log-ts">' + esc(when) + '</span> ' +
+                '<span>' + icon + '</span> <span>' + esc(label) + '</span>';
+            box.appendChild(line);
+        });
+        box.scrollTop = box.scrollHeight;
     }
 
     function startTicker() {

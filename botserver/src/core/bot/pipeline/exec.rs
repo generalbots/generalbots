@@ -459,6 +459,27 @@ pub async fn process_message_internal(
                     let session_id = session_id;
                     let user_id = user_id;
                     tokio::spawn(async move {
+                        // #vibe-verbose — narrate progress milestones into the
+                        // open Chat window while the run executes. The user
+                        // previously waited blind between "agent started" and
+                        // the final verdict; these intermediate messages make
+                        // the agent loop legible (tool calls, verifications,
+                        // failures) without flooding: one message per change
+                        // of milestone label.
+                        let mut last_milestone = String::new();
+                        let send_chat = |state: Arc<AppState>, text: String| async move {
+                            let resp = botlib::models::BotResponse::new(
+                                bot_uuid.to_string(),
+                                session_id.to_string(),
+                                user_id.to_string(),
+                                &text,
+                                "web",
+                            );
+                            let channels = state.response_channels.lock().await;
+                            if let Some(tx) = channels.get(&session_id.to_string()) {
+                                let _ = tx.try_send(resp);
+                            }
+                        };
                         let final_state = loop {
                             tokio::time::sleep(std::time::Duration::from_secs(5)).await;
                             let value = match crate::core::bot::api_exec::exec_endpoint(
@@ -484,6 +505,29 @@ pub async fn process_message_internal(
                             {
                                 break s;
                             }
+                            // Milestone narration: derive a short label from
+                            // the run shape (tool-call count) and only speak
+                            // when it changes.
+                            let tools = value
+                                .get("tool_call_count")
+                                .and_then(|v| v.as_u64())
+                                .unwrap_or(0);
+                            let milestone = match s.as_str() {
+                                "awaiting_approval" => {
+                                    format!("⏸ Waiting for your approval to continue ({} tool call{} so far).", tools, if tools == 1 { "" } else { "s" })
+                                }
+                                _ => {
+                                    if tools > 0 {
+                                        format!("⚙️ Working on '{project_name}'… {} tool call{} done.", tools, if tools == 1 { "" } else { "s" })
+                                    } else {
+                                        format!("🧠 Planning the changes for '{project_name}'…")
+                                    }
+                                }
+                            };
+                            if milestone != last_milestone {
+                                last_milestone = milestone.clone();
+                                send_chat(state.clone(), milestone).await;
+                            }
                         };
                         let text = match final_state.as_str() {
                             "completed" => format!(
@@ -497,17 +541,7 @@ pub async fn process_message_internal(
                             }
                             _ => return,
                         };
-                        let resp = botlib::models::BotResponse::new(
-                            bot_uuid.to_string(),
-                            session_id.to_string(),
-                            user_id.to_string(),
-                            &text,
-                            "web",
-                        );
-                        let channels = state.response_channels.lock().await;
-                        if let Some(tx) = channels.get(&session_id.to_string()) {
-                            let _ = tx.try_send(resp);
-                        }
+                        send_chat(state, text).await;
                     });
                 }
             }
