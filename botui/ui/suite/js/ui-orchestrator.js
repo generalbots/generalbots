@@ -334,6 +334,17 @@
             return;
           }
         }
+        // #1386c — apps pruned from the desktop registry (Editor, Terminal,
+        // Database, …) are Vibe workbench panes, but they still open as real
+        // windows via openDeepLink (it falls back to /suite/partials/<id>.html).
+        // Try that before declaring the app unavailable.
+        if (window.WindowManager && typeof window.WindowManager.openDeepLink === "function") {
+          try {
+            window.WindowManager.openDeepLink(appId, {}, { ownerId: "chat" });
+            resolve(true);
+            return;
+          } catch (e) {}
+        }
         resolve(false);
         return;
       }
@@ -362,7 +373,8 @@
       currentApp = appId;
       reportStep("Opened " + appId, ok ? "done" : "warn");
       if (!ok) {
-        reportStep("App '" + appId + "' not found — continuing", "warn");
+        reportStep("App '" + appId + "' not found — aborting plan", "warn");
+        return false;
       }
       return waitFor(function () {
         var appWin = document.getElementById("window-" + appId);
@@ -624,21 +636,29 @@
       reportStep("Another automation is already running", "warn");
       return Promise.resolve(false);
     }
-    ACTIVE = { completed: 0, total: plan.steps.length };
+    ACTIVE = { completed: 0, total: plan.steps.length, failed: 0 };
     ensureOverlay();
     resetStepCard();
     reportStep("Starting automation for app '" + (plan.app || "?") + "'", "info");
 
     var chain = Promise.resolve(true);
     plan.steps.forEach(function (step) {
-      chain = chain.then(function () {
+      chain = chain.then(function (prevOk) {
+        if (prevOk === false) {
+          // A hard failure (e.g. the app window never opened) aborts the
+          // remaining steps instead of letting them spray warnings and
+          // finish with a misleading success report.
+          return false;
+        }
         var fn = EXECUTORS[step.op] || null;
         if (!fn) {
           reportStep("Unknown step op '" + step.op + "'", "warn");
+          ACTIVE.failed++;
           return false;
         }
         return fn(step, plan).then(function (ok) {
           ACTIVE.completed++;
+          if (!ok) ACTIVE.failed++;
           var evt = new CustomEvent("gb:ui-step", {
             detail: { text: "Step " + ACTIVE.completed + "/" + ACTIVE.total, status: "progress" },
           });
@@ -649,10 +669,15 @@
     });
 
     return chain
-      .then(function () {
-        reportStep("Automation complete", "done");
+      .then(function (lastOk) {
+        var failed = ACTIVE.failed || (lastOk === false ? 1 : 0);
         ACTIVE = null;
         if (focusRing) focusRing.style.display = "none";
+        if (failed > 0) {
+          reportStep("Automation FAILED — " + failed + " of " + plan.steps.length + " steps did not complete (nothing was changed)", "warn");
+          return false;
+        }
+        reportStep("Automation complete: " + plan.steps.length + "/" + plan.steps.length + " steps", "done");
         return true;
       })
       .catch(function (e) {
