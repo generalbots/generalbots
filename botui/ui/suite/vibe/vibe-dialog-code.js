@@ -4,7 +4,7 @@
  * /api/vibe/projects/:id/files (the real VIBE_WORKSPACE_ROOT output).
  *
  * File list is a FLAT list (not a tree): directories show a yellow folder
- * icon (📁), files a Windows-style document icon (📄). Content is edited in
+ * icon (SVG), files a document icon (SVG). Content is edited in
  * Monaco (vendored locally, syntax-highlighted by extension) with a plain
  * textarea fallback when Monaco is unavailable.
  */
@@ -17,6 +17,19 @@
     var monacoLang = "plaintext";
     var textarea = null;
     var editorHost = null;
+
+    /* ── Inline SVG icons (stroke style, matches the Vibe shell toolbar) ── */
+    var ICONS = {
+        save: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>',
+        newFile: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="12" x2="12" y2="18"/><line x1="9" y1="15" x2="15" y2="15"/></svg>',
+        folder: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>',
+        file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>',
+    };
+
+    function svgBtnIcon(key) {
+        var svg = ICONS[key] || "";
+        return '<span class="vibe-code-btn-icon" aria-hidden="true">' + svg + "</span>";
+    }
 
     function selectedProjectId() {
         return typeof window.currentProjectId !== "undefined" && window.currentProjectId
@@ -60,9 +73,11 @@
         lang.style.marginLeft = "6px";
         var spacer = D.el("span");
         spacer.style.flex = "1";
-        var save = D.el("button", "vibe-btn primary", "💾 Save (Ctrl+S)");
+        var save = D.el("button", "vibe-btn primary");
+        save.innerHTML = svgBtnIcon("save") + '<span>Save (Ctrl+S)</span>';
         save.addEventListener("click", saveFile);
-        var newBtn = D.el("button", "vibe-btn", "New File");
+        var newBtn = D.el("button", "vibe-btn");
+        newBtn.innerHTML = svgBtnIcon("newFile") + '<span>New File</span>';
         newBtn.addEventListener("click", newFile);
         toolbar.appendChild(name);
         toolbar.appendChild(lang);
@@ -218,11 +233,11 @@
     }
 
     function folderIcon() {
-        return '<span style="color:#eab308;filter:drop-shadow(0 0 2px rgba(234,179,8,0.4))">📁</span>';
+        return '<span class="vibe-code-tree-icon vibe-code-tree-folder" aria-hidden="true">' + ICONS.folder + "</span>";
     }
 
     function fileIconEl() {
-        return '<span style="color:#9aa4b2">📄</span>';
+        return '<span class="vibe-code-tree-icon vibe-code-tree-file" aria-hidden="true">' + ICONS.file + "</span>";
     }
 
     function sortTree(node) {

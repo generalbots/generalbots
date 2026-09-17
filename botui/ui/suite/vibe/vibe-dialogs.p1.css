@@ -128,6 +128,47 @@
     cursor: pointer;
 }
 
+/* Editor toolbar SVG icons (inline, currentColor — follows button text color) */
+.vibe-btn .vibe-code-btn-icon {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+    margin-right: 5px;
+}
+
+.vibe-btn .vibe-code-btn-icon svg {
+    width: 13px;
+    height: 13px;
+    display: block;
+}
+
+.vibe-btn .vibe-code-btn-icon + span {
+    vertical-align: middle;
+}
+
+/* File-tree SVG icons in the Editor dialog sidebar */
+.vibe-code-tree-icon {
+    display: inline-flex;
+    align-items: center;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+.vibe-code-tree-icon svg {
+    width: 14px;
+    height: 14px;
+    display: block;
+}
+
+.vibe-code-tree-folder {
+    color: #eab308;
+    filter: drop-shadow(0 0 2px rgba(234, 179, 8, 0.4));
+}
+
+.vibe-code-tree-file {
+    color: #9aa4b2;
+}
+
 .vibe-btn:hover {
     border-color: var(--accent, #4a6cf7);
     color: var(--accent, #4a6cf7);
