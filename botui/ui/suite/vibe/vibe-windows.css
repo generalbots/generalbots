@@ -338,4 +338,9 @@
     border-radius: 0;
     box-shadow: none;
     background: transparent;
+    /* Sidebar+main dialogs (code/db/git/deploy/browser) must lay out
+       side-by-side inside tool windows — the base .vibe-dialog column
+       direction stacked the sidebar ABOVE the editor pane (#1394). */
+    flex-direction: row;
+    min-height: 0;
 }
