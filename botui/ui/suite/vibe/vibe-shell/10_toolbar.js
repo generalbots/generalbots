@@ -870,5 +870,7 @@
         pausePreview: pausePreview,
         closePreview: closePreview,
         flashHint: flashHint,
+        // Shared with palettes/dialogs so all Vibe chrome uses one SVG set.
+        icons: ICONS,
     };
 })();

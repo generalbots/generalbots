@@ -137,6 +137,17 @@
         }
     }
 
+    // #1396 — remember the last chat milestone per run in sessionStorage so a
+    // botserver restart (which resets the server-side poller state) does not
+    // re-send a milestone the user already saw.
+    function rememberMilestone(runId, label) {
+        try { sessionStorage.setItem("vibe-milestone-" + runId, label); } catch (ignore) { }
+    }
+
+    function isStaleMilestone(runId, label) {
+        try { return sessionStorage.getItem("vibe-milestone-" + runId) === label; } catch (ignore) { return false; }
+    }
+
     /* ------------------------------------------------- repatriation */
 
     function syncRunDock() {
@@ -366,7 +377,7 @@
             list.innerHTML = items.map(function (s) {
                 var label = typeof s === "string" ? s : (s.label || s.name || s.source || s.type || "source");
                 var detail = typeof s === "object" && s !== null ? (s.detail || s.url || s.path || "") : "";
-                return '<div class="vibe-src-item"><span>📎</span><span>' + esc(label) + (detail ? " · " + esc(detail) : "") + "</span></div>";
+                return '<div class="vibe-src-item"><span aria-hidden="true"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></span><span>' + esc(label) + (detail ? " · " + esc(detail) : "") + "</span></div>";
             }).join("");
         });
     }
@@ -486,12 +497,22 @@
                     if (changed) renderEventLog();
                 });
             }
+            // #1396 — suppress a server-side milestone the user already saw
+            // before a botserver restart (server poller state resets on boot).
+            if (state.runId && String(data.state) === "running") {
+                var seen = q("vibeLastMilestone");
+                if (seen && seen.textContent && isStaleMilestone(state.runId, seen.textContent)) {
+                    seen.dataset.suppressed = "1";
+                }
+            }
         });
     }
 
     // #vibe-verbose — live event narration in the Runner Log. Renders the
     // last N telemetry events (tool calls, verifications, approvals) with
     // timestamps; new events since the previous poll are appended only.
+    // #1396 — autoscroll pauses while the user scrolls up to read and
+    // resumes when they return to the bottom.
     function renderEventLog() {
         var box = q("vibeRunnerLogList");
         if (!box) return;
@@ -499,6 +520,7 @@
         if (!events.length) return;
         var existing = box.querySelectorAll("[data-ev-id]").length;
         if (existing === events.length) return; // nothing new
+        var atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 24;
         box.innerHTML = "";
         events.forEach(function (e) {
             var line = document.createElement("div");
@@ -522,7 +544,7 @@
                 '<span>' + icon + '</span> <span>' + esc(label) + '</span>';
             box.appendChild(line);
         });
-        box.scrollTop = box.scrollHeight;
+        if (atBottom) box.scrollTop = box.scrollHeight;
     }
 
     function startTicker() {

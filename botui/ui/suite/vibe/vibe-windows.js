@@ -44,7 +44,7 @@
         "vibe-members": { elId: "vibeMembersModal", title: "Project Members", display: "flex", popup: true, size: { w: "560px", h: "auto" } },
     };
 
-    var RUN_DOCK_PARTIAL = "/suite/partials/vibe-run-panel.html?v=15";
+    var RUN_DOCK_PARTIAL = "/suite/partials/vibe-run-panel.html?v=17";
 
     function stashHost() {
         var host = document.getElementById("vibeHiddenPanels");
