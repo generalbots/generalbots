@@ -3,7 +3,7 @@
 <!-- Vibe Run Dock — multi-agent execution board: TODOs, approval, sessions and runs. -->
 <div id="vibeRunDock" class="vibe-rd">
     <div class="vibe-rd-handle" id="vibeRunDockToggle" title="Toggle Run Dock">
-        <span style="font-size: 14px">🎛️</span>
+        <span style="font-size: 14px; display:inline-flex" aria-hidden="true"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="9" cy="6" r="1.6" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="7" cy="18" r="1.6" fill="currentColor" stroke="none"/></svg></span>
         <h3>RUN DOCK</h3>
         <span id="vibeRunDockArrow" style="color: var(--text-muted)">▾</span>
     </div>
@@ -11,7 +11,7 @@
         <!-- Action row: execution state only; cost/budget is deliberately absent. -->
         <div class="vibe-rd-action-row">
             <strong>Multi-agent runner</strong>
-            <button type="button" id="vibePreviewBtn" class="vibe-btn" title="Open the selected project app">🌐 Preview</button>
+            <button type="button" id="vibePreviewBtn" class="vibe-btn" title="Open the selected project app"><span style="display:inline-flex;vertical-align:-2px;margin-right:4px" aria-hidden="true"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></span>Preview</button>
             <span id="vibeRunDockState" class="vibe-chip state-pending">IDLE</span>
         </div>
 
@@ -63,8 +63,8 @@
             <h4>⏸ APPROVAL REQUIRED</h4>
             <div class="vibe-approval-tools" id="vibeApprovalTools"></div>
             <div class="vibe-approval-actions">
-                <button type="button" id="vibeApproveBtn">✓ Approve &amp; Resume</button>
-                <button type="button" id="vibeDenyBtn">✕ Deny &amp; Cancel</button>
+                <button type="button" id="vibeApproveBtn">&#10003; Approve &amp; Resume</button>
+                <button type="button" id="vibeDenyBtn">&#10005; Deny &amp; Cancel</button>
             </div>
         </div>
 

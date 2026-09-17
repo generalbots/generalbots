@@ -53,7 +53,7 @@ nodeId +
 '-files" style="display:none;padding:8px 16px;border-top:1px solid var(--border);font-size:10px;color:var(--text-muted, #555);">';
 for (var fi = 0; fi < fileList.length; fi++) {
 subTasksHtml +=
-'<div style="padding:2px 0;display:flex;align-items:center;gap:4px;"><span style="color: var(--accent);">📄</span> ' +
+'<div style="padding:2px 0;display:flex;align-items:center;gap:4px;"><span style="color: var(--accent); display:inline-flex" aria-hidden="true"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></span> ' +
 esc(fileList[fi]) +
 "</div>";
 }

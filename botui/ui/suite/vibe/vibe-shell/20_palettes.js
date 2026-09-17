@@ -19,13 +19,30 @@
     "use strict";
 
     var S = window.VibeShell;
+    // #1396 — inline SVG icons (shared set from the shell toolbar) replace
+    // emoji in palette window titles; the icon key resolves at open time via
+    // paletteIcon() so the toolbar module does not need to be loaded first.
     var PALETTES = [
-        { id: "vibe-palette-graph", root: "vibeGraphPanel", title: "Knowledge Graph", icon: "⛓️", kind: "panel", activate: function () { if (window.VibeGraph) window.VibeGraph.togglePanel(true); } },
-        { id: "vibe-palette-db", root: "vibeDialogMask", title: "Database", icon: "🗄️", kind: "dialog", dialog: ["db", "Database Schema"], activate: function () { if (window.VibeDialogs) window.VibeDialogs.open("db", "Database Schema"); } },
-        { id: "vibe-palette-deploy", root: "vibeDialogMask", title: "Deploy", icon: "🚀", kind: "dialog", dialog: ["deploy", "Deploy"], activate: function () { if (window.VibeDialogs) window.VibeDialogs.open("deploy", "Deploy"); } },
-        { id: "vibe-palette-metrics", root: "vibeMetricsPanel", title: "Metrics", icon: "📊", kind: "panel", activate: function () { if (window.VibeMetrics) window.VibeMetrics.open(); } },
-        { id: "vibe-palette-members", root: "vibeMembersModal", title: "Members", icon: "👥", kind: "modal", activate: function () { if (window.VibeMembers) window.VibeMembers.open(); } },
+        { id: "vibe-palette-graph", root: "vibeGraphPanel", title: "Knowledge Graph", icon: "⛓️", svg: "Knowledge Graph", kind: "panel", activate: function () { if (window.VibeGraph) window.VibeGraph.togglePanel(true); } },
+        { id: "vibe-palette-db", root: "vibeDialogMask", title: "Database", icon: "🗄️", svg: "Database", kind: "dialog", dialog: ["db", "Database Schema"], activate: function () { if (window.VibeDialogs) window.VibeDialogs.open("db", "Database Schema"); } },
+        { id: "vibe-palette-deploy", root: "vibeDialogMask", title: "Deploy", icon: "🚀", svg: "Deploy", kind: "dialog", dialog: ["deploy", "Deploy"], activate: function () { if (window.VibeDialogs) window.VibeDialogs.open("deploy", "Deploy"); } },
+        { id: "vibe-palette-metrics", root: "vibeMetricsPanel", title: "Metrics", icon: "📊", svg: "Metrics", kind: "panel", activate: function () { if (window.VibeMetrics) window.VibeMetrics.open(); } },
+        { id: "vibe-palette-members", root: "vibeMembersModal", title: "Members", icon: "👥", svg: "Members", kind: "modal", activate: function () { if (window.VibeMembers) window.VibeMembers.open(); } },
     ];
+
+    function paletteIcon(def) {
+        var icons = S && S.toolbar && S.toolbar.icons;
+        var svg = icons && icons[def.svg];
+        return svg
+            ? '<span class="vibe-shell-tb-icon" style="display:inline-flex;width:14px;height:14px;margin-right:5px;vertical-align:-2px">' + svg + "</span>"
+            : def.icon;
+    }
+
+    function escTitle(text) {
+        var d = document.createElement("div");
+        d.textContent = text == null ? "" : String(text);
+        return d.innerHTML;
+    }
 
     function wm() {
         return typeof window.WindowManager !== "undefined" ? window.WindowManager : null;
@@ -106,7 +123,12 @@
             def.activate();
             return;
         }
-        mgr.open(def.id, def.icon + " " + def.title, "");
+        mgr.open(def.id, def.title, "");
+        // Title icon: inject the SVG after the window title text exists.
+        var titleEl = document.querySelector("#window-" + def.id + " .window-title");
+        if (titleEl && S && S.toolbar && S.toolbar.icons && S.toolbar.icons[def.svg]) {
+            titleEl.innerHTML = paletteIcon(def) + escTitle(def.title);
+        }
         var body = document.getElementById("window-body-" + def.id);
         var root = document.getElementById(def.root);
         if (!body || !root) {

@@ -217,7 +217,7 @@ function projectInfoHtml(p) {
     ];
     return (
         '<div style="padding:14px 16px;font-size:12px;color:var(--text,#eee);min-width:360px;max-width:520px">' +
-        '<div style="font-weight:800;font-size:13px;margin-bottom:10px;border-bottom:1px solid var(--border,#333);padding-bottom:8px">📁 ' +
+        '<div style="font-weight:800;font-size:13px;margin-bottom:10px;border-bottom:1px solid var(--border,#333);padding-bottom:8px"><span style="display:inline-flex;vertical-align:-2px;margin-right:5px" aria-hidden="true"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></span>' +
         esc(name) +
         "</div>" +
         '<div id="vibe-pi-tokens" style="margin-bottom:4px">' +
