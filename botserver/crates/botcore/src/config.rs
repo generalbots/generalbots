@@ -609,7 +609,7 @@ impl DriveConfig {
                 }
             }
         }
-        return Err(format!("DriveConfig::from_vault() failed after retries: {last_err}"));
+        Err(format!("DriveConfig::from_vault() failed after retries: {last_err}"))
     }
 
     /// Carrega credenciais das variáveis de ambiente.
