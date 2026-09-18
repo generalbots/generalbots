@@ -367,7 +367,14 @@ async fn deploy_to_incus(
     // Auto-manage the app runtime inside the container: detect node/python/
     // rust/static, install the runtime when missing, and run the app as a
     // systemd service bound to port 80 (auto-restart + start on boot).
-    super::gateway_runtime::bootstrap_app_runtime(state, container_name).await?;
+    // #1386 — the per-environment database URL rides on the deploy request
+    // and lands in the unit as DATABASE_URL.
+    super::gateway_runtime::bootstrap_app_runtime(
+        state,
+        container_name,
+        request.database_url.as_deref(),
+    )
+    .await?;
 
     let domain = published_domain();
     let env_suffix = match request.environment {

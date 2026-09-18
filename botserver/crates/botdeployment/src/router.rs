@@ -106,6 +106,7 @@ impl DeploymentRouter {
                 project_type: config.project_type.clone(),
                 artifact_url: String::new(),
                 environment: config.environment.clone(),
+                database_url: config.database_url.clone(),
             };
             match gateway.deploy(gateway_request).await {
                 Ok(resp) if resp.success => DeploymentStatus::Deployed,

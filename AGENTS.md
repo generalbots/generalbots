@@ -627,7 +627,7 @@ Every Vibe project kind owns a **dedicated PostgreSQL database per environment**
 | Kind | Production DB | Dev/test DB | Injection |
 |------|---------------|-------------|-----------|
 | **bot** | `bot_{branch}_{bot}` (lazy, `botcore/bot_database.rs`) | `bot_{branch}_{bot}_dev` via the `{bot}-dev` twin bot (automatic — the twin is a normal bot row) | per-bot pool |
-| **apps** (node/python) | `app_{branch}_{slug}` | `app_{branch}_{slug}_dev` | `DATABASE_URL` in the VM `vibe-app.service` / proxy python unit (via persistent `/etc/gb-vibe/{unit}.env` EnvironmentFile) |
+| **apps** (node/python) | `app_{branch}_{slug}` | `app_{branch}_{slug}_dev` | `DATABASE_URL` in the VM `vibe-app.service` / proxy python unit (via persistent `/etc/gb-vibe/{unit}.env` EnvironmentFile). **ALM/CI-CD deploys:** the publish flow resolves the URL once (`publish.rs`) and carries it through `DeploymentRequest.database_url` → gateway → `app.service` (`gateway_runtime.rs` injects `Environment=DATABASE_URL=`); the gateway never invents one. |
 | **website** | — (static) | — (static) | none |
 
 - Naming: `botvibe/src/project_db.rs` (`ensure_project_database`, `drop_project_databases`); `_dev` suffix is **reserved** — manually created bots/apps may not end in `-dev` (`BotDatabaseManager::is_reserved_dev_bot_name`).

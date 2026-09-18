@@ -538,6 +538,27 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         }
         _ => "app-node".to_string(),
     };
+    // #1386 — resolve the project's per-environment database ONCE here and
+    // carry it through the deployment API → gateway → app.service, so every
+    // redeploy of an environment keeps pointing at the same database (the
+    // gateway no longer invents one). App-kind projects get the public DB in
+    // production and the `_dev` twin in test/development; sites and bots
+    // deploy without a DATABASE_URL.
+    let deploy_db_url = if deployment_type.starts_with("app-") {
+        let db_env = if env == "production" { "production" } else { "dev" };
+        match crate::project_db::ensure_project_database(&pool, project.branch_id, &project.name, db_env) {
+            Ok(url) => Some(url),
+            Err(e) => {
+                log::warn!(
+                    "Vibe publish {}: per-env database unavailable ({db_env}), deploying without DATABASE_URL: {e}",
+                    project.name
+                );
+                None
+            }
+        }
+    } else {
+        None
+    };
     #[cfg(target_os = "windows")]
     let deployed: Value = {
         let host_port = std::env::var("VIBE_WSL_APP_PORT")
@@ -595,6 +616,7 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
             "project_id": project_id,
             "on_behalf_of_user": on_behalf_of_user,
             "files": files,
+            "database_url": deploy_db_url,
         });
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(180))
@@ -644,27 +666,13 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
         // domain route; the app service inside the container
         // (`vibe-app.service`, Restart=always) is what matters.
         // #1386 — production VMs get the project's PUBLIC database; the dev
-        // twin keeps the `_dev` one (see run_project_app).
-        let prod_db_url = match crate::project_db::ensure_project_database(
-            &pool,
-            project.branch_id,
-            &project.name,
-            "production",
-        ) {
-            Ok(url) => Some(url),
-            Err(e) => {
-                log::warn!(
-                    "Vibe publish {}: project database unavailable, app starts without DATABASE_URL: {e}",
-                    project.name
-                );
-                None
-            }
-        };
+        // twin keeps the `_dev` one (see run_project_app). Reuse the URL
+        // already resolved for the deployment body (same env → same DB).
         match VmLifecycle::new(pool.clone()).run_dev_app(
             &vm.container_name,
             &files,
             host_port,
-            prod_db_url.as_deref(),
+            deploy_db_url.as_deref(),
         ) {
             Ok(_) => log::info!(
                 "Vibe publish {}: started app always-on in prod container {}",

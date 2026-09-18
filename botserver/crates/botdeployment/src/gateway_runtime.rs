@@ -13,6 +13,19 @@ use std::time::Duration;
 use super::gateway_server::GatewayState;
 
 /// Bootstrap script executed inside the container via `incus exec bash -c`.
+///
+/// #1386 — `{DB_ENV_LINE}` is substituted with `Environment=DATABASE_URL=...`
+/// when the deploy carries a per-environment database URL (empty otherwise);
+/// the `{DB_ENV_LINE}` token is never a filesystem path, so the plain replace
+/// is injection-safe (the URL itself is identifier-safe by construction in
+/// `project_db::project_database_name`).
+fn bootstrap_script(database_url: Option<&str>) -> String {
+    let db_env_line = database_url
+        .map(|url| format!("Environment=DATABASE_URL={url}"))
+        .unwrap_or_default();
+    BOOTSTRAP_SCRIPT.replace("{DB_ENV_LINE}", &db_env_line)
+}
+
 const BOOTSTRAP_SCRIPT: &str = r#"set -e
 cd /opt/app || { echo "no /opt/app directory"; exit 1; }
 for f in *.tar.gz *.tgz; do [ -f "$f" ] || continue; tar -xzf "$f"; rm -f "$f"; done
@@ -67,6 +80,7 @@ ExecStart=$START
 Restart=always
 RestartSec=3
 Environment=PORT=80
+{DB_ENV_LINE}
 StandardOutput=journal
 StandardError=journal
 
@@ -134,8 +148,9 @@ async fn run_incus_exec(
 pub async fn bootstrap_app_runtime(
     state: &GatewayState,
     container_name: &str,
+    database_url: Option<&str>,
 ) -> Result<String, String> {
-    let output = run_incus_exec(state, container_name, BOOTSTRAP_SCRIPT).await?;
+    let output = run_incus_exec(state, container_name, &bootstrap_script(database_url)).await?;
     log::info!(
         "Runtime bootstrap ({container_name}): {}",
         output.trim()

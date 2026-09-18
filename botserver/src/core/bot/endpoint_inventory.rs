@@ -328,7 +328,7 @@ pub const ALL_ROUTES: &[ApiEndpoint] = &[
     ApiEndpoint { method: "POST", path: "/api/database/table/:name/row", summary: "registered in crates/botdatabase/src/routes.rs" },
     ApiEndpoint { method: "DELETE", path: "/api/database/table/:name/row/:id", summary: "registered in crates/botdatabase/src/routes.rs" },
     ApiEndpoint { method: "POST", path: "/api/database/table/:name/rows/batch-delete", summary: "registered in crates/botdatabase/src/routes.rs" },
-    ApiEndpoint { method: "POST", path: "/api/deployment/deploy", summary: "registered in crates/botdeployment/src/handlers.rs" },
+    ApiEndpoint { method: "POST", path: "/api/deployment/deploy", summary: "App deploy via ALM/gateway; body carries optional database_url (#1386) injected into the app's systemd unit as DATABASE_URL" },
     ApiEndpoint { method: "GET", path: "/api/deployment/projects", summary: "registered in crates/botdeployment/src/handlers.rs" },
     ApiEndpoint { method: "POST", path: "/api/deployment/start", summary: "registered in crates/botdeployment/src/handlers.rs" },
     ApiEndpoint { method: "GET", path: "/api/deployment/status/:org/:app_name", summary: "registered in crates/botdeployment/src/handlers.rs" },
