@@ -128,8 +128,13 @@
             /* Anonymous visitors on PUBLIC bots: sidebar stays visible (Sign in,
                theme, new chat), only management sections are hidden. The
                .anon-limited class is only applied when no auth token exists at
-               boot; after login the page reloads without it. */
-            .chat-sidebar.anon-limited #sidebarAppsNav { display: none !important; }
+               boot; after login the page reloads without it.
+               #1392 — the Apps rail (Preview-mode switch + grid) stays visible
+               for anonymous visitors too: the switch preference is per-browser
+               (localStorage) and needs no session, and /api/apps/catalog is
+               anonymous-allowed (tenant-scoped, nil-scope fallback), so signed-out
+               visitors can browse the suite's preview apps. */
+            .chat-sidebar.anon-limited #sidebarAppsNav { display: block !important; }
             .chat-sidebar.anon-limited .chat-sidebar-section-label { display: none !important; }
             .chat-sidebar.anon-limited #chatConversations { display: none !important; }
             .chat-sidebar.anon-limited #sidebarUser { display: flex !important; }
