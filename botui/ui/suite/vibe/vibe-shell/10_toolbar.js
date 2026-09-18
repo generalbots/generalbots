@@ -242,7 +242,11 @@
                 var id = p.project_id || p.id;
                 return id != null && String(id) === String(pid);
             });
-            window.showProjectInfo(match || { id: pid, name: pid });
+            window.showProjectInfo(match || {
+                id: pid,
+                name: pid,
+                project_type: window.currentProjectKind || "",
+            });
         }
     }
 

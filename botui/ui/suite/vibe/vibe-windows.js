@@ -308,8 +308,18 @@
                 return;
             }
             var show = function (p) {
+                if (!p) {
+                    p = {
+                        id: pid,
+                        name: String(window.currentProject || pid),
+                        project_type: window.currentProjectKind || "",
+                    };
+                } else if (!p.project_type) {
+                    // Keep the type in sync even when the API list omits it.
+                    p = Object.assign({}, p, { project_type: window.currentProjectKind || "" });
+                }
                 if (typeof window.showProjectInfo === "function") {
-                    window.showProjectInfo(p || { id: pid, name: String(window.currentProject || pid) });
+                    window.showProjectInfo(p);
                 }
             };
             vibeAuthFetch("/api/vibe/projects")
