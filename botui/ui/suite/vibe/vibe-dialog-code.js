@@ -12,7 +12,7 @@
     "use strict";
 
     var D = window.VibeDialogs;
-    var state = { files: [], current: null };
+    var state = { files: [], current: null, savedContent: null, dirty: false, expandedFolders: {} };
     var monacoInstance = null;
     var monacoLang = "plaintext";
     var textarea = null;
@@ -161,6 +161,33 @@
         } else {
             textarea.value = content == null ? "" : String(content);
         }
+        // #1395 — reset the dirty baseline whenever a file (re)loads.
+        state.savedContent = getValue();
+        setDirty(false);
+    }
+
+    // #1395 — dirty-state guard: unsaved edits show ● in the file chip and
+    // block silent overwrite when switching files or closing the dialog.
+    // #1395 — status line doubles as error surface; errors get a distinct
+    // class and stay visible until the next action replaces them.
+    function setStatus(msg, isError) {
+        var status = document.getElementById("vibeCodeStatusMsg");
+        if (!status) return;
+        status.textContent = msg;
+        status.className = isError ? "vibe-code-status-error" : "";
+    }
+
+    function isDirty() {
+        return state.current != null && getValue() !== state.savedContent;
+    }
+
+    function setDirty(dirty) {
+        var chip = document.getElementById("vibeCodeFileName");
+        if (chip) {
+            var base = displayName(state.current || "");
+            chip.textContent = dirty ? base + " \u25CF" : base;
+        }
+        state.dirty = !!dirty;
     }
 
     function getValue() {
@@ -194,6 +221,14 @@
             tabSize: 4,
         });
         if (textarea.value) monacoInstance.setValue(textarea.value);
+        // #1395 — mark the chip dirty as soon as the user edits.
+        var markDirty = function () { setDirty(true); };
+        if (monacoInstance) {
+            monacoInstance.onDidChangeModelContent(markDirty);
+        } else {
+            textarea.removeEventListener("input", markDirty);
+            textarea.addEventListener("input", markDirty);
+        }
     }
 
     /* ------------------------------------------------- file ops */
@@ -257,11 +292,17 @@
             row.innerHTML = '<span class="vibe-arrow">▸</span>' + folderIcon() +
                 '<span class="vibe-file-name">' + D.esc(key) + "</span>";
             var arrow = row.querySelector(".vibe-arrow");
-            var expanded = false;
+            // #1395 — preserve expansion state across loadFiles() re-renders
+            // (after save / project switch) keyed by full folder path.
+            var folderPath = node._path ? node._path + "/" + key : key;
+            row.setAttribute("data-folder", folderPath);
+            var expanded = !!state.expandedFolders[folderPath];
             var childWrap = D.el("div", "vibe-tree-children");
-            childWrap.style.display = "none";
+            childWrap.style.display = expanded ? "block" : "none";
+            if (expanded) arrow.textContent = "▾";
             row.addEventListener("click", function () {
                 expanded = !expanded;
+                state.expandedFolders[folderPath] = expanded;
                 arrow.textContent = expanded ? "▾" : "▸";
                 childWrap.style.display = expanded ? "block" : "none";
             });
@@ -269,6 +310,7 @@
             list.appendChild(childWrap);
             // Render the folder's descendants directly into its child block;
             // collapsing the folder hides the whole block at once.
+            child._path = folderPath;
             renderTree(child, childWrap, depth + 1);
         });
         node.files.forEach(function (f) {
@@ -311,9 +353,12 @@
     function openFile(name) {
         var pid = selectedProjectId();
         if (!pid) return;
+        if (isDirty()) {
+            confirmDiscard(function () { openFile(name); });
+            return;
+        }
         state.current = name;
         var nameEl = document.getElementById("vibeCodeFileName");
-        var status = document.getElementById("vibeCodeStatusMsg");
         if (nameEl) {
             nameEl.textContent = displayName(name);
             nameEl.className = "vibe-status ok";
@@ -324,11 +369,11 @@
         ).then(function (data) {
             var content = (data && data.content != null) ? String(data.content) : "";
             setValue(content);
-            if (status) status.textContent = (data && data.success) ? "loaded " + displayName(name) : "error loading " + displayName(name) + ": " + ((data && data.error) || "failed");
+            setStatus((data && data.success) ? "loaded " + displayName(name) : "error loading " + displayName(name) + ": " + ((data && data.error) || "failed"), !(data && data.success));
             highlightActive();
         }).catch(function (err) {
             setValue("");
-            if (status) status.textContent = "error loading " + displayName(name) + ": " + err;
+            setStatus("error loading " + displayName(name) + ": " + err, true);
         });
         showMonacoFor(name);
     }
@@ -345,62 +390,105 @@
 
     function saveFile() {
         var pid = selectedProjectId();
-        var status = document.getElementById("vibeCodeStatusMsg");
         if (!pid) {
-            if (status) status.textContent = "select a project first";
+            setStatus("select a project first", true);
             return;
         }
+        var doSave = function (path) {
+            D.api("/api/vibe/projects/" + encodeURIComponent(pid) + "/files", {
+                method: "POST",
+                body: { path: path, content: getValue() },
+            }).then(function (data) {
+                setStatus((data && data.success) ? "saved " + displayName(path) : "save: " + ((data && data.error) || "failed"), !(data && data.success));
+                if (data && data.success) {
+                    state.savedContent = getValue();
+                    setDirty(false);
+                }
+                loadFiles();
+            }).catch(function (err) {
+                setStatus("save error: " + err, true);
+            });
+        };
         if (!state.current) {
-            var name = prompt("File name to save (workspace root ok):");
-            if (!name) return;
-            state.current = name.trim();
-        }
-        D.api("/api/vibe/projects/" + encodeURIComponent(pid) + "/files", {
-            method: "POST",
-            body: { path: state.current, content: getValue() },
-        }).then(function (data) {
-            if (status) {
-                status.textContent = (data && data.success) ? "saved " + displayName(state.current) : "save: " + ((data && data.error) || "failed");
+            // #1395 — in-dialog input instead of native prompt() (blocked in
+            // desktop-shell contexts).
+            if (window.WindowManager && window.WindowManager.promptFloating) {
+                window.WindowManager.promptFloating("Save file", "File name to save (workspace root ok):", "", function (name) {
+                    if (!name || !name.trim()) return;
+                    state.current = name.trim();
+                    var nameEl = document.getElementById("vibeCodeFileName");
+                    if (nameEl) {
+                        nameEl.textContent = displayName(state.current);
+                        nameEl.className = "vibe-status ok";
+                    }
+                    doSave(state.current);
+                });
+            } else {
+                setStatus("no file open — use New File first", true);
             }
-            loadFiles();
-        }).catch(function (err) {
-            if (status) status.textContent = "save error: " + err;
-        });
+            return;
+        }
+        doSave(state.current);
     }
 
     function newFile() {
         var pid = selectedProjectId();
         if (!pid) return;
-        var name = prompt("New file name:");
-        if (!name) return;
-        name = name.trim();
-        if (!name) return;
-        if (state.files.indexOf(name) === -1) state.files.push(name);
-        state.current = name;
-        var nameEl = document.getElementById("vibeCodeFileName");
-        var status = document.getElementById("vibeCodeStatusMsg");
-        setValue("");
-        if (nameEl) {
-            nameEl.textContent = displayName(name);
-            nameEl.className = "vibe-status ok";
+        if (isDirty()) {
+            confirmDiscard(function () { newFile(); });
+            return;
         }
-        if (status) status.textContent = "new file " + displayName(name) + " (Save to create)";
-        showMonacoFor(name);
+        var create = function (name) {
+            if (!name || !name.trim()) return;
+            name = name.trim();
+            if (state.files.indexOf(name) === -1) state.files.push(name);
+            state.current = name;
+            var nameEl = document.getElementById("vibeCodeFileName");
+            setValue("");
+            if (nameEl) {
+                nameEl.textContent = displayName(name);
+                nameEl.className = "vibe-status ok";
+            }
+            setStatus("new file " + displayName(name) + " (Save to create)");
+            showMonacoFor(name);
+        };
+        if (window.WindowManager && window.WindowManager.promptFloating) {
+            window.WindowManager.promptFloating("New file", "File name:", "", create);
+        } else {
+            setStatus("cannot open name input (window manager unavailable)", true);
+        }
+    }
+
+    // #1395 — ask before discarding unsaved edits; floating confirm, no native modals.
+    function confirmDiscard(then) {
+        if (window.WindowManager && window.WindowManager.confirmFloating) {
+            window.WindowManager.confirmFloating("Unsaved changes", "Discard unsaved edits to " + displayName(state.current || "") + "?", function () {
+                setDirty(false);
+                state.savedContent = getValue();
+                then();
+            }, null, "Discard");
+        } else {
+            then();
+        }
     }
 
     // Reload the file list when the user selects a different project in the
     // sidebar, so the editor always reflects the active project's workspace.
     document.addEventListener("gb:vibe-project", function () {
-        state = { files: [], current: null };
+        state = { files: [], current: null, savedContent: null, dirty: false, expandedFolders: {} };
         loadFiles();
     });
 
     document.addEventListener("keydown", function (e) {
         if ((e.ctrlKey || e.metaKey) && e.key === "s") {
-            var activeIsEditor = monacoInstance
-                ? true
-                : (textarea && textarea === document.activeElement);
-            if (activeIsEditor) {
+            // #1395 — Ctrl+S works whenever focus lives anywhere inside the
+            // code editor dialog (chip, tree, status bar), not only the editor.
+            var dlg = document.querySelector("[id^=window-body-] .vibe-code-editor")
+                || document.getElementById("vibeMonacoHost")
+                || document.getElementById("vibeCodeFileList");
+            var active = document.activeElement;
+            var insideDialog = dlg && active && dlg.contains(active);
+            if (insideDialog || (monacoInstance && monacoInstance.hasTextFocus && monacoInstance.hasTextFocus()) || (textarea && textarea === active)) {
                 e.preventDefault();
                 saveFile();
             }
@@ -417,7 +505,10 @@
             loadFiles();
         },
         teardown: function () {
-            state = { files: [], current: null };
+            if (isDirty()) {
+                confirmDiscard(function () { });
+            }
+            state = { files: [], current: null, savedContent: null, dirty: false, expandedFolders: {} };
             if (monacoInstance) {
                 try { monacoInstance.dispose(); } catch (ignore) { }
                 monacoInstance = null;

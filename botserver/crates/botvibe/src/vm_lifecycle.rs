@@ -190,6 +190,20 @@ impl VmLifecycle {
         sanitize_part(project_name)
     }
 
+    /// #1397 — container names that Vibe projects must never claim: they host
+    /// platform services (botserver, database, drive, proxy, vault, ALM…).
+    /// A malicious/accidental project name like "tables" or "system" would
+    /// otherwise collide with a production container and break the host.
+    pub fn is_protected_container_name(name: &str) -> bool {
+        const PROTECTED: &[&str] = &[
+            "bot", "system", "tables", "cache", "drive", "vault", "directory",
+            "proxy", "dns", "email", "webmail", "meet", "vectordb", "llm", "alm",
+            "alm-ci", "table-editor", "vibe", "vibe-runner", "host", "incus",
+        ];
+        let lower = name.to_ascii_lowercase();
+        PROTECTED.contains(&lower.as_str())
+    }
+
     pub fn container_name(project_name: &str, env: &str, runner: bool) -> String {
         let env = match env {
             "production" => "prod",
@@ -215,6 +229,12 @@ impl VmLifecycle {
     ) -> Result<VmInstance, String> {
         let (env, tier) = Self::validate(req)?;
         let container = Self::container_name(project_name, &env, req.runner_enabled);
+        if Self::is_protected_container_name(project_name) {
+            return Err(format!(
+                "project name '{}' resolves to a protected platform container name; choose another name",
+                project_name
+            ));
+        }
 
         if let Some(existing) = self.lookup_opt(&project_id, &env)? {
             if self.linux_available() {
@@ -622,6 +642,17 @@ fn sanitize_part(s: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn protected_container_names_are_rejected() {
+        // #1397 — platform service containers must never be claimed by projects
+        for name in ["tables", "system", "bot", "proxy", "TABLES", "vault"] {
+            assert!(VmLifecycle::is_protected_container_name(name), "{name} should be protected");
+        }
+        for name in ["my-app", "contato-calc", "expense-tracker"] {
+            assert!(!VmLifecycle::is_protected_container_name(name), "{name} should be allowed");
+        }
+    }
 
     #[test]
     fn container_names_are_env_scoped() {

@@ -409,6 +409,12 @@
     color: #777;
 }
 
+/* #1395 — editor status-bar errors are distinct and sticky until next action */
+.vibe-code-status-error {
+    color: #ff6b6b;
+    font-weight: 600;
+}
+
 .vibe-browser-status {
     display: flex;
     align-items: center;
