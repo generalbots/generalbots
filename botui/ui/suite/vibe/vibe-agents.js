@@ -316,69 +316,87 @@ function loadProjectInfoStats(p) {
         });
 }
 
-function showProjectInfo(p) {
-    if (!p) {
-        var fallbackId = typeof window.currentProjectId !== "undefined" ? window.currentProjectId : null;
-        if (!fallbackId) return;
-        p = { id: fallbackId, name: window.currentProject || String(fallbackId) };
-    }
-    _projectInfoTarget = p;
-    if (window.VibeDialogs && window.VibeDialogs.open) {
-        window.VibeDialogs.open("project", "Project Info");
-        var toolBody = document.getElementById("window-body-vibe-tool-project");
-        if (toolBody && !toolBody.textContent.trim()) {
-            toolBody.innerHTML = projectInfoHtml(p);
-            loadProjectInfoStats(p);
-            var close = toolBody.querySelector("[data-pi-close]");
-            if (close) close.addEventListener("click", function () {
-                if (window.VibeDialogs) window.VibeDialogs.close();
-            });
-        }
-        return;
-    }
-    // Fallback: simple floating panel.
-    var float = document.createElement("div");
-    float.style.cssText =
-        "position:fixed;top:25%;left:35%;z-index:9999;background:var(--surface,#1a1a2e);" +
-        "border:1px solid var(--border,#333);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.4);";
-    float.innerHTML = projectInfoHtml(p);
-    document.body.appendChild(float);
-    float.querySelector("[data-pi-close]").addEventListener("click", function () { float.remove(); });
-    var del = float.querySelector("[data-pi-delete]");
+// Render the project-info body into a host element (desktop tool window or
+// floating panel) and wire its actions. Does NOT depend on the VibeDialogs
+// registry: Properties must open even when scripts race and the 'project'
+// builder was never registered.
+function renderProjectInfoHost(host, p, closeFn) {
+    if (!host) return false;
+    host.innerHTML = projectInfoHtml(p);
+    loadProjectInfoStats(p);
+    var close = host.querySelector("[data-pi-close]");
+    if (close) close.addEventListener("click", closeFn || noop);
+    var del = host.querySelector("[data-pi-delete]");
     if (del) del.addEventListener("click", function () {
         deleteProject(p);
-        float.remove();
+        (closeFn || noop)();
     });
+    return true;
 }
 
-// Register the project-info builder once so VibeDialogs.open("project") has
-// a target; it renders whatever project was last clicked (or the selected one).
-// vibe-agents.js loads before vibe-dialogs.js, so defer until the registry
-// exists (DOMContentLoaded is late enough in the same partial).
+function noop() {}
+
+// The target project for Properties: the clicked one, else the selected one;
+// never a bare id — carry the project_type so the dialog and gating agree.
+function projectInfoTarget(p) {
+    if (p) return p;
+    var id = typeof window.currentProjectId !== "undefined" ? window.currentProjectId : null;
+    if (!id) return null;
+    return {
+        id: id,
+        name: window.currentProject || String(id),
+        project_type: window.currentProjectKind || "",
+    };
+}
+
+function showProjectInfo(p) {
+    var target = projectInfoTarget(p);
+    if (!target) return;
+    _projectInfoTarget = target;
+    // Prefer a real desktop tool window on the WindowManager (works whether
+    // or not VibeDialogs registered the 'project' builder).
+    var wm = window.WindowManager;
+    if (wm && typeof wm.openToolWindowBody === "function") {
+        var wmBody = wm.openToolWindowBody("vibe-tool-project", "Project Info", { ownerId: "vibe" });
+        if (wmBody) {
+            wmBody.innerHTML = "";
+            var wrap = document.createElement("div");
+            wrap.className = "vibe-dialog vibe-dialog-toolwindow";
+            wmBody.appendChild(wrap);
+            var closeWm = function () {
+                if (wm && typeof wm.close === "function") wm.close("vibe-tool-project");
+            };
+            renderProjectInfoHost(wrap, target, closeWm);
+            if (typeof wm.focusWindow === "function") wm.focusWindow("vibe-tool-project");
+            return;
+        }
+    }
+    // Isolated fallback: floating panel appended to the document body.
+    var float = document.createElement("div");
+    float.className = "vibe-dialog vibe-dialog-float vibe-dialog-host-project";
+    float.style.cssText =
+        "position:fixed;top:25%;left:35%;z-index:9999;background:var(--gb-surface,#1a1a2e);" +
+        "border:1px solid var(--gb-border,#333);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.4);";
+    renderProjectInfoHost(float, target, function () { float.remove(); });
+    document.body.appendChild(float);
+}
+
+// Register the project-info builder once so VibeDialogs.open("project") also
+// has a target; it renders whatever project was last clicked (or the selected
+// one). vibe-agents.js loads before vibe-dialogs.js, so defer until the
+// registry exists (DOMContentLoaded is late enough in the same partial).
 function registerProjectInfoDialog() {
     if (!window.VibeDialogs || !window.VibeDialogs.register) return false;
     window.VibeDialogs.register("project", {
-        build: function (body) {
+        build: function (body, apiCtx) {
             var p =
                 _projectInfoTarget ||
-                (typeof currentProjectId !== "undefined" && currentProjectId
-                    ? { id: currentProjectId, name: currentProject }
-                    : null);
+                projectInfoTarget(null);
             if (!p) {
                 body.innerHTML = '<div class="vibe-empty">No project selected.</div>';
                 return;
             }
-            body.innerHTML = projectInfoHtml(p);
-            loadProjectInfoStats(p);
-            var close = body.querySelector("[data-pi-close]");
-            if (close) close.addEventListener("click", function () {
-                if (window.VibeDialogs) window.VibeDialogs.close();
-            });
-            var del = body.querySelector("[data-pi-delete]");
-            if (del) del.addEventListener("click", function () {
-                deleteProject(p);
-                if (window.VibeDialogs) window.VibeDialogs.close();
-            });
+            renderProjectInfoHost(body, p, apiCtx && typeof apiCtx.close === "function" ? apiCtx.close : null);
         },
     });
     return true;
