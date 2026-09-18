@@ -767,7 +767,7 @@
             }, null],
             ["Canvas", "Canvas", function () { if (window.VibeWindows) window.VibeWindows.openCanvas(); }, null],
             ["Chat", "Chat", openChat, null],
-            ["Terminal", "Terminal", openTerminal, null],
+            ["Terminal", "Terminal", openTerminal, "vibe-shell-tb-terminal"],
             // Database opens the SQL schema editor (same dialog the ribbon's
             // Database command used — #1189).
             ["Database", "Database", function () { if (window.VibeDialogs) window.VibeDialogs.open("db", "Database Schema"); }, null],
@@ -802,12 +802,41 @@
         // enabled. Re-evaluated whenever the selection changes.
         function refreshCommandState() {
             var hasProject = !!S.projectId();
+            var kind = selectedProjectKind();
             Array.prototype.forEach.call(bar.querySelectorAll(".vibe-shell-tb-btn"), function (b) {
                 if (b.classList.contains("vibe-shell-tb-new") || b.classList.contains("vibe-shell-tb-closeall")) return;
                 b.disabled = !hasProject;
                 b.classList.toggle("vibe-shell-tb-disabled", !hasProject);
             });
+            // #1403 — website and bot projects have no dev VM/container, so a
+            // terminal there would only ever open a dead pane. Keep the button
+            // visible but inert (New Project and Close All remain enabled).
+            var terminal = bar.querySelector(".vibe-shell-tb-terminal");
+            if (terminal) {
+                var noTerminal = !hasProject || kind === "website" || kind === "bot";
+                terminal.disabled = noTerminal;
+                terminal.classList.toggle("vibe-shell-tb-disabled", noTerminal);
+                terminal.title = noTerminal ? "No terminal for this project kind" : "Terminal";
+            }
         }
+
+        /* Resolve the selected project's kind ('bot' | 'website' | 'apps')
+           from the live selection first, falling back to the loaded list. */
+        function selectedProjectKind() {
+            if (typeof window.currentProjectKind !== "undefined" && window.currentProjectKind) {
+                return String(window.currentProjectKind).toLowerCase();
+            }
+            var pid = S.projectId();
+            if (pid) {
+                var p = knownProjects.find(function (x) {
+                    var id = x.project_id || x.id;
+                    return id != null && String(id) === String(pid);
+                });
+                if (p && p.project_type) return String(p.project_type).toLowerCase();
+            }
+            return "";
+        }
+        bar.__selectedProjectKind = selectedProjectKind;
         bar.__refreshCommandState = refreshCommandState;
         refreshCommandState();
         document.addEventListener("gb:vibe-project", refreshCommandState);
