@@ -351,6 +351,7 @@
                 if (!projects.length) {
                     sel.disabled = true;
                     sel.appendChild(el("option", null, "No projects"));
+                    clearStaleSelection();
                     loadBranches();
                     return;
                 }
@@ -378,11 +379,38 @@
                     if (preferred && typeof applyProjectSelection === "function") {
                         applyProjectSelection(preferred);
                     }
+                } else {
+                    // #1402 — the persisted selection can outlive its project
+                    // (deleted in another session, or evicted by the branch
+                    // cap). Project-gated commands (Run, Deploy, ...) must
+                    // stay disabled when the id no longer resolves, instead of
+                    // firing "SELECT A PROJECT FIRST" onto a ghost project.
+                    var stillExists = projects.some(function (p) {
+                        var id = p.project_id || p.id;
+                        return id != null && String(id) === String(S.projectId());
+                    });
+                    if (!stillExists) clearStaleSelection();
                 }
                 syncProjectSelect();
                 loadBranches();
             })
             .catch(function () { /* dropdown stays with its previous content */ });
+    }
+
+    /* Drop a persisted selection that no longer resolves to a real project so
+       the toolbar re-evaluates to the disabled state (New Project stays
+       enabled). Shared by the empty-list and the stale-id paths. */
+    function clearStaleSelection() {
+        try {
+            sessionStorage.removeItem("gb-vibe-project-id");
+            localStorage.removeItem("gb-vibe-project-id");
+            sessionStorage.removeItem("gb-vibe-project-name");
+            localStorage.removeItem("gb-vibe-project-name");
+        } catch (e) { /* storage unavailable */ }
+        if (typeof window.currentProjectId !== "undefined") window.currentProjectId = null;
+        if (typeof window.currentProject !== "undefined") window.currentProject = "";
+        var bar = document.getElementById("vibeShellToolbar");
+        if (bar && typeof bar.__refreshCommandState === "function") bar.__refreshCommandState();
     }
 
     /* Dev-VM lifecycle (#1271): the dev VM is always on since project

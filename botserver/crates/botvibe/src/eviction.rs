@@ -84,6 +84,13 @@ pub async fn delete_project_assets(p: &Project, lifecycle: &VmLifecycle) -> Vec<
         errors.push(format!("database drop: {e}"));
     }
 
+    // 2d. Remove the project's persisted runs (and their telemetry) so the
+    //     Knowledge Graph — which aggregates `vibe_runs` when no project is
+    //     selected — never renders ghost nodes for a deleted project.
+    if let Err(e) = crate::run_store::delete_runs_for_project(lifecycle.pool(), p.id) {
+        errors.push(format!("run history cleanup: {e}"));
+    }
+
     // 3. Remove the workspace directory (the disk leak — it can hold node_modules,
     //    venvs and build output for the whole project lifetime).
     let key = VmLifecycle::alm_repo(&p.name);
