@@ -55,7 +55,7 @@ The host machine is accessed via `ssh user@<hostname>`, running Incus (an LXD fo
 | **llm** | llama.cpp | C++/CUDA | `/opt/gbo/bin/llama-server` | `/opt/gbo/logs/llm/` | `/opt/gbo/models/` | Local LLM inference |
 | **vectordb** | Qdrant | Qdrant (Rust) | `/opt/gbo/bin/qdrant` | `/opt/gbo/logs/qdrant/` | `/opt/gbo/data/qdrant/` | Vector database |
 | **alm** | Forgejo | Forgejo (Go) | `/opt/gbo/bin/forgejo` | `/opt/gbo/logs/forgejo/` | `/opt/gbo/data/forgejo/` | Git server (port 4747) |
-| **alm-ci** | Forgejo Runner | Docker/runner | `/opt/gbo/bin/forgejo-runner` | `/opt/gbo/logs/forgejo-runner.log` | `/opt/gbo/data/ci/` | CI/CD runner |
+| **alm-ci** | Forgejo Runner | Docker/runner | `/opt/gbo/bin/forgejo-runner` | `/opt/gbo/logs/forgejo-runner.log` | `/opt/gbo/data/ci/` | CI/CD runner — ⚠️ **NOT PRESENT on SRV1 (2026-09-18): container does not exist and no forgejo-runner binary is installed anywhere; CI/CD is unavailable, deploys are manual (see ~/.prod). Do not rely on `status=Building` runs ever completing.** |
 | **proxy** | Caddy | Caddy | `/opt/gbo/bin/caddy` | `/opt/gbo/logs/caddy/` | `/opt/gbo/conf/` | Reverse proxy |
 | **email** | Stalwart | Stalwart (Rust) | `/opt/gbo/bin/stalwart` | `/opt/gbo/logs/email/` | `/opt/gbo/data/email/` | Mail server |
 | **webmail** | Roundcube | PHP | `/usr/share/roundcube/` | `/var/log/php/` | `/var/lib/roundcube/` | Webmail frontend |
@@ -126,8 +126,10 @@ sudo incus exec tables -- psql -h localhost -U postgres -d botserver -c "SELECT 
 # 3. Vault status (should be unsealed)
 sudo incus exec vault -- curl -ksf https://localhost:8200/v1/sys/health | grep -q '"sealed":false' && echo "Vault unsealed" || echo "Vault SEALED - CRITICAL"
 
-# 4. CI runner status
-sudo incus exec alm-ci -- pgrep -f forgejo > /dev/null && echo "CI runner OK" || echo "CI runner DOWN"
+# 4. CI runner status — ⚠️ SRV1 has NO alm-ci container (2026-09-18):
+# there is no runner; CI/CD is unavailable and manual deploy is the only path.
+# (If a runner is (re)deployed, restore this check:)
+# sudo incus exec alm-ci -- pgrep -f forgejo > /dev/null && echo "CI runner OK" || echo "CI runner DOWN"
 
 # 5. MinIO buckets health
 sudo incus exec drive -- bash -c 'export PATH=/opt/gbo/bin:$PATH && mc admin info local' 2>&1 | head -10
@@ -1131,6 +1133,38 @@ ssh root@$SRV1_HOST 'sudo incus exec bot -- cp /opt/gbo/bin/botserver.old /opt/g
 - **directory** — Zitadel
 - **vectordb** — Qdrant
 - **alm** — Forgejo (port 4747)
-- **alm-ci** — Forgejo Runner
+- **alm-ci** — Forgejo Runner (⚠️ NOT PRESENT on SRV1 as of 2026-09-18 — no CI/CD; manual deploys only, see ~/.prod)
 - **proxy** — Caddy
 - **llm** — llama.cpp
+
+## Verified infra state — 2026-09-18 (SRV1)
+
+### CI/CD is NOT available
+- The `alm-ci` container **does not exist** (`incus info alm-ci` → Instance not found)
+  and **no forgejo-runner binary or `.runner` registration exists in any container**
+  (searched `/` in `alm`, `bot`).
+- Consequence: pushes to ALM never build. `botdeployment` app deploys push the repo,
+  create the CI/CD workflow and return `status: "Building"` — that state is **terminal
+  in practice**; the published URL (`https://{app}-dev.generalbots.org`) stays dead.
+- **Working deploy path (used 2026-09-18):** manual gzip-pipe transfer + `incus file push`
+  with stop-before-swap (see `~/.prod` "Deploy" steps). botserver (debug) and botui
+  (RELEASE with `--features embed-ui`) both deployed this way and verified.
+
+### Forgejo auth
+- Password auth over git/curl is **broken** (401) — Forgejo requires a PAT.
+- A PAT (`gh-push-e2e`, scopes `write:repository`) was minted via
+  `forgejo admin user generate-access-token` run as `gbuser` (running as root is refused).
+- Auth is then: `Authorization: token <pat>` (API) or the pat as the git password.
+
+### Vibe apps deploy note
+- `publish/project` with `env=test|production` for an **apps** project goes through
+  `/api/deployment/deploy` → push_app + create_cicd_workflow (see above: nothing picks it up).
+- **website** projects deploy via the proxy container's Caddy routes — this path works
+  fully on prod (verified: `e2e-prod-shop-test.generalbots.org` serves).
+- **bot** projects' dev preview serves via `vm-preview` proxy (verified).
+
+### Host disk guard
+- 2026-09-18 the host hit 100% disk → PostgreSQL in `tables` could not write
+  `postmaster.pid` → ALM auth failed globally. Cause: accumulated `e2e-*` Vibe test
+  containers (9G, deleted). Prevention: `gbo-postgres.service` created in `tables`
+  (auto-start/restart) — keep an eye on `df -h /` before mass-creating Vibe VMs.
