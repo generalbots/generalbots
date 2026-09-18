@@ -225,12 +225,12 @@
     function openProjectInfo() {
         var pid = S.projectId();
         if (!pid) {
-            // No project selected — the old code only toasted into the (now
-            // hidden) chat overlay, so the button appeared dead. Surface a
-            // visible hint and jump straight to creating a project.
-            flashHint("SELECT A PROJECT FIRST — CREATING ONE…");
-            if (window.VibeNewProject) window.VibeNewProject.open();
-            else if (window.VibeWindows) window.VibeWindows.openNewProject();
+            // Properties needs a project; never jump the user into the New
+            // Project dialog here (it confused "Properties is broken" reports
+            // when the selection was empty/stale past a reload).
+            flashHint("SELECT A PROJECT FIRST");
+            var sel = projectSelect();
+            if (sel) sel.focus();
             return;
         }
         if (window.VibeWindows && typeof window.VibeWindows.openProjectInfo === "function") {
@@ -249,9 +249,9 @@
     function deleteSelectedProject() {
         var pid = S.projectId();
         if (!pid) {
-            flashHint("SELECT A PROJECT FIRST — CREATING ONE…");
-            if (window.VibeNewProject) window.VibeNewProject.open();
-            else if (window.VibeWindows) window.VibeWindows.openNewProject();
+            flashHint("SELECT A PROJECT FIRST");
+            var sel = projectSelect();
+            if (sel) sel.focus();
             return;
         }
         var match = knownProjects.find(function (p) {
