@@ -7,6 +7,7 @@
 
 use crate::types::{DbPool, VibeRun, VibeRunState};
 use diesel::prelude::*;
+use uuid::Uuid;
 
 /// Executes the DDL from `types::VIBE_SCHEMA` against the pool (idempotent).
 pub fn ensure_vibe_schema(pool: &DbPool) -> Result<(), String> {
@@ -28,6 +29,31 @@ pub fn ensure_vibe_schema(pool: &DbPool) -> Result<(), String> {
 #[derive(Clone)]
 pub struct VibeRunStore {
     pool: DbPool,
+}
+
+/// Deletes every persisted run (and its telemetry rows) owned by a Vibe
+/// project, so the Knowledge Graph — which aggregates `vibe_runs` when no
+/// project is selected (`snapshot_runs` — `api.rs`) — never renders ghost
+/// nodes for a project that has been deleted. Telemetry is removed first
+/// because `vibe_telemetry.run_id` is a NO ACTION FK to `vibe_runs`. Runs
+/// that are still tracked in-memory by the live API keep working; they
+/// disappear on the next restart (the in-memory map starts empty).
+pub fn delete_runs_for_project(pool: &DbPool, project_id: Uuid) -> Result<usize, String> {
+    let mut conn = pool
+        .get()
+        .map_err(|e| format!("run store: pool get failed: {e}"))?;
+    let pid = project_id.to_string();
+    diesel::sql_query(
+        "DELETE FROM vibe_telemetry vt USING vibe_runs vr \
+         WHERE vr.run_id = vt.run_id AND vr.config->>'project_id' = $1",
+    )
+    .bind::<diesel::sql_types::Text, _>(&pid)
+    .execute(&mut conn)
+    .map_err(|e| format!("run store: delete project telemetry: {e}"))?;
+    diesel::sql_query("DELETE FROM vibe_runs WHERE config->>'project_id' = $1")
+        .bind::<diesel::sql_types::Text, _>(&pid)
+        .execute(&mut conn)
+        .map_err(|e| format!("run store: delete project runs: {e}"))
 }
 
 impl VibeRunStore {
