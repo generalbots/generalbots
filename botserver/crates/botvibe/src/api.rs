@@ -108,6 +108,9 @@ pub struct GetRunResponse {
     pub use_case: String,
     pub intent: String,
     pub tool_call_count: usize,
+    /// #1394 — name of the most recent tool call, so chat/Runner Log can say
+    /// WHAT the agent is doing instead of only counting calls.
+    pub last_tool_name: Option<String>,
     pub created_at: String,
     pub completed_at: Option<String>,
     pub error: Option<String>,
@@ -994,6 +997,7 @@ async fn get_run(
             use_case: String::new(),
             intent: String::new(),
             tool_call_count: 0,
+            last_tool_name: None,
             created_at: String::new(),
             completed_at: None,
             error: Some("Run not found".to_string()),
@@ -1018,6 +1022,7 @@ fn run_to_response(run: &VibeRun) -> GetRunResponse {
         use_case: run.use_case.to_string(),
         intent: run.intent.clone(),
         tool_call_count: run.tool_calls.len(),
+        last_tool_name: run.tool_calls.last().map(|c| c.tool_name.clone()),
         created_at: run.created_at.to_rfc3339(),
         completed_at: run.completed_at.map(|t| t.to_rfc3339()),
         error: run.error.clone(),

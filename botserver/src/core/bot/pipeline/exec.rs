@@ -512,13 +512,25 @@ pub async fn process_message_internal(
                                 .get("tool_call_count")
                                 .and_then(|v| v.as_u64())
                                 .unwrap_or(0);
+                            // #1394 — name the tool being run so the user can
+                            // tell WHAT the agent is doing, not just how much.
+                            let last_tool = value
+                                .get("last_tool_name")
+                                .and_then(|v| v.as_str())
+                                .unwrap_or("")
+                                .to_string();
+                            let tool_word = if last_tool.is_empty() {
+                                String::new()
+                            } else {
+                                format!(" ({last_tool})")
+                            };
                             let milestone = match s.as_str() {
                                 "awaiting_approval" => {
                                     format!("⏸ Waiting for your approval to continue ({} tool call{} so far).", tools, if tools == 1 { "" } else { "s" })
                                 }
                                 _ => {
                                     if tools > 0 {
-                                        format!("⚙️ Working on '{project_name}'… {} tool call{} done.", tools, if tools == 1 { "" } else { "s" })
+                                        format!("⚙️ Working on '{project_name}'… {} tool call{} done{tool_word}.", tools, if tools == 1 { "" } else { "s" })
                                     } else {
                                         format!("🧠 Planning the changes for '{project_name}'…")
                                     }
