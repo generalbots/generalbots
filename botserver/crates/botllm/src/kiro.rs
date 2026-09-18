@@ -473,3 +473,49 @@ impl Clone for KiroClient {
         self_clone(self)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn test_client() -> KiroClient {
+        KiroClient::new("https://q.us-east-1.amazonaws.com".to_string())
+    }
+
+    // #1390 — the kiro.dev key is currently NOT entitled (403
+    // "User is not authorized to make this call"), so error classification
+    // must distinguish it from an invalid key. When the account becomes
+    // entitled these assertions pin the contract.
+    #[test]
+    fn capacity_error_is_classified() {
+        assert!(KiroClient::is_capacity_error("{\"error\":\"INSUFFICIENT_MODEL_CAPACITY\"}"));
+        assert!(!KiroClient::is_capacity_error("{\"error\":\"AccessDeniedException\"}"));
+    }
+
+    #[test]
+    fn model_ids_are_normalized() {
+        assert_eq!(KiroClient::kiro_model_id("claude-sonnet-4-5"), "claude-sonnet-4-5");
+        assert_eq!(KiroClient::kiro_model_id("Claude-Sonnet-4.5"), "claude-sonnet-4-5");
+        assert_eq!(KiroClient::kiro_model_id("claude-sonnet-4-5-20250929"), "claude-sonnet-4-5");
+        assert_eq!(KiroClient::kiro_model_id("glm-5"), "GLM-5");
+        assert_eq!(KiroClient::kiro_model_id("unknown-model"), "auto");
+    }
+
+    #[test]
+    fn entitle_error_message_is_surfaced() {
+        let body = r#"{"__type":"com.amazon.aws.codewhisperer#AccessDeniedException","message":"User is not authorized to make this call."}"#;
+        let msg = KiroClient::extract_error_text(body);
+        assert!(msg.contains("not authorized"), "got: {msg}");
+    }
+
+    #[test]
+    fn invalid_key_error_is_distinct_from_entitlement() {
+        // Bogus key: "The bearer token included in the request is invalid."
+        // Entitled-but-unauthorized key: "User is not authorized to make this call."
+        let invalid = KiroClient::extract_error_text(r#"{"message":"The bearer token included in the request is invalid."}"#);
+        let unentitled = KiroClient::extract_error_text(r#"{"message":"User is not authorized to make this call."}"#);
+        assert!(invalid.contains("bearer token"));
+        assert!(unentitled.contains("not authorized"));
+        assert_ne!(invalid, unentitled);
+    }
+}
