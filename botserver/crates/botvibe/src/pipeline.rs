@@ -187,31 +187,6 @@ pub enum StageStatus {
     Skipped,
 }
 
-/// How an approval wait resolved (#929). The caller must map each variant to
-/// a distinct, honest user-visible verdict instead of collapsing every
-/// failure into a hardcoded "Approval denied".
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum ApprovalOutcome {
-    Approved,
-    Cancelled,
-    TimedOut,
-    ChannelClosed,
-    NotAvailable,
-}
-
-impl ApprovalOutcome {
-    /// User/telemetry-facing reason for the non-approved outcomes.
-    pub fn error_message(self) -> Option<&'static str> {
-        match self {
-            Self::Approved => None,
-            Self::Cancelled => Some("Approval denied"),
-            Self::TimedOut => Some("Approval wait timed out"),
-            Self::ChannelClosed => Some("Approval channel closed"),
-            Self::NotAvailable => Some("Approval channel unavailable"),
-        }
-    }
-}
-
 /// Per-stage result within a pipeline run report.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PipelineStageReport {
@@ -249,45 +224,11 @@ pub struct PipelineRunContext<'a> {
     /// deployment API via publish args (the pipeline path never passes
     /// through the agent-loop arg injection).
     pub user_id: Uuid,
-    /// #1269 — when the run carries auto_approve (admin-issued), skip the
-    /// per-stage human approval gates so headless deploys complete instead
-    /// of timing out waiting for a signal nobody sends.
-    pub auto_approve: bool,
 }
 
 impl PipelineEngine {
     pub fn new(telemetry: Arc<VibeTelemetry>) -> Self {
         Self { telemetry }
-    }
-
-    async fn wait_for_approval(&self, state: &dyn VibeState, run_id: Uuid) -> ApprovalOutcome {
-        let approval_timeout = std::time::Duration::from_secs(300);
-        let start = tokio::time::Instant::now();
-        let Some(tx) = state.run_signal_sender() else {
-            return ApprovalOutcome::NotAvailable;
-        };
-        let mut rx = tx.subscribe();
-        loop {
-            let remaining = if start.elapsed() > approval_timeout {
-                return ApprovalOutcome::TimedOut;
-            } else {
-                approval_timeout.saturating_sub(start.elapsed())
-            };
-            match tokio::time::timeout(remaining, rx.recv()).await {
-                Ok(Ok(crate::types::VibeRunSignal::Approved(id))) if id == run_id => {
-                    return ApprovalOutcome::Approved;
-                }
-                Ok(Ok(crate::types::VibeRunSignal::Cancelled(id))) if id == run_id => {
-                    return ApprovalOutcome::Cancelled;
-                }
-                Ok(Ok(_)) => continue,
-                Ok(Err(tokio::sync::broadcast::error::RecvError::Lagged(_))) => continue,
-                Ok(Err(tokio::sync::broadcast::error::RecvError::Closed)) => {
-                    return ApprovalOutcome::ChannelClosed;
-                }
-                Err(_) => return ApprovalOutcome::TimedOut,
-            }
-        }
     }
 
     pub async fn run(
@@ -304,7 +245,6 @@ impl PipelineEngine {
             project_id,
             project_name,
             user_id,
-            auto_approve,
         } = *ctx;
         let mut reports = Vec::new();
         for stage in &pipeline.stages {
@@ -375,52 +315,10 @@ impl PipelineEngine {
                 run_id,
                 tool_name.to_string(),
                 arguments,
-                stage.requires_approval,
+                false,
             );
-            // #1269 — an auto-approved (admin-issued) run skips the human
-            // approval gate but still executes the stage tool; only the wait
-            // is bypassed, never the work.
-            if stage.requires_approval && !auto_approve {
-                let outcome = self.wait_for_approval(state, run_id).await;
-                if outcome != ApprovalOutcome::Approved {
-                    let error = outcome
-                        .error_message()
-                        .unwrap_or("Approval denied")
-                        .to_string();
-                    reports.push(PipelineStageReport {
-                        stage_id: stage.id.clone(),
-                        stage_name: stage.name.clone(),
-                        tool_name: tool_name.to_string(),
-                        status: StageStatus::Failed,
-                        took_ms: 0,
-                        error: Some(error.clone()),
-                    });
-                    self.telemetry
-                        .record_tool_call(ToolCallRecord {
-                            run_id,
-                            use_case,
-                            tool_name: tool_name.to_string(),
-                            latency_ms: 0,
-                            tokens: None,
-                            cost: 0.0,
-                            success: false,
-                            error: Some(error),
-                            metadata: std::collections::HashMap::new(),
-                        })
-                        .await;
-                    for rest in &pipeline.stages[reports.len()..] {
-                        reports.push(PipelineStageReport {
-                            stage_id: rest.id.clone(),
-                            stage_name: rest.name.clone(),
-                            tool_name: rest.kind.tool_name().to_string(),
-                            status: StageStatus::Skipped,
-                            took_ms: 0,
-                            error: None,
-                        });
-                    }
-                    break;
-                }
-            }
+            // Approval gate removed — all stages run automatically; decisions
+            // and failures surface in the Vibe chat instead of blocking.
             // The engine is the authorized orchestrator: approval policy is
             // decided upstream (e.g. the agent loop), not per stage here.
             tool_call.approved = true;
@@ -566,27 +464,6 @@ mod tests {
     }
 
     #[test]
-    fn approval_outcome_error_messages_are_distinct() {
-        assert_eq!(ApprovalOutcome::Approved.error_message(), None);
-        assert_eq!(
-            ApprovalOutcome::Cancelled.error_message(),
-            Some("Approval denied")
-        );
-        assert_eq!(
-            ApprovalOutcome::TimedOut.error_message(),
-            Some("Approval wait timed out")
-        );
-        assert_eq!(
-            ApprovalOutcome::ChannelClosed.error_message(),
-            Some("Approval channel closed")
-        );
-        assert_eq!(
-            ApprovalOutcome::NotAvailable.error_message(),
-            Some("Approval channel unavailable")
-        );
-    }
-
-    #[test]
     fn real_stage_kinds_map_to_registered_tools() {
         assert_eq!(PipelineStageKind::BuildTest.tool_name(), "test/run");
         assert_eq!(PipelineStageKind::CommitPush.tool_name(), "git/commit");
@@ -687,7 +564,6 @@ mod tests {
                     project_id: None,
                     project_name: None,
                     user_id: Uuid::nil(),
-                    auto_approve: true,
                 },
             )
             .await;

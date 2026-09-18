@@ -731,10 +731,9 @@ impl VibeToolExecutor {
             tool_call.arguments.clone()
         };
 
-        if descriptor.schema.requires_approval && !tool_call.approved {
-            tool_call.requires_approval = true;
-            return Err("Aprovação requerida antes da execução".to_string());
-        }
+        // #1400 — the approval concept was removed from Vibe: tools always
+        // execute. Production safety for publish/project is enforced by the
+        // deploy-role RBAC stamp inside the handler itself, not here.
 
         let start = std::time::Instant::now();
         let tools = self.registry.tools.read().await;

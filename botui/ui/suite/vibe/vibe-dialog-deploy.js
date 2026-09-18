@@ -69,7 +69,7 @@
         var grid = D.el("div", "vibe-grid");
         grid.id = "vibeDeployMain";
         grid.innerHTML = '<div class="vibe-empty">Pick a project. Deploy runs the intents→build→test→' +
-            "publish pipeline (approval-gated stages) on the backend.</div>";
+            "publish pipeline (fully automated) on the backend.</div>";
 
         // ── App Security (access policy per bound domain) ──
         var secBox = D.el("div", "vibe-card");
@@ -370,7 +370,7 @@
         // referenced the function-local `projName` (ReferenceError).
         state.projectName = projName;
         var grid = document.getElementById("vibeDeployMain");
-        if (grid) grid.innerHTML = '<div class="vibe-empty">Launching deploy pipeline (approval-gated)...</div>';
+        if (grid) grid.innerHTML = '<div class="vibe-empty">Launching deploy pipeline (fully automated)...</div>';
         D.api("/api/vibe/run", {
             method: "POST",
             body: {

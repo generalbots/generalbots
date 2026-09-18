@@ -1,5 +1,5 @@
 /**
- * Vibe Run Dock (#806, #807) — live run card, approval resume UX,
+ * Vibe Run Dock (#806, #807) — live run card, progress narration,
  * multi-agent TODO board, pipeline strip, grounding sources, sessions
  * resume/fork and team-run chips. Polling-based: /api/vibe/run|metrics|
  * events|pipeline|sessions|teams (backend channels confirmed live; the
@@ -214,7 +214,6 @@
             setText("vibeRunOutcome", "✅ completed");
         }
         renderTodoBoard();
-        renderApproval();
     }
 
     function renderTodoBoard() {
@@ -269,95 +268,6 @@
             else if (tool && state.stageDone[tool]) cls = "done";
             return '<span class="vibe-stage-chip ' + cls + '">' + esc(st.name || st.id) + "</span>";
         }).join("");
-    }
-
-    /* ------------------------------------------------- approval */
-
-    function renderApproval() {
-        var card = q("vibeApprovalCard");
-        if (!card) return;
-        if (!state.run || state.run.state !== "awaiting_approval") {
-            card.classList.remove("visible");
-            return;
-        }
-        card.classList.add("visible");
-        var tools = q("vibeApprovalTools");
-        if (tools) {
-            var named = state.events
-                .filter(function (e) { return e && e.tool_name; })
-                .map(function (e) { return e.tool_name; });
-            named = Array.from(new Set(named)).slice(-3);
-            tools.innerHTML =
-                "This run requires approval for " +
-                (state.run.tool_call_count || 0) +
-                " tool call(s)." +
-                (named.length ? "<br/>Recent tools: <b>" + esc(named.join(", ")) + "</b>" : "");
-        }
-    }
-
-    function approveRun() {
-        var btn = q("vibeApproveBtn");
-        if (btn) {
-            btn.disabled = true;
-            btn.textContent = "Resuming…";
-        }
-        api("/api/vibe/run/" + state.runId + "/approve", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: "{}",
-        }).then(function (data) {
-            var msg = data && data.message ? String(data.message) : "";
-            // The backend guards terminal states: a late approval still
-            // records the pending tool calls but reports the run already
-            // finished. Reflect that instead of leaving the dock stuck on
-            // "Resuming…" forever.
-            if (msg.indexOf("already finished") !== -1) {
-                resetApproveBtn();
-                uiMsg("✅ Approval recorded — run already finished.");
-                pollRun();
-                return;
-            }
-            uiMsg("✅ Approval sent — resuming run.");
-            waitForResume();
-        });
-    }
-
-    function resetApproveBtn() {
-        var btn = q("vibeApproveBtn");
-        if (btn) {
-            btn.disabled = false;
-            btn.textContent = "✓ Approve & Resume";
-        }
-    }
-
-    function denyRun() {
-        api("/api/vibe/run/" + state.runId + "/cancel", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ reason: "Denied by user" }),
-        }).then(function () {
-            uiMsg("✕ Run denied and cancelled.");
-            pollRun();
-        });
-    }
-
-    function waitForResume() {
-        var tries = 0;
-        var t = setInterval(function () {
-            tries++;
-            api("/api/vibe/run/" + state.runId).then(function (data) {
-                if (!data || !data.run_id) return;
-                if (String(data.state).toLowerCase() !== "awaiting_approval") {
-                    clearInterval(t);
-                    state.run = data;
-                    state.phase = state.phase === "waiting approval" ? "acting" : state.phase;
-                    renderRunCard();
-                } else if (tries >= 40) {
-                    clearInterval(t);
-                    resetApproveBtn();
-                }
-            });
-        }, 750);
     }
 
     /* ------------------------------------------------- sources */
@@ -437,9 +347,7 @@
                 // but the list only refreshed on focus/start — so a run that
                 // just completed would stay as a stale "RUNNING 0 calls" entry.
                 loadRuns();
-                if (data.state === "awaiting_approval") {
-                    uiMsg("⏸ Run is waiting for approval — see the Run Dock.");
-                } else if (data.state === "completed") {
+                if (data.state === "completed") {
                     stopPolling();
                     // #run-done — a finished run must end with the result
                     // visible: (1) drop a clickable deeplink in the Runner
@@ -480,7 +388,7 @@
                 }
             });
             if (!state.loadedPipeline) loadPipeline();
-            if (data.state === "running" || data.state === "awaiting_approval") {
+            if (data.state === "running") {
                 api("/api/vibe/events/" + state.runId).then(function (ev) {
                     var list = null;
                     if (ev && Array.isArray(ev.events)) list = ev.events;
@@ -489,7 +397,6 @@
                     var changed = list.length !== state.events.length;
                     state.events = list;
                     renderSources();
-                    renderApproval();
                     // #vibe-verbose — narrate every tool event into the
                     // Runner Log as it happens; previously the fetched events
                     // were only counted, leaving the user staring at an idle
@@ -600,8 +507,6 @@
         state.stageActive = null;
         var card = q("vibeRunCard");
         if (card) card.classList.remove("visible");
-        var approval = q("vibeApprovalCard");
-        if (approval) approval.classList.remove("visible");
         var sources = q("vibeSourcesSection");
         if (sources) sources.style.display = "none";
         setText("vibeRunId", "RUN " + shortRunId(state.runId));
@@ -636,12 +541,12 @@
                 ? vibeBotId
                 : null,
             use_case: state.useCase,
-            // #919 — default to manual approval for destructive tools; the
-            // server only honors auto_approve for administrators.
-            auto_approve: opts.auto_approve === true,
-            // "deploy" routes the run through the approval-gated deploy
-            // pipeline (publish to production); omitted/other values test in
-            // development. Run = dev, Deploy = prod — the only two paths.
+            // Approval gates removed — everything runs automatically; kept
+            // for wire compatibility with the server's run config schema.
+            auto_approve: true,
+            // "deploy" routes the run through the deploy pipeline (publish to
+            // production); omitted/other values test in development. Run =
+            // dev, Deploy = prod — the only two paths.
             pipeline_mode: opts.pipeline_mode || null,
             project_id: pid,
             project_name: pname,
@@ -922,7 +827,7 @@
             if (!state.runId) {
                 var active = runs.find(function (run) {
                     var runState = String(run.state || "").toLowerCase();
-                    return runState === "running" || runState === "awaiting_approval";
+                    return runState === "running";
                 });
                 if (active && active.run_id) focus(active.run_id);
             }
@@ -1052,18 +957,6 @@
                 q("vibeRunDockArrow").textContent = collapsed ? "▸" : "▾";
             });
         }
-        if (!document.documentElement.dataset.vibeRunApprovalWired) {
-            document.documentElement.dataset.vibeRunApprovalWired = "true";
-            document.addEventListener("click", function (event) {
-                var target = event.target;
-                if (!target || typeof target.closest !== "function") return;
-                if (target.closest("#vibeApproveBtn")) {
-                    approveRun();
-                } else if (target.closest("#vibeDenyBtn")) {
-                    denyRun();
-                }
-            });
-        }
         // Collapsible sections (Sessions / Runs / Team runs).
         document.querySelectorAll("[data-rd-collapse]").forEach(function (h) {
             h.addEventListener("click", function () {
@@ -1135,11 +1028,6 @@
             pollRun();
             return;
         }
-        var st = state.run && state.run.state;
-        if (state.runId && st === "awaiting_approval") {
-            approveRun();
-            return;
-        }
         if (state.runId && (st === "running" || st === "pending")) {
             updateRibbonStatus("RUNNING", "running");
             if (window.VibeWindows) window.VibeWindows.openRunDock();
@@ -1154,8 +1042,8 @@
         var text = projectName
             ? "Run and verify the selected project " + projectName
             : "Run and verify the selected project";
-        // Auto-approval like freebuff: Run executes tools without waiting for
-        // manual approval gates (server only honors it for admins).
+        // Fully automated like freebuff: Run executes all tools directly,
+        // no gates, decisions reported through the chat narration.
         start(text, { auto_approve: true }).then(function () {
             updateRibbonStatus("RUNNING", "running");
             // Surface the execution board when starting a fresh run: the run
@@ -1179,17 +1067,12 @@
         });
     }
 
-    // VB6 "Break": the run holds at its next checkpoint (manual approval
-    // gate). The server keeps the run in flight; the transport shows PAUSED
-    // and Play resumes (or approves the pending gate).
+    // VB6 "Break": the run holds at its next checkpoint (tool-call budget
+    // check). The server keeps the run in flight; the transport shows PAUSED
+    // and Play resumes it.
     function pause() {
         if (!state.runId || !state.run) {
             updateRibbonStatus("NO RUN TO PAUSE", "hint");
-            return;
-        }
-        if (String(state.run.state) === "awaiting_approval") {
-            updateRibbonStatus("PAUSED — WAITING FOR APPROVAL", "paused");
-            if (window.VibeWindows) window.VibeWindows.openRunDock();
             return;
         }
         state.paused = true;
@@ -1212,10 +1095,8 @@
             ? "Deploy the project " + projectName + " to production"
             : "Deploy the selected project to production";
         uiMsg("🚀 Deploying " + projectName + " to production…");
-        // The Deploy click itself is the approval to publish: carry
-        // auto_approve so the approval-gated deploy pipeline (commit/publish/
-        // domain stages) does not hang waiting for a signal nobody sends.
-        // The server only honors auto_approve for administrators.
+        // Deploy is fully automated — no approval gates anywhere in the
+        // pipeline; failures and decisions surface in the Vibe chat.
         start(text, { pipeline_mode: "deploy", auto_approve: true }).then(function () {
             updateRibbonStatus("DEPLOYING", "running");
             if (window.VibeWindows && typeof window.VibeWindows.openRunDock === "function") {
@@ -1228,7 +1109,7 @@
 
     function hasActiveRun() {
         if (!state.runId || !state.run) return false;
-        return ["pending", "running", "awaiting_approval"].indexOf(String(state.run.state)) !== -1;
+        return ["pending", "running"].indexOf(String(state.run.state)) !== -1;
     }
 
     function stop() {
@@ -1237,7 +1118,14 @@
             return;
         }
         state.paused = false;
-        denyRun();
+        api("/api/vibe/run/" + state.runId + "/cancel", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reason: "Stopped by user" }),
+        }).then(function () {
+            uiMsg("\u23F9 Run stopped.");
+            pollRun();
+        });
         closePreview();
         updateRibbonStatus("STOPPED", "stop");
     }
@@ -1255,8 +1143,6 @@
         start: start,
         focus: focus,
         onProgress: onProgress,
-        approve: approveRun,
-        deny: denyRun,
         preview: previewProject,
         play: play,
         deploy: deploy,

@@ -76,7 +76,7 @@ window.VibeGraph = {
             }
             box.innerHTML = runs.slice(0, 8).map((run) => {
                 const st = String(run.state || '').toLowerCase();
-                const dot = st === 'completed' ? '#22c55e' : st === 'failed' || st === 'cancelled' ? '#ef4444' : st === 'awaiting_approval' ? '#f7b500' : '#3b82f6';
+                const dot = st === 'completed' ? '#22c55e' : st === 'failed' || st === 'cancelled' ? '#ef4444' : '#3b82f6';
                 return '<div style="display:flex;gap:7px;align-items:flex-start;padding:4px 0;border-bottom:1px solid rgba(128,128,128,.15);">' +
                     '<span style="width:8px;height:8px;border-radius:50%;background:' + dot + ';margin-top:4px;flex:0 0 auto;"></span>' +
                     '<span style="word-break:break-word;">' + this.esc(String(run.intent || 'run').substring(0, 120)) + '</span></div>';
@@ -268,7 +268,7 @@ window.VibeGraph = {
                 if (target) {
                     target.innerHTML = this.capabilities.map((c) => {
                         const toolChips = c.tools.map(t => `<span class="vibe-cap-tool">${t}</span>`).join('');
-                        const approval = c.requires_approval ? ' <span class="vibe-cap-warn">approval</span>' : '';
+                        const approval = c.requires_approval ? ' <span class="vibe-cap-warn">guarded</span>' : '';
                         return `<div class="vibe-capability">
                             <div class="vibe-cap-title">${c.title} <small>${c.id}</small>${approval}</div>
                             <div class="vibe-cap-desc">${c.description}</div>

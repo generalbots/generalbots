@@ -498,7 +498,6 @@ pub fn router(
         .route("/api/vibe/run", axum::routing::post(create_run))
         .route("/api/vibe/run/:run_id", axum::routing::get(get_run))
         .route("/api/vibe/run/:run_id/cancel", axum::routing::post(cancel_run))
-        .route("/api/vibe/run/:run_id/approve", axum::routing::post(approve_run))
         .route("/api/vibe/runs", axum::routing::get(list_runs))
         .route("/api/vibe/tools", axum::routing::get(list_tools))
         .route("/api/vibe/tools/:use_case", axum::routing::get(list_tools_for_use_case))
@@ -873,7 +872,6 @@ async fn create_run(
                             project_id: project_id.as_deref(),
                             project_name: project_name.as_deref(),
                             user_id: run.user_id,
-                            auto_approve: run.config.auto_approve,
                         },
                     )
                     .await;
@@ -1044,26 +1042,6 @@ fn cancel_run_inner(run: &mut VibeRun) {
     }
 }
 
-/// Approves all pending tool calls and, unless the run already finished,
-/// resumes it. Returns the user-facing message (the frontend keys off
-/// "already finished" to refresh to the terminal state).
-fn approve_run_inner(run: &mut VibeRun) -> String {
-    for tool_call in &mut run.tool_calls {
-        if tool_call.requires_approval && !tool_call.approved {
-            tool_call.approved = true;
-        }
-    }
-    let was_terminal = run.state.is_terminal();
-    if !was_terminal {
-        run.transition(VibeRunState::Running);
-    }
-    if was_terminal {
-        "Run already finished — approval recorded, state unchanged".to_string()
-    } else {
-        "Pending tool calls approved and run resumed".to_string()
-    }
-}
-
 async fn cancel_run(
     Extension(api): Extension<Arc<VibeApiInner>>,
     Path(run_id): Path<Uuid>,
@@ -1106,59 +1084,6 @@ async fn cancel_run(
                 Json(ActionResponse {
                     success: true,
                     message: Some("Run cancelled".to_string()),
-                    error: None,
-                })
-            }
-            None => Json(ActionResponse {
-                success: false,
-                message: None,
-                error: Some("Run not found".to_string()),
-            }),
-        }
-    }
-}
-
-async fn approve_run(
-    Extension(api): Extension<Arc<VibeApiInner>>,
-    Path(run_id): Path<Uuid>,
-) -> impl IntoResponse {
-    if let Some(tx) = api.state.run_signal_sender() {
-        let _ = tx.send(crate::types::VibeRunSignal::Approved(run_id));
-    }
-    let mut runs = api.runs.write().await;
-    if let Some(run) = runs.get_mut(&run_id) {
-        let msg = approve_run_inner(run);
-        info!("Vibe run approved: {run_id}");
-        let snapshot = run.clone();
-        drop(runs);
-        {
-            let mut state_runs = api.state.active_runs().write().await;
-            if let Some(state_run) = state_runs.get_mut(&run_id) {
-                approve_run_inner(state_run);
-            }
-        }
-        if let Err(e) = api.runs_store.save_run(&snapshot) {
-            error!("Vibe: persist approved run {run_id} failed: {e}");
-        }
-        Json(ActionResponse {
-            success: true,
-            message: Some(msg),
-            error: None,
-        })
-    } else {
-        drop(runs);
-        // After a restart the in-memory map is empty; fall back to the
-        // persisted store so a stored run can still be approved.
-        match api.runs_store.get_run(run_id) {
-            Some(mut run) => {
-                let msg = approve_run_inner(&mut run);
-                if let Err(e) = api.runs_store.save_run(&run) {
-                    error!("Vibe: persist approved run {run_id} failed: {e}");
-                }
-                info!("Vibe run approved (persisted): {run_id}");
-                Json(ActionResponse {
-                    success: true,
-                    message: Some(msg),
                     error: None,
                 })
             }
