@@ -647,6 +647,7 @@ fn deploy_app_handler(
                 environment: env,
                 custom_domain,
                 ci_cd_enabled: true,
+                database_url: None,
             };
 
             let router = botdeployment::DeploymentRouter::new(forgejo_url, forgejo_token);

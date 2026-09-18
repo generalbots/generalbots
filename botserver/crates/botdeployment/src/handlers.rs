@@ -177,6 +177,7 @@ pub async fn deploy_project(
         environment,
         custom_domain: request.custom_domain.clone(),
         ci_cd_enabled,
+        database_url: request.database_url.clone(),
     };
 
     let router = DeploymentRouter::new(forgejo_url, forgejo_token);

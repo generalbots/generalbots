@@ -80,6 +80,12 @@ pub struct DeployGatewayRequest {
     pub project_type: ProjectType,
     pub artifact_url: String,
     pub environment: DeploymentEnvironment,
+    /// #1386 — the project's per-environment database URL. When present it is
+    /// injected into the container's `app.service` as `DATABASE_URL` so the
+    /// deployed app reaches its own database through the standard env-var
+    /// convention (dev twin gets the `_dev` database, prod the public one).
+    #[serde(default)]
+    pub database_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -100,6 +106,10 @@ pub struct DeploymentConfig {
     pub environment: DeploymentEnvironment,
     pub custom_domain: Option<String>,
     pub ci_cd_enabled: bool,
+    /// #1386 — per-environment database URL propagated to the deploy gateway
+    /// (see `DeployGatewayRequest::database_url`).
+    #[serde(default)]
+    pub database_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -234,6 +244,13 @@ pub struct DeploymentRequest {
     /// present, these are pushed to the ALM repo instead of an empty app.
     #[serde(default)]
     pub files: Vec<GeneratedFile>,
+    /// #1386 — per-environment database URL resolved by the publish flow
+    /// (production → `app_{branch}_{slug}`, dev → `..._dev`). The gateway
+    /// injects it into the deployed app's systemd unit as `DATABASE_URL`;
+    /// the URL is never generated inside the gateway anymore so the same
+    /// database follows every redeploy of an environment.
+    #[serde(default)]
+    pub database_url: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
