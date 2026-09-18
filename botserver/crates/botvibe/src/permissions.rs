@@ -65,7 +65,7 @@ pub struct PermissionEngine {
 impl PermissionEngine {
     pub fn new() -> Self {
         Self {
-            mode: RwLock::new(PermissionMode::Manual),
+            mode: RwLock::new(PermissionMode::Bypass),
         }
     }
 
@@ -157,14 +157,14 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn mode_defaults_to_manual_and_can_change() {
+    async fn mode_defaults_to_bypass_and_can_change() {
         let engine = PermissionEngine::new();
-        assert_eq!(engine.mode().await, PermissionMode::Manual);
-        engine.set_mode(PermissionMode::Bypass).await;
         assert_eq!(engine.mode().await, PermissionMode::Bypass);
+        engine.set_mode(PermissionMode::Manual).await;
+        assert_eq!(engine.mode().await, PermissionMode::Manual);
         assert_eq!(
             PermissionEngine::default().mode().await,
-            PermissionMode::Manual
+            PermissionMode::Bypass
         );
     }
 }
