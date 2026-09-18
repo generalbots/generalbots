@@ -276,6 +276,24 @@
         }
     });
 
+    // Resolve the active project id without trusting the (possibly nulled)
+    // in-memory globals: prefer window.currentProjectId, then the persisted
+    // session/local selection (used by openProjectInfo and Properties).
+    function selectedProjectIdOrDefault() {
+        if (typeof window.currentProjectId !== "undefined" && window.currentProjectId) {
+            return window.currentProjectId;
+        }
+        try {
+            return (
+                sessionStorage.getItem("gb-vibe-project-id") ||
+                localStorage.getItem("gb-vibe-project-id") ||
+                null
+            );
+        } catch (e) {
+            return null;
+        }
+    }
+
     window.VibeWindows = {
         openRunDock: openRunDock,
         // The Vibe assistant IS the shared Chat window — same bot chat, same
@@ -300,7 +318,10 @@
         // Project properties/info dialog for the currently selected project.
         openProjectInfo: function () {
             dedupeGhosts();
-            var pid = (typeof window.currentProjectId !== "undefined" && window.currentProjectId) || null;
+            // The in-memory globals can be null after an anonymous early paint
+            // (a 401 loadProjects run once wiped them); fall back to the
+            // persisted selection so Properties still opens for the real pick.
+            var pid = selectedProjectIdOrDefault();
             if (!pid) {
                 if (window.VibeShell && window.VibeShell.toolbar && typeof window.VibeShell.toolbar.flashHint === "function") {
                     window.VibeShell.toolbar.flashHint("SELECT A PROJECT FIRST");

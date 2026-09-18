@@ -340,7 +340,19 @@ function noop() {}
 // never a bare id — carry the project_type so the dialog and gating agree.
 function projectInfoTarget(p) {
     if (p) return p;
-    var id = typeof window.currentProjectId !== "undefined" ? window.currentProjectId : null;
+    var id =
+        (typeof window.currentProjectId !== "undefined" && window.currentProjectId) ||
+        (function () {
+            try {
+                return (
+                    sessionStorage.getItem("gb-vibe-project-id") ||
+                    localStorage.getItem("gb-vibe-project-id") ||
+                    null
+                );
+            } catch (e) {
+                return null;
+            }
+        })();
     if (!id) return null;
     return {
         id: id,
