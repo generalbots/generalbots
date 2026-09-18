@@ -355,7 +355,13 @@
                 if (!projects.length) {
                     sel.disabled = true;
                     sel.appendChild(el("option", null, "No projects"));
-                    clearStaleSelection();
+                    // Only wipe a persisted selection when the list is
+                    // GENUINELY empty. An anonymous/401 first paint returns
+                    // an error envelope here, and clearing would null a valid
+                    // stored project (which then made Properties/selected
+                    // buttons fall back to 'SELECT A PROJECT FIRST').
+                    var listReallyEmpty = data && !data.error && data.success !== false;
+                    if (listReallyEmpty) clearStaleSelection();
                     loadBranches();
                     return;
                 }
