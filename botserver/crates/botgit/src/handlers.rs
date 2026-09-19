@@ -335,18 +335,13 @@ pub async fn git_tree(
         return Ok(Json(serde_json::json!({ "entries": [], "error": "invalid path" })));
     }
     let mut entries: Vec<GitTreeEntry> = Vec::new();
-    let listing = run_git(
-        &repo,
-        &[
-            "ls-files",
-            "--cached",
-            "--others",
-            "--exclude-standard",
-            "-z",
-            dir,
-        ],
-    )
-    .unwrap_or_default();
+    // `git ls-files` rejects an empty pathspec argument — omit it entirely
+    // for the repo root instead of passing "".
+    let mut ls_args: Vec<&str> = vec!["ls-files", "--cached", "--others", "--exclude-standard", "-z"];
+    if !dir.is_empty() {
+        ls_args.push(dir);
+    }
+    let listing = run_git(&repo, &ls_args).unwrap_or_default();
     let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
     let status_out = run_git(&repo, &["status", "--porcelain=v1", "-z"]).unwrap_or_default();
     let mut status_by_path: std::collections::HashMap<String, String> =
