@@ -414,9 +414,16 @@
                 var grid = document.getElementById("vibeDeployMain");
                 if (grid) {
                     grid.innerHTML = '<div class="vibe-empty">✅ Deployed — opening <b>' +
-                        D.esc(state.projectName || "project") + "</b> in a new tab…</div>";
+                        D.esc(state.projectName || "project") + "</b>…</div>";
                 }
-                openAppTab("production");
+                // #1504 — bot projects open the Chat window on the PROD tab
+                // (the bot is a suite conversation, not a browser page);
+                // websites/apps keep opening the deployed URL in a new tab.
+                if (isBotProject()) {
+                    promoteBotProd();
+                } else {
+                    openAppTab("production");
+                }
                 setTimeout(loadHistory, 2500);
             } else if (runState === "failed" || runState === "cancelled" || runState === "aborted") {
                 var gf = document.getElementById("vibeDeployMain");
@@ -429,6 +436,39 @@
             }
         }).catch(function () {
             setTimeout(function () { waitDeployFinished(runId, attempt + 1); }, 5000);
+        });
+    }
+
+    // #1504 — bot-kind project detection for the deploy-complete flow: the
+    // toolbar state carries the project kind (same helper the shell uses).
+    function isBotProject() {
+        try {
+            var kind = window.currentProjectKind || localStorage.getItem("gb-vibe-project-kind") || "";
+            return String(kind).toLowerCase() === "bot";
+        } catch (e) { return false; }
+    }
+
+    // #1504 — bot PROD completion: promote the TEST release into the PROD
+    // bot layout server-side, then open the Chat window on the PROD tab.
+    function promoteBotProd() {
+        D.api("/api/vibe/projects/" + encodeURIComponent(state.projectId) + "/bot/deploy-prod", {
+            method: "POST",
+        }).then(function () {
+            var slug = String(state.projectName || "").toLowerCase().replace(/\s+/g, "-");
+            if (window.VibeShell && window.VibeShell.toolbar && window.VibeShell.toolbar.openBotChat) {
+                window.VibeShell.toolbar.openBotChat(state.projectName || slug, "production");
+            } else {
+                openSharedApp("chat", {
+                    bot: slug,
+                    botTest: slug + "-test",
+                    botProd: slug,
+                    botEnv: "production",
+                    botLabel: state.projectName || slug,
+                });
+            }
+        }).catch(function (err) {
+            var grid = document.getElementById("vibeDeployMain");
+            if (grid) grid.innerHTML = '<div class="vibe-empty">Deploy promote failed: ' + D.esc(err) + "</div>";
         });
     }
 

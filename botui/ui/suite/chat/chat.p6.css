@@ -388,3 +388,35 @@ sup.gb-cite-ref:hover {
   --ok: #30a46c;
   --warn: #f5a524;
 }
+
+/* ── Vibe bot two-env tabs (#1504) — TEST/PROD conversation strip ────── */
+.vibe-bot-env-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 6px 10px 0;
+  border-bottom: 1px solid var(--border, var(--border-color, #2a2a3a));
+  background: var(--surface, transparent);
+}
+
+.vibe-bot-env-tab {
+  appearance: none;
+  border: 1px solid var(--border, #2a2a3a);
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  color: var(--text-muted, #888);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 14px 7px;
+  cursor: pointer;
+}
+
+.vibe-bot-env-tab:hover {
+  color: var(--text, #ddd);
+}
+
+.vibe-bot-env-tab.active {
+  color: var(--text, #fff);
+  background: var(--surface-2, rgba(255, 255, 255, 0.04));
+  border-color: var(--accent, #7aa2ff);
+}

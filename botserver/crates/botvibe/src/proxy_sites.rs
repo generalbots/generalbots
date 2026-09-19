@@ -273,8 +273,12 @@ fn check_serveability(files: &[serde_json::Value], python: bool) -> Result<(), S
 /// Tar the workspace payload on the bot side (limits already checked) and
 /// extract it into a fresh directory inside the proxy, keeping the previous
 /// release as `<site>.prev-N` (rotated) for rollback. Then atomically swap.
-fn stage_payload(project: &crate::projects::Project, site_dir: &str) -> Result<(), String> {
-    let files = super::publish::collect_workspace_files(project)?;
+fn stage_payload(
+    project: &crate::projects::Project,
+    site_dir: &str,
+    deploy_rev: Option<&str>,
+) -> Result<(), String> {
+    let files = crate::deploy_source::materialize_files(project, deploy_rev)?;
     if files.is_empty() {
         return Err("workspace is empty — nothing to publish".to_string());
     }
@@ -1015,6 +1019,7 @@ fn deploy_site_to_target_sync(
     verify: bool,
     target: &SiteTarget,
     env: SiteEnv,
+    deploy_rev: Option<&str>,
 ) -> Result<(String, String), String> {
     let _guard = lock_publish();
     let slug = site_slug(&project.name);
@@ -1030,9 +1035,12 @@ fn deploy_site_to_target_sync(
              (missing {MARKER_FILE}) — move it or choose another project name"
         ));
     }
-    let files = super::publish::collect_workspace_files(project)?;
+    // #1505 — the deployable payload comes from the git revision (HEAD of
+    // the pushed state), not the live workspace. Native projects fall back
+    // to the workspace walk inside `materialize_files`.
+    let files = crate::deploy_source::materialize_files(project, deploy_rev)?;
     check_serveability(&files, python)?;
-    stage_payload(project, &site_dir)?;
+    stage_payload(project, &site_dir, deploy_rev)?;
     let mut service_note = String::new();
     if python {
         let port = python_port_for(target, &slug);
@@ -1073,6 +1081,7 @@ pub async fn deploy_site_to_proxy_env(
     python: bool,
     env: SiteEnv,
     pool: &crate::types::DbPool,
+    deploy_rev: Option<String>,
 ) -> Result<(String, String), String> {
     let p = project.clone();
     let domain = super::publish::published_domain();
@@ -1080,7 +1089,7 @@ pub async fn deploy_site_to_proxy_env(
     tokio::task::spawn_blocking(move || {
         let slug = site_slug(&p.name);
         let target = SiteTarget::new(&slug, env, &domain);
-        deploy_site_to_target_sync(&p, &pool, python, true, &target, env)
+        deploy_site_to_target_sync(&p, &pool, python, true, &target, env, deploy_rev.as_deref())
     })
     .await
     .map_err(|e| format!("publish task: {e}"))?
