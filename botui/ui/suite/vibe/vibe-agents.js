@@ -437,6 +437,25 @@ function deleteProject(p) {
     if (!window.confirm("Delete project '" + name + "'?\n\nThis removes its VMs and workspace files. This cannot be undone.")) {
         return;
     }
+    // Freeze the UI until the deletion finishes AND the project combo is
+    // refreshed — the user must not interact mid-delete.
+    var shell = window.VibeShell && window.VibeShell.toolbar;
+    var setBusy = shell && typeof shell.setBusy === "function" ? shell.setBusy : null;
+    var unfreeze = function () {
+        if (setBusy) setBusy(false);
+    };
+    if (setBusy) setBusy(true, "Deleting project…");
+
+    // Reload the toolbar's project combo and resolve when it is refreshed,
+    // so the UI stays frozen until the dropdown reflects the deletion.
+    var refreshCombo = function () {
+        if (shell && typeof shell.loadProjects === "function") {
+            var done = shell.loadProjects();
+            if (done && typeof done.then === "function") return done;
+        }
+        return Promise.resolve();
+    };
+
     vibeApi("/api/vibe/projects/" + encodeURIComponent(id), {
         method: "DELETE",
     })
@@ -463,12 +482,18 @@ function deleteProject(p) {
                 }
                 loadVibeProjects();
                 document.dispatchEvent(new CustomEvent("gb:vibe-project", { detail: {} }));
+                // Keep frozen until the combo is updated; translations and
+                // the gb:vibe-project listener also reload, so the awaited
+                // call here is the authoritative "combo ready" signal.
+                return refreshCombo().then(unfreeze, unfreeze);
             } else {
+                unfreeze();
                 var msg = (data && data.error) || "delete failed";
                 window.alert("Could not delete project: " + msg);
             }
         })
         .catch(function (e) {
+            unfreeze();
             window.alert("Could not delete project: " + e.message);
         });
 }
