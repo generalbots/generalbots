@@ -104,14 +104,8 @@
   line-height: 1.3;
 }
 .gb-cc-toggle.active { background: rgba(59, 130, 246, 0.3); border-color: #3b82f6; }
-.gb-cc-slider-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 10px;
-  font-size: 14px;
-}
-.gb-cc-slider-row input { flex: 1; }
+/* #1433 — DND/brightness/volume controls removed (no backing behavior); the
+   slider-row rules go with them. */
 .gb-cc-power {
   margin-top: 6px;
   text-align: center;

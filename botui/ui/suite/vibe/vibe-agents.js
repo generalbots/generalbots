@@ -435,7 +435,7 @@ function registerProjectInfoDialog() {
     }
 })();
 
-function deleteProject(p) {
+function deleteProject(p, force) {
     if (!p) return;
     var id = p.project_id || p.id;
     var name = p.name || "this project";
@@ -461,7 +461,7 @@ function deleteProject(p) {
         return Promise.resolve();
     };
 
-    vibeApi("/api/vibe/projects/" + encodeURIComponent(id), {
+    vibeApi("/api/vibe/projects/" + encodeURIComponent(id) + (force ? "?force=true" : ""), {
         method: "DELETE",
     })
         .then(function (data) {
@@ -494,6 +494,14 @@ function deleteProject(p) {
             } else {
                 unfreeze();
                 var msg = (data && data.error) || "delete failed";
+                // #1440 — the default-bot protection answers with an explicit
+                // explanation; offer a one-click force instead of a dead end.
+                if (data && data.code === "default_bot_project_protected") {
+                    if (window.confirm("Delete default bot project: " + msg)) {
+                        deleteProject(p, true);
+                    }
+                    return;
+                }
                 window.alert("Could not delete project: " + msg);
             }
         })

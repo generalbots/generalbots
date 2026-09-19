@@ -98,4 +98,8 @@ const MissionControl = (() => {
   return { open, close, toggle, isOpen, render };
 })();
 
+// #1433 — the tray button calls window.MissionControl.toggle(); expose the
+// module or the button stays a silent no-op.
+window.MissionControl = MissionControl;
+
 window.MissionControl = MissionControl;

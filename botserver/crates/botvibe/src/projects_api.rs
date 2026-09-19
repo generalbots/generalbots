@@ -31,6 +31,25 @@ pub struct ProjectResponse {
     pub project: Option<Project>,
     pub projects: Option<Vec<Project>>,
     pub error: Option<String>,
+    /// Machine-readable error class so the UI can branch on specific
+    /// protections (e.g. `default_bot_project_protected`, #1440).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+}
+
+/// #1440 — DELETE /api/vibe/projects/:id query. `force` acknowledges the
+/// default-bot protection (see delete_project) and deletes unconditionally.
+#[derive(Debug, Deserialize)]
+pub struct DeleteProjectQuery {
+    #[serde(default)]
+    pub force: bool,
+}
+
+/// One-column helper row for EXISTS-style lookups.
+#[derive(Debug, diesel::QueryableByName)]
+struct OneRow {
+    #[diesel(sql_type = diesel::sql_types::Integer)]
+    one: i32,
 }
 
 type ApiResult = (StatusCode, Json<ProjectResponse>);
@@ -74,6 +93,7 @@ fn ok_project(p: Project) -> ApiResult {
             project: Some(p),
             projects: None,
             error: None,
+            code: None,
         }),
     )
 }
@@ -86,6 +106,7 @@ fn ok_projects(list: Vec<Project>) -> ApiResult {
             project: None,
             projects: Some(list),
             error: None,
+            code: None,
         }),
     )
 }
@@ -99,6 +120,7 @@ fn err_response(msg: String) -> ApiResult {
             project: None,
             projects: None,
             error: Some(msg),
+            code: None,
         }),
     )
 }
@@ -112,6 +134,7 @@ fn forbidden(msg: String) -> ApiResult {
             project: None,
             projects: None,
             error: Some(msg),
+            code: None,
         }),
     )
 }
@@ -124,6 +147,7 @@ fn deleted() -> ApiResult {
             project: None,
             projects: None,
             error: None,
+            code: None,
         }),
     )
 }
@@ -303,10 +327,17 @@ async fn delete_project(
     Extension(lifecycle): Extension<Arc<VmLifecycle>>,
     Extension(user): Extension<AuthenticatedUser>,
     Path(id): Path<Uuid>,
+    Query(query): Query<DeleteProjectQuery>,
 ) -> ApiResult {
-    match rbac.require_role(user.user_id, id, ProjectRole::Owner) {
-        Ok(_) => {}
-        Err(e) => return forbidden(e),
+    // #1440 — platform/service admins manage any project; the branch-default
+    // project is auto-created by bootstrap and may have no explicit Owner row
+    // for the calling admin (the signup-grant covers the org owner only).
+    let is_admin = user.roles.iter().any(|r| matches!(r, Role::Admin | Role::SuperAdmin | Role::Service));
+    if !is_admin {
+        match rbac.require_role(user.user_id, id, ProjectRole::Owner) {
+            Ok(_) => {}
+            Err(e) => return forbidden(e),
+        }
     }
     // Fetch the project first: asset cleanup needs its name/workspace key.
     let project = match registry.get(id) {
@@ -314,6 +345,50 @@ async fn delete_project(
         Ok(None) => return err_response(format!("project {id} not found")),
         Err(e) => return err_response(e),
     };
+    // #1440 — explicit protection instead of a silently broken delete: a
+    // bot-kind project whose slug equals the branch's default bot owns the
+    // branch bot's PROD identity (an ADOPTED bots row that outlives the
+    // project). Deleting it would strand the adopted bot (chat, channels,
+    // `bot_{branch}_{bot}` database per #1386) with no project managing it.
+    // Require a ?force=true ack from an Owner/admin; the UI surfaces this.
+    if project.project_type == "bot" {
+        let prod_slug = crate::bootstrap::bot_slug(&project.name);
+        let adopted: Result<Option<OneRow>, _> = diesel::sql_query(
+            "SELECT 1 AS one FROM bots \
+             WHERE slug = $1 AND branch_id = $2 AND (origin IS DISTINCT FROM 'vibe') LIMIT 1",
+        )
+        .bind::<diesel::sql_types::Text, _>(&prod_slug)
+        .bind::<diesel::sql_types::Uuid, _>(project.branch_id)
+        .get_result::<OneRow>(&mut match registry.pool().get() {
+            Ok(c) => c,
+            Err(e) => return err_response(format!("db pool: {e}")),
+        })
+        .optional();
+        // A lookup failure must not silently unblock the protected delete:
+        // treat DB errors as "adopted present" so only ?force=true proceeds.
+        let is_adopted = match adopted {
+            Ok(Some(row)) => row.one == 1,
+            Ok(None) => false,
+            Err(_) => true,
+        };
+        if is_adopted && !query.force {
+            return (
+                StatusCode::CONFLICT,
+                Json(ProjectResponse {
+                    success: false,
+                    project: None,
+                    projects: None,
+                    error: Some(
+                        "This is the branch's default bot project. Its PROD bot identity is \
+                         adopted (not owned), so deletion would strand the branch bot. \
+                         Repeat the request with ?force=true to delete anyway."
+                            .to_string(),
+                    ),
+                    code: Some("default_bot_project_protected".to_string()),
+                }),
+            );
+        }
+    }
     // Shared asset cleanup: Incus VMs (rows + containers), published proxy
     // site (payload + route + systemd unit), on-disk workspace directory —
     // the workspace removal closes the disk leak (workspaces could hold

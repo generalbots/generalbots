@@ -170,7 +170,13 @@
   border: none;
 }
 
-/* ── Launcher pins (taskbar strip) ── */
+/* ── Launcher pins (taskbar strip) ──
+   #1436 — the strip is only mounted when at least one pin exists
+   (pinned-launcher.js), so no empty bordered card lingers on the taskbar. */
+.taskbar-pinned-strip:empty {
+  display: none;
+}
+
 .taskbar-pinned-strip {
   display: flex;
   align-items: center;

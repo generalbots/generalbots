@@ -211,10 +211,23 @@ pub async fn index(
 
         match req.send().await {
             Ok(resp) => {
-                if has_token
-                    && (resp.status() == axum::http::StatusCode::FORBIDDEN
-                        || resp.status() == axum::http::StatusCode::UNAUTHORIZED)
+                // #1435 — a 401 with NO token means the bot is PRIVATE and
+                // the caller is anonymous: the desktop/chat shell must not
+                // be served at all (previously only token-holders were
+                // redirected, so anonymous visitors saw the anon-limited
+                // shell of a private bot). A 401 WITH a token is a stale
+                // credential — also redirect. 403 is a signed-in user the
+                // bot does not belong to: clean 403 page, not the shell.
+                if resp.status() == axum::http::StatusCode::UNAUTHORIZED
+                    || resp.status() == axum::http::StatusCode::FORBIDDEN
                 {
+                    if resp.status() == axum::http::StatusCode::FORBIDDEN && !has_token {
+                        return (
+                            axum::http::StatusCode::FORBIDDEN,
+                            "<!doctype html><html><body style=\"font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0\"><div style=\"text-align:center\"><h2>403 \u{2014} Access denied</h2><p>You do not have access to this bot.</p></div></body></html>",
+                        )
+                            .into_response();
+                    }
                     info!("index: Access denied for bot {} (redirecting to login)", bot);
                     let login_url = std::env::var("LOGIN_URL")
                         .unwrap_or_else(|_| "http://localhost:5000".to_string());
