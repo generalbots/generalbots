@@ -134,9 +134,14 @@ fn backfill_sync(pool: &DbPool) -> Result<(usize, usize), String> {
         );
     }
     for ws in &workspaces {
-        match crate::bootstrap::ensure_branch_default_project_conn(&mut conn, ws.org_id, ws.branch_id, &ws.name)
-        {
-            Ok(_) => projects += 1,
+        match crate::bootstrap::ensure_branch_default_project_conn(&mut conn, ws.org_id, ws.branch_id, &ws.name) {
+            Ok(project_id) => {
+                projects += 1;
+                // #1440 — workspaces whose project predates the owner grant
+                // still resolve every human to Viewer; backfill the Owner row
+                // so Properties/Delete work for the workspace owner too.
+                crate::bootstrap::grant_default_project_owner(&mut conn, project_id, ws.org_id);
+            }
             Err(e) => log::warn!("vibe bootstrap: workspace '{}': {e}", ws.name),
         }
     }

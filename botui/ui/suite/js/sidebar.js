@@ -141,7 +141,10 @@
 
   function newConversation() {
     if (window.openDeepLink) {
-      window.openDeepLink("chat", {});
+      // #1432 — New Conversation always opens a NEW chat window with a
+      // fresh session, even when a chat window is already open; the new
+      // window is created focused/raised (openDeepLink focuses on open).
+      window.openDeepLink("chat", {}, { new: true });
     }
     highlightActive("");
   }

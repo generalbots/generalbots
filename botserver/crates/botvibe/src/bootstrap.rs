@@ -323,7 +323,78 @@ pub(crate) fn ensure_branch_default_project_conn(
         },
         Some(&format!("Default bot of branch {trimmed}")),
     )?;
+    // #1440 — an auto-created project with no project_members row resolves
+    // every human to Viewer, so the Properties Delete button 403s for the
+    // workspace owner. Grant Owner to the org's owner identity up front.
+    grant_default_project_owner(conn, project_id, org_id);
     Ok(project_id)
+}
+
+/// #1440 — grants Owner on the default project to the workspace's human
+/// owner. Two identities may exist for the signup email and both are
+/// granted (idempotently): the `users` row id (canonical UUIDv5 of
+/// `zitadel:{directory_user_id}`, provisioned at signup) and the derived
+/// `UUIDv5(zitadel:{email})` fallback used by email-keyed flows. Best-effort
+/// and silent: a workspace without an owner contact (Drive-discovered) or a
+/// missing table simply gets no grant.
+pub(crate) fn grant_default_project_owner(conn: &mut PgConnection, project_id: Uuid, org_id: Uuid) {
+    #[derive(diesel::QueryableByName)]
+    struct OwnerEmail {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        email: String,
+    }
+    #[derive(diesel::QueryableByName)]
+    struct OwnerId {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
+    let emails: Vec<OwnerEmail> = diesel::sql_query(
+        "SELECT email FROM crm_contacts \
+         WHERE org_id = $1 AND email IS NOT NULL AND email <> '' \
+         ORDER BY created_at ASC LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(org_id)
+    .load(conn)
+    .unwrap_or_default();
+    let mut owner_ids: Vec<Uuid> = diesel::sql_query(
+        "SELECT id FROM users WHERE email = ANY($1) ORDER BY created_at ASC",
+    )
+    .bind::<diesel::sql_types::Array<diesel::sql_types::Text>, _>(
+        emails.iter().map(|e| e.email.clone()).collect::<Vec<_>>(),
+    )
+    .load(conn)
+    .unwrap_or_default()
+    .into_iter()
+    .map(|r: OwnerId| r.id)
+    .collect();
+    for email in &emails {
+        owner_ids.push(Uuid::new_v5(
+            &Uuid::NAMESPACE_DNS,
+            format!("zitadel:{}", email.email).as_bytes(),
+        ));
+    }
+    for owner_id in owner_ids {
+        if owner_id.is_nil() {
+            continue;
+        }
+        let inserted = diesel::sql_query(
+            "INSERT INTO project_members (project_id, user_id, role) \
+             SELECT $1, $2, 'owner' \
+             WHERE NOT EXISTS ( \
+                 SELECT 1 FROM project_members WHERE project_id = $1 AND user_id = $2 \
+             )",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(project_id)
+        .bind::<diesel::sql_types::Uuid, _>(owner_id)
+        .execute(conn);
+        match inserted {
+            Ok(n) if n > 0 => log::info!(
+                "vibe bootstrap: granted Owner on default project {project_id} to {owner_id}"
+            ),
+            Ok(_) => {}
+            Err(e) => log::warn!("vibe bootstrap: owner grant on {project_id} failed: {e}"),
+        }
+    }
 }
 
 /// Pool-based wrapper (Drive monitors, signup hook, backfill).

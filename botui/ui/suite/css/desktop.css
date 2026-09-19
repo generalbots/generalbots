@@ -599,6 +599,13 @@ select.theme-dropdown {
     width: 51px;
 }
 
+/* #1433 — Settings' "show sidebar" toggle adds .sidebar-hidden to <body>.
+   Fully hides the rail (unlike .collapsed, which keeps the 51px strip) and
+   pairs with a body-level rule so the workspace reflows. */
+body.sidebar-hidden .chat-sidebar {
+    display: none !important;
+}
+
 .chat-sidebar-toggle {
     width: 100%;
     height: 50px;

@@ -2537,6 +2537,9 @@
 
     window.toggleShowSidebar = function (checkbox) {
         persistPref('gb-show-sidebar', checkbox.checked);
+        // #1433 — apply immediately to the desktop shell (the class is also
+        // re-applied from localStorage on boot by restoreChatSidebar).
+        document.body.classList.toggle('sidebar-hidden', !checkbox.checked);
         showToast(checkbox.checked ? 'Sidebar shown' : 'Sidebar hidden');
     };
 
