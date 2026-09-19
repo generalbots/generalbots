@@ -583,6 +583,11 @@
                 refresh.dataset.wired = '1';
                 refresh.addEventListener('click', vibeLoadTree);
             }
+            // #1408 — when a Vibe agent run finishes, reload the workspace
+            // tree so files written by the run appear in the open Editor.
+            document.addEventListener('gb:vibe-app-refresh', function () {
+                if (typeof vibeLoadTree === 'function') vibeLoadTree();
+            });
             vibeLoadTree();
         })(0);
 

@@ -494,4 +494,9 @@
             state = { tables: [], table: null, page: 1, pageSize: 100, cols: [], rows: [], pk: null, env: "production" };
         },
     });
+    // #1408 — a finished Vibe agent run may have changed the schema/data;
+    // reload it when the Database pane is open.
+    document.addEventListener('gb:vibe-app-refresh', function () {
+        loadSchema(false);
+    });
 })();

@@ -961,6 +961,17 @@
             syncProjectSelect();
             loadBranches();
         });
+        // #1408 — when a Vibe agent run finishes, refresh every open
+        // integrated app: re-target the Browser preview to the run's project
+        // (dev VM first) and signal Editor/Canvas/Database to reload their
+        // project-scoped content. announceRunFinished (vibe-run.js) dedupes.
+        document.addEventListener("gb:vibe-run-finished", function (e) {
+            var detail = (e && e.detail) || {};
+            if (detail.project && typeof openProjectApp === "function") {
+                openProjectApp(detail.project);
+            }
+            document.dispatchEvent(new CustomEvent("gb:vibe-app-refresh", { detail: detail }));
+        });
         // A project created through the New Project dialog must appear in the
         // toolbar combo immediately — the dialog dispatches
         // `gb:vibe-project-created` after the row is committed, so reload the
