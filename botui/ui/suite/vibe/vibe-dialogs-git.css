@@ -1,0 +1,248 @@
+/**
+ * Vibe Source Control — GitHub-style layout (#1506).
+ * Toolbar (branch/fetch/pull/push/commit) + center tree/diff + right commit
+ * panel. Appended to the dialogs stylesheet so the git dialog owns a single
+ * namespaced block (vibe-git-*).
+ */
+
+.vibe-git-dialog {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    height: 100%;
+    min-width: 720px;
+    min-height: 420px;
+    box-sizing: border-box;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────── */
+.vibe-git-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 8px;
+    border-bottom: 1px solid var(--border, #333);
+    background: var(--surface, #14142a);
+    flex: 0 0 auto;
+}
+
+.vibe-git-toolbar .vibe-git-branch-sel {
+    min-width: 140px;
+    flex: 0 1 auto;
+}
+
+.vibe-git-toolbar .vibe-btn {
+    padding: 4px 10px;
+    font-size: 11px;
+}
+
+.vibe-git-spacer {
+    flex: 1;
+}
+
+#vibeGitCount {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+
+/* ── Shell: center tree + right commit panel ─────────────────────────── */
+.vibe-git-shell {
+    display: flex;
+    gap: 8px;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.vibe-git-center {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    border: 1px solid var(--border, #333);
+    border-radius: 6px;
+    background: var(--surface-2, #0e0e1e);
+    overflow: hidden;
+}
+
+/* Breadcrumb (GitHub-style path) */
+.vibe-git-breadcrumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 6px 10px;
+    font-size: 12px;
+    border-bottom: 1px solid var(--border, #333);
+    background: var(--surface, #14142a);
+    min-height: 18px;
+}
+
+.vibe-git-crumb-link,
+.vibe-git-crumb-file {
+    color: var(--accent, #7aa2ff);
+    cursor: pointer;
+}
+
+.vibe-git-crumb-link:hover {
+    text-decoration: underline;
+}
+
+.vibe-git-crumb-file {
+    color: var(--text, #ddd);
+    cursor: default;
+    font-weight: 600;
+}
+
+.vibe-git-crumb-sep {
+    color: var(--muted, #666);
+}
+
+/* Tree rows */
+.vibe-git-tree {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.vibe-git-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.vibe-git-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(128, 128, 128, 0.08);
+}
+
+.vibe-git-row:hover {
+    background: rgba(122, 162, 255, 0.08);
+}
+
+.vibe-git-row.is-dir .vibe-git-name {
+    font-weight: 600;
+}
+
+.vibe-git-icon {
+    flex: 0 0 auto;
+    font-size: 12px;
+}
+
+.vibe-git-name {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Diff status badges (M/U/A/D/R) */
+.vibe-git-badge {
+    flex: 0 0 auto;
+    min-width: 18px;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: rgba(128, 128, 128, 0.2);
+    color: var(--text, #ddd);
+}
+
+.vibe-git-badge.warn { background: rgba(230, 180, 60, 0.25); color: #e6b43c; }
+.vibe-git-badge.ok   { background: rgba(80, 200, 120, 0.22); color: #50c878; }
+.vibe-git-badge.err  { background: rgba(230, 80, 80, 0.22);  color: #e65050; }
+.vibe-git-badge.info { background: rgba(90, 160, 255, 0.22); color: #5aa0ff; }
+
+/* Diff view */
+.vibe-diff {
+    overflow: auto;
+    height: 100%;
+}
+
+.vibe-diff pre {
+    margin: 0;
+    padding: 8px 10px;
+    font-size: 11px;
+    line-height: 1.5;
+    font-family: var(--mono, "SFMono-Regular", Consolas, monospace);
+    white-space: pre;
+}
+
+.vibe-diff .vibe-diff-add { background: rgba(80, 200, 120, 0.14); color: #7fe3a1; display: inline-block; width: 100%; }
+.vibe-diff .vibe-diff-del { background: rgba(230, 80, 80, 0.14);  color: #ff9b9b; display: inline-block; width: 100%; }
+.vibe-diff .vibe-diff-hunk { color: #5aa0ff; }
+.vibe-diff .vibe-diff-meta { color: var(--muted, #666); font-style: italic; }
+
+/* ── Right: manual commit panel ─────────────────────────────────────── */
+.vibe-git-commit-panel {
+    flex: 0 0 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: 1px solid var(--border, #333);
+    border-radius: 6px;
+    padding: 10px;
+    background: var(--surface-2, #0e0e1e);
+    min-height: 0;
+    box-sizing: border-box;
+}
+
+.vibe-git-commit-panel .vibe-commit-box {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vibe-git-commit-panel .vibe-textarea {
+    min-height: 56px;
+    resize: vertical;
+    font-size: 12px;
+}
+
+.vibe-git-btnrow {
+    display: flex;
+    gap: 6px;
+}
+
+.vibe-git-btnrow .vibe-btn {
+    flex: 1;
+    font-size: 11px;
+}
+
+.vibe-git-stageall {
+    align-self: flex-start;
+    font-size: 10px;
+    padding: 2px 8px;
+}
+
+.vibe-git-changes {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.vibe-git-changes .vibe-list-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+
+.vibe-git-changes .vibe-git-file {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 11px;
+}
+
+.vibe-git-check {
+    flex: 0 0 auto;
+    accent-color: var(--accent, #7aa2ff);
+}

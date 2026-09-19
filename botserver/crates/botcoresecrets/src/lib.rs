@@ -1,3 +1,4 @@
+pub mod hooks;
 pub mod manager;
 pub mod paths;
 pub mod service_configs;

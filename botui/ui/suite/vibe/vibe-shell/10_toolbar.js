@@ -173,15 +173,16 @@
                         flashHint("NO LIVE PREVIEW — DEPLOY TO SEE YOUR APP");
                     });
             });
-    }
-
-    /* #1271 — Chat button opens the shared Chat window as a NEW
+    }    /* #1271 — Chat button opens the shared Chat window as a NEW
        conversation (no session param = fresh) and pre-fills the input with a
        directive so the message is routed to the app currently running in
        vibe. The pre-fill is the RUNNING APP'S NAME (@qa-flow), never a long
-       botbook file path — the user must see the app name in the input, not
-       a path to a .md file. Falls back to the botbook directive only when
-       no project is selected. */
+       botbook file path — the user must see the app name in the input, not a
+       path to a .md file. Falls back to the botbook directive only when
+       no project is selected.
+       #1504 — bot-kind projects open the Chat window in two-env mode: the
+       window renders {NAME} (TEST) / {NAME} (PROD) conversation tabs bound
+       to the `{bot}-test` / `{bot}` bot identities. */
     var CHAT_BOOK_DIRECTIVE =
         "@botbook/src/10-configuration-deployment/config-csv.md";
     function openChat() {
@@ -191,15 +192,8 @@
             (typeof window.currentProjectKind !== "undefined" && window.currentProjectKind) ||
             (function () { try { return localStorage.getItem("gb-vibe-project-kind") || ""; } catch (e) { return ""; } })()
         ).toLowerCase();
-        // #1386 follow-up — bot-kind Vibe projects ARE bots (bots row with
-        // origin='vibe'): their Chat window binds to the bot identity via
-        // the { bot: slug } deep-link so the WS session runs as that bot.
-        // They are test bots, launcher-invisible — the Vibe window is their
-        // only entry point. website/apps projects keep the @project mention
-        // (they are agent contexts, not bots).
         if (pid && name && kind === "bot") {
-            var slug = String(name).toLowerCase().replace(/\s+/g, "-");
-            openSharedApp("chat", { bot: slug });
+            openBotChat(name, null);
             return;
         }
         var message =
@@ -207,6 +201,25 @@
                 ? "@" + name
                 : CHAT_BOOK_DIRECTIVE;
         openSharedApp("chat", { message: message });
+    }
+
+    /* #1504 — open the Chat window for a bot project. `env` selects the
+       conversation: null/"test" → TEST tab (default), "production" → PROD.
+       The tab strip itself is rendered by the Chat window module when the
+       deep-link carries botTest+botProd+botEnv (vibe-bot-env.js). */
+    function openBotChat(projectName, env) {
+        var slug = String(projectName || "").toLowerCase().replace(/\s+/g, "-");
+        var params = {
+            bot: env === "production" ? slug : slug + "-test",
+            botTest: slug + "-test",
+            botProd: slug,
+            botEnv: env || "test",
+            botLabel: projectName,
+        };
+        if (env === "production") {
+            params.bot = slug;
+        }
+        openSharedApp("chat", params);
     }
 
     /* Commit is a popup dialog (the Source Control dialog), never toolbar
@@ -258,12 +271,18 @@
         startDevVm(projectId)
             .then(function (vm) {
                 if (isBot) {
-                    updateBusyLabel("Opening the bot window…");
-                    setVibeStatus(projectName + " is running — opening the bot window…", "running");
-                    openChat();
-                    setRunVisual(true);
-                    endBusy();
-                    flashHint("BOT " + String(projectName).toUpperCase() + " IS RUNNING");
+                    updateBusyLabel("Opening the bot window (TEST)…");
+                    setVibeStatus(projectName + " is running — opening the TEST conversation…", "running");
+                    // #1504 — Run recompiles the {bot}-test twin server-side
+                    // and opens the Chat window on the TEST tab.
+                    D.api("/api/vibe/projects/" + encodeURIComponent(projectId) + "/bot/run-test", { method: "POST" })
+                        .catch(function () { /* the chat still opens best-effort */ })
+                        .finally(function () {
+                            openBotChat(projectName, "test");
+                            setRunVisual(true);
+                            endBusy();
+                            flashHint("BOT " + String(projectName).toUpperCase() + " (TEST) IS RUNNING");
+                        });
                     return;
                 }
                 updateBusyLabel("Opening the app in the browser…");
@@ -275,13 +294,13 @@
             })
             .catch(function () {
                 if (isBot) {
-                    // The bot window still opens (best effort) once the VM is
-                    // gone; the row exists regardless of the dev service.
-                    openChat();
+                    // The TEST conversation still opens (best effort); the
+                    // twin row exists regardless of the dev service.
+                    openBotChat(projectName, "test");
                     setRunVisual(true);
-                    setVibeStatus("Bot window opened (dev VM unavailable)", "running");
+                    setVibeStatus("TEST conversation opened (dev VM unavailable)", "running");
                     endBusy();
-                    flashHint("NO DEV VM — OPENED BOT WINDOW");
+                    flashHint("NO DEV VM — OPENED TEST CONVERSATION");
                     return;
                 }
                 return workspaceServeUrl(projectId)
@@ -893,8 +912,15 @@
         var editorPid = S.projectId();
         var defs = [
             ["New Project", "New Project", function () { if (window.VibeNewProject) window.VibeNewProject.open(); else if (window.VibeWindows) window.VibeWindows.openNewProject(); }, "vibe-shell-tb-new"],
+            // #1504 — bot-kind projects get a "Bot" button (opens the bot's
+            // TEST conversation); website/app keep the Browser preview.
             ["Browser", "Browser", function () {
                 var pid = S.projectId();
+                var name = S.projectName();
+                if (pid && name && selectedProjectKind() === "bot") {
+                    openBotChat(name, "test");
+                    return;
+                }
                 if (!pid) { openBrowser(null); return; }
                 startDevVm(pid)
                     .then(function (vm) { openBrowser(vm.url); })
@@ -961,6 +987,19 @@
                 }
                 b.disabled = frozen || !hasProject;
                 b.classList.toggle("vibe-shell-tb-disabled", frozen || !hasProject);
+            });
+            // #1504 — the second command slot is "Bot" for bot projects
+            // (opens the TEST conversation) and "Browser" otherwise.
+            Array.prototype.forEach.call(bar.querySelectorAll(".vibe-shell-tb-btn"), function (b) {
+                var labelEl = b.querySelector(".vibe-shell-tb-label");
+                if (!labelEl) return;
+                if (labelEl.textContent === "Browser" && kind === "bot") {
+                    labelEl.textContent = "Bot";
+                    b.title = "Open the bot conversation (TEST)";
+                } else if (labelEl.textContent === "Bot" && kind !== "bot") {
+                    labelEl.textContent = "Browser";
+                    b.title = "Browser";
+                }
             });
             if (frozen) return;
             // #1403 — website and bot projects have no dev VM/container, so a
@@ -1086,6 +1125,7 @@
         openBrowser: openBrowser,
         openProjectApp: openProjectApp,
         openChat: openChat,
+        openBotChat: openBotChat,
         openCommit: openCommit,
         openPreview: openPreview,
         deployProject: deployProject,

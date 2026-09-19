@@ -213,10 +213,11 @@ impl ProjectRegistry {
         let repository = req.repository.clone().unwrap_or_else(|| req.name.clone());
         let framework = req.framework.clone().unwrap_or_default();
         let custom_domain = req.custom_domain.clone().unwrap_or_default();
+        // #1503 — git is the default source control (github = external
+        // import, native = legacy rows only).
         let source_control = match req.source_control.as_deref() {
-            Some("git") => "git",
             Some("github") => "github",
-            _ => "native",
+            _ => "git",
         };
         let environment = req.environment.clone().unwrap_or_else(|| "development".to_string());
         // #1271 — github-mode projects carry their clone URL in the payload
@@ -426,8 +427,13 @@ impl ProjectRegistry {
             assignments.push(format!("custom_domain = ${}", binds.len()));
         }
         if let Some(ref sc) = req.source_control {
-            let sc = if sc == "git" { "git" } else { "native" };
-            binds.push(sc.to_string());
+            // #1503 — github (external import) stays opt-in; everything else
+            // defaults to git (Forgejo-backed) — native is legacy-only.
+            let sc = match sc.as_str() {
+                "git" | "github" => sc.clone(),
+                _ => "git".to_string(),
+            };
+            binds.push(sc);
             assignments.push(format!("source_control = ${}", binds.len()));
         }
         if let Some(ref env) = req.environment {

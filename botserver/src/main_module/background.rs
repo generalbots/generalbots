@@ -8,6 +8,9 @@ use std::sync::Arc;
 
 use super::drive_monitors::{start_drive_monitors, start_drive_compiler};
 
+#[cfg(feature = "drive")]
+use super::git_bot_monitor::{run_import_pass, start as start_git_bot_monitor};
+
 /// Runs every 5 minutes and promotes trialing `billing_recurring` rows whose
 /// trial period has ended to `active` at the plan price, generating the first
 /// invoice (issue #778). The signup flow writes trials straight to the DB, so
@@ -100,13 +103,43 @@ pub async fn start_background_services(
 
   // Start DriveMonitor for S3/MinIO file watching and syncing
   #[cfg(feature = "drive")]
-  start_drive_monitors(app_state.clone(), _pool).await;
+  start_drive_monitors(app_state.clone(), &_pool).await;
 
   // Start DriveCompiler to compile .bas files from drive_files table
   #[cfg(feature = "drive")]
   start_drive_compiler(app_state.clone()).await;
 
+  // Reform #1500/#1501/#1502 — Vibe git bot monitor: bot sources come from
+  // Forgejo (one repo per project in the branch org) instead of Drive. The
+  // import pass moves legacy Drive sources into git once (idempotent), then
+  // the monitor git-pulls into work/ and feeds the existing compile pipeline.
+  #[cfg(all(feature = "drive", feature = "vibe"))]
+  {
+    let pool_for_vibe = _pool.clone();
+    let state_for_import = app_state.clone();
+    tokio::spawn(async move {
+      botvibe::bootstrap_backfill::backfill_default_projects(pool_for_vibe.clone()).await;
+      run_import_pass(state_for_import, pool_for_vibe).await;
+    });
+    start_git_bot_monitor(app_state.clone(), _pool.clone()).await;
+    register_vibe_bootstrap_hook(_pool.clone());
+  }
+
   // Start billing trial promotion (trialing -> active + first invoice)
   start_trial_promotion_guard(app_state.clone());
     // start_config_watcher(app_state.clone()).await;
+}
+
+/// Reform #1500 — signup hook: creates the branch's default-bot Vibe project
+/// (and its PROD/TEST bot rows) when `create_cloud_workspace_inner` fires in
+/// botcloud.botcloud cannot depend on botvibe, so the main binary registers
+/// this closure and the signup flow invokes it through the hook registry.
+#[cfg(all(feature = "drive", feature = "vibe"))]
+fn register_vibe_bootstrap_hook(pool: botcore::shared::utils::DbPool) {
+  let hook: botcoresecrets::hooks::WorkspaceBootstrapHook =
+    std::sync::Arc::new(move |branch_id, name| {
+      botvibe::bootstrap::ensure_branch_default_project(&pool, branch_id, branch_id, &name)
+        .map(|_| ())
+    });
+  botcoresecrets::hooks::register_workspace_bootstrap_hook(hook);
 }

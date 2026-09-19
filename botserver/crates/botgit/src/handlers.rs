@@ -35,6 +35,12 @@ pub struct GitStatusQuery {
     pub repo: Option<String>,
 }
 
+#[derive(Deserialize)]
+pub struct TreeQuery {
+    pub repo: Option<String>,
+    pub path: Option<String>,
+}
+
 #[derive(Serialize)]
 pub struct GitStatusResponse {
     pub repo: String,
@@ -52,6 +58,19 @@ pub struct GitFileStatus {
 pub struct CommitRequest {
     pub message: String,
     pub repo: Option<String>,
+    /// #1506 — optional pathspec list: commit ONLY these files (GitHub-style
+    /// per-file staging). Empty/absent commits everything (legacy behavior).
+    #[serde(default)]
+    pub files: Vec<String>,
+}
+
+#[derive(Serialize)]
+pub struct GitTreeEntry {
+    pub path: String,
+    pub is_dir: bool,
+    /// Status letter for changed files: "M" modified, "U" untracked,
+    /// "A" added, "D" deleted, "R" renamed; empty when unchanged.
+    pub status: String,
 }
 
 #[derive(Serialize)]
@@ -179,8 +198,17 @@ pub async fn git_commit(
     Json(payload): Json<CommitRequest>,
 ) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
     let repo = resolve_repo(payload.repo.as_deref());
-    // Persist pending changes, then commit with the provided message.
-    let add = run_git(&repo, &["add", "-A"]);
+    // #1506 — stage the selected files when a pathspec list is given, else
+    // persist everything (legacy single-panel behavior).
+    let add = if payload.files.is_empty() {
+        run_git(&repo, &["add", "-A"])
+    } else {
+        let mut args: Vec<&str> = vec!["add", "--"];
+        for f in &payload.files {
+            args.push(f);
+        }
+        run_git(&repo, &args)
+    };
     let mut results = serde_json::Map::new();
     results.insert("add".into(), serde_json::Value::String(add.unwrap_or_else(|e| e)));
     let message = if payload.message.trim().is_empty() {
@@ -290,4 +318,115 @@ pub async fn git_log(
         })
         .collect();
     Ok(Json(GitLogResponse { repo, commits }))
+}
+
+/// #1506 — list a repo subtree with per-entry git status, feeding the
+/// GitHub-style tree view. One call returns the whole subtree so the editor
+/// renders folders + files without N status round-trips.
+/// Query: `?repo=&path=` (path empty = repo root).
+pub async fn git_tree(
+    State(_state): State<Arc<AppState>>,
+    Query(params): Query<TreeQuery>,
+) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+    let repo = resolve_repo(params.repo.as_deref());
+    let dir = params.path.as_deref().unwrap_or("").trim().trim_matches('/');
+    // Pathspec safety: reject traversal before it reaches `git ls-files`.
+    if dir.split('/').any(|seg| seg == ".." || seg.is_empty() && !dir.is_empty()) {
+        return Ok(Json(serde_json::json!({ "entries": [], "error": "invalid path" })));
+    }
+    let mut entries: Vec<GitTreeEntry> = Vec::new();
+    let listing = run_git(
+        &repo,
+        &[
+            "ls-files",
+            "--cached",
+            "--others",
+            "--exclude-standard",
+            "-z",
+            dir,
+        ],
+    )
+    .unwrap_or_default();
+    let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    let status_out = run_git(&repo, &["status", "--porcelain=v1", "-z"]).unwrap_or_default();
+    let mut status_by_path: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
+    for record in status_out.split('\0').filter(|r| r.len() > 3) {
+        let code = record[..2].trim().to_string();
+        let path = record[3..].trim().to_string();
+        let letter = match code.as_str() {
+            "M" | "MM" | "AM" => "M",
+            "??" => "U",
+            "A" => "A",
+            "D" => "D",
+            "R" => "R",
+            _ => "M",
+        };
+        status_by_path.insert(path, letter.to_string());
+    }
+    for path in listing.split('\0').filter(|p| !p.is_empty()) {
+        let rel = path.trim().to_string();
+        if rel.is_empty() {
+            continue;
+        }
+        let rest = dir
+            .is_empty()
+            .then(|| rel.clone())
+            .unwrap_or_else(|| {
+                rel.strip_prefix(&format!("{dir}/")).unwrap_or(&rel).to_string()
+            });
+        if rest.is_empty() {
+            continue;
+        }
+        if let Some(idx) = rest.find('/') {
+            // Direct child directory of the requested path.
+            let dir_name = rest[..idx].to_string();
+            let dir_path = if dir.is_empty() { dir_name.clone() } else { format!("{dir}/{dir_name}") };
+            if seen.insert(format!("d:{dir_path}")) {
+                entries.push(GitTreeEntry {
+                    path: dir_path,
+                    is_dir: true,
+                    status: String::new(),
+                });
+            }
+        } else {
+            let full = if dir.is_empty() { rest.clone() } else { format!("{dir}/{rest}") };
+            if seen.insert(format!("f:{full}")) {
+                entries.push(GitTreeEntry {
+                    status: status_by_path.get(&full).cloned().unwrap_or_default(),
+                    path: full,
+                    is_dir: false,
+                });
+            }
+        }
+    }
+    // Deleted files no longer appear in ls-files — surface them from status.
+    for (path, letter) in &status_by_path {
+        if letter == "D" {
+            let in_scope = dir.is_empty() || path.starts_with(&format!("{dir}/"));
+            if in_scope && seen.insert(format!("f:{path}")) {
+                entries.push(GitTreeEntry {
+                    path: path.clone(),
+                    is_dir: false,
+                    status: letter.clone(),
+                });
+            }
+        }
+    }
+    entries.sort_by(|a, b| b.is_dir.cmp(&a.is_dir).then(a.path.cmp(&b.path)));
+    Ok(Json(serde_json::json!({ "entries": entries })))
+}
+
+/// #1506 — pull the current branch from origin (editor toolbar button);
+/// fast-forward only so a confused checkout never loses local work silently.
+pub async fn git_pull(
+    State(_state): State<Arc<AppState>>,
+    Query(params): Query<GitQuery>,
+) -> Result<Json<serde_json::Value>, axum::http::StatusCode> {
+    let repo = resolve_repo(params.repo.as_deref());
+    match run_git(&repo, &["pull", "--ff-only", "origin"])
+    {
+        Ok(out) => Ok(Json(serde_json::json!({ "status": "success", "output": out.trim() }))),
+        Err(e) => Ok(Json(serde_json::json!({ "status": "failure", "error": e }))),
+    }
 }

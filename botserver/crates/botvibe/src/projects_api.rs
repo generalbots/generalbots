@@ -20,8 +20,7 @@ use botsecurity_auth::auth_api::types::{AuthenticatedUser, Role};
 use crate::harness;
 use crate::metering::VMetering;
 use crate::projects::{
-    CreateProjectRequest, ListProjectsQuery, Project, ProjectRegistry, ProjectRegistryRef,
-    UpdateProjectRequest,
+    CreateProjectRequest, ListProjectsQuery, Project, ProjectRegistryRef, UpdateProjectRequest,
 };
 use crate::rbac::{ProjectRbac, ProjectRole};
 use crate::vm_lifecycle::VmLifecycle;
@@ -223,7 +222,14 @@ async fn create_project(
                 }
             }
             if p.project_type == "bot" {
-                ensure_vibe_bot_row(&registry, &p, req.description.as_deref());
+                // #1504 — bot projects own BOTH bot identities (PROD + TEST
+                // twin); the bootstrap helper also records the adopted bots
+                // row into payload.bot_id for the default-bot flow (#1500).
+                crate::bootstrap::ensure_bot_rows(
+                    registry.pool(),
+                    &crate::bootstrap::BotRowRef::from_project(&p),
+                    req.description.as_deref(),
+                );
             }
             // Grant ownership BEFORE seeding: a project the caller cannot
             // administer must not be visible in their list (#931).
@@ -339,23 +345,32 @@ async fn delete_project(
             }
         }
     }
-    // #1386 follow-up — a bot-kind project owns its `bots` row (created by
-    // ensure_vibe_bot_row); deleting the project removes the row so the
-    // slug/chat identity does not outlive the project. Non-fatal.
+    // #1386/#1504 follow-up — a bot-kind project owns its `bots` rows (the
+    // PROD identity and the `-test` twin, both created by
+    // bootstrap::ensure_bot_rows with origin='vibe'); deleting the project
+    // removes them so the slugs/chat identities do not outlive the project.
+    // An ADOPTED PROD row (origin <> 'vibe', e.g. the branch default bot)
+    // is never deleted — the project took it over, not owns it. Non-fatal.
     if project.project_type == "bot" {
         if let Ok(mut conn) = registry.pool().get() {
-            let slug = bot_slug(&project.name);
-            match diesel::sql_query("DELETE FROM bots WHERE slug = $1 AND origin = 'vibe'")
+            let prod_slug = crate::bootstrap::bot_slug(&project.name);
+            let test_slug = format!("{prod_slug}-test");
+            for slug in [prod_slug, test_slug] {
+                match diesel::sql_query(
+                    "DELETE FROM bots WHERE slug = $1 AND origin = 'vibe' AND branch_id = $2",
+                )
                 .bind::<diesel::sql_types::Text, _>(&slug)
+                .bind::<diesel::sql_types::Uuid, _>(project.branch_id)
                 .execute(&mut conn)
-            {
-                Ok(n) if n > 0 => log::info!(
-                    "vibe bot row deleted: slug={slug} project={id}"
-                ),
-                Ok(_) => {}
-                Err(e) => log::error!(
-                    "vibe bot row delete failed for project {id} (slug {slug}): {e}"
-                ),
+                {
+                    Ok(n) if n > 0 => log::info!(
+                        "vibe bot row deleted: slug={slug} project={id}"
+                    ),
+                    Ok(_) => {}
+                    Err(e) => log::error!(
+                        "vibe bot row delete failed for project {id} (slug {slug}): {e}"
+                    ),
+                }
             }
         }
     }
@@ -432,6 +447,53 @@ async fn get_project(
     }
 }
 
+/// #1504 — explicit TEST recompile for a bot project (Run alternative for
+/// callers that already have the VM running). Dispatches to the main
+/// binary's git-monitor hook.
+async fn bot_run_test(
+    Extension(_registry): Extension<ProjectRegistryRef>,
+    Extension(rbac): Extension<ProjectRbac>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(project_id): Path<Uuid>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    if let Err(e) = rbac.require_role(user.user_id, project_id, ProjectRole::Developer) {
+        return (StatusCode::FORBIDDEN, Json(serde_json::json!({ "success": false, "error": e })));
+    }
+    match botcoresecrets::hooks::call_bot_project_ops("run-test", project_id) {
+        Ok(()) => (
+            StatusCode::OK,
+            Json(serde_json::json!({ "success": true, "bot_env": "test" })),
+        ),
+        Err(e) => (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "success": false, "error": e })),
+        ),
+    }
+}
+
+/// #1504 — PROD promotion for a bot project (Deploy pipeline calls this).
+/// Dispatches to the main binary's git-monitor hook.
+async fn bot_deploy_prod(
+    Extension(_registry): Extension<ProjectRegistryRef>,
+    Extension(rbac): Extension<ProjectRbac>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(project_id): Path<Uuid>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    if let Err(e) = rbac.require_role(user.user_id, project_id, ProjectRole::Developer) {
+        return (StatusCode::FORBIDDEN, Json(serde_json::json!({ "success": false, "error": e })));
+    }
+    match botcoresecrets::hooks::call_bot_project_ops("deploy-prod", project_id) {
+        Ok(()) => (
+            StatusCode::OK,
+            Json(serde_json::json!({ "success": true, "bot_env": "production" })),
+        ),
+        Err(e) => (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({ "success": false, "error": e })),
+        ),
+    }
+}
+
 pub fn projects_router(
     registry: ProjectRegistryRef,
     rbac: ProjectRbac,
@@ -461,6 +523,18 @@ pub fn projects_router(
         // host proxy device; the browser opens the returned URL instead of a
         // static workspace stream.
         .route("/api/vibe/projects/:project_id/run", post(run_project_app))
+        // #1504 — two-environment bot ops: Run recompiles the `{bot}-test`
+        // twin from the workspace; Deploy promotes the TEST release into the
+        // `{bot}` PROD layout. Both dispatch through the main binary's hook
+        // (git monitor) because the compile pipeline lives there.
+        .route(
+            "/api/vibe/projects/:project_id/bot/run-test",
+            post(bot_run_test),
+        )
+        .route(
+            "/api/vibe/projects/:project_id/bot/deploy-prod",
+            post(bot_deploy_prod),
+        )
         // #1271 — same-origin preview of the running dev VM (server-side
         // fetch of the host proxy port, see `preview_vm_app`).
         .route("/api/vibe/projects/:project_id/vm-preview", get(preview_vm_app))
@@ -511,103 +585,6 @@ pub struct WorkspaceFilesResponse {
     pub content: Option<String>,
     pub bytes: Option<usize>,
     pub error: Option<String>,
-}
-
-/// Canonical workspace directory key for a project: the ALM repo slug, which
-/// is the same key `collect_workspace_files` (publish) and the agent's
-/// `file/*` tools use for `VIBE_WORKSPACE_ROOT/{key}/`.
-/// Launcher/chat-safe slug: lowercase, spaces/underscores → dashes,
-/// alphanumerics and dashes only — the same normalization the desktop
-/// launcher uses when it builds `bot-{slug}` tiles (src/apps/mod.rs).
-fn bot_slug(name: &str) -> String {
-    name.to_lowercase()
-        .replace(' ', "-")
-        .replace('_', "-")
-        .chars()
-        .filter(|c| c.is_ascii_alphanumeric() || *c == '-')
-        .collect()
-}
-
-/// Ensures the `bots` row for a bot-kind Vibe project (#1386). Idempotent
-/// per (slug, branch): an existing row for the same branch is left as-is;
-/// a slug owned by ANOTHER branch is reported and never stolen.
-/// The row carries `origin='vibe'` — vibe bots are TEST bots: WS/chat
-/// reachable but never desktop-launcher tiles (launcher lists only
-/// `origin='drive'` production bots).
-/// #1386 — a `bot`-kind Vibe project IS a real bot, and its database is the
-/// project's own production database: the bot row carries the same
-/// `database_name` the Database pane resolves for the project, so the data a
-/// bot writes and the data the pane shows are one and the same (previously
-/// the bot fell back to a lazily generated `bot_{branch}_{name}` database,
-/// while the pane showed the project's `app_{branch}_{name}` — two databases
-/// for one project).
-fn ensure_vibe_bot_row(registry: &ProjectRegistry, project: &Project, description: Option<&str>) {
-    use diesel::sql_types::{BigInt, Text, Uuid as SqlUuid};
-
-    #[derive(diesel::QueryableByName)]
-    #[diesel(check_for_backend(diesel::pg::Pg))]
-    struct One {
-        #[diesel(sql_type = BigInt)]
-        n: i64,
-    }
-
-    let slug = bot_slug(&project.name);
-    let mut conn = match registry.pool().get() {
-        Ok(c) => c,
-        Err(e) => {
-            log::warn!(
-                "vibe bot row: pool unavailable for project {}: {e}",
-                project.id
-            );
-            return;
-        }
-    };
-    let already: Option<One> = diesel::sql_query(
-        "SELECT COUNT(*) AS n FROM bots WHERE slug = $1 AND branch_id = $2",
-    )
-    .bind::<Text, _>(&slug)
-    .bind::<SqlUuid, _>(project.branch_id)
-    .get_result(&mut conn)
-    .ok();
-    if matches!(already, Some(r) if r.n > 0) {
-        return;
-    }
-    let description = description
-        .map(str::trim)
-        .filter(|d| !d.is_empty())
-        .unwrap_or("Vibe bot project");
-    let database_name =
-        crate::project_db::project_database_name(project.branch_id, &project.name, "production");
-    match diesel::sql_query(
-        "INSERT INTO bots (id, name, slug, description, org_id, branch_id, \
-             database_name, llm_provider, llm_config, context_provider, context_config, \
-             is_active, is_public, origin, created_at, updated_at) \
-         VALUES ($1, $2, $3, $4, $5, $6, $7, 'openai', '{}'::jsonb, 'openai', '{}'::jsonb, \
-             true, true, 'vibe', NOW(), NOW()) \
-         ON CONFLICT (slug) DO NOTHING",
-    )
-    .bind::<SqlUuid, _>(project.id)
-    .bind::<Text, _>(&project.name)
-    .bind::<Text, _>(&slug)
-    .bind::<Text, _>(description)
-    .bind::<SqlUuid, _>(project.org_id)
-    .bind::<SqlUuid, _>(project.branch_id)
-    .bind::<Text, _>(&database_name)
-    .execute(&mut conn)
-    {
-        Ok(1) => log::info!(
-            "vibe bot row created: slug={slug} branch={} project={}",
-            project.branch_id,
-            project.id
-        ),
-        Ok(_) => log::warn!(
-            "vibe bot row: slug {slug} already owned by another branch — bots row not touched"
-        ),
-        Err(e) => log::error!(
-            "vibe bot row insert failed for project {} (slug {slug}): {e}",
-            project.id
-        ),
-    }
 }
 
 fn workspace_key(project: &Project) -> String {
@@ -967,6 +944,26 @@ async fn run_project_app(
     // `apps`) reach the `create_project_vm` path below.
     if project.project_type == "website" {
         return run_website_via_proxy(&registry, &project).await;
+    }
+    // #1504 — bot projects have their own two-env Run: recompile the
+    // `{bot}-test` twin from the workspace (via the git-monitor hook) and
+    // tell the UI to open the Chat window on the TEST tab. No dev VM.
+    if project.project_type == "bot" {
+        return match botcoresecrets::hooks::call_bot_project_ops("run-test", project_id) {
+            Ok(()) => (
+                StatusCode::OK,
+                Json(serde_json::json!({
+                    "success": true,
+                    "bot_env": "test",
+                    "bot": format!("{}-test", crate::bootstrap::bot_slug(&project.name)),
+                    "project": project.name,
+                })),
+            ),
+            Err(e) => (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "success": false, "error": e })),
+            ),
+        };
     }
     let vm = match lifecycle.create_project_vm(
         project_id,

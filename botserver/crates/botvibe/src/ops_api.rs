@@ -145,6 +145,27 @@ async fn preview(
             .filter(|value| !value.trim().is_empty())
             .map(ToString::to_string)
     });
+    // #1504 — bot projects resolve their preview to a chat deep link: TEST
+    // → the `{bot}-test` twin conversation, production → the `{bot}` bot.
+    if let Ok(Some(project)) = routes.registry.get(pid) {
+        if project.project_type == "bot" {
+            let slug = crate::bootstrap::bot_slug(&project.name);
+            let bot = if matches!(
+                crate::site_env::SiteEnv::parse(&query.env),
+                Some(crate::site_env::SiteEnv::Production)
+            ) {
+                slug
+            } else {
+                format!("{slug}-test")
+            };
+            return ok(json!({
+                "preview_url": format!("/chat/{bot}"),
+                "bot": bot,
+                "kind": "bot",
+                "env": query.env,
+            }));
+        }
+    }
     let probe = routes.vm_ops.probe_and_recover(pid, &query.env, false).await;
     match probe {
         Ok(report) => ok(json!({
