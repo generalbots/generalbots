@@ -172,6 +172,18 @@ impl VibeStateImpl {
 pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
     let pool = app_state.conn.clone();
 
+    // Reform #1500 — share the pool with the bootstrap helpers so org/naming
+    // resolution works without threading pools through every API surface.
+    botvibe::bootstrap_backfill::init_shared_pool(pool.clone());
+    // Reform #1500 — boot backfill: every branch gets its default-bot Vibe
+    // project + PROD/TEST bot pair (idempotent, runs on every boot).
+    {
+        let pool_for_backfill = pool.clone();
+        tokio::spawn(async move {
+            botvibe::bootstrap_backfill::backfill_default_projects(pool_for_backfill).await;
+        });
+    }
+
     let state: Arc<dyn VibeState> = Arc::new(VibeStateImpl {
         pool,
         progress: Some(broadcast::channel(128).0),

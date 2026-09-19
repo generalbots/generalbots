@@ -161,6 +161,25 @@ fn rollback_params() -> Value {
     )
 }
 
+/// #1504 — bot TEST/PROD ops dispatched through the main binary's
+/// git-monitor hook (the compile pipeline lives in the botserver crate).
+fn bot_op_params() -> Value {
+    params(
+        json!({
+            "project_id": { "type": "string" }
+        }),
+        &["project_id"],
+    )
+}
+
+async fn do_bot_op(op: &str, pool: DbPool, args: Value) -> Result<Value, String> {
+    let _ = pool; // the hook resolves its own connections
+    let pid = Uuid::parse_str(&str_arg(&args, "project_id")?)
+        .map_err(|e| format!("invalid project_id: {e}"))?;
+    botcoresecrets::hooks::call_bot_project_ops(op, pid)?;
+    Ok(json!({ "bot_op": op, "project_id": pid.to_string() }))
+}
+
 /// All ops tools: (name, schema, handler) triples for the registry.
 pub fn ops_tools() -> Vec<(&'static str, ToolSchema, ToolHandler)> {
     let mut out: Vec<(&'static str, ToolSchema, ToolHandler)> = Vec::new();
@@ -178,6 +197,27 @@ pub fn ops_tools() -> Vec<(&'static str, ToolSchema, ToolHandler)> {
             .with_approval_if(true)
             .with_use_cases(vec![VibeUseCase::SoftwareDevelopment]),
         handler(|pool, args| Box::pin(do_restart(pool, args))),
+    ));
+    out.push((
+        "bot/run-test",
+        ToolSchema::new(
+            "bot/run-test",
+            "Recompile a bot-kind project's TEST twin ({bot}-test) from the current workspace",
+        )
+        .with_parameters(bot_op_params())
+        .with_use_cases(vec![VibeUseCase::SoftwareDevelopment]),
+        handler(|pool, args| Box::pin(do_bot_op("run-test", pool, args))),
+    ));
+    out.push((
+        "bot/deploy-prod",
+        ToolSchema::new(
+            "bot/deploy-prod",
+            "Promote the TEST release of a bot-kind project into the PROD bot layout and queue recompiles",
+        )
+        .with_parameters(bot_op_params())
+        .with_approval_if(true)
+        .with_use_cases(vec![VibeUseCase::SoftwareDevelopment]),
+        handler(|pool, args| Box::pin(do_bot_op("deploy-prod", pool, args))),
     ));
     out.push((
         "publish/history",

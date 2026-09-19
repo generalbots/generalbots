@@ -185,6 +185,24 @@ impl VmLifecycle {
             .to_string()
     }
 
+    /// #1503 — ALM org from the branch slug (readable org-branch org); falls
+    /// back to the short-uuid form when no slug resolves. Kept next to the
+    /// legacy derivation so all naming stays in one module.
+    pub fn alm_org_from_slug(branch_slug: &str) -> String {
+        let cleaned: String = branch_slug
+            .trim()
+            .to_lowercase()
+            .chars()
+            .filter(|c| c.is_ascii_alphanumeric() || *c == '-')
+            .collect();
+        let cleaned = cleaned.trim_matches('-');
+        if cleaned.is_empty() {
+            Self::alm_org(uuid::Uuid::nil())
+        } else {
+            cleaned.to_string()
+        }
+    }
+
     /// ALM repo name from the project name (g.tmp #744 — repo=project).
     pub fn alm_repo(project_name: &str) -> String {
         sanitize_part(project_name)

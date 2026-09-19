@@ -1,4 +1,6 @@
 pub mod types;
+pub mod bootstrap;
+pub mod bootstrap_backfill;
 pub mod prompt_manager;
 pub mod tool_executor;
 pub mod telemetry;
@@ -46,6 +48,7 @@ pub mod issues;
 pub mod websearch;
 pub mod gitflow;
 pub mod git_mode;
+pub mod deploy_source;
 pub mod sessions;
 pub mod teams;
 pub mod capability_registry;

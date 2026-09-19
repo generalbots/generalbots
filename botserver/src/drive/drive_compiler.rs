@@ -170,9 +170,29 @@ impl DriveCompiler {
             let b_is_tables = b.0.contains("tables.bas");
             b_is_tables.cmp(&a_is_tables)
         });
+        // Reform #1501 — bots whose sources were imported into git (vibe
+        // bootstrap sets `source_imported_at`) are fed by the git monitor
+        // (#1502), which stamps etags with commit hashes; the S3 download
+        // path must not fight it. Skip their object-key-shaped paths here —
+        // the monitor's own entries carry the same key format, so filter by
+        // the payload marker instead of the path shape.
+        let git_owned = git_owned_bots(&mut conn);
 
         for (query_file_path, _file_type, current_etag_opt) in files {
             let current_etag = current_etag_opt.unwrap_or_default();
+            // Reform #1501 — skip bots owned by the git monitor: their branch
+            // slug (the leading path segment) resolved to a vibe project with
+            // `source_imported_at` set, so git is the only source of truth.
+            let branch_segment = query_file_path.split('/').next().unwrap_or("");
+            let bot_segment = query_file_path
+                .split('/')
+                .nth(1)
+                .unwrap_or("")
+                .strip_suffix(".gbdialog")
+                .unwrap_or("");
+            if git_owned.contains(&(branch_segment.to_string(), bot_segment.to_string())) {
+                continue;
+            }
 
             // Verificar se precisa compilar (ETag mudou ou .ast foi deletado do work dir)
             let should_compile = {
@@ -487,4 +507,28 @@ impl Clone for DriveCompiler {
             last_etags: Arc::clone(&self.last_etags),
         }
     }
+}
+
+/// Reform #1501 — (branch_slug, bot_name) pairs whose bot sources moved to
+/// git: a vibe project of the branch carries `payload.source_imported_at`.
+/// The set is re-read each compile scan (cheap single query) so newly
+/// imported bots stop compiling from Drive on the very next tick.
+fn git_owned_bots(
+    conn: &mut diesel::PgConnection,
+) -> std::collections::HashSet<(String, String)> {
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        branch_slug: String,
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        name: String,
+    }
+    diesel::sql_query(
+        "SELECT br.slug AS branch_slug, vp.name \n         FROM vibe_projects vp \n         JOIN branches br ON br.id = vp.branch_id \n         WHERE vp.project_type = 'bot' AND (vp.payload->>'source_imported_at') IS NOT NULL",
+    )
+    .load::<Row>(conn)
+    .unwrap_or_default()
+    .into_iter()
+    .map(|r| (r.branch_slug, r.name))
+    .collect()
 }

@@ -28,6 +28,10 @@ pub enum PipelineStageKind {
     SnapshotPrevious,
     CommitPush,
     PublishApp,
+    /// #1504 — bot-kind projects: promote the TEST materialization into the
+    /// `{bot}` PROD layout and queue recompiles (git monitor hook). Sits
+    /// between CommitPush and PublishApp; PublishApp stays a no-op for bots.
+    PromoteBotProd,
     BindDomain,
     VerifyDomain,
     IssueTls,
@@ -43,6 +47,7 @@ impl PipelineStageKind {
             Self::BuildTest => "test/run",
             Self::SnapshotPrevious => "git/snapshot-previous",
             Self::CommitPush => "git/commit",
+            Self::PromoteBotProd => "bot/deploy-prod",
             Self::PublishApp => "publish/project",
             Self::BindDomain => "domain/bind",
             Self::VerifyDomain => "domain/verify",
@@ -58,6 +63,7 @@ impl PipelineStageKind {
             Self::BuildTest => "Build and test",
             Self::SnapshotPrevious => "Snapshot previous release",
             Self::CommitPush => "Commit and push",
+            Self::PromoteBotProd => "Promote TEST bot to PROD",
             Self::PublishApp => "Publish application",
             Self::BindDomain => "Bind domain and TLS",
             Self::VerifyDomain => "Verify domain ownership",
@@ -120,6 +126,11 @@ impl RunPipeline {
             // being replaced — the rollback point in the branch combo.
             stage("snapshot_prev", PipelineStageKind::SnapshotPrevious, 30),
             stage_approval("commit_push", PipelineStageKind::CommitPush, 60, true),
+            // #1504 — bot projects promote the TEST release into the PROD
+            // bot layout; websites/apps run the regular publish instead. Both
+            // stages tolerate failure so a wrong-kind tool never blocks the
+            // pipeline (the other stage is the effective one).
+            stage_continue("promote_bot", PipelineStageKind::PromoteBotProd, 120),
             stage_approval("publish", PipelineStageKind::PublishApp, 300, true),
             stage_approval("domain", PipelineStageKind::BindDomain, 60, true),
             // #1268 — a bound domain must not stay verified=false/tls=pending
@@ -308,6 +319,11 @@ impl PipelineEngine {
                             "message": format!("Deploy {} via deploy pipeline", project_name.unwrap_or("app")),
                         })
                     }
+                    // #1504 — bot PROD promotion takes the project id only;
+                    // the tool resolves the branch/bot layout server-side.
+                    PipelineStageKind::PromoteBotProd => serde_json::json!({
+                        "project_id": project_id.unwrap_or(""),
+                    }),
                     _ => serde_json::json!({}),
                 }
             };

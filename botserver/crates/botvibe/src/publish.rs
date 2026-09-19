@@ -158,6 +158,12 @@ fn publish_max_bytes() -> u64 {
         .unwrap_or(PUBLISH_DEFAULT_MAX_BYTES)
 }
 
+/// Budget shared with the #1505 git deploy-source: the same env-var knob
+/// governs both payload collectors so neither can bypass the size cap.
+pub(crate) fn publish_max_bytes_budget() -> u64 {
+    publish_max_bytes()
+}
+
 pub fn publish_project_tool() -> ToolHandler {
     Arc::new(|args: Value, state: &dyn VibeState| {
         let pool = state.db_pool().clone();
@@ -366,6 +372,15 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
     // the request as approved — an agent that asks for `env=production` on its
     // own still lands on the test twin, and the response says so.
     let wants_site = project.project_type == "website" || is_python_project;
+    // #1505 — optional explicit revision to deploy (git tag, branch or SHA);
+    // empty/absent means HEAD of the project checkout. Only meaningful for
+    // git-mode projects.
+    let deploy_rev: Option<String> = args
+        .get("deploy_rev")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|r| !r.is_empty())
+        .map(ToString::to_string);
     let approved = production_approved(&args);
     let requested_production = matches!(
         crate::site_env::SiteEnv::parse(&env),
@@ -385,6 +400,10 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
             // websites stay in step, the public page is always a payload that
             // has already been served (and verified) as the test site, and the
             // production `.prev-N` ring still holds the previous release.
+            // #1505 — a sanctioned production deploy ships the pushed git
+            // state: resolve the revision once (explicit arg > HEAD) and carry
+            // it through both the test staging and the promote-to-prod swap.
+            let deploy_rev = crate::deploy_source::deploy_revision(&project, deploy_rev.as_deref())?;
             let (proxy_url, route) = if site_env == crate::site_env::SiteEnv::Production {
                 // The test twin's URL is intentionally discarded: the public
                 // release is what this call reports, and the twin's own route
@@ -394,6 +413,7 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
                     is_python_project,
                     crate::site_env::SiteEnv::Test,
                     &pool,
+                    deploy_rev.clone(),
                 )
                 .await?;
                 let promoted = crate::proxy_sites::promote_site_test_to_prod(
@@ -409,6 +429,7 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
                     is_python_project,
                     site_env,
                     &pool,
+                    deploy_rev.clone(),
                 )
                 .await?
             };
