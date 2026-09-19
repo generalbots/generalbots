@@ -324,6 +324,47 @@
         }, 3600);
     }
 
+    /* ── Frozen UI during destructive operations (project delete) ──
+       Sets a full-viewport overlay that blocks all pointer input and
+       disables every toolbar button until the operation finishes and the
+       project combo is refreshed (see deleteProject → setBusy(false)). */
+    function setBusy(busy, label) {
+        var existing = document.getElementById("vibeBusyOverlay");
+        if (busy) {
+            if (!existing) {
+                var ov = el("div", "vibe-busy-overlay");
+                ov.id = "vibeBusyOverlay";
+                ov.style.cssText =
+                    "position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;" +
+                    "background:rgba(8,10,20,.55);backdrop-filter:blur(2px);cursor:progress;";
+                ov.innerHTML =
+                    '<div style="background:#141628;border:1px solid rgba(255,255,255,.18);border-radius:12px;' +
+                    'padding:22px 34px;text-align:center;color:#eee;font-size:13px;' +
+                    'box-shadow:0 14px 40px rgba(0,0,0,.5)">' +
+                    '<div style="width:26px;height:26px;margin:0 auto 12px;border:3px solid rgba(255,255,255,.2);' +
+                    'border-top-color:#60a5fa;border-radius:50%;animation:vibe-busy-spin .8s linear infinite"></div>' +
+                    "<b>" + (label || "Working…") + "</b></div>";
+                if (!document.getElementById("vibeBusySpinStyle")) {
+                    var style = el("style", null);
+                    style.id = "vibeBusySpinStyle";
+                    style.textContent = "@keyframes vibe-busy-spin{to{transform:rotate(360deg)}}";
+                    document.head.appendChild(style);
+                }
+                document.body.appendChild(ov);
+            } else {
+                existing.style.display = "flex";
+            }
+        } else if (existing) {
+            existing.remove();
+        }
+        document.body.classList.toggle("vibe-shell-busy", busy);
+        var bar = document.getElementById("vibeShellToolbar");
+        if (bar) {
+            bar.classList.toggle("vibe-shell-busy", busy);
+            if (typeof bar.__refreshCommandState === "function") bar.__refreshCommandState();
+        }
+    }
+
     /* ── Active-project dropdown ──────────────────────────────────── */
     var knownProjects = [];
 
@@ -343,8 +384,8 @@
 
     function loadProjects() {
         var sel = projectSelect();
-        if (!sel || typeof vibeApi !== "function") return;
-        vibeApi("/api/vibe/projects")
+        if (!sel || typeof vibeApi !== "function") return Promise.resolve();
+        return vibeApi("/api/vibe/projects")
             .then(function (data) {
                 var projects =
                     (data && data.success && data.projects) ||
@@ -813,11 +854,19 @@
         function refreshCommandState() {
             var hasProject = !!S.projectId();
             var kind = selectedProjectKind();
+            var frozen = document.body.classList.contains("vibe-shell-busy");
             Array.prototype.forEach.call(bar.querySelectorAll(".vibe-shell-tb-btn"), function (b) {
-                if (b.classList.contains("vibe-shell-tb-new") || b.classList.contains("vibe-shell-tb-closeall")) return;
-                b.disabled = !hasProject;
-                b.classList.toggle("vibe-shell-tb-disabled", !hasProject);
+                if (b.classList.contains("vibe-shell-tb-new") || b.classList.contains("vibe-shell-tb-closeall")) {
+                    // New Project and Close-all stay disabled while frozen too.
+                    b.disabled = frozen;
+                    if (frozen) b.classList.add("vibe-shell-tb-disabled");
+                    else b.classList.remove("vibe-shell-tb-disabled");
+                    return;
+                }
+                b.disabled = frozen || !hasProject;
+                b.classList.toggle("vibe-shell-tb-disabled", frozen || !hasProject);
             });
+            if (frozen) return;
             // #1403 — website and bot projects have no dev VM/container, so a
             // terminal there would only ever open a dead pane. Keep the button
             // visible but inert (New Project and Close All remain enabled).
@@ -937,6 +986,7 @@
         pausePreview: pausePreview,
         closePreview: closePreview,
         flashHint: flashHint,
+        setBusy: setBusy,
         // Shared with palettes/dialogs so all Vibe chrome uses one SVG set.
         icons: ICONS,
     };
