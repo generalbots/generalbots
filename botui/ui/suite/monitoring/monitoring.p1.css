@@ -103,21 +103,6 @@
     border-top: 1px solid var(--border);
 }
 
-.back-link {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--text-secondary);
-    text-decoration: none;
-    font-size: 0.875rem;
-    padding: 0.5rem 0;
-    transition: color 0.2s ease;
-}
-
-.back-link:hover {
-    color: var(--primary);
-}
-
 .system-status {
     display: flex;
     align-items: center;
