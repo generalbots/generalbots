@@ -1120,6 +1120,14 @@
             .catch(function () { /* no project.draw yet — blank canvas */ });
     }
 
+    // #1408 — a finished Vibe agent run may have rewritten project.draw;
+    // reset the canvas and reload it so the open Canvas reflects the change.
+    document.addEventListener('gb:vibe-app-refresh', function () {
+        var app = window._canvasApp;
+        if (app && typeof app.clearCanvas === 'function') app.clearCanvas();
+        loadProjectDraw();
+    });
+
     // Persist current elements back to project.draw at the project root.
     function saveProjectDraw() {
         var pid = currentProjectId();

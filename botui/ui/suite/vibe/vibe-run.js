@@ -26,6 +26,31 @@
         paused: false,
     };
 
+    // Runs already announced as finished, so pollRun + the runs-list watcher
+    // never double-fire (chat-originated runs show up only in the list).
+    var announcedFinished = {};
+
+    // Last seen state per run id, so the runs-list watcher only announces
+    // runs that TRANSITION to completed during this page session — never
+    // long-finished history (which would re-target the Browser pointlessly).
+    var seenRunStates = {};
+
+    // #1408 — announce a terminal run so the shell can refresh the open
+    // integrated apps (Browser preview, Editor tree, Canvas project.draw,
+    // Database schema) once, per run.
+    function announceRunFinished(run) {
+        if (!run || !run.run_id) return;
+        if (announcedFinished[String(run.run_id)]) return;
+        announcedFinished[String(run.run_id)] = 1;
+        document.dispatchEvent(new CustomEvent("gb:vibe-run-finished", {
+            detail: {
+                project: run.project_id || null,
+                name: run.project_name || "",
+                run_id: run.run_id,
+            },
+        }));
+    }
+
     // Ribbon status lives in the Vibe main window (commands + project list).
     function updateRibbonStatus(text, kind) {
         var el = q("vibeRibbonStatus");
@@ -366,16 +391,13 @@
                         if (runProjectId) {
                             openProdTab(data.project_name || "", runProjectId, state.runId);
                         }
-                    } else if (runProjectId) {
-                        // #1271 — a chat message that changed the app should
-                        // end with the result visible: re-resolve the dev VM
-                        // and reload it in the Browser window. openDeepLink
-                        // re-targets an open Browser (navigateTo → iframe
-                        // refresh) or opens a fresh one.
-                        if (window.VibeShell && window.VibeShell.toolbar &&
-                            typeof window.VibeShell.toolbar.openProjectApp === "function") {
-                            window.VibeShell.toolbar.openProjectApp(runProjectId);
-                        }
+                    } else {
+                        // #1408 — a finished run announces so the shell
+                        // refreshes every open integrated app: the Browser
+                        // preview (re-targeted to the dev VM / static
+                        // preview), the Editor tree, the Canvas project.draw
+                        // and the Database schema.
+                        announceRunFinished(data);
                     }
                 } else if (data.state === "failed" || data.state === "cancelled") {
                     uiMsg("⛔ Run " + data.state + ".");
@@ -823,6 +845,20 @@
                 el.addEventListener("click", function () {
                     focus(el.getAttribute("data-run"));
                 });
+            });
+            // #1408 — announce runs that finish during this page session (a
+            // chat-originated run is not polled by the dock when a different
+            // run is focused, so the runs list is the reliable signal). Only
+            // transitions INTO completed count — pre-existing history does not
+            // re-target the Browser.
+            runs.forEach(function (r) {
+                var rid = String(r.run_id);
+                var st = String(r.state || "").toLowerCase();
+                var prev = seenRunStates[rid];
+                seenRunStates[rid] = st;
+                if (st === "completed" && prev && prev !== "completed" && prev !== "failed" && prev !== "cancelled") {
+                    announceRunFinished(r);
+                }
             });
             if (!state.runId) {
                 var active = runs.find(function (run) {
