@@ -91,6 +91,11 @@ fn count_branch_bots(conn: &mut PgConnection, branch_id: Uuid) -> i64 {
 }
 
 fn backfill_sync(pool: &DbPool) -> Result<(usize, usize), String> {
+    #[derive(diesel::QueryableByName)]
+    struct CountRow {
+        #[diesel(sql_type = diesel::sql_types::BigInt)]
+        n: i64,
+    }
     let mut conn = pool.get().map_err(|e| format!("db pool: {e}"))?;
     let mut projects = 0usize;
 
@@ -104,11 +109,30 @@ fn backfill_sync(pool: &DbPool) -> Result<(usize, usize), String> {
         name: String,
     }
     let workspaces: Vec<WorkspaceRow> = diesel::sql_query(
-        "SELECT org_id, branch_id, name FROM cloud_workspaces \
-         WHERE branch_id <> '00000000-0000-0000-0000-000000000000'",
+        "SELECT cw.org_id, cw.branch_id, cw.name FROM cloud_workspaces cw \
+         JOIN organizations o ON o.org_id = cw.org_id \
+         WHERE cw.branch_id <> '00000000-0000-0000-0000-000000000000'",
     )
     .load(&mut conn)
     .unwrap_or_default();
+    // The inner JOIN drops workspaces whose org was deleted (bots.org_id has
+    // an FK to organizations) — creating bot rows for them would violate
+    // `bots_org_id_fkey`. Stale rows are the drive-monitor's responsibility
+    // to re-create orgs for; here we simply skip what cannot exist.
+    let stale: i64 = diesel::sql_query(
+        "SELECT COUNT(*) AS n FROM cloud_workspaces cw \
+         LEFT JOIN organizations o ON o.org_id = cw.org_id \
+         WHERE cw.branch_id <> '00000000-0000-0000-0000-000000000000' \
+           AND o.org_id IS NULL",
+    )
+    .get_result::<CountRow>(&mut conn)
+    .map(|c| c.n)
+    .unwrap_or(0);
+    if stale > 0 {
+        log::warn!(
+            "vibe bootstrap: {stale} workspace(s) skipped — their org no longer exists"
+        );
+    }
     for ws in &workspaces {
         match crate::bootstrap::ensure_branch_default_project_conn(&mut conn, ws.org_id, ws.branch_id, &ws.name)
         {
@@ -119,13 +143,17 @@ fn backfill_sync(pool: &DbPool) -> Result<(usize, usize), String> {
 
     let mut twins = 0usize;
     let bot_projects: Vec<BackfillProject> = diesel::sql_query(
-        "SELECT id, org_id, branch_id, name FROM vibe_projects WHERE project_type = 'bot'",
+        "SELECT vp.id, vp.org_id, vp.branch_id, vp.name FROM vibe_projects vp \
+         JOIN organizations o ON o.org_id = vp.org_id \
+         WHERE vp.project_type = 'bot'",
     )
     .load(&mut conn)
     .unwrap_or_default();
+    // Per-project tolerance: one broken row must never abort the whole
+    // backfill (a warn keeps the rest converging on the next boot).
     for p in &bot_projects {
         let before = count_branch_bots(&mut conn, p.branch_id);
-        ensure_bot_rows_conn(
+        if let Err(e) = ensure_bot_rows_conn(
             &mut conn,
             &BotRowRef {
                 id: p.id,
@@ -134,7 +162,10 @@ fn backfill_sync(pool: &DbPool) -> Result<(usize, usize), String> {
                 name: p.name.clone(),
             },
             None,
-        )?;
+        ) {
+            log::warn!("vibe bootstrap: project '{}': {e}", p.name);
+            continue;
+        }
         if count_branch_bots(&mut conn, p.branch_id) > before {
             twins += 1;
         }

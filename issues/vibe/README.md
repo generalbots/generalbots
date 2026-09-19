@@ -1,39 +1,37 @@
-# [VIBE] Reform — Git-controlled bots & two-environment projects (issues 1500–1506)
+# Vibe Reform Issues — Index
 
-Reform goal: **Vibe code coordinates the bot**. Every branch gets a default bot as a Vibe
-project backed by a Forgejo repository; Drive (MinIO) stops storing bot sources; bots and
-websites gain the same TEST/PROD two-environment model; the editor gets a GitHub-style
-source control view.
+## Wave 2 — Reform (implemented, commit bc66df4c2)
 
-## Read order (dependency order)
+| # | Title | Priority | Depends on |
+|---|-------|----------|------------|
+| [1500](1500-default-bot-vibe-bootstrap.md) | Branch default bot becomes a Vibe project | P0 | — |
+| [1501](1501-remove-bot-sources-from-drive.md) | Remove `.gbot`/`.gbdialog` from Drive (git is source) | P0 | 1500, 1503 |
+| [1502](1502-git-pull-bot-monitor.md) | Git-pull bot monitor into `work/` | P0 | 1500, 1503 |
+| [1503](1503-alm-org-repo-provisioning.md) | ALM org/repo provisioning, git default | P0 | 1500 |
+| [1504](1504-bot-two-env-test-prod.md) | Bot TEST/PROD twins, Run/Deploy, chat tabs | P0 | 1500 |
+| [1505](1505-website-git-controlled-deploy.md) | Website deploys from git revisions | P1 | 1503 |
+| [1506](1506-editor-github-style-source-control.md) | GitHub-style source control dialog | P1 | 1503 |
 
-| # | Issue | Summary | Priority |
-|---|-------|---------|----------|
-| 1 | [1500 — Default bot Vibe bootstrap](1500-default-bot-vibe-bootstrap.md) | Branch creation auto-creates the default bot as a Vibe project (people vibe the base bot) | P0 |
-| 2 | [1501 — Remove bot sources from Drive](1501-remove-bot-sources-from-drive.md) | `.gbot`/`.gbdialog` move to git; Drive keeps only `.gbkb`/`.gbdrive`; archival migration | P0 |
-| 3 | [1502 — Git-pull bot monitor](1502-git-pull-bot-monitor.md) | Drive monitor replaced by Forgejo git-pull into `work/` + compile/reload | P0 |
-| 4 | [1503 — ALM org/repo provisioning](1503-alm-org-repo-provisioning.md) | One Forgejo org per branch; repo per project, named after the bot/web/app; git becomes default | P0 |
-| 5 | [1504 — Bot two-env model](1504-bot-two-env-test-prod.md) | `{bot}-test` twin bot; toolbar **Bot** button; Chat window with `NAME (TEST)` / `NAME (PROD)` tabs; Run→TEST, Deploy→PROD | P0 |
-| 6 | [1505 — Websites git-controlled](1505-website-git-controlled-deploy.md) | Run/Deploy materialize proxy payloads from git revisions/tags; `{slug}-test.{domain}` keeps working | P1 |
-| 7 | [1506 — Editor GitHub-style source control](1506-editor-github-style-source-control.md) | Repo tree center (GitHub-like), manual commit right, M/U/D diff icons, modern toolbar | P1 |
+## Wave 2 — E2E verification (this wave's test backlog)
 
-Dependency graph:
+> **Run these only after botserver is rebuilt with the reform code** — the
+> log lines cited (`git_monitor started`, `[git_import]`, `[vibe_bootstrap]`)
+> only exist in the new binary.
 
-```
-1500 ──▶ 1501 ──▶ 1502 ──▶ 1504
-  │        └───────▶ 1502
-  └──────▶ 1503 ──▶ 1505
-           1503 ──▶ 1506
-```
+| # | Title | Priority | Verifies |
+|---|-------|----------|----------|
+| [1507](1507-e2e-default-bot-bootstrap.md) | E2E: default-bot bootstrap (signup/backfill/drive) | P0 | 1500 |
+| [1508](1508-e2e-git-owned-bots.md) | E2E: git-owned bots (import→pull→compile→chat) | P0 | 1501, 1502 |
+| [1509](1509-e2e-alm-provisioning.md) | E2E: ALM org/repo provisioning + git default | P0 | 1503 |
+| [1510](1510-e2e-bot-two-env.md) | E2E: bot TEST/PROD Run/Deploy + toolbar/tabs | P0 | 1504 |
+| [1511](1511-e2e-website-git-deploy.md) | E2E: website git-revision deploy + rollback | P1 | 1505 |
+| [1512](1512-e2e-editor-source-control.md) | E2E: GitHub-style source control dialog | P1 | 1506 |
 
-(1504 also consumes 1503's repos; 1505/1506 are independent of the bot monitor path.)
+**Execution order:** 1507 → 1509 → 1508 → 1510 → 1511 → 1512.
 
-## Key invariants (all issues)
-
-- Manual commit stays (user requirement, issue 1506).
-- Two-env rule: test first, production only via the deploy pipeline (mirrors `site_env.rs`).
-- Drive keeps serving `.gbkb` (knowledge) and `.gbdrive` (documents) — only bot **sources** move.
-- No panics/`unwrap` in new server code; files ≤ 450 lines; local assets only; browser-test
-  all UI flows via Chrome CDP 9222 (AGENTS.md).
-- Naming is canonical through `VmLifecycle::alm_org`/`alm_repo` (issue 1503 extends to
-  branch slugs) — one naming function, no divergent derivations.
+**Invariants across all cases:**
+- Manual commit stays (per-file staging) — no auto-commit-only flows.
+- Test-first deploy: agents land on `-test`; PROD writes are pipeline/
+  admin-sanctioned only.
+- Browser testing via Chrome CDP 9222, one tab per case, never close.
+- Bots compile from `work/` (git-pulled), never from Drive object keys.
