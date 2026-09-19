@@ -1,6 +1,8 @@
 "use strict";
-/* Control Center (#1158): quick-settings panel from the taskbar tray —
-   theme toggle, do-not-disturb, volume/brightness sliders, lock & power. */
+/* Control Center (#1158, #1433): quick-settings panel from the taskbar tray.
+   Only functional controls ship: theme toggle, agent permissions, lock and
+   power. Dead controls (DND with no listener, brightness/volume sliders that
+   drive nothing in a browser tab) were removed per the #1433 audit. */
 
 const ControlCenter = (() => {
   let initialized = false;
@@ -30,20 +32,11 @@ const ControlCenter = (() => {
     panel.id = "gb-control-center";
     panel.className = "gb-control-center";
     panel.innerHTML = `
-      <div class="gb-cc-header">Quick Settings</div>
+      <div class="gb-cc-header">Control Center</div>
       <div class="gb-cc-toggles">
         <button class="gb-cc-toggle" id="ccTheme">${isDark() ? "☀️ Light" : "🌙 Dark"}</button>
-        <button class="gb-cc-toggle" id="ccDnd">🔕 Do Not Disturb</button>
         <button class="gb-cc-toggle" id="ccAgent">🤖 Agent perms</button>
         <button class="gb-cc-toggle" id="ccLock">🔒 Lock</button>
-      </div>
-      <div class="gb-cc-slider-row">
-        <span>🔆</span>
-        <input type="range" id="ccBrightness" min="20" max="100" value="100" />
-      </div>
-      <div class="gb-cc-slider-row">
-        <span>🔊</span>
-        <input type="range" id="ccVolume" min="0" max="100" value="100" />
       </div>
       <div class="gb-cc-power" id="ccPower">⏻ Power</div>
     `;
@@ -69,14 +62,6 @@ const ControlCenter = (() => {
         root.setAttribute("data-theme", next);
         try { localStorage.setItem("gb-theme", next); } catch (e) {}
         theme.textContent = next === "dark" ? "☀️ Light" : "🌙 Dark";
-      });
-    }
-    const dnd = panel.querySelector("#ccDnd");
-    if (dnd) {
-      dnd.addEventListener("click", () => {
-        const active = dnd.classList.toggle("active");
-        dnd.textContent = active ? "🔕 DND On" : "🔕 Do Not Disturb";
-        window.dispatchEvent(new CustomEvent("gb-dnd-changed", { detail: { enabled: active } }));
       });
     }
     const lock = panel.querySelector("#ccLock");
@@ -107,5 +92,9 @@ const ControlCenter = (() => {
 
   return { init, open, close, toggle, isOpen };
 })();
+
+// #1433 — the tray button checks window.ControlCenter; the bare const above
+// is module-scoped and would leave the handler silently dead.
+window.ControlCenter = ControlCenter;
 
 window.ControlCenter = ControlCenter;

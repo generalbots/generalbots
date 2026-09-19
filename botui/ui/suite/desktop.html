@@ -358,7 +358,7 @@
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                             </button>
                         </div>
-                        <div class="taskbar-clock">
+                        <div class="taskbar-clock" id="taskbarClock" title="Date &amp; time settings" ondblclick="window.openDeepLink &amp;&amp; window.openDeepLink('settings', {})">
                             <div id="clock-time">00:00</div>
                             <div id="clock-date">01/01/2026</div>
                         </div>
@@ -452,6 +452,12 @@
                     const resp = await fetch("/api/product");
                     if (resp.ok) {
                         window.productConfig = await resp.json();
+                        // #1433 — honor the .product sidebar switch: sidebar=false
+                        // must actually hide the rail on boot (the Settings
+                        // toggle shares the same body.sidebar-hidden class).
+                        if (window.productConfig && window.productConfig.sidebar === false) {
+                            document.body.classList.add("sidebar-hidden");
+                        }
                     }
                 } catch (e) {
                     console.warn("Failed to load product config:", e);

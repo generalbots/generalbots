@@ -89,6 +89,13 @@
   }
 
   function render() {
+    // #1436 — with nothing pinned the strip must not exist at all: an empty
+    // bordered box on the taskbar reads as a broken blank card.
+    if (!items.length) {
+      if (strip) strip.remove();
+      strip = null;
+      return;
+    }
     var host = ensureStrip();
     if (!host) return;
     host.innerHTML = "";
