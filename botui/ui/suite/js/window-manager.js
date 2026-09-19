@@ -1064,12 +1064,19 @@ if (typeof window.WindowManager === "undefined") {
       const title = app ? app.title : appId;
       const hxGet = app ? app.hxGet : `/suite/partials/${appId}.html`;
       this.closeStartMenu();
-      const existed = this.getWindow(appId) !== null;
+      // #1432/#1439 — `new: true` forces a FRESH window instance even when
+      // one is already open (New Conversation, history clicks): the window
+      // id gets a unique suffix so the dedup-by-app-id path never applies,
+      // and the new instance is focused/raised on creation.
+      const forceNew = opts.new === true;
+      const targetId = forceNew ? `${appId}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e4)}` : appId;
+      const existed = !forceNew && this.getWindow(targetId) !== null;
       // The Vibe workbench keeps the glass chrome but no status bar.
-      this.open(appId, title, "", {
+      this.open(targetId, title, "", {
         noMaximize: appId === "vibe",
         ownerId: opts.ownerId || null,
       });
+      const appId_for_body = targetId;
       window.__gbAppParams__ = Object.assign({}, window.__gbAppParams__ || {}, params || {});
       if (existed) {
         // #1288 — a re-targeted window must adopt the caller's ownership
@@ -1077,27 +1084,27 @@ if (typeof window.WindowManager === "undefined") {
         // a window first opened without an owner (desktop sidebar) would
         // otherwise never be closable by its new owner's cleanup.
         if (opts.ownerId) {
-          const rec = this.openWindows.find((w) => w.id === appId);
+          const rec = this.openWindows.find((w) => w.id === targetId);
           if (rec) rec.ownerId = opts.ownerId;
         }
         // Re-target an already-open app window (new project URL, session, ...)
         // so deep-links always apply, not only on first open.
         document.dispatchEvent(new CustomEvent("gb:deep-link", {
-          detail: { appId, params: params || {} },
+          detail: { appId: targetId, params: params || {} },
         }));
         return;
       }
       const qs = Object.keys(params || {}).map((k) => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`).join("&");
       const sep = hxGet.indexOf("?") === -1 ? "?" : "&";
       fetch(hxGet + sep + (qs ? qs + "&" : "") + "_=" + Date.now()).then((r) => r.text()).then((html) => {
-        const body = document.getElementById(`window-body-${appId}`);
-        if (body) this._injectBodyContent(appId, html);
+        const body = document.getElementById(`window-body-${targetId}`);
+        if (body) this._injectBodyContent(targetId, html);
         // Content can push the workspace layout; re-clamp so an auto-opened
         // app never sits off-screen after its body settles.
-        this._clampWindowIntoView(appId);
+        this._clampWindowIntoView(targetId);
       }).catch(() => {
-        const body = document.getElementById(`window-body-${appId}`);
-        if (body) this._injectBodyContent(appId, `<div style="padding:20px"><h3>${title}</h3><p>Application loading...</p></div>`);
+        const body = document.getElementById(`window-body-${targetId}`);
+        if (body) this._injectBodyContent(targetId, `<div style="padding:20px"><h3>${title}</h3><p>Application loading...</p></div>`);
       });
     }
 
@@ -1325,6 +1332,15 @@ if (typeof window.WindowManager === "undefined") {
       /* storage unavailable — leave default */
     }
     sidebar.classList.toggle("collapsed", collapsed === "1");
+    // #1433 — the Settings "show sidebar" toggle persists to a separate key;
+    // honor it here so a previously-hidden rail stays hidden across reloads.
+    let sidebarVisible = "true";
+    try {
+      sidebarVisible = localStorage.getItem("gb-show-sidebar") || "true";
+    } catch (e) {
+      /* storage unavailable — default to visible */
+    }
+    document.body.classList.toggle("sidebar-hidden", sidebarVisible === "false");
   }
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", function () {
