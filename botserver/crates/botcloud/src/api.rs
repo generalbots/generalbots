@@ -463,6 +463,26 @@ async fn handle_signup(
         tracing::warn!("MinIO bucket creation skipped (non-fatal): {e}");
     }
 
+    // #1500 — Vibe bootstrap: the branch's default bot becomes a git-mode
+    // Vibe project so people can vibe the base bot immediately. The hook is
+    // registered by the main binary when the `vibe` feature is on; a no-hook
+    // build (no vibe) skips silently. Fire-and-forget: signup must not fail
+    // or slow down because of Vibe/ALM (provisioning happens lazily on first
+    // Vibe open, see bootstrap.rs).
+    let bot_name_for_vibe = bot_name.clone();
+    if let Some(hook) = botcoresecrets::hooks::take_workspace_bootstrap_hook() {
+        tokio::spawn(async move {
+            match hook(branch_id, bot_name_for_vibe) {
+                Ok(_) => tracing::info!(
+                    "vibe bootstrap hook: default bot project ready (branch {branch_id})"
+                ),
+                Err(e) => tracing::warn!(
+                    "vibe bootstrap hook failed for branch {branch_id} (non-fatal): {e}"
+                ),
+            }
+        });
+    }
+
     // 10. Create identity in directory (Zitadel) if configured (non-fatal — outside tx)
     if let (Some(dir_url), Some(dir_token)) = (&service.config.directory_api_url, &service.config.directory_service_token) {
         let parts: Vec<&str> = body.name.splitn(2, ' ').collect();

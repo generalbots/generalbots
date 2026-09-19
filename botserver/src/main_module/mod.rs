@@ -3,6 +3,8 @@ pub mod background;
 pub mod cache;
 #[cfg(feature = "drive")]
 pub mod drive_monitors;
+#[cfg(feature = "drive")]
+pub mod git_bot_monitor;
 pub mod directory_setup;
 mod drive_utils;
 mod health;
