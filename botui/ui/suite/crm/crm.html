@@ -340,6 +340,56 @@
         document.querySelectorAll('.pipeline-count').forEach(el => htmx.trigger(el, 'load'));
     });
 
+    // #1437 — deep-link consumer: opens on a CRM contact (person_id). The id
+    // arrives either at boot via window.__gbAppParams__ (fresh window) or via
+    // the gb:deep-link retarget event (already-open window). Switches to the
+    // Contacts view, waits for the grid (HTMX loads it async), then highlights
+    // the matching row and raises the window.
+    function highlightCrmRow(row) {
+        document.querySelectorAll('#contacts-table-body tr').forEach(function(tr) {
+            tr.style.boxShadow = '';
+            tr.style.background = '';
+        });
+        row.style.boxShadow = '0 0 0 2px #22c55e inset, 0 0 12px rgba(34,197,94,.5)';
+        row.style.background = 'rgba(34,197,94,.12)';
+        row.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }
+
+    window.applyCrmPersonDeepLink = function(personId, appId) {
+        if (!personId) return;
+        const contactsTab = document.querySelector('.crm-tab[data-view="contacts"]');
+        if (contactsTab && !contactsTab.classList.contains('active')) contactsTab.click();
+        const tableBody = document.getElementById('contacts-table-body');
+        if (!tableBody) return;
+        let attempts = 0;
+        const poll = setInterval(function() {
+            const row = tableBody.querySelector('tr[data-id="' + personId + '"]');
+            if (row) {
+                clearInterval(poll);
+                highlightCrmRow(row);
+                if (appId && window.WindowManager && window.WindowManager.focusWindow) {
+                    window.WindowManager.focusWindow(appId);
+                }
+                return;
+            }
+            attempts++;
+            if (attempts === 1 && tableBody.rows.length === 0 && window.htmx) {
+                window.htmx.trigger(tableBody, 'load');
+            }
+            if (attempts > 25) clearInterval(poll);
+        }, 200);
+    };
+
+    if (window.__gbAppParams__ && window.__gbAppParams__.person_id) {
+        window.applyCrmPersonDeepLink(window.__gbAppParams__.person_id, 'crm');
+    }
+    document.addEventListener('gb:deep-link', function(e) {
+        const params = e.detail && e.detail.params;
+        if (params && params.person_id) {
+            window.applyCrmPersonDeepLink(params.person_id, (e.detail && e.detail.appId) || 'crm');
+        }
+    });
+
     // Initialize i18n if available
     if (window.i18n && window.i18n.translatePage) {
         window.i18n.translatePage();

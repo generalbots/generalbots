@@ -52,6 +52,28 @@ function renderMentionInMessage(content) {
   });
 }
 
+// #1437 — stick the record id onto freshly-rendered person/contact mention
+// tags so clicking them deep-links to the CRM record instead of only
+// navigating to the app. The raw text only keeps `@type:name`, so the id is
+// restored positionally from ChatState.selectedMentions (same kind, in order).
+function enrichMentionIds(container) {
+  if (!container || !Array.isArray(ChatState.selectedMentions)) return;
+  var pool = ChatState.selectedMentions.filter(function (m) {
+    return (m.kind === "contact" || m.kind === "person") && m.id;
+  });
+  container.querySelectorAll(".mention-tag[data-type]").forEach(function (tag) {
+    var kind = (tag.getAttribute("data-type") || "").toLowerCase();
+    if (kind !== "contact" && kind !== "person") return;
+    for (var i = 0; i < pool.length; i++) {
+      if (pool[i].kind === kind) {
+        tag.setAttribute("data-id", String(pool[i].id));
+        pool.splice(i, 1);
+        return;
+      }
+    }
+  });
+}
+
 function stripThinkTags(content) {
   // R6: Remove <think>...</think> but do NOT trim — preserves leading '<' in HTML chunks
   return content.replace(/<think>[\s\S]*?(?:<\/think>|$)/gi, "");
@@ -220,6 +242,7 @@ function addMessage(sender, content, msgId, reasoning) {
   if (sender === "user") {
     var processedContent = renderMentionInMessage(escapeHtml(content));
     div.innerHTML = '<div class="message-content user-message">' + processedContent + "</div>";
+    enrichMentionIds(div);
   } else {
     var thinkingHtml = renderThinkingSection(reasoning);
     var cleanContent = stripMarkdownBlocks(content);

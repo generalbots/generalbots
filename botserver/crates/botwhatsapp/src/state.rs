@@ -19,6 +19,15 @@ pub type TranscribeAudioFn = Arc<
     dyn Fn(&[u8]) -> Pin<Box<dyn Future<Output = Result<String, String>> + Send>> + Send + Sync,
 >;
 
+/// Writes an inbound media file into the bot's Drive and returns the stored
+/// path relative to `{bot}.gbdrive` (for example `inbox/a1b2.jpg`).
+pub type PutMediaFn = Arc<
+    dyn Fn(Uuid, String, Vec<u8>, Option<String>)
+        -> Pin<Box<dyn Future<Output = Result<String, String>> + Send>>
+        + Send
+        + Sync,
+>;
+
 pub type ProcessMessageFn = Arc<
     dyn Fn(String, String, String, String, String) -> Pin<Box<dyn Future<Output = Result<(), String>> + Send>> + Send + Sync,
 >;
@@ -38,6 +47,7 @@ pub struct WhatsAppState {
     pub find_bot: FindBotFn,
     pub get_config: GetConfigFn,
     pub secrets: SecretsProvider,
+    pub put_media: PutMediaFn,
     pub transcribe_audio: TranscribeAudioFn,
     pub process_message: ProcessMessageFn,
     pub user_lookup: UserLookupFn,

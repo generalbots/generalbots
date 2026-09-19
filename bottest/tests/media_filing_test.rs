@@ -51,6 +51,10 @@ fn template_ships_in_the_layout_the_resolvers_expect() {
         "missing the Telegram channel prompt"
     );
     assert!(
+        gbai.join("media-filing.gbot/PROMPT-WHATSAPP.md").is_file(),
+        "missing the WhatsApp channel prompt"
+    );
+    assert!(
         gbai.join("media-filing.gbdialog/start.bas").is_file(),
         "missing start.bas"
     );
@@ -73,6 +77,35 @@ fn markers_are_documented_in_the_prompt_and_the_tool_schema() {
             "classify_media.mcp.json does not mention the {marker} marker"
         );
     }
+}
+
+/// WhatsApp sends audio (voice notes included) and stickers, so its prompt must
+/// document the same closed filing policy on its own marker set, with the one
+/// media item = one `classify_media` call rule.
+#[test]
+fn whatsapp_prompt_documents_its_own_markers_and_filing_policy() {
+    let prompt = read("media-filing.gbot/PROMPT-WHATSAPP.md");
+    let schema = read("media-filing.gbdialog/classify_media.mcp.json");
+
+    for marker in ["[image]", "[document]", "[audio]", "[video]", "[sticker]"] {
+        assert!(
+            prompt.contains(marker),
+            "PROMPT-WHATSAPP.md does not mention the {marker} marker"
+        );
+        assert!(
+            schema.contains(marker),
+            "classify_media.mcp.json does not mention the {marker} marker"
+        );
+    }
+
+    assert!(
+        prompt.contains("classify_media"),
+        "PROMPT-WHATSAPP.md must tell the model to call classify_media"
+    );
+    assert!(
+        prompt.contains("Um item de mídia = uma chamada de ferramenta"),
+        "PROMPT-WHATSAPP.md must enforce one media item = one tool call"
+    );
 }
 
 /// The closed taxonomy keeps a model answer from creating an arbitrary folder.
