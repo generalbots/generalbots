@@ -158,6 +158,16 @@ struct IndexStatsRow {
     index_size_bytes: i64,
 }
 
+#[derive(QueryableByName, Debug)]
+pub struct CrmPersonMatch {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    pub id: Uuid,
+    #[diesel(sql_type = Text)]
+    pub title: String,
+    #[diesel(sql_type = Text)]
+    pub subtitle: String,
+}
+
 pub struct SearchService {
     pool: Arc<DbPool>,
     config: SearchConfig,
@@ -289,6 +299,47 @@ impl SearchService {
             query_time_ms,
             sources_searched: sources,
         })
+    }
+
+    /// CRM contact lookup for the chat mention autocomplete (#1437): matches
+    /// `crm_contacts` rows owned by the caller's org so the selected person
+    /// carries its record id for the `app://crm?person_id=` deep link.
+    /// Returns empty on an unusable index (missing/miscreated table) so the
+    /// mention picker degrades to type hints instead of failing the chat.
+    pub async fn mention_people(
+        &self,
+        org_id: Uuid,
+        term: &str,
+        limit: i64,
+    ) -> Result<Vec<CrmPersonMatch>, SearchError> {
+        let trimmed = term.trim();
+        if trimmed.is_empty() {
+            return Ok(Vec::new());
+        }
+        let pattern = format!("%{}%", trimmed.to_lowercase());
+        let mut conn = self.pool.get().map_err(|e| {
+            log::error!("mention people: failed to get database connection: {e}");
+            SearchError::DatabaseConnection
+        })?;
+        let rows: Vec<CrmPersonMatch> = diesel::sql_query(
+            "SELECT c.id AS id, \
+                    COALESCE(c.first_name, '') || ' ' || COALESCE(c.last_name, '') AS title, \
+                    COALESCE(c.email, '') AS subtitle \
+             FROM crm_contacts c \
+             WHERE (c.org_id = $1 OR c.branch_id = $1) \
+               AND (LOWER(c.first_name) LIKE $2 OR LOWER(c.last_name) LIKE $2 OR LOWER(c.email) LIKE $2) \
+             ORDER BY c.created_at DESC \
+             LIMIT $3",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(org_id)
+        .bind::<diesel::sql_types::Text, _>(&pattern)
+        .bind::<diesel::sql_types::BigInt, _>(limit)
+        .load(&mut conn)
+        .map_err(|e| {
+            log::warn!("mention people: query failed: {e}");
+            SearchError::QueryFailed(e.to_string())
+        })?;
+        Ok(rows)
     }
 
     pub async fn index_document(&self, doc: DocumentToIndex) -> Result<(), SearchError> {

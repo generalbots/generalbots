@@ -34,18 +34,32 @@
 .gb-weather .weather-city { font-size: 13px; opacity: 0.85; }
 .gb-weather .weather-meta { font-size: 12px; opacity: 0.85; margin-top: 6px; display: flex; gap: 12px; justify-content: center; }
 .gb-weather .weather-empty { color: rgba(255, 255, 255, 0.85); font-size: 13px; padding: 20px 0; }
-.gb-weather .weather-forecast {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
-    gap: 8px;
-}
-.gb-weather .weather-day {
-    background: rgba(255, 255, 255, 0.14);
+
+/* #1438 — old-school cellphone week forecast: one compact row per day. */
+.gb-weather .weather-week {
+    background: rgba(255, 255, 255, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 10px;
-    padding: 10px;
-    text-align: center;
-    font-size: 12px;
+    overflow: hidden;
 }
-.gb-weather .weather-day .wd-temp { font-size: 16px; font-weight: 600; margin-top: 4px; }
-.gb-weather .weather-day .wd-emoji { font-size: 22px; }
+.gb-weather .weather-week-row {
+    display: grid;
+    grid-template-columns: 1fr 34px 46px 46px;
+    align-items: center;
+    gap: 4px;
+    padding: 7px 12px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+.gb-weather .weather-week-row:last-child { border-bottom: none; }
+.gb-weather .weather-week-row .ww-day {
+    text-transform: capitalize;
+    font-weight: 600;
+}
+.gb-weather .weather-week-row .ww-icon { text-align: center; font-size: 15px; }
+.gb-weather .weather-week-row .ww-min { text-align: right; opacity: 0.75; }
+.gb-weather .weather-week-row .ww-max {
+    text-align: right;
+    font-weight: 600;
+    font-size: 14px;
+}

@@ -71,6 +71,11 @@ pub async fn handle_webhook(
                         None => continue,
                     };
 
+                    let is_media = matches!(
+                        message.message_type.as_deref(),
+                        Some("image" | "video" | "audio" | "document" | "sticker")
+                    );
+
                     let message_content = match message.message_type.as_deref() {
                         Some("text") => message.text.as_ref().and_then(|t| t.body.clone()),
                         Some("interactive") => {
@@ -89,6 +94,7 @@ pub async fn handle_webhook(
                             .button
                             .as_ref()
                             .and_then(|b| b.text.clone()),
+                        _ if is_media => None,
                         _ => {
                             log::info!(
                                 "Unsupported message type: {:?}",
@@ -100,6 +106,7 @@ pub async fn handle_webhook(
 
                     let content = match message_content {
                         Some(c) => c,
+                        None if is_media => String::new(),
                         None => {
                             log::warn!("Empty message content from {}", phone_number);
                             continue;

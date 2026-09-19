@@ -55,6 +55,7 @@ pub struct ReindexRequest {
 #[derive(Debug, Deserialize)]
 pub struct EntityQuery {
     pub q: Option<String>,
+    #[serde(rename = "type")]
     pub type_: Option<String>,
     pub name: Option<String>,
 }
@@ -192,6 +193,27 @@ pub async fn search_entities(
     let entity_type = query.type_.unwrap_or_default();
     let term = query.q.unwrap_or_default();
     let mut entities = Vec::new();
+
+    // #1437 — CRM person mentions: `@contact:<name>` (and friends) resolve
+    // against crm_contacts so the selected person carries its record id for
+    // the app://crm?person_id deep link. Tenant-scoped by org like the rest
+    // of the search index. An unusable contacts table degrades to the type
+    // hints below instead of failing the chat.
+    if matches!(
+        entity_type.to_lowercase().as_str(),
+        "contact" | "person" | "people" | "crm" | "lead"
+    ) {
+        if let Ok(matches) = service.mention_people(org, &term, 10).await {
+            for row in matches {
+                entities.push(EntityResult {
+                    id: row.id.to_string(),
+                    name: row.title,
+                    entity_type: "crm_contact".to_string(),
+                });
+            }
+        }
+        return Ok(Json(entities));
+    }
 
     // Resolve real index entries as entity suggestions so chat mentions are
     // grounded in actual indexed documents.

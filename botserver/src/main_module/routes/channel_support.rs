@@ -20,7 +20,7 @@ pub type HandleConfigFn = dyn Fn(&str, &str, Option<&str>) -> Result<String, Str
 /// Looks a bot name up by id or by branch id. The channel routers hand the
 /// adapter the workspace's default branch as the bot handle, so both
 /// identifiers must reach the same row.
-#[cfg(feature = "telegram")]
+#[cfg(any(feature = "telegram", feature = "whatsapp"))]
 fn resolve_channel_bot_name(
     pool: &botcore::shared::utils::DbPool,
     bot_id: &Uuid,
@@ -158,4 +158,40 @@ pub fn make_put_media_fn(app_state: &Arc<AppState>) -> bottelegram::state::PutMe
             >
         },
     ) as bottelegram::state::PutMediaFn
+}
+
+/// Stores inbound WhatsApp media in `{bot}.gbai/{bot}.gbdrive/` and returns the
+/// path relative to the bot's `gbdrive` directory.
+#[cfg(feature = "whatsapp")]
+pub fn make_wa_put_media_fn(app_state: &Arc<AppState>) -> botwhatsapp::state::PutMediaFn {
+    let drive = app_state.drive.clone();
+    let pool = app_state.conn.clone();
+
+    Arc::new(
+        move |bot_id: Uuid, rel_path: String, data: Vec<u8>, content_type: Option<String>| {
+            let drive = drive.clone();
+            let pool = pool.clone();
+
+            Box::pin(async move {
+                let Some(repository) = drive.as_ref() else {
+                    return Err("Drive service not available".to_string());
+                };
+
+                let bot_name = resolve_channel_bot_name(&pool, &bot_id)
+                    .ok_or_else(|| format!("no bot registered for handle {bot_id}"))?;
+
+                let bucket = format!("{bot_name}.gbai");
+                let key = format!("{bot_name}.gbdrive/{rel_path}");
+
+                repository
+                    .put_object(&bucket, &key, data, content_type.as_deref())
+                    .await
+                    .map_err(|e| format!("drive put failed for {key}: {e}"))?;
+
+                Ok(rel_path)
+            }) as std::pin::Pin<
+                Box<dyn std::future::Future<Output = Result<String, String>> + Send>,
+            >
+        },
+    ) as botwhatsapp::state::PutMediaFn
 }
