@@ -113,8 +113,10 @@ pub struct WhatsAppMessage {
     pub message_type: Option<String>,
     pub text: Option<TextContent>,
     pub image: Option<ImageContent>,
+    pub video: Option<VideoContent>,
     pub audio: Option<AudioContent>,
     pub document: Option<DocumentContent>,
+    pub sticker: Option<StickerContent>,
     pub interactive: Option<InteractiveContent>,
     pub button: Option<ButtonContent>,
 }
@@ -127,19 +129,36 @@ pub struct TextContent {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ImageContent {
     pub id: Option<String>,
+    pub mime_type: Option<String>,
+    pub caption: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct VideoContent {
+    pub id: Option<String>,
+    pub mime_type: Option<String>,
+    pub filename: Option<String>,
     pub caption: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AudioContent {
     pub id: Option<String>,
+    pub mime_type: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DocumentContent {
     pub id: Option<String>,
+    pub mime_type: Option<String>,
     pub filename: Option<String>,
     pub caption: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct StickerContent {
+    pub id: Option<String>,
+    pub mime_type: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

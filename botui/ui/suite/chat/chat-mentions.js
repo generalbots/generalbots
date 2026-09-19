@@ -279,6 +279,14 @@ function setupMentionClickHandlers(container) {
       e.preventDefault();
       var type = this.getAttribute("data-type");
       var name = this.getAttribute("data-name");
+      var id = this.getAttribute("data-id");
+      // #1437 — mention tags carrying a person id deep-link to the CRM
+      // record (app://crm?person_id=) through the desktop window manager.
+      var entityType = EntityTypes[type.toLowerCase()];
+      if (id && entityType && window.WindowManager && window.openDeepLink) {
+        window.openDeepLink(entityType.route, { person_id: id }, { ownerId: "chat" });
+        return;
+      }
       navigateToEntity(type, name);
     });
     mention.addEventListener("mouseenter", function () {
