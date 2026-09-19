@@ -376,8 +376,10 @@ if (typeof window.WindowManager === "undefined") {
         leftBase = Math.max(180, vRect.left - wRect.left + 12);
       }
       const offset = (this.openWindows.length * 28) % 140;
-      const top = topBase + offset;
-      const left = leftBase + offset;
+      // Explicit positions (opts.top/left) win — e.g. Project Info opens
+      // pinned to the top of the workspace instead of below the Vibe bar.
+      const top = typeof opts.top === "number" ? opts.top : topBase + offset;
+      const left = typeof opts.left === "number" ? opts.left : leftBase + offset;
 
       const windowEl = document.createElement("div");
       windowEl.id = `window-${id}`;
@@ -1108,6 +1110,8 @@ if (typeof window.WindowManager === "undefined") {
         popup: !!opts.popup,
         ownerId: opts.ownerId || null,
         noMaximize: opts.noMaximize === true,
+        top: typeof opts.top === "number" ? opts.top : undefined,
+        left: typeof opts.left === "number" ? opts.left : undefined,
       });
       const body = document.getElementById(`window-body-${id}`);
       if (!existed && body && opts.htmlContent) {

@@ -366,10 +366,14 @@ function showProjectInfo(p) {
     if (!target) return;
     _projectInfoTarget = target;
     // Prefer a real desktop tool window on the WindowManager (works whether
-    // or not VibeDialogs registered the 'project' builder).
+    // or not VibeDialogs registered the 'project' builder). Pinned to the
+    // top of the workspace ("lá em cima") instead of below the Vibe bar.
     var wm = window.WindowManager;
     if (wm && typeof wm.openToolWindowBody === "function") {
-        var wmBody = wm.openToolWindowBody("vibe-tool-project", "Project Info", { ownerId: "vibe" });
+        var wmBody = wm.openToolWindowBody("vibe-tool-project", "Project Info", {
+            ownerId: "vibe",
+            top: 16,
+        });
         if (wmBody) {
             wmBody.innerHTML = "";
             var wrap = document.createElement("div");
@@ -383,11 +387,12 @@ function showProjectInfo(p) {
             return;
         }
     }
-    // Isolated fallback: floating panel appended to the document body.
+    // Isolated fallback: floating panel appended to the document body,
+    // pinned near the top as well.
     var float = document.createElement("div");
     float.className = "vibe-dialog vibe-dialog-float vibe-dialog-host-project";
     float.style.cssText =
-        "position:fixed;top:25%;left:35%;z-index:9999;background:var(--gb-surface,#1a1a2e);" +
+        "position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:9999;background:var(--gb-surface,#1a1a2e);" +
         "border:1px solid var(--gb-border,#333);border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.4);";
     renderProjectInfoHost(float, target, function () { float.remove(); });
     document.body.appendChild(float);
