@@ -393,12 +393,13 @@ whatsapp-webhook-verify-token,your-verify-token
 3. Copy the bot token
 4. Set webhook URL
 
-**Configuration:**
+**Configuration (Vault — the keys are sensitive and are rejected from
+`config.csv`):**
 
-```csv
-key,value
-telegram-bot-token,your-bot-token
-telegram-webhook-secret,your-webhook-secret
+```bash
+vault kv put secret/gbo/<org_id>/<branch_id>/<bot_id> \
+  telegram-bot-token=your-bot-token \
+  telegram-webhook-secret=your-webhook-secret
 ```
 
 **Set Webhook:**

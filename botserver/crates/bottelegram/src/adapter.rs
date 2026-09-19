@@ -339,7 +339,7 @@ impl crate::ChannelAdapter for TelegramAdapter {
         response: BotResponse,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         if !self.is_configured() {
-            log::error!("Telegram adapter not configured. Please set telegram-bot-token in the bot configuration database");
+            log::error!("Telegram adapter not configured. Please write telegram-bot-token to the bot's Vault path (secret/gbo/{{org_id}}/{{branch_id}}/{{bot_id}})");
             return Err("Telegram not configured".into());
         }
 
