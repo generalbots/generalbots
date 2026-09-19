@@ -222,6 +222,91 @@
     /* Project actions for the selected project: the classic sidebar (which
        carried ⓘ / 🗑 per project) is hidden in toolbar mode, so the toolbar
        must expose them or users cannot see the buttons at all. */
+    function openPreview() {
+        var projectId = S.projectId();
+        if (!projectId) {
+            flashHint("SELECT A PROJECT FIRST");
+            var sel = projectSelect();
+            if (sel) sel.focus();
+            return;
+        }
+        var selectedProject = knownProjects.find(function (project) {
+            var id = project.project_id || project.id;
+            return id != null && String(id) === String(projectId);
+        });
+        var projectName = (selectedProject && selectedProject.name) || S.projectName();
+        var kind = resolvedProjectKind();
+        var isBot = kind === "bot";
+
+        // #1409 follow-up — a project takes time to boot. Raise Vibe to the
+        // topmost window, freeze the desktop behind a spinner, and narrate
+        // the stages in the Vibe window status bar until the app is up.
+        // Then open the right surface: a bot project opens its Chat window on
+        // the new conversation, a website/app project opens the Browser.
+        bringVibeToFront();
+        setBusy(true, "Starting " + projectName + "…");
+        setVibeStatus("Starting " + projectName + " — provisioning the dev VM…", "running");
+
+        var finished = false;
+        function endBusy() { if (!finished) { finished = true; setBusy(false); } }
+
+        // Run is a deterministic "start the app on the dev VM" action: it
+        // pushes the workspace into the container, restarts the node service,
+        // and reveals the app. It must NOT invoke the agent loop
+        // (VibeTransport.play), which spends LLM tool calls running/verifying
+        // the project — that belongs to the Chat agent, not the Run button.
+        startDevVm(projectId)
+            .then(function (vm) {
+                if (isBot) {
+                    updateBusyLabel("Opening the bot window…");
+                    setVibeStatus(projectName + " is running — opening the bot window…", "running");
+                    openChat();
+                    setRunVisual(true);
+                    endBusy();
+                    flashHint("BOT " + String(projectName).toUpperCase() + " IS RUNNING");
+                    return;
+                }
+                updateBusyLabel("Opening the app in the browser…");
+                openBrowser(vm.url);
+                setRunVisual(true);
+                setVibeStatus("Running " + projectName + " on the dev VM", "running");
+                endBusy();
+                flashHint("RUNNING " + String(projectName).toUpperCase() + " ON THE DEV VM");
+            })
+            .catch(function () {
+                if (isBot) {
+                    // The bot window still opens (best effort) once the VM is
+                    // gone; the row exists regardless of the dev service.
+                    openChat();
+                    setRunVisual(true);
+                    setVibeStatus("Bot window opened (dev VM unavailable)", "running");
+                    endBusy();
+                    flashHint("NO DEV VM — OPENED BOT WINDOW");
+                    return;
+                }
+                return workspaceServeUrl(projectId)
+                    .then(function (url) {
+                        if (url) return url;
+                        return resolvePreviewUrl(projectId);
+                    })
+                    .then(function (url) {
+                        updateBusyLabel("Opening the static preview…");
+                        openBrowser(url);
+                        setRunVisual(true);
+                        setVibeStatus("Running " + projectName + " (static preview — no VM)", "running");
+                        endBusy();
+                        flashHint("RUNNING " + String(projectName).toUpperCase() + " (STATIC PREVIEW — NO VM)");
+                    })
+                    .catch(function (err) {
+                        setRunVisual(false);
+                        openBrowser(null);
+                        setVibeStatus("Not running — deploy the project to view it", "failed");
+                        endBusy();
+                        flashHint((err && err.message ? err.message : "No preview available") + " — deploy the project to see your app");
+                    });
+            });
+    }
+
     function openProjectInfo() {
         var pid = S.projectId();
         if (!pid) {
@@ -598,49 +683,60 @@
             });
     }
 
-    function openPreview() {
-        var projectId = S.projectId();
-        if (!projectId) {
-            flashHint("SELECT A PROJECT FIRST");
-            var sel = projectSelect();
-            if (sel) sel.focus();
-            return;
+    /* #1409 follow-up — progress/state readouts. The Vibe window footer is
+       the one status bar (product spec: the inverted bevel status bar carries
+       run state) — write to the authoritative ribbon sink and mirror it into
+       the window footer exactly like the 800ms poll does, but instantly. */
+    function setVibeStatus(text, state) {
+        var el = document.getElementById("vibeRibbonStatus");
+        if (el) {
+            el.textContent = text || "";
+            el.className = "vibe-ribbon-status" + (state === "running" ? " running" : state === "failed" ? " failed" : "");
+            el.style.display = text ? "" : "none";
         }
-        var selectedProject = knownProjects.find(function (project) {
-            var id = project.project_id || project.id;
-            return id != null && String(id) === String(projectId);
-        });
-        var projectName = (selectedProject && selectedProject.name) || S.projectName();
-        // 1) Try to start the app on the dev VM (real node process).
-        // 2) Fall back to the static workspace stream when the VM is absent.
-        // Run is a deterministic "start the app on the dev VM" action: it
-        // pushes the workspace into the container, restarts the node service,
-        // and reveals the Browser. It must NOT invoke the agent loop
-        // (VibeTransport.play), which spends LLM tool calls running/verifying
-        // the project — that belongs to the Chat agent, not the Run button.
-        startDevVm(projectId)
-            .then(function (vm) {
-                openBrowser(vm.url);
-                setRunVisual(true);
-                flashHint("RUNNING " + String(projectName).toUpperCase() + " ON THE DEV VM");
-            })
-            .catch(function () {
-                return workspaceServeUrl(projectId)
-                    .then(function (url) {
-                        if (url) return url;
-                        return resolvePreviewUrl(projectId);
-                    })
-                    .then(function (url) {
-                        openBrowser(url);
-                        setRunVisual(true);
-                        flashHint("RUNNING " + String(projectName).toUpperCase() + " (STATIC PREVIEW — NO VM)");
-                    })
-                    .catch(function (err) {
-                        setRunVisual(false);
-                        openBrowser(null);
-                        flashHint((err && err.message ? err.message : "No preview available") + " — deploy the project to see your app");
-                    });
+        var statusEl = document.querySelector("#window-vibe .window-statusbar-status");
+        if (statusEl) {
+            statusEl.textContent = text || "";
+            statusEl.dataset.state = state || "idle";
+        }
+        document.dispatchEvent(new CustomEvent("gb:vibe-status", {
+            detail: { status: text || "", state: state || "idle" },
+        }));
+    }
+
+    function updateBusyLabel(text) {
+        var ov = document.getElementById("vibeBusyOverlay");
+        if (!ov) return;
+        var b = ov.querySelector("b");
+        if (b) b.textContent = text || "";
+    }
+
+    /* Raise the Vibe window to the topmost z-order so the busy overlay and
+       the status-bar progress are actually on screen while a run boots. */
+    function bringVibeToFront() {
+        var mgr = wm();
+        if (!mgr) return;
+        try {
+            if (typeof mgr.focus === "function") { mgr.focus("vibe"); return; }
+        } catch (e) { /* fall through to focusWindow */ }
+        if (typeof mgr.focusWindow === "function") mgr.focusWindow("vibe");
+    }
+
+    /* Resolve the selected project's kind ('bot' | 'website' | 'apps'...) for
+       the Run flow (mirrors the build()-scoped selectedProjectKind). */
+    function resolvedProjectKind() {
+        if (typeof window.currentProjectKind !== "undefined" && window.currentProjectKind) {
+            return String(window.currentProjectKind).toLowerCase();
+        }
+        var pid = S.projectId();
+        if (pid) {
+            var p = knownProjects.find(function (x) {
+                var id = x.project_id || x.id;
+                return id != null && String(id) === String(pid);
             });
+            if (p && p.project_type) return String(p.project_type).toLowerCase();
+        }
+        return "";
     }
 
     function pausePreview() {
