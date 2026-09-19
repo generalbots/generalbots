@@ -18,6 +18,36 @@ use std::sync::{Arc, Mutex, OnceLock};
 /// Core apps that are always present regardless of feature flags.
 const CORE_APPS: &[&str] = &["settings", "auth", "admin"];
 
+/// #1409 — Permanently-visible surface. These apps are NEVER preview and are
+/// always enabled, independent of the `.product` file: neither `preview_apps`
+/// nor a missing `apps=` entry can hide them. This is the exact set the
+/// product owner listed as "must appear always" plus the workbench apps Vibe
+/// drives (start menu / sidebar / command palette all resolve them by id).
+/// Every other app keeps the preview behaviour (hidden until Preview mode is
+/// on). Mirrors `ALWAYS_APP_IDS` in botui/ui/suite/js/window-manager.js.
+const ALWAYS_APPS: &[&str] = &[
+    "chat",
+    "mail",
+    "calendar",
+    "meet",
+    "sheet",
+    "people",
+    "crm",
+    "canvas",
+    "player",
+    "goals",
+    "vibe",
+    "integrations",
+    "settings",
+    "about",
+    "browser",
+    "database",
+    "desktop",
+    "plugins",
+    "terminal",
+    "editor",
+];
+
 /// In-memory app-install counters for the App Store (#1156). The frontend
 /// overlays these with per-user localStorage state; this endpoint provides a
 /// server-side popularity ranking that survives navigation.
@@ -272,8 +302,8 @@ fn is_app_compiled(id: &str) -> bool {
         "monitoring" => cfg!(feature = "monitoring"),
         "admin" => true,
         "settings" => true,
+        "about" | "plugins" | "desktop" => true,
         "drive" => cfg!(feature = "drive"),
-        "vdi" => true,
         "biometry" => true,
         "player" => cfg!(feature = "player"),
         "store" | "concierge" | "notes" | "photos" | "timer" | "weather" | "recycle" => true,
@@ -529,6 +559,16 @@ fn published_app_launcher_apps(bearer: Option<&str>) -> Vec<serde_json::Value> {
 }
 
 
+/// #1409 — "email is the same as mail": any product-file id spelled `email`
+/// is normalized to the canonical `mail` app id, so enabling/hiding email in
+/// `.product` behaves exactly as if the user wrote `mail`.
+fn normalize_email_app_alias(mut ids: std::collections::HashSet<String>) -> std::collections::HashSet<String> {
+    if ids.remove("email") {
+        ids.insert("mail".to_string());
+    }
+    ids
+}
+
 pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json::Value> {
     let bearer = headers
         .get("authorization")
@@ -544,8 +584,8 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
         .read()
         .map(|c| {
             (
-                c.get_enabled_apps().into_iter().collect(),
-                c.get_preview_apps().into_iter().collect(),
+                normalize_email_app_alias(c.get_enabled_apps().into_iter().collect()),
+                normalize_email_app_alias(c.get_preview_apps().into_iter().collect()),
             )
         })
         .unwrap_or_default();
@@ -566,12 +606,16 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
         .iter()
         .map(|a| {
             let id = a.id.as_str();
-            let compiled = is_app_compiled(id) || CORE_APPS.contains(&id);
-            let is_enabled = enabled.contains(id) || CORE_APPS.contains(&id);
+            // #1409 — permanently-visible apps are compiled and enabled no
+            // matter what the product file (or feature map) says.
+            let always = ALWAYS_APPS.contains(&id);
+            let compiled = always || is_app_compiled(id) || CORE_APPS.contains(&id);
+            let is_enabled = always || enabled.contains(id) || CORE_APPS.contains(&id);
             // A preview application is listed by `.product`'s `preview_apps`
             // instead of `apps`, so the launcher can withhold it until the user
-            // turns Preview mode on (#1348).
-            let is_preview = preview.contains(id) && !is_enabled;
+            // turns Preview mode on (#1348). Permanently-visible apps are never
+            // preview.
+            let is_preview = !always && preview.contains(id) && !is_enabled;
             // Merge curated commands with the harvested on-the-fly surface.
             let app_derived: Vec<serde_json::Value> = derived
                 .iter()
@@ -605,7 +649,11 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
                 "icon": a.icon,
                 "kind": a.kind,
                 "widget": a.widget,
-                "launcher_default": a.launcher_default,
+                // #1409 — permanently-visible apps are pinned for the
+                // launcher too, so they show in the start menu and the
+                // sidebar rail even though they are not in `.product`'s
+                // `apps=` list.
+                "launcher_default": always || a.launcher_default,
                 "enabled": is_enabled,
                 "preview": is_preview,
                 "compiled": compiled,

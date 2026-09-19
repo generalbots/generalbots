@@ -6,6 +6,8 @@ if (typeof window.WindowManager === "undefined") {
       icon: '<path d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v4h8z"/>' },
     { id: "settings", title: "Settings", category: "system", color: "#64748b", hxGet: "/suite/settings/index.html",
       icon: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>' },
+    { id: "about", title: "About", category: "system", color: "#64748b", hxGet: "/suite/about/about.html",
+      icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>' },
     { id: "vibe", title: "Vibe", category: "ai", color: "#84d669", hxGet: "/suite/partials/vibe.html",
       icon: '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
 
@@ -47,8 +49,10 @@ if (typeof window.WindowManager === "undefined") {
       icon: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 15l5-5 4 4 3-3 6 6"/><circle cx="8" cy="8" r="1.5"/>' },
     { id: "database", title: "Database", category: "dev", color: "#f59e0b", hxGet: "/suite/database/database.html",
       icon: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>' },
-    { id: "vdi", title: "VDI", category: "system", color: "#06b6d4", hxGet: "/suite/desktop/vdi.html",
+    { id: "desktop", title: "Desktop", category: "system", color: "#06b6d4", hxGet: "/suite/desktop/vdi.html",
       icon: '<rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>' },
+    { id: "player", title: "Player", category: "system", color: "#8b5cf6", hxGet: "/suite/player/player.html",
+      icon: '<polygon points="5 3 19 12 5 21 5 3"/>' },
     { id: "mail", title: "Mail", category: "office", color: "#3b82f6", hxGet: "/suite/mail/mail.html",
       icon: '<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>' },
     { id: "meet", title: "Meet", category: "office", color: "#ef4444", hxGet: "/suite/meet/meet.html",
@@ -57,6 +61,8 @@ if (typeof window.WindowManager === "undefined") {
       icon: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>' },
     { id: "plan", title: "Plan", category: "office", color: "#f59e0b", hxGet: "/suite/plan/plan.html",
       icon: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><line x1="10" y1="6" x2="14" y2="6"/><line x1="6" y1="10" x2="6" y2="14"/><line x1="10" y1="18" x2="14" y2="18"/><line x1="18" y1="10" x2="18" y2="14"/>' },
+    { id: "goals", title: "Goals", category: "office", color: "#22c55e", hxGet: "/suite/goals/goals.html",
+      icon: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>' },
     { id: "project", title: "Projects", category: "office", color: "#0ea5e9", hxGet: "/suite/project/project.html",
       icon: '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>' },
     { id: "calendar", title: "Calendar", category: "office", color: "#ec4899", hxGet: "/suite/calendar/calendar.html",
@@ -87,6 +93,8 @@ if (typeof window.WindowManager === "undefined") {
       icon: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><line x1="9" y1="12" x2="15" y2="12"/>' },
     { id: "integrations", title: "Integrations", category: "dev", color: "#8b5cf6", hxGet: "/suite/integrations/integrations.html",
       icon: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>' },
+    { id: "plugins", title: "Plugins", category: "dev", color: "#8b5cf6", hxGet: "/suite/plugins/plugins.html",
+      icon: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>' },
     { id: "itsm", title: "ITSM", category: "dev", color: "#06b6d4", hxGet: "/suite/tickets/tickets.html",
       icon: '<path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.362 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.338 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>' },
     { id: "hr", title: "HR", category: "business", color: "#ec4899", hxGet: "/suite/hr/hr.html",
@@ -173,7 +181,26 @@ if (typeof window.WindowManager === "undefined") {
   var catalogLoaded = false;
   var productPreviewIds = {};
 
+  // #1409 — Permanently-visible surface. These apps are NEVER preview and are
+  // always enabled, regardless of the product file: neither a catalog preview
+  // flag nor a `preview_apps` entry can hide them. They are exactly what the
+  // product owner listed as "must appear always", plus the workbench apps Vibe
+  // drives (start menu / sidebar / command palette all read APPS_REGISTRY).
+  // Every other app keeps the preview behaviour (hidden until Preview mode is
+  // on). Mirrors `ALWAYS_APPS` in botserver/src/apps/mod.rs.
+  var ALWAYS_APP_IDS = [
+    "chat", "mail", "calendar", "meet", "sheet", "people", "crm", "canvas",
+    "player", "goals", "vibe", "integrations", "settings", "about", "browser",
+    "database", "desktop", "plugins", "terminal", "editor",
+    // Product core surfaces stay reachable too (mirrors backend CORE_APPS).
+    "admin", "auth",
+  ];
+  function isAlwaysAppId(id) {
+    return ALWAYS_APP_IDS.indexOf(id) !== -1;
+  }
+
   function isPreviewId(id) {
+    if (isAlwaysAppId(id)) return false;
     if (productPreviewIds[id]) return true;
     if (!catalogApps) return false;
     for (var i = 0; i < catalogApps.length; i++) {
@@ -212,8 +239,10 @@ if (typeof window.WindowManager === "undefined") {
     base.forEach(function (a) {
       if (a.compiled === false) return;
       var preview = !!a.preview || isPreviewId(a.id);
+      var always = isAlwaysAppId(a.id);
       // A preview application is surfaced only while Preview mode is on.
-      if (preview && !previewOn) return;
+      // Permanently-visible apps ignore the preview gate entirely.
+      if (preview && !previewOn && !always) return;
       if (!preview && a.hxGet === undefined && a.enabled === false) return;
       var app = toRegistryApp(a);
       app.preview = preview;
@@ -223,14 +252,11 @@ if (typeof window.WindowManager === "undefined") {
 
     // Embedded-only tiles (the true offline fallback, e.g. Calculator) survive
     // a catalog load — but never a preview app the switch is holding back.
-    // #1386c — when the catalog HAS loaded it is authoritative for static
-    // apps: anything it omitted (Database, Terminal, Editor, …) is a Vibe
-    // workbench pane, not a desktop application, and must not resurface from
-    // the embedded list. Embedded-only tiles surface solely when the catalog
-    // is unreachable (offline fallback).
+    // The permanently-visible apps (#1409) surface even when the catalog has
+    // loaded but omits them (e.g. before the backend catalog catches up).
     embeddedApps.forEach(function (a) {
       if (known[a.id]) return;
-      if (catalogLoaded) return;
+      if (catalogLoaded && !isAlwaysAppId(a.id)) return;
       var preview = isPreviewId(a.id);
       if (preview && !previewOn) return;
       a.preview = preview;
@@ -929,7 +955,9 @@ if (typeof window.WindowManager === "undefined") {
             // vibe-published apps `vibeapp-*`) never appear in the static
             // product `apps=` list; their presence in the catalog already IS
             // the server's visibility decision, so exempt them here.
-            if (a.id.startsWith("bot-") || a.id.startsWith("vibeapp-")) return true;
+            // #1409 — the permanently-visible apps must show regardless of
+            // the product file too.
+            if (a.id.startsWith("bot-") || a.id.startsWith("vibeapp-") || isAlwaysAppId(a.id)) return true;
             return enabledApps.has(a.id);
           });
         }
