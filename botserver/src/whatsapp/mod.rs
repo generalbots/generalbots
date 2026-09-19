@@ -171,7 +171,7 @@ pub fn configure(app_state: &Arc<AppState>) -> Router<()> {
     let cfg_api_url = vault_wa.as_ref()
         .and_then(|m| m.get("whatsapp_api_url").cloned())
         .or_else(|| load_wa_config(&pool, &default_bot.0, "whatsapp-api-url"))
-        .unwrap_or_else(|| "https://graph.facebook.com/v18.0".to_string());
+        .unwrap_or_else(|| "https://graph.facebook.com/v21.0".to_string());
 
     let sm_pni = cfg_phone_number_id.clone();
     let sm_key = cfg_api_key.clone();
@@ -264,6 +264,7 @@ pub fn configure(app_state: &Arc<AppState>) -> Router<()> {
                 }
             })
         },
+        put_media: crate::main_module::routes::channel_support::make_wa_put_media_fn(app_state),
         transcribe_audio: Arc::new(|_data: &[u8]| {
             Box::pin(async move { Err("Audio transcription not available".to_string()) })
         }),

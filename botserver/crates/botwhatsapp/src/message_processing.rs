@@ -10,16 +10,12 @@ pub async fn process_incoming_message(
     state: &Arc<WhatsAppState>,
     phone_number: &str,
     content: &str,
-    _message: &WhatsAppMessage,
+    message: &WhatsAppMessage,
     phone_number_id: Option<String>,
 ) -> Result<(), String> {
     let formatted_phone = format_phone_number(phone_number);
 
     log::info!("Processing message from {}: {}", formatted_phone, content);
-
-    if is_list_message(content) {
-        log::info!("List message detected from {}", formatted_phone);
-    }
 
     let (bot_id, bot_name) = if let Some(ref pni) = phone_number_id {
         (state.find_bot)(pni)
@@ -32,6 +28,21 @@ pub async fn process_incoming_message(
         drop(conn);
         result
     };
+
+    let content = if crate::media::select_media(message).is_some() {
+        crate::media::message_content(state, bot_id, message).await
+    } else {
+        content.to_string()
+    };
+
+    if content.trim().is_empty() {
+        log::info!("Empty message content from {}", formatted_phone);
+        return Ok(());
+    }
+
+    if is_list_message(&content) {
+        log::info!("List message detected from {}", formatted_phone);
+    }
 
     let session_id = Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("wa-session:{}", formatted_phone).as_bytes());
 
@@ -111,31 +122,4 @@ pub async fn send_outbound_message(
     }
 
     Ok(())
-}
-
-pub async fn process_audio_message(
-    state: &Arc<WhatsAppState>,
-    phone_number: &str,
-    audio_id: &str,
-) -> Result<String, String> {
-    let audio_data = download_media(state, audio_id).await?;
-
-    let transcription = (state.transcribe_audio)(&audio_data)
-        .await
-        .map_err(|e| format!("Transcription error: {}", e))?;
-
-    log::info!("Audio transcribed for {}: {} chars", phone_number, transcription.len());
-    Ok(transcription)
-}
-
-async fn download_media(
-    state: &Arc<WhatsAppState>,
-    media_id: &str,
-) -> Result<Vec<u8>, String> {
-    let _api_url = (state.get_config)("whatsapp_api_url").unwrap_or_else(|_| "https://graph.facebook.com/v18.0".to_string());
-    let _token = (state.secrets)("whatsapp_api_key").unwrap_or_default();
-
-    log::info!("Media download requested for id: {}", media_id);
-
-    Err("Media download not implemented in standalone crate".to_string())
 }

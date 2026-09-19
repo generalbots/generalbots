@@ -1,4 +1,5 @@
 pub mod api;
+pub mod media;
 pub mod models;
 pub mod schema;
 pub mod session_management;
@@ -6,6 +7,7 @@ pub mod state;
 pub mod utils;
 pub mod webhooks;
 pub mod message_processing;
+mod media_names;
 
 pub use state::WhatsAppState;
 

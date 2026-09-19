@@ -122,6 +122,18 @@
         item.onclick = function () {
           closePanel();
           if (input) input.value = "";
+          // #1437 — person/contact results deep-link straight to the record
+          // (r.id is the person_id): open the app window contextualized on it
+          // instead of fuzzy-matching text later.
+          if (
+            (r.type === "person" || r.type === "contact") &&
+            r.id &&
+            window.WindowManager &&
+            typeof window.WindowManager.openDeepLink === "function"
+          ) {
+            window.WindowManager.openDeepLink(r.app, { person_id: r.id }, { ownerId: "search" });
+            return;
+          }
           if (window.GBUiOrchestrator) {
             window.GBUiOrchestrator.focusEntity(r);
           } else {

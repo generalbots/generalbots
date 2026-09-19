@@ -9,11 +9,13 @@
 name=General Bots
 
 # Active apps (comma-separated list)
-# Only the stable surface is listed here: chat, drive (Explorer) and vibe.
+# Stable surface: chat, drive (Explorer), vibe plus the everyday tools users
+# expect by default (#1430): Calculator, Sheets, Timer, Photos, Weather and
+# the Recycle Bin.
 # Every other application is declared under `preview_apps` below.
 # Core surfaces (settings, auth, admin) are always enabled regardless of this
 # list, so they remain reachable.
-apps=chat,drive,vibe
+apps=chat,drive,vibe,calculator,sheet,timer,photos,weather,recycle
 
 # Preview applications (comma-separated list)
 # These do NOT appear in the launcher or the sidebar by default. They are
@@ -23,7 +25,7 @@ apps=chat,drive,vibe
 # Ids are validated against the catalog in `src/apps/registry.rs` and the
 # feature map in `src/apps/mod.rs::is_app_compiled`; an id in neither place is
 # ignored by the launcher and should not be listed here.
-preview_apps=vibe-db,vibe-deploy,vibe-graph,vibe-members,vibe-metering,vibe-metrics,analytics,attendant,automations,banking,billing,biometry,campaigns,compliance,concierge,designer,docs,fraud,handoff,hr,itsm,jukebox,kyc,learn,lists,marketing,memory,minutes,monitoring,notes,o365,paper,photos,plan,pos,products,project,recycle,research,retail,sales,slides,social,sources,store,tasks,tax,templates,tickets,timeclock,timer,video,vision,weather,workspace
+preview_apps=vibe-db,vibe-deploy,vibe-graph,vibe-members,vibe-metering,vibe-metrics,analytics,attendant,automations,banking,billing,biometry,campaigns,compliance,concierge,designer,docs,fraud,handoff,hr,itsm,jukebox,kyc,learn,lists,marketing,memory,minutes,monitoring,notes,o365,paper,plan,pos,products,project,research,retail,sales,slides,social,sources,store,tasks,tax,templates,tickets,timeclock,video,vision,workspace
 
 
 # Sidebar visibility
