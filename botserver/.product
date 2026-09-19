@@ -23,7 +23,7 @@ apps=chat,drive,vibe
 # Ids are validated against the catalog in `src/apps/registry.rs` and the
 # feature map in `src/apps/mod.rs::is_app_compiled`; an id in neither place is
 # ignored by the launcher and should not be listed here.
-preview_apps=admin,analytics,attendant,automations,banking,billing,biometry,browser,calendar,campaigns,canvas,compliance,concierge,crm,database,designer,docs,editor,fraud,goals,handoff,hr,integrations,itsm,jukebox,kyc,learn,lists,mail,marketing,meet,memory,minutes,monitoring,notes,o365,paper,people,photos,plan,player,pos,products,project,recycle,research,retail,sales,settings,sheet,slides,social,sources,store,tasks,tax,templates,terminal,tickets,timeclock,timer,vdi,vibe-db,vibe-deploy,vibe-graph,vibe-members,vibe-metering,vibe-metrics,video,vision,weather,workspace
+preview_apps=vibe-db,vibe-deploy,vibe-graph,vibe-members,vibe-metering,vibe-metrics,analytics,attendant,automations,banking,billing,biometry,campaigns,compliance,concierge,designer,docs,fraud,handoff,hr,itsm,jukebox,kyc,learn,lists,marketing,memory,minutes,monitoring,notes,o365,paper,photos,plan,pos,products,project,recycle,research,retail,sales,slides,social,sources,store,tasks,tax,templates,tickets,timeclock,timer,video,vision,weather,workspace
 
 
 # Sidebar visibility
