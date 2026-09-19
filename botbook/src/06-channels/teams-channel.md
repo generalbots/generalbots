@@ -47,14 +47,14 @@ All three channel adapters (Telegram, Teams, Instagram) read their credentials
 through one shared reader, `channel_support::make_channel_config_reader`, which
 goes through `ConfigManager::get_config`:
 
-1. the bot's own scope (`config.csv` / per-bot Vault path),
+1. the bot's own scope (per-bot Vault path),
 2. the workspace scope,
 3. the global fallback (`secret/gbo/llm` and friends).
 
 A value that is genuinely absent resolves to *empty*, and the adapter reports
 the missing key by name (for example
-`Telegram adapter not configured. Please set telegram-bot-token in the bot
-configuration database`). The reader never substitutes a placeholder — a
+`Telegram adapter not configured. Please write telegram-bot-token to the
+bot's Vault path`). The reader never substitutes a placeholder — a
 placeholder token would reach the provider and come back as an opaque
 `Unauthorized`, which is exactly the failure mode of the former stub reader.
 Instagram addresses the bot by string handle, so it uses

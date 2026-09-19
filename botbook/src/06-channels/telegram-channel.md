@@ -6,23 +6,30 @@ attachment in Drive and routes the content through the normal bot pipeline.
 
 ## Configuration
 
-Store the credentials in the bot's `config.csv` (`.gbot` folder) — never in a
-script:
+Both keys are **secrets** (the key name contains `token`/`secret`), so they are
+stored in **Vault** — never in `config.csv` (the drive monitor skips sensitive
+keys found there) and never in a script:
 
 | Key | Required | Purpose |
 |-----|----------|---------|
 | `telegram-bot-token` | yes | Bot token issued by [@BotFather](https://t.me/BotFather). Used for `getFile`, downloads and all outbound calls. |
 | `telegram-webhook-secret` | no | Secret token that Telegram echoes in the `X-Telegram-Bot-Api-Secret-Token` header. When set, unsigned deliveries are rejected with `401`. |
 
-```csv
-key,value
-telegram-bot-token,123456:ABC-DEF...
-telegram-webhook-secret,a-long-random-string
+Write them to the bot's Vault path `secret/gbo/{org_id}/{branch_id}/{bot_id}`:
+
+```bash
+vault kv put secret/gbo/<org_id>/<branch_id>/<bot_id> \
+  telegram-bot-token=123456:ABC-DEF... \
+  telegram-webhook-secret=a-long-random-string
 ```
 
+Resolve `org_id`/`branch_id`/`bot_id` from `SELECT id, org_id, branch_id FROM
+bots WHERE name = '<bot>';`. The value is read per bot at request time
+(`ConfigManager::get_config`: Vault → DB fallback → env), so a shared
+deployment keeps one token per bot.
+
 Missing `telegram-bot-token` is reported as
-`Telegram bot token not configured` in the log, and outbound calls fail — the
-token is read per bot, so a shared deployment keeps one token per bot.
+`Telegram bot token not configured` in the log, and outbound calls fail.
 
 ## Registering the webhook
 
@@ -112,7 +119,7 @@ included. Inline keyboard callbacks are routed back to the bot as message text.
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | Telegram reports `401` / delivery failing | `telegram-webhook-secret` is set but the webhook was registered without `secret_token`, or the values differ | Re-run `setWebhook` with the same secret, or clear the key |
-| `Telegram bot token not configured` | `telegram-bot-token` missing for that bot | Add it to the bot's `config.csv` |
+| `Telegram bot token not configured` | `telegram-bot-token` missing for that bot | Write it to the bot's Vault path (`secret/gbo/{org_id}/{branch_id}/{bot_id}`) |
 | Outbound messages fail | revoke/reissued token, or the bot was not started with the `telegram` feature | Update `telegram-bot-token`; confirm the build enables `telegram` (it is part of the default feature set) |
 | `[image] (not stored: ...)` in the conversation | download from Telegram failed (token, size limit, network) | Read the reason in the marker; check `getWebhookInfo` and the bot token |
 | Attachment missing from Drive | the `inbox/` write failed | Confirm the bot's Drive workspace is mounted for the bot id resolved by the channel |

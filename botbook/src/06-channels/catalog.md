@@ -151,7 +151,7 @@ TALK weather
 | Property | Value |
 |----------|-------|
 | **Service URL** | `https://api.telegram.org/bot{token}` |
-| **Config Keys** | `telegram-bot-token` |
+| **Config Keys** | `telegram-bot-token`, `telegram-webhook-secret` (secrets — store in Vault, never `config.csv`) |
 | **Documentation** | [core.telegram.org/bots/api](https://core.telegram.org/bots/api) |
 | **BASIC Keywords** | `SEND TELEGRAM` |
 | **Webhook URL** | `/api/channels/telegram/webhook` |
