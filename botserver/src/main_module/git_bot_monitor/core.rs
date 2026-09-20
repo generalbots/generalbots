@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 
 use botcore::shared::utils::{get_work_path, DbPool};
 use botlib::security::SafeCommand;
+use diesel::prelude::*;
 
 pub(crate) const MAX_MATERIALIZED_FILES: usize = 400;
 
@@ -186,10 +187,28 @@ fn provision_repo(pool: &DbPool, project: &MonitoredBot, org: &str) -> Result<()
         .map_err(|e| format!("seed README: {e}"))?,
     }
     let registry = botvibe::ProjectRegistry::new(pool.clone());
-    let p = registry
+    let mut p = registry
         .get(project.project_id)
         .map_err(|e| format!("project load: {e}"))?
         .ok_or_else(|| format!("project {} vanished mid-heal", project.project_id))?;
+    // Pre-reform rows may still carry source_control='native', which makes
+    // ensure_git_repo a no-op — the reform owns bot sources, so flip the
+    // project to git mode (persisted) before provisioning.
+    if p.source_control != "git" {
+        let mut conn = pool.get().map_err(|e| format!("pool: {e}"))?;
+        diesel::sql_query(
+            "UPDATE vibe_projects SET source_control = 'git', updated_at = now() WHERE id = $1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(project.project_id)
+        .execute(&mut conn)
+        .map_err(|e| format!("source_control flip: {e}"))?;
+        drop(conn);
+        log::info!(
+            "[git_monitor] provision {0}/{1}: source_control → git (was '{2}')",
+            org, project.repo_slug, p.source_control
+        );
+        p.source_control = "git".to_string();
+    }
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
