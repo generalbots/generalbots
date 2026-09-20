@@ -1,6 +1,9 @@
 pub mod contacts;
 pub mod accounts;
 pub mod deals;
+pub mod lifecycle;
+pub mod bulk_csv;
+pub mod csv_io;
 pub mod opportunities;
 pub mod crm;
 pub mod activities;

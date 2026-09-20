@@ -168,6 +168,24 @@ pub struct CrmActivity {
     pub owner_id: Option<Uuid>,
 }
 
+/// #1441 P2 — one row per destructive/state-changing CRM operation. Rows are
+/// written by the `audit` module and never updated; `before`/`after` carry the
+/// serialized record snapshots (or the diff payload for bulk operations).
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable)]
+#[diesel(table_name = crm_audit_logs)]
+pub struct CrmAuditLog {
+    pub id: Uuid,
+    pub branch_id: Uuid,
+    pub entity: String,
+    pub entity_id: Option<Uuid>,
+    pub action: String,
+    pub actor_email: Option<String>,
+    pub before: Option<serde_json::Value>,
+    pub after: Option<serde_json::Value>,
+    pub detail: Option<serde_json::Value>,
+    pub created_at: DateTime<Utc>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable)]
 #[diesel(table_name = crm_notes)]
 pub struct CrmNote {

@@ -15,3 +15,88 @@
 .folder-view-name { flex: 1; font-size: 13px; }
 .folder-view-size { font-size: 11px; color: var(--text-secondary, #777); }
 .folder-view-loading, .folder-view-empty { color: var(--text-secondary, #777); font-size: 13px; padding: 12px 0; }
+
+/* ── #1441 P2 — bulk bar, checkboxes, CSV feedback, audit drawer ───────── */
+.crm-bulk-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    margin-top: 8px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 6px;
+    background: var(--surface, #fff);
+    flex-wrap: wrap;
+}
+.crm-bulk-count { font-size: 12px; color: var(--text-secondary, #666); min-width: 72px; }
+.crm-bulk-bar select {
+    padding: 4px 8px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 4px;
+    background: var(--surface, #fff);
+    color: var(--text-primary, #111);
+}
+.crm-bulk-result { font-size: 12px; color: var(--text-secondary, #666); }
+.btn-danger {
+    background: #dc2626;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 5px 12px;
+    cursor: pointer;
+}
+.btn-danger:hover { background: #b91c1c; }
+.btn-secondary {
+    background: var(--surface, #fff);
+    color: var(--text-primary, #111);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 4px;
+    padding: 5px 12px;
+    cursor: pointer;
+}
+.btn-secondary:hover { background: var(--surface-hover, #f3f4f6); }
+
+.crm-audit-drawer {
+    position: fixed;
+    top: 0;
+    right: -420px;
+    width: 400px;
+    max-width: 90vw;
+    height: 100%;
+    background: var(--surface, #fff);
+    border-left: 1px solid var(--border-color, #e5e7eb);
+    box-shadow: -8px 0 24px rgba(0, 0, 0, .12);
+    transition: right .25s ease;
+    z-index: 1200;
+    display: flex;
+    flex-direction: column;
+}
+.crm-audit-drawer.open { right: 0; }
+.crm-audit-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+    font-weight: 600;
+}
+.crm-audit-head button {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--text-secondary, #666);
+    line-height: 1;
+}
+.crm-audit-body { flex: 1; overflow-y: auto; padding: 8px 16px; }
+.crm-audit-row {
+    display: flex;
+    flex-direction: column;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color, #f0f0f0);
+    gap: 2px;
+}
+.crm-audit-when { font-size: 11px; color: var(--text-secondary, #888); }
+.crm-audit-action { font-size: 13px; font-weight: 500; word-break: break-all; }
+.crm-audit-actor { font-size: 12px; color: var(--text-secondary, #666); }
+.crm-audit-empty { color: var(--text-secondary, #777); font-size: 13px; padding: 16px 0; }

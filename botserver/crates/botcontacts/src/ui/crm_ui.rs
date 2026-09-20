@@ -630,13 +630,14 @@ pub async fn handle_crm_opportunities_search(
 }
 
 /// `/api/ui/crm/opportunities` — HTML table rows for the Opportunities view
-/// (#1441 A3: Convert created opportunities that were unreachable in the UI).
+/// (#1441 A3: Convert created opportunities that were unreachable in the UI;
+/// #1441 P2: rows carry `data-id` and a bulk-selection checkbox).
 pub async fn handle_crm_opportunities(
     State(state): State<Arc<CrateState>>,
     headers: HeaderMap,
 ) -> impl IntoResponse {
     let Ok(mut conn) = state.db_pool.get() else {
-        return Html(r#"<tr><td colspan="7">No opportunities yet</td></tr>"#.to_string());
+        return Html(r#"<tr><td colspan="8">No opportunities yet</td></tr>"#.to_string());
     };
 
     let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
@@ -649,7 +650,7 @@ pub async fn handle_crm_opportunities(
         .unwrap_or_default();
 
     if opportunities.is_empty() {
-        return Html(r#"<tr><td colspan="7">No opportunities yet — convert a qualified lead to create one</td></tr>"#.to_string());
+        return Html(r#"<tr><td colspan="8">No opportunities yet — convert a qualified lead to create one</td></tr>"#.to_string());
     }
 
     let mut html = String::new();
@@ -670,23 +671,24 @@ pub async fn handle_crm_opportunities(
             None => "Open",
         };
         html.push_str(&format!(
-            r#"<tr class="crm-row" data-opp-id="{}">
-<td class="opp-name">{}</td>
-<td class="opp-value">{}</td>
-<td class="opp-stage">{}</td>
-<td class="opp-probability">{}</td>
-<td class="opp-close">{}</td>
-<td class="opp-source">{}</td>
-<td class="opp-status">{}</td>
+            r#"<tr class="crm-row" data-id="{id}" data-opp-id="{id}">
+<td><input type="checkbox" class="opp-select" data-id="{id}"></td>
+<td class="opp-name">{name}</td>
+<td class="opp-value">{value}</td>
+<td class="opp-stage">{stage}</td>
+<td class="opp-probability">{prob}</td>
+<td class="opp-close">{close}</td>
+<td class="opp-source">{source}</td>
+<td class="opp-status">{status}</td>
 </tr>"#,
-            opp.id,
-            html_escape(&opp.name),
-            html_escape(&value_str),
-            html_escape(stage),
-            html_escape(&probability),
-            html_escape(&close),
-            html_escape(opp.source.as_deref().unwrap_or("-")),
-            status,
+            id = opp.id,
+            name = html_escape(&opp.name),
+            value = html_escape(&value_str),
+            stage = html_escape(stage),
+            prob = html_escape(&probability),
+            close = html_escape(&close),
+            source = html_escape(opp.source.as_deref().unwrap_or("-")),
+            status = status,
         ));
     }
 

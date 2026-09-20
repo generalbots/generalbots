@@ -205,6 +205,23 @@ diesel::table! {
     }
 }
 
+// #1441 P2 — append-only audit trail for destructive/state-changing CRM
+// operations (migration 2026-09-20-120100-crm-audit-trail).
+diesel::table! {
+    crm_audit_logs (id) {
+        id -> Uuid,
+        branch_id -> Uuid,
+        entity -> Varchar,
+        entity_id -> Nullable<Uuid>,
+        action -> Varchar,
+        actor_email -> Nullable<Varchar>,
+        before -> Nullable<Jsonb>,
+        after -> Nullable<Jsonb>,
+        detail -> Nullable<Jsonb>,
+        created_at -> Timestamptz,
+    }
+}
+
 diesel::table! {
     crm_deals (id) {
         id -> Uuid,

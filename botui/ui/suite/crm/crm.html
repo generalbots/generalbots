@@ -25,6 +25,7 @@
             </nav>
         </div>
         <div class="crm-header-right">
+            <button class="btn-secondary" id="crm-audit-btn" title="Audit trail">History</button>
             <div class="crm-search">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
@@ -163,6 +164,7 @@
         <table class="crm-table">
             <thead>
                 <tr>
+                    <th><input type="checkbox" id="opps-check-all" title="Select all"></th>
                     <th data-i18n="crm-col-name">Name</th>
                     <th data-i18n="crm-col-value">Value</th>
                     <th data-i18n="crm-col-stage">Stage</th>
@@ -174,6 +176,24 @@
             </thead>
             <tbody id="opportunities-table-body" hx-get="/api/ui/crm/opportunities" hx-trigger="load"></tbody>
         </table>
+        <!-- #1441 P2 — bulk actions + CSV over the selected opportunities -->
+        <div class="crm-bulk-bar" id="opps-bulk-bar">
+            <span class="crm-bulk-count" id="opps-bulk-count">0 selected</span>
+            <select id="opps-bulk-stage">
+                <option value="new">New</option>
+                <option value="qualified">Qualified</option>
+                <option value="proposal">Proposal</option>
+                <option value="negotiation">Negotiation</option>
+                <option value="won">Won</option>
+                <option value="lost">Lost</option>
+            </select>
+            <button class="btn-secondary" id="opps-bulk-stage-btn">Set stage</button>
+            <button class="btn-secondary" id="opps-export-btn">Export CSV</button>
+            <button class="btn-secondary" id="opps-import-btn">Import CSV</button>
+            <button class="btn-danger" id="opps-bulk-delete-btn">Delete</button>
+            <input type="file" id="opps-import-file" accept=".csv,text/csv" style="display:none">
+            <span class="crm-bulk-result" id="opps-bulk-result"></span>
+        </div>
     </div>
 
     <!-- Deals List View -->
@@ -272,224 +292,13 @@
 <!-- Detail Panel -->
 <div id="detail-panel" class="crm-detail-panel"></div>
 
-<script>
-(function() {
-    // Tab switching
-    document.querySelectorAll('.crm-tab').forEach(tab => {
-        tab.addEventListener('click', function() {
-            document.querySelectorAll('.crm-tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.crm-view').forEach(v => v.classList.remove('active'));
-            this.classList.add('active');
-            const view = this.dataset.view;
-            document.getElementById(`crm-${view}-view`).classList.add('active');
-        });
-    });
+<!-- #1441 P2 — audit trail drawer, opened from the header History button -->
+<div id="crm-audit-drawer" class="crm-audit-drawer">
+    <div class="crm-audit-head">
+        <span data-i18n="crm-audit-title">Audit trail</span>
+        <button id="crm-audit-close" title="Close">×</button>
+    </div>
+    <div class="crm-audit-body" id="crm-audit-body"></div>
+</div>
 
-    // New button dropdown
-    const newBtn = document.getElementById('crm-new-btn');
-    newBtn.addEventListener('click', function() {
-        // Default: open lead form
-        htmx.ajax('GET', '/suite/crm/partials/lead-form.html', '#crm-modal-content').then(() => {
-            openCrmModal();
-        });
-    });
-
-    // Modal functions
-    window.openCrmModal = function() {
-        document.getElementById('crm-modal').classList.add('open');
-    };
-
-    window.closeCrmModal = function() {
-        document.getElementById('crm-modal').classList.remove('open');
-    };
-
-    // Drag and drop for pipeline (#1298) — fully DELEGATED on the container so
-    // columns rebuilt from the stages API (#1441 A4) keep working.
-    const pipelineRoot = document.getElementById('crm-pipeline-view');
-    pipelineRoot.addEventListener('dragstart', e => {
-        const card = e.target.closest('.pipeline-card');
-        if (!card) return;
-        e.dataTransfer.setData('text/plain', card.dataset.id || '');
-        e.dataTransfer.effectAllowed = 'move';
-        card.classList.add('dragging');
-    });
-    pipelineRoot.addEventListener('dragend', () => {
-        pipelineRoot.querySelectorAll('.pipeline-card.dragging')
-            .forEach(c => c.classList.remove('dragging'));
-    });
-
-    pipelineRoot.addEventListener('dragover', e => {
-        const column = e.target.closest('.pipeline-cards');
-        if (!column) return;
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        column.classList.add('drag-over');
-    });
-
-    pipelineRoot.addEventListener('dragleave', (e) => {
-        const column = e.target.closest('.pipeline-cards');
-        if (column && !column.contains(e.relatedTarget)) {
-            column.classList.remove('drag-over');
-        }
-    });
-
-    pipelineRoot.addEventListener('drop', e => {
-        const column = e.target.closest('.pipeline-cards');
-        if (!column) return;
-        e.preventDefault();
-        column.classList.remove('drag-over');
-        const cardId = e.dataTransfer.getData('text/plain');
-        const card = pipelineRoot.querySelector(`.pipeline-card[data-id="${cardId}"]`);
-        const newStage = column.closest('.pipeline-column').dataset.stage;
-        if (!cardId || !newStage) return;
-        if (card && card.closest('.pipeline-column') === column.closest('.pipeline-column')) return;
-
-        // Move card visually, then persist via PUT /api/crm/leads/:id/stage
-        if (card) column.appendChild(card);
-        htmx.ajax('PUT', `/api/crm/leads/${cardId}/stage?stage=${encodeURIComponent(newStage)}`, { swap: 'none' })
-            .then(() => {
-                // Refresh stage counts after the move
-                htmx.trigger(document.body, 'crm:stage-changed');
-            });
-    });
-
-    // #1441 A4 — pipeline stages are org-configurable: render the kanban from
-    // /api/crm/pipeline/stages (order/labels from the API); the static six
-    // columns above remain as fallback when the API is unavailable.
-    fetch('/api/crm/pipeline/stages', {
-        headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('gb_token') || '') }
-    })
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(stages => {
-            if (!Array.isArray(stages) || !stages.length) return;
-            const container = pipelineRoot.querySelector('.pipeline-container');
-            if (!container) return;
-            const sorted = stages.slice().sort((a, b) => (a.stage_order || 0) - (b.stage_order || 0));
-            container.innerHTML = sorted.map((s, i) => `
-                <div class="pipeline-column${s.name === 'won' ? ' won' : ''}${s.name === 'lost' ? ' lost' : ''}" data-stage="${s.name}">
-                    <div class="pipeline-header">
-                        <span class="pipeline-title">${s.name}</span>
-                        <span class="pipeline-count" hx-get="/api/crm/count?stage=${encodeURIComponent(s.name)}" hx-trigger="load">0</span>
-                    </div>
-                    <div class="pipeline-cards"
-                         hx-get="/api/crm/pipeline?stage=${encodeURIComponent(s.name)}"
-                         hx-trigger="load"
-                         hx-swap="innerHTML"></div>
-                    ${i === 0 ? `<button class="pipeline-add" hx-get="/suite/crm/partials/lead-form.html" hx-target="#crm-modal-content" hx-on::after-request="openCrmModal()">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                        </svg>
-                        <span data-i18n="crm-add-lead">Add Lead</span>
-                    </button>` : ''}
-                </div>`).join('');
-            if (window.i18n && window.i18n.translatePage) window.i18n.translatePage();
-            htmx.process(container);
-        })
-        .catch(() => { /* keep static fallback columns */ });
-
-    // Keep counts in sync after any stage change
-    document.body.addEventListener('crm:stage-changed', function() {
-        document.querySelectorAll('.pipeline-count').forEach(el => htmx.trigger(el, 'load'));
-    });
-
-    // #1437 — deep-link consumer: opens on a CRM contact (person_id). The id
-    // arrives either at boot via window.__gbAppParams__ (fresh window) or via
-    // the gb:deep-link retarget event (already-open window). Switches to the
-    // Contacts view, waits for the grid (HTMX loads it async), then highlights
-    // the matching row and raises the window.
-    function highlightCrmRow(row) {
-        document.querySelectorAll('#contacts-table-body tr').forEach(function(tr) {
-            tr.style.boxShadow = '';
-            tr.style.background = '';
-        });
-        row.style.boxShadow = '0 0 0 2px #22c55e inset, 0 0 12px rgba(34,197,94,.5)';
-        row.style.background = 'rgba(34,197,94,.12)';
-        row.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    }
-
-    window.applyCrmPersonDeepLink = function(personId, appId) {
-        if (!personId) return;
-        const contactsTab = document.querySelector('.crm-tab[data-view="contacts"]');
-        if (contactsTab && !contactsTab.classList.contains('active')) contactsTab.click();
-        const tableBody = document.getElementById('contacts-table-body');
-        if (!tableBody) return;
-        let attempts = 0;
-        const poll = setInterval(function() {
-            const row = tableBody.querySelector('tr[data-id="' + personId + '"]');
-            if (row) {
-                clearInterval(poll);
-                highlightCrmRow(row);
-                if (appId && window.WindowManager && window.WindowManager.focusWindow) {
-                    window.WindowManager.focusWindow(appId);
-                }
-                return;
-            }
-            attempts++;
-            if (attempts === 1 && tableBody.rows.length === 0 && window.htmx) {
-                window.htmx.trigger(tableBody, 'load');
-            }
-            if (attempts > 25) clearInterval(poll);
-        }, 200);
-    };
-
-    if (window.__gbAppParams__ && window.__gbAppParams__.person_id) {
-        window.applyCrmPersonDeepLink(window.__gbAppParams__.person_id, 'crm');
-    }
-    document.addEventListener('gb:deep-link', function(e) {
-        const params = e.detail && e.detail.params;
-        if (params && params.person_id) {
-            window.applyCrmPersonDeepLink(params.person_id, (e.detail && e.detail.appId) || 'crm');
-        }
-    });
-
-    // Initialize i18n if available
-    if (window.i18n && window.i18n.translatePage) {
-        window.i18n.translatePage();
-    }
-
-    // Submit lead form manually to ensure JSON is sent correctly
-    window.submitLeadForm = async function(event) {
-        const form = document.getElementById('leadForm');
-        const formData = new FormData(form);
-        const data = {};
-        const numericFields = ['value'];
-        
-        for (let [key, value] of formData.entries()) {
-            if (numericFields.includes(key)) {
-                // Convert to number or null
-                data[key] = value ? parseFloat(value) : null;
-            } else if (value) {
-                // Only include non-empty strings
-                data[key] = value;
-            }
-        }
-        
-        console.log('Submitting lead data:', data);
-        
-        const token = localStorage.getItem('gb_token');
-        
-        try {
-            const response = await fetch('/api/crm/leads', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token
-                },
-                body: JSON.stringify(data)
-            });
-            
-            if (response.ok) {
-                closeCrmModal();
-                htmx.ajax('GET', '/api/crm/pipeline?stage=new', {
-                    target: '#crm-pipeline-view',
-                    swap: 'innerHTML'
-                });
-            } else {
-                console.error('Lead creation failed:', response.status, await response.text());
-            }
-        } catch (err) {
-            console.error('Error creating lead:', err);
-        }
-    };
-})();
-</script>
+<script src="/suite/crm/crm.js?v=2"></script>

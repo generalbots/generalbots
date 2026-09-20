@@ -413,3 +413,9 @@ pub struct BulkActionResult {
     pub affected_count: i32,
     pub errors: Vec<String>,
 }
+
+// #1441 P2 — bulk/CSV types live in `bulk_types.rs`; re-exported so the
+// established `crate::requests::…` call sites stay valid.
+pub use crate::bulk_types::{
+    CsvImportReport, CsvLeadRow, LeadBulkActionRequest, LeadBulkActionResult,
+};

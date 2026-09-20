@@ -5,6 +5,7 @@ use axum::{
     http::StatusCode,
     Json,
 };
+use axum::response::IntoResponse;
 use diesel::prelude::*;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -22,7 +23,7 @@ pub async fn list_activities(
     State(state): State<Arc<CrateState>>,
     headers: HeaderMap,
     Query(query): Query<ListQuery>,
-) -> Result<Json<Vec<CrmActivity>>, (StatusCode, String)> {
+) -> Result<axum::response::Response, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
@@ -30,6 +31,13 @@ pub async fn list_activities(
     let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
+
+    // #1441 P2 — X-Total-Count lets the UI paginate without a second probe.
+    let total: i64 = crm_activities::table
+        .filter(crm_activities::branch_id.eq(branch_id))
+        .count()
+        .get_result(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Count error: {e}")))?;
 
     let activities: Vec<CrmActivity> = crm_activities::table
         .filter(crm_activities::branch_id.eq(branch_id))
@@ -39,5 +47,5 @@ pub async fn list_activities(
         .load(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
 
-    Ok(Json(activities))
+    Ok(([("X-Total-Count", total.to_string())], Json(activities)).into_response())
 }

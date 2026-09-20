@@ -93,8 +93,10 @@ impl CrateState {
 pub mod schema;
 pub mod models;
 pub mod requests;
+pub mod bulk_types;
 pub mod scope;
 pub mod error;
+pub mod audit;
 pub mod migration;
 pub mod contacts_api;
 pub(crate) mod contacts_api_helpers;
