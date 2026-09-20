@@ -150,9 +150,30 @@ pub(crate) fn ensure_checkout_with_heal(
 fn provision_repo(pool: &DbPool, project: &MonitoredBot, org: &str) -> Result<(), String> {
     let safe_name = botvibe::harness::sanitize_project_id(&project.name)?;
     let cwd = botvibe::harness::ensure_workspace(&safe_name)?;
-    // Idempotency: a previous heal or a concurrent tick may have provisioned.
-    if cwd.join(".git").exists() {
-        return Ok(());
+    let registry = botvibe::ProjectRegistry::new(pool.clone());
+    let mut p = registry
+        .get(project.project_id)
+        .map_err(|e| format!("project load: {e}"))?
+        .ok_or_else(|| format!("project {} vanished mid-heal", project.project_id))?;
+    // Pre-reform rows may still carry source_control='native', which makes
+    // ensure_git_repo a no-op — the reform owns bot sources, so flip the
+    // project to git mode (persisted) BEFORE any early return: a partial
+    // heal from a previous boot (workspace seeded, repo never created) must
+    // not wedge the loop.
+    if p.source_control != "git" {
+        let mut conn = pool.get().map_err(|e| format!("pool: {e}"))?;
+        diesel::sql_query(
+            "UPDATE vibe_projects SET source_control = 'git', updated_at = now() WHERE id = $1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(project.project_id)
+        .execute(&mut conn)
+        .map_err(|e| format!("source_control flip: {e}"))?;
+        drop(conn);
+        log::info!(
+            "[git_monitor] provision {0}/{1}: source_control → git (was '{2}')",
+            org, project.repo_slug, p.source_control
+        );
+        p.source_control = "git".to_string();
     }
     // Seed from the deployed PROD sources when they exist (pre-reform bots
     // keep their content through the git move); fresh bots get a minimal
@@ -180,35 +201,17 @@ fn provision_repo(pool: &DbPool, project: &MonitoredBot, org: &str) -> Result<()
                 org, project.repo_slug
             );
         }
-        None => std::fs::write(
+        None if !cwd.join(".git").exists() => std::fs::write(
             cwd.join("README.md"),
             format!("# {0}\n\nVibe-managed bot sources (reform #1503).\n", project.name),
         )
         .map_err(|e| format!("seed README: {e}"))?,
+        None => {}
     }
-    let registry = botvibe::ProjectRegistry::new(pool.clone());
-    let mut p = registry
-        .get(project.project_id)
-        .map_err(|e| format!("project load: {e}"))?
-        .ok_or_else(|| format!("project {} vanished mid-heal", project.project_id))?;
-    // Pre-reform rows may still carry source_control='native', which makes
-    // ensure_git_repo a no-op — the reform owns bot sources, so flip the
-    // project to git mode (persisted) before provisioning.
-    if p.source_control != "git" {
-        let mut conn = pool.get().map_err(|e| format!("pool: {e}"))?;
-        diesel::sql_query(
-            "UPDATE vibe_projects SET source_control = 'git', updated_at = now() WHERE id = $1",
-        )
-        .bind::<diesel::sql_types::Uuid, _>(project.project_id)
-        .execute(&mut conn)
-        .map_err(|e| format!("source_control flip: {e}"))?;
-        drop(conn);
-        log::info!(
-            "[git_monitor] provision {0}/{1}: source_control → git (was '{2}')",
-            org, project.repo_slug, p.source_control
-        );
-        p.source_control = "git".to_string();
-    }
+    // Always finish the wiring: with an existing partial-heal workspace
+    // (.git, no origin or unpushed content) ensure_git_repo adds the origin,
+    // commits and pushes main; a fully wired workspace exits on the origin
+    // check. Idempotent from any state.
     let rt = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()
