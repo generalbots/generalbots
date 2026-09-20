@@ -244,16 +244,34 @@ pub struct CreateSkillRequest {
 }
 
 #[derive(Debug, Serialize)]
-pub(crate) struct SkillResponse {
-    pub(crate) success: bool,
-    pub(crate) skill: Option<VibeSkill>,
-    pub(crate) error: Option<String>,
+pub struct SkillResponse {
+    pub success: bool,
+    pub skill: Option<VibeSkill>,
+    pub error: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
 struct SkillsListResponse {
     success: bool,
     skills: Vec<VibeSkill>,
+}
+
+/// Skills + marketplace routes; the marketplace handlers live in
+/// `skills_marketplace.rs` (#1444 split).
+pub fn skills_router(store: Arc<SkillStore>) -> Router {
+    Router::new()
+        .route("/api/vibe/skills", axum::routing::get(list_skills))
+        .route("/api/vibe/skills", axum::routing::post(create_skill))
+        .route("/api/vibe/skills/:name", axum::routing::delete(delete_skill))
+        .route(
+            "/api/vibe/skills/marketplace",
+            axum::routing::get(crate::skills_marketplace::list_marketplace),
+        )
+        .route(
+            "/api/vibe/skills/marketplace/install",
+            axum::routing::post(crate::skills_marketplace::install_marketplace),
+        )
+        .layer(Extension(store))
 }
 
 async fn list_skills(Extension(store): Extension<Arc<SkillStore>>) -> Json<SkillsListResponse> {

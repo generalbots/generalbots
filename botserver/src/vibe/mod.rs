@@ -171,6 +171,9 @@ impl VibeStateImpl {
 
 pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
     let pool = app_state.conn.clone();
+    // #1444 M2 — the skills store shares the pool (hydrate + write-through);
+    // cloned BEFORE the pool moves into the VibeState below.
+    let skills_pool = pool.clone();
 
     // Reform #1500 — share the pool with the bootstrap helpers so org/naming
     // resolution works without threading pools through every API surface.
@@ -276,7 +279,7 @@ pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
     // #1444 M2 — persistent skills: the store hydrates the `vibe_skills`
     // table (custom skills + marketplace installs survive restarts) and
     // writes through on register/delete; bootstrap seeding stays idempotent.
-    let skills = Arc::new(botvibe::SkillStore::with_persistence(pool.clone()));
+    let skills = Arc::new(botvibe::SkillStore::with_persistence(skills_pool));
     if let Err(e) = skills.seed_bootstrap().await {
         log::error!("Vibe: bootstrap skills seeding failed: {e}");
     }
