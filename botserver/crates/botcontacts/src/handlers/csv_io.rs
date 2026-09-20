@@ -63,19 +63,6 @@ pub async fn export_leads_csv(
     let mut conn = state.db_pool.get().map_err(db_err)?;
     let branch_id = branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
 
-    let mut q = crm_deals::table
-        .filter(crm_deals::branch_id.eq(branch_id))
-        .into_boxed();
-    if let Some(stage) = query.stage {
-        q = q.filter(crm_deals::stage.eq(stage));
-    }
-    if let Some(search) = query.search {
-        q = q.filter(crm_deals::title.ilike(format!("%{search}%")));
-    }
-    let rows: Vec<CrmDeal> = q
-        .order(crm_deals::created_at.desc())
-        .load(&mut conn)
-        .map_err(db_err)?;
     // #1456 — bounded export; X-Total-Count reports the full branch volume
     // so the UI can show "exported N of M".
     let total: i64 = filtered_deals(branch_id, query.stage.clone(), query.search.clone())
