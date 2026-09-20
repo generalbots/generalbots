@@ -121,6 +121,9 @@ async fn inner_build_sub_router(
                 |_c: &mut diesel::PgConnection, _id: uuid::Uuid, _old: &str, _new: &str, _by: uuid::Uuid| {},
             ),
         });
+        // #1452 — seed default pipeline stages for branches with CRM activity
+        // but no stage rows (idempotent; keeps the kanban data-driven).
+        crate::contacts::stages::seed_default_stages(&contacts_state);
         *api_router = api_router.clone().merge(crate::contacts::routes::configure_all_routes().with_state(contacts_state));
     }
 

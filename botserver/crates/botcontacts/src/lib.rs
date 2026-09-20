@@ -94,6 +94,7 @@ pub mod schema;
 pub mod models;
 pub mod requests;
 pub mod bulk_types;
+pub mod stages;
 pub mod scope;
 pub mod error;
 pub mod audit;

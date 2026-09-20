@@ -100,3 +100,38 @@
 .crm-audit-action { font-size: 13px; font-weight: 500; word-break: break-all; }
 .crm-audit-actor { font-size: 12px; color: var(--text-secondary, #666); }
 .crm-audit-empty { color: var(--text-secondary, #777); font-size: 13px; padding: 16px 0; }
+
+/* ── #1449 — detail drawer (shared with audit drawer styling) ─────────── */
+.crm-detail-panel.open { right: 0; }
+.crm-detail-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+.crm-detail-head button {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--text-secondary, #666);
+    line-height: 1;
+}
+.crm-detail-body { padding: 12px 16px; overflow-y: auto; }
+.crm-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 16px; font-size: 13px; }
+.crm-detail-label { font-size: 11px; color: var(--text-secondary, #888); display: inline-block; min-width: 54px; }
+.crm-detail-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.crm-detail-actions select {
+    padding: 4px 8px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 4px;
+    background: var(--surface, #fff);
+    color: var(--text-primary, #111);
+}
