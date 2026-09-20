@@ -105,7 +105,20 @@ async fn import_dialog_from_drive(
             );
             Vec::new()
         }
-        Err(e) => return Err(format!("list {bot_prefix}: {e}")),
+        Err(e) => {
+            // botserver's log layer caps line width — emit the error in short
+            // chunks so the journal always carries the full cause.
+            let text = format!("list {bot_prefix}: {e}");
+            for (i, chunk) in text.as_bytes().chunks(80).enumerate() {
+                log::warn!(
+                    "[git_import] {} list-err part{}: {}",
+                    bot_name,
+                    i,
+                    String::from_utf8_lossy(chunk)
+                );
+            }
+            return Err(text);
+        }
     };
     std::fs::create_dir_all(dialog_dir)
         .map_err(|e| format!("mkdir {}: {e}", dialog_dir.display()))?;
