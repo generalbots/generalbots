@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 use crate::models::*;
 use crate::requests::*;
-use crate::schema::crm_deals;
+use crate::schema::{crm_accounts, crm_contacts, crm_deals};
 use crate::CrateState;
 
 fn get_bot_context(state: &CrateState) -> Uuid {
@@ -56,20 +56,122 @@ pub async fn create_lead_form(
         }
     }).unwrap_or_else(|| "New Lead".to_string());
 
+    // #1441 A1/A2 — the lead form captures the prospect's contact data, so it
+    // must never be discarded: find-or-create the contact (dedupe by email,
+    // branch-scoped) and the account (dedupe by company name), then link both
+    // on the deal. Returns the created/attached ids on the lead.
+    let contact_id = match req.email.as_deref().map(str::trim).filter(|e| !e.is_empty()) {
+        Some(email) => {
+            let existing: Option<CrmContact> = crm_contacts::table
+                .filter(crm_contacts::branch_id.eq(effective_branch_id))
+                // ILIKE without wildcards = case-insensitive exact match (A2 dedupe)
+                .filter(crm_contacts::email.ilike(email))
+                .first::<CrmContact>(&mut conn)
+                .ok();
+            match existing {
+                Some(c) => Some(c.id),
+                None => {
+                    let cid = Uuid::new_v4();
+                    let contact = CrmContact {
+                        id: cid,
+                        org_id: effective_branch_id,
+                        bot_id: state.bot_for_branch(effective_branch_id),
+                        branch_id: effective_branch_id,
+                        first_name: req.first_name.clone(),
+                        last_name: req.last_name.clone(),
+                        email: Some(email.to_string()),
+                        phone: req.phone.clone(),
+                        mobile: None,
+                        company: req.company.clone(),
+                        job_title: req.job_title.clone(),
+                        source: req.source.clone(),
+                        status: Some("lead".to_string()),
+                        tags: None,
+                        custom_fields: None,
+                        notes: None,
+                        owner_id: None,
+                        pass_hash: None,
+                        created_at: now,
+                        updated_at: now,
+                        address_line1: None,
+                        address_line2: None,
+                        city: None,
+                        state: None,
+                        postal_code: None,
+                        country: None,
+                    };
+                    diesel::insert_into(crm_contacts::table)
+                        .values(&contact)
+                        .execute(&mut conn)
+                        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert contact error: {e}")))?;
+                    Some(cid)
+                }
+            }
+        }
+        None => None,
+    };
+
+    let account_id = match req.company.as_deref().map(str::trim).filter(|c| !c.is_empty()) {
+        Some(company) => {
+            let existing: Option<CrmAccount> = crm_accounts::table
+                .filter(crm_accounts::branch_id.eq(effective_branch_id))
+                .filter(crm_accounts::name.ilike(company))
+                .first::<CrmAccount>(&mut conn)
+                .ok();
+            match existing {
+                Some(a) => Some(a.id),
+                None => {
+                    let aid = Uuid::new_v4();
+                    let account = CrmAccount {
+                        id: aid,
+                        org_id: effective_branch_id,
+                        bot_id: state.bot_for_branch(effective_branch_id),
+                        branch_id: effective_branch_id,
+                        name: company.to_string(),
+                        industry: None,
+                        website: None,
+                        phone: None,
+                        email: None,
+                        owner_id: None,
+                        created_at: now,
+                        updated_at: now,
+                        employees_count: None,
+                        annual_revenue: None,
+                        address_line1: None,
+                        address_line2: None,
+                        city: None,
+                        state: None,
+                        postal_code: None,
+                        country: None,
+                        description: None,
+                        tags: Vec::new(),
+                        custom_fields: serde_json::json!({}),
+                    };
+                    diesel::insert_into(crm_accounts::table)
+                        .values(&account)
+                        .execute(&mut conn)
+                        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert account error: {e}")))?;
+                    Some(aid)
+                }
+            }
+        }
+        None => None,
+    };
+
     let lead = CrmDeal {
         id,
         org_id: effective_branch_id,
         bot_id: default_bot_id(&state),
         branch_id: effective_branch_id,
-        contact_id: None,
-        account_id: None,
+        contact_id,
+        account_id,
         am_id: None,
         lead_id: None,
         title: Some(title),
         name: String::new(),
         description: req.description,
         value: req.value,
-        currency: Some("USD".to_string()),
+        currency: Some(req.currency.unwrap_or_else(|| "USD".to_string())),
         stage_id: None,
         stage: Some("new".to_string()),
         probability: Some(10),
@@ -81,7 +183,7 @@ pub async fn create_lead_form(
         period: None,
         deal_date: None,
         owner_id: None,
-        lost_reason: None,
+        lost_reason: req.lost_reason,
         won: None,
         tags: None,
         custom_fields: serde_json::json!({}),

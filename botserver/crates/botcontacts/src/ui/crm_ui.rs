@@ -11,7 +11,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::models::CrmDeal;
-use crate::schema::{crm_deals, crm_contacts, crm_accounts};
+use crate::schema::{crm_deals, crm_contacts, crm_accounts, crm_opportunities};
 use crate::CrateState;
 
 #[derive(Debug, Deserialize)]
@@ -626,6 +626,70 @@ pub async fn handle_crm_opportunities_search(
             html_escape(title)
         ));
     }
+    Html(html)
+}
+
+/// `/api/ui/crm/opportunities` — HTML table rows for the Opportunities view
+/// (#1441 A3: Convert created opportunities that were unreachable in the UI).
+pub async fn handle_crm_opportunities(
+    State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
+) -> impl IntoResponse {
+    let Ok(mut conn) = state.db_pool.get() else {
+        return Html(r#"<tr><td colspan="7">No opportunities yet</td></tr>"#.to_string());
+    };
+
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
+
+    let opportunities: Vec<crate::models::CrmOpportunity> = crm_opportunities::table
+        .filter(crm_opportunities::branch_id.eq(branch_id))
+        .order(crm_opportunities::created_at.desc())
+        .limit(50)
+        .load(&mut conn)
+        .unwrap_or_default();
+
+    if opportunities.is_empty() {
+        return Html(r#"<tr><td colspan="7">No opportunities yet — convert a qualified lead to create one</td></tr>"#.to_string());
+    }
+
+    let mut html = String::new();
+    for opp in opportunities {
+        let value_str = opp
+            .value
+            .map(|v| format!("{} {v}", opp.currency.as_deref().unwrap_or("$")))
+            .unwrap_or_else(|| "-".to_string());
+        let stage = opp.stage.as_deref().unwrap_or("-");
+        let probability = opp.probability.map(|p| format!("{p}%")).unwrap_or_else(|| "-".to_string());
+        let close = opp
+            .expected_close_date
+            .map(|d| d.to_string())
+            .unwrap_or_else(|| "-".to_string());
+        let status = match opp.won {
+            Some(true) => "Won",
+            Some(false) => "Lost",
+            None => "Open",
+        };
+        html.push_str(&format!(
+            r#"<tr class="crm-row" data-opp-id="{}">
+<td class="opp-name">{}</td>
+<td class="opp-value">{}</td>
+<td class="opp-stage">{}</td>
+<td class="opp-probability">{}</td>
+<td class="opp-close">{}</td>
+<td class="opp-source">{}</td>
+<td class="opp-status">{}</td>
+</tr>"#,
+            opp.id,
+            html_escape(&opp.name),
+            html_escape(&value_str),
+            html_escape(stage),
+            html_escape(&probability),
+            html_escape(&close),
+            html_escape(opp.source.as_deref().unwrap_or("-")),
+            status,
+        ));
+    }
+
     Html(html)
 }
 

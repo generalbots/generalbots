@@ -63,6 +63,35 @@ pub async fn handle_lead_detail(
     html.push_str(&detail_fields(&deal));
     html.push_str("</div>");
 
+    // #1441 A5 — per-record activity timeline (calls, emails, meetings, notes).
+    // Server-rendered from crm_activities so the detail page is self-contained.
+    let activities: Vec<crate::models::CrmActivity> = crate::schema::crm_activities::table
+        .filter(crate::schema::crm_activities::lead_id.eq(deal.id))
+        .order(crate::schema::crm_activities::created_at.desc())
+        .limit(20)
+        .load(&mut conn)
+        .unwrap_or_default();
+    html.push_str(r#"<div class="lead-detail-timeline"><h4 class="lead-detail-subtitle">Activities</h4>"#);
+    if activities.is_empty() {
+        html.push_str(r#"<div class="lead-detail-empty-timeline">No activities recorded yet</div>"#);
+    } else {
+        html.push_str("<ul class=\"lead-timeline-list\">");
+        for a in &activities {
+            let due = a
+                .due_date
+                .map(|d| d.format("%Y-%m-%d %H:%M").to_string())
+                .unwrap_or_else(|| "-".to_string());
+            html.push_str(&format!(
+                r#"<li class="lead-timeline-item"><span class="lead-timeline-type">{}</span><span class="lead-timeline-subject">{}</span><span class="lead-timeline-date">{}</span></li>"#,
+                crate::models::html_escape(&a.activity_type),
+                crate::models::html_escape(&a.subject),
+                crate::models::html_escape(&due),
+            ));
+        }
+        html.push_str("</ul>");
+    }
+    html.push_str("</div>");
+
     if let Some(folder) = folder {
         let safe_folder = crate::models::html_escape(&folder);
         html.push_str(&format!(
