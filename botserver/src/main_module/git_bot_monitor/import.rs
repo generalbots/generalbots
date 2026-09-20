@@ -97,9 +97,8 @@ async fn import_dialog_from_drive(
         // A branch with no Drive bucket (fresh/demo) has zero sources — not
         // an error, otherwise the import warn-loops on every boot.
         Err(e) if e.to_string().to_lowercase().contains("nosuchbucket")
-            || e.to_string().to_lowercase().contains("no such bucket")
-            || e.to_string().to_lowercase().contains("404") =>
-        {
+            || e.to_string().to_lowercase().contains("no such bucket")            || e.to_string().to_lowercase().contains("404")
+            || e.to_string().to_lowercase().contains("invalidbucketname") => {
             log::info!(
                 "[git_import] {bot_name}: bucket {bucket} absent on Drive — treating as fresh branch"
             );
@@ -180,7 +179,9 @@ async fn import_one(
         Some(s3) if s3.list_objects(&org_bucket, Some(&branch_prefix)).await.is_ok() => {
             (org_bucket, branch_prefix)
         }
-        _ => (format!("{}.gbai", target.branch_slug), String::new()),
+        // S3 bucket names must be lowercase — a slug with uppercase letters
+        // can never exist as a bucket and only produces InvalidBucketName noise.
+        _ => (format!("{}.gbai", target.branch_slug.to_lowercase()), String::new()),
     };
 
     let workspace = botvibe::harness::workspace_root().join(&target.repo_slug);
