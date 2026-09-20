@@ -12,7 +12,8 @@ use uuid::Uuid;
 use botcoresecrets::hooks as vibe_hooks;
 
 use super::core::{
-    alm_repo, copy_dir_recursive, ensure_checkout, materialize_checkout, run_git, MonitoredBot,
+    alm_repo, copy_dir_recursive, ensure_checkout_with_heal, materialize_checkout, run_git,
+    MonitoredBot,
 };
 
 const DEFAULT_MONITOR_SECS: u64 = 15;
@@ -96,7 +97,9 @@ fn sync_one(pool: &DbPool, project: &MonitoredBot, work_root: &Path) {
         }
     };
     let org = botvibe::bootstrap::alm_org_from_slug(&branch_slug);
-    let checkout = match ensure_checkout(project, &org) {
+    // Self-healing checkout: a missing Forgejo repo is provisioned from the
+    // deployed PROD sources (#1503 backfill) instead of warn-looping forever.
+    let checkout = match ensure_checkout_with_heal(pool, project, &org) {
         Ok(c) => c,
         Err(e) => {
             log::warn!("[git_monitor] checkout {}/{}: {e}", org, project.repo_slug);
