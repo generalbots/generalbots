@@ -98,12 +98,11 @@ diesel::table! {
         id -> Uuid,
         branch_id -> Uuid,
         name -> Varchar,
-        display_order -> Int4,
+        stage_order -> Int4,
         probability -> Nullable<Int4>,
         color -> Nullable<Varchar>,
         created_at -> Timestamptz,
         updated_at -> Timestamptz,
-        stage_order -> Int4,
         is_won -> Bool,
         is_lost -> Bool,
     }
