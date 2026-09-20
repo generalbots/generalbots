@@ -96,15 +96,15 @@ diesel::table! {
 diesel::table! {
     crm_pipeline_stages (id) {
         id -> Uuid,
-        branch_id -> Uuid,
+        org_id -> Uuid,
+        branch_id -> Nullable<Uuid>,
         name -> Varchar,
         stage_order -> Int4,
-        probability -> Nullable<Int4>,
-        color -> Nullable<Varchar>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+        probability -> Int4,
         is_won -> Bool,
         is_lost -> Bool,
+        color -> Nullable<Varchar>,
+        created_at -> Timestamptz,
     }
 }
 
