@@ -23,6 +23,12 @@ fn get_bot_context(state: &CrateState) -> Uuid {
     state.get_bot_context()
 }
 
+/// #1456 — import options: `?dry_run=true` validates without writing.
+#[derive(Debug, serde::Deserialize)]
+pub struct ImportQuery {
+    pub dry_run: Option<bool>,
+}
+
 fn db_err<E: std::fmt::Display>(e: E) -> (StatusCode, String) {
     (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
 }
@@ -68,6 +74,17 @@ pub async fn export_leads_csv(
     }
     let rows: Vec<CrmDeal> = q
         .order(crm_deals::created_at.desc())
+        .load(&mut conn)
+        .map_err(db_err)?;
+    // #1456 — bounded export; X-Total-Count reports the full branch volume
+    // so the UI can show "exported N of M".
+    let total: i64 = filtered_deals(branch_id, query.stage.clone(), query.search.clone())
+        .count()
+        .get_result(&mut conn)
+        .map_err(db_err)?;
+    let rows: Vec<CrmDeal> = filtered_deals(branch_id, query.stage, query.search)
+        .order(crm_deals::created_at.desc())
+        .limit(50_000)
         .load(&mut conn)
         .map_err(db_err)?;
 
@@ -128,12 +145,34 @@ pub async fn export_leads_csv(
         "export_csv",
         None,
         None,
-        Some(serde_json::json!({ "rows": rows.len() })),
+        Some(serde_json::json!({ "rows": rows.len(), "total": total })),
     );
     Ok((
-        [(header::CONTENT_TYPE, "text/csv; charset=utf-8")],
+        [
+            (header::CONTENT_TYPE, "text/csv; charset=utf-8".to_string()),
+            (header::HeaderName::from_static("x-total-count"), total.to_string()),
+        ],
         out,
     ))
+}
+
+/// Builds the branch-scoped, filter-honoring deals query. Used twice per
+/// export (#1456): once for the total count, once for the bounded page.
+fn filtered_deals(
+    branch_id: Uuid,
+    stage: Option<String>,
+    search: Option<String>,
+) -> crm_deals::BoxedQuery<'static, diesel::pg::Pg> {
+    let mut q = crm_deals::table
+        .filter(crm_deals::branch_id.eq(branch_id))
+        .into_boxed();
+    if let Some(stage) = stage {
+        q = q.filter(crm_deals::stage.eq(stage));
+    }
+    if let Some(search) = search {
+        q = q.filter(crm_deals::title.ilike(format!("%{search}%")));
+    }
+    q
 }
 
 /// `POST /api/crm/leads/import` — parse a CSV body (`text/csv` or JSON rows)
@@ -142,6 +181,7 @@ pub async fn export_leads_csv(
 pub async fn import_leads_csv(
     State(state): State<Arc<CrateState>>,
     headers: HeaderMap,
+    Query(query): Query<ImportQuery>,
     body: String,
 ) -> Result<Json<CsvImportReport>, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(db_err)?;
@@ -164,6 +204,7 @@ pub async fn import_leads_csv(
         skipped_duplicates: 0,
         errors: Vec::new(),
     };
+    let dry_run = query.dry_run.unwrap_or(false);
     let now = chrono::Utc::now();
     for (idx, row) in rows.iter().enumerate() {
         let email = row.email.as_deref().map(str::trim).filter(|s| !s.is_empty());
@@ -197,6 +238,13 @@ pub async fn import_leads_csv(
                 report.skipped_duplicates += 1;
                 continue;
             }
+        }
+
+        // #1456 — dry run: validate only, write nothing. Duplicates are
+        // still detected above; everything below would create rows.
+        if dry_run {
+            report.imported += 1;
+            continue;
         }
 
         let contact_id = email.and_then(|mail| {
@@ -305,6 +353,22 @@ pub async fn import_leads_csv(
         }
     }
 
+    audit::record(
+        &state,
+        &headers,
+        branch_id,
+        "lead",
+        None,
+        "import_csv",
+        None,
+        None,
+        Some(serde_json::json!({
+            "rows": report.imported,
+            "skipped": report.skipped_duplicates,
+            "errors": report.errors.len(),
+            "dry_run": dry_run
+        })),
+    );
     Ok(Json(report))
 }
 

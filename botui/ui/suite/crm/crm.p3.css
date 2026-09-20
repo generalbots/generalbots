@@ -152,3 +152,45 @@
 }
 .pager-btn:hover { background: var(--surface-hover, #f3f4f6); }
 .pager-label { margin: 0 12px; font-size: 12px; color: var(--text-secondary, #666); }
+
+/* ── #1455 — stage admin editor ─────────────────────────────────────── */
+.stage-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    grid-column: 1 / -1;
+    margin-bottom: 4px;
+}
+
+.stage-admin-result {
+    font-size: 12px;
+    color: var(--gb-accent, #3b82f6);
+    min-height: 14px;
+}
+
+.stage-actions {
+    display: none;
+    gap: 2px;
+    margin-left: auto;
+}
+
+.pipeline-column:hover .stage-actions {
+    display: inline-flex;
+}
+
+.stage-action {
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: inherit;
+    cursor: pointer;
+    font-size: 11px;
+    line-height: 1;
+    opacity: 0.55;
+    padding: 2px 4px;
+}
+
+.stage-action:hover {
+    opacity: 1;
+    border-color: currentColor;
+}

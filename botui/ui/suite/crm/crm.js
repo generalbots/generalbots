@@ -79,22 +79,29 @@
             });
     });
 
-    // #1441 A4 — pipeline stages are org-configurable: render the kanban from
-    // /api/crm/pipeline/stages (order/labels from the API); the static six
-    // columns above remain as fallback when the API is unavailable.
-    fetch('/api/crm/pipeline/stages', {
-        headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('gb_token') || '') }
-    })
-        .then(r => r.ok ? r.json() : Promise.reject(r.status))
-        .then(stages => {
-            if (!Array.isArray(stages) || !stages.length) return;
-            const container = pipelineRoot.querySelector('.pipeline-container');
-            if (!container) return;
-            const sorted = stages.slice().sort((a, b) => (a.stage_order || 0) - (b.stage_order || 0));
-            container.innerHTML = sorted.map((s, i) => `
-                <div class="pipeline-column${s.name === 'won' ? ' won' : ''}${s.name === 'lost' ? ' lost' : ''}" data-stage="${s.name}">
+    // #1441 A4 / #1455 — pipeline stages are org-configurable: render the
+    // kanban from /api/crm/pipeline/stages (order/labels from the API); the
+    // static six columns above remain as fallback when the API is unavailable.
+    // The renderer is global so the stage admin editor (crm-p2.js) can
+    // re-render after create/rename/delete.
+    window.renderPipelineStages = function(stages) {
+        if (!Array.isArray(stages) || !stages.length) return;
+        const container = document.querySelector('.pipeline-container');
+        if (!container) return;
+        const sorted = stages.slice().sort((a, b) => (a.stage_order || 0) - (b.stage_order || 0));
+        container.innerHTML = `
+            <div class="stage-toolbar">
+                <button id="stage-add-btn" class="btn-secondary" title="Add a custom stage">+ Add stage</button>
+                <span id="stage-admin-result" class="stage-admin-result"></span>
+            </div>` + sorted.map((s, i) => `
+                <div class="pipeline-column${s.name === 'won' ? ' won' : ''}${s.name === 'lost' ? ' lost' : ''}" data-stage="${s.name}" data-stage-id="${s.id || ''}">
                     <div class="pipeline-header">
                         <span class="pipeline-title">${s.name}</span>
+                        <span class="stage-actions">
+                            <button class="stage-action" data-action="rename" title="Rename stage">✎</button>
+                            <button class="stage-action" data-action="probability" title="Set probability">%</button>
+                            <button class="stage-action" data-action="delete" title="Delete stage">✕</button>
+                        </span>
                         <span class="pipeline-count" hx-get="/api/crm/count?stage=${encodeURIComponent(s.name)}" hx-trigger="load">0</span>
                     </div>
                     <div class="pipeline-cards"
@@ -108,9 +115,15 @@
                         <span data-i18n="crm-add-lead">Add Lead</span>
                     </button>` : ''}
                 </div>`).join('');
-            if (window.i18n && window.i18n.translatePage) window.i18n.translatePage();
-            htmx.process(container);
-        })
+        if (window.i18n && window.i18n.translatePage) window.i18n.translatePage();
+        htmx.process(container);
+    };
+
+    fetch('/api/crm/pipeline/stages', {
+        headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('gb-access-token') || '') }
+    })
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(stages => window.renderPipelineStages(stages))
         .catch(() => { /* keep static fallback columns */ });
 
     // Keep counts in sync after any stage change
@@ -192,7 +205,7 @@
         
         console.log('Submitting lead data:', data);
         
-        const token = localStorage.getItem('gb_token');
+        const token = localStorage.getItem('gb-access-token');
         
         try {
             const response = await fetch('/api/crm/leads', {
@@ -220,9 +233,12 @@
 
     // ── #1441 P2 — bulk actions, CSV import/export, audit trail ─────────
     function authHeaders(extra) {
-        const h = Object.assign({ 'Authorization': 'Bearer ' + (localStorage.getItem('gb_token') || '') }, extra || {});
+        const h = Object.assign({ 'Authorization': 'Bearer ' + (localStorage.getItem('gb-access-token') || '') }, extra || {});
         return h;
     }
+    // crm-p2.js runs in its own IIFE — expose the helper globally (crmp2
+    // handlers for bulk/CSV/drawer/campaigns all resolve it at click time).
+    window.authHeaders = authHeaders;
 
     function selectedOppIds() {
         return Array.from(document.querySelectorAll('#opportunities-table-body input.opp-select:checked'))
@@ -298,6 +314,7 @@
         // to the browser as a blob (window.open would drop the header).
         const resp = await fetch('/api/crm/leads/export', { headers: authHeaders() });
         if (!resp.ok) { showBulkResult('Export failed (' + resp.status + ')'); return; }
+        const total = resp.headers.get('X-Total-Count');
         const blob = await resp.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -305,7 +322,7 @@
         a.download = 'leads-export.csv';
         a.click();
         URL.revokeObjectURL(url);
-        showBulkResult('Export downloaded');
+        showBulkResult(total ? ('Exported ' + (total - 0) + ' rows') : 'Export downloaded');
     });
 
     const importBtn = document.getElementById('opps-import-btn');
@@ -316,6 +333,17 @@
             const file = importFile.files && importFile.files[0];
             if (!file) return;
             const text = await file.text();
+            // #1456 — dry-run first: validate without writing, then commit on
+            // explicit confirmation when the report is clean.
+            const dryResp = await fetch('/api/crm/leads/import?dry_run=true', {
+                method: 'POST',
+                headers: authHeaders({ 'Content-Type': 'text/csv' }),
+                body: text
+            });
+            if (!dryResp.ok) { showBulkResult('Validation failed (' + dryResp.status + ')'); return; }
+            const dry = await dryResp.json();
+            const summary = 'Validated: ' + dry.imported + ' rows, ' + dry.skipped_duplicates + ' duplicates, ' + dry.errors.length + ' errors';
+            if (!confirm(summary + '. Commit this import?')) { showBulkResult(summary + ' — not committed'); return; }
             const resp = await fetch('/api/crm/leads/import', {
                 method: 'POST',
                 headers: authHeaders({ 'Content-Type': 'text/csv' }),

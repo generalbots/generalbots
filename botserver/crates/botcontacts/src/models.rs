@@ -73,6 +73,8 @@ pub struct CrmAccount {
 pub struct CrmPipelineStage {
     pub id: Uuid,
     pub org_id: Uuid,
+    #[serde(default)]
+    pub bot_id: Uuid,
     pub branch_id: Option<Uuid>,
     pub name: String,
     pub stage_order: i32,

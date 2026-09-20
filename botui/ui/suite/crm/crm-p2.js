@@ -56,6 +56,7 @@
     if (contactExportBtn) contactExportBtn.addEventListener('click', async function() {
         const resp = await fetch('/api/crm/contacts/export', { headers: authHeaders() });
         if (!resp.ok) { showContactResult('Export failed (' + resp.status + ')'); return; }
+        const total = resp.headers.get('X-Total-Count');
         const blob = await resp.blob();
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -63,7 +64,7 @@
         a.download = 'contacts-export.csv';
         a.click();
         URL.revokeObjectURL(url);
-        showContactResult('Export downloaded');
+        showContactResult(total ? ('Exported ' + (total - 0) + ' rows') : 'Export downloaded');
     });
 
     const contactImportBtn = document.getElementById('contacts-import-btn');
@@ -74,6 +75,17 @@
             const file = contactImportFile.files && contactImportFile.files[0];
             if (!file) return;
             const text = await file.text();
+            // #1456 — dry-run first: validate without writing, then commit on
+            // explicit confirmation when the report is clean.
+            const dryResp = await fetch('/api/crm/contacts/import?dry_run=true', {
+                method: 'POST',
+                headers: authHeaders({ 'Content-Type': 'text/csv' }),
+                body: text
+            });
+            if (!dryResp.ok) { showContactResult('Validation failed (' + dryResp.status + ')'); return; }
+            const dry = await dryResp.json();
+            const summary = 'Validated: ' + dry.imported + ' rows, ' + dry.skipped_duplicates + ' duplicates, ' + dry.errors.length + ' errors';
+            if (!confirm(summary + '. Commit this import?')) { showContactResult(summary + ' — not committed'); return; }
             const resp = await fetch('/api/crm/contacts/import', {
                 method: 'POST',
                 headers: authHeaders({ 'Content-Type': 'text/csv' }),
@@ -240,5 +252,97 @@
         if (e.target.closest('input, button, a, select')) return;
         const row = e.target.closest('#opportunities-table-body tr[data-id], #deals-table-body tr[data-id]');
         if (row && row.dataset.id) openLeadDetail(row.dataset.id);
+    });
+})();
+
+// ── #1455 — stage admin editor (add / rename / probability / delete) ────
+(function() {
+    "use strict";
+
+    function showStageResult(text) {
+        const el = document.getElementById('stage-admin-result');
+        if (el) el.textContent = text;
+        setTimeout(() => { if (el) el.textContent = ''; }, 8000);
+    }
+
+    function reloadStages() {
+        fetch('/api/crm/pipeline/stages', { headers: authHeaders() })
+            .then(r => r.ok ? r.json() : Promise.reject(r.status))
+            .then(stages => window.renderPipelineStages(stages))
+            .catch(err => showStageResult('Stage refresh failed (' + err + ')'));
+    }
+
+    function api(url, opts) {
+        return fetch(url, Object.assign({ headers: authHeaders({ 'Content-Type': 'application/json' }) }, opts || {}));
+    }
+
+    // Add stage → modal form inside the shared CRM modal shell.
+    const addBtn = document.getElementById('stage-add-btn');
+    if (addBtn) addBtn.addEventListener('click', function() {
+        const modal = document.getElementById('crm-modal');
+        const content = document.getElementById('crm-modal-content');
+        if (!modal || !content) return;
+        content.innerHTML = `
+            <h3>Add stage</h3>
+            <div class="crm-form-group"><label class="crm-form-label">Name</label>
+                <input id="stage-name-input" class="crm-form-input" maxlength="60" placeholder="e.g. Contract review"></div>
+            <div class="crm-form-group"><label class="crm-form-label">Probability %</label>
+                <input id="stage-prob-input" class="crm-form-input" type="number" min="0" max="100" value="50"></div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+                <button class="btn-secondary" onclick="closeCrmModal()">Cancel</button>
+                <button class="btn-primary" id="stage-create-btn">Create stage</button>
+            </div>`;
+        modal.classList.add('open');
+        document.getElementById('stage-name-input').focus();
+        document.getElementById('stage-create-btn').addEventListener('click', async function() {
+            const name = (document.getElementById('stage-name-input').value || '').trim();
+            const probability = parseInt(document.getElementById('stage-prob-input').value, 10) || 0;
+            if (!name) { showStageResult('Stage name required'); return; }
+            const resp = await api('/api/crm/pipeline/stages', {
+                method: 'POST', body: JSON.stringify({ name: name, probability: probability })
+            });
+            if (resp.ok) {
+                window.closeCrmModal();
+                showStageResult('Stage created');
+                reloadStages();
+            } else {
+                showStageResult('Create failed (' + resp.status + '): ' + (await resp.text()).substring(0, 80));
+            }
+        });
+    });
+
+    // Column actions (delegated — kanban re-renders often).
+    document.addEventListener('click', async function(e) {
+        const btn = e.target.closest('.stage-action');
+        if (!btn) return;
+        const col = btn.closest('.pipeline-column');
+        const stageId = col && col.dataset.stageId;
+        const stageName = (col && col.dataset.stage) || '';
+        if (!stageId) { showStageResult('Static column — configure stages first'); return; }
+        if (btn.dataset.action === 'rename') {
+            const name = prompt('Rename stage "' + stageName + '" to:', stageName);
+            if (!name || name.trim() === stageName) return;
+            const resp = await api('/api/crm/pipeline/stages/' + stageId, {
+                method: 'PUT', body: JSON.stringify({ name: name.trim() })
+            });
+            if (resp.ok) { showStageResult('Stage renamed'); reloadStages(); }
+            else showStageResult('Rename failed (' + resp.status + ')');
+        } else if (btn.dataset.action === 'probability') {
+            const raw = prompt('Win probability % for "' + stageName + '":', '50');
+            if (raw === null) return;
+            const probability = parseInt(raw, 10);
+            if (isNaN(probability) || probability < 0 || probability > 100) { showStageResult('Probability must be 0-100'); return; }
+            const resp = await api('/api/crm/pipeline/stages/' + stageId, {
+                method: 'PUT', body: JSON.stringify({ probability: probability })
+            });
+            if (resp.ok) { showStageResult('Probability updated'); reloadStages(); }
+            else showStageResult('Update failed (' + resp.status + ')');
+        } else if (btn.dataset.action === 'delete') {
+            if (!confirm('Delete stage "' + stageName + '"? Blocked while leads still use it.')) return;
+            const resp = await api('/api/crm/pipeline/stages/' + stageId, { method: 'DELETE' });
+            if (resp.ok) { showStageResult('Stage deleted'); reloadStages(); }
+            else if (resp.status === 409) showStageResult(await resp.text());
+            else showStageResult('Delete failed (' + resp.status + ')');
+        }
     });
 })();

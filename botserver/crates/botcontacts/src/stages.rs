@@ -1,11 +1,18 @@
-//! #1452 — pipeline stage management: idempotent default seeding plus the
-//! admin CRUD behind `/api/crm/pipeline/stages`.
+//! #1452/#1454/#1455 — pipeline stage management: idempotent default seeding
+//! plus the admin CRUD behind `/api/crm/pipeline/stages`.
 //!
 //! Fresh branches ship with zero `crm_pipeline_stages` rows, so the kanban
 //! silently falls back to hardcoded columns and every custom stage an org
 //! creates is only half-wired. `seed_default_stages` runs at crate bootstrap
 //! (same pattern as `botproducts::seed::seed_default_products`) and is safe
 //! to call repeatedly: branches that already have stages are left untouched.
+//!
+//! #1454: prod schema is `6.0.7-people` — `org_id` FKs to `organizations`
+//! (NOT branches) and `bot_id` is NOT NULL FK to `bots` with
+//! `UNIQUE (org_id, bot_id, name)`. The old seed wrote the branch id as org
+//! and no bot at all, so every INSERT failed validation and the failure was
+//! swallowed silently. The seed now resolves the real org + bot per branch
+//! and logs every error.
 
 use axum::{
     extract::{Path, State},
@@ -16,6 +23,7 @@ use diesel::prelude::*;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::audit;
 use crate::models::CrmPipelineStage;
 use crate::schema::{crm_deals, crm_pipeline_stages};
 use crate::scope::branch_from_jwt;
@@ -32,49 +40,64 @@ pub const DEFAULT_STAGES: &[(&str, i32, i32)] = &[
     ("lost", 6, 0),
 ];
 
-/// Seeds the six default pipeline stages for every branch that has leads or
-/// contacts but no stage rows yet. Idempotent; failures are logged and never
-/// propagate — the hardcoded frontend fallback keeps working without them.
+/// One seeding candidate (#1454): a branch that holds deals but no stage
+/// rows, with the real owning organization and a real active bot — both are
+/// NOT NULL + FK'd on `crm_pipeline_stages`.
+#[derive(Debug, QueryableByName)]
+struct SeedCandidate {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    branch_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    org_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    bot_id: Uuid,
+}
+
+/// Seeds the six default pipeline stages for every branch that has leads but
+/// no stage rows yet. Idempotent; failures are logged and never propagate —
+/// the hardcoded frontend fallback keeps working without them.
 pub fn seed_default_stages(state: &Arc<CrateState>) {
     let Ok(mut conn) = state.db_pool.get() else {
         log::warn!("[crm-stages] pool unavailable; stage seeding skipped");
         return;
     };
 
-    // Branches that already have CRM activity but no configured stages.
-    let branch_rows: Vec<BranchRow> = diesel::sql_query(
-        "SELECT DISTINCT branch_id FROM crm_deals \
-         WHERE branch_id NOT IN (SELECT branch_id FROM crm_pipeline_stages)",
+    // Real org + real bot per branch; branches without an active bot are
+    // skipped (the columns cannot be satisfied) and counted for the log.
+    let candidates: Vec<SeedCandidate> = diesel::sql_query(
+        "SELECT b.id AS branch_id, b.org_id, \
+         (SELECT bt.id FROM bots bt \
+          WHERE bt.branch_id = b.id AND bt.is_active = true \
+          ORDER BY bt.is_default_for_branch DESC LIMIT 1) AS bot_id \
+         FROM branches b \
+         WHERE EXISTS (SELECT 1 FROM crm_deals d WHERE d.branch_id = b.id) \
+         AND NOT EXISTS ( \
+             SELECT 1 FROM crm_pipeline_stages s WHERE s.branch_id = b.id) \
+         AND EXISTS ( \
+             SELECT 1 FROM bots bt \
+             WHERE bt.branch_id = b.id AND bt.is_active = true)",
     )
-    .load::<BranchRow>(&mut conn)
-    .unwrap_or_default();
-    let contact_branches: Vec<BranchRow> = diesel::sql_query(
-        "SELECT DISTINCT branch_id FROM crm_contacts \
-         WHERE branch_id NOT IN (SELECT branch_id FROM crm_pipeline_stages)",
-    )
-    .load::<BranchRow>(&mut conn)
-    .unwrap_or_default();
+    .load::<SeedCandidate>(&mut conn)
+    .unwrap_or_else(|e| {
+        log::warn!("[crm-stages] seed candidate query failed: {e}");
+        Vec::new()
+    });
 
-    let mut branches: Vec<Uuid> = branch_rows.into_iter().map(|r| r.branch_id).collect();
-    for b in contact_branches {
-        let bid = b.branch_id;
-        if !branches.contains(&bid) {
-            branches.push(bid);
-        }
-    }
-    if branches.is_empty() {
+    if candidates.is_empty() {
+        log::info!("[crm-stages] seed: no branches need default stages");
         return;
     }
 
-    let branch_count = branches.len();
+    let branch_count = candidates.len();
     let now = chrono::Utc::now();
     let mut seeded = 0usize;
-    for branch in branches {
+    for candidate in &candidates {
         for (name, order, probability) in DEFAULT_STAGES {
             let row = CrmPipelineStage {
                 id: Uuid::new_v4(),
-                org_id: branch,
-                branch_id: Some(branch),
+                org_id: candidate.org_id,
+                bot_id: candidate.bot_id,
+                branch_id: Some(candidate.branch_id),
                 name: (*name).to_string(),
                 stage_order: *order,
                 probability: *probability,
@@ -83,24 +106,21 @@ pub fn seed_default_stages(state: &Arc<CrateState>) {
                 color: None,
                 created_at: now,
             };
-            if diesel::insert_into(crm_pipeline_stages::table)
+            match diesel::insert_into(crm_pipeline_stages::table)
                 .values(&row)
                 .execute(&mut conn)
-                .is_ok()
             {
-                seeded += 1;
+                Ok(_) => seeded += 1,
+                Err(e) => log::warn!(
+                    "[crm-stages] stage insert failed for branch {0} stage '{1}': {2}",
+                    candidate.branch_id, name, e
+                ),
             }
         }
     }
-    if seeded > 0 {
-        log::info!("[crm-stages] seeded {seeded} default stage rows across {} branch(es)", branch_count);
-    }
-}
-
-#[derive(diesel::QueryableByName)]
-struct BranchRow {
-    #[diesel(sql_type = diesel::sql_types::Uuid)]
-    branch_id: Uuid,
+    log::info!(
+        "[crm-stages] seeded {seeded} default stage rows across {branch_count} branch(es)"
+    );
 }
 
 fn admin_headers(headers: &HeaderMap) -> Result<(), (StatusCode, String)> {
@@ -115,6 +135,40 @@ fn admin_headers(headers: &HeaderMap) -> Result<(), (StatusCode, String)> {
         return Err((StatusCode::UNAUTHORIZED, "Authentication required".to_string()));
     }
     Ok(())
+}
+
+/// Resolves the owning organization for a branch (#1454). On the live schema
+/// `crm_pipeline_stages.org_id` FKs to `organizations`, never to branches.
+fn org_for_branch(conn: &mut PgConnection, branch_id: Uuid) -> Result<Uuid, (StatusCode, String)> {
+    diesel::sql_query("SELECT org_id FROM branches WHERE id = $1")
+        .bind::<diesel::sql_types::Uuid, _>(branch_id)
+        .get_result::<OrgRow>(conn)
+        .map(|r| r.org_id)
+        .map_err(|_| {
+            (
+                StatusCode::NOT_FOUND,
+                format!("branch {branch_id} has no organization row"),
+            )
+        })
+}
+
+#[derive(Debug, QueryableByName)]
+struct OrgRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    org_id: Uuid,
+}
+
+/// Resolves an active bot for a branch (#1454) — `bot_id` is NOT NULL on the
+/// live stages table. Nil bot ids are rejected (FK to `bots(id)`).
+fn bot_for_branch(state: &CrateState, branch_id: Uuid) -> Result<Uuid, (StatusCode, String)> {
+    let bot_id = state.bot_for_branch(branch_id);
+    if bot_id.is_nil() {
+        return Err((
+            StatusCode::UNPROCESSABLE_ENTITY,
+            format!("branch {branch_id} has no active bot to own the stage"),
+        ));
+    }
+    Ok(bot_id)
 }
 
 /// `POST /api/crm/pipeline/stages` — create a custom stage (admin only).
@@ -132,6 +186,8 @@ pub async fn create_stage(
 
     let mut conn = state.db_pool.get().map_err(pool_err)?;
     let branch_id = branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| state.get_bot_context());
+    let org_id = org_for_branch(&mut conn, branch_id)?;
+    let bot_id = bot_for_branch(&state, branch_id)?;
 
     let order = match req.stage_order {
         Some(o) if o >= 1 => o,
@@ -146,7 +202,8 @@ pub async fn create_stage(
 
     let row = CrmPipelineStage {
         id: Uuid::new_v4(),
-        org_id: branch_id,
+        org_id,
+        bot_id,
         branch_id: Some(branch_id),
         name: name.to_string(),
         stage_order: order,
@@ -160,6 +217,19 @@ pub async fn create_stage(
         .values(&row)
         .execute(&mut conn)
         .map_err(diesel_err)?;
+    audit::record(
+        &state,
+        &headers,
+        branch_id,
+        "pipeline_stage",
+        Some(row.id),
+        "stage_create",
+        None,
+        Some(serde_json::json!({
+            "name": row.name, "stage_order": row.stage_order, "probability": row.probability
+        })),
+        None,
+    );
     Ok(Json(row))
 }
 
@@ -174,6 +244,12 @@ pub async fn update_stage(
     let mut conn = state.db_pool.get().map_err(pool_err)?;
     let branch_id = branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| state.get_bot_context());
 
+    let before: CrmPipelineStage = crm_pipeline_stages::table
+        .filter(crm_pipeline_stages::id.eq(id))
+        .filter(crm_pipeline_stages::branch_id.eq(branch_id))
+        .first(&mut conn)
+        .map_err(|_| (StatusCode::NOT_FOUND, "Stage not found".to_string()))?;
+
     diesel::update(
         crm_pipeline_stages::table
             .filter(crm_pipeline_stages::id.eq(id))
@@ -187,12 +263,27 @@ pub async fn update_stage(
     .execute(&mut conn)
     .map_err(diesel_err)?;
 
-    let row: CrmPipelineStage = crm_pipeline_stages::table
+    let after: CrmPipelineStage = crm_pipeline_stages::table
         .filter(crm_pipeline_stages::id.eq(id))
         .filter(crm_pipeline_stages::branch_id.eq(branch_id))
         .first(&mut conn)
         .map_err(|_| (StatusCode::NOT_FOUND, "Stage not found".to_string()))?;
-    Ok(Json(row))
+    audit::record(
+        &state,
+        &headers,
+        branch_id,
+        "pipeline_stage",
+        Some(id),
+        "stage_update",
+        Some(serde_json::json!({
+            "name": before.name, "stage_order": before.stage_order, "probability": before.probability
+        })),
+        Some(serde_json::json!({
+            "name": after.name, "stage_order": after.stage_order, "probability": after.probability
+        })),
+        None,
+    );
+    Ok(Json(after))
 }
 
 /// `DELETE /api/crm/pipeline/stages/:id` — blocked while leads reference the
@@ -232,6 +323,19 @@ pub async fn delete_stage(
     )
     .execute(&mut conn)
     .map_err(diesel_err)?;
+    audit::record(
+        &state,
+        &headers,
+        branch_id,
+        "pipeline_stage",
+        Some(id),
+        "stage_delete",
+        Some(serde_json::json!({
+            "name": stage.name, "stage_order": stage.stage_order, "probability": stage.probability
+        })),
+        None,
+        None,
+    );
     Ok(StatusCode::NO_CONTENT)
 }
 
