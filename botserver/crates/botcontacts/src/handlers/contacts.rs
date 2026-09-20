@@ -75,7 +75,8 @@ pub async fn list_contacts(
     State(state): State<Arc<CrateState>>,
     headers: HeaderMap,
     Query(query): Query<ListQuery>,
-) -> Result<Json<Vec<CrmContact>>, (StatusCode, String)> {
+) -> Result<axum::response::Response, (StatusCode, String)> {
+    use axum::response::IntoResponse;
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
@@ -85,32 +86,41 @@ pub async fn list_contacts(
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
-    let mut q = crm_contacts::table
-        .filter(crm_contacts::branch_id.eq(branch_id))
-        .into_boxed();
+    // Built twice (count + page) because boxed diesel queries are consumed
+    // on execution; the closure keeps the filter list in one place (#1441 P2).
+    let make_q = || {
+        let mut q = crm_contacts::table
+            .filter(crm_contacts::branch_id.eq(branch_id))
+            .into_boxed();
+        if let Some(status) = &query.status {
+            q = q.filter(crm_contacts::status.eq(status.clone()));
+        }
+        if let Some(search) = &query.search {
+            let pattern = format!("%{search}%");
+            q = q.filter(
+                crm_contacts::first_name.ilike(pattern.clone())
+                    .or(crm_contacts::last_name.ilike(pattern.clone()))
+                    .or(crm_contacts::email.ilike(pattern.clone()))
+                    .or(crm_contacts::company.ilike(pattern)),
+            );
+        }
+        q
+    };
 
-    if let Some(status) = query.status {
-        q = q.filter(crm_contacts::status.eq(status));
-    }
+    // #1441 P2 — X-Total-Count lets the UI paginate without a second probe.
+    let total: i64 = make_q()
+        .count()
+        .get_result(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Count error: {e}")))?;
 
-    if let Some(search) = query.search {
-        let pattern = format!("%{search}%");
-        q = q.filter(
-            crm_contacts::first_name.ilike(pattern.clone())
-                .or(crm_contacts::last_name.ilike(pattern.clone()))
-                .or(crm_contacts::email.ilike(pattern.clone()))
-                .or(crm_contacts::company.ilike(pattern)),
-        );
-    }
-
-    let contacts: Vec<CrmContact> = q
+    let contacts: Vec<CrmContact> = make_q()
         .order(crm_contacts::created_at.desc())
         .limit(limit)
         .offset(offset)
         .load(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
 
-    Ok(Json(contacts))
+    Ok(([("X-Total-Count", total.to_string())], Json(contacts)).into_response())
 }
 
 pub async fn get_contact(

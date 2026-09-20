@@ -550,6 +550,9 @@ pub static ALL_COMMANDS: &[AppCommand] = &[
     // ——— Business ———
     cmd("crm", "crm.people.list", "List people", "List CRM people/contacts and their pipeline stage.", &[], Some("app://crm?person_id={person_id}"), false),
     cmd("crm", "crm.people.search", "Search people", "Search people by name and return a deep link to the matched record.", &[("query", "name to search")], Some("app://crm?person_id={person_id}"), false),
+    cmd("crm", "crm.pipeline.forecast", "Sales forecast", "Report the weighted pipeline forecast and funnel conversion rates for the coming months.", &[("periods", "optional number of months ahead (default 3)")], Some("app://crm"), false),
+    cmd("crm", "crm.leads.create", "Create lead", "Capture a new lead with contact data and value (creates/links contact and account).", &[("title", "short lead title"), ("first_name", "prospect first name"), ("last_name", "prospect last name"), ("email", "prospect email"), ("company", "prospect company"), ("value", "estimated value"), ("currency", "currency code, default USD")], None, false),
+    cmd("crm", "crm.leads.report", "Pipeline report", "Summarize leads by stage with counts and total value.", &[], Some("app://crm"), false),
     cmd("people", "people.list", "List people", "List contacts and leads.", &[], Some("app://people?person_id={person_id}"), false),
     cmd("people", "people.search", "Search people", "Search contacts/leads by name, with deep link to the record.", &[("query", "name or email")], Some("app://people?person_id={person_id}"), false),
     cmd("billing", "billing.invoice.list", "List invoices", "List invoices, quotes and payment status.", &[], Some("app://billing?invoice_id={invoice_id}"), false),

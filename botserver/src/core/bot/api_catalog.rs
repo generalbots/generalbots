@@ -714,6 +714,16 @@ pub async fn execute_command(
             let query = str_of("query").unwrap_or_default();
             list_people(state, &bot_uuid, Some(&query)).await
         }
+        // #1441 P3 — pipeline/forecast/report commands so chat and WhatsApp can
+        // answer CRM questions and capture leads without opening the suite.
+        "crm.pipeline.forecast" => {
+            let periods = obj.get("periods").and_then(|v| v.as_u64()).unwrap_or(3).min(12) as i64;
+            crate::core::bot::crm_commands::crm_forecast_command(state, &bot_uuid, periods).await
+        }
+        "crm.leads.create" => {
+            crate::core::bot::crm_commands::crm_create_lead_command(state, &bot_uuid, &obj).await
+        }
+        "crm.leads.report" => crate::core::bot::crm_commands::crm_pipeline_report_command(state, &bot_uuid).await,
         "billing.invoice.list" => list_invoices(state, &bot_uuid).await,
         "products.items.list" => list_products(state, &bot_uuid, str_of("category").as_deref()).await,
         "tickets.list" => list_tickets(state, &bot_uuid).await,
@@ -745,7 +755,7 @@ pub async fn execute_command(
     }
 }
 
-fn branch_scope(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Uuid, String> {
+pub(crate) fn branch_scope(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Uuid, String> {
     botbanking::cashflow::resolve_bot_scope(&state.conn, bot_uuid, None)
         .map(|s| s.branch_id)
         .ok_or_else(|| "bot not found".to_string())

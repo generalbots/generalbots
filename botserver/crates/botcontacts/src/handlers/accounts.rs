@@ -70,7 +70,8 @@ pub async fn list_accounts(
     State(state): State<Arc<CrateState>>,
     headers: HeaderMap,
     Query(query): Query<ListQuery>,
-) -> Result<Json<Vec<CrmAccount>>, (StatusCode, String)> {
+) -> Result<axum::response::Response, (StatusCode, String)> {
+    use axum::response::IntoResponse;
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
@@ -79,26 +80,36 @@ pub async fn list_accounts(
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
-    let mut q = crm_accounts::table
-        .filter(crm_accounts::branch_id.eq(branch_id))
-        .into_boxed();
+    // Built twice (count + page) because boxed diesel queries are consumed
+    // on execution; the closure keeps the filter list in one place (#1441 P2).
+    let make_q = || {
+        let mut q = crm_accounts::table
+            .filter(crm_accounts::branch_id.eq(branch_id))
+            .into_boxed();
+        if let Some(search) = &query.search {
+            let pattern = format!("%{search}%");
+            q = q.filter(
+                crm_accounts::name.ilike(pattern.clone())
+                    .or(crm_accounts::industry.ilike(pattern)),
+            );
+        }
+        q
+    };
 
-    if let Some(search) = query.search {
-        let pattern = format!("%{search}%");
-        q = q.filter(
-            crm_accounts::name.ilike(pattern.clone())
-                .or(crm_accounts::industry.ilike(pattern)),
-        );
-    }
+    // #1441 P2 — X-Total-Count lets the UI paginate without a second probe.
+    let total: i64 = make_q()
+        .count()
+        .get_result(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Count error: {e}")))?;
 
-    let accounts: Vec<CrmAccount> = q
+    let accounts: Vec<CrmAccount> = make_q()
         .order(crm_accounts::created_at.desc())
         .limit(limit)
         .offset(offset)
         .load(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
 
-    Ok(Json(accounts))
+    Ok(([("X-Total-Count", total.to_string())], Json(accounts)).into_response())
 }
 
 pub async fn get_account(
