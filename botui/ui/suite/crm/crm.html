@@ -364,7 +364,7 @@
             if (!Array.isArray(stages) || !stages.length) return;
             const container = pipelineRoot.querySelector('.pipeline-container');
             if (!container) return;
-            const sorted = stages.slice().sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+            const sorted = stages.slice().sort((a, b) => (a.stage_order || 0) - (b.stage_order || 0));
             container.innerHTML = sorted.map((s, i) => `
                 <div class="pipeline-column${s.name === 'won' ? ' won' : ''}${s.name === 'lost' ? ' lost' : ''}" data-stage="${s.name}">
                     <div class="pipeline-header">
