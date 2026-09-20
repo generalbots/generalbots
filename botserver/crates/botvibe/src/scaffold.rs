@@ -54,8 +54,10 @@ pub async fn scaffold_project_workspace(
     // #1445 G1 — one exclusive slot per workspace key serializes the
     // emptiness check + write so parallel create/run scaffolds for the same
     // workspace never interleave (TOCTOU). The guard is held across the LLM
-    // await (tokio Mutex, Send).
-    let _scaffold_guard = crate::scaffold_locks::lock_for(key).lock().await;
+    // await (tokio Mutex, Send); the Arc is bound first so the temporary
+    // from `lock_for` outlives the guard.
+    let slot = crate::scaffold_locks::lock_for(key);
+    let _scaffold_guard = slot.lock().await;
     if workspace_has_files(key)? {
         return Ok(ScaffoldSource::Existing);
     }

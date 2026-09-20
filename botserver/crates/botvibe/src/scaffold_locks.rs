@@ -24,7 +24,7 @@ fn registry() -> &'static Mutex<HashMap<String, Arc<AsyncMutex<()>>>> {
 /// The exclusive scaffold slot for `key`. Callers lock it (`.await`) and hold
 /// the guard across the emptiness check + write.
 pub fn lock_for(key: &str) -> Arc<AsyncMutex<()>> {
-    let reg = match registry().lock() {
+    let mut reg = match registry().lock() {
         Ok(g) => g,
         Err(p) => p.into_inner(),
     };

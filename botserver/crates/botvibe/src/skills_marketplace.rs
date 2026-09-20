@@ -5,8 +5,7 @@
 //! an `installed` flag; `POST /api/vibe/skills/marketplace/install` pulls a
 //! catalog skill into the local SkillStore (register/install).
 
-use crate::skills::{SkillResponse, SkillStore};
-use axum::{Extension, Json};
+use crate::skills::{SkillResponse, SkillStore};use axum::{Extension, Json};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::sync::Arc;
