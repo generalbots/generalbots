@@ -211,6 +211,74 @@ pub(crate) static INSTAGRAM_OAUTH2: AuthProfile = AuthProfile {
     least_privilege: "Request only instagram_basic, instagram_content_publish, pages_show_list and pages_read_engagement; prefer a dedicated Meta app per tenant over a shared app.",
 };
 
+const TELEGRAM_FIELDS: &[AuthField] = &[
+    field(
+        "bot_token",
+        "Bot Token",
+        InputType::Password,
+        true,
+        true,
+        "From @BotFather — stored in the secrets vault",
+    ),
+    field(
+        "webhook_secret",
+        "Webhook Secret",
+        InputType::Password,
+        true,
+        false,
+        "X-Telegram-Bot-Api-Secret-Token check for signed deliveries",
+    ),
+];
+
+const WHATSAPP_FIELDS: &[AuthField] = &[
+    field(
+        "api_key",
+        "Access Token",
+        InputType::Password,
+        true,
+        true,
+        "Graph API access token — stored in the secrets vault",
+    ),
+    field(
+        "verify_token",
+        "Webhook Verify Token",
+        InputType::Password,
+        true,
+        false,
+        "Webhook subscription verification token",
+    ),
+    field(
+        "phone_number_id",
+        "Phone Number ID",
+        InputType::Text,
+        false,
+        true,
+        "WhatsApp Business phone number id",
+    ),
+    field(
+        "business_account_id",
+        "WABA ID",
+        InputType::Text,
+        false,
+        false,
+        "WhatsApp Business Account id",
+    ),
+];
+
+pub(crate) static TELEGRAM: AuthProfile = AuthProfile {
+    method: AuthMethod::Token,
+    fields: TELEGRAM_FIELDS,
+    instructions: "Create the bot via @BotFather and store the token in the secrets vault (Vault-only: the token is never written to config.csv). When a webhook secret is configured, deliveries must carry Telegram's signature header, otherwise unsigned deliveries are rejected.",
+    least_privilege: "Use a dedicated bot token per tenant; disable unused channel bindings and inline keyboards.",
+};
+
+pub(crate) static WHATSAPP: AuthProfile = AuthProfile {
+    method: AuthMethod::Token,
+    fields: WHATSAPP_FIELDS,
+    instructions: "Create a WhatsApp Business app in the Meta developer portal and store the access token in the secrets vault (Vault-only: the token is never written to config.csv).",
+    least_privilege: "Use a permanent System User token scoped to one phone number id; disable unused webhook fields and templates.",
+};
+
 /// No credentials required (e.g. free-tier gateway models with no auth).
 pub(crate) static KEYLESS: AuthProfile = AuthProfile {
     method: AuthMethod::ApiKey,

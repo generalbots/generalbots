@@ -582,6 +582,57 @@ pub async fn execute_command(
                 Err("integration actions are not available in this build".to_string())
             }
         }
+        "database.connections.create" => {
+            // #1425 — external database connections (conn-*) are
+            // provisionable from chat: the keys ride the ConfigManager
+            // (sensitive `Password` → Vault per-bot path, the rest →
+            // bot_configuration), so the TABLE keyword authenticates the
+            // connection and no secret lands in config.csv.
+            let conn_name = str_of("name")
+                .map(|n| n.trim().to_string())
+                .filter(|n| !n.is_empty())
+                .ok_or_else(|| "params.name is required".to_string())?;
+            if !conn_name
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+            {
+                return Err("params.name must be alphanumeric (dashes/underscores allowed)".to_string());
+            }
+            let server = str_of("server")
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .ok_or_else(|| "params.server is required".to_string())?;
+            let database = str_of("database")
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .ok_or_else(|| "params.database is required".to_string())?;
+            let prefix = format!("conn-{bot_uuid}-{conn_name}-");
+            let config_manager = botcore::config::ConfigManager::new(state.conn.clone());
+            let entries: Vec<(&str, String)> = vec![
+                ("Server", server),
+                ("Name", database),
+                ("Username", str_of("username").unwrap_or_default()),
+                ("Password", str_of("password").unwrap_or_default()),
+                ("Port", str_of("port").unwrap_or_default()),
+                ("Driver", str_of("driver").unwrap_or_else(|| "postgres".to_string())),
+            ];
+            let mut stored = 0usize;
+            for (field, value) in entries {
+                if value.is_empty() {
+                    continue;
+                }
+                config_manager
+                    .set_config_with_branch(&bot_uuid, &format!("{prefix}{field}"), &value, None)
+                    .map_err(|e| format!("persist conn-{conn_name}-{field}: {e}"))?;
+                stored += 1;
+            }
+            Ok(serde_json::json!({
+                "success": true,
+                "connection": conn_name,
+                "stored_fields": stored,
+                "note": "the password is stored in the per-bot Vault path (sensitive key); config.csv is never used for secrets",
+            }))
+        }
         "vibe.project.change" => {
             // The model may call the command without a project_id. Resolve the
             // target in this order:

@@ -51,6 +51,11 @@ pub async fn scaffold_project_workspace(
         "Vibe scaffold: entering for {key} type={project_type} desc={}",
         description.map(str::len).unwrap_or(0)
     );
+    // #1445 G1 — one exclusive slot per workspace key serializes the
+    // emptiness check + write so parallel create/run scaffolds for the same
+    // workspace never interleave (TOCTOU). The guard is held across the LLM
+    // await (tokio Mutex, Send).
+    let _scaffold_guard = crate::scaffold_locks::lock_for(key).lock().await;
     if workspace_has_files(key)? {
         return Ok(ScaffoldSource::Existing);
     }
@@ -67,7 +72,13 @@ pub async fn scaffold_project_workspace(
                     return Ok(ScaffoldSource::Llm);
                 }
                 Err(e) => {
-                    warn!("Vibe: LLM scaffold for '{key}' rejected, using template: {e}");
+                    // #1445 G2 — an LLM OUTPUT problem (unsafe path, oversized
+                    // file list) must fail creation, not silently ship the
+                    // calculator starter for an e-commerce prompt. A transient
+                    // LLM failure never reaches here: `llm_scaffold` returns
+                    // None for those, and the template fallback below stays.
+                    warn!("Vibe: LLM scaffold for '{key}' rejected: {e}");
+                    return Err(e);
                 }
             }
         }

@@ -85,6 +85,25 @@ pub fn validate_db_name(name: &str) -> Result<(), String> {
     Ok(())
 }
 
+/// #1447 S1 — defense-in-depth identifier guard for SQL interpolation.
+/// PostgreSQL cannot `$1`-bind identifiers, so every `format!` that places a
+/// database name into DDL/`pg_database` text must pass this strict ASCII
+/// allowlist check AT the interpolation site — even when the caller already
+/// ran `validate_db_name` (a future caller passing raw `branch/project`
+/// without it stays injectable otherwise).
+pub fn assert_safe_db_name(name: &str) -> Result<(), String> {
+    if name.is_empty() || name.len() > 63 {
+        return Err(format!("unsafe database name length: {} chars", name.len()));
+    }
+    if !name
+        .chars()
+        .all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
+    {
+        return Err(format!("unsafe characters in database name '{name}'"));
+    }
+    Ok(())
+}
+
 /// Connection URL for a project database, derived from the botserver main
 /// URL (credentials/host) with the database segment replaced. Callers must
 /// never log the resulting URL.

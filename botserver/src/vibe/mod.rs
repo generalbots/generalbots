@@ -273,7 +273,10 @@ pub async fn configure_vibe_routes(app_state: &Arc<AppState>) -> axum::Router {
 
     let prompt_manager = Arc::new(VibePromptManager::new());
     let permissions = Arc::new(botvibe::PermissionEngine::new());
-    let skills = Arc::new(botvibe::SkillStore::new());
+    // #1444 M2 — persistent skills: the store hydrates the `vibe_skills`
+    // table (custom skills + marketplace installs survive restarts) and
+    // writes through on register/delete; bootstrap seeding stays idempotent.
+    let skills = Arc::new(botvibe::SkillStore::with_persistence(pool.clone()));
     if let Err(e) = skills.seed_bootstrap().await {
         log::error!("Vibe: bootstrap skills seeding failed: {e}");
     }

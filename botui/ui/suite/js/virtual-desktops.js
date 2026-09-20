@@ -5,7 +5,9 @@
 // so switching hides/shows the rest. A taskbar "Desktops" button opens a
 // mini strip; Ctrl+Shift+Arrow switches; Ctrl+Shift+1..9 jumps.
 //
-// Persistence: localStorage["gb-desktops"] = { desktops: [{id,name}], current }.
+// Persistence (#1434): localStorage["gb-desktops"] = { desktops: [{id,name,windows}],
+// current } for instant restore, mirrored to the user profile
+// (PUT /api/user/desktops) so the session survives reloads/relogins.
 
 window.GBVirtualDesktops = window.GBVirtualDesktops || {};
 
@@ -13,6 +15,7 @@ window.GBVirtualDesktops = window.GBVirtualDesktops || {};
   var STORAGE_KEY = "gb-desktops";
   var state = { desktops: [], current: 0 };
   var strip = null;
+  var syncTimer = null;
 
   function wm() {
     return window.WindowManager || null;
@@ -35,7 +38,71 @@ window.GBVirtualDesktops = window.GBVirtualDesktops || {};
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch (e) {}
+    mirrorToProfile();
     window.dispatchEvent(new CustomEvent("gb-desktops-changed", { detail: { desktops: state.desktops.slice(), current: state.current } }));
+  }
+
+  // #1434 — mirrors the desktop state to the user profile (debounced) so the
+  // session is keyed per user and survives reloads/new devices. Best-effort:
+  // failures are ignored, the localStorage copy stays authoritative.
+  function mirrorToProfile() {
+    if (syncTimer) clearTimeout(syncTimer);
+    syncTimer = setTimeout(function () {
+      try {
+        if (!window.GBSecurity || typeof window.GBSecurity.getToken !== "function") return;
+        var token = window.GBSecurity.getToken();
+        if (!token) return;
+        fetch("/api/user/desktops", {
+          method: "PUT",
+          credentials: "same-origin",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: "Bearer " + token,
+          },
+          body: JSON.stringify({
+            desktops: state.desktops,
+            current: state.current,
+          }),
+        }).catch(function () {});
+      } catch (e) {}
+    }, 1200);
+  }
+
+  // #1434 — restores a previously saved desktop state from the user profile
+  // when this browser has no local copy yet (new device / after relogin).
+  function restoreFromProfile(done) {
+    try {
+      if (!window.GBSecurity || typeof window.GBSecurity.getToken !== "function") {
+        done(false);
+        return;
+      }
+      var token = window.GBSecurity.getToken();
+      if (!token) {
+        done(false);
+        return;
+      }
+      fetch("/api/user/desktops", {
+        credentials: "same-origin",
+        headers: { Authorization: "Bearer " + token },
+      })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (data) {
+          var saved = data && data.found && data.state;
+          if (!saved || !Array.isArray(saved.desktops) || !saved.desktops.length) {
+            done(false);
+            return;
+          }
+          state.desktops = saved.desktops;
+          state.current = Math.min(saved.current || 0, state.desktops.length - 1);
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+          } catch (e) {}
+          done(true);
+        })
+        .catch(function () { done(false); });
+    } catch (e) {
+      done(false);
+    }
   }
 
   function desktopForWindow(id) {
@@ -180,13 +247,57 @@ window.GBVirtualDesktops = window.GBVirtualDesktops || {};
 
   // ── Window tracking ──────────────────────────────────────────
 
-  function trackWindow(id) {
+  // #1434 — force-new windows get a unique suffix (`chat-lx9abc-123`);
+  // restore maps them back to the base app so openDeepLink resolves the
+  // registry entry.
+  function baseAppId(id) {
+    var m = /^(.+?)-[0-9a-z]+-[0-9a-z]+$/.exec(id);
+    return m ? m[1] : id;
+  }
+
+  function trackWindow(id, params) {
     var d = state.desktops[state.current];
     if (!d.windows) d.windows = [];
     // A window opened while on desktop N belongs to N unless already placed.
     if (desktopForWindow(id) === -1 && d.windows.indexOf(id) === -1) {
       d.windows.push(id);
+      // #1434 — record the deep-link params so the session restore can
+      // reopen the window to WHERE it was (conversation, message, person).
+      if (params && Object.keys(params).length) {
+        state.windowParams = state.windowParams || {};
+        state.windowParams[id] = { appId: baseAppId(id), params: params };
+      }
       persist();
+    }
+  }
+
+  // ── Session restore (#1434) ──────────────────────────────────
+
+  // Reopens the previous session's windows onto the active desktop via deep
+  // links, behind a "Restore session?" prompt (privacy-sensitive contexts
+  // can decline and start clean).
+  function restoreSessionWindows() {
+    var d = state.desktops[state.current];
+    var ids = (d && d.windows) || [];
+    if (!ids.length) return;
+    var manager = wm();
+    if (!manager || typeof manager.openDeepLink !== "function") return;
+    var doRestore = function () {
+      ids.forEach(function (id) {
+        var meta = (state.windowParams || {})[id] || {};
+        manager.openDeepLink(meta.appId || baseAppId(id), meta.params || {});
+      });
+    };
+    if (window.WindowManager && window.WindowManager.confirmFloating) {
+      window.WindowManager.confirmFloating(
+        "Restore session",
+        "Reopen the " + ids.length + " window(s) from your last session on this desktop?",
+        doRestore,
+        null,
+        "Restore"
+      );
+    } else if (window.confirm("Restore your last session (" + ids.length + " window(s))?")) {
+      doRestore();
     }
   }
 
@@ -198,10 +309,29 @@ window.GBVirtualDesktops = window.GBVirtualDesktops || {};
     read();
     persist();
 
-    // Track window lifecycle via the WindowManager change event.
+    // #1434 — a browser with no local desktop copy adopts the user's saved
+    // profile state (new device / after relogin) before the first paint.
+    if (!state.desktops.length || (state.desktops.length === 1 && state.desktops[0].id === "desk-1")) {
+      restoreFromProfile(function (restored) {
+        if (restored) applyVisibility();
+      });
+    }
+
+    // Track window lifecycle via the WindowManager change event; the
+    // deep-link params snapshot rides along for the session restore (#1434).
     window.addEventListener("gb-window-changed", function (e) {
-      if (e.detail && e.detail.action === "open") trackWindow(e.detail.id);
+      if (e.detail && e.detail.action === "open") {
+        trackWindow(e.detail.id, e.detail.params);
+      }
     });
+
+    // #1434 — offer the previous session's windows back after a reload.
+    if (state.desktops.length) {
+      var cur = state.desktops[Math.min(state.current, state.desktops.length - 1)];
+      if (cur && (cur.windows || []).length) {
+        setTimeout(restoreSessionWindows, 2500);
+      }
+    }
 
     // Expose the toggle (backed by the taskbar tray button) and the rest of
     // the public surface.
@@ -213,7 +343,30 @@ window.GBVirtualDesktops = window.GBVirtualDesktops || {};
 
     document.addEventListener("keydown", onKeyDown);
     window.addEventListener("gb-window-changed", applyVisibility);
-    window.addEventListener("gb-window-closed", applyVisibility);
+    window.addEventListener("gb-window-closed", function (e) {
+      // #1434 — a closed window leaves the desktop assignment (and the
+      // session restore list), so a reload never reopens closed windows.
+      var id = e.detail && e.detail.id;
+      if (!id) {
+        applyVisibility();
+        return;
+      }
+      var touched = false;
+      state.desktops.forEach(function (d) {
+        var list = d.windows || [];
+        var idx = list.indexOf(id);
+        if (idx !== -1) {
+          list.splice(idx, 1);
+          touched = true;
+        }
+      });
+      if (state.windowParams && state.windowParams[id]) {
+        delete state.windowParams[id];
+        touched = true;
+      }
+      if (touched) persist();
+      applyVisibility();
+    });
   };
 })(window.GBVirtualDesktops);
 

@@ -428,19 +428,30 @@ impl crate::knowledge_graph::GraphDataSource for VibeApiInner {
         let runs_store = self.runs_store.clone();
         Box::pin(async move {
             let mut all: Vec<crate::knowledge_graph::RunNodeInfo> = Vec::new();
+            // #1446 — dedup by run_id: a run that was flushed to Postgres and
+            // is still in memory must appear once, not twice.
+            let mut seen: std::collections::HashSet<Uuid> = std::collections::HashSet::new();
             // Persisted runs (survive restarts, issue #799).
             for r in runs_store.list_runs(500) {
+                let id = r.run_id;
+                if !seen.insert(id) {
+                    continue;
+                }
                 all.push(crate::knowledge_graph::RunNodeInfo {
-                    run_id: r.run_id.to_string(),
+                    run_id: id.to_string(),
                     use_case: r.use_case.to_string(),
                     state: r.state.to_string(),
                     intent: r.intent.clone(),
                     tool_names: r.tool_calls.iter().map(|c| c.tool_name.clone()).collect(),
                     project_id: r.config.project_id.clone(),
+                    created_at: r.created_at,
                 });
             }
             // In-memory runs not yet flushed to Postgres.
             for r in runs.read().await.values() {
+                if !seen.insert(r.run_id) {
+                    continue;
+                }
                 all.push(crate::knowledge_graph::RunNodeInfo {
                     run_id: r.run_id.to_string(),
                     use_case: r.use_case.to_string(),
@@ -448,6 +459,7 @@ impl crate::knowledge_graph::GraphDataSource for VibeApiInner {
                     intent: r.intent.clone(),
                     tool_names: r.tool_calls.iter().map(|c| c.tool_name.clone()).collect(),
                     project_id: r.config.project_id.clone(),
+                    created_at: r.created_at,
                 });
             }
             all

@@ -114,6 +114,7 @@ fn is_admin_user(state: &Arc<AppState>, user_id: uuid::Uuid) -> bool {
 pub fn configure_settings_api_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/user/profile", get(settings_profile::user_profile_get).put(settings_profile::user_profile_put))
+        .route("/api/user/desktops", get(settings_profile::user_desktops_get).put(settings_profile::user_desktops_put))
         .route("/api/user/password", post(settings_profile::user_password))
         .route("/api/user/api-keys", get(settings_credentials::api_keys_list).post(settings_credentials::api_keys_create))
         .route("/api/user/api-keys/:key_id", axum::routing::delete(settings_credentials::api_keys_delete))

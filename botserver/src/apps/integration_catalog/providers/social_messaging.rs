@@ -3,12 +3,42 @@ use super::super::actions::{
     SOCIAL_ACTIONS,
 };
 use super::super::auth::{
-    API_KEY, GOOGLE_OAUTH2, INSTAGRAM_OAUTH2, OAUTH2, TOKEN, UNKNOWN, UNSUPPORTED,
+    API_KEY, GOOGLE_OAUTH2, INSTAGRAM_OAUTH2, OAUTH2, TELEGRAM, TOKEN, UNKNOWN, UNSUPPORTED,
+    WHATSAPP,
 };
 use super::super::types::{Category, Priority, ProviderSeed, Status, Strategy};
 use super::provider;
 
 pub(super) const PROVIDERS: &[ProviderSeed] = &[
+    // #1424/#1427 — Telegram and WhatsApp are live channel adapters
+    // (`bottelegram`/`botwhatsapp`): the seeds give them the same vault-backed
+    // credential setter as every other provider (Sources UI + chat), so the
+    // channel secrets (bot token, webhook secret, access token, verify
+    // token, phone number id) are settable without config.csv.
+    provider(
+        "telegram",
+        "Telegram",
+        Category::SocialMessaging,
+        Strategy::Integrate,
+        Status::Built,
+        Priority::Must,
+        Some("bottelegram"),
+        Some("https://core.telegram.org/bots/api"),
+        &TELEGRAM,
+        MESSAGING_ACTIONS,
+    ),
+    provider(
+        "whatsapp",
+        "WhatsApp Business",
+        Category::SocialMessaging,
+        Strategy::Integrate,
+        Status::Built,
+        Priority::Must,
+        Some("botwhatsapp"),
+        Some("https://developers.facebook.com/docs/whatsapp/cloud-api"),
+        &WHATSAPP,
+        MESSAGING_ACTIONS,
+    ),
     // Instagram is a live adapter (`botintegrations::providers::instagram`),
     // so the seed flips llm_available while `action_is_implemented` keeps the
     // per-action truth in sync with the registered adapter. Status stays

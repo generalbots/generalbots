@@ -41,7 +41,7 @@ pub struct ToolCallRecord {
 const MAX_EVENTS: usize = 50000;
 
 pub struct VibeTelemetry {
-    events: RwLock<Vec<VibeTelemetryEvent>>,
+    events: RwLock<std::collections::VecDeque<VibeTelemetryEvent>>,
     run_metrics: RwLock<HashMap<Uuid, RunMetrics>>,
     pool: Option<crate::types::DbPool>,
 }
@@ -93,7 +93,7 @@ pub struct UseCaseMetrics {
 impl VibeTelemetry {
     pub fn new() -> Self {
         Self {
-            events: RwLock::new(Vec::new()),
+            events: RwLock::new(std::collections::VecDeque::new()),
             run_metrics: RwLock::new(HashMap::new()),
             pool: None,
         }
@@ -110,7 +110,7 @@ impl VibeTelemetry {
                 Vec::new()
             });
         Self {
-            events: RwLock::new(events),
+            events: RwLock::new(events.into()),
             run_metrics: RwLock::new(HashMap::new()),
             pool: Some(pool),
         }
@@ -150,7 +150,9 @@ impl VibeTelemetry {
 
         {
             let mut events = self.events.write().await;
-            events.push(event.clone());
+            // #1446 — VecDeque keeps the compaction O(k): drain from the
+            // front instead of shifting the remaining 45k elements.
+            events.push_back(event.clone());
             if events.len() > MAX_EVENTS {
                 events.drain(0..5000);
             }
@@ -334,8 +336,25 @@ impl VibeTelemetry {
             0.0
         };
 
-        for m in by_use_case.values_mut() {
-            m.avg_latency_ms = avg_latency;
+        // #1446 — real per-use-case latency: the global average used to be
+        // copied into every bucket, which made the metric meaningless.
+        let mut uc_latency: HashMap<VibeUseCase, (u64, usize)> = HashMap::new();
+        for e in events.iter() {
+            let entry = uc_latency.entry(e.use_case).or_default();
+            entry.0 += e.latency_ms;
+            entry.1 += 1;
+        }
+        for (uc, m) in by_use_case.iter_mut() {
+            m.avg_latency_ms = uc_latency
+                .get(uc)
+                .map(|(sum, n)| {
+                    if *n > 0 {
+                        *sum as f64 / *n as f64
+                    } else {
+                        0.0
+                    }
+                })
+                .unwrap_or(0.0);
         }
 
         VibeGlobalMetrics {

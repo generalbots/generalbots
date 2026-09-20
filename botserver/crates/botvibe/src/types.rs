@@ -488,6 +488,18 @@ CREATE TABLE IF NOT EXISTS vibe_teams (
     completed_at TIMESTAMPTZ
 );
 CREATE INDEX IF NOT EXISTS idx_vibe_teams_status ON vibe_teams(status);
+
+CREATE TABLE IF NOT EXISTS vibe_skills (
+    skill_id UUID PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT NOT NULL DEFAULT '',
+    content TEXT NOT NULL,
+    triggers JSONB NOT NULL DEFAULT '[]',
+    enabled BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_vibe_skills_name ON vibe_skills(name);
 ";
 
 #[cfg(test)]
