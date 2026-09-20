@@ -2,7 +2,7 @@
 //! `csv_io.rs`). Email-keyed dedupe, row-level error reporting, audited.
 
 use axum::{
-    extract::State,
+    extract::{Query, State},
     http::{header, HeaderMap, StatusCode},
     response::IntoResponse,
     Json,
@@ -83,7 +83,13 @@ pub async fn export_contacts_csv(
         None,
         Some(serde_json::json!({ "rows": rows.len() })),
     );
-    Ok(([(header::CONTENT_TYPE, "text/csv; charset=utf-8")], out))
+    Ok((
+        [
+            (header::CONTENT_TYPE, "text/csv; charset=utf-8".to_string()),
+            (header::HeaderName::from_static("x-total-count"), rows.len().to_string()),
+        ],
+        out,
+    ))
 }
 
 /// `POST /api/crm/contacts/import` — email-keyed dedupe; rows without email
@@ -91,6 +97,7 @@ pub async fn export_contacts_csv(
 pub async fn import_contacts_csv(
     State(state): State<Arc<CrateState>>,
     headers: HeaderMap,
+    Query(query): Query<ImportQuery>,
     body: String,
 ) -> Result<Json<CsvImportReport>, (StatusCode, String)> {
     let mut conn = state.db_pool.get().map_err(db_err)?;
@@ -114,6 +121,7 @@ pub async fn import_contacts_csv(
         errors: Vec::new(),
     };
     let now = chrono::Utc::now();
+    let dry_run = query.dry_run.unwrap_or(false);
     for (idx, row) in rows.iter().enumerate() {
         let email = row.email.as_deref().map(str::trim).filter(|s| !s.is_empty());
         let has_name = row.first_name.as_deref().map(str::trim).filter(|s| !s.is_empty()).is_some()
@@ -134,6 +142,13 @@ pub async fn import_contacts_csv(
                 continue;
             }
         }
+        // #1456 — dry run: validate only, write nothing. Duplicates are
+        // still detected above; everything below would create rows.
+        if dry_run {
+            report.imported += 1;
+            continue;
+        }
+
         let contact = CrmContact {
             id: Uuid::new_v4(),
             org_id: branch_id,
@@ -186,7 +201,29 @@ pub async fn import_contacts_csv(
             Err(e) => report.errors.push((idx + 1, format!("insert failed: {e}"))),
         }
     }
+    audit::record(
+        &state,
+        &headers,
+        branch_id,
+        "contact",
+        None,
+        "import_csv",
+        None,
+        None,
+        Some(serde_json::json!({
+            "rows": report.imported,
+            "skipped": report.skipped_duplicates,
+            "errors": report.errors.len(),
+            "dry_run": dry_run
+        })),
+    );
     Ok(Json(report))
+}
+
+/// #1456 — import options: `?dry_run=true` validates without writing.
+#[derive(Debug, serde::Deserialize)]
+pub struct ImportQuery {
+    pub dry_run: Option<bool>,
 }
 
 #[derive(Debug, serde::Deserialize)]

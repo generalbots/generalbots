@@ -97,6 +97,7 @@ diesel::table! {
     crm_pipeline_stages (id) {
         id -> Uuid,
         org_id -> Uuid,
+        bot_id -> Uuid,
         branch_id -> Nullable<Uuid>,
         name -> Varchar,
         stage_order -> Int4,
