@@ -129,7 +129,7 @@ pub async fn handle_crm_contacts(
     headers: HeaderMap,
 ) -> impl IntoResponse {
     let Ok(mut conn) = state.db_pool.get() else {
-        return Html(r#"<tr><td colspan="6">No contacts yet</td></tr>"#.to_string());
+        return Html(r#"<tr><td colspan="7">No contacts yet</td></tr>"#.to_string());
     };
 
     let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
@@ -142,7 +142,7 @@ pub async fn handle_crm_contacts(
         .unwrap_or_default();
 
     if contacts.is_empty() {
-        return Html(r#"<tr><td colspan="6">No contacts yet</td></tr>"#.to_string());
+        return Html(r#"<tr><td colspan="7">No contacts yet</td></tr>"#.to_string());
     }
 
     let mut html = String::new();
@@ -158,6 +158,7 @@ pub async fn handle_crm_contacts(
         let phone = contact.phone.as_deref().unwrap_or("-");
         html.push_str(&format!(
             r#"<tr class="crm-row" data-id="{}">
+<td><input type="checkbox" class="opp-select" data-id="{}"></td>
 <td class="contact-name">{}</td>
 <td class="contact-company">{}</td>
 <td class="contact-title">{}</td>
@@ -165,6 +166,7 @@ pub async fn handle_crm_contacts(
 <td class="contact-phone">{}</td>
 <td class="row-actions"><button class="btn-icon" title="Edit">✏️</button><button class="btn-icon" title="Delete">🗑</button></td>
 </tr>"#,
+            contact.id,
             contact.id,
             html_escape(&name),
             html_escape(company),

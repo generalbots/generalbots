@@ -255,6 +255,7 @@
         <table class="crm-table">
             <thead>
                 <tr>
+                    <th><input type="checkbox" id="contacts-check-all" title="Select all"></th>
                     <th data-i18n="crm-col-name">Name</th>
                     <th data-i18n="crm-col-account">Account</th>
                     <th data-i18n="crm-col-title">Title</th>
@@ -266,10 +267,24 @@
             <tbody id="contacts-table-body" hx-get="/api/ui/crm/contacts" hx-trigger="load">
             </tbody>
         </table>
+        <!-- #1450/#1451 — contacts bulk bar with CSV import/export -->
+        <div class="crm-bulk-bar" id="contacts-bulk-bar">
+            <span class="crm-bulk-count" id="contacts-bulk-count">0 selected</span>
+            <button class="btn-secondary" id="contacts-export-btn">Export CSV</button>
+            <button class="btn-secondary" id="contacts-import-btn">Import CSV</button>
+            <button class="btn-danger" id="contacts-bulk-delete-btn">Delete</button>
+            <input type="file" id="contacts-import-file" accept=".csv,text/csv" style="display:none">
+            <span class="crm-bulk-result" id="contacts-bulk-result"></span>
+        </div>
+        </table>
     </div>
 
     <!-- Campaigns View -->
     <div id="crm-campaigns-view" class="crm-view">
+        <div class="crm-bulk-bar">
+            <button class="btn-primary" id="campaign-new-btn">New Campaign</button>
+            <span class="crm-bulk-result" id="campaign-result"></span>
+        </div>
         <div class="campaigns-grid" id="crmCampaignsList" 
              hx-get="/api/ui/crm/campaigns"
              hx-trigger="load"
@@ -292,6 +307,32 @@
 <!-- Detail Panel -->
 <div id="detail-panel" class="crm-detail-panel"></div>
 
+<!-- #1453 — campaign create form, loaded into the shared modal on demand -->
+<template id="campaign-form-template">
+    <form id="campaignForm" class="crm-form">
+        <div class="crm-form-group">
+            <label class="crm-form-label">Name</label>
+            <input type="text" name="name" class="crm-form-input" required>
+        </div>
+        <div class="crm-form-group">
+            <label class="crm-form-label">Channel</label>
+            <select name="channel" class="crm-form-input">
+                <option value="email">Email</option>
+                <option value="whatsapp">WhatsApp</option>
+            </select>
+        </div>
+        <div class="crm-form-group">
+            <label class="crm-form-label">Budget</label>
+            <input type="number" name="budget" class="crm-form-input" min="0" step="0.01">
+        </div>
+        <div class="crm-form-group">
+            <label class="crm-form-label">Scheduled at</label>
+            <input type="datetime-local" name="scheduled_at" class="crm-form-input">
+        </div>
+        <button type="submit" class="btn-primary">Create</button>
+    </form>
+</template>
+
 <!-- #1441 P2 — audit trail drawer, opened from the header History button -->
 <div id="crm-audit-drawer" class="crm-audit-drawer">
     <div class="crm-audit-head">
@@ -302,3 +343,4 @@
 </div>
 
 <script src="/suite/crm/crm.js?v=2"></script>
+<script src="/suite/crm/crm-p2.js?v=1"></script>

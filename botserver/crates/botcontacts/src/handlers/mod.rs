@@ -4,6 +4,7 @@ pub mod deals;
 pub mod lifecycle;
 pub mod bulk_csv;
 pub mod csv_io;
+pub mod contacts_csv;
 pub mod opportunities;
 pub mod crm;
 pub mod activities;
