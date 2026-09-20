@@ -72,15 +72,15 @@ pub struct CrmAccount {
 #[diesel(table_name = crm_pipeline_stages)]
 pub struct CrmPipelineStage {
     pub id: Uuid,
-    pub branch_id: Uuid,
+    pub org_id: Uuid,
+    pub branch_id: Option<Uuid>,
     pub name: String,
     pub stage_order: i32,
-    pub probability: Option<i32>,
-    pub color: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub probability: i32,
     pub is_won: bool,
     pub is_lost: bool,
+    pub color: Option<String>,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable, AsChangeset)]
