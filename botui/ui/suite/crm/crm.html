@@ -18,6 +18,7 @@
             <nav class="crm-tabs">
                 <button class="crm-tab active" data-view="pipeline" data-i18n="crm-pipeline">Pipeline</button>
                 <button class="crm-tab" data-view="deals" data-i18n="crm-deals">Deals</button>
+                <button class="crm-tab" data-view="opportunities" data-i18n="crm-opportunities">Opportunities</button>
                 <button class="crm-tab" data-view="accounts" data-i18n="crm-accounts">Accounts</button>
                 <button class="crm-tab" data-view="contacts" data-i18n="crm-contacts">Contacts</button>
                 <button class="crm-tab" data-view="campaigns" data-i18n="crm-campaigns">Campaigns</button>
@@ -157,6 +158,24 @@
         </div>
     </div>
 
+    <!-- Opportunities List View (#1441 A3) -->
+    <div id="crm-opportunities-view" class="crm-view">
+        <table class="crm-table">
+            <thead>
+                <tr>
+                    <th data-i18n="crm-col-name">Name</th>
+                    <th data-i18n="crm-col-value">Value</th>
+                    <th data-i18n="crm-col-stage">Stage</th>
+                    <th data-i18n="crm-col-probability">Probability</th>
+                    <th data-i18n="crm-col-close">Expected Close</th>
+                    <th data-i18n="crm-col-source">Source</th>
+                    <th data-i18n="crm-col-status">Status</th>
+                </tr>
+            </thead>
+            <tbody id="opportunities-table-body" hx-get="/api/ui/crm/opportunities" hx-trigger="load"></tbody>
+        </table>
+    </div>
+
     <!-- Deals List View -->
     <div id="crm-deals-view" class="crm-view">
         <div class="crm-list-header">
@@ -284,11 +303,8 @@
         document.getElementById('crm-modal').classList.remove('open');
     };
 
-    // Drag and drop for pipeline (#1298).
-    // Cards are server-rendered via HTMX after this script runs, so listeners
-    // are delegated on the pipeline container instead of bound per column.
-    // Fix 1: cards rendered draggable server-side (crm_ui.rs); here we supply
-    // the drag payload via dragstart, which was previously never set.
+    // Drag and drop for pipeline (#1298) — fully DELEGATED on the container so
+    // columns rebuilt from the stages API (#1441 A4) keep working.
     const pipelineRoot = document.getElementById('crm-pipeline-view');
     pipelineRoot.addEventListener('dragstart', e => {
         const card = e.target.closest('.pipeline-card');
@@ -302,38 +318,74 @@
             .forEach(c => c.classList.remove('dragging'));
     });
 
-    pipelineRoot.querySelectorAll('.pipeline-cards').forEach(column => {
-        column.addEventListener('dragover', e => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            column.classList.add('drag-over');
-        });
-
-        column.addEventListener('dragleave', (e) => {
-            if (!column.contains(e.relatedTarget)) {
-                column.classList.remove('drag-over');
-            }
-        });
-
-        column.addEventListener('drop', e => {
-            e.preventDefault();
-            column.classList.remove('drag-over');
-            const cardId = e.dataTransfer.getData('text/plain');
-            const card = pipelineRoot.querySelector(`.pipeline-card[data-id="${cardId}"]`);
-            const newStage = column.closest('.pipeline-column').dataset.stage;
-            if (!cardId || !newStage) return;
-            if (card && card.closest('.pipeline-column') === column.closest('.pipeline-column')) return;
-
-            // Move card visually, then persist via PUT /api/crm/leads/:id/stage
-            // (the old code POSTed to a nonexistent opportunity route).
-            if (card) column.appendChild(card);
-            htmx.ajax('PUT', `/api/crm/leads/${cardId}/stage?stage=${encodeURIComponent(newStage)}`, { swap: 'none' })
-                .then(() => {
-                    // Refresh stage counts after the move
-                    htmx.trigger(document.body, 'crm:stage-changed');
-                });
-        });
+    pipelineRoot.addEventListener('dragover', e => {
+        const column = e.target.closest('.pipeline-cards');
+        if (!column) return;
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        column.classList.add('drag-over');
     });
+
+    pipelineRoot.addEventListener('dragleave', (e) => {
+        const column = e.target.closest('.pipeline-cards');
+        if (column && !column.contains(e.relatedTarget)) {
+            column.classList.remove('drag-over');
+        }
+    });
+
+    pipelineRoot.addEventListener('drop', e => {
+        const column = e.target.closest('.pipeline-cards');
+        if (!column) return;
+        e.preventDefault();
+        column.classList.remove('drag-over');
+        const cardId = e.dataTransfer.getData('text/plain');
+        const card = pipelineRoot.querySelector(`.pipeline-card[data-id="${cardId}"]`);
+        const newStage = column.closest('.pipeline-column').dataset.stage;
+        if (!cardId || !newStage) return;
+        if (card && card.closest('.pipeline-column') === column.closest('.pipeline-column')) return;
+
+        // Move card visually, then persist via PUT /api/crm/leads/:id/stage
+        if (card) column.appendChild(card);
+        htmx.ajax('PUT', `/api/crm/leads/${cardId}/stage?stage=${encodeURIComponent(newStage)}`, { swap: 'none' })
+            .then(() => {
+                // Refresh stage counts after the move
+                htmx.trigger(document.body, 'crm:stage-changed');
+            });
+    });
+
+    // #1441 A4 — pipeline stages are org-configurable: render the kanban from
+    // /api/crm/pipeline/stages (order/labels from the API); the static six
+    // columns above remain as fallback when the API is unavailable.
+    fetch('/api/crm/pipeline/stages', {
+        headers: { 'Authorization': 'Bearer ' + (localStorage.getItem('gb_token') || '') }
+    })
+        .then(r => r.ok ? r.json() : Promise.reject(r.status))
+        .then(stages => {
+            if (!Array.isArray(stages) || !stages.length) return;
+            const container = pipelineRoot.querySelector('.pipeline-container');
+            if (!container) return;
+            const sorted = stages.slice().sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
+            container.innerHTML = sorted.map((s, i) => `
+                <div class="pipeline-column${s.name === 'won' ? ' won' : ''}${s.name === 'lost' ? ' lost' : ''}" data-stage="${s.name}">
+                    <div class="pipeline-header">
+                        <span class="pipeline-title">${s.name}</span>
+                        <span class="pipeline-count" hx-get="/api/crm/count?stage=${encodeURIComponent(s.name)}" hx-trigger="load">0</span>
+                    </div>
+                    <div class="pipeline-cards"
+                         hx-get="/api/crm/pipeline?stage=${encodeURIComponent(s.name)}"
+                         hx-trigger="load"
+                         hx-swap="innerHTML"></div>
+                    ${i === 0 ? `<button class="pipeline-add" hx-get="/suite/crm/partials/lead-form.html" hx-target="#crm-modal-content" hx-on::after-request="openCrmModal()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        <span data-i18n="crm-add-lead">Add Lead</span>
+                    </button>` : ''}
+                </div>`).join('');
+            if (window.i18n && window.i18n.translatePage) window.i18n.translatePage();
+            htmx.process(container);
+        })
+        .catch(() => { /* keep static fallback columns */ });
 
     // Keep counts in sync after any stage change
     document.body.addEventListener('crm:stage-changed', function() {
