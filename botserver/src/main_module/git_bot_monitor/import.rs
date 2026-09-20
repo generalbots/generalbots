@@ -92,10 +92,21 @@ async fn import_dialog_from_drive(
         .as_ref()
         .ok_or_else(|| "drive (S3) not available in AppState".to_string())?;
     let bot_prefix = format!("{prefix}{bot_name}.gbdialog/");
-    let objects = s3
-        .list_objects(bucket, Some(&bot_prefix))
-        .await
-        .map_err(|e| format!("list {bot_prefix}: {e}"))?;
+    let objects = match s3.list_objects(bucket, Some(&bot_prefix)).await {
+        Ok(o) => o,
+        // A branch with no Drive bucket (fresh/demo) has zero sources — not
+        // an error, otherwise the import warn-loops on every boot.
+        Err(e) if e.to_string().to_lowercase().contains("nosuchbucket")
+            || e.to_string().to_lowercase().contains("no such bucket")
+            || e.to_string().to_lowercase().contains("404") =>
+        {
+            log::info!(
+                "[git_import] {bot_name}: bucket {bucket} absent on Drive — treating as fresh branch"
+            );
+            Vec::new()
+        }
+        Err(e) => return Err(format!("list {bot_prefix}: {e}")),
+    };
     std::fs::create_dir_all(dialog_dir)
         .map_err(|e| format!("mkdir {}: {e}", dialog_dir.display()))?;
     let mut copied = 0usize;
