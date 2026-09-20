@@ -24,6 +24,46 @@ pub struct SearchQuery {
     pub q: Option<String>,
 }
 
+/// #1450 — HTMX fragment pagination: `?offset=` shifts the 50-row window;
+/// the pager bar is appended server-side so the grid stays HTMX-only.
+#[derive(Debug, serde::Deserialize)]
+pub struct PagerQuery {
+    #[serde(default)]
+    pub stage: Option<String>,
+    #[serde(default)]
+    pub offset: Option<i64>,
+}
+
+pub const PAGE_SIZE: i64 = 50;
+
+/// Renders the ‹ Prev / Page N of M / Next › bar as a full-width row.
+fn pager_bar(total: i64, offset: i64) -> String {
+    if total <= PAGE_SIZE {
+        return String::new();
+    }
+    let pages = (total + PAGE_SIZE - 1) / PAGE_SIZE;
+    let current = offset / PAGE_SIZE + 1;
+    let prev = if offset >= PAGE_SIZE {
+        format!(
+            r#"<button class="pager-btn" hx-get="/api/ui/crm/opportunities?offset={}" hx-target="closest table" hx-swap="outerHTML">&#8249; Prev</button>"#,
+            offset - PAGE_SIZE
+        )
+    } else {
+        String::new()
+    };
+    let next = if offset + PAGE_SIZE < total {
+        format!(
+            r#"<button class="pager-btn" hx-get="/api/ui/crm/opportunities?offset={}" hx-target="closest table" hx-swap="outerHTML">Next &#8250;</button>"#,
+            offset + PAGE_SIZE
+        )
+    } else {
+        String::new()
+    };
+    format!(
+        r#"<tr class="pager-row"><td colspan="8">{prev}<span class="pager-label">Page {current} of {pages} · {total} records</span>{next}</td></tr>"#
+    )
+}
+
 fn get_bot_context(state: &CrateState) -> Uuid {
     state.get_bot_context()
 }
@@ -637,17 +677,27 @@ pub async fn handle_crm_opportunities_search(
 pub async fn handle_crm_opportunities(
     State(state): State<Arc<CrateState>>,
     headers: HeaderMap,
+    Query(query): Query<PagerQuery>,
 ) -> impl IntoResponse {
     let Ok(mut conn) = state.db_pool.get() else {
         return Html(r#"<tr><td colspan="8">No opportunities yet</td></tr>"#.to_string());
     };
 
     let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
+    let offset = query.offset.unwrap_or(0).max(0);
+
+    // #1450 — total drives the pager bar; window shifts with ?offset=.
+    let total: i64 = crm_opportunities::table
+        .filter(crm_opportunities::branch_id.eq(branch_id))
+        .count()
+        .get_result(&mut conn)
+        .unwrap_or(0);
 
     let opportunities: Vec<crate::models::CrmOpportunity> = crm_opportunities::table
         .filter(crm_opportunities::branch_id.eq(branch_id))
         .order(crm_opportunities::created_at.desc())
-        .limit(50)
+        .limit(PAGE_SIZE)
+        .offset(offset)
         .load(&mut conn)
         .unwrap_or_default();
 
@@ -693,6 +743,7 @@ pub async fn handle_crm_opportunities(
             status = status,
         ));
     }
+    html.push_str(&pager_bar(total, offset));
 
     Html(html)
 }
