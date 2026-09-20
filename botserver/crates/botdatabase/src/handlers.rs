@@ -261,6 +261,11 @@ fn resolve_project_pool(
     botcore::project_db::validate_db_name(&db_name)
         .map_err(|e| error_response(&format!("Invalid project database: {e}")))?;
 
+    // #1447 S1 — the identifier is interpolated into pg_database text and
+    // DDL below; the strict allowlist check runs at each interpolation site.
+    botcore::project_db::assert_safe_db_name(&db_name)
+        .map_err(|e| error_response(&format!("Invalid project database: {e}")))?;
+
     let exists: bool = diesel::sql_query(format!(
         "SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = '{db_name}') AS exists"
     ))
@@ -268,6 +273,8 @@ fn resolve_project_pool(
     .map(|r| r.exists)
     .map_err(|e| internal_error(&format!("Check project database: {e}")))?;
     if !exists {
+        botcore::project_db::assert_safe_db_name(&db_name)
+            .map_err(|e| error_response(&format!("Invalid project database: {e}")))?;
         diesel::sql_query(format!("CREATE DATABASE {db_name}"))
             .execute(&mut conn)
             .map_err(|e| internal_error(&format!("Create project database: {e}")))?;
@@ -388,10 +395,11 @@ fn get_bot_pool_for_env(
         format!("{prod_db}_dev")
     };
 
-    // Identifier-safe by construction (derived from an existing bot DB name).
-    if dev_db.len() > 63 || !dev_db.chars().all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_') {
-        return Err(error_response("Invalid dev database name"));
-    }
+    // #1447 S1 — identifier-safe by construction (derived from an existing
+    // bot DB name); the strict allowlist check still runs at each
+    // interpolation site below.
+    botcore::project_db::assert_safe_db_name(&dev_db)
+        .map_err(|e| error_response(&format!("Invalid dev database: {e}")))?;
 
     let exists: bool = diesel::sql_query(format!(
         "SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = '{dev_db}') AS exists"
@@ -400,6 +408,8 @@ fn get_bot_pool_for_env(
     .map(|r| r.exists)
     .map_err(|e| internal_error(&format!("Check dev database: {e}")))?;
     if !exists {
+        botcore::project_db::assert_safe_db_name(&dev_db)
+            .map_err(|e| error_response(&format!("Invalid dev database: {e}")))?;
         diesel::sql_query(format!("CREATE DATABASE {dev_db}"))
             .execute(&mut conn)
             .map_err(|e| internal_error(&format!("Create dev database: {e}")))?;

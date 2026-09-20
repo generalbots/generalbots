@@ -21,11 +21,13 @@ apps=chat,drive,vibe,calculator,sheet,timer,photos,weather,recycle
 # These do NOT appear in the launcher or the sidebar by default. They are
 # revealed only while Preview mode is on, which the user toggles with the
 # Preview switch in the left sidebar.
-# Everything in the suite catalog except chat, drive and vibe is preview.
+# Everything in the suite catalog except the `apps` list above is preview.
+# The Vibe sub-surfaces (db/graph/metrics/members/deploy/metering) are NOT
+# listed here: they are toolwindow views inside the single Vibe app (#1429).
 # Ids are validated against the catalog in `src/apps/registry.rs` and the
 # feature map in `src/apps/mod.rs::is_app_compiled`; an id in neither place is
 # ignored by the launcher and should not be listed here.
-preview_apps=vibe-db,vibe-deploy,vibe-graph,vibe-members,vibe-metering,vibe-metrics,analytics,attendant,automations,banking,billing,biometry,campaigns,compliance,concierge,designer,docs,fraud,handoff,hr,itsm,jukebox,kyc,learn,lists,marketing,memory,minutes,monitoring,notes,o365,paper,plan,pos,products,project,research,retail,sales,slides,social,sources,store,tasks,tax,templates,tickets,timeclock,video,vision,workspace
+preview_apps=analytics,attendant,automations,banking,billing,biometry,campaigns,compliance,concierge,designer,docs,fraud,handoff,hr,itsm,jukebox,kyc,learn,lists,marketing,memory,minutes,monitoring,notes,o365,paper,plan,pos,products,project,research,retail,sales,slides,social,sources,store,tasks,tax,templates,tickets,timeclock,video,vision,workspace
 
 
 # Sidebar visibility

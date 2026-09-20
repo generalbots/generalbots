@@ -66,6 +66,12 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
             // global (nil) scope for unbound callers, so anonymous reads
             // never leak other orgs' bots or published apps.
             .add_anonymous_path("/api/apps/catalog")
+            // #1428 — the Integrations provider catalog is the same static
+            // surface: an internal app's browse list. The handler serves the
+            // built-in provider seeds only (no tenant data), so the 401 the
+            // middleware answered made the catalog show a "Sign in"
+            // interstitial that blocked the whole app.
+            .add_anonymous_path("/api/apps/integrations/catalog")
             .add_anonymous_path("/ws")
             // Terminal WS: the browser WebSocket API cannot send an
             // Authorization header, so the upgrade is anonymous and gated by

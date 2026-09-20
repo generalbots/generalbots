@@ -313,8 +313,6 @@ fn is_app_compiled(id: &str) -> bool {
         "automations" => true,
         "memory" => true,
         "clock-widget" => true,
-        "vibe-graph" | "vibe-metrics" | "vibe-members" | "vibe-deploy" | "vibe-db"
-        | "vibe-metering" => true,
         _ => false,
     }
 }

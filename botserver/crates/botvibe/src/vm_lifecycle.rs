@@ -394,20 +394,32 @@ impl VmLifecycle {
             }
             match self.linux_exists(&vm.container_name) {
                 Ok(false) => {
-                    let already_reported = missing_container_reports()
-                        .lock()
-                        .map(|mut reported| !reported.insert(vm.container_name.clone()))
-                        .unwrap_or(false);
-                    if already_reported {
-                        log::debug!(
-                            "Vibe prod-VM guard: {} still missing (already reported)",
-                            vm.container_name
-                        );
-                    } else {
-                        log::warn!(
-                            "Vibe prod-VM guard: {} row exists but container is missing — redeploy to recreate",
-                            vm.container_name
-                        );
+                    // #1444 M3 — a pruned prod container must fail honestly:
+                    // the row used to stay `running` forever (the reaper
+                    // skips production), so the published URL 502'd until a
+                    // manual redeploy. The row is marked `failed` once with
+                    // the reason; the UI/proxy stop showing running and the
+                    // operator redeploys (which recreates + resyncs).
+                    if vm.status != "failed" {
+                        let already_reported = missing_container_reports()
+                            .lock()
+                            .map(|mut reported| !reported.insert(vm.container_name.clone()))
+                            .unwrap_or(false);
+                        if !already_reported {
+                            log::warn!(
+                                "Vibe prod-VM guard: {} row exists but container is missing — marking failed (redeploy to recreate)",
+                                vm.container_name
+                            );
+                        }
+                        if let Err(e) = self.set_failed(
+                            &vm.id,
+                            "production container is missing (pruned?) — redeploy to recreate",
+                        ) {
+                            log::error!(
+                                "Vibe prod-VM guard: mark {} failed: {e}",
+                                vm.container_name
+                            );
+                        }
                     }
                 }
                 Ok(true) => {
@@ -417,7 +429,18 @@ impl VmLifecycle {
                         reported.remove(&vm.container_name);
                     }
                     match self.linux_running(&vm.container_name) {
-                        Ok(true) => {}
+                        Ok(true) => {
+                            // #1444 M3 — heal a row a previous guard marked
+                            // failed once the container is genuinely back.
+                            if vm.status == "failed" {
+                                if let Err(e) = self.set_status(&vm.id, "running") {
+                                    log::error!(
+                                        "Vibe prod-VM guard: heal status for {} failed: {e}",
+                                        vm.container_name
+                                    );
+                                }
+                            }
+                        }
                         Ok(false) => match self.linux_start(&vm.container_name) {
                             Ok(()) => {
                                 if let Err(e) = self.set_status(&vm.id, "running") {

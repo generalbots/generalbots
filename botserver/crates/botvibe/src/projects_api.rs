@@ -988,12 +988,21 @@ async fn run_project_app(
         let key = workspace_key(&project);
         // #1312 — same LLM-first scaffold as project creation so an
         // automatically created project also starts from AI-generated code.
+        // #1445 G3 — re-seed from the REAL stored intent (the creation
+        // description rides in the project payload); `None` here used to
+        // yield a generic brief that diverged from the user's prompt.
+        let stored_intent = project
+            .payload
+            .get("description")
+            .and_then(|d| d.as_str())
+            .map(str::trim)
+            .filter(|d| !d.is_empty());
         if let Err(e) = crate::scaffold::scaffold_project_workspace(
             &key,
             &project.name,
             &project.project_type,
             project.framework.as_deref(),
-            None,
+            stored_intent,
         )
         .await
         {

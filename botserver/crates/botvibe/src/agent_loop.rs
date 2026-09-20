@@ -237,6 +237,13 @@ impl AgentLoop {
         let triggered = self.skills.auto_trigger(&run.intent).await;
         let grounding_refs: Vec<String> = triggered.iter().map(|s| s.content.clone()).collect();
 
+        // #1446 G8 — the planner sidecar was a pure REST router the loop
+        // never called; the loop now decomposes the intent planner-style
+        // with the run's own LLM and injects the steps as guidance. On
+        // planner failure (or timeout) the normal loop path continues
+        // unchanged.
+        self.inject_planner_guidance(run, &mut context).await;
+
         let mut empty_parse_rounds: u32 = 0;
         let mut verify_failures: u32 = 0;
         for step in 0..max_steps {
@@ -496,6 +503,58 @@ impl AgentLoop {
         (model, api_key, api_url)
     }
 
+    /// #1446 G8 — planner decomposition before the loop: decomposes the
+    /// intent into a short numbered plan with the run's own LLM and injects
+    /// the steps as guidance into the system prompt. Resilient by design:
+    /// any failure (no LLM, timeout, unparsable JSON) is logged and the
+    /// normal loop path continues unchanged.
+    async fn inject_planner_guidance(&self, run: &VibeRun, context: &mut crate::types::VibeContext) {
+        let (model, api_key, api_url) = self.resolve_llm(run);
+        let settings = crate::llm_client::LlmSettings {
+            url: api_url,
+            model,
+            key: api_key,
+        };
+        let decompose = crate::llm_client::chat_completion(
+            &settings,
+            "You decompose an intent into a short numbered execution plan. Reply with ONLY a JSON \
+             array of step strings, no prose, no markdown fences.",
+            &run.intent,
+        );
+        let parsed = match timeout(Duration::from_secs(20), decompose).await {
+            Ok(Ok(raw)) => {
+                let json = crate::llm_client::extract_json(&raw);
+                serde_json::from_str::<Vec<String>>(&json).ok()
+            }
+            Ok(Err(e)) => {
+                log::debug!("Vibe run {}: planner decomposition skipped: {e}", run.run_id);
+                None
+            }
+            Err(_) => {
+                log::debug!("Vibe run {}: planner decomposition timed out", run.run_id);
+                None
+            }
+        };
+        let Some(plan) = parsed else {
+            return;
+        };
+        if plan.is_empty() {
+            return;
+        }
+        let mut guidance =
+            String::from("\n\nPLANNED STEPS (follow in order; adapt when verification fails):\n");
+        for (i, step) in plan.iter().enumerate().take(10) {
+            guidance.push_str(&format!("{}. {step}\n", i + 1));
+        }
+        context.system_prompt.push_str(&guidance);
+        self.broadcast_event(
+            run,
+            "planning",
+            &format!("Plan: {} steps", plan.len()),
+            15,
+        );
+    }
+
     /// vibe33 #813 — retries the LLM call with short backoff so transient
     /// provider failures do not kill the whole run. Deterministic client
     /// errors (bad key, wrong model, malformed request) fail fast on the
@@ -556,7 +615,26 @@ impl AgentLoop {
         run: &VibeRun,
         user_message: &str,
     ) -> Result<(String, Option<LlmUsage>), String> {
-        let prompt = self.prompt_manager.compose_prompt(context, user_message);
+        let mut prompt = self.prompt_manager.compose_prompt(context, user_message);
+        // #1446 G7 — capabilities reach the LLM as text too: the tool
+        // schemas below are already filtered by use case, and the prompt
+        // now names the same allowed set so it never promises a tool the
+        // executor would reject.
+        let allowed_tools = self.tool_schemas_for(run.use_case).await;
+        if !allowed_tools.is_empty() {
+            let mut section = String::from(
+                "\n\nAvailable capabilities for this use case (only these tools may be called):\n",
+            );
+            for tool in allowed_tools.iter().take(40) {
+                if let (Some(name), Some(desc)) = (
+                    tool["function"]["name"].as_str(),
+                    tool["function"]["description"].as_str(),
+                ) {
+                    section.push_str(&format!("- {name}: {desc}\n"));
+                }
+            }
+            prompt.push_str(&section);
+        }
         let system = self
             .prompt_manager
             .system_prompt_for(run.use_case, &run.config.lang);

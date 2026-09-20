@@ -398,7 +398,10 @@ impl DriveMonitor {
                     continue;
                 }
                 if is_sensitive_key(key) {
-                    log::info!("Ignoring sensitive key '{}' from config.csv for bot {} — secrets must be configured via Vault", key, bot_name);
+                    // #1425 — warn (not info): a user following the docs and
+                    // putting a connection password here gets a connection
+                    // that can never authenticate; the line must be visible.
+                    log::warn!("Ignoring sensitive key '{}' from config.csv for bot {} — secrets must be configured via Vault", key, bot_name);
                     continue;
                 }
                 if let Err(e) = config_manager.set_config_with_branch(&self.bot_id, key, value, branch_id) {

@@ -292,41 +292,69 @@ async fn do_refresh_dev(pool: DbPool, args: Value) -> Result<Value, String> {
     crate::project_db::ensure_project_database(&pool, project.branch_id, &project.name, "production")?;
     crate::project_db::ensure_project_database(&pool, project.branch_id, &project.name, "test")?;
 
-    // Resolve connection parameters from DATABASE_URL (never logged).
-    let url = crate::project_db::database_url_for(&dev_db);
-    let _ = url; // connection string flows to psql below; never logged
-    let base = std::env::var("DATABASE_URL")
-        .unwrap_or_else(|_| "postgres://postgres:postgres@localhost:5432/botserver".to_string());
-    let conn_str = crate::project_db::database_url_for(&prod_db);
-    let _ = conn_str;
+    // Connection URLs built via `database_url_for` (rfind('/') segment
+    // replacement); never logged.
+    let prod_url = crate::project_db::database_url_for(&prod_db);
+    let dev_url = crate::project_db::database_url_for(&dev_db);
 
     tokio::task::spawn_blocking(move || -> Result<Value, String> {
-        // Dump production schema+data to a temp file, then restore into dev.
-        // --clean drops objects before recreate so the dev twin is fully
+        // Dump production schema+data to a 0600 temp file, then restore into
+        // dev. --clean drops objects before recreate so the dev twin is fully
         // replaced. --if-exists avoids errors on a fresh dev database.
-        let dump_file = format!("/tmp/gb-refresh-dev-{}.sql", uuid::Uuid::new_v4());
+        // #1447 S2 — the URLs come from `database_url_for`; a naive
+        // `base.replace("botserver", db)` would corrupt a password that
+        // contains "botserver". The dump file is pre-created 0600 — a
+        // world-readable /tmp dump on a shared host leaks data.
+        let dump_file = std::env::temp_dir().join(format!("gb-refresh-dev-{}.sql", uuid::Uuid::new_v4()));
+        {
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::OpenOptionsExt;
+                std::fs::OpenOptions::new()
+                    .write(true)
+                    .create(true)
+                    .truncate(true)
+                    .mode(0o600)
+                    .open(&dump_file)
+                    .map_err(|e| format!("create temp dump: {e}"))?;
+            }
+            #[cfg(not(unix))]
+            {
+                std::fs::File::create(&dump_file).map_err(|e| format!("create temp dump: {e}"))?;
+            }
+        }
         let dump = std::process::Command::new("pg_dump")
             .arg("--dbname")
-            .arg(&base.replace("botserver", &prod_db))
+            .arg(&prod_url)
             .arg("--file")
             .arg(&dump_file)
             .arg("--no-owner")
             .arg("--no-privileges")
             .output()
-            .map_err(|e| format!("pg_dump spawn: {e}"))?;
+            .map_err(|e| match e.kind() {
+                std::io::ErrorKind::NotFound => {
+                    "pg_dump not found on this host — install the PostgreSQL client tools".to_string()
+                }
+                _ => format!("pg_dump spawn: {e}"),
+            })?;
         if !dump.status.success() {
             let _ = std::fs::remove_file(&dump_file);
             return Err(format!("pg_dump failed: {}", String::from_utf8_lossy(&dump.stderr)));
         }
         let restore = std::process::Command::new("psql")
             .arg("--dbname")
-            .arg(base.replace("botserver", &dev_db))
+            .arg(&dev_url)
             .arg("--file")
             .arg(&dump_file)
             .arg("--set")
             .arg("ON_ERROR_STOP=on")
             .output()
-            .map_err(|e| format!("psql spawn: {e}"))?;
+            .map_err(|e| match e.kind() {
+                std::io::ErrorKind::NotFound => {
+                    "psql not found on this host — install the PostgreSQL client tools".to_string()
+                }
+                _ => format!("psql spawn: {e}"),
+            })?;
         let stderr = String::from_utf8_lossy(&restore.stderr).to_string();
         let _ = std::fs::remove_file(&dump_file);
         if !restore.status.success() {

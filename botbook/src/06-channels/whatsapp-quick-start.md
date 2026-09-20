@@ -145,17 +145,28 @@ node server.js
 
 ### Step 7: Configure General Bots (2 minutes)
 
+Sensitive WhatsApp credentials are **Vault-only** — the drive monitor skips
+sensitive keys in `config.csv`, so a token there never reaches the channel
+adapter. Set them through the **Integrations app** (Sources UI: WhatsApp →
+Connect securely) or directly in Vault:
+
 ```bash
-# Edit .gbot/config.csv
+# Resolve org/branch from the bots table, then store the credentials in the
+# per-bot Vault path (the adapter reads api-key, verify-token, phone-number-id
+# and business-account-id from here):
+vault kv put secret/gbo/<org_id>/<branch_id>/<bot_id> \
+  whatsapp-api-key=EAAQyour_api_key_here \
+  whatsapp-verify-token=4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY \
+  whatsapp-phone-number-id=YOUR_PHONE_NUMBER_ID \
+  whatsapp-business-account-id=YOUR_WABA_ID
+# Restart botserver to apply (the adapter is built at boot).
 ```
+
+Non-sensitive switches (e.g. `whatsapp-enabled`) stay in `.gbot/config.csv`:
 
 ```csv
 key,value
 whatsapp-enabled,true
-whatsapp-api-key,EAAQyour_api_key_here
-whatsapp-phone-number-id,YOUR_PHONE_NUMBER_ID
-whatsapp-business-account-id,YOUR_WABA_ID
-whatsapp-webhook-verify-token,4qIogZadggQ.BEoMeciXIdl_MlkV_1DTx8Z_i0bYPxtSJwKSbH0FKlY
 whatsapp-application-id,YOUR_APP_ID
 ```
 
@@ -202,7 +213,7 @@ END ON
 ## Common First-Time Mistakes
 
 ❌ **Don't select SMS verification** - Use "Phone Call"
-❌ **Don't hardcode tokens** - Use config.csv
+❌ **Don't hardcode tokens** - Secrets are Vault-only (Integrations app or `vault kv put`)
 ❌ **Don't forget webhook subscriptions** - Subscribe to "messages"
 ❌ **Don't use + in phone numbers** - Format: 5511999999999
 ❌ **Don't ignore rate limits** - Max 1000 messages/second
@@ -231,7 +242,7 @@ END ON
 - [ ] Access token generated and saved
 - [ ] Webhook configured and verified
 - [ ] Webhook subscribed to "messages"
-- [ ] config.csv updated with all credentials
+- [ ] Vault credentials set (or Integrations app Connect saved)
 - [ ] Test message sent successfully
 - [ ] Incoming webhook received
 - [ ] Bot replied to test message

@@ -254,9 +254,13 @@ if (typeof window.WindowManager === "undefined") {
     // a catalog load — but never a preview app the switch is holding back.
     // The permanently-visible apps (#1409) surface even when the catalog has
     // loaded but omits them (e.g. before the backend catalog catches up).
+    // #1429 — Vibe sub-surface toolwindows (`vibe-*`) are views inside the
+    // single Vibe app, not catalog ids: they survive the catalog load so
+    // Vibe's toolbar and deep links keep resolving them (they stay out of
+    // every launcher via the toolwindow / `vibe-` prefix filters).
     embeddedApps.forEach(function (a) {
       if (known[a.id]) return;
-      if (catalogLoaded && !isAlwaysAppId(a.id)) return;
+      if (catalogLoaded && !isAlwaysAppId(a.id) && String(a.id).indexOf("vibe-") !== 0) return;
       var preview = isPreviewId(a.id);
       if (preview && !previewOn) return;
       a.preview = preview;
@@ -465,7 +469,12 @@ if (typeof window.WindowManager === "undefined") {
       // with a stale/negative offset that pushes it off-screen. Clamp the
       // window into the visible workspace so it can never be unreachable.
       this._clampWindowIntoView(id);
-      document.dispatchEvent(new CustomEvent("gb-window-changed", { detail: { action: "open", id } }));
+      // #1432/#1439/#1434 — the open event carries the deep-link params
+      // snapshot so the session restore can reopen windows to WHERE they
+      // were (conversation id, person, project).
+      document.dispatchEvent(new CustomEvent("gb-window-changed", {
+        detail: { action: "open", id, params: Object.assign({}, window.__gbAppParams__ || {}) },
+      }));
       if (window.htmx) htmx.process(windowEl);
       if (window.Desktop3D && window.Desktop3D.initialized) {
         window.Desktop3D.createWindowPlane(id, title);

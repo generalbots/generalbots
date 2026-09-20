@@ -47,6 +47,7 @@ function vibeSafeTaskNode(title, description, meta) {
 }
 
 function vibeRouteEvent(eventData, raw) {
+    vibeReplayStore(eventData);
     if (
         typeof window.VibeRun !== "undefined" &&
         window.VibeRun &&
@@ -54,6 +55,37 @@ function vibeRouteEvent(eventData, raw) {
     ) {
         window.VibeRun.onProgress(eventData, raw);
     }
+}
+
+// #1448 — run progress is broadcast on an in-memory channel only, so a
+// reload replays nothing. A localStorage ring buffer keeps the last events
+// (10-minute freshness window) and they are replayed on the next WS connect.
+var VIBE_REPLAY_KEY = "gb-vibe-ws-replay";
+var VIBE_REPLAY_MAX = 60;
+var VIBE_REPLAY_WINDOW_MS = 10 * 60 * 1000;
+
+function vibeReplayStore(eventData) {
+    try {
+        var buf = JSON.parse(localStorage.getItem(VIBE_REPLAY_KEY) || "[]");
+        if (!Array.isArray(buf)) buf = [];
+        buf.push({ at: Date.now(), event: eventData });
+        if (buf.length > VIBE_REPLAY_MAX) buf = buf.slice(buf.length - VIBE_REPLAY_MAX);
+        localStorage.setItem(VIBE_REPLAY_KEY, JSON.stringify(buf));
+    } catch (e) { }
+}
+
+function vibeReplayBuffered() {
+    var buf = [];
+    try {
+        buf = JSON.parse(localStorage.getItem(VIBE_REPLAY_KEY) || "[]");
+    } catch (e) {
+        return;
+    }
+    if (!Array.isArray(buf)) return;
+    var cutoff = Date.now() - VIBE_REPLAY_WINDOW_MS;
+    buf.forEach(function (item) {
+        if (item && item.at >= cutoff && item.event) vibeRouteEvent(item.event, null);
+    });
 }
 
 function connectVibeWs() {
@@ -121,6 +153,9 @@ function connectVibeWs() {
 
             vibeWs.onopen = function () {
                 vibeSafeStatus("connected");
+                // #1448 — replay recent run progress so a reload shows where
+                // the run left off instead of a blank Run Dock.
+                vibeReplayBuffered();
             };
 
             vibeWs.onmessage = function (event) {

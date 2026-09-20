@@ -229,6 +229,14 @@ impl ProjectRegistry {
                 payload["clone_url"] = serde_json::json!(clone_url);
             }
         }
+        // #1445 G3 — the user's intent is stored in the payload so a later
+        // re-seed of an empty workspace (run_project_app) scaffolds from the
+        // REAL description instead of a generic brief.
+        if let Some(desc) = req.description.as_deref() {
+            if !desc.trim().is_empty() {
+                payload["description"] = serde_json::json!(desc);
+            }
+        }
 
         let id = Uuid::new_v4();
         diesel::sql_query(

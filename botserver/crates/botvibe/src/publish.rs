@@ -342,12 +342,6 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
 
     let metering = crate::metering::VMetering::new(pool.clone());
     metering.enforce_for_project(project_id, crate::metering::MeterKind::BuildMinutes)?;
-    let _ = metering.add_for_project(
-        project_id,
-        &env,
-        crate::metering::MeterKind::BuildMinutes,
-        1.0,
-    );
 
     // #1288 — website and python projects in production are served straight
     // from the proxy container's shared websites dir (Caddy file_server),
@@ -547,6 +541,22 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
     };
 
     let files = collect_workspace_files(&project)?;
+    // #1444 M4 — an empty workspace must fail loudly: publishing `files: []`
+    // used to record track:ok and bill BuildMinutes while the user saw
+    // published:true for an empty repo. Billing happens only after this
+    // guard, so a phantom deploy is never billed.
+    if files.is_empty() {
+        return Err(format!(
+            "cannot publish an empty workspace for project '{}' — run the project first so the scaffold lands, then publish",
+            project.name
+        ));
+    }
+    let _ = metering.add_for_project(
+        project_id,
+        &env,
+        crate::metering::MeterKind::BuildMinutes,
+        1.0,
+    );
     // The Vibe project registry uses the user-facing kinds `apps` and
     // `website`, while the deployment API accepts `app-*` and `site`.
     // Translate at the boundary so a calculator/apps app is deployable.

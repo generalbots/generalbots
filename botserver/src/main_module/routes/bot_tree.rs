@@ -417,6 +417,24 @@ pub async fn handle_bot_config_put(
         .execute(&mut conn);
     }
 
+    // #1427 — platform credential setters: `embedding-key` (KB embedding
+    // server) and `botmodels-api-key` (BotModels anomaly API) are sensitive
+    // keys, so they persist through the ConfigManager (Vault per-bot path) —
+    // NEVER into bot_configuration plaintext.
+    let config_manager = botcore::config::ConfigManager::new(state.conn.clone());
+    let mut platform_credentials: Vec<(&str, Option<String>)> = vec![
+        ("embedding-key", form.get("embedding_key").cloned()),
+        ("botmodels-api-key", form.get("botmodels_api_key").cloned()),
+    ];
+    platform_credentials.retain(|(_, v)| v.as_deref().map(str::trim).unwrap_or("").len() > 0);
+    for (key, value) in platform_credentials {
+        if let Err(e) =
+            config_manager.set_config_with_branch(&bot_id, key, value.as_deref().unwrap_or_default(), None)
+        {
+            log::error!("platform credential '{key}' persist for bot {bot_id} failed: {e}");
+        }
+    }
+
     Json(serde_json::json!({ "success": true })).into_response()
 }
 
