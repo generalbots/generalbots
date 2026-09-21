@@ -3274,6 +3274,7 @@ dependencies = [
  "diesel",
  "hex",
  "hmac 0.12.1",
+ "jsonwebtoken",
  "lettre",
  "log",
  "rand 0.9.4",
