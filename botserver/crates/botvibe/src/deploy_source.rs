@@ -73,6 +73,13 @@ pub fn materialize_files(
     project: &Project,
     rev: Option<&str>,
 ) -> Result<Vec<Value>, String> {
+    // Native-mode projects (source_control != "git") keep the legacy
+    // workspace walk — the module contract. Git-mode projects never fall
+    // back here: a pending provisioning or git failure must fail the
+    // deploy rather than ship uncommitted workspace state (#1505).
+    if project.source_control != "git" {
+        return fallback_files(project, "native mode");
+    }
     let revision = match deploy_revision(project, rev)? {
         Some(r) => r,
         None => return fallback_files(project, "no commits yet"),
