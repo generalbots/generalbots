@@ -1,6 +1,7 @@
 //! `api::tests` — split per #1443.
 
 use super::*;
+use super::run::derive_project_name;
 
     use super::*;
 

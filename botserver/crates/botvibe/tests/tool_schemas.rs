@@ -47,12 +47,17 @@ fn ops_tools_registry_shapes() {
         vec![
             "vm/probe",
             "vm/restart",
+            // #1504 — bot two-env Run/Deploy hooks.
+            "bot/run-test",
+            "bot/deploy-prod",
             "publish/history",
             "publish/rollback",
             "backup/snapshot",
             "backup/export",
             "backup/list",
             "backup/restore",
+            // #1386 — refresh a project's `_dev` database from prod.
+            "db/refresh-dev",
         ]
     );
 

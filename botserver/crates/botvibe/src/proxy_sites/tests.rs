@@ -1,8 +1,9 @@
 //! `proxy_sites::tests` — split per #1443.
 
 use super::*;
-
-    use super::*;
+    use super::caddy::{RESERVED_SLUGS, check_payload_limits};
+    use super::caddy_2::{drop_foreign_domain_blocks, drop_site_block};
+    use super::sites::{MAX_FILES, MAX_SINGLE_FILE_BYTES};
     use crate::vm_lifecycle::VmLifecycle;
 
     #[test]

@@ -1,8 +1,7 @@
 //! `teams::tests` — split per #1443.
 
 use super::*;
-
-    use super::*;
+use super::store::team_status;
 
     fn sample_team(name: &str) -> VibeTeam {
         VibeTeam {

@@ -2,16 +2,8 @@ use botvibe::knowledge_graph::{
     build_run_graph, build_use_case_graph, GraphDataSource, GraphFuture, RunNodeInfo,
 };
 
-struct MockGraphSource {
-    runs: Vec<RunNodeInfo>,
-}
-
-impl GraphDataSource for MockGraphSource {
-    fn snapshot_runs(&self) -> GraphFuture<Vec<RunNodeInfo>> {
-        let runs = self.runs.clone();
-        Box::pin(async move { runs })
-    }
-}
+/// Fixed timestamp so sort-order assertions are deterministic across runs.
+const TS: chrono::DateTime<chrono::Utc> = chrono::DateTime::UNIX_EPOCH;
 
 fn sw_dev_run(id: &str, tools: &[&str]) -> RunNodeInfo {
     RunNodeInfo {
@@ -21,6 +13,18 @@ fn sw_dev_run(id: &str, tools: &[&str]) -> RunNodeInfo {
         intent: "Add login page".to_string(),
         tool_names: tools.iter().map(|t| t.to_string()).collect(),
         project_id: Some("00000000-0000-0000-0000-0000000000aa".to_string()),
+        created_at: TS,
+    }
+}
+
+struct MockGraphSource {
+    runs: Vec<RunNodeInfo>,
+}
+
+impl GraphDataSource for MockGraphSource {
+    fn snapshot_runs(&self) -> GraphFuture<Vec<RunNodeInfo>> {
+        let runs = self.runs.clone();
+        Box::pin(async move { runs })
     }
 }
 
@@ -36,6 +40,7 @@ fn use_case_graph_has_root_run_and_tool_nodes() {
             intent: "Help with ticket".to_string(),
             tool_names: vec!["search_kb".to_string()],
             project_id: None,
+            created_at: TS,
         },
     ];
 
@@ -89,6 +94,7 @@ fn use_case_graph_scopes_to_project_when_requested() {
             intent: "Other project".to_string(),
             tool_names: vec!["deploy_app".to_string()],
             project_id: Some("00000000-0000-0000-0000-0000000000bb".to_string()),
+            created_at: TS,
         },
     ];
     let graph = build_use_case_graph(
@@ -117,6 +123,7 @@ fn use_case_graph_with_only_foreign_runs_keeps_root() {
         intent: "Help".to_string(),
         tool_names: vec![],
         project_id: None,
+        created_at: TS,
     }];
     let graph = build_use_case_graph("financial_analysis", &runs, None);
     assert_eq!(graph.nodes.len(), 1);

@@ -1,8 +1,7 @@
 //! `pipeline::tests` — split per #1443.
 
 use super::*;
-
-    use super::*;
+    use super::runner::stage_outcome;
     use crate::types::VibeRun;
     use std::collections::HashMap;
     use tokio::sync::RwLock;
@@ -23,17 +22,21 @@ use super::*;
         }
         #[cfg(not(target_os = "windows"))]
         {
-            // #1268 — 9 stages: the original 7 plus domain_verify + domain_tls
-            // appended so a bound domain never stays verified=false/tls=pending.
-            assert_eq!(pipeline.stages.len(), 9);
+            // #1268 — the original 7 plus domain_verify + domain_tls appended
+            // so a bound domain never stays verified=false/tls=pending;
+            // #1504 — promote_bot runs before publish to move the TEST
+            // release into the PROD bot layout (tolerates failure).
+            assert_eq!(pipeline.stages.len(), 10);
             assert_eq!(pipeline.stages[2].kind, PipelineStageKind::BuildTest);
             // #1271 — the deploy pipeline snapshots the current deployment
             // before committing the new state, so rollback is one combo click.
             assert_eq!(pipeline.stages[3].kind, PipelineStageKind::SnapshotPrevious);
             assert_eq!(pipeline.stages[4].kind, PipelineStageKind::CommitPush);
-            assert_eq!(pipeline.stages[5].kind, PipelineStageKind::PublishApp);
+            assert_eq!(pipeline.stages[5].kind, PipelineStageKind::PromoteBotProd);
+            assert_eq!(pipeline.stages[6].kind, PipelineStageKind::PublishApp);
             assert!(pipeline.stages[4].requires_approval);
             assert!(pipeline.stages[6].requires_approval);
+            assert!(pipeline.stage("promote_bot").is_some());
             assert!(pipeline.stage("domain").unwrap().requires_approval);
             assert_eq!(
                 pipeline.stage("domain").unwrap().name,
