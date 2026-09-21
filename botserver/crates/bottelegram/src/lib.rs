@@ -6,6 +6,7 @@ mod media_names;
 pub mod schema;
 pub mod session;
 pub mod state;
+pub mod types;
 pub mod webhook;
 
 pub use adapter::TelegramAdapter;

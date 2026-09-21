@@ -88,6 +88,9 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
             // signature), so the transport gate must let them in — otherwise
             // the whole channel is unreachable in production (#1327, #1330).
             .add_anonymous_path("/webhook/telegram")
+            // Per-bot Telegram webhook: the bot name selects the bot; the
+            // handler proves the call with the secret-token header (#1327).
+            .add_anonymous_path("/webhook/telegram/*")
             .add_anonymous_path("/api/instagram/webhook")
             .add_anonymous_path("/api/msteams/messages")
             .add_anonymous_path("/api/catalog")
