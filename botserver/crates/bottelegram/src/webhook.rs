@@ -53,8 +53,9 @@ pub(crate) fn extract_message_content(message: &TelegramMessage) -> String {
 pub fn configure() -> Router<Arc<ChannelState>> {
     Router::new()
         .route("/webhook/telegram", post(handle_webhook))
+        // axum 0.7 path-param syntax (":name"); "{name}" is axum 0.8+.
         .route(
-            "/webhook/telegram/{bot_name}",
+            "/webhook/telegram/:bot_name",
             post(handle_webhook_for_bot),
         )
         .route("/api/telegram/send", post(crate::handlers::send_message))
