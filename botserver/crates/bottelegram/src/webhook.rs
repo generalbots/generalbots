@@ -1,10 +1,14 @@
 use crate::adapter::TelegramAdapter;
 use crate::media::message_content;
 use crate::state::ChannelState;
-use crate::session::{find_or_create_session, resolve_bot_scope, route_to_attendant, route_to_bot};
+use crate::session::{
+    find_or_create_session_for_bot, resolve_bot_scope, resolve_bot_scope_by_name,
+    route_to_attendant, route_to_bot,
+};
+use crate::types::{TelegramCallbackQuery, TelegramMessage, TelegramUpdate};
 
 use axum::{
-    extract::State,
+    extract::{Path, State},
     http::HeaderMap,
     http::StatusCode,
     response::IntoResponse,
@@ -12,160 +16,8 @@ use axum::{
     Json, Router,
 };
 use log::{debug, info, warn};
-use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TelegramUpdate {
-    pub update_id: i64,
-    #[serde(default)]
-    pub message: Option<TelegramMessage>,
-    #[serde(default)]
-    pub edited_message: Option<TelegramMessage>,
-    #[serde(default)]
-    pub callback_query: Option<TelegramCallbackQuery>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TelegramMessage {
-    pub message_id: i64,
-    pub from: Option<TelegramUser>,
-    pub chat: TelegramChat,
-    pub date: i64,
-    #[serde(default)]
-    pub text: Option<String>,
-    #[serde(default)]
-    pub photo: Option<Vec<TelegramPhotoSize>>,
-    #[serde(default)]
-    pub document: Option<TelegramDocument>,
-    #[serde(default)]
-    pub voice: Option<TelegramVoice>,
-    #[serde(default)]
-    pub audio: Option<TelegramAudio>,
-    #[serde(default)]
-    pub video: Option<TelegramVideo>,
-    #[serde(default)]
-    pub location: Option<TelegramLocation>,
-    #[serde(default)]
-    pub contact: Option<TelegramContact>,
-    #[serde(default)]
-    pub caption: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TelegramUser {
-    pub id: i64,
-    pub is_bot: bool,
-    pub first_name: String,
-    #[serde(default)]
-    pub last_name: Option<String>,
-    #[serde(default)]
-    pub username: Option<String>,
-    #[serde(default)]
-    pub language_code: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TelegramChat {
-    pub id: i64,
-    #[serde(rename = "type")]
-    pub chat_type: String,
-    #[serde(default)]
-    pub title: Option<String>,
-    #[serde(default)]
-    pub username: Option<String>,
-    #[serde(default)]
-    pub first_name: Option<String>,
-    #[serde(default)]
-    pub last_name: Option<String>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TelegramPhotoSize {
-    pub file_id: String,
-    pub file_unique_id: String,
-    pub width: i32,
-    pub height: i32,
-    #[serde(default)]
-    pub file_size: Option<i64>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TelegramDocument {
-    pub file_id: String,
-    pub file_unique_id: String,
-    #[serde(default)]
-    pub file_name: Option<String>,
-    #[serde(default)]
-    pub mime_type: Option<String>,
-    #[serde(default)]
-    pub file_size: Option<i64>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TelegramVoice {
-    pub file_id: String,
-    pub file_unique_id: String,
-    pub duration: i32,
-    #[serde(default)]
-    pub mime_type: Option<String>,
-    #[serde(default)]
-    pub file_size: Option<i64>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TelegramAudio {
-    pub file_id: String,
-    pub file_unique_id: String,
-    pub duration: i32,
-    #[serde(default)]
-    pub performer: Option<String>,
-    #[serde(default)]
-    pub title: Option<String>,
-    #[serde(default)]
-    pub mime_type: Option<String>,
-    #[serde(default)]
-    pub file_size: Option<i64>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TelegramVideo {
-    pub file_id: String,
-    pub file_unique_id: String,
-    pub width: i32,
-    pub height: i32,
-    pub duration: i32,
-    #[serde(default)]
-    pub mime_type: Option<String>,
-    #[serde(default)]
-    pub file_size: Option<i64>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TelegramLocation {
-    pub longitude: f64,
-    pub latitude: f64,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TelegramContact {
-    pub phone_number: String,
-    pub first_name: String,
-    #[serde(default)]
-    pub last_name: Option<String>,
-    #[serde(default)]
-    pub user_id: Option<i64>,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TelegramCallbackQuery {
-    pub id: String,
-    pub from: TelegramUser,
-    #[serde(default)]
-    pub message: Option<TelegramMessage>,
-    #[serde(default)]
-    pub data: Option<String>,
-}
+use uuid::Uuid;
 
 pub(crate) fn extract_message_content(message: &TelegramMessage) -> String {
     if let Some(text) = &message.text {
@@ -201,6 +53,10 @@ pub(crate) fn extract_message_content(message: &TelegramMessage) -> String {
 pub fn configure() -> Router<Arc<ChannelState>> {
     Router::new()
         .route("/webhook/telegram", post(handle_webhook))
+        .route(
+            "/webhook/telegram/{bot_name}",
+            post(handle_webhook_for_bot),
+        )
         .route("/api/telegram/send", post(crate::handlers::send_message))
 }
 
@@ -230,20 +86,15 @@ fn secret_matches(expected: &str, provided: &str) -> bool {
     !provided.is_empty() && provided.trim() == expected
 }
 
-/// Reads the configured secret from the default bot and compares it with the
-/// delivered header. Returns `500` when the configuration cannot be read: the
-/// message would fail later anyway (the session needs the same database), and
-/// failing closed keeps a spoofed delivery out during a database outage.
-fn verify_webhook_secret(state: &Arc<ChannelState>, headers: &HeaderMap) -> WebhookGate {
-    let mut conn = match state.conn.get() {
-        Ok(conn) => conn,
-        Err(e) => {
-            log::error!("Telegram webhook secret check failed, no database connection: {e}");
-            return WebhookGate::Rejected(StatusCode::INTERNAL_SERVER_ERROR);
-        }
-    };
-
-    let (bot_id, _) = resolve_bot_scope(state, &mut conn);
+/// Reads the configured secret for `bot_id` and compares it with the delivered
+/// header. Returns `500` when the configuration cannot be read: the message
+/// would fail later anyway (the session needs the same database), and failing
+/// closed keeps a spoofed delivery out during a database outage.
+fn verify_webhook_secret_for_bot(
+    state: &Arc<ChannelState>,
+    bot_id: Uuid,
+    headers: &HeaderMap,
+) -> WebhookGate {
     let expected = (state.get_config)(&bot_id, SECRET_CONFIG_KEY, None).unwrap_or_default();
 
     let provided = headers
@@ -266,7 +117,37 @@ pub async fn handle_webhook(
     headers: HeaderMap,
     Json(update): Json<TelegramUpdate>,
 ) -> impl IntoResponse {
-    match verify_webhook_secret(&state, &headers) {
+    handle_webhook_in(state, None, headers, update).await
+}
+
+/// Per-bot inbound webhook: the bot name is carried in the path so a shared
+/// deployment can point every bot at its own URL instead of funneling all
+/// deliveries through the workspace default bot.
+pub async fn handle_webhook_for_bot(
+    State(state): State<Arc<ChannelState>>,
+    Path(bot_name): Path<String>,
+    headers: HeaderMap,
+    Json(update): Json<TelegramUpdate>,
+) -> impl IntoResponse {
+    handle_webhook_in(state, Some(bot_name), headers, update).await
+}
+
+async fn handle_webhook_in(
+    state: Arc<ChannelState>,
+    bot_name: Option<String>,
+    headers: HeaderMap,
+    update: TelegramUpdate,
+) -> StatusCode {
+    // The delivery is attributed to one bot up front: from the URL path on the
+    // per-bot route, from the workspace default otherwise. The same scope then
+    // drives the secret check and the session, so a delivery can never be
+    // verified against one bot and processed by another.
+    let (bot_id, _branch_id) = match resolve_delivery_scope(&state, bot_name.as_deref()) {
+        Ok(scope) => scope,
+        Err(status) => return status,
+    };
+
+    match verify_webhook_secret_for_bot(&state, bot_id, &headers) {
         WebhookGate::Allowed => {}
         WebhookGate::Rejected(status) => return status,
     }
@@ -274,13 +155,13 @@ pub async fn handle_webhook(
     info!("Telegram webhook received: update_id={}", update.update_id);
 
     if let Some(message) = update.message.or(update.edited_message) {
-        if let Err(e) = process_message(state.clone(), &message).await {
+        if let Err(e) = process_message(state.clone(), bot_id, &message).await {
             log::error!("Failed to process Telegram message: {}", e);
         }
     }
 
     if let Some(callback) = update.callback_query {
-        if let Err(e) = process_callback(state.clone(), &callback).await {
+        if let Err(e) = process_callback(state.clone(), bot_id, &callback).await {
             log::error!("Failed to process Telegram callback: {}", e);
         }
     }
@@ -288,8 +169,31 @@ pub async fn handle_webhook(
     StatusCode::OK
 }
 
+/// Resolves the bot a delivery belongs to. The per-bot route looks the name up
+/// and answers `404` for an unknown one — falling back to the workspace
+/// default would attribute the message to the wrong conversation. The plain
+/// route keeps the workspace default resolution.
+fn resolve_delivery_scope(
+    state: &Arc<ChannelState>,
+    bot_name: Option<&str>,
+) -> Result<(Uuid, Uuid), StatusCode> {
+    let mut conn = state.conn.get().map_err(|e| {
+        log::error!("Telegram webhook scope check failed, no database connection: {e}");
+        StatusCode::INTERNAL_SERVER_ERROR
+    })?;
+
+    match bot_name {
+        Some(name) => resolve_bot_scope_by_name(&mut conn, name).ok_or_else(|| {
+            warn!("Telegram webhook delivery for unknown bot '{name}' rejected");
+            StatusCode::NOT_FOUND
+        }),
+        None => Ok(resolve_bot_scope(state, &mut conn)),
+    }
+}
+
 async fn process_message(
     state: Arc<ChannelState>,
+    bot_id: Uuid,
     message: &TelegramMessage,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let chat_id = message.chat.id.to_string();
@@ -306,7 +210,7 @@ async fn process_message(
         })
         .unwrap_or_else(|| "Unknown".to_string());
 
-    let session = find_or_create_session(&state, &chat_id, &user_name)?;
+    let session = find_or_create_session_for_bot(&state, bot_id, &chat_id, &user_name)?;
 
     let adapter = TelegramAdapter::new(
         state.conn.clone(),
@@ -346,6 +250,7 @@ async fn process_message(
 
 async fn process_callback(
     state: Arc<ChannelState>,
+    bot_id: Uuid,
     callback: &TelegramCallbackQuery,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let chat_id = callback
@@ -374,7 +279,7 @@ async fn process_callback(
         user_name, chat_id, data
     );
 
-    let session = find_or_create_session(&state, &chat_id, &user_name)?;
+    let session = find_or_create_session_for_bot(&state, bot_id, &chat_id, &user_name)?;
 
     route_to_bot(state, &session, &data, &chat_id).await?;
 
