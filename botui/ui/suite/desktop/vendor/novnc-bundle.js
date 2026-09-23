@@ -16,7 +16,7 @@ function toSigned32bit(toConvert) {
     return toConvert | 0;
 }
 
-}})();
+})();
 
 // === util/logging.js ===
 (function() { // module util_logging
@@ -76,7 +76,7 @@ function getLogging() {
 // Initialize logging level
 initLogging();
 
-}})();
+})();
 
 // === util/strings.js ===
 (function() { // module util_strings
@@ -109,7 +109,7 @@ function encodeUTF8(DOMString) {
     return unescape(encodeURIComponent(DOMString));
 }
 
-}})();
+})();
 
 // === util/browser.js ===
 (function() { // module util_browser
@@ -265,7 +265,7 @@ function isBlink() {
     return !!navigator.userAgent.match('Chrome/...');
 }
 
-}})();
+})();
 
 // === util/element.js ===
 (function() { // module util_element
@@ -302,7 +302,7 @@ function clientToElement(x, y, elem) {
     return pos;
 }
 
-}})();
+})();
 
 // === util/events.js ===
 (function() { // module util_events
@@ -445,7 +445,7 @@ function releaseCapture() {
     }
 }
 
-}})();
+})();
 
 // === util/eventtarget.js ===
 (function() { // module util_eventtarget
@@ -486,7 +486,7 @@ class EventTargetMixin {
 }
 
 window['class'] = typeof class !== 'undefined' ? class : window['class'];
-}})();
+})();
 
 // === util/cursor.js ===
 (function() { // module util_cursor
@@ -740,7 +740,7 @@ class Cursor {
 }
 
 window['class'] = typeof class !== 'undefined' ? class : window['class'];
-}})();
+})();
 
 // === input/keysym.js ===
 (function() { // module input_keysym
@@ -1361,7 +1361,7 @@ window['class'] = typeof class !== 'undefined' ? class : window['class'];
     XF86XK_LogGrabInfo:             0x1008FE25,
 };
 
-}})();
+})();
 
 // === input/xtscancodes.js ===
 (function() { // module input_xtscancodes
@@ -1539,7 +1539,7 @@ window['class'] = typeof class !== 'undefined' ? class : window['class'];
   "WakeUp": 0xe063, /* html:WakeUp (WakeUp) -> linux:143 (KEY_WAKEUP) -> atset1:57443 */
 };
 
-}})();
+})();
 
 // === input/keyboard.js ===
 (function() { // module input_keyboard
@@ -1832,7 +1832,7 @@ class Keyboard {
 }
 
 window['class'] = typeof class !== 'undefined' ? class : window['class'];
-}})();
+})();
 
 // === input/gesturehandler.js ===
 (function() { // module input_gesturehandler
@@ -2405,7 +2405,7 @@ class GestureHandler {
 }
 
 window['class'] = typeof class !== 'undefined' ? class : window['class'];
-}})();
+})();
 
 // === encodings.js ===
 (function() { // module encodings
@@ -2459,7 +2459,7 @@ function encodingName(num) {
     }
 }
 
-}})();
+})();
 
 // === decoders/raw.js ===
 (function() { // module decoders_raw
@@ -2524,7 +2524,7 @@ class RawDecoder {
 }
 
 window['class'] = typeof class !== 'undefined' ? class : window['class'];
-}})();
+})();
 
 // === decoders/copyrect.js ===
 (function() { // module decoders_copyrect
@@ -2557,7 +2557,7 @@ class CopyRectDecoder {
 }
 
 window['class'] = typeof class !== 'undefined' ? class : window['class'];
-}})();
+})();
 
 // === decoders/rre.js ===
 (function() { // module decoders_rre
@@ -2607,7 +2607,7 @@ class RREDecoder {
 }
 
 window['class'] = typeof class !== 'undefined' ? class : window['class'];
-}})();
+})();
 
 // === decoders/hextile.js ===
 (function() { // module decoders_hextile
@@ -2793,7 +2793,7 @@ class HextileDecoder {
 }
 
 window['class'] = typeof class !== 'undefined' ? class : window['class'];
-}})();
+})();
 
 // === decoders/tight.js ===
 (function() { // module decoders_tight
@@ -3190,7 +3190,7 @@ class TightDecoder {
 }
 
 window['class'] = typeof class !== 'undefined' ? class : window['class'];
-}})();
+})();
 
 // === decoders/tightpng.js ===
 (function() { // module decoders_tightpng
@@ -3222,7 +3222,7 @@ class TightPNGDecoder extends TightDecoder {
 }
 
 window['class'] = typeof class !== 'undefined' ? class : window['class'];
-}})();
+})();
 
 // === decoders/zrle.js ===
 (function() { // module decoders_zrle
@@ -3412,7 +3412,7 @@ class ZRLEDecoder {
 }
 
 window['class'] = typeof class !== 'undefined' ? class : window['class'];
-}})();
+})();
 
 // === decoders/jpeg.js ===
 (function() { // module decoders_jpeg
@@ -3564,7 +3564,7 @@ class JPEGDecoder {
 }
 
 window['class'] = typeof class !== 'undefined' ? class : window['class'];
-}})();
+})();
 
 // === base64.js ===
 (function() { // module base64
@@ -3672,7 +3672,7 @@ window['class'] = typeof class !== 'undefined' ? class : window['class'];
     }
 }; /* End of Base64 namespace */
 
-}})();
+})();
 
 // === inflator.js ===
 (function() { // module inflator
@@ -3741,7 +3741,7 @@ class Inflate {
 }
 
 window['class'] = typeof class !== 'undefined' ? class : window['class'];
-}})();
+})();
 
 // === deflator.js ===
 (function() { // module deflator
@@ -3828,7 +3828,7 @@ class Deflator {
 }
 
 window['class'] = typeof class !== 'undefined' ? class : window['class'];
-}})();
+})();
 
 // === websock.js ===
 (function() { // module websock
@@ -4198,7 +4198,7 @@ class Websock {
 }
 
 window['class'] = typeof class !== 'undefined' ? class : window['class'];
-}})();
+})();
 
 // === display.js ===
 (function() { // module display
@@ -4729,7 +4729,7 @@ class Display {
 }
 
 window['class'] = typeof class !== 'undefined' ? class : window['class'];
-}})();
+})();
 
 // === ra2.js ===
 (function() { // module ra2
@@ -5044,7 +5044,7 @@ class RSAAESAuthenticationState extends EventTargetMixin {
 }
 
 window['class'] = typeof class !== 'undefined' ? class : window['class'];
-}})();
+})();
 
 // === crypto/crypto.js ===
 (function() { // module crypto_crypto
@@ -5135,7 +5135,7 @@ class LegacyCrypto {
 new LegacyCrypto;
 
 window['new'] = typeof new !== 'undefined' ? new : window['new'];
-}})();
+})();
 
 // === rfb.js ===
 (function() { // module rfb
@@ -8363,7 +8363,7 @@ RFB.cursors = {
 };
 
 window['class'] = typeof class !== 'undefined' ? class : window['class'];
-}})();
+})();
 
 // noVNC namespace for RFB class access
 if (typeof window.noVNC === 'undefined') {
