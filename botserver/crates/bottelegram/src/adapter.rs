@@ -345,8 +345,13 @@ impl crate::ChannelAdapter for TelegramAdapter {
 
         let chat_id = &response.user_id;
 
-        self.send_text_message(chat_id, &response.content, Some("HTML"))
-            .await?;
+        // LLM output is not guaranteed to be valid HTML — Telegram rejects
+        // the whole message on any parse-entity error ("can't parse
+        // entities"). Retry as plain text so the reply is never lost.
+        if let Err(e) = self.send_text_message(chat_id, &response.content, Some("HTML")).await {
+            log::warn!("Telegram HTML send failed ({e}); retrying as plain text");
+            self.send_text_message(chat_id, &response.content, None).await?;
+        }
 
         debug!(
             "Telegram message sent to {} for session {}",
