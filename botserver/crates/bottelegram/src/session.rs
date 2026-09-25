@@ -27,8 +27,26 @@ pub struct UserSession {
     pub current_tool: Option<String>,
 }
 
-pub fn find_or_create_session(
+/// Session for the per-bot webhook route: the bot comes from the URL path
+/// instead of the workspace default.
+pub fn find_or_create_session_for_bot(
     state: &Arc<ChannelState>,
+    bot_id: Uuid,
+    chat_id: &str,
+    user_name: &str,
+) -> Result<UserSession, Box<dyn std::error::Error + Send + Sync>> {
+    find_or_create_session_scoped(state, Some(bot_id), chat_id, user_name)
+}
+
+/// Scoped session lookup/creation for Telegram deliveries. With `bot_id`
+/// (per-bot webhook route) the session is bound to that bot; without it the
+/// workspace default bot is resolved. An existing session is reused only when
+/// it is bound to the same bot — a Telegram chat id belongs to one bot, so a
+/// binding mismatch means the chat must get a session for the bot the
+/// delivery actually targets.
+fn find_or_create_session_scoped(
+    state: &Arc<ChannelState>,
+    bot_id: Option<Uuid>,
     chat_id: &str,
     user_name: &str,
 ) -> Result<UserSession, Box<dyn std::error::Error + Send + Sync>> {
@@ -39,8 +57,13 @@ pub fn find_or_create_session(
 
     let telegram_user_id = telegram_user_uuid.to_string();
 
-    let existing: Option<UserSession> = user_sessions::table
+    let mut existing_query = user_sessions::table
         .filter(user_sessions::user_id.eq(&telegram_user_id))
+        .into_boxed();
+    if let Some(bot_id) = bot_id {
+        existing_query = existing_query.filter(user_sessions::bot_id.eq(bot_id));
+    }
+    let existing: Option<UserSession> = existing_query
         .order(crate::schema::user_sessions::updated_at.desc())
         .first(&mut conn)
         .optional()?;
@@ -54,7 +77,13 @@ pub fn find_or_create_session(
         return Ok(session);
     }
 
-    let (bot_uuid, branch_uuid) = resolve_bot_scope(state, &mut conn);
+    let (bot_uuid, branch_uuid) = match bot_id {
+        Some(bot_id) => {
+            let branch = resolve_branch_for_bot(&mut conn, bot_id);
+            (bot_id, branch)
+        }
+        None => resolve_bot_scope(state, &mut conn),
+    };
     let session_uuid = Uuid::new_v4();
 
     let context = serde_json::json!({
@@ -134,6 +163,36 @@ pub(crate) fn resolve_bot_scope(state: &Arc<ChannelState>, conn: &mut PgConnecti
             (handle.0, Uuid::nil())
         }
     }
+}
+
+/// Resolves a bot by name or slug for the per-bot webhook route. Returns
+/// `None` when no bot carries the name: the delivery is then rejected instead
+/// of falling back to the workspace default bot, which would attribute the
+/// message to the wrong conversation.
+pub(crate) fn resolve_bot_scope_by_name(
+    conn: &mut PgConnection,
+    bot_name: &str,
+) -> Option<(Uuid, Uuid)> {
+    diesel::sql_query("SELECT id, branch_id FROM bots WHERE name = $1 OR slug = $1 LIMIT 1")
+        .bind::<diesel::sql_types::Text, _>(bot_name.to_string())
+        .get_result::<BotScopeRow>(conn)
+        .optional()
+        .ok()
+        .flatten()
+        .map(|row| (row.id, row.branch_id))
+}
+
+/// Branch of the bot row, for sessions created through the per-bot webhook
+/// route where the bot is already known and only the branch scope is missing.
+fn resolve_branch_for_bot(conn: &mut PgConnection, bot_id: Uuid) -> Uuid {
+    diesel::sql_query("SELECT id, branch_id FROM bots WHERE id = $1 LIMIT 1")
+        .bind::<diesel::sql_types::Uuid, _>(bot_id)
+        .get_result::<BotScopeRow>(conn)
+        .optional()
+        .ok()
+        .flatten()
+        .map(|row| row.branch_id)
+        .unwrap_or(Uuid::nil())
 }
 
 pub async fn route_to_bot(

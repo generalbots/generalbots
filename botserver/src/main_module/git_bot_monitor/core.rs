@@ -9,7 +9,9 @@
 
 use std::path::{Path, PathBuf};
 
+use botcore::shared::utils::{get_work_path, DbPool};
 use botlib::security::SafeCommand;
+use diesel::prelude::*;
 
 pub(crate) const MAX_MATERIALIZED_FILES: usize = 400;
 
@@ -111,6 +113,110 @@ pub(crate) fn ensure_checkout(project: &MonitoredBot, org: &str) -> Result<PathB
             Err(format!("clone {org}/{}: {e}", project.repo_slug))
         }
     }
+}
+
+/// Self-heal for pre-reform projects (#1503 backfill): when the clone fails
+/// because the Forgejo repo does not exist yet ("Repository not found"),
+/// provision it from the currently-deployed PROD `.gbdialog` sources and
+/// retry the clone once. Provisioning = seed workspace →
+/// `git_mode::ensure_git_repo` (creates the Forgejo repo, commits, pushes
+/// `main`). Retried on the next tick until it succeeds; never fatal.
+pub(crate) fn ensure_checkout_with_heal(
+    pool: &DbPool,
+    project: &MonitoredBot,
+    org: &str,
+) -> Result<PathBuf, String> {
+    match ensure_checkout(project, org) {
+        Ok(cwd) => Ok(cwd),
+        Err(clone_err) => {
+            let not_found = clone_err.contains("not found")
+                || clone_err.contains("does not appear to be a git repository");
+            if !not_found {
+                return Err(clone_err);
+            }
+            log::info!(
+                "[git_monitor] {0}/{1} has no repo yet — provisioning from deployed sources",
+                org, project.repo_slug
+            );
+            provision_repo(pool, project, org)?;
+            ensure_checkout(project, org)
+        }
+    }
+}
+
+/// Builds the project workspace from the deployed PROD `.gbdialog` (falling
+/// back to a minimal README for fresh bots) and wires the Forgejo repo,
+/// origin remote and initial `main` push via `git_mode::ensure_git_repo`.
+fn provision_repo(pool: &DbPool, project: &MonitoredBot, org: &str) -> Result<(), String> {
+    let safe_name = botvibe::harness::sanitize_project_id(&project.name)?;
+    let cwd = botvibe::harness::ensure_workspace(&safe_name)?;
+    let registry = botvibe::ProjectRegistry::new(pool.clone());
+    let mut p = registry
+        .get(project.project_id)
+        .map_err(|e| format!("project load: {e}"))?
+        .ok_or_else(|| format!("project {} vanished mid-heal", project.project_id))?;
+    // Pre-reform rows may still carry source_control='native', which makes
+    // ensure_git_repo a no-op — the reform owns bot sources, so flip the
+    // project to git mode (persisted) BEFORE any early return: a partial
+    // heal from a previous boot (workspace seeded, repo never created) must
+    // not wedge the loop.
+    if p.source_control != "git" {
+        let mut conn = pool.get().map_err(|e| format!("pool: {e}"))?;
+        diesel::sql_query(
+            "UPDATE vibe_projects SET source_control = 'git', updated_at = now() WHERE id = $1",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(project.project_id)
+        .execute(&mut conn)
+        .map_err(|e| format!("source_control flip: {e}"))?;
+        drop(conn);
+        log::info!(
+            "[git_monitor] provision {0}/{1}: source_control → git (was '{2}')",
+            org, project.repo_slug, p.source_control
+        );
+        p.source_control = "git".to_string();
+    }
+    // Seed from the deployed PROD sources when they exist (pre-reform bots
+    // keep their content through the git move); fresh bots get a minimal
+    // tree so the initial commit is never empty.
+    let work_root = PathBuf::from(get_work_path());
+    let branch_slug = project.branch_slug.clone().unwrap_or_default();
+    let org_dialog = work_root.join(format!(
+        "{0}.gborg/{0}.gbai/{1}.gbdialog",
+        branch_slug, project.name
+    ));
+    let single_dialog = work_root.join(format!("{0}.gbai/{1}.gbdialog", branch_slug, project.name));
+    let deployed = if org_dialog.is_dir() {
+        Some(org_dialog)
+    } else if single_dialog.is_dir() {
+        Some(single_dialog)
+    } else {
+        None
+    };
+    match deployed {
+        Some(src) => {
+            copy_dir_recursive(&src, &cwd.join(".gbdialog"))
+                .map_err(|e| format!("seed .gbdialog: {e}"))?;
+            log::info!(
+                "[git_monitor] provision {0}/{1}: seeded .gbdialog from deployed sources",
+                org, project.repo_slug
+            );
+        }
+        None if !cwd.join(".git").exists() => std::fs::write(
+            cwd.join("README.md"),
+            format!("# {0}\n\nVibe-managed bot sources (reform #1503).\n", project.name),
+        )
+        .map_err(|e| format!("seed README: {e}"))?,
+        None => {}
+    }
+    // Always finish the wiring: with an existing partial-heal workspace
+    // (.git, no origin or unpushed content) ensure_git_repo adds the origin,
+    // commits and pushes main; a fully wired workspace exits on the origin
+    // check. Idempotent from any state.
+    let rt = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|e| format!("runtime: {e}"))?;
+    rt.block_on(botvibe::git_mode::ensure_git_repo(&p))
 }
 
 /// Resolve the `.gbdialog` source directory of a checkout. Repos store it at

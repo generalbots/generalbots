@@ -8,7 +8,8 @@
 use crate::adapter::TelegramAdapter;
 use crate::media_names::stored_file_name;
 use crate::state::ChannelState;
-use crate::webhook::{extract_message_content, TelegramMessage};
+use crate::types::TelegramMessage;
+use crate::webhook::extract_message_content;
 use log::{info, warn};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -160,7 +161,7 @@ fn marker(kind: &str, target: &str, caption: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::webhook::{TelegramChat, TelegramPhotoSize};
+    use crate::types::{TelegramChat, TelegramPhotoSize};
 
     fn message_with_photo(photos: Vec<TelegramPhotoSize>) -> TelegramMessage {
         TelegramMessage {

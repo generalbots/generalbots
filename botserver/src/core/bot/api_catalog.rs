@@ -582,6 +582,57 @@ pub async fn execute_command(
                 Err("integration actions are not available in this build".to_string())
             }
         }
+        "database.connections.create" => {
+            // #1425 — external database connections (conn-*) are
+            // provisionable from chat: the keys ride the ConfigManager
+            // (sensitive `Password` → Vault per-bot path, the rest →
+            // bot_configuration), so the TABLE keyword authenticates the
+            // connection and no secret lands in config.csv.
+            let conn_name = str_of("name")
+                .map(|n| n.trim().to_string())
+                .filter(|n| !n.is_empty())
+                .ok_or_else(|| "params.name is required".to_string())?;
+            if !conn_name
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_')
+            {
+                return Err("params.name must be alphanumeric (dashes/underscores allowed)".to_string());
+            }
+            let server = str_of("server")
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .ok_or_else(|| "params.server is required".to_string())?;
+            let database = str_of("database")
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .ok_or_else(|| "params.database is required".to_string())?;
+            let prefix = format!("conn-{bot_uuid}-{conn_name}-");
+            let config_manager = botcore::config::ConfigManager::new(state.conn.clone());
+            let entries: Vec<(&str, String)> = vec![
+                ("Server", server),
+                ("Name", database),
+                ("Username", str_of("username").unwrap_or_default()),
+                ("Password", str_of("password").unwrap_or_default()),
+                ("Port", str_of("port").unwrap_or_default()),
+                ("Driver", str_of("driver").unwrap_or_else(|| "postgres".to_string())),
+            ];
+            let mut stored = 0usize;
+            for (field, value) in entries {
+                if value.is_empty() {
+                    continue;
+                }
+                config_manager
+                    .set_config_with_branch(&bot_uuid, &format!("{prefix}{field}"), &value, None)
+                    .map_err(|e| format!("persist conn-{conn_name}-{field}: {e}"))?;
+                stored += 1;
+            }
+            Ok(serde_json::json!({
+                "success": true,
+                "connection": conn_name,
+                "stored_fields": stored,
+                "note": "the password is stored in the per-bot Vault path (sensitive key); config.csv is never used for secrets",
+            }))
+        }
         "vibe.project.change" => {
             // The model may call the command without a project_id. Resolve the
             // target in this order:
@@ -663,6 +714,16 @@ pub async fn execute_command(
             let query = str_of("query").unwrap_or_default();
             list_people(state, &bot_uuid, Some(&query)).await
         }
+        // #1441 P3 — pipeline/forecast/report commands so chat and WhatsApp can
+        // answer CRM questions and capture leads without opening the suite.
+        "crm.pipeline.forecast" => {
+            let periods = obj.get("periods").and_then(|v| v.as_u64()).unwrap_or(3).min(12) as i64;
+            crate::core::bot::crm_commands::crm_forecast_command(state, &bot_uuid, periods).await
+        }
+        "crm.leads.create" => {
+            crate::core::bot::crm_commands::crm_create_lead_command(state, &bot_uuid, &obj).await
+        }
+        "crm.leads.report" => crate::core::bot::crm_commands::crm_pipeline_report_command(state, &bot_uuid).await,
         "billing.invoice.list" => list_invoices(state, &bot_uuid).await,
         "products.items.list" => list_products(state, &bot_uuid, str_of("category").as_deref()).await,
         "tickets.list" => list_tickets(state, &bot_uuid).await,
@@ -694,7 +755,7 @@ pub async fn execute_command(
     }
 }
 
-fn branch_scope(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Uuid, String> {
+pub(crate) fn branch_scope(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Uuid, String> {
     botbanking::cashflow::resolve_bot_scope(&state.conn, bot_uuid, None)
         .map(|s| s.branch_id)
         .ok_or_else(|| "bot not found".to_string())

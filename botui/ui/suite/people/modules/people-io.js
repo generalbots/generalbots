@@ -12,6 +12,11 @@
     const closeModal = scope.closeModal;
     const saveContact = scope.saveContact;
     const deleteContact = scope.deleteContact;
+    const startChat = scope.startChat;
+    const sendEmail = scope.sendEmail;
+    const scheduleMeeting = scope.scheduleMeeting;
+    const apiFetch = scope.apiFetch;
+    const toSnakeBody = scope.toSnakeBody;
 
         window.exportCsv = function() {
             const rows = state.contacts.map((c) => [

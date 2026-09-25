@@ -237,6 +237,10 @@ pub struct CreateLeadForm {
     pub source: Option<String>,
     pub value: Option<f64>,
     pub description: Option<String>,
+    /// #1441 P0 — currency selector on captured value (schema has `currency`).
+    pub currency: Option<String>,
+    /// #1441 P0 — win/loss reason captured with the lead.
+    pub lost_reason: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -409,3 +413,9 @@ pub struct BulkActionResult {
     pub affected_count: i32,
     pub errors: Vec<String>,
 }
+
+// #1441 P2 — bulk/CSV types live in `bulk_types.rs`; re-exported so the
+// established `crate::requests::…` call sites stay valid.
+pub use crate::bulk_types::{
+    CsvImportReport, CsvLeadRow, LeadBulkActionRequest, LeadBulkActionResult,
+};

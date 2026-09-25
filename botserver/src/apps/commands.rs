@@ -550,6 +550,9 @@ pub static ALL_COMMANDS: &[AppCommand] = &[
     // ——— Business ———
     cmd("crm", "crm.people.list", "List people", "List CRM people/contacts and their pipeline stage.", &[], Some("app://crm?person_id={person_id}"), false),
     cmd("crm", "crm.people.search", "Search people", "Search people by name and return a deep link to the matched record.", &[("query", "name to search")], Some("app://crm?person_id={person_id}"), false),
+    cmd("crm", "crm.pipeline.forecast", "Sales forecast", "Report the weighted pipeline forecast and funnel conversion rates for the coming months.", &[("periods", "optional number of months ahead (default 3)")], Some("app://crm"), false),
+    cmd("crm", "crm.leads.create", "Create lead", "Capture a new lead with contact data and value (creates/links contact and account).", &[("title", "short lead title"), ("first_name", "prospect first name"), ("last_name", "prospect last name"), ("email", "prospect email"), ("company", "prospect company"), ("value", "estimated value"), ("currency", "currency code, default USD")], None, false),
+    cmd("crm", "crm.leads.report", "Pipeline report", "Summarize leads by stage with counts and total value.", &[], Some("app://crm"), false),
     cmd("people", "people.list", "List people", "List contacts and leads.", &[], Some("app://people?person_id={person_id}"), false),
     cmd("people", "people.search", "Search people", "Search contacts/leads by name, with deep link to the record.", &[("query", "name or email")], Some("app://people?person_id={person_id}"), false),
     cmd("billing", "billing.invoice.list", "List invoices", "List invoices, quotes and payment status.", &[], Some("app://billing?invoice_id={invoice_id}"), false),
@@ -588,6 +591,7 @@ pub static ALL_COMMANDS: &[AppCommand] = &[
     cmd("bas-editor", "bas.script.open", "Open script", "Open a BASIC script for editing.", &[("script", "script name")], Some("app://bas-editor?script_id={script}"), false),
     cmd("database", "database.tables.list", "List tables", "List database tables.", &[], Some("app://database?table={table}"), false),
     cmd("database", "database.query", "Run read-only query", "Run a read-only SQL query against a table.", &[("table", "table name"), ("limit", "optional")], None, true),
+    cmd("database", "database.connections.create", "Create database connection", "Create or update an external database connection (conn-*) used by the TABLE keyword; the password is a sensitive key and is vaulted, never written to config.csv.", &[("name", "connection name"), ("server", "database host"), ("database", "database name"), ("username", "optional user"), ("password", "optional password (vaulted)"), ("port", "optional port"), ("driver", "optional postgres/mysql/mariadb/mssql")], None, false),
     cmd("browser", "browser.session.open", "Open browser", "Open an embedded browser session to a URL.", &[("url", "the url")], Some("app://browser?url={url}"), false),
     cmd("integrations", "integrations.connectors.list", "List connectors", "List external system connectors and webhooks.", &[], Some("app://integrations?connector_id={connector_id}"), false),
     cmd("integrations", "integrations.catalog.search", "Search integration catalog", "Search integration providers by text, category, or implementation status.", &[("q", "optional provider or capability query"), ("category", "optional category"), ("status", "optional built/partial/planned/unsupported status")], None, false),

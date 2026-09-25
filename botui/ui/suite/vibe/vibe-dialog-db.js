@@ -62,13 +62,24 @@
         envSel.innerHTML =
             '<option value="production">🏭 production</option>' +
             '<option value="dev">🧪 dev (_dev twin)</option>';
+        // #1448 — persist the environment choice so a reopen keeps the twin
+        // the user was working in, and the active database is obvious from
+        // the table label ("dev database (_dev twin)" vs "production database").
+        try {
+            var savedEnv = localStorage.getItem("gb-vibe-db-env");
+            if (savedEnv === "dev" || savedEnv === "production") {
+                state.env = savedEnv;
+                envSel.value = savedEnv;
+            }
+        } catch (e) { }
         envSel.addEventListener("change", function () {
             state.env = envSel.value;
             state.table = null;
             state.page = 1;
+            try { localStorage.setItem("gb-vibe-db-env", state.env); } catch (e) { }
             refreshCtxChip();
             var label = document.getElementById("vibeDbTableLabel");
-            if (label) label.textContent = state.env === "dev" ? "dev database" : "production database";
+            if (label) label.textContent = state.env === "dev" ? "dev database (_dev twin)" : "production database";
             loadSchema(false);
         });
         envWrap.appendChild(envSel);

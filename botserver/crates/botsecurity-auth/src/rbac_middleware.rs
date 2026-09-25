@@ -1073,6 +1073,9 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         // Instagram and Teams deliveries would never reach their handler. Each
         // handler verifies the call itself (#1327).
         RoutePermission::new("/webhook/telegram", "POST", "").with_anonymous(true),
+        // Per-bot Telegram webhook: the bot name in the path selects the bot;
+        // the handler proves the call with the secret-token header (#1327).
+        RoutePermission::new("/webhook/telegram/{bot_name}", "POST", "").with_anonymous(true),
         RoutePermission::new("/api/instagram/webhook", "GET", "").with_anonymous(true),
         RoutePermission::new("/api/instagram/webhook", "POST", "").with_anonymous(true),
         RoutePermission::new("/api/msteams/messages", "POST", "").with_anonymous(true),

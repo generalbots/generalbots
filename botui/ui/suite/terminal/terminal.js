@@ -174,9 +174,16 @@ if (window.GBAppLifecycle) GBAppLifecycle.begin("terminal");
         });
 
         const fitAddon = new FitAddon.FitAddon();
-        const webLinksAddon = new WebLinksAddon.WebLinksAddon();
         terminal.loadAddon(fitAddon);
-        terminal.loadAddon(webLinksAddon);
+        // Monaco's AMD loader can capture UMD define() calls made earlier in
+        // the page, so window.WebLinksAddon may be missing. Links are
+        // optional — never let them break the terminal.
+        try {
+            const globalAddons = (typeof WebLinksAddon !== "undefined") ? WebLinksAddon : window.WebLinksAddon;
+            if (globalAddons) terminal.loadAddon(new (globalAddons.WebLinksAddon || globalAddons)());
+        } catch (e) {
+            console.warn("WebLinksAddon unavailable, links disabled", e);
+        }
         terminal.open(pane);
 
         let ws = null;
