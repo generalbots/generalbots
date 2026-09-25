@@ -92,10 +92,33 @@ async fn import_dialog_from_drive(
         .as_ref()
         .ok_or_else(|| "drive (S3) not available in AppState".to_string())?;
     let bot_prefix = format!("{prefix}{bot_name}.gbdialog/");
-    let objects = s3
-        .list_objects(bucket, Some(&bot_prefix))
-        .await
-        .map_err(|e| format!("list {bot_prefix}: {e}"))?;
+    let objects = match s3.list_objects(bucket, Some(&bot_prefix)).await {
+        Ok(o) => o,
+        // A branch with no Drive bucket (fresh/demo) has zero sources — not
+        // an error, otherwise the import warn-loops on every boot.
+        Err(e) if e.to_string().to_lowercase().contains("nosuchbucket")
+            || e.to_string().to_lowercase().contains("no such bucket")            || e.to_string().to_lowercase().contains("404")
+            || e.to_string().to_lowercase().contains("invalidbucketname") => {
+            log::info!(
+                "[git_import] {bot_name}: bucket {bucket} absent on Drive — treating as fresh branch"
+            );
+            Vec::new()
+        }
+        Err(e) => {
+            // botserver's log layer caps line width — emit the error in short
+            // chunks so the journal always carries the full cause.
+            let text = format!("list {bot_prefix}: {e}");
+            for (i, chunk) in text.as_bytes().chunks(80).enumerate() {
+                log::warn!(
+                    "[git_import] {} list-err part{}: {}",
+                    bot_name,
+                    i,
+                    String::from_utf8_lossy(chunk)
+                );
+            }
+            return Err(text);
+        }
+    };
     std::fs::create_dir_all(dialog_dir)
         .map_err(|e| format!("mkdir {}: {e}", dialog_dir.display()))?;
     let mut copied = 0usize;
@@ -156,7 +179,9 @@ async fn import_one(
         Some(s3) if s3.list_objects(&org_bucket, Some(&branch_prefix)).await.is_ok() => {
             (org_bucket, branch_prefix)
         }
-        _ => (format!("{}.gbai", target.branch_slug), String::new()),
+        // S3 bucket names must be lowercase — a slug with uppercase letters
+        // can never exist as a bucket and only produces InvalidBucketName noise.
+        _ => (format!("{}.gbai", target.branch_slug.to_lowercase()), String::new()),
     };
 
     let workspace = botvibe::harness::workspace_root().join(&target.repo_slug);

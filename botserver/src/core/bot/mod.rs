@@ -6,6 +6,7 @@ pub mod tool_context;
 pub mod multimedia;
 pub mod api_catalog;
 pub mod api_exec;
+pub mod crm_commands;
 pub mod commands_derived;
 pub mod endpoint_inventory;
 

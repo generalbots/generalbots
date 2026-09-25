@@ -129,6 +129,10 @@
             .then(function (data) {
                 var files = (data && data.files) || [];
                 var hasIndex = files.some(function (f) { return f === "index.html"; });
+                // #1448 — a Node app has no static entry point: remember the
+                // kind so the fallback error says "Run first" instead of the
+                // generic publish message.
+                state.isNodeApp = !hasIndex && files.some(function (f) { return f === "package.json"; });
                 if (!hasIndex) return null;
                 var token = (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) || localStorage.getItem("token") || localStorage.getItem("id_token") || localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
                 var base = window.location.origin + "/api/vibe/projects/" + encodeURIComponent(projectId) + "/serve/index.html";
@@ -158,7 +162,11 @@
                 if (data && data.success === false) throw new Error(data.error || "No preview is available");
                 var payload = data && data.data ? data.data : data;
                 var preview = payload && payload.preview_url;
-                if (!preview || !/^https?:\/\//i.test(preview)) throw new Error("Publish the project to create its app URL");
+                if (!preview || !/^https?:\/\//i.test(preview)) {
+                    throw new Error(state.isNodeApp
+                        ? "Run the project first — the Node app serves from its VM once it starts"
+                        : "Publish the project to create its app URL");
+                }
                 return preview;
             }).then(function (preview) {
                 state.url = preview;

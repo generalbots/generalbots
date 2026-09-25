@@ -34,12 +34,21 @@ Missing `telegram-bot-token` is reported as
 ## Registering the webhook
 
 Point Telegram at the bot server and include the secret token when one is
-configured:
+configured. Two URL shapes are served:
+
+| URL | Bot used |
+|-----|----------|
+| `/webhook/telegram` | the workspace default bot (`bots.is_default_for_branch`) |
+| `/webhook/telegram/{bot_name}` | the bot named in the path (name or slug) |
+
+Prefer the per-bot URL on shared deployments: every bot gets its own webhook,
+so deliveries always land on the right conversation instead of the single
+default bot. An unknown bot name in the path is rejected with `404`.
 
 ```bash
 curl -X POST "https://api.telegram.org/bot<TOKEN>/setWebhook" \
   -H "Content-Type: application/json" \
-  -d '{"url": "https://your-host/webhook/telegram", "secret_token": "<SECRET>"}'
+  -d '{"url": "https://your-host/webhook/telegram/<bot_name>", "secret_token": "<SECRET>"}'
 ```
 
 Verify and inspect:
@@ -57,10 +66,11 @@ delivery is accepted, so Telegram does not retry.
 
 | Method | Path | Auth | Purpose |
 |--------|------|------|---------|
-| `POST` | `/webhook/telegram` | anonymous + secret token (when configured) | Inbound updates from Telegram |
+| `POST` | `/webhook/telegram` | anonymous + secret token (when configured) | Inbound updates for the default bot |
+| `POST` | `/webhook/telegram/{bot_name}` | anonymous + secret token (when configured) | Inbound updates for the named bot |
 | `POST` | `/api/telegram/send` | authenticated (`/api/telegram/**` permission) | Send a message from a script or integration |
 
-The inbound path is anonymous because Telegram holds no token — it is a
+The inbound paths are anonymous because Telegram holds no token — it is a
 transport gate, and the authenticity check happens in the handler. Each
 inbound route is also exempt from CSRF for the same reason; the outbound
 `/api/telegram/send` route keeps its RBAC permission.

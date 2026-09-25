@@ -72,16 +72,17 @@ pub struct CrmAccount {
 #[diesel(table_name = crm_pipeline_stages)]
 pub struct CrmPipelineStage {
     pub id: Uuid,
-    pub branch_id: Uuid,
+    pub org_id: Uuid,
+    #[serde(default)]
+    pub bot_id: Uuid,
+    pub branch_id: Option<Uuid>,
     pub name: String,
-    pub display_order: i32,
-    pub probability: Option<i32>,
-    pub color: Option<String>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
     pub stage_order: i32,
+    pub probability: i32,
     pub is_won: bool,
     pub is_lost: bool,
+    pub color: Option<String>,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable, AsChangeset)]
@@ -167,6 +168,24 @@ pub struct CrmActivity {
     pub account_id: Option<Uuid>,
     pub outcome: Option<String>,
     pub owner_id: Option<Uuid>,
+}
+
+/// #1441 P2 — one row per destructive/state-changing CRM operation. Rows are
+/// written by the `audit` module and never updated; `before`/`after` carry the
+/// serialized record snapshots (or the diff payload for bulk operations).
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable)]
+#[diesel(table_name = crm_audit_logs)]
+pub struct CrmAuditLog {
+    pub id: Uuid,
+    pub branch_id: Uuid,
+    pub entity: String,
+    pub entity_id: Option<Uuid>,
+    pub action: String,
+    pub actor_email: Option<String>,
+    pub before: Option<serde_json::Value>,
+    pub after: Option<serde_json::Value>,
+    pub detail: Option<serde_json::Value>,
+    pub created_at: DateTime<Utc>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable)]

@@ -224,3 +224,63 @@ pub async fn user_password(
 
     (StatusCode::OK, Html("Password updated successfully".to_string()))
 }
+
+#[derive(Deserialize)]
+pub struct DesktopsState {
+    pub desktops: Option<serde_json::Value>,
+    pub current: Option<i64>,
+    pub windows: Option<serde_json::Value>,
+}
+
+/// #1434 — GET /api/user/desktops: the caller's persisted virtual-desktop
+/// state (desktops, active index, window assignments + deep-link params) so
+/// a reload, a new device or a relogin restores the session.
+pub async fn user_desktops_get(
+    State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
+) -> axum::response::Response {
+    let Some(mut conn) = get_conn(&state) else {
+        return (StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())).into_response();
+    };
+    let user_id = match resolve_user_id(&state, &headers) {
+        Ok(id) => id,
+        Err(e) => return e.into_response(),
+    };
+    let raw = read_pref(&mut conn, user_id, "gb-desktops");
+    if raw.is_null() {
+        return axum::Json(serde_json::json!({ "found": false })).into_response();
+    }
+    axum::Json(serde_json::json!({ "found": true, "state": raw })).into_response()
+}
+
+/// #1434 — PUT /api/user/desktops: persists the caller's virtual-desktop
+/// state keyed per user (survives reloads/relogins); the frontend mirrors it
+/// debounced on every open/move/close.
+pub async fn user_desktops_put(
+    State(state): State<Arc<AppState>>,
+    headers: axum::http::HeaderMap,
+    axum::Json(body): axum::Json<DesktopsState>,
+) -> axum::response::Response {
+    let Some(mut conn) = get_conn(&state) else {
+        return (StatusCode::INTERNAL_SERVER_ERROR, Html("Database unavailable".to_string())).into_response();
+    };
+    let user_id = match resolve_user_id(&state, &headers) {
+        Ok(id) => id,
+        Err(e) => return e.into_response(),
+    };
+    let mut state_value = serde_json::Map::new();
+    if let Some(desktops) = body.desktops {
+        state_value.insert("desktops".to_string(), desktops);
+    }
+    if let Some(current) = body.current {
+        state_value.insert("current".to_string(), serde_json::json!(current));
+    }
+    if let Some(windows) = body.windows {
+        state_value.insert("windows".to_string(), windows);
+    }
+    if state_value.is_empty() {
+        return (StatusCode::BAD_REQUEST, Html("Nothing to persist".to_string())).into_response();
+    }
+    write_pref(&mut conn, user_id, "gb-desktops", &serde_json::Value::Object(state_value));
+    (StatusCode::OK, Html("Desktops updated".to_string())).into_response()
+}

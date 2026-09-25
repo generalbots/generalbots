@@ -162,13 +162,20 @@ impl BotDatabaseManager {
         &self,
         database_name: &str,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+        // #1447 S1 — the sanitized name is interpolated into pg_database
+        // text and DDL below; the strict ASCII allowlist replaces the
+        // unicode-permissive `is_alphanumeric` filter (unicode digits would
+        // pass it and still interpolate into SQL).
         let safe_db_name: String = database_name
             .chars()
-            .filter(|c| c.is_alphanumeric() || *c == '_')
+            .filter(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || *c == '_')
             .collect();
 
         if safe_db_name.is_empty() || safe_db_name.len() > 63 {
             return Err("Invalid database name".into());
+        }
+        if let Err(bad) = crate::project_db::assert_safe_db_name(&safe_db_name) {
+            return Err(bad.into());
         }
 
         let mut conn = self.main_pool.get()?;

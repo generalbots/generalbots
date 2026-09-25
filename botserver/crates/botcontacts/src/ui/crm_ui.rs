@@ -11,7 +11,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::models::CrmDeal;
-use crate::schema::{crm_deals, crm_contacts, crm_accounts};
+use crate::schema::{crm_deals, crm_contacts, crm_accounts, crm_opportunities};
 use crate::CrateState;
 
 #[derive(Debug, Deserialize)]
@@ -22,6 +22,46 @@ pub struct StageQuery {
 #[derive(Debug, Deserialize)]
 pub struct SearchQuery {
     pub q: Option<String>,
+}
+
+/// #1450 — HTMX fragment pagination: `?offset=` shifts the 50-row window;
+/// the pager bar is appended server-side so the grid stays HTMX-only.
+#[derive(Debug, serde::Deserialize)]
+pub struct PagerQuery {
+    #[serde(default)]
+    pub stage: Option<String>,
+    #[serde(default)]
+    pub offset: Option<i64>,
+}
+
+pub const PAGE_SIZE: i64 = 50;
+
+/// Renders the ‹ Prev / Page N of M / Next › bar as a full-width row.
+fn pager_bar(total: i64, offset: i64) -> String {
+    if total <= PAGE_SIZE {
+        return String::new();
+    }
+    let pages = (total + PAGE_SIZE - 1) / PAGE_SIZE;
+    let current = offset / PAGE_SIZE + 1;
+    let prev = if offset >= PAGE_SIZE {
+        format!(
+            r#"<button class="pager-btn" hx-get="/api/ui/crm/opportunities?offset={}" hx-target="closest table" hx-swap="outerHTML">&#8249; Prev</button>"#,
+            offset - PAGE_SIZE
+        )
+    } else {
+        String::new()
+    };
+    let next = if offset + PAGE_SIZE < total {
+        format!(
+            r#"<button class="pager-btn" hx-get="/api/ui/crm/opportunities?offset={}" hx-target="closest table" hx-swap="outerHTML">Next &#8250;</button>"#,
+            offset + PAGE_SIZE
+        )
+    } else {
+        String::new()
+    };
+    format!(
+        r#"<tr class="pager-row"><td colspan="8">{prev}<span class="pager-label">Page {current} of {pages} · {total} records</span>{next}</td></tr>"#
+    )
 }
 
 fn get_bot_context(state: &CrateState) -> Uuid {
@@ -129,7 +169,7 @@ pub async fn handle_crm_contacts(
     headers: HeaderMap,
 ) -> impl IntoResponse {
     let Ok(mut conn) = state.db_pool.get() else {
-        return Html(r#"<tr><td colspan="6">No contacts yet</td></tr>"#.to_string());
+        return Html(r#"<tr><td colspan="7">No contacts yet</td></tr>"#.to_string());
     };
 
     let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
@@ -142,7 +182,7 @@ pub async fn handle_crm_contacts(
         .unwrap_or_default();
 
     if contacts.is_empty() {
-        return Html(r#"<tr><td colspan="6">No contacts yet</td></tr>"#.to_string());
+        return Html(r#"<tr><td colspan="7">No contacts yet</td></tr>"#.to_string());
     }
 
     let mut html = String::new();
@@ -158,6 +198,7 @@ pub async fn handle_crm_contacts(
         let phone = contact.phone.as_deref().unwrap_or("-");
         html.push_str(&format!(
             r#"<tr class="crm-row" data-id="{}">
+<td><input type="checkbox" class="opp-select" data-id="{}"></td>
 <td class="contact-name">{}</td>
 <td class="contact-company">{}</td>
 <td class="contact-title">{}</td>
@@ -165,6 +206,7 @@ pub async fn handle_crm_contacts(
 <td class="contact-phone">{}</td>
 <td class="row-actions"><button class="btn-icon" title="Edit">✏️</button><button class="btn-icon" title="Delete">🗑</button></td>
 </tr>"#,
+            contact.id,
             contact.id,
             html_escape(&name),
             html_escape(company),
@@ -626,6 +668,83 @@ pub async fn handle_crm_opportunities_search(
             html_escape(title)
         ));
     }
+    Html(html)
+}
+
+/// `/api/ui/crm/opportunities` — HTML table rows for the Opportunities view
+/// (#1441 A3: Convert created opportunities that were unreachable in the UI;
+/// #1441 P2: rows carry `data-id` and a bulk-selection checkbox).
+pub async fn handle_crm_opportunities(
+    State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
+    Query(query): Query<PagerQuery>,
+) -> impl IntoResponse {
+    let Ok(mut conn) = state.db_pool.get() else {
+        return Html(r#"<tr><td colspan="8">No opportunities yet</td></tr>"#.to_string());
+    };
+
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
+    let offset = query.offset.unwrap_or(0).max(0);
+
+    // #1450 — total drives the pager bar; window shifts with ?offset=.
+    let total: i64 = crm_opportunities::table
+        .filter(crm_opportunities::branch_id.eq(branch_id))
+        .count()
+        .get_result(&mut conn)
+        .unwrap_or(0);
+
+    let opportunities: Vec<crate::models::CrmOpportunity> = crm_opportunities::table
+        .filter(crm_opportunities::branch_id.eq(branch_id))
+        .order(crm_opportunities::created_at.desc())
+        .limit(PAGE_SIZE)
+        .offset(offset)
+        .load(&mut conn)
+        .unwrap_or_default();
+
+    if opportunities.is_empty() {
+        return Html(r#"<tr><td colspan="8">No opportunities yet — convert a qualified lead to create one</td></tr>"#.to_string());
+    }
+
+    let mut html = String::new();
+    for opp in opportunities {
+        let value_str = opp
+            .value
+            .map(|v| format!("{} {v}", opp.currency.as_deref().unwrap_or("$")))
+            .unwrap_or_else(|| "-".to_string());
+        let stage = opp.stage.as_deref().unwrap_or("-");
+        let probability = opp.probability.map(|p| format!("{p}%")).unwrap_or_else(|| "-".to_string());
+        let close = opp
+            .expected_close_date
+            .map(|d| d.to_string())
+            .unwrap_or_else(|| "-".to_string());
+        let status = match opp.won {
+            Some(true) => "Won",
+            Some(false) => "Lost",
+            None => "Open",
+        };
+        html.push_str(&format!(
+            r#"<tr class="crm-row" data-id="{id}" data-opp-id="{id}">
+<td><input type="checkbox" class="opp-select" data-id="{id}"></td>
+<td class="opp-name">{name}</td>
+<td class="opp-value">{value}</td>
+<td class="opp-stage">{stage}</td>
+<td class="opp-probability">{prob}</td>
+<td class="opp-close">{close}</td>
+<td class="opp-source">{source}</td>
+<td class="opp-status">{status}</td>
+</tr>"#,
+            id = opp.id,
+            name = html_escape(&opp.name),
+            value = html_escape(&value_str),
+            stage = html_escape(stage),
+            prob = html_escape(&probability),
+            close = html_escape(&close),
+            source = html_escape(opp.source.as_deref().unwrap_or("-")),
+            status = status,
+        ));
+    }
+    html.push_str(&pager_bar(total, offset));
+
     Html(html)
 }
 

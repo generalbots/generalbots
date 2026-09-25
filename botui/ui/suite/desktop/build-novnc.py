@@ -132,7 +132,7 @@ def main():
         parts.append(cleaned)
         if export_name:
             parts.append(f"window['{export_name}'] = typeof {export_name} !== 'undefined' ? {export_name} : window['{export_name}'];")
-        parts.append("}})();")
+        parts.append("})();")
         parts.append("")
 
     bundle = "\n".join(parts)

@@ -27,6 +27,12 @@ pub const NODE_TOOL: &str = "tool";
 pub const REL_CONTAINS: &str = "contains";
 pub const REL_TRIGGERED: &str = "triggered";
 
+/// #1446 — canvas bounds: at most this many tool nodes are drawn (top by
+/// call count) and the runs×tools triggered edges are capped so the graph
+/// stays readable for long-lived workspaces.
+const MAX_TOOL_NODES: usize = 12;
+const MAX_TRIGGERED_EDGES: usize = 400;
+
 /// A single node in the knowledge graph (e.g., a use case, run, tool call).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GraphNode {
@@ -89,6 +95,9 @@ pub struct RunNodeInfo {
     /// Vibe project this run operated on (uuid string); used to scope the
     /// graph to the selected project so unrelated runs do not pollute it.
     pub project_id: Option<String>,
+    /// #1446 — when the run was created. The graph sorts "newest first" by
+    /// this timestamp; a lexical `run_id` (UUID v4) sort is meaningless.
+    pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
 /// Future alias used by [`GraphDataSource::snapshot_runs`] so the trait
@@ -163,8 +172,26 @@ pub fn build_use_case_graph(
     }
 
     let mut tool_names: Vec<String> = tool_counts.keys().cloned().collect();
-    tool_names.sort();
-    for tool in tool_names {
+    // #1446 — bound the canvas: draw only the most-called tools (the
+    // runs×tools edge product is unbounded otherwise — 800 edges at limit
+    // 100×8) and cap the triggered edges; remaining calls aggregate into one
+    // "other tools" node so nothing silently disappears.
+    tool_names.sort_by(|a, b| {
+        tool_counts
+            .get(b)
+            .copied()
+            .unwrap_or_default()
+            .cmp(&tool_counts.get(a).copied().unwrap_or_default())
+            .then(a.cmp(b))
+    });
+    tool_names.truncate(MAX_TOOL_NODES);
+    let drawn: std::collections::HashSet<String> = tool_names.iter().cloned().collect();
+    let other_calls: u32 = tool_counts
+        .iter()
+        .filter(|(t, _)| !drawn.contains(*t))
+        .map(|(_, c)| c)
+        .sum();
+    for tool in tool_names.clone() {
         let count = tool_counts.get(&tool).copied().unwrap_or_default();
         nodes.push(GraphNode {
             id: tool_id(&tool),
@@ -172,23 +199,40 @@ pub fn build_use_case_graph(
             node_type: NODE_TOOL.to_string(),
             properties: HashMap::from([("calls".to_string(), count.to_string())]),
         });
-        for run in runs {
-            if run.use_case != use_case {
+    }
+    if other_calls > 0 {
+        nodes.push(GraphNode {
+            id: "tool-other".to_string(),
+            label: "other tools".to_string(),
+            node_type: NODE_TOOL.to_string(),
+            properties: HashMap::from([("calls".to_string(), other_calls.to_string())]),
+        });
+    }
+    let mut edge_budget = MAX_TRIGGERED_EDGES;
+    for run in runs {
+        if run.use_case != use_case {
+            continue;
+        }
+        if let Some(pid) = project_id {
+            if run.project_id.as_deref() != Some(pid) {
                 continue;
             }
-            if let Some(pid) = project_id {
-                if run.project_id.as_deref() != Some(pid) {
-                    continue;
-                }
+        }
+        for tool in &run.tool_names {
+            if edge_budget == 0 {
+                break;
             }
-            if run.tool_names.iter().any(|t| t == &tool) {
-                edges.push(GraphEdge {
-                    source: run_id_node(run),
-                    target: tool_id(&tool),
-                    relationship: REL_TRIGGERED.to_string(),
-                    weight: weight_for(count),
-                });
+            if !drawn.contains(tool) {
+                continue;
             }
+            edge_budget -= 1;
+            let count = tool_counts.get(tool).copied().unwrap_or_default();
+            edges.push(GraphEdge {
+                source: run_id_node(run),
+                target: tool_id(tool),
+                relationship: REL_TRIGGERED.to_string(),
+                weight: weight_for(count),
+            });
         }
     }
 
@@ -272,8 +316,9 @@ pub(crate) async fn get_knowledge_graph(
     if let Some(pid) = project_id {
         runs.retain(|r| r.project_id.as_deref() == Some(pid));
     }
-    // Newest first, then cap so the canvas stays readable.
-    runs.sort_by(|a, b| b.run_id.cmp(&a.run_id));
+    // #1446 — newest first by created_at (a lexical run_id sort is
+    // meaningless for UUID v4), then cap so the canvas stays readable.
+    runs.sort_by(|a, b| b.created_at.cmp(&a.created_at));
     let limit = query.limit.unwrap_or(20).min(100);
     if runs.len() > limit {
         runs.truncate(limit);

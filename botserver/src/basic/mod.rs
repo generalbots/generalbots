@@ -230,7 +230,22 @@ impl BasicRuntime for AppStateBasicRuntime {
     }
 
     fn config_value(&self, key: &str) -> Option<String> {
-        self.0.config.as_ref()?.get(key)
+        if let Some(v) = self.0.config.as_ref()?.get(key) {
+            return Some(v.clone());
+        }
+        // #1425 — external connection credentials (`conn-{bot}-{name}-{Field}`
+        // keys, e.g. `conn-*-Password`) resolve from the per-bot Vault path
+        // through the ConfigManager when the session config map has no value.
+        // The drive monitor drops sensitive keys from config.csv, so Vault is
+        // the only place a connection password can live; without this
+        // fallback the TABLE keyword could never authenticate a
+        // Vault-provisioned connection. The bot id is parsed from the key
+        // prefix itself (the runtime carries no bot_id field).
+        let rest = key.strip_prefix("conn-")?;
+        let bot_str = rest.split('-').next()?;
+        let bot_id = uuid::Uuid::parse_str(bot_str).ok()?;
+        let manager = botcore::config::ConfigManager::new(self.0.conn.clone());
+        manager.get_config(&bot_id, key, None).ok().filter(|v| !v.is_empty())
     }
 
     fn session_manager(&self) -> Arc<tokio::sync::Mutex<dyn botlib::traits::SessionManagerService>> {

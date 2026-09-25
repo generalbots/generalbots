@@ -242,7 +242,10 @@ async fn executor_blocks_tool_for_wrong_use_case() {
 }
 
 #[tokio::test]
-async fn executor_requires_approval_before_execution() {
+async fn executor_runs_write_tool_without_approval_gate() {
+    // #1400 — the approval concept was removed from Vibe: mutating tools run
+    // directly; production safety lives in the deploy-role RBAC stamp inside
+    // the publish handler, not in the executor.
     let registry = Arc::new(ToolRegistry::new());
     let executor = VibeToolExecutor::new(registry);
     let mut call = VibeToolCall::new(
@@ -251,16 +254,23 @@ async fn executor_requires_approval_before_execution() {
         serde_json::json!({"project": "demo", "path": "a.txt", "content": "x"}),
         false,
     );
-    let err = executor
+    let result = executor
         .execute(
             &mut call,
             VibeUseCase::SoftwareDevelopment,
             &MockState::new(),
         )
         .await;
-    assert!(err.is_err());
-    assert!(err.unwrap_err().contains("Aprovação"));
-    assert!(call.requires_approval);
+    // The executor no longer rejects mutating calls upfront. Whether the
+    // underlying harness write succeeds depends on the (absent) workspace —
+    // the contract under test is "no approval gate", asserted by the call
+    // reaching the tool layer instead of erroring with the old gate message.
+    if let Err(err) = result {
+        assert!(!err.contains("Aprovação"), "approval gate must be gone: {err}");
+    }
+    let recorded = call.result.expect("tool layer was reached and recorded a result");
+    assert!(recorded.error.as_deref().unwrap_or_default().is_empty() 
+        || !recorded.error.as_deref().unwrap_or_default().contains("Aprovação"));
 }
 
 #[tokio::test]

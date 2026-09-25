@@ -34,6 +34,9 @@ struct DbExistsRow {
 }
 
 fn database_exists(conn: &mut diesel::PgConnection, db_name: &str) -> Result<bool, String> {
+    // #1447 S1 — identifier is interpolated into pg_database text; the
+    // strict allowlist check runs at the interpolation site itself.
+    botcore::project_db::assert_safe_db_name(db_name)?;
     diesel::sql_query(format!(
         "SELECT EXISTS (SELECT 1 FROM pg_database WHERE datname = '{db_name}') AS exists"
     ))
@@ -62,6 +65,8 @@ pub fn ensure_project_database(
     let mut conn = pool.get().map_err(|e| format!("db pool: {e}"))?;
 
     if !database_exists(&mut conn, &db_name)? {
+        // #1447 S1 — DDL identifiers cannot be bound; strict check here too.
+        botcore::project_db::assert_safe_db_name(&db_name)?;
         if let Err(e) = diesel::sql_query(format!("CREATE DATABASE {db_name}")).execute(&mut conn) {
             let err = e.to_string();
             // Concurrent creation racing us is success, anything else is not.
@@ -105,6 +110,11 @@ pub fn drop_project_databases(
         }
         // WITH (FORCE) terminates remaining connections so eviction can
         // reclaim a busy project cleanly (PostgreSQL 13+).
+        // #1447 S1 — DDL identifiers cannot be bound; strict check here too.
+        if let Err(e) = botcore::project_db::assert_safe_db_name(&db_name) {
+            errors.push(e);
+            continue;
+        }
         match diesel::sql_query(format!("DROP DATABASE IF EXISTS {db_name} WITH (FORCE)"))
             .execute(&mut conn)
         {

@@ -51,7 +51,9 @@
         try {
             const resp = await fetch(API_BASE + '/connections');
             if (!resp.ok) throw new Error('Failed to load connections');
-            connections = await resp.json();
+            const body = await resp.json();
+            // Handler returns { success, data: [...] } — accept a bare array too.
+            connections = Array.isArray(body) ? body : (Array.isArray(body && body.data) ? body.data : []);
             renderConnections();
         } catch (e) {
             console.error('loadConnections:', e);

@@ -128,7 +128,15 @@
     </div>
 </div>
 
-<script src="/suite/desktop/vendor/novnc-bundle.js"></script>
+<!-- noVNC ships as native ES modules (all imports relative, pako vendored).
+     The legacy build-novnc.py bundle was never valid JS — load the sources
+     directly and publish the RFB class on window.noVNC for novnc-adapter. -->
+<script type="module">
+import RFB from "/suite/desktop/vendor/novnc/core/rfb.js";
+window.noVNC = window.noVNC || {};
+window.noVNC.RFB = RFB;
+document.dispatchEvent(new CustomEvent("novnc-ready"));
+</script>
 <script src="/suite/desktop/vendor/novnc-adapter.js"></script>
 <script src="/suite/desktop/desktop.js"></script>
 <script src="/suite/desktop/vdi.js"></script>

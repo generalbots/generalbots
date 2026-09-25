@@ -195,3 +195,31 @@ pub async fn backfill_default_projects(pool: DbPool) {
 pub fn alm_org_for_branch_shared(branch_id: Uuid) -> Option<String> {
     shared_pool().map(|pool| alm_org_for_branch(&pool, branch_id))
 }
+
+#[derive(diesel::QueryableByName)]
+struct CanonicalOrgRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    org_id: Uuid,
+}
+
+/// Resolve the branch's owning organization from the `branches` table.
+///
+/// Callers only carry a `branch_id` (the signup hook signature), and one of
+/// them passed it as the org too — inserting the TEST twin then died on
+/// `bots_org_id_fkey`. The branch row is the source of truth; `nil` is the
+/// documented fallback for rows without an org (global scope).
+pub(crate) fn canonical_org_for_branch(conn: &mut PgConnection, branch_id: Uuid) -> Uuid {
+    diesel::sql_query(
+        "SELECT o.org_id FROM branches b JOIN organizations o ON o.org_id = b.org_id \
+         WHERE b.id = $1",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(branch_id)
+    .get_result::<CanonicalOrgRow>(conn)
+    .map(|r| r.org_id)
+    .unwrap_or_else(|e| {
+        log::warn!(
+            "vibe bootstrap: no org for branch {branch_id} ({e}) — falling back to global scope"
+        );
+        Uuid::nil()
+    })
+}

@@ -269,6 +269,24 @@ pub(crate) fn ensure_branch_default_project_conn(
         log::warn!("vibe bootstrap: schema fallback failed (may already exist): {e}");
     }
 
+    // The signup hook only carries a branch_id and callers have passed it as
+    // the org too — inserting bot rows with org = branch then dies on
+    // `bots_org_id_fkey`. Resolve the owning org from the branch row itself;
+    // nil is the documented fallback for branch rows without an org.
+    let passed_org_id = org_id;
+    let org_id =
+        crate::bootstrap_backfill::canonical_org_for_branch(conn, branch_id);
+    if org_id != passed_org_id {
+        log::warn!(
+            "vibe bootstrap: caller org {passed_org_id} != branch org {org_id} — using the branch's org"
+        );
+    }
+    let org_id = if org_id.is_nil() {
+        passed_org_id
+    } else {
+        org_id
+    };
+
     let existing = diesel::sql_query(
         "SELECT id FROM vibe_projects WHERE branch_id = $1 AND name = $2",
     )
@@ -279,7 +297,22 @@ pub(crate) fn ensure_branch_default_project_conn(
     .map_err(|e| format!("vibe bootstrap lookup: {e}"))?;
 
     let project_id = match existing {
-        Some(row) => row.id,
+        Some(row) => {
+            // Self-heal rows created by the buggy caller with org = branch:
+            // the wrong org_id breaks project→org joins downstream.
+            if let Err(e) = diesel::sql_query(
+                "UPDATE vibe_projects SET org_id = $3 WHERE id = $1 AND org_id <> $3 \
+                 AND org_id = $2",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(row.id)
+            .bind::<diesel::sql_types::Uuid, _>(branch_id)
+            .bind::<diesel::sql_types::Uuid, _>(org_id)
+            .execute(conn)
+            {
+                log::warn!("vibe bootstrap: heal project org {}: {e}", row.id);
+            }
+            row.id
+        }
         None => {
             let id = Uuid::new_v4();
             let payload = serde_json::json!({ "bootstrap": true, "source": "workspace" });

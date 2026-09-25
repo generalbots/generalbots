@@ -542,7 +542,7 @@
             }
         }
 
-        window.__peopleScope = { state: state, API_BASE: API_BASE, loadContacts: loadContacts, showContact: showContact, openAddContact: openAddContact, editContact: editContact, closeContactPanel: closeContactPanel, closeModal: closeModal, saveContact: saveContact, deleteContact: deleteContact };
+        window.__peopleScope = { state: state, API_BASE: API_BASE, loadContacts: loadContacts, showContact: showContact, openAddContact: openAddContact, editContact: editContact, closeContactPanel: closeContactPanel, closeModal: closeModal, saveContact: saveContact, deleteContact: deleteContact, startChat: startChat, sendEmail: sendEmail, scheduleMeeting: scheduleMeeting, apiFetch: apiFetch, toSnakeBody: toSnakeBody };
         window.showTab = showTab;
         window.filterByLetter = filterByLetter;
     })();

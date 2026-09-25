@@ -94,7 +94,8 @@ pub async fn list_opportunities(
     State(state): State<Arc<CrateState>>,
     headers: HeaderMap,
     Query(query): Query<ListQuery>,
-) -> Result<Json<Vec<CrmDeal>>, (StatusCode, String)> {
+) -> Result<axum::response::Response, (StatusCode, String)> {
+    use axum::response::IntoResponse;
     let mut conn = state.db_pool.get().map_err(|e| {
         (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
     })?;
@@ -103,35 +104,42 @@ pub async fn list_opportunities(
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
-    let mut q = crm_deals::table
-        .filter(crm_deals::branch_id.eq(branch_id))
-        .into_boxed();
+    // Built twice (count + page) because boxed diesel queries are consumed
+    // on execution; the closure keeps the filter list in one place (#1441 P2).
+    let make_q = || {
+        let mut q = crm_deals::table
+            .filter(crm_deals::branch_id.eq(branch_id))
+            .into_boxed();
+        if let Some(stage) = &query.stage {
+            q = q.filter(crm_deals::stage.eq(stage.clone()));
+        }
+        if let Some(search) = &query.search {
+            let pattern = format!("%{search}%");
+            q = q.filter(crm_deals::name.ilike(pattern));
+        }
+        if let Some(department_id) = query.department_id {
+            q = q.filter(crm_deals::department_id.eq(department_id));
+        }
+        if let Some(source) = &query.source {
+            q = q.filter(crm_deals::source.eq(source.clone()));
+        }
+        q
+    };
 
-    if let Some(stage) = query.stage {
-        q = q.filter(crm_deals::stage.eq(stage));
-    }
+    // #1441 P2 — X-Total-Count lets the UI paginate without a second probe.
+    let total: i64 = make_q()
+        .count()
+        .get_result(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Count error: {e}")))?;
 
-    if let Some(search) = query.search {
-        let pattern = format!("%{search}%");
-        q = q.filter(crm_deals::name.ilike(pattern));
-    }
-
-    if let Some(department_id) = query.department_id {
-        q = q.filter(crm_deals::department_id.eq(department_id));
-    }
-
-    if let Some(source) = query.source {
-        q = q.filter(crm_deals::source.eq(source));
-    }
-
-    let opportunities: Vec<CrmDeal> = q
+    let opportunities: Vec<CrmDeal> = make_q()
         .order(crm_deals::created_at.desc())
         .limit(limit)
         .offset(offset)
         .load(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
 
-    Ok(Json(opportunities))
+    Ok(([("X-Total-Count", total.to_string())], Json(opportunities)).into_response())
 }
 
 pub async fn get_opportunity(
