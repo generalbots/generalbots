@@ -63,7 +63,7 @@ fn register_get_file_fn(state: Arc<dyn BasicRuntime>, user_session: UserSession,
             Ok(Err(e)) => {
                 botbasic_core::keywords::errors::set_last_error(&e.to_string(), 1);
                 if botbasic_core::keywords::errors::is_error_resume_next_active() {
-                    Ok(Dynamic::UNIT)
+                    Ok(Dynamic::from(String::new()))
                 } else {
                     Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                         e.to_string().into(),
@@ -74,7 +74,7 @@ fn register_get_file_fn(state: Arc<dyn BasicRuntime>, user_session: UserSession,
             Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                 botbasic_core::keywords::errors::set_last_error("GET timed out", 1);
                 if botbasic_core::keywords::errors::is_error_resume_next_active() {
-                    Ok(Dynamic::UNIT)
+                    Ok(Dynamic::from(String::new()))
                 } else {
                     Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                         "GET timed out".into(),
@@ -85,7 +85,7 @@ fn register_get_file_fn(state: Arc<dyn BasicRuntime>, user_session: UserSession,
             Err(e) => {
                 botbasic_core::keywords::errors::set_last_error(&format!("GET failed: {e}"), 1);
                 if botbasic_core::keywords::errors::is_error_resume_next_active() {
-                    Ok(Dynamic::UNIT)
+                    Ok(Dynamic::from(String::new()))
                 } else {
                     Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                         format!("GET failed: {e}").into(),
@@ -153,7 +153,7 @@ fn register_get_syntax(state: Arc<dyn BasicRuntime>, user_session: UserSession, 
                     // script continues with an empty value; else propagate.
                     botbasic_core::keywords::errors::set_last_error(&e.to_string(), 1);
                     if botbasic_core::keywords::errors::is_error_resume_next_active() {
-                        Ok(Dynamic::UNIT)
+                        Ok(Dynamic::from(String::new()))
                     } else {
                         Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                             e.to_string().into(),
@@ -164,7 +164,7 @@ fn register_get_syntax(state: Arc<dyn BasicRuntime>, user_session: UserSession, 
                 Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                     botbasic_core::keywords::errors::set_last_error("GET timed out", 1);
                     if botbasic_core::keywords::errors::is_error_resume_next_active() {
-                        Ok(Dynamic::UNIT)
+                        Ok(Dynamic::from(String::new()))
                     } else {
                         Err(Box::new(
                             rhai::EvalAltResult::ErrorRuntime("GET timed out".into(), rhai::Position::NONE),
@@ -174,7 +174,7 @@ fn register_get_syntax(state: Arc<dyn BasicRuntime>, user_session: UserSession, 
                 Err(e) => {
                     botbasic_core::keywords::errors::set_last_error(&format!("GET failed: {e}"), 1);
                     if botbasic_core::keywords::errors::is_error_resume_next_active() {
-                        Ok(Dynamic::UNIT)
+                        Ok(Dynamic::from(String::new()))
                     } else {
                         Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                             format!("GET failed: {e}").into(),
