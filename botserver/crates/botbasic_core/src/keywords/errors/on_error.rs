@@ -182,7 +182,10 @@ macro_rules! with_error_handling {
                 let error_msg = format!("{}", e);
                 if $botbasic_core::keywords::errors::on_error::is_error_resume_next_active() {
                     $botbasic_core::keywords::errors::on_error::set_last_error(&error_msg, 1);
-                    Ok(rhai::Dynamic::UNIT)
+                    // Empty string, not UNIT: callers assign the result to
+                    // BASIC variables used in string pipelines (LEN/TRIM), and
+                    // a UNIT value breaks those calls with "Function not found".
+                    Ok(rhai::Dynamic::from(String::new()))
                 } else {
                     Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                         error_msg.into(),

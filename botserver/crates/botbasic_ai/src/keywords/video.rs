@@ -109,12 +109,12 @@ where
         Ok(Err(e)) => {
             // BASIC `ON ERROR RESUME NEXT` contract (classify_media.bas): when
             // the flag is active, record the failure for `IF ERROR THEN` via
-            // set_last_error and yield UNIT so the script continues with an
-            // empty value; otherwise propagate.
+            // set_last_error and yield an empty string so the script continues
+            // with a string-safe value; otherwise propagate.
             let msg = e.to_string();
             botbasic_core::keywords::errors::set_last_error(&msg, 1);
             if botbasic_core::keywords::errors::is_error_resume_next_active() {
-                Ok(Dynamic::UNIT)
+                Ok(Dynamic::from(String::new()))
             } else {
                 Err(runtime_error(msg))
             }
@@ -123,7 +123,7 @@ where
             let msg = format!("{name} timed out after {DEFAULT_TIMEOUT_SECS} seconds");
             botbasic_core::keywords::errors::set_last_error(&msg, 1);
             if botbasic_core::keywords::errors::is_error_resume_next_active() {
-                Ok(Dynamic::UNIT)
+                Ok(Dynamic::from(String::new()))
             } else {
                 Err(runtime_error(msg))
             }
