@@ -723,13 +723,27 @@ async fn inner_build_sub_router(
             }
         }
 
-        struct ConfigOpsImpl;
+        struct ConfigOpsImpl {
+            pool: Arc<diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>>,
+        }
 
         impl ConfigOps for ConfigOpsImpl {
-            fn get_config(&self, _bot_id: &uuid::Uuid, _key: &str, _default: Option<&str>) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-                Ok(_default.unwrap_or_default().to_string())
+            // Real config resolution (per-bot Vault path → nil → global), so
+            // AutoTask sees the same llm-model/llm-key as the chat pipeline. A
+            // stub returning defaults made AutoTask fall back to gpt-4 and 404
+            // against providers that do not host that model.
+            fn get_config(&self, bot_id: &uuid::Uuid, key: &str, default: Option<&str>) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+                let manager = botcore::config::ConfigManager::new((*self.pool).clone());
+                let value = manager
+                    .get_config(bot_id, key, default)
+                    .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { format!("config get {key}: {e}").into() })?;
+                Ok(value)
             }
-            fn set_config(&self, _bot_id: &uuid::Uuid, _key: &str, _value: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+            fn set_config(&self, bot_id: &uuid::Uuid, key: &str, value: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+                let manager = botcore::config::ConfigManager::new((*self.pool).clone());
+                manager
+                    .set_config(bot_id, key, value)
+                    .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> { format!("config set {key}: {e}").into() })?;
                 Ok(())
             }
         }
@@ -743,7 +757,9 @@ async fn inner_build_sub_router(
             }),
             app_state: app_state.clone(),
         });
-        let config_ops = Arc::new(ConfigOpsImpl);
+        let config_ops = Arc::new(ConfigOpsImpl {
+            pool: Arc::new(app_state.conn.clone()),
+        });
         let llm_ops = Arc::new(botautotask::llm_adapter::BotlibLlmAdapter(app_state.llm_provider.clone()));
         sub_router = sub_router.merge(botautotask::api::router(autotask_state, config_ops, llm_ops));
     }
