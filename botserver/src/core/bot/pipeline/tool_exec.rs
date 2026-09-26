@@ -122,9 +122,7 @@ pub async fn run_llm_tool_call(
 ) {
     use crate::core::bot::ws::handler::validate_bot_name;
     use crate::core::bot::ws::handler::verify_path_within_workdir;
-    use botcore::shared::utils::get_work_path;
-
-    let tool_call_trigger = "\"__tool_call__\":";
+    use botcore::shared::utils::get_work_path;        let tool_call_trigger = "\"__tool_call__\":";
     let tc_start = match full_response.find(tool_call_trigger) {
         Some(pos) => full_response[..pos].rfind('{').unwrap_or(pos),
         None => return,
@@ -132,7 +130,61 @@ pub async fn run_llm_tool_call(
     let tc_json = &full_response[tc_start..];
     if let Ok(tool_call) = serde_json::from_str::<serde_json::Value>(tc_json) {
         let raw_tool_name = tool_call.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-        let tool_args = tool_call.get("arguments").and_then(|v| v.as_str()).unwrap_or("");
+        let mut tool_args_owned = tool_call
+            .get("arguments")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+
+        // Chat attachments are staged under the bot's Drive `inbox/` before the
+        // LLM call (see pipeline::exec). Closed-contract filing tools such as
+        // classify_media take `path`/`caption`; when the model returns the tool
+        // call without carrying the staged path, inject it from the user message
+        // so execution does not depend on the model copying it verbatim.
+        let attachment_marker = "[User attached a file stored at ";
+        let staged_path = user_text.find(attachment_marker).map(|start| {
+            let rest = &user_text[start + attachment_marker.len()..];
+            let end = rest.find(';').unwrap_or(rest.len());
+            rest[..end].trim().to_string()
+        });
+        if let Some(staged) = staged_path {
+            let typed_caption = user_text
+                .split(attachment_marker)
+                .next()
+                .unwrap_or("")
+                .trim()
+                .to_string();
+            let mut parsed: serde_json::Value =
+                serde_json::from_str(&tool_args_owned).unwrap_or_else(|_| serde_json::json!({}));
+            let injected = if let Some(obj) = parsed.as_object_mut() {
+                let missing = obj
+                    .get("path")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.trim().is_empty() || is_placeholder_value(s))
+                    .unwrap_or(true);
+                if missing {
+                    obj.insert("path".to_string(), serde_json::Value::String(staged.clone()));
+                    obj.entry("caption".to_string())
+                        .or_insert(serde_json::Value::String(typed_caption));
+                    log::info!(
+                        "Injected staged chat attachment '{staged}' into tool '{raw_tool_name}' args"
+                    );
+                    true
+                } else {
+                    false
+                }
+            } else {
+                false
+            };
+            if injected {
+                match serde_json::to_string(&parsed) {
+                    Ok(s) => tool_args_owned = s,
+                    Err(e) => log::warn!("Failed to serialize injected tool args: {e}"),
+                }
+            }
+        }
+        let tool_args: &str = tool_args_owned.as_str();
+
         log::info!("LLM tool_call: executing tool '{raw_tool_name}' with args: {tool_args}");
         if raw_tool_name.is_empty() { return; }
 
