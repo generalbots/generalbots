@@ -1422,6 +1422,92 @@ sudo incus copy <container>/test-base <container>-test && sudo incus start <cont
 
 ---
 
+## BASIC Compile/Run Failure Playbook (media-filing saga, 2026-09)
+
+The `classify_media` E2E surfaced five stacked bugs. Symptoms look identical
+(`Expecting ';'`, tool aborts) but live in different layers — always pull the
+runtime dumps before touching code:
+
+### Runtime debug dumps are the FIRST step, not the last
+`ScriptService::run` (botserver/src/basic/mod.rs:91) writes inside the bot
+container: `/tmp/run_preprocessed.txt` (the transformed source — maps a Rhai
+error line straight back to the offending statement), `/tmp/compile_error.txt`,
+`/tmp/run_ast_input.txt`, `/tmp/run_result.txt`. Pull them via
+`incus file pull bot:/tmp/run_preprocessed.txt` and read the exact line from the
+error position before guessing.
+
+### 1. Stale AST caches survive binary fixes
+- **Symptom:** fixed a compiler transform, but the same Rhai error persists after deploy
+- **Cause:** the work-dir `.ast` was compiled by the OLD binary; mangled statements
+  are baked into the cached AST. Runtime self-heal (`ScriptService::run` re-applies
+  only `convert_multiword_keywords`) cannot reverse an already-mangled statement.
+- **Fix:** recompile with the new binary — re-put the `.bas` in Drive (new ETag →
+  drive_compiler recompiles) or hot-patch the work-dir `.ast` back to the keyword
+  form so self-heal rewrites it. Never assume a deploy alone recompiles tools.
+
+### 2. CREATE FILE rewrite read wrong regex groups
+- **Symptom:** `let destination + ".meta.txt"create_file(...)` in run_preprocessed.txt
+- **Cause:** `convert_multiword_keywords` read `get(2)/get(3)/get(4)` but the pattern
+  has three groups (#1460)
+- **Fix:** groups 1/2/3 = prefix/path/data; path may be a full expression.
+
+### 3. Assignment heuristic let-prefixes calls containing '=' inside strings
+- **Symptom:** `let create_file(p, "category=" + c)` — invalid Rhai
+- **Cause:** `convert_if_then_syntax`'s `is_var_assignment` checked the RAW line;
+  the `=` inside a string literal made a function call look like an assignment
+- **Fix:** blank string literals first (`strip_string_literals`) before operator
+  checks. Rule: any line-level heuristic must run on string-stripped code.
+
+### 4. ON ERROR RESUME NEXT yielded UNIT, poisoning string pipelines
+- **Symptom:** `Function not found: TRIM (())` after a trapped keyword failure (#1461)
+- **Cause:** all 11 RESUME-NEXT error/timeout branches returned `Dynamic::UNIT` (Rhai
+  `()`), so `x = DESCRIBE VIDEO path` assigned `()`; `LEN(TRIM(x))` then died. The
+  script's `IF ERROR` handling was correct — the runtime value was not.
+- **Fix:** RESUME-NEXT branches return an **empty string**, never UNIT. Contract:
+  a trapped keyword yields `""` and sets the error flag.
+
+### 5. Compiler regenerates an empty MCP manifest over the shipped one
+- **Symptom:** `Variable not found: caption` when the LLM omits an optional arg (#1462)
+- **Cause:** `compile_file()` always rewrites `{tool}.mcp.json` from the `.bas` (empty
+  schema when the script has no PARAM headers), clobbering the rich manifest persisted
+  by AutoTask shipped templates. `tool_exec` defaults omitted args from
+  `input_schema.properties` — empty manifest → missing args become undeclared
+  variables → abort. Note: RESUME NEXT does NOT trap undeclared-variable reads.
+- **Fix:** drive_compiler syncs the Drive-side `{tool}.mcp.json` (source of truth)
+  over the generated one after compiling; shipped templates persist the manifest
+  BOTH at `tools/{tool}.mcp.json` and root `{tool}.mcp.json`.
+
+### TODAY/NOW are functions, not variables (Rhai reality)
+- **Symptom:** `Variable not found: TODAY`
+- **Cause:** runtime registers `TODAY`/`NOW` as `register_fn` (call form); BASIC
+  scripts write `TODAY` bare — Rhai reads a bare identifier as a variable.
+- **Fix:** rewrite bare `TODAY`/`NOW` tokens to `TODAY()`/`NOW()` in the compile
+  pipeline AND in the runtime self-heal so old ASTs heal on load.
+- **⚠️ Rewrites must be IDEMPOTENT:** the self-heal runs on every load, including
+  ASTs that already contain `TODAY()`. A lookahead-free pattern with an optional
+  `\(\)` group and trailing `\b` backtracks (`TODAY()` → bare match) and produces
+  the invalid `TODAY()()`. Normalize manually: after each match, consume an
+  existing `()` pair when present, else append one. Test both forms.
+
+### Channel adapters pass bot UUID where the pipeline expects a name
+- **Symptom:** tool never runs on Telegram/WhatsApp; log:
+  `get_session_tools error … Failed to get bot_id for bot 'f25671b3-…': Record not found`
+- **Cause:** the Telegram webhook fills `UserMessage.bot_id` with the bot UUID, but
+  `run_pipeline_for_channel` propagated it as the bot NAME; `get_session_tools`
+  queried `bots.name = '<uuid>'` → zero tools for the session. Web chat passed the
+  real name, hiding the bug.
+- **Fix:** `channel_entry.rs` normalizes `bot_id` to the name (reverse UUID lookup)
+  before resolving the UUID — one fix at the single channel entry point. When a
+  channel feature works on web but not on a channel adapter, diff what each puts
+  in `msg.bot_id` FIRST.
+
+### E2E loop discipline for bot tools
+Every fix → build → deploy → **force recompile** (re-put `.bas`) → re-test via
+Chrome CDP browser upload (never WebSocket scripts) → verify Drive objects via
+boto3 (`{bot}.gbdrive/media/...`). One error at a time; the dumps tell the layer.
+
+---
+
 ## Reference: SaaS Product Listing Test Results (2026-06-28)
 
 ### Ports After Fix
