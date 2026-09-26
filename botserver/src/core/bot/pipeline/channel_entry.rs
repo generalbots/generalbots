@@ -20,7 +20,17 @@ pub async fn run_pipeline_for_channel(
     msg: &botlib::models::UserMessage,
     sink: &dyn ChannelSink,
 ) -> PipelineResult<()> {
-    let bot_name = msg.bot_id.clone();
+    // `msg.bot_id` carries a bot NAME on some channels and a bot UUID on
+    // others (the Telegram webhook fills it with the UUID). Everything
+    // downstream — tool loading (`get_session_tools` looks up
+    // `bots.name`), work-dir paths, prompt text — expects the NAME, so
+    // normalize here once instead of patching each consumer.
+    let mut bot_name = msg.bot_id.clone();
+    if Uuid::parse_str(&bot_name).is_ok() {
+        if let Some(resolved) = resolve_bot_name(&state.conn, &bot_name).await {
+            bot_name = resolved;
+        }
+    }
     let user_text = msg.content.clone();
     let session_id = Uuid::parse_str(&msg.session_id).unwrap_or_else(|_| Uuid::new_v4());
     let user_id = Uuid::parse_str(&msg.user_id).unwrap_or_else(|_| Uuid::nil());
@@ -62,6 +72,30 @@ pub async fn run_pipeline_for_channel(
     }
 
     result
+}
+
+/// Reverse lookup for callers that pass a bot UUID where a name is
+/// expected. Returns `None` when the value is not a known bot id.
+async fn resolve_bot_name(
+    pool: &botcore::shared::utils::DbPool,
+    bot_uuid: &str,
+) -> Option<String> {
+    let uuid = Uuid::parse_str(bot_uuid).ok()?;
+    use diesel::prelude::*;
+    if let Ok(mut conn) = pool.get_timeout(std::time::Duration::from_secs(3)) {
+        #[derive(diesel::QueryableByName)]
+        struct BotName {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            name: String,
+        }
+        diesel::sql_query("SELECT name FROM bots WHERE id = $1 LIMIT 1")
+            .bind::<diesel::sql_types::Uuid, _>(uuid)
+            .get_result::<BotName>(&mut conn)
+            .ok()
+            .map(|r| r.name)
+    } else {
+        None
+    }
 }
 
 async fn resolve_bot_uuid(pool: &botcore::shared::utils::DbPool, bot_name: &str) -> uuid::Uuid {
