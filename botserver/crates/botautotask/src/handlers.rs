@@ -565,7 +565,17 @@ async fn persist_shipped_template(
         path: Some(tool_key.clone()),
     });
     if let (Some(rel), Some(src)) = (template.manifest_path, template.manifest_source) {
+        // Persist the manifest next to the tool AND as the sibling root-level
+        // copy the compiler reads: compile_file() regenerates a manifest with
+        // an empty schema on every .bas compile, and the drive compiler syncs
+        // the Drive copy over the generated one — without this root copy the
+        // schema (and tool_exec's missing-argument defaulting) is lost.
         let manifest_key = format!("{dialog}/{rel}");
+        let root_manifest_key = format!(
+            "{dialog}/{}",
+            rel.trim_start_matches("tools/")
+        );
+        let mut persisted = false;
         if let Err(e) = ops.put_object(
             &bucket,
             &manifest_key,
@@ -574,12 +584,25 @@ async fn persist_shipped_template(
         ) {
             warn!("shipped template manifest persist failed (tool kept): {e}");
         } else {
+            persisted = true;
             info!("Saved MCP manifest to Drive: {bucket}/{manifest_key}");
             created.push(crate::api::CreatedResourceResponse {
                 resource_type: "mcp-manifest".to_string(),
                 name: rel.trim_start_matches("tools/").to_string(),
-                path: Some(manifest_key),
+                path: Some(manifest_key.clone()),
             });
+        }
+        if persisted && root_manifest_key != manifest_key {
+            if let Err(e) = ops.put_object(
+                &bucket,
+                &root_manifest_key,
+                src.as_bytes().to_vec(),
+                "application/json",
+            ) {
+                warn!("root MCP manifest persist failed (schema may be lost on recompile): {e}");
+            } else {
+                info!("Saved root MCP manifest to Drive: {bucket}/{root_manifest_key}");
+            }
         }
     }
     Json(CreateAndExecuteResponse {
