@@ -601,10 +601,49 @@ pub fn convert_multiword_keywords(script: &str) -> String {
     ];
 
     let mut result = String::new();
+    // Open FOR EACH blocks awaiting their NEXT (innermost last).
+    let mut foreach_stack: Vec<String> = Vec::new();
 
     for line in script.lines() {
         let trimmed = line.trim();
         let mut converted = false;
+
+        // FOR EACH var IN expr … NEXT: the compiled .ast stores the
+        // underscored FOR_EACH form with a bare `NEXT;`, and the runtime
+        // engine only registers the two-token "FOR EACH" custom syntax — so
+        // execution-time self-heal produced `FOR_EACH x in e;` … `NEXT;`,
+        // which Rhai rejects ("Expecting ';'" on the loop variable).
+        // Rewriting to the Rhai-native `for var in (expr) { … }` makes the
+        // dialect unambiguous at both compile and execution time.
+        if let Some(caps) = Regex::new(
+            r#"(?i)^\s*FOR[_\s]+EACH\s+([A-Za-z_]\w*)\s+IN\s+(.+?)\s*;?\s*$"#,
+        )
+        .ok()
+        .and_then(|re| re.captures(line))
+        {
+            let var = caps.get(1).map_or("", |m| m.as_str());
+            let expr = strip_trailing_stmt_semicolon(caps.get(2).map_or("", |m| m.as_str().trim()));
+            foreach_stack.push(var.to_lowercase());
+            result.push_str(&format!("for {var} in ({expr}) {{\n"));
+            continue;
+        }
+        if !foreach_stack.is_empty() {
+            if let Some(caps) = Regex::new(r#"(?i)^\s*NEXT(?:\s+([A-Za-z_]\w*))?\s*;?\s*$"#)
+                .ok()
+                .and_then(|re| re.captures(line))
+            {
+                let named = caps.get(1).map(|m| m.as_str().to_lowercase());
+                let matches_top = match &named {
+                    Some(n) => foreach_stack.last().is_some_and(|top| top == n),
+                    None => true,
+                };
+                if matches_top {
+                    foreach_stack.pop();
+                    result.push_str("}\n");
+                    continue;
+                }
+            }
+        }
 
         // CREATE FILE <path> WITH <data> needs a dedicated rewrite: the generic
         // comma-based parameter parser below cannot split on the WITH keyword.
@@ -921,4 +960,50 @@ pub fn preprocess_llm_keyword(script: &str) -> String {
     }
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn for_each_next_becomes_rhai_native_for() {
+        let script = "FOR EACH candidate IN allowed\nPRINT candidate\nNEXT\n";
+        let out = convert_multiword_keywords(script);
+        assert!(out.contains("for candidate in (allowed) {"), "got: {out}");
+        assert!(out.contains("}\n"), "closing brace missing: {out}");
+        assert!(!out.to_uppercase().contains("FOR_EACH"), "unconverted form leaked: {out}");
+    }
+
+    #[test]
+    fn underscored_for_each_from_ast_self_heals_at_runtime() {
+        // Exactly the shape stored in compiled .ast files.
+        let script = "allowed = SPLIT(TAXONOMY, \",\");\nFOR_EACH candidate in allowed;\nif candidate == answer {\n  category = candidate;\n}\nNEXT;\n";
+        let out = convert_multiword_keywords(script);
+        assert!(out.contains("for candidate in (allowed) {"), "got: {out}");
+        assert!(!out.contains("NEXT"), "bare NEXT leaked: {out}");
+    }
+
+    #[test]
+    fn nested_for_each_pairs_with_named_next() {
+        let script = "FOR EACH a IN xs\nFOR EACH b IN ys\nPRINT a + b\nNEXT b\nNEXT a\n";
+        let out = convert_multiword_keywords(script);
+        assert_eq!(out.matches("for ").count(), 2, "got: {out}");
+        assert_eq!(out.matches("}\n").count(), 2, "got: {out}");
+    }
+
+    #[test]
+    fn get_path_rewrite_and_protected_forms() {
+        let out = convert_multiword_keywords("GET \"/gbdialog/config.txt\"\n");
+        assert!(out.contains("get_file("), "got: {out}");
+        let out = convert_multiword_keywords("GET FROM customers WHERE id = 1\n");
+        assert!(!out.contains("get_file("), "GET FROM must not be rewritten: {out}");
+    }
+
+    #[test]
+    fn perception_keywords_use_function_forms() {
+        let out = convert_multiword_keywords("DESCRIBE VIDEO path\nON ERROR RESUME NEXT\n");
+        assert!(out.contains("describe_video("), "got: {out}");
+        assert!(out.contains("on_error_resume_next("), "got: {out}");
+    }
 }
