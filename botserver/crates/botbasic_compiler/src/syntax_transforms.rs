@@ -655,14 +655,14 @@ pub fn convert_multiword_keywords(script: &str) -> String {
         .ok()
         .and_then(|re| re.captures(line))
         {
-            let indent = caps.get(1).map_or("", |m| m.as_str());
-            let prefix = caps.get(2).map_or("", |m| m.as_str());
-            let path = caps.get(3).map_or("", |m| m.as_str().trim());
-            let data = caps.get(4).map_or("", |m| m.as_str().trim());
+            // Regex groups: 1 = text before the keyword, 2 = path (may be an
+            // expression like `destination + ".meta.txt"`), 3 = data.
+            let prefix = caps.get(1).map_or("", |m| m.as_str());
+            let path = caps.get(2).map_or("", |m| m.as_str().trim());
+            let data = caps.get(3).map_or("", |m| m.as_str().trim());
             let data = strip_trailing_stmt_semicolon(data);
             result.push_str(&format!(
-                "{indent}{prefix}create_file({}, {});\n",
-                path, data
+                "{prefix}create_file({path}, {data});\n"
             ));
             continue;
         }
@@ -998,6 +998,25 @@ mod tests {
         assert!(out.contains("get_file("), "got: {out}");
         let out = convert_multiword_keywords("GET FROM customers WHERE id = 1\n");
         assert!(!out.contains("get_file("), "GET FROM must not be rewritten: {out}");
+    }
+
+    #[test]
+    fn create_file_expression_path_becomes_create_file_call() {
+        // classify_media.bas shape: path is an expression, data is an expression.
+        let out = convert_multiword_keywords(
+            "CREATE FILE destination + \".meta.txt\" WITH \"category=\" + category\n",
+        );
+        assert!(
+            out.contains("create_file(destination + \".meta.txt\", \"category=\" + category);"),
+            "got: {out}"
+        );
+        assert!(!out.to_uppercase().contains("CREATE FILE"), "unconverted form leaked: {out}");
+    }
+
+    #[test]
+    fn create_file_literal_path_becomes_create_file_call() {
+        let out = convert_multiword_keywords("CREATE FILE \"x.txt\" WITH \"hello\"\n");
+        assert!(out.contains("create_file(\"x.txt\", \"hello\");"), "got: {out}");
     }
 
     #[test]
