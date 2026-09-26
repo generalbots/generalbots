@@ -53,6 +53,36 @@ pub fn predeclare_variables(script: &str) -> String {
     declarations
 }
 
+/// Replace the contents of double-quoted string literals with spaces so
+/// heuristics that look for `=`/`==`/`+=` operate on code, not on text inside
+/// strings (e.g. `create_file(p, "category=" + c)` must not look like an
+/// assignment just because a literal contains `=`).
+fn strip_string_literals(line: &str) -> String {
+    let mut out = String::with_capacity(line.len());
+    let mut in_string = false;
+    let mut escaped = false;
+    for ch in line.chars() {
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                in_string = false;
+                out.push('"');
+            } else {
+                out.push(' ');
+            }
+        } else {
+            if ch == '"' {
+                in_string = true;
+            }
+            out.push(ch);
+        }
+    }
+    out
+}
+
 pub fn convert_if_then_syntax(script: &str) -> String {
     let mut result = String::new();
     let mut if_stack: Vec<bool> = Vec::new();
@@ -298,16 +328,21 @@ pub fn convert_if_then_syntax(script: &str) -> String {
         }
 
         if !upper.starts_with("IF ") && !upper.starts_with("ELSE") && !upper.starts_with("END IF") {
+            // Assignment detection must ignore `=` characters that live inside
+            // string literals, otherwise keyword calls like
+            // `create_file(p, "category=" + c)` are misread as assignments and
+            // get a spurious `let ` prefix (invalid Rhai).
+            let code_only = strip_string_literals(trimmed);
             let is_var_assignment = trimmed.chars().next().is_some_and(|c| c.is_alphabetic() || c == '_')
-                && trimmed.contains('=')
-                && !trimmed.contains("==")
-                && !trimmed.contains("!=")
-                && !trimmed.contains("<=")
-                && !trimmed.contains(">=")
-                && !trimmed.contains("+=")
-                && !trimmed.contains("-=")
-                && !trimmed.contains("*=")
-                && !trimmed.contains("/=");
+                && code_only.contains('=')
+                && !code_only.contains("==")
+                && !code_only.contains("!=")
+                && !code_only.contains("<=")
+                && !code_only.contains(">=")
+                && !code_only.contains("+=")
+                && !code_only.contains("-=")
+                && !code_only.contains("*=")
+                && !code_only.contains("/=");
 
             let ends_with_comma = trimmed.ends_with(',');
 
@@ -1017,6 +1052,16 @@ mod tests {
     fn create_file_literal_path_becomes_create_file_call() {
         let out = convert_multiword_keywords("CREATE FILE \"x.txt\" WITH \"hello\"\n");
         assert!(out.contains("create_file(\"x.txt\", \"hello\");"), "got: {out}");
+    }
+
+    #[test]
+    fn create_file_call_with_equals_in_string_is_not_let_prefixed() {
+        // classify_media.bas: the data argument contains `=` inside a string;
+        // the assignment heuristic must not mistake the call for `let x = ...`.
+        let script = "create_file(destination + \".meta.txt\", \"category=\" + category);\n";
+        let out = convert_if_then_syntax(script);
+        assert!(!out.contains("let create_file"), "got: {out}");
+        assert!(out.contains("create_file(destination + \".meta.txt\""), "got: {out}");
     }
 
     #[test]
