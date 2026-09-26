@@ -151,8 +151,7 @@ pub async fn process_message_internal(
                         Ok(()) => {
                             log::info!("stored chat attachment: {key}");
                             user_text = format!(
-                                "{user_text}\n[User attached a file stored at inbox/{fname}; \
-                                 use the drive.file command to organize it into its folder]"
+                                "{user_text}\n[User attached a file stored at inbox/{fname}; when a media filing tool such as classify_media is available for this session, call it with path=inbox/{fname} and the user's message as caption; otherwise use the drive.file command to organize it into its folder]"
                             );
                         }
                         Err(e) => log::error!("chat attachment store failed: {e}"),
