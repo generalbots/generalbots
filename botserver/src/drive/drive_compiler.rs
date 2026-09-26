@@ -383,6 +383,34 @@ impl DriveCompiler {
             work_dir.to_str().ok_or("Invalid path")?
         )?;
 
+        // A tool's MCP manifest in Drive is the source of truth for its
+        // argument schema. compile_file() always regenerates a manifest from
+        // the .bas (with an empty schema when the script declares no
+        // parameters), which clobbers the richer manifest persisted by
+        // AutoTask shipped templates; tool_exec relies on
+        // input_schema.properties to default arguments the LLM omitted
+        // (otherwise optional params reach the script as undeclared
+        // variables and abort it). Sync the Drive copy over the generated
+        // one when it exists; missing manifests keep the generated fallback.
+        let manifest_fp = match fp.strip_suffix(".bas") {
+            Some(base) => format!("{base}.mcp.json"),
+            None => fp.to_string(),
+        };
+        let work_manifest_path = work_dir.join(format!("{}.mcp.json", tool_name));
+        match download_from_s3(&manifest_fp, &self.state).await {
+            Ok(bytes) => match String::from_utf8(bytes) {
+                Ok(text) => {
+                    if let Err(e) = std::fs::write(&work_manifest_path, text) {
+                        warn!("Failed to write MCP manifest to work dir: {e}");
+                    } else {
+                        info!("Synced MCP manifest from Drive: {manifest_fp}");
+                    }
+                }
+                Err(e) => warn!("MCP manifest from Drive is not UTF-8, keeping generated one: {e}"),
+            },
+            Err(_) => debug!("No MCP manifest in Drive for {manifest_fp}; keeping generated one"),
+        }
+
         let work_ast_path = work_dir.join(format!("{}.ast", tool_name));
         let ast_path_str = work_ast_path.to_str().unwrap_or("").to_string();
 
