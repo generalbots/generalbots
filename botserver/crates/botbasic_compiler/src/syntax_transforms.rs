@@ -566,6 +566,49 @@ pub fn convert_keywords_to_lowercase(script: &str) -> String {
     result
 }
 
+/// Outside string literals, bare `TODAY`/`NOW` tokens become calls
+/// `TODAY()`/`NOW()`: the runtime registers them as functions
+/// (botbasic_core datetime/now.rs), but BASIC scripts write them as bare
+/// variables, and Rhai reads a bare identifier as a variable lookup
+/// ("Variable not found: TODAY"). Old ASTs heal on load because the
+/// execution-time self-heal runs this same transform.
+fn rewrite_bare_datetime_tokens(line: &str) -> String {
+    // NOTE: the Rust regex crate has no lookahead support, so "already a
+    // call" is handled by consuming an existing `()` pair in the match
+    // instead of a negative lookahead.
+    let re = match Regex::new(r"\b(TODAY|NOW)(\(\))?\b") {
+        Ok(r) => r,
+        Err(_) => return line.to_string(),
+    };
+    let mut out = String::with_capacity(line.len() + 8);
+    let mut plain = String::new();
+    let mut in_string = false;
+    let mut escaped = false;
+    for ch in line.chars() {
+        if in_string {
+            out.push(ch);
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                in_string = false;
+            }
+        } else if ch == '"' {
+            // `$1()` normalizes both forms: bare `TODAY` gains the call parens,
+            // an existing `TODAY()` (group 2 consumed) is re-emitted as-is.
+            out.push_str(&re.replace_all(&plain, "$1()"));
+            plain.clear();
+            out.push(ch);
+            in_string = true;
+        } else {
+            plain.push(ch);
+        }
+    }
+    out.push_str(&re.replace_all(&plain, "$1()"));
+    out
+}
+
 pub fn convert_multiword_keywords(script: &str) -> String {
     let multiword_patterns = vec![
         (r#"USE\s+WEBSITE"#, 1, 2, vec!["url", "refresh"]),
@@ -639,7 +682,9 @@ pub fn convert_multiword_keywords(script: &str) -> String {
     // Open FOR EACH blocks awaiting their NEXT (innermost last).
     let mut foreach_stack: Vec<String> = Vec::new();
 
-    for line in script.lines() {
+    for original in script.lines() {
+        let rewritten = rewrite_bare_datetime_tokens(original);
+        let line: &str = rewritten.as_str();
         let trimmed = line.trim();
         let mut converted = false;
 
@@ -1062,6 +1107,24 @@ mod tests {
         let out = convert_if_then_syntax(script);
         assert!(!out.contains("let create_file"), "got: {out}");
         assert!(out.contains("create_file(destination + \".meta.txt\""), "got: {out}");
+    }
+
+    #[test]
+    fn bare_today_and_now_become_calls() {
+        // classify_media.bas shape: `let today = TODAY;` — TODAY is registered
+        // as a function at runtime, so the bare form must become a call.
+        let out = convert_multiword_keywords("let today = TODAY;\nlet stamp = NOW;\n");
+        assert!(out.contains("TODAY()"), "got: {out}");
+        assert!(out.contains("NOW()"), "got: {out}");
+        let out = convert_multiword_keywords("let a = TODAY();\n");
+        assert_eq!(out.matches("TODAY()").count(), 1, "no double call: {out}");
+    }
+
+    #[test]
+    fn today_inside_string_literal_is_not_rewritten() {
+        let out = convert_multiword_keywords("TALK \"TODAY is a good day\"\n");
+        assert!(out.contains("TODAY is a good day"), "string mangled: {out}");
+        assert!(!out.contains("TODAY()"), "got: {out}");
     }
 
     #[test]
