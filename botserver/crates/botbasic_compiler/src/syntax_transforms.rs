@@ -573,13 +573,36 @@ pub fn convert_keywords_to_lowercase(script: &str) -> String {
 /// ("Variable not found: TODAY"). Old ASTs heal on load because the
 /// execution-time self-heal runs this same transform.
 fn rewrite_bare_datetime_tokens(line: &str) -> String {
-    // NOTE: the Rust regex crate has no lookahead support, so "already a
-    // call" is handled by consuming an existing `()` pair in the match
-    // instead of a negative lookahead.
-    let re = match Regex::new(r"\b(TODAY|NOW)(\(\))?\b") {
+    let re = match Regex::new(r"\b(TODAY|NOW)\b") {
         Ok(r) => r,
         Err(_) => return line.to_string(),
     };
+    // Append the token and normalize what follows: bare `TODAY` gains `()`;
+    // an existing `TODAY()` is copied through unchanged. A trailing `\b`
+    // after an optional `\(\)` group would backtrack (word end boundary
+    // fails after `)`), matching the bare token inside `TODAY()` and
+    // producing the invalid double call `TODAY()()` — hence the manual
+    // paren check instead of regex lookahead (unsupported in Rust regex).
+    fn rewrite_plain(re: &Regex, plain: &str, out: &mut String) {
+        let mut last = 0;
+        for m in re.find_iter(plain) {
+            out.push_str(&plain[last..m.start()]);
+            out.push_str(m.as_str());
+            let rest = &plain[m.end()..];
+            let trimmed = rest.trim_start();
+            if trimmed.starts_with('(') {
+                if let Some(rel) = trimmed.find(')') {
+                    let skip = rest.len() - trimmed.len() + rel + 1;
+                    out.push_str(&rest[..skip]);
+                    last = m.end() + skip;
+                    continue;
+                }
+            }
+            out.push_str("()");
+            last = m.end();
+        }
+        out.push_str(&plain[last..]);
+    }
     let mut out = String::with_capacity(line.len() + 8);
     let mut plain = String::new();
     let mut in_string = false;
@@ -595,9 +618,7 @@ fn rewrite_bare_datetime_tokens(line: &str) -> String {
                 in_string = false;
             }
         } else if ch == '"' {
-            // `$1()` normalizes both forms: bare `TODAY` gains the call parens,
-            // an existing `TODAY()` (group 2 consumed) is re-emitted as-is.
-            out.push_str(&re.replace_all(&plain, "$1()"));
+            rewrite_plain(&re, &plain, &mut out);
             plain.clear();
             out.push(ch);
             in_string = true;
@@ -605,7 +626,7 @@ fn rewrite_bare_datetime_tokens(line: &str) -> String {
             plain.push(ch);
         }
     }
-    out.push_str(&re.replace_all(&plain, "$1()"));
+    rewrite_plain(&re, &plain, &mut out);
     out
 }
 
@@ -1118,6 +1139,12 @@ mod tests {
         assert!(out.contains("NOW()"), "got: {out}");
         let out = convert_multiword_keywords("let a = TODAY();\n");
         assert_eq!(out.matches("TODAY()").count(), 1, "no double call: {out}");
+        // Idempotency: an AST that already contains TODAY() must survive the
+        // runtime self-heal unchanged (the lookahead-less backtracking bug
+        // produced TODAY()()).
+        let out = convert_multiword_keywords("let today = TODAY();\n");
+        assert!(out.contains("TODAY();"), "double call: {out}");
+        assert!(!out.contains("TODAY()()"), "double call: {out}");
     }
 
     #[test]
