@@ -19,6 +19,85 @@ struct JsonRow {
 }
 
 pub fn register_get_keyword(state: Arc<dyn BasicRuntime>, user_session: UserSession, engine: &mut Engine) {
+    register_get_file_fn(state.clone(), user_session.clone(), engine);
+    register_get_syntax(state, user_session, engine);
+}
+
+/// Function form `get_file(path)`, emitted by `convert_multiword_keywords`.
+/// The `GET $expr$` custom syntax is overridden at runtime by the later
+/// GET SHAREPOINT/INSTAGRAM/… registrations (same Rhai first-token key).
+fn register_get_file_fn(state: Arc<dyn BasicRuntime>, user_session: UserSession, engine: &mut Engine) {
+    let state_fn = Arc::clone(&state);
+    let user_fn = user_session;
+    engine.register_fn("get_file", move |file_path: String| -> Result<Dynamic, Box<rhai::EvalAltResult>> {
+        let state_for_blocking = Arc::clone(&state_fn);
+        let path_str = file_path;
+        let bot_id = user_fn.bot_id;
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .worker_threads(2)
+                .enable_all()
+                .build();
+            let send_err = if let Ok(rt) = rt {
+                let result = rt.block_on(async move {
+                    if path_str.starts_with("https://") || path_str.starts_with("http://") {
+                        execute_get(&path_str).await
+                    } else {
+                        get_from_bucket(state_for_blocking, &path_str, bot_id).await
+                    }
+                });
+                tx.send(result).err()
+            } else {
+                tx.send(Err("failed to build tokio runtime".into())).err()
+            };
+            if send_err.is_some() {
+                log::error!("Failed to send result from thread");
+            }
+        });
+        match rx.recv_timeout(std::time::Duration::from_secs(40)) {
+            Ok(Ok(content)) => {
+                botbasic_core::keywords::errors::clear_last_error();
+                Ok(Dynamic::from(content))
+            }
+            Ok(Err(e)) => {
+                botbasic_core::keywords::errors::set_last_error(&e.to_string(), 1);
+                if botbasic_core::keywords::errors::is_error_resume_next_active() {
+                    Ok(Dynamic::UNIT)
+                } else {
+                    Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        e.to_string().into(),
+                        rhai::Position::NONE,
+                    )))
+                }
+            }
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                botbasic_core::keywords::errors::set_last_error("GET timed out", 1);
+                if botbasic_core::keywords::errors::is_error_resume_next_active() {
+                    Ok(Dynamic::UNIT)
+                } else {
+                    Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        "GET timed out".into(),
+                        rhai::Position::NONE,
+                    )))
+                }
+            }
+            Err(e) => {
+                botbasic_core::keywords::errors::set_last_error(&format!("GET failed: {e}"), 1);
+                if botbasic_core::keywords::errors::is_error_resume_next_active() {
+                    Ok(Dynamic::UNIT)
+                } else {
+                    Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        format!("GET failed: {e}").into(),
+                        rhai::Position::NONE,
+                    )))
+                }
+            }
+        }
+    });
+}
+
+fn register_get_syntax(state: Arc<dyn BasicRuntime>, user_session: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     if let Err(e) = engine
         .register_custom_syntax(["GET", "$expr$"], false, move |context, inputs| {

@@ -584,6 +584,13 @@ pub fn convert_multiword_keywords(script: &str) -> String {
         (r#"DESCRIBE\s+IMAGE"#, 1, 1, vec!["source"]),
         (r#"DESCRIBE\s+VIDEO"#, 1, 1, vec!["source"]),
         (r#"SPEECH\s+TO\s+TEXT"#, 1, 1, vec!["source"]),
+        // Bare `GET <drive path | url>`. The lookahead protects the other
+        // GET-family forms (GET FROM, GET HTTP, GET QUEUE, GET SHAREPOINT …)
+        // from being swallowed by this rewrite.
+        (
+            r#"GET\s+(?!FROM\b|HTTP\b|BOT\b|QUEUE\b|ATTENDANT|TIPS\b|SMART\b|SUMMARY\b|CUSTOMER\b|INSTAGRAM\b|FACEBOOK\b|LINKEDIN\b|TWITTER\b|SHAREPOINT\b|STOCK\b|BANCO\b|UNMATCHED\b)"#,
+            1, 1, vec!["file_path"],
+        ),
 
         (r#"SEND\s+MAIL"#, 4, 4, vec!["to", "subject", "body", "attachments"]),
         (r#"SEND\s+TEAMS\s+MESSAGE"#, 2, 2, vec!["chat_id", "message"]),
