@@ -646,23 +646,36 @@ pub fn convert_multiword_keywords(script: &str) -> String {
 
         // Bare `GET <drive path | url>` needs a dedicated rewrite: the generic
         // machinery derives the function name from the pattern and appends an
-        // extra \s+ separator, both of which break with a lookahead pattern.
-        // Lookahead protects the GET-family forms (GET FROM/HTTP/QUEUE/
-        // SHAREPOINT/metrics …) from being swallowed. Runtime override context:
-        // the `GET $expr$` custom syntax loses to the later-registered GET
-        // SHAREPOINT … syntax (same Rhai first-token key).
-        if let Some(caps) = Regex::new(
-            r#"(?i)^(\s*)(.*?)\bGET\s+(?!FROM\b|HTTP\b|BOT\b|QUEUE\b|ATTENDANT|TIPS\b|SMART\b|SUMMARY\b|CUSTOMER\b|INSTAGRAM\b|FACEBOOK\b|LINKEDIN\b|TWITTER\b|SHAREPOINT\b|STOCK\b|BANCO\b|UNMATCHED\b)(.+?)\s*;?$"#,
-        )
-        .ok()
-        .and_then(|re| re.captures(line))
+        // extra \s+ separator. Runtime override context: the `GET $expr$`
+        // custom syntax loses to the later-registered GET SHAREPOINT … syntax
+        // (same Rhai first-token key). NOTE: the Rust regex crate has no
+        // lookahead support, so the GET-family protection (GET FROM/HTTP/
+        // QUEUE/SHAREPOINT/metrics …) is checked in code below, not in the
+        // pattern; protected lines fall through to the generic loop.
+        if let Some(caps) = Regex::new(r#"(?i)^(\s*)(.*?)\bGET\s+(.+?)\s*;?$"#)
+            .ok()
+            .and_then(|re| re.captures(line))
         {
-            let indent = caps.get(1).map_or("", |m| m.as_str());
-            let prefix = caps.get(2).map_or("", |m| m.as_str());
             let arg = caps.get(3).map_or("", |m| m.as_str().trim());
-            let arg = strip_trailing_stmt_semicolon(arg);
-            result.push_str(&format!("{indent}{prefix}get_file({arg});\n"));
-            continue;
+            let first_word = arg
+                .split_whitespace()
+                .next()
+                .unwrap_or("")
+                .to_uppercase();
+            let protected = matches!(
+                first_word.as_str(),
+                "FROM" | "HTTP" | "BOT" | "QUEUE" | "ATTENDANT" | "ATTENDANTS" | "TIPS"
+                    | "SMART" | "SUMMARY" | "CUSTOMER" | "INSTAGRAM" | "FACEBOOK"
+                    | "LINKEDIN" | "TWITTER" | "SHAREPOINT" | "STOCK" | "BANCO"
+                    | "UNMATCHED"
+            );
+            if !protected {
+                let indent = caps.get(1).map_or("", |m| m.as_str());
+                let prefix = caps.get(2).map_or("", |m| m.as_str());
+                let arg = strip_trailing_stmt_semicolon(arg);
+                result.push_str(&format!("{indent}{prefix}get_file({arg});\n"));
+                continue;
+            }
         }
 
         // Check for multiword keywords in ANY position (not just start of line)
