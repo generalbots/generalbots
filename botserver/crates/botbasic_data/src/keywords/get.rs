@@ -62,18 +62,47 @@ pub fn register_get_keyword(state: Arc<dyn BasicRuntime>, user_session: UserSess
                 }
             });
             match rx.recv_timeout(std::time::Duration::from_secs(40)) {
-                Ok(Ok(content)) => Ok(Dynamic::from(content)),
-                Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    e.to_string().into(),
-                    rhai::Position::NONE,
-                ))),
-                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => Err(Box::new(
-                    rhai::EvalAltResult::ErrorRuntime("GET timed out".into(), rhai::Position::NONE),
-                )),
-                Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    format!("GET failed: {e}").into(),
-                    rhai::Position::NONE,
-                ))),
+                Ok(Ok(content)) => {
+                    // Success resets the `IF ERROR THEN` flag (thread-local
+                    // state would otherwise leak between keyword calls).
+                    botbasic_core::keywords::errors::clear_last_error();
+                    Ok(Dynamic::from(content))
+                }
+                Ok(Err(e)) => {
+                    // BASIC `ON ERROR RESUME NEXT` contract: when the flag is
+                    // active, record for `IF ERROR THEN` and yield UNIT so the
+                    // script continues with an empty value; else propagate.
+                    botbasic_core::keywords::errors::set_last_error(&e.to_string(), 1);
+                    if botbasic_core::keywords::errors::is_error_resume_next_active() {
+                        Ok(Dynamic::UNIT)
+                    } else {
+                        Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                            e.to_string().into(),
+                            rhai::Position::NONE,
+                        )))
+                    }
+                }
+                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                    botbasic_core::keywords::errors::set_last_error("GET timed out", 1);
+                    if botbasic_core::keywords::errors::is_error_resume_next_active() {
+                        Ok(Dynamic::UNIT)
+                    } else {
+                        Err(Box::new(
+                            rhai::EvalAltResult::ErrorRuntime("GET timed out".into(), rhai::Position::NONE),
+                        ))
+                    }
+                }
+                Err(e) => {
+                    botbasic_core::keywords::errors::set_last_error(&format!("GET failed: {e}"), 1);
+                    if botbasic_core::keywords::errors::is_error_resume_next_active() {
+                        Ok(Dynamic::UNIT)
+                    } else {
+                        Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                            format!("GET failed: {e}").into(),
+                            rhai::Position::NONE,
+                        )))
+                    }
+                }
             }
         })
     {

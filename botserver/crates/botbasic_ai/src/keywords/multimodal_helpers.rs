@@ -193,11 +193,34 @@ where
     }
 
     match rx.recv_timeout(std::time::Duration::from_secs(DEFAULT_TIMEOUT_SECS)) {
-        Ok(Ok(value)) => Ok(Dynamic::from(value)),
-        Ok(Err(e)) => Err(runtime_error(e.to_string())),
-        Err(std::sync::mpsc::RecvTimeoutError::Timeout) => Err(runtime_error(format!(
-            "{name} timed out after {DEFAULT_TIMEOUT_SECS} seconds"
-        ))),
+        Ok(Ok(value)) => {
+            // Success resets the `IF ERROR THEN` flag (thread-local state would
+            // otherwise leak from a previous failed keyword call).
+            botbasic_core::keywords::errors::clear_last_error();
+            Ok(Dynamic::from(value))
+        }
+        Ok(Err(e)) => {
+            // BASIC `ON ERROR RESUME NEXT` contract (classify_media.bas): when
+            // the flag is active, record the failure for `IF ERROR THEN` via
+            // set_last_error and yield UNIT so the script continues with an
+            // empty value; otherwise propagate.
+            let msg = e.to_string();
+            botbasic_core::keywords::errors::set_last_error(&msg, 1);
+            if botbasic_core::keywords::errors::is_error_resume_next_active() {
+                Ok(Dynamic::UNIT)
+            } else {
+                Err(runtime_error(msg))
+            }
+        }
+        Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+            let msg = format!("{name} timed out after {DEFAULT_TIMEOUT_SECS} seconds");
+            botbasic_core::keywords::errors::set_last_error(&msg, 1);
+            if botbasic_core::keywords::errors::is_error_resume_next_active() {
+                Ok(Dynamic::UNIT)
+            } else {
+                Err(runtime_error(msg))
+            }
+        }
         Err(e) => Err(runtime_error(format!("{name} thread failed: {e}"))),
     }
 }

@@ -123,6 +123,28 @@ pub fn register_on_error_keywords(_state: &Arc<dyn BasicRuntime>, _user: UserSes
         clear_last_error();
     });
 
+    // BASIC dialect form `IF ERROR THEN …` (paired with ON ERROR RESUME NEXT).
+    // convert_if_then_syntax rewrites the bare condition to this call before
+    // evaluation, and get()/perception keywords record the error via
+    // set_last_error when the RESUME NEXT flag suppressed it.
+    engine.register_fn("error_flag", || -> bool { get_last_error().is_some() });
+    engine.register_fn("ERROR_FLAG", || -> bool { get_last_error().is_some() });
+
+    // Function forms emitted by convert_multiword_keywords for the ON ERROR
+    // statements — the custom-syntax registrations above are dead in the
+    // runtime engine because the trigger keyword `ON $ident$ OF "table"`
+    // (registered later, same Rhai first-token key) overrides them.
+    engine.register_fn("on_error_resume_next", || {
+        set_error_resume_next(true);
+        clear_last_error();
+    });
+    engine.register_fn("on_error_goto_0", || {
+        set_error_resume_next(false);
+    });
+    engine.register_fn("clear_error", || {
+        clear_last_error();
+    });
+
     debug!("Registered ON ERROR keywords");
 }
 
