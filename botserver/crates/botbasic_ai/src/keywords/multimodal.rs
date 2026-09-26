@@ -26,7 +26,7 @@
 \*****************************************************************************/
 
 use botbasic_types::{BasicRuntime, UserSession};
-use rhai::Engine;
+use rhai::{Engine, EvalAltResult};
 use std::sync::Arc;
 
 use super::multimodal_helpers::{build_client, eval_string, resolve_media_source, spawn_multimodal};
@@ -77,6 +77,7 @@ fn register_generate_image(state: Arc<dyn BasicRuntime>, user: UserSession, engi
 }
 
 fn register_describe_image(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
+    register_describe_image_fn(state.clone(), user.clone(), engine);
     if let Err(e) = engine.register_custom_syntax(
         ["DESCRIBE", "IMAGE", "$expr$"],
         false,
@@ -98,6 +99,32 @@ fn register_describe_image(state: Arc<dyn BasicRuntime>, user: UserSession, engi
     ) {
         log::error!("DESCRIBE IMAGE registration failed: {e}");
     }
+}
+
+/// Function form `describe_image(source)`, emitted by
+/// `convert_multiword_keywords`. The custom-syntax form is unreliable at
+/// runtime because DESCRIBE VIDEO (and other DESCRIBE … forms) share the same
+/// Rhai first-token key and only one registration survives.
+fn register_describe_image_fn(
+    state: Arc<dyn BasicRuntime>,
+    user: UserSession,
+    engine: &mut Engine,
+) {
+    engine.register_fn("describe_image", move |source: &str| -> Result<rhai::Dynamic, Box<EvalAltResult>> {
+        let runtime = Arc::clone(&state);
+        let bot_id = user.bot_id;
+        let source = source.to_string();
+        spawn_multimodal("describe-image", async move {
+            let client = build_client(runtime.as_ref(), bot_id);
+            if !client.is_enabled() {
+                return Err("BotModels is not enabled in bot configuration".into());
+            }
+            let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+            let outcome = client.describe_image(media.reference()).await;
+            media.cleanup();
+            outcome
+        })
+    });
 }
 
 fn register_read_text(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
@@ -239,7 +266,26 @@ fn register_generate_video(state: Arc<dyn BasicRuntime>, user: UserSession, engi
     }
 }
 
+fn register_speech_to_text_fn(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
+    engine.register_fn("speech_to_text", move |source: &str| -> Result<rhai::Dynamic, Box<EvalAltResult>> {
+        let runtime = Arc::clone(&state);
+        let bot_id = user.bot_id;
+        let source = source.to_string();
+        spawn_multimodal("speech-to-text", async move {
+            let client = build_client(runtime.as_ref(), bot_id);
+            if !client.is_enabled() {
+                return Err("BotModels is not enabled in bot configuration".into());
+            }
+            let media = resolve_media_source(runtime.as_ref(), bot_id, &source).await?;
+            let outcome = client.speech_to_text(media.reference()).await;
+            media.cleanup();
+            outcome
+        })
+    });
+}
+
 fn register_speech_to_text(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
+    register_speech_to_text_fn(state.clone(), user.clone(), engine);
     if let Err(e) = engine.register_custom_syntax(
         ["SPEECH", "TO", "TEXT", "$expr$"],
         false,

@@ -30,12 +30,76 @@
 
 use botbasic_types::{BasicRuntime, UserSession};
 use log::trace;
-use rhai::{Dynamic, Engine};
+use rhai::{Dynamic, Engine, EvalAltResult};
 use std::sync::Arc;
 
 use crate::keywords::file_ops::basic_io::execute_create_file;
 
 pub fn register_create_file_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
+    register_create_file_fn(state.clone(), user.clone(), engine);
+    register_create_file_syntax(state, user, engine);
+}
+
+/// Function form `create_file(path, data)`, emitted by
+/// `convert_multiword_keywords` for `CREATE FILE … WITH …`. The custom-syntax
+/// form cannot be relied on at runtime because CREATE SITE (registered later)
+/// shares the same Rhai first-token key and overrides it.
+fn register_create_file_fn(
+    state: Arc<dyn BasicRuntime>,
+    user: UserSession,
+    engine: &mut Engine,
+) {
+    engine.register_fn("create_file", move |path: &str, data: &str| -> Result<rhai::Dynamic, Box<EvalAltResult>> {
+        let state_for_task = Arc::clone(&state);
+        let user_for_task = user.clone();
+        let path = path.to_string();
+        let data_str = data.to_string();
+
+        let (tx, rx) = std::sync::mpsc::channel();
+        let spawn_result = std::thread::Builder::new()
+            .name("create-file".into())
+            .spawn(move || {
+                let rt = tokio::runtime::Builder::new_current_thread()
+                    .enable_all()
+                    .build();
+                let send_err = if let Ok(rt) = rt {
+                    let result = rt.block_on(async move {
+                        execute_create_file(&state_for_task, &user_for_task, &path, &data_str).await
+                    });
+                    tx.send(result.map(|_| rhai::Dynamic::UNIT)).err()
+                } else {
+                    tx.send(Err("Failed to build tokio runtime".into())).err()
+                };
+                if send_err.is_some() {
+                    log::error!("Failed to send CREATE FILE result from thread");
+                }
+            });
+
+        if spawn_result.is_err() {
+            return Err(Box::new(EvalAltResult::ErrorRuntime(
+                "CREATE FILE thread failed".into(),
+                rhai::Position::NONE,
+            )));
+        }
+
+        match rx.recv_timeout(std::time::Duration::from_secs(30)) {
+            Ok(Ok(_)) => Ok(rhai::Dynamic::UNIT),
+            Ok(Err(e)) => Err(Box::new(EvalAltResult::ErrorRuntime(
+                format!("CREATE FILE failed: {e}").into(),
+                rhai::Position::NONE,
+            ))),
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => Err(Box::new(
+                EvalAltResult::ErrorRuntime("CREATE FILE timed out".into(), rhai::Position::NONE),
+            )),
+            Err(e) => Err(Box::new(EvalAltResult::ErrorRuntime(
+                format!("CREATE FILE thread failed: {e}").into(),
+                rhai::Position::NONE,
+            ))),
+        }
+    });
+}
+
+fn register_create_file_syntax(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user;
 

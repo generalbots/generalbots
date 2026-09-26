@@ -88,9 +88,22 @@ pub fn convert_if_then_syntax(script: &str) -> String {
                 None => continue,
             };
             let condition = &trimmed[3..then_pos].trim();
-            let condition = condition.replace(" NOT IN ", " !in ").replace(" not in ", " !in ");
-            let condition = condition.replace(" AND ", " && ").replace(" and ", " && ")
-                .replace(" OR ", " || ").replace(" or ", " || ");
+            // BASIC dialects test the last runtime error with a bare `ERROR`
+            // condition (paired with ON ERROR RESUME NEXT). The engine exposes
+            // it as the error_flag() function, not a variable, so rewrite it
+            // before the generic = → == pass would mangle it.
+            let condition = if condition.trim().eq_ignore_ascii_case("ERROR") {
+                "error_flag()".to_string()
+            } else {
+                condition
+                    .replace(" NOT IN ", " !in ").replace(" not in ", " !in ")
+            };
+            let condition = if condition == "error_flag()" {
+                condition
+            } else {
+                condition.replace(" AND ", " && ").replace(" and ", " && ")
+                    .replace(" OR ", " || ").replace(" or ", " || ")
+            };
             let condition = if !condition.contains("==") && !condition.contains("!=")
                 && !condition.contains("<=") && !condition.contains(">=")
                 && !condition.contains("+=") && !condition.contains("-=")
@@ -552,6 +565,26 @@ pub fn convert_multiword_keywords(script: &str) -> String {
         (r#"ON\s+EMAIL"#, 1, 1, vec!["filter"]),
         (r#"ON\s+EVENT"#, 1, 1, vec!["event"]),
 
+        // Error handling: these used to rely on custom-syntax registrations in
+        // the runtime engine, but Rhai keys custom syntax by the first token,
+        // so the later-registered `ON $ident$ OF "table"` trigger keyword
+        // silently overrode every `ON ERROR …` form at execution time (the
+        // compile-only engine does not load the trigger crate, which is why
+        // compiled scripts passed). Rewriting to plain function calls here
+        // removes the ambiguity entirely.
+        (r#"ON\s+ERROR\s+RESUME\s+NEXT"#, 0, 0, vec![]),
+        (r#"ON\s+ERROR\s+GOTO\s+0"#, 0, 0, vec![]),
+        (r#"CLEAR\s+ERROR"#, 0, 0, vec![]),
+
+        // Multimodal perception keywords share the DESCRIBE/SPEECH/GENERATE
+        // first tokens across custom syntaxes; Rhai keeps only the last
+        // registration per first token, so only the last one worked at runtime
+        // (DESCRIBE VIDEO lost to DESCRIBE IMAGE, etc.). Function forms are
+        // unambiguous and used via these rewrites.
+        (r#"DESCRIBE\s+IMAGE"#, 1, 1, vec!["source"]),
+        (r#"DESCRIBE\s+VIDEO"#, 1, 1, vec!["source"]),
+        (r#"SPEECH\s+TO\s+TEXT"#, 1, 1, vec!["source"]),
+
         (r#"SEND\s+MAIL"#, 4, 4, vec!["to", "subject", "body", "attachments"]),
         (r#"SEND\s+TEAMS\s+MESSAGE"#, 2, 2, vec!["chat_id", "message"]),
         (r#"SEND\s+TO"#, 2, 2, vec!["target", "message"]),
@@ -572,6 +605,28 @@ pub fn convert_multiword_keywords(script: &str) -> String {
     for line in script.lines() {
         let trimmed = line.trim();
         let mut converted = false;
+
+        // CREATE FILE <path> WITH <data> needs a dedicated rewrite: the generic
+        // comma-based parameter parser below cannot split on the WITH keyword.
+        // Like ON ERROR, the CREATE FILE custom syntax is overridden at runtime
+        // by the later-registered CREATE SITE syntax (same first token).
+        if let Some(caps) = Regex::new(
+            r#"(?i)^\s*(.*?)\bCREATE\s+FILE\s+(.+?)\s+WITH\s+(.+?)\s*;?$"#,
+        )
+        .ok()
+        .and_then(|re| re.captures(line))
+        {
+            let indent = caps.get(1).map_or("", |m| m.as_str());
+            let prefix = caps.get(2).map_or("", |m| m.as_str());
+            let path = caps.get(3).map_or("", |m| m.as_str().trim());
+            let data = caps.get(4).map_or("", |m| m.as_str().trim());
+            let data = strip_trailing_stmt_semicolon(data);
+            result.push_str(&format!(
+                "{indent}{prefix}create_file({}, {});\n",
+                path, data
+            ));
+            continue;
+        }
 
         let trimmed_upper = trimmed.to_uppercase();
         if trimmed_upper.contains("ADD_SUGGESTION_TOOL") ||
