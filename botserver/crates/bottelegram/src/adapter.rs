@@ -347,8 +347,11 @@ impl crate::ChannelAdapter for TelegramAdapter {
 
         // LLM output is not guaranteed to be valid HTML — Telegram rejects
         // the whole message on any parse-entity error ("can't parse
-        // entities"). Retry as plain text so the reply is never lost.
-        if let Err(e) = self.send_text_message(chat_id, &response.content, Some("HTML")).await {
+        // entities: Unsupported start tag \"?xml\""). Sanitize up front so
+        // supported tags survive and anything else is neutralized; the
+        // plain-text retry below stays as a last-resort safety net.
+        let safe_html = crate::html::sanitize_for_html(&response.content);
+        if let Err(e) = self.send_text_message(chat_id, &safe_html, Some("HTML")).await {
             log::warn!("Telegram HTML send failed ({e}); retrying as plain text");
             self.send_text_message(chat_id, &response.content, None).await?;
         }
