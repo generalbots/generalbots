@@ -701,8 +701,20 @@ impl LLMProvider for OpenAIClient {
 
             let mut stream = response.bytes_stream();
             use futures_util::StreamExt;
+            // Per-chunk read timeout: a provider that returns 200 and then
+            // stalls the body used to hang this loop forever while holding
+            // the process-wide call_gate, blocking every other LLM call.
+            let read_timeout = std::time::Duration::from_secs(120);
             loop {
-                match stream.next().await {
+                let next = match tokio::time::timeout(read_timeout, stream.next()).await {
+                    Ok(item) => item,
+                    Err(_) => {
+                        let err_msg = format!("Stream read stalled: no bytes for {read_timeout:?}");
+                        log::error!("LLM generate_stream {err_msg}");
+                        return Err(err_msg.into());
+                    }
+                };
+                match next {
                     Some(Ok(bytes)) => {
                         if chunk_tx.send(Ok(bytes.to_vec())).await.is_err() {
                             break 'retry_loop;

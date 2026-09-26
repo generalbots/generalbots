@@ -11,6 +11,7 @@ use crate::api::{
 use crate::execution::script_for;
 use crate::intent_classifier::{ClassifiedEntities, IntentClassifier, IntentType};
 use crate::intent_compiler::IntentCompiler;
+use crate::templates::match_shipped_template;
 use crate::ClassifiedIntent;
 use crate::types::{BotInfo, DbPool};
 use axum::{
@@ -435,6 +436,14 @@ pub async fn create_and_execute(
 ) -> Json<CreateAndExecuteResponse> {
     info!("API create and execute: {}", &req.intent[..req.intent.len().min(50)]);
     let bot_id = canonical_bot_id(req.bot_id.clone());
+
+    // Shipped-template fast path: intents that name an implementation the
+    // product already ships (e.g. media classification/filing) persist the
+    // vetted template verbatim — deterministic, no LLM, no compile stall.
+    if let Some(template) = match_shipped_template(&req.intent) {
+        return persist_shipped_template(&api, bot_id, &req.intent, template).await;
+    }
+
     let classification = match classifier_for(&api).classify_api(&req.intent, bot_id).await {
         Ok(c) => c,
         Err(e) => return error_create(&req.intent, &*e),
@@ -498,6 +507,94 @@ fn persist_script(
         .map_err(|e| format!("drive put failed: {e}"))?;
     info!("Saved BASIC file to Drive: {bucket}/{key}");
     Ok((bucket, key))
+}
+
+/// Persist a shipped template's files to `{bot}.gbai/{bot}.gbdialog/` and
+/// return the standard create-and-execute response.
+async fn persist_shipped_template(
+    api: &Arc<AutoTaskApi>,
+    bot_id: Uuid,
+    intent: &str,
+    template: crate::templates::ShippedTemplate,
+) -> Json<CreateAndExecuteResponse> {
+    info!(
+        "create-and-execute matched shipped template '{}' for intent: {}",
+        template.name,
+        &intent[..intent.len().min(80)]
+    );
+    let info = match resolve_bot_info(api.state().db_pool(), bot_id) {
+        Ok(Some(info)) => info,
+        Ok(None) => {
+            let e: Box<dyn std::error::Error + Send + Sync> = "bot not found for classification".into();
+            return error_create(intent, &*e);
+        }
+        Err(e) => {
+            let e: Box<dyn std::error::Error + Send + Sync> = e.into();
+            return error_create(intent, &*e);
+        }
+    };
+    let ops = match api.state().file_ops() {
+        Some(ops) => ops,
+        None => {
+            let e: Box<dyn std::error::Error + Send + Sync> =
+                "Drive ops not available — cannot persist shipped template".into();
+            return error_create(intent, &*e);
+        }
+    };
+    let bucket = info.bucket_name();
+    let dialog = info.dialog_folder();
+    let mut created = Vec::new();
+    let tool_key = format!("{dialog}/{}", template.tool_path);
+    if let Err(e) = ops.put_object(
+        &bucket,
+        &tool_key,
+        template.tool_source.as_bytes().to_vec(),
+        "text/plain",
+    ) {
+        let e: Box<dyn std::error::Error + Send + Sync> = format!("drive put failed: {e}").into();
+        return error_create(intent, &*e);
+    }
+    info!("Saved BASIC file to Drive: {bucket}/{tool_key}");
+    created.push(crate::api::CreatedResourceResponse {
+        resource_type: "tool".to_string(),
+        name: template
+            .tool_path
+            .trim_start_matches("tools/")
+            .trim_end_matches(".bas")
+            .to_string(),
+        path: Some(tool_key.clone()),
+    });
+    if let (Some(rel), Some(src)) = (template.manifest_path, template.manifest_source) {
+        let manifest_key = format!("{dialog}/{rel}");
+        if let Err(e) = ops.put_object(
+            &bucket,
+            &manifest_key,
+            src.as_bytes().to_vec(),
+            "application/json",
+        ) {
+            warn!("shipped template manifest persist failed (tool kept): {e}");
+        } else {
+            info!("Saved MCP manifest to Drive: {bucket}/{manifest_key}");
+            created.push(crate::api::CreatedResourceResponse {
+                resource_type: "mcp-manifest".to_string(),
+                name: rel.trim_start_matches("tools/").to_string(),
+                path: Some(manifest_key),
+            });
+        }
+    }
+    Json(CreateAndExecuteResponse {
+        success: true,
+        task_id: Uuid::new_v4().to_string(),
+        status: "created".to_string(),
+        message: format!(
+            "Automation created from shipped template '{}': {bucket}/{tool_key}",
+            template.name
+        ),
+        app_url: None,
+        created_resources: created,
+        pending_items: Vec::new(),
+        error: None,
+    })
 }
 
 fn error_create(intent: &str, e: &dyn std::error::Error) -> Json<CreateAndExecuteResponse> {
