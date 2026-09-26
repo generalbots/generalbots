@@ -234,6 +234,17 @@ impl BasicRuntime for AppStateBasicRuntime {
         if let Some(v) = self.0.config.as_ref()?.get(key) {
             return Some(v.clone());
         }
+        // Environment fallback, mirroring ConfigManager::get_config: keys
+        // like `botmodels-host` resolve from `BOTMODELS_HOST`. Without this
+        // the tool runtime could never see process-level configuration
+        // (multimodal clients were permanently disabled in deployments that
+        // provision BotModels through systemd environment).
+        let env_key = key.to_uppercase().replace('-', "_");
+        if let Ok(val) = std::env::var(&env_key) {
+            if !val.is_empty() {
+                return Some(val);
+            }
+        }
         // #1425 — external connection credentials (`conn-{bot}-{name}-{Field}`
         // keys, e.g. `conn-*-Password`) resolve from the per-bot Vault path
         // through the ConfigManager when the session config map has no value.

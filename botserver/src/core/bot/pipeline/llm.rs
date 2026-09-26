@@ -291,7 +291,7 @@ pub async fn stream_llm_response(
                 if has_api_call && handle_api_call(
                     sink, state, &llm, llm_model, llm_key,
                     bot_uuid, session_id, user_id, bot_name,
-                    &full_response, user_text,
+                    &full_response, user_text, rx,
                 ).await {
                     {
                         let mut sm = state.session_manager.lock().await;
@@ -489,6 +489,7 @@ async fn handle_api_call(
     bot_name: &str,
     full_response: &str,
     user_text: &str,
+    rx: &mut tokio::sync::mpsc::Receiver<botlib::models::BotResponse>,
 ) -> bool {
     use crate::core::bot::api_catalog;
     let payload = match extract_api_call_payload(full_response) {
@@ -502,6 +503,29 @@ async fn handle_api_call(
     let params = payload.get("params").cloned().unwrap_or(serde_json::Value::Null);
     let compose = payload.get("compose").and_then(|v| v.as_bool()).unwrap_or(false);
     let channel = sink.channel_type().to_string();
+
+    // Session tools (USE TOOL / AutoTask, e.g. classify_media) are NOT part
+    // of the declarative api-catalog; models sometimes emit them wrapped in
+    // an __api_call__ block, which used to fail with "unknown command".
+    // When the requested name belongs to the session's tool set, reroute to
+    // the regular MCP tool-call executor with equivalent arguments.
+    if crate::core::bot::tool_context::is_tool_associated_with_session(
+        &state.conn, &session_id, &name,
+    ) {
+        log::info!("api_call '{name}' is a session tool; rerouting to tool executor");
+        // run_llm_tool_call parses a FLAT payload: name + arguments-as-string
+        // on the same level as the __tool_call__ marker.
+        let args_str = serde_json::to_string(&params).unwrap_or_else(|_| "{}".to_string());
+        let args_escaped = serde_json::to_string(&args_str).unwrap_or_else(|_| "\"{}\"".to_string());
+        let synthetic = format!(
+            "{{\"__tool_call__\": true, \"name\": \"{name}\", \"arguments\": {args_escaped}}}"
+        );
+        super::tool_exec::run_llm_tool_call(
+            sink, state, bot_uuid, session_id, user_id, bot_name,
+            &synthetic, rx, user_text,
+        ).await;
+        return true;
+    }
 
     // The LLM may have spoken a short "working on it..." line before the
     // __api_call__ block. Surface it to the user so the tool call feels
