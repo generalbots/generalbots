@@ -242,6 +242,11 @@ pub trait AutoTaskState: Send + Sync {
     fn emit_task_error(&self, task_id: &str, step: &str, error: &str);
     fn task_manifests(&self) -> &Arc<RwLock<HashMap<String, crate::TaskManifest>>>;
     fn task_progress_broadcast(&self) -> Option<&broadcast::Sender<TaskProgressEvent>>;
+    /// Git source facade (reform #1501/#1505). `None` keeps the legacy Drive
+    /// write path for bots that are not git-owned.
+    fn source_ops(&self) -> Option<&dyn BotSourceOps> {
+        None
+    }
 }
 
 /// Resolved bot identity used to build Drive buckets and DriveMonitor keys.
@@ -336,6 +341,34 @@ pub trait DriveOps: Send + Sync {
 
     /// Read an object back (verification + rollback support).
     fn get_object(&self, bucket: &str, key: &str) -> Result<Vec<u8>, BoxError>;
+}
+
+/// Reform #1501/#1505 — persistence of AutoTask-generated bot sources into the
+/// bot's git repository (ALM). For a git-owned bot the repository is the
+/// canonical `.gbdialog`; a Drive-only write is overwritten by the next
+/// git-pull monitor tick and leaves no artifact of the task behind.
+///
+/// Implemented by the host crate; `None` for bots without a git project, in
+/// which case the legacy Drive path is used.
+pub trait BotSourceOps: Send + Sync {
+    /// Write `files` — `(path relative to .gbdialog, content)` — into the bot's
+    /// source repository, commit and push them, returning the dialog-root file
+    /// names written.
+    fn write_sources(
+        &self,
+        bot_id: Uuid,
+        files: &[(String, String)],
+        message: &str,
+    ) -> Result<Vec<String>, BoxError>;
+
+    /// Merge the `BEGIN TABLE … END TABLE` blocks of `tables_bas` into the bot's
+    /// `.gbdialog/tables.bas`, returning the table names appended (empty when
+    /// the schema already declared them).
+    fn merge_tables(&self, bot_id: Uuid, tables_bas: &str) -> Result<Vec<String>, BoxError>;
+
+    /// Read one source file back from the bot's repository, so the editor can
+    /// show the current committed content. `None` when the file is absent.
+    fn read_source(&self, bot_id: Uuid, name: &str) -> Result<Option<String>, BoxError>;
 }
 
 pub trait ScriptRunner: Send + Sync {

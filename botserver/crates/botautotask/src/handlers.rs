@@ -92,7 +92,7 @@ fn compiler_for(api: &Arc<AutoTaskApi>) -> IntentCompiler {
     )
 }
 
-fn err_msg(context: &str, e: &dyn std::error::Error) -> String {
+pub(crate) fn err_msg(context: &str, e: &dyn std::error::Error) -> String {
     let msg = format!("{context} failed: {e}");
     warn!("AutoTask API: {msg}");
     msg
@@ -497,11 +497,30 @@ fn persist_script(
 ) -> Result<(String, String), String> {
     let info = resolve_bot_info(api.state().db_pool(), bot_id)?
         .ok_or_else(|| "bot not found for classification".to_string())?;
+    let bucket = info.bucket_name();
+    // Reform #1505 — a git-owned bot's `.gbdialog` is its repository: commit the
+    // generated tool there so the pull monitor compiles it and the task leaves a
+    // real artifact. Drive is the legacy fallback for bots without a project.
+    if let Some(result) = crate::source_persist::persist_to_git(
+        api.state().as_ref(),
+        &info,
+        bot_id,
+        relative_path.trim_start_matches('/'),
+        body,
+        None,
+        "autotask: add generated tool",
+    ) {
+        let persisted = result?;
+        info!(
+            "Committed generated BASIC to ALM: {}/{}",
+            persisted.bucket, persisted.tool_key
+        );
+        return Ok((persisted.bucket, persisted.tool_key));
+    }
     let ops = api
         .state()
         .file_ops()
         .ok_or_else(|| "Drive ops not available — cannot persist generated BASIC".to_string())?;
-    let bucket = info.bucket_name();
     let key = format!("{}/{}", info.dialog_folder(), relative_path.trim_start_matches('/'));
     ops.put_object(&bucket, &key, body.as_bytes().to_vec(), "text/plain")
         .map_err(|e| format!("drive put failed: {e}"))?;
@@ -533,6 +552,63 @@ async fn persist_shipped_template(
             return error_create(intent, &*e);
         }
     };
+    // Reform #1505 — persist the template into the bot's repository (ALM),
+    // the canonical `.gbdialog`; Drive is the legacy fallback.
+    if let Some(result) = crate::source_persist::persist_to_git(
+        api.state().as_ref(),
+        &info,
+        bot_id,
+        template.tool_path,
+        template.tool_source,
+        template.manifest_path.zip(template.manifest_source),
+        &format!("autotask: add '{}' template", template.name),
+    ) {
+        let persisted = match result {
+            Ok(p) => p,
+            Err(e) => {
+                let e: Box<dyn std::error::Error + Send + Sync> = e.into();
+                return error_create(intent, &*e);
+            }
+        };
+        info!(
+            "Committed shipped template '{}' to ALM: {}",
+            template.name, persisted.tool_key
+        );
+        let mut created = vec![crate::api::CreatedResourceResponse {
+            resource_type: "tool".to_string(),
+            name: template
+                .tool_path
+                .trim_start_matches("tools/")
+                .trim_end_matches(".bas")
+                .to_string(),
+            path: Some(persisted.tool_key.clone()),
+        }];
+        if let Some(key) = &persisted.manifest_key {
+            created.push(crate::api::CreatedResourceResponse {
+                resource_type: "mcp-manifest".to_string(),
+                name: key.rsplit('/').next().unwrap_or_default().to_string(),
+                path: Some(key.clone()),
+            });
+        }
+        let tables = if persisted.tables.is_empty() {
+            String::new()
+        } else {
+            format!(" (tables attached to tables.bas: {})", persisted.tables.join(", "))
+        };
+        return Json(CreateAndExecuteResponse {
+            success: true,
+            task_id: Uuid::new_v4().to_string(),
+            status: "created".to_string(),
+            message: format!(
+                "Automation created from shipped template '{}' in the bot repository: {}{tables}",
+                template.name, persisted.tool_key
+            ),
+            app_url: None,
+            created_resources: created,
+            pending_items: Vec::new(),
+            error: None,
+        });
+    }
     let ops = match api.state().file_ops() {
         Some(ops) => ops,
         None => {

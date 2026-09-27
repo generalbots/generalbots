@@ -18,7 +18,7 @@ use super::core::{
 
 const DEFAULT_MONITOR_SECS: u64 = 15;
 
-fn list_monitored_bots(pool: &DbPool) -> Vec<MonitoredBot> {
+pub(crate) fn list_monitored_bots(pool: &DbPool) -> Vec<MonitoredBot> {
     #[derive(diesel::QueryableByName)]
     struct Row {
         #[diesel(sql_type = diesel::sql_types::Uuid)]
