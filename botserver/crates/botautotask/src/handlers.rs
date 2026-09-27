@@ -738,12 +738,19 @@ pub(crate) fn record_auto_task(
     status: &str,
     script_path: Option<&str>,
 ) {
+    // branch_id is NOT NULL (6.5.23); resolve it from the bot's row.
     let outcome = pool.get().ok().map(|mut conn| {
+        let branch_id: Option<Uuid> = sql_query("SELECT branch_id AS id FROM bots WHERE id = $1")
+            .bind::<DieselUuid, _>(bot_id)
+            .get_result::<BotBranchRow>(&mut conn)
+            .ok()
+            .and_then(|r| r.id);
         sql_query(
-            "INSERT INTO auto_tasks (bot_id, title, intent, status, basic_program, created_at, updated_at) \
-             VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING id",
+            "INSERT INTO auto_tasks (bot_id, branch_id, title, intent, status, basic_program, created_at, updated_at) \
+             VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW()) RETURNING id",
         )
         .bind::<DieselUuid, _>(bot_id)
+        .bind::<NullableSql<DieselUuid>, _>(branch_id)
         .bind::<Text, _>(title)
         .bind::<Text, _>(intent)
         .bind::<Text, _>(status)
@@ -761,6 +768,12 @@ pub(crate) fn record_auto_task(
 struct TaskIdRow {
     #[diesel(sql_type = DieselUuid)]
     id: Uuid,
+}
+
+#[derive(diesel::QueryableByName)]
+struct BotBranchRow {
+    #[diesel(sql_type = NullableSql<DieselUuid>)]
+    id: Option<Uuid>,
 }
 
 /// AutoTask items = rows of `auto_tasks`. The ✏️ action resolves the item's
