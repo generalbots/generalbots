@@ -46,6 +46,14 @@ pub struct RephraseSourceRequest {
     pub dry_run: Option<bool>,
 }
 
+/// Body for attaching a database schema to a task.
+#[derive(Debug, Deserialize)]
+pub struct AttachTablesRequest {
+    pub bot_id: Option<String>,
+    /// Raw BASIC `BEGIN TABLE … END TABLE` blocks the task needs.
+    pub tables: String,
+}
+
 /// Response shared by the three endpoints.
 #[derive(Debug, Serialize)]
 pub struct SourceResponse {
@@ -142,6 +150,49 @@ pub async fn rephrase_source(
         });
     }
     write_source(&api, bot_id, &req.name, &rewritten, None, "rephrase")
+}
+
+/// `POST /api/autotask/tables` — attach `BEGIN TABLE … END TABLE` blocks to the
+/// bot's `.gbdialog/tables.bas`, so an automation that needs storage declares
+/// its schema instead of embedding DDL in the tool script.
+pub async fn attach_tables(
+    State(api): State<Arc<AutoTaskApi>>,
+    Json(req): Json<AttachTablesRequest>,
+) -> Json<SourceResponse> {
+    const FILE: &str = "tables.bas";
+    let bot_id = canonical_bot_id(req.bot_id.clone());
+    let sources = match api.state().source_ops() {
+        Some(sources) => sources,
+        None => return fail(FILE, "No source repository for this bot", "git sources unavailable"),
+    };
+    let attached = match sources.merge_tables(bot_id, &req.tables) {
+        Ok(names) => names,
+        Err(e) => {
+            warn!("[autotask] attach tables failed: {e}");
+            let error = err_msg("attach_tables", &*e);
+            return fail(FILE, "Could not attach the schema", &error);
+        }
+    };
+    let content = sources.read_source(bot_id, FILE).ok().flatten();
+    if attached.is_empty() {
+        return Json(SourceResponse {
+            success: true,
+            name: FILE.to_string(),
+            content,
+            committed: false,
+            message: "Schema already declared every table".to_string(),
+            error: None,
+        });
+    }
+    info!("[autotask] attached tables to {FILE}: {attached:?}");
+    Json(SourceResponse {
+        success: true,
+        name: FILE.to_string(),
+        content,
+        committed: true,
+        message: format!("Attached to {FILE}: {}", attached.join(", ")),
+        error: None,
+    })
 }
 
 /// Commit `content` as `name` through the bot's source repository.

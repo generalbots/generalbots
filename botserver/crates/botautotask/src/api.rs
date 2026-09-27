@@ -240,6 +240,8 @@ pub fn router(
             "/api/autotask/source/rephrase",
             post(crate::source_edit::rephrase_source),
         )
+        // Attach a generated database schema to the bot's `tables.bas`.
+        .route("/api/autotask/tables", post(crate::source_edit::attach_tables))
         .route("/api/autotask/tasks", get(crate::handlers::list_tasks))
         .route("/api/autotask/stats", get(crate::handlers::get_stats))
         .route("/api/autotask/tasks/:task_id/approve", post(crate::handlers::approve_task))
