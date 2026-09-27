@@ -6,7 +6,6 @@ const TAB_BRANCHDRIVE = "branchdrive";
 const TAB_SHARED      = "shared";
 const TAB_PUBLIC      = "public";
 const TAB_MYFILES     = "myfiles";
-const TAB_BOTS        = "bots";
 const TAB_ROOT        = "root";
 const TAB_DESKTOP     = "desktop";
 
@@ -29,6 +28,9 @@ let userInfo = { is_anonymous: true, roles: [] };
 let isAdmin = false;
 let currentGborgBucket = null;
 let currentGborgBranch = null;
+// Set once the org-vs-standalone layout has been probed (see discoverBuckets),
+// so the bucket resolution is not re-run on every loadFiles() call.
+let bucketLayoutResolved = false;
 
 // Tab state
 let currentTab = "branchdrive";

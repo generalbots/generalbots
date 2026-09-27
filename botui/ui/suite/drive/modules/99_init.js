@@ -17,9 +17,7 @@ async function init() {
     bindUploadButton();
     bindNewFolderButton();
     bindSearchInput();
-    bindRefreshBotsBtn();
-    bindBotSearchInput();
-    bindNewBotBtn();
+
 
     var savedTab = sessionStorage.getItem("drive-tab") || TAB_BRANCHDRIVE;
     switch (savedTab) {
@@ -34,9 +32,6 @@ async function init() {
             break;
         case TAB_MYFILES:
             await loadMyFilesTab();
-            break;
-        case TAB_BOTS:
-            await loadBotsTab();
             break;
         case TAB_ROOT:
             if (isAdmin) await loadRootTab();
@@ -315,7 +310,6 @@ window.DriveModule = {
     selectedFiles: selectedFiles,
     init: init,
     loadFiles: loadFiles,
-    loadBotConfigs: loadBotConfigs,
     loadStorageInfo: loadStorageInfo,
     discoverBuckets: discoverBuckets,
     retryWithBackoff: retryWithBackoff,
@@ -350,7 +344,6 @@ window.DriveModule = {
     loadSharedTab: loadSharedTab,
     loadPublicTab: loadPublicTab,
     loadMyFilesTab: loadMyFilesTab,
-    loadBotsTab: loadBotsTab,
     loadRootTab: loadRootTab,
 };
 

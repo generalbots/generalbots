@@ -29,9 +29,6 @@ function bindTopTabs() {
                 case TAB_MYFILES:
                     loadMyFilesTab();
                     break;
-                case TAB_BOTS:
-                    loadBotsTab();
-                    break;
                 case TAB_ROOT:
                     loadRootTab();
                     break;
@@ -311,14 +308,10 @@ function handleBucketChange(e) {
     else if (currentTab === TAB_SHARED) loadSharedTab();
     else if (currentTab === TAB_PUBLIC) loadPublicTab();
     else if (currentTab === TAB_MYFILES) loadMyFilesTab();
-    else if (currentTab === TAB_BOTS) loadBotsTab();
     else if (currentTab === TAB_ROOT) loadRootTab();
     else loadFiles();
 }
 
-function bindRefreshBotsBtn() {}
-function bindBotSearchInput() {}
-function bindNewBotBtn() {}
 
 // ── Drag source for desktop shortcuts (#1188) ────────────────────
 // Delegated on the app container so re-renders keep working: any file
