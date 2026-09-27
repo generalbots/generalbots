@@ -10,19 +10,11 @@ if (typeof window.WindowManager === "undefined") {
       icon: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>' },
     { id: "vibe", title: "Vibe", category: "ai", color: "#84d669", hxGet: "/suite/partials/vibe.html",
       icon: '<path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
-
-    { id: "vibe-graph", title: "Knowledge Graph", category: "ai", color: "#7c3aed", toolwindow: true, hxGet: "/suite/vibe/graph.html",
-      icon: '<circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>' },
-    { id: "vibe-metrics", title: "Vibe Metrics", category: "ai", color: "#f59e0b", toolwindow: true, hxGet: "/suite/vibe/metrics.html",
-      icon: '<path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/>' },
-    { id: "vibe-members", title: "Project Members", category: "ai", color: "#06b6d4", toolwindow: true, hxGet: "/suite/vibe/members.html",
-      icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
-    { id: "vibe-deploy", title: "Vibe Deploy", category: "dev", color: "#22c55e", toolwindow: true, hxGet: "/suite/vibe/deploy.html",
-      icon: '<path d="M4 17l6-6-6-6"/><path d="M12 19h8"/>' },
-    { id: "vibe-db", title: "Vibe Database", category: "dev", color: "#3b82f6", toolwindow: true, hxGet: "/suite/vibe/db.html",
-      icon: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>' },
-    { id: "vibe-metering", title: "Compute Metering", category: "system", color: "#f97316", toolwindow: true, hxGet: "/suite/vibe/metering.html",
-      icon: '<path d="M12 1v22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>' },
+    // #1546 — the Vibe sub-surfaces (Knowledge Graph, Vibe Metrics, Project
+    // Members, Vibe Deploy, Vibe Database, Compute Metering) are NOT apps.
+    // They are toolwindow views inside the Vibe window (vibe-windows.js /
+    // vibe-dialogs.js); no standalone registry entry ships here so they can
+    // never leak into a launcher (start menu, sidebar rail, palette).
     { id: "crm", title: "CRM", category: "business", color: "#3b82f6", hxGet: "/suite/crm/crm.html",
       icon: '<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>' },
     { id: "campaigns", title: "Campaigns", category: "business", color: "#f59e0b", hxGet: "/suite/campaigns/campaigns.html",
@@ -32,6 +24,7 @@ if (typeof window.WindowManager === "undefined") {
     { id: "templates", title: "Templates", category: "office", color: "#ec4899", hxGet: "/suite/templates/templates.html",
       icon: '<rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>' },
     { id: "tasks", title: "Tasks", category: "office", color: "#22c55e", hxGet: "/suite/tasks/tasks.html",
+      launcher_default: true,
       icon: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
     { id: "chat", title: "Chat", category: "ai", color: "#84d669", hxGet: "/suite/partials/chat.html?v=4",
       icon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
