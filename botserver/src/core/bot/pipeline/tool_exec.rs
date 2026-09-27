@@ -141,6 +141,12 @@ pub async fn run_llm_tool_call(
         // classify_media take `path`/`caption`; when the model returns the tool
         // call without carrying the staged path, inject it from the user message
         // so execution does not depend on the model copying it verbatim.
+        //
+        // The staged path from the CURRENT message is authoritative: when the
+        // model copies a path from an EARLIER turn's marker (history echo), the
+        // tool operates on an already-filed object and fails with a confusing
+        // 404. Only when the current message carries no attachment marker do
+        // the model's arguments stand.
         let attachment_marker = "[User attached a file stored at ";
         let staged_path = user_text.find(attachment_marker).map(|start| {
             let rest = &user_text[start + attachment_marker.len()..];
@@ -156,31 +162,36 @@ pub async fn run_llm_tool_call(
                 .to_string();
             let mut parsed: serde_json::Value =
                 serde_json::from_str(&tool_args_owned).unwrap_or_else(|_| serde_json::json!({}));
-            let injected = if let Some(obj) = parsed.as_object_mut() {
-                let missing = obj
-                    .get("path")
-                    .and_then(|v| v.as_str())
-                    .map(|s| s.trim().is_empty() || is_placeholder_value(s))
-                    .unwrap_or(true);
-                if missing {
+            let obj_args = parsed.as_object_mut().ok_or("tool arguments must be an object");
+            match obj_args {
+                Ok(obj) => {
+                    let model_path = obj
+                        .get("path")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .trim()
+                        .to_string();
+                    let stale = !model_path.is_empty() && model_path != staged;
+                    if stale {
+                        log::info!(
+                            "Tool '{raw_tool_name}': model echoed path '{model_path}' from history; overriding with current message attachment '{staged}'"
+                        );
+                    }
                     obj.insert("path".to_string(), serde_json::Value::String(staged.clone()));
-                    obj.entry("caption".to_string())
-                        .or_insert(serde_json::Value::String(typed_caption));
-                    log::info!(
-                        "Injected staged chat attachment '{staged}' into tool '{raw_tool_name}' args"
-                    );
-                    true
-                } else {
-                    false
+                    obj.insert("caption".to_string(), serde_json::Value::String(typed_caption));
+                    if stale {
+                        log::info!(
+                            "Injected staged chat attachment '{staged}' into tool '{raw_tool_name}' args"
+                        );
+                    }
                 }
-            } else {
-                false
-            };
-            if injected {
-                match serde_json::to_string(&parsed) {
-                    Ok(s) => tool_args_owned = s,
-                    Err(e) => log::warn!("Failed to serialize injected tool args: {e}"),
+                Err(e) => {
+                    log::warn!("Tool '{raw_tool_name}': {e}");
                 }
+            }
+            match serde_json::to_string(&parsed) {
+                Ok(s) => tool_args_owned = s,
+                Err(e) => log::warn!("Failed to serialize injected tool args: {e}"),
             }
         }
         let tool_args: &str = tool_args_owned.as_str();
