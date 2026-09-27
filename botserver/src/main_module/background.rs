@@ -9,7 +9,9 @@ use std::sync::Arc;
 use super::drive_monitors::{start_drive_monitors, start_drive_compiler};
 
 #[cfg(feature = "drive")]
-use super::git_bot_monitor::{run_import_pass, start as start_git_bot_monitor};
+use super::git_bot_monitor::{
+    run_archive_pass, run_import_pass, start as start_git_bot_monitor,
+};
 
 /// Runs every 5 minutes and promotes trialing `billing_recurring` rows whose
 /// trial period has ended to `active` at the plan price, generating the first
@@ -119,7 +121,10 @@ pub async fn start_background_services(
     let state_for_import = app_state.clone();
     tokio::spawn(async move {
       botvibe::bootstrap_backfill::backfill_default_projects(pool_for_vibe.clone()).await;
-      run_import_pass(state_for_import, pool_for_vibe).await;
+      run_import_pass(state_for_import.clone(), pool_for_vibe.clone()).await;
+      // #1501 step 3 — once imports are verified, move the legacy Drive
+      // source prefixes to the archive prefix (reversible, never deleted).
+      run_archive_pass(state_for_import, pool_for_vibe).await;
     });
     start_git_bot_monitor(app_state.clone(), _pool.clone()).await;
     register_vibe_bootstrap_hook(_pool.clone());

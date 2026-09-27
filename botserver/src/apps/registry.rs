@@ -207,10 +207,13 @@ pub fn all_apps() -> Vec<AppDefinition> {
             "Rich notes and documents with AI writing assistance.",
             "notes writing ai document",
             "<path d=\"M12 20h9\"/><path d=\"M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z\"/>"),
-        app("tasks", "Tasks", "office", "#22c55e", "/suite/tasks/tasks.html",
+        // #1505 — Tasks hosts the AutoTask items list; it is a primary
+        // surface, so it must appear in every launcher by default (the
+        // default `launcher_default: false` hid it from start menu and rail).
+        with_launcher_default(app("tasks", "Tasks", "office", "#22c55e", "/suite/tasks/tasks.html",
             "Task management with AI autotask execution.",
             "todo tasks project",
-            "<path d=\"M9 11l3 3L22 4\"/><path d=\"M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11\"/>"),
+            "<path d=\"M9 11l3 3L22 4\"/><path d=\"M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11\"/>")),
         app("plan", "Plan", "office", "#f59e0b", "/suite/plan/plan.html",
             "Strategic planning with OKRs and roadmap boards.",
             "planning roadmap okr",
