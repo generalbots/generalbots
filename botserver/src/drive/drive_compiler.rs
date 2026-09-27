@@ -170,28 +170,44 @@ impl DriveCompiler {
             let b_is_tables = b.0.contains("tables.bas");
             b_is_tables.cmp(&a_is_tables)
         });
-        // Reform #1501 — bots whose sources were imported into git (vibe
-        // bootstrap sets `source_imported_at`) are fed by the git monitor
-        // (#1502), which stamps etags with commit hashes; the S3 download
-        // path must not fight it. Skip their object-key-shaped paths here —
-        // the monitor's own entries carry the same key format, so filter by
-        // the payload marker instead of the path shape.
+        // Reform #1501 — git-owned detection (vibe `source_imported_at`) is
+        // used only to WARN when a git-owned bot's source changes in Drive;
+        // compilation still proceeds so Drive remains the operational
+        // fallback when a bot's git repo lags behind (see loop below).
         let git_owned = git_owned_bots(&mut conn);
 
         for (query_file_path, _file_type, current_etag_opt) in files {
             let current_etag = current_etag_opt.unwrap_or_default();
-            // Reform #1501 — skip bots owned by the git monitor: their branch
-            // slug (the leading path segment) resolved to a vibe project with
-            // `source_imported_at` set, so git is the only source of truth.
+            // Reform #1501 — bots whose sources were imported into git are
+            // nominally fed by the git monitor (#1502). The leading drive_files
+            // path segment is the object-key form "{branch}.gbai", while
+            // git_owned_bots returns the bare branch slug, so normalize to the
+            // slug before comparing. We deliberately do NOT skip compilation:
+            // repos provisioned at import time lag Drive for tools added
+            // afterwards (beiner/classify_media froze for hours), so Drive
+            // stays the operational fallback and the mismatch is surfaced as a
+            // warning instead of silently freezing updates.
             let branch_segment = query_file_path.split('/').next().unwrap_or("");
+            let branch_slug = branch_segment.strip_suffix(".gbai").unwrap_or(branch_segment);
             let bot_segment = query_file_path
                 .split('/')
                 .nth(1)
                 .unwrap_or("")
                 .strip_suffix(".gbdialog")
                 .unwrap_or("");
-            if git_owned.contains(&(branch_segment.to_string(), bot_segment.to_string())) {
-                continue;
+            if !bot_segment.is_empty()
+                && git_owned.contains(&(branch_slug.to_string(), bot_segment.to_string()))
+            {
+                let etag_changed = {
+                    let etags = self.last_etags.read().await;
+                    etags.get(&query_file_path).map(|e| e != &current_etag).unwrap_or(true)
+                };
+                if etag_changed {
+                    warn!(
+                        "DriveCompiler: {} changed in Drive for git-owned bot '{}' — compiling from Drive (git monitor is the source of truth; push through git to make this change durable)",
+                        query_file_path, bot_segment
+                    );
+                }
             }
 
             // Verificar se precisa compilar (ETag mudou ou .ast foi deletado do work dir)
