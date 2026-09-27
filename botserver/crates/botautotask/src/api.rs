@@ -236,6 +236,7 @@ pub fn router(
             "/api/autotask/source",
             get(crate::source_edit::get_source).put(crate::source_edit::put_source),
         )
+        .route("/api/autotask/sources", get(crate::source_edit::list_sources))
         .route(
             "/api/autotask/source/rephrase",
             post(crate::source_edit::rephrase_source),

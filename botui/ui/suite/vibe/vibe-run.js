@@ -825,6 +825,49 @@
 
     /* ------------------------------------------------- runs list */
 
+    /// Open a bot source file in the editor's project workspace mode.
+    function openBotSource(projectId, name) {
+        if (!window.WindowManager || !projectId || !name) {
+            uiMsg("\u26a0\ufe0f Cannot open the editor for this run.");
+            return;
+        }
+        var ts = Date.now();
+        window.__gbAppParams__ = Object.assign({}, window.__gbAppParams__ || {}, { project: projectId });
+        window.__EDITOR_VIBE_PATH = ".gbdialog/" + name;
+        window.WindowManager.open("editor-" + ts, name, "");
+        fetch("/suite/editor.html")
+            .then(function (r) { return r.text(); })
+            .then(function (html) {
+                window.WindowManager._injectBodyContent("editor-" + ts, html);
+            });
+    }
+
+    /// Row action: find the bot's sources and open the one to edit.
+    function editRunSource() {
+        var botId = (state.run && state.run.bot_id) || window.__INITIAL_BOT_ID__ || "";
+        api("/api/autotask/sources" + (botId ? "?bot_id=" + encodeURIComponent(botId) : "")).then(function (data) {
+            if (!data || !data.success) {
+                uiMsg("\u26a0\ufe0f " + ((data && data.error) || "could not list bot sources"));
+                return;
+            }
+            var bas = (data.files || []).filter(function (f) { return /\.bas$/.test(f.name); });
+            if (!bas.length) {
+                uiMsg("\u26a0\ufe0f This bot has no .bas sources yet.");
+                return;
+            }
+            var chosen = bas[0];
+            if (bas.length > 1) {
+                var pick = window.prompt(
+                    "Open which source?\n" + bas.map(function (f) { return f.name; }).join("\n"),
+                    bas[0].name,
+                );
+                if (!pick) return;
+                chosen = bas.filter(function (f) { return f.name === pick; })[0] || bas[0];
+            }
+            openBotSource(data.project_id, chosen.name);
+        });
+    }
+
     function loadRuns() {
         api("/api/vibe/runs?limit=8").then(function (data) {
             var list = q("vibeRunsList");
@@ -839,11 +882,21 @@
                     '<span class="vibe-chip ' + chipState(r.state) + '">' + esc(r.state) + "</span>" +
                     '<span class="meta" title="' + esc(r.intent) + '">' + esc(r.intent || "run") + "</span>" +
                     '<span class="meta" style="flex:0">' + (r.tool_call_count || 0) + " calls</span>" +
+                    '<button class="vibe-run-edit" title="Edit the .bas this run produced" data-run-edit="' + esc(r.run_id) + '">\u2328</button>' +
                     "</div>";
             }).join("");
             list.querySelectorAll("[data-run]").forEach(function (el) {
                 el.addEventListener("click", function () {
                     focus(el.getAttribute("data-run"));
+                });
+            });
+            // A run's automations live in the bot's repository (reform #1501), so
+            // the row opens the generated `.bas` in the editor's project mode:
+            // edit → Source Control commit → the git monitor compiles it.
+            list.querySelectorAll("[data-run-edit]").forEach(function (el) {
+                el.addEventListener("click", function (ev) {
+                    ev.stopPropagation();
+                    editRunSource();
                 });
             });
             // #1408 — announce runs that finish during this page session (a

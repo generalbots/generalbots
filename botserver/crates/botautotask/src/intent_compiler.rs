@@ -178,16 +178,12 @@ Respond with JSON only:
 
     #[cfg(feature = "llm")]
     async fn call_llm(&self, prompt: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let (tx, mut rx) = tokio::sync::mpsc::channel(100);
         let model = self.resolved_model();
         let key = self.resolved_key();
         let config = serde_json::json!({"temperature": 0.3, "max_tokens": 2000});
-        self.llm_ops.generate_stream(prompt, &config, tx, &model, &key, None).await?;
-        let mut response = String::new();
-        while let Some(chunk) = rx.recv().await {
-            response.push_str(&chunk);
-        }
-        Ok(response)
+        // Bounded — a stalled model must fail the compile step, not hang it.
+        crate::types::collect_llm_stream(self.llm_ops.as_ref(), prompt, &config, &model, &key, None)
+            .await
     }
 
     #[cfg(feature = "llm")]
