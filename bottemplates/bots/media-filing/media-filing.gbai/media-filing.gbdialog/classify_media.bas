@@ -101,6 +101,16 @@ IF LEN(TRIM(content)) = 0 THEN
     perception = "caption"
 END IF
 
+' 2.1 Caption reinforcement. The user caption is a first-class signal: a model
+'    description of a generic video frame can miss the document type the sender
+'    already declared ("recibo do pagamento..."), and media catalogs trust the
+'    sender label. Both signals go into the prompt; when the caption is empty
+'    this reduces to the content alone and perception stays unchanged.
+IF LEN(TRIM(caption)) > 0 AND TRIM(caption) <> TRIM(content) THEN
+    content = content + "\n" + "Legenda enviada pelo usuario: " + caption
+    perception = perception + " + caption"
+END IF
+
 ' 3. Classification: one closed-set decision over the perceived content. With no
 '    content and no caption there is nothing to decide, so the item stays
 '    "unsorted" instead of asking the model to guess.
