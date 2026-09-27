@@ -744,8 +744,15 @@ impl LLMProvider for OpenAIClient {
         let mut last_bytes = String::new();
         let mut total_size: usize = 0;
         let mut content_sent: usize = 0;
-        let mut tool_call_name = String::new();
-        let mut tool_call_args = String::new();
+        // Parallel tool calls accumulate per tool_call index. A single shared
+        // (name, args) pair concatenated the arguments of a second call into
+        // the first one's JSON string (two classify_media calls produced
+        // "{...}{...}"), which then failed to parse and executed with empty
+        // arguments (issue: beiner no-caption video filed nothing).
+        let mut tool_calls_by_index: std::collections::BTreeMap<i64, (String, String)> =
+            std::collections::BTreeMap::new();
+        let mut legacy_tool_call_name = String::new();
+        let mut legacy_tool_call_args = String::new();
         let mut reasoning_from_field = String::new();   // from reasoning_content/reasoning API field
         let mut reasoning_from_content = String::new(); // from <think> tags inside content
 
@@ -845,53 +852,49 @@ impl LLMProvider for OpenAIClient {
                         }
 
                         // Handle legacy function_call format (Groq legacy functions API)
-                        if tool_call_name.is_empty() {
+                        if legacy_tool_call_name.is_empty() {
                             if let Some(func_call) = data["choices"][0]["delta"]["function_call"].as_object() {
                                 if let Some(name) = func_call.get("name").and_then(|n| n.as_str()) {
-                                    tool_call_name = name.to_string();
-                                    tool_call_args.clear();
+                                    legacy_tool_call_name = name.to_string();
                                 }
                                 if let Some(args) = func_call.get("arguments").and_then(|a| a.as_str()) {
-                                    tool_call_args.push_str(args);
+                                    legacy_tool_call_args.push_str(args);
                                 }
                             }
                         }
 
                         // Handle modern tool_calls format (OpenAI tools API)
-                        // Accumulate across streaming chunks, don't send via tx
+                        // Accumulate across streaming chunks per tool_call index,
+                        // don't send via tx
                         if let Some(tool_calls) = data["choices"][0]["delta"]["tool_calls"].as_array() {
                             if !tool_calls.is_empty() {
                                 info!("SSE delta with tool_calls: {} entries, first: {:?}", tool_calls.len(), tool_calls[0].get("function").and_then(|f| f.get("name")).and_then(|n| n.as_str()));
                             }
                             for tool_call in tool_calls {
+                                let index = tool_call.get("index").and_then(|v| v.as_i64()).unwrap_or(0);
                                 if let Some(func) = tool_call.get("function") {
-                                    if tool_call_name.is_empty() {
-                                        if let Some(name) = func.get("name").and_then(|n| n.as_str()) {
-                                            tool_call_name = name.to_string();
-                                            tool_call_args.clear();
-                                        }
+                                    let entry = tool_calls_by_index.entry(index).or_insert_with(|| (String::new(), String::new()));
+                                    if let Some(name) = func.get("name").and_then(|n| n.as_str()) {
+                                        entry.0 = name.to_string();
                                     }
                                     if let Some(args) = func.get("arguments").and_then(|a| a.as_str()) {
-                                        tool_call_args.push_str(args);
-                    }
-                }
-            }
+                                        entry.1.push_str(args);
+                                    }
+                                }
+                            }
+                        }
 
                         // Handle legacy function_call format (NVIDIA, some open-source models)
                         if let Some(func_call) = data["choices"][0]["delta"]["function_call"].as_object() {
-                            if tool_call_name.is_empty() {
-                                if let Some(name) = func_call.get("name").and_then(|n| n.as_str()) {
-                                    tool_call_name = name.to_string();
-                                    tool_call_args.clear();
-                                }
+                            if let Some(name) = func_call.get("name").and_then(|n| n.as_str()) {
+                                legacy_tool_call_name = name.to_string();
                             }
                             if let Some(args) = func_call.get("arguments").and_then(|a| a.as_str()) {
-                                tool_call_args.push_str(args);
+                                legacy_tool_call_args.push_str(args);
                             }
                         }
                     }
                 }
-            }
             // Keep trailing partial line for next chunk
             line_buffer = line_buffer[pos..].to_string();
         }
@@ -914,16 +917,36 @@ impl LLMProvider for OpenAIClient {
             info!("LLM reasoning sent: {} bytes", total_reasoning.len());
         }
 
-        // After streaming ends, if tool_calls were accumulated, send them to tx
-        if !tool_call_name.is_empty() && !tool_call_args.is_empty() {
+        // After streaming ends, send every accumulated tool call. Parallel
+        // calls (index > 0) are sent as separate __tool_call__ messages so
+        // each executes with its own arguments instead of being merged into
+        // the first call's JSON.
+        for (index, (name, args)) in tool_calls_by_index.iter() {
+            if name.is_empty() || args.is_empty() {
+                continue;
+            }
+            if *index > 0 {
+                info!("LLM tool_call #{} accumulated: {} with {} bytes args", index + 1, name, args.len());
+            } else {
+                info!("LLM tool_call accumulated: {} with {} bytes args", name, args.len());
+            }
             let tool_call_msg = serde_json::json!({
                 "__tool_call__": true,
-                "name": tool_call_name,
-                "arguments": tool_call_args
+                "name": name,
+                "arguments": args
             });
             let _ = tx.send(tool_call_msg.to_string()).await;
             tokio::task::yield_now().await;
-            info!("LLM tool_call accumulated: {} with {} bytes args", tool_call_name, tool_call_args.len());
+        }
+        if !legacy_tool_call_name.is_empty() && !legacy_tool_call_args.is_empty() {
+            let tool_call_msg = serde_json::json!({
+                "__tool_call__": true,
+                "name": legacy_tool_call_name,
+                "arguments": legacy_tool_call_args
+            });
+            let _ = tx.send(tool_call_msg.to_string()).await;
+            tokio::task::yield_now().await;
+            info!("LLM legacy function_call accumulated: {} with {} bytes args", legacy_tool_call_name, legacy_tool_call_args.len());
         }
 
         trace!("LLM stream done: size={} bytes, content_sent={}, reasoning={}B, first={:?}, last={}",

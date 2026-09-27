@@ -246,6 +246,16 @@ pub async fn stream_llm_response(
                                         continue;
                                     }
                                     if chunk.contains("\"__tool_call__\"") {
+                                        // Each __tool_call__ chunk arrives as one
+                                        // complete JSON object (one per parallel
+                                        // tool call). Track them separately so the
+                                        // executor below runs every call with its
+                                        // own arguments; concatenating them merged
+                                        // distinct argument objects ("{..}{..}")
+                                        // and broke parsing.
+                                        if !full_response.is_empty() && !full_response.ends_with('\n') {
+                                            full_response.push('\n');
+                                        }
                                         full_response.push_str(&chunk);
                                         continue;
                                     }
@@ -437,10 +447,28 @@ pub async fn stream_llm_response(
                             let _ = sink.send_bot_response(&final_resp).await;
                         }
                     } else {
-                        super::tool_exec::run_llm_tool_call(
-                            sink, state, bot_uuid, session_id, user_id, bot_name,
-                            &full_response, rx, user_text,
-                        ).await;
+                        // Execute every __tool_call__ JSON object in the reply,
+                        // not only the first: parallel calls (e.g. two media
+                        // items classified in one turn) must each run with
+                        // their own arguments.
+                        let call_chunks: Vec<&str> = full_response
+                            .split('\n')
+                            .filter(|c| c.contains("\"__tool_call__\":"))
+                            .collect();
+                        if call_chunks.len() > 1 {
+                            log::info!("Executing {} parallel tool calls", call_chunks.len());
+                            for call_chunk in call_chunks {
+                                super::tool_exec::run_llm_tool_call(
+                                    sink, state, bot_uuid, session_id, user_id, bot_name,
+                                    call_chunk, rx, user_text,
+                                ).await;
+                            }
+                        } else {
+                            super::tool_exec::run_llm_tool_call(
+                                sink, state, bot_uuid, session_id, user_id, bot_name,
+                                &full_response, rx, user_text,
+                            ).await;
+                        }
                     }
                 }
 
