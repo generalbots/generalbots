@@ -21,7 +21,7 @@ use axum::{
 };
 use diesel::prelude::*;
 use diesel::sql_query;
-use diesel::sql_types::{BigInt, Float8, Text, Uuid as DieselUuid};
+use diesel::sql_types::{BigInt, Float8, Nullable as NullableSql, Text, Uuid as DieselUuid};
 use log::{info, warn};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -515,6 +515,14 @@ fn persist_script(
             "Committed generated BASIC to ALM: {}/{}",
             persisted.bucket, persisted.tool_key
         );
+        record_auto_task(
+            api.state().db_pool(),
+            bot_id,
+            relative_path.trim_start_matches('/'),
+            "generated tool",
+            "completed",
+            Some(&persisted.tool_key),
+        );
         return Ok((persisted.bucket, persisted.tool_key));
     }
     let ops = api
@@ -573,6 +581,14 @@ async fn persist_shipped_template(
         info!(
             "Committed shipped template '{}' to ALM: {}",
             template.name, persisted.tool_key
+        );
+        record_auto_task(
+            api.state().db_pool(),
+            bot_id,
+            &format!("{} ({})", template.name, template.tool_path),
+            intent,
+            "completed",
+            Some(&persisted.tool_key),
         );
         let mut created = vec![crate::api::CreatedResourceResponse {
             resource_type: "tool".to_string(),
@@ -711,51 +727,109 @@ fn error_create(intent: &str, e: &dyn std::error::Error) -> Json<CreateAndExecut
     })
 }
 
-pub async fn list_tasks(
-    State(api): State<Arc<AutoTaskApi>>,
-    Query(_query): Query<crate::api::ListTasksQuery>,
-) -> Json<Vec<serde_json::Value>> {
-    let pool = api.state().db_pool().clone();
-    let rows = pool
-        .get()
-        .ok()
-        .and_then(|mut conn| {
-            let rows: Vec<TaskRow> = sql_query(
-                "SELECT id, original_text, intent_type, confidence, created_at \
-                 FROM intent_classifications ORDER BY created_at DESC LIMIT 50",
-            )
-            .load(&mut conn)
-            .ok()?;
-            Some(rows)
-        })
-        .unwrap_or_default();
-    Json(rows.into_iter().map(|r| r.into_json()).collect())
+/// Insert an `auto_tasks` row recording a created automation. The row is what
+/// makes an AutoTask item traceable: the list UI reads these rows, and the
+/// ✏️ action opens the `.bas` it produced.
+pub(crate) fn record_auto_task(
+    pool: &DbPool,
+    bot_id: Uuid,
+    title: &str,
+    intent: &str,
+    status: &str,
+    script_path: Option<&str>,
+) {
+    let outcome = pool.get().ok().map(|mut conn| {
+        sql_query(
+            "INSERT INTO auto_tasks (bot_id, title, intent, status, basic_program, created_at, updated_at) \
+             VALUES ($1, $2, $3, $4, $5, NOW(), NOW()) RETURNING id",
+        )
+        .bind::<DieselUuid, _>(bot_id)
+        .bind::<Text, _>(title)
+        .bind::<Text, _>(intent)
+        .bind::<Text, _>(status)
+        .bind::<NullableSql<Text>, _>(script_path)
+        .get_result::<TaskIdRow>(&mut conn)
+    });
+    match outcome {
+        Some(Ok(row)) => info!("Recorded auto_tasks row {} for '{title}'", row.id),
+        Some(Err(e)) => warn!("Failed to record auto_tasks row for '{title}': {e}"),
+        None => warn!("DB pool unavailable — auto_tasks row for '{title}' not recorded"),
+    }
 }
 
 #[derive(diesel::QueryableByName)]
-struct TaskRow {
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    id: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    original_text: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    intent_type: String,
-    #[diesel(sql_type = diesel::sql_types::Float8)]
-    confidence: f64,
-    #[diesel(sql_type = diesel::sql_types::Timestamptz)]
-    created_at: chrono::DateTime<chrono::Utc>,
+struct TaskIdRow {
+    #[diesel(sql_type = DieselUuid)]
+    id: Uuid,
 }
 
-impl TaskRow {
+/// AutoTask items = rows of `auto_tasks`. The ✏️ action resolves the item's
+/// `.bas` through /api/autotask/sources (the repository), so the row carries
+/// the script path for display only.
+#[derive(diesel::QueryableByName)]
+struct AutoTaskRow {
+    #[diesel(sql_type = DieselUuid)]
+    id: Uuid,
+    #[diesel(sql_type = DieselUuid)]
+    bot_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    title: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    intent: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    status: String,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    basic_program: Option<String>,
+    #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+    created_at: chrono::DateTime<chrono::Utc>,
+    #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+    updated_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl AutoTaskRow {
     fn into_json(self) -> serde_json::Value {
         serde_json::json!({
             "id": self.id,
-            "original_text": self.original_text,
-            "intent_type": self.intent_type,
-            "confidence": self.confidence,
+            "bot_id": self.bot_id,
+            "title": self.title,
+            "intent": self.intent,
+            "status": self.status,
+            "script_path": self.basic_program,
             "created_at": self.created_at.to_rfc3339(),
+            "updated_at": self.updated_at.to_rfc3339(),
         })
     }
+}
+
+pub async fn list_tasks(
+    State(api): State<Arc<AutoTaskApi>>,
+    Query(query): Query<crate::api::ListTasksQuery>,
+) -> Json<Vec<serde_json::Value>> {
+    let pool = api.state().db_pool().clone();
+    let bot_filter = query.bot_id.clone().and_then(|s| Uuid::parse_str(&s).ok());
+    let rows = tokio::task::spawn_blocking(move || {
+        let mut conn = pool.get().ok()?;
+        match bot_filter {
+            Some(bot_id) => sql_query(
+                "SELECT id, bot_id, title, intent, status, basic_program, created_at, updated_at \
+                 FROM auto_tasks WHERE bot_id = $1 ORDER BY created_at DESC LIMIT 100",
+            )
+            .bind::<DieselUuid, _>(bot_id)
+            .load::<AutoTaskRow>(&mut conn)
+            .ok(),
+            None => sql_query(
+                "SELECT id, bot_id, title, intent, status, basic_program, created_at, updated_at \
+                 FROM auto_tasks ORDER BY created_at DESC LIMIT 100",
+            )
+            .load::<AutoTaskRow>(&mut conn)
+            .ok(),
+        }
+    })
+    .await
+    .ok()
+    .flatten()
+    .unwrap_or_default();
+    Json(rows.into_iter().map(|r| r.into_json()).collect())
 }
 
 pub async fn get_stats(
@@ -765,15 +839,40 @@ pub async fn get_stats(
     struct CountRow {
         #[diesel(sql_type = BigInt)]
         total: i64,
+        #[diesel(sql_type = BigInt)]
+        running: i64,
+        #[diesel(sql_type = BigInt)]
+        pending: i64,
+        #[diesel(sql_type = BigInt)]
+        completed: i64,
+        #[diesel(sql_type = BigInt)]
+        failed: i64,
+        #[diesel(sql_type = BigInt)]
+        pending_approval: i64,
     }
     let mut stats = crate::api::AutoTaskStatsResponse {
         total: 0, running: 0, pending: 0, completed: 0, failed: 0, pending_approval: 0, pending_decision: 0,
     };
     if let Ok(mut conn) = api.state().db_pool().get() {
-        if let Ok(row) = sql_query("SELECT COUNT(*) AS total FROM intent_classifications")
-            .get_result::<CountRow>(&mut conn)
+        // #1505 — the item list is auto_tasks, so the stats must count the same
+        // rows (intent_classifications counted heuristic runs, not items).
+        if let Ok(row) = sql_query(
+            "SELECT COUNT(*) AS total, \
+                    COUNT(*) FILTER (WHERE status = 'running') AS running, \
+                    COUNT(*) FILTER (WHERE status IN ('pending','ready','paused')) AS pending, \
+                    COUNT(*) FILTER (WHERE status = 'completed') AS completed, \
+                    COUNT(*) FILTER (WHERE status = 'failed') AS failed, \
+                    COUNT(*) FILTER (WHERE status = 'waiting_approval') AS pending_approval \
+             FROM auto_tasks",
+        )
+        .get_result::<CountRow>(&mut conn)
         {
             stats.total = row.total as i32;
+            stats.running = row.running as i32;
+            stats.pending = row.pending as i32;
+            stats.completed = row.completed as i32;
+            stats.failed = row.failed as i32;
+            stats.pending_approval = row.pending_approval as i32;
         }
     }
     Json(stats)

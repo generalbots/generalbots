@@ -9,7 +9,8 @@
 
 use std::sync::Arc;
 
-use axum::{extract::Query, extract::State, Json};
+use axum::{extract::Path, extract::Query, extract::State, Json};
+use diesel::RunQueryDsl;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -166,6 +167,123 @@ pub struct SourceListResponse {
     pub files: Vec<crate::types::SourceFile>,
     pub message: String,
     pub error: Option<String>,
+}
+
+/// Response for one AutoTask item with its resolved source.
+#[derive(Debug, Serialize)]
+pub struct ItemSourceResponse {
+    pub success: bool,
+    pub item_id: String,
+    pub name: String,
+    /// Vibe project owning the bot's repository (editor's project mode).
+    pub project_id: Option<Uuid>,
+    pub content: Option<String>,
+    pub committed: bool,
+    pub message: String,
+    pub error: Option<String>,
+}
+
+/// `GET /api/autotask/items/:id/source` — the committed `.bas` of one
+/// `auto_tasks` row (the row's script path resolved through the repository).
+pub async fn get_item_source(
+    State(api): State<Arc<AutoTaskApi>>,
+    Path(item_id): Path<String>,
+) -> Json<ItemSourceResponse> {
+    let item_id_for_fail = item_id.clone();
+    let fail = move |message: &str, error: String| {
+        Json(ItemSourceResponse {
+            success: false,
+            item_id: item_id_for_fail.clone(),
+            name: String::new(),
+            project_id: None,
+            content: None,
+            committed: false,
+            message: message.to_string(),
+            error: Some(error),
+        })
+    };
+    let (name, row_bot_id) = {
+        let pool = api.state().db_pool().clone();
+        let item_id_for_db = item_id.clone();
+        match tokio::task::spawn_blocking(move || {
+            let mut conn = pool.get().ok()?;
+            #[derive(diesel::QueryableByName)]
+            struct Row {
+                #[diesel(sql_type = diesel::sql_types::Uuid)]
+                bot_id: Uuid,
+                #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+                basic_program: Option<String>,
+            }
+            diesel::sql_query(
+                "SELECT bot_id, basic_program FROM auto_tasks WHERE id = $1",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(
+                uuid::Uuid::parse_str(&item_id_for_db).ok()?,
+            )
+            .get_result::<Row>(&mut conn)
+            .ok()
+            .map(|r| {
+                (
+                    r.basic_program
+                        .map(|p| p.rsplit('/').next().unwrap_or(&p).to_string()),
+                    r.bot_id,
+                )
+            })
+        })
+        .await
+        {
+            Ok(Some((Some(name), bot))) => (name, bot),
+            _ => return fail("This item has no recorded source path", "not found".to_string()),
+        }
+    };
+    let sources = match api.state().source_ops() {
+        Some(sources) => sources,
+        None => return fail("No source repository for this bot", "git sources unavailable".to_string()),
+    };
+    // The project owning the bot's repository, for the editor's project mode:
+    // the vibe project whose name matches the bot's.
+    let project_id = {
+        let pool = api.state().db_pool().clone();
+        let bot = row_bot_id;
+        tokio::task::spawn_blocking(move || {
+            let mut conn = pool.get().ok()?;
+            #[derive(diesel::QueryableByName)]
+            struct IdRow {
+                #[diesel(sql_type = diesel::sql_types::Uuid)]
+                id: Uuid,
+            }
+            diesel::sql_query(
+                "SELECT vp.id FROM vibe_projects vp \
+                 JOIN bots b ON b.name = vp.name \
+                 WHERE vp.project_type = 'bot' AND vp.source_control = 'git' \
+                   AND b.id = $1 LIMIT 1",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(bot)
+            .get_result::<IdRow>(&mut conn)
+            .ok()
+            .map(|r| r.id)
+        })
+        .await
+        .ok()
+        .flatten()
+    };
+    let content = match sources.read_source(row_bot_id, &name) {
+        Ok(content) => content,
+        Err(e) => {
+            warn!("[autotask] item source read {name} failed: {e}");
+            return fail("Could not read the source file", err_msg("item_source", &*e));
+        }
+    };
+    Json(ItemSourceResponse {
+        success: true,
+        item_id: item_id.clone(),
+        name: name.clone(),
+        project_id,
+        content,
+        committed: true,
+        message: format!("Source of item {item_id}"),
+        error: None,
+    })
 }
 
 /// `GET /api/autotask/sources` — the bot's `.gbdialog` sources and the project

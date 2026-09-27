@@ -164,6 +164,8 @@ pub struct ListTasksQuery {
     pub priority: Option<String>,
     pub limit: Option<i32>,
     pub offset: Option<i32>,
+    /// Scope the list to one bot's items.
+    pub bot_id: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -237,6 +239,11 @@ pub fn router(
             get(crate::source_edit::get_source).put(crate::source_edit::put_source),
         )
         .route("/api/autotask/sources", get(crate::source_edit::list_sources))
+        // One item's committed .bas, resolved from the auto_tasks row.
+        .route(
+            "/api/autotask/items/:item_id/source",
+            get(crate::source_edit::get_item_source),
+        )
         .route(
             "/api/autotask/source/rephrase",
             post(crate::source_edit::rephrase_source),

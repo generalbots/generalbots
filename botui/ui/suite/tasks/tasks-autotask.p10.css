@@ -1,0 +1,83 @@
+/* AutoTask items bar (reform #1505): rows of auto_tasks with an edit action. */
+.autotask-items-bar {
+  margin: 8px 16px 0 16px;
+  padding: 8px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.35);
+}
+
+.autotask-items-title {
+  margin: 0 0 6px 0;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  color: #94a3b8;
+}
+
+.autotask-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 168px;
+  overflow-y: auto;
+}
+
+.autotask-items-empty {
+  font-size: 12px;
+  color: #64748b;
+  padding: 6px 2px;
+}
+
+.autotask-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: rgba(148, 163, 184, 0.08);
+}
+
+.autotask-item-status {
+  flex: 0 0 auto;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: rgba(100, 116, 139, 0.3);
+  color: #cbd5e1;
+}
+
+.autotask-item-status.st-completed { background: rgba(34, 197, 94, 0.22); color: #86efac; }
+.autotask-item-status.st-failed { background: rgba(239, 68, 68, 0.22); color: #fca5a5; }
+.autotask-item-status.st-running { background: rgba(59, 130, 246, 0.25); color: #93c5fd; }
+
+.autotask-item-title {
+  flex: 1 1 auto;
+  font-size: 12px;
+  color: #e2e8f0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.autotask-item-date {
+  flex: 0 0 auto;
+  font-size: 10px;
+  color: #64748b;
+}
+
+.autotask-item-edit {
+  flex: 0 0 auto;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.autotask-item-edit:hover {
+  background: rgba(59, 130, 246, 0.25);
+}
