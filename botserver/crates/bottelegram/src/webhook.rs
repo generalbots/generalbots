@@ -16,8 +16,31 @@ use axum::{
     Json, Router,
 };
 use log::{debug, info, warn};
+use std::collections::HashSet;
 use std::sync::Arc;
+use tokio::sync::Mutex;
 use uuid::Uuid;
+
+/// Telegram redelivers an update whenever its webhook client does not receive
+/// the 200 in time; its read timeout is far below what media processing takes
+/// (BLIP description plus LLM rounds can exceed a minute). Acknowledge the
+/// delivery BEFORE any processing and handle it in the background, and drop
+/// update_ids already accepted inside the dedup window, so a slow media
+/// message is processed once instead of once per redelivery.
+const UPDATE_DEDUP_WINDOW: std::time::Duration = std::time::Duration::from_secs(600);
+
+fn update_dedup_registry() -> &'static Mutex<HashSet<(i64, std::time::Instant)>> {
+    use std::sync::OnceLock;
+    static REGISTRY: OnceLock<Mutex<HashSet<(i64, std::time::Instant)>>> = OnceLock::new();
+    REGISTRY.get_or_init(|| Mutex::new(HashSet::new()))
+}
+
+/// Returns true when this update_id was not seen inside the window.
+async fn register_update_id(update_id: i64) -> bool {
+    let mut seen = update_dedup_registry().lock().await;
+    seen.retain(|(_, seen_at)| seen_at.elapsed() < UPDATE_DEDUP_WINDOW);
+    seen.insert((update_id, std::time::Instant::now()))
+}
 
 pub(crate) fn extract_message_content(message: &TelegramMessage) -> String {
     if let Some(text) = &message.text {
@@ -36,7 +59,7 @@ pub(crate) fn extract_message_content(message: &TelegramMessage) -> String {
         return "[Voice message received]".to_string();
     }
     if message.audio.is_some() {
-        return "[Audio received]".to_string();
+        return "[Audio message received]".to_string();
     }
     if message.video.is_some() {
         return "[Video received]".to_string();
@@ -153,19 +176,37 @@ async fn handle_webhook_in(
         WebhookGate::Rejected(status) => return status,
     }
 
+    // Redelivery guard first: a duplicate update costs one registry lookup.
+    if !register_update_id(update.update_id).await {
+        info!(
+            "Telegram webhook duplicate update_id={} dropped",
+            update.update_id
+        );
+        return StatusCode::OK;
+    }
+
     info!("Telegram webhook received: update_id={}", update.update_id);
 
-    if let Some(message) = update.message.or(update.edited_message) {
-        if let Err(e) = process_message(state.clone(), bot_id, &message).await {
-            log::error!("Failed to process Telegram message: {}", e);
-        }
-    }
+    // Acknowledge before processing. Media handling (Drive upload, BLIP
+    // description, LLM rounds) routinely exceeds the Telegram webhook client
+    // timeout, and every timeout becomes a redelivery of the same update, so
+    // the 200 goes out while processing continues in the background.
+    let message = update.message.or(update.edited_message);
+    let callback = update.callback_query;
 
-    if let Some(callback) = update.callback_query {
-        if let Err(e) = process_callback(state.clone(), bot_id, &callback).await {
-            log::error!("Failed to process Telegram callback: {}", e);
+    tokio::spawn(async move {
+        if let Some(message) = message {
+            if let Err(e) = process_message(state.clone(), bot_id, &message).await {
+                log::error!("Failed to process Telegram message: {}", e);
+            }
         }
-    }
+
+        if let Some(callback) = callback {
+            if let Err(e) = process_callback(state, bot_id, &callback).await {
+                log::error!("Failed to process Telegram callback: {}", e);
+            }
+        }
+    });
 
     StatusCode::OK
 }
