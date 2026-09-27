@@ -420,7 +420,44 @@ fn ensure_cloud_workspace(
     Ok(())
 }
 
+/// True when the bot's `.gbdialog` is owned by its git repository (reform
+/// #1501/#1502), i.e. the git-pull monitor feeds it and Drive must not.
+async fn is_git_owned_bot(pool: &botcore::shared::utils::DbPool, branch_slug: &str, bot_name: &str) -> bool {
+    let pool = pool.clone();
+    let branch = branch_slug.trim().to_string();
+    let bot = bot_name.to_string();
+    tokio::task::spawn_blocking(move || {
+        #[derive(diesel::QueryableByName)]
+        struct Row {
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            n: i64,
+        }
+        let mut conn = match pool.get() {
+            Ok(c) => c,
+            Err(_) => return false,
+        };
+        diesel::sql_query(
+            "SELECT count(*) AS n FROM vibe_projects vp \
+             JOIN branches br ON br.id = vp.branch_id \
+             WHERE vp.project_type = 'bot' AND vp.source_control = 'git' \
+               AND vp.name = $1 AND br.slug = $2",
+        )
+        .bind::<diesel::sql_types::Text, _>(&bot)
+        .bind::<diesel::sql_types::Text, _>(&branch)
+        .get_result::<Row>(&mut conn)
+        .map(|r| r.n > 0)
+        .unwrap_or(false)
+    })
+    .await
+    .unwrap_or(false)
+}
+
 /// Sync tables.bas for a bot within a .gborg bucket structure.
+///
+/// Reform #1501/#1502 — a git-owned bot's schema travels with its sources: the
+/// monitor materializes `.gbdialog/tables.bas` and compiling it runs
+/// `process_table_definitions` (wired as a compiler callback). Reading Drive
+/// here would apply a stale schema over the repository's.
 async fn sync_tables_for_org_bot(
     state: &Arc<AppState>,
     pool: &botcore::shared::utils::DbPool,
@@ -428,6 +465,20 @@ async fn sync_tables_for_org_bot(
     bucket_name: &str,
     s3_prefix: &str,
 ) -> Result<(), String> {
+    let branch_slug = s3_prefix
+        .trim_end_matches('/')
+        .rsplit('/')
+        .next()
+        .unwrap_or("")
+        .strip_suffix(".gbai")
+        .unwrap_or("");
+    if is_git_owned_bot(pool, branch_slug, bot_name).await {
+        trace!(
+            "tables.bas for git-owned bot '{}' comes from its repository, skipping Drive sync",
+            bot_name
+        );
+        return Ok(());
+    }
     let bot_id = get_bot_id(pool, bot_name).await?;
 
     let content = match &state.drive {
@@ -549,15 +600,25 @@ async fn discover_and_create_bots(
     if let Some(s3) = &state.drive {
         match s3.list_objects(bucket_name, Some(branch_prefix)).await {
             Ok(objects) => {
-                // Extract unique bot names from object keys
+                // Extract unique bot names from object keys.
                 // Key format: {branch}.gbai/{bot}.gbdialog/file.bas
+                //
+                // Reform #1501 — a bot's sources move to its repository, so
+                // discovery must not require `.gbdialog` objects to be present
+                // in Drive: any `{bot}.gb*` directory of the branch identifies
+                // the bot. Only a top-level `{bot}.gb*` counts (a nested key
+                // would name a path, not a bot).
+                const BOT_MARKERS: [&str; 4] = [".gbdialog", ".gbot", ".gbkb", ".gbdrive"];
                 let mut bot_names: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
                 for key in &objects {
                     let relative = key.strip_prefix(branch_prefix).unwrap_or(key);
-                    if let Some(dot_idx) = relative.find(".gbdialog") {
-                        let bot_name = &relative[..dot_idx];
-                        if !bot_name.is_empty() {
-                            bot_names.insert(bot_name.to_string());
+                    for marker in BOT_MARKERS {
+                        if let Some(dot_idx) = relative.find(marker) {
+                            let bot_name = &relative[..dot_idx];
+                            if !bot_name.is_empty() && !bot_name.contains('/') {
+                                bot_names.insert(bot_name.to_string());
+                            }
+                            break;
                         }
                     }
                 }

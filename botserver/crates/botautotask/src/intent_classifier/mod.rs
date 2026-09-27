@@ -459,12 +459,17 @@ Respond with JSON only:
             let key = self.config_ops.get_config(&_bot_id, "llm-key", None)
                 .unwrap_or_else(|_| self.config_ops.get_config(&Uuid::nil(), "llm-key", None)
                 .unwrap_or_default());
-            let (tx, mut rx) = tokio::sync::mpsc::channel(100);
             let llm_config = serde_json::json!({"temperature": 0.3, "max_tokens": 1000});
-            self.llm_ops.generate_stream(_prompt, &llm_config, tx, &model, &key, None).await?;
-            let mut response = String::new();
-            while let Some(chunk) = rx.recv().await { response.push_str(&chunk); }
-            Ok(response)
+            // Bounded: the API path already ran the heuristic classifier first,
+            // so a stalled model degrades to a reported failure.
+            let result = crate::types::collect_llm_stream(
+                self.llm_ops.as_ref(), _prompt, &llm_config, &model, &key, None,
+            )
+            .await;
+            if result.is_err() {
+                warn!("Intent classification via model '{model}' failed or timed out");
+            }
+            result
         }
         #[cfg(not(feature = "llm"))]
         { warn!("LLM feature not enabled, using heuristic classification"); Ok("{}".to_string()) }
@@ -489,11 +494,23 @@ Respond with JSON only:
         let Some(bot) = bot else {
             return Err(format!("Bot not found for id {bot_id}").into());
         };
+        // Reform #1505 — the bot's repository is the canonical `.gbdialog`, so a
+        // generated command is committed there (Drive only for a bot without a
+        // git project, where nothing else would compile it).
+        let relative = path.trim_start_matches('/');
+        if let Some(sources) = self.state.source_ops() {
+            let files = vec![(relative.to_string(), content.to_string())];
+            sources
+                .write_sources(bot_id, &files, &format!("autotask: add {relative}"))
+                .map_err(|e| format!("git source write failed: {e}"))?;
+            info!("Committed generated BASIC to ALM: {}/{}", bot.name, relative);
+            return Ok(());
+        }
         let Some(ops) = self.state.file_ops() else {
             return Err("Drive ops not available — cannot persist generated BASIC".into());
         };
         let bucket = format!("{}.gbai", bot.name);
-        let key = format!("{}.gbdialog/{}", bot.name, path.trim_start_matches('/'));
+        let key = format!("{}.gbdialog/{relative}", bot.name);
         ops.put_object(&bucket, &key, content.as_bytes().to_vec(), "text/plain")?;
         info!("Saved BASIC file to Drive: {bucket}/{key}");
         Ok(())

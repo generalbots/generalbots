@@ -17,6 +17,12 @@ use uuid::Uuid;
 use crate::api::AutoTaskApi;
 use crate::handlers::{canonical_bot_id, err_msg};
 
+/// Query naming only a bot (listing endpoints).
+#[derive(Debug, Deserialize)]
+pub struct BotQuery {
+    pub bot_id: Option<String>,
+}
+
 /// Query for reading a source file.
 #[derive(Debug, Deserialize)]
 pub struct SourceQuery {
@@ -152,6 +158,52 @@ pub async fn rephrase_source(
     write_source(&api, bot_id, &req.name, &rewritten, None, "rephrase")
 }
 
+/// Response for the source listing.
+#[derive(Debug, Serialize)]
+pub struct SourceListResponse {
+    pub success: bool,
+    pub project_id: Option<Uuid>,
+    pub files: Vec<crate::types::SourceFile>,
+    pub message: String,
+    pub error: Option<String>,
+}
+
+/// `GET /api/autotask/sources` — the bot's `.gbdialog` sources and the project
+/// that owns the repository, so a row action can open one in the editor.
+pub async fn list_sources(
+    State(api): State<Arc<AutoTaskApi>>,
+    Query(query): Query<BotQuery>,
+) -> Json<SourceListResponse> {
+    let bot_id = canonical_bot_id(query.bot_id.clone());
+    let fail = |message: &str, error: String| {
+        Json(SourceListResponse {
+            success: false,
+            project_id: None,
+            files: Vec::new(),
+            message: message.to_string(),
+            error: Some(error),
+        })
+    };
+    let sources = match api.state().source_ops() {
+        Some(sources) => sources,
+        None => return fail("No source repository for this bot", "git sources unavailable".to_string()),
+    };
+    match sources.list_sources(bot_id) {
+        Ok(listing) => Json(SourceListResponse {
+            success: true,
+            project_id: listing.project_id,
+            message: format!("{} source file(s)", listing.files.len()),
+            files: listing.files,
+            error: None,
+        }),
+        Err(e) => {
+            warn!("[autotask] list sources failed: {e}");
+            let error = err_msg("list_sources", &*e);
+            fail("Could not list the bot sources", error)
+        }
+    }
+}
+
 /// `POST /api/autotask/tables` — attach `BEGIN TABLE … END TABLE` blocks to the
 /// bot's `.gbdialog/tables.bas`, so an automation that needs storage declares
 /// its schema instead of embedding DDL in the tool script.
@@ -257,20 +309,10 @@ async fn call_llm(api: &Arc<AutoTaskApi>, bot_id: Uuid, prompt: &str) -> Result<
         .config_ops()
         .get_config(&bot_id, "llm-key", None)
         .unwrap_or_default();
-    let (tx, mut rx) = tokio::sync::mpsc::channel(100);
     let config = serde_json::json!({ "temperature": 0.2, "max_tokens": 4000 });
-    if let Err(e) = api
-        .llm_ops()
-        .generate_stream(prompt, &config, tx, &model, &key, None)
+    crate::types::collect_llm_stream(api.llm_ops().as_ref(), prompt, &config, &model, &key, None)
         .await
-    {
-        return Err(format!("llm call failed: {e}"));
-    }
-    let mut response = String::new();
-    while let Some(chunk) = rx.recv().await {
-        response.push_str(&chunk);
-    }
-    Ok(response)
+        .map_err(|e| format!("llm call failed: {e}"))
 }
 
 /// Drop a surrounding markdown code fence from a completion.

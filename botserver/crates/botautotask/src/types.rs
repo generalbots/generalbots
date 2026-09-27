@@ -312,6 +312,36 @@ pub trait LlmProviderOps: Send + Sync {
     ) -> BoxFuture<()>;
 }
 
+/// Hard ceiling on one AutoTask LLM completion. A stalled upstream model (free
+/// tiers do stall) must degrade into a reported failure instead of holding the
+/// request and its HTTP client open — an intent classification once hung for
+/// more than five minutes.
+pub const LLM_CALL_TIMEOUT_SECS: u64 = 90;
+
+/// Drive a provider stream to completion under [`LLM_CALL_TIMEOUT_SECS`].
+pub async fn collect_llm_stream(
+    llm_ops: &dyn LlmProviderOps,
+    prompt: &str,
+    config: &serde_json::Value,
+    model: &str,
+    key: &str,
+    system_prompt: Option<&str>,
+) -> Result<String, BoxError> {
+    let (tx, mut rx) = tokio::sync::mpsc::channel(100);
+    let call = async {
+        llm_ops.generate_stream(prompt, config, tx, model, key, system_prompt).await?;
+        let mut response = String::new();
+        while let Some(chunk) = rx.recv().await {
+            response.push_str(&chunk);
+        }
+        Ok::<String, BoxError>(response)
+    };
+    match tokio::time::timeout(std::time::Duration::from_secs(LLM_CALL_TIMEOUT_SECS), call).await {
+        Ok(result) => result,
+        Err(_) => Err(format!("llm call timed out after {LLM_CALL_TIMEOUT_SECS}s").into()),
+    }
+}
+
 pub trait ConfigOps: Send + Sync {
     fn get_config(
         &self,
@@ -350,6 +380,22 @@ pub trait DriveOps: Send + Sync {
 ///
 /// Implemented by the host crate; `None` for bots without a git project, in
 /// which case the legacy Drive path is used.
+/// One source file of a bot's `.gbdialog`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SourceFile {
+    pub name: String,
+    pub size: u64,
+}
+
+/// A bot's source files plus the vibe project that owns the repository, so a
+/// caller can open them in the suite editor (project workspace + Source
+/// Control) instead of guessing a path.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SourceListing {
+    pub project_id: Option<Uuid>,
+    pub files: Vec<SourceFile>,
+}
+
 pub trait BotSourceOps: Send + Sync {
     /// Write `files` — `(path relative to .gbdialog, content)` — into the bot's
     /// source repository, commit and push them, returning the dialog-root file
@@ -369,6 +415,9 @@ pub trait BotSourceOps: Send + Sync {
     /// Read one source file back from the bot's repository, so the editor can
     /// show the current committed content. `None` when the file is absent.
     fn read_source(&self, bot_id: Uuid, name: &str) -> Result<Option<String>, BoxError>;
+
+    /// List the bot's `.gbdialog` sources with the owning project id.
+    fn list_sources(&self, bot_id: Uuid) -> Result<SourceListing, BoxError>;
 }
 
 pub trait ScriptRunner: Send + Sync {

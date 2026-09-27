@@ -203,8 +203,8 @@ impl DriveCompiler {
                     etags.get(&query_file_path).map(|e| e != &current_etag).unwrap_or(true)
                 };
                 if etag_changed {
-                    warn!(
-                        "DriveCompiler: {} changed in Drive for git-owned bot '{}' — compiling from Drive (git monitor is the source of truth; push through git to make this change durable)",
+                    info!(
+                        "DriveCompiler: {} changed in Drive for git-owned bot '{}' — the repository is the source of truth, compiling the git-materialized copy (push through git to make this change durable)",
                         query_file_path, bot_segment
                     );
                 }
@@ -298,9 +298,27 @@ impl DriveCompiler {
         // Caminho do .bas no work
         let work_bas_path = work_dir.join(format!("{}.bas", tool_name));
 
-        // Always download latest from S3 to ensure work dir is in sync
+        // Reform #1501/#1502 — a git-owned bot's `.gbdialog` lives in its
+        // repository: the git monitor materializes the committed sources into
+        // this work dir and queues the file for compile. Downloading the Drive
+        // object here overwrote that materialization with a stale copy — the
+        // split brain that froze beiner's classify_media for hours — so the
+        // materialized work copy is compiled as-is.
+        let git_owned = {
+            let mut conn = self.state.conn.get()?;
+            git_owned_bots(&mut conn).contains(&(branch_name.clone(), bot_name.clone()))
+        };
+        let use_work_copy = git_owned && work_bas_path.exists();
+
         info!("Downloading {} from S3 to work dir", fp);
-        let download_result = download_from_s3(fp, &self.state).await;
+        let download_result = if use_work_copy {
+            info!(
+                "git-owned bot '{bot_name}': compiling the source materialized from git, Drive copy bypassed"
+            );
+            Err(format!("git-owned bot '{bot_name}': Drive copy bypassed").into())
+        } else {
+            download_from_s3(fp, &self.state).await
+        };
         
         match download_result {
             Ok(content) => {
@@ -327,7 +345,7 @@ impl DriveCompiler {
                 } else if missing {
                     warn!("S3 object missing: {} (compacted; details suppressed until it reappears)", fp);
                 } else {
-                    info!("Failed to download {} from S3 and no local copy: {}", fp, e);
+                    info!("No Drive copy of {} ({}); using the work copy", fp, e);
                 }
                 if !work_bas_path.exists() {
                     // #1264 — a permanently-absent object with no work copy used
@@ -413,7 +431,15 @@ impl DriveCompiler {
             None => fp.to_string(),
         };
         let work_manifest_path = work_dir.join(format!("{}.mcp.json", tool_name));
-        match download_from_s3(&manifest_fp, &self.state).await {
+        // The repository's manifest is materialized next to the source, so a
+        // git-owned bot keeps it (same reason as the source above).
+        let manifest_sync = if use_work_copy && work_manifest_path.exists() {
+            debug!("git-owned bot '{bot_name}': keeping the repository manifest for {manifest_fp}");
+            Err(format!("git-owned bot '{bot_name}': Drive manifest bypassed").into())
+        } else {
+            download_from_s3(&manifest_fp, &self.state).await
+        };
+        match manifest_sync {
             Ok(bytes) => match String::from_utf8(bytes) {
                 Ok(text) => {
                     if let Err(e) = std::fs::write(&work_manifest_path, text) {
@@ -567,8 +593,13 @@ fn git_owned_bots(
         #[diesel(sql_type = diesel::sql_types::Text)]
         name: String,
     }
+    // Reform #1501/#1502 — "git-owned" means the git-pull monitor feeds this
+    // bot (vibe project in git mode), which is the same condition
+    // `git_bot_monitor::loop_ops::list_monitored_bots` uses. Keying on
+    // `payload->>'source_imported_at'` missed projects provisioned later, so
+    // the two paths disagreed about who owns a bot's sources.
     diesel::sql_query(
-        "SELECT br.slug AS branch_slug, vp.name \n         FROM vibe_projects vp \n         JOIN branches br ON br.id = vp.branch_id \n         WHERE vp.project_type = 'bot' AND (vp.payload->>'source_imported_at') IS NOT NULL",
+        "SELECT br.slug AS branch_slug, vp.name \n         FROM vibe_projects vp \n         JOIN branches br ON br.id = vp.branch_id \n         WHERE vp.project_type = 'bot' AND vp.source_control = 'git'",
     )
     .load::<Row>(conn)
     .unwrap_or_default()

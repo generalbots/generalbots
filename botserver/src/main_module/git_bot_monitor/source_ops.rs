@@ -273,6 +273,42 @@ pub(crate) fn read_source(
     }
 }
 
+/// List the bot's `.gbdialog` sources plus the project that owns them.
+/// A bot with no git project yields `project_id: None` (and no files), which
+/// the caller reports instead of guessing a path.
+pub(crate) fn list_sources(
+    pool: &DbPool,
+    bot_name: &str,
+) -> Result<botautotask::types::SourceListing, String> {
+    let target = find_source_target(pool, bot_name)?;
+    let checkout = ensure_checkout_with_heal(pool, &target.project, &target.org)?;
+    let dialog = match dialog_source_dir(&checkout, bot_name) {
+        Some(dir) => dir,
+        None => {
+            return Ok(botautotask::types::SourceListing {
+                project_id: Some(target.project.project_id),
+                files: Vec::new(),
+            })
+        }
+    };
+    let mut files: Vec<botautotask::types::SourceFile> = Vec::new();
+    for entry in std::fs::read_dir(&dialog).map_err(|e| format!("read {}: {e}", dialog.display()))? {
+        let entry = entry.map_err(|e| format!("entry: {e}"))?;
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let name = entry.file_name().to_string_lossy().to_string();
+        let size = entry.metadata().map(|m| m.len()).unwrap_or(0);
+        files.push(botautotask::types::SourceFile { name, size });
+    }
+    files.sort_by(|a, b| a.name.cmp(&b.name));
+    Ok(botautotask::types::SourceListing {
+        project_id: Some(target.project.project_id),
+        files,
+    })
+}
+
 /// Bot name for a bot id, used to resolve the git target from AutoTask.
 fn bot_name_for_id(pool: &DbPool, bot_id: uuid::Uuid) -> Result<String, String> {
     #[derive(diesel::QueryableByName)]
@@ -327,6 +363,14 @@ impl botautotask::types::BotSourceOps for GitBotSourceOps {
     ) -> Result<Option<String>, botautotask::types::BoxError> {
         let bot_name = bot_name_for_id(&self.pool, bot_id)?;
         read_source(&self.pool, &bot_name, name).map_err(Into::into)
+    }
+
+    fn list_sources(
+        &self,
+        bot_id: uuid::Uuid,
+    ) -> Result<botautotask::types::SourceListing, botautotask::types::BoxError> {
+        let bot_name = bot_name_for_id(&self.pool, bot_id)?;
+        list_sources(&self.pool, &bot_name).map_err(Into::into)
     }
 }
 
