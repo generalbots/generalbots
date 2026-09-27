@@ -693,6 +693,9 @@ async fn inner_build_sub_router(
             bucket_name: String,
             manifests: Arc<RwLock<HashMap<String, botautotask::TaskManifest>>>,
             drive_ops: Option<Arc<dyn botautotask::types::DriveOps>>,
+            /// Reform #1505 — writes generated sources into the bot's git
+            /// repository (the canonical `.gbdialog`) instead of Drive.
+            source_ops: Arc<dyn botautotask::types::BotSourceOps>,
             app_state: Arc<AppState>,
         }
 
@@ -705,6 +708,9 @@ async fn inner_build_sub_router(
             }
             fn file_ops(&self) -> Option<&dyn botautotask::types::DriveOps> {
                 self.drive_ops.as_deref()
+            }
+            fn source_ops(&self) -> Option<&dyn botautotask::types::BotSourceOps> {
+                Some(self.source_ops.as_ref())
             }
             fn broadcast_task_progress(&self, event: botautotask::types::TaskProgressEvent) {
                 // #1266 — forward to the shared AppState channel so the
@@ -755,6 +761,9 @@ async fn inner_build_sub_router(
             drive_ops: app_state.drive.clone().map(|d| {
                 Arc::new(botautotask::drive_ops::DriveRepositoryOps(d)) as Arc<dyn botautotask::types::DriveOps>
             }),
+            source_ops: Arc::new(crate::main_module::git_bot_monitor::GitBotSourceOps::new(
+                app_state.conn.clone(),
+            )),
             app_state: app_state.clone(),
         });
         let config_ops = Arc::new(ConfigOpsImpl {
