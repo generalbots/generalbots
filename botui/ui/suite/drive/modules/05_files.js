@@ -1,78 +1,5 @@
-/* Drive Module v2.0 — 05 Files: discover, load, upload, search */
+/* Drive Module v2.0 — 05 Files: load, upload, search */
 "use strict";
-
-async function discoverBuckets() {
-    try {
-        // Prefer user's own bucket from session (no API call needed)
-        if (userInfo && userInfo.bucket) {
-            var bucketName = userInfo.bucket;
-            currentBucket = bucketName;
-            if (bucketName.indexOf(".gborg") > 0) {
-                currentGborgBucket = bucketName;
-                currentGborgBranch = bucketName.replace(".gborg", "");
-            } else {
-                currentGborgBucket = null;
-                currentGborgBranch = null;
-            }
-            retryCount = 0;
-            return;
-        }
-
-        // Fallback: derive bucket from bot name (prefer .gborg, fallback .gbai)
-        var botName = window.__INITIAL_BOT_NAME__ || window.location.pathname.split('/').filter(Boolean)[0] || '';
-        if (botName) {
-            currentBucket = botName + ".gborg";
-            currentGborgBucket = currentBucket;
-            currentGborgBranch = botName;
-            return;
-        }
-
-        // Admin-only: attempt API to list all buckets
-        try {
-            var url = botName ? '/buckets?bot=' + encodeURIComponent(botName) : '/buckets';
-            const buckets = await apiRequest(url);
-            availableBuckets = buckets || [];
-            retryCount = 0;
-
-            var gborg = availableBuckets.find(function(b) { return b.is_gborg; });
-            var gbai = availableBuckets.find(function(b) { return b.is_gbai; });
-
-            if (gborg) {
-                currentGborgBucket = gborg.name;
-                currentGborgBranch = gborg.name.replace(".gborg", "");
-                currentBucket = gborg.name;
-            } else if (gbai) {
-                currentGborgBucket = null;
-                currentGborgBranch = null;
-                currentBucket = gbai.name;
-            } else if (availableBuckets.length > 0) {
-                currentGborgBucket = null;
-                currentGborgBranch = null;
-                currentBucket = availableBuckets[0].name;
-            }
-        } catch (apiErr) {
-            console.warn("Failed to list buckets via API (admin only):", apiErr);
-            // Non-admin: derive bucket from session bot name
-            if (!currentBucket) {
-                var sessionBot = window.__INITIAL_BOT_NAME__ || 'default';
-                currentBucket = sessionBot + '.gbai';
-                currentGborgBucket = null;
-                currentGborgBranch = sessionBot;
-            }
-        }
-
-    } catch (err) {
-        console.error("Failed to discover buckets:", err);
-        const content = document.getElementById("drive-content") || document.getElementById("file-grid");
-        if (content) {
-            var canRetry = retryCount < MAX_RETRIES;
-            var retryMsg = canRetry
-                ? '<button class="btn-primary" onclick="DriveModule.retryWithBackoff()">Retry</button>'
-                : '<p class="text-muted">Max retries reached. Please refresh the page.</p>';
-            content.innerHTML = '<div class="empty-state"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg><h3>Drive connection error</h3><p>' + escapeHtml(err.message) + '</p>' + retryMsg + '</div>';
-        }
-    }
-}
 
 async function loadFiles(path, bucket) {
     if (path !== undefined) currentPath = path;
@@ -370,11 +297,6 @@ async function loadMyFilesTab() {
         currentScope = "user";
         await loadFiles("", currentBucket);
     }
-}
-
-async function loadBotsTab() {
-    if (!currentBucket) await discoverBuckets();
-    await loadBotConfigs();
 }
 
 async function loadRootTab() {
