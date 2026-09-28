@@ -1,4 +1,5 @@
 // ===== LOCAL KEYWORDS =====
+pub mod keyword_reference;
 pub mod mention_config;
 pub mod preview;
 
@@ -302,38 +303,4 @@ pub fn get_all_keywords() -> Vec<String> {
         "SECURITY INSTALL TOOL".to_string(),
         "SECURITY HARDENING SCORE".to_string(),
     ]
-}
-
-/// Render the closed keyword catalog as prompt material for code generation.
-///
-/// The AutoTask intent compiler (and any other BASIC generator) must not be
-/// asked for a program while knowing no keyword: it answered `null` and the
-/// pipeline persisted a `TALK` stub. One compact block, grouped in columns,
-/// keeps the prompt small enough for a chat model.
-pub fn basic_keyword_reference() -> String {
-    let keywords = get_all_keywords();
-    let mut out = String::from("## BASIC keywords (closed set — use only these)\n");
-    let per_line = 6usize;
-    for chunk in keywords.chunks(per_line) {
-        out.push_str("- ");
-        out.push_str(&chunk.join(", "));
-        out.push('\n');
-    }
-    out
-}
-
-pub fn get_keyword_categories() -> std::collections::HashMap<String, Vec<String>> {
-    let mut categories = std::collections::HashMap::new();
-    categories.insert("Multi-Agent".to_string(), vec!["ADD BOT".to_string(), "BOT REFLECTION".to_string(), "BROADCAST TO BOTS".to_string(), "DELEGATE TO BOT".to_string(), "TRANSFER CONVERSATION".to_string()]);
-    categories.insert("Communication".to_string(), vec!["ADD MEMBER".to_string(), "CREATE DRAFT".to_string(), "SEND MAIL".to_string(), "SEND TEMPLATE".to_string(), "SMS".to_string()]);
-    categories.insert("Data".to_string(), vec!["AGGREGATE".to_string(), "DELETE".to_string(), "FILL".to_string(), "FILTER".to_string(), "FIND".to_string(), "FIRST".to_string(), "GROUP BY".to_string(), "INSERT".to_string(), "JOIN".to_string(), "LAST".to_string(), "MAP".to_string(), "MERGE".to_string(), "PIVOT".to_string(), "SAVE".to_string(), "UPDATE".to_string()]);
-    categories.insert("HTTP".to_string(), vec!["GET".to_string(), "POST".to_string(), "PUT".to_string(), "PATCH".to_string(), "DELETE HTTP".to_string(), "GRAPHQL".to_string(), "SOAP".to_string(), "SET HEADER".to_string(), "CLEAR HEADERS".to_string()]);
-    categories.insert("AI".to_string(), vec!["LLM".to_string(), "SET CONTEXT".to_string(), "USE MODEL".to_string(), "SET ANSWER MODE".to_string()]);
-    categories.insert("Code Execution".to_string(), vec!["RUN PYTHON".to_string(), "RUN JAVASCRIPT".to_string(), "RUN BASH".to_string()]);
-    categories.insert("Safety".to_string(), vec!["REQUIRE APPROVAL".to_string(), "SIMULATE IMPACT".to_string(), "CHECK CONSTRAINTS".to_string(), "AUDIT LOG".to_string()]);
-    categories.insert("MCP".to_string(), vec!["USE MCP".to_string(), "MCP LIST TOOLS".to_string(), "MCP INVOKE".to_string()]);
-    categories.insert("Auto Task".to_string(), vec!["PLAN START".to_string(), "PLAN END".to_string(), "STEP".to_string(), "AUTO TASK".to_string(), "OPTION A OR B".to_string(), "DECIDE".to_string(), "ESCALATE".to_string()]);
-    categories.insert("Monitors".to_string(), vec!["ON EMAIL".to_string(), "ON CHANGE".to_string(), "SET SCHEDULE".to_string(), "WEBHOOK".to_string()]);
-    categories.insert("Security Protection".to_string(), vec!["SECURITY TOOL STATUS".to_string(), "SECURITY RUN SCAN".to_string(), "SECURITY GET REPORT".to_string(), "SECURITY UPDATE DEFINITIONS".to_string(), "SECURITY START SERVICE".to_string(), "SECURITY STOP SERVICE".to_string(), "SECURITY INSTALL TOOL".to_string(), "SECURITY HARDENING SCORE".to_string()]);
-    categories
 }

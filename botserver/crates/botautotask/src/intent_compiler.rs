@@ -92,12 +92,6 @@ in prose is worthless. Rules:
 - One statement per line. No braces, no semicolons, no `fn`, no JSON inside.
 - `IF cond THEN` … `ELSE` … `END IF`; `FOR EACH x IN list` … `NEXT`;
   `SWITCH v CASE "a" … DEFAULT … END SWITCH`.
-- Data: `GET FROM table WHERE …`, `SET x = …`, `SAVE x TO table`,
-  `FIND v IN table`, `FIRST(list)`, `LAST(list)`, `COUNT(list)`,
-  `FORMAT "{{}}", a, b`.
-- Output: `TALK "…"`. Files: `CREATE FILE "path" WITH content`,
-  `READ FILE "path"`, `LIST FILES "path"`, `MOVE FILE …`.
-- Network: `GET HTTP "url"`, `POST HTTP "url"`, `WEBHOOK "url" WITH data`.
 - Robustness: wrap anything that can fail (models, HTTP, file I/O) in
   `ON ERROR RESUME NEXT` and check `IF ERROR THEN`; a trapped step yields ""
   and the script continues.
@@ -111,8 +105,16 @@ in prose is worthless. Rules:
   the automation is user-triggered.
 - Keep it under 40 lines and make it self-contained: the whole program goes
   into `basic_program` as one string with real newlines (\n).
+- The plan is bookkeeping, not the deliverable: at most 3 steps, each with a
+  3-5 word name and a one-line description. Spend the budget on the program —
+  a verbose plan gets the whole answer cut off.
 
 {reference}
+
+Output rules:
+- Answer with the JSON object and nothing else. No analysis, no commentary, no
+  markdown fences, no explanation before or after the object.
+- Do not restate the request, do not explore alternatives, do not ask questions.
 
 Respond with JSON only:
 {{
@@ -234,7 +236,8 @@ impl IntentCompiler {
     async fn call_llm(&self, prompt: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let model = self.resolved_model();
         let key = self.resolved_key();
-        let config = serde_json::json!({"temperature": 0.3, "max_tokens": 2000});
+        // Generous budget: a reasoning model spends tokens before the object.
+        let config = serde_json::json!({"temperature": 0.3, "max_tokens": 4000});
         // Bounded — a stalled model must fail the compile step, not hang it.
         crate::types::collect_llm_stream(self.llm_ops.as_ref(), prompt, &config, &model, &key, None)
             .await
@@ -429,6 +432,7 @@ mod tests {
     use super::{compile_prompt, DEGRADED_BASIC_REFERENCE};
 
     const CATALOG: &str = "## BASIC keywords (closed set — use only these)\n- TALK, GET, SET, SAVE";
+    const PROMPT_DUMP_MARKER: &str = "===PROMPT===\n";
 
     #[test]
     fn compile_prompt_demands_a_real_basic_program() {
@@ -448,6 +452,13 @@ mod tests {
         let prompt = compile_prompt("x", CATALOG);
         assert!(prompt.contains("closed set"));
         assert!(prompt.contains("TALK, GET, SET, SAVE"));
+    }
+
+    #[test]
+    fn compile_prompt_dump_is_printable() {
+        // Printing the assembled prompt is the fastest way to inspect what the
+        // generator actually asks the model for (no network involved).
+        println!("{PROMPT_DUMP_MARKER}{}", compile_prompt("dump", CATALOG));
     }
 
     #[test]
