@@ -40,7 +40,31 @@
 - ❌ NEVER commit `.bas` source files from production bots — only `.ast` (compiled) and `.json` files
 - ✅ `.bas` for production bots belongs in `work/` (local dev only)
 - ✅ `.bas` templates in `bottemplates/` are part of the repo (source templates, not production)
+- ✅ **Git-owned bots (reform #1501/#1505): the ALM repository is the source of truth** — `.gbdialog/` (tools) and `.gbot/` (channel prompts) live in the bot's repo, pulled every 15 s by `git_bot_monitor` and materialized into `work/{branch}.gborg/{branch}.gbai/{bot}.gbdialog|{bot}.gbot/`. Drive copies of those two prefixes are archived to `{bucket}/archive/{bot}-{stamp}/`, never read. `.gbkb`/`.gbdrive` stay in Drive.
+- 🚨 **A bot without `PROMPT-{CHANNEL}.md` in its work-dir `.gbot/` silently answers with the generic fallback prompt** (`load_system_prompt_for_channel` in `botserver/src/core/bot/ws/message.rs:16`) — no error is logged, tools simply stop being called (e.g. `classify_media` never fires). Shipped templates must therefore commit their `.gbot` prompts with the tool (`templates.rs` → `config_files`, `persist_config_to_git`, `bot_config::write_config_files`); `git_config` recovers orphaned Drive/archived `.gbot` on boot, and the archive pass refuses to delete a Drive `.gbot` that is not in the repo yet.
 - Bots are loaded exclusively from Drive (MinIO `.gbai` buckets) — see `botserver/src/main_module/drive_monitors.rs`. Never from local filesystem paths.
+
+### Test Identifiers (prod beiner media-filing E2E)
+Reusable ids so the next session does not rediscover them — no secrets, no IPs:
+
+| What | Value |
+|------|-------|
+| Bot name / display name | `beiner` / "AABB-bot" (Telegram chat handle `aabb_test_bot`) |
+| Bot UUID | `f25671b3-61cd-4970-9626-bd99d9fb398a` |
+| Web Telegram chat | `https://web.telegram.org/k/#@aabb_test_bot` (tab kept open in the Chrome CDP profile, never closed) |
+| Telegram chat id | `6676512312` (user "Rodrigo") |
+| Telegram session id | `5f1d25c6-43a0-41c3-bb4a-c61c8c6be42` |
+| Bot repo | ALM org `a2125c56`, repo `beiner` — checkout at `/opt/gbo/data/vibe-workspaces/beiner` in the `bot` container |
+| Drive buckets | `beiner.gbai` (layout 1, `beiner.gbdrive/…`) and `beiner.gborg` (org layout, `beiner.gbai/…`) |
+| E2E result shape | media lands at `beiner.gbdrive/media/{YYYY}/{MM}/{category}/{uuid}.{ext}` + sibling `.meta.txt` (`category=`, `kind=`, `path=`, `caption=`, `perception=`) |
+| Prod services | botserver runs via `systemctl` in the `bot` container (logs: `journalctl -u botserver`, health on the container's own port) |
+
+**Send a photo through Telegram Web (fastest reliable path):** Telegram K keeps one hidden `input[type=file]`; setting it directly skips the attach menu. The staged photo opens a `.popup-send-photo` whose own `btn-primary` button must be clicked (`.btn-send` in the composer is covered by the popup):
+```python
+await page.locator("input[type=file]").first.set_input_files(IMG)   # then wait for .popup-send-photo
+await page.locator(".popup-send-photo .btn-primary").first.click()   # send
+```
+
 
 ---
 

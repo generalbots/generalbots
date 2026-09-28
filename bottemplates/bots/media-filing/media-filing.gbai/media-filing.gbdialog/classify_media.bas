@@ -18,8 +18,8 @@
 ' must never reach the document text extractor, which cannot read binary payloads
 ' and used to leave every voice note "unsorted" (or failing) by accident.
 
-TAXONOMY = "invoice,receipt,contract,identity,report,audio,video,unsorted"
-PROMPT = "Classifique o conteudo a seguir com uma unica palavra, apenas uma destas: " + TAXONOMY + ". Responda somente a palavra.\n\n"
+TAXONOMY = "invoice,receipt,contract,identity,report,audio,vehicle,people,animal,food,nature,screenshot,video,unsorted"
+PROMPT = "Classifique o conteudo a seguir com uma unica palavra, apenas uma destas: " + TAXONOMY + ". Guia de decisao: carros/motos/caminhoes/trafego/parking = vehicle; pessoas/rostos/grupos = people; animais de qualquer tipo = animal; comida/bebida/cozinha/refeicao = food; paisagem/floresta/montanha/praia/ceu/agua = nature; tela de computador/interface/janela = screenshot; documento por tipo: recibo/pagamento = receipt, contrato/locacao = contract, documento de identidade = identity, relatorio = report, fatura/cobranca = invoice; gravacao generica sem categoria melhor = video. Responda somente a palavra.\n\n"
 MAX_ANALYSIS_CHARS = 4000
 
 ' 1. Which kind of perception applies. Images are described by the vision model,
@@ -162,8 +162,12 @@ MOVE path, destination
 '    without a read-modify-write over a shared index file.
 CREATE FILE destination + ".meta.txt" WITH "category=" + category + "\n" + "kind=" + kind + "\n" + "path=" + destination + "\n" + "caption=" + caption + "\n" + "perception=" + perception
 
-IF perception = "content" THEN
-    TALK "Arquivo classificado como " + category + " e arquivado em " + destination
-ELSE
+IF perception = "caption" THEN
     TALK "Arquivo arquivado em " + destination + " (categoria " + category + ", obtida pelo texto enviado: a analise de conteudo nao estava disponivel)"
+ELSE
+    IF perception = "content" THEN
+        TALK "Arquivo classificado como " + category + " pela analise de conteudo (IA) e arquivado em " + destination
+    ELSE
+        TALK "Arquivo classificado como " + category + " pela analise de conteudo (IA) combinada com a legenda, e arquivado em " + destination
+    END IF
 END IF
