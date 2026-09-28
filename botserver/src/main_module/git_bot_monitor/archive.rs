@@ -80,11 +80,17 @@ async fn list_source_keys(
 }
 
 /// Archive every source key of one bot. Returns the moved object count.
+///
+/// `config_in_repo` decides whether `{bot}.gbot/` may leave Drive: the runtime
+/// reads the channel prompts from the work layout and falls back to a generic
+/// prompt without them, so a prefix that is not in the repository yet stays
+/// where it is.
 async fn archive_bot_sources(
     state: &AppState,
     bucket: &str,
     branch_prefix: &str,
     bot_name: &str,
+    config_in_repo: bool,
 ) -> Result<usize, String> {
     let s3 = state
         .drive
@@ -95,6 +101,12 @@ async fn archive_bot_sources(
     // same archive stamp and stay restorable as a unit.
     let mut keys: Vec<String> = Vec::new();
     for marker in SOURCE_MARKERS {
+        if marker == ".gbot/" && !config_in_repo {
+            log::warn!(
+                "[git_archive] {bot_name}: {bucket} still holds .gbot/ and the repository has none — kept in Drive"
+            );
+            continue;
+        }
         let prefix = format!("{branch_prefix}{bot_name}{marker}");
         keys.extend(list_source_keys(state, bucket, &prefix).await?);
     }
@@ -149,8 +161,34 @@ pub async fn run_archive_pass(state: std::sync::Arc<AppState>, pool: DbPool) {
         let buckets: BTreeSet<String> = [org_bucket, format!("{}.gbai", target.branch_slug.to_lowercase())]
             .into_iter()
             .collect();
+        // A missing checkout is treated as "no configuration in the repository",
+        // which is the safe direction: the prefix simply stays in Drive.
+        let config_in_repo = {
+            let pool = pool.clone();
+            let bot = target.bot_name.clone();
+            match tokio::task::spawn_blocking(move || {
+                super::bot_config::checkout_of(&pool, &bot)
+                    .map(|dir| super::bot_config::has_config_in_repo(&dir, &bot))
+                    .unwrap_or(false)
+            })
+            .await
+            {
+                Ok(v) => v,
+                Err(e) => {
+                    log::warn!("[git_archive] {}: checkout task: {e}", target.bot_name);
+                    false
+                }
+            }
+        };
         for bucket in buckets {
-            match archive_bot_sources(&state, &bucket, &branch_prefix, &target.bot_name).await {
+            match archive_bot_sources(
+                &state,
+                &bucket,
+                &branch_prefix,
+                &target.bot_name,
+                config_in_repo,
+            )
+            .await {
                 Ok(0) => {}
                 Ok(n) => log::info!(
                     "[git_archive] {}: archived {n} Drive source object(s) from {bucket} (reform #1501 step 3)",

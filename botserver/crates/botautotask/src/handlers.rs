@@ -599,6 +599,43 @@ async fn persist_shipped_template(
                 .to_string(),
             path: Some(persisted.tool_key.clone()),
         }];
+        // The channel prompts are what make the model call the tool; without
+        // them the tool is committed but never invoked, so they ship with it.
+        if let Some(config) = crate::source_persist::persist_config_to_git(
+            api.state().as_ref(),
+            &info,
+            bot_id,
+            template.config_files,
+            &format!("autotask: add '{}' channel prompts", template.name),
+        ) {
+            match config {
+                Ok(keys) if !keys.is_empty() => {
+                    info!(
+                        "Committed '{}' channel prompts to ALM: {}",
+                        template.name,
+                        keys.join(", ")
+                    );
+                    created.push(crate::api::CreatedResourceResponse {
+                        resource_type: "bot-config".to_string(),
+                        name: keys
+                            .iter()
+                            .map(|k| k.rsplit('/').next().unwrap_or_default().to_string())
+                            .collect::<Vec<String>>()
+                            .join(", "),
+                        path: Some(
+                            keys[0]
+                                .rsplit_once('/')
+                                .map(|(folder, _)| format!("{folder}/"))
+                                .unwrap_or_default(),
+                        ),
+                    });
+                }
+                Ok(_) => {}
+                // The tool is already committed; report the config failure
+                // instead of aborting, so the user can retry the prompts.
+                Err(e) => warn!("autotask: channel prompts not committed: {e}"),
+            }
+        }
         if let Some(key) = &persisted.manifest_key {
             created.push(crate::api::CreatedResourceResponse {
                 resource_type: "mcp-manifest".to_string(),

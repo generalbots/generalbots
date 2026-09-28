@@ -73,6 +73,40 @@ pub fn persist_to_git(
     Some(persist_impl(sources, info, bot_id, &plan))
 }
 
+/// Commit a shipped template's `.gbot` configuration (channel prompts, styles)
+/// into the bot's repository.
+///
+/// Returns `None` when the bot has no git project — the Drive fallback writes
+/// nothing here, and `load_system_prompt_for_channel` then keeps using the
+/// generic prompt, which is the pre-#1505 behaviour for those bots. On success
+/// the returned names are the drive-layout keys the monitor materializes them
+/// to, so the API response can report where the channel prompts landed.
+pub fn persist_config_to_git(
+    state: &dyn AutoTaskState,
+    info: &BotInfo,
+    bot_id: Uuid,
+    config_files: &[(&str, &str)],
+    commit_message: &str,
+) -> Option<Result<Vec<String>, String>> {
+    if config_files.is_empty() {
+        return Some(Ok(Vec::new()));
+    }
+    let sources = state.source_ops()?;
+    let files: Vec<(String, String)> = config_files
+        .iter()
+        .map(|(name, body)| (name.to_string(), body.to_string()))
+        .collect();
+    match sources.write_bot_config(bot_id, &files, commit_message) {
+        Ok(written) => Some(
+            Ok(written
+                .into_iter()
+                .map(|name| format!("{}/{}.gbot/{name}", info.bucket_name(), info.name))
+                .collect()),
+        ),
+        Err(e) => Some(Err(format!("git config write failed: {e}"))),
+    }
+}
+
 fn persist_impl(
     sources: &dyn BotSourceOps,
     info: &BotInfo,

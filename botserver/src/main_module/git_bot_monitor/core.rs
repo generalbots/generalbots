@@ -289,7 +289,9 @@ pub(crate) fn materialize_checkout(
     };
     let materialized = materialize_dialog_dir(&source_dir, &work_dir, branch_slug, bot_name)?;
 
-    // `.gbot` folder (bot config files) — materialized for completeness.
+    // `.gbot` folder (bot config files: channel prompts, styles) — the runtime
+    // reads `PROMPT-{CHANNEL}.md` from here and silently falls back to a
+    // generic prompt when the copy is missing, so a failure is reported.
     let gbot_sources = [
         checkout.join(".gbot"),
         checkout.join(format!("{bot_name}.gbot")),
@@ -298,7 +300,11 @@ pub(crate) fn materialize_checkout(
         let gbot_target = work_root
             .join(format!("{branch_slug}.gborg/{branch_slug}.gbai"))
             .join(format!("{bot_name}.gbot"));
-        let _ = copy_dir_recursive(&gbot_dir, &gbot_target);
+        if let Err(e) = copy_dir_recursive(&gbot_dir, &gbot_target) {
+            log::warn!(
+                "[git_monitor] {bot_name}: .gbot materialization failed: {e} — channel prompts stay on the fallback"
+            );
+        }
     }
     Ok(materialized)
 }

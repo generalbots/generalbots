@@ -23,6 +23,11 @@ pub struct ShippedTemplate {
     /// Optional MCP manifest shipped alongside the tool.
     pub manifest_path: Option<&'static str>,
     pub manifest_source: Option<&'static str>,
+    /// Bot configuration written to `.gbot` — the channel prompts that make the
+    /// model call the tool. A tool without its prompt ships behaviour that
+    /// never fires: the runtime reads `PROMPT-{CHANNEL}.md` from the work
+    /// layout and silently falls back to a generic assistant prompt.
+    pub config_files: &'static [(&'static str, &'static str)],
 }
 
 const CLASSIFY_MEDIA_TOOL: &str = include_str!(
@@ -31,6 +36,17 @@ const CLASSIFY_MEDIA_TOOL: &str = include_str!(
 const CLASSIFY_MEDIA_MANIFEST: &str = include_str!(
     "../../../../bottemplates/bots/media-filing/media-filing.gbai/media-filing.gbdialog/classify_media.mcp.json"
 );
+const MEDIA_FILING_PROMPT_TELEGRAM: &str = include_str!(
+    "../../../../bottemplates/bots/media-filing/media-filing.gbai/media-filing.gbot/PROMPT-TELEGRAM.md"
+);
+const MEDIA_FILING_PROMPT_WHATSAPP: &str = include_str!(
+    "../../../../bottemplates/bots/media-filing/media-filing.gbai/media-filing.gbot/PROMPT-WHATSAPP.md"
+);
+/// Channel policies that make the model call `classify_media` on a media marker.
+const MEDIA_FILING_CONFIG: &[(&str, &str)] = &[
+    ("PROMPT-TELEGRAM.md", MEDIA_FILING_PROMPT_TELEGRAM),
+    ("PROMPT-WHATSAPP.md", MEDIA_FILING_PROMPT_WHATSAPP),
+];
 
 /// Media-kind words a classification target may use (PT and EN, accented and
 /// unaccented forms).
@@ -79,6 +95,7 @@ pub fn match_shipped_template(intent: &str) -> Option<ShippedTemplate> {
             tool_source: CLASSIFY_MEDIA_TOOL,
             manifest_path: Some("tools/classify_media.mcp.json"),
             manifest_source: Some(CLASSIFY_MEDIA_MANIFEST),
+            config_files: MEDIA_FILING_CONFIG,
         });
     }
     None
@@ -119,5 +136,19 @@ mod tests {
         assert!(t.tool_source.contains("category = \"unsorted\""));
         let manifest = t.manifest_source.expect("manifest shipped");
         assert!(manifest.contains("classify_media"));
+    }
+
+    #[test]
+    fn classify_media_template_ships_the_channel_prompts() {
+        // Without `.gbot` the bot answers with the generic fallback prompt and
+        // never calls the tool — the template is incomplete without them.
+        let t = match_shipped_template("classify media tool").expect("template must match");
+        let names: Vec<&str> = t.config_files.iter().map(|(n, _)| *n).collect();
+        assert!(names.contains(&"PROMPT-TELEGRAM.md"));
+        assert!(names.contains(&"PROMPT-WHATSAPP.md"));
+        for (name, body) in t.config_files {
+            assert!(!body.trim().is_empty(), "{name} shipped empty");
+            assert!(body.contains("classify_media"), "{name} must name the tool");
+        }
     }
 }

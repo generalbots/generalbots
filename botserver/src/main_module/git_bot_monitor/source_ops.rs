@@ -27,14 +27,17 @@ const COMMITTER_NAME: &str = "GB-Dev";
 const COMMITTER_EMAIL: &str = "dev@gbo.local";
 
 /// Resolved git target for a bot's generated sources.
-struct SourceTarget {
-    bot_name: String,
-    org: String,
-    project: MonitoredBot,
+pub(crate) struct SourceTarget {
+    pub(crate) bot_name: String,
+    pub(crate) org: String,
+    pub(crate) project: MonitoredBot,
 }
 
 /// Resolve `bot_name` to its git-owned project, ALM org and branch.
-fn find_source_target(pool: &DbPool, bot_name: &str) -> Result<SourceTarget, String> {
+pub(crate) fn find_source_target(
+    pool: &DbPool,
+    bot_name: &str,
+) -> Result<SourceTarget, String> {
     let project = list_monitored_bots(pool)
         .into_iter()
         .find(|p| p.name == bot_name)
@@ -61,7 +64,10 @@ fn find_source_target(pool: &DbPool, bot_name: &str) -> Result<SourceTarget, Str
 
 /// Checkout the bot's repository, fast-forwarding to `origin/main` before any
 /// edit so the following commit contains only the generated sources.
-fn prepare_checkout(pool: &DbPool, target: &SourceTarget) -> Result<PathBuf, String> {
+pub(crate) fn prepare_checkout(
+    pool: &DbPool,
+    target: &SourceTarget,
+) -> Result<PathBuf, String> {
     let checkout = ensure_checkout_with_heal(pool, &target.project, &target.org)?;
     if let Err(e) = run_git(&checkout, &["fetch", "origin", "main"]) {
         log::warn!("[git_monitor] autotask fetch {}: {e}", target.bot_name);
@@ -94,7 +100,7 @@ fn flatten(relative_path: &str) -> Result<String, String> {
 }
 
 /// Stage, commit and push the generated sources.
-fn commit_and_push(
+pub(crate) fn commit_and_push(
     checkout: &Path,
     target: &SourceTarget,
     message: &str,
@@ -354,6 +360,16 @@ impl botautotask::types::BotSourceOps for GitBotSourceOps {
     ) -> Result<Vec<String>, botautotask::types::BoxError> {
         let name = bot_name_for_id(&self.pool, bot_id)?;
         merge_tables(&self.pool, &name, tables_bas).map_err(Into::into)
+    }
+
+    fn write_bot_config(
+        &self,
+        bot_id: uuid::Uuid,
+        files: &[(String, String)],
+        message: &str,
+    ) -> Result<Vec<String>, botautotask::types::BoxError> {
+        let name = bot_name_for_id(&self.pool, bot_id)?;
+        super::bot_config::write_config_files(&self.pool, &name, files, message).map_err(Into::into)
     }
 
     fn read_source(

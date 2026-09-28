@@ -412,6 +412,18 @@ pub trait BotSourceOps: Send + Sync {
     /// the schema already declared them).
     fn merge_tables(&self, bot_id: Uuid, tables_bas: &str) -> Result<Vec<String>, BoxError>;
 
+    /// Write the bot's `.gbot` configuration — `PROMPT-{CHANNEL}.md`, styles,
+    /// `config.csv` — into the repository, commit and push it. The runtime reads
+    /// these files from the work layout; without them the bot answers with the
+    /// generic fallback prompt and its tools (e.g. `classify_media`) are never
+    /// called, so a shipped template must deliver them with its tool.
+    fn write_bot_config(
+        &self,
+        bot_id: Uuid,
+        files: &[(String, String)],
+        message: &str,
+    ) -> Result<Vec<String>, BoxError>;
+
     /// Read one source file back from the bot's repository, so the editor can
     /// show the current committed content. `None` when the file is absent.
     fn read_source(&self, bot_id: Uuid, name: &str) -> Result<Option<String>, BoxError>;
