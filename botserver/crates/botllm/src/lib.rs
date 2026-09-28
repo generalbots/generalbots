@@ -748,7 +748,7 @@ impl LLMProvider for OpenAIClient {
         // (name, args) pair concatenated the arguments of a second call into
         // the first one's JSON string (two classify_media calls produced
         // "{...}{...}"), which then failed to parse and executed with empty
-        // arguments (issue: beiner no-caption video filed nothing).
+        // arguments (issue: a no-caption video filed nothing).
         let mut tool_calls_by_index: std::collections::BTreeMap<i64, (String, String)> =
             std::collections::BTreeMap::new();
         let mut legacy_tool_call_name = String::new();

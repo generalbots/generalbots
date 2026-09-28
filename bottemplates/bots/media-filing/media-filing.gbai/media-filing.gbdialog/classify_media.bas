@@ -162,12 +162,22 @@ MOVE path, destination
 '    without a read-modify-write over a shared index file.
 CREATE FILE destination + ".meta.txt" WITH "category=" + category + "\n" + "kind=" + kind + "\n" + "path=" + destination + "\n" + "caption=" + caption + "\n" + "perception=" + perception
 
+' 6. Confirmation wording per perception. `perception` is one of:
+'    caption (no model answer), unavailable (model failed), content /
+'    description / transcription (model answer) and any of those with
+'    " + caption" appended when the user caption was folded into the prompt.
+'    Checking the caption suffix explicitly keeps the reply honest: a
+'    description without a caption must not claim the caption was used.
 IF perception = "caption" THEN
     TALK "Arquivo arquivado em " + destination + " (categoria " + category + ", obtida pelo texto enviado: a analise de conteudo nao estava disponivel)"
 ELSE
-    IF perception = "content" THEN
-        TALK "Arquivo classificado como " + category + " pela analise de conteudo (IA) e arquivado em " + destination
+    IF perception = "unavailable" THEN
+        TALK "Arquivo arquivado em " + destination + " (categoria " + category + ", o modelo de percecao nao respondeu e a decisao saiu da legenda)"
     ELSE
-        TALK "Arquivo classificado como " + category + " pela analise de conteudo (IA) combinada com a legenda, e arquivado em " + destination
+        IF INSTR(perception, "+ caption") > 0 THEN
+            TALK "Arquivo classificado como " + category + " pela analise de conteudo (IA) combinada com a legenda, e arquivado em " + destination
+        ELSE
+            TALK "Arquivo classificado como " + category + " pela analise de conteudo (IA) e arquivado em " + destination
+        END IF
     END IF
 END IF

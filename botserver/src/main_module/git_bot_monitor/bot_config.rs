@@ -256,6 +256,6 @@ mod tests {
 
     #[test]
     fn marker_name_targets_the_config_prefix() {
-        assert_eq!(marker_name("beiner"), "beiner.gbot/");
+        assert_eq!(marker_name("acme"), "acme.gbot/");
     }
 }
