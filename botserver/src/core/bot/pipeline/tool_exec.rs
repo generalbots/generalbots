@@ -239,7 +239,54 @@ pub async fn run_llm_tool_call(
             }
         };
 
-        if !ast_content.is_empty() {
+        if ast_content.is_empty() {
+            // A tool call naming a catalog command (`api.find`,
+            // `tasks.autotask.create`, …) is the model reaching for the
+            // declarative surface through the native tool channel. It has no
+            // `.ast`, so this path used to return in silence and the user got
+            // no answer at all — observed on Telegram: the model asked for
+            // `api.find`, nothing came back. Reroute to the command executor.
+            if let Some(command) = crate::apps::commands::command_by_name(&tool_name) {
+                log::info!(
+                    "tool_call '{tool_name}' is catalog command '{}' (app {}); routing to the command executor",
+                    command.name, command.app
+                );
+                let api_call = format!(
+                    "{{\"__api_call__\": {{\"name\": \"{tool_name}\", \"params\": {tool_args}, \"compose\": true}}}}"
+                );
+                // Composing the answer needs the provider; without one the
+                // command still runs and its raw result is reported.
+                let provider = state.llm_provider.clone();
+                let provider = provider.as_ref();
+                // Boxed: the command path can reroute a session tool back
+                // into this executor, so the two futures are mutually
+                // recursive.
+                Box::pin(super::llm::handle_api_call(
+                    sink, state, provider, "", "", bot_uuid, session_id, user_id,
+                    bot_name, &api_call, user_text, rx,
+                ))
+                .await;
+                return;
+            }
+            // Unknown name with no script: say so instead of going silent.
+            log::warn!(
+                "tool_call '{tool_name}' has no compiled script and is not a catalog command; ignored"
+            );
+            let message = format!(
+                "Não consegui executar '{tool_name}': essa ação não está disponível para mim agora."
+            );
+            let resp = botlib::models::BotResponse::new(
+                &bot_uuid.to_string(),
+                &session_id.to_string(),
+                &user_id.to_string(),
+                &message,
+                sink.channel_type(),
+            );
+            let _ = sink.send_bot_response(&resp).await;
+            return;
+        }
+
+        {
             // Declarative gate: only execute tools the bot script associated
             // with this session via USE TOOL (e.g. inside IF role = "admin").
             if !crate::core::bot::tool_context::is_tool_associated_with_session(

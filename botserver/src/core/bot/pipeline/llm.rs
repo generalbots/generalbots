@@ -299,7 +299,7 @@ pub async fn stream_llm_response(
                 log::info!("LLM RESPONSE end: {} bytes total, {} bytes content_buffer, has_tool_call={}, has_ui_plan={}, has_api_call={}", full_response.len(), content_buffer.len(), has_tool_call, has_ui_plan, has_api_call);
 
                 if has_api_call && handle_api_call(
-                    sink, state, &llm, llm_model, llm_key,
+                    sink, state, Some(&llm), llm_model, llm_key,
                     bot_uuid, session_id, user_id, bot_name,
                     &full_response, user_text, rx,
                 ).await {
@@ -505,10 +505,10 @@ pub async fn stream_llm_response(
 /// Executes an `{"__api_call__": {"name", "params", "compose"}}` block found
 /// in the LLM reply. Returns true when the call was handled (even on error),
 /// so the caller skips the regular rendering path.
-async fn handle_api_call(
+pub(super) async fn handle_api_call(
     sink: &dyn ChannelSink,
     state: &Arc<AppState>,
-    llm: &Arc<dyn botlib::traits::LLMProvider>,
+    llm: Option<&Arc<dyn botlib::traits::LLMProvider>>,
     model: &str,
     key: &str,
     bot_uuid: Uuid,
@@ -627,16 +627,21 @@ async fn handle_api_call(
                         )
                     },
                 );
-                match llm.generate(&prompt, &serde_json::json!({}), model, key).await {
-                    Ok(text) => {
+                // A rerouted tool call may arrive before a provider is resolved
+                // for this bot; the command result is then reported raw.
+                let composed = match llm {
+                    Some(llm) => llm.generate(&prompt, &serde_json::json!({}), model, key).await.ok(),
+                    None => None,
+                };
+                match composed {
+                    Some(text) => {
                         let resp = botlib::models::BotResponse::new(
                             bot_uuid.to_string(), session_id.to_string(), user_id.to_string(),
                             &text, &channel,
                         );
                         let _ = sink.send_bot_response(&resp).await;
                     }
-                    Err(e) => {
-                        log::error!("api_call compose LLM error: {e}");
+                    None => {
                         let fallback = if deep_links.is_empty() {
                             "Dados obtidos, mas falhei ao redigir a resposta.".to_string()
                         } else {

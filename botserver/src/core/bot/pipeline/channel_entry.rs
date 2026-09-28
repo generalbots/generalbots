@@ -33,7 +33,7 @@ pub async fn run_pipeline_for_channel(
     }
     let user_text = msg.content.clone();
     let session_id = Uuid::parse_str(&msg.session_id).unwrap_or_else(|_| Uuid::new_v4());
-    let user_id = Uuid::parse_str(&msg.user_id).unwrap_or_else(|_| Uuid::nil());
+    let user_id = channel_user_uuid(sink.channel_type(), &msg.user_id);
 
     let bot_uuid = resolve_bot_uuid(&state.conn, &bot_name).await;
 
@@ -140,6 +140,30 @@ fn publish_channel_event(
     }
 }
 
+/// Stable identity for a channel sender, used for RBAC and for `rbac_api_permissions`.
+///
+/// Channel user ids are not UUIDs (a Telegram chat id is `"6676512312"`, a
+/// WhatsApp id is a phone number), and parsing them used to fall back to
+/// `Uuid::nil()`. Every channel user therefore shared one identity, so
+/// `resolve_user_role` could never match a group and every admin-only
+/// command — `tasks.autotask.create` among them — was unreachable from chat,
+/// Telegram and WhatsApp. Deriving a v5 UUID per `channel:external_id` keeps
+/// each sender distinct and lets an administrator grant a role to exactly
+/// that sender.
+pub fn channel_user_uuid(channel: &str, external_user_id: &str) -> Uuid {
+    let trimmed = external_user_id.trim();
+    if trimmed.is_empty() {
+        return Uuid::nil();
+    }
+    if let Ok(parsed) = Uuid::parse_str(trimmed) {
+        return parsed;
+    }
+    Uuid::new_v5(
+        &Uuid::NAMESPACE_OID,
+        format!("{channel}:{trimmed}").as_bytes(),
+    )
+}
+
 /// Reverse lookup for callers that pass a bot UUID where a name is
 /// expected. Returns `None` when the value is not a known bot id.
 async fn resolve_bot_name(
@@ -183,5 +207,29 @@ async fn resolve_bot_uuid(pool: &botcore::shared::utils::DbPool, bot_name: &str)
             .unwrap_or_default()
     } else {
         uuid::Uuid::nil()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::channel_user_uuid;
+
+    #[test]
+    fn non_uuid_channel_ids_get_a_stable_per_sender_uuid() {
+        let a = channel_user_uuid("telegram", "6676512312");
+        let b = channel_user_uuid("telegram", "6676512312");
+        let other = channel_user_uuid("telegram", "999");
+        let whatsapp = channel_user_uuid("whatsapp", "6676512312");
+        assert_eq!(a, b, "same sender must keep one identity across turns");
+        assert_ne!(a, other, "different senders must not collide");
+        assert_ne!(a, whatsapp, "the same id on another channel is another user");
+        assert_ne!(a, uuid::Uuid::nil(), "must not collapse to the nil user");
+    }
+
+    #[test]
+    fn real_uuids_and_blank_ids_are_passed_through() {
+        let raw = uuid::Uuid::new_v4();
+        assert_eq!(channel_user_uuid("web", &raw.to_string()), raw);
+        assert_eq!(channel_user_uuid("telegram", "   "), uuid::Uuid::nil());
     }
 }
