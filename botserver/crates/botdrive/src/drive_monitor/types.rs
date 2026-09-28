@@ -1,5 +1,6 @@
 use botcore::shared::state::AppState;
 use botcore::shared::utils::current_org_id;
+use super::utils::is_source_prefix;
 use crate::drive_files::DriveFileRepository;
 #[cfg(any(feature = "research", feature = "llm"))]
 use botcore::kb::KnowledgeBaseManager;
@@ -232,7 +233,39 @@ impl DriveMonitor {
         Ok(())
     }
 
+    /// Reform #1501 — true when `git_bot_monitor` feeds this bot's sources from
+    /// its repository. Same condition the monitor uses: a bot-kind vibe project
+    /// of the branch in git mode.
+    fn is_git_owned(&self) -> bool {
+        let Ok(mut conn) = self.state.conn.get() else {
+            return false;
+        };
+        // `execute` returns the matched row count, so the query needs no
+        // row struct (a `QueryableByName` field that is never read in Rust
+        // trips the dead-code lint).
+        diesel::sql_query(
+            "SELECT vp.name \
+             FROM vibe_projects vp \
+             JOIN branches br ON br.id = vp.branch_id \
+             WHERE vp.project_type = 'bot' AND vp.source_control = 'git' \
+               AND br.slug = $1 AND vp.name = $2 LIMIT 1",
+        )
+        .bind::<diesel::sql_types::Text, _>(&self.branch_slug)
+        .bind::<diesel::sql_types::Text, _>(&self.bot_name)
+        .execute(&mut conn)
+        .map(|matched| matched > 0)
+        .unwrap_or(false)
+    }
+
     fn handle_deleted_files(&self, bot_name: &str, current_keys: &[String]) {
+        // Reform #1501 — a git-owned bot's `.gbdialog`/`.gbot` rows are
+        // materialized from its repository and intentionally have no Drive
+        // object. `git_bot_monitor` inserts those rows to trigger a compile
+        // from the work copy, and deleting them here won the race: the `.ast`
+        // was never rebuilt and the bot kept running a stale script. Source
+        // rows are therefore kept for a git-owned bot; every other prefix
+        // (`.gbkb`, `.gbdrive`, …) keeps the deletion.
+        let git_owned = self.is_git_owned();
         let db_files = self.file_repo.get_all_files_for_bot();
         for db_file in &db_files {
             let s3_key = match db_file.file_path.strip_prefix(&format!("{}.gbai/", bot_name)) {
@@ -240,6 +273,9 @@ impl DriveMonitor {
                 None => continue,
             };
             if !current_keys.iter().any(|k| k == s3_key) {
+                if git_owned && is_source_prefix(s3_key) {
+                    continue;
+                }
                 log::info!("File deleted from S3: {} (was in DB)", db_file.file_path);
 
                 if db_file.file_type == "kb" {

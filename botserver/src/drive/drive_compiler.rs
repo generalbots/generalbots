@@ -184,7 +184,7 @@ impl DriveCompiler {
             // git_owned_bots returns the bare branch slug, so normalize to the
             // slug before comparing. We deliberately do NOT skip compilation:
             // repos provisioned at import time lag Drive for tools added
-            // afterwards (beiner/classify_media froze for hours), so Drive
+            // afterwards (a media-filing bot froze for hours), so Drive
             // stays the operational fallback and the mismatch is surfaced as a
             // warning instead of silently freezing updates.
             let branch_segment = query_file_path.split('/').next().unwrap_or("");
@@ -302,7 +302,7 @@ impl DriveCompiler {
         // repository: the git monitor materializes the committed sources into
         // this work dir and queues the file for compile. Downloading the Drive
         // object here overwrote that materialization with a stale copy — the
-        // split brain that froze beiner's classify_media for hours — so the
+        // split brain that froze a media-filing bot for hours — so the
         // materialized work copy is compiled as-is.
         let git_owned = {
             let mut conn = self.state.conn.get()?;
@@ -344,6 +344,8 @@ impl DriveCompiler {
                     debug!("S3 object still missing (suppressed): {}", fp);
                 } else if missing {
                     warn!("S3 object missing: {} (compacted; details suppressed until it reappears)", fp);
+                } else if use_work_copy {
+                    debug!("Git-owned source compiled from the work copy: {}", fp);
                 } else {
                     info!("No Drive copy of {} ({}); using the work copy", fp, e);
                 }
