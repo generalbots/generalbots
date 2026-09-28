@@ -37,6 +37,12 @@ pub async fn run_pipeline_for_channel(
 
     let bot_uuid = resolve_bot_uuid(&state.conn, &bot_name).await;
 
+    // Channel event subscriptions (#1507): an upload published here runs the
+    // tools a script subscribed with `ON EVENT "media_uploaded" CALL "…"`,
+    // independently of whether the model decides to call them. The marker
+    // `[image] inbox/…` is what tells us a file was staged.
+    publish_channel_event(state, bot_uuid, &user_text, sink.channel_type());
+
     let response_key = format!("{}_{}", session_id, Uuid::new_v4());
     let (tx_internal, mut rx_internal) =
         tokio::sync::mpsc::channel::<botlib::models::BotResponse>(100);
@@ -72,6 +78,66 @@ pub async fn run_pipeline_for_channel(
     }
 
     result
+}
+
+/// Report the channel events a bot can subscribe to.
+///
+/// Media markers are `[image] inbox/…`, `[document] …`, `[voice] …`,
+/// `[audio] …`, `[video] …` and `[sticker] …` (see `bottelegram::media`);
+/// the file is already in the bot's Drive `inbox/` at that point. A plain
+/// message is only published as `message_received` — every inbound message
+/// would otherwise wake every subscriber on every keystroke-sized text.
+fn publish_channel_event(
+    state: &Arc<AppState>,
+    bot_uuid: uuid::Uuid,
+    user_text: &str,
+    channel: &str,
+) {
+    use botcore::shared::basic_events;
+    if bot_uuid.is_nil() {
+        return;
+    }
+    const MARKERS: [(&str, &str); 6] = [
+        ("[image]", "image"),
+        ("[document]", "document"),
+        ("[voice]", "audio"),
+        ("[audio]", "audio"),
+        ("[video]", "video"),
+        ("[sticker]", "image"),
+    ];
+    for (marker, kind) in MARKERS {
+        let Some(start) = user_text.find(marker) else {
+            continue;
+        };
+        let rest = &user_text[start + marker.len()..];
+        let path = rest
+            .split_whitespace()
+            .next()
+            .unwrap_or_default()
+            .trim_end_matches(',')
+            .to_string();
+        if path.is_empty() {
+            continue;
+        }
+        // The caption is whatever the sender typed before the marker.
+        let caption = user_text[..start].trim().to_string();
+        basic_events::publish_media_uploaded(
+            &Arc::new(state.conn.clone()),
+            bot_uuid,
+            &path,
+            kind,
+            &caption,
+            channel,
+        );
+        return;
+    }
+    let text = user_text.trim();
+    if !text.is_empty() && !text.starts_with('[') {
+        let payload = serde_json::json!({ "text": text, "channel": channel });
+        if let Err(e) = basic_events::publish(&state.conn, bot_uuid, basic_events::MESSAGE_RECEIVED, &payload) {
+            log::debug!("message_received not queued for bot {bot_uuid}: {e}");
+        }
+    }
 }
 
 /// Reverse lookup for callers that pass a bot UUID where a name is

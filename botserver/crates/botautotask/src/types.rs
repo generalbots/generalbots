@@ -247,6 +247,17 @@ pub trait AutoTaskState: Send + Sync {
     fn source_ops(&self) -> Option<&dyn BotSourceOps> {
         None
     }
+
+    /// BASIC reference handed to the intent compiler: the closed keyword
+    /// catalog plus the syntax rules, rendered as prompt material.
+    ///
+    /// The catalog lives in the host (botserver's `basic::keywords`
+    /// registration) because `botautotask` cannot depend on it — without this
+    /// the compiler is asked for a program while knowing no keyword and emits
+    /// the `TALK` stub instead. `None` degrades to the stub.
+    fn basic_reference(&self) -> Option<String> {
+        None
+    }
 }
 
 /// Resolved bot identity used to build Drive buckets and DriveMonitor keys.

@@ -304,6 +304,24 @@ pub fn get_all_keywords() -> Vec<String> {
     ]
 }
 
+/// Render the closed keyword catalog as prompt material for code generation.
+///
+/// The AutoTask intent compiler (and any other BASIC generator) must not be
+/// asked for a program while knowing no keyword: it answered `null` and the
+/// pipeline persisted a `TALK` stub. One compact block, grouped in columns,
+/// keeps the prompt small enough for a chat model.
+pub fn basic_keyword_reference() -> String {
+    let keywords = get_all_keywords();
+    let mut out = String::from("## BASIC keywords (closed set — use only these)\n");
+    let per_line = 6usize;
+    for chunk in keywords.chunks(per_line) {
+        out.push_str("- ");
+        out.push_str(&chunk.join(", "));
+        out.push('\n');
+    }
+    out
+}
+
 pub fn get_keyword_categories() -> std::collections::HashMap<String, Vec<String>> {
     let mut categories = std::collections::HashMap::new();
     categories.insert("Multi-Agent".to_string(), vec!["ADD BOT".to_string(), "BOT REFLECTION".to_string(), "BROADCAST TO BOTS".to_string(), "DELEGATE TO BOT".to_string(), "TRANSFER CONVERSATION".to_string()]);
