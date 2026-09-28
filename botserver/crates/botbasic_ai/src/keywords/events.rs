@@ -1,6 +1,6 @@
 use botcore::shared::schema::workflow_events;
 use botcore::shared::models::WorkflowEvent;
-use rhai::{Dynamic, Engine};
+use rhai::{Dynamic, Engine, EvalAltResult};
 const ALLOWED_EVENTS: &[&str] = &[
     "workflow_step_complete",
     "approval_received", 
@@ -9,30 +9,58 @@ const ALLOWED_EVENTS: &[&str] = &[
     "bot_response_ready",
 ];
 
+/// `ON EVENT "<event>" CALL "<tool>"` — subscribe a tool to an event.
+///
+/// The syntax was registered but did nothing: the handler body was dropped on
+/// the floor, so a script could declare a trigger and never get one. The
+/// compiler rewrites the statement to `on_event(event, tool)` (see
+/// `botbasic_compiler::syntax_transforms`), and the row written here is what the
+/// dispatcher reads when a channel publishes the event.
 pub fn register_on_event(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    let state_clone = Arc::clone(&state);
-    let user_clone = user;
+    let state_two = Arc::clone(&state);
+    let user_two = user.clone();
+    engine.register_fn(
+        "on_event",
+        move |event_name: &str, tool_name: &str| -> Result<(), Box<EvalAltResult>> {
+            if !ALLOWED_EVENTS.contains(&event_name) && !botcore::shared::basic_events::is_known_event(event_name) {
+                return Err(format!(
+                    "invalid event name: {event_name} (channel events: {})",
+                    [
+                        botcore::shared::basic_events::MEDIA_UPLOADED,
+                        botcore::shared::basic_events::MESSAGE_RECEIVED,
+                    ]
+                    .join(", ")
+                )
+                .into());
+            }
+            register_event_handler(&state_two, &user_two, event_name, tool_name);
+            Ok(())
+        },
+    );
 
+    // Bare `ON EVENT "<name>" DO …` has no tool to run: say so instead of
+    // silently accepting a statement that never fires.
+    let state_one = Arc::clone(&state);
+    let user_one = user;
     if let Err(e) = engine.register_custom_syntax(
         ["ON", "EVENT", "$string$", "DO"],
         false,
         move |context, inputs| {
             let event_name = context.eval_expression_tree(&inputs[0])?.to_string();
-            
-            if !ALLOWED_EVENTS.contains(&event_name.as_str()) {
+            if !ALLOWED_EVENTS.contains(&event_name.as_str())
+                && !botcore::shared::basic_events::is_known_event(&event_name)
+            {
                 return Err(format!("Invalid event name: {event_name}").into());
             }
-            
-            let state_for_spawn = Arc::clone(&state_clone);
-            let user_clone_spawn = user_clone.clone();
-            
-            tokio::spawn(async move {
-                if let Err(e) = register_event_handler(&state_for_spawn, &user_clone_spawn, &event_name).await {
-                    log::error!("Failed to register event handler for {event_name}: {e}");
-                }
-            });
-
-            Ok(Dynamic::UNIT)
+            let _ = (&state_one, &user_one);
+            Err(Box::new(EvalAltResult::ErrorRuntime(
+                format!(
+                    "ON EVENT \"{event_name}\" DO <block> has no tool to run — \
+                     use: ON EVENT \"{event_name}\" CALL \"<tool>\""
+                )
+                .into(),
+                rhai::Position::NONE,
+            )))
         },
     ) {
         log::warn!("Failed to register ON EVENT syntax: {e}");
@@ -100,16 +128,27 @@ pub fn register_wait_for_event(state: Arc<dyn BasicRuntime>, user: UserSession, 
     }
 }
 
-async fn register_event_handler(
-    _state: &Arc<dyn BasicRuntime>,
+/// Persist the subscription. The channel pipeline publishes the event later;
+/// the dispatcher (botserver) runs the tool, so registering must stay a fast,
+/// synchronous DB write instead of a spawned task.
+fn register_event_handler(
+    state: &Arc<dyn BasicRuntime>,
     user: &UserSession,
     event_name: &str,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let bot_uuid = Uuid::parse_str(&user.bot_id.to_string())?;
-    
-    log::info!("Registered event handler for {event_name} on bot {bot_uuid}");
-    
-    Ok(())
+    tool_name: &str,
+) {
+    let bot_uuid = Uuid::parse_str(&user.bot_id.to_string()).unwrap_or(user.bot_id);
+    match botcore::shared::basic_events::register_handler(
+        state.db_pool(),
+        bot_uuid,
+        event_name,
+        tool_name,
+    ) {
+        Ok(()) => log::info!(
+            "Registered event handler: bot {bot_uuid} runs '{tool_name}' on {event_name}"
+        ),
+        Err(e) => log::error!("Failed to register event handler for {event_name}: {e}"),
+    }
 }
 
 async fn publish_event(

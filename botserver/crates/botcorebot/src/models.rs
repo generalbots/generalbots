@@ -20,6 +20,12 @@ pub enum TriggerKind {
     DealStageChange = 7,
     ContactChange = 8,
     EmailOpened = 9,
+    /// A media file arrived on any channel (Telegram, WhatsApp, web) and was
+    /// staged in the bot's Drive `inbox/`. `target` is the event name,
+    /// `param` the tool to run — same convention as `Webhook`/`EmailReceived`.
+    MediaUploaded = 10,
+    /// A text message arrived on any channel. `target` is the event name.
+    MessageReceived = 11,
 }
 
 impl TriggerKind {
@@ -35,6 +41,8 @@ impl TriggerKind {
             7 => Some(Self::DealStageChange),
             8 => Some(Self::ContactChange),
             9 => Some(Self::EmailOpened),
+            10 => Some(Self::MediaUploaded),
+            11 => Some(Self::MessageReceived),
             _ => None,
         }
     }

@@ -746,6 +746,23 @@ pub fn convert_multiword_keywords(script: &str) -> String {
             }
         }
 
+        // `ON EVENT "<event>" CALL "<tool>"` subscribes a tool to a channel
+        // event (media_uploaded, message_received) so the tool runs on every
+        // upload instead of waiting for the model to call it. It needs its own
+        // rewrite: the generic table derives the callee name from the pattern
+        // text, which breaks on a pattern that embeds capture groups.
+        if let Some(caps) = Regex::new(
+            r#"(?i)^\s*ON\s+EVENT\s+("[^"]*"|[A-Za-z_]\w*)\s+CALL\s+("[^"]*"|[A-Za-z_]\w*)\s*;?\s*$"#,
+        )
+        .ok()
+        .and_then(|re| re.captures(line))
+        {
+            let event = unquote(caps.get(1).map_or("", |m| m.as_str()));
+            let tool = unquote(caps.get(2).map_or("", |m| m.as_str()));
+            result.push_str(&format!("on_event(\"{event}\", \"{tool}\");\n"));
+            continue;
+        }
+
         // CREATE FILE <path> WITH <data> needs a dedicated rewrite: the generic
         // comma-based parameter parser below cannot split on the WITH keyword.
         // Like ON ERROR, the CREATE FILE custom syntax is overridden at runtime
@@ -953,8 +970,12 @@ pub fn convert_multiword_keywords(script: &str) -> String {
 /// `.ast` files produced by BasicCompiler append `;` to every line; without
 /// this the terminator leaks into the last function-call argument and the
 /// rewritten script fails to parse (e.g. `vibe_run("build an app";)`).
-fn strip_trailing_stmt_semicolon(s: &str) -> String {
-    let trimmed = s.trim_end();
+/// Unquote a BASIC token that may arrive wrapped in double quotes.
+fn unquote(s: &str) -> &str {
+    s.trim().trim_matches('"')
+}
+
+fn strip_trailing_stmt_semicolon(s: &str) -> String {    let trimmed = s.trim_end();
     if !trimmed.ends_with(';') {
         return trimmed.to_string();
     }
@@ -1159,5 +1180,29 @@ mod tests {
         let out = convert_multiword_keywords("DESCRIBE VIDEO path\nON ERROR RESUME NEXT\n");
         assert!(out.contains("describe_video("), "got: {out}");
         assert!(out.contains("on_error_resume_next("), "got: {out}");
+    }
+
+    #[test]
+    fn on_event_call_becomes_a_subscription_call() {
+        // The subscription is what makes a channel upload run the tool without
+        // the model asking for it; the compiled form must be the function call
+        // the runtime registers, with the quotes stripped exactly once.
+        let out = convert_multiword_keywords(
+            "ON EVENT \"media_uploaded\" CALL \"classify_media\"\nTALK \"done\"\n",
+        );
+        assert!(
+            out.contains("on_event(\"media_uploaded\", \"classify_media\")"),
+            "got: {out}"
+        );
+        assert!(!out.to_uppercase().contains("ON EVENT"), "unconverted form leaked: {out}");
+    }
+
+    #[test]
+    fn on_event_call_keeps_bare_identifiers_valid() {
+        let out = convert_multiword_keywords("ON EVENT media_uploaded CALL classify_media\n");
+        assert!(
+            out.contains("on_event(\"media_uploaded\", \"classify_media\")"),
+            "got: {out}"
+        );
     }
 }

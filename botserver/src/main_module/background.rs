@@ -131,6 +131,10 @@ pub async fn start_background_services(
   }
 
   // Start billing trial promotion (trialing -> active + first invoice)
+  // Channel event subscriptions (#1507): tools declared with
+  // `ON EVENT "…" CALL "…"` run when a channel publishes the event.
+  crate::main_module::event_dispatcher::start_event_dispatcher(app_state.clone());
+
   start_trial_promotion_guard(app_state.clone());
     // start_config_watcher(app_state.clone()).await;
 }

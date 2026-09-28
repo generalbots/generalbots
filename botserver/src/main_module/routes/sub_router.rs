@@ -712,6 +712,12 @@ async fn inner_build_sub_router(
             fn source_ops(&self) -> Option<&dyn botautotask::types::BotSourceOps> {
                 Some(self.source_ops.as_ref())
             }
+            /// Reform #1505 — hand the compiler the closed keyword catalog, so
+            /// the generated `basic_program` uses real BASIC instead of the
+            /// `TALK` stub it fell back to when asked without any reference.
+            fn basic_reference(&self) -> Option<String> {
+                Some(crate::basic::keywords::basic_keyword_reference())
+            }
             fn broadcast_task_progress(&self, event: botautotask::types::TaskProgressEvent) {
                 // #1266 — forward to the shared AppState channel so the
                 // /ws/task-progress endpoint (and botui's proxy) receives

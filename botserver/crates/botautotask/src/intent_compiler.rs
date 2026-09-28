@@ -69,6 +69,88 @@ pub struct Risk {
     pub impact: String,
 }
 
+/// Catalog-free instruction used when the host exposes no keyword list.
+const DEGRADED_BASIC_REFERENCE: &str =
+    "BASIC reference unavailable: stick to TALK, GET FROM, SET, SAVE and IF/THEN/ELSE/END IF.";
+
+/// The compile prompt: the plan *and* the program that implements it.
+///
+/// Split out from [`IntentCompiler`] so the contract is testable without
+/// mocking the state, config and LLM facades.
+pub fn compile_prompt(intent: &str, reference: &str) -> String {
+    format!(
+            r#"You are an intent compiler. Analyze this request and create an execution plan.
+
+USER REQUEST: "{intent}"
+
+Write the AUTOMATION ITSELF as a GENERAL BOTS BASIC program in `basic_program`.
+It is compiled and executed by the runtime, so it must be valid BASIC — a plan
+in prose is worthless. Rules:
+
+- Use ONLY the keywords listed in the reference below, in UPPERCASE, with
+  double-quoted string arguments. Never invent a keyword.
+- One statement per line. No braces, no semicolons, no `fn`, no JSON inside.
+- `IF cond THEN` … `ELSE` … `END IF`; `FOR EACH x IN list` … `NEXT`;
+  `SWITCH v CASE "a" … DEFAULT … END SWITCH`.
+- Data: `GET FROM table WHERE …`, `SET x = …`, `SAVE x TO table`,
+  `FIND v IN table`, `FIRST(list)`, `LAST(list)`, `COUNT(list)`,
+  `FORMAT "{{}}", a, b`.
+- Output: `TALK "…"`. Files: `CREATE FILE "path" WITH content`,
+  `READ FILE "path"`, `LIST FILES "path"`, `MOVE FILE …`.
+- Network: `GET HTTP "url"`, `POST HTTP "url"`, `WEBHOOK "url" WITH data`.
+- Robustness: wrap anything that can fail (models, HTTP, file I/O) in
+  `ON ERROR RESUME NEXT` and check `IF ERROR THEN`; a trapped step yields ""
+  and the script continues.
+- Never hardcode credentials, tokens or internal hosts. Never write outside
+  the bot's own Drive folder.
+- To run on a platform event instead of waiting for a user request, subscribe
+  with `ON EVENT "<event>" CALL "<tool>"` as the first line. Events:
+  `media_uploaded` (a photo/document/video/voice arrived on Telegram,
+  WhatsApp or web, with `path`, `kind`, `caption`, `channel` in scope),
+  `message_received` (a text message, with `text` in scope). Omit the line when
+  the automation is user-triggered.
+- Keep it under 40 lines and make it self-contained: the whole program goes
+  into `basic_program` as one string with real newlines (\n).
+
+{reference}
+
+Respond with JSON only:
+{{
+  "plan_name": "short name",
+  "plan_description": "what will be done",
+  "steps": [
+    {{
+      "name": "step name",
+      "description": "what this step does",
+      "keywords": ["keyword1"],
+      "priority": "high|medium|low",
+      "risk_level": "high|medium|low",
+      "estimated_minutes": 5,
+      "requires_approval": false
+    }}
+  ],
+  "alternatives": [],
+  "confidence": 0.85,
+  "risk_level": "low",
+  "estimated_duration_minutes": 10,
+  "estimated_cost": 0.01,
+  "resource_estimate": {{
+    "compute_hours": 0.1,
+    "storage_gb": 0.01,
+    "api_calls": 5,
+    "llm_tokens": 1000,
+    "estimated_cost_usd": 0.01
+  }},
+  "basic_program": "SET answer = 1\nTALK \"done: \" + answer",
+  "requires_approval": false,
+  "mcp_servers": [],
+  "external_apis": [],
+  "risks": []
+}}"#,
+        reference = reference
+    )
+}
+
 pub struct IntentCompiler {
     state: Arc<dyn AutoTaskState>,
     config_ops: Arc<dyn ConfigOps>,
@@ -134,46 +216,18 @@ impl IntentCompiler {
     }
 
     fn build_compile_prompt(&self, intent: &str) -> String {
-        format!(
-            r#"You are an intent compiler. Analyze this request and create an execution plan.
+        compile_prompt(intent, &self.basic_reference_text())
+    }
 
-USER REQUEST: "{intent}"
-
-Create a detailed plan with steps, resource estimates, and risk assessment.
-Respond with JSON only:
-{{
-  "plan_name": "short name",
-  "plan_description": "what will be done",
-  "steps": [
-    {{
-      "name": "step name",
-      "description": "what this step does",
-      "keywords": ["keyword1"],
-      "priority": "high|medium|low",
-      "risk_level": "high|medium|low",
-      "estimated_minutes": 5,
-      "requires_approval": false
-    }}
-  ],
-  "alternatives": [],
-  "confidence": 0.85,
-  "risk_level": "low",
-  "estimated_duration_minutes": 10,
-  "estimated_cost": 0.01,
-  "resource_estimate": {{
-    "compute_hours": 0.1,
-    "storage_gb": 0.01,
-    "api_calls": 5,
-    "llm_tokens": 1000,
-    "estimated_cost_usd": 0.01
-  }},
-  "basic_program": null,
-  "requires_approval": false,
-  "mcp_servers": [],
-  "external_apis": [],
-  "risks": []
-}}"#
-        )
+    /// BASIC reference for the prompt. The host owns the keyword catalog
+    /// (`basic::keywords::get_all_keywords`); when it is unavailable the
+    /// compiler still asks for a program, and the deterministic fallback
+    /// catches a missing one.
+    fn basic_reference_text(&self) -> String {
+        match self.state.basic_reference() {
+            Some(reference) if !reference.trim().is_empty() => reference,
+            _ => DEGRADED_BASIC_REFERENCE.to_string(),
+        }
     }
 
     #[cfg(feature = "llm")]
@@ -367,4 +421,39 @@ fn fallback_basic_program(plan_name: &str, original_intent: &str) -> String {
         "' {title}\n' Generated by AutoTask (BASIC-only pipeline)\nTALK \"Run {title}: {original}\"\n",
         original = original_intent.chars().take(120).collect::<String>(),
     )
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::{compile_prompt, DEGRADED_BASIC_REFERENCE};
+
+    const CATALOG: &str = "## BASIC keywords (closed set — use only these)\n- TALK, GET, SET, SAVE";
+
+    #[test]
+    fn compile_prompt_demands_a_real_basic_program() {
+        let prompt = compile_prompt("liste as faturas pendentes", CATALOG);
+        // The regression this closes: the prompt carried
+        // `"basic_program": null`, so the model answered a plan and the
+        // pipeline persisted a `TALK` stub instead of an automation.
+        assert!(!prompt.contains("\"basic_program\": null"));
+        assert!(prompt.contains("\"basic_program\": \""));
+        assert!(prompt.contains("ON ERROR RESUME NEXT"));
+        assert!(prompt.contains("IF cond THEN"));
+        assert!(prompt.contains("liste as faturas pendentes"));
+    }
+
+    #[test]
+    fn compile_prompt_embeds_the_host_keyword_catalog() {
+        let prompt = compile_prompt("x", CATALOG);
+        assert!(prompt.contains("closed set"));
+        assert!(prompt.contains("TALK, GET, SET, SAVE"));
+    }
+
+    #[test]
+    fn compile_prompt_works_without_a_catalog() {
+        let prompt = compile_prompt("x", DEGRADED_BASIC_REFERENCE);
+        assert!(prompt.contains("\"basic_program\": \""));
+        assert!(prompt.contains("BASIC reference unavailable"));
+    }
 }
