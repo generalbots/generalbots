@@ -746,20 +746,19 @@ pub fn convert_multiword_keywords(script: &str) -> String {
             }
         }
 
-        // `ON EVENT "<event>" CALL "<tool>"` subscribes a tool to a channel
-        // event (media_uploaded, message_received) so the tool runs on every
-        // upload instead of waiting for the model to call it. It needs its own
-        // rewrite: the generic table derives the callee name from the pattern
-        // text, which breaks on a pattern that embeds capture groups.
+        // `ON EVENT "<event>"` is a declaration consumed at design time (the
+        // compiler registers the tool for the event); at run time it collapses
+        // to a no-op call. It needs its own rewrite because the generic table
+        // derives the callee name from the pattern text, which breaks on a
+        // pattern that embeds a capture group.
         if let Some(caps) = Regex::new(
-            r#"(?i)^\s*ON\s+EVENT\s+("[^"]*"|[A-Za-z_]\w*)\s+CALL\s+("[^"]*"|[A-Za-z_]\w*)\s*;?\s*$"#,
+            r#"(?i)^\s*ON\s+EVENT\s+("[^"]*"|[A-Za-z_]\w*)\s*;?\s*$"#,
         )
         .ok()
         .and_then(|re| re.captures(line))
         {
             let event = unquote(caps.get(1).map_or("", |m| m.as_str()));
-            let tool = unquote(caps.get(2).map_or("", |m| m.as_str()));
-            result.push_str(&format!("on_event(\"{event}\", \"{tool}\");\n"));
+            result.push_str(&format!("on_event(\"{event}\");\n"));
             continue;
         }
 
@@ -1183,26 +1182,19 @@ mod tests {
     }
 
     #[test]
-    fn on_event_call_becomes_a_subscription_call() {
-        // The subscription is what makes a channel upload run the tool without
-        // the model asking for it; the compiled form must be the function call
-        // the runtime registers, with the quotes stripped exactly once.
-        let out = convert_multiword_keywords(
-            "ON EVENT \"media_uploaded\" CALL \"classify_media\"\nTALK \"done\"\n",
-        );
-        assert!(
-            out.contains("on_event(\"media_uploaded\", \"classify_media\")"),
-            "got: {out}"
-        );
+    fn on_event_declaration_collapses_to_a_noop_call() {
+        // The tool being compiled IS the tool that runs, so the declaration
+        // names only the event; the compiled form must be the no-op runtime
+        // call, with the quotes stripped exactly once.
+        let out = convert_multiword_keywords("ON EVENT \"media_uploaded\"\nTALK \"done\"\n");
+        assert!(out.contains("on_event(\"media_uploaded\")"), "got: {out}");
+        assert!(!out.contains("CALL"), "tool name must not appear: {out}");
         assert!(!out.to_uppercase().contains("ON EVENT"), "unconverted form leaked: {out}");
     }
 
     #[test]
-    fn on_event_call_keeps_bare_identifiers_valid() {
-        let out = convert_multiword_keywords("ON EVENT media_uploaded CALL classify_media\n");
-        assert!(
-            out.contains("on_event(\"media_uploaded\", \"classify_media\")"),
-            "got: {out}"
-        );
+    fn on_event_accepts_a_bare_identifier() {
+        let out = convert_multiword_keywords("ON EVENT media_uploaded\n");
+        assert!(out.contains("on_event(\"media_uploaded\")"), "got: {out}");
     }
 }

@@ -22,7 +22,7 @@
 ' web) runs this tool directly, with `path`, `kind`, `caption` and `channel`
 ' in scope. Without this line the tool only ran when the model chose to call
 ' it, and an upload the model ignored stayed in `inbox/` forever.
-ON EVENT "media_uploaded" CALL "classify_media"
+ON EVENT "media_uploaded"
 
 TAXONOMY = "invoice,receipt,contract,identity,report,audio,vehicle,people,animal,food,nature,screenshot,video,unsorted"
 PROMPT = "Classifique o conteudo a seguir com uma unica palavra, apenas uma destas: " + TAXONOMY + ". Guia de decisao: carros/motos/caminhoes/trafego/parking = vehicle; pessoas/rostos/grupos = people; animais de qualquer tipo = animal; comida/bebida/cozinha/refeicao = food; paisagem/floresta/montanha/praia/ceu/agua = nature; tela de computador/interface/janela = screenshot; documento por tipo: recibo/pagamento = receipt, contrato/locacao = contract, documento de identidade = identity, relatorio = report, fatura/cobranca = invoice; gravacao generica sem categoria melhor = video. Responda somente a palavra.\n\n"

@@ -395,6 +395,18 @@ impl DriveCompiler {
                 .map(|_| ())
                 .map_err(|e| e.to_string())
         }));
+        // `ON EVENT "<event>"` in a tool: the tool subscribes itself to a
+        // channel event at design time. Registered here (not at run time)
+        // because the tool only ever runs *because* of the event.
+        callbacks.execute_on_event = Some(Box::new(|conn, event, script, bot_id| {
+            botcore::shared::basic_events::register_handler_on(
+                conn,
+                bot_id,
+                event,
+                script,
+            )
+            .map_err(|e| e.to_string())
+        }));
         callbacks.execute_webhook = Some(Box::new(|conn, endpoint, script, bot_id| {
             crate::basic::keywords::webhook::execute_webhook_registration(conn, endpoint, script, bot_id)
                 .map(|_| ())
