@@ -62,13 +62,24 @@ pub fn register_handler(
     event_name: &str,
     tool_name: &str,
 ) -> Result<(), String> {
+    let mut conn = pool.get().map_err(|e| format!("pool: {e}"))?;
+    register_handler_on(&mut conn, bot_id, event_name, tool_name)
+}
+
+/// Same registration on a borrowed connection, for the compiler's
+/// design-time pass (which already holds one, like the WEBHOOK callback).
+pub fn register_handler_on(
+    conn: &mut diesel::PgConnection,
+    bot_id: Uuid,
+    event_name: &str,
+    tool_name: &str,
+) -> Result<(), String> {
     let kind = trigger_kind(event_name).ok_or_else(|| {
         format!("unknown channel event '{event_name}' (known: {MEDIA_UPLOADED}, {MESSAGE_RECEIVED})")
     })?;
-    let mut conn = pool.get().map_err(|e| format!("pool: {e}"))?;
     // branch_id is NOT NULL on system_automations; resolve it from the bot the
     // same way the WEBHOOK registration does.
-    let branch_id = botcore_schema::system_automation_branch_id(&mut conn, bot_id)
+    let branch_id = botcore_schema::system_automation_branch_id(conn, bot_id)
         .map_err(|e| format!("branch for bot {bot_id}: {e}"))?;
     let updated = diesel::update(system_automations::table)
         .filter(system_automations::bot_id.eq(Some(bot_id)))
@@ -78,7 +89,7 @@ pub fn register_handler(
             system_automations::param.eq(tool_name),
             system_automations::is_active.eq(true),
         ))
-        .execute(&mut conn)
+        .execute(conn)
         .map_err(|e| format!("update {event_name}: {e}"))?;
     if updated == 0 {
         diesel::sql_query(
@@ -91,7 +102,7 @@ pub fn register_handler(
         .bind::<diesel::sql_types::Integer, _>(kind as i32)
         .bind::<diesel::sql_types::Text, _>(event_name)
         .bind::<diesel::sql_types::Text, _>(tool_name)
-        .execute(&mut conn)
+        .execute(conn)
         .map_err(|e| format!("insert {event_name}: {e}"))?;
     }
     Ok(())

@@ -23,6 +23,11 @@ pub struct CompilerCallbacks {
     pub process_table_definitions: Option<Box<dyn Fn(Arc<dyn BasicRuntime>, Uuid, &str) -> Result<(), String> + Send + Sync>>,
     pub create_runtime: Option<Box<dyn Fn(Arc<AppState>) -> Arc<dyn BasicRuntime> + Send + Sync>>,
     pub execute_on_update: Option<Box<dyn Fn(&mut PgConnection, &str, &str, Uuid, i32) -> Result<(), String> + Send + Sync>>,
+    /// `ON EVENT "<event>"` — a channel event this tool subscribes to. Fired at
+    /// design time: the script names the tool (it is the one being compiled),
+    /// so the declaration needs no runtime statement and cannot be skipped by a
+    /// tool that only ever runs *because* of the event.
+    pub execute_on_event: Option<Box<dyn Fn(&mut PgConnection, &str, &str, Uuid) -> Result<(), String> + Send + Sync>>,
 }
 
 impl fmt::Debug for CompilerCallbacks {
@@ -53,6 +58,7 @@ impl CompilerCallbacks {
             process_table_definitions: None,
             create_runtime: None,
             execute_on_update: None,
+            execute_on_event: None,
         }
     }
 }
@@ -278,6 +284,41 @@ impl BasicCompiler {
                     }
                 } else {
                     log::warn!("Malformed SET SCHEDULE line ignored: {}", trimmed);
+                }
+                continue;
+            }
+
+            // `ON EVENT "<event>"` is a design-time declaration, like WEBHOOK
+            // and SET SCHEDULE: the tool being compiled IS the tool to run, so
+            // the line only names the event and is consumed here.
+            if normalized.starts_with("ON EVENT") {
+                found_directives.insert(basic_errors::Directive::OnEvent);
+                let parts: Vec<&str> = normalized.split('"').collect();
+                if parts.len() >= 2 {
+                    let event = parts[1].trim();
+                    match self.callbacks.execute_on_event {
+                        Some(ref cb) => {
+                            let mut conn = self
+                                .state
+                                .conn
+                                .get()
+                                .map_err(|e| format!("Failed to get database connection: {e}"))?;
+                            if let Err(e) = (cb)(&mut conn, event, &script_name, bot_id) {
+                                log::error!(
+                                    "Failed to subscribe script {script_name} to event {event}: {e}"
+                                );
+                            } else {
+                                log::info!(
+                                    "Script {script_name} subscribed to channel event {event}"
+                                );
+                            }
+                        }
+                        None => log::warn!(
+                            "ON EVENT \"{event}\" in {script_name} ignored: no registration hook"
+                        ),
+                    }
+                } else {
+                    log::warn!("Malformed ON EVENT line ignored: {normalized}");
                 }
                 continue;
             }

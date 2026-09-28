@@ -97,12 +97,13 @@ in prose is worthless. Rules:
   and the script continues.
 - Never hardcode credentials, tokens or internal hosts. Never write outside
   the bot's own Drive folder.
-- To run on a platform event instead of waiting for a user request, subscribe
-  with `ON EVENT "<event>" CALL "<tool>"` as the first line. Events:
-  `media_uploaded` (a photo/document/video/voice arrived on Telegram,
-  WhatsApp or web, with `path`, `kind`, `caption`, `channel` in scope),
-  `message_received` (a text message, with `text` in scope). Omit the line when
-  the automation is user-triggered.
+- To run on a platform event instead of waiting for a user request, put
+  `ON EVENT "<event>"` as the first line. The tool itself is what runs, so the
+  line names only the event. Events: `media_uploaded` (a photo, document,
+  video or voice note arrived on Telegram, WhatsApp or web — with `path`,
+  `kind`, `caption` and `channel` in scope) and `message_received` (a text
+  message, with `text` in scope). Omit the line when the automation is
+  user-triggered.
 - Keep it under 40 lines and make it self-contained: the whole program goes
   into `basic_program` as one string with real newlines (\n).
 - The plan is bookkeeping, not the deliverable: at most 3 steps, each with a

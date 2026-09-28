@@ -72,7 +72,7 @@ const SIGNATURES: &[(&str, &str)] = &[
     ("DESCRIBE VIDEO", r#"text = DESCRIBE VIDEO "inbox/x.mp4""#),
     ("SPEECH TO TEXT", r#"text = SPEECH TO TEXT "inbox/x.ogg""#),
     ("LLM", r#"answer = LLM "prompt""#),
-    ("ON EVENT", r#"ON EVENT "media_uploaded" CALL "tool_name""#),
+    ("ON EVENT", r#"ON EVENT "media_uploaded""#),
     ("CREATE TASK", r#"CREATE TASK "title", "assignee", "due", project"#),
     ("TRANSFER TO HUMAN", "TRANSFER TO HUMAN"),
     ("SET SCHEDULE", r#"SET SCHEDULE "0 9 * * 1"  ' cron, set by the platform for scheduled intents"#),
@@ -97,7 +97,7 @@ pub fn basic_keyword_reference() -> String {
     out.push_str(
         "\nAnything not written above is unavailable: do not invent a keyword, an \
          argument name or an argument order. There is no `EXIT`, no `GET USER MEMORY`, \
-         no `SEND MAIL TO … SUBJECT …` form and no `ON CHANGE`.\n",
+         no `SEND MAIL TO … SUBJECT …` form and no `ON CHANGE`. `ON EVENT` takes\n         only the event name — the tool being compiled is the tool that runs.\n",
     );
     out.push_str("\n### Full keyword catalog (closed set)\n");
     let keywords = get_all_keywords();
@@ -126,7 +126,8 @@ mod tests {
         let reference = basic_keyword_reference();
         assert!(reference.contains("SEND MAIL \"to@x.com\""));
         assert!(reference.contains("CREATE FILE \"path\" WITH content"));
-        assert!(reference.contains("ON EVENT \"media_uploaded\" CALL"));
+        assert!(reference.contains("ON EVENT \"media_uploaded\""));
+        assert!(!reference.contains("CALL"), "the declaration must not name a tool");
         // The catalog itself is still exposed…
         assert!(reference.contains("CLASSIFY") || reference.contains("DESCRIBE"));
         // …and the anti-invention rule is stated.
