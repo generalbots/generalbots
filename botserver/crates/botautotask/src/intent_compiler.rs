@@ -183,26 +183,30 @@ impl IntentCompiler {
         &self.llm_ops
     }
 
+    /// `bot_id` selects the model scope: the bot being automated is the one
+    /// whose `llm-model` applies, not the nil (global) one.
     pub async fn compile(
         &self,
+        bot_id: Uuid,
         intent: &str,
         execution_mode: Option<ExecutionMode>,
         priority: Option<TaskPriority>,
     ) -> Result<CompiledIntent, Box<dyn std::error::Error + Send + Sync>> {
         info!("Compiling intent: {}", &intent[..intent.len().min(100)]);
         let prompt = self.build_compile_prompt(intent);
-        let response = self.call_llm(&prompt).await?;
+        let response = self.call_llm(bot_id, &prompt).await?;
         self.parse_compile_response(&response, intent, execution_mode, priority)
     }
 
     pub async fn compile_from_classification(
         &self,
+        bot_id: Uuid,
         classification: &ClassifiedIntent,
         execution_mode: Option<ExecutionMode>,
         priority: Option<TaskPriority>,
     ) -> Result<CompiledIntent, Box<dyn std::error::Error + Send + Sync>> {
         let intent_text = &classification.original_text;
-        let mut compiled = self.compile(intent_text, execution_mode, priority).await?;
+        let mut compiled = self.compile(bot_id, intent_text, execution_mode, priority).await?;
         compiled.intent_type = classification.intent_type;
         if let Some(ref name) = classification.suggested_name {
             compiled.plan_name = name.clone();
@@ -234,8 +238,11 @@ impl IntentCompiler {
     }
 
     #[cfg(feature = "llm")]
-    async fn call_llm(&self, prompt: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let bot_id = self.state.bot_id();
+    async fn call_llm(
+        &self,
+        bot_id: Uuid,
+        prompt: &str,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let model = self.resolved_model(bot_id);
         let key = self.resolved_key(bot_id);
         // Generous budget: a reasoning model spends tokens before the object.
@@ -286,7 +293,11 @@ impl IntentCompiler {
     }
 
     #[cfg(not(feature = "llm"))]
-    async fn call_llm(&self, _prompt: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    async fn call_llm(
+        &self,
+        _bot_id: Uuid,
+        _prompt: &str,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         warn!("LLM feature not enabled for intent compilation");
         Ok("{}".to_string())
     }
