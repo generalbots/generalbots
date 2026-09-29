@@ -331,6 +331,7 @@ impl IntentCompiler {
         let cleaned = response.trim()
             .trim_start_matches("```json").trim_start_matches("```JSON")
             .trim_start_matches("```").trim_end_matches("```").trim();
+        let json_span = extract_json_object(cleaned);
 
         #[derive(Deserialize)]
         struct CompileResponse {
@@ -384,7 +385,7 @@ impl IntentCompiler {
             impact: String,
         }
 
-        match serde_json::from_str::<CompileResponse>(cleaned) {
+        match serde_json::from_str::<CompileResponse>(json_span) {
             Ok(resp) => {
                 let _ = (execution_mode, priority);
                 let steps = resp.steps.into_iter().enumerate().map(|(i, s)| PlanStep {
@@ -442,28 +443,12 @@ impl IntentCompiler {
                 })
             }
             Err(e) => {
-                warn!("Failed to parse compile response, creating minimal plan: {e}");
-                Ok(CompiledIntent {
-                    id: Uuid::new_v4().to_string(),
-                    intent_type: IntentType::Unknown,
-                    plan_name: original_intent.chars().take(50).collect(),
-                    plan_description: original_intent.to_string(),
-                    steps: Vec::new(),
-                    alternatives: Vec::new(),
-                    confidence: 0.5,
-                    risk_level: "medium".to_string(),
-                    estimated_duration_minutes: 10,
-                    estimated_cost: 0.0,
-                    resource_estimate: ResourceEstimate {
-                        compute_hours: 0.0, storage_gb: 0.0, api_calls: 0,
-                        llm_tokens: 0, estimated_cost_usd: 0.0,
-                    },
-                    basic_program: Some(fallback_basic_program("", original_intent)),
-                    requires_approval: false,
-                    mcp_servers: Vec::new(),
-                    external_apis: Vec::new(),
-                    risks: Vec::new(),
-                })
+                // A malformed completion must fail the create, not persist the
+                // minimal stub as if an automation existed: the stub only TALKs,
+                // so reporting it as created lies to the user (the pipeline's
+                // core honesty rule). The error text reaches the reply verbatim.
+                warn!("Failed to parse compile response: {e}");
+                Err(format!("the model returned a plan that is not valid JSON ({e}); no automation was created — try again").into())
             }
         }
     }
@@ -472,6 +457,40 @@ impl IntentCompiler {
 /// Deterministic BASIC generator: guarantees `basic_program` is never
 /// null in the AutoTask pipeline (BASIC-only surface, supplier of the
 /// `.bas` persisted to Drive by create-and-execute).
+/// Models wrap the JSON object in prose or code fences even when asked not to,
+/// and some emit trailing junk (a second object, commentary) after the first
+/// one — a naive first-`{`-to-last-`}` slice then fails with "trailing
+/// characters". This scans string-aware for the first *balanced* `{ … }` block
+/// and returns it; the input comes back unchanged when there is none, so the
+/// caller's error keeps pointing at the original text.
+fn extract_json_object(response: &str) -> &str {
+    let bytes = response.as_bytes();
+    let Some(start) = response.find('{') else {
+        return response;
+    };
+    let mut depth = 0usize;
+    let mut in_string = false;
+    let mut escaped = false;
+    for (i, &b) in bytes.iter().enumerate().skip(start) {
+        match b {
+            b'"' if !escaped => in_string = !in_string,
+            b'\\' if in_string => escaped = !escaped,
+            b'{' if !in_string => depth += 1,
+            b'}' if !in_string => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 {
+                    return &response[start..=i];
+                }
+            }
+            _ => {}
+        }
+        if b != b'\\' {
+            escaped = false;
+        }
+    }
+    response
+}
+
 fn fallback_basic_program(plan_name: &str, original_intent: &str) -> String {
     let title: String = if plan_name.trim().is_empty() {
         "scheduled_task".to_string()
@@ -487,7 +506,7 @@ fn fallback_basic_program(plan_name: &str, original_intent: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{compile_prompt, DEGRADED_BASIC_REFERENCE};
+    use super::{compile_prompt, extract_json_object, DEGRADED_BASIC_REFERENCE};
 
     const CATALOG: &str = "## BASIC keywords (closed set — use only these)\n- TALK, GET, SET, SAVE";
     const PROMPT_DUMP_MARKER: &str = "===PROMPT===\n";
@@ -524,5 +543,45 @@ mod tests {
         let prompt = compile_prompt("x", DEGRADED_BASIC_REFERENCE);
         assert!(prompt.contains("\"basic_program\": \""));
         assert!(prompt.contains("BASIC reference unavailable"));
+    }
+
+    #[test]
+    fn extracts_the_object_from_prose_wrapped_completions() {
+        // Prod regression (2026-09-29): the model answered with prose around
+        // the JSON object; parsing the raw text died with "trailing
+        // characters" and every such compile degraded to the TALK stub.
+        let wrapped = "Sure! Here is the plan:\n{\"plan_name\":\"x\"}\nLet me know if that works.";
+        assert_eq!(extract_json_object(wrapped), "{\"plan_name\":\"x\"}");
+    }
+
+    #[test]
+    fn extracts_the_object_from_inside_code_fences() {
+        let fenced = "```json\n{\"plan_name\":\"x\",\"steps\":[]\n}\n```";
+        let extracted = extract_json_object(fenced);
+        assert!(extracted.starts_with('{'));
+        assert!(extracted.ends_with('}'));
+        assert!(!extracted.contains("```"));
+    }
+
+    #[test]
+    fn extracts_the_first_object_when_junk_follows() {
+        // Prod regression (2026-09-29, "trailing characters at line 50"): the
+        // model emitted the JSON object and then more content after it, so the
+        // naive first-{ … last-} slice still failed to parse. The balanced
+        // block must end at its own closing brace.
+        let with_junk = "{\"plan_name\":\"x\"}\n{\"note\":\"dup\"}\nHope that helps!";
+        assert_eq!(extract_json_object(with_junk), "{\"plan_name\":\"x\"}");
+    }
+
+    #[test]
+    fn braces_inside_strings_do_not_confuse_the_balanced_scan() {
+        let tricky = "{\"plan_name\":\"a}b{c\"}";
+        assert_eq!(extract_json_object(tricky), tricky);
+    }
+
+    #[test]
+    fn keeps_the_input_when_there_is_no_object() {
+        assert_eq!(extract_json_object("no braces here"), "no braces here");
+        assert_eq!(extract_json_object(""), "");
     }
 }
