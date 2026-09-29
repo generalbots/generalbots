@@ -763,6 +763,22 @@ pub async fn execute_command(
             payroll_diagnosis(state, &bot_uuid, period.as_deref()).await
         }
         "monitoring.health" => Ok(json!({ "health": "ok", "note": "suite services running" })),
+        // AutoTask: the command is advertised to the model, so it must be
+        // executable here — it used to fall through to the navigation
+        // catch-all and answer with a deep link while creating nothing.
+        "tasks.autotask.create" | "tasks.autotask.run" => {
+            let intent = str_of("intent").unwrap_or_default();
+            if intent.trim().is_empty() {
+                return Err("the 'intent' parameter is required (what should be automated)".to_string());
+            }
+            let api = crate::autotask_host::ops::build_api(state);
+            let response =
+                botautotask::handlers::create_and_execute_for(&api, intent.trim(), bot_uuid).await;
+            if !response.success {
+                return Err(response.message.clone());
+            }
+            Ok(serde_json::to_value(&response).unwrap_or_else(|_| json!({})))
+        }
         _ => {
             // Unknown/mostly-navigation commands resolve to an in-app deep link
             // when the command declares one, otherwise a clear error.
