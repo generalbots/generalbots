@@ -327,7 +327,11 @@ pub trait LlmProviderOps: Send + Sync {
 /// tiers do stall) must degrade into a reported failure instead of holding the
 /// request and its HTTP client open — an intent classification once hung for
 /// more than five minutes.
-pub const LLM_CALL_TIMEOUT_SECS: u64 = 90;
+/// Generous, because the compile step asks a reasoning model for a whole BASIC
+/// program: 90 s aborted real runs on Telegram with "llm call timed out"
+/// (the model was still emitting reasoning tokens). The budget is a safety net
+/// against a stalled provider, not a latency target.
+pub const LLM_CALL_TIMEOUT_SECS: u64 = 300;
 
 /// Drive a provider stream to completion under [`LLM_CALL_TIMEOUT_SECS`].
 pub async fn collect_llm_stream(
