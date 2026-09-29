@@ -25,7 +25,7 @@
 ON EVENT "media_uploaded"
 
 TAXONOMY = "invoice,receipt,contract,identity,report,audio,vehicle,people,animal,food,nature,screenshot,video,unsorted"
-PROMPT = "Classifique o conteudo a seguir com uma unica palavra, apenas uma destas: " + TAXONOMY + ". Guia de decisao: carros/motos/caminhoes/trafego/parking = vehicle; pessoas/rostos/grupos = people; animais de qualquer tipo = animal; comida/bebida/cozinha/refeicao = food; paisagem/floresta/montanha/praia/ceu/agua = nature; tela de computador/interface/janela = screenshot; documento por tipo: recibo/pagamento = receipt, contrato/locacao = contract, documento de identidade = identity, relatorio = report, fatura/cobranca = invoice; gravacao generica sem categoria melhor = video. Responda somente a palavra.\n\n"
+PROMPT = "Classifique o conteudo a seguir com uma unica palavra, apenas uma destas: " + TAXONOMY + ". Guia de decisao: carros/motos/caminhoes/trafego/parking = vehicle; pessoas/rostos/grupos = people; animais de qualquer tipo = animal; comida/bebida/cozinha/refeicao = food; paisagem/floresta/montanha/praia/ceu/agua = nature; tela de computador/interface/janela = screenshot; documento por tipo: recibo/pagamento = receipt, contrato/locacao = contract, documento de identidade = identity, relatorio = report, fatura/cobranca = invoice; audio ou gravacao de voz sem categoria melhor = audio; video generico sem categoria melhor = video. Responda somente a palavra.\n\n"
 MAX_ANALYSIS_CHARS = 4000
 
 ' 1. Which kind of perception applies. Images are described by the vision model,
@@ -116,6 +116,12 @@ IF LEN(TRIM(caption)) > 0 AND TRIM(caption) <> TRIM(content) THEN
     content = content + "\n" + "Legenda enviada pelo usuario: " + caption
     perception = perception + " + caption"
 END IF
+
+' 2.2 Kind hint. The classifier sees only text, so without the media kind a
+'    caption like "gravacao de teste" reads as a generic recording and lands
+'    in "video" even for a voice note (observed in production, 2026-09). The
+'    script knows the kind from the file extension; state it explicitly.
+content = content + "\n" + "Tipo de midia: " + kind
 
 ' 3. Classification: one closed-set decision over the perceived content. With no
 '    content and no caption there is nothing to decide, so the item stays
