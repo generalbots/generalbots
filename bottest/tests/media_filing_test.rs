@@ -221,6 +221,24 @@ fn the_tool_subscribes_to_the_media_uploaded_event() {
     );
 }
 
+/// The classifier only sees text: without the media kind a voice note captioned
+/// "gravacao de teste" read as a generic recording and filed under "video"
+/// (observed in production, 2026-09). The script derives the kind from the
+/// extension and must state it in the prompt.
+#[test]
+fn the_classification_prompt_carries_the_media_kind() {
+    let script = read("media-filing.gbdialog/classify_media.bas");
+
+    assert!(
+        script.contains("Tipo de midia: \" + kind"),
+        "the prompt content must include the media kind derived from the extension"
+    );
+    assert!(
+        script.contains("audio ou gravacao de voz sem categoria melhor = audio"),
+        "the decision guide must map generic voice recordings to audio, not video"
+    );
+}
+
 /// The event trigger and the model's own tool call race on the same upload;
 /// the runner that arrives second must exit quietly instead of surfacing a
 /// MOVE failure to the user.
