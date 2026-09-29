@@ -1260,10 +1260,40 @@ async fn handle_login(
     });
 
     let payload_body = match (org_scope, branch_scope) {
-        (Some(org_id), Some(branch)) => format!(
-            "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{},\"org_id\":\"{}\",\"branch_id\":\"{}\"}}",
-            sub, body.email, exp, org_id, branch
-        ),
+        (Some(org_id), Some(branch)) => {
+            // The caller's workspace bucket travels in the JWT so the suite
+            // shell (Drive in particular) lands in the caller's own org layout
+            // instead of probing garbage: `{branch_slug}.gborg` is the org
+            // workspace bucket the drive monitor materializes for the branch
+            // (`beiner.gborg/beiner.gbai/...`).
+            #[derive(diesel::QueryableByName)]
+            struct SlugRow {
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                slug: String,
+            }
+            let branch_slug: Option<String> = diesel::sql_query(
+                "SELECT slug FROM branches WHERE id = $1 LIMIT 1",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(branch)
+            .get_result::<SlugRow>(&mut conn)
+            .optional()
+            .ok()
+            .flatten()
+            .map(|r| r.slug);
+            let bucket_claim = branch_slug
+                .clone()
+                .map(|slug| format!("{slug}.gborg"));
+            match (&org_id, &branch, &bucket_claim) {
+                (_, _, Some(bucket)) => format!(
+                    "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{},\"org_id\":\"{}\",\"branch_id\":\"{}\",\"bucket\":\"{}\"}}",
+                    sub, body.email, exp, org_id, branch, bucket
+                ),
+                _ => format!(
+                    "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{},\"org_id\":\"{}\",\"branch_id\":\"{}\"}}",
+                    sub, body.email, exp, org_id, branch
+                ),
+            }
+        }
         _ => format!(
             "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{}}}",
             sub,
@@ -1293,6 +1323,23 @@ async fn handle_login(
     // treats freshly logged-in users as anonymous, issue #808 report).
     // Persist to login_sessions so the session survives botserver restarts
     // (same durability the suite-sso hop provides).
+    // The session carries the caller's workspace bucket, so /api/auth/me can
+    // hand the suite its own org layout (Drive's discoverBuckets short-circuits
+    // on it — with it null the UI probed wrong buckets and hung on loading).
+    let session_bucket: Option<String> = branch_scope.and_then(|b| {
+        #[derive(diesel::QueryableByName)]
+        struct BranchSlugRow {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            slug: String,
+        }
+        diesel::sql_query("SELECT slug FROM branches WHERE id = $1 LIMIT 1")
+            .bind::<diesel::sql_types::Uuid, _>(b)
+            .get_result::<BranchSlugRow>(&mut conn)
+            .optional()
+            .ok()
+            .flatten()
+            .map(|r| format!("{}.gborg", r.slug))
+    });
     {
         use botcoredirectory::auth_routes::{SESSION_CACHE, persist_session};
         let mut cache = SESSION_CACHE.write().await;
@@ -1305,7 +1352,7 @@ async fn handle_login(
             display_name: Some(user_name.clone()),
             organization_id: org_scope.map(|o| o.to_string()),
             roles: resolve_rbac_roles(&mut conn, &sub),
-            bucket: None,
+            bucket: session_bucket,
             created_at: chrono::Utc::now().timestamp(),
         };
         cache.insert(token.clone(), session_user.clone());
