@@ -128,8 +128,16 @@ fn publish_channel_event(
         if path.is_empty() {
             continue;
         }
-        // The caption is whatever the sender typed before the marker.
-        let caption = user_text[..start].trim().to_string();
+        // The caption follows the path on the next line (bottelegram::media
+        // and botwhatsapp::media both emit "[kind] path\ncaption"); the web
+        // producer puts the user's typed text BEFORE its marker. Take the
+        // after-path tail when there is one, otherwise the leading text.
+        let after_path = rest[path.len()..].trim();
+        let caption = if after_path.is_empty() {
+            user_text[..start].trim().to_string()
+        } else {
+            after_path.to_string()
+        };
         basic_events::publish_media_uploaded(
             &Arc::new(state.conn.clone()),
             bot_uuid,

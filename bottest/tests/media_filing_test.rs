@@ -206,3 +206,44 @@ fn filing_writes_the_audit_trail_and_reports_the_category() {
         "classification must default to 'unsorted'"
     );
 }
+
+/// The tool must subscribe itself to the channel event: without the trigger an
+/// upload the model never acts on stays in `inbox/` forever (observed on
+/// beiner in production, 2026-09). The subscription is registered by the
+/// compiler consuming this line at design time (botbasic_compiler ON EVENT).
+#[test]
+fn the_tool_subscribes_to_the_media_uploaded_event() {
+    let script = read("media-filing.gbdialog/classify_media.bas");
+
+    assert!(
+        script.contains("ON EVENT \"media_uploaded\""),
+        "classify_media.bas must declare ON EVENT \"media_uploaded\" so uploads file deterministically"
+    );
+}
+
+/// The event trigger and the model's own tool call race on the same upload;
+/// the runner that arrives second must exit quietly instead of surfacing a
+/// MOVE failure to the user.
+#[test]
+fn filing_is_idempotent_against_the_event_and_tool_call_race() {
+    let script = read("media-filing.gbdialog/classify_media.bas");
+
+    let idempotency = script
+        .find("4.1 Idempotency")
+        .expect("the idempotency guard section is missing");
+    let guarded_move = script
+        .find("MOVE path, destination\nIF ERROR THEN")
+        .expect("MOVE must run trapped so a lost race exits quietly");
+    assert!(
+        idempotency < guarded_move,
+        "the idempotency guard must precede the trapped MOVE"
+    );
+    assert!(
+        script.contains("TALK \"Esse arquivo ja foi arquivado.\""),
+        "the losing runner must tell the user the item is already filed, not error"
+    );
+    assert!(
+        script.contains("    RETURN\n"),
+        "the losing runner must RETURN early, not report an error"
+    );
+}

@@ -162,7 +162,24 @@ IF LEN(month) = 1 THEN
 END IF
 
 destination = "media/" + STR(today.year) + "/" + month + "/" + category + "/" + leaf
+
+' 4.1 Idempotency: the event trigger and the model's own tool call race on the
+'    same upload (the dispatcher files within seconds; the model may call the
+'    tool a minute later). When MOVE fails here the most likely cause is that
+'    the other runner already filed the item, so say so and exit instead of
+'    surfacing a failure to the user; the runner that did the filing sends its
+'    own confirmation when its channel can carry it. Perception runs before
+'    this point on the losing path, which is accepted waste — a probe keyword
+'    does not exist in the dialect.
+ON ERROR RESUME NEXT
 MOVE path, destination
+IF ERROR THEN
+    CLEAR ERROR
+    ON ERROR GOTO 0
+    TALK "Esse arquivo ja foi arquivado."
+    RETURN
+END IF
+ON ERROR GOTO 0
 
 ' 5. Audit trail next to the filed item: keeps the decision reproducible
 '    without a read-modify-write over a shared index file.
