@@ -3,6 +3,7 @@ use std::sync::Arc;
 use botcore::shared::state::AppState;
 use uuid::Uuid;
 
+use super::attachments::find_staged_attachment;
 use super::sink::ChannelSink;
 
 pub async fn run_tool_exec(
@@ -152,7 +153,8 @@ pub async fn run_llm_tool_call(
 ) {
     use crate::core::bot::ws::handler::validate_bot_name;
     use crate::core::bot::ws::handler::verify_path_within_workdir;
-    use botcore::shared::utils::get_work_path;        let tool_call_trigger = "\"__tool_call__\":";
+    use botcore::shared::utils::get_work_path;
+    let tool_call_trigger = "\"__tool_call__\":";
     let tc_start = match full_response.find(tool_call_trigger) {
         Some(pos) => full_response[..pos].rfind('{').unwrap_or(pos),
         None => return,
@@ -166,57 +168,46 @@ pub async fn run_llm_tool_call(
             .unwrap_or("")
             .to_string();
 
-        // Chat attachments are staged under the bot's Drive `inbox/` before the
-        // LLM call (see pipeline::exec). Closed-contract filing tools such as
-        // classify_media take `path`/`caption`; when the model returns the tool
-        // call without carrying the staged path, inject it from the user message
-        // so execution does not depend on the model copying it verbatim.
+        // Chat attachments are staged under the bot's Drive `inbox/` before
+        // the LLM call. Web attachments (pipeline::exec) append
+        // "[User attached a file stored at inbox/…; …]" after the typed text;
+        // channel adapters (bottelegram/botwhatsapp media) send
+        // "[image] inbox/…" with the caption on the following line. Closed-
+        // contract filing tools such as classify_media take `path`/`caption`;
+        // when the model returns the tool call without carrying the staged
+        // path, inject it from the user message so execution does not depend
+        // on the model copying it verbatim.
         //
         // The staged path from the CURRENT message is authoritative: when the
         // model copies a path from an EARLIER turn's marker (history echo), the
         // tool operates on an already-filed object and fails with a confusing
         // 404. Only when the current message carries no attachment marker do
         // the model's arguments stand.
-        let attachment_marker = "[User attached a file stored at ";
-        let staged_path = user_text.find(attachment_marker).map(|start| {
-            let rest = &user_text[start + attachment_marker.len()..];
-            let end = rest.find(';').unwrap_or(rest.len());
-            rest[..end].trim().to_string()
-        });
-        if let Some(staged) = staged_path {
-            let typed_caption = user_text
-                .split(attachment_marker)
-                .next()
-                .unwrap_or("")
-                .trim()
-                .to_string();
+        if let Some(staged) = find_staged_attachment(user_text) {
             let mut parsed: serde_json::Value =
                 serde_json::from_str(&tool_args_owned).unwrap_or_else(|_| serde_json::json!({}));
-            let obj_args = parsed.as_object_mut().ok_or("tool arguments must be an object");
-            match obj_args {
-                Ok(obj) => {
+            match parsed.as_object_mut() {
+                Some(obj) => {
                     let model_path = obj
                         .get("path")
                         .and_then(|v| v.as_str())
                         .unwrap_or("")
                         .trim()
                         .to_string();
-                    let stale = !model_path.is_empty() && model_path != staged;
+                    let stale = !model_path.is_empty() && model_path != staged.path;
+                    obj.insert("path".to_string(), serde_json::Value::String(staged.path.clone()));
+                    obj.insert("caption".to_string(), serde_json::Value::String(staged.caption));
                     if stale {
                         log::info!(
-                            "Tool '{raw_tool_name}': model echoed path '{model_path}' from history; overriding with current message attachment '{staged}'"
-                        );
-                    }
-                    obj.insert("path".to_string(), serde_json::Value::String(staged.clone()));
-                    obj.insert("caption".to_string(), serde_json::Value::String(typed_caption));
-                    if stale {
-                        log::info!(
-                            "Injected staged chat attachment '{staged}' into tool '{raw_tool_name}' args"
+                            "Tool '{raw_tool_name}': model echoed path '{model_path}' from history; overridden with current message attachment '{}'",
+                            staged.path
                         );
                     }
                 }
-                Err(e) => {
-                    log::warn!("Tool '{raw_tool_name}': {e}");
+                None => {
+                    log::warn!(
+                        "Tool '{raw_tool_name}': arguments must be an object; staged attachment not injected"
+                    );
                 }
             }
             match serde_json::to_string(&parsed) {
@@ -231,10 +222,10 @@ pub async fn run_llm_tool_call(
 
         if all_args_are_placeholder(tool_args) {
             log::info!("All tool args are placeholder - asking user for real data instead of executing");
-            let msg = format!("Para agendar o servico, preciso de algumas informacoes. Por favor, me diga os dados solicitados um de cada vez.");
+            let msg = "Para agendar o servico, preciso de algumas informacoes. Por favor, me diga os dados solicitados um de cada vez.".to_string();
             let resp = botlib::models::BotResponse::new(
                 &bot_uuid.to_string(), &session_id.to_string(),
-                &user_id.to_string(), &msg, "whatsapp",
+                &user_id.to_string(), &msg, sink.channel_type(),
             );
             let _ = sink.send_bot_response(&resp).await;
             return;
