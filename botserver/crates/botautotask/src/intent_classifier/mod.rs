@@ -453,12 +453,31 @@ Respond with JSON only:
     async fn call_llm(&self, _prompt: &str, _bot_id: Uuid) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         #[cfg(feature = "llm")]
         {
-            let model = self.config_ops.get_config(&_bot_id, "llm-model", None)
-                .unwrap_or_else(|_| self.config_ops.get_config(&Uuid::nil(), "llm-model", None)
-                .unwrap_or_else(|_| "gpt-4".to_string()));
-            let key = self.config_ops.get_config(&_bot_id, "llm-key", None)
-                .unwrap_or_else(|_| self.config_ops.get_config(&Uuid::nil(), "llm-key", None)
-                .unwrap_or_default());
+            // A present-but-empty value is as good as an error: chaining on
+            // `Err` alone sent the gateway an empty model name and every
+            // classification died with 404 model_not_found. Scope order is
+            // bot, then global; an empty result is an explicit error, never a
+            // hardcoded vendor guess.
+            let mut model = String::new();
+            let mut key = String::new();
+            for id in [_bot_id, Uuid::nil()] {
+                if model.is_empty() {
+                    if let Ok(value) = self.config_ops.get_config(&id, "llm-model", None) {
+                        model = value.trim().to_string();
+                    }
+                }
+                if key.is_empty() {
+                    if let Ok(value) = self.config_ops.get_config(&id, "llm-key", None) {
+                        key = value.trim().to_string();
+                    }
+                }
+            }
+            if model.is_empty() {
+                return Err(format!(
+                    "no llm-model configured for bot {_bot_id} (checked the bot scope, then the global one)"
+                )
+                .into());
+            }
             let llm_config = serde_json::json!({"temperature": 0.3, "max_tokens": 1000});
             // Bounded: the API path already ran the heuristic classifier first,
             // so a stalled model degrades to a reported failure.
