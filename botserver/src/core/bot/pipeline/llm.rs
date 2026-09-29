@@ -609,13 +609,34 @@ pub(super) async fn handle_api_call(
         Ok(result) => {
             if compose {
                 let deep_links = extract_deep_links(&result);
+                // Grounding: the model once answered "I created the automation"
+                // after a discovery-only command returned nothing but a match
+                // list, and nothing was ever created. Spell out what the data
+                // does and does not support.
+                let created_something = result
+                    .get("created_resources")
+                    .and_then(|c| c.as_array())
+                    .is_some_and(|a| !a.is_empty());
+                let performed_action =
+                    result.get("success").and_then(|s| s.as_bool()).unwrap_or(false)
+                        || created_something;
+                let grounding = if performed_action {
+                    "The data confirms the action was carried out: report it as done.\n"
+                } else {
+                    "The data does NOT show that any action was carried out — it is a lookup, a search \
+                     or an empty result. Never tell the user that something was created, saved, sent or \
+                     scheduled. If they asked for an action, say you could not perform it yet and what \
+                     you would need.\n"
+                };
                 let prompt = format!(
                     "You are the assistant of bot '{bot_name}'. The user asked: \"{user_text}\".\n\
                      You ran the command '{name}' and received this data:\n{json}\n\n\
+                     {grounding}\
                      Write a concise, friendly answer for the user in the language of the user's message, \
                      using the data. Never mention JSON, commands or internal details.\n\
                      {deep_link_instruction}",
                     json = serde_json::to_string_pretty(&result).unwrap_or_default(),
+                    grounding = grounding,
                     deep_link_instruction = if deep_links.is_empty() {
                         String::new()
                     } else {
