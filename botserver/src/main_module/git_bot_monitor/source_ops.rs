@@ -16,11 +16,11 @@
 
 use std::path::{Path, PathBuf};
 
-use botcore::shared::utils::DbPool;
+use botcore::shared::utils::{get_work_path, DbPool};
 use diesel::RunQueryDsl;
 
-use super::core::{dialog_source_dir, ensure_checkout_with_heal, run_git, MonitoredBot};
-use super::loop_ops::{list_monitored_bots, resolve_branch_id};
+use super::core::{dialog_source_dir, ensure_checkout_with_heal, materialize_checkout, run_git, MonitoredBot};
+use super::loop_ops::{list_monitored_bots, mark_for_compile, resolve_branch_id};
 
 /// Committer identity used for AutoTask-authored source commits.
 const COMMITTER_NAME: &str = "GB-Dev";
@@ -99,8 +99,10 @@ fn flatten(relative_path: &str) -> Result<String, String> {
         .ok_or_else(|| format!("invalid generated source path: '{relative_path}'"))
 }
 
-/// Stage, commit and push the generated sources.
+/// Stage, commit and push the generated sources, then materialize the commit
+/// into the work layout (see `materialize_autotask_commit`).
 pub(crate) fn commit_and_push(
+    pool: &DbPool,
     checkout: &Path,
     target: &SourceTarget,
     message: &str,
@@ -150,7 +152,38 @@ pub(crate) fn commit_and_push(
         target.bot_name,
         written.join(", ")
     );
+    materialize_autotask_commit(pool, checkout, target);
     Ok(())
+}
+
+/// Materialize the just-pushed commit into the work layout and queue the
+/// compile. The pull monitor only reacts to a *remote* transition
+/// (local != origin/main), which an in-place commit never creates — HEAD
+/// already equals origin/main after the push — so without this the generated
+/// tool would sit in the repository until some unrelated pull happened.
+fn materialize_autotask_commit(pool: &DbPool, checkout: &Path, target: &SourceTarget) {
+    let Some(branch_slug) = target
+        .project
+        .branch_slug
+        .as_deref()
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+    else {
+        return;
+    };
+    let branch_id = resolve_branch_id(pool, branch_slug);
+    let work_root = PathBuf::from(get_work_path());
+    let head = match run_git(checkout, &["rev-parse", "HEAD"]) {
+        Ok(head) => head.trim().to_string(),
+        Err(e) => {
+            log::warn!("[git_monitor] autotask {}: rev-parse HEAD: {e}", target.bot_name);
+            return;
+        }
+    };
+    match materialize_checkout(checkout, &work_root, branch_slug, &target.project.name) {
+        Ok(paths) => mark_for_compile(pool, branch_id, &paths, &head),
+        Err(e) => log::error!("[git_monitor] autotask materialize {}: {e}", target.bot_name),
+    }
 }
 
 /// Write generated bot sources into `bot_name`'s repository and push them to
@@ -176,7 +209,7 @@ pub(crate) fn write_sources(
         std::fs::write(&path, body).map_err(|e| format!("write {}: {e}", path.display()))?;
         written.push(name);
     }
-    commit_and_push(&checkout, &target, message, &written)?;
+    commit_and_push(pool, &checkout, &target, message, &written)?;
     Ok(written)
 }
 
@@ -250,6 +283,7 @@ pub(crate) fn merge_tables(
     }
     std::fs::write(&path, body).map_err(|e| format!("write {}: {e}", path.display()))?;
     commit_and_push(
+        pool,
         &checkout,
         &target,
         &format!("autotask: attach tables ({})", appended.join(", ")),

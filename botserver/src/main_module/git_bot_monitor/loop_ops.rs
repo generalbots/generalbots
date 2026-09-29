@@ -73,7 +73,7 @@ pub(crate) fn resolve_branch_id(pool: &DbPool, branch_slug: &str) -> Uuid {
 /// Bump `drive_files.etag` for the materialized paths so the existing
 /// DriveCompiler pipeline recompiles them (etag change triggers compile; a
 /// missing S3 object falls back to the fresh work copy).
-fn mark_for_compile(pool: &DbPool, branch_id: Uuid, paths: &[String], etag: &str) {
+pub(crate) fn mark_for_compile(pool: &DbPool, branch_id: Uuid, paths: &[String], etag: &str) {
     let repo = botdrive::DriveFileRepository::new(pool.clone());
     for fp in paths {
         if let Err(e) = repo.upsert_file(fp, "bas", Some(etag.to_string()), None, Some(branch_id)) {

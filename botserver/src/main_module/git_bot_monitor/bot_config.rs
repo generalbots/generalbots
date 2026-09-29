@@ -89,7 +89,7 @@ pub(crate) fn write_config_files(
             .map_err(|e| format!("write .gbot/{name}: {e}"))?;
         written.push(name.clone());
     }
-    commit_and_push(&checkout, &target, message, &written)?;
+    commit_and_push(pool, &checkout, &target, message, &written)?;
     Ok(written)
 }
 
