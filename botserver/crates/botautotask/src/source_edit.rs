@@ -419,14 +419,27 @@ fn rephrase_prompt(name: &str, current: &str, instruction: &str) -> String {
 
 /// Run a one-shot completion against the bot's configured model.
 async fn call_llm(api: &Arc<AutoTaskApi>, bot_id: Uuid, prompt: &str) -> Result<String, String> {
-    let model = api
-        .config_ops()
-        .get_config(&bot_id, "llm-model", None)
-        .unwrap_or_else(|_| "gpt-4".to_string());
-    let key = api
-        .config_ops()
-        .get_config(&bot_id, "llm-key", None)
-        .unwrap_or_default();
+    // Bot scope first, then the global one; never a hardcoded vendor model —
+    // a gateway that does not serve it answers 404 and the edit silently dies.
+    let mut model = String::new();
+    let mut key = String::new();
+    for id in [bot_id, uuid::Uuid::nil()] {
+        if model.is_empty() {
+            if let Ok(value) = api.config_ops().get_config(&id, "llm-model", None) {
+                model = value.trim().to_string();
+            }
+        }
+        if key.is_empty() {
+            if let Ok(value) = api.config_ops().get_config(&id, "llm-key", None) {
+                key = value.trim().to_string();
+            }
+        }
+    }
+    if model.is_empty() {
+        return Err(format!(
+            "no llm-model configured for bot {bot_id} (checked the bot scope, then the global one)"
+        ));
+    }
     let config = serde_json::json!({ "temperature": 0.2, "max_tokens": 4000 });
     crate::types::collect_llm_stream(api.llm_ops().as_ref(), prompt, &config, &model, &key, None)
         .await

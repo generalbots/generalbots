@@ -235,27 +235,54 @@ impl IntentCompiler {
 
     #[cfg(feature = "llm")]
     async fn call_llm(&self, prompt: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let model = self.resolved_model();
-        let key = self.resolved_key();
+        let bot_id = self.state.bot_id();
+        let model = self.resolved_model(bot_id);
+        let key = self.resolved_key(bot_id);
         // Generous budget: a reasoning model spends tokens before the object.
+        if model.is_empty() {
+            return Err(format!(
+                "no llm-model configured for bot {bot_id} (checked the bot scope, then the global one)"
+            )
+            .into());
+        }
+        info!(
+            "[autotask] compiling with model={model} key_len={} bot={bot_id}",
+            key.len()
+        );
         let config = serde_json::json!({"temperature": 0.3, "max_tokens": 4000});
         // Bounded — a stalled model must fail the compile step, not hang it.
         crate::types::collect_llm_stream(self.llm_ops.as_ref(), prompt, &config, &model, &key, None)
             .await
     }
 
+    /// Resolves a setting for the bot being automated, then the global one.
+    ///
+    /// Only the nil bot used to be consulted, and its Vault folder carries no
+    /// `llm-model`, so the lookup fell through to a hardcoded `"gpt-4"`: every
+    /// AutoTask compile then died with `404 model_not_found` on a gateway that
+    /// serves something else. An empty result is now an explicit error instead
+    /// of a vendor guess.
     #[cfg(feature = "llm")]
-    fn resolved_model(&self) -> String {
-        self.config_ops
-            .get_config(&Uuid::nil(), "llm-model", None)
-            .unwrap_or_else(|_| "gpt-4".to_string())
+    fn setting_for_bot(&self, bot_id: &Uuid, key: &str) -> String {
+        for id in [*bot_id, Uuid::nil()] {
+            if let Ok(value) = self.config_ops.get_config(&id, key, None) {
+                let trimmed = value.trim().to_string();
+                if !trimmed.is_empty() {
+                    return trimmed;
+                }
+            }
+        }
+        String::new()
     }
 
     #[cfg(feature = "llm")]
-    fn resolved_key(&self) -> String {
-        self.config_ops
-            .get_config(&Uuid::nil(), "llm-key", None)
-            .unwrap_or_default()
+    fn resolved_model(&self, bot_id: Uuid) -> String {
+        self.setting_for_bot(&bot_id, "llm-model")
+    }
+
+    #[cfg(feature = "llm")]
+    fn resolved_key(&self, bot_id: Uuid) -> String {
+        self.setting_for_bot(&bot_id, "llm-key")
     }
 
     #[cfg(not(feature = "llm"))]
