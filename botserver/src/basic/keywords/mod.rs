@@ -302,5 +302,46 @@ pub fn get_all_keywords() -> Vec<String> {
         "SECURITY STOP SERVICE".to_string(),
         "SECURITY INSTALL TOOL".to_string(),
         "SECURITY HARDENING SCORE".to_string(),
+        // Filesystem: only DELETE FILE used to be listed, so a script calling
+        // CREATE FILE / WRITE FILE was told by the "closed set" that it did not
+        // exist while the runtime registers all of them.
+        "CREATE FILE".to_string(),
+        "WRITE FILE".to_string(),
+        "READ FILE".to_string(),
+        "LIST FILES".to_string(),
+        "GET FILE".to_string(),
+        // HTTP verbs: same gap as the file verbs.
+        "GET HTTP".to_string(),
+        "POST HTTP".to_string(),
+        "PUT HTTP".to_string(),
+        "WEBHOOK".to_string(),
+        // Messaging.
+        "SEND SMS".to_string(),
+        "SEND TO".to_string(),
+        // Session memory.
+        "REMEMBER".to_string(),
+        "RECALL".to_string(),
+        // Perception / media, used by the shipped media-filing tools.
+        "DESCRIBE IMAGE".to_string(),
+        "DESCRIBE VIDEO".to_string(),
+        "SPEECH TO TEXT".to_string(),
+        "CLASSIFY".to_string(),
+        // Declarative control.
+        "ON EVENT".to_string(),
+        "TRANSFER TO HUMAN".to_string(),
+        // Registered engine functions, not multi-word keywords, but the scripts
+        // use them as if they were keywords and the reference must teach the
+        // exact form (`TODAY`/`NOW` are registered functions, so the call form
+        // is what compiles).
+        "COUNT".to_string(),
+        "SPLIT".to_string(),
+        "TRIM".to_string(),
+        "UPPER".to_string(),
+        "LEN".to_string(),
+        "REPLACE".to_string(),
+        "LEFT".to_string(),
+        "STR".to_string(),
+        "TODAY".to_string(),
+        "NOW".to_string(),
     ]
 }

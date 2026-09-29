@@ -13,6 +13,7 @@ pub async fn run_tool_exec(
     bot_name: &str,
     tool_name: &str,
     channel: &str,
+    sink: &dyn ChannelSink,
 ) {
     let work_path = botcore::shared::utils::get_work_path();
     let read_tool = |gbdialog_dir: &str| -> Option<String> {
@@ -41,6 +42,18 @@ pub async fn run_tool_exec(
             log::info!(
                 "TOOL_EXEC: tool '{tool_name}' not associated with session {session_id}, skipping"
             );
+            // The user pressed a button; silence would look like a broken bot.
+            let message = format!(
+                "A ação '{tool_name}' não está disponível para esta conversa."
+            );
+            let resp = botlib::models::BotResponse::new(
+                &bot_uuid.to_string(),
+                &session_id.to_string(),
+                &user_id.to_string(),
+                &message,
+                channel,
+            );
+            let _ = sink.send_bot_response(&resp).await;
             return;
         }
         let state_for_tool = state.clone();
@@ -54,15 +67,32 @@ pub async fn run_tool_exec(
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         };
-        tokio::task::spawn_blocking(move || {
+        let tool_run = tokio::task::spawn_blocking(move || {
             let mut svc = crate::basic::ScriptService::new(
                 state_for_tool.clone(), session_for_tool,
             );
             svc.load_bot_config_params(&state_for_tool, bot_uuid);
-            if let Err(e) = svc.run(&ast_content) {
-                log::warn!("Tool '{tool_name_clone}' execution error: {e}");
-            }
+            svc.run(&ast_content).map_err(|e| e.to_string())
         });
+        // The script runs on a blocking task, so the report goes out after it
+        // completes: a failure must reach the chat, not only the log.
+        // Awaited, like the LLM tool-call path already does, so a failure can
+        // be reported to the user instead of only reaching the log. The tool's
+        // own TALK output reaches the sink while the script runs.
+        if let Ok(Err(detail)) = tool_run.await {
+            log::warn!("Tool '{tool_name_clone}' execution error: {detail}");
+            let message = format!(
+                "Não consegui executar '{tool_name_clone}'. Tente novamente em instantes."
+            );
+            let resp = botlib::models::BotResponse::new(
+                &bot_uuid.to_string(),
+                &session_id.to_string(),
+                &user_id.to_string(),
+                &message,
+                channel,
+            );
+            let _ = sink.send_bot_response(&resp).await;
+        }
     }
 }
 
@@ -298,7 +328,6 @@ pub async fn run_llm_tool_call(
                 return;
             }
             let state_for_tool = state.clone();
-            let tool_name_cl = tool_name.clone();
             let work_path_for_mcp = work_path.clone();
             let bot_name_for_mcp = bot_name.to_string();
             let tool_name_for_mcp = tool_name.clone();
@@ -323,7 +352,8 @@ pub async fn run_llm_tool_call(
                 created_at: chrono::Utc::now(),
                 updated_at: chrono::Utc::now(),
             };
-            let _ = tokio::task::spawn_blocking(move || {
+            let tool_name_err = tool_name.clone();
+            let tool_run = tokio::task::spawn_blocking(move || {
                 let mut svc = crate::basic::ScriptService::new(
                     state_for_tool.clone(), session_for_tool,
                 );
@@ -363,10 +393,27 @@ pub async fn run_llm_tool_call(
                         }
                     }
                 }
-                if let Err(e) = svc.run(&ast_content) {
-                    log::warn!("Tool '{tool_name_cl}' execution error: {e}");
-                }
+                svc.run(&ast_content).map_err(|e| e.to_string())
             }).await;
+
+            // A failed tool used to reach only the log, so the user watched the
+            // turn stop with no answer at all (observed on the web tool
+            // button: "Variable not found: path"). The detail stays in the
+            // log; the user is told which action failed.
+            if let Ok(Err(detail)) = tool_run {
+                log::warn!("Tool '{tool_name_err}' execution error: {detail}");
+                let message = format!(
+                    "Não consegui executar '{tool_name_err}'. Tente novamente em instantes."
+                );
+                let resp = botlib::models::BotResponse::new(
+                    &bot_uuid.to_string(),
+                    &session_id.to_string(),
+                    &user_id.to_string(),
+                    &message,
+                    sink.channel_type(),
+                );
+                let _ = sink.send_bot_response(&resp).await;
+            }
 
             // Drain rx to forward tool responses to the sink
             for _ in 0..50 {

@@ -100,7 +100,11 @@ pub fn basic_keyword_reference() -> String {
          no `SEND MAIL TO … SUBJECT …` form and no `ON CHANGE`. `ON EVENT` takes\n         only the event name — the tool being compiled is the tool that runs.\n",
     );
     out.push_str("\n### Full keyword catalog (closed set)\n");
-    let keywords = get_all_keywords();
+    // Sorted and deduplicated: the list reaches the model verbatim, so a
+    // duplicate entry is pure noise in the prompt.
+    let mut keywords = get_all_keywords();
+    keywords.sort();
+    keywords.dedup();
     for chunk in keywords.chunks(6) {
         out.push_str("- ");
         out.push_str(&chunk.join(", "));
@@ -127,7 +131,10 @@ mod tests {
         assert!(reference.contains("SEND MAIL \"to@x.com\""));
         assert!(reference.contains("CREATE FILE \"path\" WITH content"));
         assert!(reference.contains("ON EVENT \"media_uploaded\""));
-        assert!(!reference.contains("CALL"), "the declaration must not name a tool");
+        assert!(
+            !reference.contains("ON EVENT \"media_uploaded\" CALL"),
+            "the event declaration must not name a tool"
+        );
         // The catalog itself is still exposed…
         assert!(reference.contains("CLASSIFY") || reference.contains("DESCRIBE"));
         // …and the anti-invention rule is stated.

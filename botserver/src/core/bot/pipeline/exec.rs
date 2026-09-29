@@ -203,6 +203,7 @@ pub async fn process_message_internal(
                 bot_name,
                 &tool_name,
                 sink.channel_type(),
+                sink,
             )
             .await;
         }
