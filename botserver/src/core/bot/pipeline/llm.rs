@@ -642,13 +642,23 @@ pub(super) async fn handle_api_call(
                         let _ = sink.send_bot_response(&resp).await;
                     }
                     None => {
-                        let fallback = if deep_links.is_empty() {
-                            "Dados obtidos, mas falhei ao redigir a resposta.".to_string()
-                        } else {
-                            format!(
-                                "Here is the record you asked about: {link}",
-                                link = deep_links[0],
-                            )
+                        // Never lose the result to a composition failure: the
+                        // command's own message is the most useful thing we
+                        // have, and a bare apology told the user nothing.
+                        let command_message = result
+                            .get("message")
+                            .and_then(|m| m.as_str())
+                            .map(str::trim)
+                            .filter(|m| !m.is_empty())
+                            .map(str::to_string);
+                        let fallback = match (command_message, deep_links.first()) {
+                            (Some(message), _) => message,
+                            (None, Some(link)) => format!(
+                                "Here is the record you asked about: {link}"
+                            ),
+                            (None, None) => {
+                                "Dados obtidos, mas falhei ao redigir a resposta.".to_string()
+                            }
                         };
                         let resp = botlib::models::BotResponse::new(
                             bot_uuid.to_string(), session_id.to_string(), user_id.to_string(),
