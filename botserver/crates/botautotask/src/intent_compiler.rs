@@ -243,7 +243,7 @@ impl IntentCompiler {
         bot_id: Uuid,
         prompt: &str,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let model = self.resolved_model(bot_id);
+        let model = self.compile_model(bot_id);
         let key = self.resolved_key(bot_id);
         // Generous budget: a reasoning model spends tokens before the object.
         if model.is_empty() {
@@ -280,6 +280,25 @@ impl IntentCompiler {
             }
         }
         String::new()
+    }
+
+    /// The model used to write BASIC, with an `autotask-llm-model` override.
+    ///
+    /// Code generation is a long streaming call: on a reasoning model the
+    /// gateway dropped the connection mid-stream ("error sending request"),
+    /// which is why the feature gets its own setting and can be pointed at a
+    /// fast model without changing the chat model.
+    #[cfg(feature = "llm")]
+    fn compile_model(&self, bot_id: Uuid) -> String {
+        for id in [bot_id, Uuid::nil()] {
+            if let Ok(value) = self.config_ops.get_config(&id, "autotask-llm-model", None) {
+                let trimmed = value.trim().to_string();
+                if !trimmed.is_empty() {
+                    return trimmed;
+                }
+            }
+        }
+        self.resolved_model(bot_id)
     }
 
     #[cfg(feature = "llm")]
