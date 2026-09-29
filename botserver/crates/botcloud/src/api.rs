@@ -272,6 +272,31 @@ fn directory_url_allows_password(dir_url: &str, allow_insecure_http: bool) -> bo
 /// resolution finds the row on the very first sign-in. Without it, password
 /// verification succeeds but no subject can be resolved and the login 401s
 /// forever (#1365).
+/// Zitadel default password complexity (both in prod and dev builds): at least
+/// 8 characters with uppercase, lowercase, digit and symbol. Mirrored here so
+/// signup can reject a non-compliant password before any account state is
+/// written — the directory error `Password must contain symbol (DOMAIN-ZDLwA)`
+/// is what an unsignable account looked like. Returns the human-readable
+/// violation, or `None` when the password satisfies the policy.
+fn password_policy_violation(password: &str) -> Option<String> {
+    if password.chars().count() < 8 {
+        return Some("Password must be at least 8 characters long.".to_string());
+    }
+    if !password.chars().any(|c| c.is_ascii_uppercase()) {
+        return Some("Password must contain an uppercase letter.".to_string());
+    }
+    if !password.chars().any(|c| c.is_ascii_lowercase()) {
+        return Some("Password must contain a lowercase letter.".to_string());
+    }
+    if !password.chars().any(|c| c.is_ascii_digit()) {
+        return Some("Password must contain a digit.".to_string());
+    }
+    if !password.chars().any(|c| !c.is_ascii_alphanumeric()) {
+        return Some("Password must contain a symbol (e.g. !@#$%).".to_string());
+    }
+    None
+}
+
 fn provision_user_row(conn: &mut diesel::PgConnection, zitadel_user_id: &str, email: &str) {
     let derived = Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{zitadel_user_id}").as_bytes());
     let username = email.split('@').next().unwrap_or(email).to_string();
@@ -301,6 +326,20 @@ async fn handle_signup(
         .unwrap_or_else(|| {
             body.email.split('@').next().unwrap_or("default").to_lowercase()
         });
+
+    // Reject passwords the directory will refuse BEFORE anything is persisted:
+    // the old flow created the whole org/bot transaction, then swallowed a
+    // failing password set with a warn — the account existed and could never
+    // log in (marcelbeiner@gmail.com was exactly that, fixed on 2026-09-29).
+    // Zitadel's default complexity is: 8+ chars, upper, lower, digit, symbol.
+    if let Some(password) = body.password.as_deref().map(str::trim).filter(|p| !p.is_empty()) {
+        if let Some(violation) = password_policy_violation(password) {
+            return Err((StatusCode::BAD_REQUEST, serde_json::json!({
+                "error": "invalid_password",
+                "message": violation,
+            }).to_string()));
+        }
+    }
 
     // 7. Determine plan from body (default: free) — checked early for capacity gate
     let chosen_plan = body.plan.as_deref()
@@ -554,19 +593,90 @@ async fn handle_signup(
                                 if let Some(host) = &service.config.directory_external_domain {
                                     pw_req = pw_req.header("Host", host);
                                 }
-                                let _ = pw_req.send().await
-                                    .map(|r| {
-                                        if !r.status().is_success() {
-                                            tracing::warn!("Zitadel password set returned {}", r.status());
-                                        }
-                                    })
-                                    .unwrap_or_else(|e| tracing::warn!("Zitadel password set failed: {e}"));
+                                // The password set MUST succeed: a user without a
+                                // working hash is an account that can never log in.
+                                // The old flow swallowed this failure with a warn —
+                                // signup returned 201, the person hit "Invalid
+                                // credentials" forever, and nothing in the logs
+                                // explained it. Now: verify with a real session
+                                // check, and when it does not hold, tear the
+                                // directory identity down and fail the signup with
+                                // the directory's own reason.
+                                let pw_result = pw_req.send().await;
+                                let pw_ok = match pw_result {
+                                    Ok(r) if r.status().is_success() => {
+                                        let probe = client
+                                            .post(format!("{dir_url}/v2/sessions"))
+                                            .header("Authorization", format!("Bearer {dir_token}"))
+                                            .json(&serde_json::json!({
+                                                "checks": {
+                                                    "user": { "loginName": body.email },
+                                                    "password": { "password": password }
+                                                }
+                                            }))
+                                            .send()
+                                            .await;
+                                        matches!(probe, Ok(pr) if pr.status().is_success())
+                                    }
+                                    Ok(r) => {
+                                        let status = r.status();
+                                        let body_text = r.text().await.unwrap_or_default();
+                                        tracing::error!(
+                                            "signup: Zitadel password set returned {status} for {}: {body_text}",
+                                            body.email
+                                        );
+                                        false
+                                    }
+                                    Err(e) => {
+                                        tracing::error!("signup: Zitadel password set failed for {}: {e}", body.email);
+                                        false
+                                    }
+                                };
+                                if !pw_ok {
+                                    let _ = client
+                                        .delete(format!(
+                                            "{dir_url}/management/v1/users/{user_id}"
+                                        ))
+                                        .header("Authorization", format!("Bearer {dir_token}"))
+                                        .send()
+                                        .await;
+                                    return Err((
+                                        StatusCode::BAD_GATEWAY,
+                                        serde_json::json!({
+                                            "error": "identity_provisioning_failed",
+                                            "message": "The account could not be created with a working password. No data was kept — please sign up again with a stronger password (8+ chars with upper, lower, digit and symbol)."
+                                        })
+                                        .to_string(),
+                                    ));
+                                }
                             }
                         }
                     }
                 }
-                Ok(resp) => tracing::warn!("Zitadel user creation returned {}", resp.status()),
-                Err(e) => tracing::warn!("Zitadel user creation failed: {e}"),
+                Ok(resp) => {
+                    let status = resp.status();
+                    let body_text = resp.text().await.unwrap_or_default();
+                    tracing::error!("signup: Zitadel user creation returned {status} for {}: {body_text}", body.email);
+                    return Err((
+                        StatusCode::BAD_GATEWAY,
+                        serde_json::json!({
+                            "error": "identity_provisioning_failed",
+                            "message": "The identity provider refused to create the account. Please try again; if it persists, contact support."
+                        })
+                        .to_string(),
+                    ));
+                }
+                Err(e) => {
+                    tracing::error!("signup: Zitadel user creation failed for {}: {e}", body.email);
+                    return Err((
+                        StatusCode::BAD_GATEWAY,
+                        serde_json::json!({
+                            "error": "identity_provisioning_failed",
+                            "message": "The identity provider is unreachable. Please try again in a moment."
+                        })
+                        .to_string(),
+                    ));
+                }
             }
         }
     }
@@ -3496,3 +3606,34 @@ async fn handle_google_oauth_callback(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("OAuth redirect: {e}")))
 }
 
+
+#[cfg(test)]
+mod signup_password_tests {
+    use super::password_policy_violation;
+
+    #[test]
+    fn accepts_a_policy_compliant_password() {
+        assert_eq!(password_policy_violation("Campos10!"), None);
+        assert_eq!(password_policy_violation("Abcdef1#xyz"), None);
+    }
+
+    #[test]
+    fn rejects_the_signup_that_created_an_unloginnable_account() {
+        // marcelbeiner@gmail.com signed up with `campos10`: Zitadel refused the
+        // password set (no symbol), the failure was swallowed, and the account
+        // could never log in. The pre-check must catch every variant.
+        assert!(password_policy_violation("campos10").is_some());
+        assert!(password_policy_violation("CAMPOS10!").is_some()); // no lower
+        assert!(password_policy_violation("Campos!").is_some()); // no digit
+        assert!(password_policy_violation("Campos10").is_some()); // no symbol
+        assert!(password_policy_violation("Ca1!").is_some()); // too short
+    }
+
+    #[test]
+    fn rejection_messages_name_the_missing_class() {
+        let msg = password_policy_violation("campos10").unwrap_or_default();
+        assert!(msg.contains("uppercase"), "got: {msg}");
+        let msg = password_policy_violation("Campos10").unwrap_or_default();
+        assert!(msg.contains("symbol"), "got: {msg}");
+    }
+}
