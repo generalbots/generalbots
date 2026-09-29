@@ -33,7 +33,16 @@ pub async fn run_pipeline_for_channel(
     }
     let user_text = msg.content.clone();
     let session_id = Uuid::parse_str(&msg.session_id).unwrap_or_else(|_| Uuid::new_v4());
-    let user_id = channel_user_uuid(sink.channel_type(), &msg.user_id);
+    // The sink reports its TRANSPORT ("mpsc", "web"), not the channel the
+    // message came from, and Telegram/WhatsApp both arrive over the mpsc
+    // transport — keying on it gave every such sender the same identity.
+    // `msg.channel` is the real channel.
+    let channel_key = if msg.channel.trim().is_empty() {
+        sink.channel_type().to_string()
+    } else {
+        msg.channel.trim().to_lowercase()
+    };
+    let user_id = channel_user_uuid(&channel_key, &msg.user_id);
 
     let bot_uuid = resolve_bot_uuid(&state.conn, &bot_name).await;
 
@@ -224,6 +233,18 @@ mod tests {
         assert_ne!(a, other, "different senders must not collide");
         assert_ne!(a, whatsapp, "the same id on another channel is another user");
         assert_ne!(a, uuid::Uuid::nil(), "must not collapse to the nil user");
+    }
+
+    /// The transport label is not a channel: Telegram and WhatsApp both report
+    /// "mpsc", so keying on it merged their senders.
+    #[test]
+    fn the_transport_label_is_not_used_as_the_channel() {
+        let telegram = channel_user_uuid("telegram", "6676512312");
+        assert_ne!(
+            telegram,
+            channel_user_uuid("mpsc", "6676512312"),
+            "the mpsc transport must not stand in for the channel"
+        );
     }
 
     #[test]
