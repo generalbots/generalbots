@@ -284,15 +284,18 @@ pub async fn run_llm_tool_call(
                 let api_call = format!(
                     "{{\"__api_call__\": {{\"name\": \"{tool_name}\", \"params\": {tool_args}, \"compose\": true}}}}"
                 );
-                // Composing the answer needs the provider; without one the
-                // command still runs and its raw result is reported.
+                // Composing the answer needs a provider AND the bot's model and
+                // key: the reroute used to pass empty strings, so every composed
+                // answer failed and the user got "Dados obtidos, mas falhei ao
+                // redigir a resposta" instead of the command's result.
                 let provider = state.llm_provider.clone();
                 let provider = provider.as_ref();
+                let (model, key) = bot_llm_credentials(&state.conn, bot_uuid);
                 // Boxed: the command path can reroute a session tool back
                 // into this executor, so the two futures are mutually
                 // recursive.
                 Box::pin(super::llm::handle_api_call(
-                    sink, state, provider, "", "", bot_uuid, session_id, user_id,
+                    sink, state, provider, &model, &key, bot_uuid, session_id, user_id,
                     bot_name, &api_call, user_text, rx,
                 ))
                 .await;
@@ -428,4 +431,26 @@ pub async fn run_llm_tool_call(
             }
         }
     }
+}
+
+/// Model and key configured for a bot, needed when a rerouted command composes
+/// an answer. Mirrors the chat pipeline, including the environment fallback.
+fn bot_llm_credentials(
+    conn: &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
+    bot_id: Uuid,
+) -> (String, String) {
+    use botcore::config::ConfigManager;
+    let cfg = ConfigManager::new(conn.clone());
+    let mut key = cfg.get_config(&bot_id, "llm-key", Some("")).unwrap_or_default();
+    let mut model = cfg.get_config(&bot_id, "llm-model", Some("")).unwrap_or_default();
+    if let Ok(v) = std::env::var("LLM_KEY") {
+        if !v.is_empty() { key = v; }
+    }
+    if let Ok(v) = std::env::var("LLM_MODEL") {
+        if !v.is_empty() { model = v; }
+    }
+    if model.is_empty() {
+        log::warn!("bot {bot_id} has no llm-model; composed answers are unavailable");
+    }
+    (model, key)
 }
