@@ -434,30 +434,45 @@ pub async fn create_and_execute(
     State(api): State<Arc<AutoTaskApi>>,
     Json(req): Json<CreateAndExecuteRequest>,
 ) -> Json<CreateAndExecuteResponse> {
-    info!("API create and execute: {}", &req.intent[..req.intent.len().min(50)]);
     let bot_id = canonical_bot_id(req.bot_id.clone());
+    Json(create_and_execute_for(&api, &req.intent, bot_id).await)
+}
+
+/// The whole create-and-execute flow, callable from outside the HTTP layer.
+///
+/// The chat command executor needs the same pipeline: `tasks.autotask.create`
+/// was advertised in the catalog but had no execution arm, so a user asking
+/// for an automation in chat received a deep link and nothing else.
+pub async fn create_and_execute_for(
+    api: &Arc<AutoTaskApi>,
+    intent: &str,
+    bot_id: Uuid,
+) -> CreateAndExecuteResponse {
+    info!("API create and execute: {}", &intent[..intent.len().min(50)]);
+    let intent = intent.to_string();
+    let req = CreateAndExecuteRequest { intent: intent.clone(), bot_id: None };
 
     // Shipped-template fast path: intents that name an implementation the
     // product already ships (e.g. media classification/filing) persist the
     // vetted template verbatim — deterministic, no LLM, no compile stall.
     if let Some(template) = match_shipped_template(&req.intent) {
-        return persist_shipped_template(&api, bot_id, &req.intent, template).await;
+        return persist_shipped_template(api, bot_id, &req.intent, template).await.0;
     }
 
     let classification = match classifier_for(&api).classify_api(&req.intent, bot_id).await {
         Ok(c) => c,
-        Err(e) => return error_create(&req.intent, &*e),
+        Err(e) => return error_create(&req.intent, &*e).0,
     };
     let compiled = match compiler_for(&api)
         .compile_from_classification(bot_id, &classification, None, None)
         .await
     {
         Ok(c) => c,
-        Err(e) => return error_create(&req.intent, &*e),
+        Err(e) => return error_create(&req.intent, &*e).0,
     };
     let (relative_path, body) = script_for(&classification, Some(&compiled));
-    match persist_script(&api, bot_id, &relative_path, &body) {
-        Ok((bucket, key)) => Json(CreateAndExecuteResponse {
+    match persist_script(api, bot_id, &relative_path, &body) {
+        Ok((bucket, key)) => CreateAndExecuteResponse {
             success: true,
             task_id: classification.id.clone(),
             status: "created".to_string(),
@@ -473,8 +488,8 @@ pub async fn create_and_execute(
             }],
             pending_items: Vec::new(),
             error: None,
-        }),
-        Err(e) => Json(CreateAndExecuteResponse {
+        },
+        Err(e) => CreateAndExecuteResponse {
             success: false,
             task_id: classification.id.clone(),
             status: "failed".to_string(),
@@ -483,7 +498,7 @@ pub async fn create_and_execute(
             created_resources: Vec::new(),
             pending_items: Vec::new(),
             error: Some(e),
-        }),
+        },
     }
 }
 
