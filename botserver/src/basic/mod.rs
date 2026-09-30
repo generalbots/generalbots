@@ -348,27 +348,42 @@ impl BasicRuntime for AppStateBasicRuntime {
         info!("send_message: attempting to send to session={}, bot={}, content='{}'",
             sid, bot_id, content_preview);
 
-        let guard = channels.blocking_lock();
-        let count = guard.len();
-        if let Some(tx) = guard.get(&sid) {
-            info!("send_message: FOUND channel for session {} ({} channels total)", sid, count);
-            if let Err(e) = tx.try_send(resp) {
-                warn!("send_message: try_send failed for session {}: {}", sid, e);
-            }
-        } else {
-            let keys: Vec<&String> = guard.keys().collect();
-            let matched_key = keys.iter().find(|k| k.starts_with(&format!("{}_", sid)));
-            if let Some(key) = matched_key {
-                if let Some(tx) = guard.get(*key) {
-                    info!("send_message: FOUND channel via prefix match for session {} (key={})", sid, key);
-                    if let Err(e) = tx.try_send(resp) {
-                        warn!("send_message: try_send failed for session {}: {}", sid, e);
+        let mut channel_found = false;
+        {
+            let guard = channels.blocking_lock();
+            let count = guard.len();
+            if let Some(tx) = guard.get(&sid) {
+                info!("send_message: FOUND channel for session {} ({} channels total)", sid, count);
+                if let Err(e) = tx.try_send(resp) {
+                    warn!("send_message: try_send failed for session {}: {}", sid, e);
+                }
+                channel_found = true;
+            } else {
+                let keys: Vec<&String> = guard.keys().collect();
+                let matched_key = keys.iter().find(|k| k.starts_with(&format!("{}_", sid)));
+                if let Some(key) = matched_key {
+                    if let Some(tx) = guard.get(*key) {
+                        info!("send_message: FOUND channel via prefix match for session {} (key={})", sid, key);
+                        if let Err(e) = tx.try_send(resp) {
+                            warn!("send_message: try_send failed for session {}: {}", sid, e);
+                        }
+                        channel_found = true;
                     }
                 }
-            } else {
-                warn!("send_message: NO channel for session {} ({} channels total, keys: {:?})",
-                    sid, count, keys);
+                if !channel_found {
+                    warn!("send_message: NO channel for session {} ({} channels total, keys: {:?})",
+                        sid, count, keys);
+                }
             }
+        }
+
+        // The reply outlived its channel — a tool triggered by `ON EVENT`
+        // runs after the inbound request ended. Hand it to the channel
+        // adapter so the conversation still receives it.
+        if !channel_found
+            && crate::main_module::channel_delivery::deliver_via_channel(&self.0, response)
+        {
+            info!("send_message: delivered session {} through the {} adapter", sid, response.channel);
         }
         Ok(())
     }

@@ -50,7 +50,17 @@ pub async fn run_pipeline_for_channel(
     // tools a script subscribed with `ON EVENT "media_uploaded" CALL "…"`,
     // independently of whether the model decides to call them. The marker
     // `[image] inbox/…` is what tells us a file was staged.
-    publish_channel_event(state, bot_uuid, &user_text, sink.channel_type());
+    //
+    // The event carries the conversation identity (`session_id`) and the
+    // sender as the channel knows it (`msg.user_id`, a Telegram chat id for
+    // example): the dispatcher runs the subscribed tool under that pair, so
+    // the tool's confirmation is addressed to the conversation that uploaded
+    // the file instead of being dropped.
+    let reply_target = ChannelReplyTarget {
+        session_id: session_id.to_string(),
+        user_id: msg.user_id.clone(),
+    };
+    publish_channel_event(state, bot_uuid, &user_text, &channel_key, &reply_target);
 
     let response_key = format!("{}_{}", session_id, Uuid::new_v4());
     let (tx_internal, mut rx_internal) =
@@ -89,6 +99,13 @@ pub async fn run_pipeline_for_channel(
     result
 }
 
+/// Where a reply to a channel event must go: the conversation it belongs to
+/// and the sender identity the channel adapter expects.
+struct ChannelReplyTarget {
+    session_id: String,
+    user_id: String,
+}
+
 /// Report the channel events a bot can subscribe to.
 ///
 /// Media markers are `[image] inbox/…`, `[document] …`, `[voice] …`,
@@ -101,6 +118,7 @@ fn publish_channel_event(
     bot_uuid: uuid::Uuid,
     user_text: &str,
     channel: &str,
+    reply_target: &ChannelReplyTarget,
 ) {
     use botcore::shared::basic_events;
     if bot_uuid.is_nil() {
@@ -145,6 +163,8 @@ fn publish_channel_event(
             kind,
             &caption,
             channel,
+            &reply_target.session_id,
+            &reply_target.user_id,
         );
         return;
     }

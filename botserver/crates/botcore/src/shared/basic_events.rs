@@ -34,7 +34,12 @@ use crate::shared::schema::core::{system_automations, workflow_events};
 use crate::shared::utils::DbPool;
 
 /// A media file arrived on any channel and was staged in the bot's Drive
-/// `inbox/`. Payload: `{path, kind, caption, channel}`.
+/// `inbox/`. Payload: `{path, kind, caption, channel, session_id,
+/// channel_user_id}`. `session_id` and `channel_user_id` identify the
+/// conversation that produced the upload: the dispatcher runs the subscribed
+/// tool under that session and with that sender identity, so the tool's `TALK`
+/// confirmation reaches the channel the file came from instead of being
+/// dropped for lack of a destination.
 pub const MEDIA_UPLOADED: &str = "media_uploaded";
 /// A text message arrived on any channel. Payload: `{text, channel}`.
 pub const MESSAGE_RECEIVED: &str = "message_received";
@@ -221,6 +226,11 @@ pub fn mark_processed(pool: &DbPool, event_id: Uuid) {
 }
 
 /// Convenience for adapters: publish a media upload in one call.
+///
+/// `session_id` is the conversation the upload belongs to and
+/// `channel_user_id` is its sender as the channel knows it (a Telegram chat
+/// id, a WhatsApp phone number); both are required for the reply the
+/// subscribed tool produces to be deliverable.
 pub fn publish_media_uploaded(
     pool: &Arc<DbPool>,
     bot_id: Uuid,
@@ -228,12 +238,16 @@ pub fn publish_media_uploaded(
     kind: &str,
     caption: &str,
     channel: &str,
+    session_id: &str,
+    channel_user_id: &str,
 ) {
     let payload = serde_json::json!({
         "path": path,
         "kind": kind,
         "caption": caption,
         "channel": channel,
+        "session_id": session_id,
+        "channel_user_id": channel_user_id,
     });
     if let Err(e) = publish(pool, bot_id, MEDIA_UPLOADED, &payload) {
         log::warn!("[basic_events] media_uploaded for bot {bot_id} not queued: {e}");

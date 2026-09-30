@@ -1,6 +1,7 @@
 mod init;
 pub mod background;
 pub mod cache;
+pub mod channel_delivery;
 #[cfg(feature = "drive")]
 pub mod drive_monitors;
 #[cfg(feature = "drive")]

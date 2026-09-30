@@ -153,10 +153,12 @@ async fn run_tool(
         .filter_map(|(k, v)| v.as_str().map(|s| (k, s.to_string())))
         .collect();
 
+    let tool_session_id = event_session_id(&event.payload);
+
     let state_for_tool = state.clone();
     let bot_id = event.bot_id;
     let session = botlib::models::UserSession {
-        id: Uuid::new_v4(),
+        id: tool_session_id,
         user_id: Uuid::nil(),
         branch_id: Uuid::nil(),
         bot_id: event.bot_id,
@@ -185,6 +187,19 @@ async fn run_tool(
     .await;
 }
 
+/// Session a subscribed tool runs under: the conversation that published the
+/// event, so the tool's `TALK` has somewhere to go. Running under a fresh
+/// session dropped every confirmation (`send_message: NO channel for session
+/// …`) because the channel of that conversation is keyed by the session id.
+/// Events published without the field keep the previous behavior.
+fn event_session_id(payload: &serde_json::Value) -> Uuid {
+    payload
+        .get("session_id")
+        .and_then(|value| value.as_str())
+        .and_then(|value| Uuid::parse_str(value).ok())
+        .unwrap_or_else(Uuid::new_v4)
+}
+
 fn bot_name_for(pool: &DbPool, bot_id: Uuid) -> Option<String> {
     use botcore::shared::models::schema::bots;
     use diesel::prelude::*;
@@ -194,4 +209,28 @@ fn bot_name_for(pool: &DbPool, bot_id: Uuid) -> Option<String> {
         .select(bots::name)
         .first(&mut conn)
         .ok()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn the_tool_session_is_the_conversation_that_published_the_event() {
+        let session_id = Uuid::new_v4();
+        let payload = serde_json::json!({
+            "channel": "telegram",
+            "session_id": session_id.to_string(),
+            "channel_user_id": "6676512312",
+        });
+
+        assert_eq!(event_session_id(&payload), session_id);
+    }
+
+    #[test]
+    fn an_event_without_a_session_gets_a_fresh_one() {
+        let payload = serde_json::json!({"path": "inbox/voice_test.wav"});
+
+        assert!(!event_session_id(&payload).is_nil());
+    }
 }
