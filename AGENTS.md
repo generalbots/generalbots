@@ -39,12 +39,11 @@
 - ❌ NEVER write internal IPs to logs or output. Mask IPs when debugging (e.g. "10.x.x.x" not "10.0.0.1"). Use hostnames instead of IPs in configs and documentation.
 
 ### Bot Source Rules
-- ❌ NEVER commit `.bas` source files from production bots — only `.ast` (compiled) and `.json` files
-- ✅ `.bas` for production bots belongs in `work/` (local dev only)
-- ✅ `.bas` templates in `bottemplates/` are part of the repo (source templates, not production)
+- ✅ `.bas` tool scripts ARE committed in git for git-owned bots (reform #1501/#1505) — the bot's ALM repository is the source of truth, not Drive; `.ast` caches and `work/` copies are build artifacts, never sources
+- ✅ `bottemplates/` ships source templates in the monorepo (reference material, not a bot's runtime source)
 - ✅ **Git-owned bots (reform #1501/#1505): the ALM repository is the source of truth** — `.gbdialog/` (tools) and `.gbot/` (channel prompts) live in the bot's repo, pulled every 15 s by `git_bot_monitor` and materialized into `work/{branch}.gborg/{branch}.gbai/{bot}.gbdialog|{bot}.gbot/`. Drive copies of those two prefixes are archived to `{bucket}/archive/{bot}-{stamp}/`, never read. `.gbkb`/`.gbdrive` stay in Drive.
 - 🚨 **A bot without `PROMPT-{CHANNEL}.md` in its work-dir `.gbot/` silently answers with the generic fallback prompt** (`load_system_prompt_for_channel` in `botserver/src/core/bot/ws/message.rs:16`) — no error is logged, tools simply stop being called (e.g. `classify_media` never fires). Shipped templates must therefore commit their `.gbot` prompts with the tool (`templates.rs` → `config_files`, `persist_config_to_git`, `bot_config::write_config_files`); `git_config` recovers orphaned Drive/archived `.gbot` on boot, and the archive pass refuses to delete a Drive `.gbot` that is not in the repo yet.
-- Bots are loaded exclusively from Drive (MinIO `.gbai` buckets) — see `botserver/src/main_module/drive_monitors.rs`. Never from local filesystem paths.
+- The **runtime** materializes and loads bots through Drive (MinIO `.gbai` buckets) — see `botserver/src/main_module/drive_monitors.rs`. For git-owned bots that Drive tree is a materialized copy of the bot's ALM repo (`git_bot_monitor`, every 15 s); a change made straight in Drive is out-of-band and gets archived. Never point code at local filesystem paths.
 
 ### Test Identifiers (prod beiner media-filing E2E)
 Reusable ids so the next session does not rediscover them — no secrets, no IPs:
@@ -191,7 +190,7 @@ END TABLE
 ```
 
 ### {tool}.bas — Tool Scripts
-- **Location:** `/opt/gbo/data/{bot}.gbai/{bot}.gbdialog/{tool}.bas` → compiled to `{tool}.ast`
+- **Source:** the bot's repo `.gbdialog/{tool}.bas` (git-owned bots — ALM repo) → materialized into the work dir `{bot}.gbai/{bot}.gbdialog/` → compiled to `{tool}.ast`. Legacy/local-dev bots keep the same work-dir layout without a repo behind it.
 - **Execution:** via `CALL "tool"` or TOOL_EXEC (type 6)
 
 ```basic
@@ -224,7 +223,7 @@ result = DETECT "folha_salarios"   ' Analyze table for anomalies (requires table
 
 ## Drive & Vault Operations — MANDATORY
 
-**❌ NEVER manipulate bot files on the local filesystem directly.** ALL bot files (`.bas`, `.gbkb`, `.gbdrive`, config, etc.) live exclusively in MinIO Drive buckets (`{bot}.gbai`). Use `mc` for any bot file operation.
+**Sources of truth:** for git-owned bots (reform #1501/#1505) `.gbdialog/` scripts and `.gbot/` prompts live in the **bot's ALM repository** — edit them there, commit, push; `git_bot_monitor` materializes the repo into Drive within 15 s. Never "fix" those files by writing straight into Drive: the Drive copy is a materialized artifact and the next sync (or archive pass) clobbers or archives it. Drive (MinIO `{bot}.gbai` buckets) remains the home of runtime state — `.gbkb` knowledge, `.gbdrive` user files and media — manipulated with `mc`, never by touching the local filesystem.
 
 ### Drive Bucket Hierarchy — Two Layouts
 
@@ -264,17 +263,18 @@ DRIVE_PORT=$($VAULT_BIN kv get -field=port secret/gbo/drive)
 ```
 
 ### Workflow for ANY bot file operation
-1. Get credentials from Vault (above) → 2. Configure mc → 3. Pull file from Drive to `/tmp/` → 4. Edit locally in `/tmp/` → 5. Push back to Drive → 6. drive_monitor auto-detects change and reloads.
+1. Get credentials from Vault (above) → 2. Configure mc → 3. Pull the file to `/tmp/` for INSPECTION.
+   - `.gbkb` / `.gbdrive` content (Drive-owned): edit locally in `/tmp/`, push back with `mc` → drive_monitor reloads.
+   - `.gbdialog/` scripts and `.gbot/` prompts of a git-owned bot: make the change in the bot's ALM repo and push — NEVER write script edits back to Drive.
 
 ### Common mc operations
 ```bash
 /tmp/mc ls local/                                          # List all bots (each bucket = {bot}.gbai)
-/tmp/mc ls local/{bot}.gbai/{bot}.gbdialog/                # Inspect dialog files
-/tmp/mc cp local/{bot}.gbai/{bot}.gbdialog/start.bas /tmp/ # Read a bot's start.bas
-/tmp/mc cp /tmp/start.bas local/{bot}.gbai/{bot}.gbdialog/start.bas   # Update after editing
+/tmp/mc ls local/{bot}.gbai/{bot}.gbdialog/                # Inspect dialog files (read-only for git-owned bots)
+/tmp/mc cp local/{bot}.gbai/{bot}.gbdialog/start.bas /tmp/ # Read a bot's start.bas (inspection only)
 /tmp/mc ls local/{bot}.gbai/{bot}.gbkb/docs/               # List KB documents
-/tmp/mc cp /tmp/document.pdf local/{bot}.gbai/{bot}.gbkb/docs/        # Upload KB doc
-/tmp/mc rm local/{bot}.gbai/{bot}.gbdialog/old_tool.bas    # Remove file
+/tmp/mc cp /tmp/document.pdf local/{bot}.gbai/{bot}.gbkb/docs/        # Upload KB doc (Drive-owned content)
+/tmp/mc ls local/{bot}.gbai/{bot}.gbdrive/                 # Inspect user files/media (Drive-owned)
 /tmp/mc mb local/{bot}.gbai && /tmp/mc cp --recursive botserver-stack/data/system/work/{bot}.gbai/ local/{bot}.gbai/  # Upload bot
 ```
 
@@ -1496,8 +1496,8 @@ error position before guessing.
 - **Cause:** the work-dir `.ast` was compiled by the OLD binary; mangled statements
   are baked into the cached AST. Runtime self-heal (`ScriptService::run` re-applies
   only `convert_multiword_keywords`) cannot reverse an already-mangled statement.
-- **Fix:** recompile with the new binary — re-put the `.bas` in Drive (new ETag →
-  drive_compiler recompiles) or hot-patch the work-dir `.ast` back to the keyword
+- **Fix:** recompile with the new binary — commit the `.bas` in the bot's ALM repo (git sync →
+  new ETag → drive_compiler recompiles) or hot-patch the work-dir `.ast` back to the keyword
   form so self-heal rewrites it. Never assume a deploy alone recompiles tools.
 
 ### 2. CREATE FILE rewrite read wrong regex groups
@@ -1557,7 +1557,8 @@ error position before guessing.
   in `msg.bot_id` FIRST.
 
 ### E2E loop discipline for bot tools
-Every fix → build → deploy → **force recompile** (re-put `.bas`) → re-test via
+Every fix → build → deploy → **force recompile** (commit the `.bas` in the bot's repo; git sync
+recompiles) → re-test via
 Chrome CDP browser upload (never WebSocket scripts) → verify Drive objects via
 boto3 (`{bot}.gbdrive/media/...`). One error at a time; the dumps tell the layer.
 
