@@ -6,6 +6,7 @@ const TAB_BRANCHDRIVE = "branchdrive";
 const TAB_SHARED      = "shared";
 const TAB_PUBLIC      = "public";
 const TAB_MYFILES     = "myfiles";
+const TAB_BOTS        = "bots";
 const TAB_ROOT        = "root";
 const TAB_DESKTOP     = "desktop";
 

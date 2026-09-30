@@ -1,0 +1,364 @@
+/* Drive Module v2.0 — Component Styles */
+
+.drive-storage {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.file-name {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 500;
+    color: var(--text, var(--text-primary, #ffffff));
+}
+
+.file-name {
+    font-size: 13px;
+    font-weight: 500;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Selection Bar */
+.selection-bar {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 20px;
+    background: var(--surface, #12121a);
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+}
+
+.selection-count {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text, #ffffff);
+}
+
+.selection-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.action-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-secondary, #6b6b80);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.action-btn:hover {
+    background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+    color: var(--text, #ffffff);
+}
+
+.action-btn.danger:hover {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ef4444;
+}
+
+.close-selection {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary, #6b6b80);
+    cursor: pointer;
+    margin-left: 8px;
+}
+
+.close-selection:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+/* Loading State */
+.loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: var(--text-secondary, #6b6b80);
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border, #2a2a3a);
+    border-top-color: var(--primary, #3b82f6);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 16px;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Empty State */
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    text-align: center;
+    color: var(--text-secondary, #6b6b80);
+}
+
+.empty-state svg {
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.empty-state h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text, #ffffff);
+    margin-bottom: 8px;
+}
+
+.empty-state p {
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.empty-state .btn-primary {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    background: var(--primary, #3b82f6);
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.empty-state .btn-primary:hover {
+    opacity: 0.9;
+}
+
+/* File Checkbox */
+.file-checkbox {
+    width: 16px;
+    height: 16px;
+    margin-right: 8px;
+    cursor: pointer;
+    accent-color: var(--primary, #3b82f6);
+}
+
+/* Button Icon Small */
+.btn-icon-sm {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary, #6b6b80);
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.15s;
+}
+
+.btn-icon-sm:hover {
+    background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+    color: var(--text, #ffffff);
+}
+
+/* Notification Animation */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Context Menu imported from context-menu.css */
+
+/* Button styles for editor */
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: var(--primary, #3b82f6);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.btn-primary:hover {
+    background: var(--primary-hover, #2563eb);
+}
+
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: transparent;
+    color: var(--text-secondary, #6b6b80);
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-secondary:hover {
+    background: var(--surface-hover, #1a1a24);
+    color: var(--text, #ffffff);
+}
+
+/* KB Tags */
+.kb-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 8px;
+    text-transform: uppercase;
+}
+
+.kb-tag.public {
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.kb-tag.private {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* Sidebar Actions */
+.drive-sidebar-actions {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.btn-primary-full,
+.btn-secondary-full {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-primary-full {
+    background: var(--primary, #3b82f6);
+    color: white;
+}
+
+.btn-primary-full:hover {
+    opacity: 0.9;
+}
+
+.btn-secondary-full {
+    background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+    color: var(--text, #ffffff);
+    border: 1px solid var(--border, #2a2a3a);
+}
+
+.btn-secondary-full:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+/* File Card Info */
+.file-card-info {
+    text-align: center;
+}
+
+.file-card-meta {
+    font-size: 11px;
+    color: var(--text-secondary, #6b6b80);
+    margin-top: 4px;
+}
+
+.file-card-preview .kb-tag {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    margin: 0;
+    backdrop-filter: blur(4px);
+}
+
+/* Division Selector Styles */
+.drive-divisions {
+    padding: 4px 8px;
+    border-bottom: 1px solid var(--border, #2a2a3a);
+}
+
+.division-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted, #6b7280);
+    padding: 8px 12px 4px;
+    font-weight: 600;
+}
+
+.division-item {
+    padding: 6px 28px !important;
+    font-size: 13px !important;
+}
+
+.division-item.active {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+}
+
+.division-divider {
+    height: 1px;
+    background: var(--border, #2a2a3a);
+    margin: 8px 0;
+}
+

@@ -14,6 +14,8 @@
 | **Secrets** | ❌ NEVER include sensitive data (IPs, tokens, passwords, keys) in AGENTS.md or any documentation. Never hardcode credentials in source — use `generate_random_string()` or env vars. Secret files go in `/tmp/` only |
 | **Bot restarts** | ❌ NEVER restart botserver for `config.csv` changes — DriveMonitor auto-reloads on ETag change (~10s) |
 | **Branching** | ❌ NEVER change git branches without explicit user approval |
+| **Todos** | 📋 Update the todo list REGULARLY — after every completed step, when starting a new phase, and whenever priorities change. Long stretches without todo updates are forbidden |
+| **CDP control** | 🖥️ Browser automation MUST be fragmented: one short script = ONE action, print state, STOP. NEVER generate long all-in-one CDP scripts that batch many steps silently |
 | **Env status** | I AM IN DEV ENV, but sometimes pasting from PROD — do not treat my env as prod! Just fix, push to CI, so I can test in PROD for a while |
 | **License** | The project is **MIT** (relicensed from AGPL-3.0 in `4ef5f58fc`, 2026-09-12) and the copyright holder is **General Bots**. ❌ NEVER describe our own code as AGPL/GPL. ✅ Third-party AGPL notices (MinIO, Stalwart, Forgejo, Garage, Skytable) are correct and MUST stay |
 
@@ -328,6 +330,33 @@ Check first: `ps aux | grep "chrome.*remote-debugging-port=9222" | grep -v grep`
 4. 🚨 **NEVER close the browser** — tabs are trace evidence. Close only when explicitly requested.
 5. Screenshots at `/tmp/{bot}_case{N}_{desc}.png`.
 
+### Fragmented CDP Control (MANDATORY)
+❌ NEVER generate long, all-in-one automation scripts that batch navigation + login + clicks + assertions in a single run. They hide progress, fail opaquely mid-way, and orphan state (e.g. a crashed step closed a tab and every later step died silently).
+
+✅ **One script = ONE step.** Each step:
+1. Does exactly one action (open tab, OR refresh token, OR click a button, OR read UI state, OR screenshot)
+2. `print()`s what it found (URL, visible text, API status)
+3. **STOPS** — results are reported before the next step is written
+
+```python
+# ❌ WRONG — 200-line script: goto → login → SSO → click folder → assert → screenshot
+# ✅ RIGHT — /tmp/step1_open.py opens the tab and prints the landing state; DONE.
+#           Then inspect output, decide next single step, write /tmp/step2_*.py
+```
+
+Conventions:
+- Scripts live in `/tmp/` named `{topic}_step{N}_{action}.py` (e.g. `beiner_drive_step4_sso.py`)
+- Re-locate tabs/pages at the START of each script (never cache page handles across steps — a previous step may have closed or crashed the tab)
+- If a step fails, diagnose from its printed state before writing the next step; never retry a batch blindly
+- Between steps, keep the todo list current (see Non-Negotiable Rules → Todos)
+
+**Hard limits (learned 2026-09-30 — long scripts froze the browser and wasted the session):**
+- ❌ NEVER put a polling loop (`while`/`for` + `asyncio.sleep`) inside a script — a long script looks like a hung browser; instead read state with repeated one-shot scripts
+- ❌ NEVER `asyncio.sleep()` longer than ~5 s in an action script — if the server is slow (prod `/api/files/*` calls take 16–32 s), run another small read step later
+- ❌ NEVER batch two actions in one file (reload + read = two steps, two scripts)
+- ✅ Keep every script under ~30 lines: locate the page by URL → one action OR one read → `print()` compact state (JSON) → exit
+- ✅ Timebox the run (~60 s tool timeout); if it exceeds, kill it, split the step, keep the browser open
+
 ### Suite Apps — ALWAYS Open Inside Desktop (NEVER Direct URL)
 **❌ NEVER open a suite app page directly** (`/suite/drive/drive.html`, `/suite/chat/chat.html`, etc.) — they are HTMX fragments requiring the desktop shell (`desktop.html`) to bootstrap JS modules, security context, window manager. Direct URL = broken empty shell.
 
@@ -335,6 +364,8 @@ Check first: `ps aux | grep "chrome.*remote-debugging-port=9222" | grep -v grep`
 - `/drive` → desktop shell detects app "drive" → HTMX loads `/suite/drive/drive.html` into content area
 - `/chat/<bot>` → desktop shell → `/suite/chat/chat.html`
 - `/tasks` → `/suite/tasks/tasks.html` · `/social` → `/suite/social/social.html`
+
+**Bot context comes from the HOST, not a query param:** test a bot on its own platform subdomain — `https://{bot}.{platform}/drive` (e.g. `https://beiner.generalbots.org/drive`). On another bot's host (`https://pragmatismo.generalbots.org/drive?bot=beiner`) the shell derives `window.__INITIAL_BOT_NAME__` from the Host header (`pragmatismo`) and the `?bot=` param is ignored — Drive then probes the wrong buckets and never renders.
 
 **Why:** Drive app has 5 top-level tabs (Bots, My Files, Shared, Public, Root). Direct URL skips the `01_state.js` → `99_init.js` chain — no tab bar, no API calls, broken shell.
 

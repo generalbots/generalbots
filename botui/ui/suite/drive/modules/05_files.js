@@ -201,13 +201,22 @@ async function searchFiles(query) {
 
 // ── Tab Path Builders ────────────────────────────────────────────
 function buildPathBranchDrive() {
-    if (!currentGborgBranch) return "";
-    // If bucket is .gborg, files are nested inside .gbai subdirectory
-    // If bucket is .gbai directly, files are at root
-    if (currentBucket && currentBucket.indexOf('.gborg') > 0) {
-        return currentGborgBranch + ".gbai/" + currentGborgBranch + ".gbdrive";
+    if (currentGborgBranch) {
+        // If bucket is .gborg, files are nested inside .gbai subdirectory
+        // If bucket is .gbai directly, files are at root
+        if (currentBucket && currentBucket.indexOf('.gborg') > 0) {
+            return currentGborgBranch + ".gbai/" + currentGborgBranch + ".gbdrive";
+        }
+        return currentGborgBranch + ".gbdrive";
     }
-    return currentGborgBranch + ".gbdrive";
+    // Standalone layout: the bucket IS the bot's {bot}.gbai and its Drive
+    // sits at {bot}.gbdrive. Without this the Drive tab fell back to
+    // scope=user with an empty path and rendered "This folder is empty"
+    // for every standalone bot (beiner in production).
+    if (currentBucket && currentBucket.indexOf('.gbai') > 0) {
+        return currentBucket.replace('.gbai', '.gbdrive');
+    }
+    return "";
 }
 
 function buildPathShared() {
