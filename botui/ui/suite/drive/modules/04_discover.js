@@ -19,13 +19,28 @@ async function probeLayout(bucket, path) {
 
 async function discoverBuckets() {
     try {
-        // Prefer user's own bucket from session (no API call needed)
+        // Prefer user's own bucket from session (no API call needed). An org
+        // claim is only a HINT: bots provisioned on the standalone layout keep
+        // their Drive in `{bot}.gbai` even though the session says `.gborg`,
+        // and the org path lists empty for them (beiner in production). When
+        // the org layout holds nothing, fall back to the bot's own bucket —
+        // the same probe the no-session path below already performs.
         if (userInfo && userInfo.bucket) {
             var bucketName = userInfo.bucket;
             currentBucket = bucketName;
             if (bucketName.indexOf(".gborg") > 0) {
                 currentGborgBucket = bucketName;
                 currentGborgBranch = bucketName.replace(".gborg", "");
+                var hintBot = currentGborgBranch;
+                var orgHasContent = await probeLayout(
+                    bucketName, hintBot + ".gbai/" + hintBot + ".gbdrive"
+                ) === "content";
+                if (!orgHasContent &&
+                    await probeLayout(hintBot + ".gbai", hintBot + ".gbdrive") !== "error") {
+                    currentBucket = hintBot + ".gbai";
+                    currentGborgBucket = null;
+                    currentGborgBranch = null;
+                }
             } else {
                 currentGborgBucket = null;
                 currentGborgBranch = null;
