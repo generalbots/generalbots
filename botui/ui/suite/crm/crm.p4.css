@@ -1,0 +1,92 @@
+/* ── #1441 B/C1 — record CRUD: New-record menu, sortable headers, detail
+   drawer and the reporting cards. ─────────────────────────────────────── */
+.crm-new-menu { position: relative; display: inline-flex; }
+.crm-new-dropdown {
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    min-width: 160px;
+    background: var(--surface, #fff);
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 6px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .14);
+    display: flex;
+    flex-direction: column;
+    z-index: 1300;
+    overflow: hidden;
+}
+.crm-new-dropdown[hidden] { display: none; }
+.crm-new-dropdown button {
+    background: none;
+    border: none;
+    text-align: left;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-primary, #111);
+}
+.crm-new-dropdown button:hover { background: var(--surface-hover, #f3f4f6); }
+
+.grid-search {
+    padding: 4px 8px;
+    min-width: 180px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 4px;
+    background: var(--surface, #fff);
+    color: var(--text-primary, #111);
+}
+
+th.sortable { cursor: pointer; user-select: none; }
+th.sortable:hover { color: var(--primary, #2563eb); }
+th.sortable[data-dir]::after { content: " ▾"; font-size: 10px; opacity: .7; }
+th.sortable[data-dir="desc"]::after { content: " ▴"; }
+
+.row-action {
+    background: none;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 4px;
+    padding: 2px 6px;
+    margin-right: 4px;
+    font-size: 11px;
+    cursor: pointer;
+    color: var(--text-primary, #111);
+}
+.row-action:hover { background: var(--surface-hover, #f3f4f6); }
+.row-action.danger { color: #dc2626; border-color: rgba(220, 38, 38, .4); }
+.campaign-card-actions { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+.campaign-locked { font-size: 11px; color: var(--text-secondary, #888); align-self: center; }
+
+.report-card { width: 100%; }
+.report-label { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text-secondary, #888); }
+.report-value { font-size: 18px; font-weight: 700; margin: 2px 0; }
+.report-meta { font-size: 11px; color: var(--text-secondary, #888); }
+.report-table { margin-top: 6px; }
+.report-empty { font-size: 12px; color: var(--text-secondary, #888); padding: 8px 0; }
+
+#record-detail-panel.open { right: 0; }
+.record-detail { padding: 0; }
+.record-detail-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color, #e5e7eb);
+}
+.record-detail-head strong { flex: 1; font-size: 15px; }
+.record-detail-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--text-secondary, #666);
+}
+.record-detail-body { padding: 12px 16px; overflow-y: auto; }
+.record-detail-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 14px; }
+.record-detail-fields .detail-field { display: flex; flex-direction: column; }
+.record-detail-fields .detail-field label { font-size: 11px; color: var(--text-secondary, #888); }
+.record-related { margin-top: 14px; }
+.lost-reason-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+.activity-form { display: flex; gap: 6px; margin: 8px 0 10px; }
+.activity-form select { width: 110px; }
+.activity-form input { flex: 1; }

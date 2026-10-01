@@ -43,6 +43,29 @@ pub async fn delete_lead(
         .first(&mut conn)
         .ok();
 
+    // #1441 A3 — a converted lead still backs a live opportunity: deleting it
+    // would orphan the pipeline row, so the delete is refused with the count
+    // instead of failing later on the foreign key.
+    let converted: i64 = crm_deals::table
+        .filter(crm_deals::branch_id.eq(branch_id))
+        .filter(crm_deals::lead_id.eq(id))
+        .count()
+        .get_result(&mut conn)
+        .unwrap_or(0);
+    if converted > 0 {
+        return Err((
+            StatusCode::CONFLICT,
+            format!("lead backs {converted} converted opportunity/ies; delete or reassign them first"),
+        ));
+    }
+
+    // #1441 C5 — destructive action restricted to the record owner or an admin.
+    crate::authz::ensure_can_modify(
+        &mut conn,
+        &headers,
+        before.as_ref().and_then(|d| d.owner_id),
+    )?;
+
     diesel::delete(
         crm_deals::table
             .filter(crm_deals::id.eq(id))

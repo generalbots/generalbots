@@ -10,8 +10,9 @@ pub fn configure_crm_api_routes() -> Router<Arc<CrateState>> {
     Router::new()
         .route("/api/crm/contacts", get(handlers::contacts::list_contacts).post(handlers::contacts::create_contact))
         .route("/api/crm/contacts/:id", get(handlers::contacts::get_contact).put(handlers::contacts::update_contact).delete(handlers::contacts::delete_contact))
+        .route("/api/crm/contacts/search", get(ui::crm_ui::handle_crm_contacts_search))
         .route("/api/crm/accounts", get(handlers::accounts::list_accounts).post(handlers::accounts::create_account))
-        .route("/api/crm/accounts/:id", get(handlers::accounts::get_account).delete(handlers::accounts::delete_account))
+        .route("/api/crm/accounts/:id", get(handlers::accounts::get_account).put(handlers::accounts::update_account).delete(handlers::accounts::delete_account))
         .route("/api/crm/leads", get(handlers::deals::list_leads).post(handlers::deals::create_lead_form))
         .route("/api/crm/leads/bulk", post(handlers::bulk_csv::bulk_leads))
         .route("/api/crm/leads/export", get(handlers::csv_io::export_leads_csv))
@@ -27,9 +28,9 @@ pub fn configure_crm_api_routes() -> Router<Arc<CrateState>> {
         .route("/api/crm/opportunities/:id", get(handlers::opportunities::get_opportunity).put(handlers::opportunities::update_opportunity).delete(handlers::opportunities::delete_opportunity))
         .route("/api/crm/opportunities/:id/close", post(handlers::opportunities::close_opportunity))
         .route("/api/crm/deals", get(handlers::crm::list_deals).post(handlers::crm::create_deal))
-        .route("/api/crm/deals/:id", get(handlers::crm::get_deal).put(handlers::crm::update_deal).delete(handlers::crm::delete_deal))
-        .route("/api/crm/activities", get(handlers::activities::list_activities).post(handlers::crm::create_activity))
-        .route("/api/crm/pipeline/stages", get(handlers::crm::get_pipeline_stages)
+        .route("/api/crm/deals/:id", get(handlers::crm::get_deal).put(handlers::deals_mutate::update_deal).delete(handlers::deals_mutate::delete_deal))
+        .route("/api/crm/activities", get(handlers::activities::list_activities).post(handlers::activities::create_activity))
+        .route("/api/crm/pipeline/stages", get(crate::stages::get_pipeline_stages)
             .post(crate::stages::create_stage))
         .route("/api/crm/pipeline/stages/:id", put(crate::stages::update_stage).delete(crate::stages::delete_stage))
         .route("/api/crm/stats", get(handlers::crm::get_crm_stats))
@@ -53,6 +54,11 @@ pub fn configure_crm_ui_routes() -> Router<Arc<CrateState>> {
         .route("/api/ui/crm/deals", get(ui::crm_ui::handle_crm_deals))
         .route("/api/ui/crm/opportunities", get(ui::crm_ui::handle_crm_opportunities))
         .route("/api/ui/crm/leads/:id", get(ui::folder_view::handle_lead_detail))
+        // #1441 C1 — one detail fragment for every record type (drawer).
+        .route("/api/ui/crm/records/:entity/:id", get(ui::crm_ui::handle_record_detail))
+        // #1441 C7 — reporting: weighted forecast and funnel by source.
+        .route("/api/ui/crm/stats/forecast", get(ui::crm_ui::handle_crm_stats_forecast))
+        .route("/api/ui/crm/stats/funnel", get(ui::crm_ui::handle_crm_stats_funnel))
         .route("/api/ui/crm/campaigns", get(ui::crm_ui::handle_crm_campaigns))
 }
 

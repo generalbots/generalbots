@@ -130,6 +130,10 @@ pub async fn bulk_leads(
             LeadBulkActionResult { updated, deleted: 0, failed }
         }
         _ => {
+            // #1441 C5 — bulk delete honours the same owner/admin rule.
+            for row in &before_rows {
+                crate::authz::ensure_can_modify(&mut conn, &headers, row.owner_id)?;
+            }
             let deleted = diesel::delete(
                 crm_deals::table
                     .filter(crm_deals::branch_id.eq(branch_id))
@@ -221,6 +225,10 @@ pub async fn bulk_contacts(
             LeadBulkActionResult { updated, deleted: 0, failed }
         }
         _ => {
+            // #1441 C5 — bulk delete honours the same owner/admin rule.
+            for row in &before_rows {
+                crate::authz::ensure_can_modify(&mut conn, &headers, row.owner_id)?;
+            }
             let deleted = diesel::delete(
                 crm_contacts::table
                     .filter(crm_contacts::branch_id.eq(branch_id))
