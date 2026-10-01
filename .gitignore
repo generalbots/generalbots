@@ -31,3 +31,4 @@ test-results/
 opt/
 __pycache__/
 *.pyc
+*.mcp.json
