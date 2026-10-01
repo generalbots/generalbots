@@ -1,4 +1,6 @@
 pub mod api;
+pub mod compute_provisioning;
+pub mod domain_provisioning;
 pub mod branch_scope;
 pub mod integration;
 pub mod notifier;

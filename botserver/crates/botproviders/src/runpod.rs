@@ -1,6 +1,7 @@
 use crate::{ComputeProvider, MachineSpec, ProvisionResult, ProviderError, ProviderInfo};
 use async_trait::async_trait;
 
+#[derive(Debug, Default)]
 pub struct RunPodProvider;
 
 impl RunPodProvider {
@@ -120,11 +121,19 @@ impl ComputeProvider for RunPodProvider {
         let parsed: serde_json::Value = serde_json::from_str(&text)
             .map_err(|e| ProviderError::Api(format!("RunPod parse error: {e}")))?;
 
+        // An "unknown" instance id would make the resource unmanageable: the
+        // caller could never terminate or poll it. Fail instead.
         let instance_id = parsed["id"]
             .as_str()
             .or_else(|| parsed["gpuRequestId"].as_str())
-            .unwrap_or("unknown")
-            .to_string();
+            .filter(|id| !id.is_empty())
+            .map(str::to_string)
+            .ok_or_else(|| {
+                ProviderError::Api(format!(
+                    "RunPod created a pod but returned no id: {}",
+                    crate::truncate(&text)
+                ))
+            })?;
 
         Ok(ProvisionResult {
             provider: "runpod".into(),
@@ -137,18 +146,39 @@ impl ComputeProvider for RunPodProvider {
         })
     }
 
+    /// Stops the pod and then deletes the GPU request.
+    ///
+    /// Stopping alone is not termination: the request stays on the account and
+    /// keeps reserving the GPU at full rate until it is deleted. A stop whose
+    /// delete fails is reported as a failure, because the resource is still
+    /// billing.
     async fn terminate(&self, instance_id: &str, api_key: &str) -> Result<(), ProviderError> {
         let client = reqwest::Client::new();
-        let resp = client
+        let stop = client
             .post(format!("https://api.runpod.io/v2/gpu/request/{instance_id}/stop"))
             .header("Authorization", format!("Bearer {api_key}"))
             .send()
             .await?;
-
-        if !resp.status().is_success() {
+        let stop_status = stop.status();
+        // 404 on stop means the pod is already gone, which still leaves the
+        // request to be deleted below.
+        if !stop_status.is_success() && stop_status.as_u16() != 404 {
             return Err(ProviderError::Api(format!(
-                "RunPod terminate failed: HTTP {}",
-                resp.status()
+                "RunPod stop failed: HTTP {}",
+                stop_status.as_u16()
+            )));
+        }
+
+        let delete = client
+            .delete(format!("https://api.runpod.io/v2/gpu/request/{instance_id}"))
+            .header("Authorization", format!("Bearer {api_key}"))
+            .send()
+            .await?;
+        let delete_status = delete.status();
+        if !delete_status.is_success() && delete_status.as_u16() != 404 {
+            return Err(ProviderError::Api(format!(
+                "RunPod delete failed after stop: HTTP {}",
+                delete_status.as_u16()
             )));
         }
         Ok(())
@@ -193,7 +223,7 @@ impl ComputeProvider for RunPodProvider {
                     .and_then(Self::runpod_gpu_to_type);
                 ProvisionResult {
                     provider: "runpod".into(),
-                    instance_id: item["id"].as_str().unwrap_or("").into(),
+                    instance_id: item["id"].as_str().unwrap_or_default().into(),
                     status: item["status"].as_str().unwrap_or("unknown").into(),
                     ip_address: item["ip"].as_str().map(|s| s.into()),
                     region: item["country"].as_str().unwrap_or("").into(),
@@ -204,6 +234,7 @@ impl ComputeProvider for RunPodProvider {
                         gpu_type,
                         gpu_count: item["gpuCount"].as_u64().unwrap_or(1) as u32,
                         bandwidth_tb: 0,
+                        use_spot: false,
                     },
                     hourly_cost: item["costPerHr"].as_f64().unwrap_or(0.0),
                 }

@@ -5,19 +5,39 @@ edition = "2021"
 license = "MIT"
 
 [features]
-default = ["providers-vast", "providers-contabo"]
+# Every adapter is compiled by default: a feature flag that hides a complete
+# implementation only guarantees nobody tested it (issue #1470). Downstream
+# builds that want a trimmed binary can drop the features they do not ship.
+default = [
+  "providers-vast",
+  "providers-contabo",
+  "providers-runpod",
+  "providers-vultr",
+  "providers-hetzner",
+  "providers-ovh",
+  "providers-digitalocean",
+  "providers-oracle",
+]
 providers-vast = []
 providers-contabo = []
 providers-runpod = []
 providers-vultr = []
+providers-hetzner = []
+providers-ovh = []
+providers-digitalocean = []
+providers-oracle = []
 
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 reqwest = { workspace = true, default-features = false, features = ["json", "rustls-tls"] }
-tokio = { workspace = true, features = ["full"] }
-uuid = { workspace = true, features = ["v4"] }
 chrono = { workspace = true, features = ["clock"] }
-log = { workspace = true }
 thiserror = { workspace = true }
 async-trait = { workspace = true }
+base64 = { workspace = true }
+hmac = { workspace = true }
+sha1 = { workspace = true }
+hex = { workspace = true }
+
+[lints]
+workspace = true
