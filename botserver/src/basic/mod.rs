@@ -7,6 +7,7 @@ pub use botcore::shared::UserSession;
 
 pub use botbasic_compiler as compiler;
 pub mod keywords;
+mod runtime_llm;
 
 
 #[derive(Debug)]
@@ -186,7 +187,6 @@ pub mod tests;
 
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::Duration;
 use botbasic_types::BasicRuntime;
 use botcore::shared::UserSession as LocalUserSession;
 use uuid::Uuid;
@@ -265,60 +265,14 @@ impl BasicRuntime for AppStateBasicRuntime {
     }
 
     fn llm_generate(&self, prompt: &str, model: &str, api_key: &str) -> Result<String, String> {
-        // Tool scripts (classify_media, etc.) run through the BasicRuntime
-        // trait, which previously only had the default "LLM provider not
-        // configured" stub — the BASIC `LLM` keyword aborted on the first
-        // classification call. Use the same provider the pipeline uses,
-        // resolving config through ConfigManager so per-bot Vault LLM
-        // settings (secret/gbo/{org}/{branch}/{bot}) are honored before
-        // the global fallback.
-        use botcore::config::ConfigManager;
-        let manager = ConfigManager::new(self.0.conn.clone());
-        let resolved_model = manager
-            .get_config(&Uuid::nil(), "llm-model", None)
-            .ok()
-            .filter(|v| !v.is_empty())
-            .or_else(|| {
-                let model = model.to_string();
-                (!model.is_empty()).then_some(model)
-            })
-            .unwrap_or_else(|| "llama3".to_string());
-        let resolved_key = manager
-            .get_config(&Uuid::nil(), "llm-key", None)
-            .ok()
-            .filter(|v| !v.is_empty())
-            .or_else(|| {
-                let key = api_key.to_string();
-                (!key.is_empty()).then_some(key)
-            })
-            .unwrap_or_default();
+        // Tool scripts (classify_media, etc.) reach the model through this
+        // trait. `runtime_llm` owns the per-bot Vault resolution, the
+        // sync/async bridge and the model-handler post-processing (#1465).
+        runtime_llm::generate(&self.0, prompt, model, api_key)
+    }
 
-        let provider = self
-            .0
-            .llm_provider
-            .clone()
-            .ok_or_else(|| "LLM provider not configured".to_string())?;
-        let (tx, rx) = std::sync::mpsc::channel();
-        let provider_for_task = provider;
-        let prompt_owned = prompt.to_string();
-        std::thread::spawn(move || {
-            let rt = tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build();
-            let result = match rt {
-                Ok(rt) => rt.block_on(async {
-                    provider_for_task
-                        .generate(&prompt_owned, &serde_json::Value::Null, &resolved_model, &resolved_key)
-                        .await
-                        .map_err(|e| e.to_string())
-                }),
-                Err(e) => Err(format!("Failed to build tokio runtime: {e}")),
-            };
-            let _ = tx.send(result);
-        });
-        rx.recv_timeout(Duration::from_secs(120)).unwrap_or_else(|_| {
-            Err("LLM generation timed out after 120 seconds".to_string())
-        })
+    fn default_bot_id(&self) -> String {
+        runtime_llm::default_bot_uuid(&self.0).to_string()
     }
 
     fn update_session_user(&self, session_id: Uuid, user_id: Uuid) -> Result<(), String> {
