@@ -124,7 +124,7 @@ impl BasicCompiler {
             if let Err(e) = self.process_tables_bas() {
                 log::warn!("Failed to process tables.bas: {}", e);
             }
-            let tool_def = self.parse_tool_definition(&source_content, source_path)?;
+            let tool_def = Self::parse_tool_definition(&source_content, source_path)?;
             let file_name = std::path::Path::new(source_path)
                 .file_stem()
                 .and_then(|s| s.to_str())
@@ -150,7 +150,7 @@ impl BasicCompiler {
             }
         }
 
-        let tool_def = self.parse_tool_definition(&source_content, source_path)?;
+        let tool_def = Self::parse_tool_definition(&source_content, source_path)?;
         let file_name = std::path::Path::new(source_path)
             .file_stem()
             .and_then(|s| s.to_str())

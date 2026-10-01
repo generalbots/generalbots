@@ -42,9 +42,10 @@ fn template_ships_in_the_layout_the_resolvers_expect() {
         gbai.join("media-filing.gbdialog/classify_media.bas").is_file(),
         "missing the classify_media tool script"
     );
+    let tool_source = read("media-filing.gbdialog/classify_media.bas");
     assert!(
-        gbai.join("media-filing.gbdialog/classify_media.mcp.json").is_file(),
-        "missing the classify_media tool schema"
+        tool_source.contains("PARAM path") && tool_source.contains("PARAM caption"),
+        "the tool schema must be declared by PARAM lines in the script"
     );
     assert!(
         gbai.join("media-filing.gbot/PROMPT-TELEGRAM.md").is_file(),
@@ -65,7 +66,7 @@ fn template_ships_in_the_layout_the_resolvers_expect() {
 #[test]
 fn markers_are_documented_in_the_prompt_and_the_tool_schema() {
     let prompt = read("media-filing.gbot/PROMPT-TELEGRAM.md");
-    let schema = read("media-filing.gbdialog/classify_media.mcp.json");
+    let tool_source = read("media-filing.gbdialog/classify_media.bas");
 
     for marker in ["[image]", "[document]", "[voice]", "[audio]", "[video]"] {
         assert!(
@@ -73,8 +74,8 @@ fn markers_are_documented_in_the_prompt_and_the_tool_schema() {
             "PROMPT-TELEGRAM.md does not mention the {marker} marker"
         );
         assert!(
-            schema.contains(marker),
-            "classify_media.mcp.json does not mention the {marker} marker"
+            tool_source.contains(marker),
+            "classify_media.bas does not mention the {marker} marker"
         );
     }
 }
@@ -85,7 +86,7 @@ fn markers_are_documented_in_the_prompt_and_the_tool_schema() {
 #[test]
 fn whatsapp_prompt_documents_its_own_markers_and_filing_policy() {
     let prompt = read("media-filing.gbot/PROMPT-WHATSAPP.md");
-    let schema = read("media-filing.gbdialog/classify_media.mcp.json");
+    let tool_source = read("media-filing.gbdialog/classify_media.bas");
 
     for marker in ["[image]", "[document]", "[audio]", "[video]", "[sticker]"] {
         assert!(
@@ -93,8 +94,8 @@ fn whatsapp_prompt_documents_its_own_markers_and_filing_policy() {
             "PROMPT-WHATSAPP.md does not mention the {marker} marker"
         );
         assert!(
-            schema.contains(marker),
-            "classify_media.mcp.json does not mention the {marker} marker"
+            tool_source.contains(marker),
+            "classify_media.bas does not mention the {marker} marker"
         );
     }
 

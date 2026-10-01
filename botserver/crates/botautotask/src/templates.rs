@@ -33,9 +33,29 @@ pub struct ShippedTemplate {
 const CLASSIFY_MEDIA_TOOL: &str = include_str!(
     "../../../../bottemplates/bots/media-filing/media-filing.gbai/media-filing.gbdialog/classify_media.bas"
 );
-const CLASSIFY_MEDIA_MANIFEST: &str = include_str!(
-    "../../../../bottemplates/bots/media-filing/media-filing.gbai/media-filing.gbdialog/classify_media.mcp.json"
-);
+static CLASSIFY_MEDIA_MANIFEST: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+
+/// The manifest generated from `CLASSIFY_MEDIA_TOOL`'s `DESCRIPTION`/`PARAM`
+/// declarations — the `.mcp.json` is a build artifact of the script, so the
+/// template directory carries no manifest file at all.
+pub fn classify_media_manifest() -> &'static str {
+    CLASSIFY_MEDIA_MANIFEST
+        .get_or_init(|| {
+            botbasic_compiler::BasicCompiler::manifest_json(
+                CLASSIFY_MEDIA_TOOL,
+                "classify_media.mcp.json",
+            )
+            .unwrap_or_else(|e| {
+                log::error!("classify_media manifest generation failed: {e}");
+                r#"{
+  "name": "classify_media",
+  "input_schema": { "type": "object", "properties": {}, "required": [] }
+}"#
+                .to_string()
+            })
+        })
+        .as_str()
+}
 const MEDIA_FILING_PROMPT_TELEGRAM: &str = include_str!(
     "../../../../bottemplates/bots/media-filing/media-filing.gbai/media-filing.gbot/PROMPT-TELEGRAM.md"
 );
@@ -94,7 +114,7 @@ pub fn match_shipped_template(intent: &str) -> Option<ShippedTemplate> {
             tool_path: "tools/classify_media.bas",
             tool_source: CLASSIFY_MEDIA_TOOL,
             manifest_path: Some("tools/classify_media.mcp.json"),
-            manifest_source: Some(CLASSIFY_MEDIA_MANIFEST),
+            manifest_source: Some(classify_media_manifest()),
             config_files: MEDIA_FILING_CONFIG,
         });
     }
@@ -136,6 +156,11 @@ mod tests {
         assert!(t.tool_source.contains("category = \"unsorted\""));
         let manifest = t.manifest_source.expect("manifest shipped");
         assert!(manifest.contains("classify_media"));
+        assert!(manifest.contains("\"path\""), "manifest declares the path argument");
+        assert!(manifest.contains("\"caption\""), "manifest declares the caption argument");
+        for marker in ["[image]", "[document]", "[voice]", "[audio]", "[video]"] {
+            assert!(manifest.contains(marker), "manifest does not mention {marker}");
+        }
     }
 
     #[test]

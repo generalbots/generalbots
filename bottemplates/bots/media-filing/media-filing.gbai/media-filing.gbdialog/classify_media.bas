@@ -24,6 +24,10 @@
 ' it, and an upload the model ignored stayed in `inbox/` forever.
 ON EVENT "media_uploaded"
 
+DESCRIPTION "Classify an inbound image, document, audio, video or sticker and file it in Drive under media/{year}/{month}/{category}/. Call it once per received media item, before answering anything else, passing the path from the [image]/[document]/[voice]/[audio]/[video]/[sticker] marker. Never invent a path and never pick a category yourself: use the category returned by the tool."
+PARAM path AS string DESCRIPTION "Drive path of the received media, exactly as it appears in the marker, for example inbox/9f3c1a.jpg or inbox/9f3c1a-contrato.pdf"
+PARAM caption AS string DESCRIPTION "Caption or message text the user sent together with the media, empty when the media arrived without text (optional)"
+
 TAXONOMY = "invoice,receipt,contract,identity,report,audio,vehicle,people,animal,food,nature,screenshot,video,unsorted"
 PROMPT = "Classifique o conteudo a seguir com uma unica palavra, apenas uma destas: " + TAXONOMY + ". Guia de decisao: carros/motos/caminhoes/trafego/parking = vehicle; pessoas/rostos/grupos = people; animais de qualquer tipo = animal; comida/bebida/cozinha/refeicao = food; paisagem/floresta/montanha/praia/ceu/agua = nature; tela de computador/interface/janela = screenshot; documento por tipo: recibo/pagamento = receipt, contrato/locacao = contract, documento de identidade = identity, relatorio = report, fatura/cobranca = invoice; audio ou gravacao de voz sem categoria melhor = audio; video generico sem categoria melhor = video. Responda somente a palavra.\n\n"
 MAX_ANALYSIS_CHARS = 4000
