@@ -19,11 +19,25 @@ pub mod pipeline;
 pub mod breaker;
 pub mod council;
 pub mod profiles;
+pub mod provider_catalog;
+pub mod provider_factory;
+pub mod provider_resolve;
 pub mod router;
 
 pub use ci_gate::{CiGateConfig, CiGateReport, CiGateRunner, RegressionSummary};
 pub use evaluation::{
     EvaluationCriterion, EvaluationGate, EvaluationResult, Evaluator, RegressionReport,
+};
+pub use provider_catalog::{
+    ALL_PROVIDER_TYPES, DEFAULT_MAX_OUTPUT_TOKENS, LLMProviderType, PROVIDER_PROFILES,
+    ProviderProfile, profile_for_type,
+};
+pub use provider_resolve::{
+    is_private_host, max_output_tokens_for_type, max_output_tokens_for_url,
+    profiles_for_url, provider_type_from_name, provider_type_from_url, rate_limits_for_url,
+};
+pub use provider_factory::{
+    create_llm_provider, create_llm_provider_from_url, llm_provider_type_from_name,
 };
 pub use rate_limiter::{ApiRateLimiter, RateLimits};
 pub use hallucination_detector::HallucinationDetector;
@@ -74,6 +88,8 @@ pub struct OpenAIClient {
     base_url: String,
     endpoint_path: String,
     rate_limiter: Arc<ApiRateLimiter>,
+    provider_type: LLMProviderType,
+    max_output_tokens: u32,
 }
 
 #[derive(Debug)]
@@ -290,6 +306,23 @@ impl OpenAIClient {
 
     pub fn new(_api_key: String, base_url: Option<String>, endpoint_path: Option<String>) -> Self {
         let base = base_url.unwrap_or_else(|| "https://api.openai.com".to_string());
+        // A caller that did not name a provider still gets the right limits and
+        // token ceiling: the catalog recognises the host from its URL.
+        let provider_type = LLMProviderType::from(base.as_str());
+        Self::with_provider(base, endpoint_path, provider_type)
+    }
+
+    /// Builds a client for a named member of the OpenAI-compatible tier.
+    ///
+    /// `provider_type` is the authoritative identity — it comes from the
+    /// `llm-provider` bot-config value when the operator set one — and selects
+    /// the operating caps and the `max_tokens` ceiling from the catalog. The
+    /// URL is only consulted for hosts the operator left unnamed.
+    pub fn with_provider(
+        base: String,
+        endpoint_path: Option<String>,
+        provider_type: LLMProviderType,
+    ) -> Self {
         let trimmed_base = base.trim_end_matches('/').to_string();
 
         let has_v1_path = trimmed_base.contains("/v1/chat/completions");
@@ -311,13 +344,16 @@ impl OpenAIClient {
             (trimmed_base, endpoint)
         };
 
-        let rate_limiter = if base.contains("groq.com") {
-            ApiRateLimiter::new(RateLimits::groq_free_tier())
-        } else if base.contains("openai.com") {
-            ApiRateLimiter::new(RateLimits::openai_free_tier())
-        } else {
-            ApiRateLimiter::unlimited()
-        };
+        // Limits and the token ceiling belong to the *host*: `groq.com` and
+        // `api.openai.com` share the generic `openai` provider identity but not
+        // the same quota, so the URL is consulted first and the operator's named
+        // provider is the fallback for a URL the catalog does not recognise.
+        let rate_limits = rate_limits_for_url(&final_base);
+        let max_output_tokens = profiles_for_url(&final_base)
+            .first()
+            .map(|p| p.max_output_tokens)
+            .unwrap_or_else(|| max_output_tokens_for_type(provider_type));
+        let rate_limiter = ApiRateLimiter::new(rate_limits);
 
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(180))
@@ -333,7 +369,16 @@ impl OpenAIClient {
             base_url: final_base,
             endpoint_path: final_endpoint,
             rate_limiter: Arc::new(rate_limiter),
+            provider_type,
+            max_output_tokens,
         }
+    }
+
+    /// The catalog row backing this client's limits and token ceiling, or the
+    /// generic default when the host is unrecognised.
+    #[must_use]
+    pub fn provider_type(&self) -> LLMProviderType {
+        self.provider_type
     }
 
     pub fn sanitize_utf8(input: &str) -> String {
@@ -570,7 +615,13 @@ impl LLMProvider for OpenAIClient {
         } else {
             "max_tokens"
         };
-        let use_stream = !(model.contains("gpt-oss") && (self.base_url.contains("nvidia") || self.base_url.contains("cerebras")))
+        // gpt-oss weights lose SSE frames to the streaming decoder on the
+        // hosts below. Cerebras now comes from the catalog identity (#1467);
+        // NVIDIA has no dedicated variant, so its host is still matched.
+        let host_forces_no_stream = model.contains("gpt-oss")
+            && (self.provider_type() == LLMProviderType::Cerebras
+                || self.base_url.contains("nvidia"));
+        let use_stream = !host_forces_no_stream
             // #1202 — the tokenrouter free GLM tier intermittently fails SSE
             // decoding ('Stream read error: error decoding response body');
             // its non-streaming path is reliable, so disable streaming for it.
@@ -582,7 +633,9 @@ impl LLMProvider for OpenAIClient {
             "model": model,
             "messages": messages,
             "stream": use_stream,
-            token_key: if self.base_url.contains("groq") { 4096 } else { 65536 },
+            // Serving cap for this host, from the provider catalog rather than
+            // an inline hostname check (#1467).
+            token_key: self.max_output_tokens,
             "temperature": 1.0,
             "top_p": 1.0
         });
@@ -962,137 +1015,6 @@ impl LLMProvider for OpenAIClient {
         Ok(())
     }
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LLMProviderType {
-    OpenAI,
-    Claude,
-    AzureClaude,
-    AzureGPT5,
-    GLM,
-    Bedrock,
-    Vertex,
-    Kiro,
-}
-
-impl From<&str> for LLMProviderType {
-    fn from(s: &str) -> Self {
-        let lower = s.to_lowercase();
-        if lower.contains("claude") || lower.contains("anthropic") {
-            if lower.contains("azure") {
-                Self::AzureClaude
-            } else {
-                Self::Claude
-            }
-        } else if lower.contains("azuregpt5") || lower.contains("gpt5") || (lower.contains("openai.azure.com") && lower.contains("responses")) {
-            Self::AzureGPT5
-        } else if lower.contains("z.ai") || lower.contains("glm") {
-            Self::GLM
-        } else if lower.contains("bedrock") {
-            Self::Bedrock
-        } else if lower.contains("googleapis.com") || lower.contains("vertex") || lower.contains("generativelanguage") {
-            Self::Vertex
-        } else if lower.contains("kiro") || lower.contains("q.us-east-1.amazonaws.com") || lower.contains("codewhisperer") {
-            Self::Kiro
-        } else {
-            Self::OpenAI
-        }
-    }
-}
-
-pub fn create_llm_provider(
-    provider_type: LLMProviderType,
-    base_url: String,
-    deployment_name: Option<String>,
-    endpoint_path: Option<String>,
-) -> Arc<dyn LLMProvider> {
-    match provider_type {
-        LLMProviderType::OpenAI => {
-            info!("Creating OpenAI LLM provider with URL: {}", base_url);
-            Arc::new(OpenAIClient::new(
-                "empty".to_string(),
-                Some(base_url),
-                endpoint_path,
-            ))
-        }
-        LLMProviderType::Claude => {
-            info!("Creating Claude LLM provider with URL: {}", base_url);
-            Arc::new(ClaudeClient::new(base_url, deployment_name))
-        }
-        LLMProviderType::AzureClaude => {
-            let deployment = deployment_name.unwrap_or_else(|| "claude-opus-4-5".to_string());
-            info!(
-                "Creating Azure Claude LLM provider with URL: {}, deployment: {}",
-                base_url, deployment
-            );
-            Arc::new(ClaudeClient::azure(base_url, deployment))
-        }
-        LLMProviderType::AzureGPT5 => {
-            info!("Creating Azure GPT-5/Responses LLM provider with URL: {}", base_url);
-            Arc::new(AzureGPT5Client::new(base_url, endpoint_path))
-        }
-        LLMProviderType::GLM => {
-            info!("Creating GLM/z.ai LLM provider with URL: {}", base_url);
-            Arc::new(GLMClient::new(base_url))
-        }
-        LLMProviderType::Bedrock => {
-            info!("Creating Bedrock LLM provider with exact URL: {}", base_url);
-            Arc::new(BedrockClient::new(base_url))
-        }
-        LLMProviderType::Vertex => {
-            info!("Creating Vertex/Gemini LLM provider with URL: {}", base_url);
-            Arc::new(vertex::VertexClient::new(base_url, endpoint_path))
-        }
-        LLMProviderType::Kiro => {
-            info!("Creating Kiro LLM provider (CodeWhisperer protocol)");
-            Arc::new(kiro::KiroClient::new(base_url))
-        }
-    }
-}
-
-/// Resolves a provider name (as stored in Vault `gbo/llm.provider` or bot
-/// config `llm-provider`) to a provider type. Returns `None` for unknown or
-/// empty names so callers fall back to URL-based detection.
-pub fn llm_provider_type_from_name(name: &str) -> Option<LLMProviderType> {
-    let lower = name.to_lowercase();
-    if lower.is_empty() {
-        None
-    } else if lower.contains("kiro") || lower.contains("codewhisperer") {
-        Some(LLMProviderType::Kiro)
-    } else if lower.contains("openai") || lower.contains("nvidia") || lower.contains("groq") || lower.contains("cerebras") {
-        Some(LLMProviderType::OpenAI)
-    } else if lower.contains("azure") && lower.contains("claude") {
-        Some(LLMProviderType::AzureClaude)
-    } else if lower.contains("azure") {
-        Some(LLMProviderType::AzureGPT5)
-    } else if lower.contains("claude") || lower.contains("anthropic") {
-        Some(LLMProviderType::Claude)
-    } else if lower.contains("glm") || lower.contains("z.ai") {
-        Some(LLMProviderType::GLM)
-    } else if lower.contains("bedrock") {
-        Some(LLMProviderType::Bedrock)
-    } else if lower.contains("vertex") || lower.contains("gemini") || lower.contains("google") {
-        Some(LLMProviderType::Vertex)
-    } else {
-        None
-    }
-}
-
-pub fn create_llm_provider_from_url(
-    url: &str,
-    model: Option<String>,
-    endpoint_path: Option<String>,
-    explicit_provider: Option<LLMProviderType>,
-) -> Arc<dyn LLMProvider> {
-    let detected = LLMProviderType::from(url);
-    let provider_type = explicit_provider.as_ref().map(|p| *p).unwrap_or(detected);
-    info!("LLM provider: explicit={:?}, detected={:?}, URL={}", explicit_provider, detected, url);
-    if explicit_provider.is_some() {
-        info!("Using explicit LLM provider type: {:?} for URL: {}", provider_type, url);
-    }
-    create_llm_provider(provider_type, url.to_string(), model, endpoint_path)
-}
-
 pub struct DynamicLLMProvider {
     inner: RwLock<Arc<dyn LLMProvider>>,
 }
