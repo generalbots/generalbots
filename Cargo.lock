@@ -1710,6 +1710,7 @@ dependencies = [
  "botbilling",
  "botcoredirectory",
  "botcoresecrets",
+ "botdomains",
  "botproducts",
  "botproviders",
  "botsecurity",
@@ -2109,6 +2110,19 @@ dependencies = [
  "tokio",
  "uuid",
  "zip 2.4.2",
+]
+
+[[package]]
+name = "botdomains"
+version = "6.3.1"
+dependencies = [
+ "async-trait",
+ "quick-xml 0.37.5",
+ "reqwest 0.12.28",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "tokio",
 ]
 
 [[package]]
@@ -2797,14 +2811,15 @@ name = "botproviders"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "base64 0.22.1",
  "chrono",
- "log",
+ "hex",
+ "hmac 0.12.1",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
+ "sha1",
  "thiserror 2.0.18",
- "tokio",
- "uuid",
 ]
 
 [[package]]
