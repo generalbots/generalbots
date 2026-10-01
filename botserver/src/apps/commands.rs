@@ -311,14 +311,6 @@ pub static APP_DEEP_LINKS: &[(&str, &[DeepLinkParam])] = &[
         }],
     ),
     (
-        "sales",
-        &[DeepLinkParam {
-            key: "deal_id",
-            description: "sales deal id",
-            example: "deal-9",
-        }],
-    ),
-    (
         "pos",
         &[DeepLinkParam {
             key: "order_id",
@@ -562,7 +554,6 @@ pub static ALL_COMMANDS: &[AppCommand] = &[
     cmd("tickets", "tickets.create", "Create ticket", "Create a support ticket.", &[("subject", "subject"), ("priority", "priority")], None, true),
     cmd("banking", "banking.transactions.list", "List transactions", "List bank transactions for a period.", &[("period", "optional YYYY-MM")], Some("app://banking?transaction_id={transaction_id}"), false),
     cmd("banking", "banking.reconcile", "Reconcile account", "Run bank reconciliation.", &[], None, true),
-    cmd("sales", "sales.deals.list", "List deals", "List sales pipeline deals and forecast.", &[], Some("app://sales?deal_id={deal_id}"), false),
     cmd("pos", "pos.sales.list", "List sales", "List point-of-sale orders and sales.", &[], Some("app://pos?order_id={order_id}"), false),
     cmd("retail", "retail.stock.list", "List stock", "List retail inventory and stock levels.", &[], Some("app://retail?product_id={product_id}"), false),
     cmd("hr", "hr.employees.list", "List employees", "List employees, onboarding and requests.", &[], Some("app://hr?employee_id={employee_id}"), false),
@@ -663,7 +654,6 @@ pub static UI_SEQUENCE_HINTS: &[(&str, &str)] = &[
     ("products", "open → items grid auto-loads → filter by category/status → click a row to edit"),
     ("tickets", "open → ticket list auto-loads → select a ticket → use status/assign actions"),
     ("banking", "open → transactions auto-load → use search → click a transaction to view details"),
-    ("sales", "open → pipeline renders → click a deal or use New Deal"),
     ("tasks", "open → task list auto-loads → use filter chips (all/active/completed) → click to edit"),
     ("project", "open → project list auto-loads → select a project → timeline/gantt renders"),
     ("mail", "open → unified inbox auto-loads → click a message → reply/compose actions"),
