@@ -154,7 +154,8 @@ Quick reference for all crates in `botserver/crates/`. For full rules, see root 
 | `botbrowserpolicy` | Agentic browsing control plane — domain policy, budgets, memory |
 | `botmonitoring` | Metrics collection, alerting, distributed tracing |
 | `botmaintenance` | System maintenance and cleanup |
-| `botproviders` | Cloud provider adapters — RunPod, Vultr, Vast, Contabo |
+| `botproviders` | Compute adapters — Hetzner, DigitalOcean, Oracle, Vultr, Contabo, Vast, RunPod, OVH. All compiled and dispatchable; see `src/registry.rs` |
+| `botdomains` | Registrar adapters — Porkbun, Cloudflare, Dynadot, Namecheap, deSEC; DNS zone-diff guard |
 | `bottimeseries` | Time-series metrics service (InfluxDB-compatible) |
 
 ## Specialized
