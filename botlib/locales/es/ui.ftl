@@ -1805,3 +1805,5 @@ dashboards-height = altura
 dashboards-data-source = fuente de datos
 dashboards-x-axis = campo del eje X
 dashboards-y-axis = Campo del eje Y
+
+settings-theme-desc = Elija su tema de color preferido

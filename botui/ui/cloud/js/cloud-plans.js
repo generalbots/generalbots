@@ -143,7 +143,8 @@ function selectPlan(planId) {
   const plan = allPlans[planId];
   if (!plan) return;
   if (plan.price.type === 'custom') {
-    window.location.href = 'mailto:' + CLOUD_CONFIG.salesEmail + '?subject=' + encodeURIComponent('Enterprise plan inquiry');
+    // E-mail surface removed (#1546): route the inquiry through the site contact page.
+    window.location.href = CLOUD_CONFIG.contactUrl;
     return;
   }
   const isFree = plan.price.type === 'free';

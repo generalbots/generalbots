@@ -555,3 +555,16 @@ admin-selected-count = { $count ->
     [one] { $count } item selected
    *[other] { $count } items selected
 }
+
+admin-audit-subtitle = システム活動の記録
+admin-users-subtitle = このワークスペースにアクセスできるメンバー
+admin-groups-subtitle = ロールと権限
+admin-bots-subtitle = アシスタントボットの管理
+admin-dns-subtitle = ドメインレコードとルーティング
+admin-users = ユーザー
+admin-groups = グループ
+admin-bots = ボット
+admin-dns = DNS
+admin-audit = 監査ログ
+nav-about = バージョン情報
+nav-organizations = 組織

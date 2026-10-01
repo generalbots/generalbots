@@ -158,8 +158,7 @@
                 </svg>
                 <span data-i18n="nav-organizations">Organizations</span>
             </a>
-            <a href="#about" class="nav-item" hx-get="/suite/about/about.html" hx-target="#main-content"
-                hx-push-url="/#about">
+            <a href="#about" class="nav-item" onclick="openAboutWindow()">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="12" r="10"></circle>
                     <line x1="12" y1="16" x2="12" y2="12"></line>
@@ -184,6 +183,7 @@
         <section id="profile-section" class="settings-section active">
             <div class="section-header">
                 <h1>Profile Settings</h1>
+                <p class="subtitle"><span id="profile-directory-note">Managed by the Zitadel directory</span> — <a href="#" class="info-link" onclick="return openZitadelConsole();">Open directory profile</a></p>
                 <p class="subtitle">Manage your personal information and preferences</p>
             </div>
 
@@ -285,6 +285,7 @@
         <section id="security-section" class="settings-section">
             <div class="section-header">
                 <h1>Security Settings</h1>
+                <p class="subtitle"><span>Identity, sessions and 2FA live in the Zitadel directory</span> — <a href="#" class="info-link" onclick="return openZitadelConsole();">Open directory security</a></p>
                 <p class="subtitle">Protect your account with enhanced security</p>
             </div>
 
@@ -2437,6 +2438,47 @@
             window.openDeepLink('integrations', {});
         } else {
             window.open('/suite/desktop.html?app=integrations', '_blank', 'noopener');
+        }
+        return false;
+    };
+
+    // About opens in its own window — same surface as the desktop About app.
+    // The old raw hx-get hijacked #main-content (a target that does not exist
+    // inside the Settings dialog) and blanked the whole dialog.
+    window.openAboutWindow = function () {
+        if (window.WindowManager && typeof window.WindowManager.openDeepLink === 'function') {
+            window.WindowManager.openDeepLink('about', {});
+        } else if (window.openDeepLink) {
+            window.openDeepLink('about', {});
+        } else {
+            window.open('/suite/desktop.html?app=about', '_blank', 'noopener');
+        }
+        return false;
+    };
+
+    // #1546 — Profile/Security are directory-backed: link the user to the
+    // Zitadel directory (console) for their identity, password, 2FA and
+    // sessions. The issuer URL comes from the backend; without it the link
+    // falls back to the local directory API so the button never dead-ends.
+    window.__gbDirectoryIssuer = null;
+    (function () {
+        fetch('/api/auth/directory-config')
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (cfg) {
+                if (cfg && cfg.issuer_url) window.__gbDirectoryIssuer = String(cfg.issuer_url).replace(/\/$/, '');
+            })
+            .catch(function () { /* link falls back below */ });
+    })();
+    window.openZitadelConsole = function () {
+        var target = window.__gbDirectoryIssuer
+            ? window.__gbDirectoryIssuer + (window.__gbDirectoryIssuer.indexOf('/ui') === -1 ? '/ui/console' : '')
+            : null;
+        if (target) {
+            window.open(target, '_blank', 'noopener');
+        } else if (window.WindowManager && typeof window.WindowManager.openDeepLink === 'function') {
+            window.WindowManager.openDeepLink('admin', {});
+        } else {
+            window.open('/suite/settings/index.html?view=admin', '_blank', 'noopener');
         }
         return false;
     };

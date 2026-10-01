@@ -555,3 +555,16 @@ admin-selected-count = { $计数 ->
     [one] { $count } item selected
    *[other] { $count } items selected
 }
+
+admin-audit-subtitle = 系统活动记录
+admin-users-subtitle = 有权访问此工作区的成员
+admin-groups-subtitle = 角色与权限
+admin-bots-subtitle = 管理助手机器人
+admin-dns-subtitle = 域名记录与路由
+admin-users = 用户
+admin-groups = 组
+admin-bots = 机器人
+admin-dns = DNS
+admin-audit = 审计日志
+nav-about = 关于
+nav-organizations = 组织

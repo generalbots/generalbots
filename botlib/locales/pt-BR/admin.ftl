@@ -568,3 +568,6 @@ admin-bots = Bots
 admin-bots-subtitle = Gerenciar bots assistentes
 admin-dns = DNS
 admin-dns-subtitle = Registros de domínio e roteamento
+
+nav-about = Sobre
+nav-organizations = Organizações

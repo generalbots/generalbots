@@ -379,9 +379,10 @@
             window.location.href = `/#chat?contact=${contactId}`;
         }
 
+        // E-mail surface removed (#1546): no mailto actions in the UI.
         function sendEmail(email) {
             if (!email) return;
-            window.location.href = `mailto:${email}`;
+            showToast ? showToast('E-mail actions are disabled', 'info') : console.info('E-mail actions are disabled');
         }
 
         function scheduleMeeting(contactId) {
