@@ -128,6 +128,41 @@ This reveals file retrieval details, bucket operations, and authentication attem
 
 Back up the drive data directory regularly to prevent data loss. Monitor disk usage to ensure adequate storage space remains available. Use bucket policies to restrict access appropriately for each bot. Enable object versioning for critical data that may need recovery. Configure lifecycle policies for automatic cleanup of old files that are no longer needed.
 
+## Using a Different Object-Storage Backend
+
+MinIO is the default, but Drive can run against Backblaze B2, Cloudflare R2 or
+Wasabi without a rebuild. The `secret/gbo/drive` Vault secret gains three keys:
+
+| Key | Meaning |
+|---|---|
+| `backend` | `minio` (default), `b2`, `r2`, `wasabi` |
+| `region` | signing region; defaults per backend |
+| `fallback_endpoint` | secondary endpoint for read failover |
+| `endpoint` | full URL; overrides `host`/`port` for non-MinIO backends |
+
+```bash
+vault kv put secret/gbo/drive \
+  backend=b2 \
+  endpoint=https://s3.us-west-004.backblazeb2.com \
+  region=us-west-004 \
+  bucket=default.gborg
+```
+
+Two things to know before switching:
+
+- **B2 and R2 require an explicit region.** The backend supplies a default
+  (`us-west-004` for B2), but signing against the wrong region is what makes
+  those backends fail.
+- **Wasabi bills a 1 TB minimum with a 90-day retention term.** Selecting it for a
+  per-tenant runtime bucket logs a warning naming both. It suits archive and
+  knowledge-base storage, not short-lived `.ast` recompiles and media.
+
+Failover, when `fallback_endpoint` is set, applies to **reads only** — a write is
+never silently redirected to a second backend.
+
 ## See Also
 
-The Storage API chapter provides the complete API reference for drive operations. The Environment Variables appendix covers Directory service configuration options. The LXC Containers documentation explains container deployment in detail.
+[Storage Services](../06-channels/storage.md) documents the backend catalog,
+pricing and the private-by-default share-link model. The Environment Variables
+appendix covers Directory service configuration options. The LXC Containers
+documentation explains container deployment in detail.
