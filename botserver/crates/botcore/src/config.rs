@@ -59,6 +59,11 @@ pub struct DriveConfig {
     pub access_key: String,
     pub secret_key: String,
     pub server: String,
+    /// Which object-storage backend the endpoint belongs to: `minio`, `b2`,
+    /// `wasabi` or `r2` (#1468). Empty means `minio`.
+    pub backend: String,
+    /// Secondary endpoint used for read failover. Empty disables failover.
+    pub fallback_endpoint: String,
 }
 
 impl DriveConfig {
@@ -593,13 +598,28 @@ impl DriveConfig {
                     let secret = secret_data.get("secret").and_then(|v| v.as_str()).ok_or_else(|| "Vault secret/gbo/drive: 'secret' not set".to_string())?;
                     let bucket = secret_data.get("bucket").and_then(|v| v.as_str()).ok_or_else(|| "Vault secret/gbo/drive: 'bucket' not set".to_string())?;
                     let server = format!("{}:{}", host, port);
+                    // Optional backend selection (#1468). `endpoint` wins when set,
+                    // so an operator can point at B2 or R2 by URL alone; `host`
+                    // and `port` remain the MinIO-shaped default.
+                    let endpoint_override = secret_data.get("endpoint").and_then(|v| v.as_str()).unwrap_or("");
+                    let endpoint = if endpoint_override.trim().is_empty() {
+                        format!("http://{}:{}", host, port)
+                    } else {
+                        endpoint_override.trim_end_matches('/').to_string()
+                    };
+                    let backend = secret_data.get("backend").and_then(|v| v.as_str()).unwrap_or("minio");
+                    let region = secret_data.get("region").and_then(|v| v.as_str()).unwrap_or("");
+                    let region = if region.trim().is_empty() { "auto".to_string() } else { region.to_string() };
+                    let fallback_endpoint = secret_data.get("fallback_endpoint").and_then(|v| v.as_str()).unwrap_or("");
                     return Ok(Self {
-                        endpoint: format!("http://{}:{}", host, port),
+                        endpoint,
                         bucket: bucket.to_string(),
-                        region: "auto".to_string(),
+                        region,
                         access_key: accesskey.to_string(),
                         secret_key: secret.to_string(),
                         server,
+                        backend: backend.to_string(),
+                        fallback_endpoint: fallback_endpoint.trim_end_matches('/').to_string(),
                     });
                 }
                 Err(e) => {
@@ -627,13 +647,22 @@ impl DriveConfig {
         let server = std::env::var("MINIO_SERVER")
             .map_err(|_| "MINIO_SERVER not set".to_string())?;
 
+        // MINIO_REGION / MINIO_BACKEND / MINIO_FALLBACK_ENDPOINT let an operator
+        // select an external backend (#1468) without a Vault round trip; all are
+        // optional so the MinIO-only deployment is unchanged.
+        let region = std::env::var("MINIO_REGION").unwrap_or_else(|_| "auto".to_string());
+        let backend = std::env::var("MINIO_BACKEND").unwrap_or_else(|_| "minio".to_string());
+        let fallback_endpoint = std::env::var("MINIO_FALLBACK_ENDPOINT").unwrap_or_default();
+
         Ok(Self {
             endpoint,
             bucket,
-            region: "auto".to_string(),
+            region,
             access_key,
             secret_key,
             server,
+            backend,
+            fallback_endpoint,
         })
     }
 }
