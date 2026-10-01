@@ -1,3 +1,8 @@
+//! #1441 — accounts CRUD. `PUT /api/crm/accounts/:id` was missing entirely
+//! (the suite could only create, read and delete), so account edits were
+//! impossible from the CRM app; every mutation here is now audited (#1441 P2)
+//! and creation dedupes by name inside the branch (A2).
+
 use axum::{
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
@@ -8,6 +13,7 @@ use diesel::prelude::*;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::audit;
 use crate::models::*;
 use crate::requests::*;
 use crate::schema::crm_accounts;
@@ -18,26 +24,63 @@ fn get_bot_context(state: &CrateState) -> Uuid {
     state.get_bot_context()
 }
 
+fn db_err<E: std::fmt::Display>(e: E) -> (StatusCode, String) {
+    (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+}
+
+/// A single record lookup answers 404 only when the row genuinely does not
+/// exist inside the caller's branch. Mapping every diesel error to 404 used to
+/// hide row-decoding failures (e.g. a `NUMERIC` money column against an `f64`
+/// model) behind a misleading "not found".
+fn not_found_or_500(result: Result<CrmAccount, diesel::result::Error>) -> Result<CrmAccount, (StatusCode, String)> {
+    use diesel::result::Error as DieselError;
+    match result {
+        Ok(row) => Ok(row),
+        Err(DieselError::NotFound) => Err((StatusCode::NOT_FOUND, "Account not found".to_string())),
+        Err(e) => {
+            log::error!("[crm] account lookup failed: {e}");
+            Err(db_err(e))
+        }
+    }
+}
+
+/// `POST /api/crm/accounts` — find-or-create by name so the same company is
+/// never duplicated by two captures (A2).
 pub async fn create_account(
     State(state): State<Arc<CrateState>>,
     headers: HeaderMap,
     Json(req): Json<CreateAccountRequest>,
 ) -> Result<Json<CrmAccount>, (StatusCode, String)> {
-    let mut conn = state.db_pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+    let name = req.name.trim();
+    if name.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "name is required".to_string()));
+    }
+    let mut conn = state.db_pool.get().map_err(db_err)?;
+    let branch_id = branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
 
-    let branch_id = branch_from_jwt(&headers, &mut conn)
-        .unwrap_or_else(|| get_bot_context(&state));
+    if let Some(existing) = find_by_name(&mut conn, branch_id, name).await {
+        audit::record(
+            &state,
+            &headers,
+            branch_id,
+            "account",
+            Some(existing.id),
+            "create_deduplicated",
+            None,
+            Some(serde_json::json!({ "name": existing.name })),
+            None,
+        );
+        return Ok(Json(existing));
+    }
+
     let id = Uuid::new_v4();
     let now = Utc::now();
-
     let account = CrmAccount {
         id,
         org_id: branch_id,
         bot_id: state.bot_for_branch(branch_id),
         branch_id,
-        name: req.name,
+        name: name.to_string(),
         industry: req.industry,
         website: req.website,
         phone: req.phone,
@@ -46,13 +89,13 @@ pub async fn create_account(
         created_at: now,
         updated_at: now,
         employees_count: req.employees_count,
-        annual_revenue: None,
-        address_line1: None,
-        address_line2: None,
-        city: None,
-        state: None,
-        postal_code: None,
-        country: None,
+        annual_revenue: req.annual_revenue,
+        address_line1: req.address_line1,
+        address_line2: req.address_line2,
+        city: req.city,
+        state: req.state,
+        postal_code: req.postal_code,
+        country: req.country,
         description: req.description,
         tags: req.tags.unwrap_or_default(),
         custom_fields: serde_json::json!({}),
@@ -61,9 +104,32 @@ pub async fn create_account(
     diesel::insert_into(crm_accounts::table)
         .values(&account)
         .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
+        .map_err(db_err)?;
 
+    audit::record(
+        &state,
+        &headers,
+        branch_id,
+        "account",
+        Some(id),
+        "create",
+        None,
+        Some(serde_json::to_value(&account).unwrap_or(serde_json::Value::Null)),
+        None,
+    );
     Ok(Json(account))
+}
+
+async fn find_by_name(
+    conn: &mut diesel::PgConnection,
+    branch_id: Uuid,
+    name: &str,
+) -> Option<CrmAccount> {
+    crm_accounts::table
+        .filter(crm_accounts::branch_id.eq(branch_id))
+        .filter(crm_accounts::name.ilike(name))
+        .first::<CrmAccount>(conn)
+        .ok()
 }
 
 pub async fn list_accounts(
@@ -72,11 +138,8 @@ pub async fn list_accounts(
     Query(query): Query<ListQuery>,
 ) -> Result<axum::response::Response, (StatusCode, String)> {
     use axum::response::IntoResponse;
-    let mut conn = state.db_pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
-
-    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
+    let mut conn = state.db_pool.get().map_err(db_err)?;
+    let branch_id = branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
@@ -89,7 +152,8 @@ pub async fn list_accounts(
         if let Some(search) = &query.search {
             let pattern = format!("%{search}%");
             q = q.filter(
-                crm_accounts::name.ilike(pattern.clone())
+                crm_accounts::name
+                    .ilike(pattern.clone())
                     .or(crm_accounts::industry.ilike(pattern)),
             );
         }
@@ -97,17 +161,14 @@ pub async fn list_accounts(
     };
 
     // #1441 P2 — X-Total-Count lets the UI paginate without a second probe.
-    let total: i64 = make_q()
-        .count()
-        .get_result(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Count error: {e}")))?;
+    let total: i64 = make_q().count().get_result(&mut conn).map_err(db_err)?;
 
     let accounts: Vec<CrmAccount> = make_q()
         .order(crm_accounts::created_at.desc())
         .limit(limit)
         .offset(offset)
         .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+        .map_err(db_err)?;
 
     Ok(([("X-Total-Count", total.to_string())], Json(accounts)).into_response())
 }
@@ -117,20 +178,83 @@ pub async fn get_account(
     headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<Json<CrmAccount>, (StatusCode, String)> {
-    let mut conn = state.db_pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+    let mut conn = state.db_pool.get().map_err(db_err)?;
+    let branch_id = branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
 
-    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
-        .unwrap_or_else(|| get_bot_context(&state));
-
-    let account: CrmAccount = crm_accounts::table
-        .filter(crm_accounts::id.eq(id))
-        .filter(crm_accounts::branch_id.eq(branch_id))
-        .first(&mut conn)
-        .map_err(|_| (StatusCode::NOT_FOUND, "Account not found".to_string()))?;
+    let account = not_found_or_500(
+        crm_accounts::table
+            .filter(crm_accounts::id.eq(id))
+            .filter(crm_accounts::branch_id.eq(branch_id))
+            .first(&mut conn),
+    )?;
 
     Ok(Json(account))
+}
+
+/// `PUT /api/crm/accounts/:id` — partial update; only the fields present in
+/// the request are written, and the whole row is snapshotted before/after.
+pub async fn update_account(
+    State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
+    Path(id): Path<Uuid>,
+    Json(req): Json<UpdateAccountRequest>,
+) -> Result<Json<CrmAccount>, (StatusCode, String)> {
+    let mut conn = state.db_pool.get().map_err(db_err)?;
+    let branch_id = branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
+
+    let before = not_found_or_500(
+        crm_accounts::table
+            .filter(crm_accounts::id.eq(id))
+            .filter(crm_accounts::branch_id.eq(branch_id))
+            .first(&mut conn),
+    )?;
+
+    diesel::update(
+        crm_accounts::table
+            .filter(crm_accounts::id.eq(id))
+            .filter(crm_accounts::branch_id.eq(branch_id)),
+    )
+    .set((
+        req.name
+            .as_deref()
+            .map(|n| crm_accounts::name.eq(n.trim().to_string())),
+        req.industry.clone().map(|v| crm_accounts::industry.eq(v)),
+        req.website.clone().map(|v| crm_accounts::website.eq(v)),
+        req.phone.clone().map(|v| crm_accounts::phone.eq(v)),
+        req.email.clone().map(|v| crm_accounts::email.eq(v)),
+        req.employees_count.map(|v| crm_accounts::employees_count.eq(v)),
+        req.annual_revenue.map(|v| crm_accounts::annual_revenue.eq(v)),
+        req.city.clone().map(|v| crm_accounts::city.eq(v)),
+        req.state.clone().map(|v| crm_accounts::state.eq(v)),
+        req.postal_code.clone().map(|v| crm_accounts::postal_code.eq(v)),
+        req.country.clone().map(|v| crm_accounts::country.eq(v)),
+        req.description.clone().map(|v| crm_accounts::description.eq(v)),
+        req.owner_id.map(|v| crm_accounts::owner_id.eq(v)),
+        req.tags.clone().map(|v| crm_accounts::tags.eq(v)),
+        crm_accounts::updated_at.eq(Utc::now()),
+    ))
+    .execute(&mut conn)
+    .map_err(db_err)?;
+
+    let after = not_found_or_500(
+        crm_accounts::table
+            .filter(crm_accounts::id.eq(id))
+            .filter(crm_accounts::branch_id.eq(branch_id))
+            .first(&mut conn),
+    )?;
+
+    audit::record(
+        &state,
+        &headers,
+        branch_id,
+        "account",
+        Some(id),
+        "update",
+        Some(serde_json::to_value(&before).unwrap_or(serde_json::Value::Null)),
+        Some(serde_json::to_value(&after).unwrap_or(serde_json::Value::Null)),
+        None,
+    );
+    Ok(Json(after))
 }
 
 pub async fn delete_account(
@@ -138,17 +262,38 @@ pub async fn delete_account(
     headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
-    let mut conn = state.db_pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
+    let mut conn = state.db_pool.get().map_err(db_err)?;
+    let branch_id = branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| get_bot_context(&state));
 
-    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
-        .unwrap_or_else(|| get_bot_context(&state));
-
-    diesel::delete(crm_accounts::table.filter(crm_accounts::id.eq(id)))
+    let before: Option<CrmAccount> = crm_accounts::table
+        .filter(crm_accounts::id.eq(id))
         .filter(crm_accounts::branch_id.eq(branch_id))
-        .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
+        .first(&mut conn)
+        .ok();
 
+    // #1441 C5 — destructive action restricted to the record owner or an admin.
+    crate::authz::ensure_can_modify(&mut conn, &headers, before.as_ref().and_then(|a| a.owner_id))?;
+
+    diesel::delete(
+        crm_accounts::table
+            .filter(crm_accounts::id.eq(id))
+            .filter(crm_accounts::branch_id.eq(branch_id)),
+    )
+    .execute(&mut conn)
+    .map_err(db_err)?;
+
+    if let Some(row) = before {
+        audit::record(
+            &state,
+            &headers,
+            branch_id,
+            "account",
+            Some(id),
+            "delete",
+            Some(serde_json::to_value(&row).unwrap_or(serde_json::Value::Null)),
+            None,
+            None,
+        );
+    }
     Ok(StatusCode::NO_CONTENT)
 }

@@ -29,6 +29,29 @@ struct DefaultBranchRow {
     branch_id: uuid::Uuid,
 }
 
+#[derive(diesel::QueryableByName)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+struct DefaultBotRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    id: uuid::Uuid,
+}
+
+/// #1441 B — resolves the **bot id** of the default bot. `botmarketing` feeds
+/// this value into `get_scope()` (`SELECT org_id, branch_id FROM bots WHERE id =
+/// $1`) and into email/trigger writers, so handing it a branch id made every
+/// lookup miss: campaigns were written with `branch_id = nil` and the CRM
+/// Campaigns view (branch-scoped) showed nothing.
+fn resolve_default_bot_id(conn: &mut diesel::PgConnection) -> uuid::Uuid {
+    use diesel::prelude::*;
+    diesel::sql_query("SELECT id FROM bots WHERE is_default_for_branch = TRUE LIMIT 1")
+        .get_result::<DefaultBotRow>(conn)
+        .optional()
+        .ok()
+        .flatten()
+        .map(|row| row.id)
+        .unwrap_or_else(uuid::Uuid::nil)
+}
+
 /// Resolves a working Zitadel management token for the SaaS cloud API.
 ///
 /// The configured `service_token` may be stale or invalid (it is a leftover
@@ -425,9 +448,13 @@ pub(super) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
 pub(super) fn make_marketing_router(app_state: &Arc<AppState>) -> Router<()> {
     let base = botmarketing::state::AppState {
         conn: Arc::new(app_state.conn.clone()),
+        // #1441 B — a bot id, not a branch id: `botmarketing::state::get_scope`
+        // resolves org/branch through `bots.id`, so the previous value made
+        // every campaign land in the nil branch and the CRM Campaigns tab stayed
+        // empty.
         get_default_bot: Arc::new(|conn: &mut diesel::PgConnection| {
-            let branch = resolve_default_branch(conn);
-            (branch, "default".to_string())
+            let bot = resolve_default_bot_id(conn);
+            (bot, "default".to_string())
         }),
         send_email: Arc::new(|_: &str, _: &str, _: &str, _: uuid::Uuid, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),
         send_whatsapp: Arc::new(|_: uuid::Uuid, _: &str, _: &str, _: Option<&str>, _: Option<&str>| -> Result<String, String> { Ok("stub".to_string()) }),

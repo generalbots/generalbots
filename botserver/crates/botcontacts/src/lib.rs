@@ -91,13 +91,16 @@ impl CrateState {
 }
 
 pub mod schema;
+pub mod schema_ext;
 pub mod models;
 pub mod requests;
+pub mod account_requests;
 pub mod bulk_types;
 pub mod stages;
 pub mod scope;
 pub mod error;
 pub mod audit;
+pub mod authz;
 pub mod migration;
 pub mod contacts_api;
 pub(crate) mod contacts_api_helpers;

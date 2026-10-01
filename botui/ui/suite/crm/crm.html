@@ -1,9 +1,13 @@
 <!-- CRM - Customer Relationship Management -->
-<!-- Dynamics nomenclature: Lead → Opportunity → Account/Contact -->
+<!-- Dynamics nomenclature: Lead → Opportunity → Account/Contact (#1441) -->
+<!-- All resources use absolute /suite/ paths: this file is injected through
+     HTMX into desktop.html, so relative paths would resolve against the
+     shell and 404. -->
 
 <link rel="stylesheet" href="/suite/crm/crm.p1.css?v=1">
 <link rel="stylesheet" href="/suite/crm/crm.p2.css?v=1">
 <link rel="stylesheet" href="/suite/crm/crm.p3.css?v=1">
+<link rel="stylesheet" href="/suite/crm/crm.p4.css?v=1">
 <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading…</span></div>
 <div class="gb-state gb-state-error"><span class="gb-state-msg">Service unavailable</span></div>
 <script src="/suite/js/vendor/htmx.min.js"></script>
@@ -37,112 +41,87 @@
                        hx-trigger="keyup changed delay:300ms"
                        hx-target="#crm-search-results">
             </div>
-            <button class="btn-primary" id="crm-new-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                </svg>
-                <span data-i18n="crm-new">New</span>
-            </button>
+            <!-- #1441 B — the New button is a menu: every record type the
+                 backend exposes can be created from the suite, not just leads. -->
+            <div class="crm-new-menu">
+                <button class="btn-primary" id="crm-new-btn" aria-haspopup="true" aria-expanded="false">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    <span data-i18n="crm-new">New</span>
+                </button>
+                <div class="crm-new-dropdown" id="crm-new-dropdown" hidden>
+                    <button data-create="lead">Lead</button>
+                    <button data-create="deal">Deal</button>
+                    <button data-create="opportunity">Opportunity</button>
+                    <button data-create="contact">Contact</button>
+                    <button data-create="account">Account</button>
+                </div>
+            </div>
         </div>
     </header>
 
     <!-- Search Results Dropdown -->
     <div id="crm-search-results" class="crm-search-results"></div>
 
-    <!-- Pipeline View (Default) -->
+    <!-- Pipeline View (Default) — columns are rendered from
+         /api/crm/pipeline/stages (#1441 A4); the static six below are the
+         offline fallback. -->
     <div id="crm-pipeline-view" class="crm-view active">
         <div class="pipeline-container">
-            <!-- Lead Stage -->
             <div class="pipeline-column" data-stage="new">
                 <div class="pipeline-header">
                     <span class="pipeline-title" data-i18n="crm-stage-lead">Lead</span>
                     <span class="pipeline-count" hx-get="/api/crm/count?stage=new" hx-trigger="load">0</span>
                 </div>
-                <div class="pipeline-cards"
-                     hx-get="/api/crm/pipeline?stage=new"
-                     hx-trigger="load"
-                     hx-swap="innerHTML">
-                    <!-- Lead cards loaded via HTMX -->
-                </div>
-                <button class="pipeline-add" hx-get="/suite/crm/partials/lead-form.html" hx-target="#crm-modal-content" hx-on::after-request="openCrmModal()">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
+                <div class="pipeline-cards" hx-get="/api/crm/pipeline?stage=new" hx-trigger="load" hx-swap="innerHTML"></div>
+                <button class="pipeline-add" data-create="lead">
                     <span data-i18n="crm-add-lead">Add Lead</span>
                 </button>
             </div>
-
-            <!-- Qualified Stage -->
             <div class="pipeline-column" data-stage="qualified">
                 <div class="pipeline-header">
                     <span class="pipeline-title" data-i18n="crm-stage-qualified">Qualified</span>
                     <span class="pipeline-count" hx-get="/api/crm/count?stage=qualified" hx-trigger="load">0</span>
                 </div>
-                <div class="pipeline-cards"
-                     hx-get="/api/crm/pipeline?stage=qualified"
-                     hx-trigger="load"
-                     hx-swap="innerHTML">
-                </div>
+                <div class="pipeline-cards" hx-get="/api/crm/pipeline?stage=qualified" hx-trigger="load" hx-swap="innerHTML"></div>
             </div>
-
-            <!-- Proposal Stage -->
             <div class="pipeline-column" data-stage="proposal">
                 <div class="pipeline-header">
                     <span class="pipeline-title" data-i18n="crm-stage-proposal">Proposal</span>
                     <span class="pipeline-count" hx-get="/api/crm/count?stage=proposal" hx-trigger="load">0</span>
                 </div>
-                <div class="pipeline-cards"
-                     hx-get="/api/crm/pipeline?stage=proposal"
-                     hx-trigger="load"
-                     hx-swap="innerHTML">
-                </div>
+                <div class="pipeline-cards" hx-get="/api/crm/pipeline?stage=proposal" hx-trigger="load" hx-swap="innerHTML"></div>
             </div>
-
-            <!-- Negotiation Stage -->
             <div class="pipeline-column" data-stage="negotiation">
                 <div class="pipeline-header">
                     <span class="pipeline-title" data-i18n="crm-stage-negotiation">Negotiation</span>
                     <span class="pipeline-count" hx-get="/api/crm/count?stage=negotiation" hx-trigger="load">0</span>
                 </div>
-                <div class="pipeline-cards"
-                     hx-get="/api/crm/pipeline?stage=negotiation"
-                     hx-trigger="load"
-                     hx-swap="innerHTML">
-                </div>
+                <div class="pipeline-cards" hx-get="/api/crm/pipeline?stage=negotiation" hx-trigger="load" hx-swap="innerHTML"></div>
             </div>
-
-            <!-- Won Stage -->
             <div class="pipeline-column won" data-stage="won">
                 <div class="pipeline-header">
                     <span class="pipeline-title" data-i18n="crm-stage-won">Won</span>
                     <span class="pipeline-count" hx-get="/api/crm/count?stage=won" hx-trigger="load">0</span>
                 </div>
-                <div class="pipeline-cards"
-                     hx-get="/api/crm/pipeline?stage=won"
-                     hx-trigger="load"
-                     hx-swap="innerHTML">
-                </div>
+                <div class="pipeline-cards" hx-get="/api/crm/pipeline?stage=won" hx-trigger="load" hx-swap="innerHTML"></div>
             </div>
-
-            <!-- Lost Stage -->
             <div class="pipeline-column lost" data-stage="lost">
                 <div class="pipeline-header">
                     <span class="pipeline-title" data-i18n="crm-stage-lost">Lost</span>
                     <span class="pipeline-count" hx-get="/api/crm/count?stage=lost" hx-trigger="load">0</span>
                 </div>
-                <div class="pipeline-cards"
-                     hx-get="/api/crm/pipeline?stage=lost"
-                     hx-trigger="load"
-                     hx-swap="innerHTML">
-                </div>
+                <div class="pipeline-cards" hx-get="/api/crm/pipeline?stage=lost" hx-trigger="load" hx-swap="innerHTML"></div>
             </div>
         </div>
 
-        <!-- Pipeline Summary -->
+        <!-- Pipeline Summary — money is rendered in the branch currency by the
+             server fragments (no hardcoded "$", #1441 C4). -->
         <div class="pipeline-summary">
             <div class="summary-card">
                 <span class="summary-label" data-i18n="crm-total-value">Total Pipeline Value</span>
-                <span class="summary-value" hx-get="/api/crm/stats/pipeline-value" hx-trigger="load">$0</span>
+                <span class="summary-value" hx-get="/api/crm/stats/pipeline-value" hx-trigger="load">—</span>
             </div>
             <div class="summary-card">
                 <span class="summary-label" data-i18n="crm-conversion-rate">Conversion Rate</span>
@@ -150,33 +129,52 @@
             </div>
             <div class="summary-card">
                 <span class="summary-label" data-i18n="crm-avg-deal">Avg Deal Size</span>
-                <span class="summary-value" hx-get="/api/crm/stats/avg-deal" hx-trigger="load">$0</span>
+                <span class="summary-value" hx-get="/api/crm/stats/avg-deal" hx-trigger="load">—</span>
             </div>
             <div class="summary-card">
                 <span class="summary-label" data-i18n="crm-this-month">Won This Month</span>
-                <span class="summary-value success" hx-get="/api/crm/stats/won-month" hx-trigger="load">$0</span>
+                <span class="summary-value success" hx-get="/api/crm/stats/won-month" hx-trigger="load">—</span>
             </div>
+            <!-- #1441 C7 — reporting: weighted forecast + funnel by source. -->
+            <div class="summary-card" id="crm-forecast-card" hx-get="/api/ui/crm/stats/forecast" hx-trigger="load"></div>
+            <div class="summary-card" id="crm-funnel-card" hx-get="/api/ui/crm/stats/funnel" hx-trigger="load"></div>
         </div>
     </div>
 
     <!-- Opportunities List View (#1441 A3) -->
     <div id="crm-opportunities-view" class="crm-view">
+        <div class="crm-list-header">
+            <div class="list-filters">
+                <input type="search" class="grid-search" data-grid="opportunities" placeholder="Filter opportunities…">
+                <select class="grid-filter" data-grid="opportunities">
+                    <option value="all" data-i18n="crm-filter-all">All</option>
+                    <option value="qualification">Qualification</option>
+                    <option value="qualified">Qualified</option>
+                    <option value="proposal">Proposal</option>
+                    <option value="negotiation">Negotiation</option>
+                    <option value="won">Won</option>
+                    <option value="lost">Lost</option>
+                </select>
+                <button class="btn-secondary" data-create="opportunity" data-i18n="crm-new-opportunity">New Opportunity</button>
+            </div>
+        </div>
         <table class="crm-table">
             <thead>
                 <tr>
                     <th><input type="checkbox" id="opps-check-all" title="Select all"></th>
-                    <th data-i18n="crm-col-name">Name</th>
-                    <th data-i18n="crm-col-value">Value</th>
-                    <th data-i18n="crm-col-stage">Stage</th>
+                    <th class="sortable" data-sort="name" data-grid="opportunities" data-i18n="crm-col-name">Name</th>
+                    <th class="sortable" data-sort="value" data-grid="opportunities" data-i18n="crm-col-value">Value</th>
+                    <th class="sortable" data-sort="stage" data-grid="opportunities" data-i18n="crm-col-stage">Stage</th>
                     <th data-i18n="crm-col-probability">Probability</th>
-                    <th data-i18n="crm-col-close">Expected Close</th>
+                    <th class="sortable" data-sort="close" data-grid="opportunities" data-i18n="crm-col-close">Expected Close</th>
                     <th data-i18n="crm-col-source">Source</th>
                     <th data-i18n="crm-col-status">Status</th>
+                    <th data-i18n="crm-col-owner">Owner</th>
+                    <th data-i18n="crm-col-actions">Actions</th>
                 </tr>
             </thead>
             <tbody id="opportunities-table-body" hx-get="/api/ui/crm/opportunities" hx-trigger="load"></tbody>
         </table>
-        <!-- #1441 P2 — bulk actions + CSV over the selected opportunities -->
         <div class="crm-bulk-bar" id="opps-bulk-bar">
             <span class="crm-bulk-count" id="opps-bulk-count">0 selected</span>
             <select id="opps-bulk-stage">
@@ -188,6 +186,7 @@
                 <option value="lost">Lost</option>
             </select>
             <button class="btn-secondary" id="opps-bulk-stage-btn">Set stage</button>
+            <button class="btn-secondary" id="opps-close-won-btn" title="Close the selected opportunities as won">Mark won</button>
             <button class="btn-secondary" id="opps-export-btn">Export CSV</button>
             <button class="btn-secondary" id="opps-import-btn">Import CSV</button>
             <button class="btn-danger" id="opps-bulk-delete-btn">Delete</button>
@@ -200,7 +199,8 @@
     <div id="crm-deals-view" class="crm-view">
         <div class="crm-list-header">
             <div class="list-filters">
-                <select hx-get="/api/ui/crm/deals" hx-trigger="change" hx-target="#deals-table-body" hx-include="this">
+                <input type="search" class="grid-search" data-grid="deals" placeholder="Filter deals…">
+                <select class="grid-filter" data-grid="deals" name="stage">
                     <option value="all" data-i18n="crm-filter-all">All Deals</option>
                     <option value="new" data-i18n="crm-filter-new">New</option>
                     <option value="qualified" data-i18n="crm-filter-qualified">Qualified</option>
@@ -209,65 +209,81 @@
                     <option value="won" data-i18n="crm-filter-won">Won</option>
                     <option value="lost" data-i18n="crm-filter-lost">Lost</option>
                 </select>
+                <button class="btn-secondary" data-create="deal" data-i18n="crm-new-deal">New Deal</button>
             </div>
         </div>
         <table class="crm-table">
             <thead>
                 <tr>
-                    <th data-i18n="crm-col-title">Title</th>
-                    <th data-i18n="crm-col-value">Value</th>
-                    <th data-i18n="crm-col-stage">Stage</th>
+                    <th><input type="checkbox" id="deals-check-all" title="Select all"></th>
+                    <th class="sortable" data-sort="title" data-grid="deals" data-i18n="crm-col-title">Title</th>
+                    <th class="sortable" data-sort="value" data-grid="deals" data-i18n="crm-col-value">Value</th>
+                    <th class="sortable" data-sort="stage" data-grid="deals" data-i18n="crm-col-stage">Stage</th>
                     <th data-i18n="crm-col-contact">Contact</th>
                     <th data-i18n="crm-col-account">Account</th>
                     <th data-i18n="crm-col-probability">Probability</th>
-                    <th data-i18n="crm-col-close-date">Expected Close</th>
+                    <th class="sortable" data-sort="close" data-grid="deals" data-i18n="crm-col-close-date">Expected Close</th>
                     <th data-i18n="crm-col-owner">Owner</th>
                     <th data-i18n="crm-col-actions">Actions</th>
                 </tr>
             </thead>
-            <tbody id="deals-table-body" hx-get="/api/ui/crm/deals" hx-trigger="load">
-                <!-- Deals loaded via HTMX -->
-            </tbody>
+            <tbody id="deals-table-body" hx-get="/api/ui/crm/deals" hx-trigger="load"></tbody>
         </table>
+        <div class="crm-bulk-bar" id="deals-bulk-bar">
+            <span class="crm-bulk-count" id="deals-bulk-count">0 selected</span>
+            <button class="btn-secondary" id="deals-bulk-stage-btn">Set stage won</button>
+            <button class="btn-danger" id="deals-bulk-delete-btn">Delete</button>
+            <span class="crm-bulk-result" id="deals-bulk-result"></span>
+        </div>
     </div>
 
     <!-- Accounts List View -->
     <div id="crm-accounts-view" class="crm-view">
+        <div class="crm-list-header">
+            <div class="list-filters">
+                <input type="search" class="grid-search" data-grid="accounts" placeholder="Filter accounts…">
+                <button class="btn-secondary" data-create="account" data-i18n="crm-new-account">New Account</button>
+            </div>
+        </div>
         <table class="crm-table">
             <thead>
                 <tr>
-                    <th data-i18n="crm-col-account">Account</th>
-                    <th data-i18n="crm-col-industry">Industry</th>
+                    <th class="sortable" data-sort="name" data-grid="accounts" data-i18n="crm-col-account">Account</th>
+                    <th class="sortable" data-sort="industry" data-grid="accounts" data-i18n="crm-col-industry">Industry</th>
                     <th data-i18n="crm-col-phone">Phone</th>
                     <th data-i18n="crm-col-city">City</th>
-                    <th data-i18n="crm-col-revenue">Annual Revenue</th>
-                    <th data-i18n="crm-col-contacts">Contacts</th>
+                    <th class="sortable" data-sort="revenue" data-grid="accounts" data-i18n="crm-col-revenue">Annual Revenue</th>
+                    <th data-i18n="crm-col-contacts">Deals</th>
                     <th data-i18n="crm-col-actions">Actions</th>
                 </tr>
             </thead>
-            <tbody id="accounts-table-body" hx-get="/api/ui/crm/accounts" hx-trigger="load">
-            </tbody>
+            <tbody id="accounts-table-body" hx-get="/api/ui/crm/accounts" hx-trigger="load"></tbody>
         </table>
     </div>
 
     <!-- Contacts List View -->
     <div id="crm-contacts-view" class="crm-view">
+        <div class="crm-list-header">
+            <div class="list-filters">
+                <input type="search" class="grid-search" data-grid="contacts" placeholder="Filter contacts…">
+                <button class="btn-secondary" data-create="contact" data-i18n="crm-new-contact">New Contact</button>
+            </div>
+        </div>
         <table class="crm-table">
             <thead>
                 <tr>
                     <th><input type="checkbox" id="contacts-check-all" title="Select all"></th>
-                    <th data-i18n="crm-col-name">Name</th>
-                    <th data-i18n="crm-col-account">Account</th>
-                    <th data-i18n="crm-col-title">Title</th>
-                    <th data-i18n="crm-col-email">Email</th>
+                    <th class="sortable" data-sort="name" data-grid="contacts" data-i18n="crm-col-name">Name</th>
+                    <th class="sortable" data-sort="company" data-grid="contacts" data-i18n="crm-col-account">Company</th>
+                    <th class="sortable" data-sort="name" data-grid="contacts" data-i18n="crm-col-title">Title</th>
+                    <th class="sortable" data-sort="email" data-grid="contacts" data-i18n="crm-col-email">Email</th>
                     <th data-i18n="crm-col-phone">Phone</th>
+                    <th data-i18n="crm-col-owner">Owner</th>
                     <th data-i18n="crm-col-actions">Actions</th>
                 </tr>
             </thead>
-            <tbody id="contacts-table-body" hx-get="/api/ui/crm/contacts" hx-trigger="load">
-            </tbody>
+            <tbody id="contacts-table-body" hx-get="/api/ui/crm/contacts" hx-trigger="load"></tbody>
         </table>
-        <!-- #1450/#1451 — contacts bulk bar with CSV import/export -->
         <div class="crm-bulk-bar" id="contacts-bulk-bar">
             <span class="crm-bulk-count" id="contacts-bulk-count">0 selected</span>
             <button class="btn-secondary" id="contacts-export-btn">Export CSV</button>
@@ -276,36 +292,27 @@
             <input type="file" id="contacts-import-file" accept=".csv,text/csv" style="display:none">
             <span class="crm-bulk-result" id="contacts-bulk-result"></span>
         </div>
-        </table>
     </div>
 
     <!-- Campaigns View -->
     <div id="crm-campaigns-view" class="crm-view">
         <div class="crm-bulk-bar">
             <button class="btn-primary" id="campaign-new-btn">New Campaign</button>
+            <input type="search" class="grid-search" data-grid="campaigns" placeholder="Filter campaigns…">
             <span class="crm-bulk-result" id="campaign-result"></span>
         </div>
-        <div class="campaigns-grid" id="crmCampaignsList" 
-             hx-get="/api/ui/crm/campaigns"
-             hx-trigger="load"
-             hx-swap="innerHTML">
-            <div style="grid-column: 1 / -1; padding: 40px; text-align: center; color: var(--text-secondary);">
-                Loading campaigns...
-            </div>
-        </div>
+        <div class="campaigns-grid" id="crmCampaignsList" hx-get="/api/ui/crm/campaigns" hx-trigger="load" hx-swap="innerHTML"></div>
     </div>
 </div>
 
 <!-- Modal for forms -->
 <div id="crm-modal" class="crm-modal">
     <div class="crm-modal-backdrop" onclick="closeCrmModal()"></div>
-    <div class="crm-modal-content" id="crm-modal-content">
-        <!-- Form content loaded via HTMX -->
-    </div>
+    <div class="crm-modal-content" id="crm-modal-content"></div>
 </div>
 
-<!-- Detail Panel -->
-<div id="detail-panel" class="crm-detail-panel"></div>
+<!-- Record detail drawer (#1441 C1) — the fragment is loaded per record type -->
+<div id="record-detail-panel" class="crm-detail-panel"></div>
 
 <!-- #1453 — campaign create form, loaded into the shared modal on demand -->
 <template id="campaign-form-template">
@@ -316,7 +323,7 @@
         </div>
         <div class="crm-form-group">
             <label class="crm-form-label">Channel</label>
-            <select name="channel" class="crm-form-input">
+            <select name="channel" class="crm-form-select">
                 <option value="email">Email</option>
                 <option value="whatsapp">WhatsApp</option>
             </select>
@@ -329,7 +336,10 @@
             <label class="crm-form-label">Scheduled at</label>
             <input type="datetime-local" name="scheduled_at" class="crm-form-input">
         </div>
-        <button type="submit" class="btn-primary">Create</button>
+        <div class="crm-form-actions">
+            <button type="button" class="crm-form-btn secondary" onclick="closeCrmModal()">Cancel</button>
+            <button type="submit" class="crm-form-btn primary">Create</button>
+        </div>
     </form>
 </template>
 
@@ -342,5 +352,7 @@
     <div class="crm-audit-body" id="crm-audit-body"></div>
 </div>
 
-<script src="/suite/crm/crm.js?v=2"></script>
-<script src="/suite/crm/crm-p2.js?v=1"></script>
+<script src="/suite/crm/crm.js?v=5"></script>
+<script src="/suite/crm/crm-bulk.js?v=3"></script>
+<script src="/suite/crm/crm-records.js?v=2"></script>
+<script src="/suite/crm/crm-stages.js?v=2"></script>
