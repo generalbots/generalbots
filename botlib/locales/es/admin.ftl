@@ -555,3 +555,16 @@ admin-selected-count = { $count ->
     [one] { $count } item selected
    *[other] { $count } items selected
 }
+
+admin-audit-subtitle = Registro de actividad del sistema
+admin-users-subtitle = Personas con acceso a este espacio de trabajo
+admin-groups-subtitle = Roles y permisos
+admin-bots-subtitle = Gestionar bots asistentes
+admin-dns-subtitle = Registros de dominio y enrutamiento
+admin-users = Usuarios
+admin-groups = Grupos
+admin-bots = Bots
+admin-dns = DNS
+admin-audit = Registro de auditoría
+nav-about = Acerca de
+nav-organizations = Organizaciones

@@ -1805,3 +1805,5 @@ dashboards-height = 身高
 dashboards-data-source = 数据来源
 dashboards-x-axis = X 轴字段
 dashboards-y-axis = Y 轴字段
+
+settings-theme-desc = 选择您偏好的颜色主题

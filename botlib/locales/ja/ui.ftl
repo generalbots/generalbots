@@ -1805,3 +1805,5 @@ dashboards-height = 高さ
 dashboards-data-source = データソース
 dashboards-x-axis = X軸フィールド
 dashboards-y-axis = Y軸フィールド
+
+settings-theme-desc = お好みのカラーテーマを選択してください

@@ -1291,6 +1291,7 @@ name = "botautotask"
 version = "6.3.1"
 dependencies = [
  "axum",
+ "botbasic_compiler",
  "botcore",
  "botlib",
  "chrono",
@@ -1335,6 +1336,7 @@ dependencies = [
  "async-trait",
  "axum",
  "base64 0.22.1",
+ "botbasic_core",
  "botbasic_types",
  "botcore",
  "botcoresecrets",

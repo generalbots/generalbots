@@ -44,7 +44,7 @@ window.CampStudio.preview = {
   renderEmail: function (frame, html, device) {
     var preset = this.presets.email[device] || this.presets.email.desktop;
     var el = this.container(preset.width, 300, "studio-device-email");
-    var header = '<div style="background:#e2e8f0;color:#475569;font-size:11px;padding:6px 10px;font-family:sans-serif;" class="studio-email-address">no-reply@pragmatismo.com.br</div>';
+    var header = '<div style="background:#e2e8f0;color:#475569;font-size:11px;padding:6px 10px;font-family:sans-serif;" class="studio-email-address">no-reply@generalbots.org</div>';
     var body = '<div style="padding:16px;font-family:sans-serif;">' + (html || '<p style="color:#94a3b8;">Your message will appear here</p>') + "</div>";
     el.innerHTML = header + body;
     frame.innerHTML = "";
