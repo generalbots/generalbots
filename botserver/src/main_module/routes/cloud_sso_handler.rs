@@ -1,7 +1,7 @@
 use axum::{
     extract::{Query, State},
-    http::StatusCode,
-    response::Html,
+    http::{header, HeaderValue, StatusCode},
+    response::{Html, IntoResponse, Response},
     Json,
 };
 use serde::{Deserialize, Serialize};
@@ -91,7 +91,7 @@ pub struct SuiteSsoQuery {
 pub async fn handle_suite_sso(
     State(state): State<Arc<AppState>>,
     Query(query): Query<SuiteSsoQuery>,
-) -> Result<Html<String>, StatusCode> {
+) -> Result<Response, StatusCode> {
     let jwt_secret = get_saas_jwt_secret();
 
     let parts: Vec<&str> = query.token.split('.').collect();
@@ -136,7 +136,19 @@ try {{
 </html>"##
     );
 
-    Ok(Html(html))
+    Ok(session_cookie(suite_token.clone(), Html(html)))
+}
+
+fn session_cookie(token: String, html: Html<String>) -> Response {
+    match HeaderValue::from_str(&format!(
+        "gb-access-token={token}; Path=/; Max-Age=86400; SameSite=Lax; HttpOnly; Secure"
+    )) {
+        Ok(value) => ([(header::SET_COOKIE, value)], html).into_response(),
+        Err(e) => {
+            log::warn!("suite-sso: refusing to set an unusable session cookie: {e}");
+            html.into_response()
+        }
+    }
 }
 
 fn sanitize_redirect(url: &str) -> String {

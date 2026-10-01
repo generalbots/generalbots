@@ -1696,30 +1696,7 @@ pub fn get_branch_id_from_jwt(
     headers: &HeaderMap,
     conn: &mut diesel::PgConnection,
 ) -> Result<Option<Uuid>, String> {
-    use diesel::prelude::*;
-    if let Some(auth_val) = headers.get("authorization")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer "))
-    {
-        let parts: Vec<&str> = auth_val.split('.').collect();
-        if parts.len() == 3 {
-            if let Ok(decoded) = base64_url_decode(parts[1]) {
-                if let Ok(payload) = serde_json::from_slice::<serde_json::Value>(&decoded) {
-                    if let Some(user_email) = payload.get("email").and_then(|v| v.as_str()) {
-                        use crate::schema_ext::crm_contacts::dsl::{crm_contacts, email, branch_id};
-                        let contact_branch: Option<Uuid> = crm_contacts
-                            .filter(email.eq(user_email))
-                            .select(branch_id)
-                            .first(conn)
-                            .optional()
-                            .map_err(|e| format!("Query: {e}"))?;
-                        return Ok(contact_branch);
-                    }
-                }
-            }
-        }
-    }
-    Ok(None)
+    crate::branch_scope::resolve_branch_id(headers, conn)
 }
 
 /// Check if the authenticated user is the SaaS super-admin.

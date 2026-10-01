@@ -1,4 +1,5 @@
 pub mod api;
+pub mod branch_scope;
 pub mod integration;
 pub mod notifier;
 pub mod cloud_ui;
