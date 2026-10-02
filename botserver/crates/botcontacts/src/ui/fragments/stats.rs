@@ -72,9 +72,13 @@ pub async fn handle_crm_stats_pipeline_value(
         return Html(format_money(0.0, Some("USD")));
     };
     let branch_id = branch_ctx(&state, &headers, &mut conn);
+    // `won <> true` is NULL (and therefore excluded) for the many rows that
+    // never set the flag — the open pipeline reported €0.00 while deals were
+    // open. `IS DISTINCT FROM` is NULL-safe: everything that is not explicitly
+    // won counts as open.
     let total: Option<f64> = crm_deals::table
         .filter(crm_deals::branch_id.eq(branch_id))
-        .filter(crm_deals::won.ne(true))
+        .filter(crm_deals::won.is_distinct_from(true))
         .select(sum(crm_deals::value))
         .get_result(&mut conn)
         .unwrap_or(None);
