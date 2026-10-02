@@ -191,9 +191,17 @@
         }, 200);
     };
 
-    if (window.__gbAppParams__ && window.__gbAppParams__.person_id) {
-        window.applyCrmPersonDeepLink(window.__gbAppParams__.person_id, 'crm');
+    // #1437 — three entry points: the shell's boot params, the shell's
+    // retarget event, and a plain `?person_id=` on the app route (bookmark,
+    // SSO redirect or a direct /crm link, where the shell never injected
+    // __gbAppParams__).
+    var bootPerson = (window.__gbAppParams__ || {}).person_id;
+    if (!bootPerson) {
+        try {
+            bootPerson = new URLSearchParams(window.location.search).get('person_id');
+        } catch (_) { bootPerson = null; }
     }
+    if (bootPerson) window.applyCrmPersonDeepLink(bootPerson, 'crm');
     document.addEventListener('gb:deep-link', function(e) {
         var params = e.detail && e.detail.params;
         if (params && params.person_id) {
