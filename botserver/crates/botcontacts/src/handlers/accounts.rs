@@ -16,7 +16,7 @@ use uuid::Uuid;
 use crate::audit;
 use crate::models::*;
 use crate::requests::*;
-use crate::schema::crm_accounts;
+use crate::schema::{crm_accounts, crm_deals};
 use crate::scope::branch_from_jwt;
 use crate::CrateState;
 
@@ -270,6 +270,22 @@ pub async fn delete_account(
         .filter(crm_accounts::branch_id.eq(branch_id))
         .first(&mut conn)
         .ok();
+
+    // #1441 — an account still referenced by deals is refused with the count
+    // instead of failing later on the `crm_deals.account_id` foreign key (the
+    // raw error surfaced as a 500 with no explanation).
+    let linked_deals: i64 = crm_deals::table
+        .filter(crm_deals::branch_id.eq(branch_id))
+        .filter(crm_deals::account_id.eq(id))
+        .count()
+        .get_result(&mut conn)
+        .unwrap_or(0);
+    if linked_deals > 0 {
+        return Err((
+            StatusCode::CONFLICT,
+            format!("account backs {linked_deals} deal(s); delete or reassign them first"),
+        ));
+    }
 
     // #1441 C5 — destructive action restricted to the record owner or an admin.
     crate::authz::ensure_can_modify(&mut conn, &headers, before.as_ref().and_then(|a| a.owner_id))?;
