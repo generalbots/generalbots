@@ -1420,6 +1420,11 @@ sudo incus copy <container>/test-base <container>-test && sudo incus start <cont
 - **Cause:** `bots.is_public = false` in the database
 - **Fix:** `UPDATE bots SET is_public = true WHERE name = '<bot>';`
 
+### Mail TLS Cert Expired (Stalwart/prod email container)
+- **Symptom:** Clients get certificate-expired warnings on 993/465/587/995 for `mail.{domain}` (443/webmail via Caddy stay fine). Fixed on SRV1 2026-09-28: Stalwart 0.12.4 serves the cert **embedded inline** in `email:/opt/gbo/conf/config.toml` (`certificate.default.*`) and had no ACME section, so it never renewed; `%{file:...}%` references did NOT work on 0.12.4 (server served no cert). Caddy (proxy container) auto-renews the same hostname via TLS-ALPN on 443; its live storage is the **default** `/root/.local/share/caddy/certificates/` inside the proxy container (NOT `/opt/gbo/data/caddy`).
+- **Fix (permanent):** `/usr/local/sbin/sync-stalwart-cert.sh` on the prod host runs daily (`/etc/cron.d/sync-stalwart-cert`, 04:17 UTC) — copies Caddy's renewed cert+key into the inline `certificate.default.*` blocks (key normalized SEC1→PKCS8), validates PEMs, backs up config with datetime suffix, deploys and restarts `email` **only when the cert changed** (log: `/var/log/sync-stalwart-cert.log`, rollback on failed restart). Manual run: `ssh <SRV1> '/usr/local/sbin/sync-stalwart-cert.sh'`.
+- **Gotcha:** Stalwart has built-in fail2ban-style **in-memory throttling** — repeated `openssl s_client` probes (esp. hairpin NAT from the same public IP) get the source IP banned with `errno=104` / `no peer certificate available`. Bans decay on their own; verify TLS from another vantage point (e.g. the secondary host) before assuming the cert is broken. Backups: `email:/opt/gbo/conf/config.toml.bak-*` and `/tmp/stalwart-config-*.toml` on the host.
+
 ---
 
 ## Reference: SaaS Product Listing Test Results (2026-06-28)
