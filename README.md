@@ -10,7 +10,7 @@ Self-hosted, open source, and built in Rust. General Bots gives you 80 sovereign
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![Built with Rust](https://img.shields.io/badge/built%20with-Rust-orange.svg?logo=rust&logoColor=white)](https://www.rust-lang.org/)
-[![Version](https://img.shields.io/badge/version-6.3.1-informational.svg)](https://github.com/generalbots/generalbots/releases)
+[![Version](https://img.shields.io/badge/version-6.7.0-informational.svg)](https://github.com/generalbots/generalbots/releases)
 [![Contributors](https://img.shields.io/github/contributors/generalbots/generalbots?style=flat)](https://github.com/generalbots/generalbots/graphs/contributors)
 [![Stars](https://img.shields.io/github/stars/generalbots/generalbots?style=flat)](https://github.com/generalbots/generalbots/stargazers)
 [![Forks](https://img.shields.io/github/forks/generalbots/generalbots?style=flat)](https://github.com/generalbots/generalbots/network/members)

@@ -148,7 +148,7 @@ pub async fn get_versions(
 ) -> Json<SystemVersionsResponse> {
     Json(SystemVersionsResponse {
         botserver: env!("CARGO_PKG_VERSION").to_string(),
-        botui: "6.3.1".to_string(),
+        botui: env!("CARGO_PKG_VERSION").to_string(),
         rust: "1.75.0".to_string(),
         postgresql: "16.1".to_string(),
         valkey: "8.0.2".to_string(),
@@ -176,11 +176,7 @@ pub async fn check_updates(
     State(_state): State<Arc<AppState>>,
     Json(payload): Json<CheckUpdateRequest>,
 ) -> Json<CheckUpdateResponse> {
-    let current_ver = if payload.component == "botserver" {
-        env!("CARGO_PKG_VERSION").to_string()
-    } else {
-        "6.3.1".to_string()
-    };
+    let current_ver = env!("CARGO_PKG_VERSION").to_string();
     Json(CheckUpdateResponse {
         component: payload.component,
         current: current_ver.clone(),
