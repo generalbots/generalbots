@@ -9,7 +9,7 @@ Welcome to the General Bots documentation. This guide explains how to install, c
 
 ## About This Documentation
 
-This documentation describes General Bots version 6.3.1.
+This documentation describes General Bots version 6.7.0.
 
 The following chapters now contain accurate, verified documentation: Chapter 02 covering the package system with its template-based `.gbai` structure, Chapter 06 documenting the Rust architecture including the single-crate structure and module overview, Chapter 09 explaining core features, and the Introduction providing architecture and capabilities overview.
 
@@ -109,7 +109,7 @@ General Bots is built on a modern Rust technology stack. The application uses Ru
 
 ## Project Information
 
-The current version is 6.3.1 released under the MIT license. The source repository is available at https://github.com/generalbots/generalbots. The project is maintained by open-source contributors from GeneralBots.org and the broader community.
+The current version is 6.7.0 released under the MIT license. The source repository is available at https://github.com/generalbots/generalbots. The project is maintained by open-source contributors from GeneralBots.org and the broader community.
 
 
 ## Documentation Status

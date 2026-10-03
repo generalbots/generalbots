@@ -10,7 +10,7 @@
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![Built with Rust](https://img.shields.io/badge/built%20with-Rust-orange.svg?logo=rust&logoColor=white)](https://www.rust-lang.org/)
-[![Version](https://img.shields.io/badge/version-6.3.1-informational.svg)](https://github.com/generalbots/generalbots/releases)
+[![Version](https://img.shields.io/badge/version-6.7.0-informational.svg)](https://github.com/generalbots/generalbots/releases)
 [![Crates](https://img.shields.io/badge/crates-113-blueviolet.svg)](./crates)
 [![API](https://img.shields.io/badge/API-localhost%3A8080-informational.svg)](#getting-started)
 [![Contributors](https://img.shields.io/github/contributors/generalbots/generalbots?style=flat)](https://github.com/generalbots/generalbots/graphs/contributors)
@@ -23,7 +23,7 @@
   <img src="https://contrib.rocks/image?repo=generalbots/generalbots" alt="Contributors to General Bots" />
 </a>
 
-**Version:** 6.3.1 · **Rust:** edition 2021 (stable) · **API:** `http://localhost:8080`
+**Version:** 6.7.0 · **Rust:** edition 2021 (stable) · **API:** `http://localhost:8080`
 
 ---
 
