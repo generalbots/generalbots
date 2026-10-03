@@ -23,6 +23,11 @@ use tokio::sync::RwLock;
 use tokio::time::Duration;
 use uuid::Uuid;
 
+/// A file that failed to compile is retried after this pause. Long enough to
+/// stop a permanent failure from spinning the monitor, short enough that a
+/// transient S3/database hiccup still self-heals without a restart.
+const COMPILE_RETRY_BACKOFF: std::time::Duration = std::time::Duration::from_secs(300);
+
 pub struct DriveCompiler {
     state: Arc<AppState>,
     work_root: PathBuf,
@@ -33,6 +38,13 @@ pub struct DriveCompiler {
     missing_files: Arc<RwLock<std::collections::HashSet<String>>>,
     is_processing: Arc<AtomicBool>,
     last_etags: Arc<RwLock<HashMap<String, String>>>,
+    /// Paths whose compile attempt failed, with the moment of the last
+    /// failure. The ETag of a file is only recorded on success, so without
+    /// this a path that can never compile (e.g. a key whose first segment is
+    /// not a `.gbai` branch) was retried on EVERY scan — the monitor spun at
+    /// 100% CPU and every request (Drive included) queued behind it.
+    /// Retries are now spaced by `COMPILE_RETRY_BACKOFF`.
+    failed_at: Arc<RwLock<HashMap<String, std::time::Instant>>>,
 }
 
 /// Helper function to download file from S3
@@ -109,6 +121,7 @@ impl DriveCompiler {
             state,
             work_root,
             missing_files: Arc::new(RwLock::new(std::collections::HashSet::new())),
+            failed_at: Arc::new(RwLock::new(HashMap::new())),
             is_processing: Arc::new(AtomicBool::new(false)),
             last_etags: Arc::new(RwLock::new(HashMap::new())),
         }
@@ -195,16 +208,16 @@ impl DriveCompiler {
                 .unwrap_or("")
                 .strip_suffix(".gbdialog")
                 .unwrap_or("");
-            if !bot_segment.is_empty()
-                && git_owned.contains(&(branch_slug.to_string(), bot_segment.to_string()))
-            {
+            let git_owned_bot = !bot_segment.is_empty()
+                && git_owned.contains(&(branch_slug.to_string(), bot_segment.to_string()));
+            if git_owned_bot {
                 let etag_changed = {
                     let etags = self.last_etags.read().await;
                     etags.get(&query_file_path).map(|e| e != &current_etag).unwrap_or(true)
                 };
                 if etag_changed {
-                    info!(
-                        "DriveCompiler: {} changed in Drive for git-owned bot '{}' — the repository is the source of truth, compiling the git-materialized copy (push through git to make this change durable)",
+                    debug!(
+                        "DriveCompiler: {} changed in Drive for git-owned bot '{}' — the repository is the source of truth (push through git to make the change durable)",
                         query_file_path, bot_segment
                     );
                 }
@@ -219,17 +232,67 @@ impl DriveCompiler {
                 if ast_missing {
                     debug!("Force recompile: .ast file missing for {}", query_file_path);
                 }
-                etag_changed || ast_missing
+                // A git-owned bot has TWO writers for the same drive_files row:
+                // the git monitor stores a commit-derived etag and the Drive
+                // monitor stores the S3 etag. They disagree on every scan, so
+                // `etag_changed` was permanently true and the same tools were
+                // recompiled (and re-downloaded) on every pass — that pinned a
+                // core and pushed every endpoint, Drive included, into
+                // multi-second responses. For a git-owned bot the repository is
+                // the source of truth, so only a genuinely missing .ast forces
+                // a compile here; that keeps Drive as the operational fallback
+                // without the recompile storm.
+                let etag_drives_compile = etag_changed && !git_owned_bot;
+                etag_drives_compile || ast_missing
             };
 
-            if should_compile {
+            // Back off after a failure: without this the same unparseable
+            // path was retried on every scan (the ETag is only stored on
+            // success), pinning a core and starving every endpoint.
+            let in_backoff = {
+                let failed = self.failed_at.read().await;
+                failed
+                    .get(&query_file_path)
+                    .map(|at| at.elapsed() < COMPILE_RETRY_BACKOFF)
+                    .unwrap_or(false)
+            };
+
+            if should_compile && in_backoff {
+                debug!(
+                    "DriveCompiler: {} failed recently, skipping until the backoff expires",
+                    query_file_path
+                );
+            } else if should_compile {
                 debug!("DriveCompiler: {} changed, compiling...", query_file_path);
 
                 // Compilar diretamente para work dir
                 if let Err(e) = self.compile_file(Uuid::nil(), &query_file_path).await {
-                    error!("Failed to compile {}: {}", query_file_path, e);
+                    let msg = e.to_string();
+                    let first = self
+                        .failed_at
+                        .write()
+                        .await
+                        .insert(query_file_path.clone(), std::time::Instant::now())
+                        .is_none();
+                    if msg.contains("Invalid file path") {
+                        // Unparseable key: no retry can help until the path
+                        // itself changes, so it is logged once and backed off.
+                        if first {
+                            warn!(
+                                "DriveCompiler: {} cannot be compiled ({}) — retrying every {}s",
+                                query_file_path, msg, COMPILE_RETRY_BACKOFF.as_secs()
+                            );
+                        } else {
+                            debug!("DriveCompiler: {} still failing ({})", query_file_path, msg);
+                        }
+                    } else if first {
+                        error!("Failed to compile {}: {}", query_file_path, e);
+                    } else {
+                        debug!("DriveCompiler: {} still failing ({})", query_file_path, msg);
+                    }
                 } else {
                     // Atualizar estado
+                    self.failed_at.write().await.remove(&query_file_path);
                     let mut etags = self.last_etags.write().await;
                     etags.insert(query_file_path.clone(), current_etag);
 
@@ -587,6 +650,7 @@ impl Clone for DriveCompiler {
             state: Arc::clone(&self.state),
             work_root: self.work_root.clone(),
             missing_files: Arc::clone(&self.missing_files),
+            failed_at: Arc::clone(&self.failed_at),
             is_processing: Arc::clone(&self.is_processing),
             last_etags: Arc::clone(&self.last_etags),
         }

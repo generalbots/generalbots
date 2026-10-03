@@ -250,10 +250,13 @@ pub(crate) fn materialize_dialog_dir(
             continue;
         }
         let file_name = entry.file_name().to_string_lossy().to_string();
-        if !file_name.ends_with(".bas")
-            && !file_name.ends_with(".ast")
-            && !file_name.ends_with(".json")
-        {
+        // `.ast` is a build artifact, never a source: copying one from the
+        // repository would install a script compiled by another machine (or
+        // another revision of this one) over the freshly materialized `.bas`.
+        if file_name.ends_with(".ast") {
+            continue;
+        }
+        if !file_name.ends_with(".bas") && !file_name.ends_with(".json") {
             continue;
         }
         total += 1;
@@ -265,7 +268,24 @@ pub(crate) fn materialize_dialog_dir(
         let to = work_dir.join(&file_name);
         std::fs::copy(&path, &to).map_err(|e| format!("copy {file_name}: {e}"))?;
         if file_name.ends_with(".bas") {
+            // The compiled artifact of the previous revision is now stale.
+            // Removing it is what makes the compiler pick the new source up:
+            // `DriveCompiler` treats a missing `.ast` as a forced recompile,
+            // and the git ETag it records is not a value the Drive monitor can
+            // reproduce (one is a commit sha, the other an S3 ETag), so the
+            // ETag alone must not be the trigger. Materialization only runs
+            // when the checkout actually moved, so this is not churn.
             let tool = file_name.trim_end_matches(".bas").to_string();
+            let stale_ast = work_dir.join(format!("{tool}.ast"));
+            if stale_ast.exists() {
+                if let Err(e) = std::fs::remove_file(&stale_ast) {
+                    log::warn!(
+                        "[git_monitor] {bot_name}: could not drop stale {tool}.ast ({e}) — the tool keeps running the previous revision"
+                    );
+                } else {
+                    log::info!("[git_monitor] {bot_name}: {tool}.bas updated, stale .ast invalidated for recompile");
+                }
+            }
             materialized.push(format!("{branch_slug}.gbai/{bot_name}.gbdialog/{tool}.bas"));
         }
     }
@@ -349,6 +369,35 @@ mod tests {
         assert!(work_root
             .join("br.gborg/br.gbai/mybot.gbdialog/start.bas")
             .exists());
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+
+    /// A pushed `.bas` must invalidate the `.ast` compiled from the previous
+    /// revision, and an `.ast` committed by mistake must never be installed —
+    /// otherwise the bot keeps executing the old script after the push.
+    #[test]
+    fn materialize_invalidates_stale_ast() {
+        let tmp = std::env::temp_dir().join(format!("gbmon-ast-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        let src = tmp.join("checkout/.gbdialog");
+        std::fs::create_dir_all(&src).unwrap();
+        let work_root = tmp.join("work");
+        let work_dir = work_root.join("br.gborg/br.gbai/mybot.gbdialog");
+        std::fs::create_dir_all(&work_dir).unwrap();
+        // Previous revision: compiled artifact of the old source.
+        std::fs::write(work_dir.join("start.ast"), "OLD AST").unwrap();
+
+        std::fs::write(src.join("start.bas"), "TALK \\\"new\\\"").unwrap();
+        // A committed artifact must be ignored, not copied.
+        std::fs::write(src.join("start.ast"), "COMMITTED AST").unwrap();
+
+        materialize_checkout(&tmp.join("checkout"), &work_root, "br", "mybot").unwrap();
+
+        assert!(!work_dir.join("start.ast").exists());
+        assert_eq!(
+            std::fs::read_to_string(work_dir.join("start.bas")).unwrap(),
+            "TALK \\\"new\\\""
+        );
         let _ = std::fs::remove_dir_all(&tmp);
     }
 }

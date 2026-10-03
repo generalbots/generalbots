@@ -5,8 +5,6 @@
 
 use super::*;
 
-use super::*;
-
 #[test]
 fn fallback_model_is_the_self_hosted_default() {
     assert_eq!(FALLBACK_MODEL, "llama3");
