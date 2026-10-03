@@ -67,10 +67,17 @@ pub(crate) async fn start_drive_monitors(
         let scan_state = app_state.clone();
         tokio::spawn(async move {
             register_thread("drive-scan", "drive");
+            // Every cycle performs a full ListBuckets plus a walk (and
+            // drive_files upsert) of every `.gborg` bucket, so a 5s cadence
+            // saturated a core on a busy instance and pushed every endpoint —
+            // Drive's file list included — into multi-second responses. The
+            // per-bot monitors still pick up config.csv / .gbdialog changes on
+            // their own cadence, so this slower discovery loop costs freshness
+            // only for brand-new buckets. Override with DRIVE_SCAN_INTERVAL.
             let scan_interval = std::env::var("DRIVE_SCAN_INTERVAL")
                 .ok()
                 .and_then(|v| v.parse().ok())
-                .unwrap_or(5u64);
+                .unwrap_or(30u64);
             const MAX_BACKOFF_SECS: u64 = 300; // 5 minutes
 
             loop {
