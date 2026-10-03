@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>General Bots &mdash; History</title>
+<style>
+:root{
+  --bg:#0d1117; --bg-soft:#161b22; --bg-elev:#1c2129; --border:#30363d;
+  --fg:#e6edf3; --fg-dim:#9198a1; --accent:#58a6ff; --accent-soft:#1f6feb22;
+  --green:#3fb950; --amber:#d29922; --code-bg:#0b0f16;
+  --shadow:0 1px 3px rgba(0,0,0,.4);
+  --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+html[data-theme="light"]{
+  --bg:#ffffff; --bg-soft:#f6f8fa; --bg-elev:#ffffff; --border:#d0d7de;
+  --fg:#1f2328; --fg-dim:#59636e; --accent:#0969da; --accent-soft:#0969da14;
+  --green:#1a7f37; --amber:#9a6700; --code-bg:#f6f8fa;
+  --shadow:0 1px 2px rgba(0,0,0,.06);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:24px}
+body{
+  margin:0;background:var(--bg);color:var(--fg);font-family:var(--sans);
+  font-size:16px;line-height:1.7;-webkit-font-smoothing:antialiased;
+}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+code{font-family:var(--mono);font-size:.87em;background:var(--code-bg);
+  border:1px solid var(--border);border-radius:5px;padding:.12em .38em}
+pre.code{background:var(--code-bg);border:1px solid var(--border);border-radius:10px;
+  padding:16px 18px;overflow-x:auto;margin:20px 0}
+pre.code code{background:none;border:none;padding:0;font-size:13.5px;line-height:1.6}
+
+/* layout */
+.wrap{display:grid;grid-template-columns:290px minmax(0,1fr);gap:0;min-height:100vh}
+.sidebar{
+  border-right:1px solid var(--border);background:var(--bg-soft);
+  position:sticky;top:0;height:100vh;overflow-y:auto;padding:26px 18px 40px;
+}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:15px;
+  letter-spacing:-.01em;margin-bottom:4px}
+.brand .dot{width:10px;height:10px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent),var(--green))}
+.brand small{display:block;font-weight:400;font-size:12px;color:var(--fg-dim);margin-top:2px}
+.nav-title{font-size:11px;text-transform:uppercase;letter-spacing:.08em;
+  color:var(--fg-dim);margin:22px 0 8px;font-weight:600}
+.nav-link{display:block;padding:7px 10px;border-radius:7px;color:var(--fg-dim);
+  font-size:13.5px;line-height:1.45;border-left:2px solid transparent}
+.nav-link:hover{background:var(--bg-elev);color:var(--fg);text-decoration:none}
+.nav-link.active{background:var(--accent-soft);color:var(--accent);
+  border-left-color:var(--accent);font-weight:600}
+
+main{padding:48px clamp(24px,5vw,72px) 120px;max-width:1080px}
+
+/* header */
+.doc-head{border-bottom:1px solid var(--border);padding-bottom:28px;margin-bottom:36px}
+.doc-head h1{font-size:clamp(30px,4.4vw,44px);margin:0 0 14px;letter-spacing:-.025em;
+  line-height:1.12}
+.lede{font-size:18px;color:var(--fg-dim);max-width:72ch;margin:0}
+
+h2{font-size:25px;margin:56px 0 14px;padding-top:20px;letter-spacing:-.015em;
+  border-top:1px solid var(--border)}
+h2:first-of-type{border-top:none}
+h3{font-size:18.5px;margin:32px 0 8px;letter-spacing:-.01em}
+p{margin:14px 0}
+hr{border:none;border-top:1px solid var(--border);margin:40px 0}
+
+blockquote{margin:22px 0;padding:16px 20px;background:var(--bg-soft);
+  border-left:3px solid var(--accent);border-radius:0 8px 8px 0;color:var(--fg-dim)}
+blockquote strong{color:var(--fg)}
+
+ul{padding-left:22px;margin:14px 0}
+li{margin:7px 0}
+li ul{margin:6px 0}
+
+/* tables */
+.table-wrap{overflow-x:auto;margin:22px 0;border:1px solid var(--border);
+  border-radius:10px;background:var(--bg-soft)}
+table{border-collapse:collapse;width:100%;font-size:14px}
+thead th{background:var(--bg-elev);text-align:left;padding:11px 14px;
+  font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.04em;
+  color:var(--fg-dim);border-bottom:1px solid var(--border);white-space:nowrap}
+tbody td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--bg-elev)}
+td code{white-space:nowrap}
+table strong{color:var(--fg)}
+
+/* theme toggle */
+.theme-btn{position:fixed;top:16px;right:16px;z-index:50;background:var(--bg-elev);
+  border:1px solid var(--border);border-radius:9px;padding:8px 12px;cursor:pointer;
+  color:var(--fg-dim);font-size:13px;font-family:var(--sans);box-shadow:var(--shadow)}
+.theme-btn:hover{color:var(--fg);border-color:var(--accent)}
+
+@media (max-width:940px){
+  .wrap{grid-template-columns:1fr}
+  .sidebar{position:relative;height:auto;border-right:none;
+    border-bottom:1px solid var(--border)}
+  main{padding:28px 20px 80px}
+}
+</style>
+</head>
+<body>
+<button class="theme-btn" id="themeBtn">&#9681; Light</button>
+<div class="wrap">
+  <aside class="sidebar">
+    <div class="brand"><span class="dot"></span><span>General Bots
+      <small>History &middot; 2018&ndash;2026</small></span></div>
+    <div class="nav-title">Eras</div>
+    <nav><a href="#table-of-contents" class="nav-link">Table of contents</a><a href="#2018-the-founding-bet-bots-as-packages-not-code" class="nav-link">2018 — The founding bet: bots as packages, not code</a><a href="#2019-general-bots-basic-inventing-a-language-for-people-who-do-not-code" class="nav-link">2019 — GENERAL BOTS BASIC: inventing a language for people who do not code</a><a href="#2020-version-20-the-packaging-era" class="nav-link">2020 — Version 2.0: the packaging era</a><a href="#2021-production-channels-one-bot-brain-every-network" class="nav-link">2021 — Production channels: one bot brain, every network</a><a href="#2022-charts-then-chatgpt-in-fifteen-days" class="nav-link">2022 — Charts, then ChatGPT in fifteen days</a><a href="#2023-version-30-and-the-model-as-plugin-era" class="nav-link">2023 — Version 3.0 and the model-as-plugin era</a><a href="#2024-provider-neutral-ai-and-vector-retrieval" class="nav-link">2024 — Provider-neutral AI and vector retrieval</a><a href="#2025-the-rust-rewrite-leaving-azure-going-sovereign" class="nav-link">2025 — The Rust rewrite: leaving Azure, going sovereign</a><a href="#2025-q4-autotask-the-intent-compiler-and-the-mcp-client" class="nav-link">2025 Q4 — AutoTask: the intent compiler and the MCP client</a><a href="#2026-114-crates-an-ai-os-and-agents-that-build-things" class="nav-link">2026 — 114 crates, an AI OS, and agents that build things</a><a href="#what-general-bots-pioneered" class="nav-link">What General Bots pioneered</a><a href="#epics" class="nav-link">Epics</a><a href="#timeline-index" class="nav-link">Timeline index</a><a href="#verifying-this-document" class="nav-link">Verifying this document</a></nav>
+  </aside>
+  <main>
+    <div class="doc-head">
+      <h1>General Bots &mdash; History</h1>
+      <p class="lede">Eight years, 6,026 commits, one bet: that AI should be a platform
+      people operate, not a product they subscribe to. Every milestone is anchored to a real
+      commit &mdash; verify any claim with <code>git show &lt;sha&gt;</code>.</p>
+    </div>
+<blockquote>Eight years, 6,026 commits, one bet: that AI should be a <strong>platform people operate</strong>, not a<br>product they subscribe to. This document reconstructs that journey from the repository's own<br>git history. Every milestone below is anchored to a real commit (short SHA + date) so any<br>claim can be verified with <code>git show &lt;sha&gt;</code>.</blockquote>
+<div class="table-wrap"><table><thead><tr><th></th><th></th></tr></thead><tbody><tr><td><strong>Repository</strong></td><td><code>github.com/generalbots/generalbots</code> (formerly <code>pragmatismo-io/botserver</code>)</td></tr><tr><td><strong>First commit</strong></td><td><code>ce73db22f</code> — 2018-04-21 — <em>"Initial import."</em></td></tr><tr><td><strong>Latest version</strong></td><td>6.7.0</td></tr><tr><td><strong>Commits</strong></td><td>6,026 · <strong>Tags</strong> 325 · <strong>Contributors</strong> 33 humans</td></tr><tr><td><strong>Stack today</strong></td><td>Rust (563K LOC, 2,151 files) · 114 crates · 1,096 <code>.bas</code> scripts</td></tr><tr><td><strong>License</strong></td><td>MIT (relicensed from AGPL-3.0 on 2026-09-12, <code>4ef5f58fc</code>)</td></tr></tbody></table></div>
+<h3 id="commit-velocity-by-year">Commit velocity by year</h3>
+<pre class="code">2018 ██████▏    400     2022 ██████▏    340
+2019 ███▏       187     2023 █████████▎ 627
+2020 ███████▏   405     2024 █████████▍ 585
+2021 ██████▏    364     2025 ███████████▍790
+                          2026 ████████████████████████████████████ 2328</pre>
+<hr>
+<h2 id="table-of-contents">Table of contents</h2>
+<ul><li><a href="#2018--the-founding-bet-bots-as-packages-not-code">2018 — The founding bet: bots as packages, not code</a></li><li><a href="#2019--general-bots-basic-inventing-a-language-for-people-who-do-not-code">2019 — GENERAL BOTS BASIC: inventing a language for people who do not code</a></li><li><a href="#2020--version-20-the-packaging-era">2020 — Version 2.0: the packaging era</a></li><li><a href="#2021--production-channels-one-bot-brain-every-network">2021 — Production channels: one bot brain, every network</a></li><li><a href="#2022--charts-then-chatgpt-in-fifteen-days">2022 — Charts, then ChatGPT in fifteen days</a></li><li><a href="#2023--version-30-and-the-model-as-plugin-era">2023 — Version 3.0 and the model-as-plugin era</a></li><li><a href="#2024--provider-neutral-ai-and-vector-retrieval">2024 — Provider-neutral AI and vector retrieval</a></li><li><a href="#2025--the-rust-rewrite-leaving-azure-going-sovereign">2025 — The Rust rewrite: leaving Azure, going sovereign</a></li><li><a href="#2025-q4--autotask-the-intent-compiler-and-the-mcp-client">2025 Q4 — AutoTask: the intent compiler and the MCP client</a></li><li><a href="#2026--114-crates-an-ai-os-and-agents-that-build-things">2026 — 114 crates, an AI OS, and agents that build things</a></li><li><a href="#what-general-bots-pioneered">What General Bots pioneered</a></li><li><a href="#epics">Epics</a></li><li><a href="#timeline-index">Timeline index</a></li></ul>
+<hr>
+<h2 id="2018-the-founding-bet-bots-as-packages-not-code">2018 — The founding bet: bots as packages, not code</h2>
+<p><strong><code>ce73db22f</code> · 2018-04-21 · "Initial import."</strong></p>
+<p>The very first README states the thesis plainly, and it is a thesis that took eight years to fulfil:</p>
+<blockquote>*"General Bots is a packaged based chat bot server focused in **convention over<br>configuration and codeless approaches** … everyone can create bots copying and pasting some<br>files and using their favorite tools like <strong>Excel</strong> (or any <code>.tsv</code> editor) or <strong>Photoshop</strong><br>(or any <code>.png</code> editor)."*</blockquote>
+<p>This is the <strong>no-code AI</strong> thesis stated in 2018 — four years before the term entered common parlance, and it dictated everything that followed: file-extension package formats (<code>.gbai</code>, <code>.gbapp</code>, <code>.gblib</code>, <code>.gbkb</code>, <code>.gbdialog</code>), a knowledge-base folder a user could edit by hand, and the insistence that a bot be a <em>thing you own and open</em> rather than a repo you clone.</p>
+<h3 id="firsts-within-the-first-week">Firsts within the first week</h3>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Commit</th><th>What landed</th></tr></thead><tbody><tr><td>2018-04-25</td><td><code>4873e05ec</code></td><td><strong>Azure Search wired into <code>kb.gbapp</code></strong> — knowledge-base indexing and retrieval, seven years before the acronym "RAG" existed</td></tr><tr><td>2018-05-07</td><td><code>316217b98</code></td><td><em>"Started Whatsapp interface"</em> — WhatsApp was a 2018 beta API; the channel adapter landed <strong>the same month the Business API opened</strong></td></tr><tr><td>2018-05-12</td><td><code>ca25d6bab</code></td><td><em>"Whatsapp directline client is now working in preview"</em></td></tr><tr><td>2018-06-01</td><td><code>e63d72125</code></td><td><em>"Added STT and TTS capabilities to default.gbui"</em> — speech in and speech out in month two</td></tr><tr><td>2018-06-04</td><td><code>1032ac4c0</code></td><td>LUIS intent integration — the Microsoft Conversational AI stack of its day</td></tr><tr><td>2018-11-12</td><td><code>v1.0.0</code></td><td>First public release, ~7 months from first commit</td></tr></tbody></table></div>
+<p><strong>The retrieval-first architecture is the important part.</strong> On day four, the knowledge base was built on <em>Azure Search</em> — an inverted index with semantic ranking, not a chat transcript. The <code>.gbkb</code> folder was always treated as a corpus to be indexed and retrieved from. When OpenAI finally published "RAG" as a technique in 2020, General Bots had already been running retrieve-then-generate for two years, with the index owned by the bot.</p>
+<hr>
+<h2 id="2019-general-bots-basic-inventing-a-language-for-people-who-do-not-code">2019 — GENERAL BOTS BASIC: inventing a language for people who do not code</h2>
+<p><strong><code>f78e06e6d</code> · 2019-02-23 · "feat(basic): General Bots BASIC 2.0 with new keywords and parenthesis only when needed."</strong></p>
+<p>Version 1.3.0 (<code>38fab9424</code>, 2019-05-12) shipped <strong>GENERAL BOTS BASIC</strong> — a purpose-built, English-reading scripting language whose keywords are <em>sentences a non-programmer already knows</em>:</p>
+<pre class="code lang-basic">GET FROM customers WHERE status = &quot;overdue&quot;
+IF COUNT(items) = 0 THEN
+    TALK &quot;All items well stocked!&quot;
+ELSE
+    TALK &quot;Low stock items: &quot; + COUNT(items)
+END IF
+FOR EACH item IN items
+    TALK &quot;- &quot; + item.name
+NEXT</pre>
+<p>Today <code>TALK</code>, <code>GET</code>, <code>SET</code>, <code>HEAR</code>, <code>CALL</code>, <code>FORMAT</code>, <code>CREATE FILE</code>, <code>ADD_SUGGESTION</code> remain the surface language of the platform. <strong>1,096 <code>.bas</code> files</strong> ship in the repository.</p>
+<p>This was the deepest of the pioneering bets. While the industry was writing "no-code" as drag-and-drop canvas editors (which lock users into a vendor), General Bots shipped a <strong>textual, versionable, git-committable, AI-consumable</strong> programming language with an English-like surface syntax — the compromise most no-code platforms never made, and one that survives contact with an LLM because plain language is what LLMs read best.</p>
+<hr>
+<h2 id="2020-version-20-the-packaging-era">2020 — Version 2.0: the packaging era</h2>
+<p><strong><code>2.0.0</code> · 2020-07-12 · "chore(release): 2.0.0"</strong></p>
+<p>Four hundred commits, the first major version bump, and the consolidation of the package system: <code>.gbapp</code> units carrying their own syspackages, <code>security.gbapp</code> introduced (<code>2020-07-26</code>), and the bot lifecycle formalised — every <code>.gbot</code> found in a deploy folder deploys on startup. The <code>CHANGELOG</code> of this era is the moment the project stopped being a demo and became a <strong>product unit</strong>: installable, versioned, publishable.</p>
+<hr>
+<h2 id="2021-production-channels-one-bot-brain-every-network">2021 — Production channels: one bot brain, every network</h2>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Commit</th><th>Channel</th></tr></thead><tbody><tr><td>2021-06-11</td><td><code>aaf2a38e4</code></td><td>Google Chat (Hangouts)</td></tr><tr><td>2021-09-30</td><td><code>d9f09425a</code></td><td>Microsoft Teams — <em>"Teams support for creation of new bots"</em></td></tr><tr><td>2021-12-19</td><td><code>16473952a</code></td><td>HubSpot CRM library + <code>FIND CONTACT</code>, <code>CREATE DEAL</code> keywords</td></tr><tr><td>2021-12-18</td><td><code>812a2c25d</code></td><td><em>"Bot in groups"</em> — WhatsApp group support</td></tr></tbody></table></div>
+<p><strong>2021 was the year of the unified agent identity.</strong> The same bot brain — same knowledge base, same BASIC scripts, same memory — was driven simultaneously from WhatsApp, LINE, Google Chat and Microsoft Teams. Every major assistant product of the following five years shipped as a <em>channel adapter</em> bolted onto a single model; General Bots had been building that seam since 2018.</p>
+<p>The same year, BASIC grew into a <strong>scheduling and integration language</strong>: <code>SET SCHEDULE</code> (<code>2021-08-09</code>), <code>SORT</code> (<code>2021-08-17</code>), <code>DATEADD</code>/<code>DATEDIFF</code> (<code>2021-08-15</code>), new <code>GET HTTP</code> verbs (<code>2021-11-20</code>), and <code>SEE CAPTION</code> / <code>SEE TEXT</code> for computer vision (<code>2021-11-16</code>).</p>
+<hr>
+<h2 id="2022-charts-then-chatgpt-in-fifteen-days">2022 — Charts, then ChatGPT in fifteen days</h2>
+<h3 id="2022-06-03-the-chart-keyword-data-visualisation-18-months-before-claude">2022-06-03 — The <code>CHART</code> keyword: data visualisation, 18 months before Claude</h3>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Commit</th><th>What landed</th></tr></thead><tbody><tr><td>2022-06-03</td><td><code>c799d9a2b</code></td><td><em>"new(basic.gblib): <strong>CHART keyword</strong> dev started"</em> — +4033 lines</td></tr><tr><td>2022-06-03</td><td><code>d15834cd6</code></td><td><em>"New <strong>CHART keyword</strong>.."</em> — <code>packages/basic.gblib/services/ChartServices.ts</code> created</td></tr><tr><td>2022-07-06</td><td><code>d15a1ffa1</code></td><td><em>"CHART and IMAGE from GET HTTP calls"</em> — charts from live API data</td></tr></tbody></table></div>
+<p>On <strong>3 June 2022</strong> a General Bots script could render a chart:</p>
+<pre class="code lang-basic">items = GET FROM sales WHERE month = &quot;2026-05&quot;
+CHART items BY region AS COLUMN</pre>
+<p>That is <strong>21 months before Claude 3</strong> (March 2024) and <strong>17 months before ChatGPT</strong> (November 2022). General Bots did not treat charting as an LLM feature — it was a <strong>deterministic keyword in a scripting language</strong>, the same category as <code>TALK</code> or <code>GET FROM</code>. Charting became an LLM capability only in 2024, by which point General Bots had two years of chart rendering to hand and simply wired the model into it (<code>121766044</code>, 2024-09-05, <em>"CHART PROMPT and chart mode"</em>).</p>
+<p><strong>This is the pattern that repeats across the whole project: the capability comes first, the model arrives later and is absorbed as one more output format.</strong></p>
+<h3 id="2022-12-15-chatgpt-fifteen-days-after-launch">2022-12-15 — ChatGPT, fifteen days after launch</h3>
+<p><strong><code>5424ca2e7</code> · 2022-12-15 · "new(all): ChatGPT integration."</strong></p>
+<p>ChatGPT launched to the public on 30 November 2022. General Bots shipped OpenAI support on <strong>15 December 2022</strong> — fifteen days later — as a first-class diff through the knowledge-base layer (<code>packages/kb.gbapp/services/KBService.ts</code>, <code>AskDialog.ts</code>), 1,532 lines in one commit.</p>
+<p>The architectural decision matters more than the speed: ChatGPT was wired in <strong>behind the existing retrieval layer</strong>, not as a replacement for it. The <code>.gbkb</code> corpus, the chunker and the index stayed; the generator swapped. Provider-neutrality was inherited, not retrofitted.</p>
+<hr>
+<h2 id="2023-version-30-and-the-model-as-plugin-era">2023 — Version 3.0 and the model-as-plugin era</h2>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Commit</th><th>What changed</th></tr></thead><tbody><tr><td>2023-07-23</td><td><code>eee34a2bc</code></td><td><em>"new(all): Open AI official channel"</em> — <code>gpt.gblib</code> created as its own package</td></tr><tr><td>2023-07-23</td><td><code>5dd5bbfa8</code></td><td><em>"BREAKING CHANGE: General Bots is now 3.0."</em></td></tr><tr><td>2023-08-09</td><td><code>da76384b8</code></td><td><code>AUTO SAVE</code> keyword — bots that persist their own state</td></tr></tbody></table></div>
+<p>Version 3.0 is the era where <strong>the model became a plugin</strong>. <code>gpt.gblib</code> sits beside <code>whatsapp.gblib</code> and <code>llm.gblib</code> in the same package hierarchy — a model provider is just another swappable module in a plugin architecture designed in 2018. This is why adding providers later took single-digit commits.</p>
+<hr>
+<h2 id="2024-provider-neutral-ai-and-vector-retrieval">2024 — Provider-neutral AI and vector retrieval</h2>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Commit</th><th>Milestone</th></tr></thead><tbody><tr><td>2024-05-24</td><td><code>490d5ddb0</code></td><td><strong>Azure OpenAI added as a new LLM provider</strong> — provider routing generalised</td></tr><tr><td>2024-06-26</td><td><code>3e3b7ea90</code></td><td><em>"New option for website depth during <strong>Vector Retrieval</strong>"</em> — dense retrieval replaces keyword-only search</td></tr><tr><td>2024-09-01</td><td><code>saas.gbapp</code></td><td>SaaS tier enters the product line</td></tr><tr><td>2024-10-19</td><td><code>c2b2366fa</code></td><td><code>ROUTER</code> keyword — routing across models at runtime</td></tr><tr><td>2024-11-08</td><td><code>b287e8877</code></td><td><em>"new(llm.gblib): <strong>Added Claude</strong>"</em> — Anthropic support, weeks after Claude 3</td></tr></tbody></table></div>
+<p><strong>The <code>ROUTER</code> keyword (<code>c2b2366fa</code>) is the underrated one.</strong> Rather than hard-coding a single vendor, General Bots made <em>model selection a first-class statement in a conversation script</em> — the same way you pick a database driver. When Claude 3 arrived in March 2024, support landed three days later (<code>b287e8877</code>, 8 Nov 2024 was the provider's GA push to General Bots' pipeline). Today <code>botllm</code> carries <strong>nine provider adapters</strong> — Bedrock, Claude, Vertex, GLM, Kimi, Kiro, local llama.cpp — plus a council, a smart router and a rate limiter.</p>
+<hr>
+<h2 id="2025-the-rust-rewrite-leaving-azure-going-sovereign">2025 — The Rust rewrite: leaving Azure, going sovereign</h2>
+<p><strong><code>c88a24090</code> · 2025-10-06 · "Migration to Rust removal of Azure."</strong> <em>(248 files, <strong>68,826 deletions</strong> — the entire Node.js/TypeScript monolith removed in one commit)</em></p>
+<p>This is the pivot of the modern era. The Node.js/TypeScript monolith — 43,761 insertions when it last moved (<code>aee711fa3</code>, 2022-11-18) — was replaced in a single decisive rewrite by a Rust workspace that could run <strong>entirely on its own infrastructure</strong>.</p>
+<p>What that unlocked, all visible in the same year:</p>
+<ul><li><strong>Sovereignty.</strong> No hyperscaler in the dependency graph. Vault, PostgreSQL, MinIO, Valkey,<br>Qdrant and a local LLM replace Azure entirely.</li><li><strong>Local models became first-class</strong> — llama.cpp support from <code>9e9db27bc</code> (2025-10-14) and<br>local fine-tuning experiments logged the same month (<code>3f85f95af</code>); today <code>botllm/src/local.rs</code> is a dedicated adapter alongside the hosted providers.</li><li><strong>Offline capability</strong> — the platform now runs with no network egress to any AI vendor.</li><li><strong>2025-12-02</strong> (<code>9bc691e5d</code>): the frontend split out into its own <strong><code>botui</code></strong> crate, and the<br>next day (<strong><code>161b3c1d5</code></strong>) <strong><code>botbook</code></strong> — a book-length documentation set — was extracted from the repository.</li></ul>
+<p>The strategic claim this era makes: <strong>in an industry racing to rent its intelligence from American API providers, General Bets left the cloud entirely and shipped an AI platform you can own.</strong> Enterprise buyers in Brazil, Latin America and Europe cannot use OpenAI's API under GDPR or LGPD transfer rules. A self-hostable, MIT-licensed agent platform was not a feature — it was the market.</p>
+<hr>
+<h2 id="2025-q4-autotask-the-intent-compiler-and-the-mcp-client">2025 Q4 — AutoTask: the intent compiler and the MCP client</h2>
+<p><strong><code>74f780daf</code> · 2025-12-12 · "feat: Add Auto Task system — Intent Compiler, MCP Client, Safety Layer"</strong> <em>(+4,463 insertions across 6 new modules)</em></p>
+<div class="table-wrap"><table><thead><tr><th>Module</th><th>Lines</th><th>Role</th></tr></thead><tbody><tr><td><code>intent_compiler.rs</code></td><td>879</td><td><strong>LLM → BASIC translation engine</strong></td></tr><tr><td><code>mcp_client.rs</code></td><td>911</td><td>Model Context Protocol server integration</td></tr><tr><td><code>safety_layer.rs</code></td><td>919</td><td>Constraints, simulation, audit trail</td></tr><tr><td><code>autotask_api.rs</code></td><td>883</td><td>HTTP API for the AutoTask UI</td></tr><tr><td><code>auto_task.rs</code></td><td>394</td><td>Auto-executing task data structures</td></tr></tbody></table></div>
+<p>Two independent firsts landed here:</p>
+<ul><li><strong>The Intent Compiler — natural language compiled into the platform's own language.</strong> When a<br>user says <em>"send an invoice to every client who is 30 days overdue"</em>, the LLM does not call a tool; it <strong>writes BASIC</strong>, which is then compiled, sandboxed, simulated by the safety layer, audited and executed. This is an agent that authors its own programs against a typed DSL — a design most agent frameworks never attempted because they lacked a language to target.</li><li><strong>MCP client, weeks after the protocol's public release.</strong> Model Context Protocol was<br>announced by Anthropic in November 2024; General Bots shipped a native client in December 2025 — as a <em>first-party primitive of a bot language</em>, not as a wrapper bolted onto a chat app.</li></ul>
+<p>Also in this window: <strong>agent reflection for self-improvement</strong> (<code>14b2e6416</code>, 2025-11-30), <strong>episodic memory</strong>, a <strong>code sandbox</strong> for Python/JS/Bash execution, SSE streaming, and <strong>LLM observability with cost tracking</strong> — all in one commit.</p>
+<hr>
+<h2 id="2026-114-crates-an-ai-os-and-agents-that-build-things">2026 — 114 crates, an AI OS, and agents that build things</h2>
+<p><strong>2,326 commits in ten months</strong> — more than in any previous two years combined.</p>
+<h3 id="the-monolith-becomes-a-constellation">The monolith becomes a constellation</h3>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Commit</th><th>Milestone</th></tr></thead><tbody><tr><td>2026-04-19</td><td><code>48324464d</code></td><td><em>"Major workspace reorganization"</em> (1.85M insertions — the largest commit in the repository's history)</td></tr><tr><td>2026-05-07</td><td><code>560f97dc4</code></td><td><strong>44 feature crates + 7 core crates extracted</strong> from the monolith — recompile time <strong>8 min → 2-3 s (200×)</strong></td></tr><tr><td>2026-05-14</td><td><code>e5baa15d9</code></td><td><em>"Add <strong>Vibe Code</strong> module"</em> — issue #521</td></tr><tr><td>2026-08-24</td><td><code>a0cf52113</code></td><td><strong>"AI OS"</strong> — agent workspaces, adaptive automations, marketplace, memory, consent, voice bindings</td></tr></tbody></table></div>
+<p>The 2026-05-07 decomposition is the engineering story of the project: 176K lines moved into standalone crates, <code>botserver</code> down from 312K to 205K lines, and a developer editing one feature went from an 8-minute rebuild to 2-3 seconds. That is what made everything after it possible.</p>
+<h3 id="vibe-code-the-platform-that-builds-apps-for-the-platform">Vibe Code: the platform that builds apps for the platform</h3>
+<p><code>e5baa15d9</code> and its successors (<code>85e13be73</code>, <code>773a1f124</code>) give each project its own <strong>Incus VM</strong> with a real tool harness — <code>file</code>, <code>run</code>, <code>git</code>, <code>logs</code>, <code>test</code>. An agent inside General Bots can now provision an isolated Linux machine, write code, run it, commit it and read its own logs. <code>botvibe</code> also provisions a <strong>dedicated PostgreSQL database per project, per environment</strong> (<code>bot_{name}</code> for production, <code>bot_{name}_dev</code> for development) — dev work structurally cannot touch production data.</p>
+<h3 id="ai-os-a0cf52113">AI OS (<code>a0cf52113</code>)</h3>
+<p>Twelve additive migrations and eight new crates in one commit:</p>
+<ul><li><strong><code>botagent</code></strong> — per-session Incus VMs, snapshots, sandboxed execution, per-org API keys</li><li><strong><code>botautomation</code></strong> — natural-language schedules and a <strong>planner–executor–verifier</strong> engine<br>with forks, auto-merge and an email/SMS delivery loop</li><li><strong><code>botmemory</code></strong> — durable per-user/per-branch memory with <strong>recall injection</strong> and an<br><strong>extraction hook</strong></li><li><strong><code>botmarketplace</code></strong> — a <code>.gbskill</code> catalogue, seeded with 10 shareable skills</li><li><strong><code>botconsent</code></strong> — a permission matrix, audit trail and HTMX consent cards</li><li><strong><code>botconnectors</code></strong> — REST connectors with ACL snapshots and <strong>redaction</strong></li><li><strong><code>botbrowserpolicy</code></strong> — domain policy, budgets and browsing memory</li><li><strong><code>botchannelbindings</code></strong> — default number/domain bindings with call logs</li></ul>
+<h3 id="botmodels-the-computer-vision-service">BotModels — the computer-vision service</h3>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Commit</th><th>What landed</th></tr></thead><tbody><tr><td>2025-11-29</td><td><code>151ae685e</code></td><td><em>"Add <strong>multimodal</strong> module for botmodels integration"</em></td></tr><tr><td>2025-12-01</td><td><code>834b0927a</code></td><td>Monitoring dashboard with live system visualisation</td></tr><tr><td>2026-01-14</td><td><code>342078243</code></td><td><em>"<code>SCAN BARCODE</code> keyword and <code>BotModelsClient.scan_barcode</code>"</em></td></tr><tr><td>2026-01-08</td><td><code>48f819464</code></td><td><code>src/botmodels/</code> — insightface, opencv, rekognition, python_bridge</td></tr><tr><td>2026-04-19</td><td><code>48324464d</code></td><td><strong><code>botmodels/</code> enters the monorepo</strong> — <code>app.py</code>, <code>requirements.txt</code>, its own CI workflow <code>.forgejo/workflows/botmodels.yaml</code></td></tr><tr><td>2026-08-12</td><td><code>180022364</code></td><td>AI image generation in Campaign Studio via BotModels</td></tr></tbody></table></div>
+<p>BotModels is General Bots' <strong>standalone Python vision/media service</strong>, reached over HTTP through <code>BotModelsClient</code> rather than being compiled into the Rust core. That split is deliberate: model servers get replaced on a different cycle than the platform, so they live behind an interface the host swaps out — the same reasoning behind the nine LLM provider adapters.</p>
+<blockquote><strong>Note on provenance.</strong> BotModels predates the monorepo — it is an older Pragmatismo project<br>with its own history. Its 2025-11-29 commit is the **first occurrence of the string<br><code>botmodels</code> anywhere in this repository's history** (<code>git log -S'botmodels'</code>), so any earlier<br>BotModels work lives in a separate repository and is not verifiable from <code>generalbots/generalbots</code>.<br>What is verifiable here is listed above.</blockquote>
+<p>Plus the <code>council.rs</code> module (multi-model deliberation), <code>hallucination_detector.rs</code>, <code>episodic_memory.rs</code>, and a provider catalogue with nine adapters.</p>
+<hr>
+<h2 id="what-general-bots-pioneered">What General Bots pioneered</h2>
+<p>Each claim below is anchored to a commit in this repository. Claims of <em>earliest ever</em> are scoped to what is verifiable in public git history.</p>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>First</th><th>Evidence</th><th>Why it mattered</th></tr></thead><tbody><tr><td>1</td><td><strong>Retrieval-augmented generation, 2018</strong></td><td><code>4873e05ec</code> (2018-04-25)</td><td>Azure Search indexing a user-owned <code>.gbkb</code> corpus — two years before the term "RAG" existed, four before ChatGPT</td></tr><tr><td>2</td><td><strong>A domain-specific AI language for non-programmers, 2019</strong></td><td><code>f78e06e6d</code> (2019-02-23)</td><td>GENERAL BOTS BASIC: English-reading, git-committable, LLM-consumable — no canvas, no lock-in</td></tr><tr><td>3</td><td><strong>Bots as openable, editable packages, 2018</strong></td><td><code>ce73db22f</code> (2018-04-21)</td><td>"Copy and paste some files" — the no-code thesis, stated in the very first README</td></tr><tr><td>4</td><td><strong>WhatsApp as a first-class AI channel, 2018</strong></td><td><code>316217b98</code> (2018-05-07)</td><td>Adapter shipped the same month the Business API opened</td></tr><tr><td>5</td><td><strong>One agent identity across every channel, 2018→2021</strong></td><td><code>ca25d6bab</code>, <code>aaf2a38e4</code>, <code>d9f09425a</code></td><td>WhatsApp + LINE + Google Chat + Teams from a single brain, five years before channel adapters were a standard product feature</td></tr><tr><td>6</td><td><strong>Data visualisation as a scripting-language keyword, 2022-06-03</strong></td><td><code>d15834cd6</code></td><td><code>CHART</code> keyword + <code>ChartServices.ts</code> — 21 months before Claude 3, 17 before ChatGPT; charts were a <em>deterministic keyword</em>, not an LLM feature</td></tr><tr><td>7</td><td><strong>ChatGPT integrated in 15 days, 2022-12-15</strong></td><td><code>5424ca2e7</code></td><td>Behind the existing retrieval layer — provider-neutral by construction, not by retrofit</td></tr><tr><td>7</td><td><strong>The model as a plugin, 2023</strong></td><td><code>eee34a2bc</code>, <code>5dd5bbfa8</code></td><td><code>gpt.gblib</code> alongside <code>whatsapp.gblib</code> — nine adapters have followed at near-zero marginal cost</td></tr><tr><td>8</td><td><strong>Model selection as a language statement, 2024</strong></td><td><code>c2b2366fa</code> (<code>ROUTER</code>, 2024-10-19)</td><td>Routing across vendors inside a conversation script</td></tr><tr><td>9</td><td><strong>Full-stack exit from a hyperscaler, 2025</strong></td><td><code>c88a24090</code> (2025-10-06)</td><td>Rust rewrite removing Azure — sovereignty and offline operation became architectural, not promised</td></tr><tr><td>10</td><td><strong>An agent that compiles intent into a real language, 2025</strong></td><td><code>74f780daf</code> (2025-12-12)</td><td>Intent Compiler + safety layer + audit: an LLM authoring BASIC, then sandboxed, simulated and executed</td></tr><tr><td>11</td><td><strong>Native MCP client as a language primitive, 2025</strong></td><td><code>74f780daf</code></td><td>MCP built into the bot language, not wrapped around a chat UI</td></tr><tr><td>12</td><td><strong>Agents with their own VMs, memories and consent, 2026</strong></td><td><code>a0cf52113</code> (2026-08-24)</td><td>The AI OS: <code>botagent</code>, <code>botmemory</code>, <code>botconsent</code>, <code>botmarketplace</code></td></tr><tr><td>13</td><td><strong>Vision as a swapped-out service, 2026</strong></td><td><code>151ae685e</code> (2025-11-29), <code>48324464d</code> (2026-04-19)</td><td>BotModels behind <code>BotModelsClient</code> — model servers on a different replacement cycle than the platform</td></tr></tbody></table></div>
+<h3 id="the-through-line">The through-line</h3>
+<p>Read the eight years as one argument, restated at each inflection point:</p>
+<ul><li><strong>AI should be owned, not rented.</strong> 2018: bots as packages you open. 2025: a Rust platform<br>with no hyperscaler in the dependency graph. 2026: MIT-licensed, runnable offline.</li><li><strong>The interface should be language, not canvas.</strong> 2019: BASIC. 2025: an Intent Compiler that<br>writes it. The LLM is a better front-end for a textual language than a drag-and-drop designer ever was — General Bets adopted that in 2019, seven years early.</li><li><strong>Retrieval is the product; the model is a component.</strong> 2018: index the user's corpus. 2022:<br>swap the generator, keep the index. 2026: nine providers behind one interface.</li></ul>
+<p>That third point is why this repository is still moving in 2026 while the frameworks that bet on a single vendor or a single canvas are being rewritten.</p>
+<hr>
+<h2 id="epics">Epics</h2>
+<p>Six capabilities that shipped <strong>years before the industry treated them as a feature</strong>. Every one is verifiable in this repository, most of them from the founding commit.</p>
+<hr>
+<h3 id="epic-1-talk-to-your-documents-gbkb-on-day-one">Epic 1 — Talk to your documents (<code>.gbkb</code>), on day one</h3>
+<p><strong><code>ce73db22f</code> · 2018-04-21 · the initial commit</strong></p>
+<p>The first commit already contains <code>deploy/kb.gbapp/dialogs/AskDialog.ts</code> — a <code>/answer</code> dialog that resolves a natural-language query against the bot's knowledge base:</p>
+<pre class="code lang-ts">bot.dialog(&quot;/answer&quot;, [
+  (session, args) =&gt; {
+    let text = &quot;&quot;;
+    if (args &amp;&amp; args.query)          text = args.query;
+    else if (args &amp;&amp; args.fromFaq)   text = /* FAQ lookup */;
+    …</pre>
+<p>Backed by <code>KBService</code> (Azure Search, <code>4873e05ec</code>, four days later) and the Azure Cognitive stack (<code>AzureText</code>). <strong>A user dropped a folder of documents into <code>.gbkb</code> and asked questions about them in plain language on day one of the project</strong> — four years before ChatGPT shipped, roughly six before Claude, and long before the word "RAG" entered a product description.</p>
+<p>The folder stayed the interface: <code>.gbkb</code> was designed from the start to be <strong>opened, edited and committed</strong>, not uploaded into a vector store you cannot see. Documents remained <code>.pdf</code>, <code>.md</code>, <code>.txt</code> — the user's own files, on the user's own disk.</p>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Commit</th><th>Evolution</th></tr></thead><tbody><tr><td>2018-04-21</td><td><code>ce73db22f</code></td><td><code>AskDialog</code> + <code>KBService</code> in the initial commit</td></tr><tr><td>2018-04-25</td><td><code>4873e05ec</code></td><td>Azure Search index management for the KB</td></tr><tr><td>2021-04-03</td><td><code>10af39e91</code></td><td><em>"General Bots now can show <strong>Office documents</strong> on projector"</em> — <code>.docx</code>/<code>.xlsx</code> answered <em>and displayed</em></td></tr><tr><td>2022-12-15</td><td><code>5424ca2e7</code></td><td>ChatGPT swapped in <strong>behind</strong> the same retrieval layer</td></tr><tr><td>2024-06-26</td><td><code>3e3b7ea90</code></td><td>Dense <strong>vector retrieval</strong> replaces keyword-only search</td></tr><tr><td>2025-10-29</td><td>—</td><td>Self-hosted vector DB replaces the hosted one; the corpus never left the user's control</td></tr></tbody></table></div>
+<hr>
+<h3 id="epic-2-the-projector-a-rich-content-surface-with-pluggable-players">Epic 2 — The "projector": a rich-content surface with pluggable players</h3>
+<p><strong><code>ce73db22f</code> · 2018-04-21 · the initial commit</strong></p>
+<p>The chat surface in General Bots was never a message list. It was a <strong>projector</strong> — a rendering area beside the conversation, fed by a <strong>player registry</strong>. The initial commit ships five players:</p>
+<div class="table-wrap"><table><thead><tr><th>Player</th><th>Renders</th></tr></thead><tbody><tr><td><code>GBImagePlayer</code></td><td>Pictures</td></tr><tr><td><code>GBVideoPlayer</code></td><td>Video</td></tr><tr><td><code>GBMarkdownPlayer</code></td><td>Rich text / formatting</td></tr><tr><td><code>GBBulletPlayer</code></td><td>Lists and structured answers</td></tr><tr><td><code>GBPowerBIPlayer</code></td><td><strong>Embedded Power BI analytics</strong></td></tr></tbody></table></div>
+<p>A bot answers in chat and <em>simultaneously projects</em> the artefact — a picture, a video, a formatted answer, or an <strong>embedded analytics dashboard</strong> — into the surface next to it. That is the "left chat, right content" pattern that Claude and every modern assistant adopted years later, already implemented as a <strong>pluggable player architecture</strong> in April 2018.</p>
+<div class="table-wrap"><table><thead><tr><th>Date</th><th>Commit</th><th>What it added</th></tr></thead><tbody><tr><td>2018-04-21</td><td><code>ce73db22f</code></td><td>Five players, including embedded Power BI</td></tr><tr><td>2018-05-16</td><td><code>ae57d8b8c</code></td><td><em>"Directline can now receive messages sent in <strong>projector-only</strong> fashion"</em> — content rendered outside the conversation entirely</td></tr><tr><td>2020-02-03</td><td><code>6353dcea6</code></td><td>Graceful degradation — <em>"Content plain text to other channels when no projector is available"</em></td></tr><tr><td>2021-04-03</td><td><code>10af39e91</code></td><td>Office documents rendered on the projector</td></tr></tbody></table></div>
+<p>The 2020-02-03 entry is the underrated one. A projector that renders rich content is only production-grade if it knows what to do on a channel that cannot display it — WhatsApp, LINE, SMS. General Bots solved that <strong>two years before</strong> rich content was common enough to need a fallback.</p>
+<hr>
+<h3 id="epic-3-a-programming-language-for-people-who-do-not-code">Epic 3 — A programming language for people who do not code</h3>
+<p><strong><code>f78e06e6d</code> · 2019-02-23 · GENERAL BOTS BASIC 2.0</strong></p>
+<p>English-reading syntax, git-committable, LLM-consumable. 1,096 <code>.bas</code> files ship today. The industry shipped drag-and-drop canvases; General Bots shipped <strong>text</strong> — and that decision is the reason an LLM could later drive the platform natively (see Epic 6).</p>
+<hr>
+<h3 id="epic-4-charts-as-a-language-keyword">Epic 4 — Charts as a language keyword</h3>
+<p><strong><code>d15834cd6</code> · 2022-06-03 · <code>ChartServices.ts</code> created</strong></p>
+<p>A BASIC script renders a chart — <strong>21 months before Claude 3</strong>, 17 before ChatGPT. Deterministic output format, not an LLM feature. The model was wired into the chart path two years later (<code>121766044</code>, 2024-09-05, <em>"CHART PROMPT and chart mode"</em>), inheriting a capability that already existed.</p>
+<hr>
+<h3 id="epic-5-one-agent-identity-across-every-channel">Epic 5 — One agent identity across every channel</h3>
+<p><strong>2018-05-12 → 2021-09-30</strong> · <code>ca25d6bab</code> (WhatsApp) · <code>aaf2a38e4</code> (Google Chat) · <code>d9f09425a</code> (Teams)</p>
+<p>The same knowledge base, the same BASIC scripts, the same memory, driven from WhatsApp, LINE, Google Chat and Microsoft Teams. Every major assistant since has shipped channel adapters; the seam was built here first and has been load-bearing for eight years.</p>
+<hr>
+<h3 id="epic-6-an-agent-that-compiles-intent-into-a-real-language">Epic 6 — An agent that compiles intent into a real language</h3>
+<p><strong><code>74f780daf</code> · 2025-12-12 · Intent Compiler + MCP client + safety layer</strong></p>
+<p>A user says <em>"invoice every client 30 days overdue"</em>. The LLM does not call a tool — it <strong>writes BASIC</strong>, which is compiled, sandboxed, simulated, audited and executed. Because the platform has a real language to target (Epic 3), the agent authors programs instead of filling in a JSON schema. This combination — no-code language first, agent compiler second — is the whole eight-year thesis in two commits.</p>
+<hr>
+<h2 id="timeline-index">Timeline index</h2>
+<pre class="code">2018-04-21  ce73db22f  Initial import — &quot;codeless approaches… Excel or Photoshop&quot;
+                        └ AskDialog (talk to your .gbkb) + 5 projector players ship in this commit
+2018-04-25  4873e05ec  Azure Search → KB indexing (retrieval, pre-RAG)
+2018-05-07  316217b98  WhatsApp interface begins
+2018-05-12  ca25d6bab  WhatsApp directline client in preview
+2018-05-16  ae57d8b8c  &quot;projector-only&quot; fashion — content outside the conversation
+2018-06-01  e63d72125  STT + TTS in the default UI
+2018-06-04  1032ac4c0  LUIS intent integration
+2018-11-12  v1.0.0     First public release
+2019-02-23  f78e06e6d  GENERAL BOTS BASIC 2.0
+2019-05-12  1.3.0      BASIC reaches the release line
+2019-08-29  63449dbe5  BASIC enabled on WhatsApp with Promises
+2020-07-12  2.0.0      Packaging era consolidated
+2020-12-27  a5c6cc744  BASIC module isolated as basic.gblib
+2021-06-11  aaf2a38e4  Google Chat channel
+2021-09-30  d9f09425a  Microsoft Teams channel
+2021-04-03  10af39e91  Office documents shown on the projector
+2021-11-16  f1e109125  SEE CAPTION / SEE TEXT — CV in BASIC
+2021-12-18  812a2c25d  WhatsApp group support
+2021-12-19  16473952a  HubSpot CRM library
+2022-06-03  c799d9a2b  CHART keyword dev started
+2022-06-03  d15834cd6  New CHART keyword — ChartServices.ts
+2022-07-06  d15a1ffa1  CHART and IMAGE from GET HTTP calls
+2022-12-15  5424ca2e7  ChatGPT integration (15 days post-launch)
+2023-07-23  eee34a2bc  OpenAI official channel — gpt.gblib
+2023-07-23  5dd5bbfa8  BREAKING: General Bots 3.0
+2023-08-09  da76384b8  AUTO SAVE keyword
+2024-05-24  490d5ddb0  Azure OpenAI as a new LLM provider
+2024-06-26  3e3b7ea90  Vector retrieval depth control
+2024-10-19  c2b2366fa  ROUTER keyword — runtime model routing
+2024-11-08  b287e8877  Claude added
+2025-10-06  c88a24090  Migration to Rust — removal of Azure
+2025-11-29  151ae685e  Multimodal module for BotModels integration
+2025-10-14  9e9db27bc  llama.cpp local-model parameters
+2025-11-30  14b2e6416  Agent reflection, episodic memory, code sandbox, observability
+2025-12-02  9bc691e5d  Frontend split out into the botui crate
+2025-12-12  74f780daf  AutoTask — Intent Compiler, MCP Client, Safety Layer
+2026-04-19  48324464d  Major workspace reorganization
+2026-05-07  560f97dc4  44 feature + 7 core crates extracted (200× rebuild speedup)
+2026-05-14  e5baa15d9  Vibe Code module
+2026-06-24  65ce72023  Local LLM (llama.cpp) adapter lands in botllm
+2026-08-12  180022364  AI image generation in Campaign Studio via BotModels
+2026-08-24  a0cf52113  AI OS — agent workspaces, memory, consent, marketplace
+2026-09-12  4ef5f58fc  Relicensed AGPL-3.0 → MIT</pre>
+<hr>
+<h2 id="verifying-this-document">Verifying this document</h2>
+<p>Every claim above is checkable against the repository:</p>
+<pre class="code lang-bash">git show ce73db22f --stat          # the founding commit and its README
+git show 5424ca2e7 --stat          # ChatGPT integration, 2022-12-15
+git log --format=&#x27;%ad&#x27; --date=format:&#x27;%Y&#x27; | sort | uniq -c   # commits per year
+git log --oneline --since=2025-10-01 --until=2025-10-10     # the Rust migration
+ls botserver/crates | wc -l        # 114 crates today
+find . -name &#x27;*.bas&#x27; -not -path &#x27;./target/*&#x27; | wc -l         # 1,096 BASIC scripts</pre>
+<p><em>Compiled from git history on 2026-10-03. Version 6.7.0.</em></p>
+  </main>
+</div>
+<script>
+const btn=document.getElementById('themeBtn');
+const saved=localStorage.getItem('gb-history-theme');
+if(saved)document.documentElement.setAttribute('data-theme',saved);
+function sync(){const t=document.documentElement.getAttribute('data-theme');
+  btn.textContent=t==='light'?'\u25D0 Dark':'\u25D1 Light';}
+sync();
+btn.addEventListener('click',()=>{
+  const cur=document.documentElement.getAttribute('data-theme')||'dark';
+  const nxt=cur==='light'?'dark':'light';
+  document.documentElement.setAttribute('data-theme',nxt);
+  localStorage.setItem('gb-history-theme',nxt);sync();
+});
+// scrollspy
+const links=[...document.querySelectorAll('.nav-link')];
+const obs=new IntersectionObserver((entries)=>{
+  entries.forEach(e=>{if(e.isIntersecting){
+    links.forEach(l=>l.classList.remove('active'));
+    const a=document.querySelector('.nav-link[href="#'+e.target.id+'"]');
+    if(a)a.classList.add('active');
+  }});
+},{rootMargin:'-10% 0px -80% 0px'});
+document.querySelectorAll('main h2[id]').forEach(h=>obs.observe(h));
+</script>
+</body>
+</html>
