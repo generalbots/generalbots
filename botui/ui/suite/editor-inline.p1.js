@@ -487,9 +487,15 @@
                             vibeOpenFile(node.getAttribute('data-vibe-path'));
                         });
                     });
-                    // Auto-open the entry point so the editor is never blank.
-                    var first = files.indexOf('index.html') !== -1 ? 'index.html'
-                        : (files.find(function (f) { return /index\.js$/.test(f); }) || files[0]);
+                    // Open the requested file when the caller named one (an
+                    // AutoTask row's "edit source" action passes ?path=),
+                    // otherwise the entry point so the editor is never blank.
+                    var requested = window.__EDITOR_VIBE_PATH
+                        || new URLSearchParams(window.location.search).get('path')
+                        || '';
+                    var first = requested && files.indexOf(requested) !== -1 ? requested
+                        : (files.indexOf('index.html') !== -1 ? 'index.html'
+                        : (files.find(function (f) { return /index\.js$/.test(f); }) || files[0]));
                     vibeOpenFile(first);
                 })
                 .catch(function () {

@@ -40,6 +40,25 @@ use crate::keywords::file_ops::pdf::*;
 use crate::keywords::file_ops::transfer::*;
 use crate::keywords::file_ops::utils::dynamic_to_file_data;
 
+/// A BASIC-level operation error from a file keyword: honor
+/// `ON ERROR RESUME NEXT` (record the last error, continue) instead of
+/// raising a raw Rhai error the trap cannot catch. classify_media.bas relies
+/// on this to exit quietly when the model's tool call races the
+/// media_uploaded event trigger over the same upload.
+fn trap_or_raise(op_err: &str, label: &str) -> Result<Dynamic, Box<rhai::EvalAltResult>> {
+    let message = format!("{label}: {op_err}");
+    if botbasic_core::keywords::errors::is_error_resume_next_active() {
+        botbasic_core::keywords::errors::set_last_error(&message, 1);
+        log::trace!("File keyword error suppressed by ON ERROR RESUME NEXT: {message}");
+        return Ok(Dynamic::UNIT);
+    }
+    Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+        message.into(),
+        rhai::Position::NONE,
+    )))
+}
+
+
 pub fn register_file_operations(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
     register_read_keyword(Arc::clone(state), user.clone(), engine);
     register_write_keyword(Arc::clone(state), user.clone(), engine);
@@ -91,10 +110,7 @@ pub fn register_read_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, en
 
             match rx.recv_timeout(std::time::Duration::from_secs(30)) {
                 Ok(Ok(content)) => Ok(Dynamic::from(content)),
-                Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    format!("READ failed: {e}").into(),
-                    rhai::Position::NONE,
-                ))),
+                Ok(Err(e)) => trap_or_raise(&e.to_string(), "READ failed"),
                 Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                     Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                         "READ timed out".into(),
@@ -158,10 +174,7 @@ pub fn register_write_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
 
                 match rx.recv_timeout(std::time::Duration::from_secs(30)) {
                     Ok(Ok(_)) => Ok(Dynamic::UNIT),
-                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("WRITE failed: {e}").into(),
-                        rhai::Position::NONE,
-                    ))),
+                    Ok(Err(e)) => trap_or_raise(&e.to_string(), "WRITE failed"),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                         Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                             "WRITE timed out".into(),
@@ -222,10 +235,7 @@ pub fn register_delete_file_keyword(state: Arc<dyn BasicRuntime>, user: UserSess
 
                 match rx.recv_timeout(std::time::Duration::from_secs(30)) {
                     Ok(Ok(_)) => Ok(Dynamic::UNIT),
-                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("DELETE FILE failed: {e}").into(),
-                        rhai::Position::NONE,
-                    ))),
+                    Ok(Err(e)) => trap_or_raise(&e.to_string(), "DELETE FILE failed"),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                         Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                             "DELETE FILE timed out".into(),
@@ -279,10 +289,7 @@ pub fn register_delete_file_keyword(state: Arc<dyn BasicRuntime>, user: UserSess
 
                 match rx.recv_timeout(std::time::Duration::from_secs(30)) {
                     Ok(Ok(_)) => Ok(Dynamic::UNIT),
-                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("DELETE FILE failed: {e}").into(),
-                        rhai::Position::NONE,
-                    ))),
+                    Ok(Err(e)) => trap_or_raise(&e.to_string(), "DELETE FILE failed"),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                         Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                             "DELETE FILE timed out".into(),
@@ -343,10 +350,7 @@ pub fn register_copy_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, en
 
                 match rx.recv_timeout(std::time::Duration::from_secs(60)) {
                     Ok(Ok(_)) => Ok(Dynamic::UNIT),
-                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("COPY failed: {e}").into(),
-                        rhai::Position::NONE,
-                    ))),
+                    Ok(Err(e)) => trap_or_raise(&e.to_string(), "COPY failed"),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                         Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                             "COPY timed out".into(),
@@ -407,10 +411,7 @@ pub fn register_move_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, en
 
                 match rx.recv_timeout(std::time::Duration::from_secs(60)) {
                     Ok(Ok(_)) => Ok(Dynamic::UNIT),
-                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("MOVE failed: {e}").into(),
-                        rhai::Position::NONE,
-                    ))),
+                    Ok(Err(e)) => trap_or_raise(&e.to_string(), "MOVE failed"),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                         Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                             "MOVE timed out".into(),
@@ -469,10 +470,7 @@ pub fn register_list_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, en
                     let array: rhai::Array = files.iter().map(|f| Dynamic::from(f.clone())).collect();
                     Ok(Dynamic::from(array))
                 }
-                Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    format!("LIST failed: {e}").into(),
-                    rhai::Position::NONE,
-                ))),
+                Ok(Err(e)) => trap_or_raise(&e.to_string(), "LIST failed"),
                 Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                     Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                         "LIST timed out".into(),
@@ -548,10 +546,7 @@ pub fn register_compress_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
 
                 match rx.recv_timeout(std::time::Duration::from_secs(120)) {
                     Ok(Ok(path)) => Ok(Dynamic::from(path)),
-                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("COMPRESS failed: {e}").into(),
-                        rhai::Position::NONE,
-                    ))),
+                    Ok(Err(e)) => trap_or_raise(&e.to_string(), "COMPRESS failed"),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                         Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                             "COMPRESS timed out".into(),
@@ -615,10 +610,7 @@ pub fn register_extract_keyword(state: Arc<dyn BasicRuntime>, user: UserSession,
                         let array: rhai::Array = files.iter().map(|f| Dynamic::from(f.clone())).collect();
                         Ok(Dynamic::from(array))
                     }
-                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("EXTRACT failed: {e}").into(),
-                        rhai::Position::NONE,
-                    ))),
+                    Ok(Err(e)) => trap_or_raise(&e.to_string(), "EXTRACT failed"),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                         Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                             "EXTRACT timed out".into(),
@@ -680,10 +672,7 @@ pub fn register_upload_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
 
                 match rx.recv_timeout(std::time::Duration::from_secs(300)) {
                     Ok(Ok(url)) => Ok(Dynamic::from(url)),
-                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("UPLOAD failed: {e}").into(),
-                        rhai::Position::NONE,
-                    ))),
+                    Ok(Err(e)) => trap_or_raise(&e.to_string(), "UPLOAD failed"),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                         Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                             "UPLOAD timed out".into(),
@@ -744,10 +733,7 @@ pub fn register_download_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
 
                 match rx.recv_timeout(std::time::Duration::from_secs(300)) {
                     Ok(Ok(path)) => Ok(Dynamic::from(path)),
-                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("DOWNLOAD failed: {e}").into(),
-                        rhai::Position::NONE,
-                    ))),
+                    Ok(Err(e)) => trap_or_raise(&e.to_string(), "DOWNLOAD failed"),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                         Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                             "DOWNLOAD timed out".into(),

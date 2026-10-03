@@ -232,15 +232,58 @@ pub async fn run_import_pass(state: Arc<botcore::shared::state::AppState>, pool:
         }
     };
     if targets.is_empty() {
-        return;
+        log::info!("[git_import] no bot project pending Drive import — checking .gbot recovery");
+    } else {
+        log::info!(
+            "[git_import] {} bot project(s) pending Drive import",
+            targets.len()
+        );
     }
-    log::info!(
-        "[git_import] {} bot project(s) pending Drive import",
-        targets.len()
-    );
     for target in targets {
         if let Err(e) = import_one(&state, &pool, &target).await {
             log::warn!("[git_import] project {} import deferred: {e}", target.name);
+        }
+    }
+    recover_config_files(state, pool).await;
+}
+
+/// Recovery for the `.gbot` configuration of every git-owned bot whose
+/// repository carries none (#1501). Runs for already-imported projects too: the
+/// original import only covered `.gbdialog`, and the archive pass then moved the
+/// channel prompts to `archive/{bot}-{stamp}/`, leaving those bots on the
+/// generic fallback prompt. Bounded by `has_config_in_repo` — a bot with
+/// configuration is skipped without a single Drive call.
+async fn recover_config_files(state: Arc<botcore::shared::state::AppState>, pool: DbPool) {
+    if state.drive.is_none() {
+        return;
+    }
+    let bots = {
+        let pool = pool.clone();
+        match tokio::task::spawn_blocking(move || super::bot_config::git_bot_names(&pool)).await {
+            Ok(b) => b,
+            Err(e) => {
+                log::warn!("[git_config] bot listing failed: {e}");
+                return;
+            }
+        }
+    };
+    for (bot_name, branch_slug) in bots {
+        let branch_prefix = format!("{branch_slug}.gbai/");
+        for bucket in [
+            format!("{branch_slug}.gborg"),
+            format!("{}.gbai", branch_slug.to_lowercase()),
+        ] {
+            let imported = super::bot_config::import_config_from_drive(
+                state.clone(),
+                pool.clone(),
+                &bot_name,
+                &bucket,
+                &branch_prefix,
+            )
+            .await;
+            if imported > 0 {
+                break;
+            }
         }
     }
 }

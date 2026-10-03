@@ -63,31 +63,10 @@ CSSLoader.loadMultiple(['about.css']);
     <!-- Header with Logo and Branding -->
     <header class="about-header">
         <div class="about-logo">
-            <svg class="logo-svg" width="80" height="50" viewBox="0 0 140 80" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <!-- Left antenna -->
-                <line x1="5" y1="40" x2="25" y2="40"/>
-                <line x1="25" y1="28" x2="25" y2="52"/>
-                <!-- Left gear -->
-                <circle cx="50" cy="40" r="16"/>
-                <circle cx="50" cy="40" r="6"/>
-                <line x1="50" y1="20" x2="50" y2="26"/>
-                <line x1="50" y1="54" x2="50" y2="60"/>
-                <line x1="30" y1="40" x2="36" y2="40"/>
-                <line x1="64" y1="40" x2="70" y2="40"/>
-                <!-- Right gear -->
-                <circle cx="90" cy="40" r="16"/>
-                <circle cx="90" cy="40" r="6"/>
-                <line x1="90" y1="20" x2="90" y2="26"/>
-                <line x1="90" y1="54" x2="90" y2="60"/>
-                <line x1="70" y1="40" x2="76" y2="40"/>
-                <line x1="104" y1="40" x2="110" y2="40"/>
-                <!-- Right antenna -->
-                <line x1="115" y1="40" x2="135" y2="40"/>
-                <line x1="115" y1="28" x2="115" y2="52"/>
-            </svg>
+            <img src="/logo.svg" alt="General Bots" class="about-logo-img" onerror="this.outerHTML='<svg class=&quot;logo-svg&quot; width=\'80\' height=\'50\' viewBox=\'0 0 140 80\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2.5\' stroke-linecap=\'round\' stroke-linejoin=\'round\'><circle cx=\'50\' cy=\'40\' r=\'16\'/><circle cx=\'50\' cy=\'40\' r=\'6\'/><circle cx=\'90\' cy=\'40\' r=\'16\'/><circle cx=\'90\' cy=\'40\' r=\'6\'/></svg>'" />
         </div>
         <h1 id="about-product-name">General Bots</h1>
-        <p class="tagline">AI-Powered Agentic Office Suite</p>
+        <p class="tagline">AI OS</p>
         <div class="version-badge">
             <span class="version-label">Version</span>
             <span id="about-version" class="version-number">6.1.0</span>
@@ -239,7 +218,7 @@ CSSLoader.loadMultiple(['about.css']);
             </div>
             <div class="info-item">
                 <span class="info-label">Documentation</span>
-                <a href="https://docs.pragmatismo.com.br" target="_blank" class="info-link">docs.pragmatismo.com.br</a>
+                <a href="https://docs.generalbots.org" target="_blank" class="info-link">docs.generalbots.org</a>
             </div>
         </div>
     </section>
@@ -254,19 +233,12 @@ CSSLoader.loadMultiple(['about.css']);
                 </svg>
                 GitHub
             </a>
-            <a href="https://docs.pragmatismo.com.br" target="_blank" class="resource-link">
+            <a href="https://docs.generalbots.org" target="_blank" class="resource-link">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                     <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
                 </svg>
                 Documentation
-            </a>
-            <a href="mailto:support@pragmatismo.cloud" class="resource-link">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                    <polyline points="22,6 12,13 2,6"/>
-                </svg>
-                Support
             </a>
         </div>
     </section>
@@ -274,7 +246,7 @@ CSSLoader.loadMultiple(['about.css']);
     <!-- Footer -->
     <footer class="about-footer">
         <p id="about-copyright">© 2026 General Bots. All rights reserved.</p>
-        <p class="built-with">Built with ❤️ by <a href="https://pragmatismo.com.br" target="_blank">Pragmatismo</a></p>
+        <p class="built-with">Built with ❤️</p>
     </footer>
 </div>
 
@@ -296,6 +268,11 @@ CSSLoader.loadMultiple(['about.css']);
 
 .about-logo {
     margin-bottom: 1rem;
+}
+
+.about-logo-img {
+    width: 80px;
+    height: auto;
 }
 
 .logo-svg {

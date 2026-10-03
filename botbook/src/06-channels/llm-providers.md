@@ -286,6 +286,100 @@ llm-key,YOUR_CEREBRAS_API_KEY
 - Highest tokens-per-second available
 - Excellent for real-time agent loops
 
+---
+
+## The OpenAI-Compatible Tier
+
+Every host below speaks the OpenAI chat-completions wire shape. Before issue
+#1467 they were reachable only by accident — `llm-provider` had no variant for
+them, the rate limiter recognised exactly two hostnames, and the output-token
+ceiling was an inline `if base_url.contains("groq")`. They are now a
+**configured** provider set: `botllm::provider_catalog` holds one row per host
+carrying its detection patterns, operating caps, token ceiling and reference
+pricing.
+
+### `llm-provider` values that exist in code
+
+| Value | Host | Notes |
+|---|---|---|
+| `openai` | `api.openai.com` | the generic OpenAI-compatible client |
+| `deepinfra` | `api.deepinfra.com` | cheapest of the tier |
+| `cerebras` | `api.cerebras.ai` | fastest; tightest quota |
+| `fireworks` | `api.fireworks.ai` | 99.95% SLA |
+| `together` | `api.together.xyz` | flat per-token pricing |
+| `openrouter` | `openrouter.ai` | gateway, carries a routing fee |
+| `requesty` | `router.requesty.ai` | gateway, BYOK included |
+
+`LLMProviderType::OpenAI` is URL-polymorphic: it serves all seven, plus NVIDIA
+NIM, Groq and any self-hosted server that speaks the shape. A value of `openai`
+on a Groq URL still gets Groq's limits, because limits belong to the **host**.
+
+### Reference pricing and behaviour
+
+USD per million tokens, public list rates, mid-2026:
+
+| Provider | Reference model | In | Out | Measured latency |
+|---|---|---|---|---|
+| DeepInfra | DeepSeek V3 | $0.14 | $0.28 | 310 ms P50 TTFT |
+| OpenRouter | Llama 4 Scout | $0.08 | $0.30 | 245 ms |
+| Groq | Llama 3.3 70B | $0.59 | $0.79 | 138 ms TTFT |
+| Cerebras | Llama 3.3 70B | $0.60 | $0.60 | 112 ms TTFT, 485–920 tok/s |
+| Together | Llama 3.3 70B | $0.88 | $0.88 | 210 ms |
+| Fireworks | Llama 3.3 70B | $0.90 | $0.90 | 185 ms |
+| Requesty | gateway | +5% | +5% | — |
+
+Pricing is reference data for comparison, not a billing source: the platform
+bills from the subscription, not per token.
+
+### Operating caps
+
+`RateLimits` are **conservative operating caps, not published quotas.** The
+limiter's job is to keep a bot inside a provider's quota and keep the platform
+responsive; a cap below the real quota is safe, one above it is not. A host with
+no catalog row gets `openai_compatible_default` (120 rpm / 250k tpm) rather than
+`unlimited`, so a mistyped URL cannot become an unbounded retry storm.
+
+A **self-hosted or private-network host is never throttled** — `localhost`,
+`127.0.0.1`, `host.docker.internal`, `10.*`, `192.168.*` and `.local` all resolve
+to `unlimited`, because there is no quota to protect and a local llama.cpp
+endpoint must not be rate-limited by the API limiter.
+
+### Token ceilings
+
+Each row carries a `max_tokens` serving cap for its reference model, applied per
+request: Groq 4 096, Cerebras and DeepInfra and Together 8 192, Fireworks and
+OpenRouter and Requesty 16 384, everything else 65 536.
+
+These are request-shaping defaults, not hard model limits, and a host that raises
+its cap needs a new catalog row rather than a code change.
+
+### Streaming
+
+Two hosts need special handling, both preserved from before the catalog existed:
+gpt-oss weights on Cerebras and NVIDIA lose SSE frames to the streaming decoder and
+are served non-streaming, and the tokenrouter free GLM tier intermittently fails
+SSE decoding so its non-streaming path is used.
+
+### Open-weight model handlers
+
+Reasoning models emit markers that must be stripped before the text reaches a
+user. `botllm::llm_models::get_handler` dispatches on the model name:
+
+| Handler | Models | Marker |
+|---|---|---|
+| `deepseek_v4` | DeepSeek V3/V4 | `" reasoning"` / `" response"` framing |
+| `qwen` | Qwen3 and the Qwen line | literal `<think>…</think>` |
+| `gpt_oss_120b` | GPT-OSS 120B | `<thinking>` and `**start**` |
+| `gpt_oss_20b` | GPT-OSS 20B | `analysis<|message|>` |
+| `minimax` | MiniMax, Kimi | `<think>` and the CJK variants |
+| `stepfun` | StepFun | passthrough |
+
+Qwen deserves its own handler rather than sharing DeepSeek's: Qwen is the most
+common open-weight model across every host in the tier, and it uses a different
+marker, so the DeepSeek handler would pass a Qwen answer through with the model's
+private reasoning intact. The Qwen handler also holds a marker back when one is
+split across two SSE chunks, which otherwise puts `<thi` into the chat.
+
 ### Zhipu AI (GLM)
 
 High-capability bilingual models (English/Chinese) directly competing with state-of-the-art global models.
@@ -439,7 +533,7 @@ All LLM configuration belongs in `config.csv`, not environment variables:
 
 | Parameter | Description | Example |
 |-----------|-------------|---------|
-| `llm-provider` | Provider name | `openai`, `anthropic`, `local` |
+| `llm-provider` | Provider name — see the table above | `openai`, `claude`, `vertex`, `glm`, `cerebras`, `local` |
 | `llm-model` | Model identifier | `gpt-5` |
 | `llm-url` | API endpoint | — |
 | `llm-server-ctx-size` | Context window size | `128000` |

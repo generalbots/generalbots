@@ -13,6 +13,7 @@ cache = []
 
 [dependencies]
 botbasic_types = { path = "../botbasic_types" }
+botbasic_core = { path = "../botbasic_core" }
 botcoresecrets = { workspace = true }
 botlib = { workspace = true }
 botschema = { workspace = true }

@@ -18,8 +18,18 @@
 ' must never reach the document text extractor, which cannot read binary payloads
 ' and used to leave every voice note "unsorted" (or failing) by accident.
 
-TAXONOMY = "invoice,receipt,contract,identity,report,audio,video,unsorted"
-PROMPT = "Classifique o conteudo a seguir com uma unica palavra, apenas uma destas: " + TAXONOMY + ". Responda somente a palavra.\n\n"
+' Event trigger: a media file arriving on any channel (Telegram, WhatsApp,
+' web) runs this tool directly, with `path`, `kind`, `caption` and `channel`
+' in scope. Without this line the tool only ran when the model chose to call
+' it, and an upload the model ignored stayed in `inbox/` forever.
+ON EVENT "media_uploaded"
+
+DESCRIPTION "Classify an inbound image, document, audio, video or sticker and file it in Drive under media/{year}/{month}/{category}/. Call it once per received media item, before answering anything else, passing the path from the [image]/[document]/[voice]/[audio]/[video]/[sticker] marker. Never invent a path and never pick a category yourself: use the category returned by the tool."
+PARAM path AS string DESCRIPTION "Drive path of the received media, exactly as it appears in the marker, for example inbox/9f3c1a.jpg or inbox/9f3c1a-contrato.pdf"
+PARAM caption AS string DESCRIPTION "Caption or message text the user sent together with the media, empty when the media arrived without text (optional)"
+
+TAXONOMY = "invoice,receipt,contract,identity,report,audio,vehicle,people,animal,food,nature,screenshot,video,unsorted"
+PROMPT = "Classifique o conteudo a seguir com uma unica palavra, apenas uma destas: " + TAXONOMY + ". Guia de decisao: carros/motos/caminhoes/trafego/parking = vehicle; pessoas/rostos/grupos = people; animais de qualquer tipo = animal; comida/bebida/cozinha/refeicao = food; paisagem/floresta/montanha/praia/ceu/agua = nature; tela de computador/interface/janela = screenshot; documento por tipo: recibo/pagamento = receipt, contrato/locacao = contract, documento de identidade = identity, relatorio = report, fatura/cobranca = invoice; audio ou gravacao de voz sem categoria melhor = audio; video generico sem categoria melhor = video. Responda somente a palavra.\n\n"
 MAX_ANALYSIS_CHARS = 4000
 
 ' 1. Which kind of perception applies. Images are described by the vision model,
@@ -101,6 +111,22 @@ IF LEN(TRIM(content)) = 0 THEN
     perception = "caption"
 END IF
 
+' 2.1 Caption reinforcement. The user caption is a first-class signal: a model
+'    description of a generic video frame can miss the document type the sender
+'    already declared ("recibo do pagamento..."), and media catalogs trust the
+'    sender label. Both signals go into the prompt; when the caption is empty
+'    this reduces to the content alone and perception stays unchanged.
+IF LEN(TRIM(caption)) > 0 AND TRIM(caption) <> TRIM(content) THEN
+    content = content + "\n" + "Legenda enviada pelo usuario: " + caption
+    perception = perception + " + caption"
+END IF
+
+' 2.2 Kind hint. The classifier sees only text, so without the media kind a
+'    caption like "gravacao de teste" reads as a generic recording and lands
+'    in "video" even for a voice note (observed in production, 2026-09). The
+'    script knows the kind from the file extension; state it explicitly.
+content = content + "\n" + "Tipo de midia: " + kind
+
 ' 3. Classification: one closed-set decision over the perceived content. With no
 '    content and no caption there is nothing to decide, so the item stays
 '    "unsorted" instead of asking the model to guess.
@@ -146,14 +172,45 @@ IF LEN(month) = 1 THEN
 END IF
 
 destination = "media/" + STR(today.year) + "/" + month + "/" + category + "/" + leaf
+
+' 4.1 Idempotency: the event trigger and the model's own tool call race on the
+'    same upload (the dispatcher files within seconds; the model may call the
+'    tool a minute later). When MOVE fails here the most likely cause is that
+'    the other runner already filed the item, so say so and exit instead of
+'    surfacing a failure to the user; the runner that did the filing sends its
+'    own confirmation when its channel can carry it. Perception runs before
+'    this point on the losing path, which is accepted waste — a probe keyword
+'    does not exist in the dialect.
+ON ERROR RESUME NEXT
 MOVE path, destination
+IF ERROR THEN
+    CLEAR ERROR
+    ON ERROR GOTO 0
+    TALK "Esse arquivo ja foi arquivado."
+    RETURN
+END IF
+ON ERROR GOTO 0
 
 ' 5. Audit trail next to the filed item: keeps the decision reproducible
 '    without a read-modify-write over a shared index file.
 CREATE FILE destination + ".meta.txt" WITH "category=" + category + "\n" + "kind=" + kind + "\n" + "path=" + destination + "\n" + "caption=" + caption + "\n" + "perception=" + perception
 
-IF perception = "content" THEN
-    TALK "Arquivo classificado como " + category + " e arquivado em " + destination
-ELSE
+' 6. Confirmation wording per perception. `perception` is one of:
+'    caption (no model answer), unavailable (model failed), content /
+'    description / transcription (model answer) and any of those with
+'    " + caption" appended when the user caption was folded into the prompt.
+'    Checking the caption suffix explicitly keeps the reply honest: a
+'    description without a caption must not claim the caption was used.
+IF perception = "caption" THEN
     TALK "Arquivo arquivado em " + destination + " (categoria " + category + ", obtida pelo texto enviado: a analise de conteudo nao estava disponivel)"
+ELSE
+    IF perception = "unavailable" THEN
+        TALK "Arquivo arquivado em " + destination + " (categoria " + category + ", o modelo de percecao nao respondeu e a decisao saiu da legenda)"
+    ELSE
+        IF INSTR(perception, "+ caption") > 0 THEN
+            TALK "Arquivo classificado como " + category + " pela analise de conteudo (IA) combinada com a legenda, e arquivado em " + destination
+        ELSE
+            TALK "Arquivo classificado como " + category + " pela analise de conteudo (IA) e arquivado em " + destination
+        END IF
+    END IF
 END IF

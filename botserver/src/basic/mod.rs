@@ -7,6 +7,7 @@ pub use botcore::shared::UserSession;
 
 pub use botbasic_compiler as compiler;
 pub mod keywords;
+mod runtime_llm;
 
 
 #[derive(Debug)]
@@ -233,6 +234,17 @@ impl BasicRuntime for AppStateBasicRuntime {
         if let Some(v) = self.0.config.as_ref()?.get(key) {
             return Some(v.clone());
         }
+        // Environment fallback, mirroring ConfigManager::get_config: keys
+        // like `botmodels-host` resolve from `BOTMODELS_HOST`. Without this
+        // the tool runtime could never see process-level configuration
+        // (multimodal clients were permanently disabled in deployments that
+        // provision BotModels through systemd environment).
+        let env_key = key.to_uppercase().replace('-', "_");
+        if let Ok(val) = std::env::var(&env_key) {
+            if !val.is_empty() {
+                return Some(val);
+            }
+        }
         // #1425 — external connection credentials (`conn-{bot}-{name}-{Field}`
         // keys, e.g. `conn-*-Password`) resolve from the per-bot Vault path
         // through the ConfigManager when the session config map has no value.
@@ -250,6 +262,17 @@ impl BasicRuntime for AppStateBasicRuntime {
 
     fn session_manager(&self) -> Arc<tokio::sync::Mutex<dyn botlib::traits::SessionManagerService>> {
         Arc::clone(&self.0.session_manager)
+    }
+
+    fn llm_generate(&self, prompt: &str, model: &str, api_key: &str) -> Result<String, String> {
+        // Tool scripts (classify_media, etc.) reach the model through this
+        // trait. `runtime_llm` owns the per-bot Vault resolution, the
+        // sync/async bridge and the model-handler post-processing (#1465).
+        runtime_llm::generate(&self.0, prompt, model, api_key)
+    }
+
+    fn default_bot_id(&self) -> String {
+        runtime_llm::default_bot_uuid(&self.0).to_string()
     }
 
     fn update_session_user(&self, session_id: Uuid, user_id: Uuid) -> Result<(), String> {
@@ -279,27 +302,42 @@ impl BasicRuntime for AppStateBasicRuntime {
         info!("send_message: attempting to send to session={}, bot={}, content='{}'",
             sid, bot_id, content_preview);
 
-        let guard = channels.blocking_lock();
-        let count = guard.len();
-        if let Some(tx) = guard.get(&sid) {
-            info!("send_message: FOUND channel for session {} ({} channels total)", sid, count);
-            if let Err(e) = tx.try_send(resp) {
-                warn!("send_message: try_send failed for session {}: {}", sid, e);
-            }
-        } else {
-            let keys: Vec<&String> = guard.keys().collect();
-            let matched_key = keys.iter().find(|k| k.starts_with(&format!("{}_", sid)));
-            if let Some(key) = matched_key {
-                if let Some(tx) = guard.get(*key) {
-                    info!("send_message: FOUND channel via prefix match for session {} (key={})", sid, key);
-                    if let Err(e) = tx.try_send(resp) {
-                        warn!("send_message: try_send failed for session {}: {}", sid, e);
+        let mut channel_found = false;
+        {
+            let guard = channels.blocking_lock();
+            let count = guard.len();
+            if let Some(tx) = guard.get(&sid) {
+                info!("send_message: FOUND channel for session {} ({} channels total)", sid, count);
+                if let Err(e) = tx.try_send(resp) {
+                    warn!("send_message: try_send failed for session {}: {}", sid, e);
+                }
+                channel_found = true;
+            } else {
+                let keys: Vec<&String> = guard.keys().collect();
+                let matched_key = keys.iter().find(|k| k.starts_with(&format!("{}_", sid)));
+                if let Some(key) = matched_key {
+                    if let Some(tx) = guard.get(*key) {
+                        info!("send_message: FOUND channel via prefix match for session {} (key={})", sid, key);
+                        if let Err(e) = tx.try_send(resp) {
+                            warn!("send_message: try_send failed for session {}: {}", sid, e);
+                        }
+                        channel_found = true;
                     }
                 }
-            } else {
-                warn!("send_message: NO channel for session {} ({} channels total, keys: {:?})",
-                    sid, count, keys);
+                if !channel_found {
+                    warn!("send_message: NO channel for session {} ({} channels total, keys: {:?})",
+                        sid, count, keys);
+                }
             }
+        }
+
+        // The reply outlived its channel — a tool triggered by `ON EVENT`
+        // runs after the inbound request ended. Hand it to the channel
+        // adapter so the conversation still receives it.
+        if !channel_found
+            && crate::main_module::channel_delivery::deliver_via_channel(&self.0, response)
+        {
+            info!("send_message: delivered session {} through the {} adapter", sid, response.channel);
         }
         Ok(())
     }

@@ -164,6 +164,8 @@ pub struct ListTasksQuery {
     pub priority: Option<String>,
     pub limit: Option<i32>,
     pub offset: Option<i32>,
+    /// Scope the list to one bot's items.
+    pub bot_id: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -230,6 +232,24 @@ pub fn router(
         .route("/api/autotask/compile", post(crate::handlers::compile_intent))
         .route("/api/autotask/execute", post(crate::handlers::execute_plan))
         .route("/api/autotask/create-and-execute", post(crate::handlers::create_and_execute))
+        // Reform #1505 — read/edit/rephrase an AutoTask-produced `.bas` in the
+        // bot's repository (the canonical `.gbdialog`).
+        .route(
+            "/api/autotask/source",
+            get(crate::source_edit::get_source).put(crate::source_edit::put_source),
+        )
+        .route("/api/autotask/sources", get(crate::source_edit::list_sources))
+        // One item's committed .bas, resolved from the auto_tasks row.
+        .route(
+            "/api/autotask/items/:item_id/source",
+            get(crate::source_edit::get_item_source),
+        )
+        .route(
+            "/api/autotask/source/rephrase",
+            post(crate::source_edit::rephrase_source),
+        )
+        // Attach a generated database schema to the bot's `tables.bas`.
+        .route("/api/autotask/tables", post(crate::source_edit::attach_tables))
         .route("/api/autotask/tasks", get(crate::handlers::list_tasks))
         .route("/api/autotask/stats", get(crate::handlers::get_stats))
         .route("/api/autotask/tasks/:task_id/approve", post(crate::handlers::approve_task))

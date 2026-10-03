@@ -2,10 +2,9 @@ const API_BASE = '/api/cloud';
 
 // ── Configurable URLs (override via env or build step) ──
 const CLOUD_CONFIG = {
-  baseUrl: 'https://cloud.pragmatismo.com.br',
-  contactUrl: 'https://pragmatismo.com.br/contact',
+  baseUrl: 'https://generalbots.org',
+  contactUrl: 'https://generalbots.org/contact',
   docsUrl: 'https://docs.generalbots.org',
-  salesEmail: 'sales@pragmatismo.com.br',
 };
 
 // Accept auth token from URL params (cross-domain redirect from login server)

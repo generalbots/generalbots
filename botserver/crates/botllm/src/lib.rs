@@ -19,11 +19,25 @@ pub mod pipeline;
 pub mod breaker;
 pub mod council;
 pub mod profiles;
+pub mod provider_catalog;
+pub mod provider_factory;
+pub mod provider_resolve;
 pub mod router;
 
 pub use ci_gate::{CiGateConfig, CiGateReport, CiGateRunner, RegressionSummary};
 pub use evaluation::{
     EvaluationCriterion, EvaluationGate, EvaluationResult, Evaluator, RegressionReport,
+};
+pub use provider_catalog::{
+    ALL_PROVIDER_TYPES, DEFAULT_MAX_OUTPUT_TOKENS, LLMProviderType, PROVIDER_PROFILES,
+    ProviderProfile, profile_for_type,
+};
+pub use provider_resolve::{
+    is_private_host, max_output_tokens_for_type, max_output_tokens_for_url,
+    profiles_for_url, provider_type_from_name, provider_type_from_url, rate_limits_for_url,
+};
+pub use provider_factory::{
+    create_llm_provider, create_llm_provider_from_url, llm_provider_type_from_name,
 };
 pub use rate_limiter::{ApiRateLimiter, RateLimits};
 pub use hallucination_detector::HallucinationDetector;
@@ -74,6 +88,8 @@ pub struct OpenAIClient {
     base_url: String,
     endpoint_path: String,
     rate_limiter: Arc<ApiRateLimiter>,
+    provider_type: LLMProviderType,
+    max_output_tokens: u32,
 }
 
 #[derive(Debug)]
@@ -290,6 +306,23 @@ impl OpenAIClient {
 
     pub fn new(_api_key: String, base_url: Option<String>, endpoint_path: Option<String>) -> Self {
         let base = base_url.unwrap_or_else(|| "https://api.openai.com".to_string());
+        // A caller that did not name a provider still gets the right limits and
+        // token ceiling: the catalog recognises the host from its URL.
+        let provider_type = LLMProviderType::from(base.as_str());
+        Self::with_provider(base, endpoint_path, provider_type)
+    }
+
+    /// Builds a client for a named member of the OpenAI-compatible tier.
+    ///
+    /// `provider_type` is the authoritative identity — it comes from the
+    /// `llm-provider` bot-config value when the operator set one — and selects
+    /// the operating caps and the `max_tokens` ceiling from the catalog. The
+    /// URL is only consulted for hosts the operator left unnamed.
+    pub fn with_provider(
+        base: String,
+        endpoint_path: Option<String>,
+        provider_type: LLMProviderType,
+    ) -> Self {
         let trimmed_base = base.trim_end_matches('/').to_string();
 
         let has_v1_path = trimmed_base.contains("/v1/chat/completions");
@@ -311,13 +344,16 @@ impl OpenAIClient {
             (trimmed_base, endpoint)
         };
 
-        let rate_limiter = if base.contains("groq.com") {
-            ApiRateLimiter::new(RateLimits::groq_free_tier())
-        } else if base.contains("openai.com") {
-            ApiRateLimiter::new(RateLimits::openai_free_tier())
-        } else {
-            ApiRateLimiter::unlimited()
-        };
+        // Limits and the token ceiling belong to the *host*: `groq.com` and
+        // `api.openai.com` share the generic `openai` provider identity but not
+        // the same quota, so the URL is consulted first and the operator's named
+        // provider is the fallback for a URL the catalog does not recognise.
+        let rate_limits = rate_limits_for_url(&final_base);
+        let max_output_tokens = profiles_for_url(&final_base)
+            .first()
+            .map(|p| p.max_output_tokens)
+            .unwrap_or_else(|| max_output_tokens_for_type(provider_type));
+        let rate_limiter = ApiRateLimiter::new(rate_limits);
 
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(180))
@@ -333,7 +369,16 @@ impl OpenAIClient {
             base_url: final_base,
             endpoint_path: final_endpoint,
             rate_limiter: Arc::new(rate_limiter),
+            provider_type,
+            max_output_tokens,
         }
+    }
+
+    /// The catalog row backing this client's limits and token ceiling, or the
+    /// generic default when the host is unrecognised.
+    #[must_use]
+    pub fn provider_type(&self) -> LLMProviderType {
+        self.provider_type
     }
 
     pub fn sanitize_utf8(input: &str) -> String {
@@ -570,7 +615,13 @@ impl LLMProvider for OpenAIClient {
         } else {
             "max_tokens"
         };
-        let use_stream = !(model.contains("gpt-oss") && (self.base_url.contains("nvidia") || self.base_url.contains("cerebras")))
+        // gpt-oss weights lose SSE frames to the streaming decoder on the
+        // hosts below. Cerebras now comes from the catalog identity (#1467);
+        // NVIDIA has no dedicated variant, so its host is still matched.
+        let host_forces_no_stream = model.contains("gpt-oss")
+            && (self.provider_type() == LLMProviderType::Cerebras
+                || self.base_url.contains("nvidia"));
+        let use_stream = !host_forces_no_stream
             // #1202 — the tokenrouter free GLM tier intermittently fails SSE
             // decoding ('Stream read error: error decoding response body');
             // its non-streaming path is reliable, so disable streaming for it.
@@ -582,7 +633,9 @@ impl LLMProvider for OpenAIClient {
             "model": model,
             "messages": messages,
             "stream": use_stream,
-            token_key: if self.base_url.contains("groq") { 4096 } else { 65536 },
+            // Serving cap for this host, from the provider catalog rather than
+            // an inline hostname check (#1467).
+            token_key: self.max_output_tokens,
             "temperature": 1.0,
             "top_p": 1.0
         });
@@ -701,8 +754,20 @@ impl LLMProvider for OpenAIClient {
 
             let mut stream = response.bytes_stream();
             use futures_util::StreamExt;
+            // Per-chunk read timeout: a provider that returns 200 and then
+            // stalls the body used to hang this loop forever while holding
+            // the process-wide call_gate, blocking every other LLM call.
+            let read_timeout = std::time::Duration::from_secs(120);
             loop {
-                match stream.next().await {
+                let next = match tokio::time::timeout(read_timeout, stream.next()).await {
+                    Ok(item) => item,
+                    Err(_) => {
+                        let err_msg = format!("Stream read stalled: no bytes for {read_timeout:?}");
+                        log::error!("LLM generate_stream {err_msg}");
+                        return Err(err_msg.into());
+                    }
+                };
+                match next {
                     Some(Ok(bytes)) => {
                         if chunk_tx.send(Ok(bytes.to_vec())).await.is_err() {
                             break 'retry_loop;
@@ -732,8 +797,15 @@ impl LLMProvider for OpenAIClient {
         let mut last_bytes = String::new();
         let mut total_size: usize = 0;
         let mut content_sent: usize = 0;
-        let mut tool_call_name = String::new();
-        let mut tool_call_args = String::new();
+        // Parallel tool calls accumulate per tool_call index. A single shared
+        // (name, args) pair concatenated the arguments of a second call into
+        // the first one's JSON string (two classify_media calls produced
+        // "{...}{...}"), which then failed to parse and executed with empty
+        // arguments (issue: a no-caption video filed nothing).
+        let mut tool_calls_by_index: std::collections::BTreeMap<i64, (String, String)> =
+            std::collections::BTreeMap::new();
+        let mut legacy_tool_call_name = String::new();
+        let mut legacy_tool_call_args = String::new();
         let mut reasoning_from_field = String::new();   // from reasoning_content/reasoning API field
         let mut reasoning_from_content = String::new(); // from <think> tags inside content
 
@@ -833,53 +905,49 @@ impl LLMProvider for OpenAIClient {
                         }
 
                         // Handle legacy function_call format (Groq legacy functions API)
-                        if tool_call_name.is_empty() {
+                        if legacy_tool_call_name.is_empty() {
                             if let Some(func_call) = data["choices"][0]["delta"]["function_call"].as_object() {
                                 if let Some(name) = func_call.get("name").and_then(|n| n.as_str()) {
-                                    tool_call_name = name.to_string();
-                                    tool_call_args.clear();
+                                    legacy_tool_call_name = name.to_string();
                                 }
                                 if let Some(args) = func_call.get("arguments").and_then(|a| a.as_str()) {
-                                    tool_call_args.push_str(args);
+                                    legacy_tool_call_args.push_str(args);
                                 }
                             }
                         }
 
                         // Handle modern tool_calls format (OpenAI tools API)
-                        // Accumulate across streaming chunks, don't send via tx
+                        // Accumulate across streaming chunks per tool_call index,
+                        // don't send via tx
                         if let Some(tool_calls) = data["choices"][0]["delta"]["tool_calls"].as_array() {
                             if !tool_calls.is_empty() {
                                 info!("SSE delta with tool_calls: {} entries, first: {:?}", tool_calls.len(), tool_calls[0].get("function").and_then(|f| f.get("name")).and_then(|n| n.as_str()));
                             }
                             for tool_call in tool_calls {
+                                let index = tool_call.get("index").and_then(|v| v.as_i64()).unwrap_or(0);
                                 if let Some(func) = tool_call.get("function") {
-                                    if tool_call_name.is_empty() {
-                                        if let Some(name) = func.get("name").and_then(|n| n.as_str()) {
-                                            tool_call_name = name.to_string();
-                                            tool_call_args.clear();
-                                        }
+                                    let entry = tool_calls_by_index.entry(index).or_insert_with(|| (String::new(), String::new()));
+                                    if let Some(name) = func.get("name").and_then(|n| n.as_str()) {
+                                        entry.0 = name.to_string();
                                     }
                                     if let Some(args) = func.get("arguments").and_then(|a| a.as_str()) {
-                                        tool_call_args.push_str(args);
-                    }
-                }
-            }
+                                        entry.1.push_str(args);
+                                    }
+                                }
+                            }
+                        }
 
                         // Handle legacy function_call format (NVIDIA, some open-source models)
                         if let Some(func_call) = data["choices"][0]["delta"]["function_call"].as_object() {
-                            if tool_call_name.is_empty() {
-                                if let Some(name) = func_call.get("name").and_then(|n| n.as_str()) {
-                                    tool_call_name = name.to_string();
-                                    tool_call_args.clear();
-                                }
+                            if let Some(name) = func_call.get("name").and_then(|n| n.as_str()) {
+                                legacy_tool_call_name = name.to_string();
                             }
                             if let Some(args) = func_call.get("arguments").and_then(|a| a.as_str()) {
-                                tool_call_args.push_str(args);
+                                legacy_tool_call_args.push_str(args);
                             }
                         }
                     }
                 }
-            }
             // Keep trailing partial line for next chunk
             line_buffer = line_buffer[pos..].to_string();
         }
@@ -902,16 +970,36 @@ impl LLMProvider for OpenAIClient {
             info!("LLM reasoning sent: {} bytes", total_reasoning.len());
         }
 
-        // After streaming ends, if tool_calls were accumulated, send them to tx
-        if !tool_call_name.is_empty() && !tool_call_args.is_empty() {
+        // After streaming ends, send every accumulated tool call. Parallel
+        // calls (index > 0) are sent as separate __tool_call__ messages so
+        // each executes with its own arguments instead of being merged into
+        // the first call's JSON.
+        for (index, (name, args)) in tool_calls_by_index.iter() {
+            if name.is_empty() || args.is_empty() {
+                continue;
+            }
+            if *index > 0 {
+                info!("LLM tool_call #{} accumulated: {} with {} bytes args", index + 1, name, args.len());
+            } else {
+                info!("LLM tool_call accumulated: {} with {} bytes args", name, args.len());
+            }
             let tool_call_msg = serde_json::json!({
                 "__tool_call__": true,
-                "name": tool_call_name,
-                "arguments": tool_call_args
+                "name": name,
+                "arguments": args
             });
             let _ = tx.send(tool_call_msg.to_string()).await;
             tokio::task::yield_now().await;
-            info!("LLM tool_call accumulated: {} with {} bytes args", tool_call_name, tool_call_args.len());
+        }
+        if !legacy_tool_call_name.is_empty() && !legacy_tool_call_args.is_empty() {
+            let tool_call_msg = serde_json::json!({
+                "__tool_call__": true,
+                "name": legacy_tool_call_name,
+                "arguments": legacy_tool_call_args
+            });
+            let _ = tx.send(tool_call_msg.to_string()).await;
+            tokio::task::yield_now().await;
+            info!("LLM legacy function_call accumulated: {} with {} bytes args", legacy_tool_call_name, legacy_tool_call_args.len());
         }
 
         trace!("LLM stream done: size={} bytes, content_sent={}, reasoning={}B, first={:?}, last={}",
@@ -927,137 +1015,6 @@ impl LLMProvider for OpenAIClient {
         Ok(())
     }
 }
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum LLMProviderType {
-    OpenAI,
-    Claude,
-    AzureClaude,
-    AzureGPT5,
-    GLM,
-    Bedrock,
-    Vertex,
-    Kiro,
-}
-
-impl From<&str> for LLMProviderType {
-    fn from(s: &str) -> Self {
-        let lower = s.to_lowercase();
-        if lower.contains("claude") || lower.contains("anthropic") {
-            if lower.contains("azure") {
-                Self::AzureClaude
-            } else {
-                Self::Claude
-            }
-        } else if lower.contains("azuregpt5") || lower.contains("gpt5") || (lower.contains("openai.azure.com") && lower.contains("responses")) {
-            Self::AzureGPT5
-        } else if lower.contains("z.ai") || lower.contains("glm") {
-            Self::GLM
-        } else if lower.contains("bedrock") {
-            Self::Bedrock
-        } else if lower.contains("googleapis.com") || lower.contains("vertex") || lower.contains("generativelanguage") {
-            Self::Vertex
-        } else if lower.contains("kiro") || lower.contains("q.us-east-1.amazonaws.com") || lower.contains("codewhisperer") {
-            Self::Kiro
-        } else {
-            Self::OpenAI
-        }
-    }
-}
-
-pub fn create_llm_provider(
-    provider_type: LLMProviderType,
-    base_url: String,
-    deployment_name: Option<String>,
-    endpoint_path: Option<String>,
-) -> Arc<dyn LLMProvider> {
-    match provider_type {
-        LLMProviderType::OpenAI => {
-            info!("Creating OpenAI LLM provider with URL: {}", base_url);
-            Arc::new(OpenAIClient::new(
-                "empty".to_string(),
-                Some(base_url),
-                endpoint_path,
-            ))
-        }
-        LLMProviderType::Claude => {
-            info!("Creating Claude LLM provider with URL: {}", base_url);
-            Arc::new(ClaudeClient::new(base_url, deployment_name))
-        }
-        LLMProviderType::AzureClaude => {
-            let deployment = deployment_name.unwrap_or_else(|| "claude-opus-4-5".to_string());
-            info!(
-                "Creating Azure Claude LLM provider with URL: {}, deployment: {}",
-                base_url, deployment
-            );
-            Arc::new(ClaudeClient::azure(base_url, deployment))
-        }
-        LLMProviderType::AzureGPT5 => {
-            info!("Creating Azure GPT-5/Responses LLM provider with URL: {}", base_url);
-            Arc::new(AzureGPT5Client::new(base_url, endpoint_path))
-        }
-        LLMProviderType::GLM => {
-            info!("Creating GLM/z.ai LLM provider with URL: {}", base_url);
-            Arc::new(GLMClient::new(base_url))
-        }
-        LLMProviderType::Bedrock => {
-            info!("Creating Bedrock LLM provider with exact URL: {}", base_url);
-            Arc::new(BedrockClient::new(base_url))
-        }
-        LLMProviderType::Vertex => {
-            info!("Creating Vertex/Gemini LLM provider with URL: {}", base_url);
-            Arc::new(vertex::VertexClient::new(base_url, endpoint_path))
-        }
-        LLMProviderType::Kiro => {
-            info!("Creating Kiro LLM provider (CodeWhisperer protocol)");
-            Arc::new(kiro::KiroClient::new(base_url))
-        }
-    }
-}
-
-/// Resolves a provider name (as stored in Vault `gbo/llm.provider` or bot
-/// config `llm-provider`) to a provider type. Returns `None` for unknown or
-/// empty names so callers fall back to URL-based detection.
-pub fn llm_provider_type_from_name(name: &str) -> Option<LLMProviderType> {
-    let lower = name.to_lowercase();
-    if lower.is_empty() {
-        None
-    } else if lower.contains("kiro") || lower.contains("codewhisperer") {
-        Some(LLMProviderType::Kiro)
-    } else if lower.contains("openai") || lower.contains("nvidia") || lower.contains("groq") || lower.contains("cerebras") {
-        Some(LLMProviderType::OpenAI)
-    } else if lower.contains("azure") && lower.contains("claude") {
-        Some(LLMProviderType::AzureClaude)
-    } else if lower.contains("azure") {
-        Some(LLMProviderType::AzureGPT5)
-    } else if lower.contains("claude") || lower.contains("anthropic") {
-        Some(LLMProviderType::Claude)
-    } else if lower.contains("glm") || lower.contains("z.ai") {
-        Some(LLMProviderType::GLM)
-    } else if lower.contains("bedrock") {
-        Some(LLMProviderType::Bedrock)
-    } else if lower.contains("vertex") || lower.contains("gemini") || lower.contains("google") {
-        Some(LLMProviderType::Vertex)
-    } else {
-        None
-    }
-}
-
-pub fn create_llm_provider_from_url(
-    url: &str,
-    model: Option<String>,
-    endpoint_path: Option<String>,
-    explicit_provider: Option<LLMProviderType>,
-) -> Arc<dyn LLMProvider> {
-    let detected = LLMProviderType::from(url);
-    let provider_type = explicit_provider.as_ref().map(|p| *p).unwrap_or(detected);
-    info!("LLM provider: explicit={:?}, detected={:?}, URL={}", explicit_provider, detected, url);
-    if explicit_provider.is_some() {
-        info!("Using explicit LLM provider type: {:?} for URL: {}", provider_type, url);
-    }
-    create_llm_provider(provider_type, url.to_string(), model, endpoint_path)
-}
-
 pub struct DynamicLLMProvider {
     inner: RwLock<Arc<dyn LLMProvider>>,
 }

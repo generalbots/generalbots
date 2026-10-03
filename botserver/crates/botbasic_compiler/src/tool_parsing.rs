@@ -5,7 +5,6 @@ use log::warn;
 
 impl super::BasicCompiler {
     pub fn parse_tool_definition(
-        &self,
         source: &str,
         source_path: &str,
     ) -> Result<ToolDefinition, Box<dyn Error + Send + Sync>> {
@@ -40,6 +39,19 @@ impl super::BasicCompiler {
             parameters: params,
             source_file: source_path.to_string(),
         })
+    }
+
+    /// The MCP manifest a tool's source declares, generated from its
+    /// `DESCRIPTION` and `PARAM` lines. The `.mcp.json` file is a build
+    /// artifact of this function, never a source: templates and bot repos keep
+    /// only the `.bas`.
+    pub fn manifest_json(
+        source: &str,
+        source_path: &str,
+    ) -> Result<String, Box<dyn Error + Send + Sync>> {
+        let tool_def = Self::parse_tool_definition(source, source_path)?;
+        let mcp = Self::generate_mcp_tool(&tool_def)?;
+        Ok(serde_json::to_string_pretty(&mcp)?)
     }
 
     pub(crate) fn parse_param_line(

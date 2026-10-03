@@ -1,4 +1,5 @@
 // ===== LOCAL KEYWORDS =====
+pub mod keyword_reference;
 pub mod mention_config;
 pub mod preview;
 
@@ -301,21 +302,46 @@ pub fn get_all_keywords() -> Vec<String> {
         "SECURITY STOP SERVICE".to_string(),
         "SECURITY INSTALL TOOL".to_string(),
         "SECURITY HARDENING SCORE".to_string(),
+        // Filesystem: only DELETE FILE used to be listed, so a script calling
+        // CREATE FILE / WRITE FILE was told by the "closed set" that it did not
+        // exist while the runtime registers all of them.
+        "CREATE FILE".to_string(),
+        "WRITE FILE".to_string(),
+        "READ FILE".to_string(),
+        "LIST FILES".to_string(),
+        "GET FILE".to_string(),
+        // HTTP verbs: same gap as the file verbs.
+        "GET HTTP".to_string(),
+        "POST HTTP".to_string(),
+        "PUT HTTP".to_string(),
+        "WEBHOOK".to_string(),
+        // Messaging.
+        "SEND SMS".to_string(),
+        "SEND TO".to_string(),
+        // Session memory.
+        "REMEMBER".to_string(),
+        "RECALL".to_string(),
+        // Perception / media, used by the shipped media-filing tools.
+        "DESCRIBE IMAGE".to_string(),
+        "DESCRIBE VIDEO".to_string(),
+        "SPEECH TO TEXT".to_string(),
+        "CLASSIFY".to_string(),
+        // Declarative control.
+        "ON EVENT".to_string(),
+        "TRANSFER TO HUMAN".to_string(),
+        // Registered engine functions, not multi-word keywords, but the scripts
+        // use them as if they were keywords and the reference must teach the
+        // exact form (`TODAY`/`NOW` are registered functions, so the call form
+        // is what compiles).
+        "COUNT".to_string(),
+        "SPLIT".to_string(),
+        "TRIM".to_string(),
+        "UPPER".to_string(),
+        "LEN".to_string(),
+        "REPLACE".to_string(),
+        "LEFT".to_string(),
+        "STR".to_string(),
+        "TODAY".to_string(),
+        "NOW".to_string(),
     ]
-}
-
-pub fn get_keyword_categories() -> std::collections::HashMap<String, Vec<String>> {
-    let mut categories = std::collections::HashMap::new();
-    categories.insert("Multi-Agent".to_string(), vec!["ADD BOT".to_string(), "BOT REFLECTION".to_string(), "BROADCAST TO BOTS".to_string(), "DELEGATE TO BOT".to_string(), "TRANSFER CONVERSATION".to_string()]);
-    categories.insert("Communication".to_string(), vec!["ADD MEMBER".to_string(), "CREATE DRAFT".to_string(), "SEND MAIL".to_string(), "SEND TEMPLATE".to_string(), "SMS".to_string()]);
-    categories.insert("Data".to_string(), vec!["AGGREGATE".to_string(), "DELETE".to_string(), "FILL".to_string(), "FILTER".to_string(), "FIND".to_string(), "FIRST".to_string(), "GROUP BY".to_string(), "INSERT".to_string(), "JOIN".to_string(), "LAST".to_string(), "MAP".to_string(), "MERGE".to_string(), "PIVOT".to_string(), "SAVE".to_string(), "UPDATE".to_string()]);
-    categories.insert("HTTP".to_string(), vec!["GET".to_string(), "POST".to_string(), "PUT".to_string(), "PATCH".to_string(), "DELETE HTTP".to_string(), "GRAPHQL".to_string(), "SOAP".to_string(), "SET HEADER".to_string(), "CLEAR HEADERS".to_string()]);
-    categories.insert("AI".to_string(), vec!["LLM".to_string(), "SET CONTEXT".to_string(), "USE MODEL".to_string(), "SET ANSWER MODE".to_string()]);
-    categories.insert("Code Execution".to_string(), vec!["RUN PYTHON".to_string(), "RUN JAVASCRIPT".to_string(), "RUN BASH".to_string()]);
-    categories.insert("Safety".to_string(), vec!["REQUIRE APPROVAL".to_string(), "SIMULATE IMPACT".to_string(), "CHECK CONSTRAINTS".to_string(), "AUDIT LOG".to_string()]);
-    categories.insert("MCP".to_string(), vec!["USE MCP".to_string(), "MCP LIST TOOLS".to_string(), "MCP INVOKE".to_string()]);
-    categories.insert("Auto Task".to_string(), vec!["PLAN START".to_string(), "PLAN END".to_string(), "STEP".to_string(), "AUTO TASK".to_string(), "OPTION A OR B".to_string(), "DECIDE".to_string(), "ESCALATE".to_string()]);
-    categories.insert("Monitors".to_string(), vec!["ON EMAIL".to_string(), "ON CHANGE".to_string(), "SET SCHEDULE".to_string(), "WEBHOOK".to_string()]);
-    categories.insert("Security Protection".to_string(), vec!["SECURITY TOOL STATUS".to_string(), "SECURITY RUN SCAN".to_string(), "SECURITY GET REPORT".to_string(), "SECURITY UPDATE DEFINITIONS".to_string(), "SECURITY START SERVICE".to_string(), "SECURITY STOP SERVICE".to_string(), "SECURITY INSTALL TOOL".to_string(), "SECURITY HARDENING SCORE".to_string()]);
-    categories
 }

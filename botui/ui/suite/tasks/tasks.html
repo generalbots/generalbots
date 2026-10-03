@@ -1,4 +1,5 @@
 <link rel="stylesheet" href="/suite/tasks/tasks-scoped.p1.css?v=1" />
+<link rel="stylesheet" href="/suite/tasks/tasks-autotask.p10.css?v=1" />
 <link rel="stylesheet" href="/suite/tasks/tasks-scoped.p2.css?v=1" />
 <link rel="stylesheet" href="/suite/tasks/tasks-scoped.p3.css?v=1" />
 <link rel="stylesheet" href="/suite/tasks/tasks-scoped.p4.css?v=1" />
@@ -18,6 +19,7 @@
 <script src="/suite/tasks/tasks-scoped.p7.js?v=1"></script>
 <script src="/suite/tasks/tasks-scoped.p8.js?v=1"></script>
 <script src="/suite/tasks/tasks-scoped.p9.js?v=1"></script>
+<script src="/suite/tasks/tasks-autotask.p10.js?v=1"></script>
 
 <div class="gb-app tasks-app" data-gb-app="tasks">
     <!-- Hidden element to load stats on page load -->
@@ -161,6 +163,15 @@
         </div>
         <div id="intent-result" class="intent-result"></div>
         <div id="intent-result-hidden" style="display: none"></div>
+    </div>
+
+    <!-- AutoTask items (auto_tasks rows): every created automation with a
+         ✏️ action that opens the .bas it produced in the bot's repository. -->
+    <div class="autotask-items-bar">
+        <h4 class="autotask-items-title">// AUTOTASK ITEMS</h4>
+        <div id="autotask-items-list" class="autotask-items-list">
+            <div class="autotask-items-empty">Loading…</div>
+        </div>
     </div>
 
     <!-- Main Two-Column Layout with Splitter -->

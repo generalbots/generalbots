@@ -1,3 +1,4 @@
+pub mod attachments;
 pub mod channel_entry;
 pub mod exec;
 pub mod kb;

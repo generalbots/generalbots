@@ -57,7 +57,9 @@ async fn create_llm_for_bot(bot_id: Uuid, db_pool: &DbPool) -> Option<Arc<dyn bo
     };
     let llm_key = cfg.get_config(&bot_id, "llm-key", Some("")).unwrap_or_default();
     let llm_model = cfg.get_config(&bot_id, "llm-model", Some("")).unwrap_or_default();
-    let endpoint_path = cfg.get_config(&bot_id, "llm-endpoint-path", Some("/v1/chat/completions")).unwrap_or_default();
+    // Empty default: let create_llm_provider_from_url derive the endpoint from
+    // the URL (a forced /v1/chat/completions breaks full chat-completions URLs).
+    let endpoint_path = cfg.get_config(&bot_id, "llm-endpoint-path", Some("")).unwrap_or_default();
     let provider = crate::llm::create_llm_provider_from_url(
         &llm_url,
         if llm_model.is_empty() { None } else { Some(llm_model.clone()) },

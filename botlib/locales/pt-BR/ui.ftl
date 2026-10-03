@@ -1784,3 +1784,5 @@ meet-recordings-empty = Nenhuma gravação ainda
 # ── Navegação de configurações (issue #1304) ───────────────────────
 nav-about = Sobre
 nav-organizations = Organizações
+
+settings-theme-desc = Escolha o seu tema de cores preferido

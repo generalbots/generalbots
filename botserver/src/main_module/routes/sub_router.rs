@@ -1,6 +1,5 @@
 use axum::{Router, routing::post};
-use std::sync::{Arc, RwLock};
-use std::collections::HashMap;
+use std::sync::Arc;
 use botcore::shared::state::AppState;
 
 #[cfg(feature = "deployment")]
@@ -684,68 +683,15 @@ async fn inner_build_sub_router(
     // #1247 — Web Push subscription backend (Settings push toggle).
     { sub_router = sub_router.merge(crate::api::push::configure_push_routes(app_state.conn.clone())); }
 
-    // AutoTask routes
+    // AutoTask routes. The ops live in `crate::auto_task::ops` so the chat
+    // command executor can build the same API for `tasks.autotask.create`.
     {
-        use botautotask::types::{AutoTaskState, ConfigOps};
-
-        struct AutoTaskStateImpl {
-            pool: Arc<diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>>,
-            bucket_name: String,
-            manifests: Arc<RwLock<HashMap<String, botautotask::TaskManifest>>>,
-            drive_ops: Option<Arc<dyn botautotask::types::DriveOps>>,
-            app_state: Arc<AppState>,
-        }
-
-        impl AutoTaskState for AutoTaskStateImpl {
-            fn db_pool(&self) -> &botautotask::types::DbPool {
-                &self.pool
-            }
-            fn bucket_name(&self) -> &str {
-                &self.bucket_name
-            }
-            fn file_ops(&self) -> Option<&dyn botautotask::types::DriveOps> {
-                self.drive_ops.as_deref()
-            }
-            fn broadcast_task_progress(&self, event: botautotask::types::TaskProgressEvent) {
-                // #1266 — forward to the shared AppState channel so the
-                // /ws/task-progress endpoint (and botui's proxy) receives
-                // AutoTask progress events. Was previously a no-op.
-                super::task_progress_ws::forward_autotask_event(&self.app_state, event);
-            }
-            fn emit_activity(&self, _task_id: &str, _step: &str, _message: &str, _current: u8, _total: u8, _activity: botautotask::types::AgentActivity) {}
-            fn emit_task_started(&self, _task_id: &str, _message: &str, _total_steps: u8) {}
-            fn emit_task_error(&self, _task_id: &str, _step: &str, _error: &str) {}
-            fn task_manifests(&self) -> &Arc<RwLock<HashMap<String, botautotask::TaskManifest>>> {
-                &self.manifests
-            }
-            fn task_progress_broadcast(&self) -> Option<&tokio::sync::broadcast::Sender<botautotask::types::TaskProgressEvent>> {
-                None
-            }
-        }
-
-        struct ConfigOpsImpl;
-
-        impl ConfigOps for ConfigOpsImpl {
-            fn get_config(&self, _bot_id: &uuid::Uuid, _key: &str, _default: Option<&str>) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-                Ok(_default.unwrap_or_default().to_string())
-            }
-            fn set_config(&self, _bot_id: &uuid::Uuid, _key: &str, _value: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-                Ok(())
-            }
-        }
-
-        let autotask_state = Arc::new(AutoTaskStateImpl {
-            pool: Arc::new(app_state.conn.clone()),
-            bucket_name: app_state.bucket_name.clone(),
-            manifests: Arc::new(RwLock::new(HashMap::new())),
-            drive_ops: app_state.drive.clone().map(|d| {
-                Arc::new(botautotask::drive_ops::DriveRepositoryOps(d)) as Arc<dyn botautotask::types::DriveOps>
-            }),
-            app_state: app_state.clone(),
-        });
-        let config_ops = Arc::new(ConfigOpsImpl);
-        let llm_ops = Arc::new(botautotask::llm_adapter::BotlibLlmAdapter(app_state.llm_provider.clone()));
-        sub_router = sub_router.merge(botautotask::api::router(autotask_state, config_ops, llm_ops));
+        let api = crate::autotask_host::ops::build_api(app_state);
+        sub_router = sub_router.merge(botautotask::api::router(
+            api.state().clone(),
+            api.config_ops().clone(),
+            api.llm_ops().clone(),
+        ));
     }
 
     sub_router

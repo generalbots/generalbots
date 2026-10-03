@@ -10,7 +10,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::Semaphore;
 
 /// Rate limits for an API provider
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RateLimits {
     pub requests_per_minute: u32,
     pub tokens_per_minute: u32,
@@ -46,6 +46,152 @@ impl RateLimits {
             tokens_per_minute: u32::MAX,
             requests_per_day: u32::MAX,
             tokens_per_day: u32::MAX,
+        }
+    }
+
+    /// Cerebras Inference free tier — the tightest published quota in the
+    /// OpenAI-compatible tier, which is why Cerebras rows keep their own cap
+    /// instead of inheriting the default.
+    pub const fn cerebras_free_tier() -> Self {
+        Self {
+            requests_per_minute: 30,
+            tokens_per_minute: 60_000,
+            requests_per_day: 14_400,
+            tokens_per_day: 1_000_000,
+        }
+    }
+
+    /// Anthropic standard tier, applied to the native Claude client.
+    pub const fn anthropic_standard() -> Self {
+        Self {
+            requests_per_minute: 50,
+            tokens_per_minute: 40_000,
+            requests_per_day: 10_000,
+            tokens_per_day: 2_000_000,
+        }
+    }
+
+    /// Azure OpenAI standard tier, applied to the Responses-API client.
+    pub const fn azure_standard() -> Self {
+        Self {
+            requests_per_minute: 120,
+            tokens_per_minute: 120_000,
+            requests_per_day: 10_000,
+            tokens_per_day: 10_000_000,
+        }
+    }
+
+    /// z.ai / GLM standard tier.
+    pub const fn glm_standard() -> Self {
+        Self {
+            requests_per_minute: 60,
+            tokens_per_minute: 120_000,
+            requests_per_day: 5_000,
+            tokens_per_day: 5_000_000,
+        }
+    }
+
+    /// Amazon Bedrock on-demand quota, applied per model.
+    pub const fn bedrock_standard() -> Self {
+        Self {
+            requests_per_minute: 100,
+            tokens_per_minute: 200_000,
+            requests_per_day: 20_000,
+            tokens_per_day: 20_000_000,
+        }
+    }
+
+    /// Google Vertex AI standard tier.
+    pub const fn vertex_standard() -> Self {
+        Self {
+            requests_per_minute: 60,
+            tokens_per_minute: 120_000,
+            requests_per_day: 5_000,
+            tokens_per_day: 5_000_000,
+        }
+    }
+
+    /// Kiro / CodeWhisperer, metered through the entitlement.
+    pub const fn kiro_standard() -> Self {
+        Self {
+            requests_per_minute: 60,
+            tokens_per_minute: 200_000,
+            requests_per_day: 5_000,
+            tokens_per_day: 5_000_000,
+        }
+    }
+
+    /// DeepInfra standard tier. DeepInfra publishes no hard cap, so this is an
+    /// operating cap sized for sustained multi-bot traffic.
+    pub const fn deepinfra_standard() -> Self {
+        Self {
+            requests_per_minute: 60,
+            tokens_per_minute: 100_000,
+            requests_per_day: 10_000,
+            tokens_per_day: 5_000_000,
+        }
+    }
+
+    /// Fireworks AI standard tier.
+    pub const fn fireworks_standard() -> Self {
+        Self {
+            requests_per_minute: 60,
+            tokens_per_minute: 100_000,
+            requests_per_day: 10_000,
+            tokens_per_day: 5_000_000,
+        }
+    }
+
+    /// Together AI standard tier.
+    pub const fn together_standard() -> Self {
+        Self {
+            requests_per_minute: 60,
+            tokens_per_minute: 100_000,
+            requests_per_day: 10_000,
+            tokens_per_day: 5_000_000,
+        }
+    }
+
+    /// OpenRouter — the gateway publishes a credit-derived quota, so the caps
+    /// stay conservative.
+    pub const fn openrouter_standard() -> Self {
+        Self {
+            requests_per_minute: 20,
+            tokens_per_minute: 50_000,
+            requests_per_day: 1_000,
+            tokens_per_day: 200_000,
+        }
+    }
+
+    /// Requesty gateway, which meters the BYOK tier behind its own quota.
+    pub const fn requesty_standard() -> Self {
+        Self {
+            requests_per_minute: 60,
+            tokens_per_minute: 100_000,
+            requests_per_day: 10_000,
+            tokens_per_day: 5_000_000,
+        }
+    }
+
+    /// NVIDIA NIM, which meters per developer key.
+    pub const fn nvidia_standard() -> Self {
+        Self {
+            requests_per_minute: 40,
+            tokens_per_minute: 80_000,
+            requests_per_day: 1_000,
+            tokens_per_day: 500_000,
+        }
+    }
+
+    /// Caps applied to an OpenAI-compatible host with no catalog row: generous
+    /// enough for a self-hosted server, bounded enough that a mistyped URL
+    /// cannot become an unbounded retry storm.
+    pub const fn openai_compatible_default() -> Self {
+        Self {
+            requests_per_minute: 120,
+            tokens_per_minute: 250_000,
+            requests_per_day: 20_000,
+            tokens_per_day: 20_000_000,
         }
     }
 }
@@ -95,8 +241,11 @@ impl ApiRateLimiter {
     /// Create a new rate limiter with the specified limits
     pub fn new(limits: RateLimits) -> Self {
         // Requests per minute limiter
+        // A limit of zero would leave the quota unrepresentable, so it becomes
+        // one request per minute rather than an abort.
         let rpm_quota = NonZeroU32::new(limits.requests_per_minute)
-            .unwrap_or_else(|| NonZeroU32::new(1).unwrap());
+            .unwrap_or(NonZeroU32::MIN)
+            .max(NonZeroU32::MIN);
         let requests_per_minute = Arc::new(RateLimiter::direct(Quota::per_minute(rpm_quota)));
 
         // Tokens per minute (using semaphore as we need to track token count)

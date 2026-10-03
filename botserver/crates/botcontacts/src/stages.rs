@@ -360,3 +360,22 @@ fn pool_err<E: std::fmt::Display>(e: E) -> (StatusCode, String) {
 fn diesel_err(e: diesel::result::Error) -> (StatusCode, String) {
     (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
 }
+
+pub async fn get_pipeline_stages(
+    State(state): State<Arc<CrateState>>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<CrmPipelineStage>>, (StatusCode, String)> {
+    let mut conn = state.db_pool.get().map_err(|e| {
+        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
+    })?;
+
+    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| state.get_bot_context());
+
+    let stages: Vec<CrmPipelineStage> = crm_pipeline_stages::table
+        .filter(crm_pipeline_stages::branch_id.eq(branch_id))
+        .order(crm_pipeline_stages::stage_order.asc())
+        .load(&mut conn)
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
+
+    Ok(Json(stages))
+}

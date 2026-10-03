@@ -242,6 +242,22 @@ pub trait AutoTaskState: Send + Sync {
     fn emit_task_error(&self, task_id: &str, step: &str, error: &str);
     fn task_manifests(&self) -> &Arc<RwLock<HashMap<String, crate::TaskManifest>>>;
     fn task_progress_broadcast(&self) -> Option<&broadcast::Sender<TaskProgressEvent>>;
+    /// Git source facade (reform #1501/#1505). `None` keeps the legacy Drive
+    /// write path for bots that are not git-owned.
+    fn source_ops(&self) -> Option<&dyn BotSourceOps> {
+        None
+    }
+
+    /// BASIC reference handed to the intent compiler: the closed keyword
+    /// catalog plus the syntax rules, rendered as prompt material.
+    ///
+    /// The catalog lives in the host (botserver's `basic::keywords`
+    /// registration) because `botautotask` cannot depend on it — without this
+    /// the compiler is asked for a program while knowing no keyword and emits
+    /// the `TALK` stub instead. `None` degrades to the stub.
+    fn basic_reference(&self) -> Option<String> {
+        None
+    }
 }
 
 /// Resolved bot identity used to build Drive buckets and DriveMonitor keys.
@@ -307,6 +323,60 @@ pub trait LlmProviderOps: Send + Sync {
     ) -> BoxFuture<()>;
 }
 
+/// Hard ceiling on one AutoTask LLM completion. A stalled upstream model (free
+/// tiers do stall) must degrade into a reported failure instead of holding the
+/// request and its HTTP client open — an intent classification once hung for
+/// more than five minutes.
+/// Generous, because the compile step asks a reasoning model for a whole BASIC
+/// program: 90 s aborted real runs on Telegram with "llm call timed out"
+/// (the model was still emitting reasoning tokens). The budget is a safety net
+/// against a stalled provider, not a latency target.
+pub const LLM_CALL_TIMEOUT_SECS: u64 = 300;
+
+/// Drive a provider stream to completion under [`LLM_CALL_TIMEOUT_SECS`].
+///
+/// The producer runs concurrently with the collector: `generate_stream` fills
+/// a bounded channel, so awaiting it *before* draining deadlocks once the
+/// model emits more chunks than the channel holds (a reasoning model writing
+/// a whole BASIC program sends hundreds) — the producer blocks on `send`, the
+/// collector never reaches `recv`, and the timeout then abandons a turn that
+/// was actually progressing. Chat never hits this because its pipeline loops
+/// on `recv` while the producer is still running.
+pub async fn collect_llm_stream(
+    llm_ops: &dyn LlmProviderOps,
+    prompt: &str,
+    config: &serde_json::Value,
+    model: &str,
+    key: &str,
+    system_prompt: Option<&str>,
+) -> Result<String, BoxError> {
+    let (tx, mut rx) = tokio::sync::mpsc::channel(100);
+    let producer = llm_ops.generate_stream(prompt, config, tx, model, key, system_prompt);
+    let collect = async {
+        let mut response = String::new();
+        while let Some(chunk) = rx.recv().await {
+            response.push_str(&chunk);
+        }
+        response
+    };
+    // Polled together in this task (no spawn: callers may run off-runtime):
+    // the producer drains because the collector consumes concurrently. The
+    // timeout stays as the stall guard for a provider that stops emitting.
+    let call = async { tokio::join!(producer, collect) };
+    let (producer_result, response) = tokio::time::timeout(
+        std::time::Duration::from_secs(LLM_CALL_TIMEOUT_SECS),
+        call,
+    )
+    .await
+    .map_err(|_| format!("llm call timed out after {LLM_CALL_TIMEOUT_SECS}s"))?;
+    // A failed stream fails the collect even with partial output: feeding
+    // truncated JSON to the parser would turn a provider outage into a
+    // fabricated fallback plan — an honest error lets the caller report
+    // and retry instead.
+    producer_result?;
+    Ok(response)
+}
+
 pub trait ConfigOps: Send + Sync {
     fn get_config(
         &self,
@@ -336,6 +406,65 @@ pub trait DriveOps: Send + Sync {
 
     /// Read an object back (verification + rollback support).
     fn get_object(&self, bucket: &str, key: &str) -> Result<Vec<u8>, BoxError>;
+}
+
+/// Reform #1501/#1505 — persistence of AutoTask-generated bot sources into the
+/// bot's git repository (ALM). For a git-owned bot the repository is the
+/// canonical `.gbdialog`; a Drive-only write is overwritten by the next
+/// git-pull monitor tick and leaves no artifact of the task behind.
+///
+/// Implemented by the host crate; `None` for bots without a git project, in
+/// which case the legacy Drive path is used.
+/// One source file of a bot's `.gbdialog`.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SourceFile {
+    pub name: String,
+    pub size: u64,
+}
+
+/// A bot's source files plus the vibe project that owns the repository, so a
+/// caller can open them in the suite editor (project workspace + Source
+/// Control) instead of guessing a path.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SourceListing {
+    pub project_id: Option<Uuid>,
+    pub files: Vec<SourceFile>,
+}
+
+pub trait BotSourceOps: Send + Sync {
+    /// Write `files` — `(path relative to .gbdialog, content)` — into the bot's
+    /// source repository, commit and push them, returning the dialog-root file
+    /// names written.
+    fn write_sources(
+        &self,
+        bot_id: Uuid,
+        files: &[(String, String)],
+        message: &str,
+    ) -> Result<Vec<String>, BoxError>;
+
+    /// Merge the `BEGIN TABLE … END TABLE` blocks of `tables_bas` into the bot's
+    /// `.gbdialog/tables.bas`, returning the table names appended (empty when
+    /// the schema already declared them).
+    fn merge_tables(&self, bot_id: Uuid, tables_bas: &str) -> Result<Vec<String>, BoxError>;
+
+    /// Write the bot's `.gbot` configuration — `PROMPT-{CHANNEL}.md`, styles,
+    /// `config.csv` — into the repository, commit and push it. The runtime reads
+    /// these files from the work layout; without them the bot answers with the
+    /// generic fallback prompt and its tools (e.g. `classify_media`) are never
+    /// called, so a shipped template must deliver them with its tool.
+    fn write_bot_config(
+        &self,
+        bot_id: Uuid,
+        files: &[(String, String)],
+        message: &str,
+    ) -> Result<Vec<String>, BoxError>;
+
+    /// Read one source file back from the bot's repository, so the editor can
+    /// show the current committed content. `None` when the file is absent.
+    fn read_source(&self, bot_id: Uuid, name: &str) -> Result<Option<String>, BoxError>;
+
+    /// List the bot's `.gbdialog` sources with the owning project id.
+    fn list_sources(&self, bot_id: Uuid) -> Result<SourceListing, BoxError>;
 }
 
 pub trait ScriptRunner: Send + Sync {
@@ -427,4 +556,81 @@ pub fn generate_create_table_sql(table: &crate::TableDefinition, driver: &str) -
     sql.push_str(&field_lines.join(",\n"));
     sql.push_str("\n)");
     sql
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{collect_llm_stream, BoxError, BoxFuture, LlmProviderOps};
+
+    /// Emits `chunks` messages before optionally failing — enough chunks to
+    /// overflow the bounded channel `collect_llm_stream` builds (cap 100).
+    struct ManyChunkLlm {
+        chunks: usize,
+        fail_after: bool,
+    }
+
+    impl LlmProviderOps for ManyChunkLlm {
+        fn generate_stream(
+            &self,
+            _prompt: &str,
+            _config: &serde_json::Value,
+            tx: tokio::sync::mpsc::Sender<String>,
+            _model: &str,
+            _key: &str,
+            _system_prompt: Option<&str>,
+        ) -> BoxFuture<()> {
+            let chunks = self.chunks;
+            let fail_after = self.fail_after;
+            Box::pin(async move {
+                for i in 0..chunks {
+                    if tx.send(format!("chunk-{i}")).await.is_err() {
+                        return Ok(()); // collector dropped
+                    }
+                }
+                if fail_after {
+                    return Err(BoxError::from("producer failed after streaming"));
+                }
+                Ok(())
+            })
+        }
+    }
+
+    #[test]
+    fn collects_more_chunks_than_the_channel_holds() {
+        // The deadlock regression: a reasoning model writing a whole BASIC
+        // program emits hundreds of chunks. A collector that awaits the
+        // producer before draining blocks on `send` #101, times out after
+        // LLM_CALL_TIMEOUT_SECS, and the AutoTask turn dies with no artifact
+        // and no reply (prod, 2026-09-29).
+        let adapter = ManyChunkLlm { chunks: 250, fail_after: false };
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("runtime");
+        let response = rt.block_on(async {
+            collect_llm_stream(&adapter, "p", &serde_json::json!({}), "m", "k", None)
+                .await
+                .expect("collect must succeed under the timeout")
+        });
+        assert_eq!(response.matches("chunk-").count(), 250);
+        assert!(response.ends_with("chunk-249"));
+    }
+
+    #[test]
+    fn producer_error_fails_the_collect_even_with_partial_output() {
+        // A gateway drop mid-stream must surface as an error (the caller
+        // reports and can retry), not as the partial text — the compiler's
+        // parse fallback would otherwise fabricate a plan from truncated
+        // output and claim success.
+        let adapter = ManyChunkLlm { chunks: 5, fail_after: true };
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("runtime");
+        let result = rt.block_on(async {
+            collect_llm_stream(&adapter, "p", &serde_json::json!({}), "m", "k", None).await
+        });
+        let err = result.expect_err("producer error must propagate");
+        assert!(err.to_string().contains("producer failed after streaming"));
+    }
 }

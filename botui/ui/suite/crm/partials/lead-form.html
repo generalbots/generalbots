@@ -1,8 +1,7 @@
 <!-- Lead Form - CRM Partial -->
-<form class="crm-form" id="leadForm" 
-      onsubmit="event.preventDefault(); submitLeadForm(event)">
+<form class="crm-form" id="crm-record-form" data-entity="lead" data-mode="create">
     <div class="crm-form-header">
-        <h2 class="crm-form-title" data-i18n="crm-new-lead">New Lead</h2>
+        <h2 class="crm-form-title" data-form-title data-i18n="crm-new-lead">New Lead</h2>
         <button type="button" class="crm-form-close" onclick="closeCrmModal()">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -73,6 +72,11 @@
                 <option value="GBP">GBP £</option>
             </select>
         </div>
+    </div>
+
+    <div class="crm-form-group">
+        <label class="crm-form-label">Lost reason</label>
+        <input type="text" name="lost_reason" id="crm-lost-reason" class="crm-form-input" placeholder="Why this lead went cold">
     </div>
 
     <div class="crm-form-group">

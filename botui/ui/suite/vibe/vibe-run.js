@@ -825,6 +825,11 @@
 
     /* ------------------------------------------------- runs list */
 
+    // Editing a generated `.bas` belongs to the AutoTask items list (Tasks
+    // app), where every created automation is a row — not here. A run is an
+    // execution, not an item; its row action pointed at the bot's FIRST .bas,
+    // which was ambiguous and duplicated the AutoTask surface.
+
     function loadRuns() {
         api("/api/vibe/runs?limit=8").then(function (data) {
             var list = q("vibeRunsList");

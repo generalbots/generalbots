@@ -24,9 +24,7 @@ struct BranchIdRow {
 }
 
 use crate::{integration, notifier, CalculatorPayload, SaasConfig, SaasService};
-use botproviders::{ComputeProvider, MachineSpec};
-use botproviders::vast::VastAiProvider;
-use botproviders::contabo::ContaboProvider;
+
 
 /// JWT authentication middleware for cloud API routes.
 /// Validates Bearer token on all routes except `/api/cloud/auth/*`.
@@ -99,12 +97,6 @@ fn jwt_sign_inner(message: &str, secret: &[u8]) -> String {
     };
     mac.update(message.as_bytes());
     base64_url_encode(&mac.finalize().into_bytes())
-}
-
-#[derive(diesel::QueryableByName, Debug)]
-struct ProviderKeyRow {
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    key: String,
 }
 
 #[derive(Debug, Deserialize)]
@@ -272,6 +264,31 @@ fn directory_url_allows_password(dir_url: &str, allow_insecure_http: bool) -> bo
 /// resolution finds the row on the very first sign-in. Without it, password
 /// verification succeeds but no subject can be resolved and the login 401s
 /// forever (#1365).
+/// Zitadel default password complexity (both in prod and dev builds): at least
+/// 8 characters with uppercase, lowercase, digit and symbol. Mirrored here so
+/// signup can reject a non-compliant password before any account state is
+/// written — the directory error `Password must contain symbol (DOMAIN-ZDLwA)`
+/// is what an unsignable account looked like. Returns the human-readable
+/// violation, or `None` when the password satisfies the policy.
+fn password_policy_violation(password: &str) -> Option<String> {
+    if password.chars().count() < 8 {
+        return Some("Password must be at least 8 characters long.".to_string());
+    }
+    if !password.chars().any(|c| c.is_ascii_uppercase()) {
+        return Some("Password must contain an uppercase letter.".to_string());
+    }
+    if !password.chars().any(|c| c.is_ascii_lowercase()) {
+        return Some("Password must contain a lowercase letter.".to_string());
+    }
+    if !password.chars().any(|c| c.is_ascii_digit()) {
+        return Some("Password must contain a digit.".to_string());
+    }
+    if !password.chars().any(|c| !c.is_ascii_alphanumeric()) {
+        return Some("Password must contain a symbol (e.g. !@#$%).".to_string());
+    }
+    None
+}
+
 fn provision_user_row(conn: &mut diesel::PgConnection, zitadel_user_id: &str, email: &str) {
     let derived = Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{zitadel_user_id}").as_bytes());
     let username = email.split('@').next().unwrap_or(email).to_string();
@@ -301,6 +318,20 @@ async fn handle_signup(
         .unwrap_or_else(|| {
             body.email.split('@').next().unwrap_or("default").to_lowercase()
         });
+
+    // Reject passwords the directory will refuse BEFORE anything is persisted:
+    // the old flow created the whole org/bot transaction, then swallowed a
+    // failing password set with a warn — the account existed and could never
+    // log in (marcelbeiner@gmail.com was exactly that, fixed on 2026-09-29).
+    // Zitadel's default complexity is: 8+ chars, upper, lower, digit, symbol.
+    if let Some(password) = body.password.as_deref().map(str::trim).filter(|p| !p.is_empty()) {
+        if let Some(violation) = password_policy_violation(password) {
+            return Err((StatusCode::BAD_REQUEST, serde_json::json!({
+                "error": "invalid_password",
+                "message": violation,
+            }).to_string()));
+        }
+    }
 
     // 7. Determine plan from body (default: free) — checked early for capacity gate
     let chosen_plan = body.plan.as_deref()
@@ -554,19 +585,90 @@ async fn handle_signup(
                                 if let Some(host) = &service.config.directory_external_domain {
                                     pw_req = pw_req.header("Host", host);
                                 }
-                                let _ = pw_req.send().await
-                                    .map(|r| {
-                                        if !r.status().is_success() {
-                                            tracing::warn!("Zitadel password set returned {}", r.status());
-                                        }
-                                    })
-                                    .unwrap_or_else(|e| tracing::warn!("Zitadel password set failed: {e}"));
+                                // The password set MUST succeed: a user without a
+                                // working hash is an account that can never log in.
+                                // The old flow swallowed this failure with a warn —
+                                // signup returned 201, the person hit "Invalid
+                                // credentials" forever, and nothing in the logs
+                                // explained it. Now: verify with a real session
+                                // check, and when it does not hold, tear the
+                                // directory identity down and fail the signup with
+                                // the directory's own reason.
+                                let pw_result = pw_req.send().await;
+                                let pw_ok = match pw_result {
+                                    Ok(r) if r.status().is_success() => {
+                                        let probe = client
+                                            .post(format!("{dir_url}/v2/sessions"))
+                                            .header("Authorization", format!("Bearer {dir_token}"))
+                                            .json(&serde_json::json!({
+                                                "checks": {
+                                                    "user": { "loginName": body.email },
+                                                    "password": { "password": password }
+                                                }
+                                            }))
+                                            .send()
+                                            .await;
+                                        matches!(probe, Ok(pr) if pr.status().is_success())
+                                    }
+                                    Ok(r) => {
+                                        let status = r.status();
+                                        let body_text = r.text().await.unwrap_or_default();
+                                        tracing::error!(
+                                            "signup: Zitadel password set returned {status} for {}: {body_text}",
+                                            body.email
+                                        );
+                                        false
+                                    }
+                                    Err(e) => {
+                                        tracing::error!("signup: Zitadel password set failed for {}: {e}", body.email);
+                                        false
+                                    }
+                                };
+                                if !pw_ok {
+                                    let _ = client
+                                        .delete(format!(
+                                            "{dir_url}/management/v1/users/{user_id}"
+                                        ))
+                                        .header("Authorization", format!("Bearer {dir_token}"))
+                                        .send()
+                                        .await;
+                                    return Err((
+                                        StatusCode::BAD_GATEWAY,
+                                        serde_json::json!({
+                                            "error": "identity_provisioning_failed",
+                                            "message": "The account could not be created with a working password. No data was kept — please sign up again with a stronger password (8+ chars with upper, lower, digit and symbol)."
+                                        })
+                                        .to_string(),
+                                    ));
+                                }
                             }
                         }
                     }
                 }
-                Ok(resp) => tracing::warn!("Zitadel user creation returned {}", resp.status()),
-                Err(e) => tracing::warn!("Zitadel user creation failed: {e}"),
+                Ok(resp) => {
+                    let status = resp.status();
+                    let body_text = resp.text().await.unwrap_or_default();
+                    tracing::error!("signup: Zitadel user creation returned {status} for {}: {body_text}", body.email);
+                    return Err((
+                        StatusCode::BAD_GATEWAY,
+                        serde_json::json!({
+                            "error": "identity_provisioning_failed",
+                            "message": "The identity provider refused to create the account. Please try again; if it persists, contact support."
+                        })
+                        .to_string(),
+                    ));
+                }
+                Err(e) => {
+                    tracing::error!("signup: Zitadel user creation failed for {}: {e}", body.email);
+                    return Err((
+                        StatusCode::BAD_GATEWAY,
+                        serde_json::json!({
+                            "error": "identity_provisioning_failed",
+                            "message": "The identity provider is unreachable. Please try again in a moment."
+                        })
+                        .to_string(),
+                    ));
+                }
             }
         }
     }
@@ -1260,10 +1362,40 @@ async fn handle_login(
     });
 
     let payload_body = match (org_scope, branch_scope) {
-        (Some(org_id), Some(branch)) => format!(
-            "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{},\"org_id\":\"{}\",\"branch_id\":\"{}\"}}",
-            sub, body.email, exp, org_id, branch
-        ),
+        (Some(org_id), Some(branch)) => {
+            // The caller's workspace bucket travels in the JWT so the suite
+            // shell (Drive in particular) lands in the caller's own org layout
+            // instead of probing garbage: `{branch_slug}.gborg` is the org
+            // workspace bucket the drive monitor materializes for the branch
+            // (`beiner.gborg/beiner.gbai/...`).
+            #[derive(diesel::QueryableByName)]
+            struct SlugRow {
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                slug: String,
+            }
+            let branch_slug: Option<String> = diesel::sql_query(
+                "SELECT slug FROM branches WHERE id = $1 LIMIT 1",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(branch)
+            .get_result::<SlugRow>(&mut conn)
+            .optional()
+            .ok()
+            .flatten()
+            .map(|r| r.slug);
+            let bucket_claim = branch_slug
+                .clone()
+                .map(|slug| format!("{slug}.gborg"));
+            match (&org_id, &branch, &bucket_claim) {
+                (_, _, Some(bucket)) => format!(
+                    "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{},\"org_id\":\"{}\",\"branch_id\":\"{}\",\"bucket\":\"{}\"}}",
+                    sub, body.email, exp, org_id, branch, bucket
+                ),
+                _ => format!(
+                    "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{},\"org_id\":\"{}\",\"branch_id\":\"{}\"}}",
+                    sub, body.email, exp, org_id, branch
+                ),
+            }
+        }
         _ => format!(
             "{{\"sub\":\"{}\",\"email\":\"{}\",\"exp\":{}}}",
             sub,
@@ -1293,6 +1425,23 @@ async fn handle_login(
     // treats freshly logged-in users as anonymous, issue #808 report).
     // Persist to login_sessions so the session survives botserver restarts
     // (same durability the suite-sso hop provides).
+    // The session carries the caller's workspace bucket, so /api/auth/me can
+    // hand the suite its own org layout (Drive's discoverBuckets short-circuits
+    // on it — with it null the UI probed wrong buckets and hung on loading).
+    let session_bucket: Option<String> = branch_scope.and_then(|b| {
+        #[derive(diesel::QueryableByName)]
+        struct BranchSlugRow {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            slug: String,
+        }
+        diesel::sql_query("SELECT slug FROM branches WHERE id = $1 LIMIT 1")
+            .bind::<diesel::sql_types::Uuid, _>(b)
+            .get_result::<BranchSlugRow>(&mut conn)
+            .optional()
+            .ok()
+            .flatten()
+            .map(|r| format!("{}.gborg", r.slug))
+    });
     {
         use botcoredirectory::auth_routes::{SESSION_CACHE, persist_session};
         let mut cache = SESSION_CACHE.write().await;
@@ -1305,7 +1454,7 @@ async fn handle_login(
             display_name: Some(user_name.clone()),
             organization_id: org_scope.map(|o| o.to_string()),
             roles: resolve_rbac_roles(&mut conn, &sub),
-            bucket: None,
+            bucket: session_bucket,
             created_at: chrono::Utc::now().timestamp(),
         };
         cache.insert(token.clone(), session_user.clone());
@@ -1539,30 +1688,7 @@ pub fn get_branch_id_from_jwt(
     headers: &HeaderMap,
     conn: &mut diesel::PgConnection,
 ) -> Result<Option<Uuid>, String> {
-    use diesel::prelude::*;
-    if let Some(auth_val) = headers.get("authorization")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer "))
-    {
-        let parts: Vec<&str> = auth_val.split('.').collect();
-        if parts.len() == 3 {
-            if let Ok(decoded) = base64_url_decode(parts[1]) {
-                if let Ok(payload) = serde_json::from_slice::<serde_json::Value>(&decoded) {
-                    if let Some(user_email) = payload.get("email").and_then(|v| v.as_str()) {
-                        use crate::schema_ext::crm_contacts::dsl::{crm_contacts, email, branch_id};
-                        let contact_branch: Option<Uuid> = crm_contacts
-                            .filter(email.eq(user_email))
-                            .select(branch_id)
-                            .first(conn)
-                            .optional()
-                            .map_err(|e| format!("Query: {e}"))?;
-                        return Ok(contact_branch);
-                    }
-                }
-            }
-        }
-    }
-    Ok(None)
+    crate::branch_scope::resolve_branch_id(headers, conn)
 }
 
 /// Check if the authenticated user is the SaaS super-admin.
@@ -2071,7 +2197,7 @@ async fn assign_resource(
     let oid = org_id_param;
 
     tokio::spawn(async move {
-        if let Err(e) = provision_compute_resource(&db_pool, &item_id, rid, wid, oid).await {
+        if let Err(e) = provision_resource(&db_pool, &item_id, rid, wid, oid).await {
             tracing::error!("Provisioning failed for resource {rid} ({item_id}): {e}");
         }
     });
@@ -2084,19 +2210,63 @@ async fn assign_resource(
     })))
 }
 
-fn store_item_to_spec(store_item_id: &str) -> Option<(MachineSpec, Vec<&'static str>)> {
+/// Catalogue monthly prices in cents, keyed by SKU. Used to reconcile what a
+/// provider actually charged against what the customer was quoted.
+fn store_item_monthly_cents(store_item_id: &str) -> Option<i64> {
     match store_item_id {
-        "vps-small" => Some((MachineSpec { cpu_cores: 4, ram_gb: 8, disk_gb: 100, gpu_type: None, gpu_count: 0, bandwidth_tb: 2 }, vec!["vast", "contabo"])),
-        "vps-medium" => Some((MachineSpec { cpu_cores: 6, ram_gb: 16, disk_gb: 200, gpu_type: None, gpu_count: 0, bandwidth_tb: 4 }, vec!["vast", "contabo"])),
-        "vps-large" => Some((MachineSpec { cpu_cores: 8, ram_gb: 32, disk_gb: 400, gpu_type: None, gpu_count: 0, bandwidth_tb: 8 }, vec!["contabo"])),
-        "vps-xl" => Some((MachineSpec { cpu_cores: 16, ram_gb: 64, disk_gb: 800, gpu_type: None, gpu_count: 0, bandwidth_tb: 16 }, vec!["contabo"])),
-        "gpu-basic" => Some((MachineSpec { cpu_cores: 4, ram_gb: 8, disk_gb: 50, gpu_type: Some("RTX 3060 12 GB".into()), gpu_count: 1, bandwidth_tb: 2 }, vec!["vast"])),
-        "gpu-pro" => Some((MachineSpec { cpu_cores: 8, ram_gb: 32, disk_gb: 200, gpu_type: Some("RTX 4090 24 GB".into()), gpu_count: 1, bandwidth_tb: 4 }, vec!["vast", "contabo"])),
-        "gpu-enterprise" => Some((MachineSpec { cpu_cores: 16, ram_gb: 64, disk_gb: 500, gpu_type: Some("A100".into()), gpu_count: 1, bandwidth_tb: 8 }, vec!["vast", "contabo"])),
+        "vps-small" => Some(999),
+        "vps-medium" => Some(1999),
+        "vps-large" => Some(3999),
+        "vps-xl" => Some(7999),
+        "gpu-basic" => Some(3999),
+        "gpu-pro" => Some(9999),
+        "gpu-enterprise" => Some(29999),
         _ => None,
     }
 }
 
+/// Provisions whatever kind of resource the catalogue item represents.
+///
+/// Compute goes through the provider chain; a domain SKU is provisioned by the
+/// registrar path (#1469); anything else is recorded without an external call so
+/// the resource does not sit on "provisioning" forever.
+async fn provision_resource(
+    pool: &crate::DbPool,
+    store_item_id: &str,
+    resource_id: Uuid,
+    workspace_id: Uuid,
+    org_id: Uuid,
+) -> Result<(), String> {
+    if store_item_id.starts_with("domain-") {
+        return crate::domain_provisioning::provision_domain(
+            pool,
+            store_item_id,
+            resource_id,
+            workspace_id,
+            org_id,
+        )
+        .await;
+    }
+    if crate::compute_provisioning::sku_for(store_item_id).is_some() {
+        return provision_compute_resource(pool, store_item_id, resource_id, workspace_id, org_id).await;
+    }
+
+    // No provisioning path for this item yet: mark it active rather than leaving
+    // a row that reports "provisioning" indefinitely.
+    crate::compute_provisioning::record_outcome(
+        pool,
+        resource_id,
+        "active",
+        serde_json::json!({ "note": "no external provisioning required" }),
+    )
+}
+
+/// Provisions a compute resource off the request path.
+///
+/// The work happens in a spawned task, so this records the outcome on the
+/// resource row and returns; the client polls `GET .../resources` for the
+/// status. Every policy decision — candidate chain, credentials, cost
+/// reconciliation — lives in [`crate::compute_provisioning`].
 async fn provision_compute_resource(
     pool: &crate::DbPool,
     store_item_id: &str,
@@ -2104,81 +2274,52 @@ async fn provision_compute_resource(
     _workspace_id: Uuid,
     org_id: Uuid,
 ) -> Result<(), String> {
-    let (spec, candidates) = store_item_to_spec(store_item_id)
+    use crate::compute_provisioning as compute;
+
+    let sku = compute::sku_for(store_item_id)
         .ok_or_else(|| format!("Unknown store item: {store_item_id}"))?;
 
-    use crate::schema_ext::workspace_resources::dsl as wr;
-    let mut conn = pool.get().map_err(|e| format!("DB: {e}"))?;
+    let settings = compute::load_settings(pool, org_id)?;
 
-    let org_provider_key: Option<String> = {
-        diesel::sql_query(
-            "SELECT COALESCE(config->>'provider_api_key', '') AS key FROM cloud_organizations WHERE id = $1",
-        )
-        .bind::<diesel::sql_types::Uuid, _>(org_id)
-        .get_result::<ProviderKeyRow>(&mut conn)
-        .ok()
-        .map(|r| r.key)
-    };
-
-    let api_key = match org_provider_key {
-        Some(k) if !k.is_empty() => k,
-        _ => {
-            diesel::update(wr::workspace_resources.filter(wr::id.eq(resource_id)))
-                .set(wr::status.eq("provisioning_no_key"))
-                .execute(&mut conn)
-                .ok();
-            return Err("No provider API key configured for organization".into());
-        }
-    };
-
-    let preferred_provider = std::env::var("GB_PROVIDER").unwrap_or_else(|_| "vast".into());
-    let provider_name = if candidates.contains(&preferred_provider.as_str()) {
-        preferred_provider.clone()
-    } else {
-        candidates.first().copied().unwrap_or("vast").to_string()
-    };
-
-    let provider: Box<dyn ComputeProvider> = match provider_name.as_str() {
-        "vast" => Box::new(VastAiProvider::new()),
-        "contabo" => Box::new(ContaboProvider::new()),
-        other => return Err(format!("Unknown provider: {other}")),
-    };
-
-    match provider.provision(&spec, "US", &api_key).await {
-        Ok(result) => {
-            let config: serde_json::Value = serde_json::json!({
-                "provider": result.provider,
-                "instance_id": result.instance_id,
-                "ip": result.ip_address,
-                "region": result.region,
-                "hourly_cost": result.hourly_cost,
-            });
-
-            diesel::update(wr::workspace_resources.filter(wr::id.eq(resource_id)))
-                .set((
-                    wr::status.eq("active"),
-                    wr::config.eq(Some(config)),
-                ))
-                .execute(&mut conn)
-                .ok();
-            tracing::info!("Provisioned {store_item_id} via {provider_name}: instance={}", result.instance_id);
-        }
-        Err(e) => {
-            let err_msg = e.to_string();
-            let config: serde_json::Value = serde_json::json!({ "error": err_msg });
-            diesel::update(wr::workspace_resources.filter(wr::id.eq(resource_id)))
-                .set((
-                    wr::status.eq("provisioning_failed"),
-                    wr::config.eq(Some(config)),
-                ))
-                .execute(&mut conn)
-                .ok();
-            tracing::warn!("Failed to provision {store_item_id} via {provider_name}: {err_msg}");
-            return Err(err_msg);
-        }
+    // A key on any candidate is enough to try; without one there is nothing to
+    // attempt, and the resource must say so instead of sitting on "provisioning".
+    if !sku
+        .candidates
+        .iter()
+        .any(|name| settings.key_for(name).is_some())
+    {
+        let _ = compute::record_outcome(
+            pool,
+            resource_id,
+            compute::STATUS_NO_KEY,
+            serde_json::json!({ "error": "no provider credential for this organization" }),
+        );
+        return Err("No provider API key configured for organization".into());
     }
 
-    Ok(())
+    // Region is a deployment-wide default today; threading a per-request region
+    // through the assign endpoint is a follow-up, not a silent assumption.
+    let region = std::env::var("GB_COMPUTE_REGION").unwrap_or_else(|_| "US".into());
+
+    let mut outcome = compute::provision_with_fallback(&sku, &region, &settings).await?;
+    outcome.cost_variance_pct = store_item_monthly_cents(store_item_id)
+        .map(|cents| cents as f64 / 100.0)
+        .and_then(|monthly| {
+            compute::reconcile_cost(outcome.result.hourly_cost, monthly)
+        });
+    if let Some(variance) = outcome.cost_variance_pct {
+        tracing::warn!(
+            "Provider {} billed {variance:.1}% above the catalogue price for {store_item_id}",
+            outcome.provider_name
+        );
+    }
+
+    compute::record_outcome(
+        pool,
+        resource_id,
+        "active",
+        compute::success_config(&outcome),
+    )
 }
 
 /// `DELETE /api/cloud/organizations/{org_id}/workspaces/{ws_id}/resources/{res_id}`
@@ -3449,3 +3590,34 @@ async fn handle_google_oauth_callback(
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("OAuth redirect: {e}")))
 }
 
+
+#[cfg(test)]
+mod signup_password_tests {
+    use super::password_policy_violation;
+
+    #[test]
+    fn accepts_a_policy_compliant_password() {
+        assert_eq!(password_policy_violation("Campos10!"), None);
+        assert_eq!(password_policy_violation("Abcdef1#xyz"), None);
+    }
+
+    #[test]
+    fn rejects_the_signup_that_created_an_unloginnable_account() {
+        // marcelbeiner@gmail.com signed up with `campos10`: Zitadel refused the
+        // password set (no symbol), the failure was swallowed, and the account
+        // could never log in. The pre-check must catch every variant.
+        assert!(password_policy_violation("campos10").is_some());
+        assert!(password_policy_violation("CAMPOS10!").is_some()); // no lower
+        assert!(password_policy_violation("Campos!").is_some()); // no digit
+        assert!(password_policy_violation("Campos10").is_some()); // no symbol
+        assert!(password_policy_violation("Ca1!").is_some()); // too short
+    }
+
+    #[test]
+    fn rejection_messages_name_the_missing_class() {
+        let msg = password_policy_violation("campos10").unwrap_or_default();
+        assert!(msg.contains("uppercase"), "got: {msg}");
+        let msg = password_policy_violation("Campos10").unwrap_or_default();
+        assert!(msg.contains("symbol"), "got: {msg}");
+    }
+}

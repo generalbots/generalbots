@@ -1,5 +1,6 @@
 pub mod schema;
 pub mod types;
+pub mod templates;
 pub mod execution;
 pub mod drive_ops;
 pub mod llm_adapter;
@@ -8,6 +9,9 @@ pub mod app_log_routes;
 pub mod app_logs;
 pub mod task_types;
 pub mod task_manifest;
+pub mod tables;
+pub mod source_persist;
+pub mod source_edit;
 pub mod safety_layer;
 pub mod intent_classifier;
 pub mod intent_compiler;
@@ -35,6 +39,7 @@ pub use intent_compiler::{CompiledIntent, IntentCompiler};
 pub use execution::{
     fallback_script, schedule_expression, script_body, script_for, script_path_for_intent,
 };
+pub use templates::{match_shipped_template, ShippedTemplate};
 pub use llm_adapter::BotlibLlmAdapter;
 pub use safety_layer::{AuditEntry, ConstraintCheckResult, SafetyLayer, SimulationResult};
 pub use designer_ai::DesignerAI;

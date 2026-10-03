@@ -14,6 +14,8 @@
 | **Secrets** | ❌ NEVER include sensitive data (IPs, tokens, passwords, keys) in AGENTS.md or any documentation. Never hardcode credentials in source — use `generate_random_string()` or env vars. Secret files go in `/tmp/` only |
 | **Bot restarts** | ❌ NEVER restart botserver for `config.csv` changes — DriveMonitor auto-reloads on ETag change (~10s) |
 | **Branching** | ❌ NEVER change git branches without explicit user approval |
+| **Todos** | 📋 Update the todo list REGULARLY — after every completed step, when starting a new phase, and whenever priorities change. Long stretches without todo updates are forbidden |
+| **CDP control** | 🖥️ Browser automation MUST be fragmented: one short script = ONE action, print state, STOP. NEVER generate long all-in-one CDP scripts that batch many steps silently |
 | **Env status** | I AM IN DEV ENV, but sometimes pasting from PROD — do not treat my env as prod! Just fix, push to CI, so I can test in PROD for a while |
 | **License** | The project is **MIT** (relicensed from AGPL-3.0 in `4ef5f58fc`, 2026-09-12) and the copyright holder is **General Bots**. ❌ NEVER describe our own code as AGPL/GPL. ✅ Third-party AGPL notices (MinIO, Stalwart, Forgejo, Garage, Skytable) are correct and MUST stay |
 
@@ -37,10 +39,33 @@
 - ❌ NEVER write internal IPs to logs or output. Mask IPs when debugging (e.g. "10.x.x.x" not "10.0.0.1"). Use hostnames instead of IPs in configs and documentation.
 
 ### Bot Source Rules
-- ❌ NEVER commit `.bas` source files from production bots — only `.ast` (compiled) and `.json` files
-- ✅ `.bas` for production bots belongs in `work/` (local dev only)
-- ✅ `.bas` templates in `bottemplates/` are part of the repo (source templates, not production)
-- Bots are loaded exclusively from Drive (MinIO `.gbai` buckets) — see `botserver/src/main_module/drive_monitors.rs`. Never from local filesystem paths.
+- ✅ `.bas` tool scripts ARE committed in git for git-owned bots (reform #1501/#1505) — the bot's ALM repository is the source of truth, not Drive; `.ast` caches and `work/` copies are build artifacts, never sources
+- ✅ `bottemplates/` ships source templates in the monorepo (reference material, not a bot's runtime source)
+- ✅ **Git-owned bots (reform #1501/#1505): the ALM repository is the source of truth** — `.gbdialog/` (tools) and `.gbot/` (channel prompts) live in the bot's repo, pulled every 15 s by `git_bot_monitor` and materialized into `work/{branch}.gborg/{branch}.gbai/{bot}.gbdialog|{bot}.gbot/`. Drive copies of those two prefixes are archived to `{bucket}/archive/{bot}-{stamp}/`, never read. `.gbkb`/`.gbdrive` stay in Drive.
+- 🚨 **A bot without `PROMPT-{CHANNEL}.md` in its work-dir `.gbot/` silently answers with the generic fallback prompt** (`load_system_prompt_for_channel` in `botserver/src/core/bot/ws/message.rs:16`) — no error is logged, tools simply stop being called (e.g. `classify_media` never fires). Shipped templates must therefore commit their `.gbot` prompts with the tool (`templates.rs` → `config_files`, `persist_config_to_git`, `bot_config::write_config_files`); `git_config` recovers orphaned Drive/archived `.gbot` on boot, and the archive pass refuses to delete a Drive `.gbot` that is not in the repo yet.
+- The **runtime** materializes and loads bots through Drive (MinIO `.gbai` buckets) — see `botserver/src/main_module/drive_monitors.rs`. For git-owned bots that Drive tree is a materialized copy of the bot's ALM repo (`git_bot_monitor`, every 15 s); a change made straight in Drive is out-of-band and gets archived. Never point code at local filesystem paths.
+
+### Test Identifiers (prod beiner media-filing E2E)
+Reusable ids so the next session does not rediscover them — no secrets, no IPs:
+
+| What | Value |
+|------|-------|
+| Bot name / display name | `beiner` / "AABB-bot" (Telegram chat handle `aabb_test_bot`) |
+| Bot UUID | `f25671b3-61cd-4970-9626-bd99d9fb398a` |
+| Web Telegram chat | `https://web.telegram.org/k/#@aabb_test_bot` (tab kept open in the Chrome CDP profile, never closed) |
+| Telegram chat id | `6676512312` (user "Rodrigo") |
+| Telegram session id | `5f1d25c6-43a0-41c3-bb4a-c61c8c6be42` |
+| Bot repo | ALM org `a2125c56`, repo `beiner` — checkout at `/opt/gbo/data/vibe-workspaces/beiner` in the `bot` container |
+| Drive buckets | `beiner.gbai` (layout 1, `beiner.gbdrive/…`) and `beiner.gborg` (org layout, `beiner.gbai/…`) |
+| E2E result shape | media lands at `beiner.gbdrive/media/{YYYY}/{MM}/{category}/{uuid}.{ext}` + sibling `.meta.txt` (`category=`, `kind=`, `path=`, `caption=`, `perception=`) |
+| Prod services | botserver runs via `systemctl` in the `bot` container (logs: `journalctl -u botserver`, health on the container's own port) |
+
+**Send a photo through Telegram Web (fastest reliable path):** Telegram K keeps one hidden `input[type=file]`; setting it directly skips the attach menu. The staged photo opens a `.popup-send-photo` whose own `btn-primary` button must be clicked (`.btn-send` in the composer is covered by the popup):
+```python
+await page.locator("input[type=file]").first.set_input_files(IMG)   # then wait for .popup-send-photo
+await page.locator(".popup-send-photo .btn-primary").first.click()   # send
+```
+
 
 ---
 
@@ -165,7 +190,7 @@ END TABLE
 ```
 
 ### {tool}.bas — Tool Scripts
-- **Location:** `/opt/gbo/data/{bot}.gbai/{bot}.gbdialog/{tool}.bas` → compiled to `{tool}.ast`
+- **Source:** the bot's repo `.gbdialog/{tool}.bas` (git-owned bots — ALM repo) → materialized into the work dir `{bot}.gbai/{bot}.gbdialog/` → compiled to `{tool}.ast`. Legacy/local-dev bots keep the same work-dir layout without a repo behind it.
 - **Execution:** via `CALL "tool"` or TOOL_EXEC (type 6)
 
 ```basic
@@ -198,7 +223,7 @@ result = DETECT "folha_salarios"   ' Analyze table for anomalies (requires table
 
 ## Drive & Vault Operations — MANDATORY
 
-**❌ NEVER manipulate bot files on the local filesystem directly.** ALL bot files (`.bas`, `.gbkb`, `.gbdrive`, config, etc.) live exclusively in MinIO Drive buckets (`{bot}.gbai`). Use `mc` for any bot file operation.
+**Sources of truth:** for git-owned bots (reform #1501/#1505) `.gbdialog/` scripts and `.gbot/` prompts live in the **bot's ALM repository** — edit them there, commit, push; `git_bot_monitor` materializes the repo into Drive within 15 s. Never "fix" those files by writing straight into Drive: the Drive copy is a materialized artifact and the next sync (or archive pass) clobbers or archives it. Drive (MinIO `{bot}.gbai` buckets) remains the home of runtime state — `.gbkb` knowledge, `.gbdrive` user files and media — manipulated with `mc`, never by touching the local filesystem.
 
 ### Drive Bucket Hierarchy — Two Layouts
 
@@ -238,17 +263,18 @@ DRIVE_PORT=$($VAULT_BIN kv get -field=port secret/gbo/drive)
 ```
 
 ### Workflow for ANY bot file operation
-1. Get credentials from Vault (above) → 2. Configure mc → 3. Pull file from Drive to `/tmp/` → 4. Edit locally in `/tmp/` → 5. Push back to Drive → 6. drive_monitor auto-detects change and reloads.
+1. Get credentials from Vault (above) → 2. Configure mc → 3. Pull the file to `/tmp/` for INSPECTION.
+   - `.gbkb` / `.gbdrive` content (Drive-owned): edit locally in `/tmp/`, push back with `mc` → drive_monitor reloads.
+   - `.gbdialog/` scripts and `.gbot/` prompts of a git-owned bot: make the change in the bot's ALM repo and push — NEVER write script edits back to Drive.
 
 ### Common mc operations
 ```bash
 /tmp/mc ls local/                                          # List all bots (each bucket = {bot}.gbai)
-/tmp/mc ls local/{bot}.gbai/{bot}.gbdialog/                # Inspect dialog files
-/tmp/mc cp local/{bot}.gbai/{bot}.gbdialog/start.bas /tmp/ # Read a bot's start.bas
-/tmp/mc cp /tmp/start.bas local/{bot}.gbai/{bot}.gbdialog/start.bas   # Update after editing
+/tmp/mc ls local/{bot}.gbai/{bot}.gbdialog/                # Inspect dialog files (read-only for git-owned bots)
+/tmp/mc cp local/{bot}.gbai/{bot}.gbdialog/start.bas /tmp/ # Read a bot's start.bas (inspection only)
 /tmp/mc ls local/{bot}.gbai/{bot}.gbkb/docs/               # List KB documents
-/tmp/mc cp /tmp/document.pdf local/{bot}.gbai/{bot}.gbkb/docs/        # Upload KB doc
-/tmp/mc rm local/{bot}.gbai/{bot}.gbdialog/old_tool.bas    # Remove file
+/tmp/mc cp /tmp/document.pdf local/{bot}.gbai/{bot}.gbkb/docs/        # Upload KB doc (Drive-owned content)
+/tmp/mc ls local/{bot}.gbai/{bot}.gbdrive/                 # Inspect user files/media (Drive-owned)
 /tmp/mc mb local/{bot}.gbai && /tmp/mc cp --recursive botserver-stack/data/system/work/{bot}.gbai/ local/{bot}.gbai/  # Upload bot
 ```
 
@@ -304,6 +330,33 @@ Check first: `ps aux | grep "chrome.*remote-debugging-port=9222" | grep -v grep`
 4. 🚨 **NEVER close the browser** — tabs are trace evidence. Close only when explicitly requested.
 5. Screenshots at `/tmp/{bot}_case{N}_{desc}.png`.
 
+### Fragmented CDP Control (MANDATORY)
+❌ NEVER generate long, all-in-one automation scripts that batch navigation + login + clicks + assertions in a single run. They hide progress, fail opaquely mid-way, and orphan state (e.g. a crashed step closed a tab and every later step died silently).
+
+✅ **One script = ONE step.** Each step:
+1. Does exactly one action (open tab, OR refresh token, OR click a button, OR read UI state, OR screenshot)
+2. `print()`s what it found (URL, visible text, API status)
+3. **STOPS** — results are reported before the next step is written
+
+```python
+# ❌ WRONG — 200-line script: goto → login → SSO → click folder → assert → screenshot
+# ✅ RIGHT — /tmp/step1_open.py opens the tab and prints the landing state; DONE.
+#           Then inspect output, decide next single step, write /tmp/step2_*.py
+```
+
+Conventions:
+- Scripts live in `/tmp/` named `{topic}_step{N}_{action}.py` (e.g. `beiner_drive_step4_sso.py`)
+- Re-locate tabs/pages at the START of each script (never cache page handles across steps — a previous step may have closed or crashed the tab)
+- If a step fails, diagnose from its printed state before writing the next step; never retry a batch blindly
+- Between steps, keep the todo list current (see Non-Negotiable Rules → Todos)
+
+**Hard limits (learned 2026-09-30 — long scripts froze the browser and wasted the session):**
+- ❌ NEVER put a polling loop (`while`/`for` + `asyncio.sleep`) inside a script — a long script looks like a hung browser; instead read state with repeated one-shot scripts
+- ❌ NEVER `asyncio.sleep()` longer than ~5 s in an action script — if the server is slow (prod `/api/files/*` calls take 16–32 s), run another small read step later
+- ❌ NEVER batch two actions in one file (reload + read = two steps, two scripts)
+- ✅ Keep every script under ~30 lines: locate the page by URL → one action OR one read → `print()` compact state (JSON) → exit
+- ✅ Timebox the run (~60 s tool timeout); if it exceeds, kill it, split the step, keep the browser open
+
 ### Suite Apps — ALWAYS Open Inside Desktop (NEVER Direct URL)
 **❌ NEVER open a suite app page directly** (`/suite/drive/drive.html`, `/suite/chat/chat.html`, etc.) — they are HTMX fragments requiring the desktop shell (`desktop.html`) to bootstrap JS modules, security context, window manager. Direct URL = broken empty shell.
 
@@ -311,6 +364,8 @@ Check first: `ps aux | grep "chrome.*remote-debugging-port=9222" | grep -v grep`
 - `/drive` → desktop shell detects app "drive" → HTMX loads `/suite/drive/drive.html` into content area
 - `/chat/<bot>` → desktop shell → `/suite/chat/chat.html`
 - `/tasks` → `/suite/tasks/tasks.html` · `/social` → `/suite/social/social.html`
+
+**Bot context comes from the HOST, not a query param:** test a bot on its own platform subdomain — `https://{bot}.{platform}/drive` (e.g. `https://beiner.generalbots.org/drive`). On another bot's host (`https://pragmatismo.generalbots.org/drive?bot=beiner`) the shell derives `window.__INITIAL_BOT_NAME__` from the Host header (`pragmatismo`) and the `?bot=` param is ignored — Drive then probes the wrong buckets and never renders.
 
 **Why:** Drive app has 5 top-level tabs (Bots, My Files, Shared, Public, Root). Direct URL skips the `01_state.js` → `99_init.js` chain — no tab bar, no API calls, broken shell.
 
@@ -1424,6 +1479,93 @@ sudo incus copy <container>/test-base <container>-test && sudo incus start <cont
 - **Symptom:** Clients get certificate-expired warnings on 993/465/587/995 for `mail.{domain}` (443/webmail via Caddy stay fine). Fixed on SRV1 2026-09-28: Stalwart 0.12.4 serves the cert **embedded inline** in `email:/opt/gbo/conf/config.toml` (`certificate.default.*`) and had no ACME section, so it never renewed; `%{file:...}%` references did NOT work on 0.12.4 (server served no cert). Caddy (proxy container) auto-renews the same hostname via TLS-ALPN on 443; its live storage is the **default** `/root/.local/share/caddy/certificates/` inside the proxy container (NOT `/opt/gbo/data/caddy`).
 - **Fix (permanent):** `/usr/local/sbin/sync-stalwart-cert.sh` on the prod host runs daily (`/etc/cron.d/sync-stalwart-cert`, 04:17 UTC) — copies Caddy's renewed cert+key into the inline `certificate.default.*` blocks (key normalized SEC1→PKCS8), validates PEMs, backs up config with datetime suffix, deploys and restarts `email` **only when the cert changed** (log: `/var/log/sync-stalwart-cert.log`, rollback on failed restart). Manual run: `ssh <SRV1> '/usr/local/sbin/sync-stalwart-cert.sh'`.
 - **Gotcha:** Stalwart has built-in fail2ban-style **in-memory throttling** — repeated `openssl s_client` probes (esp. hairpin NAT from the same public IP) get the source IP banned with `errno=104` / `no peer certificate available`. Bans decay on their own; verify TLS from another vantage point (e.g. the secondary host) before assuming the cert is broken. Backups: `email:/opt/gbo/conf/config.toml.bak-*` and `/tmp/stalwart-config-*.toml` on the host.
+
+---
+
+## BASIC Compile/Run Failure Playbook (media-filing saga, 2026-09)
+
+The `classify_media` E2E surfaced five stacked bugs. Symptoms look identical
+(`Expecting ';'`, tool aborts) but live in different layers — always pull the
+runtime dumps before touching code:
+
+### Runtime debug dumps are the FIRST step, not the last
+`ScriptService::run` (botserver/src/basic/mod.rs:91) writes inside the bot
+container: `/tmp/run_preprocessed.txt` (the transformed source — maps a Rhai
+error line straight back to the offending statement), `/tmp/compile_error.txt`,
+`/tmp/run_ast_input.txt`, `/tmp/run_result.txt`. Pull them via
+`incus file pull bot:/tmp/run_preprocessed.txt` and read the exact line from the
+error position before guessing.
+
+### 1. Stale AST caches survive binary fixes
+- **Symptom:** fixed a compiler transform, but the same Rhai error persists after deploy
+- **Cause:** the work-dir `.ast` was compiled by the OLD binary; mangled statements
+  are baked into the cached AST. Runtime self-heal (`ScriptService::run` re-applies
+  only `convert_multiword_keywords`) cannot reverse an already-mangled statement.
+- **Fix:** recompile with the new binary — commit the `.bas` in the bot's ALM repo (git sync →
+  new ETag → drive_compiler recompiles) or hot-patch the work-dir `.ast` back to the keyword
+  form so self-heal rewrites it. Never assume a deploy alone recompiles tools.
+
+### 2. CREATE FILE rewrite read wrong regex groups
+- **Symptom:** `let destination + ".meta.txt"create_file(...)` in run_preprocessed.txt
+- **Cause:** `convert_multiword_keywords` read `get(2)/get(3)/get(4)` but the pattern
+  has three groups (#1460)
+- **Fix:** groups 1/2/3 = prefix/path/data; path may be a full expression.
+
+### 3. Assignment heuristic let-prefixes calls containing '=' inside strings
+- **Symptom:** `let create_file(p, "category=" + c)` — invalid Rhai
+- **Cause:** `convert_if_then_syntax`'s `is_var_assignment` checked the RAW line;
+  the `=` inside a string literal made a function call look like an assignment
+- **Fix:** blank string literals first (`strip_string_literals`) before operator
+  checks. Rule: any line-level heuristic must run on string-stripped code.
+
+### 4. ON ERROR RESUME NEXT yielded UNIT, poisoning string pipelines
+- **Symptom:** `Function not found: TRIM (())` after a trapped keyword failure (#1461)
+- **Cause:** all 11 RESUME-NEXT error/timeout branches returned `Dynamic::UNIT` (Rhai
+  `()`), so `x = DESCRIBE VIDEO path` assigned `()`; `LEN(TRIM(x))` then died. The
+  script's `IF ERROR` handling was correct — the runtime value was not.
+- **Fix:** RESUME-NEXT branches return an **empty string**, never UNIT. Contract:
+  a trapped keyword yields `""` and sets the error flag.
+
+### 5. Compiler regenerates an empty MCP manifest over the shipped one
+- **Symptom:** `Variable not found: caption` when the LLM omits an optional arg (#1462)
+- **Cause:** `compile_file()` always rewrites `{tool}.mcp.json` from the `.bas` (empty
+  schema when the script has no PARAM headers), clobbering the rich manifest persisted
+  by AutoTask shipped templates. `tool_exec` defaults omitted args from
+  `input_schema.properties` — empty manifest → missing args become undeclared
+  variables → abort. Note: RESUME NEXT does NOT trap undeclared-variable reads.
+- **Fix:** drive_compiler syncs the Drive-side `{tool}.mcp.json` (source of truth)
+  over the generated one after compiling; shipped templates persist the manifest
+  BOTH at `tools/{tool}.mcp.json` and root `{tool}.mcp.json`.
+
+### TODAY/NOW are functions, not variables (Rhai reality)
+- **Symptom:** `Variable not found: TODAY`
+- **Cause:** runtime registers `TODAY`/`NOW` as `register_fn` (call form); BASIC
+  scripts write `TODAY` bare — Rhai reads a bare identifier as a variable.
+- **Fix:** rewrite bare `TODAY`/`NOW` tokens to `TODAY()`/`NOW()` in the compile
+  pipeline AND in the runtime self-heal so old ASTs heal on load.
+- **⚠️ Rewrites must be IDEMPOTENT:** the self-heal runs on every load, including
+  ASTs that already contain `TODAY()`. A lookahead-free pattern with an optional
+  `\(\)` group and trailing `\b` backtracks (`TODAY()` → bare match) and produces
+  the invalid `TODAY()()`. Normalize manually: after each match, consume an
+  existing `()` pair when present, else append one. Test both forms.
+
+### Channel adapters pass bot UUID where the pipeline expects a name
+- **Symptom:** tool never runs on Telegram/WhatsApp; log:
+  `get_session_tools error … Failed to get bot_id for bot 'f25671b3-…': Record not found`
+- **Cause:** the Telegram webhook fills `UserMessage.bot_id` with the bot UUID, but
+  `run_pipeline_for_channel` propagated it as the bot NAME; `get_session_tools`
+  queried `bots.name = '<uuid>'` → zero tools for the session. Web chat passed the
+  real name, hiding the bug.
+- **Fix:** `channel_entry.rs` normalizes `bot_id` to the name (reverse UUID lookup)
+  before resolving the UUID — one fix at the single channel entry point. When a
+  channel feature works on web but not on a channel adapter, diff what each puts
+  in `msg.bot_id` FIRST.
+
+### E2E loop discipline for bot tools
+Every fix → build → deploy → **force recompile** (commit the `.bas` in the bot's repo; git sync
+recompiles) → re-test via
+Chrome CDP browser upload (never WebSocket scripts) → verify Drive objects via
+boto3 (`{bot}.gbdrive/media/...`). One error at a time; the dumps tell the layer.
 
 ---
 

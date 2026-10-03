@@ -326,7 +326,9 @@ fn apply_middleware(
             let token = manager.generate_signed_token();
             let cookie = manager.build_cookie(&token);
             if let Ok(cv) = cookie.parse::<axum::http::HeaderValue>() {
-                response.headers_mut().insert(axum::http::header::SET_COOKIE, cv);
+                response
+                    .headers_mut()
+                    .append(axum::http::header::SET_COOKIE, cv);
             }
         }
         response

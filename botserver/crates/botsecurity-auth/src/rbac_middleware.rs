@@ -1107,6 +1107,17 @@ pub fn build_default_route_permissions() -> Vec<RoutePermission> {
         // Cloud dashboard: list the caller's workspace bots (scoped by the
         // JWT claims inside the handler; any authenticated tenant user).
         RoutePermission::new("/api/cloud/bots", "GET", ""),
+        RoutePermission::new("/api/cloud/organizations", "GET", ""),
+        RoutePermission::new("/api/cloud/services", "GET", ""),
+        RoutePermission::new("/api/cloud/invoices", "GET", ""),
+        RoutePermission::new("/api/cloud/plans", "GET", ""),
+        RoutePermission::new("/api/cloud/payment-cards", "GET", ""),
+        RoutePermission::new("/api/cloud/payment-cards", "POST", ""),
+        RoutePermission::new("/api/cloud/payment-cards/setup", "POST", ""),
+        RoutePermission::new("/api/cloud/payment-cards/**", "DELETE", ""),
+        RoutePermission::new("/api/cloud/tenant/settings/**", "GET", ""),
+        RoutePermission::new("/api/cloud/tenant/settings/**", "POST", ""),
+        RoutePermission::new("/api/cloud/tenant/settings/**", "PUT", ""),
 
         // Client error reporting - anonymous to catch all JS errors
         RoutePermission::new("/api/client-errors", "POST", "").with_anonymous(true),
@@ -1973,6 +1984,40 @@ mod tests {
             .await
             .is_allowed();
         assert!(allowed_skill, "POST /api/people/:id/skills should be allowed");
+    }
+
+    #[tokio::test]
+    async fn test_tenant_cloud_reads_allowed_and_admin_surfaces_stay_denied() {
+        let routes = build_default_route_permissions();
+        let manager = RbacManager::with_defaults();
+        manager.register_routes(routes).await;
+        let user = AuthenticatedUser::new(Uuid::new_v4(), "owner@example.com".to_string())
+            .with_role(Role::User);
+
+        for path in [
+            "/api/cloud/bots",
+            "/api/cloud/organizations",
+            "/api/cloud/services",
+            "/api/cloud/invoices",
+            "/api/cloud/plans",
+            "/api/cloud/payment-cards",
+            "/api/cloud/tenant/settings/byok",
+        ] {
+            let decision = manager.check_route_access(path, "GET", &user).await;
+            assert!(
+                decision.is_allowed(),
+                "GET {path} should be allowed for an authenticated tenant user: {}",
+                decision.reason
+            );
+        }
+
+        for path in ["/api/cloud/vouchers", "/api/cloud/domains"] {
+            let decision = manager.check_route_access(path, "GET", &user).await;
+            assert!(
+                !decision.is_allowed(),
+                "GET {path} is a super-admin surface and must stay denied"
+            );
+        }
     }
 
     #[tokio::test]
