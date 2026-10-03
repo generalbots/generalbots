@@ -311,14 +311,6 @@ pub static APP_DEEP_LINKS: &[(&str, &[DeepLinkParam])] = &[
         }],
     ),
     (
-        "sales",
-        &[DeepLinkParam {
-            key: "deal_id",
-            description: "sales deal id",
-            example: "deal-9",
-        }],
-    ),
-    (
         "pos",
         &[DeepLinkParam {
             key: "order_id",
@@ -553,6 +545,9 @@ pub static ALL_COMMANDS: &[AppCommand] = &[
     cmd("crm", "crm.pipeline.forecast", "Sales forecast", "Report the weighted pipeline forecast and funnel conversion rates for the coming months.", &[("periods", "optional number of months ahead (default 3)")], Some("app://crm"), false),
     cmd("crm", "crm.leads.create", "Create lead", "Capture a new lead with contact data and value (creates/links contact and account).", &[("title", "short lead title"), ("first_name", "prospect first name"), ("last_name", "prospect last name"), ("email", "prospect email"), ("company", "prospect company"), ("value", "estimated value"), ("currency", "currency code, default USD")], None, false),
     cmd("crm", "crm.leads.report", "Pipeline report", "Summarize leads by stage with counts and total value.", &[], Some("app://crm"), false),
+    cmd("crm", "crm.deal.create", "Create deal", "Create a deal in the pipeline, creating/linking the contact (by email) and account (by company) when given.", &[("title", "deal title"), ("value", "deal value"), ("currency", "currency code, default USD"), ("stage", "initial stage, default new"), ("email", "contact e-mail, links or creates the contact"), ("company", "company name, links or creates the account")], Some("app://crm"), false),
+    cmd("crm", "crm.deal.move-stage", "Move deal stage", "Move a deal to another pipeline stage (same rule as the kanban drag-and-drop).", &[("deal_id", "deal uuid"), ("stage", "target stage name")], Some("app://crm"), false),
+    cmd("crm", "crm.contact.create", "Create contact", "Capture a contact, deduplicated by e-mail inside the workspace.", &[("email", "contact e-mail"), ("first_name", "first name"), ("last_name", "last name"), ("phone", "phone"), ("company", "company name")], Some("app://crm?person_id={contact_id}"), false),
     cmd("people", "people.list", "List people", "List contacts and leads.", &[], Some("app://people?person_id={person_id}"), false),
     cmd("people", "people.search", "Search people", "Search contacts/leads by name, with deep link to the record.", &[("query", "name or email")], Some("app://people?person_id={person_id}"), false),
     cmd("billing", "billing.invoice.list", "List invoices", "List invoices, quotes and payment status.", &[], Some("app://billing?invoice_id={invoice_id}"), false),
@@ -562,7 +557,6 @@ pub static ALL_COMMANDS: &[AppCommand] = &[
     cmd("tickets", "tickets.create", "Create ticket", "Create a support ticket.", &[("subject", "subject"), ("priority", "priority")], None, true),
     cmd("banking", "banking.transactions.list", "List transactions", "List bank transactions for a period.", &[("period", "optional YYYY-MM")], Some("app://banking?transaction_id={transaction_id}"), false),
     cmd("banking", "banking.reconcile", "Reconcile account", "Run bank reconciliation.", &[], None, true),
-    cmd("sales", "sales.deals.list", "List deals", "List sales pipeline deals and forecast.", &[], Some("app://sales?deal_id={deal_id}"), false),
     cmd("pos", "pos.sales.list", "List sales", "List point-of-sale orders and sales.", &[], Some("app://pos?order_id={order_id}"), false),
     cmd("retail", "retail.stock.list", "List stock", "List retail inventory and stock levels.", &[], Some("app://retail?product_id={product_id}"), false),
     cmd("hr", "hr.employees.list", "List employees", "List employees, onboarding and requests.", &[], Some("app://hr?employee_id={employee_id}"), false),
@@ -663,7 +657,6 @@ pub static UI_SEQUENCE_HINTS: &[(&str, &str)] = &[
     ("products", "open → items grid auto-loads → filter by category/status → click a row to edit"),
     ("tickets", "open → ticket list auto-loads → select a ticket → use status/assign actions"),
     ("banking", "open → transactions auto-load → use search → click a transaction to view details"),
-    ("sales", "open → pipeline renders → click a deal or use New Deal"),
     ("tasks", "open → task list auto-loads → use filter chips (all/active/completed) → click to edit"),
     ("project", "open → project list auto-loads → select a project → timeline/gantt renders"),
     ("mail", "open → unified inbox auto-loads → click a message → reply/compose actions"),

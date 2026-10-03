@@ -1810,3 +1810,5 @@ dashboards-y-axis = Y axis field
 # ── Settings navigation (issue #1304) ──────────────────────────────
 nav-about = About
 nav-organizations = Organizations
+
+settings-theme-desc = Choose your preferred color theme

@@ -69,6 +69,91 @@ pub struct Risk {
     pub impact: String,
 }
 
+/// Catalog-free instruction used when the host exposes no keyword list.
+const DEGRADED_BASIC_REFERENCE: &str =
+    "BASIC reference unavailable: stick to TALK, GET FROM, SET, SAVE and IF/THEN/ELSE/END IF.";
+
+/// The compile prompt: the plan *and* the program that implements it.
+///
+/// Split out from [`IntentCompiler`] so the contract is testable without
+/// mocking the state, config and LLM facades.
+pub fn compile_prompt(intent: &str, reference: &str) -> String {
+    format!(
+            r#"You are an intent compiler. Analyze this request and create an execution plan.
+
+USER REQUEST: "{intent}"
+
+Write the AUTOMATION ITSELF as a GENERAL BOTS BASIC program in `basic_program`.
+It is compiled and executed by the runtime, so it must be valid BASIC — a plan
+in prose is worthless. Rules:
+
+- Use ONLY the keywords listed in the reference below, in UPPERCASE, with
+  double-quoted string arguments. Never invent a keyword.
+- One statement per line. No braces, no semicolons, no `fn`, no JSON inside.
+- `IF cond THEN` … `ELSE` … `END IF`; `FOR EACH x IN list` … `NEXT`;
+  `SWITCH v CASE "a" … DEFAULT … END SWITCH`.
+- Robustness: wrap anything that can fail (models, HTTP, file I/O) in
+  `ON ERROR RESUME NEXT` and check `IF ERROR THEN`; a trapped step yields ""
+  and the script continues.
+- Never hardcode credentials, tokens or internal hosts. Never write outside
+  the bot's own Drive folder.
+- To run on a platform event instead of waiting for a user request, put
+  `ON EVENT "<event>"` as the first line. The tool itself is what runs, so the
+  line names only the event. Events: `media_uploaded` (a photo, document,
+  video or voice note arrived on Telegram, WhatsApp or web — with `path`,
+  `kind`, `caption` and `channel` in scope) and `message_received` (a text
+  message, with `text` in scope). Omit the line when the automation is
+  user-triggered.
+- Keep it under 40 lines and make it self-contained: the whole program goes
+  into `basic_program` as one string with real newlines (\n).
+- The plan is bookkeeping, not the deliverable: at most 3 steps, each with a
+  3-5 word name and a one-line description. Spend the budget on the program —
+  a verbose plan gets the whole answer cut off.
+
+{reference}
+
+Output rules:
+- Answer with the JSON object and nothing else. No analysis, no commentary, no
+  markdown fences, no explanation before or after the object.
+- Do not restate the request, do not explore alternatives, do not ask questions.
+
+Respond with JSON only:
+{{
+  "plan_name": "short name",
+  "plan_description": "what will be done",
+  "steps": [
+    {{
+      "name": "step name",
+      "description": "what this step does",
+      "keywords": ["keyword1"],
+      "priority": "high|medium|low",
+      "risk_level": "high|medium|low",
+      "estimated_minutes": 5,
+      "requires_approval": false
+    }}
+  ],
+  "alternatives": [],
+  "confidence": 0.85,
+  "risk_level": "low",
+  "estimated_duration_minutes": 10,
+  "estimated_cost": 0.01,
+  "resource_estimate": {{
+    "compute_hours": 0.1,
+    "storage_gb": 0.01,
+    "api_calls": 5,
+    "llm_tokens": 1000,
+    "estimated_cost_usd": 0.01
+  }},
+  "basic_program": "SET answer = 1\nTALK \"done: \" + answer",
+  "requires_approval": false,
+  "mcp_servers": [],
+  "external_apis": [],
+  "risks": []
+}}"#,
+        reference = reference
+    )
+}
+
 pub struct IntentCompiler {
     state: Arc<dyn AutoTaskState>,
     config_ops: Arc<dyn ConfigOps>,
@@ -98,26 +183,30 @@ impl IntentCompiler {
         &self.llm_ops
     }
 
+    /// `bot_id` selects the model scope: the bot being automated is the one
+    /// whose `llm-model` applies, not the nil (global) one.
     pub async fn compile(
         &self,
+        bot_id: Uuid,
         intent: &str,
         execution_mode: Option<ExecutionMode>,
         priority: Option<TaskPriority>,
     ) -> Result<CompiledIntent, Box<dyn std::error::Error + Send + Sync>> {
         info!("Compiling intent: {}", &intent[..intent.len().min(100)]);
         let prompt = self.build_compile_prompt(intent);
-        let response = self.call_llm(&prompt).await?;
+        let response = self.call_llm(bot_id, &prompt).await?;
         self.parse_compile_response(&response, intent, execution_mode, priority)
     }
 
     pub async fn compile_from_classification(
         &self,
+        bot_id: Uuid,
         classification: &ClassifiedIntent,
         execution_mode: Option<ExecutionMode>,
         priority: Option<TaskPriority>,
     ) -> Result<CompiledIntent, Box<dyn std::error::Error + Send + Sync>> {
         let intent_text = &classification.original_text;
-        let mut compiled = self.compile(intent_text, execution_mode, priority).await?;
+        let mut compiled = self.compile(bot_id, intent_text, execution_mode, priority).await?;
         compiled.intent_type = classification.intent_type;
         if let Some(ref name) = classification.suggested_name {
             compiled.plan_name = name.clone();
@@ -134,78 +223,100 @@ impl IntentCompiler {
     }
 
     fn build_compile_prompt(&self, intent: &str) -> String {
-        format!(
-            r#"You are an intent compiler. Analyze this request and create an execution plan.
-
-USER REQUEST: "{intent}"
-
-Create a detailed plan with steps, resource estimates, and risk assessment.
-Respond with JSON only:
-{{
-  "plan_name": "short name",
-  "plan_description": "what will be done",
-  "steps": [
-    {{
-      "name": "step name",
-      "description": "what this step does",
-      "keywords": ["keyword1"],
-      "priority": "high|medium|low",
-      "risk_level": "high|medium|low",
-      "estimated_minutes": 5,
-      "requires_approval": false
-    }}
-  ],
-  "alternatives": [],
-  "confidence": 0.85,
-  "risk_level": "low",
-  "estimated_duration_minutes": 10,
-  "estimated_cost": 0.01,
-  "resource_estimate": {{
-    "compute_hours": 0.1,
-    "storage_gb": 0.01,
-    "api_calls": 5,
-    "llm_tokens": 1000,
-    "estimated_cost_usd": 0.01
-  }},
-  "basic_program": null,
-  "requires_approval": false,
-  "mcp_servers": [],
-  "external_apis": [],
-  "risks": []
-}}"#
-        )
+        compile_prompt(intent, &self.basic_reference_text())
     }
 
-    #[cfg(feature = "llm")]
-    async fn call_llm(&self, prompt: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let (tx, mut rx) = tokio::sync::mpsc::channel(100);
-        let model = self.resolved_model();
-        let key = self.resolved_key();
-        let config = serde_json::json!({"temperature": 0.3, "max_tokens": 2000});
-        self.llm_ops.generate_stream(prompt, &config, tx, &model, &key, None).await?;
-        let mut response = String::new();
-        while let Some(chunk) = rx.recv().await {
-            response.push_str(&chunk);
+    /// BASIC reference for the prompt. The host owns the keyword catalog
+    /// (`basic::keywords::get_all_keywords`); when it is unavailable the
+    /// compiler still asks for a program, and the deterministic fallback
+    /// catches a missing one.
+    fn basic_reference_text(&self) -> String {
+        match self.state.basic_reference() {
+            Some(reference) if !reference.trim().is_empty() => reference,
+            _ => DEGRADED_BASIC_REFERENCE.to_string(),
         }
-        Ok(response)
     }
 
     #[cfg(feature = "llm")]
-    fn resolved_model(&self) -> String {
-        self.config_ops
-            .get_config(&Uuid::nil(), "llm-model", None)
-            .unwrap_or_else(|_| "gpt-4".to_string())
+    async fn call_llm(
+        &self,
+        bot_id: Uuid,
+        prompt: &str,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        let model = self.compile_model(bot_id);
+        let key = self.resolved_key(bot_id);
+        // Generous budget: a reasoning model spends tokens before the object.
+        if model.is_empty() {
+            return Err(format!(
+                "no llm-model configured for bot {bot_id} (checked the bot scope, then the global one)"
+            )
+            .into());
+        }
+        info!(
+            "[autotask] compiling with model={model} key_len={} bot={bot_id}",
+            key.len()
+        );
+        let config = serde_json::json!({"temperature": 0.3, "max_tokens": 4000});
+        // Bounded — a stalled model must fail the compile step, not hang it.
+        crate::types::collect_llm_stream(self.llm_ops.as_ref(), prompt, &config, &model, &key, None)
+            .await
+    }
+
+    /// Resolves a setting for the bot being automated, then the global one.
+    ///
+    /// Only the nil bot used to be consulted, and its Vault folder carries no
+    /// `llm-model`, so the lookup fell through to a hardcoded `"gpt-4"`: every
+    /// AutoTask compile then died with `404 model_not_found` on a gateway that
+    /// serves something else. An empty result is now an explicit error instead
+    /// of a vendor guess.
+    #[cfg(feature = "llm")]
+    fn setting_for_bot(&self, bot_id: &Uuid, key: &str) -> String {
+        for id in [*bot_id, Uuid::nil()] {
+            if let Ok(value) = self.config_ops.get_config(&id, key, None) {
+                let trimmed = value.trim().to_string();
+                if !trimmed.is_empty() {
+                    return trimmed;
+                }
+            }
+        }
+        String::new()
+    }
+
+    /// The model used to write BASIC, with an `autotask-llm-model` override.
+    ///
+    /// Code generation is a long streaming call: on a reasoning model the
+    /// gateway dropped the connection mid-stream ("error sending request"),
+    /// which is why the feature gets its own setting and can be pointed at a
+    /// fast model without changing the chat model.
+    #[cfg(feature = "llm")]
+    fn compile_model(&self, bot_id: Uuid) -> String {
+        for id in [bot_id, Uuid::nil()] {
+            if let Ok(value) = self.config_ops.get_config(&id, "autotask-llm-model", None) {
+                let trimmed = value.trim().to_string();
+                if !trimmed.is_empty() {
+                    return trimmed;
+                }
+            }
+        }
+        self.resolved_model(bot_id)
     }
 
     #[cfg(feature = "llm")]
-    fn resolved_key(&self) -> String {
-        self.config_ops
-            .get_config(&Uuid::nil(), "llm-key", None)
-            .unwrap_or_default()
+    fn resolved_model(&self, bot_id: Uuid) -> String {
+        self.setting_for_bot(&bot_id, "llm-model")
+    }
+
+    #[cfg(feature = "llm")]
+    fn resolved_key(&self, bot_id: Uuid) -> String {
+        self.setting_for_bot(&bot_id, "llm-key")
     }
 
     #[cfg(not(feature = "llm"))]
-    async fn call_llm(&self, _prompt: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    async fn call_llm(
+        &self,
+        _bot_id: Uuid,
+        _prompt: &str,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         warn!("LLM feature not enabled for intent compilation");
         Ok("{}".to_string())
     }
@@ -220,6 +331,7 @@ Respond with JSON only:
         let cleaned = response.trim()
             .trim_start_matches("```json").trim_start_matches("```JSON")
             .trim_start_matches("```").trim_end_matches("```").trim();
+        let json_span = extract_json_object(cleaned);
 
         #[derive(Deserialize)]
         struct CompileResponse {
@@ -273,7 +385,7 @@ Respond with JSON only:
             impact: String,
         }
 
-        match serde_json::from_str::<CompileResponse>(cleaned) {
+        match serde_json::from_str::<CompileResponse>(json_span) {
             Ok(resp) => {
                 let _ = (execution_mode, priority);
                 let steps = resp.steps.into_iter().enumerate().map(|(i, s)| PlanStep {
@@ -331,28 +443,12 @@ Respond with JSON only:
                 })
             }
             Err(e) => {
-                warn!("Failed to parse compile response, creating minimal plan: {e}");
-                Ok(CompiledIntent {
-                    id: Uuid::new_v4().to_string(),
-                    intent_type: IntentType::Unknown,
-                    plan_name: original_intent.chars().take(50).collect(),
-                    plan_description: original_intent.to_string(),
-                    steps: Vec::new(),
-                    alternatives: Vec::new(),
-                    confidence: 0.5,
-                    risk_level: "medium".to_string(),
-                    estimated_duration_minutes: 10,
-                    estimated_cost: 0.0,
-                    resource_estimate: ResourceEstimate {
-                        compute_hours: 0.0, storage_gb: 0.0, api_calls: 0,
-                        llm_tokens: 0, estimated_cost_usd: 0.0,
-                    },
-                    basic_program: Some(fallback_basic_program("", original_intent)),
-                    requires_approval: false,
-                    mcp_servers: Vec::new(),
-                    external_apis: Vec::new(),
-                    risks: Vec::new(),
-                })
+                // A malformed completion must fail the create, not persist the
+                // minimal stub as if an automation existed: the stub only TALKs,
+                // so reporting it as created lies to the user (the pipeline's
+                // core honesty rule). The error text reaches the reply verbatim.
+                warn!("Failed to parse compile response: {e}");
+                Err(format!("the model returned a plan that is not valid JSON ({e}); no automation was created — try again").into())
             }
         }
     }
@@ -361,6 +457,40 @@ Respond with JSON only:
 /// Deterministic BASIC generator: guarantees `basic_program` is never
 /// null in the AutoTask pipeline (BASIC-only surface, supplier of the
 /// `.bas` persisted to Drive by create-and-execute).
+/// Models wrap the JSON object in prose or code fences even when asked not to,
+/// and some emit trailing junk (a second object, commentary) after the first
+/// one — a naive first-`{`-to-last-`}` slice then fails with "trailing
+/// characters". This scans string-aware for the first *balanced* `{ … }` block
+/// and returns it; the input comes back unchanged when there is none, so the
+/// caller's error keeps pointing at the original text.
+fn extract_json_object(response: &str) -> &str {
+    let bytes = response.as_bytes();
+    let Some(start) = response.find('{') else {
+        return response;
+    };
+    let mut depth = 0usize;
+    let mut in_string = false;
+    let mut escaped = false;
+    for (i, &b) in bytes.iter().enumerate().skip(start) {
+        match b {
+            b'"' if !escaped => in_string = !in_string,
+            b'\\' if in_string => escaped = !escaped,
+            b'{' if !in_string => depth += 1,
+            b'}' if !in_string => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 {
+                    return &response[start..=i];
+                }
+            }
+            _ => {}
+        }
+        if b != b'\\' {
+            escaped = false;
+        }
+    }
+    response
+}
+
 fn fallback_basic_program(plan_name: &str, original_intent: &str) -> String {
     let title: String = if plan_name.trim().is_empty() {
         "scheduled_task".to_string()
@@ -371,4 +501,87 @@ fn fallback_basic_program(plan_name: &str, original_intent: &str) -> String {
         "' {title}\n' Generated by AutoTask (BASIC-only pipeline)\nTALK \"Run {title}: {original}\"\n",
         original = original_intent.chars().take(120).collect::<String>(),
     )
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::{compile_prompt, extract_json_object, DEGRADED_BASIC_REFERENCE};
+
+    const CATALOG: &str = "## BASIC keywords (closed set — use only these)\n- TALK, GET, SET, SAVE";
+    const PROMPT_DUMP_MARKER: &str = "===PROMPT===\n";
+
+    #[test]
+    fn compile_prompt_demands_a_real_basic_program() {
+        let prompt = compile_prompt("liste as faturas pendentes", CATALOG);
+        // The regression this closes: the prompt carried
+        // `"basic_program": null`, so the model answered a plan and the
+        // pipeline persisted a `TALK` stub instead of an automation.
+        assert!(!prompt.contains("\"basic_program\": null"));
+        assert!(prompt.contains("\"basic_program\": \""));
+        assert!(prompt.contains("ON ERROR RESUME NEXT"));
+        assert!(prompt.contains("IF cond THEN"));
+        assert!(prompt.contains("liste as faturas pendentes"));
+    }
+
+    #[test]
+    fn compile_prompt_embeds_the_host_keyword_catalog() {
+        let prompt = compile_prompt("x", CATALOG);
+        assert!(prompt.contains("closed set"));
+        assert!(prompt.contains("TALK, GET, SET, SAVE"));
+    }
+
+    #[test]
+    fn compile_prompt_dump_is_printable() {
+        // Printing the assembled prompt is the fastest way to inspect what the
+        // generator actually asks the model for (no network involved).
+        println!("{PROMPT_DUMP_MARKER}{}", compile_prompt("dump", CATALOG));
+    }
+
+    #[test]
+    fn compile_prompt_works_without_a_catalog() {
+        let prompt = compile_prompt("x", DEGRADED_BASIC_REFERENCE);
+        assert!(prompt.contains("\"basic_program\": \""));
+        assert!(prompt.contains("BASIC reference unavailable"));
+    }
+
+    #[test]
+    fn extracts_the_object_from_prose_wrapped_completions() {
+        // Prod regression (2026-09-29): the model answered with prose around
+        // the JSON object; parsing the raw text died with "trailing
+        // characters" and every such compile degraded to the TALK stub.
+        let wrapped = "Sure! Here is the plan:\n{\"plan_name\":\"x\"}\nLet me know if that works.";
+        assert_eq!(extract_json_object(wrapped), "{\"plan_name\":\"x\"}");
+    }
+
+    #[test]
+    fn extracts_the_object_from_inside_code_fences() {
+        let fenced = "```json\n{\"plan_name\":\"x\",\"steps\":[]\n}\n```";
+        let extracted = extract_json_object(fenced);
+        assert!(extracted.starts_with('{'));
+        assert!(extracted.ends_with('}'));
+        assert!(!extracted.contains("```"));
+    }
+
+    #[test]
+    fn extracts_the_first_object_when_junk_follows() {
+        // Prod regression (2026-09-29, "trailing characters at line 50"): the
+        // model emitted the JSON object and then more content after it, so the
+        // naive first-{ … last-} slice still failed to parse. The balanced
+        // block must end at its own closing brace.
+        let with_junk = "{\"plan_name\":\"x\"}\n{\"note\":\"dup\"}\nHope that helps!";
+        assert_eq!(extract_json_object(with_junk), "{\"plan_name\":\"x\"}");
+    }
+
+    #[test]
+    fn braces_inside_strings_do_not_confuse_the_balanced_scan() {
+        let tricky = "{\"plan_name\":\"a}b{c\"}";
+        assert_eq!(extract_json_object(tricky), tricky);
+    }
+
+    #[test]
+    fn keeps_the_input_when_there_is_no_object() {
+        assert_eq!(extract_json_object("no braces here"), "no braces here");
+        assert_eq!(extract_json_object(""), "");
+    }
 }

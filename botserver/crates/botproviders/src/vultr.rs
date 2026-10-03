@@ -1,6 +1,7 @@
 use crate::{ComputeProvider, MachineSpec, ProvisionResult, ProviderError, ProviderInfo};
 use async_trait::async_trait;
 
+#[derive(Debug, Default)]
 pub struct VultrProvider;
 
 impl VultrProvider {
@@ -8,20 +9,60 @@ impl VultrProvider {
         Self
     }
 
-    fn map_plan(spec: &MachineSpec) -> &'static str {
-        match (spec.cpu_cores, spec.ram_gb, spec.gpu_type.is_some()) {
-            (2, 4, _) => "vhp-2c-4gb",
-            (2, 8, _) => "vhp-2c-8gb",
-            (4, 16, _) => "vhp-4c-16gb",
-            (6, 24, _) => "vhp-6c-24gb",
-            (8, 32, _) => "vhp-8c-32gb",
-            (16, 64, _) => "vhp-16c-64gb",
-            (c, r, true) if c >= 4 && r >= 16 => "gpu-4c-16gb",
-            (c, r, true) if c >= 8 && r >= 32 => "gpu-8c-32gb",
-            (_, _, true) => "gpu-2c-8gb",
-            _ => "vhp-2c-4gb",
+    /// Maps a spec to a Vultr plan.
+    ///
+    /// The GPU flag is tested first: the previous ordering put the exact-match
+    /// CPU arms above the GPU arms, so a 4-core/16-GB GPU request resolved to
+    /// `vhp-4c-16gb` and the GPU plans were unreachable.
+    /// Largest CPU plan, and the ceiling for a GPU request — Vultr publishes no
+    /// accelerator larger than 8 vCPU/32 GB.
+    const LARGEST_CPU: &'static str = "vhp-16c-64gb";
+    const LARGEST_GPU: &'static str = "gpu-8c-32gb";
+
+    /// Maps a spec to a Vultr plan.
+    ///
+    /// The GPU flag is tested first: the previous ordering put the exact-match
+    /// CPU arms above the GPU arms, so a 4-core/16-GB GPU request resolved to
+    /// `vhp-4c-16gb` and the GPU plans were unreachable.
+    ///
+    /// A spec above the largest plan of the relevant line is an error, not a
+    /// substitution to the next plan down.
+    fn map_plan(spec: &MachineSpec) -> Result<&'static str, ProviderError> {
+        let (cores, ram) = (spec.cpu_cores.max(1), spec.ram_gb.max(1));
+        if spec.gpu_type.is_some() {
+            // RAM is the stronger constraint on these plans, so the tiers are
+            // ordered by it: matching on cores first handed an 8-core/32-GB
+            // request the 4-core/16-GB plan.
+            return Ok(match (cores, ram) {
+                (..=2, ..=8) => "gpu-2c-8gb",
+                (..=4, ..=16) => "gpu-4c-16gb",
+                (..=8, ..=32) => Self::LARGEST_GPU,
+                _ => {
+                    return Err(ProviderError::Capacity(format!(
+                        "Vultr publishes no GPU plan above {} vCPU/32 GB; requested {cores}/{ram}",
+                        Self::LARGEST_GPU
+                    )))
+                }
+            });
         }
+        Ok(match (cores, ram) {
+            (..=2, ..=4) => "vhp-2c-4gb",
+            (..=2, ..=8) => "vhp-2c-8gb",
+            (..=4, ..=16) => "vhp-4c-16gb",
+            (..=6, ..=24) => "vhp-6c-24gb",
+            (..=8, ..=32) => "vhp-8c-32gb",
+            (..=16, ..=64) => Self::LARGEST_CPU,
+            _ => {
+                return Err(ProviderError::Capacity(format!(
+                    "Vultr publishes no plan above {}; requested {cores} cores/{ram} GB",
+                    Self::LARGEST_CPU
+                )))
+            }
+        })
     }
+
+    /// Vultr v2 rejects a create without an OS id.
+    const OS_ID: &'static str = "1743";
 }
 
 #[async_trait]
@@ -43,6 +84,7 @@ impl ComputeProvider for VultrProvider {
                 "RTX 4090".into(), "RTX 3090".into(), "A100".into(),
                 "H100".into(),
             ],
+            // Spot is not offered on the cloud plans this adapter provisions.
             supports_spot: false,
         }
     }
@@ -55,13 +97,19 @@ impl ComputeProvider for VultrProvider {
     ) -> Result<ProvisionResult, ProviderError> {
         let client = reqwest::Client::new();
 
-        let plan = Self::map_plan(spec);
+        let plan = Self::map_plan(spec)?;
         let label = format!("gb-{}-{}", self.name(), chrono::Utc::now().format("%Y%m%d%H%M%S"));
 
+        // `MachineSpec::use_spot` is deliberately ignored here: Vultr sells spot
+        // capacity on accelerated and bare-metal products, not on the cloud plans
+        // this adapter provisions, so the flag cannot be honoured and pretending
+        // otherwise would quote a price the tenant does not get.
         let body = serde_json::json!({
             "region": region,
             "plan": plan,
             "label": label,
+            // v2 rejects a create without an OS id; 1743 is Ubuntu 22.04 LTS.
+            "os_id": Self::OS_ID,
             "backups": "disabled",
             "enable_ipv6": false,
         });
@@ -90,7 +138,10 @@ impl ComputeProvider for VultrProvider {
             .map_err(|e| ProviderError::Api(format!("Vultr parse: {e}")))?;
 
         let instance = &parsed["instance"];
-        let instance_id = instance["id"].as_str().unwrap_or("").to_string();
+        let instance_id = instance["id"].as_str().filter(|id| !id.is_empty()).map(str::to_string)
+            .ok_or_else(|| {
+                ProviderError::Api("Vultr created an instance but returned no id".into())
+            })?;
 
         Ok(ProvisionResult {
             provider: "vultr".into(),
@@ -168,9 +219,12 @@ impl ComputeProvider for VultrProvider {
                     disk_gb: inst["disk"].as_u64().unwrap_or(25) as u32,
                     gpu_type: None,
                     gpu_count: 0,
+                    // Vultr reports bandwidth in GB, not TB.
                     bandwidth_tb: inst["allowed_bandwidth"]
                         .as_u64()
-                        .unwrap_or(0) as u32,
+                        .unwrap_or(0) as u32
+                        / 1_000,
+                    use_spot: false,
                 },
                 hourly_cost: inst["cost_per_month"]
                     .as_f64()
@@ -180,3 +234,7 @@ impl ComputeProvider for VultrProvider {
             .collect())
     }
 }
+
+#[cfg(test)]
+#[path = "vultr_tests.rs"]
+mod tests;

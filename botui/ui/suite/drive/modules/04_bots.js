@@ -57,6 +57,11 @@ async function loadBotConfigs() {
     }
 }
 
+// Tab loader for the Bots tab (07_events/99_init dispatch calls this).
+async function loadBotsTab() {
+    await loadBotConfigs();
+}
+
 function renderBotConfigCard(folder) {
     var name = folder.name.replace(/\.gbot$/, "");
     var iconSvg = '<svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2"><rect x="3" y="11" width="18" height="10" rx="2"></rect><circle cx="12" cy="5" r="2"></circle><path d="M12 7v4"></path></svg>';

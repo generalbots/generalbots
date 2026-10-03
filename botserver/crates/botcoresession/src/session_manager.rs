@@ -352,6 +352,7 @@ impl SessionManager {
         let key_bytes = derive_scope_key(&self.master_key, "message", &bot_id);
 
         let mut history: Vec<(String, String)> = Vec::new();
+        let mut unreadable = 0usize;
         for (other_role, content, _idx) in recent_messages {
             let role_str = match other_role {
                 1 => "user".to_string(),
@@ -361,15 +362,21 @@ impl SessionManager {
                 _ => "unknown".to_string(),
             };
 
-            let decrypted_content = match decrypt_field(&content, &key_bytes) {
-                Ok(decrypted) => decrypted,
-                Err(e) => {
-                    log::error!("Failed to decrypt conversation history message: {e}");
-                    content
-                }
-            };
-
-            history.push((role_str, decrypted_content));
+            // A message encrypted under a previous master key (Vault
+            // re-init/re-key) can never be read back. Injecting the ciphertext
+            // as history made the model narrate the garbage ("I've received 12
+            // encrypted messages"), so the row is dropped instead — the
+            // conversation continues without it and the count is reported once.
+            match decrypt_field(&content, &key_bytes) {
+                Ok(decrypted) => history.push((role_str, decrypted)),
+                Err(_) => unreadable += 1,
+            }
+        }
+        if unreadable > 0 {
+            log::warn!(
+                "get_conversation_history: {unreadable} message(s) skipped for session {sess_id} \
+                 (encrypted under another master key)"
+            );
         }
         Ok(history)
     }
@@ -396,9 +403,11 @@ impl SessionManager {
         let key_bytes = derive_scope_key(&self.master_key, "message", &bot_id);
         match decrypt_field(&content, &key_bytes) {
             Ok(decrypted) => Ok(Some(decrypted)),
+            // Ciphertext would surface as the session title in the UI; an
+            // unreadable title is better than a wall of base64.
             Err(e) => {
-                log::error!("Failed to decrypt session title message: {e}");
-                Ok(Some(content))
+                log::warn!("get_first_user_message: title unreadable for session {sess_id}: {e}");
+                Ok(None)
             }
         }
     }

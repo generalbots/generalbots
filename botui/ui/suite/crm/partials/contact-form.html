@@ -1,0 +1,70 @@
+<!-- Contact form — create and edit share one partial (#1441 B).
+     `crm-records.js` fills the fields when `?id=` is present and posts to
+     POST /api/crm/contacts or PUT /api/crm/contacts/{id}. -->
+<form class="crm-form" id="crm-record-form" data-entity="contact">
+    <div class="crm-form-header">
+        <h2 class="crm-form-title" data-form-title>New Contact</h2>
+        <button type="button" class="crm-form-close" onclick="closeCrmModal()" title="Close">×</button>
+    </div>
+    <input type="hidden" name="id" id="crm-record-id" value="">
+
+    <div class="crm-form-row">
+        <div class="crm-form-group">
+            <label class="crm-form-label">First Name</label>
+            <input type="text" name="first_name" id="crm-first-name" class="crm-form-input">
+        </div>
+        <div class="crm-form-group">
+            <label class="crm-form-label">Last Name</label>
+            <input type="text" name="last_name" id="crm-last-name" class="crm-form-input">
+        </div>
+    </div>
+
+    <div class="crm-form-row">
+        <div class="crm-form-group">
+            <label class="crm-form-label">Email</label>
+            <input type="email" name="email" id="crm-email" class="crm-form-input" placeholder="john@company.com">
+        </div>
+        <div class="crm-form-group">
+            <label class="crm-form-label">Phone</label>
+            <input type="tel" name="phone" id="crm-phone" class="crm-form-input">
+        </div>
+    </div>
+
+    <div class="crm-form-row">
+        <div class="crm-form-group">
+            <label class="crm-form-label">Company</label>
+            <input type="text" name="company" id="crm-company" class="crm-form-input">
+        </div>
+        <div class="crm-form-group">
+            <label class="crm-form-label">Job Title</label>
+            <input type="text" name="job_title" id="crm-job-title" class="crm-form-input">
+        </div>
+    </div>
+
+    <div class="crm-form-row">
+        <div class="crm-form-group">
+            <label class="crm-form-label">Status</label>
+            <select name="status" id="crm-status" class="crm-form-select">
+                <option value="active">Active</option>
+                <option value="lead">Lead</option>
+                <option value="prospect">Prospect</option>
+                <option value="customer">Customer</option>
+                <option value="inactive">Inactive</option>
+            </select>
+        </div>
+        <div class="crm-form-group">
+            <label class="crm-form-label">City</label>
+            <input type="text" name="city" id="crm-city" class="crm-form-input">
+        </div>
+    </div>
+
+    <div class="crm-form-group">
+        <label class="crm-form-label">Notes</label>
+        <textarea name="notes" id="crm-notes" class="crm-form-textarea" rows="3"></textarea>
+    </div>
+
+    <div class="crm-form-actions">
+        <button type="button" class="crm-form-btn secondary" onclick="closeCrmModal()">Cancel</button>
+        <button type="submit" class="crm-form-btn primary" data-i18n="crm-create-lead">Create Contact</button>
+    </div>
+</form>

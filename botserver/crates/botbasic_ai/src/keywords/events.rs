@@ -1,6 +1,6 @@
 use botcore::shared::schema::workflow_events;
 use botcore::shared::models::WorkflowEvent;
-use rhai::{Dynamic, Engine};
+use rhai::{Dynamic, Engine, EvalAltResult};
 const ALLOWED_EVENTS: &[&str] = &[
     "workflow_step_complete",
     "approval_received", 
@@ -9,34 +9,17 @@ const ALLOWED_EVENTS: &[&str] = &[
     "bot_response_ready",
 ];
 
-pub fn register_on_event(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
-    let state_clone = Arc::clone(&state);
-    let user_clone = user;
-
-    if let Err(e) = engine.register_custom_syntax(
-        ["ON", "EVENT", "$string$", "DO"],
-        false,
-        move |context, inputs| {
-            let event_name = context.eval_expression_tree(&inputs[0])?.to_string();
-            
-            if !ALLOWED_EVENTS.contains(&event_name.as_str()) {
-                return Err(format!("Invalid event name: {event_name}").into());
-            }
-            
-            let state_for_spawn = Arc::clone(&state_clone);
-            let user_clone_spawn = user_clone.clone();
-            
-            tokio::spawn(async move {
-                if let Err(e) = register_event_handler(&state_for_spawn, &user_clone_spawn, &event_name).await {
-                    log::error!("Failed to register event handler for {event_name}: {e}");
-                }
-            });
-
-            Ok(Dynamic::UNIT)
-        },
-    ) {
-        log::warn!("Failed to register ON EVENT syntax: {e}");
-    }
+/// `ON EVENT "<event>"` — a design-time declaration.
+///
+/// The compiler consumes the line while registering the tool (the tool being
+/// compiled is the one that runs, so the statement never needs a runtime
+/// meaning — and could not have one: a tool that only runs *because* of the
+/// event would never execute its own declaration first). This registration only
+/// exists so a stale `.ast` compiled before the line was consumed still runs.
+pub fn register_on_event(_state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mut Engine) {
+    engine.register_fn("on_event", move |_event_name: &str| -> Result<(), Box<EvalAltResult>> {
+        Ok(())
+    });
 }
 
 pub fn register_publish_event(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
@@ -98,18 +81,6 @@ pub fn register_wait_for_event(state: Arc<dyn BasicRuntime>, user: UserSession, 
     ) {
         log::warn!("Failed to register WAIT FOR EVENT syntax: {e}");
     }
-}
-
-async fn register_event_handler(
-    _state: &Arc<dyn BasicRuntime>,
-    user: &UserSession,
-    event_name: &str,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let bot_uuid = Uuid::parse_str(&user.bot_id.to_string())?;
-    
-    log::info!("Registered event handler for {event_name} on bot {bot_uuid}");
-    
-    Ok(())
 }
 
 async fn publish_event(

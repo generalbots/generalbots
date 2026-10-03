@@ -8,7 +8,7 @@ botserver employs a multi-layered storage architecture where each layer serves s
 
 PostgreSQL serves as the primary database for all structured data, including user accounts, session information, bot configurations, and message history. Its relational model excels at maintaining data integrity and supporting complex queries across related entities.
 
-The Drive component provides S3-compatible object storage for files and documents. This includes uploaded files, knowledge base documents, BASIC scripts, and media assets. Object storage handles large files efficiently and integrates well with content delivery networks.
+The Drive component provides S3-compatible object storage for files and documents. This includes uploaded files, knowledge base documents, BASIC scripts, and media assets. The default backend is the self-hosted MinIO; Backblaze B2, Cloudflare R2 and Wasabi are selectable from Vault without a rebuild, with the region and an optional read-failover endpoint configured alongside them. Drive is private by default: bytes reach a client through a revocable share link proxied by botserver, never through a direct-to-S3 URL, so egress is bounded by link minting rather than by public traffic.
 
 Valkey (the cache layer) maintains session state and temporary data that benefits from extremely fast access. Cached data might be lost during restarts, but the performance benefits for frequently accessed information justify this trade-off.
 

@@ -203,27 +203,12 @@ pub struct CrmNote {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable, AsChangeset)]
-#[diesel(table_name = marketing_campaigns)]
-pub struct CrmCampaign {
-    pub id: Uuid,
-    pub branch_id: Uuid,
-    pub name: String,
-    pub campaign_type: String,
-    pub status: Option<String>,
-    pub starts_at: Option<DateTime<Utc>>,
-    pub ends_at: Option<DateTime<Utc>>,
-    pub budget: Option<f64>,
-    pub metrics: Option<serde_json::Value>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub deal_id: Option<Uuid>,
-    pub channel: String,
-    pub content_template: serde_json::Value,
-    pub scheduled_at: Option<DateTime<Utc>>,
-    pub sent_at: Option<DateTime<Utc>>,
-    pub completed_at: Option<DateTime<Utc>>,
-}
+// #1441 — `CrmCampaign` (a second diesel model for `marketing_campaigns`) was
+// removed: it declared columns the live table does not have (`channel`,
+// `scheduled_at`, `sent_at`), so every read through it failed and the CRM
+// Campaigns grid silently rendered empty. `botmarketing` owns the table and its
+// model; the CRM grid reads it with an explicit, schema-checked query in
+// `ui/fragments/campaigns.rs`.
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Contact {

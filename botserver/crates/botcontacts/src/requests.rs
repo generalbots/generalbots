@@ -35,18 +35,8 @@ pub struct UpdateContactRequest {
     pub status: Option<String>,
     pub tags: Option<Vec<String>>,
     pub notes: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct CreateAccountRequest {
-    pub name: String,
-    pub website: Option<String>,
-    pub industry: Option<String>,
-    pub employees_count: Option<i32>,
-    pub phone: Option<String>,
-    pub email: Option<String>,
-    pub description: Option<String>,
-    pub tags: Option<Vec<String>>,
+    /// #1441 B — owner assignment from the CRM edit form.
+    pub owner_id: Option<Uuid>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -89,16 +79,21 @@ pub struct CreateOpportunityRequest {
 pub struct UpdateOpportunityRequest {
     pub name: Option<String>,
     pub value: Option<f64>,
+    pub currency: Option<String>,
     pub stage: Option<String>,
     pub probability: Option<i32>,
     pub expected_close_date: Option<String>,
     pub description: Option<String>,
+    pub source: Option<String>,
+    pub owner_id: Option<Uuid>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct CloseOpportunityRequest {
     pub won: bool,
     pub actual_close_date: Option<String>,
+    /// #1441 C7 — win/loss reason captured when a deal is closed as lost.
+    pub lost_reason: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -419,3 +414,7 @@ pub struct BulkActionResult {
 pub use crate::bulk_types::{
     CsvImportReport, CsvLeadRow, LeadBulkActionRequest, LeadBulkActionResult,
 };
+
+// #1441 — account create/update payloads live in `account_requests.rs` (this
+// module sits at the 450-line budget); re-exported for the same reason.
+pub use crate::account_requests::{CreateAccountRequest, UpdateAccountRequest};

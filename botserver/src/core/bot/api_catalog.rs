@@ -279,7 +279,10 @@ pub fn api_command_instructions(role: &str) -> String {
 
     // Only the most common commands are named explicitly to avoid prompt bloat.
     lines.push("Common commands you may call directly:".to_string());
-    for name in ["apps.find", "api.find", "api.exec", "vibe.project.change", "integrations.actions.list", "service.tax", "banking.diagnosis", "drive.list"] {
+    for name in [
+        "apps.find", "api.find", "api.exec", "tasks.autotask.create", "tasks.autotask.list",
+        "vibe.project.change", "integrations.actions.list", "service.tax", "banking.diagnosis", "drive.list",
+    ] {
         if let Some(cmd) = command_by_name(name) {
             let params = cmd
                 .params
@@ -291,8 +294,12 @@ pub fn api_command_instructions(role: &str) -> String {
         }
     }
     lines.push(
-        "Rules: use compose=true when the answer needs prose from the data. Always discover first with \
-         api.find unless the command is obvious. Never mention JSON or commands to the user."
+        "Rules: use compose=true when the answer needs prose from the data. Never mention JSON or \
+         commands to the user. Discovery: api.find matches command NAMES and SUMMARIES by keyword, not \
+         free-form intent, so search with domain words such as 'task', 'automation', 'drive', 'invoice' \
+         rather than the user's own phrasing. When the command is listed above, call it directly by name \
+         instead of searching. To build a new automation from a plain-language request, call \
+         tasks.autotask.create with the request as the intent parameter."
             .to_string(),
     );
     lines.join("\n")
@@ -355,7 +362,7 @@ fn find_apps(query: &str) -> Vec<Value> {
 fn find_api_entries(state: &Arc<AppState>, user_id: Uuid, query: &str) -> Vec<Value> {
     let q = tokens_of(query);
     if q.is_empty() {
-        return Vec::new();
+        return vec![find_hint("the query had no searchable words")];
     }
     let role = crate::security::user_role::resolve_user_role(&state.conn, user_id);
     let mut out: Vec<Value> = Vec::new();
@@ -444,7 +451,25 @@ fn find_api_entries(state: &Arc<AppState>, user_id: Uuid, query: &str) -> Vec<Va
             "summary": ep.summary,
         }));
     }
+    if out.is_empty() {
+        // An empty list is a dead end: the model repeats api.find or gives up.
+        // Hand back the vocabulary that actually matches this catalog.
+        out.push(find_hint("no command, endpoint or derived action matched the query words"));
+    }
     out
+}
+
+/// Actionable guidance returned in place of an empty `api.find` result.
+fn find_hint(reason: &str) -> Value {
+    json!({
+        "kind": "hint",
+        "reason": reason,
+        "guidance": "api.find matches command names and endpoint paths by keyword, not user intent. \
+                     Retry with a domain word such as 'task', 'automation', 'drive', 'invoice', 'contact' \
+                     or 'report', or call a command listed in your instructions directly by name. To turn a \
+                     plain-language request into a new automation, call tasks.autotask.create with the request \
+                     as the intent parameter.",
+    })
 }
 
 fn normalize_drive_path(path: &str) -> Result<String, String> {
@@ -724,6 +749,11 @@ pub async fn execute_command(
             crate::core::bot::crm_commands::crm_create_lead_command(state, &bot_uuid, &obj).await
         }
         "crm.leads.report" => crate::core::bot::crm_commands::crm_pipeline_report_command(state, &bot_uuid).await,
+        // #1441 C8 — operate the pipeline from chat: create a deal, move a
+        // stage, capture a contact.
+        "crm.deal.create" => crate::core::bot::crm_commands::crm_create_deal_command(state, &bot_uuid, &obj).await,
+        "crm.deal.move-stage" => crate::core::bot::crm_commands::crm_move_deal_stage_command(state, &bot_uuid, &obj).await,
+        "crm.contact.create" => crate::core::bot::crm_commands::crm_create_contact_command(state, &bot_uuid, &obj).await,
         "billing.invoice.list" => list_invoices(state, &bot_uuid).await,
         "products.items.list" => list_products(state, &bot_uuid, str_of("category").as_deref()).await,
         "tickets.list" => list_tickets(state, &bot_uuid).await,
@@ -738,6 +768,22 @@ pub async fn execute_command(
             payroll_diagnosis(state, &bot_uuid, period.as_deref()).await
         }
         "monitoring.health" => Ok(json!({ "health": "ok", "note": "suite services running" })),
+        // AutoTask: the command is advertised to the model, so it must be
+        // executable here — it used to fall through to the navigation
+        // catch-all and answer with a deep link while creating nothing.
+        "tasks.autotask.create" | "tasks.autotask.run" => {
+            let intent = str_of("intent").unwrap_or_default();
+            if intent.trim().is_empty() {
+                return Err("the 'intent' parameter is required (what should be automated)".to_string());
+            }
+            let api = crate::autotask_host::ops::build_api(state);
+            let response =
+                botautotask::handlers::create_and_execute_for(&api, intent.trim(), bot_uuid).await;
+            if !response.success {
+                return Err(response.message.clone());
+            }
+            Ok(serde_json::to_value(&response).unwrap_or_else(|_| json!({})))
+        }
         _ => {
             // Unknown/mostly-navigation commands resolve to an in-app deep link
             // when the command declares one, otherwise a clear error.

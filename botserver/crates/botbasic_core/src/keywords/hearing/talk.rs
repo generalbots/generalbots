@@ -20,16 +20,7 @@ pub fn execute_talk(
         .unwrap_or("web")
         .to_string();
 
-    let target_user_id = if channel == "whatsapp" {
-        user_session
-            .context_data
-            .get("phone")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string()
-    } else {
-        user_session.user_id.to_string()
-    };
+    let target_user_id = reply_recipient(&user_session, &channel);
 
     let response = BotResponse {
         bot_id: user_session.bot_id.to_string(),
@@ -55,6 +46,35 @@ pub fn execute_talk(
     }
 
     Ok(response)
+}
+
+/// Address a reply must carry for the channel adapter to reach the sender.
+///
+/// `channel_user_id` is the sender as the channel knows it (a Telegram chat id,
+/// a WhatsApp phone number) and is what the adapters address replies with.
+/// Background runs — a tool triggered by `ON EVENT`, which has no live response
+/// channel — depend on it to reach the conversation; sessions built by the
+/// message pipeline carry no such value and keep their internal user id, and
+/// WhatsApp still falls back to the phone stored in the session context.
+fn reply_recipient(user_session: &UserSession, channel: &str) -> String {
+    let channel_sender = user_session
+        .context_data
+        .get("channel_user_id")
+        .and_then(|value| value.as_str())
+        .filter(|value| !value.is_empty());
+
+    if let Some(sender) = channel_sender {
+        return sender.to_string();
+    }
+    if channel == "whatsapp" {
+        return user_session
+            .context_data
+            .get("phone")
+            .and_then(|value| value.as_str())
+            .unwrap_or_default()
+            .to_string();
+    }
+    user_session.user_id.to_string()
 }
 
 pub fn talk_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &mut Engine) {
@@ -120,4 +140,59 @@ pub fn talk_keyword(state: &Arc<dyn BasicRuntime>, user: UserSession, engine: &m
         {
             log::error!("Failed to register the custom syntax: {e}");
         }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use uuid::Uuid;
+
+    fn session(context: serde_json::Value, user_id: Uuid) -> UserSession {
+        UserSession {
+            id: Uuid::new_v4(),
+            user_id,
+            branch_id: Uuid::nil(),
+            bot_id: Uuid::new_v4(),
+            title: String::new(),
+            context_data: context,
+            current_tool: None,
+            created_at: chrono::Utc::now(),
+            updated_at: chrono::Utc::now(),
+        }
+    }
+
+    #[test]
+    fn a_channel_event_replies_to_the_sender_the_channel_knows() {
+        let user = session(
+            serde_json::json!({"channel": "telegram", "channel_user_id": "6676512312"}),
+            Uuid::nil(),
+        );
+        assert_eq!(reply_recipient(&user, "telegram"), "6676512312");
+    }
+
+    #[test]
+    fn a_pipeline_session_keeps_the_internal_user_id() {
+        let user_id = Uuid::new_v4();
+        let user = session(serde_json::json!({"channel": "web"}), user_id);
+        assert_eq!(reply_recipient(&user, "web"), user_id.to_string());
+    }
+
+    #[test]
+    fn whatsapp_falls_back_to_the_session_phone() {
+        let user = session(
+            serde_json::json!({"channel": "whatsapp", "phone": "5511999998888"}),
+            Uuid::new_v4(),
+        );
+        assert_eq!(reply_recipient(&user, "whatsapp"), "5511999998888");
+    }
+
+    #[test]
+    fn an_empty_sender_never_becomes_the_recipient() {
+        let user_id = Uuid::new_v4();
+        let user = session(
+            serde_json::json!({"channel": "telegram", "channel_user_id": ""}),
+            user_id,
+        );
+        assert_eq!(reply_recipient(&user, "telegram"), user_id.to_string());
+    }
 }

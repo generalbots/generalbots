@@ -1,0 +1,22 @@
+[package]
+name = "botdomains"
+version.workspace = true
+edition = "2021"
+description = "Domain registrar adapters and DNS provisioning for General Bots"
+license = "MIT"
+authors = ["General Bots"]
+repository = "https://github.com/generalbots/generalbots"
+
+[dependencies]
+async-trait = { workspace = true }
+quick-xml = { workspace = true }
+reqwest = { workspace = true, features = ["rustls-tls", "json"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt"] }
+
+[lints]
+workspace = true

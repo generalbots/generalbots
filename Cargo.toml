@@ -59,6 +59,7 @@ members = [
   "botserver/crates/botconnectors",
   "botserver/crates/botconsent",
   "botserver/crates/botdocs",
+  "botserver/crates/botdomains",
   "botserver/crates/botdrive",
   "botserver/crates/botemail",
   "botserver/crates/botinstagram",
@@ -249,6 +250,7 @@ botpos = { path = "botserver/crates/botpos" }
 bothandoff = { path = "botserver/crates/bothandoff" }
 botkyc = { path = "botserver/crates/botkyc" }
 bottimeclock = { path = "botserver/crates/bottimeclock" }
+botdomains = { path = "botserver/crates/botdomains" }
 botcore = { path = "botserver/crates/botcore" }
 botdrive = { path = "botserver/crates/botdrive" }
 botmeet = { path = "botserver/crates/botmeet" }

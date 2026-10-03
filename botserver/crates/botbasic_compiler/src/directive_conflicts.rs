@@ -8,6 +8,7 @@ pub enum Directive {
     UseWebsite,
     OnEmail,
     OnChange,
+    OnEvent,
 }
 
 pub const ALL_DIRECTIVES: &[Directive] = &[
@@ -17,6 +18,7 @@ pub const ALL_DIRECTIVES: &[Directive] = &[
     Directive::UseWebsite,
     Directive::OnEmail,
     Directive::OnChange,
+    Directive::OnEvent,
 ];
 
 /// Máquina de modos de execução únicos.
@@ -81,6 +83,7 @@ impl Directive {
             Directive::UseWebsite => "USE WEBSITE",
             Directive::OnEmail => "ON EMAIL FROM",
             Directive::OnChange => "ON CHANGE",
+            Directive::OnEvent => "ON EVENT",
         }
     }
 
@@ -91,6 +94,7 @@ impl Directive {
             Directive::Webhook => "Registra webhook HTTP",
             Directive::UseWebsite => "Faz scraping de site para contexto",
             Directive::OnEmail => "Registra gatilho de email recebido",
+            Directive::OnEvent => "Registra gatilho de evento de canal (media_uploaded, message_received)",
             Directive::OnChange => "Registra gatilho de mudança em tabela",
         }
     }

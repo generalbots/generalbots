@@ -3,6 +3,7 @@ use std::sync::Arc;
 use botcore::shared::state::AppState;
 use uuid::Uuid;
 
+use super::attachments::find_staged_attachment;
 use super::sink::ChannelSink;
 
 pub async fn run_tool_exec(
@@ -13,6 +14,7 @@ pub async fn run_tool_exec(
     bot_name: &str,
     tool_name: &str,
     channel: &str,
+    sink: &dyn ChannelSink,
 ) {
     let work_path = botcore::shared::utils::get_work_path();
     let read_tool = |gbdialog_dir: &str| -> Option<String> {
@@ -41,6 +43,18 @@ pub async fn run_tool_exec(
             log::info!(
                 "TOOL_EXEC: tool '{tool_name}' not associated with session {session_id}, skipping"
             );
+            // The user pressed a button; silence would look like a broken bot.
+            let message = format!(
+                "A ação '{tool_name}' não está disponível para esta conversa."
+            );
+            let resp = botlib::models::BotResponse::new(
+                &bot_uuid.to_string(),
+                &session_id.to_string(),
+                &user_id.to_string(),
+                &message,
+                channel,
+            );
+            let _ = sink.send_bot_response(&resp).await;
             return;
         }
         let state_for_tool = state.clone();
@@ -54,15 +68,32 @@ pub async fn run_tool_exec(
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
         };
-        tokio::task::spawn_blocking(move || {
+        let tool_run = tokio::task::spawn_blocking(move || {
             let mut svc = crate::basic::ScriptService::new(
                 state_for_tool.clone(), session_for_tool,
             );
             svc.load_bot_config_params(&state_for_tool, bot_uuid);
-            if let Err(e) = svc.run(&ast_content) {
-                log::warn!("Tool '{tool_name_clone}' execution error: {e}");
-            }
+            svc.run(&ast_content).map_err(|e| e.to_string())
         });
+        // The script runs on a blocking task, so the report goes out after it
+        // completes: a failure must reach the chat, not only the log.
+        // Awaited, like the LLM tool-call path already does, so a failure can
+        // be reported to the user instead of only reaching the log. The tool's
+        // own TALK output reaches the sink while the script runs.
+        if let Ok(Err(detail)) = tool_run.await {
+            log::warn!("Tool '{tool_name_clone}' execution error: {detail}");
+            let message = format!(
+                "Não consegui executar '{tool_name_clone}'. Tente novamente em instantes."
+            );
+            let resp = botlib::models::BotResponse::new(
+                &bot_uuid.to_string(),
+                &session_id.to_string(),
+                &user_id.to_string(),
+                &message,
+                channel,
+            );
+            let _ = sink.send_bot_response(&resp).await;
+        }
     }
 }
 
@@ -123,7 +154,6 @@ pub async fn run_llm_tool_call(
     use crate::core::bot::ws::handler::validate_bot_name;
     use crate::core::bot::ws::handler::verify_path_within_workdir;
     use botcore::shared::utils::get_work_path;
-
     let tool_call_trigger = "\"__tool_call__\":";
     let tc_start = match full_response.find(tool_call_trigger) {
         Some(pos) => full_response[..pos].rfind('{').unwrap_or(pos),
@@ -132,16 +162,70 @@ pub async fn run_llm_tool_call(
     let tc_json = &full_response[tc_start..];
     if let Ok(tool_call) = serde_json::from_str::<serde_json::Value>(tc_json) {
         let raw_tool_name = tool_call.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-        let tool_args = tool_call.get("arguments").and_then(|v| v.as_str()).unwrap_or("");
+        let mut tool_args_owned = tool_call
+            .get("arguments")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+
+        // Chat attachments are staged under the bot's Drive `inbox/` before
+        // the LLM call. Web attachments (pipeline::exec) append
+        // "[User attached a file stored at inbox/…; …]" after the typed text;
+        // channel adapters (bottelegram/botwhatsapp media) send
+        // "[image] inbox/…" with the caption on the following line. Closed-
+        // contract filing tools such as classify_media take `path`/`caption`;
+        // when the model returns the tool call without carrying the staged
+        // path, inject it from the user message so execution does not depend
+        // on the model copying it verbatim.
+        //
+        // The staged path from the CURRENT message is authoritative: when the
+        // model copies a path from an EARLIER turn's marker (history echo), the
+        // tool operates on an already-filed object and fails with a confusing
+        // 404. Only when the current message carries no attachment marker do
+        // the model's arguments stand.
+        if let Some(staged) = find_staged_attachment(user_text) {
+            let mut parsed: serde_json::Value =
+                serde_json::from_str(&tool_args_owned).unwrap_or_else(|_| serde_json::json!({}));
+            match parsed.as_object_mut() {
+                Some(obj) => {
+                    let model_path = obj
+                        .get("path")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("")
+                        .trim()
+                        .to_string();
+                    let stale = !model_path.is_empty() && model_path != staged.path;
+                    obj.insert("path".to_string(), serde_json::Value::String(staged.path.clone()));
+                    obj.insert("caption".to_string(), serde_json::Value::String(staged.caption));
+                    if stale {
+                        log::info!(
+                            "Tool '{raw_tool_name}': model echoed path '{model_path}' from history; overridden with current message attachment '{}'",
+                            staged.path
+                        );
+                    }
+                }
+                None => {
+                    log::warn!(
+                        "Tool '{raw_tool_name}': arguments must be an object; staged attachment not injected"
+                    );
+                }
+            }
+            match serde_json::to_string(&parsed) {
+                Ok(s) => tool_args_owned = s,
+                Err(e) => log::warn!("Failed to serialize injected tool args: {e}"),
+            }
+        }
+        let tool_args: &str = tool_args_owned.as_str();
+
         log::info!("LLM tool_call: executing tool '{raw_tool_name}' with args: {tool_args}");
         if raw_tool_name.is_empty() { return; }
 
         if all_args_are_placeholder(tool_args) {
             log::info!("All tool args are placeholder - asking user for real data instead of executing");
-            let msg = format!("Para agendar o servico, preciso de algumas informacoes. Por favor, me diga os dados solicitados um de cada vez.");
+            let msg = "Para agendar o servico, preciso de algumas informacoes. Por favor, me diga os dados solicitados um de cada vez.".to_string();
             let resp = botlib::models::BotResponse::new(
                 &bot_uuid.to_string(), &session_id.to_string(),
-                &user_id.to_string(), &msg, "whatsapp",
+                &user_id.to_string(), &msg, sink.channel_type(),
             );
             let _ = sink.send_bot_response(&resp).await;
             return;
@@ -176,7 +260,57 @@ pub async fn run_llm_tool_call(
             }
         };
 
-        if !ast_content.is_empty() {
+        if ast_content.is_empty() {
+            // A tool call naming a catalog command (`api.find`,
+            // `tasks.autotask.create`, …) is the model reaching for the
+            // declarative surface through the native tool channel. It has no
+            // `.ast`, so this path used to return in silence and the user got
+            // no answer at all — observed on Telegram: the model asked for
+            // `api.find`, nothing came back. Reroute to the command executor.
+            if let Some(command) = crate::apps::commands::command_by_name(&tool_name) {
+                log::info!(
+                    "tool_call '{tool_name}' is catalog command '{}' (app {}); routing to the command executor",
+                    command.name, command.app
+                );
+                let api_call = format!(
+                    "{{\"__api_call__\": {{\"name\": \"{tool_name}\", \"params\": {tool_args}, \"compose\": true}}}}"
+                );
+                // Composing the answer needs a provider AND the bot's model and
+                // key: the reroute used to pass empty strings, so every composed
+                // answer failed and the user got "Dados obtidos, mas falhei ao
+                // redigir a resposta" instead of the command's result.
+                let provider = state.llm_provider.clone();
+                let provider = provider.as_ref();
+                let (model, key) = bot_llm_credentials(&state.conn, bot_uuid);
+                // Boxed: the command path can reroute a session tool back
+                // into this executor, so the two futures are mutually
+                // recursive.
+                Box::pin(super::llm::handle_api_call(
+                    sink, state, provider, &model, &key, bot_uuid, session_id, user_id,
+                    bot_name, &api_call, user_text, rx,
+                ))
+                .await;
+                return;
+            }
+            // Unknown name with no script: say so instead of going silent.
+            log::warn!(
+                "tool_call '{tool_name}' has no compiled script and is not a catalog command; ignored"
+            );
+            let message = format!(
+                "Não consegui executar '{tool_name}': essa ação não está disponível para mim agora."
+            );
+            let resp = botlib::models::BotResponse::new(
+                &bot_uuid.to_string(),
+                &session_id.to_string(),
+                &user_id.to_string(),
+                &message,
+                sink.channel_type(),
+            );
+            let _ = sink.send_bot_response(&resp).await;
+            return;
+        }
+
+        {
             // Declarative gate: only execute tools the bot script associated
             // with this session via USE TOOL (e.g. inside IF role = "admin").
             if !crate::core::bot::tool_context::is_tool_associated_with_session(
@@ -188,7 +322,6 @@ pub async fn run_llm_tool_call(
                 return;
             }
             let state_for_tool = state.clone();
-            let tool_name_cl = tool_name.clone();
             let work_path_for_mcp = work_path.clone();
             let bot_name_for_mcp = bot_name.to_string();
             let tool_name_for_mcp = tool_name.clone();
@@ -213,7 +346,8 @@ pub async fn run_llm_tool_call(
                 created_at: chrono::Utc::now(),
                 updated_at: chrono::Utc::now(),
             };
-            let _ = tokio::task::spawn_blocking(move || {
+            let tool_name_err = tool_name.clone();
+            let tool_run = tokio::task::spawn_blocking(move || {
                 let mut svc = crate::basic::ScriptService::new(
                     state_for_tool.clone(), session_for_tool,
                 );
@@ -253,10 +387,27 @@ pub async fn run_llm_tool_call(
                         }
                     }
                 }
-                if let Err(e) = svc.run(&ast_content) {
-                    log::warn!("Tool '{tool_name_cl}' execution error: {e}");
-                }
+                svc.run(&ast_content).map_err(|e| e.to_string())
             }).await;
+
+            // A failed tool used to reach only the log, so the user watched the
+            // turn stop with no answer at all (observed on the web tool
+            // button: "Variable not found: path"). The detail stays in the
+            // log; the user is told which action failed.
+            if let Ok(Err(detail)) = tool_run {
+                log::warn!("Tool '{tool_name_err}' execution error: {detail}");
+                let message = format!(
+                    "Não consegui executar '{tool_name_err}'. Tente novamente em instantes."
+                );
+                let resp = botlib::models::BotResponse::new(
+                    &bot_uuid.to_string(),
+                    &session_id.to_string(),
+                    &user_id.to_string(),
+                    &message,
+                    sink.channel_type(),
+                );
+                let _ = sink.send_bot_response(&resp).await;
+            }
 
             // Drain rx to forward tool responses to the sink
             for _ in 0..50 {
@@ -271,4 +422,26 @@ pub async fn run_llm_tool_call(
             }
         }
     }
+}
+
+/// Model and key configured for a bot, needed when a rerouted command composes
+/// an answer. Mirrors the chat pipeline, including the environment fallback.
+fn bot_llm_credentials(
+    conn: &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
+    bot_id: Uuid,
+) -> (String, String) {
+    use botcore::config::ConfigManager;
+    let cfg = ConfigManager::new(conn.clone());
+    let mut key = cfg.get_config(&bot_id, "llm-key", Some("")).unwrap_or_default();
+    let mut model = cfg.get_config(&bot_id, "llm-model", Some("")).unwrap_or_default();
+    if let Ok(v) = std::env::var("LLM_KEY") {
+        if !v.is_empty() { key = v; }
+    }
+    if let Ok(v) = std::env::var("LLM_MODEL") {
+        if !v.is_empty() { model = v; }
+    }
+    if model.is_empty() {
+        log::warn!("bot {bot_id} has no llm-model; composed answers are unavailable");
+    }
+    (model, key)
 }

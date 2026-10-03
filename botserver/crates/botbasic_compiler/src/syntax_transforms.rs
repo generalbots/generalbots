@@ -53,6 +53,36 @@ pub fn predeclare_variables(script: &str) -> String {
     declarations
 }
 
+/// Replace the contents of double-quoted string literals with spaces so
+/// heuristics that look for `=`/`==`/`+=` operate on code, not on text inside
+/// strings (e.g. `create_file(p, "category=" + c)` must not look like an
+/// assignment just because a literal contains `=`).
+fn strip_string_literals(line: &str) -> String {
+    let mut out = String::with_capacity(line.len());
+    let mut in_string = false;
+    let mut escaped = false;
+    for ch in line.chars() {
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                in_string = false;
+                out.push('"');
+            } else {
+                out.push(' ');
+            }
+        } else {
+            if ch == '"' {
+                in_string = true;
+            }
+            out.push(ch);
+        }
+    }
+    out
+}
+
 pub fn convert_if_then_syntax(script: &str) -> String {
     let mut result = String::new();
     let mut if_stack: Vec<bool> = Vec::new();
@@ -88,9 +118,22 @@ pub fn convert_if_then_syntax(script: &str) -> String {
                 None => continue,
             };
             let condition = &trimmed[3..then_pos].trim();
-            let condition = condition.replace(" NOT IN ", " !in ").replace(" not in ", " !in ");
-            let condition = condition.replace(" AND ", " && ").replace(" and ", " && ")
-                .replace(" OR ", " || ").replace(" or ", " || ");
+            // BASIC dialects test the last runtime error with a bare `ERROR`
+            // condition (paired with ON ERROR RESUME NEXT). The engine exposes
+            // it as the error_flag() function, not a variable, so rewrite it
+            // before the generic = → == pass would mangle it.
+            let condition = if condition.trim().eq_ignore_ascii_case("ERROR") {
+                "error_flag()".to_string()
+            } else {
+                condition
+                    .replace(" NOT IN ", " !in ").replace(" not in ", " !in ")
+            };
+            let condition = if condition == "error_flag()" {
+                condition
+            } else {
+                condition.replace(" AND ", " && ").replace(" and ", " && ")
+                    .replace(" OR ", " || ").replace(" or ", " || ")
+            };
             let condition = if !condition.contains("==") && !condition.contains("!=")
                 && !condition.contains("<=") && !condition.contains(">=")
                 && !condition.contains("+=") && !condition.contains("-=")
@@ -285,16 +328,21 @@ pub fn convert_if_then_syntax(script: &str) -> String {
         }
 
         if !upper.starts_with("IF ") && !upper.starts_with("ELSE") && !upper.starts_with("END IF") {
+            // Assignment detection must ignore `=` characters that live inside
+            // string literals, otherwise keyword calls like
+            // `create_file(p, "category=" + c)` are misread as assignments and
+            // get a spurious `let ` prefix (invalid Rhai).
+            let code_only = strip_string_literals(trimmed);
             let is_var_assignment = trimmed.chars().next().is_some_and(|c| c.is_alphabetic() || c == '_')
-                && trimmed.contains('=')
-                && !trimmed.contains("==")
-                && !trimmed.contains("!=")
-                && !trimmed.contains("<=")
-                && !trimmed.contains(">=")
-                && !trimmed.contains("+=")
-                && !trimmed.contains("-=")
-                && !trimmed.contains("*=")
-                && !trimmed.contains("/=");
+                && code_only.contains('=')
+                && !code_only.contains("==")
+                && !code_only.contains("!=")
+                && !code_only.contains("<=")
+                && !code_only.contains(">=")
+                && !code_only.contains("+=")
+                && !code_only.contains("-=")
+                && !code_only.contains("*=")
+                && !code_only.contains("/=");
 
             let ends_with_comma = trimmed.ends_with(',');
 
@@ -518,6 +566,70 @@ pub fn convert_keywords_to_lowercase(script: &str) -> String {
     result
 }
 
+/// Outside string literals, bare `TODAY`/`NOW` tokens become calls
+/// `TODAY()`/`NOW()`: the runtime registers them as functions
+/// (botbasic_core datetime/now.rs), but BASIC scripts write them as bare
+/// variables, and Rhai reads a bare identifier as a variable lookup
+/// ("Variable not found: TODAY"). Old ASTs heal on load because the
+/// execution-time self-heal runs this same transform.
+fn rewrite_bare_datetime_tokens(line: &str) -> String {
+    let re = match Regex::new(r"\b(TODAY|NOW)\b") {
+        Ok(r) => r,
+        Err(_) => return line.to_string(),
+    };
+    // Append the token and normalize what follows: bare `TODAY` gains `()`;
+    // an existing `TODAY()` is copied through unchanged. A trailing `\b`
+    // after an optional `\(\)` group would backtrack (word end boundary
+    // fails after `)`), matching the bare token inside `TODAY()` and
+    // producing the invalid double call `TODAY()()` — hence the manual
+    // paren check instead of regex lookahead (unsupported in Rust regex).
+    fn rewrite_plain(re: &Regex, plain: &str, out: &mut String) {
+        let mut last = 0;
+        for m in re.find_iter(plain) {
+            out.push_str(&plain[last..m.start()]);
+            out.push_str(m.as_str());
+            let rest = &plain[m.end()..];
+            let trimmed = rest.trim_start();
+            if trimmed.starts_with('(') {
+                if let Some(rel) = trimmed.find(')') {
+                    let skip = rest.len() - trimmed.len() + rel + 1;
+                    out.push_str(&rest[..skip]);
+                    last = m.end() + skip;
+                    continue;
+                }
+            }
+            out.push_str("()");
+            last = m.end();
+        }
+        out.push_str(&plain[last..]);
+    }
+    let mut out = String::with_capacity(line.len() + 8);
+    let mut plain = String::new();
+    let mut in_string = false;
+    let mut escaped = false;
+    for ch in line.chars() {
+        if in_string {
+            out.push(ch);
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                in_string = false;
+            }
+        } else if ch == '"' {
+            rewrite_plain(&re, &plain, &mut out);
+            plain.clear();
+            out.push(ch);
+            in_string = true;
+        } else {
+            plain.push(ch);
+        }
+    }
+    rewrite_plain(&re, &plain, &mut out);
+    out
+}
+
 pub fn convert_multiword_keywords(script: &str) -> String {
     let multiword_patterns = vec![
         (r#"USE\s+WEBSITE"#, 1, 2, vec!["url", "refresh"]),
@@ -552,6 +664,26 @@ pub fn convert_multiword_keywords(script: &str) -> String {
         (r#"ON\s+EMAIL"#, 1, 1, vec!["filter"]),
         (r#"ON\s+EVENT"#, 1, 1, vec!["event"]),
 
+        // Error handling: these used to rely on custom-syntax registrations in
+        // the runtime engine, but Rhai keys custom syntax by the first token,
+        // so the later-registered `ON $ident$ OF "table"` trigger keyword
+        // silently overrode every `ON ERROR …` form at execution time (the
+        // compile-only engine does not load the trigger crate, which is why
+        // compiled scripts passed). Rewriting to plain function calls here
+        // removes the ambiguity entirely.
+        (r#"ON\s+ERROR\s+RESUME\s+NEXT"#, 0, 0, vec![]),
+        (r#"ON\s+ERROR\s+GOTO\s+0"#, 0, 0, vec![]),
+        (r#"CLEAR\s+ERROR"#, 0, 0, vec![]),
+
+        // Multimodal perception keywords share the DESCRIBE/SPEECH/GENERATE
+        // first tokens across custom syntaxes; Rhai keeps only the last
+        // registration per first token, so only the last one worked at runtime
+        // (DESCRIBE VIDEO lost to DESCRIBE IMAGE, etc.). Function forms are
+        // unambiguous and used via these rewrites.
+        (r#"DESCRIBE\s+IMAGE"#, 1, 1, vec!["source"]),
+        (r#"DESCRIBE\s+VIDEO"#, 1, 1, vec!["source"]),
+        (r#"SPEECH\s+TO\s+TEXT"#, 1, 1, vec!["source"]),
+
         (r#"SEND\s+MAIL"#, 4, 4, vec!["to", "subject", "body", "attachments"]),
         (r#"SEND\s+TEAMS\s+MESSAGE"#, 2, 2, vec!["chat_id", "message"]),
         (r#"SEND\s+TO"#, 2, 2, vec!["target", "message"]),
@@ -568,10 +700,89 @@ pub fn convert_multiword_keywords(script: &str) -> String {
     ];
 
     let mut result = String::new();
+    // Open FOR EACH blocks awaiting their NEXT (innermost last).
+    let mut foreach_stack: Vec<String> = Vec::new();
 
-    for line in script.lines() {
+    for original in script.lines() {
+        let rewritten = rewrite_bare_datetime_tokens(original);
+        let line: &str = rewritten.as_str();
         let trimmed = line.trim();
         let mut converted = false;
+
+        // FOR EACH var IN expr … NEXT: the compiled .ast stores the
+        // underscored FOR_EACH form with a bare `NEXT;`, and the runtime
+        // engine only registers the two-token "FOR EACH" custom syntax — so
+        // execution-time self-heal produced `FOR_EACH x in e;` … `NEXT;`,
+        // which Rhai rejects ("Expecting ';'" on the loop variable).
+        // Rewriting to the Rhai-native `for var in (expr) { … }` makes the
+        // dialect unambiguous at both compile and execution time.
+        if let Some(caps) = Regex::new(
+            r#"(?i)^\s*FOR[_\s]+EACH\s+([A-Za-z_]\w*)\s+IN\s+(.+?)\s*;?\s*$"#,
+        )
+        .ok()
+        .and_then(|re| re.captures(line))
+        {
+            let var = caps.get(1).map_or("", |m| m.as_str());
+            let expr = strip_trailing_stmt_semicolon(caps.get(2).map_or("", |m| m.as_str().trim()));
+            foreach_stack.push(var.to_lowercase());
+            result.push_str(&format!("for {var} in ({expr}) {{\n"));
+            continue;
+        }
+        if !foreach_stack.is_empty() {
+            if let Some(caps) = Regex::new(r#"(?i)^\s*NEXT(?:\s+([A-Za-z_]\w*))?\s*;?\s*$"#)
+                .ok()
+                .and_then(|re| re.captures(line))
+            {
+                let named = caps.get(1).map(|m| m.as_str().to_lowercase());
+                let matches_top = match &named {
+                    Some(n) => foreach_stack.last().is_some_and(|top| top == n),
+                    None => true,
+                };
+                if matches_top {
+                    foreach_stack.pop();
+                    result.push_str("}\n");
+                    continue;
+                }
+            }
+        }
+
+        // `ON EVENT "<event>"` is a declaration consumed at design time (the
+        // compiler registers the tool for the event); at run time it collapses
+        // to a no-op call. It needs its own rewrite because the generic table
+        // derives the callee name from the pattern text, which breaks on a
+        // pattern that embeds a capture group.
+        if let Some(caps) = Regex::new(
+            r#"(?i)^\s*ON\s+EVENT\s+("[^"]*"|[A-Za-z_]\w*)\s*;?\s*$"#,
+        )
+        .ok()
+        .and_then(|re| re.captures(line))
+        {
+            let event = unquote(caps.get(1).map_or("", |m| m.as_str()));
+            result.push_str(&format!("on_event(\"{event}\");\n"));
+            continue;
+        }
+
+        // CREATE FILE <path> WITH <data> needs a dedicated rewrite: the generic
+        // comma-based parameter parser below cannot split on the WITH keyword.
+        // Like ON ERROR, the CREATE FILE custom syntax is overridden at runtime
+        // by the later-registered CREATE SITE syntax (same first token).
+        if let Some(caps) = Regex::new(
+            r#"(?i)^\s*(.*?)\bCREATE\s+FILE\s+(.+?)\s+WITH\s+(.+?)\s*;?$"#,
+        )
+        .ok()
+        .and_then(|re| re.captures(line))
+        {
+            // Regex groups: 1 = text before the keyword, 2 = path (may be an
+            // expression like `destination + ".meta.txt"`), 3 = data.
+            let prefix = caps.get(1).map_or("", |m| m.as_str());
+            let path = caps.get(2).map_or("", |m| m.as_str().trim());
+            let data = caps.get(3).map_or("", |m| m.as_str().trim());
+            let data = strip_trailing_stmt_semicolon(data);
+            result.push_str(&format!(
+                "{prefix}create_file({path}, {data});\n"
+            ));
+            continue;
+        }
 
         let trimmed_upper = trimmed.to_uppercase();
         if trimmed_upper.contains("ADD_SUGGESTION_TOOL") ||
@@ -587,6 +798,40 @@ pub fn convert_multiword_keywords(script: &str) -> String {
             }
             result.push('\n');
             continue;
+        }
+
+        // Bare `GET <drive path | url>` needs a dedicated rewrite: the generic
+        // machinery derives the function name from the pattern and appends an
+        // extra \s+ separator. Runtime override context: the `GET $expr$`
+        // custom syntax loses to the later-registered GET SHAREPOINT … syntax
+        // (same Rhai first-token key). NOTE: the Rust regex crate has no
+        // lookahead support, so the GET-family protection (GET FROM/HTTP/
+        // QUEUE/SHAREPOINT/metrics …) is checked in code below, not in the
+        // pattern; protected lines fall through to the generic loop.
+        if let Some(caps) = Regex::new(r#"(?i)^(\s*)(.*?)\bGET\s+(.+?)\s*;?$"#)
+            .ok()
+            .and_then(|re| re.captures(line))
+        {
+            let arg = caps.get(3).map_or("", |m| m.as_str().trim());
+            let first_word = arg
+                .split_whitespace()
+                .next()
+                .unwrap_or("")
+                .to_uppercase();
+            let protected = matches!(
+                first_word.as_str(),
+                "FROM" | "HTTP" | "BOT" | "QUEUE" | "ATTENDANT" | "ATTENDANTS" | "TIPS"
+                    | "SMART" | "SUMMARY" | "CUSTOMER" | "INSTAGRAM" | "FACEBOOK"
+                    | "LINKEDIN" | "TWITTER" | "SHAREPOINT" | "STOCK" | "BANCO"
+                    | "UNMATCHED"
+            );
+            if !protected {
+                let indent = caps.get(1).map_or("", |m| m.as_str());
+                let prefix = caps.get(2).map_or("", |m| m.as_str());
+                let arg = strip_trailing_stmt_semicolon(arg);
+                result.push_str(&format!("{indent}{prefix}get_file({arg});\n"));
+                continue;
+            }
         }
 
         // Check for multiword keywords in ANY position (not just start of line)
@@ -724,8 +969,12 @@ pub fn convert_multiword_keywords(script: &str) -> String {
 /// `.ast` files produced by BasicCompiler append `;` to every line; without
 /// this the terminator leaks into the last function-call argument and the
 /// rewritten script fails to parse (e.g. `vibe_run("build an app";)`).
-fn strip_trailing_stmt_semicolon(s: &str) -> String {
-    let trimmed = s.trim_end();
+/// Unquote a BASIC token that may arrive wrapped in double quotes.
+fn unquote(s: &str) -> &str {
+    s.trim().trim_matches('"')
+}
+
+fn strip_trailing_stmt_semicolon(s: &str) -> String {    let trimmed = s.trim_end();
     if !trimmed.ends_with(';') {
         return trimmed.to_string();
     }
@@ -832,4 +1081,120 @@ pub fn preprocess_llm_keyword(script: &str) -> String {
     }
 
     result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn for_each_next_becomes_rhai_native_for() {
+        let script = "FOR EACH candidate IN allowed\nPRINT candidate\nNEXT\n";
+        let out = convert_multiword_keywords(script);
+        assert!(out.contains("for candidate in (allowed) {"), "got: {out}");
+        assert!(out.contains("}\n"), "closing brace missing: {out}");
+        assert!(!out.to_uppercase().contains("FOR_EACH"), "unconverted form leaked: {out}");
+    }
+
+    #[test]
+    fn underscored_for_each_from_ast_self_heals_at_runtime() {
+        // Exactly the shape stored in compiled .ast files.
+        let script = "allowed = SPLIT(TAXONOMY, \",\");\nFOR_EACH candidate in allowed;\nif candidate == answer {\n  category = candidate;\n}\nNEXT;\n";
+        let out = convert_multiword_keywords(script);
+        assert!(out.contains("for candidate in (allowed) {"), "got: {out}");
+        assert!(!out.contains("NEXT"), "bare NEXT leaked: {out}");
+    }
+
+    #[test]
+    fn nested_for_each_pairs_with_named_next() {
+        let script = "FOR EACH a IN xs\nFOR EACH b IN ys\nPRINT a + b\nNEXT b\nNEXT a\n";
+        let out = convert_multiword_keywords(script);
+        assert_eq!(out.matches("for ").count(), 2, "got: {out}");
+        assert_eq!(out.matches("}\n").count(), 2, "got: {out}");
+    }
+
+    #[test]
+    fn get_path_rewrite_and_protected_forms() {
+        let out = convert_multiword_keywords("GET \"/gbdialog/config.txt\"\n");
+        assert!(out.contains("get_file("), "got: {out}");
+        let out = convert_multiword_keywords("GET FROM customers WHERE id = 1\n");
+        assert!(!out.contains("get_file("), "GET FROM must not be rewritten: {out}");
+    }
+
+    #[test]
+    fn create_file_expression_path_becomes_create_file_call() {
+        // classify_media.bas shape: path is an expression, data is an expression.
+        let out = convert_multiword_keywords(
+            "CREATE FILE destination + \".meta.txt\" WITH \"category=\" + category\n",
+        );
+        assert!(
+            out.contains("create_file(destination + \".meta.txt\", \"category=\" + category);"),
+            "got: {out}"
+        );
+        assert!(!out.to_uppercase().contains("CREATE FILE"), "unconverted form leaked: {out}");
+    }
+
+    #[test]
+    fn create_file_literal_path_becomes_create_file_call() {
+        let out = convert_multiword_keywords("CREATE FILE \"x.txt\" WITH \"hello\"\n");
+        assert!(out.contains("create_file(\"x.txt\", \"hello\");"), "got: {out}");
+    }
+
+    #[test]
+    fn create_file_call_with_equals_in_string_is_not_let_prefixed() {
+        // classify_media.bas: the data argument contains `=` inside a string;
+        // the assignment heuristic must not mistake the call for `let x = ...`.
+        let script = "create_file(destination + \".meta.txt\", \"category=\" + category);\n";
+        let out = convert_if_then_syntax(script);
+        assert!(!out.contains("let create_file"), "got: {out}");
+        assert!(out.contains("create_file(destination + \".meta.txt\""), "got: {out}");
+    }
+
+    #[test]
+    fn bare_today_and_now_become_calls() {
+        // classify_media.bas shape: `let today = TODAY;` — TODAY is registered
+        // as a function at runtime, so the bare form must become a call.
+        let out = convert_multiword_keywords("let today = TODAY;\nlet stamp = NOW;\n");
+        assert!(out.contains("TODAY()"), "got: {out}");
+        assert!(out.contains("NOW()"), "got: {out}");
+        let out = convert_multiword_keywords("let a = TODAY();\n");
+        assert_eq!(out.matches("TODAY()").count(), 1, "no double call: {out}");
+        // Idempotency: an AST that already contains TODAY() must survive the
+        // runtime self-heal unchanged (the lookahead-less backtracking bug
+        // produced TODAY()()).
+        let out = convert_multiword_keywords("let today = TODAY();\n");
+        assert!(out.contains("TODAY();"), "double call: {out}");
+        assert!(!out.contains("TODAY()()"), "double call: {out}");
+    }
+
+    #[test]
+    fn today_inside_string_literal_is_not_rewritten() {
+        let out = convert_multiword_keywords("TALK \"TODAY is a good day\"\n");
+        assert!(out.contains("TODAY is a good day"), "string mangled: {out}");
+        assert!(!out.contains("TODAY()"), "got: {out}");
+    }
+
+    #[test]
+    fn perception_keywords_use_function_forms() {
+        let out = convert_multiword_keywords("DESCRIBE VIDEO path\nON ERROR RESUME NEXT\n");
+        assert!(out.contains("describe_video("), "got: {out}");
+        assert!(out.contains("on_error_resume_next("), "got: {out}");
+    }
+
+    #[test]
+    fn on_event_declaration_collapses_to_a_noop_call() {
+        // The tool being compiled IS the tool that runs, so the declaration
+        // names only the event; the compiled form must be the no-op runtime
+        // call, with the quotes stripped exactly once.
+        let out = convert_multiword_keywords("ON EVENT \"media_uploaded\"\nTALK \"done\"\n");
+        assert!(out.contains("on_event(\"media_uploaded\")"), "got: {out}");
+        assert!(!out.contains("CALL"), "tool name must not appear: {out}");
+        assert!(!out.to_uppercase().contains("ON EVENT"), "unconverted form leaked: {out}");
+    }
+
+    #[test]
+    fn on_event_accepts_a_bare_identifier() {
+        let out = convert_multiword_keywords("ON EVENT media_uploaded\n");
+        assert!(out.contains("on_event(\"media_uploaded\")"), "got: {out}");
+    }
 }

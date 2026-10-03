@@ -138,14 +138,14 @@ pub async fn create_app_state(
         llm_url
     };
 
-    // LLM endpoint path configuration
+    // LLM endpoint path configuration. Default to empty so
+    // create_llm_provider_from_url derives the correct path from the URL —
+    // forcing /v1/chat/completions appended to a full chat-completions URL
+    // (e.g. Kilo's https://api.kilo.ai/api/gateway/chat/completions) produced
+    // "Invalid path" 400s for every boot-time provider user (AutoTask).
     let llm_endpoint_path = config_manager
-        .get_config(
-            &default_bot_id,
-            "llm-endpoint-path",
-            Some("/v1/chat/completions"),
-        )
-        .unwrap_or_else(|_| "/v1/chat/completions".to_string());
+        .get_config(&default_bot_id, "llm-endpoint-path", Some(""))
+        .unwrap_or_default();
 
     #[cfg(feature = "llm")]
     let base_llm_provider = crate::llm::create_llm_provider_from_url(

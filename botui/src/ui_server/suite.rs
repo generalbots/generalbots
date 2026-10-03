@@ -176,13 +176,24 @@ pub async fn index(
             })
         });
         let query_token_present = query_token.is_some();
+        let cookie_token = headers
+            .get(axum::http::header::COOKIE)
+            .and_then(|c| c.to_str().ok())
+            .and_then(|c| {
+                c.split(';')
+                    .filter_map(|part| part.trim().split_once('='))
+                    .find(|(name, _)| *name == "gb-access-token")
+                    .map(|(_, value)| value.to_string())
+            })
+            .filter(|value| !value.is_empty());
         let auth_header = query_token
             .map(|t| format!("Bearer {}", t))
             .or_else(|| {
                 headers.get(axum::http::header::AUTHORIZATION)
                     .and_then(|v| v.to_str().ok())
                     .map(|s| s.to_string())
-            });
+            })
+            .or_else(|| cookie_token.map(|t| format!("Bearer {}", t)));
 
         let target_url = format!("{}/api/bots/{}/access", state.client.base_url(), bot);
         let client = crate::ui_server::tls_policy::backend_http_client(&state.client.base_url().to_string());

@@ -686,6 +686,11 @@ VAULT_CACERT={}
                     ("port".to_string(), "9100".to_string()),
                     ("bucket".to_string(), "default.gborg".to_string()),
                     ("url".to_string(), "".to_string()),
+                    // Backend selection (#1468). MinIO stays the runtime default;
+                    // `endpoint` overrides host/port when pointing at B2 or R2.
+                    ("backend".to_string(), "minio".to_string()),
+                    ("region".to_string(), "auto".to_string()),
+                    ("fallback_endpoint".to_string(), "".to_string()),
                 ],
             ),
             (

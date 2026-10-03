@@ -28,10 +28,15 @@ mod tests {
             "missing classify_media.bas in {}",
             dir.display()
         );
+        let script = std::fs::read_to_string(dir.join("classify_media.bas"))
+            .expect("classify_media.bas should be readable");
         assert!(
-            dir.join("classify_media.mcp.json").is_file(),
-            "missing classify_media.mcp.json in {}",
-            dir.display()
+            script.contains("PARAM path"),
+            "classify_media.bas does not declare the path argument"
+        );
+        assert!(
+            script.contains("PARAM caption"),
+            "classify_media.bas does not declare the caption argument"
         );
     }
 

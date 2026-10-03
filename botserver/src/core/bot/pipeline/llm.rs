@@ -246,6 +246,16 @@ pub async fn stream_llm_response(
                                         continue;
                                     }
                                     if chunk.contains("\"__tool_call__\"") {
+                                        // Each __tool_call__ chunk arrives as one
+                                        // complete JSON object (one per parallel
+                                        // tool call). Track them separately so the
+                                        // executor below runs every call with its
+                                        // own arguments; concatenating them merged
+                                        // distinct argument objects ("{..}{..}")
+                                        // and broke parsing.
+                                        if !full_response.is_empty() && !full_response.ends_with('\n') {
+                                            full_response.push('\n');
+                                        }
                                         full_response.push_str(&chunk);
                                         continue;
                                     }
@@ -289,9 +299,9 @@ pub async fn stream_llm_response(
                 log::info!("LLM RESPONSE end: {} bytes total, {} bytes content_buffer, has_tool_call={}, has_ui_plan={}, has_api_call={}", full_response.len(), content_buffer.len(), has_tool_call, has_ui_plan, has_api_call);
 
                 if has_api_call && handle_api_call(
-                    sink, state, &llm, llm_model, llm_key,
+                    sink, state, Some(&llm), llm_model, llm_key,
                     bot_uuid, session_id, user_id, bot_name,
-                    &full_response, user_text,
+                    &full_response, user_text, rx,
                 ).await {
                     {
                         let mut sm = state.session_manager.lock().await;
@@ -437,10 +447,28 @@ pub async fn stream_llm_response(
                             let _ = sink.send_bot_response(&final_resp).await;
                         }
                     } else {
-                        super::tool_exec::run_llm_tool_call(
-                            sink, state, bot_uuid, session_id, user_id, bot_name,
-                            &full_response, rx, user_text,
-                        ).await;
+                        // Execute every __tool_call__ JSON object in the reply,
+                        // not only the first: parallel calls (e.g. two media
+                        // items classified in one turn) must each run with
+                        // their own arguments.
+                        let call_chunks: Vec<&str> = full_response
+                            .split('\n')
+                            .filter(|c| c.contains("\"__tool_call__\":"))
+                            .collect();
+                        if call_chunks.len() > 1 {
+                            log::info!("Executing {} parallel tool calls", call_chunks.len());
+                            for call_chunk in call_chunks {
+                                super::tool_exec::run_llm_tool_call(
+                                    sink, state, bot_uuid, session_id, user_id, bot_name,
+                                    call_chunk, rx, user_text,
+                                ).await;
+                            }
+                        } else {
+                            super::tool_exec::run_llm_tool_call(
+                                sink, state, bot_uuid, session_id, user_id, bot_name,
+                                &full_response, rx, user_text,
+                            ).await;
+                        }
                     }
                 }
 
@@ -477,10 +505,10 @@ pub async fn stream_llm_response(
 /// Executes an `{"__api_call__": {"name", "params", "compose"}}` block found
 /// in the LLM reply. Returns true when the call was handled (even on error),
 /// so the caller skips the regular rendering path.
-async fn handle_api_call(
+pub(super) async fn handle_api_call(
     sink: &dyn ChannelSink,
     state: &Arc<AppState>,
-    llm: &Arc<dyn botlib::traits::LLMProvider>,
+    llm: Option<&Arc<dyn botlib::traits::LLMProvider>>,
     model: &str,
     key: &str,
     bot_uuid: Uuid,
@@ -489,6 +517,7 @@ async fn handle_api_call(
     bot_name: &str,
     full_response: &str,
     user_text: &str,
+    rx: &mut tokio::sync::mpsc::Receiver<botlib::models::BotResponse>,
 ) -> bool {
     use crate::core::bot::api_catalog;
     let payload = match extract_api_call_payload(full_response) {
@@ -502,6 +531,29 @@ async fn handle_api_call(
     let params = payload.get("params").cloned().unwrap_or(serde_json::Value::Null);
     let compose = payload.get("compose").and_then(|v| v.as_bool()).unwrap_or(false);
     let channel = sink.channel_type().to_string();
+
+    // Session tools (USE TOOL / AutoTask, e.g. classify_media) are NOT part
+    // of the declarative api-catalog; models sometimes emit them wrapped in
+    // an __api_call__ block, which used to fail with "unknown command".
+    // When the requested name belongs to the session's tool set, reroute to
+    // the regular MCP tool-call executor with equivalent arguments.
+    if crate::core::bot::tool_context::is_tool_associated_with_session(
+        &state.conn, &session_id, &name,
+    ) {
+        log::info!("api_call '{name}' is a session tool; rerouting to tool executor");
+        // run_llm_tool_call parses a FLAT payload: name + arguments-as-string
+        // on the same level as the __tool_call__ marker.
+        let args_str = serde_json::to_string(&params).unwrap_or_else(|_| "{}".to_string());
+        let args_escaped = serde_json::to_string(&args_str).unwrap_or_else(|_| "\"{}\"".to_string());
+        let synthetic = format!(
+            "{{\"__tool_call__\": true, \"name\": \"{name}\", \"arguments\": {args_escaped}}}"
+        );
+        super::tool_exec::run_llm_tool_call(
+            sink, state, bot_uuid, session_id, user_id, bot_name,
+            &synthetic, rx, user_text,
+        ).await;
+        return true;
+    }
 
     // The LLM may have spoken a short "working on it..." line before the
     // __api_call__ block. Surface it to the user so the tool call feels
@@ -557,13 +609,34 @@ async fn handle_api_call(
         Ok(result) => {
             if compose {
                 let deep_links = extract_deep_links(&result);
+                // Grounding: the model once answered "I created the automation"
+                // after a discovery-only command returned nothing but a match
+                // list, and nothing was ever created. Spell out what the data
+                // does and does not support.
+                let created_something = result
+                    .get("created_resources")
+                    .and_then(|c| c.as_array())
+                    .is_some_and(|a| !a.is_empty());
+                let performed_action =
+                    result.get("success").and_then(|s| s.as_bool()).unwrap_or(false)
+                        || created_something;
+                let grounding = if performed_action {
+                    "The data confirms the action was carried out: report it as done.\n"
+                } else {
+                    "The data does NOT show that any action was carried out — it is a lookup, a search \
+                     or an empty result. Never tell the user that something was created, saved, sent or \
+                     scheduled. If they asked for an action, say you could not perform it yet and what \
+                     you would need.\n"
+                };
                 let prompt = format!(
                     "You are the assistant of bot '{bot_name}'. The user asked: \"{user_text}\".\n\
                      You ran the command '{name}' and received this data:\n{json}\n\n\
+                     {grounding}\
                      Write a concise, friendly answer for the user in the language of the user's message, \
                      using the data. Never mention JSON, commands or internal details.\n\
                      {deep_link_instruction}",
                     json = serde_json::to_string_pretty(&result).unwrap_or_default(),
+                    grounding = grounding,
                     deep_link_instruction = if deep_links.is_empty() {
                         String::new()
                     } else {
@@ -575,23 +648,38 @@ async fn handle_api_call(
                         )
                     },
                 );
-                match llm.generate(&prompt, &serde_json::json!({}), model, key).await {
-                    Ok(text) => {
+                // A rerouted tool call may arrive before a provider is resolved
+                // for this bot; the command result is then reported raw.
+                let composed = match llm {
+                    Some(llm) => llm.generate(&prompt, &serde_json::json!({}), model, key).await.ok(),
+                    None => None,
+                };
+                match composed {
+                    Some(text) => {
                         let resp = botlib::models::BotResponse::new(
                             bot_uuid.to_string(), session_id.to_string(), user_id.to_string(),
                             &text, &channel,
                         );
                         let _ = sink.send_bot_response(&resp).await;
                     }
-                    Err(e) => {
-                        log::error!("api_call compose LLM error: {e}");
-                        let fallback = if deep_links.is_empty() {
-                            "Dados obtidos, mas falhei ao redigir a resposta.".to_string()
-                        } else {
-                            format!(
-                                "Here is the record you asked about: {link}",
-                                link = deep_links[0],
-                            )
+                    None => {
+                        // Never lose the result to a composition failure: the
+                        // command's own message is the most useful thing we
+                        // have, and a bare apology told the user nothing.
+                        let command_message = result
+                            .get("message")
+                            .and_then(|m| m.as_str())
+                            .map(str::trim)
+                            .filter(|m| !m.is_empty())
+                            .map(str::to_string);
+                        let fallback = match (command_message, deep_links.first()) {
+                            (Some(message), _) => message,
+                            (None, Some(link)) => format!(
+                                "Here is the record you asked about: {link}"
+                            ),
+                            (None, None) => {
+                                "Dados obtidos, mas falhei ao redigir a resposta.".to_string()
+                            }
                         };
                         let resp = botlib::models::BotResponse::new(
                             bot_uuid.to_string(), session_id.to_string(), user_id.to_string(),

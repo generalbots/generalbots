@@ -1,17 +1,22 @@
+//! #1441 — deal reads/creation and the branch summary stats. State-changing
+//! deal and activity handlers live in `deals_mutate.rs` / `activities.rs` and
+//! the stage catalog in `crate::stages`, so every file stays inside the
+//! 450-line budget.
+
 use axum::{
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
     Json,
 };
-use chrono::{DateTime, NaiveDate, Utc};
+use chrono::{NaiveDate, Utc};
 use diesel::prelude::*;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::audit;
 use crate::models::*;
 use crate::requests::*;
-use crate::schema::{crm_deals, crm_activities, crm_pipeline_stages, crm_contacts, crm_accounts};
-use crate::scope::branch_from_jwt;
+use crate::schema::{crm_accounts, crm_contacts, crm_deals};
 use crate::CrateState;
 
 fn default_bot_id(state: &CrateState) -> Uuid {
@@ -95,10 +100,27 @@ pub async fn create_deal(
     })?;
 
     let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| state.get_bot_context());
+
+    // #1441 C4 — required-field validation server-side: an unnamed deal is
+    // unusable in every grid and cannot be searched.
+    let title = req
+        .title
+        .clone()
+        .or_else(|| req.name.clone())
+        .map(|t| t.trim().to_string())
+        .filter(|t| !t.is_empty());
+    let Some(title) = title else {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "title (or name) is required".to_string(),
+        ));
+    };
+
     let id = Uuid::new_v4();
     let now = Utc::now();
 
-    let expected_close = req.expected_close_date
+    let expected_close = req
+        .expected_close_date
         .and_then(|d| NaiveDate::parse_from_str(&d, "%Y-%m-%d").ok());
 
     let stage = req.stage.unwrap_or_else(|| "new".to_string());
@@ -114,7 +136,7 @@ pub async fn create_deal(
         am_id: None,
         lead_id: None,
         owner_id: req.owner_id,
-        title: req.title,
+        title: Some(title),
         name: req.name.unwrap_or_default(),
         description: req.description,
         value: req.value,
@@ -144,6 +166,17 @@ pub async fn create_deal(
         .execute(&mut conn)
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert deal error: {e}")))?;
 
+    audit::record(
+        &state,
+        &headers,
+        branch_id,
+        "deal",
+        Some(id),
+        "create",
+        None,
+        Some(serde_json::to_value(&deal).unwrap_or(serde_json::Value::Null)),
+        None,
+    );
     Ok(Json(deal))
 }
 
@@ -168,210 +201,9 @@ pub async fn get_deal(
     Ok(Json(deal))
 }
 
-pub async fn update_deal(
-    State(state): State<Arc<CrateState>>,
-    headers: HeaderMap,
-    Path(id): Path<Uuid>,
-    Json(req): Json<UpdateDealRequest>,
-) -> Result<Json<CrmDeal>, (StatusCode, String)> {
-    let mut conn = state.db_pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
 
-    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
-        .unwrap_or_else(|| state.get_bot_context());
 
-    let now = Utc::now();
 
-    diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
-                .filter(crm_deals::branch_id.eq(branch_id)))
-        .set(crm_deals::updated_at.eq(now))
-        .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-
-    if let Some(title) = req.title {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
-                .filter(crm_deals::branch_id.eq(branch_id)))
-            .set(crm_deals::title.eq(title))
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-    }
-
-    if let Some(name) = req.name {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
-                .filter(crm_deals::branch_id.eq(branch_id)))
-            .set(crm_deals::name.eq(name))
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-    }
-
-    if let Some(value) = req.value {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
-                .filter(crm_deals::branch_id.eq(branch_id)))
-            .set(crm_deals::value.eq(value))
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-    }
-
-    if let Some(currency) = req.currency {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
-                .filter(crm_deals::branch_id.eq(branch_id)))
-            .set(crm_deals::currency.eq(currency))
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-    }
-
-    if let Some(stage) = req.stage {
-        let probability = stage_probability(&stage);
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
-                .filter(crm_deals::branch_id.eq(branch_id)))
-            .set((crm_deals::stage.eq(&stage), crm_deals::probability.eq(probability)))
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-
-        if stage == "won" || stage == "lost" {
-            diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
-                .filter(crm_deals::branch_id.eq(branch_id)))
-                .set(crm_deals::closed_at.eq(Some(now)))
-                .execute(&mut conn)
-                .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-        }
-    }
-
-    if let Some(department_id) = req.department_id {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
-                .filter(crm_deals::branch_id.eq(branch_id)))
-            .set(crm_deals::department_id.eq(department_id))
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-    }
-
-    if let Some(owner_id) = req.owner_id {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
-                .filter(crm_deals::branch_id.eq(branch_id)))
-            .set(crm_deals::owner_id.eq(owner_id))
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-    }
-
-    if let Some(lost_reason) = req.lost_reason {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
-                .filter(crm_deals::branch_id.eq(branch_id)))
-            .set(crm_deals::lost_reason.eq(lost_reason))
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-    }
-
-    if let Some(won) = req.won {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
-                .filter(crm_deals::branch_id.eq(branch_id)))
-            .set((crm_deals::won.eq(won), crm_deals::closed_at.eq(Some(now))))
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-    }
-
-    if let Some(notes) = req.notes {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
-                .filter(crm_deals::branch_id.eq(branch_id)))
-            .set(crm_deals::notes.eq(notes))
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-    }
-
-    if let Some(tags) = req.tags {
-        diesel::update(crm_deals::table.filter(crm_deals::id.eq(id))
-                .filter(crm_deals::branch_id.eq(branch_id)))
-            .set(crm_deals::tags.eq(Some(tags)))
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-    }
-
-    get_deal(State(state), headers, Path(id)).await
-}
-
-pub async fn delete_deal(
-    State(state): State<Arc<CrateState>>,
-    headers: HeaderMap,
-    Path(id): Path<Uuid>,
-) -> Result<StatusCode, (StatusCode, String)> {
-    let mut conn = state.db_pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
-
-    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
-        .unwrap_or_else(|| state.get_bot_context());
-
-    diesel::delete(crm_deals::table.filter(crm_deals::id.eq(id))
-                .filter(crm_deals::branch_id.eq(branch_id)))
-        .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
-
-    Ok(StatusCode::NO_CONTENT)
-}
-
-pub async fn create_activity(
-    State(state): State<Arc<CrateState>>,
-    headers: HeaderMap,
-    Json(req): Json<CreateActivityRequest>,
-) -> Result<Json<CrmActivity>, (StatusCode, String)> {
-    let mut conn = state.db_pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
-
-    let branch_id = branch_from_jwt(&headers, &mut conn)
-        .unwrap_or_else(|| state.get_bot_context());
-    let id = Uuid::new_v4();
-    let now = Utc::now();
-
-    let due_date = req.due_date
-        .and_then(|d| DateTime::parse_from_rfc3339(&d).ok())
-        .map(|d| d.with_timezone(&Utc));
-
-    let activity = CrmActivity {
-        id,
-        org_id: state.org_for_branch(branch_id),
-        bot_id: state.bot_for_branch(branch_id),
-        branch_id,
-        contact_id: req.contact_id,
-        activity_type: req.activity_type,
-        subject: req.subject.unwrap_or_default(),
-        description: req.description,
-        due_date,
-        completed_at: None,
-        created_at: now,
-        lead_id: req.lead_id,
-        opportunity_id: req.opportunity_id,
-        account_id: req.account_id,
-        outcome: None,
-        owner_id: None,
-    };
-
-    diesel::insert_into(crm_activities::table)
-        .values(&activity)
-        .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Insert error: {e}")))?;
-
-    Ok(Json(activity))
-}
-
-pub async fn get_pipeline_stages(
-    State(state): State<Arc<CrateState>>,
-    headers: HeaderMap,
-) -> Result<Json<Vec<CrmPipelineStage>>, (StatusCode, String)> {
-    let mut conn = state.db_pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
-
-    let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn).unwrap_or_else(|| state.get_bot_context());
-
-    let stages: Vec<CrmPipelineStage> = crm_pipeline_stages::table
-        .filter(crm_pipeline_stages::branch_id.eq(branch_id))
-        .order(crm_pipeline_stages::stage_order.asc())
-        .load(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Query error: {e}")))?;
-
-    Ok(Json(stages))
-}
 
 pub async fn get_crm_stats(
     State(state): State<Arc<CrateState>>,
@@ -412,6 +244,21 @@ pub async fn get_crm_stats(
     let won_this_month: i64 = crm_deals::table
         .filter(crm_deals::branch_id.eq(branch_id))
         .filter(crm_deals::won.eq(Some(true)))
+        .filter(crm_deals::closed_at.ge(Utc::now() - chrono::Duration::days(31)))
+        .count()
+        .get_result(&mut conn)
+        .unwrap_or(0);
+
+    // #1441 C7 — the summary card reported 0.0 regardless of the real pipeline.
+    let pipeline_value: Option<f64> = crm_deals::table
+        .filter(crm_deals::branch_id.eq(branch_id))
+        .filter(crm_deals::closed_at.is_null())
+        .select(diesel::dsl::sum(crm_deals::value))
+        .get_result(&mut conn)
+        .unwrap_or(None);
+
+    let total_campaigns: i64 = crate::schema::marketing_campaigns::table
+        .filter(crate::schema::marketing_campaigns::branch_id.eq(branch_id))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
@@ -421,8 +268,8 @@ pub async fn get_crm_stats(
         total_accounts,
         total_leads,
         total_opportunities,
-        total_campaigns: 0,
-        pipeline_value: 0.0,
+        total_campaigns,
+        pipeline_value: pipeline_value.unwrap_or(0.0),
         won_this_month,
         conversion_rate: if total_leads > 0 {
             (won_this_month as f64 / total_leads as f64) * 100.0

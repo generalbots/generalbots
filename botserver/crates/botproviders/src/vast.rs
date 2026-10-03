@@ -1,6 +1,7 @@
 use crate::{ComputeProvider, MachineSpec, ProvisionResult, ProviderError, ProviderInfo};
 use async_trait::async_trait;
 
+#[derive(Debug, Default)]
 pub struct VastAiProvider;
 
 impl VastAiProvider {
@@ -217,6 +218,7 @@ impl ComputeProvider for VastAiProvider {
                         gpu_type: gpu_name,
                         gpu_count: inst["num_gpus"].as_u64().unwrap_or(1) as u32,
                         bandwidth_tb: 0,
+                        use_spot: false,
                     },
                     hourly_cost: inst["dph_total"].as_f64().unwrap_or(0.0),
                 }

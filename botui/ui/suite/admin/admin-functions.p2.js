@@ -419,11 +419,13 @@
       );
   }
 
+  // E-mail surface removed (#1546): no mailto actions in the UI.
   function contactSales() {
-    window.open(
-      "mailto:sales@example.com?subject=Enterprise Plan Inquiry",
-      "_blank",
-    );
+    if (typeof showUpgradeModal === "function") {
+      showUpgradeModal();
+    } else if (typeof showToast === "function") {
+      showToast("Contact sales is disabled", "info");
+    }
   }
 
   function showDowngradeOptions() {

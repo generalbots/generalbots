@@ -8,6 +8,7 @@ use diesel::prelude::*;
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::audit;
 use crate::models::*;
 use crate::requests::*;
 use crate::schema::crm_contacts;
@@ -16,6 +17,10 @@ use crate::CrateState;
 
 fn get_bot_context(state: &CrateState) -> Uuid {
     state.get_bot_context()
+}
+
+fn db_err<E: std::fmt::Display>(e: E) -> (StatusCode, String) {
+    (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
 }
 
 pub async fn create_contact(
@@ -29,6 +34,33 @@ pub async fn create_contact(
 
     let branch_id = branch_from_jwt(&headers, &mut conn)
         .unwrap_or_else(|| get_bot_context(&state));
+
+    // #1441 A2 — email is the dedupe key inside the branch: creating a second
+    // row for the same person silently split their pipeline in two.
+    let email = req
+        .email
+        .as_deref()
+        .map(str::trim)
+        .filter(|e| !e.is_empty())
+        .map(|e| e.to_lowercase());
+    if let Some(mail) = &email {
+        let existing = find_by_email(&mut conn, branch_id, mail).await;
+        if let Some(found) = existing {
+            audit::record(
+                &state,
+                &headers,
+                branch_id,
+                "contact",
+                Some(found.id),
+                "create_deduplicated",
+                None,
+                Some(serde_json::json!({ "email": found.email })),
+                None,
+            );
+            return Ok(Json(found));
+        }
+    }
+
     let id = Uuid::new_v4();
     let now = Utc::now();
 
@@ -68,7 +100,31 @@ pub async fn create_contact(
 
     (state.trigger_contact_change)(&mut conn, id, "created", branch_id);
 
+    audit::record(
+        &state,
+        &headers,
+        branch_id,
+        "contact",
+        Some(id),
+        "create",
+        None,
+        Some(serde_json::to_value(&contact).unwrap_or(serde_json::Value::Null)),
+        None,
+    );
+
     Ok(Json(contact))
+}
+
+async fn find_by_email(
+    conn: &mut diesel::PgConnection,
+    branch_id: Uuid,
+    email: &str,
+) -> Option<CrmContact> {
+    crm_contacts::table
+        .filter(crm_contacts::branch_id.eq(branch_id))
+        .filter(crm_contacts::email.ilike(email))
+        .first::<CrmContact>(conn)
+        .ok()
 }
 
 pub async fn list_contacts(
@@ -144,86 +200,112 @@ pub async fn get_contact(
     Ok(Json(contact))
 }
 
+/// `PUT /api/crm/contacts/:id` — one statement, one audit row. The previous
+/// field-by-field update ran a query per field and wrote no audit trail, so
+/// "who changed this contact" was unanswerable (C5).
 pub async fn update_contact(
     State(state): State<Arc<CrateState>>,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(req): Json<UpdateContactRequest>,
 ) -> Result<Json<CrmContact>, (StatusCode, String)> {
-    let mut conn = state.db_pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
-
+    let mut conn = state.db_pool.get().map_err(db_err)?;
     let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
         .unwrap_or_else(|| get_bot_context(&state));
 
-    let now = Utc::now();
+    let before: CrmContact = crm_contacts::table
+        .filter(crm_contacts::id.eq(id))
+        .filter(crm_contacts::branch_id.eq(branch_id))
+        .first(&mut conn)
+        .map_err(|_| (StatusCode::NOT_FOUND, "Contact not found".to_string()))?;
 
-    diesel::update(crm_contacts::table.filter(crm_contacts::id.eq(id))
-                .filter(crm_contacts::branch_id.eq(branch_id)))
-        .set(crm_contacts::updated_at.eq(now))
-        .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
+    diesel::update(
+        crm_contacts::table
+            .filter(crm_contacts::id.eq(id))
+            .filter(crm_contacts::branch_id.eq(branch_id)),
+    )
+    .set((
+        req.first_name.clone().map(|v| crm_contacts::first_name.eq(v)),
+        req.last_name.clone().map(|v| crm_contacts::last_name.eq(v)),
+        req.email.clone().map(|v| crm_contacts::email.eq(v)),
+        req.phone.clone().map(|v| crm_contacts::phone.eq(v)),
+        req.mobile.clone().map(|v| crm_contacts::mobile.eq(v)),
+        req.company.clone().map(|v| crm_contacts::company.eq(v)),
+        req.job_title.clone().map(|v| crm_contacts::job_title.eq(v)),
+        req.status.clone().map(|v| crm_contacts::status.eq(v)),
+        req.tags.clone().map(|v| crm_contacts::tags.eq(v)),
+        req.notes.clone().map(|v| crm_contacts::notes.eq(v)),
+        req.owner_id.map(|v| crm_contacts::owner_id.eq(v)),
+        crm_contacts::updated_at.eq(Utc::now()),
+    ))
+    .execute(&mut conn)
+    .map_err(db_err)?;
 
-    if let Some(first_name) = req.first_name {
-        diesel::update(crm_contacts::table.filter(crm_contacts::id.eq(id))
-                .filter(crm_contacts::branch_id.eq(branch_id)))
-            .set(crm_contacts::first_name.eq(first_name))
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-    }
+    (state.trigger_contact_change)(&mut conn, id, "updated", branch_id);
 
-    if let Some(last_name) = req.last_name {
-        diesel::update(crm_contacts::table.filter(crm_contacts::id.eq(id))
-                .filter(crm_contacts::branch_id.eq(branch_id)))
-            .set(crm_contacts::last_name.eq(last_name))
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-    }
+    let after: CrmContact = crm_contacts::table
+        .filter(crm_contacts::id.eq(id))
+        .filter(crm_contacts::branch_id.eq(branch_id))
+        .first(&mut conn)
+        .map_err(|_| (StatusCode::NOT_FOUND, "Contact not found".to_string()))?;
 
-    if let Some(email) = req.email {
-        diesel::update(crm_contacts::table.filter(crm_contacts::id.eq(id))
-                .filter(crm_contacts::branch_id.eq(branch_id)))
-            .set(crm_contacts::email.eq(email))
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-    }
+    audit::record(
+        &state,
+        &headers,
+        branch_id,
+        "contact",
+        Some(id),
+        "update",
+        Some(serde_json::to_value(&before).unwrap_or(serde_json::Value::Null)),
+        Some(serde_json::to_value(&after).unwrap_or(serde_json::Value::Null)),
+        None,
+    );
 
-    if let Some(phone) = req.phone {
-        diesel::update(crm_contacts::table.filter(crm_contacts::id.eq(id))
-                .filter(crm_contacts::branch_id.eq(branch_id)))
-            .set(crm_contacts::phone.eq(phone))
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-    }
-
-    if let Some(status) = req.status {
-        diesel::update(crm_contacts::table.filter(crm_contacts::id.eq(id))
-                .filter(crm_contacts::branch_id.eq(branch_id)))
-            .set(crm_contacts::status.eq(status))
-            .execute(&mut conn)
-            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Update error: {e}")))?;
-    }
-
-    get_contact(State(state), headers, Path(id)).await
+    Ok(Json(after))
 }
 
+/// `DELETE /api/crm/contacts/:id` — snapshots the row into the audit trail
+/// before removing it.
 pub async fn delete_contact(
     State(state): State<Arc<CrateState>>,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, (StatusCode, String)> {
-    let mut conn = state.db_pool.get().map_err(|e| {
-        (StatusCode::INTERNAL_SERVER_ERROR, format!("DB error: {e}"))
-    })?;
-
+    let mut conn = state.db_pool.get().map_err(db_err)?;
     let branch_id = crate::scope::branch_from_jwt(&headers, &mut conn)
         .unwrap_or_else(|| get_bot_context(&state));
 
-    diesel::delete(crm_contacts::table.filter(crm_contacts::id.eq(id))
-                .filter(crm_contacts::branch_id.eq(branch_id)))
-        .execute(&mut conn)
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Delete error: {e}")))?;
+    let before: Option<CrmContact> = crm_contacts::table
+        .filter(crm_contacts::id.eq(id))
+        .filter(crm_contacts::branch_id.eq(branch_id))
+        .first(&mut conn)
+        .ok();
 
+    // #1441 C5 — destructive action restricted to the record owner or an admin.
+    crate::authz::ensure_can_modify(&mut conn, &headers, before.as_ref().and_then(|c| c.owner_id))?;
+
+    diesel::delete(
+        crm_contacts::table
+            .filter(crm_contacts::id.eq(id))
+            .filter(crm_contacts::branch_id.eq(branch_id)),
+    )
+    .execute(&mut conn)
+    .map_err(db_err)?;
+
+    (state.trigger_contact_change)(&mut conn, id, "deleted", branch_id);
+
+    if let Some(row) = before {
+        audit::record(
+            &state,
+            &headers,
+            branch_id,
+            "contact",
+            Some(id),
+            "delete",
+            Some(serde_json::to_value(&row).unwrap_or(serde_json::Value::Null)),
+            None,
+            None,
+        );
+    }
     Ok(StatusCode::NO_CONTENT)
 }

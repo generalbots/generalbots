@@ -127,15 +127,45 @@ async fn store_media(
     bot_id: Uuid,
     media: &InboundMedia,
 ) -> Result<String, String> {
-    let file_path = adapter
-        .get_file(&media.file_id)
-        .await
-        .map_err(|e| format!("getFile failed: {e}"))?;
+    // Telegram file endpoints are served by a CDN front that occasionally
+    // drops a transfer mid-stream under burst load (five videos sent in a
+    // row is exactly that case). A transient failure surfaces to the user as
+    // "could not download", so retry twice with backoff before giving up.
+    let mut file_path = String::new();
+    let mut last_err = String::new();
+    for attempt in 0..3 {
+        if attempt > 0 {
+            tokio::time::sleep(std::time::Duration::from_secs(2 * attempt as u64)).await;
+        }
+        match adapter.get_file(&media.file_id).await {
+            Ok(path) => {
+                file_path = path;
+                break;
+            }
+            Err(e) => last_err = format!("getFile failed: {e}"),
+        }
+    }
+    if file_path.is_empty() {
+        return Err(last_err);
+    }
 
-    let bytes = adapter
-        .download_file(&file_path)
-        .await
-        .map_err(|e| format!("download failed: {e}"))?;
+    let mut bytes: Vec<u8> = Vec::new();
+    for attempt in 0..3 {
+        if attempt > 0 {
+            tokio::time::sleep(std::time::Duration::from_secs(2 * attempt as u64)).await;
+        }
+        match adapter.download_file(&file_path).await {
+            Ok(data) if !data.is_empty() => {
+                bytes = data;
+                break;
+            }
+            Ok(_) => last_err = "Telegram returned an empty file".to_string(),
+            Err(e) => last_err = format!("download failed: {e}"),
+        }
+    }
+    if bytes.is_empty() {
+        return Err(last_err);
+    }
 
     if bytes.is_empty() {
         return Err("Telegram returned an empty file".to_string());

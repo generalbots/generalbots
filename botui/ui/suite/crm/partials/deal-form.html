@@ -1,0 +1,85 @@
+<!-- Deal / opportunity form — one partial, two endpoints (#1441 B).
+     A converted opportunity is the same `crm_deals` row, so the form posts to
+     /api/crm/deals (deal) or /api/crm/opportunities (opportunity). -->
+<form class="crm-form" id="crm-record-form" data-entity="deal">
+    <div class="crm-form-header">
+        <h2 class="crm-form-title" data-form-title>New Deal</h2>
+        <button type="button" class="crm-form-close" onclick="closeCrmModal()" title="Close">×</button>
+    </div>
+    <input type="hidden" name="id" id="crm-record-id" value="">
+
+    <div class="crm-form-group">
+        <label class="crm-form-label">Title *</label>
+        <input type="text" name="title" id="crm-name" class="crm-form-input" required>
+    </div>
+
+    <div class="crm-form-row">
+        <div class="crm-form-group">
+            <label class="crm-form-label">Value</label>
+            <input type="number" name="value" id="crm-value" class="crm-form-input" min="0" step="0.01">
+        </div>
+        <div class="crm-form-group">
+            <label class="crm-form-label">Currency</label>
+            <select name="currency" id="crm-currency" class="crm-form-select">
+                <option value="USD" selected>USD $</option>
+                <option value="EUR">EUR €</option>
+                <option value="BRL">BRL R$</option>
+                <option value="GBP">GBP £</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="crm-form-row">
+        <div class="crm-form-group">
+            <label class="crm-form-label">Stage</label>
+            <select name="stage" id="crm-stage" class="crm-form-select" data-stage-options></select>
+        </div>
+        <div class="crm-form-group">
+            <label class="crm-form-label">Expected Close</label>
+            <input type="date" name="expected_close_date" id="crm-close-date" class="crm-form-input">
+        </div>
+    </div>
+
+    <div class="crm-form-row">
+        <div class="crm-form-group">
+            <label class="crm-form-label">Contact</label>
+            <select name="contact_id" id="crm-contact-select" class="crm-form-select"
+                    hx-get="/api/crm/contacts/search" hx-trigger="load"></select>
+        </div>
+        <div class="crm-form-group">
+            <label class="crm-form-label">Account</label>
+            <select name="account_id" id="crm-account-select" class="crm-form-select"
+                    hx-get="/api/crm/accounts/search" hx-trigger="load"></select>
+        </div>
+    </div>
+
+    <div class="crm-form-row">
+        <div class="crm-form-group">
+            <label class="crm-form-label">Source</label>
+            <select name="source" id="crm-source" class="crm-form-select">
+                <option value="website">Website</option>
+                <option value="referral">Referral</option>
+                <option value="linkedin">LinkedIn</option>
+                <option value="email">Email Campaign</option>
+                <option value="event">Event/Conference</option>
+                <option value="cold-call">Cold Call</option>
+                <option value="partner">Partner</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+        <div class="crm-form-group">
+            <label class="crm-form-label">Lost reason</label>
+            <input type="text" name="lost_reason" id="crm-lost-reason" class="crm-form-input" placeholder="When the deal is lost">
+        </div>
+    </div>
+
+    <div class="crm-form-group">
+        <label class="crm-form-label">Notes</label>
+        <textarea name="notes" id="crm-notes" class="crm-form-textarea" rows="3"></textarea>
+    </div>
+
+    <div class="crm-form-actions">
+        <button type="button" class="crm-form-btn secondary" onclick="closeCrmModal()">Cancel</button>
+        <button type="submit" class="crm-form-btn primary">Create Deal</button>
+    </div>
+</form>

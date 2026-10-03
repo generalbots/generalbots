@@ -170,28 +170,44 @@ impl DriveCompiler {
             let b_is_tables = b.0.contains("tables.bas");
             b_is_tables.cmp(&a_is_tables)
         });
-        // Reform #1501 — bots whose sources were imported into git (vibe
-        // bootstrap sets `source_imported_at`) are fed by the git monitor
-        // (#1502), which stamps etags with commit hashes; the S3 download
-        // path must not fight it. Skip their object-key-shaped paths here —
-        // the monitor's own entries carry the same key format, so filter by
-        // the payload marker instead of the path shape.
+        // Reform #1501 — git-owned detection (vibe `source_imported_at`) is
+        // used only to WARN when a git-owned bot's source changes in Drive;
+        // compilation still proceeds so Drive remains the operational
+        // fallback when a bot's git repo lags behind (see loop below).
         let git_owned = git_owned_bots(&mut conn);
 
         for (query_file_path, _file_type, current_etag_opt) in files {
             let current_etag = current_etag_opt.unwrap_or_default();
-            // Reform #1501 — skip bots owned by the git monitor: their branch
-            // slug (the leading path segment) resolved to a vibe project with
-            // `source_imported_at` set, so git is the only source of truth.
+            // Reform #1501 — bots whose sources were imported into git are
+            // nominally fed by the git monitor (#1502). The leading drive_files
+            // path segment is the object-key form "{branch}.gbai", while
+            // git_owned_bots returns the bare branch slug, so normalize to the
+            // slug before comparing. We deliberately do NOT skip compilation:
+            // repos provisioned at import time lag Drive for tools added
+            // afterwards (a media-filing bot froze for hours), so Drive
+            // stays the operational fallback and the mismatch is surfaced as a
+            // warning instead of silently freezing updates.
             let branch_segment = query_file_path.split('/').next().unwrap_or("");
+            let branch_slug = branch_segment.strip_suffix(".gbai").unwrap_or(branch_segment);
             let bot_segment = query_file_path
                 .split('/')
                 .nth(1)
                 .unwrap_or("")
                 .strip_suffix(".gbdialog")
                 .unwrap_or("");
-            if git_owned.contains(&(branch_segment.to_string(), bot_segment.to_string())) {
-                continue;
+            if !bot_segment.is_empty()
+                && git_owned.contains(&(branch_slug.to_string(), bot_segment.to_string()))
+            {
+                let etag_changed = {
+                    let etags = self.last_etags.read().await;
+                    etags.get(&query_file_path).map(|e| e != &current_etag).unwrap_or(true)
+                };
+                if etag_changed {
+                    info!(
+                        "DriveCompiler: {} changed in Drive for git-owned bot '{}' — the repository is the source of truth, compiling the git-materialized copy (push through git to make this change durable)",
+                        query_file_path, bot_segment
+                    );
+                }
             }
 
             // Verificar se precisa compilar (ETag mudou ou .ast foi deletado do work dir)
@@ -282,9 +298,27 @@ impl DriveCompiler {
         // Caminho do .bas no work
         let work_bas_path = work_dir.join(format!("{}.bas", tool_name));
 
-        // Always download latest from S3 to ensure work dir is in sync
+        // Reform #1501/#1502 — a git-owned bot's `.gbdialog` lives in its
+        // repository: the git monitor materializes the committed sources into
+        // this work dir and queues the file for compile. Downloading the Drive
+        // object here overwrote that materialization with a stale copy — the
+        // split brain that froze a media-filing bot for hours — so the
+        // materialized work copy is compiled as-is.
+        let git_owned = {
+            let mut conn = self.state.conn.get()?;
+            git_owned_bots(&mut conn).contains(&(branch_name.clone(), bot_name.clone()))
+        };
+        let use_work_copy = git_owned && work_bas_path.exists();
+
         info!("Downloading {} from S3 to work dir", fp);
-        let download_result = download_from_s3(fp, &self.state).await;
+        let download_result = if use_work_copy {
+            info!(
+                "git-owned bot '{bot_name}': compiling the source materialized from git, Drive copy bypassed"
+            );
+            Err(format!("git-owned bot '{bot_name}': Drive copy bypassed").into())
+        } else {
+            download_from_s3(fp, &self.state).await
+        };
         
         match download_result {
             Ok(content) => {
@@ -310,8 +344,10 @@ impl DriveCompiler {
                     debug!("S3 object still missing (suppressed): {}", fp);
                 } else if missing {
                     warn!("S3 object missing: {} (compacted; details suppressed until it reappears)", fp);
+                } else if use_work_copy {
+                    debug!("Git-owned source compiled from the work copy: {}", fp);
                 } else {
-                    info!("Failed to download {} from S3 and no local copy: {}", fp, e);
+                    info!("No Drive copy of {} ({}); using the work copy", fp, e);
                 }
                 if !work_bas_path.exists() {
                     // #1264 — a permanently-absent object with no work copy used
@@ -359,6 +395,18 @@ impl DriveCompiler {
                 .map(|_| ())
                 .map_err(|e| e.to_string())
         }));
+        // `ON EVENT "<event>"` in a tool: the tool subscribes itself to a
+        // channel event at design time. Registered here (not at run time)
+        // because the tool only ever runs *because* of the event.
+        callbacks.execute_on_event = Some(Box::new(|conn, event, script, bot_id| {
+            botcore::shared::basic_events::register_handler_on(
+                conn,
+                bot_id,
+                event,
+                script,
+            )
+            .map_err(|e| e.to_string())
+        }));
         callbacks.execute_webhook = Some(Box::new(|conn, endpoint, script, bot_id| {
             crate::basic::keywords::webhook::execute_webhook_registration(conn, endpoint, script, bot_id)
                 .map(|_| ())
@@ -382,6 +430,42 @@ impl DriveCompiler {
             work_bas_path.to_str().ok_or("Invalid path")?,
             work_dir.to_str().ok_or("Invalid path")?
         )?;
+
+        // A tool's MCP manifest in Drive is the source of truth for its
+        // argument schema. compile_file() always regenerates a manifest from
+        // the .bas (with an empty schema when the script declares no
+        // parameters), which clobbers the richer manifest persisted by
+        // AutoTask shipped templates; tool_exec relies on
+        // input_schema.properties to default arguments the LLM omitted
+        // (otherwise optional params reach the script as undeclared
+        // variables and abort it). Sync the Drive copy over the generated
+        // one when it exists; missing manifests keep the generated fallback.
+        let manifest_fp = match fp.strip_suffix(".bas") {
+            Some(base) => format!("{base}.mcp.json"),
+            None => fp.to_string(),
+        };
+        let work_manifest_path = work_dir.join(format!("{}.mcp.json", tool_name));
+        // The repository's manifest is materialized next to the source, so a
+        // git-owned bot keeps it (same reason as the source above).
+        let manifest_sync = if use_work_copy && work_manifest_path.exists() {
+            debug!("git-owned bot '{bot_name}': keeping the repository manifest for {manifest_fp}");
+            Err(format!("git-owned bot '{bot_name}': Drive manifest bypassed").into())
+        } else {
+            download_from_s3(&manifest_fp, &self.state).await
+        };
+        match manifest_sync {
+            Ok(bytes) => match String::from_utf8(bytes) {
+                Ok(text) => {
+                    if let Err(e) = std::fs::write(&work_manifest_path, text) {
+                        warn!("Failed to write MCP manifest to work dir: {e}");
+                    } else {
+                        info!("Synced MCP manifest from Drive: {manifest_fp}");
+                    }
+                }
+                Err(e) => warn!("MCP manifest from Drive is not UTF-8, keeping generated one: {e}"),
+            },
+            Err(_) => debug!("No MCP manifest in Drive for {manifest_fp}; keeping generated one"),
+        }
 
         let work_ast_path = work_dir.join(format!("{}.ast", tool_name));
         let ast_path_str = work_ast_path.to_str().unwrap_or("").to_string();
@@ -523,8 +607,13 @@ fn git_owned_bots(
         #[diesel(sql_type = diesel::sql_types::Text)]
         name: String,
     }
+    // Reform #1501/#1502 — "git-owned" means the git-pull monitor feeds this
+    // bot (vibe project in git mode), which is the same condition
+    // `git_bot_monitor::loop_ops::list_monitored_bots` uses. Keying on
+    // `payload->>'source_imported_at'` missed projects provisioned later, so
+    // the two paths disagreed about who owns a bot's sources.
     diesel::sql_query(
-        "SELECT br.slug AS branch_slug, vp.name \n         FROM vibe_projects vp \n         JOIN branches br ON br.id = vp.branch_id \n         WHERE vp.project_type = 'bot' AND (vp.payload->>'source_imported_at') IS NOT NULL",
+        "SELECT br.slug AS branch_slug, vp.name \n         FROM vibe_projects vp \n         JOIN branches br ON br.id = vp.branch_id \n         WHERE vp.project_type = 'bot' AND vp.source_control = 'git'",
     )
     .load::<Row>(conn)
     .unwrap_or_default()

@@ -42,9 +42,10 @@ fn template_ships_in_the_layout_the_resolvers_expect() {
         gbai.join("media-filing.gbdialog/classify_media.bas").is_file(),
         "missing the classify_media tool script"
     );
+    let tool_source = read("media-filing.gbdialog/classify_media.bas");
     assert!(
-        gbai.join("media-filing.gbdialog/classify_media.mcp.json").is_file(),
-        "missing the classify_media tool schema"
+        tool_source.contains("PARAM path") && tool_source.contains("PARAM caption"),
+        "the tool schema must be declared by PARAM lines in the script"
     );
     assert!(
         gbai.join("media-filing.gbot/PROMPT-TELEGRAM.md").is_file(),
@@ -65,7 +66,7 @@ fn template_ships_in_the_layout_the_resolvers_expect() {
 #[test]
 fn markers_are_documented_in_the_prompt_and_the_tool_schema() {
     let prompt = read("media-filing.gbot/PROMPT-TELEGRAM.md");
-    let schema = read("media-filing.gbdialog/classify_media.mcp.json");
+    let tool_source = read("media-filing.gbdialog/classify_media.bas");
 
     for marker in ["[image]", "[document]", "[voice]", "[audio]", "[video]"] {
         assert!(
@@ -73,8 +74,8 @@ fn markers_are_documented_in_the_prompt_and_the_tool_schema() {
             "PROMPT-TELEGRAM.md does not mention the {marker} marker"
         );
         assert!(
-            schema.contains(marker),
-            "classify_media.mcp.json does not mention the {marker} marker"
+            tool_source.contains(marker),
+            "classify_media.bas does not mention the {marker} marker"
         );
     }
 }
@@ -85,7 +86,7 @@ fn markers_are_documented_in_the_prompt_and_the_tool_schema() {
 #[test]
 fn whatsapp_prompt_documents_its_own_markers_and_filing_policy() {
     let prompt = read("media-filing.gbot/PROMPT-WHATSAPP.md");
-    let schema = read("media-filing.gbdialog/classify_media.mcp.json");
+    let tool_source = read("media-filing.gbdialog/classify_media.bas");
 
     for marker in ["[image]", "[document]", "[audio]", "[video]", "[sticker]"] {
         assert!(
@@ -93,8 +94,8 @@ fn whatsapp_prompt_documents_its_own_markers_and_filing_policy() {
             "PROMPT-WHATSAPP.md does not mention the {marker} marker"
         );
         assert!(
-            schema.contains(marker),
-            "classify_media.mcp.json does not mention the {marker} marker"
+            tool_source.contains(marker),
+            "classify_media.bas does not mention the {marker} marker"
         );
     }
 
@@ -204,5 +205,64 @@ fn filing_writes_the_audit_trail_and_reports_the_category() {
     assert!(
         script.contains("category = \"unsorted\""),
         "classification must default to 'unsorted'"
+    );
+}
+
+/// The tool must subscribe itself to the channel event: without the trigger an
+/// upload the model never acts on stays in `inbox/` forever (observed on
+/// beiner in production, 2026-09). The subscription is registered by the
+/// compiler consuming this line at design time (botbasic_compiler ON EVENT).
+#[test]
+fn the_tool_subscribes_to_the_media_uploaded_event() {
+    let script = read("media-filing.gbdialog/classify_media.bas");
+
+    assert!(
+        script.contains("ON EVENT \"media_uploaded\""),
+        "classify_media.bas must declare ON EVENT \"media_uploaded\" so uploads file deterministically"
+    );
+}
+
+/// The classifier only sees text: without the media kind a voice note captioned
+/// "gravacao de teste" read as a generic recording and filed under "video"
+/// (observed in production, 2026-09). The script derives the kind from the
+/// extension and must state it in the prompt.
+#[test]
+fn the_classification_prompt_carries_the_media_kind() {
+    let script = read("media-filing.gbdialog/classify_media.bas");
+
+    assert!(
+        script.contains("Tipo de midia: \" + kind"),
+        "the prompt content must include the media kind derived from the extension"
+    );
+    assert!(
+        script.contains("audio ou gravacao de voz sem categoria melhor = audio"),
+        "the decision guide must map generic voice recordings to audio, not video"
+    );
+}
+
+/// The event trigger and the model's own tool call race on the same upload;
+/// the runner that arrives second must exit quietly instead of surfacing a
+/// MOVE failure to the user.
+#[test]
+fn filing_is_idempotent_against_the_event_and_tool_call_race() {
+    let script = read("media-filing.gbdialog/classify_media.bas");
+
+    let idempotency = script
+        .find("4.1 Idempotency")
+        .expect("the idempotency guard section is missing");
+    let guarded_move = script
+        .find("MOVE path, destination\nIF ERROR THEN")
+        .expect("MOVE must run trapped so a lost race exits quietly");
+    assert!(
+        idempotency < guarded_move,
+        "the idempotency guard must precede the trapped MOVE"
+    );
+    assert!(
+        script.contains("TALK \"Esse arquivo ja foi arquivado.\""),
+        "the losing runner must tell the user the item is already filed, not error"
+    );
+    assert!(
+        script.contains("    RETURN\n"),
+        "the losing runner must RETURN early, not report an error"
     );
 }
