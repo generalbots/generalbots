@@ -20,6 +20,7 @@ async function init() {
     bindRefreshBotsBtn();
     bindBotSearchInput();
     bindNewBotBtn();
+    if (window.DriveExternal && DriveExternal.bind) DriveExternal.bind();
 
     var savedTab = sessionStorage.getItem("drive-tab") || TAB_BRANCHDRIVE;
     switch (savedTab) {
@@ -41,6 +42,12 @@ async function init() {
         case TAB_ROOT:
             if (isAdmin) await loadRootTab();
             else await loadBranchDriveTab();
+            break;
+        case TAB_EXTERNAL:
+            if (window.DriveExternal && DriveExternal.handleCallbackParams) {
+                DriveExternal.handleCallbackParams();
+            }
+            await loadExternalTab();
             break;
         default:
             await loadBranchDriveTab();
@@ -352,6 +359,7 @@ window.DriveModule = {
     loadMyFilesTab: loadMyFilesTab,
     loadBotsTab: loadBotsTab,
     loadRootTab: loadRootTab,
+    loadExternalTab: loadExternalTab,
 };
 
 // Deep-link from a desktop shortcut: jump straight to the file's folder

@@ -1,5 +1,6 @@
 pub mod document_processing;
 pub mod drive_files;
+pub mod external;
 pub mod drive_monitor;
 pub mod drive_repository_impl;
 pub mod drive_types;

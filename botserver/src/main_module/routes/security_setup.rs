@@ -134,6 +134,11 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
             // carries no JWT; the HMAC-signed state parameter is the
             // authenticity proof (verified inside the handler).
             .add_anonymous_path("/api/bots/*/integrations/oauth/*/callback")
+            // External drive OAuth callback (OneDrive / Google Drive): same
+            // shape — the provider redirects a browser that carries no API
+            // token, and the HMAC-signed state is the authenticity proof
+            // (verified in the handler before any token is stored).
+            .add_anonymous_path("/api/external-drives/callback")
         )
     };
 
