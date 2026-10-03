@@ -38,6 +38,9 @@ function bindTopTabs() {
                 case TAB_DESKTOP:
                     loadDesktopTab();
                     break;
+                case TAB_EXTERNAL:
+                    loadExternalTab();
+                    break;
             }
         });
     });

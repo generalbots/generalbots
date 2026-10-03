@@ -81,6 +81,11 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
     api_router = api_router
         .route(ApiUrls::AUTH, get(super::anonymous_auth::anonymous_auth_handler));
 
+    // External drives (OneDrive / Google Drive) — the Drive app's External tab.
+    // Merged here (not in the feature-gated drive block) because the backing
+    // tables are created at boot regardless of the `drive` feature.
+    api_router = api_router.merge(botdrive::external::routes::configure());
+
     // Public catalog API — no auth required (before auth middleware)
     api_router = api_router.merge(super::catalog::configure_catalog_routes());
 

@@ -42,6 +42,20 @@ pub async fn run_axum_server(
 
     let mut api_router = api_setup::setup_api_routes();
 
+    // External drives (OneDrive / Google Drive): create the two tables once at
+    // boot, then let the scheduler keep the mirrored listings fresh. Both are
+    // best-effort — the tab degrades to "not connected" if they fail, which is
+    // better than refusing to serve the rest of the API.
+    match app_state.conn.get() {
+        Ok(mut conn) => {
+            if let Err(e) = botdrive::external::ensure_schema(&mut conn) {
+                error!("External drive schema could not be created: {e}");
+            }
+        }
+        Err(e) => error!("External drive schema check skipped, pool unavailable: {e}"),
+    }
+    botdrive::external::engine::spawn_scheduler(app_state.conn.clone());
+
     let sub_router = sub_router::build_sub_router(&app_state, port, &mut api_router).await;
 
     #[cfg(feature = "deployment")]

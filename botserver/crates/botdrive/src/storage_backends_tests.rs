@@ -5,8 +5,6 @@
 
 use super::*;
 
-use super::*;
-
 #[test]
 fn backend_names_round_trip() {
     for backend in [

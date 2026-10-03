@@ -113,31 +113,39 @@ pub async fn list_calendar(headers: HeaderMap) -> Result<Json<Vec<CalendarEvent>
     }).collect()))
 }
 
+/// List the caller's mirrored OneDrive files.
+///
+/// This used to read the never-populated `m365_onedrive_files` table and
+/// always answer `[]`. It now reads the mirror the real sync engine maintains
+/// (`botdrive::external`), so a connected account actually lists its files.
 pub async fn list_onedrive(headers: HeaderMap) -> Result<Json<Vec<OneDriveFile>>, (StatusCode, String)> {
-    storage::ensure_schema_sync()?;
     let branch = resolve_branch(&headers);
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
-    #[derive(diesel::QueryableByName)]
-    struct Row {
-        #[diesel(sql_type = diesel::sql_types::Uuid)] id: Uuid,
-        #[diesel(sql_type = diesel::sql_types::Text)] name: String,
-        #[diesel(sql_type = diesel::sql_types::Text)] path: String,
-        #[diesel(sql_type = diesel::sql_types::BigInt)] size_bytes: i64,
-        #[diesel(sql_type = diesel::sql_types::Timestamptz)] last_modified: chrono::DateTime<Utc>,
-        #[diesel(sql_type = diesel::sql_types::Text)] author: String,
-    }
-    let rows: Vec<Row> = diesel::sql_query(
-        "SELECT id, name, path, size_bytes, last_modified, author
-         FROM m365_onedrive_files WHERE branch_id = $1 ORDER BY last_modified DESC LIMIT 500",
+    let mut conn = pool
+        .get()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+    let rows = botdrive::external::files::list_files(
+        &mut conn,
+        branch,
+        Some(botdrive::external::Provider::OneDrive),
+        None,
+        500,
     )
-    .bind::<diesel::sql_types::Uuid, _>(branch)
-    .load(&mut conn)
-    .map_err(db::map_diesel_err)?;
-    Ok(Json(rows.into_iter().map(|r| OneDriveFile {
-        id: r.id, name: r.name, path: r.path, size_bytes: r.size_bytes,
-        last_modified: r.last_modified, author: r.author,
-    }).collect()))
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    Ok(Json(
+        rows.into_iter()
+            .map(|r| OneDriveFile {
+                id: r.id,
+                name: r.name,
+                path: r.path,
+                size_bytes: r.size_bytes,
+                // Graph's delta feed reports no author; the field is part of
+                // the published shape, so it stays empty rather than invented.
+                last_modified: r.modified_at.unwrap_or_else(Utc::now),
+                author: String::new(),
+            })
+            .collect(),
+    ))
 }
 
 pub async fn get_settings(headers: HeaderMap) -> Result<Json<Option<M365Settings>>, (StatusCode, String)> {
@@ -207,85 +215,87 @@ use axum::body::Body;
 use axum::http::{header, HeaderValue, StatusCode as HttpStatusCode};
 use axum::response::Response;
 
+/// Download the real bytes of a mirrored OneDrive file.
+///
+/// Previously this returned a hand-written text description of a row that no
+/// code ever wrote. It now streams the file from Microsoft Graph, using the
+/// same tenant-scoped mirror as the listing.
 pub async fn download_file(headers: HeaderMap, Path(id): Path<String>) -> Result<Response<Body>, (StatusCode, String)> {
-    storage::ensure_schema_sync()?;
     let branch = resolve_branch(&headers);
     let parsed = Uuid::parse_str(&id).map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid file id '{id}': {e}")))?;
+    let provider = botdrive::external::Provider::OneDrive;
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
-    #[derive(diesel::QueryableByName)]
-    struct Row {
-        #[diesel(sql_type = diesel::sql_types::Text)] name: String,
-        #[diesel(sql_type = diesel::sql_types::Text)] path: String,
-        #[diesel(sql_type = diesel::sql_types::BigInt)] size_bytes: i64,
-        #[diesel(sql_type = diesel::sql_types::Timestamptz)] last_modified: chrono::DateTime<Utc>,
-        #[diesel(sql_type = diesel::sql_types::Text)] author: String,
-    }
-    let row: Option<Row> = diesel::sql_query(
-        "SELECT name, path, size_bytes, last_modified, author FROM m365_onedrive_files \
-         WHERE id = $1 AND branch_id = $2",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(parsed)
-    .bind::<diesel::sql_types::Uuid, _>(branch)
-    .get_result(&mut conn)
-    .optional()
-    .map_err(db::map_diesel_err)?;
-    let row = row.ok_or((StatusCode::NOT_FOUND, format!("File {id} not found")))?;
-    let safe_name = row.name.replace(['/', '\\', '"'], "_");
-    let body = format!(
-        "Microsoft 365 OneDrive file export\nName: {}\nPath: {}\nSize (bytes): {}\nLast modified: {}\nAuthor: {}\n",
-        row.name, row.path, row.size_bytes, row.last_modified, row.author
-    );
+    let (row, connection) = {
+        let mut conn = pool
+            .get()
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
+        let row = botdrive::external::files::get_file_by_id(&mut conn, branch, provider, parsed)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?
+            .ok_or((StatusCode::NOT_FOUND, format!("File {id} not found")))?;
+        let connection = botdrive::external::db::get_connection(&mut conn, branch, provider)
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?
+            .ok_or((StatusCode::CONFLICT, "OneDrive is not connected".to_string()))?;
+        (row, connection)
+    };
+
+    let http = botdrive::external::engine::http_client()
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+    let token = botdrive::external::engine::connection_access_token(&http, pool, branch, &connection)
+        .await
+        .map_err(|e| match e {
+            botdrive::external::SyncError::Auth(_) => {
+                (StatusCode::UNAUTHORIZED, "reconnect OneDrive".to_string())
+            }
+            other => (StatusCode::BAD_GATEWAY, other.to_string()),
+        })?;
+    let bytes = botdrive::external::onedrive::download(&http, &token, &row.remote_id)
+        .await
+        .map_err(|e| (StatusCode::BAD_GATEWAY, e.to_string()))?;
+
+    let safe_name = row.name.replace(['/', '\\', '"', '\n', '\r'], "_");
     let cd = format!("attachment; filename=\"{}\"", safe_name);
     Response::builder()
         .status(HttpStatusCode::OK)
-        .header(header::CONTENT_TYPE, "application/octet-stream")
+        .header(
+            header::CONTENT_TYPE,
+            row.mime_type.unwrap_or_else(|| "application/octet-stream".to_string()),
+        )
         .header(header::CONTENT_DISPOSITION, HeaderValue::from_str(&cd).unwrap_or_else(|_| HeaderValue::from_static("attachment")))
-        .body(Body::from(body))
+        .body(Body::from(bytes))
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Response error: {e}")))
 }
 
-#[derive(diesel::QueryableByName)]
-struct IdRow {
-    #[diesel(sql_type = diesel::sql_types::Uuid)]
-    id: Uuid,
-}
-
+/// Start a real OneDrive consent flow.
+///
+/// This used to insert a settings row and answer `{"connected": true}` without
+/// ever contacting Microsoft, so the UI showed a connected account that could
+/// not sync anything. It now returns the provider authorization URL (or a
+/// clear 501 when the deployment has no OAuth client registered).
 pub async fn connect_account(headers: HeaderMap) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    storage::ensure_schema_sync()?;
     let branch = resolve_branch(&headers);
-    let pool = db::pool()?;
-    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
-    let now = Utc::now();
-    let existing: Option<Uuid> = diesel::sql_query(
-        "SELECT id FROM oauth_microsoft_settings WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 1",
-    )
-    .bind::<diesel::sql_types::Uuid, _>(branch)
-    .get_result::<IdRow>(&mut conn)
-    .optional()
-    .map_err(db::map_diesel_err)?
-    .map(|r| r.id);
-    match existing {
-        Some(id) => {
-            diesel::sql_query("UPDATE oauth_microsoft_settings SET connected_at = $1, last_sync = $1, updated_at = $1 WHERE id = $2")
-                .bind::<diesel::sql_types::Timestamptz, _>(now)
-                .bind::<diesel::sql_types::Uuid, _>(id)
-                .execute(&mut conn)
-                .map_err(db::map_diesel_err)?;
-        }
-        None => {
-            diesel::sql_query(
-                "INSERT INTO oauth_microsoft_settings (id, branch_id, connected_at, last_sync, sync_calendar_min, sync_onedrive_min)
-                 VALUES ($1, $2, $3, $3, 15, 30)",
-            )
-            .bind::<diesel::sql_types::Uuid, _>(Uuid::new_v4())
-            .bind::<diesel::sql_types::Uuid, _>(branch)
-            .bind::<diesel::sql_types::Timestamptz, _>(now)
-            .execute(&mut conn)
-            .map_err(db::map_diesel_err)?;
-        }
-    }
-    Ok(Json(serde_json::json!({ "connected": true, "connected_at": now })))
+    let provider = botdrive::external::Provider::OneDrive;
+    let client = botdrive::external::config::client_for(provider).ok_or((
+        StatusCode::NOT_IMPLEMENTED,
+        "no Microsoft OAuth client is configured for this deployment".to_string(),
+    ))?;
+    let base = botdrive::external::config::base_from_headers(
+        &headers,
+        None,
+        headers.get("x-forwarded-proto").and_then(|v| v.to_str().ok()),
+    );
+    let redirect_uri = botdrive::external::config::redirect_uri(base.as_deref());
+    let state = botdrive::external::crypto::state_token(branch, provider);
+    let authorize_url = botdrive::external::onedrive::authorize_url(
+        &client.tenant_id,
+        &client.client_id,
+        &redirect_uri,
+        &state,
+    );
+    Ok(Json(serde_json::json!({
+        "connected": false,
+        "authorize_url": authorize_url,
+        "redirect_uri": redirect_uri,
+    })))
 }
 
 pub async fn disconnect_account(headers: HeaderMap) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
@@ -300,41 +310,31 @@ pub async fn disconnect_account(headers: HeaderMap) -> Result<Json<serde_json::V
     Ok(Json(serde_json::json!({ "connected": false })))
 }
 
+/// Run a real OneDrive sync pass.
+///
+/// This used to only stamp `last_sync = NOW()` on a settings row and report
+/// success — nothing was ever fetched. It now drives the Graph delta feed
+/// through the shared external-drive engine and returns what actually changed.
 pub async fn sync_now(headers: HeaderMap) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    storage::ensure_schema_sync()?;
     let branch = resolve_branch(&headers);
     let pool = db::pool()?;
-    let mut conn = pool.get().map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Pool error: {e}")))?;
-    let now = Utc::now();
-    let existing: Option<Uuid> = diesel::sql_query(
-        "SELECT id FROM oauth_microsoft_settings WHERE branch_id = $1 ORDER BY created_at DESC LIMIT 1",
+    let report = botdrive::external::engine::sync_connection(
+        pool,
+        branch,
+        botdrive::external::Provider::OneDrive,
     )
-    .bind::<diesel::sql_types::Uuid, _>(branch)
-    .get_result::<IdRow>(&mut conn)
-    .optional()
-    .map_err(db::map_diesel_err)?
-    .map(|r| r.id);
-    match existing {
-        Some(id) => {
-            diesel::sql_query("UPDATE oauth_microsoft_settings SET last_sync = $1, updated_at = $1 WHERE id = $2")
-                .bind::<diesel::sql_types::Timestamptz, _>(now)
-                .bind::<diesel::sql_types::Uuid, _>(id)
-                .execute(&mut conn)
-                .map_err(db::map_diesel_err)?;
-        }
-        None => {
-            diesel::sql_query(
-                "INSERT INTO oauth_microsoft_settings (id, branch_id, last_sync, sync_calendar_min, sync_onedrive_min)
-                 VALUES ($1, $2, $3, 15, 30)",
-            )
-            .bind::<diesel::sql_types::Uuid, _>(Uuid::new_v4())
-            .bind::<diesel::sql_types::Uuid, _>(branch)
-            .bind::<diesel::sql_types::Timestamptz, _>(now)
-            .execute(&mut conn)
-            .map_err(db::map_diesel_err)?;
-        }
+    .await;
+    if let Some(err) = report.error.as_deref() {
+        log::warn!("m365 onedrive sync reported {err}");
     }
-    Ok(Json(serde_json::json!({ "synced_at": now })))
+    Ok(Json(serde_json::json!({
+        "synced_at": Utc::now(),
+        "upserted": report.upserted,
+        "removed": report.removed,
+        "pages": report.pages,
+        "error": report.error,
+        "error_kind": report.error_kind,
+    })))
 }
 
 pub async fn update_sync_settings(headers: HeaderMap, Json(req): Json<serde_json::Value>) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
