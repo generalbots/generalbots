@@ -1,5 +1,6 @@
 pub mod db;
 pub mod error;
+pub mod external_mirror;
 pub mod handlers_actions;
 pub mod handlers_connections;
 pub mod handlers_context;

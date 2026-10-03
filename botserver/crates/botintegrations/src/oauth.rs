@@ -321,6 +321,15 @@ pub async fn start(
     headers: axum::http::HeaderMap,
     Query(query): Query<StartQuery>,
 ) -> Result<Response, Response> {
+    // These two are connected centrally (Drive -> External) and their actions
+    // read that shared connection. A per-bot credential here would be a second
+    // token store for the same account, silently out of sync with the one the
+    // Drive app browses.
+    if crate::external_mirror::is_mirrored(&provider) {
+        return Err(error_response(StatusCode::CONFLICT, IntegrationError::Validation(
+            format!("{provider} is connected from Drive -> External and shared with every bot in this branch")
+        )));
+    }
     let config = provider_config(&provider).ok_or_else(|| {
         error_response(StatusCode::NOT_FOUND, IntegrationError::Validation("unknown oauth provider".to_string()))
     })?;
