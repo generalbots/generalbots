@@ -2345,6 +2345,7 @@ dependencies = [
  "base64 0.22.1",
  "botcore",
  "botcoresecrets",
+ "botdrive",
  "botsecurity-auth",
  "bytes",
  "chrono",

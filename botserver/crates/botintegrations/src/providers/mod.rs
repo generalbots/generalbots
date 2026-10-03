@@ -382,6 +382,18 @@ pub async fn invoke_registered(
         .into_iter()
         .find(|candidate| candidate.provider() == provider)
         .ok_or_else(|| ERR_UNKNOWN_ACTION.to_string())?;
+
+    // OneDrive and Google Drive read the shared external-drive mirror: one
+    // account, connected once from Drive -> External, native delta sync and
+    // per-branch isolation. Resolving them through a per-bot Vault connection
+    // would create a second token store for the same files, one that never
+    // advances a cursor and therefore re-lists the whole account per call.
+    if let Some(mirrored) =
+        crate::external_mirror::invoke(state, scope, provider, action, params).await
+    {
+        return mirrored;
+    }
+
     if !adapter.implemented_actions().contains(&action) {
         return Err(ERR_ACTION_NOT_AVAILABLE.to_string());
     }
