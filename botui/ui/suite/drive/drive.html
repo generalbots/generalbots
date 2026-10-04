@@ -136,12 +136,42 @@
                     style="width: 0%"
                 ></div>
             </div>
-            <div
-                class="storage-text"
-                id="storage-used"
-                data-i18n="drive-loading-storage"
-            >
-                Loading storage...
+            <div class="storage-row">
+                <div
+                    class="storage-text"
+                    id="storage-used"
+                    data-i18n="drive-loading-storage"
+                >
+                    Loading storage...
+                </div>
+                <!-- The quota endpoint walks every bucket in the instance
+                     (114s measured in prod across 32 buckets), so it is fetched
+                     once when the app loads and only again on demand. -->
+                <button
+                    class="storage-refresh"
+                    id="storage-refresh"
+                    type="button"
+                    title="Refresh storage usage"
+                    aria-label="Refresh storage usage"
+                    onclick="DriveModule.loadStorageInfo()"
+                >
+                    <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <path d="M23 4v6h-6"></path>
+                        <path d="M1 20v-6h6"></path>
+                        <path
+                            d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"
+                        ></path>
+                    </svg>
+                </button>
             </div>
             <div class="storage-detail" id="storage-detail"></div>
         </div>

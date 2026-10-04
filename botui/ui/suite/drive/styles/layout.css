@@ -80,9 +80,51 @@
     border-radius: 2px;
 }
 
+.storage-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
 .storage-text {
     font-size: 12px;
     color: var(--text-secondary);
+}
+
+.storage-refresh {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.storage-refresh:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+.storage-refresh[disabled] {
+    opacity: 0.5;
+    cursor: progress;
+}
+
+.storage-refresh.spinning svg {
+    animation: storage-spin 0.9s linear infinite;
+}
+
+@keyframes storage-spin {
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 .storage-detail {
