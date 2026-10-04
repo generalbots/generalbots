@@ -64,6 +64,12 @@ function bindFileEvents() {
         var path = item.dataset.path;
         var type = item.dataset.type;
         if (type === "folder") loadFiles(path, getEffectiveBucket());
+        // Media (mp4/jpg/png/...) has no app window to open — /api/files/open
+        // would route it to the docs viewer, which just renders nothing. Send
+        // it to the player/viewer instead. `openFile` is left untouched so the
+        // context-menu "Open" still reaches the real editors (photo editor,
+        // sheets, designer) per #1306.
+        else if (isPreviewable(path)) previewFile(path);
         else openFile(path);
     });
 }

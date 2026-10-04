@@ -22,7 +22,7 @@ function showPreviewModal(fileName, ext, blob) {
     body.style.cssText = "padding: 24px; overflow-y: auto; flex-grow: 1; display: flex; align-items: center; justify-content: center; background: #0f172a;";
     objectUrl = URL.createObjectURL(blob);
     var previewEl;
-    if (["png", "jpg", "jpeg", "gif", "webp"].indexOf(ext) !== -1) {
+    if (["png", "jpg", "jpeg", "gif", "webp", "bmp", "avif", "svg"].indexOf(ext) !== -1) {
         previewEl = document.createElement("img");
         previewEl.src = objectUrl;
         previewEl.style.cssText = "max-width:100%; max-height:70vh; object-fit:contain; border-radius:4px;";
@@ -30,13 +30,13 @@ function showPreviewModal(fileName, ext, blob) {
         previewEl = document.createElement("iframe");
         previewEl.src = objectUrl;
         previewEl.style.cssText = "width:100%; height:70vh; border:none; border-radius:4px;";
-    } else if (["mp4", "webm"].indexOf(ext) !== -1) {
+    } else if (["mp4", "webm", "mov", "m4v", "mkv", "avi", "ogv"].indexOf(ext) !== -1) {
         previewEl = document.createElement("video");
         previewEl.src = objectUrl;
         previewEl.controls = true;
         previewEl.autoplay = true;
         previewEl.style.cssText = "max-width:100%; max-height:70vh; border-radius:4px;";
-    } else if (["mp3", "wav", "ogg"].indexOf(ext) !== -1) {
+    } else if (["mp3", "wav", "ogg", "oga", "m4a", "flac"].indexOf(ext) !== -1) {
         previewEl = document.createElement("audio");
         previewEl.src = objectUrl;
         previewEl.controls = true;
