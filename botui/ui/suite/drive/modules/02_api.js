@@ -87,31 +87,45 @@ async function downloadFile(path) {
     }
 }
 
+// Media and documents Drive has no dedicated app for. `/api/files/open`
+// maps these to the generic "preview" app (the docs viewer), which cannot
+// play a video or show a player, so opening one from the grid used to do
+// nothing visible. Double-clicking one now opens the built-in viewer modal.
+var PREVIEWABLE_EXT = [
+    "png", "jpg", "jpeg", "gif", "webp", "bmp", "avif", "svg",
+    "mp4", "webm", "mov", "m4v", "mkv", "avi", "ogv",
+    "mp3", "wav", "ogg", "oga", "m4a", "flac",
+    "pdf"
+];
+
+function getFileExt(path) {
+    var name = (path || "").split("/").pop() || "";
+    if (name.indexOf(".") === -1) return "";
+    return name.split(".").pop().toLowerCase();
+}
+
+function isPreviewable(path) {
+    return PREVIEWABLE_EXT.indexOf(getFileExt(path)) !== -1;
+}
+
 async function previewFile(path) {
     try {
+        var fileName = path.split("/").pop() || "preview";
+        var ext = getFileExt(path);
         showNotification("Loading preview...", "info");
-        const response = await apiRequest("/download", {
+        // Fetch the raw bytes instead of the base64 JSON envelope: the
+        // base64 route inflated the payload by a third and decoded it
+        // byte-by-byte in JS, which stalls the tab on a real video.
+        const headers = { "Content-Type": "application/json" };
+        const token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token");
+        if (token) headers["Authorization"] = "Bearer " + token;
+        const response = await fetch(API_BASE + "/download-inline", {
             method: "POST",
+            headers: headers,
             body: JSON.stringify({ bucket: getEffectiveBucket(), path: path, scope: currentScope }),
         });
-        const content = response.content;
-        const fileName = path.split("/").pop() || "preview";
-        const ext = fileName.split('.').pop().toLowerCase();
-        const byteCharacters = atob(content);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        let mimeType = "application/octet-stream";
-        if (ext === "pdf") mimeType = "application/pdf";
-        else if (ext === "png") mimeType = "image/png";
-        else if (ext === "jpg" || ext === "jpeg") mimeType = "image/jpeg";
-        else if (ext === "gif") mimeType = "image/gif";
-        else if (ext === "mp3") mimeType = "audio/mpeg";
-        else if (ext === "wav") mimeType = "audio/wav";
-        else if (ext === "mp4") mimeType = "video/mp4";
-        const blob = new Blob([byteArray], { type: mimeType });
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        const blob = await response.blob();
         showPreviewModal(fileName, ext, blob);
     } catch (err) {
         showNotification("Preview failed: " + err.message, "error");
