@@ -33,10 +33,19 @@ async function loadFiles(path, bucket) {
     }
 }
 
+// Fetching the quota walks every bucket in the instance, so it runs once when
+// the app loads and afterwards only when the user presses the refresh button.
+// Folders, uploads, deletes and tab switches deliberately do NOT trigger it.
 async function loadStorageInfo() {
+    const btn = document.getElementById("storage-refresh");
+    const usedEl = document.getElementById("storage-used");
+    if (btn) {
+        btn.disabled = true;
+        btn.classList.add("spinning");
+    }
+    if (usedEl) usedEl.textContent = "Refreshing storage...";
     try {
         const quota = await apiRequest("/quota");
-        const usedEl = document.getElementById("storage-used");
         const fillEl = document.getElementById("storage-fill");
         const detailEl = document.getElementById("storage-detail");
         if (usedEl) usedEl.textContent = formatFileSize(quota.used_bytes) + " of " + formatFileSize(quota.total_bytes);
@@ -44,6 +53,12 @@ async function loadStorageInfo() {
         if (detailEl) detailEl.textContent = formatFileSize(quota.available_bytes) + " available";
     } catch (err) {
         console.error("Failed to load storage info:", err);
+        if (usedEl) usedEl.textContent = "Storage usage unavailable";
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.classList.remove("spinning");
+        }
     }
 }
 
@@ -73,7 +88,6 @@ async function uploadFiles(files) {
     if (failed === 0) showNotification("Uploaded " + uploaded + " file(s)", "success");
     else showNotification("Uploaded " + uploaded + ", " + failed + " failed", "warning");
     loadFiles(currentPath, currentBucket);
-    loadStorageInfo();
 }
 
 async function createFolder() {

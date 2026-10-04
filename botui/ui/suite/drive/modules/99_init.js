@@ -68,7 +68,6 @@ async function deleteItem(path) {
         showNotification("Item deleted", "success");
         selectedFiles.delete(path);
         loadFiles(currentPath, currentBucket);
-        loadStorageInfo();
     } catch (err) {
         showNotification("Delete failed: " + err.message, "error");
     }
@@ -93,7 +92,6 @@ async function deleteSelected() {
     showNotification("Deleted " + deleted + " of " + count + " item(s)", deleted === count ? "success" : "warning");
     clearSelection();
     loadFiles(currentPath, currentBucket);
-    loadStorageInfo();
 }
 
 async function renameItem(path) {
