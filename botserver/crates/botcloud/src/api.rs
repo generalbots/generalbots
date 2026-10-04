@@ -1169,10 +1169,16 @@ async fn handle_login(
         },
         _ => None,
     };
+    // Set when the directory could not be reached at all (timeout, refused
+    // connection, DNS). A password that was never actually checked must not be
+    // reported as a wrong password: prod saw a login return "Invalid
+    // credentials" purely because the Zitadel round trip exceeded the client
+    // timeout, which sends users chasing password resets that are not needed.
+    let mut directory_unreachable = false;
     let (zitadel_user_id, zitadel_password_verified) = match (&service.config.directory_api_url, &effective_directory_token) {
         (Some(dir_url), Some(dir_token)) => {
             let client = reqwest::Client::builder()
-                .timeout(std::time::Duration::from_secs(8))
+                .timeout(std::time::Duration::from_secs(15))
                 .build().ok();
             match client {
                 Some(c) => {
@@ -1230,6 +1236,7 @@ async fn handle_login(
                                 tracing::warn!("Zitadel session check rejected credentials for loginName '{}'", login_name);
                             }
                             Err(e) => {
+                                directory_unreachable = true;
                                 tracing::warn!("Zitadel session check failed for loginName '{}': {}", login_name, e);
                             }
                         }
@@ -1242,6 +1249,22 @@ async fn handle_login(
         }
         _ => (None, false),
     };
+
+    // The password was never checked because the directory did not answer.
+    // Say so instead of claiming the credentials are wrong.
+    if directory_unreachable && !zitadel_password_verified {
+        tracing::error!(
+            "login for {} could not be verified: directory service unreachable (Zitadel)",
+            body.email
+        );
+        return Err((
+            StatusCode::SERVICE_UNAVAILABLE,
+            serde_json::json!({
+                "detail": "Directory service unavailable - the password could not be verified. Please retry."
+            })
+            .to_string(),
+        ));
+    }
 
     // Look up user in CRM contacts for JWT claims
     let mut conn = service.pool().get()

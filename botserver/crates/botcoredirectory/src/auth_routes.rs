@@ -5,7 +5,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use log::{info, warn};
+use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use botcore::shared::utils::get_stack_path;
@@ -42,7 +42,11 @@ const SESSION_TTL_SECS: i64 = 3600;
 /// Returns `true` when the session has outlived its TTL and must be evicted.
 /// `SessionUserData.created_at` is the epoch-seconds login timestamp; sessions
 /// carry no per-session TTL, so the global constant applies uniformly.
-fn session_expired(user: &SessionUserData) -> bool {
+///
+/// Public so the auth-middleware session-cache rehydrate closure in `main.rs`
+/// applies the same rule as [`resolve_token_user`]; without it a persisted
+/// token would stay valid forever on the rehydrate path.
+pub fn session_expired(user: &SessionUserData) -> bool {
     let now = chrono::Utc::now().timestamp();
     now.saturating_sub(user.created_at) > SESSION_TTL_SECS
 }
@@ -148,13 +152,25 @@ pub fn session_from_persisted(token: &str) -> Option<SessionUserData> {
         #[diesel(sql_type = diesel::sql_types::Text)]
         user_data: String,
     }
+    // `user_data` is JSONB: PostgreSQL returns binary JSONB with a leading
+    // version byte, and the `Text` decoder keeps it, so the payload must be
+    // cast to `text` for `serde_json` to parse it (see the same cast in the
+    // session-cache rehydrate closure in `main.rs`).
     let row: Row = diesel::sql_query(
-        "SELECT user_data FROM login_sessions WHERE token = $1 LIMIT 1",
+        "SELECT user_data::text FROM login_sessions WHERE token = $1 LIMIT 1",
     )
     .bind::<diesel::sql_types::Text, _>(token)
     .get_result(&mut conn)
     .ok()?;
-    serde_json::from_str(&row.user_data).ok()
+    match serde_json::from_str(&row.user_data) {
+        Ok(user) => Some(user),
+        Err(e) => {
+            // Silently dropping the session here made a broken lookup
+            // indistinguishable from an anonymous caller in the logs.
+            debug!("session_from_persisted: stored user_data is not valid JSON: {e}");
+            None
+        }
+    }
 }
 
 const BOOTSTRAP_SECRET_ENV: &str = "GB_BOOTSTRAP_SECRET";
