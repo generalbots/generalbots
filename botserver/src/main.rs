@@ -389,8 +389,17 @@ async fn main() -> std::io::Result<()> {
                         #[diesel(sql_type = diesel::sql_types::Text)]
                         user_data: String,
                     }
+                    // `user_data` is JSONB. Diesel reads every column in the
+                    // server's binary format, and PostgreSQL prefixes binary
+                    // JSONB with a one-byte version marker that only the
+                    // `Jsonb` decoder strips. Selecting the column as `Text`
+                    // keeps that marker, so `serde_json::from_str` below always
+                    // failed and every `gb_` session token silently degraded to
+                    // the anonymous "session-user" identity (no email -> drive
+                    // tenant isolation denied the caller's OWN org bucket).
+                    // Cast to `text` so the value arrives as plain JSON text.
                     let row: Row = match diesel::sql_query(
-                        "SELECT user_data FROM login_sessions WHERE token = $1 LIMIT 1",
+                        "SELECT user_data::text FROM login_sessions WHERE token = $1 LIMIT 1",
                     )
                     .bind::<diesel::sql_types::Text, _>(token)
                     .get_result(&mut conn)
@@ -426,6 +435,12 @@ async fn main() -> std::io::Result<()> {
                     };
                     let user: botcoredirectory::auth_routes::SessionUserData =
                         serde_json::from_str(&row.user_data).ok()?;
+                    // The persisted row outlives the process that created it, so
+                    // the same TTL `resolve_token_user` applies must be enforced
+                    // here; otherwise an old token would authenticate forever.
+                    if botcoredirectory::auth_routes::session_expired(&user) {
+                        return None;
+                    }
                     Some(botsecurity::SessionCacheEntry {
                         user_id: user.user_id.clone(),
                         email: user.email.clone(),
