@@ -116,6 +116,118 @@ pub fn build_bot_path(org_id: impl std::fmt::Display, bot_bucket: &str, sub_path
     format!("{org_id}.gborg/{bot_bucket}.gbai/{sub_path}")
 }
 
+/// Bucket suffix for an org tenant workspace.
+pub const GBORG_SUFFIX: &str = ".gborg";
+
+/// Where a bot's Drive files physically live.
+///
+/// A bot that belongs to an org is materialised in the org workspace bucket
+/// (`{slug}.gborg`), with the bot directory as an S3 key prefix
+/// (`{bot}.gbai/{bot}.gbdrive/…`). A standalone bot owns its `{bot}.gbai`
+/// bucket outright. Both shapes are real in prod, so the bucket cannot be
+/// derived from the bot name alone — the org slug decides.
+///
+/// `org_slug: None` → standalone layout, `Some(slug)` → org layout.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BotDriveLocation {
+    pub bucket: String,
+    /// Prefix every Drive key of this bot starts with, including the trailing
+    /// separator (empty for the standalone layout, where `{bot}.gbdrive/` is
+    /// already the whole key).
+    pub key_prefix: String,
+}
+
+impl BotDriveLocation {
+    /// Full S3 key for a Drive-relative path such as `media/2026/10/a.mp4`.
+    pub fn key_for(&self, path: &str) -> String {
+        format!("{}{}", self.key_prefix, path.trim_start_matches('/'))
+    }
+
+    /// Bucket plus the bot's Drive directory, i.e. what a LIST must target to
+    /// enumerate this bot's files.
+    pub fn drive_prefix(&self) -> String {
+        self.key_prefix.clone()
+    }
+}
+
+/// Resolves the bucket and key prefix for a bot's Drive files.
+///
+/// `org_slug` must be the organization slug (`organizations.slug`), not the
+/// `org_id` UUID — prod buckets are named after the slug (`beiner.gborg`).
+pub fn resolve_bot_drive_location(bot_name: &str, org_slug: Option<&str>) -> BotDriveLocation {
+    match org_slug.map(str::trim).filter(|s| !s.is_empty()) {
+        Some(slug) => BotDriveLocation {
+            bucket: format!("{slug}{GBORG_SUFFIX}"),
+            key_prefix: format!("{bot_name}.gbai/{bot_name}.gbdrive/"),
+        },
+        None => BotDriveLocation {
+            bucket: format!("{bot_name}.gbai"),
+            key_prefix: format!("{bot_name}.gbdrive/"),
+        },
+    }
+}
+
+/// Looks up a bot's name and org slug, then resolves its Drive location.
+///
+/// This is the single replacement for the `format!("{bot_name}.gbai")` pattern
+/// that every file keyword used: the bucket cannot be derived from the bot
+/// name alone, because an org-hosted bot lives under `{slug}.gborg`. Falls back
+/// to the standalone layout when the bot has no org or the lookup fails, so a
+/// transient DB error degrades to the legacy path instead of writing nowhere.
+pub fn bot_drive_location_for(
+    conn: &mut diesel::r2d2::PooledConnection<
+        diesel::r2d2::ConnectionManager<diesel::PgConnection>,
+    >,
+    bot_id: uuid::Uuid,
+) -> BotDriveLocation {
+    use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
+    use botbasic_types::schema::organizations::dsl::{
+        organizations, org_id as org_id_col, slug as org_slug_col,
+    };
+    // Aliased: the bare names `name`/`org_id` are diesel unit structs, which a
+    // local binding is not allowed to shadow.
+    use botbasic_types::schema::bots::dsl::{
+        bots, id as bot_id_col, name as bot_name_col, org_id as bot_org_id_col,
+    };
+
+    // Field order matches the `.select((bot_name_col, bot_org_id_col))` tuple.
+    #[derive(diesel::Queryable)]
+    struct BotOrgRow {
+        name: String,
+        org_id: uuid::Uuid,
+    }
+
+    let fetched = (|| -> Result<(String, Option<String>), diesel::result::Error> {
+        let bot = bots
+            .filter(bot_id_col.eq(bot_id))
+            .select((bot_name_col, bot_org_id_col))
+            .first::<BotOrgRow>(conn)?;
+
+        // A bot without an org is a standalone bot: it owns its `.gbai` bucket.
+        if bot.org_id == uuid::Uuid::nil() {
+            return Ok((bot.name, None));
+        }
+
+        let org_slug: Option<String> = organizations
+            .filter(org_id_col.eq(bot.org_id))
+            .select(org_slug_col)
+            .first::<String>(conn)
+            .ok();
+
+        Ok((bot.name, org_slug))
+    })();
+
+    match fetched {
+        Ok((bot_name, org_slug)) => resolve_bot_drive_location(&bot_name, org_slug.as_deref()),
+        Err(e) => {
+            // Without the bot name no correct key can be built, so surface it:
+            // silently writing to a wrong key is how files become unreachable.
+            log::error!("bot_drive_location_for: failed to resolve bot {bot_id}: {e}");
+            resolve_bot_drive_location("", None)
+        }
+    }
+}
+
 /// Build an absolute bot path with org isolation.
 /// Returns: "{work_root}/{org_id}.gborg/{bot_bucket}.gbai/{sub_path}"
 pub fn build_absolute_bot_path(
@@ -189,4 +301,54 @@ pub fn parse_filter(filter_str: &str) -> Result<(String, Vec<String>), Box<dyn s
         return Err("Invalid column name in filter".into());
     }
     Ok((format!("{} = $1", column), vec![value.to_string()]))
+}
+
+#[cfg(test)]
+mod bot_drive_location_tests {
+    use super::*;
+
+    #[test]
+    fn standalone_bot_owns_its_gbai_bucket() {
+        let loc = resolve_bot_drive_location("beiner", None);
+        assert_eq!(loc.bucket, "beiner.gbai");
+        assert_eq!(loc.key_prefix, "beiner.gbdrive/");
+        assert_eq!(loc.key_for("media/2026/10/a.mp4"), "beiner.gbdrive/media/2026/10/a.mp4");
+    }
+
+    #[test]
+    fn org_bot_uses_gborg_bucket_with_gbai_prefix() {
+        // Prod shape: org slug `beiner`, bot `beiner` -> bucket `beiner.gborg`,
+        // key prefix `beiner.gbai/beiner.gbdrive/`.
+        let loc = resolve_bot_drive_location("beiner", Some("beiner"));
+        assert_eq!(loc.bucket, "beiner.gborg");
+        assert_eq!(loc.key_prefix, "beiner.gbai/beiner.gbdrive/");
+        assert_eq!(
+            loc.key_for("media/2026/10/a.mp4"),
+            "beiner.gbai/beiner.gbdrive/media/2026/10/a.mp4"
+        );
+    }
+
+    #[test]
+    fn org_bot_differs_from_standalone_bot() {
+        let standalone = resolve_bot_drive_location("beiner", None);
+        let org = resolve_bot_drive_location("beiner", Some("beiner"));
+        assert_ne!(standalone.bucket, org.bucket);
+    }
+
+    #[test]
+    fn blank_or_missing_slug_falls_back_to_standalone() {
+        for slug in [Some(""), Some("   ")] {
+            let loc = resolve_bot_drive_location("beiner", slug);
+            assert_eq!(loc.bucket, "beiner.gbai", "slug {slug:?} must not produce .gborg");
+        }
+    }
+
+    #[test]
+    fn key_for_tolerates_leading_slash() {
+        let org = resolve_bot_drive_location("beiner", Some("beiner"));
+        assert_eq!(
+            org.key_for("/media/a.mp4"),
+            "beiner.gbai/beiner.gbdrive/media/a.mp4"
+        );
+    }
 }

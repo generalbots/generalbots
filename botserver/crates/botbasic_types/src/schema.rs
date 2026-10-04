@@ -141,6 +141,18 @@ pub mod tables {
         }
     }
 
+    // Needed to turn `bots.org_id` into the tenant slug that names the
+// `.gborg` Drive bucket — buckets are slug-based, not UUID-based.
+diesel::table! {
+    organizations (org_id) {
+            org_id -> Uuid,
+            name -> Varchar,
+            slug -> Varchar,
+            created_at -> Nullable<Timestamptz>,
+            updated_at -> Nullable<Timestamptz>,
+        }
+    }
+
     diesel::table! {
         bot_configuration (id) {
             id -> Uuid,
@@ -155,5 +167,8 @@ pub mod tables {
         }
     }
 }
+
+// The org lookup joins `bots` to `organizations` on `org_id`.
+diesel::allow_tables_to_appear_in_same_query!(bots, organizations);
 
 pub use tables::*;
