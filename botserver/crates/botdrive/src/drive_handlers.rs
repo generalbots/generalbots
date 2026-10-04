@@ -16,6 +16,36 @@ use diesel::sql_types::{BigInt, Bool, Nullable, Text, Timestamptz};
 use log::{info, warn};
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::OnceLock;
+use std::time::{Duration, Instant};
+
+/// How long a computed quota snapshot is reused.
+///
+/// Recomputing walks every bucket in the instance and lists every object in
+/// each one — 114s measured in prod across 32 buckets — and the Drive header
+/// asks for it on every folder navigation. Serving a short-lived snapshot
+/// turns that per-navigation cost into at most one sweep per window.
+const QUOTA_TTL: Duration = Duration::from_secs(60);
+
+static QUOTA_CACHE: OnceLock<std::sync::Mutex<Option<(Instant, QuotaResponse)>>> = OnceLock::new();
+
+fn cached_quota() -> Option<QuotaResponse> {
+    let cell = QUOTA_CACHE.get_or_init(|| std::sync::Mutex::new(None));
+    // The lock is held only to read a small value — never across an await.
+    let guard = cell.lock().ok()?;
+    match guard.as_ref() {
+        Some((computed_at, quota)) if computed_at.elapsed() < QUOTA_TTL => Some(quota.clone()),
+        _ => None,
+    }
+}
+
+fn store_quota(quota: &QuotaResponse) {
+    if let Some(cell) = QUOTA_CACHE.get() {
+        if let Ok(mut guard) = cell.lock() {
+            *guard = Some((Instant::now(), quota.clone()));
+        }
+    }
+}
 
 fn err(status: StatusCode, msg: &str) -> (StatusCode, Json<serde_json::Value>) {
     warn!("drive_handler error ({}): {}", status.as_u16(), msg);
@@ -296,20 +326,28 @@ pub async fn list_files(
         format!("{prefix}{sub_path}/")
     };
 
-    // Ensure bucket exists — prevents 500 when user's personal bucket hasn't been created yet
-    let _ = drive.create_bucket_if_not_exists(&bucket).await;
-
-    let keys = drive
-        .list_objects(&bucket, Some(&full_prefix))
-        .await
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to list objects: {e}")))?;
-
-    let mut meta_map: HashMap<String, u64> = HashMap::new();
-    if let Ok(objects) = drive.list_objects_with_metadata(&bucket, Some(&full_prefix)).await {
-        for obj in objects {
-            meta_map.insert(obj.key, obj.size);
+    // One LIST carries key + size, so the second, identical listing was pure
+    // waste: `list_objects` is just `list_objects_with_metadata` mapped to
+    // keys, meaning every folder navigation hit MinIO twice for the same
+    // prefix. `create_bucket_if_not_exists` moved to the error path too — the
+    // HEAD it performs on every listing only matters when the bucket is
+    // actually missing (a user's personal bucket), and paying for it on every
+    // request starved the CPU the handler needs.
+    let objects = match drive.list_objects_with_metadata(&bucket, Some(&full_prefix)).await {
+        Ok(objects) => objects,
+        Err(list_err) => {
+            // Ensures a personal bucket that has never been written to still
+            // renders as an empty folder instead of erroring.
+            warn!("drive: listing '{full_prefix}' failed ({list_err}); ensuring bucket '{bucket}' exists");
+            let _ = drive.create_bucket_if_not_exists(&bucket).await;
+            drive.list_objects_with_metadata(&bucket, Some(&full_prefix))
+                .await
+                .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to list objects: {e}")))?
         }
-    }
+    };
+
+    let keys: Vec<String> = objects.iter().map(|o| o.key.clone()).collect();
+    let meta_map: HashMap<String, u64> = objects.into_iter().map(|o| (o.key, o.size)).collect();
 
     let items = build_file_list_items(&full_prefix, &keys, &meta_map);
     Ok(Json(items))
@@ -907,6 +945,10 @@ pub async fn open_file(
 pub async fn quota(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<QuotaResponse>, (StatusCode, Json<serde_json::Value>)> {
+    if let Some(quota) = cached_quota() {
+        return Ok(Json(quota));
+    }
+
     let drive = get_drive(&state)?;
 
     let mut total_size: u64 = 0;
@@ -932,12 +974,15 @@ pub async fn quota(
         0.0
     };
 
-    Ok(Json(QuotaResponse {
+    let quota = QuotaResponse {
         used_bytes: used,
         total_bytes,
         available_bytes: available,
         percentage_used: percentage,
-    }))
+    };
+    store_quota(&quota);
+
+    Ok(Json(quota))
 }
 
 pub async fn list_favorites(
