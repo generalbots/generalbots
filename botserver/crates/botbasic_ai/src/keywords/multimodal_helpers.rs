@@ -1,10 +1,8 @@
 use botmultimodal::{BotModelsClient, ConfigProvider};
-use diesel::prelude::*;
 use rhai::EvalAltResult;
 use std::path::PathBuf;
 use uuid::Uuid;
 
-use botbasic_types::schema::bots::dsl as bots_dsl;
 use botbasic_types::BasicRuntime;
 
 pub const DEFAULT_TIMEOUT_SECS: u64 = 120;
@@ -70,9 +68,9 @@ impl ResolvedMedia {
 /// file keyword (see `botbasic_data::keywords::get::get_from_bucket`):
 ///
 /// * `http(s)://…` — returned unchanged; BotModels fetches the URL itself.
-/// * any other string — a Drive-relative path inside the bot's `.gbdrive`
-///   (`{bot}.gbai/{bot}.gbdrive/{path}`), matching the Telegram inbound stager.
-///   The object is downloaded and staged in the system temp directory.
+/// * any other string — a Drive-relative path inside the bot's `.gbdrive`,
+///   matching the channel inbound stagers. The object is downloaded and staged
+///   in the system temp directory.
 /// * when the object is absent from Drive (or Drive is not configured) the raw
 ///   string is returned so a script that staged a local file still works;
 ///   BotModels then reports the read failure and the caller degrades via
@@ -96,30 +94,26 @@ pub async fn resolve_media_source(
         });
     };
 
-    let bot_name: String = {
+    // The bucket is resolved per bot: an org-hosted bot lives under
+    // `{slug}.gborg` with the bot directory as a key prefix, so deriving the
+    // bucket from the bot name read a bucket nothing writes to.
+    let loc = {
         let mut conn = runtime
             .db_pool()
             .get()
             .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
-                format!("DB error resolving bot name: {e}").into()
+                format!("DB error resolving bot drive location: {e}").into()
             })?;
-        bots_dsl::bots
-            .filter(bots_dsl::id.eq(&bot_id))
-            .select(bots_dsl::name)
-            .first(&mut *conn)
-            .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
-                format!("Failed to resolve bot name for {bot_id}: {e}").into()
-            })?
+        botbasic_core::utils::bot_drive_location_for(&mut conn, bot_id)
     };
 
-    let bucket = format!("{bot_name}.gbai");
-    let prefix = format!("{bot_name}.gbdrive/");
-    let object_key = if source.starts_with(&prefix) {
+    let bucket = loc.bucket.clone();
+    let object_key = if source.starts_with(&loc.key_prefix) {
         source.to_string()
     } else if let Some(stripped) = source.strip_prefix("gbdrive/") {
-        format!("{prefix}{stripped}")
+        loc.key_for(stripped)
     } else {
-        format!("{prefix}{source}")
+        loc.key_for(source)
     };
 
     let bytes = match drive_repo.get_object(&bucket, &object_key).await {

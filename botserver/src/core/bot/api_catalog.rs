@@ -486,7 +486,6 @@ fn normalize_drive_path(path: &str) -> Result<String, String> {
 pub async fn execute_command(
     state: &Arc<AppState>,
     bot_uuid: Uuid,
-    bot_name: &str,
     user_id: Uuid,
     name: &str,
     params: &Value,
@@ -534,12 +533,12 @@ pub async fn execute_command(
         "drive.write" => {
             let path = str_of("path").ok_or_else(|| "params.path is required".to_string())?;
             let content = str_of("content_base64").ok_or_else(|| "params.content_base64 is required".to_string())?;
-            write_drive_file(state, bot_name, &path, &content).await
+            write_drive_file(state, &bot_uuid, &path, &content).await
         }
         "drive.file" => {
             let from = str_of("from").ok_or_else(|| "params.from is required".to_string())?;
             let to = str_of("to").ok_or_else(|| "params.to is required".to_string())?;
-            move_drive_file(state, bot_name, &from, &to).await
+            move_drive_file(state, &bot_uuid, &from, &to).await
         }
         "web.search" => {
             let query = str_of("query").ok_or_else(|| "params.query is required".to_string())?;
@@ -757,11 +756,11 @@ pub async fn execute_command(
         "billing.invoice.list" => list_invoices(state, &bot_uuid).await,
         "products.items.list" => list_products(state, &bot_uuid, str_of("category").as_deref()).await,
         "tickets.list" => list_tickets(state, &bot_uuid).await,
-        "drive.list" => list_drive_files(state, bot_name, str_of("path").as_deref()).await,
+        "drive.list" => list_drive_files(state, &bot_uuid, str_of("path").as_deref()).await,
         "drive.archive" => {
             let source = str_of("source").unwrap_or_default();
             let dest = str_of("destination").ok_or_else(|| "params.destination is required".to_string())?;
-            archive_drive_files(state, bot_name, &source, &dest).await
+            archive_drive_files(state, &bot_uuid, &source, &dest).await
         }
         "payroll.diagnosis" => {
             let period = str_of("period");
@@ -1082,12 +1081,27 @@ async fn list_tickets(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Value, S
     Ok(json!({ "count": items.len(), "tickets": items }))
 }
 
+/// Drive location for the bot a catalog command runs as.
+///
+/// The bucket cannot be derived from the bot name: an org-hosted bot lives in
+/// `{slug}.gborg` with the bot directory as a key prefix, while a standalone
+/// bot owns `{bot}.gbai`. Every `drive.*` command goes through this so the
+/// chat side addresses exactly the Drive the UI and the file keywords use.
+fn catalog_drive_location(
+    state: &Arc<AppState>,
+    bot_uuid: &Uuid,
+) -> Result<botbasic_core::utils::BotDriveLocation, String> {
+    let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
+    Ok(botbasic_core::utils::bot_drive_location_for(&mut conn, *bot_uuid))
+}
+
 /// Lists drive files under a folder (read-only, via the configured S3 repository).
-async fn list_drive_files(state: &Arc<AppState>, bot_name: &str, path: Option<&str>) -> Result<Value, String> {
+async fn list_drive_files(state: &Arc<AppState>, bot_uuid: &Uuid, path: Option<&str>) -> Result<Value, String> {
     let drive = state.drive.clone().ok_or_else(|| "drive unavailable".to_string())?;
-    let bucket = format!("{bot_name}.gbai");
-    let prefix = normalize_drive_path(path.unwrap_or(""))?;
-    let prefix = if prefix.is_empty() { format!("{bot_name}.gbdrive/") } else { format!("{bot_name}.gbdrive/{prefix}") };
+    let loc = catalog_drive_location(state, bot_uuid)?;
+    let bucket = loc.bucket.clone();
+    let rel = normalize_drive_path(path.unwrap_or(""))?;
+    let prefix = if rel.is_empty() { loc.key_prefix.clone() } else { loc.key_for(&rel) };
     let keys = drive
         .list_objects_with_metadata(&bucket, Some(&prefix))
         .await
@@ -1172,7 +1186,7 @@ fn calculate_anonymous_service_tax(
     }))
 }
 
-async fn write_drive_file(state: &Arc<AppState>, bot_name: &str, path: &str, content_b64: &str) -> Result<Value, String> {
+async fn write_drive_file(state: &Arc<AppState>, bot_uuid: &Uuid, path: &str, content_b64: &str) -> Result<Value, String> {
     let drive = state
         .drive
         .clone()
@@ -1180,8 +1194,9 @@ async fn write_drive_file(state: &Arc<AppState>, bot_name: &str, path: &str, con
     let data = base64::engine::general_purpose::STANDARD
         .decode(content_b64)
         .map_err(|e| format!("invalid base64 content: {e}"))?;
-    let key = normalize_drive_path(path)?;
-    let bucket = format!("{bot_name}.gbai");
+    let loc = catalog_drive_location(state, bot_uuid)?;
+    let bucket = loc.bucket.clone();
+    let key = loc.key_for(&normalize_drive_path(path)?);
     drive
         .put_object(&bucket, &key, data, None)
         .await
@@ -1192,14 +1207,15 @@ async fn write_drive_file(state: &Arc<AppState>, bot_name: &str, path: &str, con
 
 /// Copies a file from one drive path to another (e.g. an attached invoice
 /// from `inbox/` into its `faturas/<month>/` folder).
-async fn move_drive_file(state: &Arc<AppState>, bot_name: &str, from: &str, to: &str) -> Result<Value, String> {
+async fn move_drive_file(state: &Arc<AppState>, bot_uuid: &Uuid, from: &str, to: &str) -> Result<Value, String> {
     let drive = state
         .drive
         .clone()
         .ok_or_else(|| "drive unavailable".to_string())?;
-    let bucket = format!("{bot_name}.gbai");
-    let from_key = format!("{bot_name}.gbdrive/{}", normalize_drive_path(from)?);
-    let to_key = format!("{bot_name}.gbdrive/{}", normalize_drive_path(to)?);
+    let loc = catalog_drive_location(state, bot_uuid)?;
+    let bucket = loc.bucket.clone();
+    let from_key = loc.key_for(&normalize_drive_path(from)?);
+    let to_key = loc.key_for(&normalize_drive_path(to)?);
     let bytes = drive
         .get_object(&bucket, &from_key)
         .await
@@ -1217,7 +1233,7 @@ async fn move_drive_file(state: &Arc<AppState>, bot_name: &str, from: &str, to: 
 /// left empty to scan the whole drive; destination is required.
 async fn archive_drive_files(
     state: &Arc<AppState>,
-    bot_name: &str,
+    bot_uuid: &Uuid,
     source: &str,
     destination: &str,
 ) -> Result<Value, String> {
@@ -1225,12 +1241,15 @@ async fn archive_drive_files(
         .drive
         .clone()
         .ok_or_else(|| "drive unavailable".to_string())?;
-    let bucket = format!("{bot_name}.gbai");
+    let loc = catalog_drive_location(state, bot_uuid)?;
+    let bucket = loc.bucket.clone();
     let src_prefix = if source.is_empty() {
-        format!("{bot_name}.gbdrive/")
+        loc.key_prefix.clone()
     } else {
-        format!("{bot_name}.gbdrive/{}", normalize_drive_path(source)?)
+        loc.key_for(&normalize_drive_path(source)?)
     };
+    let dest_rel = normalize_drive_path(destination)?;
+    let dest_prefix = loc.key_for(&dest_rel);
     let keys = drive
         .list_objects_with_metadata(&bucket, Some(&src_prefix))
         .await
@@ -1241,13 +1260,13 @@ async fn archive_drive_files(
     for obj in keys {
         let key = obj.key.clone();
         // Do not re-process a file already inside the destination folder.
-        if key.starts_with(&format!("{bot_name}.gbdrive/{destination}/")) {
+        if key.starts_with(&format!("{dest_prefix}/")) {
             skipped += 1;
             continue;
         }
         // Resolve the relative file name (the final path segment).
         let file_name = key.rsplit('/').next().unwrap_or(&key);
-        let to_key = format!("{bot_name}.gbdrive/{}/{}", normalize_drive_path(destination)?, file_name);
+        let to_key = format!("{dest_prefix}/{file_name}");
         let bytes = drive
             .get_object(&bucket, &key)
             .await

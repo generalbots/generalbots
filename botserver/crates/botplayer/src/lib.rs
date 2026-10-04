@@ -35,6 +35,24 @@ async fn drive_bytes(state: &Arc<AppState>, bucket: &str, key: &str) -> Option<V
     drive.get_object(bucket, key).await.ok()
 }
 
+/// Drive location for the bot named in the request path.
+///
+/// An org-hosted bot lives in `{slug}.gborg` with the bot directory as a key
+/// prefix, so `{bot}.gbai` + `{bot}.gbdrive/{path}` reads an empty bucket.
+fn bot_location(
+    state: &Arc<AppState>,
+    bot_name: &str,
+) -> botbasic_core::utils::BotDriveLocation {
+    let mut conn = match state.conn.get() {
+        Ok(conn) => conn,
+        Err(e) => {
+            log::error!("player: DB unavailable resolving drive location: {e}");
+            return botbasic_core::utils::resolve_bot_drive_location(bot_name, None);
+        }
+    };
+    botbasic_core::utils::bot_drive_location_for_name(&mut conn, bot_name)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MediaInfo {
     pub path: String,
@@ -123,8 +141,9 @@ async fn get_file_info(
 
     // Fetch the object so `size` reflects the real file. Missing files
     // surface an honest error instead of a fake zero-byte entry.
-    let full_path = format!("{bot_id}.gbdrive/{path}");
-    let bytes = drive_bytes(&state, &format!("{bot_id}.gbai"), &full_path)
+    let loc = bot_location(&state, &bot_id);
+    let full_path = loc.key_for(&path);
+    let bytes = drive_bytes(&state, &loc.bucket, &full_path)
         .await
         .ok_or_else(|| PlayerError {
             error: "Failed to get file".to_string(),
@@ -151,9 +170,10 @@ async fn stream_file(
     Query(_query): Query<StreamQuery>,
 ) -> Result<Response<Body>, PlayerError> {
     let mime_type = get_mime_type(&path);
-    let full_path = format!("{bot_id}.gbdrive/{path}");
+    let loc = bot_location(&state, &bot_id);
+    let full_path = loc.key_for(&path);
 
-    let bytes = drive_bytes(&state, &format!("{bot_id}.gbai"), &full_path)
+    let bytes = drive_bytes(&state, &loc.bucket, &full_path)
         .await
         .ok_or_else(|| PlayerError {
             error: "Failed to get file".to_string(),

@@ -143,13 +143,28 @@ pub async fn process_message_internal(
         if !fname.is_empty() && !b64.is_empty() {
             if let Some(drive) = state.drive.as_ref() {
                 if let Ok(data) = base64::engine::general_purpose::STANDARD.decode(b64) {
-                    let key = format!("{bot_name}.gbdrive/inbox/{fname}");
-                    match drive
-                        .put_object(&format!("{bot_name}.gbai"), &key, data, None)
-                        .await
-                    {
+                    // Same resolution as the channel stagers: an org-hosted bot
+                    // lives under `{slug}.gborg`, so the bucket cannot be
+                    // derived from the bot name.
+                    let loc = {
+                        match state.conn.get() {
+                            Ok(mut conn) => {
+                                botbasic_core::utils::bot_drive_location_for(&mut conn, bot_uuid)
+                            }
+                            Err(e) => {
+                                log::error!("chat attachment: DB error: {e}");
+                                botbasic_core::utils::resolve_bot_drive_location(
+                                    &bot_name,
+                                    None,
+                                )
+                            }
+                        }
+                    };
+                    let bucket = loc.bucket.clone();
+                    let key = loc.key_for(&format!("inbox/{fname}"));
+                    match drive.put_object(&bucket, &key, data, None).await {
                         Ok(()) => {
-                            log::info!("stored chat attachment: {key}");
+                            log::info!("stored chat attachment: {bucket}/{key}");
                             user_text = format!(
                                 "{user_text}\n[User attached a file stored at inbox/{fname}; when a media filing tool such as classify_media is available for this session, call it with path=inbox/{fname} and the user's message as caption; otherwise use the drive.file command to organize it into its folder]"
                             );

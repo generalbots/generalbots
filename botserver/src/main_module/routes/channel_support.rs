@@ -17,40 +17,6 @@ pub type UuidConfigFn = dyn Fn(&Uuid, &str, Option<&str>) -> Result<String, Stri
 /// (`instagram`).
 pub type HandleConfigFn = dyn Fn(&str, &str, Option<&str>) -> Result<String, String> + Send + Sync;
 
-/// Looks a bot name up by id or by branch id. The channel routers hand the
-/// adapter the workspace's default branch as the bot handle, so both
-/// identifiers must reach the same row.
-#[cfg(any(feature = "telegram", feature = "whatsapp"))]
-fn resolve_channel_bot_name(
-    pool: &botcore::shared::utils::DbPool,
-    bot_id: &Uuid,
-) -> Option<String> {
-    use diesel::prelude::*;
-
-    #[derive(diesel::QueryableByName)]
-    #[diesel(check_for_backend(diesel::pg::Pg))]
-    struct ChannelBotNameRow {
-        #[diesel(sql_type = diesel::sql_types::Text)]
-        name: String,
-    }
-
-    let mut conn = match pool.get() {
-        Ok(conn) => conn,
-        Err(e) => {
-            tracing::warn!("channel bot lookup could not acquire a connection: {e}");
-            return None;
-        }
-    };
-
-    diesel::sql_query("SELECT name FROM bots WHERE id = $1 OR branch_id = $1 LIMIT 1")
-        .bind::<diesel::sql_types::Uuid, _>(bot_id)
-        .get_result::<ChannelBotNameRow>(&mut conn)
-        .optional()
-        .ok()
-        .flatten()
-        .map(|row| row.name)
-}
-
 #[cfg(feature = "instagram")]
 fn resolve_channel_bot_id(
     pool: &botcore::shared::utils::DbPool,
@@ -124,7 +90,46 @@ pub fn make_channel_config_reader_by_handle(app_state: &Arc<AppState>) -> Arc<Ha
     })
 }
 
-/// Stores inbound media in `{bot}.gbai/{bot}.gbdrive/` and returns the path
+/// Stores inbound media in the bot's Drive and returns the path relative to
+/// its `gbdrive` directory.
+///
+/// The bucket is resolved per bot through
+/// [`bot_drive_location_for`](botbasic_core::utils::bot_drive_location_for), not
+/// derived from the bot name: an org-hosted bot lives in `{slug}.gborg` with
+/// the bot directory as a key prefix, so `format!("{bot_name}.gbai")` staged
+/// every inbound file into a bucket nothing else reads.
+#[cfg(any(feature = "telegram", feature = "whatsapp"))]
+fn put_channel_media(
+    pool: &botcore::shared::utils::DbPool,
+    drive: &Arc<dyn botlib::traits::DriveRepository>,
+    bot_id: Uuid,
+    rel_path: String,
+    data: Vec<u8>,
+    content_type: Option<String>,
+) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<String, String>> + Send>> {
+    let pool = pool.clone();
+    let drive = drive.clone();
+
+    Box::pin(async move {
+        let mut conn = pool
+            .get()
+            .map_err(|e| format!("DB error resolving drive location: {e}"))?;
+        let loc = botbasic_core::utils::bot_drive_location_for(&mut conn, bot_id);
+        drop(conn);
+
+        let bucket = loc.bucket.clone();
+        let key = loc.key_for(&rel_path);
+
+        drive
+            .put_object(&bucket, &key, data, content_type.as_deref())
+            .await
+            .map_err(|e| format!("drive put failed for {bucket}/{key}: {e}"))?;
+
+        Ok(rel_path)
+    })
+}
+
+/// Stores inbound Telegram media in the bot's Drive and returns the path
 /// relative to the bot's `gbdrive` directory.
 #[cfg(feature = "telegram")]
 pub fn make_put_media_fn(app_state: &Arc<AppState>) -> bottelegram::state::PutMediaFn {
@@ -133,35 +138,28 @@ pub fn make_put_media_fn(app_state: &Arc<AppState>) -> bottelegram::state::PutMe
 
     Arc::new(
         move |bot_id: Uuid, rel_path: String, data: Vec<u8>, content_type: Option<String>| {
-            let drive = drive.clone();
-            let pool = pool.clone();
+            let Some(repository) = drive.clone() else {
+                return Box::pin(std::future::ready(Err(
+                    "Drive service not available".to_string()
+                ))) as std::pin::Pin<
+                    Box<dyn std::future::Future<Output = Result<String, String>> + Send>,
+                >;
+            };
 
-            Box::pin(async move {
-                let Some(repository) = drive.as_ref() else {
-                    return Err("Drive service not available".to_string());
-                };
-
-                let bot_name = resolve_channel_bot_name(&pool, &bot_id)
-                    .ok_or_else(|| format!("no bot registered for handle {bot_id}"))?;
-
-                let bucket = format!("{bot_name}.gbai");
-                let key = format!("{bot_name}.gbdrive/{rel_path}");
-
-                repository
-                    .put_object(&bucket, &key, data, content_type.as_deref())
-                    .await
-                    .map_err(|e| format!("drive put failed for {key}: {e}"))?;
-
-                Ok(rel_path)
-            }) as std::pin::Pin<
-                Box<dyn std::future::Future<Output = Result<String, String>> + Send>,
-            >
+            put_channel_media(
+                &pool,
+                &repository,
+                bot_id,
+                rel_path,
+                data,
+                content_type,
+            )
         },
     ) as bottelegram::state::PutMediaFn
 }
 
-/// Stores inbound WhatsApp media in `{bot}.gbai/{bot}.gbdrive/` and returns the
-/// path relative to the bot's `gbdrive` directory.
+/// Stores inbound WhatsApp media in the bot's Drive and returns the path
+/// relative to the bot's `gbdrive` directory.
 #[cfg(feature = "whatsapp")]
 pub fn make_wa_put_media_fn(app_state: &Arc<AppState>) -> botwhatsapp::state::PutMediaFn {
     let drive = app_state.drive.clone();
@@ -169,29 +167,22 @@ pub fn make_wa_put_media_fn(app_state: &Arc<AppState>) -> botwhatsapp::state::Pu
 
     Arc::new(
         move |bot_id: Uuid, rel_path: String, data: Vec<u8>, content_type: Option<String>| {
-            let drive = drive.clone();
-            let pool = pool.clone();
+            let Some(repository) = drive.clone() else {
+                return Box::pin(std::future::ready(Err(
+                    "Drive service not available".to_string()
+                ))) as std::pin::Pin<
+                    Box<dyn std::future::Future<Output = Result<String, String>> + Send>,
+                >;
+            };
 
-            Box::pin(async move {
-                let Some(repository) = drive.as_ref() else {
-                    return Err("Drive service not available".to_string());
-                };
-
-                let bot_name = resolve_channel_bot_name(&pool, &bot_id)
-                    .ok_or_else(|| format!("no bot registered for handle {bot_id}"))?;
-
-                let bucket = format!("{bot_name}.gbai");
-                let key = format!("{bot_name}.gbdrive/{rel_path}");
-
-                repository
-                    .put_object(&bucket, &key, data, content_type.as_deref())
-                    .await
-                    .map_err(|e| format!("drive put failed for {key}: {e}"))?;
-
-                Ok(rel_path)
-            }) as std::pin::Pin<
-                Box<dyn std::future::Future<Output = Result<String, String>> + Send>,
-            >
+            put_channel_media(
+                &pool,
+                &repository,
+                bot_id,
+                rel_path,
+                data,
+                content_type,
+            )
         },
     ) as botwhatsapp::state::PutMediaFn
 }

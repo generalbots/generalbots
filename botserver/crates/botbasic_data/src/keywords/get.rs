@@ -425,32 +425,23 @@ pub async fn get_from_bucket(
     }
     let drive_repo = state.drive_repository().ok_or("S3 client not configured")?;
     let client = drive_repo.as_ref();
-    // Kept under a name of its own: inside the table DSL block below, `bot_id`
-    // would name the column unit struct imported by the glob, not this value.
-    let requested_bot = bot_id;
-    let bot_name: String = {
-        use botbasic_types::schema::bots::dsl::*;
-        let mut db_conn = state.db_pool().get().map_err(|e| format!("DB error: {}", e))?;
-        bots.filter(id.eq(&requested_bot))
-            .select(name)
-            .first(&mut *db_conn)
-            .map_err(|e| {
-                log::error!("Failed to query bot name for {requested_bot}: {e}");
-                e
-            })?
-    };
-    let bucket_name = format!("{bot_name}.gbai");
     // `GET path` must address the bot's `.gbdrive` exactly like every other file
-    // keyword (MOVE / CREATE FILE / the Telegram inbound stager): the object key
-    // is `{bot}.gbdrive/{path}` inside the `{bot}.gbai` bucket. Callers that
-    // already pass a qualified key are normalized rather than double-prefixed.
-    let gbdrive_prefix = format!("{bot_name}.gbdrive/");
-    let object_key = if file_path.starts_with(&gbdrive_prefix) {
+    // keyword (MOVE / CREATE FILE / the channel inbound stagers). The bucket is
+    // resolved per bot: an org-hosted bot lives under `{slug}.gborg`, so the
+    // object key carries the `{bot}.gbai/` prefix inside that shared bucket.
+    let loc = {
+        let mut db_conn = state.db_pool().get().map_err(|e| format!("DB error: {e}"))?;
+        botbasic_core::utils::bot_drive_location_for(&mut db_conn, bot_id)
+    };
+    let bucket_name = loc.bucket.clone();
+    // Callers that already pass a qualified key are normalized rather than
+    // double-prefixed.
+    let object_key = if file_path.starts_with(&loc.key_prefix) {
         file_path.to_string()
     } else if let Some(stripped) = file_path.strip_prefix("gbdrive/") {
-        format!("{gbdrive_prefix}{stripped}")
+        loc.key_for(stripped)
     } else {
-        format!("{gbdrive_prefix}{file_path}")
+        loc.key_for(file_path)
     };
     let bytes: Vec<u8> = match tokio::time::timeout(Duration::from_secs(30), async {
         client
