@@ -25,11 +25,9 @@
 |                                                                             |
 \*****************************************************************************/
 
-use botbasic_types::schema::bots::dsl::*;
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use std::sync::Arc;
-use diesel::prelude::*;
 use flate2::read::GzDecoder;
 use log::trace;
 use std::error::Error;
@@ -47,15 +45,9 @@ pub async fn execute_compress(
     files: &[String],
     archive_name: &str,
 ) -> Result<String, Box<dyn Error + Send + Sync>> {
-    let bot_name: String = {
+    let loc = {
         let mut db_conn = state.db_pool().get().map_err(|e| format!("DB error: {e}"))?;
-        bots.filter(id.eq(&user.bot_id))
-            .select(name)
-            .first(&mut *db_conn)
-            .map_err(|e| {
-                log::error!("Failed to query bot name: {e}");
-                e
-            })?
+        botbasic_core::utils::bot_drive_location_for(&mut db_conn, user.bot_id)
     };
 
     let temp_dir = std::env::temp_dir();
@@ -80,8 +72,8 @@ pub async fn execute_compress(
 
     let archive_content = fs::read(&archive_path)?;
     let client = state.drive_repository().ok_or("S3 client not configured")?;
-    let bucket_name = format!("{bot_name}.gbai");
-    let key = format!("{bot_name}.gbdrive/{archive_name}");
+    let bucket_name = loc.bucket.clone();
+    let key = loc.key_for(archive_name);
 
     client
         .put_object(&bucket_name, &key, archive_content, None).await
@@ -124,19 +116,12 @@ pub async fn execute_extract(
 ) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
     let client = state.drive_repository().ok_or("S3 client not configured")?;
 
-    let bot_name: String = {
+    let loc = {
         let mut db_conn = state.db_pool().get().map_err(|e| format!("DB error: {e}"))?;
-        bots.filter(id.eq(&user.bot_id))
-            .select(name)
-            .first(&mut *db_conn)
-            .map_err(|e| {
-                log::error!("Failed to query bot name: {e}");
-                e
-            })?
+        botbasic_core::utils::bot_drive_location_for(&mut db_conn, user.bot_id)
     };
-
-    let bucket_name = format!("{bot_name}.gbai");
-    let archive_key = format!("{bot_name}.gbdrive/{archive}");
+    let bucket_name = loc.bucket.clone();
+    let archive_key = loc.key_for(archive);
 
     let data = client
         .get_object(&bucket_name, &archive_key)
@@ -162,7 +147,7 @@ pub async fn execute_extract(
 
 let dest_path = format!("{}/{file_name}", destination.trim_end_matches('/'));
 
-        let dest_key = format!("{bot_name}.gbdrive/{dest_path}");
+        let dest_key = loc.key_for(&dest_path);
         client
             .put_object(&bucket_name, &dest_key, content, None).await
             .map_err(|e| format!("S3 put failed: {e}"))?;
@@ -183,7 +168,7 @@ let dest_path = format!("{}/{file_name}", destination.trim_end_matches('/'));
 
             let dest_path = format!("{}/{file_name}", destination.trim_end_matches('/'));
 
-            let dest_key = format!("{bot_name}.gbdrive/{dest_path}");
+            let dest_key = loc.key_for(&dest_path);
         client
             .put_object(&bucket_name, &dest_key, content, None).await
             .map_err(|e| format!("S3 put failed: {e}"))?;

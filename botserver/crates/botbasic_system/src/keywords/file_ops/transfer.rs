@@ -25,11 +25,9 @@
 |                                                                             |
 \*****************************************************************************/
 
-use botbasic_types::schema::bots::dsl::*;
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use std::sync::Arc;
-use diesel::prelude::*;
 use log::trace;
 use std::error::Error;
 
@@ -48,19 +46,12 @@ pub async fn execute_upload(
 ) -> Result<String, Box<dyn Error + Send + Sync>> {
     let client = state.drive_repository().ok_or("S3 client not configured")?;
 
-    let bot_name: String = {
+    let loc = {
         let mut db_conn = state.db_pool().get().map_err(|e| format!("DB error: {e}"))?;
-        bots.filter(id.eq(&user.bot_id))
-            .select(name)
-            .first(&mut *db_conn)
-            .map_err(|e| {
-                log::error!("Failed to query bot name: {e}");
-                e
-            })?
+        botbasic_core::utils::bot_drive_location_for(&mut db_conn, user.bot_id)
     };
-
-    let bucket_name = format!("{bot_name}.gbai");
-    let key = format!("{bot_name}.gbdrive/{destination}");
+    let bucket_name = loc.bucket.clone();
+    let key = loc.key_for(destination);
 
     trace!(
         "Uploading file '{}' to {bucket_name}/{key} ({} bytes)",

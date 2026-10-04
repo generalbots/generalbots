@@ -25,11 +25,9 @@
 |                                                                             |
 \*****************************************************************************/
 
-use botbasic_types::schema::bots::dsl::*;
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
 use std::sync::Arc;
-use diesel::prelude::*;
 use log::trace;
 use std::error::Error;
 
@@ -40,19 +38,12 @@ pub async fn execute_read(
 ) -> Result<String, Box<dyn Error + Send + Sync>> {
     let client = state.drive_repository().ok_or("S3 client not configured")?;
 
-    let bot_name: String = {
+    let loc = {
         let mut db_conn = state.db_pool().get().map_err(|e| format!("DB error: {e}"))?;
-        bots.filter(id.eq(&user.bot_id))
-            .select(name)
-            .first(&mut *db_conn)
-            .map_err(|e| {
-                log::error!("Failed to query bot name: {e}");
-                e
-            })?
+        botbasic_core::utils::bot_drive_location_for(&mut db_conn, user.bot_id)
     };
-
-    let bucket_name = format!("{bot_name}.gbai");
-    let key = format!("{bot_name}.gbdrive/{path}");
+    let bucket_name = loc.bucket.clone();
+    let key = loc.key_for(path);
 
     let data = client
         .get_object(&bucket_name, &key)
@@ -74,19 +65,12 @@ pub async fn execute_write(
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     let client = state.drive_repository().ok_or("S3 client not configured")?;
 
-    let bot_name: String = {
+    let loc = {
         let mut db_conn = state.db_pool().get().map_err(|e| format!("DB error: {e}"))?;
-        bots.filter(id.eq(&user.bot_id))
-            .select(name)
-            .first(&mut *db_conn)
-            .map_err(|e| {
-                log::error!("Failed to query bot name: {e}");
-                e
-            })?
+        botbasic_core::utils::bot_drive_location_for(&mut db_conn, user.bot_id)
     };
-
-    let bucket_name = format!("{bot_name}.gbai");
-    let key = format!("{bot_name}.gbdrive/{path}");
+    let bucket_name = loc.bucket.clone();
+    let key = loc.key_for(path);
 
     client
         .put_object(&bucket_name, &key, content.as_bytes().to_vec(), None)
@@ -109,19 +93,12 @@ pub async fn execute_create_file(
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     let client = state.drive_repository().ok_or("S3 client not configured")?;
 
-    let bot_name: String = {
+    let loc = {
         let mut db_conn = state.db_pool().get().map_err(|e| format!("DB error: {e}"))?;
-        bots.filter(id.eq(&user.bot_id))
-            .select(name)
-            .first(&mut *db_conn)
-            .map_err(|e| {
-                log::error!("Failed to query bot name: {e}");
-                e
-            })?
+        botbasic_core::utils::bot_drive_location_for(&mut db_conn, user.bot_id)
     };
-
-    let bucket_name = format!("{bot_name}.gbai");
-    let key = format!("{bot_name}.gbdrive/{path}");
+    let bucket_name = loc.bucket.clone();
+    let key = loc.key_for(path);
 
     if client.object_exists(&bucket_name, &key).await
         .map_err(|e| format!("S3 exists check failed: {e}"))?
@@ -145,19 +122,12 @@ pub async fn execute_delete_file(
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     let client = state.drive_repository().ok_or("S3 client not configured")?;
 
-    let bot_name: String = {
+    let loc = {
         let mut db_conn = state.db_pool().get().map_err(|e| format!("DB error: {e}"))?;
-        bots.filter(id.eq(&user.bot_id))
-            .select(name)
-            .first(&mut *db_conn)
-            .map_err(|e| {
-                log::error!("Failed to query bot name: {e}");
-                e
-            })?
+        botbasic_core::utils::bot_drive_location_for(&mut db_conn, user.bot_id)
     };
-
-    let bucket_name = format!("{bot_name}.gbai");
-    let key = format!("{bot_name}.gbdrive/{path}");
+    let bucket_name = loc.bucket.clone();
+    let key = loc.key_for(path);
 
     client
         .delete_object(&bucket_name, &key).await
@@ -174,19 +144,12 @@ pub async fn execute_list(
 ) -> Result<Vec<String>, Box<dyn Error + Send + Sync>> {
     let client = state.drive_repository().ok_or("S3 client not configured")?;
 
-    let bot_name: String = {
+    let loc = {
         let mut db_conn = state.db_pool().get().map_err(|e| format!("DB error: {e}"))?;
-        bots.filter(id.eq(&user.bot_id))
-            .select(name)
-            .first(&mut *db_conn)
-            .map_err(|e| {
-                log::error!("Failed to query bot name: {e}");
-                e
-            })?
+        botbasic_core::utils::bot_drive_location_for(&mut db_conn, user.bot_id)
     };
-
-    let bucket_name = format!("{bot_name}.gbai");
-    let prefix = format!("{bot_name}.gbdrive/{path}");
+    let bucket_name = loc.bucket.clone();
+    let prefix = format!("{}{}", loc.key_prefix, path.trim_start_matches('/'));
 
 let files: Vec<String> = client
             .list_objects(&bucket_name, Some(&prefix))
@@ -194,7 +157,7 @@ let files: Vec<String> = client
             .map_err(|e| format!("S3 list failed: {e}"))?
             .iter()
             .map(|k| {
-                k.strip_prefix(&format!("{bot_name}.gbdrive/"))
+                k.strip_prefix(loc.key_prefix.as_str())
                     .unwrap_or(k)
                     .to_string()
             })
