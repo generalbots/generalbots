@@ -228,6 +228,40 @@ pub fn bot_drive_location_for(
     }
 }
 
+/// Same as [`bot_drive_location_for`], for callers that only know the bot
+/// *name* (URL path segments such as the media player's `/{bot}/{path}`).
+///
+/// The name is resolved to the bot row first, so the org slug — and therefore
+/// the `{slug}.gborg` bucket — is still honoured.
+pub fn bot_drive_location_for_name(
+    conn: &mut diesel::r2d2::PooledConnection<
+        diesel::r2d2::ConnectionManager<diesel::PgConnection>,
+    >,
+    bot_name: &str,
+) -> BotDriveLocation {
+    use diesel::prelude::*;
+
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct BotIdRow {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: uuid::Uuid,
+    }
+
+    let bot_id = diesel::sql_query("SELECT id FROM bots WHERE name = $1 LIMIT 1")
+        .bind::<diesel::sql_types::Text, _>(bot_name)
+        .get_result::<BotIdRow>(conn)
+        .map(|row| row.id);
+
+    match bot_id {
+        Ok(bot_id) => bot_drive_location_for(conn, bot_id),
+        Err(e) => {
+            log::error!("bot_drive_location_for_name: failed to resolve bot '{bot_name}': {e}");
+            resolve_bot_drive_location(bot_name, None)
+        }
+    }
+}
+
 /// Build an absolute bot path with org isolation.
 /// Returns: "{work_root}/{org_id}.gborg/{bot_bucket}.gbai/{sub_path}"
 pub fn build_absolute_bot_path(

@@ -19,28 +19,18 @@ async function probeLayout(bucket, path) {
 
 async function discoverBuckets() {
     try {
-        // Prefer user's own bucket from session (no API call needed). An org
-        // claim is only a HINT: bots provisioned on the standalone layout keep
-        // their Drive in `{bot}.gbai` even though the session says `.gborg`,
-        // and the org path lists empty for them (beiner in production). When
-        // the org layout holds nothing, fall back to the bot's own bucket —
-        // the same probe the no-session path below already performs.
+        // An org claim from the session decides the layout. It used to be
+        // treated as a hint that could be overridden by probing, because
+        // channel stagers wrote org bots to a standalone `{bot}.gbai` bucket
+        // and the org path therefore listed empty. Those stagers now resolve
+        // the bucket through the bot's org (server side), so the org layout is
+        // authoritative: an empty org Drive means empty, not "try elsewhere".
         if (userInfo && userInfo.bucket) {
             var bucketName = userInfo.bucket;
             currentBucket = bucketName;
             if (bucketName.indexOf(".gborg") > 0) {
                 currentGborgBucket = bucketName;
                 currentGborgBranch = bucketName.replace(".gborg", "");
-                var hintBot = currentGborgBranch;
-                var orgHasContent = await probeLayout(
-                    bucketName, hintBot + ".gbai/" + hintBot + ".gbdrive"
-                ) === "content";
-                if (!orgHasContent &&
-                    await probeLayout(hintBot + ".gbai", hintBot + ".gbdrive") !== "error") {
-                    currentBucket = hintBot + ".gbai";
-                    currentGborgBucket = null;
-                    currentGborgBranch = null;
-                }
             } else {
                 currentGborgBucket = null;
                 currentGborgBranch = null;
@@ -50,12 +40,10 @@ async function discoverBuckets() {
         }
 
         // Fallback: derive the layout from the folders that actually exist.
-        // A bot owns the `{bot}.gbai` bucket (BotInfo::bucket_name in
-        // botautotask), while an org workspace nests the same tree at
-        // `{org}.gborg/{branch}.gbai/`. Assuming the org bucket reported a
-        // standalone bot's Drive as an empty folder, so probe the org layout
-        // first — keeping the previous default — and use the bot's own bucket
-        // whenever the org layout holds nothing.
+        // A standalone bot owns the `{bot}.gbai` bucket; an org workspace
+        // nests the same tree at `{org}.gborg/{bot}.gbai/`. Probe the org
+        // layout first and only fall back to the standalone bucket when the
+        // org bucket is not addressable at all (not merely empty).
         var botName = window.__INITIAL_BOT_NAME__ || window.location.pathname.split('/').filter(Boolean)[0] || '';
         if (botName) {
             currentGborgBranch = botName;
@@ -63,15 +51,10 @@ async function discoverBuckets() {
             bucketLayoutResolved = true;
             var orgBucket = botName + ".gborg";
             var ownBucket = botName + ".gbai";
-            if (await probeLayout(orgBucket, botName + ".gbai/" + botName + ".gbdrive") === "content") {
-                currentBucket = orgBucket;
-                currentGborgBucket = orgBucket;
-            } else if (await probeLayout(ownBucket, botName + ".gbdrive") !== "error") {
+            if (await probeLayout(orgBucket, botName + ".gbai/" + botName + ".gbdrive") === "error") {
                 currentBucket = ownBucket;
                 currentGborgBucket = null;
             } else {
-                // Neither layout is addressable: keep the org bucket so the
-                // caller still gets the previous behaviour and message.
                 currentBucket = orgBucket;
                 currentGborgBucket = orgBucket;
             }

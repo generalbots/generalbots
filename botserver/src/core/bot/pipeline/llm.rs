@@ -605,7 +605,7 @@ pub(super) async fn handle_api_call(
         }
     }
 
-    match api_catalog::execute_command(state, bot_uuid, bot_name, user_id, &name, &params).await {
+    match api_catalog::execute_command(state, bot_uuid, user_id, &name, &params).await {
         Ok(result) => {
             if compose {
                 let deep_links = extract_deep_links(&result);
