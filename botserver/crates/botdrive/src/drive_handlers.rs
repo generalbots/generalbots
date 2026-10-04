@@ -27,6 +27,13 @@ use std::time::{Duration, Instant};
 /// turns that per-navigation cost into at most one sweep per window.
 const QUOTA_TTL: Duration = Duration::from_secs(60);
 
+/// How many buckets the quota sweep lists at once.
+///
+/// The sweep walked the buckets strictly one after another; 32 sequential
+/// LISTs cost 114s in prod. A bounded pool keeps MinIO and the CPU budget busy
+/// without opening one connection per bucket at once.
+const QUOTA_SWEEP_CONCURRENCY: usize = 8;
+
 static QUOTA_CACHE: OnceLock<std::sync::Mutex<Option<(Instant, QuotaResponse)>>> = OnceLock::new();
 
 fn cached_quota() -> Option<QuotaResponse> {
@@ -955,11 +962,33 @@ pub async fn quota(
     let mut total_buckets: u64 = 0;
 
     if let Ok(bucket_names) = drive.list_all_buckets().await {
-        for bname in &bucket_names {
-            if let Ok(objects) = drive.list_objects_with_metadata(bname, None).await {
-                for obj in &objects {
-                    total_size = total_size.saturating_add(obj.size);
+        let mut tasks = tokio::task::JoinSet::new();
+        for bname in bucket_names {
+            let repo = Arc::clone(drive);
+            tasks.spawn(async move {
+                match repo.list_objects_with_metadata(&bname, None).await {
+                    Ok(objects) => {
+                        let bytes = objects
+                            .iter()
+                            .fold(0u64, |acc, obj| acc.saturating_add(obj.size));
+                        Some(bytes)
+                    }
+                    Err(e) => {
+                        warn!("quota: listing bucket '{bname}' failed: {e}");
+                        None
+                    }
                 }
+            });
+            if tasks.len() >= QUOTA_SWEEP_CONCURRENCY {
+                if let Some(Ok(Some(bytes))) = tasks.join_next().await {
+                    total_size = total_size.saturating_add(bytes);
+                    total_buckets = total_buckets.saturating_add(1);
+                }
+            }
+        }
+        while let Some(joined) = tasks.join_next().await {
+            if let Ok(Some(bytes)) = joined {
+                total_size = total_size.saturating_add(bytes);
                 total_buckets = total_buckets.saturating_add(1);
             }
         }
