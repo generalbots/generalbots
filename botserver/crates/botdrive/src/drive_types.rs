@@ -264,7 +264,7 @@ pub struct OpenFileResponse {
     pub url: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct QuotaResponse {
     pub used_bytes: u64,
     pub total_bytes: u64,
