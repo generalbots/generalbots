@@ -11,24 +11,28 @@
 use botlib::traits::DriveRepository;
 use diesel::prelude::*;
 use diesel::sql_query;
-use diesel::sql_types::Text;/// Name and org slug of the default bot.
+use diesel::sql_types::Text;/// Name, branch slug and org slug of the default bot.
 ///
-/// The org slug is not optional decoration: it decides whether the files land
-/// in the bot's own `{bot}.gbai` bucket or in the shared `{slug}.gborg`
-/// workspace, so the bucket cannot be built from the bot name alone.
+/// The slugs are not optional decoration: the org decides whether the files
+/// land in the bot's own `{bot}.gbai` bucket or in the shared `{slug}.gborg`
+/// workspace, and the branch names the `{branch}.gbai/` workspace inside that
+/// bucket — so neither can be built from the bot name alone.
 fn resolve_default_bot(
     conn: &mut diesel::PgConnection,
-) -> Result<Option<(String, Option<String>)>, String> {
+) -> Result<Option<(String, Option<String>, Option<String>)>, String> {
     #[derive(diesel::QueryableByName)]
     struct BotRow {
         #[diesel(sql_type = Text)]
         name: String,
         #[diesel(sql_type = diesel::sql_types::Nullable<Text>)]
+        branch_slug: Option<String>,
+        #[diesel(sql_type = diesel::sql_types::Nullable<Text>)]
         org_slug: Option<String>,
     }
     let row: Option<BotRow> = sql_query(
-        "SELECT b.name, o.slug AS org_slug
+        "SELECT b.name, br.slug AS branch_slug, o.slug AS org_slug
          FROM bots b
+         LEFT JOIN branches br ON br.id = b.branch_id
          LEFT JOIN organizations o ON o.org_id = b.org_id
          WHERE b.is_default_for_branch = true
          ORDER BY b.created_at ASC LIMIT 1",
@@ -36,7 +40,7 @@ fn resolve_default_bot(
     .get_result(conn)
     .ok();
 
-    Ok(row.map(|r| (r.name, r.org_slug)))
+    Ok(row.map(|r| (r.name, r.branch_slug, r.org_slug)))
 }
 
 /// Builds a cash-flow CSV with entries for the given month (so diagnosis
@@ -69,12 +73,17 @@ pub async fn seed_drive_objects(
     drive: &dyn DriveRepository,
 ) -> Result<(), String> {
     let mut conn = pool.get().map_err(|e| format!("Pool error: {e}"))?;
-    let (bot_name, org_slug) = resolve_default_bot(&mut conn)?.ok_or("No default bot found")?;
+    let (bot_name, branch_slug, org_slug) =
+        resolve_default_bot(&mut conn)?.ok_or("No default bot found")?;
     drop(conn);
 
     // Resolved rather than formatted: for an org-hosted bot this is the org
-    // workspace bucket plus the bot's key prefix inside it.
-    let location = botbasic_core::utils::resolve_bot_drive_location(&bot_name, org_slug.as_deref());
+    // workspace bucket plus the bot's key prefix inside its branch workspace.
+    let location = botbasic_core::utils::resolve_bot_drive_location(
+        &bot_name,
+        branch_slug.as_deref(),
+        org_slug.as_deref(),
+    );
     let prefix = location.drive_prefix();
     let bucket = location.bucket;
 

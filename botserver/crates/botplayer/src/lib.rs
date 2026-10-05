@@ -47,7 +47,7 @@ fn bot_location(
         Ok(conn) => conn,
         Err(e) => {
             log::error!("player: DB unavailable resolving drive location: {e}");
-            return botbasic_core::utils::resolve_bot_drive_location(bot_name, None);
+            return botbasic_core::utils::resolve_bot_drive_location(bot_name, None, None);
         }
     };
     botbasic_core::utils::bot_drive_location_for_name(&mut conn, bot_name)

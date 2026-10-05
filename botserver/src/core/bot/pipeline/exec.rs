@@ -156,6 +156,7 @@ pub async fn process_message_internal(
                                 botbasic_core::utils::resolve_bot_drive_location(
                                     &bot_name,
                                     None,
+                                    None,
                                 )
                             }
                         }
