@@ -134,13 +134,11 @@ fn allowed_buckets_for(state: &AppState, user: &AuthenticatedUser) -> Vec<String
             match rows {
                 Ok(rows) => {
                     for r in rows {
-                        // Org workspace bucket: {slug}.gborg — plus every bot
-                        // bucket {bot}.gbai owned by the caller's orgs. The
-                        // slug does not always match the deployed bot name
-                        // (org `sentient-org` hosts bot `sentient`, whose
-                        // bucket is sentient.gbai), so derive from bots.
+                        // Org workspace bucket: {slug}.gborg — the bucket every
+                        // bot of that org actually resolves to. An org bot owns
+                        // no standalone `{bot}.gbai` bucket, so nothing is
+                        // granted on the strength of the bot name alone.
                         allowed.push(format!("{}.gborg", r.slug));
-                        allowed.push(format!("{}.gbai", r.slug));
                         let bot_rows: Result<Vec<BotName>, _> = diesel::sql_query(
                             "SELECT b.name AS name FROM bots b WHERE b.org_id = $1::uuid",
                         )
@@ -148,8 +146,14 @@ fn allowed_buckets_for(state: &AppState, user: &AuthenticatedUser) -> Vec<String
                         .load(&mut conn);
                         if let Ok(bots) = bot_rows {
                             for b in bots {
-                                allowed.push(format!("{}.gbai", b.name));
-                                allowed.push(format!("{}.gborg", b.name));
+                                // Grant each bot the bucket its row resolves
+                                // to. A standalone bot keeps its own
+                                // `{bot}.gbai`; an org bot resolves back to the
+                                // `.gborg` bucket already granted above.
+                                let bucket =
+                                    botbasic_core::utils::bot_drive_location_for_name(&mut conn, &b.name)
+                                        .bucket;
+                                allowed.push(bucket);
                             }
                         }
                     }
@@ -779,6 +783,23 @@ pub async fn list_buckets(
         allowed_buckets_for(&state, &user)
     };
 
+    // Resolve the bot filter once, before the loop: an org bot lives in
+    // `{slug}.gborg` and a standalone bot in `{bot}.gbai`, so guessing both
+    // shapes from the name would also match a bucket that does not belong to
+    // this bot. `None` means no filter, or an unresolvable bot (which matches
+    // nothing rather than silently exposing every bucket).
+    let bot_bucket: Option<String> = params.bot.as_deref().map(|bot| {
+        match state.conn.get() {
+            Ok(mut conn) => {
+                Some(botbasic_core::utils::bot_drive_location_for_name(&mut conn, bot).bucket)
+            }
+            Err(e) => {
+                warn!("drive: bucket filter lookup failed for bot '{bot}': {e}");
+                None
+            }
+        }
+    }).flatten();
+
     let items: Vec<BucketListItem> = bucket_names
         .into_iter()
         .filter(|name| {
@@ -787,12 +808,10 @@ pub async fn list_buckets(
                 // workspace bucket only. Other tenants are invisible.
                 return owned.iter().any(|a| a == name);
             }
-            if let Some(ref bot) = params.bot {
-                let gbai = format!("{bot}.gbai");
-                let gborg = format!("{bot}.gborg");
-                name == &gbai || name == &gborg
-            } else {
-                true
+            match (params.bot.as_deref(), &bot_bucket) {
+                (Some(_), Some(bucket)) => name == bucket,
+                (Some(_), None) => false,
+                (None, _) => true,
             }
         })
         .map(|name| BucketListItem {
@@ -823,17 +842,34 @@ pub async fn create_bot(
         return Err(err(StatusCode::BAD_REQUEST, "Bot name must be between 3 and 50 characters."));
     }
 
-    let bucket_name = format!("{}.gbai", name);
+    // Resolve the target bucket from the bots table: an org-hosted bot is
+    // seeded inside the org workspace bucket (`{slug}.gborg`) under a
+    // `{name}.gbai/` prefix, never in its own `{name}.gbai` bucket — that
+    // standalone bucket would be dead weight nothing reads. Falls back to
+    // the standalone layout when the bot has no row or no org yet.
+    let location = match state.conn.get() {
+        Ok(mut conn) => botbasic_core::utils::bot_drive_location_for_name(&mut conn, &name),
+        Err(e) => {
+            return Err(err(
+                StatusCode::SERVICE_UNAVAILABLE,
+                &format!("Database unavailable: {e}"),
+            ))
+        }
+    };
+    let bucket_name = location.bucket.clone();
     let drive = get_drive(&state)?;
 
-    // Check if already exists
-    let existing = drive.list_all_buckets().await
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to list buckets: {e}")))?;
-    if existing.iter().any(|b| b == &bucket_name) {
+    // Check if already exists — a seeded org bot shares its bucket with its
+    // siblings, so the existence test is on the bot's own key prefix, not on
+    // the bucket name.
+    let seeded_marker = format!("{}{name}.gbdrive/.keep", location.bot_prefix);
+    let existing = drive.list_objects(&bucket_name, Some(&seeded_marker)).await
+        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to inspect bucket: {e}")))?;
+    if !existing.is_empty() {
         return Err(err(StatusCode::CONFLICT, &format!("Bot '{}' already exists", name)));
     }
 
-    // Create bucket
+    // Create bucket (a no-op for the org workspace, which already exists)
     drive.create_bucket_if_not_exists(&bucket_name).await
         .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to create bucket: {e}")))?;
 
@@ -851,12 +887,13 @@ pub async fn create_bot(
         } else {
             Vec::new()
         };
-        drive.put_object(&bucket_name, path, content, Some("text/plain")).await
-            .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to seed {path}: {e}")))?;
+        let key = format!("{}{path}", location.bot_prefix);
+        drive.put_object(&bucket_name, &key, content, Some("text/plain")).await
+            .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to seed {key}: {e}")))?;
     }
 
     Ok(Json(CreateBotResponse {
-        name: bucket_name,
+        name: name.clone(),
         status: "created".to_string(),
     }))
 }
@@ -880,11 +917,23 @@ pub async fn delete_bot(
 
     // Tenant isolation (#1387): an org admin may only delete bots inside its
     // own tenant. The client supplies the name, so without this check any
-    // org admin could destroy ANY tenant's bot bucket.
+    // org admin could destroy ANY tenant's bot. The bot's real location is
+    // resolved from its row: an org bot's objects live under a `{bot}.gbai/`
+    // prefix inside the shared `{slug}.gborg` bucket, so the check validates
+    // that bucket, not a `{bot}.gbai` one.
+    let location = match state.conn.get() {
+        Ok(mut conn) => botbasic_core::utils::bot_drive_location_for_name(&mut conn, &bot_name),
+        Err(e) => {
+            return Err(err(
+                StatusCode::SERVICE_UNAVAILABLE,
+                &format!("Database unavailable: {e}"),
+            ))
+        }
+    };
+
     if !is_platform_admin(&state, &user) {
-        let gbai = format!("{bot_name}.gbai");
         let allowed = allowed_buckets_for(&state, &user);
-        if !allowed.iter().any(|a| a == &gbai) {
+        if !allowed.iter().any(|a| a == &location.bucket) {
             warn!(
                 "drive: denied bot delete '{}' for user {:?} (not a member)",
                 bot_name, user.email
@@ -893,11 +942,13 @@ pub async fn delete_bot(
         }
     }
 
-    let bucket_name = format!("{}.gbai", bot_name);
+    let bucket_name = location.bucket.clone();
     let drive = get_drive(&state)?;
 
-    // List and delete all objects in the bucket
-    let objects = drive.list_objects(&bucket_name, None).await
+    // Only this bot's own objects are removed. For an org bot that is the
+    // `{bot}.gbai/` prefix inside the shared bucket — deleting the bucket
+    // itself would destroy every sibling bot in the same org.
+    let objects = drive.list_objects(&bucket_name, Some(&location.bot_prefix)).await
         .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to list bucket objects: {e}")))?;
 
     if !objects.is_empty() {

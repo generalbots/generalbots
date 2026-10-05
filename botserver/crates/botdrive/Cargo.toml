@@ -15,6 +15,7 @@ llm = []
 [dependencies]
 botcore = { path = "../botcore" }
 botlib = { path = "../../../botlib" }
+botbasic_core = { path = "../botbasic_core" }
 botschema = { path = "../../../botschema" }
 botqdrant = { path = "../botqdrant" }
 axum = { workspace = true, features = ["ws", "macros"] }

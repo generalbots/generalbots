@@ -1314,6 +1314,7 @@ name = "botbanking"
 version = "6.7.0"
 dependencies = [
  "axum",
+ "botbasic_core",
  "botcore",
  "botlib",
  "bottax",
@@ -2132,6 +2133,7 @@ dependencies = [
  "anyhow",
  "axum",
  "base64 0.22.1",
+ "botbasic_core",
  "botcore",
  "botlib",
  "botqdrant",
