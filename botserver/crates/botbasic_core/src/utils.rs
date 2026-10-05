@@ -135,6 +135,12 @@ pub struct BotDriveLocation {
     /// separator (empty for the standalone layout, where `{bot}.gbdrive/` is
     /// already the whole key).
     pub key_prefix: String,
+    /// Prefix every key of this bot starts with — not just Drive files, but
+    /// also `.gbdialog`, `.gbkb` and `.gbot`. Empty for a standalone bot
+    /// (its bucket holds only its own tree), `{bot}.gbai/` inside a shared
+    /// org bucket. Needed to seed or delete a bot without touching its
+    /// sibling bots in the same org workspace.
+    pub bot_prefix: String,
 }
 
 impl BotDriveLocation {
@@ -159,10 +165,12 @@ pub fn resolve_bot_drive_location(bot_name: &str, org_slug: Option<&str>) -> Bot
         Some(slug) => BotDriveLocation {
             bucket: format!("{slug}{GBORG_SUFFIX}"),
             key_prefix: format!("{bot_name}.gbai/{bot_name}.gbdrive/"),
+            bot_prefix: format!("{bot_name}.gbai/"),
         },
         None => BotDriveLocation {
             bucket: format!("{bot_name}.gbai"),
             key_prefix: format!("{bot_name}.gbdrive/"),
+            bot_prefix: String::new(),
         },
     }
 }
@@ -383,6 +391,46 @@ mod bot_drive_location_tests {
         assert_eq!(
             org.key_for("/media/a.mp4"),
             "beiner.gbai/beiner.gbdrive/media/a.mp4"
+        );
+    }
+
+    #[test]
+    fn standalone_bot_prefix_is_empty() {
+        // A standalone bucket holds only this bot's tree, so seeding and
+        // deleting operate on the bucket root.
+        let loc = resolve_bot_drive_location("beiner", None);
+        assert_eq!(loc.bot_prefix, "");
+    }
+
+    #[test]
+    fn org_bot_prefix_scopes_to_the_bot_inside_the_shared_bucket() {
+        // Deleting an org bot must remove only `{beiner}.gbai/…`, never a
+        // sibling bot's tree in the same `.gborg` bucket.
+        let loc = resolve_bot_drive_location("beiner", Some("beiner"));
+        assert_eq!(loc.bot_prefix, "beiner.gbai/");
+    }
+
+    #[test]
+    fn org_bot_prefix_and_drive_prefix_agree_on_the_bot_tree() {
+        // The Drive prefix is the bot prefix plus the Drive directory, so a
+        // Drive key is always inside the bot's own tree.
+        let loc = resolve_bot_drive_location("beiner", Some("beiner"));
+        let drive_key = loc.key_for("media/a.mp4");
+        assert!(
+            drive_key.starts_with(&loc.bot_prefix),
+            "{drive_key} must live under {}",
+            loc.bot_prefix
+        );
+    }
+
+    #[test]
+    fn sibling_bots_in_one_org_have_disjoint_trees() {
+        let a = resolve_bot_drive_location("bot_a", Some("acme"));
+        let b = resolve_bot_drive_location("bot_b", Some("acme"));
+        assert_eq!(a.bucket, b.bucket, "siblings share the org bucket");
+        assert!(
+            !b.key_for("x.txt").starts_with(&a.bot_prefix),
+            "bot_b's key must not fall inside bot_a's tree"
         );
     }
 }

@@ -63,6 +63,7 @@ mod llm_impl {
                                     config,
                                     state_for_thread.drive.clone(),
                                     state_for_thread.llm_provider.clone(),
+                                    state_for_thread.conn.clone(),
                                     bot_id,
                                     params,
                                 ).await
@@ -93,6 +94,7 @@ mod llm_impl {
         #[cfg(feature = "drive")] _s3: Option<Arc<dyn botlib::traits::DriveRepository>>,
         #[cfg(not(feature = "drive"))] _s3: Option<()>,
         llm: Option<Arc<dyn botlib::traits::LLMProvider>>,
+        _pool: botcore::shared::utils::DbPool,
         _bot_id: String,
         params: SiteCreationParams,
     ) -> Result<String, Box<dyn Error + Send + Sync>> {
@@ -153,6 +155,7 @@ mod llm_impl {
         config: botcore::config::AppConfig,
         s3: Option<Arc<dyn botlib::traits::DriveRepository>>,
         llm: Option<Arc<dyn botlib::traits::LLMProvider>>,
+        pool: botcore::shared::utils::DbPool,
         bot_id: String,
         params: SiteCreationParams,
     ) -> Result<String, Box<dyn Error + Send + Sync>> {
@@ -169,7 +172,8 @@ mod llm_impl {
         let generated_html = generate_html_from_prompt(llm, &combined_content, &prompt_str).await?;
 
         let drive_path = format!("apps/{alias_str}");
-        store_to_drive(s3.as_ref(), &config.site_path, &bot_id, &drive_path, &generated_html).await?;
+        let location = resolve_site_location(&pool, &bot_id)?;
+        store_to_drive(s3.as_ref(), &location, &drive_path, &generated_html).await?;
 
         let serve_path = base_path.join(&alias_str);
         sync_to_serve_path(&serve_path, &generated_html, &template_path)?;
@@ -184,6 +188,7 @@ mod llm_impl {
         config: botcore::config::AppConfig,
         _s3: Option<()>,
         llm: Option<Arc<dyn botlib::traits::LLMProvider>>,
+        _pool: botcore::shared::utils::DbPool,
         bot_id: String,
         params: SiteCreationParams,
     ) -> Result<String, Box<dyn Error + Send + Sync>> {
@@ -374,11 +379,30 @@ Loading...
         )
     }
 
+    /// Resolves the Drive bucket and key prefix for the calling bot.
+///
+/// The bot id arrives as a UUID string, so it is parsed back to a UUID and
+/// resolved through the shared resolver: an org-hosted bot writes into the
+/// org workspace bucket (`{slug}.gborg`), not into a `{bot}.gbai` bucket.
+/// Failing to resolve is an error rather than a silent fallback to a bucket
+/// nothing reads, which is how generated sites became unreachable.
+    #[cfg(all(not(feature = "vibe"), feature = "drive"))]
+    fn resolve_site_location(
+        pool: &botcore::shared::utils::DbPool,
+        bot_id: &str,
+    ) -> Result<botbasic_core::utils::BotDriveLocation, Box<dyn Error + Send + Sync>> {
+        let bot_uuid = uuid::Uuid::parse_str(bot_id)
+            .map_err(|e| format!("Invalid bot id '{bot_id}': {e}"))?;
+        let mut conn = pool
+            .get()
+            .map_err(|e| format!("Failed to resolve Drive location for bot {bot_id}: {e}"))?;
+        Ok(botbasic_core::utils::bot_drive_location_for(&mut conn, bot_uuid))
+    }
+
     #[cfg(all(not(feature = "vibe"), feature = "drive"))]
     async fn store_to_drive(
         s3: Option<&Arc<dyn botlib::traits::DriveRepository>>,
-        bucket: &str,
-        bot_id: &str,
+        location: &botbasic_core::utils::BotDriveLocation,
         drive_path: &str,
         html_content: &str,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -386,20 +410,20 @@ Loading...
             debug!("S3 not configured, skipping drive storage");
             return Ok(());
         };
-        let key = format!("{bot_id}.gbdrive/{drive_path}/index.html");
+        let key = location.key_for(&format!("{drive_path}/index.html"));
 
-        info!("Storing to drive: s3://{bucket}/{key}");
+        info!("Storing to drive: s3://{}/{key}", location.bucket);
 
         s3_client
-            .put_object(bucket, &key, html_content.as_bytes().to_vec(), None)
+            .put_object(&location.bucket, &key, html_content.as_bytes().to_vec(), None)
             .await
             .map_err(|e| format!("Failed to store to drive: {e}"))?;
 
-        let schema_key = format!("{bot_id}.gbdrive/{drive_path}/schema.json");
+        let schema_key = location.key_for(&format!("{drive_path}/schema.json"));
         let schema = r#"{"tables": {}, "version": 1}"#;
 
         s3_client
-            .put_object(bucket, &schema_key, schema.as_bytes().to_vec(), None)
+            .put_object(&location.bucket, &schema_key, schema.as_bytes().to_vec(), None)
             .await
             .map_err(|e| format!("Failed to store schema: {e}"))?;
 

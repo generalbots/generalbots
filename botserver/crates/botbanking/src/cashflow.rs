@@ -257,10 +257,16 @@ pub async fn cashflow_import_inner(
     // Sheet content: explicit drive key or supplied rows.
     let csv_text = if let Some(file_key) = file_key {
         let drive = drive.ok_or_else(|| "Drive unavailable".to_string())?;
-        let bucket = format!("{}.gbai", scope.name);
-        let key = format!("{}.gbdrive/{}", scope.name, file_key.trim_start_matches('/'));
+        // An org-hosted bot's sheet lives in the org workspace bucket
+        // (`{slug}.gborg`), not in a `{bot}.gbai` bucket that nothing reads,
+        // so the location is resolved from the bot row rather than the name.
+        let location = {
+            let mut conn = pool.get().map_err(|e| format!("Pool error: {e}"))?;
+            botbasic_core::utils::bot_drive_location_for(&mut conn, scope.id)
+        };
+        let key = location.key_for(file_key);
         let bytes = drive
-            .get_object(&bucket, &key)
+            .get_object(&location.bucket, &key)
             .await
             .map_err(|e| format!("Sheet not found: {e}"))?;
         Some(String::from_utf8_lossy(&bytes).to_string())
