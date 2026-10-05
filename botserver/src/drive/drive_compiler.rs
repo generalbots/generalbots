@@ -54,19 +54,38 @@ async fn download_from_s3(file_path: &str, state: &Arc<AppState>) -> Result<Vec<
     let s3_repo = crate::drive::s3_repository::S3Repository::new(&app_cfg.drive.endpoint, &app_cfg.drive.access_key, &app_cfg.drive.secret_key, &app_cfg.drive.bucket)
         .map_err(|e| format!("Failed to create S3 operator: {}", e))?;
 
-    // file_path format: {branch}.gbai/{bot}.gbdialog/{tool}.bas
-    // In .gborg structure: bucket = {branch}.gborg, key = {branch}.gbai/{bot}.gbdialog/{tool}.bas
+    // drive_files convention: `{bot}.gbai/{bot}.gbdialog/{tool}.bas` — the
+    // first segment names the BOT, not the branch (`cristo-test` shares its
+    // branch's workspace inside `cristo.gborg`). Guessing
+    // `{first_segment}.gborg` therefore read the wrong bucket for every bot
+    // whose name differs from its branch, so the bot's real location is
+    // resolved instead; for the branch's own bot the resulting bucket and key
+    // are byte-identical to the stored path.
     let parts: Vec<&str> = file_path.split('/').collect();
     if parts.len() < 2 {
         return Err("Invalid file path for S3 download".into());
     }
+    let bot_segment = parts[0];
+    let bot_name = bot_segment.strip_suffix(".gbai").unwrap_or(bot_segment);
+    let relative = parts[1..].join("/");
 
-    let branch_prefix = parts[0];
-    let branch_name = branch_prefix.strip_suffix(".gbai").unwrap_or(branch_prefix);
-    let bucket_name = format!("{}.gborg", branch_name);
-    let s3_key = file_path;
+    let location = match state.conn.get() {
+        Ok(mut conn) => Some(botbasic_core::utils::bot_drive_location_for_name(&mut conn, bot_name)),
+        Err(e) => {
+            // Without the row keep the legacy derivation instead of failing
+            // the compile outright.
+            log::warn!("DriveCompiler: DB unavailable resolving '{bot_name}': {e}");
+            None
+        }
+    };
 
-    s3_repo.get_object_direct(&bucket_name, s3_key)
+    let (bucket_name, s3_key) = match location {
+        Some(loc) => (loc.bucket.clone(), format!("{}{relative}", loc.bot_prefix)),
+        // Legacy shape: `{bot}.gbai/…` where the path doubles as the key.
+        None => (format!("{bot_name}.gborg"), file_path.to_string()),
+    };
+
+    s3_repo.get_object_direct(&bucket_name, &s3_key)
         .await
         .map_err(|e| format!("S3 get_object_direct failed for {}/{}: {}", bucket_name, s3_key, e).into())
 }

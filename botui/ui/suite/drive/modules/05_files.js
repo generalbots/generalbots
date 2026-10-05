@@ -216,10 +216,14 @@ async function searchFiles(query) {
 // ── Tab Path Builders ────────────────────────────────────────────
 function buildPathBranchDrive() {
     if (currentGborgBranch) {
-        // If bucket is .gborg, files are nested inside .gbai subdirectory
-        // If bucket is .gbai directly, files are at root
+        // If bucket is .gborg, files are nested inside the branch's .gbai
+        // workspace under the BOT's own directory. That directory equals the
+        // branch name only when the bot is its branch's namesake; a twin such
+        // as `cristo-test`, or `oppbot` in branch `opportunity-oppbot`, keeps
+        // its own `{bot}.gbdrive` inside the branch workspace.
         if (currentBucket && currentBucket.indexOf('.gborg') > 0) {
-            return currentGborgBranch + ".gbai/" + currentGborgBranch + ".gbdrive";
+            var botName = window.__INITIAL_BOT_NAME__ || currentGborgBranch;
+            return currentGborgBranch + ".gbai/" + botName + ".gbdrive";
         }
         return currentGborgBranch + ".gbdrive";
     }
