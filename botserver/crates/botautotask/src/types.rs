@@ -1,3 +1,4 @@
+use botbasic_core::utils::BotDriveLocation;
 use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use serde::{Deserialize, Serialize};
@@ -265,17 +266,23 @@ pub trait AutoTaskState: Send + Sync {
 pub struct BotInfo {
     pub id: Uuid,
     pub name: String,
+    /// Where the bot's files physically live. Resolved from the `bots` and
+    /// `organizations` rows instead of formatted from the name: an org-hosted
+    /// bot lives in the shared `{slug}.gborg` workspace, and a standalone bot
+    /// owns its `{name}.gbai` bucket — both shapes occur in prod.
+    pub drive: BotDriveLocation,
 }
 
 impl BotInfo {
-    /// Drive bucket for the bot (MinIO layout: `{name}.gbai`).
+    /// Drive bucket holding this bot's files.
     pub fn bucket_name(&self) -> String {
-        format!("{}.gbai", self.name)
+        self.drive.bucket.clone()
     }
 
-    /// Drive folder inside the bucket (`{name}.gbdialog`).
+    /// Key prefix for the bot's scripts. Not under `.gbdrive`, so this uses
+    /// `bot_prefix` rather than the Drive-only `key_prefix`.
     pub fn dialog_folder(&self) -> String {
-        format!("{}.gbdialog", self.name)
+        format!("{}{}.gbdialog", self.drive.bot_prefix, self.name)
     }
 }
 
@@ -632,5 +639,48 @@ mod tests {
         });
         let err = result.expect_err("producer error must propagate");
         assert!(err.to_string().contains("producer failed after streaming"));
+    }
+}
+
+#[cfg(test)]
+mod bot_info_drive_tests {
+    use super::*;
+    use botbasic_core::utils::resolve_bot_drive_location;
+
+    fn info(bot: &str, org_slug: Option<&str>) -> BotInfo {
+        BotInfo {
+            id: Uuid::nil(),
+            name: bot.to_string(),
+            drive: resolve_bot_drive_location(bot, org_slug),
+        }
+    }
+
+    #[test]
+    fn standalone_bot_uses_its_own_gbai_bucket() {
+        let i = info("beiner", None);
+        assert_eq!(i.bucket_name(), "beiner.gbai");
+        assert_eq!(i.dialog_folder(), "beiner.gbdialog");
+    }
+
+    #[test]
+    fn org_hosted_bot_uses_gborg_bucket_and_prefixed_key() {
+        // Prod shape: org slug `beiner` owns bucket `beiner.gborg` and the bot
+        // lives under the `beiner.gbai/` key prefix. Writing to a standalone
+        // `beiner.gbai` bucket put the file where nothing reads it.
+        let i = info("beiner", Some("beiner"));
+        assert_eq!(i.bucket_name(), "beiner.gborg");
+        assert_eq!(i.dialog_folder(), "beiner.gbai/beiner.gbdialog");
+    }
+
+    #[test]
+    fn dialog_key_is_not_placed_under_gbdrive() {
+        // `.gbdialog` sits beside `.gbdrive` in the bot tree, never inside it.
+        for slug in [None, Some("beiner")] {
+            let folder = info("beiner", slug).dialog_folder();
+            assert!(
+                !folder.contains(".gbdrive"),
+                "slug {slug:?} produced a dialog key inside .gbdrive: {folder}"
+            );
+        }
     }
 }

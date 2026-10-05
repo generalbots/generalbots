@@ -11,20 +11,32 @@
 use botlib::traits::DriveRepository;
 use diesel::prelude::*;
 use diesel::sql_query;
-use diesel::sql_types::Text;
-
-fn resolve_default_bot_name(conn: &mut diesel::PgConnection) -> Result<Option<String>, String> {
+use diesel::sql_types::Text;/// Name and org slug of the default bot.
+///
+/// The org slug is not optional decoration: it decides whether the files land
+/// in the bot's own `{bot}.gbai` bucket or in the shared `{slug}.gborg`
+/// workspace, so the bucket cannot be built from the bot name alone.
+fn resolve_default_bot(
+    conn: &mut diesel::PgConnection,
+) -> Result<Option<(String, Option<String>)>, String> {
     #[derive(diesel::QueryableByName)]
     struct BotRow {
         #[diesel(sql_type = Text)]
         name: String,
+        #[diesel(sql_type = diesel::sql_types::Nullable<Text>)]
+        org_slug: Option<String>,
     }
     let row: Option<BotRow> = sql_query(
-        "SELECT name FROM bots WHERE is_default_for_branch = true ORDER BY created_at ASC LIMIT 1",
+        "SELECT b.name, o.slug AS org_slug
+         FROM bots b
+         LEFT JOIN organizations o ON o.org_id = b.org_id
+         WHERE b.is_default_for_branch = true
+         ORDER BY b.created_at ASC LIMIT 1",
     )
     .get_result(conn)
     .ok();
-    Ok(row.map(|r| r.name))
+
+    Ok(row.map(|r| (r.name, r.org_slug)))
 }
 
 /// Builds a cash-flow CSV with entries for the given month (so diagnosis
@@ -57,11 +69,14 @@ pub async fn seed_drive_objects(
     drive: &dyn DriveRepository,
 ) -> Result<(), String> {
     let mut conn = pool.get().map_err(|e| format!("Pool error: {e}"))?;
-    let bot_name = resolve_default_bot_name(&mut conn)?.ok_or("No default bot found")?;
+    let (bot_name, org_slug) = resolve_default_bot(&mut conn)?.ok_or("No default bot found")?;
     drop(conn);
 
-    let bucket = format!("{bot_name}.gbai");
-    let prefix = format!("{bot_name}.gbdrive/");
+    // Resolved rather than formatted: for an org-hosted bot this is the org
+    // workspace bucket plus the bot's key prefix inside it.
+    let location = botbasic_core::utils::resolve_bot_drive_location(&bot_name, org_slug.as_deref());
+    let prefix = location.drive_prefix();
+    let bucket = location.bucket;
 
     drive
         .create_bucket_if_not_exists(&bucket)

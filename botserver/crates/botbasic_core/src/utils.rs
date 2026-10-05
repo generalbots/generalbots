@@ -128,7 +128,7 @@ pub const GBORG_SUFFIX: &str = ".gborg";
 /// derived from the bot name alone — the org slug decides.
 ///
 /// `org_slug: None` → standalone layout, `Some(slug)` → org layout.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BotDriveLocation {
     pub bucket: String,
     /// Prefix every Drive key of this bot starts with, including the trailing
