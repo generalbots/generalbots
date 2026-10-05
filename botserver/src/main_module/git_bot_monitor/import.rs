@@ -171,18 +171,36 @@ async fn import_one(
     pool: &DbPool,
     target: &ImportTarget,
 ) -> Result<usize, String> {
-    // Bucket layout 2 (org workspace): `{org}.gborg/{branch}.gbai/...`.
-    // Layout 1 (standalone): `{branch}.gbai`. Probe the org bucket first.
-    let org_bucket = format!("{}.gborg", target.branch_slug);
-    let branch_prefix = format!("{}.gbai/", target.branch_slug);
-    let (bucket, prefix) = match state.drive.as_ref() {
-        Some(s3) if s3.list_objects(&org_bucket, Some(&branch_prefix)).await.is_ok() => {
-            (org_bucket, branch_prefix)
+    // Candidate locations, most specific first: the bot's resolved location
+    // (`{tenant}.gborg` with the branch's `{branch}.gbai/` workspace, or the
+    // standalone `{bot}.gbai` bucket), then the legacy guesses for projects
+    // whose name does not resolve to a bot row (`Sample` vs bot `sample`).
+    // Guessing `{branch}.gborg` alone missed every bot whose branch slug
+    // differs from the bucket name (`PragmatismoGB` -> `pragmatismo.gborg`).
+    let mut candidates: Vec<(String, String)> = Vec::new();
+    match pool.get() {
+        Ok(mut conn) => {
+            let loc = botbasic_core::utils::bot_drive_location_for_name(&mut conn, &target.name);
+            candidates.push((loc.bucket.clone(), loc.bot_prefix.clone()));
         }
+        Err(e) => log::warn!("[git_import] {}: pool: {e}", target.name),
+    }
+    for candidate in [
+        (
+            format!("{}.gborg", target.branch_slug),
+            format!("{}.gbai/", target.branch_slug),
+        ),
         // S3 bucket names must be lowercase — a slug with uppercase letters
         // can never exist as a bucket and only produces InvalidBucketName noise.
-        _ => (format!("{}.gbai", target.branch_slug.to_lowercase()), String::new()),
-    };
+        (
+            format!("{}.gbai", target.branch_slug.to_lowercase()),
+            String::new(),
+        ),
+    ] {
+        if !candidates.iter().any(|(b, p)| b == &candidate.0 && p == &candidate.1) {
+            candidates.push(candidate);
+        }
+    }
 
     let workspace = botvibe::harness::workspace_root().join(&target.repo_slug);
     std::fs::create_dir_all(&workspace)
@@ -196,26 +214,37 @@ async fn import_one(
         ));
     }
     let dialog_dir = workspace.join(".gbdialog");
-    let copied =
-        import_dialog_from_drive(state, &bucket, &prefix, &target.name, &dialog_dir).await?;
-    if copied == 0 {
-        mark_imported(pool, target.project_id, 0);
-        log::info!(
-            "[git_import] {}: no Drive sources found (fresh branch) — marked imported",
-            target.name
-        );
-        return Ok(0);
+    let mut last_error: Option<String> = None;
+    for (bucket, prefix) in &candidates {
+        match import_dialog_from_drive(state, bucket, prefix, &target.name, &dialog_dir).await {
+            Ok(0) => continue,
+            Ok(copied) => {
+                commit_and_push(
+                    &workspace,
+                    &format!("Import bot sources from Drive ({})", target.name),
+                )?;
+                mark_imported(pool, target.project_id, copied);
+                log::info!(
+                    "[git_import] {}: {copied} file(s) imported from {bucket} → git and pushed",
+                    target.name
+                );
+                return Ok(copied);
+            }
+            Err(e) => {
+                log::warn!("[git_import] {}: {bucket} unreadable: {e}", target.name);
+                last_error = Some(e);
+            }
+        }
     }
-    commit_and_push(
-        &workspace,
-        &format!("Import bot sources from Drive ({})", target.name),
-    )?;
-    mark_imported(pool, target.project_id, copied);
+    if let Some(e) = last_error {
+        return Err(e);
+    }
+    mark_imported(pool, target.project_id, 0);
     log::info!(
-        "[git_import] {}: {copied} file(s) imported from {bucket} → git and pushed",
+        "[git_import] {}: no Drive sources found (fresh branch) — marked imported",
         target.name
     );
-    Ok(copied)
+    Ok(0)
 }
 
 /// Import pass: run once at boot after the bootstrap backfill. Safe to
@@ -268,11 +297,29 @@ async fn recover_config_files(state: Arc<botcore::shared::state::AppState>, pool
         }
     };
     for (bot_name, branch_slug) in bots {
-        let branch_prefix = format!("{branch_slug}.gbai/");
-        for bucket in [
-            format!("{branch_slug}.gborg"),
-            format!("{}.gbai", branch_slug.to_lowercase()),
+        // Resolved first, legacy guesses after — a bot whose branch slug
+        // differs from the bucket name (`PragmatismoGB` in `pragmatismo.gborg`)
+        // is invisible to the branch-named candidates.
+        let mut candidates: Vec<(String, String)> = Vec::new();
+        match pool.get() {
+            Ok(mut conn) => {
+                let loc = botbasic_core::utils::bot_drive_location_for_name(&mut conn, &bot_name);
+                candidates.push((loc.bucket.clone(), loc.bot_prefix.clone()));
+            }
+            Err(e) => log::warn!("[git_config] {bot_name}: pool: {e}"),
+        }
+        for candidate in [
+            (
+                format!("{branch_slug}.gborg"),
+                format!("{branch_slug}.gbai/"),
+            ),
+            (format!("{}.gbai", branch_slug.to_lowercase()), String::new()),
         ] {
+            if !candidates.iter().any(|(b, p)| b == &candidate.0 && p == &candidate.1) {
+                candidates.push(candidate);
+            }
+        }
+        for (bucket, branch_prefix) in candidates {
             let imported = super::bot_config::import_config_from_drive(
                 state.clone(),
                 pool.clone(),

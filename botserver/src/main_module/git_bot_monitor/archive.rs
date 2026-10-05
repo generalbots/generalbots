@@ -7,8 +7,6 @@
 //! once at bootstrap after the import pass, it is safe to re-run: prefixes
 //! already archived (or absent) are skipped.
 
-use std::collections::BTreeSet;
-
 use botcore::shared::state::AppState;
 use botcore::shared::utils::DbPool;
 use diesel::RunQueryDsl;
@@ -155,12 +153,34 @@ pub async fn run_archive_pass(state: std::sync::Arc<AppState>, pool: DbPool) {
         return; // drive-less deployment — nothing to archive
     }
     for target in &targets {
-        // Layout 2 (org workspace) first, then layout 1 (standalone bucket).
-        let org_bucket = format!("{}.gborg", target.branch_slug);
-        let branch_prefix = format!("{}.gbai/", target.branch_slug);
-        let buckets: BTreeSet<String> = [org_bucket, format!("{}.gbai", target.branch_slug.to_lowercase())]
-            .into_iter()
-            .collect();
+        // Candidate locations, most specific first: the bot's resolved location
+        // (`{tenant}.gborg` with the branch's `{branch}.gbai/` workspace, or
+        // the standalone `{bot}.gbai` bucket), then the legacy guesses for
+        // projects whose name does not resolve to a bot row. Guessing
+        // `{branch}.gborg` alone missed `PragmatismoGB`, whose sources live in
+        // `pragmatismo.gborg`.
+        let mut candidates: Vec<(String, String)> = Vec::new();
+        match pool.get() {
+            Ok(mut conn) => {
+                let loc = botbasic_core::utils::bot_drive_location_for_name(&mut conn, &target.bot_name);
+                candidates.push((loc.bucket.clone(), loc.bot_prefix.clone()));
+            }
+            Err(e) => log::warn!("[git_archive] {}: pool: {e}", target.bot_name),
+        }
+        for candidate in [
+            (
+                format!("{}.gborg", target.branch_slug),
+                format!("{}.gbai/", target.branch_slug),
+            ),
+            (
+                format!("{}.gbai", target.branch_slug.to_lowercase()),
+                String::new(),
+            ),
+        ] {
+            if !candidates.iter().any(|(b, p)| b == &candidate.0 && p == &candidate.1) {
+                candidates.push(candidate);
+            }
+        }
         // A missing checkout is treated as "no configuration in the repository",
         // which is the safe direction: the prefix simply stays in Drive.
         let config_in_repo = {
@@ -180,11 +200,11 @@ pub async fn run_archive_pass(state: std::sync::Arc<AppState>, pool: DbPool) {
                 }
             }
         };
-        for bucket in buckets {
+        for (bucket, branch_prefix) in &candidates {
             match archive_bot_sources(
                 &state,
-                &bucket,
-                &branch_prefix,
+                bucket,
+                branch_prefix,
                 &target.bot_name,
                 config_in_repo,
             )
