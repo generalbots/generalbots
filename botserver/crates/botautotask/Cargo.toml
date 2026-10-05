@@ -15,6 +15,7 @@ drive = ["rust-s3"]
 botlib = { workspace = true }
 botcore = { path = "../botcore" }
 botbasic_compiler = { path = "../botbasic_compiler" }
+botbasic_core = { path = "../botbasic_core" }
 
 diesel = { workspace = true, features = ["postgres", "r2d2", "chrono", "serde_json", "uuid"] }
 r2d2 = { workspace = true }

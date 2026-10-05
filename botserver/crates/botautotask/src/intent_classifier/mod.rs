@@ -528,8 +528,9 @@ Respond with JSON only:
         let Some(ops) = self.state.file_ops() else {
             return Err("Drive ops not available — cannot persist generated BASIC".into());
         };
-        let bucket = format!("{}.gbai", bot.name);
-        let key = format!("{}.gbdialog/{relative}", bot.name);
+        let location = botbasic_core::utils::bot_drive_location_for(&mut conn, bot_id);
+        let bucket = location.bucket;
+        let key = format!("{}{}.gbdialog/{relative}", location.bot_prefix, bot.name);
         ops.put_object(&bucket, &key, content.as_bytes().to_vec(), "text/plain")?;
         info!("Saved BASIC file to Drive: {bucket}/{key}");
         Ok(())

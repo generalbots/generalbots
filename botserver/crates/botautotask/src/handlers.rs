@@ -40,7 +40,11 @@ pub(crate) fn resolve_bot_info(pool: &DbPool, bot_id: Uuid) -> Result<Option<Bot
         .get_result::<BotNameRow>(&mut conn)
         .optional()
         .map_err(|e| format!("resolve bot: {e}"))?;
-    Ok(bot.map(|b| BotInfo { id: bot_id, name: b.name }))
+    Ok(bot.map(|b| BotInfo {
+        id: bot_id,
+        name: b.name,
+        drive: botbasic_core::utils::bot_drive_location_for(&mut conn, bot_id),
+    }))
 }
 
 /// Parse an optional `bot_id` string from a request body; defaults to nil.

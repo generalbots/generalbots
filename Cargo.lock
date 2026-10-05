@@ -1292,6 +1292,7 @@ version = "6.7.0"
 dependencies = [
  "axum",
  "botbasic_compiler",
+ "botbasic_core",
  "botcore",
  "botlib",
  "chrono",
@@ -2903,6 +2904,7 @@ name = "botsampledata"
 version = "6.7.0"
 dependencies = [
  "argon2",
+ "botbasic_core",
  "botcore",
  "botlib",
  "chrono",
