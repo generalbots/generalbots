@@ -647,17 +647,17 @@ mod bot_info_drive_tests {
     use super::*;
     use botbasic_core::utils::resolve_bot_drive_location;
 
-    fn info(bot: &str, org_slug: Option<&str>) -> BotInfo {
+    fn info(bot: &str, branch_slug: Option<&str>, org_slug: Option<&str>) -> BotInfo {
         BotInfo {
             id: Uuid::nil(),
             name: bot.to_string(),
-            drive: resolve_bot_drive_location(bot, org_slug),
+            drive: resolve_bot_drive_location(bot, branch_slug, org_slug),
         }
     }
 
     #[test]
     fn standalone_bot_uses_its_own_gbai_bucket() {
-        let i = info("beiner", None);
+        let i = info("beiner", None, None);
         assert_eq!(i.bucket_name(), "beiner.gbai");
         assert_eq!(i.dialog_folder(), "beiner.gbdialog");
     }
@@ -665,18 +665,37 @@ mod bot_info_drive_tests {
     #[test]
     fn org_hosted_bot_uses_gborg_bucket_and_prefixed_key() {
         // Prod shape: org slug `beiner` owns bucket `beiner.gborg` and the bot
-        // lives under the `beiner.gbai/` key prefix. Writing to a standalone
+        // lives under the `beiner.gbai/` workspace. Writing to a standalone
         // `beiner.gbai` bucket put the file where nothing reads it.
-        let i = info("beiner", Some("beiner"));
+        let i = info("beiner", Some("beiner"), Some("beiner"));
         assert_eq!(i.bucket_name(), "beiner.gborg");
         assert_eq!(i.dialog_folder(), "beiner.gbai/beiner.gbdialog");
     }
 
     #[test]
+    fn legacy_org_slug_does_not_prefix_the_bucket() {
+        // `cristo-org` is the DB alias; the physical bucket is `cristo.gborg`.
+        let i = info("cristo", Some("cristo"), Some("cristo-org"));
+        assert_eq!(i.bucket_name(), "cristo.gborg");
+        assert_eq!(i.dialog_folder(), "cristo.gbai/cristo.gbdialog");
+    }
+
+    #[test]
+    fn dialog_folder_follows_the_branch_not_the_bot_name() {
+        // Prod shape: bot `oppbot` lives in branch `opportunity-oppbot`.
+        let i = info("oppbot", Some("opportunity-oppbot"), Some("opportunity-oppbot-org"));
+        assert_eq!(i.bucket_name(), "opportunity-oppbot.gborg");
+        assert_eq!(
+            i.dialog_folder(),
+            "opportunity-oppbot.gbai/oppbot.gbdialog"
+        );
+    }
+
+    #[test]
     fn dialog_key_is_not_placed_under_gbdrive() {
         // `.gbdialog` sits beside `.gbdrive` in the bot tree, never inside it.
-        for slug in [None, Some("beiner")] {
-            let folder = info("beiner", slug).dialog_folder();
+        for (branch, slug) in [(None, None), (Some("beiner"), Some("beiner"))] {
+            let folder = info("beiner", branch, slug).dialog_folder();
             assert!(
                 !folder.contains(".gbdrive"),
                 "slug {slug:?} produced a dialog key inside .gbdrive: {folder}"

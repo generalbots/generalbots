@@ -134,11 +134,13 @@ fn allowed_buckets_for(state: &AppState, user: &AuthenticatedUser) -> Vec<String
             match rows {
                 Ok(rows) => {
                     for r in rows {
-                        // Org workspace bucket: {slug}.gborg — the bucket every
-                        // bot of that org actually resolves to. An org bot owns
-                        // no standalone `{bot}.gbai` bucket, so nothing is
-                        // granted on the strength of the bot name alone.
-                        allowed.push(format!("{}.gborg", r.slug));
+                        // Org workspace bucket: `{tenant}.gborg` — the bucket
+                        // every bot of that org actually resolves to. An org
+                        // bot owns no standalone `{bot}.gbai` bucket, so
+                        // nothing is granted on the bot name alone. The org
+                        // slug may carry the legacy `-org` suffix (cristo-org),
+                        // which is a DB alias and never part of the bucket name.
+                        allowed.push(botbasic_core::utils::org_drive_bucket(&r.slug));
                         let bot_rows: Result<Vec<BotName>, _> = diesel::sql_query(
                             "SELECT b.name AS name FROM bots b WHERE b.org_id = $1::uuid",
                         )
@@ -843,10 +845,10 @@ pub async fn create_bot(
     }
 
     // Resolve the target bucket from the bots table: an org-hosted bot is
-    // seeded inside the org workspace bucket (`{slug}.gborg`) under a
-    // `{name}.gbai/` prefix, never in its own `{name}.gbai` bucket — that
-    // standalone bucket would be dead weight nothing reads. Falls back to
-    // the standalone layout when the bot has no row or no org yet.
+    // seeded inside the org workspace bucket (`{tenant}.gborg`) under its
+    // branch's `{branch}.gbai/{name}.gb…` tree, never in its own `{name}.gbai`
+    // bucket — that standalone bucket would be dead weight nothing reads.
+    // Falls back to the standalone layout when the bot has no row or no org yet.
     let location = match state.conn.get() {
         Ok(mut conn) => botbasic_core::utils::bot_drive_location_for_name(&mut conn, &name),
         Err(e) => {
@@ -918,9 +920,9 @@ pub async fn delete_bot(
     // Tenant isolation (#1387): an org admin may only delete bots inside its
     // own tenant. The client supplies the name, so without this check any
     // org admin could destroy ANY tenant's bot. The bot's real location is
-    // resolved from its row: an org bot's objects live under a `{bot}.gbai/`
-    // prefix inside the shared `{slug}.gborg` bucket, so the check validates
-    // that bucket, not a `{bot}.gbai` one.
+    // resolved from its row: an org bot's objects live inside its branch's
+    // `{branch}.gbai/` workspace in the shared `{tenant}.gborg` bucket, so the
+    // check validates that bucket, not a `{bot}.gbai` one.
     let location = match state.conn.get() {
         Ok(mut conn) => botbasic_core::utils::bot_drive_location_for_name(&mut conn, &bot_name),
         Err(e) => {
@@ -945,10 +947,10 @@ pub async fn delete_bot(
     let bucket_name = location.bucket.clone();
     let drive = get_drive(&state)?;
 
-    // Only this bot's own objects are removed. For an org bot that is the
-    // `{bot}.gbai/` prefix inside the shared bucket — deleting the bucket
-    // itself would destroy every sibling bot in the same org.
-    let objects = drive.list_objects(&bucket_name, Some(&location.bot_prefix)).await
+    // Only this bot's own objects are removed: the `{…}{bot}.gb` tree inside
+    // its branch workspace. Deleting the bucket — or the whole branch
+    // workspace — would destroy every sibling bot in the same org.
+    let objects = drive.list_objects(&bucket_name, Some(&location.bot_tree_prefix(&bot_name))).await
         .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to list bucket objects: {e}")))?;
 
     if !objects.is_empty() {
