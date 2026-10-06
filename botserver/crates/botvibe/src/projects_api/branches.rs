@@ -120,10 +120,13 @@ pub(crate) async fn delete_project(
     for e in crate::eviction::delete_project_assets(&project, &lifecycle).await {
         log::warn!("Vibe: asset cleanup for project {id}: {e}");
     }
-    // git-mode projects own a Forgejo repo; delete it too so a recreated
-    // project with the same name starts from a clean repo instead of
-    // inheriting stale history that rejects the seed push (non-fast-forward).
-    if project.source_control == "git" {
+    // Every project owns a Forgejo repo: git-mode projects by definition, and
+    // native-mode ones that were previously git-mode (or were seeded from a
+    // template) still have one. Gating on `source_control == "git"` left those
+    // repos behind — an `e2e-apps-run` project deletion kept `eb4ca084/
+    // e2e-apps-run` in ALM forever. `delete_repository` maps 404 to success,
+    // so attempting it for every project is idempotent and safe.
+    {
         let (alm_base, alm_token, _org) = botcoresecrets::alm_config();
         if !alm_base.is_empty() && !alm_token.is_empty() {
             let forgejo_org = crate::vm_lifecycle::VmLifecycle::alm_org(project.branch_id);
@@ -134,12 +137,12 @@ pub(crate) async fn delete_project(
                 .await
             {
                 Ok(_) => log::info!(
-                    "Vibe git-mode {}: deleted Forgejo repo {forgejo_org}/{forgejo_repo}",
-                    project.name
+                    "Vibe {}: deleted Forgejo repo {forgejo_org}/{forgejo_repo}",
+                    project.source_control
                 ),
                 Err(e) => log::warn!(
-                    "Vibe git-mode {}: delete Forgejo repo {forgejo_org}/{forgejo_repo} failed: {e}",
-                    project.name
+                    "Vibe {}: delete Forgejo repo {forgejo_org}/{forgejo_repo} failed: {e}",
+                    project.source_control
                 ),
             }
         }
@@ -185,7 +188,16 @@ pub(crate) async fn list_projects(
     Extension(user): Extension<AuthenticatedUser>,
     Query(query): Query<ListProjectsQuery>,
 ) -> ApiResult {
-    if user.user_id.is_nil() {
+    // Gate on roles, not on `user_id.is_nil()`: an internal service caller
+    // (`AuthenticatedUser::service`) carries `user_id = Uuid::nil()` but the
+    // `Service` role, so the old check rejected it with 403 while `delete_project`
+    // — which gates on the same roles — accepted it. A service token could
+    // delete a project but not list one, forcing operators into raw SQL.
+    let is_privileged = user
+        .roles
+        .iter()
+        .any(|r| matches!(r, Role::Admin | Role::SuperAdmin | Role::Service));
+    if !is_privileged && user.user_id.is_nil() {
         return forbidden("forbidden: anonymous users cannot list projects".into());
     }
     // #1267 — resolve the caller's real org branch when the query does not
