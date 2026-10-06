@@ -10,7 +10,6 @@
 use crate::basic::compiler::{BasicCompiler, CompilerCallbacks};
 use crate::core::shared::state::AppState;
 use crate::core::shared::utils::get_work_path;
-use crate::drive::drive_files::drive_files as drive_files_table;
 use crate::drive::drive_monitor::CHECK_INTERVAL_SECS;
 use diesel::prelude::*;
 use log::{debug, error, info, warn};
@@ -26,7 +25,25 @@ use uuid::Uuid;
 /// A file that failed to compile is retried after this pause. Long enough to
 /// stop a permanent failure from spinning the monitor, short enough that a
 /// transient S3/database hiccup still self-heals without a restart.
-const COMPILE_RETRY_BACKOFF: std::time::Duration = std::time::Duration::from_secs(300);
+/// How many queued scripts one tick claims. Bounded so a large backlog is
+/// drained over several ticks instead of monopolising the loop.
+const COMPILE_BATCH_SIZE: i64 = 64;
+
+/// How long a claimed script stays leased. The lease only guards against
+/// overlapping ticks; the retry backoff for a *failing* script lives in
+/// `bot_scripts` (`fail_count`/`last_failed_at`), not here.
+const COMPILE_LEASE: std::time::Duration = std::time::Duration::from_secs(300);
+
+#[derive(diesel::QueryableByName)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+struct MissingArtifactRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    branch_id: uuid::Uuid,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    script_path: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    bot_name: String,
+}
 
 pub struct DriveCompiler {
     state: Arc<AppState>,
@@ -43,7 +60,8 @@ pub struct DriveCompiler {
     /// this a path that can never compile (e.g. a key whose first segment is
     /// not a `.gbai` branch) was retried on EVERY scan — the monitor spun at
     /// 100% CPU and every request (Drive included) queued behind it.
-    /// Retries are now spaced by `COMPILE_RETRY_BACKOFF`.
+    /// Retry spacing itself moved to `bot_scripts` (#1475); this stays as a
+    /// fast local guard so a failing path is not re-attempted in the same tick.
     failed_at: Arc<RwLock<HashMap<String, std::time::Instant>>>,
 }
 
@@ -186,39 +204,58 @@ impl DriveCompiler {
         Ok(())
     }
 
-    /// Verifica drive_files e compila arquivos .bas que mudaram
+    /// Drain the `bot_scripts` compile queue (#1475).
+    ///
+    /// This used to read the `drive_files` *inventory* with a leading-wildcard
+    /// `LIKE '%.gbdialog/%'`, which can never use a btree index. Since 6.5.25
+    /// dropped `idx_drive_files_type`, every 5 s tick sequentially scanned the
+    /// whole table and discarded the ~9.5k KB/media/shared rows that were never
+    /// candidates. It also recompiled git-owned tools forever: the git monitor
+    /// and the DriveMonitor wrote different meanings into the same `etag`
+    /// column (a commit sha vs an S3 ETag) and the version was only recorded on
+    /// success, so a broken script was retried on every tick.
+    ///
+    /// `bot_scripts` fixes all three: a partial index on `dirty` makes this an
+    /// index-only scan of pending work, `source_version` is separated from
+    /// `compiled_version`, and `claim` leases the batch so overlapping ticks
+    /// cannot take the same script.
     async fn check_and_compile(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        use drive_files_table::dsl::*;
+        let scripts = botdrive::BotScriptsRepository::new(self.state.conn.clone());
+        let owner = self.lease_owner();
+        let claimed = scripts
+            .claim(&owner, COMPILE_BATCH_SIZE, COMPILE_LEASE.as_secs() as i64)
+            .map_err(|e| -> Box<dyn Error + Send + Sync> { e.into() })?;
+        if claimed.is_empty() {
+            return Ok(());
+        }
+        debug!(
+            "DriveCompiler: claimed {} script(s) from the bot_scripts queue",
+            claimed.len()
+        );
 
-        let mut conn = self.state.conn.get()?;
+        // Reform #1501 — git-owned detection is only used to WARN when a
+        // git-owned bot's source changes in Drive; compilation still proceeds
+        // so Drive remains the operational fallback when a bot's repo lags.
+        let git_owned = {
+            let mut conn = self.state.conn.get()?;
+            git_owned_bots(&mut conn)
+        };
 
-        let mut files: Vec<(String, String, Option<String>)> = drive_files_table::table
-            .filter(file_type.eq("bas"))
-            .filter(file_path.like("%.gbdialog/%"))
-            .select((file_path, file_type, etag))
-            .load(&mut conn)?;
-        files.sort_by(|a, b| {
-            let a_is_tables = a.0.contains("tables.bas");
-            let b_is_tables = b.0.contains("tables.bas");
-            b_is_tables.cmp(&a_is_tables)
+        // `tables.bas` defines the schema every other script compiles against,
+        // so compile it first within a batch.
+        let mut claimed = claimed;
+        claimed.sort_by(|a, b| {
+            b.script_path.contains("tables.bas")
+                .cmp(&a.script_path.contains("tables.bas"))
         });
-        // Reform #1501 — git-owned detection (vibe `source_imported_at`) is
-        // used only to WARN when a git-owned bot's source changes in Drive;
-        // compilation still proceeds so Drive remains the operational
-        // fallback when a bot's git repo lags behind (see loop below).
-        let git_owned = git_owned_bots(&mut conn);
 
-        for (query_file_path, _file_type, current_etag_opt) in files {
-            let current_etag = current_etag_opt.unwrap_or_default();
-            // Reform #1501 — bots whose sources were imported into git are
-            // nominally fed by the git monitor (#1502). The leading drive_files
-            // path segment is the object-key form "{branch}.gbai", while
-            // git_owned_bots returns the bare branch slug, so normalize to the
-            // slug before comparing. We deliberately do NOT skip compilation:
-            // repos provisioned at import time lag Drive for tools added
-            // afterwards (a media-filing bot froze for hours), so Drive
-            // stays the operational fallback and the mismatch is surfaced as a
-            // warning instead of silently freezing updates.
+        for script in claimed {
+            let query_file_path = script.script_path.clone();
+            let source_version = script.source_version.clone();
+
+            // Reform #1501 — the leading drive_files path segment is the
+            // object-key form "{branch}.gbai", while git_owned_bots returns the
+            // bare branch slug, so normalize before comparing.
             let branch_segment = query_file_path.split('/').next().unwrap_or("");
             let branch_slug = branch_segment.strip_suffix(".gbai").unwrap_or(branch_segment);
             let bot_segment = query_file_path
@@ -227,106 +264,131 @@ impl DriveCompiler {
                 .unwrap_or("")
                 .strip_suffix(".gbdialog")
                 .unwrap_or("");
-            let git_owned_bot = !bot_segment.is_empty()
-                && git_owned.contains(&(branch_slug.to_string(), bot_segment.to_string()));
-            if git_owned_bot {
-                let etag_changed = {
-                    let etags = self.last_etags.read().await;
-                    etags.get(&query_file_path).map(|e| e != &current_etag).unwrap_or(true)
-                };
-                if etag_changed {
-                    debug!(
-                        "DriveCompiler: {} changed in Drive for git-owned bot '{}' — the repository is the source of truth (push through git to make the change durable)",
-                        query_file_path, bot_segment
-                    );
-                }
+            if !bot_segment.is_empty()
+                && git_owned.contains(&(branch_slug.to_string(), bot_segment.to_string()))
+                && script.source_kind == "drive"
+            {
+                debug!(
+                    "DriveCompiler: {} changed in Drive for git-owned bot '{}' — the repository is the source of truth (push through git to make the change durable)",
+                    query_file_path, bot_segment
+                );
             }
 
-            // Verificar se precisa compilar (ETag mudou ou .ast foi deletado do work dir)
-            let should_compile = {
-                let etags = self.last_etags.read().await;
-                let etag_changed = etags.get(&query_file_path).map(|e| e != &current_etag).unwrap_or(true);
-                let is_marked_missing = self.missing_files.read().await.contains(&query_file_path);
-                let ast_missing = !is_marked_missing && !self.resolve_ast_path(&query_file_path).exists();
-                if ast_missing {
-                    debug!("Force recompile: .ast file missing for {}", query_file_path);
-                }
-                // A git-owned bot has TWO writers for the same drive_files row:
-                // the git monitor stores a commit-derived etag and the Drive
-                // monitor stores the S3 etag. They disagree on every scan, so
-                // `etag_changed` was permanently true and the same tools were
-                // recompiled (and re-downloaded) on every pass — that pinned a
-                // core and pushed every endpoint, Drive included, into
-                // multi-second responses. For a git-owned bot the repository is
-                // the source of truth, so only a genuinely missing .ast forces
-                // a compile here; that keeps Drive as the operational fallback
-                // without the recompile storm.
-                let etag_drives_compile = etag_changed && !git_owned_bot;
-                etag_drives_compile || ast_missing
-            };
+            debug!(
+                "DriveCompiler: compiling {} ({} @ {}, {} prior failure(s))",
+                query_file_path, script.source_kind, source_version, script.fail_count
+            );
 
-            // Back off after a failure: without this the same unparseable
-            // path was retried on every scan (the ETag is only stored on
-            // success), pinning a core and starving every endpoint.
-            let in_backoff = {
-                let failed = self.failed_at.read().await;
-                failed
-                    .get(&query_file_path)
-                    .map(|at| at.elapsed() < COMPILE_RETRY_BACKOFF)
-                    .unwrap_or(false)
-            };
-
-            if should_compile && in_backoff {
-                debug!(
-                    "DriveCompiler: {} failed recently, skipping until the backoff expires",
-                    query_file_path
-                );
-            } else if should_compile {
-                debug!("DriveCompiler: {} changed, compiling...", query_file_path);
-
-                // Compilar diretamente para work dir
-                if let Err(e) = self.compile_file(Uuid::nil(), &query_file_path).await {
+            match self.compile_file(Uuid::nil(), &query_file_path).await {
+                Err(e) => {
                     let msg = e.to_string();
-                    let first = self
-                        .failed_at
+                    if let Err(db_err) =
+                        scripts.mark_failed(script.branch_id, &query_file_path, &msg)
+                    {
+                        error!("DriveCompiler: mark_failed {}: {db_err}", query_file_path);
+                    }
+                    self.failed_at
                         .write()
                         .await
-                        .insert(query_file_path.clone(), std::time::Instant::now())
-                        .is_none();
+                        .insert(query_file_path.clone(), std::time::Instant::now());
                     if msg.contains("Invalid file path") {
-                        // Unparseable key: no retry can help until the path
-                        // itself changes, so it is logged once and backed off.
-                        if first {
-                            warn!(
-                                "DriveCompiler: {} cannot be compiled ({}) — retrying every {}s",
-                                query_file_path, msg, COMPILE_RETRY_BACKOFF.as_secs()
-                            );
-                        } else {
-                            debug!("DriveCompiler: {} still failing ({})", query_file_path, msg);
-                        }
-                    } else if first {
-                        error!("Failed to compile {}: {}", query_file_path, e);
+                        warn!(
+                            "DriveCompiler: {} cannot be compiled ({msg}) — backing off before retry",
+                            query_file_path
+                        );
                     } else {
-                        debug!("DriveCompiler: {} still failing ({})", query_file_path, msg);
+                        error!("Failed to compile {}: {msg}", query_file_path);
                     }
-                } else {
-                    // Atualizar estado
+                }
+                Ok(()) => {
                     self.failed_at.write().await.remove(&query_file_path);
-                    let mut etags = self.last_etags.write().await;
-                    etags.insert(query_file_path.clone(), current_etag);
-
-                    // #1288 — the skip path also returns Ok; only claim success
-                    // (and clear the missing marker) when an .ast was actually
-                    // produced.
+                    // #1288 — only claim success when an .ast was actually
+                    // produced; `compile_file` returns Ok on the skip path too.
                     if self.resolve_ast_path(&query_file_path).exists() {
+                        if let Err(db_err) = scripts.mark_compiled(
+                            script.branch_id,
+                            &query_file_path,
+                            &source_version,
+                        ) {
+                            error!(
+                                "DriveCompiler: mark_compiled {}: {db_err}",
+                                query_file_path
+                            );
+                        }
+                        let mut etags = self.last_etags.write().await;
+                        etags.insert(query_file_path.clone(), source_version);
                         self.clear_missing(&query_file_path).await;
                         info!("DriveCompiler: {} compiled successfully", query_file_path);
+                    } else if let Err(db_err) = scripts.mark_failed(
+                        script.branch_id,
+                        &query_file_path,
+                        "compile returned Ok but produced no .ast",
+                    ) {
+                        error!("DriveCompiler: mark_failed {}: {db_err}", query_file_path);
                     }
                 }
             }
         }
 
+        // Self-heal: a script whose .ast vanished (work dir wiped, bot
+        // re-provisioned) is no longer dirty, so nothing would requeue it.
+        // Rather than scan every file, requeue only what the compiler already
+        // knows about and whose artifact is gone.
+        self.requeue_missing_artifacts(&scripts).await;
+
         Ok(())
+    }
+
+    /// Requeue known scripts whose compiled artifact disappeared.
+    async fn requeue_missing_artifacts(&self, scripts: &botdrive::BotScriptsRepository) {
+        let paths: Vec<(uuid::Uuid, String, String)> = {
+            let Ok(mut conn) = self.state.conn.get() else {
+                return;
+            };
+            let rows = diesel::sql_query(
+                "SELECT branch_id, script_path, bot_name FROM bot_scripts \
+                 WHERE NOT dirty AND script_path LIKE '%.bas' LIMIT 500",
+            )
+            .load::<MissingArtifactRow>(&mut conn);
+            match rows {
+                Ok(r) => r
+                    .into_iter()
+                    .map(|r| (r.branch_id, r.script_path, r.bot_name))
+                    .collect(),
+                Err(e) => {
+                    debug!("DriveCompiler: artifact requeue scan failed: {e}");
+                    return;
+                }
+            }
+        };
+        for (branch_id, path, bot_name) in paths {
+            if self.resolve_ast_path(&path).exists() {
+                continue;
+            }
+            match scripts.enqueue(
+                branch_id,
+                &bot_name,
+                &path,
+                botdrive::SourceKind::Drive,
+                "artifact-missing",
+            ) {
+                Ok(true) => warn!(
+                    "DriveCompiler: {} compiled artifact missing — requeued",
+                    path
+                ),
+                Ok(false) => {}
+                Err(e) => debug!("DriveCompiler: requeue {}: {e}", path),
+            }
+        }
+    }
+
+    /// Stable per-process identifier used as the queue lease owner, so a
+    /// restarted process does not appear to still hold outstanding leases.
+    fn lease_owner(&self) -> String {
+        static OWNER: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+        OWNER
+            .get_or_init(|| format!("drive-compiler-{}", Uuid::new_v4()))
+            .clone()
     }
 
     /// Compilar arquivo .bas → .ast DIRETAMENTE em work/{bot}.gbai/{bot}.gbdialog/

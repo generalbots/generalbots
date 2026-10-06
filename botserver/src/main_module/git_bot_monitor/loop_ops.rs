@@ -70,22 +70,45 @@ pub(crate) fn resolve_branch_id(pool: &DbPool, branch_slug: &str) -> Uuid {
         .unwrap_or_else(|_| Uuid::nil())
 }
 
-/// Bump `drive_files.etag` for the materialized paths so the existing
-/// DriveCompiler pipeline recompiles them (etag change triggers compile; a
-/// missing S3 object falls back to the fresh work copy).
+/// #1475 — queue the materialized `.bas` paths for compilation.
+///
+/// These used to be queued by bumping `drive_files.etag` with the git commit
+/// sha, which was wrong twice over: `drive_files` is the *Drive* inventory (the
+/// DriveMonitor legitimately owns its `etag` as an S3 ETag, and the git monitor
+/// was clobbering it), and the compiler only recorded a version after a
+/// successful compile, so a broken script was re-queued on every tick. Scripts
+/// now go to `bot_scripts`, which separates the version being compiled from the
+/// version that last compiled and backs off on failure.
+///
+/// `bot_name` is derived from the object key rather than threaded through the
+/// five call sites: a materialized path looks like
+/// `{branch}.gbai/{bot}.gbdialog/tools/foo.bas`.
 pub(crate) fn mark_for_compile(pool: &DbPool, branch_id: Uuid, paths: &[String], etag: &str) {
-    let repo = botdrive::DriveFileRepository::new(pool.clone());
+    let repo = botdrive::BotScriptsRepository::new(pool.clone());
+    let mut queued = 0usize;
     for fp in paths {
-        if let Err(e) = repo.upsert_file(fp, "bas", Some(etag.to_string()), None, Some(branch_id)) {
-            log::warn!("[git_monitor] drive_files upsert {fp}: {e}");
+        if !fp.ends_with(".bas") {
+            continue;
+        }
+        let bot_name = bot_name_from_path(fp);
+        match repo.enqueue(branch_id, &bot_name, fp, botdrive::SourceKind::Git, etag) {
+            Ok(true) => queued += 1,
+            Ok(false) => {}
+            Err(e) => log::warn!("[git_monitor] bot_scripts enqueue {fp}: {e}"),
         }
     }
-    if !paths.is_empty() {
-        log::info!(
-            "[git_monitor] queued {} file(s) for compile (etag {etag})",
-            paths.len()
-        );
+    if queued > 0 {
+        log::info!("[git_monitor] queued {queued} script(s) for compile (commit {etag})");
     }
+}
+
+/// `{branch}.gbai/{bot}.gbdialog/...` -> `{bot}`.
+fn bot_name_from_path(path: &str) -> String {
+    path.split('/')
+        .nth(1)
+        .map(|s| s.trim_end_matches(".gbdialog").to_string())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| "default".to_string())
 }
 
 fn sync_one(pool: &DbPool, project: &MonitoredBot, work_root: &Path) {
