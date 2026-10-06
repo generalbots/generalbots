@@ -118,6 +118,7 @@ pub(crate) fn resolve_project(
                     project_type: None,
                     status: None,
                     offset: None,
+                    all_branches: false,
                 })
                 .map(|mut v| v.drain(..).next())
                 {

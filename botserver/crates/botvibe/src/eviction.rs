@@ -127,6 +127,7 @@ pub async fn evict_oldest_if_needed(
         status: None,
         limit: Some(500),
         offset: None,
+        all_branches: false,
     };
     let existing: Vec<Project> = registry.list(&query)?;
     let pairs: Vec<(DateTime<Utc>, String)> =

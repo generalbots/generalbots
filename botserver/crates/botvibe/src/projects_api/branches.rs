@@ -204,7 +204,16 @@ pub(crate) async fn list_projects(
     // carry one, mirroring create_project. Otherwise a project created in the
     // org branch (see create) is invisible to the list, which would default
     // to the nil branch and return an empty/stale set (#931 scope mismatch).
-    let query = if query.branch_id.is_none() {
+    // A privileged caller with no org has no branch to resolve, so it lists
+    // across every branch instead of silently matching the empty nil branch.
+    let query = if query.all_branches {
+        query
+    } else if query.branch_id.is_none() && is_privileged {
+        ListProjectsQuery {
+            all_branches: true,
+            ..query
+        }
+    } else if query.branch_id.is_none() {
         let org_id = user.organization_id.unwrap_or_else(Uuid::nil);
         ListProjectsQuery {
             branch_id: resolve_org_branch(&registry, org_id).or(query.branch_id),
