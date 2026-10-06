@@ -21,6 +21,9 @@ jobs:
       - name: Guard: no hx-get on POST-only fragment routes (#1139)
         run: ./scripts/check-hx-fragments.sh
 
+      - name: Guard: no pre-merge repository URLs (#1473)
+        run: ./scripts/check-repo-urls.sh
+
       - name: Install Rust
         run: |
           rustup set profile minimal
