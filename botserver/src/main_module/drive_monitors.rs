@@ -997,6 +997,44 @@ fn create_bot_from_drive(
     let branch_id = ensure_branch_exists(pool, &branch_slug, org_id, tenant_id)?;
     let bot_id = Uuid::new_v4();
     let is_default = is_default.unwrap_or(true);
+    let isdef = if is_default { "true" } else { "false" };
+
+    // Drive bucket names keep their original case, so a bot already recorded
+    // from Drive can hold a mixed-case slug (`PragmatismoGB`). The INSERT below
+    // only dedups on an exact `slug` match, so without this lookup a bucket
+    // scanned after a side rewrote the slug's case would insert a *second* bot
+    // instead of updating the existing row. Resolve case-insensitively first and
+    // update that row in place, preserving its id and `database_name`.
+    #[derive(diesel::QueryableByName)]
+    #[diesel(check_for_backend(diesel::pg::Pg))]
+    struct ExistingBotId {
+        #[diesel(sql_type = diesel::sql_types::Uuid)]
+        id: Uuid,
+    }
+
+    let existing: Option<Uuid> = sql_query(format!(
+        "SELECT id FROM bots WHERE lower(slug) = lower('{name}') OR lower(name) = lower('{name}') \
+         ORDER BY created_at ASC LIMIT 1",
+        name = bot_name,
+    ))
+    .get_result::<ExistingBotId>(&mut conn)
+    .ok()
+    .map(|r| r.id);
+
+    if let Some(existing_id) = existing {
+        sql_query(format!(
+            "UPDATE bots SET is_active = true, org_id = '{oid}', branch_id = '{branchid}', \
+             is_default_for_branch = {isdef}, updated_at = NOW() WHERE id = '{existing_id}'",
+            oid = org_id,
+            branchid = branch_id,
+            isdef = isdef,
+            existing_id = existing_id,
+        ))
+        .execute(&mut conn)
+        .map_err(|e| format!("Failed to update existing bot '{bot_name}': {e}"))?;
+        info!("create_bot_from_drive: adopted existing bot {existing_id} for '{bot_name}'");
+        return Ok(());
+    }
 
     let result = sql_query(format!(
         "INSERT INTO bots (id, name, slug, org_id, branch_id, is_default_for_branch, \
@@ -1010,7 +1048,7 @@ fn create_bot_from_drive(
         name = bot_name,
         oid = org_id,
         branchid = branch_id,
-        isdef = if is_default { "true" } else { "false" },
+        isdef = isdef,
     ))
     .execute(&mut conn);
 
@@ -1023,7 +1061,7 @@ fn create_bot_from_drive(
              WHERE name = '{name}'",
             oid = org_id,
             branchid = branch_id,
-            isdef = if is_default { "true" } else { "false" },
+            isdef = isdef,
             name = bot_name
         ))
         .execute(&mut conn)
