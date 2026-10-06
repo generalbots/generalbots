@@ -186,8 +186,29 @@ impl DriveMonitor {
                             full_key, file_type
                         );
                     }
-                    // KB/config: never marked indexed — reindex pipeline decides
+                    // #1475 — a changed script goes on the `bot_scripts` queue,
+                    // keyed by the S3 ETag. `drive_files` stays the Drive
+                    // inventory (search, KB indexing) and no longer doubles as
+                    // the compile queue, which the git monitor was polluting
+                    // with commit shas.
                     if file_type == "bas" {
+                        if let Some(version) = etag.as_deref() {
+                            let scripts =
+                                crate::bot_scripts::BotScriptsRepository::new(self.state.conn.clone());
+                            match scripts.enqueue(
+                                branch_id.unwrap_or_else(uuid::Uuid::nil),
+                                bot_name,
+                                &full_key,
+                                crate::bot_scripts::SourceKind::Drive,
+                                version,
+                            ) {
+                                Ok(true) => {}
+                                Ok(false) => {}
+                                Err(e) => log::warn!(
+                                    "bot_scripts enqueue for {full_key}: {e}"
+                                ),
+                            }
+                        }
                         self.sync_bas_to_work(bot_name, &obj.key, etag.clone()).await;
                     } else if file_type == "prompt" {
                         self.sync_gbot_to_work(bot_name, &obj.key, etag.clone()).await;
