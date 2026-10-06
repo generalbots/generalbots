@@ -140,13 +140,19 @@ fn insert_bot_row(
 }
 
 /// Look up the branch's bot for `slug-or-name` (returns its id).
+///
+/// The match is case-insensitive: `bot_slug` lowercases the project name while
+/// Drive-discovered bots keep the case of their bucket name (`PragmatismoGB`).
+/// A case-sensitive comparison missed those rows and made `ensure_bot_rows`
+/// create a duplicate Vibe bot instead of adopting the branch's real one.
 fn find_branch_bot(
     conn: &mut PgConnection,
     branch_id: Uuid,
     slug_or_name: &str,
 ) -> Option<BotIdRow> {
     diesel::sql_query(
-        "SELECT id FROM bots WHERE branch_id = $1 AND (slug = $2 OR name = $2) \
+        "SELECT id FROM bots WHERE branch_id = $1 \
+         AND (lower(slug) = lower($2) OR lower(name) = lower($2)) \
          ORDER BY created_at ASC LIMIT 1",
     )
     .bind::<diesel::sql_types::Uuid, _>(branch_id)
