@@ -70,6 +70,13 @@ CREATE INDEX IF NOT EXISTS idx_bot_scripts_backoff
 -- dirty with no `compiled_version`: the previous pipeline only recorded an
 -- etag after a successful compile, so we cannot know which were already
 -- compiled and re-running them once is the safe direction.
+--
+-- `/archive/` paths are excluded. The archive pass writes
+-- `{bucket}/archive/{bot}-{stamp}/.gbdialog/...` copies of Drive sources that
+-- are explicitly never read again (AGENTS.md: git-owned bots archive their
+-- Drive `.gbdialog`/`.gbot` and never compile them). The old `LIKE
+-- '%.gbdialog/%'` matched them because the substring still appears; a real
+-- Drive bucket prefix (`{branch}.gbai/{bot}.gbdialog/`) is required instead.
 INSERT INTO bot_scripts (
     branch_id, bot_name, script_path, source_kind, source_version, dirty
 )
@@ -83,5 +90,7 @@ SELECT
 FROM drive_files df
 WHERE df.file_type = 'bas'
   AND df.file_path LIKE '%.gbdialog/%'
+  AND df.file_path NOT LIKE '%/archive/%'
+  AND df.file_path ~ '^[a-z0-9_-]+\.gbai/[^/]+\.gbdialog/'
   AND df.etag IS NOT NULL
 ON CONFLICT (branch_id, script_path) DO NOTHING;

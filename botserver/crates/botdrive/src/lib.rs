@@ -1,3 +1,4 @@
+pub mod bot_scripts;
 pub mod document_processing;
 pub mod drive_files;
 pub mod external;
@@ -15,6 +16,7 @@ pub mod storage_backends;
 pub mod stream_processor;
 pub mod streaming;
 
+pub use bot_scripts::{BotScript, BotScriptsRepository, SourceKind};
 pub use drive_files::DriveFileRepository;
 pub use noop::NoopDrive;
 pub use s3_repository::{
