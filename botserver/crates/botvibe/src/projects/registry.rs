@@ -9,6 +9,13 @@ pub struct ListProjectsQuery {
     pub status: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
+    /// List across every branch instead of scoping to `branch_id`.
+    ///
+    /// `branch_id: None` means "the nil branch" for org callers (the #1267
+    /// fallback), so it cannot double as "unscoped" — that would expose other
+    /// orgs' projects. Platform/service admins set this explicitly.
+    #[serde(default)]
+    pub all_branches: bool,
 }
 
 /// DB-backed project registry.
@@ -145,28 +152,36 @@ impl ProjectRegistry {
         let mut sql = String::from(
             "SELECT id, org_id, branch_id, name, project_type, repository, framework, \
              custom_domain, source_control, status, environment, payload, created_at, updated_at \
-             FROM vibe_projects WHERE branch_id = $1",
+             FROM vibe_projects WHERE 1=1",
         );
+        if !query.all_branches {
+            sql.push_str(" AND branch_id = $1");
+        }
+        // $1 is the branch predicate only when it is present; without it the
+        // optional filters shift down one slot, so the index is derived from
+        // `binds.len()` rather than hardcoded.
+        let base = if query.all_branches { 1 } else { 2 };
         let mut binds: Vec<String> = Vec::new();
         if let Some(ref pt) = query.project_type {
             sql.push_str(" AND project_type = $");
-            sql.push_str(&(2 + binds.len()).to_string());
+            sql.push_str(&(base + binds.len()).to_string());
             binds.push(pt.clone());
         }
         if let Some(ref st) = query.status {
             sql.push_str(" AND status = $");
-            sql.push_str(&(2 + binds.len()).to_string());
+            sql.push_str(&(base + binds.len()).to_string());
             binds.push(st.clone());
         }
         sql.push_str(" ORDER BY created_at DESC LIMIT $");
-        let limit_idx = 2 + binds.len();
+        let limit_idx = base + binds.len();
         sql.push_str(&limit_idx.to_string());
         sql.push_str(" OFFSET $");
         sql.push_str(&(limit_idx + 1).to_string());
 
-        let mut query_builder = diesel::sql_query(sql)
-            .into_boxed::<diesel::pg::Pg>()
-            .bind::<diesel::sql_types::Uuid, _>(branch_id);
+        let mut query_builder = diesel::sql_query(sql).into_boxed::<diesel::pg::Pg>();
+        if !query.all_branches {
+            query_builder = query_builder.bind::<diesel::sql_types::Uuid, _>(branch_id);
+        }
         for b in &binds {
             query_builder = query_builder.bind::<diesel::sql_types::Text, _>(b.clone());
         }
