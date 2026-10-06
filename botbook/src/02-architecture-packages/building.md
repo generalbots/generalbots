@@ -695,7 +695,7 @@ After building, verify the binary works:
 ./target/release/botserver --version
 ```
 
-Expected output: `botserver 6.2.0` or similar.
+Expected output: `botserver 6.7.0` or similar.
 
 ## Development Builds
 
@@ -918,7 +918,7 @@ Verify installation:
 botserver --version
 ```
 
-Expected output: `botserver 6.2.0` or similar.
+Expected output: `botserver 6.7.0` or similar.
 
 ## Quick Reference
 

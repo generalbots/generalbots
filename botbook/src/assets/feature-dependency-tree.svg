@@ -407,10 +407,10 @@
   </g>
   
   <!-- Footer -->
-  <text x="600" y="1320" text-anchor="middle" class="main-text" style="font-size: 12px;">General Bots Feature Dependency Tree v6.2.0</text>
+  <text x="600" y="1320" text-anchor="middle" class="main-text" style="font-size: 12px;">General Bots Feature Dependency Tree v6.7.0</text>
   <text x="600" y="1340" text-anchor="middle" class="legend-text">Build with: cargo build --features "chat,drive" --no-default-features</text>
   
   <!-- Version badge -->
   <rect x="1050" y="1310" width="90" height="30" rx="15" fill="url(#featureGrad)"/>
-  <text x="1095" y="1330" text-anchor="middle" class="feature-text" style="font-size: 12px;">v6.2.0</text>
+  <text x="1095" y="1330" text-anchor="middle" class="feature-text" style="font-size: 12px;">v6.7.0</text>
 </svg>

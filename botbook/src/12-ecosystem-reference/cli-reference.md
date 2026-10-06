@@ -349,7 +349,7 @@ botserver version [--all]
 ```bash
 # Simple version
 botserver version
-# Output: botserver 6.1.0
+# Output: botserver 6.7.0
 
 # Detailed version with all components
 botserver version --all
@@ -358,7 +358,7 @@ botserver version --all
 **Output with --all:**
 
 ```
-botserver 6.1.0
+botserver 6.7.0
 
 Build Information:
   rustc: rustc 1.83.0 (90b35a623 2024-11-26)

@@ -303,7 +303,7 @@ HTTP defaults can be set in `config.csv`:
 name,value
 http-timeout,30
 http-default-content-type,application/json
-http-user-agent,GeneralBots/6.1.0
+http-user-agent,GeneralBots/6.7.0
 ```
 
 ---

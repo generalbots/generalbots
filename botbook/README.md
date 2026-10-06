@@ -2,7 +2,7 @@
 
 <p align="center"><img src="../logo.svg" alt="General Bots" width="200"></p>
 
-**Version:** 6.2.0  
+**Version:** 6.7.0  
 **Purpose:** Comprehensive documentation for General Bots (mdBook format)
 
 ---
@@ -292,7 +292,7 @@ Use WhatsApp-style HTML format for bot interactions:
 - All documentation MUST match actual source code
 - Extract real keywords from botserver/src/basic/keywords/
 - Use actual examples from botserver/templates/
-- Version numbers must be 6.2.0
+- Version numbers must be 6.7.0
 - No placeholder content - only verified features
 ```
 
@@ -386,7 +386,7 @@ We welcome contributions! See our [Contributing Guidelines](https://github.com/g
 - **Keywords** - NEVER use underscores - always spaces
 - **NO ASCII art** - Use SVG diagrams only
 - **Official icons** - Use icons from botui/ui/suite/assets/icons/
-- **Version 6.2.0** - Always reference 6.2.0
+- **Version 6.7.0** - Always reference 6.7.0
 - **GIT WORKFLOW** - ALWAYS push to ALL repositories (github, pragmatismo)
 
 ---

@@ -335,7 +335,7 @@ Every service exposes `/health`:
 ```json
 {
   "status": "healthy",
-  "version": "6.1.0",
+  "version": "6.7.0",
   "checks": {
     "database": {"status": "ok", "latency_ms": 5},
     "cache": {"status": "ok", "latency_ms": 2},

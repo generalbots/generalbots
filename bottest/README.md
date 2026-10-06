@@ -336,7 +336,7 @@ All testing documentation is located in `botbook/src/17-testing/`:
 - **USE SELF** - In impl blocks, use Self not type name
 - **Reuse bootstrap** - Don't duplicate botserver installation logic
 - **Parallel safe** - Each test gets unique ports and directories
-- **Version 6.2.0** - Do not change without approval
+- **Version 6.7.0** - Do not change without approval
 - **GIT WORKFLOW** - ALWAYS push to ALL repositories (github, pragmatismo)
 
 ---

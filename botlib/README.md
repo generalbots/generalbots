@@ -213,7 +213,7 @@ For complete documentation, guides, and API references:
 - **USE SELF** - In impl blocks, use Self not the type name
 - **DERIVE EQ** - Always derive Eq with PartialEq
 - **DISPLAY NOT TOSTRING** - Implement Display, not ToString
-- **Version 6.2.0** - Do not change without approval
+- **Version 6.7.0** - Do not change without approval
 - **GIT WORKFLOW** - ALWAYS push to ALL repositories (github, pragmatismo)
 
 ---
