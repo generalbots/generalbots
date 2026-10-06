@@ -104,7 +104,7 @@ async fn fetch_rss(
     limit: usize,
 ) -> Result<Array, Box<dyn std::error::Error + Send + Sync>> {
     let client = reqwest::Client::builder()
-        .user_agent("BotServer/6.1.0")
+        .user_agent(concat!("BotServer/", env!("CARGO_PKG_VERSION")))
         .timeout(Duration::from_secs(30))
         .build()?;
     let content = client.get(url).send().await?.bytes().await?;
@@ -350,7 +350,7 @@ fn register_scrape_images_keyword(_state: Arc<dyn BasicRuntime>, _user: UserSess
 
 async fn fetch_page(url: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     let client = reqwest::Client::builder()
-        .user_agent("Mozilla/5.0 (compatible; BotServer/6.1.0)")
+        .user_agent(concat!("Mozilla/5.0 (compatible; BotServer/", env!("CARGO_PKG_VERSION"), ")"))
         .timeout(Duration::from_secs(30))
         .build()?;
     let response = client.get(url).send().await?.text().await?;

@@ -1,6 +1,6 @@
 # Feature System 🟡 BETA
 
-**Version:** 6.2.0
+**Version:** 6.7.0
 
 General Bots uses Cargo's feature flags to create modular, size-optimized builds. This allows you to include only the functionality you need.
 

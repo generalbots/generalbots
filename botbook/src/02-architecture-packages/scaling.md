@@ -491,7 +491,7 @@ Health check response:
 ```json
 {
   "status": "healthy",
-  "version": "6.1.0",
+  "version": "6.7.0",
   "uptime": 86400,
   "checks": {
     "database": "ok",

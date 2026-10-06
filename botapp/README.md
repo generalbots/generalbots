@@ -251,7 +251,7 @@ All icons use `stroke="currentColor"` for CSS theming.
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "General Bots",
-  "version": "6.2.0",
+  "version": "6.7.0",
   "identifier": "br.com.pragmatismo.botapp",
   "build": {
     "devUrl": "http://localhost:3000",
@@ -446,7 +446,7 @@ For complete documentation, guides, and API references:
 - **Desktop-only features** - Shared logic in botserver
 - **Tauri APIs** - No direct fs access from JS
 - **Official icons** - Use icons from botui/ui/suite/assets/icons/
-- **Version 6.2.0** - Do not change without approval
+- **Version 6.7.0** - Do not change without approval
 
 ---
 

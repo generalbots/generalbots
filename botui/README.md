@@ -364,4 +364,4 @@ For complete documentation, guides, and API references:
 - **Local assets** - No CDN, all vendor files local
 - **No business logic** - All logic in botserver
 - **HTML responses** - Server returns fragments, not JSON
-- **Version 6.2.0** - do not change without approval
+- **Version 6.7.0** - do not change without approval

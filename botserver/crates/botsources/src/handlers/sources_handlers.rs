@@ -13,10 +13,10 @@ use std::sync::Arc;
 pub async fn handle_list_repositories(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let repos: Vec<RepositoryInfo> = vec![RepositoryInfo {
         id: "1".to_string(),
-        name: "botserver".to_string(),
+        name: "generalbots".to_string(),
         owner: "generalbots".to_string(),
-        description: "General Bots server implementation".to_string(),
-        url: "https://github.com/generalbots/botserver".to_string(),
+        description: "General Bots unified workspace".to_string(),
+        url: "https://github.com/generalbots/generalbots".to_string(),
         language: Some("Rust".to_string()),
         stars: 150,
         forks: 45,

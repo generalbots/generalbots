@@ -1,7 +1,7 @@
 {
   "name": "botui",
   "version": "1.0.0",
-  "description": "**Version:** 6.2.0   **Purpose:** Web UI server for General Bots (Axum + HTMX + CSS)",
+  "description": "**Version:** 6.7.0   **Purpose:** Web UI server for General Bots (Axum + HTMX + CSS)",
   "main": "index.js",
   "scripts": {
     "test": "node tests/sheet_modules.test.js"

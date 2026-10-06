@@ -30,7 +30,7 @@ Returns overall system health status.
 {
   "status": "healthy",
   "uptime_seconds": 432100,
-  "version": "6.1.0",
+  "version": "6.7.0",
   "timestamp": "2025-06-04T12:00:00Z",
   "components": [
     {
@@ -391,7 +391,7 @@ Returns recent system activity across all components.
       "timestamp": "2025-06-04T10:00:00Z",
       "description": "CI/CD deployment completed",
       "metadata": {
-        "version": "6.1.0",
+        "version": "6.7.0",
         "commit": "abc123f",
         "deployed_by": "alm-ci"
       }
