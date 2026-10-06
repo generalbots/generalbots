@@ -63,6 +63,7 @@ use super::*;
             status: None,
             limit: None,
             offset: None,
+            all_branches: false,
         };
         assert_eq!(q.branch_id, None);
         assert_eq!(q.limit.unwrap_or(100).min(500), 100);
@@ -73,6 +74,7 @@ use super::*;
             status: None,
             limit: Some(9001),
             offset: None,
+            all_branches: false,
         };
         assert_eq!(big.limit.unwrap_or(100).min(500), 500);
         let neg = ListProjectsQuery {
@@ -81,6 +83,7 @@ use super::*;
             status: None,
             limit: None,
             offset: Some(-3),
+            all_branches: false,
         };
         assert_eq!(neg.offset.unwrap_or(0).max(0), 0);
     }
