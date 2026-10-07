@@ -304,6 +304,11 @@ impl DriveCompiler {
                     self.failed_at.write().await.remove(&query_file_path);
                     // #1288 — only claim success when an .ast was actually
                     // produced; `compile_file` returns Ok on the skip path too.
+                    // A skip means the source object is not reachable (stale
+                    // bucket, deleted tool), which is not a compile failure:
+                    // dropping the entry lets the DriveMonitor re-add it if the
+                    // object ever returns, instead of retrying forever behind
+                    // the backoff.
                     if self.resolve_ast_path(&query_file_path).exists() {
                         if let Err(db_err) = scripts.mark_compiled(
                             script.branch_id,
@@ -319,12 +324,17 @@ impl DriveCompiler {
                         etags.insert(query_file_path.clone(), source_version);
                         self.clear_missing(&query_file_path).await;
                         info!("DriveCompiler: {} compiled successfully", query_file_path);
-                    } else if let Err(db_err) = scripts.mark_failed(
-                        script.branch_id,
-                        &query_file_path,
-                        "compile returned Ok but produced no .ast",
-                    ) {
-                        error!("DriveCompiler: mark_failed {}: {db_err}", query_file_path);
+                    } else if let Err(db_err) = scripts.remove(script.branch_id, &query_file_path)
+                    {
+                        error!(
+                            "DriveCompiler: drop unresolvable {}: {db_err}",
+                            query_file_path
+                        );
+                    } else {
+                        debug!(
+                            "DriveCompiler: {} produced no .ast (source unreachable) — dropped from the queue",
+                            query_file_path
+                        );
                     }
                 }
             }
@@ -362,6 +372,9 @@ impl DriveCompiler {
             }
         };
         for (branch_id, path, bot_name) in paths {
+            if !botdrive::BotScriptsRepository::is_compilable_path(&path) {
+                continue;
+            }
             if self.resolve_ast_path(&path).exists() {
                 continue;
             }

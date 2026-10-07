@@ -82,7 +82,8 @@ INSERT INTO bot_scripts (
 )
 SELECT
     df.branch_id,
-    split_part(df.file_path, '/', 1),
+    -- {branch}.gbai/{bot}.gbdialog/... -> {bot}; segment 1 is the bucket.
+    trim(trailing '.gbdialog' FROM split_part(df.file_path, '/', 2)),
     df.file_path,
     'drive',
     COALESCE(df.etag, ''),

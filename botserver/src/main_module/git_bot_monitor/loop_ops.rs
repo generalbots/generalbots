@@ -87,7 +87,7 @@ pub(crate) fn mark_for_compile(pool: &DbPool, branch_id: Uuid, paths: &[String],
     let repo = botdrive::BotScriptsRepository::new(pool.clone());
     let mut queued = 0usize;
     for fp in paths {
-        if !fp.ends_with(".bas") {
+        if !botdrive::BotScriptsRepository::is_compilable_path(fp) {
             continue;
         }
         let bot_name = bot_name_from_path(fp);
