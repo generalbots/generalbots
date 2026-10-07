@@ -1,203 +1,199 @@
-import io
-import tempfile
-import time
 import os
-import urllib.parse
-from datetime import datetime
+import time
 from typing import Optional
 
-import httpx
 from ..core.config import settings
 from ..core.logging import get_logger
+from .backends import registry
+from .errors import BackendNotLoadedError, BotModelsError
 
 logger = get_logger("speech_service")
 
 
+class RemoteProvidersDisabled(BotModelsError):
+    """A cloud speech provider was requested while remote calls are disabled.
+
+    min mode never calls out: botmodels is the offline path, so failing loudly
+    here is the whole point. The previous implementation silently fell back to
+    the unauthenticated Google Translate TTS endpoint.
+    """
+
+
 class SpeechService:
-    def __init__(self):
-        self.device = settings.device
-        self._initialized = False
+    """Local-first TTS and STT.
 
-    def initialize(self):
-        if self._initialized:
-            return
+    Resolution order is local -> optional remote. Remote providers are used
+    only when settings.allow_remote_speech is explicitly enabled.
+    """
 
-        logger.info("Speech service ready (external providers: OpenAI/Google)")
-        self._initialized = True
+    def __init__(self) -> None:
+        self.tts = registry.get("tts")
+        self.stt = registry.get("stt")
 
-    async def generate(
+    # ---- TTS -------------------------------------------------------------
+
+    async def generate_speech(
         self,
         prompt: str,
         voice: Optional[str] = None,
         language: Optional[str] = None,
     ) -> dict:
-        """Generate speech audio from text"""
-        if not self._initialized:
-            self.initialize()
-
         start = time.time()
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        filename = f"{timestamp}_{hash(prompt) & 0xFFFFFF:06x}.wav"
-        output_path = settings.output_dir / "audio" / filename
 
-        # Prefer OpenAI/Groq for high quality/speed if configured
-        if settings.openai_api_key:
-            logger.info("Generating speech via OpenAI API")
-            try:
-                async with httpx.AsyncClient() as client:
-                    response = await client.post(
-                        "https://api.openai.com/v1/audio/speech",
-                        headers={"Authorization": f"Bearer {settings.openai_api_key}"},
-                        json={
-                            "model": "tts-1",
-                            "input": prompt,
-                            "voice": voice or "alloy",
-                        },
-                        timeout=30.0,
-                    )
-                    response.raise_for_status()
-                    with open(output_path, "wb") as f:
-                        f.write(response.content)
-
-                generation_time = time.time() - start
-                return {
-                    "status": "completed",
-                    "file_path": f"/outputs/audio/{filename}",
-                    "generation_time": generation_time,
-                    "provider": "openai",
-                }
-            except Exception as e:
-                logger.error(
-                    "OpenAI speech generation failed, falling back", error=str(e)
-                )
-
-        # Fallback: Google Translate TTS (free, no API key needed)
         try:
-            logger.info("Generating speech via Google Translate TTS")
-            lang = language or "pt-BR"
-            google_url = f"https://translate.google.com/translate_tts?ie=UTF-8&q={urllib.parse.quote(prompt)}&tl={lang}&client=tw-ob"
-            async with httpx.AsyncClient() as client:
-                response = await client.get(google_url, timeout=30.0)
-                response.raise_for_status()
-                with open(output_path, "wb") as f:
-                    f.write(response.content)
-
-            generation_time = time.time() - start
+            audio = self.tts.synthesize(prompt, voice=voice)
             return {
                 "status": "completed",
-                "file_path": f"/outputs/audio/{filename}",
-                "generation_time": generation_time,
-                "provider": "google-translate",
+                "audio": audio,
+                "backend": self.tts.name,
+                "generation_time": time.time() - start,
             }
-        except Exception as e:
-            logger.warning("Google Translate TTS failed", error=str(e))
+        except BotModelsError as exc:
+            logger.warning("Local TTS unavailable", backend=self.tts.name, error=str(exc))
 
-        logger.error("No TTS provider available")
-        return {
-            "status": "error",
-            "error": "No TTS provider initialized",
-            "file_path": None,
-            "generation_time": time.time() - start,
-        }
+        if settings.allow_remote_speech:
+            return await self._remote_tts(prompt, voice)
 
-    async def to_text(self, audio_data: bytes) -> dict:
-        """Convert speech audio to text using Groq or OpenAI transcription"""
-        if not self._initialized:
-            self.initialize()
+        raise BackendNotLoadedError(
+            "tts",
+            self.tts.name,
+            "local TTS not loaded and remote providers are disabled "
+            "(set ALLOW_REMOTE_SPEECH=true to permit cloud calls)",
+        )
 
+    async def _remote_tts(self, prompt: str, voice: Optional[str]) -> dict:
+        """OpenAI TTS. Opt-in only.
+
+        The Google Translate fallback is gone: it was unauthenticated and sent
+        user text to a third party with no operator consent.
+        """
+        if not settings.openai_api_key:
+            raise RemoteProvidersDisabled("OPENAI_API_KEY not set")
+
+        import httpx
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.post(
+                "https://api.openai.com/v1/audio/speech",
+                headers={
+                    "Authorization": f"Bearer {settings.openai_api_key}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": os.environ.get("OPENAI_TTS_MODEL", "tts-1"),
+                    "voice": voice or "alloy",
+                    "input": prompt,
+                },
+            )
+            response.raise_for_status()
+            return {
+                "status": "completed",
+                "audio": response.content,
+                "backend": "openai",
+            }
+
+    # ---- STT -------------------------------------------------------------
+
+    async def transcribe_audio(
+        self,
+        audio_path: str,
+        language: Optional[str] = None,
+    ) -> dict:
         start = time.time()
 
-        # 1. Try Groq (Ultra-fast Whisper)
+        try:
+            result = self.stt.transcribe(audio_path, language=language)
+            return {
+                "text": result["text"],
+                "language": result.get("language"),
+                "backend": self.stt.name,
+                "generation_time": time.time() - start,
+            }
+        except BotModelsError as exc:
+            logger.warning("Local STT unavailable", backend=self.stt.name, error=str(exc))
+
+        if settings.allow_remote_speech:
+            return await self._remote_stt(audio_path)
+
+        raise BackendNotLoadedError(
+            "stt",
+            self.stt.name,
+            "local STT not loaded and remote providers are disabled "
+            "(set ALLOW_REMOTE_SPEECH=true to permit cloud calls)",
+        )
+
+    async def _remote_stt(self, audio_path: str) -> dict:
+        """Groq -> OpenAI. Opt-in only. Returns a clear error when both fail."""
+        last_error: Optional[Exception] = None
+
         if settings.groq_api_key:
-            logger.info("Transcribing via Groq Cloud")
             try:
-                # Save to temp file for Groq API
-                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-                    tmp.write(audio_data)
-                    tmp_path = tmp.name
+                return await self._groq_stt(audio_path)
+            except Exception as exc:  # noqa: BLE001 - fall through to OpenAI
+                last_error = exc
+                logger.warning("Groq STT failed, trying OpenAI", error=str(exc))
 
-                async with httpx.AsyncClient() as client:
-                    with open(tmp_path, "rb") as audio_file:
-                        files = {
-                            "file": (
-                                os.path.basename(tmp_path),
-                                audio_file,
-                                "audio/wav",
-                            )
-                        }
-                        data = {"model": "whisper-large-v3-turbo"}
-                        response = await client.post(
-                            "https://api.groq.com/openai/v1/audio/transcriptions",
-                            headers={
-                                "Authorization": f"Bearer {settings.groq_api_key}"
-                            },
-                            files=files,
-                            data=data,
-                            timeout=30.0,
-                        )
-                    response.raise_for_status()
-                    result = response.json()
-
-                os.unlink(tmp_path)
-                return {
-                    "text": result["text"].strip(),
-                    "language": result.get("language", "auto"),
-                    "confidence": 0.99,
-                    "provider": "groq",
-                }
-            except Exception as e:
-                logger.error("Groq transcription failed, falling back", error=str(e))
-
-        # 2. Try OpenAI
         if settings.openai_api_key:
-            logger.info("Transcribing via OpenAI API")
             try:
-                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
-                    tmp.write(audio_data)
-                    tmp_path = tmp.name
+                return await self._openai_stt(audio_path)
+            except Exception as exc:  # noqa: BLE001
+                last_error = exc
 
-                async with httpx.AsyncClient() as client:
-                    with open(tmp_path, "rb") as audio_file:
-                        files = {
-                            "file": (
-                                os.path.basename(tmp_path),
-                                audio_file,
-                                "audio/wav",
-                            )
-                        }
-                        data = {"model": "whisper-1"}
-                        response = await client.post(
-                            "https://api.openai.com/v1/audio/transcriptions",
-                            headers={
-                                "Authorization": f"Bearer {settings.openai_api_key}"
-                            },
-                            files=files,
-                            data=data,
-                            timeout=30.0,
-                        )
-                    response.raise_for_status()
-                    result = response.json()
+        raise RemoteProvidersDisabled(
+            f"no remote STT provider available: {last_error}"
+        )
 
-                os.unlink(tmp_path)
+    async def _groq_stt(self, audio_path: str) -> dict:
+        import httpx
+
+        with open(audio_path, "rb") as handle:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    "https://api.groq.com/openai/v1/audio/transcriptions",
+                    headers={"Authorization": f"Bearer {settings.groq_api_key}"},
+                    files={"file": handle},
+                    data={"model": "whisper-large-v3-turbo"},
+                )
+                response.raise_for_status()
+                payload = response.json()
                 return {
-                    "text": result["text"].strip(),
-                    "language": result.get("language", "auto"),
-                    "confidence": 0.99,
-                    "provider": "openai",
+                    "text": payload.get("text", ""),
+                    "language": payload.get("language"),
+                    "backend": "groq",
                 }
-            except Exception as e:
-                logger.error("OpenAI transcription failed, falling back", error=str(e))
 
-        # 3. No local fallback available
-        return {"text": "", "error": "No STT provider available"}
+    async def _openai_stt(self, audio_path: str) -> dict:
+        import httpx
 
-    async def detect_language(self, audio_data: bytes) -> dict:
-        """Detect language (simplified to reuse to_text if needed)"""
-        # Just use to_text and return the language field
-        result = await self.to_text(audio_data)
+        with open(audio_path, "rb") as handle:
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                response = await client.post(
+                    "https://api.openai.com/v1/audio/transcriptions",
+                    headers={"Authorization": f"Bearer {settings.openai_api_key}"},
+                    files={"file": handle},
+                    data={"model": "whisper-1"},
+                )
+                response.raise_for_status()
+                payload = response.json()
+                return {
+                    "text": payload.get("text", ""),
+                    "language": payload.get("language"),
+                    "backend": "openai",
+                }
+
+    async def detect_language(self, audio_path: str) -> dict:
+        """Language detection from the model's own output.
+
+        Never returns the literal "auto": an unresolved language is reported as
+        None so callers can tell it apart from a real detection.
+        """
+        result = await self.transcribe_audio(audio_path)
+        language = result.get("language")
+        if language == "auto":
+            language = None
         return {
-            "language": result.get("language"),
-            "confidence": result.get("confidence", 0.0),
+            "language": language,
+            "backend": result.get("backend"),
         }
 
 

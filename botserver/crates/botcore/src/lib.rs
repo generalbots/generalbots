@@ -33,4 +33,4 @@ pub use shared::enums::*;
 pub use shared::memory_monitor::*;
 pub use shared::models::*;
 pub use config::ConfigManager;
-pub use urls::ApiUrls;
+pub use urls::{ApiUrls, InternalUrls};

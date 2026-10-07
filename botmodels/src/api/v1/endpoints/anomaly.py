@@ -2,12 +2,13 @@
 Generic Anomaly Detection API Endpoints
 """
 
-from fastapi import APIRouter, HTTPException, Header
-from typing import Optional
+import math
+
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
-from ...dependencies import get_api_key
 from ....services.anomaly_service import get_anomaly_service
+from ...dependencies import require_api_key
 
 router = APIRouter()
 
@@ -17,27 +18,48 @@ class AnomalyRequest(BaseModel):
     value_field: str = "value"
 
 
+def _median(values: list[float]) -> float:
+    """True median: average of the two middle values for even-length input."""
+    ordered = sorted(values)
+    midpoint = len(ordered) // 2
+    if len(ordered) % 2 == 1:
+        return ordered[midpoint]
+    return (ordered[midpoint - 1] + ordered[midpoint]) / 2
+
+
+def _population_std(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    mean = sum(values) / len(values)
+    return math.sqrt(sum((x - mean) ** 2 for x in values) / len(values))
+
+
 @router.post("/detect")
 async def detect_anomalies(
     request: AnomalyRequest,
-    x_api_key: str = Header(None),
+    api_key: str = Depends(require_api_key),
 ):
     """
     Generic anomaly detection endpoint
     Works with any numerical data - salaries, sensors, metrics, etc.
     """
-    api_key = get_api_key(x_api_key)
-
     service = get_anomaly_service()
 
-    values = []
-    for r in request.data:
-        val = r.get(request.value_field)
-        if val is not None:
-            try:
-                values.append(float(val))
-            except (TypeError, ValueError):
-                pass
+    # Track the original row index alongside each parsed value: filtering out
+    # non-numeric rows and then indexing request.data positionally misaligned
+    # every anomaly after the first gap.
+    valid_indices: list[int] = []
+    values: list[float] = []
+
+    for index, row in enumerate(request.data):
+        raw = row.get(request.value_field)
+        if raw is None:
+            continue
+        try:
+            values.append(float(raw))
+            valid_indices.append(index)
+        except (TypeError, ValueError):
+            continue
 
     if not values:
         return {
@@ -61,8 +83,8 @@ async def detect_anomalies(
         if votes >= 1:
             anomalies.append(
                 {
-                    "index": i,
-                    "record": request.data[i],
+                    "index": valid_indices[i],
+                    "record": request.data[valid_indices[i]],
                     "value": values[i],
                     "confidence": votes / 2,
                     "methods": {
@@ -84,14 +106,10 @@ async def detect_anomalies(
         "anomalies": anomalies,
         "summary": {
             "mean": float(sum(values) / len(values)),
-            "median": sorted(values)[len(values) // 2] if values else 0,
-            "std": service.detect_zscore(values, threshold=0)
-            and (
-                sum((x - sum(values) / len(values)) ** 2 for x in values) / len(values)
-            )
-            ** 0.5
-            or 0,
+            "median": _median(values),
+            "std": _population_std(values),
             "min": min(values) if values else 0,
             "max": max(values) if values else 0,
+            "analyzed": len(values),
         },
     }

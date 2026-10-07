@@ -3,7 +3,6 @@ node_modules/
 *.log
 botserver-stack/
 botserver-installers/
-botmodels/
 botschema/
 prompts/
 !botserver/crates/botvibe/prompts/

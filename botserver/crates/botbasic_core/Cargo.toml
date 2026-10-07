@@ -26,6 +26,7 @@ redis = { workspace = true, features = ["tokio-comp"] }
 tokio = { workspace = true, features = ["sync", "rt", "rt-multi-thread", "macros"] }
 rand = { workspace = true }
 
-reqwest = { workspace = true, features = ["rustls-tls", "json"] }
+reqwest = { workspace = true, features = ["rustls-tls", "multipart", "json"] }
+botcore = { workspace = true }
 [lints]
 workspace = true

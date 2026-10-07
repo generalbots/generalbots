@@ -1,3 +1,12 @@
-from . import image, music, scoring, speech, video, anomaly, voice
+from . import anomaly, image, music, scoring, speech, video, vision, voice
 
-__all__ = ["image", "music", "video", "speech", "scoring", "anomaly", "voice"]
+__all__ = [
+    "image",
+    "music",
+    "video",
+    "speech",
+    "vision",
+    "scoring",
+    "anomaly",
+    "voice",
+]
