@@ -44,7 +44,7 @@ impl DriveCompiler {
     /// index-only scan of pending work, `source_version` is separated from
     /// `compiled_version`, and `claim` leases the batch so overlapping ticks
     /// cannot take the same script.
-    async fn check_and_compile(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub(crate) async fn check_and_compile(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
         let scripts = botdrive::BotScriptsRepository::new(self.state.conn.clone());
         let owner = self.lease_owner();
         let claimed = scripts
@@ -230,8 +230,11 @@ impl DriveCompiler {
     }
 
 }
+/// Reform #1501 — (branch_slug, bot_name) pairs whose bot sources moved to
+/// git: a vibe project of the branch carries `payload.source_imported_at`.
+/// The set is re-read each compile scan (cheap single query) so newly
 /// imported bots stop compiling from Drive on the very next tick.
-fn git_owned_bots(
+pub(crate) fn git_owned_bots(
     conn: &mut diesel::PgConnection,
 ) -> std::collections::HashSet<(String, String)> {
     #[derive(diesel::QueryableByName)]

@@ -25,26 +25,6 @@ use uuid::Uuid;
 mod compile;
 mod queue;
 
-/// How many queued scripts one tick claims. Bounded so a large backlog is
-/// drained over several ticks instead of monopolising the loop.
-const COMPILE_BATCH_SIZE: i64 = 64;
-
-/// How long a claimed script stays leased. The lease only guards against
-/// overlapping ticks; the retry backoff for a *failing* script lives in
-/// `bot_scripts` (`fail_count`/`last_failed_at`), not here.
-const COMPILE_LEASE: std::time::Duration = std::time::Duration::from_secs(300);
-
-#[derive(diesel::QueryableByName)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-struct MissingArtifactRow {
-    #[diesel(sql_type = diesel::sql_types::Uuid)]
-    branch_id: uuid::Uuid,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    script_path: String,
-    #[diesel(sql_type = diesel::sql_types::Text)]
-    bot_name: String,
-}
-
 pub struct DriveCompiler {
     state: Arc<AppState>,
     work_root: PathBuf,
@@ -218,7 +198,3 @@ impl Clone for DriveCompiler {
         }
     }
 }
-
-/// Reform #1501 — (branch_slug, bot_name) pairs whose bot sources moved to
-/// git: a vibe project of the branch carries `payload.source_imported_at`.
-/// The set is re-read each compile scan (cheap single query) so newly
