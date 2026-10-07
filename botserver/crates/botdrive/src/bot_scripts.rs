@@ -99,6 +99,19 @@ impl BotScriptsRepository {
         Self { pool }
     }
 
+    /// Reject paths that must never reach the compiler.
+    ///
+    /// `{bucket}/archive/{bot}-{stamp}/.gbdialog/...` holds the Drive copies
+    /// `git_bot_monitor` archives when a bot's sources become git-owned; they
+    /// are explicitly never read again (AGENTS.md). The DriveMonitor still
+    /// lists them, so the queue has to refuse them — otherwise every archive
+    /// pass resurrects its snapshots as work.
+    pub fn is_compilable_path(script_path: &str) -> bool {
+        script_path.ends_with(".bas")
+            && !script_path.contains("/archive/")
+            && !script_path.contains("/.gbdialog/")
+    }
+
     /// Mark a script as needing a compile.
     ///
     /// Idempotent on `(branch_id, script_path)`. The `DO UPDATE` is gated on
@@ -155,18 +168,22 @@ impl BotScriptsRepository {
         let lease_secs = if lease_secs > 0 { lease_secs } else { DEFAULT_LEASE_SECS };
         let limit = limit.clamp(1, 500);
 
+        // `make_interval` with explicit casts, not `($n || ' seconds')::interval`:
+        // bind parameters are untyped at parse time, so `||` and `<<` cannot
+        // resolve an operator ("could not determine data type of parameter $n")
+        // and every tick failed with a syntax error.
         let rows = diesel::sql_query(
             "UPDATE bot_scripts SET lease_owner = $1, \
-                    lease_expires_at = NOW() + ($2 || ' seconds')::interval, \
+                    lease_expires_at = NOW() + make_interval(secs => $2::double precision), \
                     updated_at = NOW() \
               WHERE id IN ( \
                     SELECT id FROM bot_scripts \
                      WHERE dirty \
                        AND (lease_expires_at IS NULL OR lease_expires_at < NOW()) \
                        AND (last_failed_at IS NULL \
-                            OR last_failed_at < NOW() - (LEAST( \
-                                  $3 * (1 << LEAST(fail_count, 6)), \
-                                  $4) || ' seconds')::interval)) \
+                            OR last_failed_at < NOW() - make_interval(secs => LEAST( \
+                                  $3::bigint * (1 << LEAST(fail_count, 6)), \
+                                  $4::bigint)::double precision)) \
                      ORDER BY updated_at ASC \
                      LIMIT $5 \
                      FOR UPDATE SKIP LOCKED ) \
