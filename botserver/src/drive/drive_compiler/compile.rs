@@ -4,11 +4,12 @@
 //! Split out of `drive_compiler.rs` (450-line rule). The *decision* to compile
 //! lives in `queue.rs`; this module is the *mechanism*.
 
+use super::queue::git_owned_bots;
 use super::*;
 
 impl DriveCompiler {
     /// Compilar arquivo .bas → .ast DIRETAMENTE em work/{bot}.gbai/{bot}.gbdialog/
-    async fn compile_file(&self, _bot_id: Uuid, fp: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub(crate) async fn compile_file(&self, _bot_id: Uuid, fp: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
         // fp formats:
         // - {bot}.gbai/{bot}.gbdialog/{tool}.bas (full path with bucket prefix)
         // - {bot}.gbdialog/{tool}.bas (without bucket prefix)
@@ -259,7 +260,7 @@ impl DriveCompiler {
 
     /// Resolve the expected .ast path for a given file path, to check if it exists.
     /// Returns PathBuf without verifying existence — caller checks .exists().
-    fn resolve_ast_path(&self, fp: &str) -> PathBuf {
+    pub(crate) fn resolve_ast_path(&self, fp: &str) -> PathBuf {
         let parts: Vec<&str> = fp.split('/').collect();
         if parts.len() < 2 || parts.iter().any(|p| p.ends_with(".gbkb")) {
             return PathBuf::new();
