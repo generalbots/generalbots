@@ -186,38 +186,26 @@ impl DriveMonitor {
                             full_key, file_type
                         );
                     }
-                    // #1475 — a changed script goes on the `bot_scripts` queue,
-                    // keyed by the S3 ETag. `drive_files` stays the Drive
-                    // inventory (search, KB indexing) and no longer doubles as
-                    // the compile queue, which the git monitor was polluting
-                    // with commit shas.
+                    // #1474 — every bot is git-owned. A bot's `.gbdialog` (scripts) and
+                    // `.gbot` (config + channel prompts) live in its Forgejo
+                    // repository, which is the single source of truth, and
+                    // `git_bot_monitor` is the only producer of script sources
+                    // and the only compile trigger. Drive still walks the
+                    // bucket so the inventory (search, KB indexing) and
+                    // `.gbot` config stay current, but it no longer downloads a
+                    // `.bas` into the work dir and no longer enqueues one for
+                    // compilation. `.gbkb` and `.gbdrive` are untouched.
+                    //
+                    // Previously the `bas` arm also acted as an operational
+                    // fallback for a repo that lags Drive (#1501: "a media-filing
+                    // bot froze for hours"). That is exactly what this epic
+                    // retires; a lagging repo is now surfaced as a missing
+                    // compile rather than silently papered over from Drive.
                     if file_type == "bas" {
-                        // #1475 — archive snapshots are never compiled.
-                        if !crate::bot_scripts::BotScriptsRepository::is_compilable_path(
-                            &full_key,
-                        ) {
-                            log::debug!(
-                                "DriveMonitor: skipping non-compilable path {}",
-                                full_key
-                            );
-                        } else if let Some(version) = etag.as_deref() {
-                            let scripts =
-                                crate::bot_scripts::BotScriptsRepository::new(self.state.conn.clone());
-                            match scripts.enqueue(
-                                branch_id.unwrap_or_else(uuid::Uuid::nil),
-                                bot_name,
-                                &full_key,
-                                crate::bot_scripts::SourceKind::Drive,
-                                version,
-                            ) {
-                                Ok(true) => {}
-                                Ok(false) => {}
-                                Err(e) => log::warn!(
-                                    "bot_scripts enqueue for {full_key}: {e}"
-                                ),
-                            }
-                        }
-                        self.sync_bas_to_work(bot_name, &obj.key, etag.clone()).await;
+                        log::debug!(
+                            "DriveMonitor: inventorying {} (git-owned source; not downloaded or compiled from Drive)",
+                            full_key
+                        );
                     } else if file_type == "prompt" {
                         self.sync_gbot_to_work(bot_name, &obj.key, etag.clone()).await;
                     } else if file_type != "kb" && file_type != "config" {
@@ -503,53 +491,6 @@ impl DriveMonitor {
         Some(uuid::Uuid::nil())
     }
 
-    async fn sync_bas_to_work(&self, bot_name: &str, s3_key: &str, etag: Option<String>) {
-        let s3 = match &self.state.drive {
-            Some(s3) => s3,
-            None => {
-                log::error!("S3 client not available for .bas sync");
-                return;
-            }
-        };
-
-        let actual_s3_key = if self.s3_prefix.is_some() {
-            s3_key  // s3_key already includes prefix for org buckets
-        } else {
-            s3_key
-        };
-        let data = match s3.get_object_direct(&self.bucket_name, actual_s3_key).await {
-            Ok(d) => d,
-            Err(e) => {
-                log::error!("Failed to download .bas from {}/{}: {}", self.bucket_name, actual_s3_key, e);
-                return;
-            }
-        };
-
-        let work_dir = self.bot_work_dir("gbdialog");
-        if let Err(e) = std::fs::create_dir_all(&work_dir) {
-            log::error!("Failed to create work dir {}: {}", work_dir.display(), e);
-            return;
-        }
-
-        let relative_key = self.strip_prefix(s3_key);
-        let file_name = relative_key.split('/').next_back().unwrap_or(relative_key);
-        let work_path = work_dir.join(file_name);
-
-        match String::from_utf8(data) {
-            Ok(content) => {
-                if let Err(e) = std::fs::write(&work_path, &content) {
-                    log::error!("Failed to write {} to work dir: {}", work_path.display(), e);
-                } else {
-                    log::trace!("Synced {} to work dir {}", s3_key, work_path.display());
-                    let full_key = format!("{}.gbai/{}", bot_name, relative_key);
-                    let _ = self.file_repo.mark_indexed(&full_key, etag);
-                }
-            }
-            Err(e) => {
-                log::error!("Failed to parse .bas as UTF-8: {}", e);
-            }
-        }
-    }
 
     async fn sync_gbot_to_work(&self, bot_name: &str, s3_key: &str, etag: Option<String>) {
         let s3 = match &self.state.drive {
