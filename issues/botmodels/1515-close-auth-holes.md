@@ -1,5 +1,6 @@
 # [BOTMODELS] 1515 — Close auth holes
 
+**Status:** implemented — commit `329c4d600`
 **Priority:** P0
 **Kind:** security
 **Depends on:** — · **Blocks:** —
@@ -51,13 +52,41 @@ falling back to a query param.
 
 ## Acceptance criteria
 
-- [ ] `/api/detect` returns 401 with a missing **and** with a wrong key.
-- [ ] `/api/scoring/health` requires auth.
-- [ ] Both `/v1/audio/*` WebSockets reject an unauthenticated upgrade.
-- [ ] Key comparison uses `hmac.compare_digest`.
-- [ ] CORS allows either specific origins or credentials — never both `*` and
+- [x] `/api/detect` returns 401 with a missing **and** with a wrong key.
+- [x] `/api/scoring/health` requires auth.
+- [x] Both `/v1/audio/*` WebSockets reject an unauthenticated upgrade.
+- [x] Key comparison uses `hmac.compare_digest`.
+- [x] CORS allows either specific origins or credentials — never both `*` and
       `allow_credentials=True`.
 - [ ] README no longer overstates the auth guarantee.
+
+### Verification
+
+`get_api_key` — which returned `None` for a missing *and* a wrong key, leaving
+`/api/detect` open — is deleted. All four auth paths now live in
+`dependencies.py`: `verify_api_key` (header), `require_api_key` (tolerates a
+missing header, still raises), `verify_api_key_optional` (reports validity),
+`verify_ws_key` (query param, for WS upgrades). Comparison is
+`hmac.compare_digest` throughout.
+
+The two voice sockets now call `_authorize()` before `accept()`, closing with
+code `1008` (policy violation) on a missing or wrong key. `accept()` appears
+exactly once, inside `_authorize`.
+
+CORS reads `ALLOWED_ORIGINS` (default empty = same-origin only) and no longer
+sets `allow_origins=["*"]` together with `allow_credentials=True`.
+
+No live HTTP test was run — the dev host has no FastAPI/uvicorn installed, so
+this is verified by source inspection and the absence of `get_api_key`
+references repo-wide. **Recommend an integration test** that asserts 401 on all
+four surfaces before this is considered fully verified.
+
+### Outstanding
+
+The `botmodels/README.md` still describes the old model set (Zeroscope, BLIP2,
+`sd_turbo_f16.gguf`, Coqui TTS). It needs a rewrite covering the two tiers, the
+`MODE` variable, and the corrected auth guarantee. Left out of this commit to
+keep it reviewable on its own.
 
 ## Non-goals
 
