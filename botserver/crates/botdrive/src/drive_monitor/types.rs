@@ -192,7 +192,15 @@ impl DriveMonitor {
                     // the compile queue, which the git monitor was polluting
                     // with commit shas.
                     if file_type == "bas" {
-                        if let Some(version) = etag.as_deref() {
+                        // #1475 — archive snapshots are never compiled.
+                        if !crate::bot_scripts::BotScriptsRepository::is_compilable_path(
+                            &full_key,
+                        ) {
+                            log::debug!(
+                                "DriveMonitor: skipping non-compilable path {}",
+                                full_key
+                            );
+                        } else if let Some(version) = etag.as_deref() {
                             let scripts =
                                 crate::bot_scripts::BotScriptsRepository::new(self.state.conn.clone());
                             match scripts.enqueue(
