@@ -1,5 +1,6 @@
 # [BOTMODELS] 1513 — Backend registry + `min`/`max`/`auto` mode resolution
 
+**Status:** implemented — commit `329c4d600`
 **Priority:** P0
 **Kind:** feature
 **Depends on:** — · **Blocks:** 1516, 1517, 1518, 1519
@@ -78,17 +79,33 @@ quadruples VRAM.
 
 ## Acceptance criteria
 
-- [ ] With `BOTMODELS_MODE` unset, every capability resolves to its current
+- [x] With `BOTMODELS_MODE` unset, every capability resolves to its current
       model and `/api/health` reports `mode: "min"` or `"max"` with the
       detection evidence.
-- [ ] `BOTMODELS_MODE=max` on a host without 16GB VRAM forces `max` (explicit
+- [x] `BOTMODELS_MODE=max` on a host without 16GB VRAM forces `max` (explicit
       override, no re-detection).
-- [ ] `BOTMODELS_MODE=invalid` fails fast at startup with a clear message.
-- [ ] Concurrent first requests to one backend trigger exactly one load.
-- [ ] `/api/health` exposes `mode`, `mode_source` (`env`|`auto`), `detected`
+- [x] `BOTMODELS_MODE=invalid` fails fast at startup with a clear message.
+- [x] Concurrent first requests to one backend trigger exactly one load.
+- [x] `/api/health` exposes `mode`, `mode_source` (`env`|`auto`), `detected`
       (`{cuda, vram_gb, ram_gb, device}`) and the resolved backend per capability.
-- [ ] `CUDA_VISIBLE_DEVICES=""` resolves to `min`.
-- [ ] Detection works without `psutil` installed (fallback path covered).
+- [x] `CUDA_VISIBLE_DEVICES=""` resolves to `min`.
+- [x] Detection works without `psutil` installed (fallback path covered).
+
+### Verification
+
+`tests/test_mode.py` — 19 cases, all passing. Covers the full tier matrix
+(no GPU / low VRAM / low RAM / large GPU / MPS-high-RAM / MPS-low-RAM /
+undetectable RAM), env override, case and whitespace normalisation, invalid
+input, and the backend table. Run with:
+
+```bash
+python3 -m unittest tests.test_mode
+```
+
+`CUDA_VISIBLE_DEVICES=""` and the no-`psutil` fallback were both exercised on
+the dev host (4 CPU / 7.8GB / no GPU), where `auto` correctly resolves `min`.
+Tier resolution for a real CUDA or MPS host is covered by mocking
+`HardwareProfile`, not by live hardware.
 
 ## Non-goals
 

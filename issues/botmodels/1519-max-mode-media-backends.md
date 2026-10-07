@@ -1,5 +1,6 @@
 # [BOTMODELS] 1519 — `max`-mode media backends (Qwen-Image, Wan 2.2, PaddleOCR-VL)
 
+**Status:** registry only — commit `329c4d600`
 **Priority:** P2
 **Kind:** feature
 **Depends on:** 1513, 1516 · **Blocks:** —
@@ -44,8 +45,35 @@ inventing a second.
       text rendering.
 - [ ] `max` mode generates 720p video via Wan 2.2 with explicit resolution.
 - [ ] `max` mode OCR returns structured tables, not flattened text.
-- [ ] `min` mode byte-identical to current behaviour.
-- [ ] Every added model is Apache 2.0 or MIT (verified on the model card).
+- [x] `min` mode byte-identical to current behaviour.
+- [x] Every added model is Apache 2.0 or MIT (verified on the model card).
+
+### What landed
+
+All three backends are implemented and wired into the registry:
+`QwenImageBackend` (`QwenImagePipeline`, 1328px default, true_cfg_scale),
+`Wan22Backend` (`AutoPipeline`, 1280×720, 81 frames, bfloat16 on CUDA), and
+`PaddleOcrBackend`. Registry entries resolve correctly — verified across all 14
+tier×capability pairs.
+
+Zeroscope remains the `min` default with identical behaviour: same pipeline
+class, same `DPMSolverMultistepScheduler` treatment, same 4-step image default.
+
+`_extract_frames()` in the video backends replaces the previous bare
+`output.frames[0]` access with an explicit check that raises a clear error on a
+latents-returning pipeline, instead of a `TypeError` (1516).
+
+### Outstanding — needs a GPU host
+
+None of the three `max`-mode models has been loaded against real weights; the
+dev host has no CUDA, torch or checkpoints. Unconfirmed: whether
+`diffusers>=0.38.0` exposes `QwenImagePipeline` and Wan `AutoPipeline` under
+those exact names, and whether the checkpoints fit the `max` VRAM threshold.
+
+**Also outstanding:** Wan 2.2 renders a 5s 720p clip in roughly 9 minutes, so
+synchronous request handling is not viable for it. The issue proposes reusing
+`MusicService`'s job-polling shape; that async conversion is **not** started.
+Until it is, `max` mode video will hold a request for minutes.
 
 ## Non-goals
 

@@ -1,5 +1,6 @@
 # [BOTMODELS] 1516 — Stop swallowing model-load failures; purge dead config
 
+**Status:** implemented — commit `329c4d600`
 **Priority:** P0
 **Kind:** bug
 **Depends on:** 1513 · **Blocks:** 1517, 1519
@@ -48,13 +49,47 @@ support, so `StableDiffusionPipeline.from_pretrained("*.gguf")` cannot work.
 
 ## Acceptance criteria
 
-- [ ] Bad `IMAGE_MODEL_PATH` → 503 with the model id and cause, not a `TypeError`.
-- [ ] Failed vision load does **not** retry `from_pretrained` on every request.
-- [ ] `seed=0` produces a reproducible image.
-- [ ] Filenames deterministic across process restarts (sha256 of prompt).
-- [ ] `VIDEO_WIDTH`/`VIDEO_HEIGHT` are passed to the pipeline, or removed.
+- [x] Bad `IMAGE_MODEL_PATH` → 503 with the model id and cause, not a `TypeError`.
+- [x] Failed vision load does **not** retry `from_pretrained` on every request.
+- [x] `seed=0` produces a reproducible image.
+- [x] Filenames deterministic across process restarts (sha256 of prompt).
+- [x] `VIDEO_WIDTH`/`VIDEO_HEIGHT` are passed to the pipeline, or removed.
 - [ ] Dead keys removed from `Settings`, `.env.example` and the botbook.
-- [ ] Startup logs report which backends loaded and which failed, per mode.
+- [x] Startup logs report which backends loaded and which failed, per mode.
+
+### Verification
+
+`Backend.ensure_loaded()` records the cause once and raises
+`BackendNotLoadedError`; a recorded failure is not retried, which is the
+retry-storm fix. `ensure_loaded_async()` adds an `asyncio.Lock`, and a
+`threading.Lock` guards the blocking path — covering the unlocked-singleton race
+on concurrent first requests.
+
+`tests/test_backends.py` — 8 cases, all passing: typed error on failure,
+no retry across 5 calls, `reset()` clears state, load happens exactly once,
+12 concurrent threads trigger a single `from_pretrained`, and `status()` does
+not load.
+
+Both seed and filename fixes are code-level and asserted by inspection rather
+than test (they need a real diffusion pipeline). `seed` is now guarded with
+`is not None`, so `seed=0` is honoured; filenames use
+`sha256(prompt)[:8]` instead of `hash(prompt)`, which was per-process
+randomised by `PYTHONHASHSEED`.
+
+`VIDEO_WIDTH`/`VIDEO_HEIGHT`/`VIDEO_STEPS` now exist in `Settings` and are
+forwarded to both the Zeroscope and Wan backends. `video_steps` replaced the
+hardcoded `50`.
+
+### Outstanding
+
+- **`botbook/.../multimodal.md`** still documents
+  `image-generator-model,../../../../data/diffusion/sd_turbo_f16.gguf`. The
+  Python tree has no GGUF/llama.cpp support, so that config cannot work. The
+  botbook edit is still needed — a documentation change, deliberately separate.
+- `botmodels/README.md` "Project Structure" and "Technology Stack" sections are
+  stale (missing `services/{backends,scoring}/`, `core/{hardware,mode,startup}.py`).
+- The GGUF config entries in the botbook should become the tier-based
+  `IMAGE_MODEL_PATH` + `MODE` pair.
 
 ## Non-goals
 

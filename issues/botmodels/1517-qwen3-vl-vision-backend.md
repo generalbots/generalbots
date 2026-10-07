@@ -1,5 +1,6 @@
 # [BOTMODELS] 1517 — Qwen3-VL vision backend (real VQA + OCR)
 
+**Status:** partially implemented — commit `329c4d600`
 **Priority:** P1
 **Kind:** feature
 **Depends on:** 1513, 1516 · **Blocks:** —
@@ -53,11 +54,48 @@ document-parsing specialist if OCR volume alone justifies a second model.
 
 - [ ] `max` mode: `/api/vision/vqa` answers reasoned questions about an image.
 - [ ] `max` mode: OCR handles tables and non-English text.
-- [ ] `min` mode behaviour unchanged (BLIP2 captions).
-- [ ] No response returns a fabricated confidence; heuristics are labelled.
-- [ ] Bare `except:` removed; errors return structured JSON per the README.
-- [ ] `/vision/analyze` reuses the OCR/caption handlers instead of duplicating
+- [x] `min` mode behaviour unchanged (BLIP2 captions).
+- [x] No response returns a fabricated confidence; heuristics are labelled.
+- [x] Bare `except:` removed; errors return structured JSON per the README.
+- [x] `/vision/analyze` reuses the OCR/caption handlers instead of duplicating
       them inline.
+
+### What landed
+
+`Qwen3VLBackend` is registered for the `max` tier: chat-template rendering,
+native bounding-box/point grounding, and a separate `ocr()` that asks for
+markdown tables rather than flattened text. `describe()` passes an explicit
+question straight through, so VQA genuinely asks the model.
+
+BLIP2 stays the `min` captioner — unchanged behaviour. `answer_question` now
+returns `reasoning: true|false` derived from the answering backend, so a caller
+can distinguish a real VQA answer from BLIP2 captioning.
+
+The fabricated `confidence: 0.85` is gone. Tesseract reports its real measured
+per-word confidence; PaddleOCR-VL has none, so the field is **omitted** rather
+than filled with a constant.
+
+`/vision/analyze`'s three bare `except:` clauses are replaced with per-stage
+`try/except` that records which stage failed (`description_error`, `ocr_error`,
+`codes_error`) instead of silently returning nulls. OCR and barcode logic moved
+to `services/ocr_service.py` and is shared with the `/ocr` endpoint rather than
+duplicated inline.
+
+### Outstanding — needs a GPU host
+
+The two model-dependent criteria are **unverified**. The dev host has no CUDA,
+no torch and no model weights, so `Qwen3VLBackend._load()` has never executed
+against real weights. Specifically unconfirmed:
+
+- that `transformers>=5.0.0rc3` resolves `Qwen3-VL-4B` (the RC pin is the
+  likely blocker — see Open decisions);
+- `apply_chat_template` + `AutoModelForImageTextToText` load the checkpoint
+  without error;
+- VRAM fits within the `max` threshold;
+- measured VQA and OCR quality against BLIP2.
+
+Run on a 16GB+ host: `MODE=max`, then exercise `/api/vision/vqa` and
+`/api/vision/ocr` with a table image and a non-Latin one.
 
 ## Non-goals
 

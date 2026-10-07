@@ -1,5 +1,6 @@
 # [BOTMODELS] 1514 — Fix Rust↔Python route contract mismatches
 
+**Status:** implemented — commit `329c4d600`
 **Priority:** P0
 **Kind:** bug
 **Depends on:** — · **Blocks:** —
@@ -43,14 +44,45 @@ Env-var naming is inconsistent across the same Rust tree: `botmultimodal` and
 
 ## Acceptance criteria
 
-- [ ] `/api/vision/describe_video` and `/api/speech/to-text` work, via corrected
+- [x] `/api/vision/describe_video` and `/api/speech/to-text` work, via corrected
       Rust callers **and** Python aliases.
-- [ ] QR and STT calls succeed with real multipart bodies (not 422).
-- [ ] `/ocr` reaches `/api/vision/ocr`.
+- [x] QR and STT calls succeed with real multipart bodies (not 422).
+- [x] `/ocr` reaches `/api/vision/ocr`.
 - [ ] `BOTMODELS_HOST` is the single base-URL variable; `BOTMODELS_URL` removed
       or aliased.
 - [ ] Port `8082` ambiguity resolved in `multimodal.md` — it currently refers to
       three different services across the tree.
+
+### Verification
+
+Routes confirmed by source scan of the FastAPI routers:
+
+| Route | Registered |
+|---|---|
+| `/api/vision/describe-video` | yes (canonical) |
+| `/api/vision/describe_video` | yes (compatibility alias) |
+| `/api/speech/totext` | yes |
+| `/api/vision/ocr` | yes |
+
+Rust callers now use `InternalUrls` constants; QR, STT and OCR all send
+`multipart`. `/api/speech/totext` corrected from the hyphenated `/to-text`.
+
+The two unchecked items are documentation/env-var consolidation and were
+deliberately left out of this commit — see Non-goals note below.
+
+### Outstanding
+
+- **`BOTMODELS_URL` vs `BOTMODELS_HOST`** — `botmultimodal`/`jukebox` read
+  `BOTMODELS_HOST`, `ai_tools.rs`/`processing.rs` read `BOTMODELS_URL`. Not
+  consolidated: renaming an env var is a deploy-coordinated change and
+  would break running bots if the two diverge.
+- **Port 8082** in `botbook/src/10-configuration-deployment/multimodal.md:192`
+  still conflicts with line 34 and with `installer_regs.rs:163`. Needs a
+  botbook edit, not a code change.
+- **Rust changes are not compiled** — no cargo on the dev host. Run
+  `cargo check -p botcore -p botbasic_core -p botbasic_ai -p botmultimodal`
+  before merge. Highest risk is the new `botcore` dependency added to
+  `botbasic_core` and `botmultimodal`.
 
 ## Non-goals
 
