@@ -1,3 +1,4 @@
+use botcore::InternalUrls;
 use botlib::security::create_tls_client;
 use log::{info, trace};
 use reqwest::Client;
@@ -455,7 +456,13 @@ impl BotModelsClient {
             return Err("BotModels is not enabled".into());
         }
 
-        let url = format!("{}/api/vision/describe_video", self.config.base_url());
+        // botmodels registers the hyphenated route; the underscore spelling only
+        // exists as a compatibility alias (issue 1514).
+        let url = format!(
+            "{}{}",
+            self.config.base_url(),
+            InternalUrls::BOTMODELS_VISION_DESCRIBE_VIDEO
+        );
         trace!("Describing video at {}: {}", url, video_url_or_path);
 
         let video_data = if video_url_or_path.starts_with("http") {

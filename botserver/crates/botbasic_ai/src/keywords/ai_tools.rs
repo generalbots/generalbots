@@ -1,5 +1,6 @@
 use botbasic_types::UserSession;
 use botbasic_types::BasicRuntime;
+use botcore::InternalUrls as Urls;
 use log::{debug, trace};
 use rhai::{Dynamic, Engine, EvalAltResult, Map, Position};
 
@@ -221,10 +222,16 @@ async fn perform_ocr(image_path: &str) -> Result<String, Box<dyn std::error::Err
     } else {
         std::fs::read(image_path)?
     };
+    // botmodels registers OCR at /api/vision/ocr (there is no bare /ocr route)
+    // and declares `file: UploadFile = File(...)`, so the body must be multipart.
+    let part = reqwest::multipart::Part::bytes(image_data)
+        .file_name("image")
+        .mime_str("application/octet-stream")?;
+    let form = reqwest::multipart::Form::new().part("file", part);
+
     let response = client
-        .post(format!("{}/ocr", botmodels_url))
-        .header("Content-Type", "application/octet-stream")
-        .body(image_data)
+        .post(format!("{}{}", botmodels_url, Urls::BOTMODELS_VISION_OCR))
+        .multipart(form)
         .send()
         .await?
         .json::<serde_json::Value>()

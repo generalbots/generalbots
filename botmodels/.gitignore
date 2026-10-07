@@ -163,3 +163,26 @@ Icon
 Network Trash Folder
 Temporary Items
 .apdisk
+
+# --- Model weights and generated artifacts (botmodels) ---
+# Multi-GB checkpoints must never enter git. .env.example is committed.
+models/
+outputs/
+data/
+*.safetensors
+*.gguf
+*.ggml
+*.onnx
+*.pt
+*.pth
+*.ckpt
+*.ck
+*.bin
+*.h5
+*.pkl
+*.pickle
+*.joblib
+
+# Voice checkpoints fetched at runtime
+voices/
+*.wav.tmp

@@ -10,6 +10,7 @@ from ....schemas.generation import (
     QRCodeResponse,
     VideoDescribeResponse,
 )
+from ....services.ocr_service import describe_codes, image_metadata, run_ocr
 from ....services.vision_service import get_vision_service
 from ...dependencies import verify_api_key
 
@@ -49,6 +50,17 @@ async def describe_video(
     video_data = await file.read()
     result = await service.describe_video(video_data, num_frames)
     return VideoDescribeResponse(**result)
+
+
+# Alias for botserver callers that send the underscore spelling. FastAPI would
+# otherwise 404 on /api/vision/describe_video (see issue 1514).
+router.add_api_route(
+    "/describe_video",
+    describe_video,
+    methods=["POST"],
+    response_model=VideoDescribeResponse,
+    include_in_schema=False,
+)
 
 
 @router.post("/vqa")
@@ -212,10 +224,12 @@ async def extract_text(
     file: UploadFile = File(...),
     language: str = Form("eng"),
     api_key: str = Depends(verify_api_key),
-    service=Depends(get_vision_service),
 ):
     """
-    Extract text from an image using OCR.
+    Extract text from an image using the tier's OCR backend.
+
+    min mode uses Tesseract (CPU-only); max mode uses PaddleOCR-VL, which returns
+    markdown tables rather than flattened text.
 
     Args:
         file: Image file
@@ -226,42 +240,7 @@ async def extract_text(
         Extracted text from the image
     """
     image_data = await file.read()
-
-    try:
-        import pytesseract
-
-        image = Image.open(io.BytesIO(image_data))
-
-        # Extract text
-        text = pytesseract.image_to_string(image, lang=language)
-
-        # Get detailed data with confidence scores
-        data = pytesseract.image_to_data(
-            image, lang=language, output_type=pytesseract.Output.DICT
-        )
-
-        # Calculate average confidence (filtering out -1 values which indicate no text)
-        confidences = [c for c in data["conf"] if c > 0]
-        avg_confidence = sum(confidences) / len(confidences) if confidences else 0
-
-        return {
-            "success": True,
-            "text": text.strip(),
-            "confidence": avg_confidence / 100,  # Normalize to 0-1
-            "language": language,
-            "word_count": len(text.split()),
-            "error": None,
-        }
-
-    except Exception as e:
-        return {
-            "success": False,
-            "text": "",
-            "confidence": 0,
-            "language": language,
-            "word_count": 0,
-            "error": f"OCR failed: {str(e)}",
-        }
+    return run_ocr(image_data, language)
 
 
 @router.post("/analyze")
@@ -283,53 +262,33 @@ async def analyze_image(
     """
     image_data = await file.read()
 
-    result = {"description": None, "text": None, "codes": [], "metadata": {}}
+    result: dict = {"description": None, "text": None, "codes": [], "metadata": {}}
+
+    # Each stage is independent: a failure in one degrades that field only.
+    # (The previous implementation used three bare `except:` clauses, which the
+    # botmodels README forbids.)
+    try:
+        result["metadata"] = image_metadata(image_data)
+    except (OSError, ValueError) as exc:
+        result["metadata"] = {"error": str(exc)}
 
     try:
-        image = Image.open(io.BytesIO(image_data))
+        desc_result = await service.describe_image(image_data, None)
+        result["description"] = desc_result.get("description")
+    except Exception as exc:  # noqa: BLE001 - optional stage
+        result["description_error"] = str(exc)
 
-        # Get image metadata
-        result["metadata"] = {
-            "width": image.width,
-            "height": image.height,
-            "format": image.format,
-            "mode": image.mode,
-        }
+    try:
+        ocr_result = run_ocr(image_data)
+        if ocr_result.get("text"):
+            result["text"] = ocr_result["text"]
+            result["ocr_backend"] = ocr_result.get("backend")
+    except Exception as exc:  # noqa: BLE001 - optional stage
+        result["ocr_error"] = str(exc)
 
-        # Get AI description
-        try:
-            desc_result = await service.describe_image(image_data, None)
-            result["description"] = desc_result.get("description")
-        except:
-            pass
+    try:
+        result["codes"] = describe_codes(image_data)
+    except Exception as exc:  # noqa: BLE001 - optional stage
+        result["codes_error"] = str(exc)
 
-        # Try OCR
-        try:
-            import pytesseract
-
-            text = pytesseract.image_to_string(image)
-            if text.strip():
-                result["text"] = text.strip()
-        except:
-            pass
-
-        # Try barcode/QR detection
-        try:
-            if image.mode != "RGB":
-                image = image.convert("RGB")
-            decoded = pyzbar.decode(image)
-            if decoded:
-                result["codes"] = [
-                    {
-                        "data": obj.data.decode("utf-8", errors="replace"),
-                        "type": obj.type,
-                    }
-                    for obj in decoded
-                ]
-        except:
-            pass
-
-        return {"success": True, **result}
-
-    except Exception as e:
-        return {"success": False, "error": str(e), **result}
+    return {"success": True, **result}

@@ -1,4 +1,5 @@
 use std::sync::Arc;
+use botcore::InternalUrls as Urls;
 use botlib::models::Attachment;
 use botbasic_types::BasicRuntime;
 use uuid::Uuid;
@@ -154,10 +155,17 @@ pub async fn process_qrcode(
         .await
         .map_err(|e| format!("Failed to fetch image: {e}"))?;
 
+    // botmodels declares `file: UploadFile = File(...)`, so this must be
+    // multipart. Sending a raw octet-stream body returned 422.
+    let part = reqwest::multipart::Part::bytes(image_data.to_vec())
+        .file_name("image")
+        .mime_str("application/octet-stream")
+        .map_err(|e| format!("Failed to build multipart body: {e}"))?;
+    let form = reqwest::multipart::Form::new().part("file", part);
+
     let response = client
-        .post(format!("{botmodels_url}/api/vision/qrcode"))
-        .header("Content-Type", "application/octet-stream")
-        .body(image_data.to_vec())
+        .post(format!("{botmodels_url}{}", Urls::BOTMODELS_VISION_QRCODE))
+        .multipart(form)
         .send()
         .await
         .map_err(|e| format!("Failed to call botmodels: {}", e))?;
@@ -202,10 +210,16 @@ pub async fn process_audio_to_text(
         .await
         .map_err(|e| format!("Failed to read audio: {e}"))?;
 
+    // botmodels exposes /api/speech/totext (no hyphen) and expects multipart.
+    let part = reqwest::multipart::Part::bytes(audio_data.to_vec())
+        .file_name("audio")
+        .mime_str("application/octet-stream")
+        .map_err(|e| format!("Failed to build multipart body: {e}"))?;
+    let form = reqwest::multipart::Form::new().part("file", part);
+
     let response = client
-        .post(format!("{botmodels_url}/api/speech/to-text"))
-        .header("Content-Type", "application/octet-stream")
-        .body(audio_data.to_vec())
+        .post(format!("{botmodels_url}{}", Urls::BOTMODELS_SPEECH_TO_TEXT))
+        .multipart(form)
         .send()
         .await
         .map_err(|e| format!("Failed to call botmodels: {}", e))?;

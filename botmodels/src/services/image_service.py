@@ -1,47 +1,26 @@
+import hashlib
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
-
-import torch
-from diffusers import DPMSolverMultistepScheduler, StableDiffusionPipeline
-from PIL import Image
 
 from ..core.config import settings
 from ..core.logging import get_logger
+from .backends import registry
+from .errors import BackendNotLoadedError
 
 logger = get_logger("image_service")
 
 
 class ImageService:
-    def __init__(self):
-        self.pipeline: Optional[StableDiffusionPipeline] = None
-        self.device = settings.device
-        self._initialized = False
+    """Image generation over the selected backend.
 
-    def initialize(self):
-        if self._initialized:
-            return
-        logger.info("Loading Stable Diffusion model", path=settings.image_model_path)
-        try:
-            self.pipeline = StableDiffusionPipeline.from_pretrained(
-                settings.image_model_path,
-                torch_dtype=torch.float16 if self.device == "cuda" else torch.float32,
-                safety_checker=None,
-            )
-            self.pipeline.scheduler = DPMSolverMultistepScheduler.from_config(
-                self.pipeline.scheduler.config
-            )
-            self.pipeline = self.pipeline.to(self.device)
-            if self.device == "cuda":
-                self.pipeline.enable_attention_slicing()
-            self._initialized = True
-            logger.info("Stable Diffusion loaded successfully")
-        except Exception as e:
-            logger.warning(
-                "Stable Diffusion model not available, image generation disabled",
-                error=str(e),
-            )
-            self._initialized = True
+    Delegates model concerns to the backend registry, so SD-Turbo and Qwen-Image
+    are interchangeable without changing callers. A failed load raises
+    BackendNotLoadedError (surfaced as a 503) instead of calling None.
+    """
+
+    def __init__(self) -> None:
+        self.backend = registry.get("image")
 
     async def generate(
         self,
@@ -52,56 +31,44 @@ class ImageService:
         guidance_scale: Optional[float] = None,
         seed: Optional[int] = None,
     ) -> dict:
-        if not self._initialized:
-            self.initialize()
-
-        # Use config defaults if not specified
-        actual_steps = steps if steps is not None else settings.image_steps
-        actual_width = width if width is not None else settings.image_width
-        actual_height = height if height is not None else settings.image_height
-        actual_guidance = guidance_scale if guidance_scale is not None else 7.5
-
         start = time.time()
-        generator = (
-            torch.Generator(device=self.device).manual_seed(seed) if seed else None
-        )
 
         logger.info(
             "Generating image",
+            backend=self.backend.name,
             prompt=prompt[:50],
-            steps=actual_steps,
-            width=actual_width,
-            height=actual_height,
+            steps=steps,
+            width=width,
+            height=height,
         )
 
-        output = self.pipeline(
+        image = self.backend.generate(
             prompt=prompt,
-            num_inference_steps=actual_steps,
-            guidance_scale=actual_guidance,
-            width=actual_width,
-            height=actual_height,
-            generator=generator,
+            steps=steps,
+            width=width,
+            height=height,
+            guidance_scale=guidance_scale,
+            seed=seed,
         )
 
-        image: Image.Image = output.images[0]
-        timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-        filename = f"{timestamp}_{hash(prompt) & 0xFFFFFF:06x}.png"
+        # sha256 rather than hash(): PYTHONHASHSEED randomises str hashing per
+        # process, so filenames were not reproducible across restarts.
+        digest = hashlib.sha256(prompt.encode("utf-8")).hexdigest()[:8]
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+        filename = f"{timestamp}_{digest}.png"
+
         output_path = settings.output_dir / "images" / filename
         image.save(output_path)
 
         generation_time = time.time() - start
-        logger.info("Image generated", file=filename, time=generation_time)
+        logger.info("Image generated", backend=self.backend.name, file=filename)
 
         return {
             "status": "completed",
             "file_path": f"/outputs/images/{filename}",
             "generation_time": generation_time,
+            "backend": self.backend.name,
         }
-
-    async def describe(self, image_data: bytes) -> dict:
-        # Placeholder for backward compatibility
-        # Use vision_service for actual image description
-        return {"description": "Use /api/vision/describe endpoint", "confidence": 0.0}
 
 
 _service = None
