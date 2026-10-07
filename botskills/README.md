@@ -41,10 +41,11 @@ botskills/
 | research | context7 | Up-to-date library documentation lookup | pedronauck/skills (curated) |
 | research | exa-web-search-free | Free AI web and code search via Exa MCP (no API key) | pedronauck/skills (curated) |
 | research | firecrawl | Web scraping and crawling for context gathering | pedronauck/skills (curated) |
+| research | last30days | Recency research: what was said about a topic in the last 30 days across Reddit, X, YouTube, Hacker News, Polymarket, GitHub and the web | mvanhorn/last30days-skill |
 | testing | vitest | Fast unit testing with Jest-compatible API, mocking, and coverage | pedronauck/skills (curated) |
 | testing | webapp-testing | Playwright toolkit for local web app testing, screenshots, and console logs | Prat011/awesome-llm-skills |
 
-## Why these sixteen
+## Why these seventeen
 
 Selection criteria, in order:
 
@@ -58,6 +59,31 @@ Selection criteria, in order:
    (for example, the four web-search candidates were reduced to the two
    non-overlapping winners: exa for search, firecrawl for scraping).
 
+### Note on `last30days`
+
+`last30days` is the one skill with a real external-account requirement. It runs
+keyless at a reduced floor (its own engine's `available_sources`, minus
+login-backed sources); the full set — TikTok, Instagram, X, and the optional
+Brave/Perplexity/OpenRouter backends — needs credentials, 15 optional keys in
+total. It was accepted because criterion 2 is met *degraded*, not met in full,
+and because its concern is genuinely distinct from criterion 3's other research
+skills: those answer "what does this mean", this answers "what did people say
+recently". It overlaps `exa` only for general web search.
+
+Two behaviours worth knowing before enabling it, both documented by the author:
+
+- **Browser cookies are opt-in.** Reads require `FROM_BROWSER` or explicit
+  setup consent; `--preflight` is a permission inspector that does not read
+  cookie values.
+- **It talks to third-party APIs.** `api.scrapecreators.com`, `api.x.com`,
+  `hn.algolia.com`, `gamma-api.polymarket.com`, and optionally
+  `api.openai.com` / `api.perplexity.ai`. Its SKILL.md states it never posts,
+  likes, or modifies content on any platform. Given General Bots' sovereignty
+  posture, decide deliberately before enabling it for a given bot.
+
+The 14MB `assets/` directory (demo images and audio) was excluded as media, not
+skill behaviour.
+
 ## Selection from the source repos
 
 - **pedronauck/skills** contributes 13 of 23 curated skills (community and
@@ -66,21 +92,48 @@ Selection criteria, in order:
 - **Prat011/awesome-llm-skills** contributes 3 of 29 skills (the remainder are
   platform-specific SaaS integrations — Notion, Slack, invoice pipelines —
   outside General Bots scope).
+- **mvanhorn/last30days-skill** contributes 1 of 1 skill, MIT-licensed, imported
+  with `assets/` trimmed and the licence retained as `LICENSE.txt`.
 - Test fixtures shipped inside upstream skills (`test-pressure-*.md`,
   `test-academic.md`) were removed; they are evaluation artifacts, not
   skill content.
 
+### Considered and rejected
+
+**1N3/Sn1per** (backlog #1484) was evaluated and **not** imported. Three
+independent reasons, any one sufficient:
+
+1. **It is not a skill.** No `SKILL.md`, no agent/skill/MCP manifest of any
+   kind — it is a 6.7MB self-hosted offensive-security application (`bin/`,
+   `sniper`, `Dockerfile`, `wordlists/`, `templates/`). There is nothing to
+   import into this layout.
+2. **Its EULA forbids what this library does.** Not an OSI licence but a
+   six-term custom EULA, including *"You agree not to create any product or
+   service from any par of the Code from this Project, paid or free"* (3) and
+   *"You agree not to re-license the Code"* (4). Term 3 rules out shipping it
+   in General Bots, which sells paid plans; term 4 conflicts with this
+   repository's MIT licensing.
+3. **It is offensive-security tooling** — recon, scanning and exploitation.
+   General Bots sells CRM, Chat, Mail and Drive to schools and small business.
+
+If offensive-security capability is wanted in the library, the correct form is a
+General-Bots-authored skill documenting authorised pentest methodology, scoped
+and defensive — not a vendored platform.
+
 ## Source pins
 
-| Repository | Commit (2026-09-13) |
-|------------|---------------------|
-| https://github.com/pedronauck/skills | `233da80` |
-| https://github.com/Prat011/awesome-llm-skills | `35e1ea2` |
+| Repository | Commit |
+|------------|--------|
+| https://github.com/pedronauck/skills | `233da80` (2026-09-13) |
+| https://github.com/Prat011/awesome-llm-skills | `35e1ea2` (2026-09-13) |
+| https://github.com/mvanhorn/last30days-skill | `625f5b1` (2026-10-07) |
 
-Both upstream repositories had no SPDX license declared at pin time; the
-skills carry their own `LICENSE.txt` where the upstream author provided one
-(Apache-2.0 for the Anthropic-derived skills). Re-verify licenses before
-commercial redistribution.
+The two pre-existing upstream repositories had no SPDX license declared at pin
+time; the skills carry their own `LICENSE.txt` where the upstream author
+provided one (Apache-2.0 for the Anthropic-derived skills).
+`last30days-skill` declares **MIT** (Copyright 2026 Matt Van Horn), verified
+against its `LICENSE` at the pin above. Re-verify licenses before commercial
+redistribution.
 
 ## Usage
 
