@@ -20,7 +20,10 @@ pub struct HistoryRequest {
 pub async fn capture_snapshot(state: &Arc<DocState>, doc_id: &str, title: &str, content: &str) {
     let mut map = state.history.lock().await;
     let entry = map.entry(doc_id.to_string()).or_default();
-    let doc: Document = serde_json::from_value(serde_json::json!({
+    // #1368 — a snapshot that cannot be parsed is skipped: nothing useful can
+    // be restored from it, and dropping it must never abort the process (a
+    // placeholder document would corrupt an undo into a bogus version).
+    match serde_json::from_value::<Document>(serde_json::json!({
         "id": doc_id,
         "title": title,
         "content": content,
@@ -28,12 +31,14 @@ pub async fn capture_snapshot(state: &Arc<DocState>, doc_id: &str, title: &str, 
         "storage_path": "",
         "created_at": chrono::Utc::now(),
         "updated_at": chrono::Utc::now(),
-    }))
-    .map_err(|e| log::warn!("history snapshot skipped: {e}"))
-    .unwrap_or_else(|_| test_document(content));
-    entry.capture(doc);
+    })) {
+        Ok(doc) => entry.capture(doc),
+        Err(e) => log::warn!("history snapshot skipped: {e}"),
+    }
 }
 
+/// Test-only fixture: builds a minimal document with the given content.
+#[cfg(test)]
 #[doc(hidden)]
 pub fn test_document(content: &str) -> Document {
     serde_json::from_value(serde_json::json!({

@@ -1420,6 +1420,7 @@ version = "6.7.0"
 dependencies = [
  "bigdecimal",
  "botbasic_types",
+ "botcore",
  "botcoresecrets",
  "botlib",
  "chrono",
@@ -2679,6 +2680,7 @@ dependencies = [
 name = "botmultimodal"
 version = "6.7.0"
 dependencies = [
+ "botcore",
  "botlib",
  "log",
  "reqwest 0.12.28",

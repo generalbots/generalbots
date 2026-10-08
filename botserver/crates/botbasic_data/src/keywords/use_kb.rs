@@ -43,7 +43,7 @@ pub fn register_use_kb_keyword(
     let session_clone_for_syntax = session_clone.clone();
     let state_clone_for_syntax = state_clone.clone();
 
-    engine.register_custom_syntax(["USE", "KB", "$expr$"], true, move |context, inputs| {
+    if let Err(e) = engine.register_custom_syntax(["USE", "KB", "$expr$"], true, move |context, inputs| {
         let kb_name = context.eval_expression_tree(&inputs[0])?.to_string();
 
         info!(
@@ -79,8 +79,9 @@ pub fn register_use_kb_keyword(
                 Err("USE_KB failed: thread panic".into())
             }
         }
-    })
-    .expect("valid USE KB syntax registration");
+    }) {
+        log::error!("Failed to register USE KB syntax: {e}");
+    }
 
     let session_clone2 = session_clone.clone();
     let state_clone2 = state_clone.clone();

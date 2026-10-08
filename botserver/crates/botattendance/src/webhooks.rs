@@ -50,7 +50,16 @@ pub struct WebhookPayload {
 }
 
 fn calculate_hmac_signature(secret: &str, payload: &str) -> String {
-    let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).expect("HMAC key length is valid");
+    // #1368 — HMAC accepts a key of any length; a construction failure means
+    // the crypto backend is unusable. Fail closed with an empty signature
+    // instead of aborting the process.
+    let mut mac = match HmacSha256::new_from_slice(secret.as_bytes()) {
+        Ok(mac) => mac,
+        Err(e) => {
+            log::error!("HMAC signature unavailable: {e}");
+            return String::new();
+        }
+    };
     mac.update(payload.as_bytes());
     let result = mac.finalize();
     hex::encode(result.into_bytes())

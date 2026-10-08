@@ -224,11 +224,18 @@ fn signing_key() -> Result<String, Response> {
     Ok(token)
 }
 
-fn sign(payload: &str, key: &str) -> String {
-    let mut mac = Hmac::<Sha256>::new_from_slice(key.as_bytes())
-        .unwrap_or_else(|_| Hmac::<Sha256>::new_from_slice(b"generalbots-state").expect("constant key"));
+fn sign(payload: &str, key: &str) -> Result<String, Response> {
+    // HMAC-SHA256 accepts a key of any length, so a construction failure means
+    // the crypto backend is unusable; surface it instead of panicking.
+    let mut mac = Hmac::<Sha256>::new_from_slice(key.as_bytes()).map_err(|e| {
+        log::error!("oauth state signing key rejected by HMAC: {e}");
+        error_response(
+            StatusCode::SERVICE_UNAVAILABLE,
+            IntegrationError::Validation("oauth state signing unavailable".to_string()),
+        )
+    })?;
     mac.update(payload.as_bytes());
-    base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(mac.finalize().into_bytes())
+    Ok(base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(mac.finalize().into_bytes()))
 }
 
 fn error_response(status: StatusCode, error: IntegrationError) -> Response {
@@ -375,7 +382,7 @@ pub async fn start(
         "t": chrono::Utc::now().timestamp(),
     });
     let encoded = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(state_payload.to_string());
-    let signature = sign(&encoded, &signing_key()?);
+    let signature = sign(&encoded, &signing_key()?)?;
 
     let mut url = format!(
         "{}?client_id={}&response_type=code&redirect_uri={}&state={}.{}",
@@ -423,7 +430,7 @@ pub async fn callback(
     let (encoded, signature) = signed.rsplit_once('.').ok_or_else(|| {
         error_response(StatusCode::BAD_REQUEST, IntegrationError::Validation("malformed state".to_string()))
     })?;
-    let expected = sign(encoded, &signing_key()?);
+    let expected = sign(encoded, &signing_key()?)?;
     if expected != signature {
         return Err(error_response(StatusCode::UNAUTHORIZED, IntegrationError::Validation(
             "state signature mismatch".to_string(),

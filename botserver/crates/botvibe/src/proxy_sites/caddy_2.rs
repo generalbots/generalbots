@@ -180,10 +180,11 @@ pub(crate) fn drop_site_block(existing_section: &str, site_host: &str) -> String
             acc.push('\n');
             acc.push_str(line);
             if trimmed == "}" {
-                let (kept_host, acc) = current.take().unwrap();
-                if kept_host != site_host {
-                    kept.push_str(&acc);
-                    kept.push('\n');
+                if let Some((kept_host, acc)) = current.take() {
+                    if kept_host != site_host {
+                        kept.push_str(&acc);
+                        kept.push('\n');
+                    }
                 }
             }
         } else if !trimmed.is_empty() {

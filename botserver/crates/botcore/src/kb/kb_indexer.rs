@@ -686,11 +686,14 @@ pub async fn index_single_file_with_id(
             }
         }
 
-        Err(anyhow::anyhow!(
-            "Failed to delete points for {} after 3 attempts: {}",
-            document_path,
-            last_error.unwrap()
-        ))
+        match last_error {
+            Some(e) => Err(anyhow::anyhow!(
+                "Failed to delete points for {document_path} after 3 attempts: {e}"
+            )),
+            None => Err(anyhow::anyhow!(
+                "Failed to delete points for {document_path} after 3 attempts"
+            )),
+        }
     }
 
     fn update_collection_metadata(

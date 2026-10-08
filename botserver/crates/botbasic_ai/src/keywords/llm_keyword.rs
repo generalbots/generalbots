@@ -28,7 +28,7 @@ pub fn llm_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mu
             // Spawn a dedicated worker thread with its own runtime.
             // This prevents deadlocks caused by blocking the caller's runtime
             // while simultaneously trying to run async code on it.
-            std::thread::Builder::new()
+            if let Err(e) = std::thread::Builder::new()
                 .name("llm-worker".into())
                 .spawn(move || {
                     let result = std::thread::Builder::new()
@@ -48,7 +48,13 @@ pub fn llm_keyword(state: Arc<dyn BasicRuntime>, _user: UserSession, engine: &mu
                     };
                     let _ = tx.send(outcome);
                 })
-                .expect("LLM dispatcher thread");
+            {
+                log::error!("Failed to spawn LLM dispatcher thread: {e}");
+                return Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                    format!("Failed to spawn LLM dispatcher: {e}").into(),
+                    rhai::Position::NONE,
+                )));
+            }
 
             match rx.recv_timeout(Duration::from_secs(45)) {
                 Ok(Ok(output)) => Ok(Dynamic::from(output)),

@@ -275,8 +275,16 @@ impl CsrfManager {
     }
 
     fn sign_data(&self, data: &str) -> String {
-        let mut mac = HmacSha256::new_from_slice(&self.secret)
-            .expect("HMAC can take key of any size");
+        // #1368 — HMAC accepts a key of any length; a construction failure
+        // means the crypto backend is unusable. Fail closed (an empty
+        // signature never validates) instead of aborting the process.
+        let mut mac = match HmacSha256::new_from_slice(&self.secret) {
+            Ok(mac) => mac,
+            Err(e) => {
+                warn!("CSRF signing unavailable: {e}");
+                return String::new();
+            }
+        };
         mac.update(data.as_bytes());
         let result = mac.finalize();
         BASE64.encode(result.into_bytes())
