@@ -79,3 +79,102 @@ use super::*;
         std::env::remove_var("VIBE_INCUS_FORCE_UNAVAILABLE");
     }
 
+    /// #1488 — the CodeGraph installer hangs off `linux_create`, and that is
+    /// the ONLY place a container is created, so no project kind can reach it
+    /// without a VM. This pins that coupling: if a future change provisions a
+    /// container by another route, this test is the reminder that the installer
+    /// travels with it and the kind gating has to be re-checked.
+    #[test]
+    fn codegraph_install_is_reachable_only_through_container_creation() {
+        let source = include_str!("../vm_incus/linux.rs");
+        let calls = source
+            .lines()
+            .filter(|line| line.contains("self.install_codegraph("))
+            .count();
+        assert_eq!(
+            calls, 1,
+            "install_codegraph must be called exactly once, from linux_create"
+        );
+        let in_create = source
+            .split("pub(crate) fn linux_create")
+            .nth(1)
+            .and_then(|rest| rest.split("fn install_codegraph").next())
+            .map(|body| body.contains("self.install_codegraph("))
+            .unwrap_or(false);
+        assert!(in_create, "the call must sit inside linux_create");
+    }
+
+    /// #1488 — the installer must be skippable so an offline host or a CI image
+    /// without npm can provision containers normally. Only the explicit `0`
+    /// disables it; any other value (including unset) leaves it enabled.
+    #[test]
+    fn codegraph_install_is_enabled_unless_explicitly_zeroed() {
+        let previous = std::env::var_os("VIBE_CODEGRAPH_INSTALL");
+        std::env::remove_var("VIBE_CODEGRAPH_INSTALL");
+        assert_ne!(
+            std::env::var("VIBE_CODEGRAPH_INSTALL").as_deref(),
+            Ok("0"),
+            "unset must mean enabled"
+        );
+        std::env::set_var("VIBE_CODEGRAPH_INSTALL", "0");
+        assert_eq!(std::env::var("VIBE_CODEGRAPH_INSTALL").as_deref(), Ok("0"));
+        match previous {
+            Some(value) => std::env::set_var("VIBE_CODEGRAPH_INSTALL", value),
+            None => std::env::remove_var("VIBE_CODEGRAPH_INSTALL"),
+        }
+    }
+
+    /// #1488 — the CLI ships through the npm registry and the base image has
+    /// neither node nor npm, so the runtime must be provisioned inside
+    /// `install_codegraph` BEFORE the package install. Reversing that order
+    /// makes every fresh container fail with `npm: not found`.
+    #[test]
+    fn node_runtime_is_provisioned_before_the_codegraph_install() {
+        let source = include_str!("../vm_incus/linux.rs");
+        assert!(
+            source.contains("const NODE_UPDATE_ARGS")
+                && source.contains("const NODE_INSTALL_ARGS"),
+            "the apt provisioning steps must exist"
+        );
+        let body = source
+            .split("fn install_codegraph")
+            .nth(1)
+            .expect("install_codegraph must be defined");
+        let probe = body
+            .find("\"npm\"")
+            .expect("npm must be probed before it is used");
+        let update = body
+            .find("NODE_UPDATE_ARGS")
+            .expect("the package lists must be refreshed");
+        let packages = body
+            .find("NODE_INSTALL_ARGS")
+            .expect("node/npm must be installed");
+        let cli = body
+            .find("CODEGRAPH_INSTALL_SCRIPT")
+            .expect("the codegraph install must stay inside install_codegraph");
+        assert!(
+            probe < update && update < packages && packages < cli,
+            "order must be: probe npm, apt update, apt install nodejs npm, install codegraph"
+        );
+    }
+
+    /// #1488 — every `sh -lc` payload travels as one argv element through the
+    /// command guard, which rejects `; | & $ \` < >` outright: a single such
+    /// character turns the step into `shell injection attempt` and the install
+    /// silently never happens (found the hard way on a fresh container).
+    #[test]
+    fn installer_scripts_carry_no_shell_metacharacters() {
+        let source = include_str!("../vm_incus/linux.rs");
+        let literal = source
+            .split("const CODEGRAPH_INSTALL_SCRIPT: &str = ")
+            .nth(1)
+            .and_then(|rest| rest.split(';').next())
+            .expect("the installer constant must be defined");
+        for forbidden in [';', '|', '&', '$', '`', '<', '>'] {
+            assert!(
+                !literal.contains(forbidden),
+                "the installer script must not contain {forbidden:?}"
+            );
+        }
+    }
+

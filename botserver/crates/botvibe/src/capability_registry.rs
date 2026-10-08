@@ -96,7 +96,7 @@ fn use_case_str(use_case: VibeUseCase) -> &'static str {
     }
 }
 
-fn category_order() -> [ToolCategory; 6] {
+fn category_order() -> [ToolCategory; 7] {
     [
         ToolCategory::Autotask,
         ToolCategory::Deployment,
@@ -104,6 +104,7 @@ fn category_order() -> [ToolCategory; 6] {
         ToolCategory::Sources,
         ToolCategory::File,
         ToolCategory::Analysis,
+        ToolCategory::Code,
     ]
 }
 
@@ -115,6 +116,7 @@ fn category_title(category: ToolCategory) -> &'static str {
         ToolCategory::Sources => "Data sources",
         ToolCategory::File => "File operations",
         ToolCategory::Analysis => "Analysis",
+        ToolCategory::Code => "Code intelligence",
     }
 }
 
@@ -126,6 +128,7 @@ fn category_description(category: ToolCategory) -> &'static str {
         ToolCategory::Sources => "Connects to external data sources",
         ToolCategory::File => "Reads, writes and organizes files",
         ToolCategory::Analysis => "Runs analysis and insight generation over data",
+        ToolCategory::Code => "Answers questions about the code from a pre-built symbol graph",
     }
 }
 
@@ -139,6 +142,7 @@ impl ToolCategory {
             Self::Sources => "sources",
             Self::File => "file",
             Self::Analysis => "analysis",
+            Self::Code => "code",
         }
     }
 }
