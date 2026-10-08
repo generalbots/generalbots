@@ -4,6 +4,18 @@
 //! with support for roles, permissions, bot access control, and multiple
 //! authentication methods (API keys, JWT tokens, sessions).
 
+pub mod auth_types_as_alias;
+pub mod auth_types_authenticated_user;
+pub mod auth_types_from_alias_1;
+pub mod auth_types_from_alias_2;
+pub mod auth_types_from_alias_3;
+pub mod auth_types_from_alias_4;
+pub mod auth_types_from_alias_5;
+pub mod auth_types_from_alias_6;
+pub mod auth_types_from_alias_7;
+pub mod auth_types_from_alias_8;
+pub mod auth_types_permissions_impl;
+pub mod auth_types_users;
 pub mod config;
 pub mod error;
 pub mod middleware;
