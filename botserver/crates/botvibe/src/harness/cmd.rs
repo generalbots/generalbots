@@ -6,6 +6,7 @@
 //! harness that spawns processes.
 
 use std::collections::HashSet;
+use std::path::Path;
 use std::process::Stdio;
 use std::sync::LazyLock;
 
@@ -41,12 +42,28 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         "wsl",
         "dig",
         "nslookup",
+        // #1486 — CodeGraph: pre-indexed code knowledge graph (symbols, call
+        // edges, blast radius). Installed into `apps`-kind project VMs; the
+        // `code/*` wired tools shell out through here.
+        "codegraph",
     ])
 });
 
 const FORBIDDEN_SHELL_CHARS: [char; 9] = [';', '|', '&', '$', '`', '<', '>', '\n', '\0'];
 const MAX_OUTPUT_BYTES: usize = 512 * 1024;
 const MAX_ARGS: usize = 64;
+
+/// #1489 — `PATH` handed to the child process. `prepare_command` clears the
+/// environment, so without this the child inherits nothing and `execvp` falls
+/// back to `confstr(_CS_PATH)`, which on this host is only `/bin:/usr/bin`.
+/// A binary installed by an npm global prefix (`/usr/local/bin`) was therefore
+/// unreachable from `shell/run` while being perfectly reachable from a normal
+/// shell — surfacing as `Spawn("No such file or directory")`, which reads like
+/// a missing binary rather than a missing `PATH` entry.
+///
+/// Constant, never inherited from the botserver process: the guard decides what
+/// the child can see.
+const CHILD_PATH: &str = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum GuardError {
@@ -84,7 +101,7 @@ fn prepare_command(
     cwd: &std::path::Path,
 ) -> Result<std::process::Command, GuardError> {
     validate_program(program)?;
-    if !ALLOWED_COMMANDS.contains(program) {
+    if !program_is_allowed(program) {
         return Err(GuardError::CommandNotAllowed(program.into()));
     }
     if args.len() > MAX_ARGS {
@@ -118,6 +135,9 @@ fn prepare_command(
 
     command.args(args).current_dir(cwd).env_clear();
 
+    #[cfg(not(target_os = "windows"))]
+    command.env("PATH", CHILD_PATH);
+
     #[cfg(target_os = "windows")]
     for key in [
         "SystemRoot",
@@ -135,6 +155,20 @@ fn prepare_command(
         }
     }
     Ok(command)
+}
+
+/// #1489 — the allowlist is a list of binary names, so an explicit absolute
+/// path is admitted when its final component is an allowed name. The `..`
+/// rejection in `validate_program` still applies to the whole path, and a path
+/// such as `/usr/local/bin/docker` is refused exactly like a bare `docker`.
+fn program_is_allowed(program: &str) -> bool {
+    if ALLOWED_COMMANDS.contains(program) {
+        return true;
+    }
+    match Path::new(program).file_name().and_then(|n| n.to_str()) {
+        Some(basename) => ALLOWED_COMMANDS.contains(basename),
+        None => false,
+    }
 }
 
 /// Validate a single argument: no shell metacharacters, bounded length this
@@ -310,6 +344,8 @@ mod tests {
             !ALLOWED_COMMANDS.contains("sh"),
             "sh -c is arbitrary code execution"
         );
+        // #1489 — admitting absolute paths must not become a way in.
+        assert!(!program_is_allowed("/bin/sh"));
     }
 
     #[test]
@@ -326,6 +362,59 @@ mod tests {
         for cmd in ["git", "cat", "ls", "tail", "npm", "cargo", "python3"] {
             assert!(ALLOWED_COMMANDS.contains(cmd), "{cmd} must be allowlisted");
         }
+    }
+
+    // #1489 — the allowlist is a list of binary names, so an explicit absolute
+    // path to an allowed binary must resolve while a path to a refused binary
+    // must not.
+    #[test]
+    fn absolute_path_to_allowed_binary_is_accepted() {
+        assert!(program_is_allowed("/usr/local/bin/codegraph"));
+        assert!(program_is_allowed("/usr/bin/git"));
+        assert!(program_is_allowed("git"));
+    }
+
+    #[test]
+    fn absolute_path_to_refused_binary_is_rejected() {
+        assert!(!program_is_allowed("/usr/local/bin/docker"));
+        assert!(!program_is_allowed("/bin/sh"));
+        assert!(!program_is_allowed("docker"));
+    }
+
+    #[test]
+    fn traversal_in_program_path_is_still_rejected() {
+        let cwd = std::env::temp_dir();
+        let err = run("/usr/local/../bin/git", &[], &cwd, 5);
+        assert!(matches!(err, Err(GuardError::InvalidArgument(_))));
+    }
+
+    // #1489 — the child must be able to resolve a binary that lives only under
+    // `/usr/local/bin` (the npm global prefix), which `confstr(_CS_PATH)` does
+    // not cover. `node` is used as the stand-in because it is allowlisted and
+    // present on every supported host; the assertion is that PATH reaches the
+    // child at all, which is what was broken.
+    #[cfg(not(target_os = "windows"))]
+    #[test]
+    fn child_receives_a_path() {
+        let cwd = std::env::temp_dir();
+        let out = run("node", &["-p".to_string(), "process.env.PATH".to_string()], &cwd, 30);
+        let out = out.expect("node should run");
+        assert_eq!(out.exit_code, Some(0));
+        let reported = out.stdout.trim();
+        assert!(!reported.is_empty(), "child PATH must not be empty");
+        assert_eq!(
+            reported, CHILD_PATH,
+            "child must get the constant guard PATH, not an inherited one"
+        );
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    #[test]
+    fn child_path_covers_the_npm_global_prefix() {
+        assert!(
+            CHILD_PATH.split(':').any(|dir| dir == "/usr/local/bin"),
+            "npm global installs land in /usr/local/bin"
+        );
     }
 
     #[cfg(target_os = "windows")]

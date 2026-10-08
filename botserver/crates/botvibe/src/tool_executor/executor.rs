@@ -142,6 +142,20 @@ impl ToolRegistry {
                 },
             );
         }
+        // #1486 — code intelligence: symbol search, call paths and blast radius
+        // over the project's CodeGraph index.
+        for (name, schema, handler) in crate::wired_tools::code::code_tools() {
+            tools.insert(
+                name.clone(),
+                RegisteredTool {
+                    descriptor: ToolDescriptor {
+                        schema,
+                        category: ToolCategory::Code,
+                    },
+                    handler,
+                },
+            );
+        }
     }
 
     pub async fn register(&self, descriptor: ToolDescriptor, handler: ToolHandler) {

@@ -56,6 +56,9 @@ pub enum ToolCategory {
     Sources,
     File,
     Analysis,
+    /// #1486 — code intelligence over the project's pre-built code graph
+    /// (CodeGraph): symbol lookup, call paths and blast radius.
+    Code,
 }
 
 pub type ToolFuture = std::pin::Pin<Box<dyn std::future::Future<Output = VibeToolResult> + Send>>;

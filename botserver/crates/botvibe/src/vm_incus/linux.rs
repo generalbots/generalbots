@@ -4,6 +4,38 @@ use super::*;
 
 pub(crate) const VM_UNAVAILABLE: &str = "vm-skip: incus binary unavailable";
 
+/// #1488 — installer executed inside the project container. Kept to one line so
+/// it cannot compose anything beyond the package manager invocation, and
+/// written to be idempotent: npm is a no-op when the package is present.
+///
+/// `-g` is required: the `code/*` tools exec `codegraph` inside this container
+/// (`wired_tools/code.rs`), where the binary must resolve on the default login
+/// PATH — `/usr/local/bin` — rather than in a project-local `node_modules`.
+const CODEGRAPH_INSTALL_SCRIPT: &str = "npm install -g --no-fund --no-audit @colbymchenry/codegraph";
+
+/// #1488 — apt step that gives the container the runtime the installer above
+/// needs. `images:debian/13` ships neither `node` nor `npm`, so without it the
+/// npm invocation dies with `npm: not found` and no index can ever be built.
+///
+/// A plain argv vector rather than a shell line on purpose: the command guard
+/// rejects every shell metacharacter, so `&&`, `;` and redirects are not
+/// available here, and the update runs as its own step for the same reason.
+const NODE_INSTALL_ARGS: [&str; 9] = [
+    "--env",
+    "DEBIAN_FRONTEND=noninteractive",
+    "--",
+    "apt-get",
+    "install",
+    "-y",
+    "-q",
+    "nodejs",
+    "npm",
+];
+
+/// `apt-get update` runs before [`NODE_INSTALL_ARGS`] — a fresh image ships
+/// empty package lists, so installing straight away resolves nothing.
+const NODE_UPDATE_ARGS: [&str; 4] = ["--", "apt-get", "update", "-q"];
+
 impl VmLifecycle {
     pub(crate) fn skip_if_unavailable(&self) -> Result<(), String> {
         if self.linux_available() {
@@ -138,7 +170,101 @@ impl VmLifecycle {
         if let Err(e) = self.incus_run(&mkdir_args, 60) {
             log::warn!("Vibe: pre-create /opt/vibe/app in {name} failed (will retry later): {e}");
         }
+        self.install_codegraph(name);
         Ok(())
+    }
+
+    /// #1488 — installs the CodeGraph CLI inside the project container.
+    ///
+    /// CodeGraph is a pre-built local binary (a Rust kernel plus a per-project
+    /// SQLite index), so it is installed per VM rather than vendored into
+    /// `botvibe`: vendoring would add a tree-sitter dependency set and an
+    /// incremental indexer to a crate that has neither today.
+    ///
+    /// Only `apps`-kind projects reach this path — `website` projects return to
+    /// the proxy container and `bot` projects take the two-env Run, both before
+    /// `create_project_vm` (`projects_api/workspace_2.rs:301,307`).
+    ///
+    /// A failure is a warning, never a create failure: the container is fully
+    /// usable without the index, and the `code/*` tools already report a missing
+    /// CLI in plain language instead of surfacing an ENOENT.
+    ///
+    /// Set `VIBE_CODEGRAPH_INSTALL=0` to skip it (offline hosts, CI images).
+    fn install_codegraph(&self, name: &str) {
+        if std::env::var("VIBE_CODEGRAPH_INSTALL").as_deref() == Ok("0") {
+            log::info!("Vibe: codegraph install disabled by VIBE_CODEGRAPH_INSTALL=0");
+            return;
+        }
+        if self.present(name, "codegraph") {
+            return;
+        }
+        // #1488 — node/npm first: the base image has neither and the CLI is
+        // distributed through the npm registry, so the install below is a
+        // guaranteed `npm: not found` without this probe and its two apt steps.
+        // Each step is its own `incus exec` with plain argv — the command guard
+        // rejects shell metacharacters, so no `&&`, `;` or redirect may appear.
+        // A failure warns and stops here, exactly like the install itself: the
+        // container stays usable without the index.
+        if !self.present(name, "npm") {
+            if self.exec_step(name, NODE_UPDATE_ARGS, 600, "node/npm apt update").is_err() {
+                return;
+            }
+            if self
+                .exec_step(name, NODE_INSTALL_ARGS, 600, "node/npm install")
+                .is_err()
+            {
+                return;
+            }
+        }
+        if self
+            .exec_step(
+                name,
+                ["--", "sh", "-lc", CODEGRAPH_INSTALL_SCRIPT],
+                600,
+                "codegraph install",
+            )
+            .is_ok()
+        {
+            log::info!("Vibe: codegraph installed in {name}");
+        }
+    }
+
+    /// True when `program` resolves inside the container. The probe runs
+    /// through `sh` because `command -v` is a shell builtin, and `-lc` carries
+    /// no metacharacter, so the guard admits it. A miss is the normal answer
+    /// for a fresh container, so it is not warned — only reported as `false`.
+    fn present(&self, name: &str, program: &str) -> bool {
+        let probe = format!("command -v {program}");
+        let argv = ["--", "sh", "-lc", probe.as_str()];
+        let mut args = Vec::with_capacity(argv.len() + 2);
+        args.push("exec".to_string());
+        args.push(name.to_string());
+        args.extend(argv.iter().map(|s| s.to_string()));
+        self.incus_run(&args, 30).is_ok()
+    }
+
+    /// One `incus exec` provisioning step. A non-zero exit is already an error
+    /// (`checked_run` folds it into `GuardError::Io`), and it is warned here so
+    /// every caller only has to decide whether to keep going.
+    fn exec_step<const N: usize>(
+        &self,
+        name: &str,
+        argv: [&str; N],
+        timeout: u64,
+        what: &str,
+    ) -> Result<(), String> {
+        let mut args = Vec::with_capacity(argv.len() + 2);
+        args.push("exec".to_string());
+        args.push(name.to_string());
+        args.extend(argv.iter().map(|s| s.to_string()));
+        match self.incus_run(&args, timeout) {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                let msg = format!("{what} in {name} failed: {e}");
+                log::warn!("Vibe: {msg}");
+                Err(msg)
+            }
+        }
     }
 
     pub(crate) fn linux_start(&self, name: &str) -> Result<(), String> {

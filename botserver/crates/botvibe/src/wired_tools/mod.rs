@@ -10,9 +10,13 @@
 //! - Analysis tools (`fetch_market_data`, `analyze_sentiment`,
 //!   `generate_report`, `detect_anomalies`) are pure algorithms plus an
 //!   optional live market feed.
+//! - Code tools (`code/explore`, `code/search`, `code/impact`, #1486) answer
+//!   questions about a project from CodeGraph's pre-built symbol graph instead
+//!   of letting the agent crawl files one read at a time.
 
 pub mod analysis;
 pub mod autotask;
+pub mod code;
 pub mod crm;
 
 use crate::tool_executor::{ToolHandler, ToolSchema};
@@ -101,6 +105,7 @@ pub fn all_wired_tools() -> Vec<(String, ToolSchema, ToolHandler)> {
     out.extend(autotask::autotask_tools());
     out.extend(crm::crm_tools());
     out.extend(analysis::analysis_tools());
+    out.extend(code::code_tools());
     out
 }
 
