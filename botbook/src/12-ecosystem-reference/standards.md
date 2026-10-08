@@ -114,6 +114,33 @@ pub use user::User;
 pub use session::Session;
 ```
 
+### Measured Technical Debt (2026-10-08, main @ 3c2fe3dee)
+
+The counts below are the repo's baseline for the three standing hygiene tasks
+(issues #1368, #1369, #1370 in the tracker). Re-measure with these commands
+instead of trusting figures quoted in older docs — they drift.
+
+```bash
+cd botserver
+# #1368 — production .unwrap()/.expect(). NOTE: the plain grep counts inline
+# #[cfg(test)] modules too, which is why it reports ~770 while the real
+# non-test count is 0. Use a scanner that skips cfg(test) regions.
+grep -rn --include=*.rs -E '\.unwrap\(\)|\.expect\(' src crates | wc -l
+# #1369 — allocations worth triaging (NOT all removable: Map keys, error
+# strings and cross-thread hand-offs legitimately need owned data)
+grep -rn --include=*.rs -E '\.clone\(\)'     src crates | wc -l  # 6291
+grep -rn --include=*.rs -E '\.to_string\(\)' src crates | wc -l  # 14955
+# #1370 — files over the 450-line ceiling
+find src crates -name '*.rs' -exec wc -l {} + \
+  | awk '$1 > 450 && $2 != "total"' | wc -l                    # 286
+```
+
+Current state: **0** production `unwrap()`/`expect()`; **21,246** clone/to_string
+sites, of which the per-message WebSocket path has been de-duplicated (ids are
+formatted once per call instead of once per use); **286** files over 450 lines,
+with the largest offenders (botworkspaces, botcloud/api, botcalendar, rbac
+middleware, collab_routes, botcanvas — 16,900 lines combined) already split.
+
 ### Import Ordering
 
 ```rust
