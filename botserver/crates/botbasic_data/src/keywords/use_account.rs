@@ -42,7 +42,7 @@ pub fn register_use_account_keyword(
     let state_clone = state;
     let session_clone = user;
 
-    engine.register_custom_syntax(
+    if let Err(e) = engine.register_custom_syntax(
         ["USE", "ACCOUNT", "$expr$"],
         true,
         move |context, inputs| {
@@ -79,8 +79,9 @@ pub fn register_use_account_keyword(
                 }
             }
         },
-    )
-    .expect("valid USE ACCOUNT syntax registration");
+    ) {
+        log::error!("Failed to register USE ACCOUNT syntax: {e}");
+    }
 }
 
 fn add_account_to_session(

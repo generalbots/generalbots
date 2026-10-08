@@ -77,8 +77,8 @@ impl ReconciliationService {
             let best = candidates.first();
             let entry = best.and_then(|c| bank_entries.iter().find(|e| e.id == c.bank_entry_id));
             let record = self.engine.build_record(txn, entry, best);
-            if record.bank_entry_id.is_some() {
-                matched_bank_ids.insert(record.bank_entry_id.unwrap());
+            if let Some(bank_entry_id) = record.bank_entry_id {
+                matched_bank_ids.insert(bank_entry_id);
             }
             match record.status {
                 super::reconciliation::ReconciliationStatus::Matched => matched_count += 1,

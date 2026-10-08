@@ -16,7 +16,7 @@ pub fn register_think_kb_keyword(
     let state_clone = state;
     let session_clone = user;
 
-    engine.register_custom_syntax(["THINK", "KB", "$expr$"], true, move |context, inputs| {
+    if let Err(e) = engine.register_custom_syntax(["THINK", "KB", "$expr$"], true, move |context, inputs| {
         let query = context.eval_expression_tree(&inputs[0])?.to_string();
 
         info!(
@@ -65,8 +65,9 @@ pub fn register_think_kb_keyword(
                 Err("THINK KB failed: thread panic".into())
             }
         }
-    })
-    .expect("valid THINK KB syntax registration");
+    }) {
+        log::error!("Failed to register THINK KB syntax: {e}");
+    }
 }
 
 #[derive(QueryableByName)]

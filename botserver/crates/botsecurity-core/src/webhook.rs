@@ -254,19 +254,16 @@ impl WebhookSecurityManager {
         let timestamp_str = timestamp.timestamp().to_string();
         let signed_payload = format!("{}.{}", timestamp_str, payload);
 
-        // #1368 — HmacSha256 accepts any key length; on the impossible
-        // construction error, sign with a fixed unusable key instead of
-        // panicking (verification will simply fail downstream).
-        let mut mac = HmacSha256::new_from_slice(secret.as_bytes()).unwrap_or_else(|e| {
-            log::error!("HMAC key error: {e}");
-            HmacSha256::new_from_slice(b"generalbots-invalid-key").unwrap_or_else(|never| {
-                log::error!("static HMAC key rejected: {never}");
-                HmacSha256::new_from_slice(b"gb").unwrap_or_else(|last| {
-                    log::error!("HMAC fully unavailable: {last}");
-                    HmacSha256::new_from_slice(b"gb").unwrap()
-                })
-            })
-        });
+        // #1368 — HmacSha256 accepts any key length, so a construction error
+        // means the crypto backend is unusable. Fail closed with an empty
+        // signature (verification rejects it) instead of aborting the process.
+        let mut mac = match HmacSha256::new_from_slice(secret.as_bytes()) {
+            Ok(mac) => mac,
+            Err(e) => {
+                log::error!("HMAC key error: {e}");
+                return format!("{SIGNATURE_VERSION}=");
+            }
+        };
         mac.update(signed_payload.as_bytes());
         let result = mac.finalize();
 

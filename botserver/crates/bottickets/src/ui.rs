@@ -794,11 +794,12 @@ async fn handle_stats_resolved_today(State(state): State<Arc<TicketsState>>) -> 
     };
     let branch_id = get_bot_context(&state);
     let today = ChronoUtc::now().date_naive();
+    let start_of_day = today.and_time(chrono::NaiveTime::MIN);
 
     let count: i64 = support_tickets::table
         .filter(support_tickets::branch_id.eq(branch_id))
         .filter(support_tickets::resolved_at.is_not_null())
-        .filter(support_tickets::resolved_at.ge(today.and_hms_opt(0, 0, 0).unwrap()))
+        .filter(support_tickets::resolved_at.ge(start_of_day))
         .count()
         .get_result(&mut conn)
         .unwrap_or(0);
