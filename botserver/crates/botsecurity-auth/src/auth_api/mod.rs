@@ -21,8 +21,6 @@ pub mod error;
 pub mod middleware;
 pub mod tests;
 pub mod types;
-pub mod utils;
-
 // Re-export commonly used types at the module level
 pub use config::AuthConfig;
 pub use error::AuthError;
@@ -36,8 +34,13 @@ pub use middleware::{
 pub use types::{
     AuthenticatedUser, BotAccess, Permission, PublicPathAllowed, Role,
 };
-pub use utils::{
-    extract_bot_id_from_request, extract_session_from_cookies,
-    extract_user_from_request, extract_user_with_providers, is_jwt_format,
-    validate_session_sync,
+pub mod auth_api_auth;
+pub mod auth_api_utils;
+
+pub use auth_api_utils::{
+    basic_password_as_token, extract_bot_id_from_request, extract_session_from_cookies,
+    extract_user_from_request, is_jwt_format, validate_session_sync,
+};
+pub use auth_api_auth::{
+    authenticate_with_extracted_data, extract_user_with_providers,
 };

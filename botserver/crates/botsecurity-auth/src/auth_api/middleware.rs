@@ -2,7 +2,8 @@ use super::{
     config::AuthConfig,
     error::AuthError,
     types::{AuthenticatedUser, Permission, PublicPathAllowed, Role},
-    utils::{authenticate_with_extracted_data, ExtractedAuthData},
+    auth_api_auth::authenticate_with_extracted_data,
+    auth_api_utils::ExtractedAuthData,
 };
 use axum::{
     body::Body,
@@ -143,7 +144,7 @@ pub async fn auth_middleware(
         return Ok(next.run(request).await);
     }
 
-    match super::utils::extract_user_from_request(&request, &config) {
+    match super::auth_api_utils::extract_user_from_request(&request, &config) {
         Ok(user) => {
             request.extensions_mut().insert(user);
             Ok(next.run(request).await)
