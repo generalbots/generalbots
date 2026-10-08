@@ -149,13 +149,19 @@ pub async fn send_start_suggestions(
     session_id: Uuid,
     user_id: Uuid,
 ) {
+    // #1369 — both ids are needed as strings several times below; format them
+    // once per call instead of once per use. This runs on every session
+    // connect, reconnect and after start.bas.
+    let bot_id = bot_uuid.to_string();
+    let session = session_id.to_string();
+
     let suggestions = {
         #[cfg(feature = "chat")]
         {
             crate::basic::keywords::add_suggestion::get_suggestions(
                 state.cache.as_ref(),
-                &bot_uuid.to_string(),
-                &session_id.to_string(),
+                &bot_id,
+                &session,
             )
         }
         #[cfg(not(feature = "chat"))]
@@ -166,8 +172,8 @@ pub async fn send_start_suggestions(
         {
             crate::basic::keywords::switcher::get_switchers(
                 state.cache.as_ref(),
-                &bot_uuid.to_string(),
-                &session_id.to_string(),
+                &bot_id,
+                &session,
             )
         }
         #[cfg(not(feature = "chat"))]
@@ -176,9 +182,9 @@ pub async fn send_start_suggestions(
     if !suggestions.is_empty() || !switchers.is_empty() {
         info!("ws_handler: sending {} suggestions and {} switchers on reconnect", suggestions.len(), switchers.len());
         let _ = ws_sender.send(Message::Text(serde_json::json!({
-            "bot_id": bot_uuid.to_string(),
+            "bot_id": bot_id,
             "user_id": user_id.to_string(),
-            "session_id": session_id.to_string(),
+            "session_id": session,
             "channel": "web",
             "content": "",
             "message_type": 2,
@@ -250,7 +256,6 @@ pub async fn run_start_bas_on_connect(
 
     let state_for_bas = state.clone();
     let bot_id_for_bas = bot_uuid;
-    let _bot_name_owned = bot_name.to_string();
     let session_for_bas = botlib::models::UserSession {
         id: session_id, user_id, branch_id: Uuid::nil(), bot_id: bot_id_for_bas,
         title: String::new(),
@@ -259,13 +264,15 @@ pub async fn run_start_bas_on_connect(
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
     };
+    // #1369 — both values are consumed by the call and unused afterwards, so
+    // they are moved instead of cloned (`UserSession` owns several Strings).
     let exec_result = crate::basic::ScriptService::execute_script(
-        state_for_bas.clone(),
-        session_for_bas.clone(),
+        state_for_bas,
+        session_for_bas,
         &ast_content,
     ).await;
     match exec_result {
-        Ok(result) => info!("start.bas: execution result (len={}): {}", result.to_string().len(), result),
+        Ok(result) => info!("start.bas: execution result (len={}): {}", result.len(), result),
         Err(e) => warn!("start.bas: execution error: {}", e),
     }
 
