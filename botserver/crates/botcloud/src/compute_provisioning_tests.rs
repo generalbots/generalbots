@@ -5,8 +5,6 @@
 
 use super::*;
 
-use super::*;
-
 #[test]
 fn every_catalogue_compute_sku_maps_to_a_spec() {
     for id in [

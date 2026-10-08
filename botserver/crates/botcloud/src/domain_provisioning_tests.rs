@@ -5,8 +5,6 @@
 
 use super::*;
 
-use super::*;
-
 fn sku() -> DomainSku {
     sku_for("domain-com").expect("sku")
 }
