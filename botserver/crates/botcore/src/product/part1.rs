@@ -81,12 +81,22 @@ impl Default for ProductConfig {
             search_enabled: Some(false),
             menu_launcher_enabled: Some(false),
             sidebar: None,
+            suite_default_app: None,
         }
     }
 }
 impl ProductConfig {
     /// Load configuration from .product file
     pub fn load() -> Result<Self, ProductConfigError> {
+        #[cfg(feature = "desktop-local")]
+        let paths = [
+            ".product.desktop-local",
+            "./botserver/.product.desktop-local",
+            ".product",
+            "./botserver/.product",
+            "../.product",
+        ];
+        #[cfg(not(feature = "desktop-local"))]
         let paths = [".product", "./botserver/.product", "../.product"];
 
         let mut content = None;
@@ -204,6 +214,11 @@ impl ProductConfig {
                             || value == "1"
                             || value.eq_ignore_ascii_case("yes");
                         config.sidebar = Some(enabled);
+                    }
+                    "suite_default_app" => {
+                        if !value.is_empty() {
+                            config.suite_default_app = Some(value.to_lowercase());
+                        }
                     }
                     _ => {
                         warn!("Unknown product configuration key: {}", key);

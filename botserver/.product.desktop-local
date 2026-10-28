@@ -1,0 +1,26 @@
+# Product Configuration — Desktop Local Edition (Chat + Drive)
+# This file is loaded instead of .product when botserver is compiled
+# with --features desktop-local.
+
+name=General Bots
+
+# Only Chat and Drive are active in the desktop-local edition.
+apps=chat,drive
+
+# No preview apps in the local edition.
+preview_apps=
+
+# Chat opens automatically when the suite loads.
+suite_default_app=chat
+
+# Sidebar hidden (no multi-bot management in single-user mode).
+sidebar=false
+
+# Search disabled (no omnibox in local mode).
+search_enabled=false
+
+# Menu launcher enabled so the user can switch between Chat and Drive.
+menu_launcher_enabled=true
+
+# Default theme
+theme=sentient
