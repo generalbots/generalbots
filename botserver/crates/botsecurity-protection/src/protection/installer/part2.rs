@@ -1,6 +1,7 @@
 use super::*;
 
 impl ProtectionInstaller {
+    #[cfg(not(windows))]
     pub(super) fn install_lmd(&self) -> Result<bool> {
         let maldet_path = Path::new("/usr/local/sbin/maldet");
         if maldet_path.exists() {
