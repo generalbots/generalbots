@@ -5,6 +5,8 @@ use tauri::Manager;
 
 mod desktop;
 
+#[cfg(feature = "desktop-local")]
+use desktop::sidecar::Sidecar;
 use desktop::tray::{RunningMode, ServiceMonitor, TrayEvent, TrayManager};
 
 #[tauri::command]
@@ -167,11 +169,16 @@ fn main() {
     let tray_manager = TrayManager::with_mode(RunningMode::Desktop);
     let service_monitor = tokio::sync::Mutex::new(ServiceMonitor::new());
 
-    let builder_result = tauri::Builder::default()
+    let builder = tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .manage(tray_manager)
-        .manage(service_monitor)
+        .manage(service_monitor);
+
+    #[cfg(feature = "desktop-local")]
+    let builder = builder.manage(Sidecar::new());
+
+    let app = builder
         .invoke_handler(tauri::generate_handler![
             desktop::drive::list_files,
             desktop::drive::upload_file,
@@ -209,6 +216,36 @@ fn main() {
             let mode = tray.get_mode_string();
             info!("BotApp setup complete in {mode} mode");
 
+            // --- Sidecar: start botserver and wait for API before showing window ---
+            #[cfg(feature = "desktop-local")]
+            {
+                let sidecar = app.state::<Sidecar>();
+                if let Err(e) = sidecar.start() {
+                    log::error!("Failed to start botserver sidecar: {e}");
+                }
+
+                let handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    let ready =
+                        Sidecar::wait_for_api("http://localhost:8080/api/product", 120).await;
+                    if !ready {
+                        log::error!("botserver did not respond within 120s");
+                    }
+                    if let Some(win) = handle.get_webview_window("main") {
+                        let _ = win.show();
+                    }
+                });
+            }
+
+            // --- Non-sidecar: show window immediately ---
+            #[cfg(not(feature = "desktop-local"))]
+            {
+                if let Some(win) = app.get_webview_window("main") {
+                    let _ = win.show();
+                }
+            }
+
+            // --- Tray icon ---
             let tray_clone = tray.inner().clone();
             let app_handle = app.handle().clone();
             std::thread::spawn(move || {
@@ -228,9 +265,23 @@ fn main() {
 
             Ok(())
         })
-        .run(tauri::generate_context!());
+        .build(tauri::generate_context!());
 
-    if let Err(e) = builder_result {
-        log::error!("Failed to run BotApp: {e}");
+    match app {
+        Ok(app) => {
+            #[cfg(feature = "desktop-local")]
+            let sidecar = app.state::<Sidecar>().inner().clone();
+
+            app.run(move |_handle, event| {
+                #[cfg(feature = "desktop-local")]
+                if let tauri::RunEvent::ExitRequested { .. } = &event {
+                    sidecar.stop();
+                }
+                let _ = &event;
+            });
+        }
+        Err(e) => {
+            log::error!("Failed to build BotApp: {e}");
+        }
     }
 }
