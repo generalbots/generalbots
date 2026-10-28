@@ -49,17 +49,13 @@ impl BootstrapManager {
             info!("Vault already installed");
         }
 
-        // Install other core components (names must match 3rdparty.toml)
-        let core_components = [
-            "tables",
-            "cache",
-            "drive",
-            "directory",
-            "llm",
-            "vector_db",
-            "alm",
-            "alm-ci",
-        ];
+        // Install other core components (names must match 3rdparty.toml).
+        // desktop-local: only tables, cache, drive, llm, vector_db.
+        let core_components: &[&str] = if cfg!(feature = "desktop-local") {
+            &["tables", "cache", "drive", "llm", "vector_db"]
+        } else {
+            &["tables", "cache", "drive", "directory", "llm", "vector_db", "alm", "alm-ci"]
+        };
         for component in core_components {
             if !pm.is_installed(component) {
                 info!("Installing {}...", component);
