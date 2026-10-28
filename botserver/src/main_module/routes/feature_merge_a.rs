@@ -14,6 +14,7 @@ pub(super) async fn merge_part_a(
     api_router: &mut Router<Arc<AppState>>,
     sub_router: &mut Router<()>,
 ) {
+    #[cfg(feature = "directory")]
     {
         let directory_api_state = Arc::new(crate::directory::api::DirectoryApiState {
             conn: app_state.conn.clone(),

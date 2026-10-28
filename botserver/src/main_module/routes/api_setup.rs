@@ -99,8 +99,9 @@ pub fn add_base_api_routes(mut api_router: Router<Arc<AppState>>) -> Router<Arc<
     // Cross-app collaboration layer (threaded comments, reactions, presence).
     api_router = api_router.merge(super::collab_routes::configure_collab_routes());
 
-    api_router
-        .nest("/api/auth", crate::directory::auth_routes::configure())
+    #[cfg(feature = "directory")]
+    { api_router = api_router.nest("/api/auth", crate::directory::auth_routes::configure()); }
+    api_router = api_router
         .route("/api/auth/suite-sso", get(handle_suite_sso))
         .route("/api/auth/cloud-sso", post(handle_cloud_sso))
         .route("/api/auth/unified-login", post(handle_unified_login))
@@ -111,6 +112,8 @@ pub fn add_base_api_routes(mut api_router: Router<Arc<AppState>>) -> Router<Arc<
         .route("/api/organizations/current/contact", post(handle_update_organization_contact))
         .route("/api/organizations/current/branding", post(handle_update_organization_branding))
         .route("/api/organizations/current/audit", get(handle_get_org_audit))
-        .route("/api/organizations/current/export", get(handle_export_org_data))
-        .route("/api/admin/migrate/office365", post(handle_office365_migration))
+        .route("/api/organizations/current/export", get(handle_export_org_data));
+    #[cfg(feature = "directory")]
+    { api_router = api_router.route("/api/admin/migrate/office365", post(handle_office365_migration)); }
+    api_router
 }

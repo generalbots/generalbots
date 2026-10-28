@@ -9,6 +9,7 @@ use botcore::shared::state::AppState;
 use log::{error, info, warn};
 use std::sync::Arc;
 
+#[cfg(feature = "directory")]
 use super::directory_setup::{bootstrap_directory_admin, init_directory_service};
 use super::llm_setup::init_llm_provider;
 
@@ -278,6 +279,8 @@ pub async fn create_app_state(
         auth_service: Some(
             auth_service.clone() as Arc<tokio::sync::Mutex<dyn botlib::traits::AuthServiceTrait>>
         ),
+        #[cfg(not(feature = "directory"))]
+        auth_service: None,
         channels: Arc::new(tokio::sync::Mutex::new({
             let mut map = HashMap::new();
             map.insert(

@@ -2,13 +2,14 @@
 
 use botcore::shared::state::AppState;
 use crate::core::bot::BotOrchestrator;
+#[cfg(feature = "llm")]
 use crate::llm::local::ensure_llama_servers_running;
 use log::{error, info, trace};
 use std::sync::Arc;
 
 use super::drive_monitors::{start_drive_monitors, start_drive_compiler};
 
-#[cfg(feature = "drive")]
+#[cfg(all(feature = "drive", feature = "vibe"))]
 use super::git_bot_monitor::{
     run_archive_pass, run_import_pass, start as start_git_bot_monitor,
 };

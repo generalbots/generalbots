@@ -272,7 +272,8 @@ pub(super) async fn merge_part_b(
         *sub_router = sub_router.clone().merge(crate::weba::configure_routes(weba_state));
     }
 
-    *sub_router = sub_router.clone().merge(crate::directory::scim::server::configure_scim_routes().with_state(app_state.clone()));
+    #[cfg(feature = "directory")]
+    { *sub_router = sub_router.clone().merge(crate::directory::scim::server::configure_scim_routes().with_state(app_state.clone())); }
 
     #[cfg(feature = "social")]
     { *sub_router = sub_router.clone().merge(super::feature_routers::make_social_router(app_state)); }

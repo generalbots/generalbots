@@ -1,9 +1,28 @@
 use super::*;
 
 pub(crate) fn branch_scope(state: &Arc<AppState>, bot_uuid: &Uuid) -> Result<Uuid, String> {
-    botbanking::cashflow::resolve_bot_scope(&state.conn, bot_uuid, None)
-        .map(|s| s.branch_id)
-        .ok_or_else(|| "bot not found".to_string())
+    #[cfg(feature = "banking")]
+    {
+        botbanking::cashflow::resolve_bot_scope(&state.conn, bot_uuid, None)
+            .map(|s| s.branch_id)
+            .ok_or_else(|| "bot not found".to_string())
+    }
+    #[cfg(not(feature = "banking"))]
+    {
+        use diesel::prelude::*;
+        #[derive(diesel::QueryableByName)]
+        #[diesel(check_for_backend(diesel::pg::Pg))]
+        struct BranchRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            branch_id: Uuid,
+        }
+        let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
+        diesel::sql_query("SELECT branch_id FROM bots WHERE id = $1 LIMIT 1")
+            .bind::<diesel::sql_types::Uuid, _>(*bot_uuid)
+            .get_result::<BranchRow>(&mut conn)
+            .map(|r| r.branch_id)
+            .map_err(|e| format!("bot not found: {e}"))
+    }
 }
 /// Resolves an `@project-name` mention inside the intent text to
 /// `(project_id, project_name)`. The chat composer prefills the running

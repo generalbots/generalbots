@@ -154,6 +154,13 @@ full = ["chat", "people", "mail", "tasks", "calendar", "drive", "docs", "llm", "
 embed-ui = ["dep:rust-embed"]
 sampledata = ["dep:botsampledata"]
 
+# Desktop-local: Chat + Drive for offline government distribution.
+# Includes security (auth infra) and llm (chat needs it).
+desktop-local = [
+    "chat", "drive", "security", "llm", "vectordb",
+    "settings", "no-security", "kb-extraction",
+]
+
 allbutooxmlsdk = [
     "chat", "people", "mail", "meet", "social", "marketing",
     "calendar", "tasks", "project", "plan", "goals", "workspaces", "tickets", "billing",

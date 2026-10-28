@@ -1,5 +1,6 @@
 use super::*;
 
+#[cfg(feature = "saas")]
 pub(crate) fn make_saas_router(app_state: &Arc<AppState>) -> Router<()> {
     use botcloud::{SaasService, SaasConfig, stripe::StripeClient, cloud_ui, api};
     let stripe_secret = match std::env::var("STRIPE_SECRET_KEY") {
