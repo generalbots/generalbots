@@ -82,14 +82,24 @@ impl BootstrapManager {
         // Phase 2: Start all other services IN PARALLEL (vault credentials now available).
         // Start them all first (fast nohup launches), then wait for readiness concurrently.
         type ServiceConfig = (&'static str, fn() -> bool, u32, bool);
-        let other_services: [ServiceConfig; 6] = [
-            ("vector_db", vector_db_health_check, 45, true),
-            ("tables", tables_health_check, 0, false),
-            ("cache", cache_health_check, 30, true),
-            ("drive", drive_health_check, 0, false),
-            ("directory", zitadel_health_check, 60, true),
-            ("alm", alm_health_check, 0, false),
-        ];
+        // desktop-local: skip directory and alm (not needed for chat+drive).
+        let other_services: Vec<ServiceConfig> = if cfg!(feature = "desktop-local") {
+            vec![
+                ("vector_db", vector_db_health_check, 45, true),
+                ("tables", tables_health_check, 0, false),
+                ("cache", cache_health_check, 30, true),
+                ("drive", drive_health_check, 0, false),
+            ]
+        } else {
+            vec![
+                ("vector_db", vector_db_health_check, 45, true),
+                ("tables", tables_health_check, 0, false),
+                ("cache", cache_health_check, 30, true),
+                ("drive", drive_health_check, 0, false),
+                ("directory", zitadel_health_check, 60, true),
+                ("alm", alm_health_check, 0, false),
+            ]
+        };
 
         type WaitService = (&'static str, fn() -> bool, u32);
         let mut wait_services: Vec<WaitService> = Vec::new();
@@ -157,8 +167,8 @@ impl BootstrapManager {
 
         // Phase 3: Post-startup setup tasks (depends on services being ready)
 
-        // Directory OAuth setup (needs Zitadel running)
-        if !skip_local_directory && pm.is_installed("directory") {
+        // Directory OAuth setup (needs Zitadel running) — skipped in desktop-local.
+        if !cfg!(feature = "desktop-local") && !skip_local_directory && pm.is_installed("directory") {
             let config_path = self.stack_dir("conf/system/directory_config.json");
             if !config_path.exists() {
                 info!("Creating OAuth client for Directory service...");
@@ -174,8 +184,8 @@ impl BootstrapManager {
             }
         }
 
-        // ALM setup (needs Forgejo running)
-        if pm.is_installed("alm") {
+        // ALM setup (needs Forgejo running) — skipped in desktop-local.
+        if !cfg!(feature = "desktop-local") && pm.is_installed("alm") {
             let already_running = alm_health_check();
             if !already_running {
                 info!("Waiting for ALM (Forgejo) to be ready...");

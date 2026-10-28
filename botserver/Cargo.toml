@@ -159,6 +159,7 @@ sampledata = ["dep:botsampledata"]
 desktop-local = [
     "chat", "drive", "security", "llm", "vectordb",
     "settings", "no-security", "kb-extraction",
+    "botcore/desktop-local",
 ]
 
 allbutooxmlsdk = [
