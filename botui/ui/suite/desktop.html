@@ -462,6 +462,14 @@
                     console.warn("Failed to load product config:", e);
                 }
 
+                // No-security mode: skip the entire auth gate when the
+                // product is configured without authentication (desktop-local).
+                var noSecurity = window.productConfig && window.productConfig.no_security === true;
+                if (noSecurity) {
+                    window.__BOT_IS_PUBLIC__ = true;
+                    document.documentElement.classList.remove('gb-auth-gate');
+                }
+
                 // Get bot name from URL path
                 const pathParts = window.location.pathname.split('/');
                 const routeName = pathParts[1] === 'sources' ? 'integrations' : (pathParts[1] || '');
@@ -476,7 +484,7 @@
                 // shell. The shell stays hidden until this gate resolves; on
                 // private+unauthenticated we redirect to login immediately.
                 var authDenied = false;
-                try {
+                if (noSecurity) { /* skip auth gate entirely */ } else try {
 
                     if (botName && botName !== 'default') {
                         const resp = await fetch('/api/bot/public?bot_name=' + encodeURIComponent(botName) + '&_=' + Date.now());

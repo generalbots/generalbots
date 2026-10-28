@@ -82,6 +82,7 @@ impl Default for ProductConfig {
             menu_launcher_enabled: Some(false),
             sidebar: None,
             suite_default_app: None,
+            no_security: false,
         }
     }
 }
@@ -219,6 +220,11 @@ impl ProductConfig {
                         if !value.is_empty() {
                             config.suite_default_app = Some(value.to_lowercase());
                         }
+                    }
+                    "no_security" => {
+                        config.no_security = value.eq_ignore_ascii_case("true")
+                            || value == "1"
+                            || value.eq_ignore_ascii_case("yes");
                     }
                     _ => {
                         warn!("Unknown product configuration key: {}", key);

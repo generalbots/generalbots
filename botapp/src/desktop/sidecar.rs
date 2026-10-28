@@ -41,7 +41,7 @@ impl Sidecar {
             .join("stack")
     }
 
-    pub fn start(&self) -> anyhow::Result<()> {
+    pub fn start(&self, resource_dir: Option<PathBuf>) -> anyhow::Result<()> {
         let path = Self::botserver_path();
         if !path.exists() {
             return Err(anyhow::anyhow!(
@@ -53,14 +53,31 @@ impl Sidecar {
         let stack = Self::stack_path();
         std::fs::create_dir_all(&stack)?;
 
+        if let Some(ref res) = resource_dir {
+            let product_src = res.join(".product.desktop-local");
+            let product_dst = stack.join(".product.desktop-local");
+            if product_src.exists() && !product_dst.exists() {
+                if let Err(e) = std::fs::copy(&product_src, &product_dst) {
+                    warn!("Could not copy .product.desktop-local to stack: {e}");
+                }
+            }
+        }
+
+        let installers = resource_dir
+            .as_ref()
+            .map(|r| r.join("installers"))
+            .unwrap_or_else(|| stack.join("installers"));
+
         info!(
-            "Starting botserver sidecar: {} (stack: {})",
+            "Starting botserver sidecar: {} (stack: {}, installers: {})",
             path.display(),
-            stack.display()
+            stack.display(),
+            installers.display()
         );
 
         let child = Command::new(&path)
             .env("BOTSERVER_STACK_PATH", &stack)
+            .env("BOTSERVER_INSTALLERS_PATH", &installers)
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn()?;
