@@ -45,6 +45,7 @@ thiserror = { workspace = true }
 default = ["desktop"]
 desktop = ["desktop-tray"]
 desktop-tray = []
+desktop-local = []
 
 [build-dependencies]
 tauri-build = "2"
