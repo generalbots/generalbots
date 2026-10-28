@@ -154,6 +154,7 @@ pub(super) async fn list_drive_files(state: &Arc<AppState>, bot_uuid: &Uuid, pat
         .collect();
     Ok(json!({ "count": items.len(), "files": items }))
 }
+#[cfg(all(feature = "banking", feature = "products", feature = "tax"))]
 pub(super) async fn execute_tax(
     state: &Arc<AppState>,
     bot_uuid: &Uuid,
@@ -174,8 +175,6 @@ pub(super) async fn execute_tax(
             )
             .await
         }
-        // No registered service named by the user: compute the breakdown for
-        // the raw value with the branch tax rates (issue #722).
         None => calculate_anonymous_service_tax(&mut conn, &scope.branch_id, value.as_deref()),
     };
     match result {
@@ -183,10 +182,16 @@ pub(super) async fn execute_tax(
         Err((_code, msg)) => Err(msg),
     }
 }
-/// Computes the tax breakdown for a service value without a registered
-/// service (chat asks like "calcular o imposto de um serviço de R$ 10.000").
-/// Rates come from `billing_tax_rates` for the branch; the audit row is
-/// persisted with a null service id.
+#[cfg(not(all(feature = "banking", feature = "products", feature = "tax")))]
+pub(super) async fn execute_tax(
+    _state: &Arc<AppState>,
+    _bot_uuid: &Uuid,
+    _service: Option<String>,
+    _value: Option<String>,
+) -> Result<Value, String> {
+    Err("tax calculation requires banking, products and tax features".to_string())
+}
+#[cfg(all(feature = "banking", feature = "products", feature = "tax"))]
 pub(super) fn calculate_anonymous_service_tax(
     conn: &mut diesel::PgConnection,
     branch_id: &Uuid,

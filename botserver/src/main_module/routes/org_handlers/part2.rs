@@ -1,5 +1,6 @@
 use super::*;
 
+#[cfg(feature = "directory")]
 pub async fn handle_office365_migration(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<Office365MigrationRequest>,

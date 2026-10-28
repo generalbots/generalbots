@@ -85,6 +85,7 @@ pub(crate) fn resolve_saas_jwt_secret() -> String {
 }
 
 
+#[cfg(feature = "directory")]
 /// Resolve the Zitadel config for the directory service.
 /// Priority: `directory_config.json` → Vault `secret/gbo/directory` → defaults.
 /// The Vault fallback lets a fresh stack pick up the OAuth client even when the
@@ -126,6 +127,7 @@ async fn resolve_directory_config() -> crate::directory::ZitadelConfig {
     }
 }
 
+#[cfg(feature = "directory")]
 /// Load the Zitadel config from Vault `secret/gbo/directory`.
 /// Vault may store `url`/`api_url`; older entries use `host`/`port`, which is
 /// normalized into an `api_url` here.
@@ -192,6 +194,7 @@ async fn load_directory_config_from_vault() -> anyhow::Result<crate::directory::
     })
 }
 
+#[cfg(feature = "directory")]
 pub(crate) async fn init_directory_service() -> Result<(Arc<Mutex<crate::directory::AuthService>>, crate::directory::ZitadelConfig), std::io::Error> {
     let zitadel_config = resolve_directory_config().await;
 
@@ -203,6 +206,7 @@ pub(crate) async fn init_directory_service() -> Result<(Arc<Mutex<crate::directo
     Ok((auth_service, zitadel_config))
 }
 
+#[cfg(feature = "directory")]
 fn default_zitadel_config() -> crate::directory::ZitadelConfig {
     crate::directory::ZitadelConfig {
         issuer_url: "".to_string(),
@@ -217,6 +221,7 @@ fn default_zitadel_config() -> crate::directory::ZitadelConfig {
     }
 }
 
+#[cfg(feature = "directory")]
 pub(crate) async fn bootstrap_directory_admin(zitadel_config: &crate::directory::ZitadelConfig) {
     use crate::directory::{bootstrap, ZitadelClient};
 

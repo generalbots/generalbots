@@ -6,6 +6,7 @@ pub mod channel_delivery;
 pub mod drive_monitors;
 #[cfg(feature = "drive")]
 pub mod event_dispatcher;
+#[cfg(all(feature = "drive", feature = "vibe"))]
 pub mod git_bot_monitor;
 pub mod directory_setup;
 mod drive_utils;

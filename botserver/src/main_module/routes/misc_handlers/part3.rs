@@ -83,8 +83,11 @@ pub async fn handle_products_pricelists(
     // already rejected by the auth middleware (this path is not public);
     // authenticated callers without a tenant binding resolve to the global
     // (nil) branch scope, mirroring campaigns and the seeded global catalog.
+    #[cfg(feature = "contacts")]
     let branch_id = botcontacts::scope::branch_from_jwt_pool(&headers, &state.conn)
         .unwrap_or(Uuid::nil());
+    #[cfg(not(feature = "contacts"))]
+    let branch_id = { let _ = &headers; Uuid::nil() };
 
     #[derive(diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -136,13 +139,11 @@ pub async fn handle_contacts_search(
     let q = params.get("q").cloned().unwrap_or_default();
     let mut conn = pool_conn(&state)?;
 
-    // Tenant scoping (issue #738): the search only ever returns contacts of
-    // the authenticated user's workspace branch. The branch is derived from
-    // the server-minted JWT claim, the session cache, or the crm_contacts
-    // owner row — never from client input. Unauthenticated requests get no
-    // rows (the middleware rejects them before this handler anyway).
+    #[cfg(feature = "contacts")]
     let branch_id = botcontacts::scope::branch_from_jwt_pool(&headers, &state.conn)
         .unwrap_or(Uuid::nil());
+    #[cfg(not(feature = "contacts"))]
+    let branch_id = { let _ = &headers; Uuid::nil() };
 
     #[derive(diesel::QueryableByName)]
     #[diesel(check_for_backend(diesel::pg::Pg))]

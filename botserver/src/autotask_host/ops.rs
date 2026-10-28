@@ -13,6 +13,19 @@ use botautotask::types::{AutoTaskState, ConfigOps};
 use botautotask::api::AutoTaskApi;
 use botcore::shared::state::AppState;
 
+#[cfg(not(all(feature = "drive", feature = "vibe")))]
+struct NoopSourceOps;
+#[cfg(not(all(feature = "drive", feature = "vibe")))]
+impl botautotask::types::BotSourceOps for NoopSourceOps {
+    fn write_sources(&self, _: uuid::Uuid, _: &[(String, String)], _: &str) -> Result<Vec<String>, botautotask::types::BoxError> { Ok(vec![]) }
+    fn merge_tables(&self, _: uuid::Uuid, _: &str) -> Result<Vec<String>, botautotask::types::BoxError> { Ok(vec![]) }
+    fn write_bot_config(&self, _: uuid::Uuid, _: &[(String, String)], _: &str) -> Result<Vec<String>, botautotask::types::BoxError> { Ok(vec![]) }
+    fn read_source(&self, _: uuid::Uuid, _: &str) -> Result<Option<String>, botautotask::types::BoxError> { Ok(None) }
+    fn list_sources(&self, _: uuid::Uuid) -> Result<botautotask::types::SourceListing, botautotask::types::BoxError> {
+        Ok(botautotask::types::SourceListing { project_id: None, files: vec![] })
+    }
+}
+
 /// Builds the AutoTask API for the running app state.
 #[must_use]
 pub fn build_api(app_state: &Arc<AppState>) -> Arc<AutoTaskApi> {
@@ -98,9 +111,12 @@ let autotask_state = Arc::new(AutoTaskStateImpl {
         drive_ops: app_state.drive.clone().map(|d| {
             Arc::new(botautotask::drive_ops::DriveRepositoryOps(d)) as Arc<dyn botautotask::types::DriveOps>
         }),
-        source_ops: Arc::new(crate::main_module::git_bot_monitor::GitBotSourceOps::new(
-            app_state.conn.clone(),
-        )),
+        source_ops: {
+            #[cfg(all(feature = "drive", feature = "vibe"))]
+            { Arc::new(crate::main_module::git_bot_monitor::GitBotSourceOps::new(app_state.conn.clone())) }
+            #[cfg(not(all(feature = "drive", feature = "vibe")))]
+            { Arc::new(NoopSourceOps) }
+        },
         app_state: app_state.clone(),
     });
     let config_ops = Arc::new(ConfigOpsImpl {

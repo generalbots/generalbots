@@ -26,6 +26,7 @@ pub async fn execute_command(
     let str_of = |key: &str| obj.get(key).and_then(|v| v.as_str()).map(|s| s.to_string());
     match name {
         "service.tax" | "tax.calculate" => execute_tax(state, &bot_uuid, str_of("service"), str_of("value")).await,
+        #[cfg(feature = "banking")]
         "banking.diagnosis" => {
             let period = str_of("period");
             let resp =
@@ -34,6 +35,7 @@ pub async fn execute_command(
                     .map_err(|e| e.to_string())?;
             Ok(serde_json::to_value(resp).map_err(|e| e.to_string())?)
         }
+        #[cfg(feature = "banking")]
         "banking.import" => {
             let file_key = str_of("file_key").ok_or_else(|| "params.file_key is required".to_string())?;
             let period = str_of("period");
@@ -60,6 +62,7 @@ pub async fn execute_command(
             let to = str_of("to").ok_or_else(|| "params.to is required".to_string())?;
             move_drive_file(state, &bot_uuid, &from, &to).await
         }
+        #[cfg(feature = "research")]
         "web.search" => {
             let query = str_of("query").ok_or_else(|| "params.query is required".to_string())?;
             let max: usize = obj

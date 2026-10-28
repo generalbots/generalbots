@@ -247,6 +247,7 @@ pub(crate) fn make_social_router(app_state: &Arc<AppState>) -> Router<()> {
         .merge(crate::social::configure_social_routes().with_state(state.clone()))
         .merge(crate::social::configure_social_ui_routes().with_state(state))
 }
+#[cfg(feature = "billing")]
 pub(crate) fn make_billing_router(app_state: &Arc<AppState>) -> Router<()> {
     let make_state = || Arc::new(botbilling::api::BillingApiState {
         pool: Arc::new(app_state.conn.clone()),
