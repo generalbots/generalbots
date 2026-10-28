@@ -88,6 +88,14 @@ impl PackageManager {
                 url: download_url,
                 cache_path,
             } => {
+                if cfg!(feature = "desktop-local") {
+                    return Err(anyhow::anyhow!(
+                        "Offline mode: component '{}' not found in bundled installers. \
+                         Expected file at {}. Desktop-local builds must not download at runtime.",
+                        component,
+                        cache_path.display()
+                    ));
+                }
                 info!("Downloading {} from {}", component, download_url);
                 println!("Downloading {}", download_url);
 
@@ -98,6 +106,25 @@ impl PackageManager {
                 cache_path
             }
         };
+
+        if let Some(comp_info) = cache.get_component(component) {
+            let expected = &comp_info.sha256;
+            let filename = DownloadCache::extract_filename(url);
+            if !expected.is_empty() {
+                if !cache.verify_checksum(&filename, expected)? {
+                    return Err(anyhow::anyhow!(
+                        "Checksum verification failed for '{}'. The bundled file may be corrupt.",
+                        component
+                    ));
+                }
+                info!("Checksum verified for {}", component);
+            } else if cfg!(feature = "desktop-local") {
+                warn!(
+                    "No SHA256 checksum configured for '{}'; skipping verification",
+                    component
+                );
+            }
+        }
 
         self.handle_downloaded_file(&source_file, &bin_path, binary_name)?;
         Ok(())

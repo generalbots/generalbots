@@ -89,6 +89,14 @@ impl PackageManager {
                     }
                 }
 
+                if cfg!(feature = "desktop-local") {
+                    return Err(anyhow::anyhow!(
+                        "Offline mode: data file '{}' for '{}' not found in bundled installers. \
+                         Desktop-local builds must not download at runtime.",
+                        filename, component.name
+                    ).into());
+                }
+
                 let download_target = if let Some(ref c) = cache {
                     c.get_cache_path(&filename)
                 } else {
