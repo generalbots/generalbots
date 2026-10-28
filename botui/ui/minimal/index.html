@@ -25,7 +25,6 @@
         };
     </script>
     <!-- Local Libraries (no external CDN dependencies) -->
-    <script src="js/vendor/gsap.min.js"></script>
     <script src="js/vendor/livekit-client.umd.min.js"></script>
     <script src="js/vendor/marked.min.js"></script>
     <style>
@@ -244,8 +243,12 @@
 
         .message-container {
             margin-bottom: 24px;
-            opacity: 0;
-            transform: translateY(10px);
+            animation: message-enter 0.2s ease-out both;
+        }
+
+        @keyframes message-enter {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .user-message {
@@ -486,6 +489,15 @@
             z-index: 9999;
         }
 
+        .flash-overlay.flash-active {
+            animation: screen-flash 0.3s ease-out;
+        }
+
+        @keyframes screen-flash {
+            0%, 100% { opacity: 0; }
+            33% { opacity: 0.15; }
+        }
+
         .scroll-to-bottom {
             position: fixed;
             bottom: 80px;
@@ -521,6 +533,14 @@
             background: var(--glass);
             border: 1px solid var(--border);
             font-size: 13px;
+        }
+
+        .warning-message.warning-hiding {
+            animation: warning-fade-out 0.3s ease-out forwards;
+        }
+
+        @keyframes warning-fade-out {
+            to { opacity: 0; }
         }
 
         .continue-button {
@@ -956,13 +976,9 @@
         }
 
         function flashScreen() {
-            gsap.to(flashOverlay, {
-                opacity: 0.15,
-                duration: 0.1,
-                onComplete: () => {
-                    gsap.to(flashOverlay, { opacity: 0, duration: 0.2 });
-                },
-            });
+            flashOverlay.classList.remove("flash-active");
+            void flashOverlay.offsetWidth;
+            flashOverlay.classList.add("flash-active");
         }
 
         function updateConnectionStatus(s) {
@@ -1254,12 +1270,6 @@
             t.className = "message-container";
             t.innerHTML = `<div class="assistant-message"><div class="assistant-avatar"></div><div class="thinking-indicator"><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div></div>`;
             messagesDiv.appendChild(t);
-            gsap.to(t, {
-                opacity: 1,
-                y: 0,
-                duration: 0.3,
-                ease: "power2.out",
-            });
             if (!isUserScrolling) {
                 scrollToBottom();
             }
@@ -1277,17 +1287,7 @@
         function hideThinkingIndicator() {
             if (!isThinking) return;
             const t = document.getElementById("thinking-indicator");
-            if (t) {
-                gsap.to(t, {
-                    opacity: 0,
-                    duration: 0.2,
-                    onComplete: () => {
-                        if (t.parentNode) {
-                            t.remove();
-                        }
-                    },
-                });
-            }
+            if (t) t.remove();
             if (thinkingTimeout) {
                 clearTimeout(thinkingTimeout);
                 thinkingTimeout = null;
@@ -1300,22 +1300,13 @@
             w.className = "warning-message";
             w.innerHTML = `⚠️ ${m}`;
             messagesDiv.appendChild(w);
-            gsap.from(w, {
-                opacity: 0,
-                y: 20,
-                duration: 0.4,
-                ease: "power2.out",
-            });
             if (!isUserScrolling) {
                 scrollToBottom();
             }
             setTimeout(() => {
                 if (w.parentNode) {
-                    gsap.to(w, {
-                        opacity: 0,
-                        duration: 0.3,
-                        onComplete: () => w.remove(),
-                    });
+                    w.classList.add("warning-hiding");
+                    setTimeout(() => w.remove(), 300);
                 }
             }, 5000);
         }
@@ -1325,12 +1316,6 @@
             c.className = "message-container";
             c.innerHTML = `<div class="assistant-message"><div class="assistant-avatar"></div><div class="assistant-message-content"><p>A conexão foi interrompida. Clique em "Continuar" para tentar recuperar a resposta.</p><button class="continue-button" onclick="continueInterruptedResponse()">Continuar</button></div></div>`;
             messagesDiv.appendChild(c);
-            gsap.to(c, {
-                opacity: 1,
-                y: 0,
-                duration: 0.5,
-                ease: "power2.out",
-            });
             if (!isUserScrolling) {
                 scrollToBottom();
             }
@@ -1380,12 +1365,6 @@
                 m.innerHTML = `<div class="assistant-message"><div class="assistant-avatar"></div><div class="assistant-message-content">${content}</div></div>`;
             }
             messagesDiv.appendChild(m);
-            gsap.to(m, {
-                opacity: 1,
-                y: 0,
-                duration: 0.5,
-                ease: "power2.out",
-            });
             if (!isUserScrolling) {
                 scrollToBottom();
             }

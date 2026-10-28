@@ -127,7 +127,7 @@ ui/
 | Toast notifications | Dynamic element creation |
 | Clipboard operations | `navigator.clipboard` API |
 | Keyboard shortcuts | `keydown` event handling |
-| Complex animations | GSAP or custom |
+| Complex animations | CSS animations and transitions |
 
 ---
 
@@ -138,7 +138,6 @@ ui/suite/js/vendor/
 ├── htmx.min.js
 ├── htmx-ws.js
 ├── marked.min.js
-├── gsap.min.js
 └── livekit-client.umd.min.js
 ```
 

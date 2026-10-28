@@ -56,8 +56,6 @@
         <script src="/suite/js/vendor/htmx.min.js"></script>
         <script src="/suite/js/security-bootstrap.js?v=6"></script>
         <script src="/suite/js/vendor/marked.min.js"></script>
-        <script src="/suite/js/vendor/three.min.js"></script>
-        <script src="/suite/js/desktop3d.js?v=2"></script>
         <script src="/suite/js/window-manager.js?v=39"></script>
         <script src="/suite/js/css-loader.js"></script>
         <script src="/suite/js/vibe-bridge.js?v=4"></script>
@@ -684,15 +682,6 @@
                     }
                 });
             })();
-
-            if (typeof window.Desktop3D !== "undefined" && window.wm) {
-                var workspace = document.getElementById("desktop-content");
-                try {
-                    if (workspace) window.Desktop3D.init(workspace);
-                } catch (e) {
-                    console.warn("Desktop3D init failed:", e);
-                }
-            }
 
             // Widget pane + pinned launcher (#1160)
             (function () {

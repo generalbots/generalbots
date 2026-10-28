@@ -18,7 +18,6 @@
         <link rel="stylesheet" href="css/markdown-message.css" />
 
         <!-- Local Libraries (no external CDN dependencies) -->
-        <script src="js/vendor/gsap.min.js"></script>
         <script src="js/vendor/livekit-client.umd.min.js"></script>
         <script src="js/vendor/marked.min.js"></script>
     </head>

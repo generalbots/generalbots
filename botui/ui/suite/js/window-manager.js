@@ -469,10 +469,6 @@ if (typeof window.WindowManager === "undefined") {
         detail: { action: "open", id, params: Object.assign({}, window.__gbAppParams__ || {}) },
       }));
       if (window.htmx) htmx.process(windowEl);
-      if (window.Desktop3D && window.Desktop3D.initialized) {
-        window.Desktop3D.createWindowPlane(id, title);
-        window.Desktop3D.flipToWindow(id);
-      }
     }
 
     // Keep an open window inside the viewport. If layout shifted between
@@ -758,9 +754,6 @@ if (typeof window.WindowManager === "undefined") {
         if (this.openWindows.length === 0) {
           document.title = "General Bots Desktop";
         }
-      }
-      if (window.Desktop3D && window.Desktop3D.initialized) {
-        window.Desktop3D.removeWindow(id);
       }
       document.dispatchEvent(new CustomEvent("gb-window-close", { detail: { id } }));
       document.dispatchEvent(new CustomEvent("gb-window-changed", { detail: { action: "close", id } }));

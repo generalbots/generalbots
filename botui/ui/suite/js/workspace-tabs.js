@@ -42,7 +42,7 @@ const WorkspaceTabs = (() => {
       bar = document.createElement("div");
       bar.id = TABBAR_ID;
       bar.className = "gb-workspace-tabbar";
-      const shell = document.querySelector("#desktop, .desktop, #desktop3d");
+      const shell = document.querySelector("#desktop, .desktop");
       (shell || document.body).prepend(bar);
     }
     let html = "";

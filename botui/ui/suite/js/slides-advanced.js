@@ -34,7 +34,7 @@
   function writeObj(k, obj) { try { localStorage.setItem(k, JSON.stringify(obj)); } catch (_) {} }
   function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]); }
 
-  const TRANSITIONS = ["none", "fade", "slide-left", "slide-right", "slide-up", "slide-down", "zoom-in", "zoom-out", "push-left", "push-right", "wipe-left", "wipe-right", "split-vertical", "split-horizontal", "reveal", "flip-horizontal", "flip-vertical"];
+  const TRANSITIONS = ["none", "fade", "slide-left", "slide-right", "slide-up", "slide-down", "zoom-in", "zoom-out", "push-left", "push-right", "wipe-left", "wipe-right", "split-vertical", "split-horizontal", "reveal"];
 
   const ANIMATIONS = {
     "appear": { from: { opacity: 0 }, to: { opacity: 1 } },
