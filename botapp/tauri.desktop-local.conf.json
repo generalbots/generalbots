@@ -1,0 +1,38 @@
+{
+  "bundle": {
+    "targets": ["nsis", "msi", "deb", "appimage"],
+    "resources": {
+      "../botserver/.product.desktop-local": ".product.desktop-local",
+      "../botserver/botserver-installers/*": "installers/"
+    },
+    "externalBin": [
+      "binaries/botserver"
+    ],
+    "windows": {
+      "nsis": {
+        "languages": ["PortugueseBR", "English"],
+        "displayLanguageSelector": true,
+        "installMode": "perMachine",
+        "installerIcon": "icons/icon.ico"
+      },
+      "wix": {
+        "language": ["pt-BR", "en-US"]
+      }
+    },
+    "linux": {
+      "deb": {
+        "depends": ["libssl3", "libwebkit2gtk-4.1-0"],
+        "section": "net",
+        "priority": "optional"
+      },
+      "appimage": {
+        "bundleMediaFramework": false
+      }
+    },
+    "shortDescription": "General Bots Desktop — Chat and Drive",
+    "longDescription": "General Bots desktop edition with Chat and Drive for local use.",
+    "category": "Productivity",
+    "copyright": "© 2026 Pragmatismo.cloud. All rights reserved.",
+    "publisher": "Pragmatismo"
+  }
+}

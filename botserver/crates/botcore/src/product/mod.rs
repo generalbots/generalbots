@@ -66,6 +66,10 @@ pub struct ProductConfig {
     /// Suite default app (optional)
     /// The app that opens automatically when the suite loads (e.g. "chat").
     pub suite_default_app: Option<String>,
+
+    /// No-security mode (optional)
+    /// When true, the UI skips authentication checks entirely.
+    pub no_security: bool,
 }
 
 /// Error type for product configuration

@@ -75,6 +75,7 @@ pub fn get_product_config_json() -> serde_json::Value {
             "menu_launcher_enabled": c.menu_launcher_enabled.unwrap_or(false),
             "sidebar": c.sidebar,
             "suite_default_app": c.suite_default_app,
+            "no_security": c.no_security,
         }),
         None => serde_json::json!({
             "name": "General Bots",

@@ -219,8 +219,9 @@ fn main() {
             // --- Sidecar: start botserver and wait for API before showing window ---
             #[cfg(feature = "desktop-local")]
             {
+                let resource_dir = app.path().resource_dir().ok();
                 let sidecar = app.state::<Sidecar>();
-                if let Err(e) = sidecar.start() {
+                if let Err(e) = sidecar.start(resource_dir) {
                     log::error!("Failed to start botserver sidecar: {e}");
                 }
 

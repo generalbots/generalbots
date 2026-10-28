@@ -22,5 +22,8 @@ search_enabled=false
 # Menu launcher enabled so the user can switch between Chat and Drive.
 menu_launcher_enabled=true
 
+# No authentication required in desktop-local mode.
+no_security=true
+
 # Default theme
 theme=sentient
