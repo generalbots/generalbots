@@ -311,12 +311,15 @@ pub(crate) async fn do_publish(args: Value, pool: crate::types::DbPool) -> Resul
     // Caddy route was installed, else whatever the inner deploy reported.
     // `ops_api::preview` reads this row to give the UI a real public URL;
     // an empty url forces the frontend to guess slugs from the hostname.
-    let public_host = format!("{repo_name}.{}", published_domain());
+    #[cfg(not(target_os = "windows"))]
     let public_url = if env == "production" {
+        let public_host = format!("{repo_name}.{}", published_domain());
         Some(format!("https://{public_host}/"))
     } else {
         None
     };
+    #[cfg(target_os = "windows")]
+    let public_url: Option<String> = None;
     let deployment = serde_json::json!({
         "env": env,
         "at": chrono::Utc::now().to_rfc3339(),

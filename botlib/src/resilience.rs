@@ -162,7 +162,7 @@ impl RetryConfig {
             // Golden-ratio hashing spreads retries evenly across the jitter
             // window without drawing from a random source, which keeps the
             // backoff reproducible for a given attempt count.
-            let pseudo_random = (f64::from(attempt) * std::f64::consts::GOLDEN_RATIO) % 1.0;
+            let pseudo_random = (f64::from(attempt) * 1.618_033_988_749_895_f64) % 1.0;
             (2.0_f64).mul_add(pseudo_random, -1.0) * jitter_range
         } else {
             0.0

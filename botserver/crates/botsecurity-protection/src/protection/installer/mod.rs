@@ -80,8 +80,6 @@ pub struct ProtectionInstaller {
     user: String,
 }
 
-    #[cfg(not(windows))]
-
 #[derive(Default)]
 pub struct InstallResult {
     pub success: bool,
