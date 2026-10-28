@@ -567,11 +567,17 @@
                 }
                 if (window.wm) {
                     try {
-                        const initialApp = routeApp || {
-                            id: "chat",
-                            title: "Chat",
-                            hxGet: "/suite/partials/chat.html",
-                        };
+                        // Use suite_default_app from product config, falling back to Chat.
+                        var defaultAppId = (window.productConfig && window.productConfig.suite_default_app) || "chat";
+                        var defaultEntry = (window.APPS_REGISTRY || []).find(function(a) { return a.id === defaultAppId; });
+                        if (!defaultEntry) {
+                            defaultEntry = {
+                                id: defaultAppId,
+                                title: defaultAppId.charAt(0).toUpperCase() + defaultAppId.slice(1),
+                                hxGet: "/suite/partials/" + defaultAppId + ".html",
+                            };
+                        }
+                        const initialApp = routeApp || defaultEntry;
                         const response = await fetch(initialApp.hxGet);
                         if (response.ok) {
                             const htmlContent = await response.text();

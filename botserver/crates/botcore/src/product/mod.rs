@@ -62,6 +62,10 @@ pub struct ProductConfig {
     /// Controls whether the left sidebar is shown in the suite.
     /// When false, the sidebar is hidden and the main content takes full width.
     pub sidebar: Option<bool>,
+
+    /// Suite default app (optional)
+    /// The app that opens automatically when the suite loads (e.g. "chat").
+    pub suite_default_app: Option<String>,
 }
 
 /// Error type for product configuration
