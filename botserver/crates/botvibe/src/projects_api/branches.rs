@@ -183,9 +183,30 @@ pub(crate) async fn delete_project(
     }
 }
 
+fn scope_list_query(
+    query: ListProjectsQuery,
+    current_branch_id: Uuid,
+    is_privileged: bool,
+) -> Option<ListProjectsQuery> {
+    if query.all_branches {
+        return is_privileged.then_some(query);
+    }
+
+    // The signed-in branch is the source of truth for the default project
+    // list, including toolbar and sidebar combos. Ignore branch_id so callers
+    // cannot widen or redirect the current-branch list with a query parameter.
+    let branch_id = current_branch_id;
+    Some(ListProjectsQuery {
+        branch_id: Some(branch_id),
+        all_branches: false,
+        ..query
+    })
+}
+
 pub(crate) async fn list_projects(
     Extension(registry): Extension<ProjectRegistryRef>,
     Extension(user): Extension<AuthenticatedUser>,
+    headers: axum::http::HeaderMap,
     Query(query): Query<ListProjectsQuery>,
 ) -> ApiResult {
     // Gate on roles, not on `user_id.is_nil()`: an internal service caller
@@ -200,31 +221,74 @@ pub(crate) async fn list_projects(
     if !is_privileged && user.user_id.is_nil() {
         return forbidden("forbidden: anonymous users cannot list projects".into());
     }
-    // #1267 — resolve the caller's real org branch when the query does not
-    // carry one, mirroring create_project. Otherwise a project created in the
-    // org branch (see create) is invisible to the list, which would default
-    // to the nil branch and return an empty/stale set (#931 scope mismatch).
-    // A privileged caller with no org has no branch to resolve, so it lists
-    // across every branch instead of silently matching the empty nil branch.
-    let query = if query.all_branches {
-        query
-    } else if query.branch_id.is_none() && is_privileged {
-        ListProjectsQuery {
-            all_branches: true,
-            ..query
-        }
-    } else if query.branch_id.is_none() {
-        let org_id = user.organization_id.unwrap_or_else(Uuid::nil);
-        ListProjectsQuery {
-            branch_id: resolve_org_branch(&registry, org_id).or(query.branch_id),
-            ..query
-        }
-    } else {
-        query
+    // The authenticated JWT's branch claim is server-minted and authoritative.
+    // Fall back to the user's branch binding for older/session tokens, then to
+    // the org's active branch; never let the project combo default to every
+    // branch merely because the caller has an admin role.
+    let current_branch_id = botsecurity_core::scope::branch_from_jwt_pool(
+        &headers,
+        registry.pool(),
+    )
+    .or_else(|| {
+        user.organization_id
+            .and_then(|org_id| resolve_org_branch(&registry, org_id))
+    })
+    .unwrap_or_else(Uuid::nil);
+    let query = match scope_list_query(query, current_branch_id, is_privileged) {
+        Some(query) => query,
+        None => return forbidden("forbidden: listing projects across branches requires an admin role".into()),
     };
     match registry.list(&query) {
         Ok(list) => ok_projects(list),
         Err(e) => err_response(e),
+    }
+}
+
+#[cfg(test)]
+mod list_scope_tests {
+    use super::*;
+
+    fn query(branch_id: Option<Uuid>, all_branches: bool) -> ListProjectsQuery {
+        ListProjectsQuery {
+            branch_id,
+            project_type: None,
+            status: None,
+            limit: None,
+            offset: None,
+            all_branches,
+        }
+    }
+
+    #[test]
+    fn regular_user_is_always_scoped_to_the_authenticated_branch() {
+        let current = Uuid::new_v4();
+        let requested = Uuid::new_v4();
+        let scoped = scope_list_query(query(Some(requested), false), current, false)
+            .expect("regular project listing should be allowed");
+
+        assert_eq!(scoped.branch_id, Some(current));
+        assert!(!scoped.all_branches);
+    }
+
+    #[test]
+    fn privileged_user_defaults_to_the_authenticated_branch() {
+        let current = Uuid::new_v4();
+        let requested = Uuid::new_v4();
+        let scoped = scope_list_query(query(Some(requested), false), current, true)
+            .expect("scoped admin project listing should be allowed");
+
+        assert_eq!(scoped.branch_id, Some(current));
+        assert!(!scoped.all_branches);
+    }
+
+    #[test]
+    fn all_branch_listing_requires_privilege() {
+        let requested = query(None, true);
+
+        assert!(scope_list_query(requested, Uuid::new_v4(), false).is_none());
+        assert!(scope_list_query(query(None, true), Uuid::new_v4(), true)
+            .expect("privileged all-branch listing should be allowed")
+            .all_branches);
     }
 }
 
