@@ -33,12 +33,12 @@
 
   function sendTelemetryEvent(event, data) {
     if (!isTelemetryEnabled()) return;
+    var entry = { event: event, data: data, timestamp: Date.now() };
     try {
-      fetch("/api/telemetry/event", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ event: event, data: data, timestamp: Date.now() }),
-      }).catch(function () {});
+      var log = JSON.parse(localStorage.getItem("gb_telemetry_log") || "[]");
+      log.push(entry);
+      if (log.length > 500) log = log.slice(-500);
+      localStorage.setItem("gb_telemetry_log", JSON.stringify(log));
     } catch (e) {}
   }
 

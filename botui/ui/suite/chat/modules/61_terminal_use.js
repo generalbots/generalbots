@@ -44,7 +44,7 @@
     var tok = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token");
     if (tok) headers["Authorization"] = "Bearer " + tok;
 
-    fetch("/api/terminal/exec", {
+    fetch("/api/terminal/create", {
       method: "POST",
       headers: headers,
       body: JSON.stringify({

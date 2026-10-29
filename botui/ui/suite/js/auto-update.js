@@ -11,7 +11,7 @@
   var appVersion = currentVersion ? currentVersion.content : "0.0.0";
 
   function checkForUpdate() {
-    fetch("/api/product/version", { cache: "no-store" })
+    fetch("/api/product", { cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
         if (!data || !data.version) return;
@@ -82,7 +82,7 @@
   }
 
   function showReleaseNotes() {
-    fetch("/api/product/version", { cache: "no-store" })
+    fetch("/api/product", { cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
         if (!data) return;
