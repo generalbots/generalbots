@@ -22,7 +22,7 @@
     if (existing) { browserFrame = existing; return existing; }
     var frame = document.createElement("iframe");
     frame.id = "gb-browser-frame";
-    frame.sandbox = "allow-scripts allow-same-origin allow-forms";
+    frame.sandbox = "allow-scripts allow-forms";
     frame.style.cssText = "position:fixed;bottom:60px;right:24px;width:480px;height:360px;border:1px solid #334155;border-radius:10px;z-index:8000;background:#fff;display:none;box-shadow:0 8px 32px rgba(0,0,0,0.4);";
     document.body.appendChild(frame);
     browserFrame = frame;
@@ -141,6 +141,15 @@
         detail: detail,
       };
 
+      if (window.GBSandbox) {
+        GBSandbox.addPending({
+          action_id: consentReq.request_id,
+          category: "browser",
+          detail: detail,
+          risk: "medium",
+        });
+      }
+
       var origResolve = window.GBRenderConsentCard;
       var pane = document.getElementById("messages");
       if (pane) {
@@ -164,9 +173,11 @@
           if (decision === "allow") {
             card.innerHTML = '<div class="gb-consent-outcome"><span>✅</span> <span>Allowed — executing...</span></div>';
             executeAction(action);
+            if (window.GBSandbox) GBSandbox.removePending(consentReq.request_id);
           } else {
             card.innerHTML = '<div class="gb-consent-outcome"><span>🚫</span> <span>Denied by user</span></div>';
             sendResultToChat(action.action_id || consentReq.request_id, { status: "denied" });
+            if (window.GBSandbox) GBSandbox.removePending(consentReq.request_id);
           }
         });
         body.appendChild(card);

@@ -114,6 +114,15 @@
       + (action.reason ? '<div style="color:#94a3b8;font-size:12px;margin-bottom:10px;">' + escapeHtml(action.reason) + '</div>' : '')
       + '<div class="gb-consent-actions"><button type="button" class="gb-consent-btn primary" data-decision="allow">Run</button><button type="button" class="gb-consent-btn danger" data-decision="deny">Deny</button></div>';
 
+    if (window.GBSandbox) {
+      GBSandbox.addPending({
+        action_id: reqId,
+        category: "terminal",
+        detail: action.command,
+        risk: "high",
+      });
+    }
+
     card.addEventListener("click", function (ev) {
       var btn = ev.target.closest(".gb-consent-btn");
       if (!btn) return;
@@ -121,10 +130,12 @@
       card.querySelectorAll(".gb-consent-btn").forEach(function (b) { b.disabled = true; });
       if (decision === "allow") {
         executeTerminalAction(action, card);
+        if (window.GBSandbox) GBSandbox.removePending(reqId);
       } else {
         card.classList.add("resolved");
         card.innerHTML = '<div class="gb-consent-outcome"><span>🚫</span> <span>Denied by user</span></div>';
         sendTerminalResult(reqId, { status: "denied" });
+        if (window.GBSandbox) GBSandbox.removePending(reqId);
       }
     });
 

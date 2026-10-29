@@ -1,5 +1,5 @@
 /* Auto-update and release notes (GB6-23).
- * Checks for updates via /api/product/version and shows a notification
+ * Checks for updates via /api/product and shows a notification
  * with changelog when a new version is available. On Tauri, triggers
  * the native updater. On web, shows a "refresh" prompt. */
 "use strict";

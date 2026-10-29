@@ -107,13 +107,16 @@
     var count = 0;
 
     if (bundle.local_storage) {
+      var ALLOWED_PREFIX = "gb_";
       Object.keys(bundle.local_storage).forEach(function (key) {
+        if (key.indexOf(ALLOWED_PREFIX) !== 0) return;
         try { localStorage.setItem(key, bundle.local_storage[key]); count++; } catch (e) {}
       });
     }
 
     if (bundle.settings) {
       Object.keys(bundle.settings).forEach(function (key) {
+        if (key.indexOf("gb_") !== 0) return;
         try { localStorage.setItem(key, bundle.settings[key]); } catch (e) {}
       });
     }

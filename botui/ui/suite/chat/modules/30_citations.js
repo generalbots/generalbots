@@ -27,6 +27,8 @@
   function buildChip(citation) {
     var url = citation.url || citation.href || "";
     if (!url) return null;
+    // Only allow http/https URLs
+    if (!/^https?:\/\//i.test(url)) return null;
     var host = citation.host || hostOf(url);
     var title = citation.title || host;
     var chip = document.createElement("button");
@@ -43,7 +45,7 @@
     chip.appendChild(avatar);
     chip.appendChild(label);
     chip.addEventListener("click", function () {
-      window.open(url, "_blank", "noopener");
+      window.open(url, "_blank", "noopener,noreferrer");
     });
     return chip;
   }
@@ -51,7 +53,10 @@
   function openCitation(citations, n) {
     var c = citations && citations[n - 1];
     if (c && (c.url || c.href)) {
-      window.open(c.url || c.href, "_blank", "noopener");
+      var citUrl = c.url || c.href;
+      // Only allow http/https URLs
+      if (!/^https?:\/\//i.test(citUrl)) return;
+      window.open(citUrl, "_blank", "noopener,noreferrer");
     }
   }
 

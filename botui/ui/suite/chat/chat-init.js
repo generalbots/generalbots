@@ -37,6 +37,8 @@ function sendMessage(messageContent) {
   var modelPicker = document.getElementById("modelPicker");
   var selectedModel = modelPicker ? modelPicker.value : "auto";
 
+  var isAnonymous = !!(window.__BOT_IS_PUBLIC__ && !(window.GBSecurity && GBSecurity.isAuthenticated && GBSecurity.isAuthenticated()));
+
   var payload = {
     bot_id: ChatState.currentBotId,
     user_id: ChatState.currentUserId,
@@ -45,9 +47,9 @@ function sendMessage(messageContent) {
     content: content,
     message_type: MessageType.USER,
     active_switchers: Array.from(ChatState.activeSwitchers),
-    drive_context: driveFiles.length > 0 ? driveFiles.slice(0, 20) : undefined,
+    drive_context: (!isAnonymous && driveFiles.length > 0 && (!window.GBPrivacy || GBPrivacy.getSettings().save_memory !== false)) ? driveFiles.slice(0, 20) : undefined,
     model_preference: selectedModel !== "auto" ? selectedModel : undefined,
-    user_memory: (window.ChatMemory && ChatMemory.getMemorySummary) ? ChatMemory.getMemorySummary() : undefined,
+    user_memory: (!isAnonymous && window.ChatMemory && ChatMemory.getMemorySummary && (!window.GBPrivacy || GBPrivacy.getSettings().save_memory !== false)) ? ChatMemory.getMemorySummary() : undefined,
     mentions: selectedMentions.map(function (mention) {
       return {
         kind: mention.kind,

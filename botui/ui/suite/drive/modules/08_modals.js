@@ -1,6 +1,65 @@
 /* Drive Module v2.0 — 08 Modals: preview, editor, share, new-bot */
 "use strict";
 
+/**
+ * Sanitize HTML to prevent XSS — keeps only safe tags and attributes.
+ */
+function sanitizeHtml(html) {
+  // Allowed tags (lowercase)
+  var SAFE_TAGS = ["p","h1","h2","h3","h4","h5","h6","ul","ol","li","a",
+    "strong","em","b","i","code","pre","blockquote","table","tr","td","th",
+    "thead","tbody","img","br","hr","div","span","sup","sub","dl","dt","dd"];
+  // Allowed attributes per tag (all lowercase)
+  var SAFE_ATTRS = {
+    a: ["href","title","target","rel"],
+    img: ["src","alt","width","height"],
+    td: ["colspan","rowspan"],
+    th: ["colspan","rowspan"],
+  };
+
+  // 1. Remove <script> tags and their content
+  html = html.replace(/<script[\s\S]*?<\/script\s*>/gi, "");
+  // 2. Remove <style> tags and their content
+  html = html.replace(/<style[\s\S]*?<\/style\s*>/gi, "");
+  // 3. Remove dangerous tags (keep content but strip the tags themselves)
+  var dangerousTags = ["iframe","object","embed","form","input","textarea","link","meta","base"];
+  dangerousTags.forEach(function (tag) {
+    html = html.replace(new RegExp("<\\/?" + tag + "\\b[^>]*>", "gi"), "");
+  });
+
+  // 4. Remove all on* event handler attributes
+  html = html.replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "");
+  // 5. Remove javascript: URLs in any attribute value
+  html = html.replace(/(href|src|action)\s*=\s*(?:"javascript:[^"]*"|'javascript:[^']*')/gi, "$1=\"\"");
+  html = html.replace(/(href|src|action)\s*=\s*javascript:[^\s>]*/gi, "$1=\"\"");
+
+  // 6. Strip tags not in the safe list (keep their content)
+  html = html.replace(/<\/?([a-zA-Z][a-zA-Z0-9]*)\b[^>]*>/g, function (match, tagName) {
+    var lower = tagName.toLowerCase();
+    var isClosing = match.charAt(1) === "/";
+    if (SAFE_TAGS.indexOf(lower) === -1) return "";
+    if (isClosing) return "</" + lower + ">";
+    // Rebuild tag with only allowed attributes
+    var allowed = SAFE_ATTRS[lower] || [];
+    var attrs = "";
+    var attrRe = /\s+([a-zA-Z_][\w-]*)\s*=\s*(?:"([^"]*)"|'([^']*)'|(\S+))/g;
+    var am;
+    while ((am = attrRe.exec(match)) !== null) {
+      var attrName = am[1].toLowerCase();
+      var attrVal = am[2] !== undefined ? am[2] : (am[3] !== undefined ? am[3] : am[4]);
+      if (allowed.indexOf(attrName) === -1) continue;
+      // Block javascript: in href/src
+      if ((attrName === "href" || attrName === "src") && /^\s*javascript\s*:/i.test(attrVal)) continue;
+      attrs += " " + attrName + '="' + attrVal.replace(/"/g, "&quot;") + '"';
+    }
+    // Self-closing tags
+    if (["br","hr","img"].indexOf(lower) !== -1) return "<" + lower + attrs + " />";
+    return "<" + lower + attrs + ">";
+  });
+
+  return html;
+}
+
 function showPreviewModal(fileName, ext, blob) {
     var modal = document.getElementById("preview-modal");
     if (modal) modal.remove();
@@ -45,7 +104,7 @@ function showPreviewModal(fileName, ext, blob) {
     } else if (ext === "md" && typeof marked !== "undefined") {
         previewEl = document.createElement("div");
         previewEl.style.cssText = "color:#f8fafc; font-size:14px; width:100%; max-height:70vh; overflow-y:auto; padding:16px; line-height:1.6;";
-        blob.text().then(function(t) { previewEl.innerHTML = marked.parse(t.substring(0, 50000)); }).catch(function() { previewEl.textContent = "Preview not available."; });
+        blob.text().then(function(t) { previewEl.innerHTML = sanitizeHtml(marked.parse(t.substring(0, 50000))); }).catch(function() { previewEl.textContent = "Preview not available."; });
     } else if (ext === "csv") {
         previewEl = document.createElement("div");
         previewEl.style.cssText = "color:#f8fafc; width:100%; max-height:70vh; overflow:auto;";

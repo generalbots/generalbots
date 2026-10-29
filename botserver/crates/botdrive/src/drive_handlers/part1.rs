@@ -146,7 +146,12 @@ pub(super) fn get_drive(state: &AppState) -> Result<&Arc<dyn botlib::traits::Dri
         .ok_or_else(|| err(StatusCode::SERVICE_UNAVAILABLE, "Drive storage not configured"))
 }
 pub(super) fn normalize_path(path: &str) -> String {
-    path.trim_matches('/').to_string()
+    let trimmed = path.trim_matches('/');
+    trimmed
+        .split('/')
+        .filter(|seg| !seg.is_empty() && *seg != ".." && *seg != ".")
+        .collect::<Vec<_>>()
+        .join("/")
 }
 pub(super) fn build_file_list_items(
     prefix: &str,

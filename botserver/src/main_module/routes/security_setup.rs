@@ -43,6 +43,16 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
         // all MinIO buckets. Only explicitly listed paths are public.
         cfg.public_paths.retain(|p| p != "/");
 
+        // Wire no_security from .product into the auth middleware: when
+        // the product config sets no_security=true, failed auth falls
+        // through as anonymous instead of returning 401.
+        if let Ok(product) = botcore::product::PRODUCT_CONFIG.read() {
+            if product.no_security {
+                info!("no_security=true in .product — auth middleware will allow anonymous fallback");
+                cfg.require_auth = false;
+            }
+        }
+
         Arc::new(cfg
             .add_anonymous_path("/health")
             .add_anonymous_path("/healthz")

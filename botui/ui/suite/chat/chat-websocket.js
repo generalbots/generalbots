@@ -150,7 +150,6 @@ function dialChatSocket() {
       if (data.message_type === MessageType.BOT_RESPONSE) {
         var contentPreview = data.content ? data.content.substring(0, 200) : '(empty)';
         console.log("[WS] processMessage: complete=" + data.is_complete + " content_preview=" + contentPreview);
-        try { document.dispatchEvent(new CustomEvent("gb-ws-frame", { detail: data })); } catch (e) {}
         processMessage(data);
       }
 
