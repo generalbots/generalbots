@@ -2,6 +2,7 @@
 "use strict";
 
 function renderFiles(files) {
+    if (typeof cacheRecentFiles === "function") cacheRecentFiles(files || []);
     const content = document.getElementById("drive-content") || document.getElementById("file-grid");
     if (!content) return;
     if (!files || files.length === 0) {

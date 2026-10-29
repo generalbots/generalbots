@@ -25,6 +25,18 @@ function sendMessage(messageContent) {
   var selectedMentions = Array.isArray(ChatState.selectedMentions) ? ChatState.selectedMentions : [];
   ChatState.selectedMentions = [];
 
+  var driveFiles = [];
+  try {
+    if (window.DriveModule && typeof DriveModule.getRecentFileNames === "function") {
+      driveFiles = DriveModule.getRecentFileNames();
+    } else if (window.__driveRecentFiles) {
+      driveFiles = window.__driveRecentFiles;
+    }
+  } catch (e) {}
+
+  var modelPicker = document.getElementById("modelPicker");
+  var selectedModel = modelPicker ? modelPicker.value : "auto";
+
   var payload = {
     bot_id: ChatState.currentBotId,
     user_id: ChatState.currentUserId,
@@ -33,6 +45,9 @@ function sendMessage(messageContent) {
     content: content,
     message_type: MessageType.USER,
     active_switchers: Array.from(ChatState.activeSwitchers),
+    drive_context: driveFiles.length > 0 ? driveFiles.slice(0, 20) : undefined,
+    model_preference: selectedModel !== "auto" ? selectedModel : undefined,
+    user_memory: (window.ChatMemory && ChatMemory.getMemorySummary) ? ChatMemory.getMemorySummary() : undefined,
     mentions: selectedMentions.map(function (mention) {
       return {
         kind: mention.kind,
@@ -153,14 +168,76 @@ window.sendMessage = sendMessage;
   var fileInput = document.getElementById("messageFile");
   var chip = document.getElementById("fileChip");
   if (!fileBtn || !fileInput || !chip) return;
+
+  var MAX_FILE_SIZE = 25 * 1024 * 1024;
+
+  function showFileChip(file) {
+    if (file.size > MAX_FILE_SIZE) {
+      notify("File too large (max 25 MB)", "warning");
+      fileInput.value = "";
+      return;
+    }
+    chip.textContent = "📎 " + file.name + " (" + formatAttachSize(file.size) + ")";
+    chip.style.display = "inline-flex";
+    chip.title = file.name;
+  }
+
+  function formatAttachSize(bytes) {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  }
+
   fileBtn.addEventListener("click", function (e) {
     e.preventDefault();
     fileInput.click();
   });
   fileInput.addEventListener("change", function () {
-    if (fileInput.files && fileInput.files[0]) {
-      chip.textContent = "📎 " + fileInput.files[0].name;
-      chip.style.display = "inline-flex";
+    if (fileInput.files && fileInput.files[0]) showFileChip(fileInput.files[0]);
+  });
+
+  chip.addEventListener("click", function () {
+    fileInput.value = "";
+    chip.style.display = "none";
+    chip.textContent = "";
+  });
+
+  var chatArea = document.getElementById("chatContentWrapper") || document.getElementById("chat-app");
+  if (chatArea) {
+    ["dragenter", "dragover", "dragleave", "drop"].forEach(function (ev) {
+      chatArea.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); });
+    });
+    chatArea.addEventListener("dragover", function () { chatArea.classList.add("gb-chat-drag"); });
+    chatArea.addEventListener("dragleave", function (e) {
+      if (!chatArea.contains(e.relatedTarget)) chatArea.classList.remove("gb-chat-drag");
+    });
+    chatArea.addEventListener("drop", function (e) {
+      chatArea.classList.remove("gb-chat-drag");
+      var files = e.dataTransfer && e.dataTransfer.files;
+      if (files && files[0]) {
+        var dt = new DataTransfer();
+        dt.items.add(files[0]);
+        fileInput.files = dt.files;
+        showFileChip(files[0]);
+      }
+    });
+  }
+
+  document.addEventListener("paste", function (e) {
+    if (e.target && (e.target.tagName === "TEXTAREA" || (e.target.tagName === "INPUT" && e.target.type === "text" && e.target.id !== "messageInput"))) return;
+    var items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].kind === "file") {
+        var f = items[i].getAsFile();
+        if (!f) continue;
+        e.preventDefault();
+        var dt = new DataTransfer();
+        dt.items.add(f);
+        fileInput.files = dt.files;
+        showFileChip(f);
+        break;
+      }
     }
   });
 })();
@@ -263,6 +340,18 @@ window.ChatSwitchBot = function (botName) {
 
   // Replays a stored conversation into #messages before the WebSocket opens,
   // so the user sees prior turns when opening a conversation from history.
+  function restoreLocalHistory() {
+    if (typeof loadLocalHistory !== "function") return;
+    var local = loadLocalHistory();
+    if (!local || local.length === 0) return;
+    var pane = document.getElementById("messages");
+    if (pane) pane.innerHTML = "";
+    local.forEach(function (m) {
+      addMessage(m.sender, m.content);
+    });
+    scrollToBottom(false);
+  }
+
   function loadSessionHistory(sessionId) {
     var headers = {};
     var tok = window.getGBAccessToken ? window.getGBAccessToken()
@@ -271,7 +360,10 @@ window.ChatSwitchBot = function (botName) {
     return fetch("/api/chat/history/sessions/" + encodeURIComponent(sessionId) + "/messages", { headers: headers })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
-        if (!data || !Array.isArray(data.messages)) return;
+        if (!data || !Array.isArray(data.messages) || data.messages.length === 0) {
+          restoreLocalHistory();
+          return;
+        }
         var pane = document.getElementById("messages");
         if (pane) pane.innerHTML = "";
         data.messages.forEach(function (m) {
@@ -279,7 +371,7 @@ window.ChatSwitchBot = function (botName) {
         });
         scrollToBottom(false);
       })
-      .catch(function () { /* history replay is best-effort */ });
+      .catch(function () { restoreLocalHistory(); });
   }
 
 function proceedWithChatInit() {
@@ -371,7 +463,7 @@ function proceedWithChatInit() {
       // going through the login server again (redirect round-trip re-mints a
       // valid suite session). Without this, all cookie-carrying apps (CRM,
       // Drive, ...) silently scope to an empty anonymous branch.
-      if (!auth.is_authenticated && auth.status !== "authenticated" && gbToken) {
+      if (!auth.is_authenticated && auth.status !== "authenticated" && gbToken && !window.__BOT_IS_PUBLIC__) {
         try {
           localStorage.removeItem("gb-access-token");
           sessionStorage.removeItem("gb-access-token");

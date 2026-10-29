@@ -70,6 +70,32 @@ function getGborgIcon() {
     return '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>';
 }
 
+var ERROR_FRIENDLY = {
+    "Failed to fetch": "Could not reach the server. Check your connection.",
+    "NetworkError": "Network problem. Please check your internet.",
+    "502 Bad Gateway": "The server is starting up. Try again in a moment.",
+    "503 Service Unavailable": "The server is temporarily busy. Try again shortly.",
+    "500 Internal Server Error": "Something went wrong on the server.",
+    "NoSuchBucket": "Your storage is being set up. Try again in a moment.",
+    "bucket does not exist": "Your storage is being set up. Try again in a moment.",
+    "Request failed": "The request could not be completed. Please try again.",
+    "401": "You need to sign in to access this.",
+    "403": "You don't have permission for this action.",
+    "timeout": "The request took too long. Please try again.",
+    "ECONNREFUSED": "The server isn't running yet. Please wait a moment.",
+    "DNS resolution failed": "Could not find the server. Check your connection.",
+};
+
+function humanizeError(msg) {
+    if (!msg) return "Something went wrong. Please try again.";
+    var s = String(msg);
+    for (var pattern in ERROR_FRIENDLY) {
+        if (s.indexOf(pattern) !== -1) return ERROR_FRIENDLY[pattern];
+    }
+    if (/^HTTP \d{3}$/.test(s)) return "Server error (" + s + "). Please try again.";
+    return s;
+}
+
 function showNotification(message, type) {
     const existing = document.querySelector(".drive-notification");
     if (existing) existing.remove();

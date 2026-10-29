@@ -42,6 +42,28 @@ function showPreviewModal(fileName, ext, blob) {
         previewEl.controls = true;
         previewEl.autoplay = true;
         previewEl.style.cssText = "width:100%; max-width:500px;";
+    } else if (ext === "md" && typeof marked !== "undefined") {
+        previewEl = document.createElement("div");
+        previewEl.style.cssText = "color:#f8fafc; font-size:14px; width:100%; max-height:70vh; overflow-y:auto; padding:16px; line-height:1.6;";
+        blob.text().then(function(t) { previewEl.innerHTML = marked.parse(t.substring(0, 50000)); }).catch(function() { previewEl.textContent = "Preview not available."; });
+    } else if (ext === "csv") {
+        previewEl = document.createElement("div");
+        previewEl.style.cssText = "color:#f8fafc; width:100%; max-height:70vh; overflow:auto;";
+        blob.text().then(function(t) {
+            var rows = t.substring(0, 30000).split("\n").filter(function(r) { return r.trim(); });
+            var html = '<table style="border-collapse:collapse;width:100%;font-size:13px;">';
+            rows.forEach(function(row, i) {
+                var cells = row.split(",");
+                var tag = i === 0 ? "th" : "td";
+                html += "<tr>" + cells.map(function(c) { return "<" + tag + ' style="border:1px solid #334155;padding:6px 10px;text-align:left;">' + escapeHtml(c.trim()) + "</" + tag + ">"; }).join("") + "</tr>";
+            });
+            html += "</table>";
+            previewEl.innerHTML = html;
+        }).catch(function() { previewEl.textContent = "Preview not available."; });
+    } else if (ext === "json") {
+        previewEl = document.createElement("pre");
+        previewEl.style.cssText = "color:#f8fafc; font-family:monospace; font-size:13px; white-space:pre-wrap; width:100%; max-height:70vh; overflow-y:auto; margin:0;";
+        blob.text().then(function(t) { try { previewEl.textContent = JSON.stringify(JSON.parse(t), null, 2); } catch (e) { previewEl.textContent = t.substring(0, 10000); } }).catch(function() { previewEl.textContent = "Preview not available."; });
     } else {
         previewEl = document.createElement("pre");
         previewEl.style.cssText = "color:#f8fafc; font-family:monospace; font-size:14px; white-space:pre-wrap; width:100%; max-height:70vh; overflow-y:auto; margin:0;";
@@ -192,6 +214,7 @@ async function saveEditorContent() {
             body: JSON.stringify({ bucket: getEffectiveBucket(), path: path, content: content, scope: currentScope }),
         });
         statusEl.textContent = "\u2713 Saved";
+        if (typeof saveFileVersion === "function") saveFileVersion(path, content);
         showNotification("File saved successfully", "success");
         setTimeout(function() { if (statusEl) statusEl.textContent = ""; }, 2000);
     } catch (err) {

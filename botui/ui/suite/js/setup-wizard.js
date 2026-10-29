@@ -20,15 +20,17 @@
  * Response: { success: true, setup_complete: true|false }
  */
 
+var _isDesktopLocal = !!(window.productConfig && window.productConfig.no_security === true);
 var SetupWizardState = {
   currentStep: 1,
-  totalSteps: 4,
+  totalSteps: _isDesktopLocal ? 2 : 4,
   selections: {
     llm_provider: null,
     user_profile: null,
     bot_name: "",
     bot_purpose: "",
-    bot_template: ""
+    bot_template: "",
+    display_name: ""
   },
   trainingFiles: []
 };
@@ -53,9 +55,26 @@ function checkSetupStatus() {
 
 function showSetupWizard() {
   var overlay = document.getElementById("setupWizardOverlay");
-  if (overlay) {
-    overlay.style.display = "flex";
+  if (!overlay) return;
+  if (_isDesktopLocal) {
+    var header = overlay.querySelector(".setup-wizard-header");
+    if (header) {
+      header.innerHTML = '<h2>Welcome to General Bots</h2><p>Two quick steps to get started</p>';
+    }
+    var progressSteps = overlay.querySelector(".setup-progress-steps");
+    if (progressSteps) {
+      progressSteps.innerHTML = '<span class="setup-step active" data-step="1">AI Model</span><span class="setup-step" data-step="2">Your Name</span>';
+    }
+    var step2 = document.getElementById("setupStep2");
+    if (step2) {
+      step2.innerHTML = '<h3>What should we call you?</h3><p>This name appears in your conversations</p><div class="setup-form"><div class="setup-form-group"><label for="setupDisplayName">Your Name</label><input type="text" id="setupDisplayName" placeholder="e.g. Maria" class="setup-input" /></div></div>';
+    }
+    var step3 = document.getElementById("setupStep3");
+    var step4 = document.getElementById("setupStep4");
+    if (step3) step3.style.display = "none";
+    if (step4) step4.style.display = "none";
   }
+  overlay.style.display = "flex";
 }
 
 function hideSetupWizard() {
@@ -127,11 +146,17 @@ function getStepData(step) {
   switch (step) {
     case 1:
       if (!SetupWizardState.selections.llm_provider) {
-        notify("Please select an LLM provider", "warning");
+        notify("Please select an AI model provider", "warning");
         return null;
       }
       return { llm_provider: SetupWizardState.selections.llm_provider };
     case 2:
+      if (_isDesktopLocal) {
+        var nameEl = document.getElementById("setupDisplayName");
+        var name = nameEl ? nameEl.value.trim() : "";
+        SetupWizardState.selections.display_name = name || "User";
+        return { display_name: SetupWizardState.selections.display_name };
+      }
       if (!SetupWizardState.selections.user_profile) {
         notify("Please select a user profile", "warning");
         return null;
@@ -268,6 +293,18 @@ function updateFileStatus(fileName, status) {
 }
 
 function setupWizardFinish() {
+  if (_isDesktopLocal) {
+    var nameEl = document.getElementById("setupDisplayName");
+    var displayName = nameEl ? nameEl.value.trim() : "User";
+    try {
+      localStorage.setItem("gb_display_name", displayName);
+      localStorage.setItem("gb_llm_provider", SetupWizardState.selections.llm_provider || "local");
+      localStorage.setItem("gb_setup_wizard_done", "true");
+    } catch (e) {}
+    hideSetupWizard();
+    if (window.GBToasts) GBToasts.show("Welcome", "Welcome, " + displayName + "! You're all set.", "success");
+    return;
+  }
   var botName = SetupWizardState.selections.bot_name;
   if (!botName) {
     var botNameEl = document.getElementById("setupBotName");

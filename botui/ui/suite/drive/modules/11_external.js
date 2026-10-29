@@ -140,7 +140,39 @@ async function browseExternalProvider(providerId) {
     }
 }
 
+var CONNECTOR_PERMISSIONS = {
+    onedrive: { name: "OneDrive", permissions: ["Read your files and folders", "List directory contents", "Download files on demand"], icon: "📁" },
+    googledrive: { name: "Google Drive", permissions: ["Read file metadata", "Download files", "List shared drives"], icon: "📁" },
+    github: { name: "GitHub", permissions: ["Read repository contents", "List repositories", "Download files from repos"], icon: "🐙" },
+    rest: { name: "REST API", permissions: ["Send requests to configured endpoint", "Read response data"], icon: "🔗" },
+};
+
+function showConnectorConsent(providerId) {
+    var info = CONNECTOR_PERMISSIONS[providerId] || { name: providerId, permissions: ["Access your data"], icon: "🔌" };
+    var modal = document.getElementById("consent-modal");
+    if (modal) modal.remove();
+    modal = document.createElement("div");
+    modal.id = "consent-modal";
+    modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(8px);";
+    var permList = info.permissions.map(function (p) { return '<li style="padding:4px 0;color:#cbd5e1;">' + extEscape(p) + '</li>'; }).join("");
+    modal.innerHTML = '<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:90%;max-width:440px;padding:24px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">'
+        + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;"><span style="font-size:32px;">' + info.icon + '</span><h3 style="margin:0;color:#f8fafc;">Connect ' + extEscape(info.name) + '</h3></div>'
+        + '<p style="color:#94a3b8;font-size:14px;margin-bottom:12px;">This connector will request the following permissions:</p>'
+        + '<ul style="list-style:none;padding:0;margin:0 0 20px;">' + permList + '</ul>'
+        + '<p style="color:#64748b;font-size:12px;margin-bottom:20px;">You can disconnect at any time from the External Drives tab.</p>'
+        + '<div style="display:flex;gap:10px;justify-content:flex-end;">'
+        + '<button onclick="document.getElementById(\'consent-modal\').remove()" style="background:#334155;border:none;border-radius:6px;color:#f8fafc;padding:10px 20px;cursor:pointer;font-weight:500;">Cancel</button>'
+        + '<button onclick="document.getElementById(\'consent-modal\').remove();DriveExternal.doConnect(\'' + extEscape(providerId) + '\')" style="background:#3b82f6;border:none;border-radius:6px;color:#fff;padding:10px 20px;cursor:pointer;font-weight:500;">Allow &amp; Connect</button>'
+        + '</div></div>';
+    modal.addEventListener("click", function (e) { if (e.target === modal) modal.remove(); });
+    document.body.appendChild(modal);
+}
+
 async function connectExternalProvider(providerId) {
+    showConnectorConsent(providerId);
+}
+
+async function doConnectProvider(providerId) {
     try {
         showNotification("Opening " + providerId + "...", "info");
         var payload = await extApiRequest("/connect", {
@@ -148,7 +180,6 @@ async function connectExternalProvider(providerId) {
             body: JSON.stringify({ provider: providerId }),
         });
         if (!payload || !payload.authorize_url) throw new Error("no authorization URL returned");
-        // Full navigation: the provider redirects back to /api/external-drives/callback.
         window.location.href = payload.authorize_url;
     } catch (err) {
         showNotification("Connect failed: " + err.message, "error");
@@ -261,4 +292,5 @@ window.DriveExternal = {
     load: loadExternalTab,
     bind: bindExternalEvents,
     handleCallbackParams: handleExternalCallbackParams,
+    doConnect: doConnectProvider,
 };

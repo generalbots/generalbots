@@ -420,3 +420,47 @@ sup.gb-cite-ref:hover {
   background: var(--surface-2, rgba(255, 255, 255, 0.04));
   border-color: var(--accent, #7aa2ff);
 }
+
+/* ── Artifacts panel (GB6-09) ── */
+.gb-artifact-btn {
+  display: inline-flex; align-items: center; gap: 4px; margin-top: 8px;
+  padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border, #333);
+  background: var(--surface-2, #1e1e2e); color: var(--accent, #7aa2ff);
+  font-size: 12px; cursor: pointer; transition: background 0.15s;
+}
+.gb-artifact-btn:hover { background: var(--surface-3, #2a2a3e); }
+.gb-artifact-panel {
+  position: fixed; top: 0; right: 0; width: 50vw; min-width: 380px; height: 100vh;
+  background: var(--bg, #0f0f18); border-left: 1px solid var(--border, #333);
+  z-index: 90000; display: flex; flex-direction: column;
+  animation: slideInRight 0.2s ease;
+}
+@keyframes slideInRight { from { transform: translateX(100%); } to { transform: translateX(0); } }
+.gb-artifact-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 16px; border-bottom: 1px solid var(--border, #333);
+}
+.gb-artifact-title { font-weight: 600; color: var(--text, #e5e5e5); text-transform: uppercase; font-size: 12px; letter-spacing: 0.5px; }
+.gb-artifact-actions { display: flex; gap: 8px; }
+.gb-artifact-actions button {
+  padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border, #333);
+  background: transparent; color: var(--text-secondary, #888); cursor: pointer; font-size: 11px;
+}
+.gb-artifact-actions button:hover { color: var(--text, #fff); background: var(--surface-2, #1e1e2e); }
+.gb-artifact-body { flex: 1; overflow: auto; padding: 16px; }
+.gb-artifact-iframe { width: 100%; height: 100%; border: none; background: #fff; border-radius: 4px; }
+.gb-artifact-code { margin: 0; padding: 16px; font-size: 13px; line-height: 1.5; overflow: auto; }
+
+/* ── Model picker (GB6-10) ── */
+.gb-model-picker {
+  appearance: none; -webkit-appearance: none;
+  background: var(--surface-2, #1e1e2e); color: var(--text-secondary, #888);
+  border: 1px solid var(--border, #333); border-radius: 6px;
+  padding: 4px 8px; font-size: 11px; cursor: pointer;
+  max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gb-model-picker:focus { outline: none; border-color: var(--accent, #7aa2ff); color: var(--text, #e5e5e5); }
+
+/* ── Chat drag-drop overlay (GB6-15) ── */
+.gb-chat-drag { outline: 2px dashed var(--accent, #7aa2ff); outline-offset: -4px; background: rgba(37, 99, 235, 0.05); }
+#fileChip { cursor: pointer; padding: 2px 8px; border-radius: 4px; background: var(--surface-2, #1e1e2e); color: var(--text-secondary, #888); font-size: 11px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

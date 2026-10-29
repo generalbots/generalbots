@@ -1,10 +1,17 @@
+var CHAT_FRIENDLY_ERRORS = {
+  "Disconnected from chat server": "Chat disconnected. Reconnecting...",
+  "Failed to connect to chat server": "Could not reach the chat server. Retrying...",
+  "WebSocket connection failed": "Connection lost. Trying to reconnect...",
+};
+
 function notify(message, type) {
   type = type || "info";
+  var friendly = CHAT_FRIENDLY_ERRORS[message] || message;
   if (window.GBAlerts) {
     if (type === "error") {
-      window.GBAlerts.warning("Chat", message);
+      window.GBAlerts.warning("Chat", friendly);
     } else {
-      window.GBAlerts.info("Chat", message);
+      window.GBAlerts.info("Chat", friendly);
     }
   }
 }
@@ -40,6 +47,7 @@ function updateConnectionStatus(status) {
 // "Disconnected / connecting" flap. Probe the bot first so a private bot with
 // an anonymous visitor explains the real reason and offers a way in.
 function probeBotAccess(done) {
+  if (window.__BOT_IS_PUBLIC__) { ChatState.botAccess = "allowed"; done("allowed"); return; }
   if (ChatState.botAccess) { done(ChatState.botAccess); return; }
   var bot = ChatState.currentBotName || window.__INITIAL_BOT_NAME__ || "default";
   fetch("/api/bot/public?bot_name=" + encodeURIComponent(bot), { credentials: "same-origin" })
@@ -142,6 +150,7 @@ function dialChatSocket() {
       if (data.message_type === MessageType.BOT_RESPONSE) {
         var contentPreview = data.content ? data.content.substring(0, 200) : '(empty)';
         console.log("[WS] processMessage: complete=" + data.is_complete + " content_preview=" + contentPreview);
+        try { document.dispatchEvent(new CustomEvent("gb-ws-frame", { detail: data })); } catch (e) {}
         processMessage(data);
       }
 

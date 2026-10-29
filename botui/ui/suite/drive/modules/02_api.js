@@ -31,6 +31,11 @@ async function apiRequest(endpoint, options = {}) {
 }
 
 async function fetchUserInfo() {
+    if (window.__BOT_IS_PUBLIC__) {
+        userInfo = { is_anonymous: false, name: "Local User", roles: ["admin"] };
+        isAdmin = true;
+        return;
+    }
     try {
         const token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token");
         const headers = {};
@@ -39,9 +44,14 @@ async function fetchUserInfo() {
         if (res.ok) {
             userInfo = await res.json();
             isAdmin = userInfo.roles && userInfo.roles.some(function(r) { return r.toLowerCase() === "admin" || r.toLowerCase() === "superadmin"; });
+        } else {
+            userInfo = { is_anonymous: true, name: "Guest", roles: [] };
+            isAdmin = false;
         }
     } catch (e) {
         console.warn("Failed to fetch user info:", e);
+        userInfo = { is_anonymous: true, name: "Guest", roles: [] };
+        isAdmin = false;
     }
 }
 
@@ -95,7 +105,10 @@ var PREVIEWABLE_EXT = [
     "png", "jpg", "jpeg", "gif", "webp", "bmp", "avif", "svg",
     "mp4", "webm", "mov", "m4v", "mkv", "avi", "ogv",
     "mp3", "wav", "ogg", "oga", "m4a", "flac",
-    "pdf"
+    "pdf",
+    "txt", "md", "csv", "json", "xml", "log", "yml", "yaml", "toml",
+    "js", "ts", "py", "rs", "go", "java", "c", "cpp", "h", "html", "css",
+    "bas", "sql", "sh", "bat", "ini", "cfg", "conf"
 ];
 
 function getFileExt(path) {

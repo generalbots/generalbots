@@ -38,6 +38,12 @@
                 <div class="mention-results" id="mentionResults"></div>
             </div>
             <form class="input-container" id="chatForm">
+                <select id="modelPicker" class="gb-model-picker" title="Choose AI model">
+                    <option value="auto" selected>Auto</option>
+                    <option value="fast">Fast — quick answers, lower cost</option>
+                    <option value="balanced">Balanced — good quality, moderate speed</option>
+                    <option value="quality">Quality — best answers, slower</option>
+                </select>
                 <input name="content" id="messageInput" type="text"
                 placeholder="Message... (type @ to mention)"
                 data-i18n-placeholder="chat-placeholder" autofocus autocomplete="off" />
@@ -86,6 +92,10 @@
 <script src="/suite/chat/modules/20_tabs.js?v=5"></script>
 <script src="/suite/chat/modules/21_tabs_events.js?v=8"></script>
 <script src="/suite/chat/modules/22_multichat.js?v=21"></script>
+<script src="/suite/chat/modules/50_memory.js?v=1"></script>
+<script src="/suite/chat/modules/60_computer_use.js?v=1"></script>
+<script src="/suite/chat/modules/61_terminal_use.js?v=1"></script>
+<script src="/suite/chat/modules/62_sandbox.js?v=1"></script>
 <script src="/suite/js/chat-agent-mode.js?v=4"></script>
 <script src="/suite/js/ui-orchestrator.js?v=2"></script>
 <script src="/suite/js/gb-search.js"></script>

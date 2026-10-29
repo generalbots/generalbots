@@ -21,14 +21,26 @@ async function loadFiles(path, bucket) {
 
         var files = await apiRequest("/list?" + params.toString());
 
+        if (window.DriveOfflineSync) DriveOfflineSync.cacheFileListing(effectiveBucket, currentPath, files);
         renderFiles(files);
     } catch (err) {
         var msg = err.message || '';
         // Show a more user-friendly message for missing buckets
         if (msg.indexOf('NoSuchBucket') !== -1 || msg.indexOf('bucket does not exist') !== -1) {
-            content.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg><h3 style="color:#f8fafc;">Your Drive is empty</h3><p style="color:#94a3b8;">Upload files or create a new folder to get started.</p></div>';
+            content.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg><h3 style="color:#f8fafc;">Welcome to your Drive</h3><p style="color:#94a3b8;">Drag files here or click Upload to get started.</p></div>';
         } else {
-            content.innerHTML = '<div class="empty-state"><h3>Failed to load files</h3><p>' + escapeHtml(msg) + '</p><button class="btn-primary" onclick="DriveModule.loadFiles()">Retry</button></div>';
+            if (window.DriveOfflineSync) {
+                DriveOfflineSync.getCachedListing(getEffectiveBucket(), currentPath).then(function (cached) {
+                    if (cached && cached.files) {
+                        renderFiles(cached.files);
+                        showNotification("Showing cached files (offline)", "info");
+                    } else {
+                        content.innerHTML = '<div class="empty-state"><h3>Could not load files</h3><p>' + escapeHtml(humanizeError(msg)) + '</p><button class="btn-primary" onclick="DriveModule.loadFiles()">Try again</button></div>';
+                    }
+                });
+                return;
+            }
+            content.innerHTML = '<div class="empty-state"><h3>Could not load files</h3><p>' + escapeHtml(humanizeError(msg)) + '</p><button class="btn-primary" onclick="DriveModule.loadFiles()">Try again</button></div>';
         }
     }
 }
@@ -63,10 +75,13 @@ async function loadStorageInfo() {
 }
 
 async function uploadFiles(files) {
-    showNotification("Uploading " + files.length + " file(s)...", "info");
+    var total = files.length;
     var uploaded = 0;
     var failed = 0;
-    for (const file of files) {
+    var progressEl = showUploadProgress(total);
+    for (var fi = 0; fi < files.length; fi++) {
+        var file = files[fi];
+        updateUploadProgress(progressEl, fi, total, file.name);
         try {
             const content = await readFileAsBase64(file);
             var filePath = currentPath ? currentPath + "/" + file.name : file.name;
@@ -85,9 +100,43 @@ async function uploadFiles(files) {
             failed++;
         }
     }
+    hideUploadProgress(progressEl);
     if (failed === 0) showNotification("Uploaded " + uploaded + " file(s)", "success");
     else showNotification("Uploaded " + uploaded + ", " + failed + " failed", "warning");
     loadFiles(currentPath, currentBucket);
+}
+
+function showUploadProgress(total) {
+    var el = document.getElementById("gb-upload-progress");
+    if (el) el.remove();
+    el = document.createElement("div");
+    el.id = "gb-upload-progress";
+    el.style.cssText = "position:fixed;bottom:24px;right:24px;background:#1e293b;border:1px solid #334155;border-radius:10px;padding:14px 18px;min-width:280px;z-index:9999;box-shadow:0 8px 24px rgba(0,0,0,0.4);";
+    el.innerHTML = '<div style="color:#f8fafc;font-size:13px;margin-bottom:8px;" id="gb-upload-label">Preparing upload...</div>'
+        + '<div style="background:#0f172a;border-radius:4px;height:6px;overflow:hidden;"><div id="gb-upload-bar" style="height:100%;background:#3b82f6;border-radius:4px;width:0%;transition:width 0.3s;"></div></div>'
+        + '<div style="color:#64748b;font-size:11px;margin-top:6px;" id="gb-upload-detail">0 / ' + total + '</div>';
+    document.body.appendChild(el);
+    return el;
+}
+
+function updateUploadProgress(el, current, total, fileName) {
+    if (!el) return;
+    var pct = Math.round(((current) / total) * 100);
+    var bar = document.getElementById("gb-upload-bar");
+    var label = document.getElementById("gb-upload-label");
+    var detail = document.getElementById("gb-upload-detail");
+    if (bar) bar.style.width = pct + "%";
+    if (label) label.textContent = "Uploading " + (fileName.length > 30 ? fileName.substring(0, 27) + "..." : fileName);
+    if (detail) detail.textContent = current + " / " + total;
+}
+
+function hideUploadProgress(el) {
+    if (!el) return;
+    var bar = document.getElementById("gb-upload-bar");
+    if (bar) bar.style.width = "100%";
+    var label = document.getElementById("gb-upload-label");
+    if (label) label.textContent = "Upload complete";
+    setTimeout(function () { if (el.parentNode) el.remove(); }, 2000);
 }
 
 async function createFolder() {
@@ -197,19 +246,27 @@ async function loadTrashFiles() {
     }
 }
 
-async function searchFiles(query) {
+async function searchFiles(query, allBuckets) {
     const content = document.getElementById("drive-content") || document.getElementById("file-grid");
     if (!content) return;
-    content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Searching...</p></div>';
+    content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Searching' + (allBuckets ? ' everywhere' : '') + '...</p></div>';
     try {
         const params = new URLSearchParams();
         params.set("query", query);
-        if (currentBucket) params.set("bucket", getEffectiveBucket());
+        if (!allBuckets && currentBucket) params.set("bucket", getEffectiveBucket());
         params.set("scope", currentScope);
         const files = await apiRequest("/search?" + params.toString());
+        if ((!files || files.length === 0) && !allBuckets && currentBucket) {
+            return searchFiles(query, true);
+        }
         renderFiles(files);
+        if (files && files.length > 0) {
+            showNotification("Found " + files.length + " result(s)", "success");
+        } else {
+            content.innerHTML = '<div class="empty-state"><h3>No results</h3><p>No files matched "' + escapeHtml(query) + '"</p></div>';
+        }
     } catch (err) {
-        content.innerHTML = '<div class="empty-state"><h3>Search failed</h3></div>';
+        content.innerHTML = '<div class="empty-state"><h3>Search failed</h3><p>' + escapeHtml(humanizeError(err.message)) + '</p></div>';
     }
 }
 

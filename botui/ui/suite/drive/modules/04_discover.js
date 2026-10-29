@@ -19,12 +19,16 @@ async function probeLayout(bucket, path) {
 
 async function discoverBuckets() {
     try {
-        // An org claim from the session decides the layout. It used to be
-        // treated as a hint that could be overridden by probing, because
-        // channel stagers wrote org bots to a standalone `{bot}.gbai` bucket
-        // and the org path therefore listed empty. Those stagers now resolve
-        // the bucket through the bot's org (server side), so the org layout is
-        // authoritative: an empty org Drive means empty, not "try elsewhere".
+        if (window.__BOT_IS_PUBLIC__ && !currentBucket && !bucketLayoutResolved) {
+            bucketLayoutResolved = true;
+            var localBot = window.__INITIAL_BOT_NAME__ || "default";
+            currentBucket = localBot + ".gbai";
+            currentGborgBucket = null;
+            currentGborgBranch = localBot;
+            retryCount = 0;
+            return;
+        }
+
         if (userInfo && userInfo.bucket) {
             var bucketName = userInfo.bucket;
             currentBucket = bucketName;

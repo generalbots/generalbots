@@ -1631,3 +1631,202 @@ boto3 (`{bot}.gbdrive/media/...`). One error at a time; the dumps tell the layer
 | Offers | `/cloud/offers` | `/tmp/saas_admin_offers.png` |
 
 **Evidence slideshow:** `python3 -m http.server 9090 --directory /tmp` → open `http://localhost:9090/slideshow.html`
+
+---
+
+## Desktop-Local Edition (Chat + Drive)
+
+A stripped-down desktop build of General Bots containing **only Chat and Drive**, distributed as a native installer for a government program. Branch: `release/desktop-chat-drive`, now merged to `main`.
+
+### Design Principles
+
+- **Feature flags, not forks** — all changes use `#[cfg(feature = "desktop-local")]` or runtime config; the default full build is unchanged.
+- **Offline-first** — no downloads at first boot; all third-party binaries ship inside the installer.
+- **No authentication** — single-user desktop mode via `no_security=true` in `.product.desktop-local`.
+
+### Feature Bundle
+
+`botserver/Cargo.toml` defines `desktop-local`:
+```toml
+desktop-local = [
+    "chat", "drive", "security", "llm", "vectordb",
+    "settings", "no-security", "kb-extraction",
+    "botcore/desktop-local",
+]
+```
+
+Build: `cargo build -p botserver --no-default-features --features desktop-local`
+
+### Architecture
+
+```
+┌──────────────────────────────────────────────────┐
+│  botapp (Tauri 2)                                │
+│  ┌─────────────┐   ┌──────────────────────────┐  │
+│  │  Sidecar     │──▶│  botserver (desktop-local)│  │
+│  │  start/stop  │   │  API :8080               │  │
+│  └─────────────┘   │  Services: tables, cache, │  │
+│        ▲            │  drive, llm, vector_db    │  │
+│        │            └──────────────────────────┘  │
+│  ┌─────────────┐                                  │
+│  │  WebView     │◀── suite/desktop.html           │
+│  │  (hidden     │    /api/product → no_security   │
+│  │   until API  │    Auth gate bypassed            │
+│  │   responds)  │                                  │
+│  └─────────────┘                                  │
+└──────────────────────────────────────────────────┘
+```
+
+### Sidecar Lifecycle (`botapp/src/desktop/sidecar.rs`)
+
+| Event | Action |
+|-------|--------|
+| **App startup** | `Sidecar::start(resource_dir)` spawns `botserver.exe` with `BOTSERVER_STACK_PATH` and `BOTSERVER_INSTALLERS_PATH` env vars. Copies `.product.desktop-local` from Tauri resources to stack path. |
+| **API poll** | Background async task polls `http://localhost:8080/api/product` every 500ms (120s timeout). Window stays hidden (`visible: false`) until API responds. |
+| **API ready** | `window.show()` — WebView loads `suite/desktop.html`. |
+| **App exit** | `RunEvent::ExitRequested` → `sidecar.stop()` kills the child process. `Drop` impl as safety net. |
+
+**Binary resolution:** `BOTSERVER_BIN` env var → or same directory as botapp executable.
+**Stack path:** `BOTSERVER_STACK_PATH` env var → or `%LOCALAPPDATA%/generalbots/stack` (Windows) / `~/.local/share/generalbots/stack` (Linux).
+
+### Bootstrap (desktop-local vs full)
+
+| Component | Full build | desktop-local |
+|-----------|-----------|---------------|
+| vault | ✅ | ✅ |
+| tables (PostgreSQL) | ✅ | ✅ |
+| cache (Valkey) | ✅ | ✅ |
+| drive (MinIO) | ✅ | ✅ |
+| llm (llama.cpp) | ✅ | ✅ |
+| vector_db (Qdrant) | ✅ | ✅ |
+| directory (Zitadel) | ✅ | ❌ |
+| alm (Forgejo) | ✅ | ❌ |
+| alm-ci (Runner) | ✅ | ❌ |
+
+**Code:** `botcore/src/bootstrap/bootstrap_manager/install.rs` (component list) and `lifecycle.rs` (service startup). Directory OAuth and ALM post-startup are gated with `!cfg!(feature = "desktop-local")`.
+
+### Offline Installation (`package_manager/facade/part6.rs`, `part2.rs`)
+
+When `desktop-local` is active:
+- `download_and_install()` **refuses network downloads** — components must exist in the `botserver-installers/` cache directory (resolved via `BOTSERVER_INSTALLERS_PATH` or `./botserver-installers/`).
+- `data_download_list()` (LLM models) follows the same offline-only policy.
+- SHA256 checksums from `3rdparty.toml` are verified after resolving a cached file; mismatch aborts with a clear error.
+
+**Preparing offline installers:**
+```bash
+# Download components and compute SHA256 for 3rdparty.toml
+./scripts/compute-desktop-checksums.sh windows   # or: linux
+# Place downloaded files in botserver/botserver-installers/
+```
+
+### Product Configuration
+
+**File:** `botserver/.product.desktop-local` (loaded first when `desktop-local` feature is active, before `.product`).
+
+| Key | Value | Effect |
+|-----|-------|--------|
+| `apps` | `chat,drive` | Only Chat and Drive in the launcher |
+| `suite_default_app` | `chat` | Chat opens automatically on load |
+| `sidebar` | `false` | No multi-bot sidebar |
+| `no_security` | `true` | UI skips auth gate entirely |
+| `search_enabled` | `false` | No omnibox |
+| `menu_launcher_enabled` | `true` | Launcher for switching Chat ↔ Drive |
+
+**`suite_default_app`** is a general-purpose feature: any `.product` file can set it. The Suite UI (`desktop.html`) reads it from `/api/product` and resolves it against `APPS_REGISTRY`.
+
+**`no_security`** is parsed in `ProductConfig` (`product/part1.rs`) and exposed in the `/api/product` JSON response (`product/part2.rs`). When `true`, `desktop.html` sets `window.__BOT_IS_PUBLIC__ = true` and removes the `gb-auth-gate` CSS class before the auth check runs.
+
+### Tauri Configuration
+
+| File | Purpose |
+|------|---------|
+| `botapp/tauri.conf.json` | Base config: `frontendDist: ../botui/ui`, `url: suite/desktop.html`, icons. No `externalBin` (would fail in dev without binary). |
+| `botapp/tauri.desktop-local.conf.json` | Production override: NSIS/MSI/deb/AppImage targets, `externalBin: ["binaries/botserver"]`, resources mapping for `.product.desktop-local` and `installers/`. Merged via `--config` flag at build time. |
+
+**NSIS:** Portuguese BR + English, language selector, per-machine install.
+**WiX/MSI:** pt-BR + en-US.
+**deb:** depends on `libssl3`, `libwebkit2gtk-4.1-0`.
+
+### Build Script (`scripts/build-desktop-local.sh`)
+
+```bash
+./scripts/build-desktop-local.sh --target windows   # or: linux, all
+```
+
+Steps:
+1. `cargo build -p botserver --release --no-default-features --features desktop-local`
+2. Copy botserver binary to `botapp/binaries/botserver-{triple}.exe`
+3. Verify `botserver/botserver-installers/` has bundled third-party binaries
+4. `cargo tauri build --features desktop-local --config tauri.desktop-local.conf.json`
+
+Output: `botapp/target/release/bundle/` (MSI, NSIS .exe, deb, AppImage).
+
+### Testing the Desktop-Local Edition (Dev Mode)
+
+**Prerequisites:** PostgreSQL `libpq.dll` must be in PATH (`C:\pgsql\pgsql\bin` on this machine).
+
+```bash
+# Terminal 1: Start botserver
+export PATH="$PATH:/c/pgsql/pgsql/bin"
+cargo run -p botserver --no-default-features --features desktop-local
+
+# Terminal 2: Serve suite UI (needed in dev — Tauri devUrl points to :3000)
+cd botui/ui && python -m http.server 3000
+
+# Terminal 3: Start botapp
+cargo run -p botapp --features desktop-local
+
+# Or test without Tauri — open in browser:
+# http://localhost:3000/suite/desktop.html
+```
+
+**Verify `/api/product`:**
+```bash
+curl -s http://localhost:8080/api/product | python -m json.tool
+# Expected: apps=[chat,drive], no_security=true, suite_default_app=chat
+```
+
+**Known dev issues:**
+- botserver takes ~65s to start (DriveConfig retries when Vault lacks MinIO credentials — continues without Drive after 10 retries).
+- `cargo test -p botcore` fails with `STATUS_DLL_NOT_FOUND` (missing `libpq.dll` at runtime — pre-existing environment issue, not desktop-local specific).
+- `is_running()` in sidecar.rs triggers `dead_code` warning (reserved for future health checks).
+
+### Environment Notes (This Machine)
+
+| Item | Path / Value |
+|------|-------------|
+| OS | Windows 11 Home, CUDA 13.x GPU |
+| Repo | `C:\Users\thipa\gbstandalone` |
+| PostgreSQL libs | `C:\pgsql\pgsql\bin\libpq.dll` (needs `PQ_LIB_DIR=C:\pgsql\pgsql\lib`) |
+| Stack path | `%LOCALAPPDATA%\generalbots\stack` |
+| Remote | `https://github.com/generalbots/generalbots.git` |
+
+### Open Decisions (Not Yet Implemented)
+
+| Decision | Options | Notes |
+|----------|---------|-------|
+| **Secrets** | Vault (current) vs OS keyring | Vault works but requires bootstrap. OS keyring would be simpler for single-user. |
+| **LLM** | Local model (llama.cpp, bundled) vs external provider (configurable URL) | llama.cpp is already in the component list. GPU detected (CUDA 13.x). |
+
+Login decision was resolved: **`no-security`** mode, no Zitadel, no login screen.
+
+### Commit History (branch `release/desktop-chat-drive`)
+
+| Hash | Meta | Summary |
+|------|------|---------|
+| `5adc2d3` | — | Fix 3 Windows compilation errors on main |
+| `957fe11` | 1 | Feature bundle `desktop-local` + 140 missing cfg gates |
+| `a5962f7` | 2 | Slim bootstrap to tables, cache, drive, llm, vector_db |
+| `8cb76bf` | 3 | Offline installation + checksum verification |
+| `faea19c` | 4 | Sidecar lifecycle (start/poll/stop) in botapp |
+| `7fec45e` | 5 | `suite_default_app` + `.product.desktop-local` |
+| `2c4cb6d` | 6 | Tauri installers, no-security auth bypass, build script |
+
+### Files Modified (by meta)
+
+**Meta 1 — Feature bundle:** `botserver/Cargo.toml`, 17 source files with `#[cfg(feature)]` gates.
+**Meta 2 — Bootstrap:** `botcore/Cargo.toml`, `install.rs`, `lifecycle.rs`.
+**Meta 3 — Offline:** `part6.rs`, `part2.rs`, `scripts/compute-desktop-checksums.sh`.
+**Meta 4 — Sidecar:** `botapp/Cargo.toml`, `sidecar.rs`, `desktop/mod.rs`, `main.rs`, `tauri.conf.json`.
+**Meta 5 — Product:** `product/mod.rs`, `part1.rs`, `part2.rs`, `.product.desktop-local`, `desktop.html`.
+**Meta 6 — Installers:** `sidecar.rs`, `main.rs`, `tauri.conf.json`, `tauri.desktop-local.conf.json`, `.product.desktop-local`, `product/mod.rs`, `part1.rs`, `part2.rs`, `desktop.html`, `scripts/build-desktop-local.sh`.

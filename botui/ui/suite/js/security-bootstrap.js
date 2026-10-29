@@ -209,6 +209,7 @@
     },
 
     handleUnauthorized: function (url) {
+      if (window.__BOT_IS_PUBLIC__) return;
       console.warn("[GBSecurity] Unauthorized response from:", url);
 
       // Fresh visit with NO token anywhere — every page-load fires ~10 API

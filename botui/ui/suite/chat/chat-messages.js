@@ -231,9 +231,45 @@ function renderDeepLinks(html) {
   return html;
 }
 
+function persistLocalMessage(sender, content) {
+  try {
+    var key = "gb_chat_history_" + (ChatState.currentSessionId || "default");
+    var history = JSON.parse(localStorage.getItem(key) || "[]");
+    history.push({ sender: sender, content: content, ts: Date.now() });
+    if (history.length > 200) history = history.slice(-200);
+    localStorage.setItem(key, JSON.stringify(history));
+  } catch (e) {}
+}
+
+function loadLocalHistory() {
+  try {
+    var key = "gb_chat_history_" + (ChatState.currentSessionId || "default");
+    return JSON.parse(localStorage.getItem(key) || "[]");
+  } catch (e) { return []; }
+}
+
+function listLocalSessions() {
+  var sessions = [];
+  try {
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (k && k.indexOf("gb_chat_history_") === 0) {
+        var id = k.replace("gb_chat_history_", "");
+        var msgs = JSON.parse(localStorage.getItem(k) || "[]");
+        if (msgs.length > 0) {
+          sessions.push({ id: id, last_message: msgs[msgs.length - 1].content || "", ts: msgs[msgs.length - 1].ts || 0, count: msgs.length });
+        }
+      }
+    }
+    sessions.sort(function (a, b) { return b.ts - a.ts; });
+  } catch (e) {}
+  return sessions;
+}
+
 function addMessage(sender, content, msgId, reasoning) {
   var messages = document.getElementById("messages");
   if (!messages) return;
+  if (content && sender) persistLocalMessage(sender, content);
 
   var div = document.createElement("div");
   div.className = "message " + sender;
@@ -272,6 +308,19 @@ function addMessage(sender, content, msgId, reasoning) {
     toolCards.forEach(function (tool) {
       if (tool.status) ChatCodeUX.appendCard(tool);
     });
+  }
+  if (sender === "bot" && content) {
+    var codeBlocks = content.match(/```[\s\S]{300,}?```/g);
+    if (codeBlocks && codeBlocks.length > 0) {
+      var artifactBtn = document.createElement("button");
+      artifactBtn.className = "gb-artifact-btn";
+      artifactBtn.textContent = "Open as document";
+      artifactBtn.addEventListener("click", function () {
+        openArtifactPanel(content);
+      });
+      var msgContent = div.querySelector(".message-content");
+      if (msgContent) msgContent.appendChild(artifactBtn);
+    }
   }
 
   if (!ChatState.isUserScrolling) {
@@ -447,4 +496,58 @@ function processMessage(data) {
       }
     }
   }
+}
+
+function openArtifactPanel(content) {
+  var existing = document.getElementById("gb-artifact-panel");
+  if (existing) existing.remove();
+
+  var codeMatch = content.match(/```(\w*)\n([\s\S]*?)```/);
+  var lang = codeMatch ? codeMatch[1] : "";
+  var code = codeMatch ? codeMatch[2] : content;
+
+  var panel = document.createElement("div");
+  panel.id = "gb-artifact-panel";
+  panel.className = "gb-artifact-panel";
+  var isHtml = lang === "html" || /<html|<body|<div/i.test(code);
+  var preview = "";
+  if (isHtml) {
+    preview = '<iframe class="gb-artifact-iframe" sandbox="allow-scripts"></iframe>';
+  } else {
+    var highlighted = window.ChatCodeUX ? window.ChatCodeUX.highlight(code, lang) : code.replace(/</g, "&lt;");
+    preview = '<pre class="gb-artifact-code"><code>' + highlighted + '</code></pre>';
+  }
+  panel.innerHTML =
+    '<div class="gb-artifact-header">' +
+    '<span class="gb-artifact-title">' + (lang || "Document") + '</span>' +
+    '<div class="gb-artifact-actions">' +
+    '<button class="gb-artifact-copy" title="Copy">Copy</button>' +
+    '<button class="gb-artifact-save" title="Save to Drive">Save</button>' +
+    '<button class="gb-artifact-close" title="Close">Close</button>' +
+    '</div></div>' +
+    '<div class="gb-artifact-body">' + preview + '</div>';
+
+  document.body.appendChild(panel);
+
+  if (isHtml) {
+    var iframe = panel.querySelector("iframe");
+    if (iframe) iframe.srcdoc = code;
+  }
+  panel.querySelector(".gb-artifact-close").addEventListener("click", function () { panel.remove(); });
+  panel.querySelector(".gb-artifact-copy").addEventListener("click", function () {
+    if (navigator.clipboard) navigator.clipboard.writeText(code);
+  });
+  panel.querySelector(".gb-artifact-save").addEventListener("click", function () {
+    var ext = lang || "txt";
+    if (isHtml) ext = "html";
+    var fileName = "artifact-" + Date.now() + "." + ext;
+    if (window.DriveModule && typeof apiRequest === "function") {
+      apiRequest("/write", {
+        method: "POST",
+        body: JSON.stringify({ bucket: getEffectiveBucket ? getEffectiveBucket() : "", path: fileName, content: btoa(unescape(encodeURIComponent(code))), scope: "user" })
+      }).then(function () {
+        if (window.GBToasts) GBToasts.show("Saved", "File saved to Drive as " + fileName, "success");
+      }).catch(function () {});
+    }
+  });
 }
