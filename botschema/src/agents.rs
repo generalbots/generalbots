@@ -84,6 +84,17 @@ diesel::table! {
         expires_at -> Nullable<Timestamptz>,
         metadata -> Nullable<Jsonb>,
         created_at -> Timestamptz,
+        active_conversation_id -> Nullable<Varchar>,
+    }
+}
+
+diesel::table! {
+    agent_conversation_folders (id) {
+        id -> Uuid,
+        agent_session_id -> Uuid,
+        conversation_id -> Varchar,
+        folder_path -> Varchar,
+        created_at -> Timestamptz,
     }
 }
 
@@ -130,6 +141,7 @@ diesel::table! {
 diesel::joinable!(agent_runs -> agent_schedules (schedule_id));
 diesel::joinable!(agent_spans -> agent_runs (run_id));
 diesel::joinable!(agent_snapshots -> agent_sessions (agent_session_id));
+diesel::joinable!(agent_conversation_folders -> agent_sessions (agent_session_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
     agent_schedules,
@@ -138,6 +150,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     compute_usage_hourly,
     agent_sessions,
     agent_snapshots,
+    agent_conversation_folders,
     org_api_keys,
     sandbox_runs,
 );

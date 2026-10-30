@@ -5,6 +5,8 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
+/// One running VM per logged-in user (#1580). The `session_id` field is kept
+/// for backward compatibility but lookups now go through `user_id`.
 #[derive(Debug, Clone, Serialize, Queryable, Selectable, Insertable)]
 #[diesel(table_name = crate::schema::agent_sessions)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
@@ -20,6 +22,18 @@ pub struct AgentSessionRow {
     pub last_active_at: DateTime<Utc>,
     pub expires_at: Option<DateTime<Utc>>,
     pub metadata: Option<serde_json::Value>,
+    pub created_at: DateTime<Utc>,
+    pub active_conversation_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Queryable, Selectable, Insertable)]
+#[diesel(table_name = crate::schema::agent_conversation_folders)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct AgentConversationFolderRow {
+    pub id: Uuid,
+    pub agent_session_id: Uuid,
+    pub conversation_id: String,
+    pub folder_path: String,
     pub created_at: DateTime<Utc>,
 }
 
@@ -73,6 +87,19 @@ pub struct ModeBody {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct ConversationSwitchBody {
+    pub conversation_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct VmExecBody {
+    pub conversation_id: String,
+    pub language: String,
+    pub code: String,
+    pub timeout_ms: Option<u64>,
+}
+
+#[derive(Debug, Deserialize)]
 pub struct SnapshotCreateBody {
     pub label: Option<String>,
 }
@@ -89,6 +116,5 @@ pub struct ExecBody {
 pub struct KeyCreateBody {
     pub name: String,
     pub scopes: Vec<String>,
-    /// Required when an admin JWT (instead of an org key) creates a key.
     pub org_id: Option<Uuid>,
 }

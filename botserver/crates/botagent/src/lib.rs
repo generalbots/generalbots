@@ -1,8 +1,9 @@
-//! #1167 / #1172 — Always-On Agent Mode backend.
+//! #1167 / #1172 / #1580 — Always-On Agent Mode backend.
 //!
-//! Per-chat Incus VMs (`agent_sessions`, `agent_snapshots`), org API keys
-//! (`org_api_keys`) and the sandboxed code-execution service (`sandbox_runs`).
-//! All Incus invocations go through `botlib::security::command_guard::SafeCommand`.
+//! Per-user Incus VMs (`agent_sessions`), per-conversation folders
+//! (`agent_conversation_folders`), org API keys (`org_api_keys`) and the
+//! sandboxed code-execution service (`sandbox_runs`). All Incus invocations
+//! go through `botlib::security::command_guard::SafeCommand`.
 
 pub mod api;
 pub mod keys;
@@ -62,15 +63,23 @@ impl AgentService {
 pub fn configure_routes() -> axum::Router<Arc<AgentService>> {
     use axum::routing::{delete, get, post};
     axum::Router::new()
+        // Legacy per-session toggle (kept for backward compat).
         .route("/api/agent/sessions/mode", post(api::set_agent_mode))
         .route("/api/agent/sessions/current", get(api::current_session))
+        // Per-user VM (#1580).
+        .route("/api/agent/vm/status", get(api::user_vm_status))
+        .route("/api/agent/vm/exec", post(api::vm_exec))
+        .route("/api/agent/conversations/switch", post(api::switch_conversation))
+        // Snapshots.
         .route(
             "/api/agent/sessions/:id/snapshots",
             get(snapshots::list_snapshots).post(snapshots::create_snapshot),
         )
         .route("/api/agent/snapshots/:id/restore", post(snapshots::restore_snapshot))
         .route("/api/agent/snapshots/:id", delete(snapshots::delete_snapshot))
+        // Sandbox.
         .route("/api/v1/sandbox/exec", post(api::sandbox_exec))
+        // Org keys.
         .route(
             "/api/cloud/orgkeys",
             get(keys::list_org_keys).post(keys::create_org_key),

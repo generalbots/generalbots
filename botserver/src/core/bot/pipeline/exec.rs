@@ -30,9 +30,9 @@ pub async fn process_message_internal(
     } = *identity;
     let parsed: serde_json::Value = serde_json::from_str(text).unwrap_or_default();
 
-    // Agent-mode switcher control frame (issue #1167). Consumed before the
-    // regular pipeline so it never reaches the LLM; ignored when the
-    // agent-vm feature is disabled at boot.
+    // Agent-mode control frame (legacy toggle, #1167). Always-on since #1580
+    // but kept for backward compat — the frame is consumed so it never
+    // reaches the LLM.
     #[cfg(feature = "agent-vm")]
     if parsed.get("type").and_then(|v| v.as_str()) == Some("agent_mode") {
         if let Some(status) = crate::core::bot::agent_vm_hook::handle_frame(
@@ -377,6 +377,31 @@ pub async fn process_message_internal(
                     "The user referenced Vibe project '{project_name}' (id: {project_id}).\n\
                      For code changes to this project, use the vibe.project.change command with \
                      project_id='{project_id}', project_name='{project_name}', and the user's requested intent."
+                ),
+            }));
+        }
+    }
+
+    // #1580: Always-on agent VM — auto-provision and inject execution context.
+    #[cfg(feature = "agent-vm")]
+    {
+        if let Some(vm_session) = crate::core::bot::agent_vm_hook::ensure_agent_vm(
+            session_id, user_id, bot_uuid,
+        ).await {
+            let conv_id = vm_session.active_conversation_id.as_deref().unwrap_or("default");
+            messages.push(serde_json::json!({
+                "role": "system",
+                "content": format!(
+                    "You have a running VM workspace '{}' (status: {}). \
+                     The current conversation folder is /opt/vibe/conversations/{}. \
+                     When the user asks you to generate, create, or process anything \
+                     (PDF, code, data, scripts), write a program (Python or Node.js) \
+                     and use the vm_exec tool to run it in the conversation folder. \
+                     Output files will be served back as previews. \
+                     Do NOT refuse tasks that require code execution — you have a \
+                     full Linux VM available. Generate the program dynamically based \
+                     on what the user needs.",
+                    vm_session.vm_name, vm_session.status, conv_id,
                 ),
             }));
         }

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="gb-version" content="6.7.0-test">
+  <title>GB Test Harness</title>
+  <link rel="stylesheet" href="/suite/css/app.css">
+  <link rel="stylesheet" href="/suite/css/base.css">
+  <link rel="stylesheet" href="/suite/css/theme-sentient.css">
+  <style>
+    body { background:#0f172a; color:#e2e8f0; font-family:system-ui; margin:0; height:100vh; display:flex; }
+    #desktop-content { flex:1; position:relative; }
+    #taskbar, #taskbar-center { display:none; }
+  </style>
+  <script>
+    window.__BOT_IS_PUBLIC__ = true;
+    window.__TAURI__ = undefined;
+    window.htmx = { on: function(){}, off: function(){}, process: function(){} };
+  </script>
+  <script src="/suite/js/vendor/marked.min.js"></script>
+  <script src="/suite/js/window-manager.js"></script>
+  <script src="/suite/js/auto-update.js"></script>
+  <script src="/suite/js/privacy-controls.js"></script>
+  <script src="/suite/js/accessibility.js"></script>
+</head>
+<body>
+  <div id="desktop-content"></div>
+  <div id="chat-app"><div id="messages"></div><form id="chatForm"><input id="messageInput"/><button id="sendBtn">Send</button></form></div>
+  <div id="taskbar"><div id="taskbar-center"></div></div>
+  <div id="harness-ready" style="display:none">READY</div>
+  <script>document.getElementById("harness-ready").style.display="block";</script>
+</body>
+</html>
