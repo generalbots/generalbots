@@ -163,6 +163,7 @@ if (typeof window.WindowManager === "undefined") {
         /* storage unavailable — the switch still applies to this page */
       }
       refreshAppsCatalog();
+      window.dispatchEvent(new CustomEvent("gb-preview-changed", { detail: { preview: !!on } }));
     },
   };
 
@@ -1055,6 +1056,7 @@ if (typeof window.WindowManager === "undefined") {
     // Only available in the desktop shell (web channel).
     openDeepLink(appId, params, opts) {
       opts = opts || {};
+      if (!window.GBPreviewMode.isOn() && isPreviewId(appId)) return;
       const app = (window.APPS_REGISTRY || APPS_REGISTRY).find((a) => a.id === appId);
       const title = app ? app.title : appId;
       const hxGet = app ? app.hxGet : `/suite/partials/${appId}.html`;

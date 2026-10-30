@@ -47,7 +47,7 @@ function sendMessage(messageContent) {
     content: content,
     message_type: MessageType.USER,
     active_switchers: Array.from(ChatState.activeSwitchers),
-    drive_context: (!isAnonymous && driveFiles.length > 0 && (!window.GBPrivacy || GBPrivacy.getSettings().save_memory !== false)) ? driveFiles.slice(0, 20) : undefined,
+    drive_context: (!isAnonymous && driveFiles.length > 0 && (!window.GBPrivacy || GBPrivacy.getSettings().save_memory !== false)) ? { source: "user_drive", untrusted: true, files: driveFiles.slice(0, 20) } : undefined,
     model_preference: selectedModel !== "auto" ? selectedModel : undefined,
     user_memory: (!isAnonymous && window.ChatMemory && ChatMemory.getMemorySummary && (!window.GBPrivacy || GBPrivacy.getSettings().save_memory !== false)) ? ChatMemory.getMemorySummary() : undefined,
     mentions: selectedMentions.map(function (mention) {

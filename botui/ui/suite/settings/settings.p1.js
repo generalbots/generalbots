@@ -55,6 +55,7 @@
     bindFormValidation();
     initLanguageSettings();
     loadSavedSettings();
+    syncPreviewToggle();
     initUserManagement();
     initGroupManagement();
     loadCurrentUser();
@@ -998,6 +999,18 @@
       if (navItem) showSection(hash, navItem);
     }
   }
+
+  window.togglePreviewMode = function (el) {
+    if (window.GBPreviewMode) {
+      GBPreviewMode.set(el.checked);
+    }
+  };
+
+  function syncPreviewToggle() {
+    var el = document.getElementById("settings-preview-toggle");
+    if (el && window.GBPreviewMode) el.checked = GBPreviewMode.isOn();
+  }
+  window.addEventListener("gb-preview-changed", syncPreviewToggle);
 
   window.SettingsModule = {
     init: init,

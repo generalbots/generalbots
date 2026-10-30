@@ -130,6 +130,7 @@ var featureFiles = [
   "drive/modules/08_modals.js",
   "drive/modules/11_external.js",
   "drive/modules/12_offline_sync.js",
+  "drive/modules/98_actions.js",
   "js/auto-update.js",
   "js/data-export.js",
   "js/usage-stats.js",
@@ -234,6 +235,54 @@ test("GB6-11: Drive preview (markdown/CSV/JSON)", function () {
   assert(src.indexOf("csv") !== -1, "CSV preview not found");
   assert(src.indexOf("json") !== -1, "JSON preview not found");
   assert(src.indexOf("marked") !== -1, "markdown preview not found");
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// BBSIA META 10 REVIEW FINDINGS
+// ═══════════════════════════════════════════════════════════════════
+
+test("BBSIA-01: drive/02_api.js — no admin self-assignment for public bot", function () {
+  var src = readFile("drive/modules/02_api.js");
+  assert(src.indexOf('roles: ["admin"]') === -1, "admin self-assignment still present in 02_api.js");
+  assert(src.indexOf('roles: ["user"]') !== -1, "user role not set for public bot");
+});
+
+test("BBSIA-02: gb-preview-changed event dispatched by GBPreviewMode.set()", function () {
+  var src = readFile("js/window-manager.js");
+  assert(src.indexOf("gb-preview-changed") !== -1, "gb-preview-changed event not found");
+  assert(src.indexOf('new CustomEvent("gb-preview-changed"') !== -1, "CustomEvent dispatch not found");
+});
+
+test("BBSIA-03: deep-link blocking for preview apps when preview OFF", function () {
+  var src = readFile("js/window-manager.js");
+  assert(src.indexOf("isPreviewId(appId)") !== -1, "preview check in openDeepLink not found");
+});
+
+test("BBSIA-04: settings preview mode toggle exists", function () {
+  var settingsHtml = fs.readFileSync(path.join(SUITE_DIR, "settings/index.html"), "utf8");
+  assert(settingsHtml.indexOf("settings-preview-toggle") !== -1, "preview toggle not in settings");
+  assert(settingsHtml.indexOf("togglePreviewMode") !== -1, "togglePreviewMode handler not in settings HTML");
+  var settingsJs = fs.readFileSync(path.join(SUITE_DIR, "settings/settings.p1.js"), "utf8");
+  assert(settingsJs.indexOf("togglePreviewMode") !== -1, "togglePreviewMode not in settings JS");
+  assert(settingsJs.indexOf("gb-preview-changed") !== -1, "gb-preview-changed listener not in settings JS");
+});
+
+test("BBSIA-05: drive_context framed as untrusted data", function () {
+  var src = readFile("chat/chat-init.js");
+  assert(src.indexOf("untrusted: true") !== -1, "untrusted flag not found in drive_context");
+  assert(src.indexOf("source: \"user_drive\"") !== -1, "source label not found in drive_context");
+});
+
+test("BBSIA-06: 99_init.js under 350 lines (file split)", function () {
+  var src = readFile("drive/modules/99_init.js");
+  var lineCount = src.split("\n").length;
+  assert(lineCount <= 350, "99_init.js has " + lineCount + " lines (max 350)");
+  assert(fileExists("drive/modules/98_actions.js"), "98_actions.js not found (extracted file actions)");
+});
+
+test("BBSIA-07: 98_actions.js loaded in drive.html", function () {
+  var driveHtml = fs.readFileSync(path.join(SUITE_DIR, "drive/drive.html"), "utf8");
+  assert(driveHtml.indexOf("98_actions.js") !== -1, "98_actions.js not referenced in drive.html");
 });
 
 // ═══════════════════════════════════════════════════════════════════

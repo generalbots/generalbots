@@ -32,8 +32,8 @@ async function apiRequest(endpoint, options = {}) {
 
 async function fetchUserInfo() {
     if (window.__BOT_IS_PUBLIC__) {
-        userInfo = { is_anonymous: false, name: "Local User", roles: ["admin"] };
-        isAdmin = true;
+        userInfo = { is_anonymous: true, name: "Local User", roles: ["user"] };
+        isAdmin = false;
         return;
     }
     try {
