@@ -162,18 +162,47 @@ function vmNotifyError(err) {
   else console.error(message);
 }
 
-function vmSaveBlob(blob, path, openInTab) {
+function vmShowPreview(blob, path) {
+  var mime = vmFileMimeType(path);
   var url = URL.createObjectURL(blob);
-  if (openInTab && vmFilePreviewable(path)) {
-    window.open(url, "_blank", "noopener");
-  } else {
-    var link = document.createElement("a");
-    link.href = url;
-    link.download = path.split("/").pop() || "file";
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
+  var overlay = document.getElementById("gb-vm-preview");
+  if (!overlay) {
+    overlay = document.createElement("div");
+    overlay.id = "gb-vm-preview";
+    overlay.className = "gb-vm-preview";
+    overlay.addEventListener("click", function (e) {
+      if (e.target === overlay || e.target.classList.contains("gb-vm-preview-close")) {
+        overlay.remove();
+        if (overlay._gbUrl) URL.revokeObjectURL(overlay._gbUrl);
+      }
+    });
+    document.body.appendChild(overlay);
   }
+  var name = vmEscapeHtml(path.split("/").pop() || "file");
+  var body =
+    mime.indexOf("image/") === 0
+      ? '<img class="gb-vm-preview-body" src="' + url + '" alt="' + name + '">'
+      : '<iframe class="gb-vm-preview-body" src="' + url + '" title="' + name + '"></iframe>';
+  overlay.innerHTML =
+    '<div class="gb-vm-preview-head"><span>' + name + "</span>" +
+    '<a class="gb-vm-preview-download" download="' + name + '" href="' + url + '">Download</a>' +
+    '<button type="button" class="gb-vm-preview-close" aria-label="Close preview">&times;</button></div>' +
+    body;
+  overlay._gbUrl = url;
+}
+
+function vmSaveBlob(blob, path, openInTab) {
+  if (openInTab && vmFilePreviewable(path)) {
+    vmShowPreview(blob, path);
+    return;
+  }
+  var url = URL.createObjectURL(blob);
+  var link = document.createElement("a");
+  link.href = url;
+  link.download = path.split("/").pop() || "file";
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
   setTimeout(function () {
     URL.revokeObjectURL(url);
   }, 60000);

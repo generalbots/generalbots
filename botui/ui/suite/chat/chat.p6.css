@@ -485,3 +485,56 @@ sup.gb-cite-ref:hover {
 /* ── Chat drag-drop overlay (GB6-15) ── */
 .gb-chat-drag { outline: 2px dashed var(--accent, #7aa2ff); outline-offset: -4px; background: rgba(37, 99, 235, 0.05); }
 #fileChip { cursor: pointer; padding: 2px 8px; border-radius: 4px; background: var(--surface-2, #1e1e2e); color: var(--text-secondary, #888); font-size: 11px; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* BBSIA: inline preview for VM attachment images/PDF (no new tab). */
+.gb-vm-preview {
+  position: fixed;
+  inset: 0;
+  z-index: 10050;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.gb-vm-preview-head {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #fff;
+  font: 500 13px/1.2 system-ui, sans-serif;
+}
+.gb-vm-preview-head span {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gb-vm-preview-download,
+.gb-vm-preview-close {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.14);
+  border: 0;
+  border-radius: 6px;
+  padding: 6px 10px;
+  text-decoration: none;
+  cursor: pointer;
+  font: inherit;
+}
+.gb-vm-preview-body {
+  width: min(92vw, 1100px);
+  height: min(86vh, 820px);
+  object-fit: contain;
+  border: 0;
+  border-radius: 8px;
+  background: #111;
+}
+
+/* BBSIA: destructive item in the history context menu. */
+.gb-context-menu button.gb-menu-danger {
+  color: #e5484d;
+}
