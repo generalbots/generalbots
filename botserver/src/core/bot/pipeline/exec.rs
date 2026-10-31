@@ -62,6 +62,14 @@ pub async fn process_message_internal(
         .get("message_type")
         .and_then(|v| v.as_i64())
         .unwrap_or(1);
+    // #1549: the composer's model tier is a behavioural preference. The
+    // provider is built at boot, so the tier is applied as a response
+    // directive instead of swapping the provider per message.
+    let model_preference = parsed
+        .get("model_preference")
+        .and_then(|v| v.as_str())
+        .unwrap_or("auto")
+        .to_string();
     let active_switchers: Vec<String> = parsed
         .get("active_switchers")
         .and_then(|v| v.as_array())
@@ -353,6 +361,21 @@ pub async fn process_message_internal(
 
     let mut messages =
         vec![serde_json::json!({"role": "system", "content": system_prompt.clone()})];
+
+    // #1549: honour the selected trade-off tier. This shapes the answer
+    // length/depth immediately; provider-level model routing is tracked in
+    // the issue as the remaining step.
+    if model_preference != "auto" && !model_preference.is_empty() {
+        let directive = match model_preference.as_str() {
+            "fast" => "The user selected Fast mode: answer as concisely as possible and prioritise latency over exhaustive detail.",
+            "quality" => "The user selected Quality mode: take extra care, verify assumptions, and provide thorough reasoning and complete answers.",
+            "balanced" => "The user selected Balanced mode: balance completeness with brevity.",
+            _ => "",
+        };
+        if !directive.is_empty() {
+            messages.push(serde_json::json!({"role": "system", "content": directive}));
+        }
+    }
 
     if !session_context.is_empty() {
         messages.push(serde_json::json!({
