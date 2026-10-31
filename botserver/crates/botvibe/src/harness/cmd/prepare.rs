@@ -9,6 +9,12 @@ pub(super) fn prepare_command(
     if !program_is_allowed(program) {
         return Err(GuardError::CommandNotAllowed(program.into()));
     }
+    // #1534: narrow the executable to the three harness commands before it
+    // reaches a command line. `program_is_allowed` is the shared guard; this
+    // explicit match keeps the taint analysis honest.
+    if !matches!(program, "node" | "npm" | "npx") {
+        return Err(GuardError::CommandNotAllowed(program.into()));
+    }
     if args.len() > MAX_ARGS {
         return Err(GuardError::InvalidArgument("too many arguments".into()));
     }

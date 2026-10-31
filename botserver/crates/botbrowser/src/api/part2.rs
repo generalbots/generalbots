@@ -33,7 +33,16 @@ pub(super) async fn handle_proxy(
 
     let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))
-        .redirect(reqwest::redirect::Policy::limited(5))
+        // #1535: validate every redirect hop, not only the first URL, so a
+        // public URL cannot bounce the proxy into a private/metadata address.
+        .redirect(reqwest::redirect::Policy::custom(|attempt| {
+            let host = attempt.url().host_str().unwrap_or("");
+            if attempt.previous().len() >= 5 || is_private_host(host) {
+                attempt.stop()
+            } else {
+                attempt.follow()
+            }
+        }))
         .build()
         .map_err(|e| {
             (
