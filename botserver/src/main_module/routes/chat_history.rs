@@ -101,31 +101,50 @@ pub async fn handle_chat_history_sessions(
             None => true,
         })
         .collect();
-    filtered.sort_by_key(|a| std::cmp::Reverse(a.updated_at));
-    filtered.truncate(limit as usize);
 
-    let mut out: Vec<HistorySession> = Vec::with_capacity(filtered.len());
+    // Only conversations with at least one stored message belong in history.
+    // Browsing the app creates empty session rows; without this filter they
+    // push real conversations out of the page and show up as noise.
+    if !filtered.is_empty() {
+        use botcoresession::schema::message_history;
+        let ids: Vec<Uuid> = filtered.iter().map(|s| s.id).collect();
+        let with_messages: Vec<Uuid> = message_history::table
+            .filter(message_history::session_id.eq_any(&ids))
+            .select(message_history::session_id)
+            .distinct()
+            .load::<Uuid>(&mut conn)
+            .map_err(|e| db_error("session messages", e.to_string()))?;
+        let populated: std::collections::HashSet<Uuid> =
+            with_messages.into_iter().collect();
+        filtered.retain(|s| populated.contains(&s.id));
+    }
+
+    filtered.sort_by_key(|a| std::cmp::Reverse(a.updated_at));
+
+    // Build the page AFTER readability is known: a conversation whose first
+    // user turn cannot be decrypted (encrypted under a previous master key)
+    // or is empty must not occupy one of the `limit` slots shown to the user.
+    let mut out: Vec<HistorySession> = Vec::with_capacity(limit as usize);
     for sess in filtered {
+        if out.len() >= limit as usize {
+            break;
+        }
         let title = {
             let mut sm = state.session_manager.lock().await;
             match sm.get_first_user_message(sess.id) {
                 Ok(Some(first)) => first,
-                Ok(None) => String::new(),
+                Ok(None) => continue,
                 Err(e) => {
                     log::warn!("Failed to load title for session {}: {e}", sess.id);
-                    String::new()
+                    continue;
                 }
             }
         };
         let trimmed = title.trim().replace('\n', " ");
-        // Empty conversations still need a unique, stable label; the short
-        // session id is more useful than a repeated "Conversation · date".
-        let title = if trimmed.is_empty() {
-            format!(
-                "Conversation {}",
-                sess.id.simple().to_string().chars().take(8).collect::<String>()
-            )
-        } else if trimmed.chars().count() > TITLE_MAX_CHARS {
+        if trimmed.is_empty() {
+            continue;
+        }
+        let title = if trimmed.chars().count() > TITLE_MAX_CHARS {
             format!("{}…", trimmed.chars().take(TITLE_MAX_CHARS).collect::<String>())
         } else {
             trimmed

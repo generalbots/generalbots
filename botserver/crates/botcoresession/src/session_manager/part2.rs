@@ -219,6 +219,12 @@ impl SessionManager {
                 message_history::created_at.eq(chrono::Utc::now()),
             ))
             .execute(&mut conn)?;
+        // The history rail orders conversations by `updated_at`. Without this
+        // bump every conversation keeps its creation time, so a session with
+        // fresh messages sinks below thousands of untouched tabs.
+        diesel::update(user_sessions::table.filter(user_sessions::id.eq(sess_id)))
+            .set(user_sessions::updated_at.eq(chrono::Utc::now()))
+            .execute(&mut conn)?;
         botlog::safe_trace!("Message saved for session {} with index {}", sess_id, next_index);
         Ok(())
     }
