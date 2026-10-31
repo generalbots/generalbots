@@ -1,0 +1,116 @@
+.gb-preview {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    background: var(--bg, #fff);
+    color: var(--text, #222);
+}
+
+.gb-preview-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--shell-border, rgba(0, 0, 0, 0.1));
+    flex-shrink: 0;
+    font-size: 12px;
+}
+
+.gb-preview-name {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 50%;
+}
+
+.gb-preview-status {
+    flex: 1;
+    color: var(--text-secondary, #777);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gb-preview-status.busy { color: var(--primary, #3a7); }
+.gb-preview-status.ok { color: #2e7d32; }
+.gb-preview-status.warn { color: #b26a00; }
+.gb-preview-status.error { color: #c62828; }
+
+.gb-preview-actions {
+    display: flex;
+    gap: 6px;
+    flex-shrink: 0;
+}
+
+.gb-preview-btn {
+    font: inherit;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+.gb-preview-btn:disabled { opacity: 0.45; cursor: default; }
+
+.gb-preview-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    overflow: auto;
+    background: #f6f5f2;
+}
+
+.gb-preview-frame {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #fff;
+}
+
+.gb-preview-image,
+.gb-preview-media {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.gb-preview-text {
+    margin: 0;
+    padding: 14px 16px;
+    width: 100%;
+    box-sizing: border-box;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.gb-preview-table {
+    border-collapse: collapse;
+    font-size: 12px;
+    margin: 14px;
+    background: #fff;
+}
+
+.gb-preview-table th,
+.gb-preview-table td {
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    padding: 4px 8px;
+    text-align: left;
+}
+
+.gb-preview-table th { background: rgba(0, 0, 0, 0.05); }
+
+.gb-preview-empty {
+    margin: auto;
+    padding: 24px;
+    color: var(--text-secondary, #777);
+    font-size: 13px;
+}

@@ -130,9 +130,9 @@ function renderVmFileLinks(html) {
       '<span class="gb-attachment-icon">' +
       vmFileIcon(parts.path) +
       "</span>" +
-      '<span class="gb-attachment-name">' +
+      '<a class="gb-attachment-name" href="#" download>' +
       vmEscapeHtml(name) +
-      "</span>" +
+      "</a>" +
       '<button type="button" class="gb-attachment-btn gb-attachment-preview">Preview</button>' +
       '<button type="button" class="gb-attachment-btn gb-attachment-download">Download</button>' +
       "</span>"
@@ -140,19 +140,19 @@ function renderVmFileLinks(html) {
   });
 }
 
-function vmFetchBlob(conversationId, path) {
+// A real, browser-consumable URL. The endpoint also accepts the suite token
+// as a query parameter, so a plain anchor/iframe can fetch the file without
+// the blob dance (which made the name look like a dead link).
+function vmAttachmentUrl(conversationId, path) {
+  var token = vmAttachmentsToken();
   var url =
     "/api/agent/vm/file?conversation_id=" +
     encodeURIComponent(conversationId) +
     "&path=" +
-    encodeURIComponent(path);
-  return vmAttachmentsRequest(url).then(function (data) {
-    if (!data || !data.content_base64) throw new Error("Empty file");
-    var binary = atob(data.content_base64);
-    var bytes = new Uint8Array(binary.length);
-    for (var i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-    return new Blob([bytes], { type: vmFileMimeType(path) });
-  });
+    encodeURIComponent(path) +
+    "&raw=1";
+  if (token) url += "&access_token=" + encodeURIComponent(token);
+  return url;
 }
 
 function vmNotifyError(err) {
@@ -162,9 +162,8 @@ function vmNotifyError(err) {
   else console.error(message);
 }
 
-function vmShowPreview(blob, path) {
+function vmShowPreviewUrl(url, path) {
   var mime = vmFileMimeType(path);
-  var url = URL.createObjectURL(blob);
   var overlay = document.getElementById("gb-vm-preview");
   if (!overlay) {
     overlay = document.createElement("div");
@@ -191,23 +190,6 @@ function vmShowPreview(blob, path) {
   overlay._gbUrl = url;
 }
 
-function vmSaveBlob(blob, path, openInTab) {
-  if (openInTab && vmFilePreviewable(path)) {
-    vmShowPreview(blob, path);
-    return;
-  }
-  var url = URL.createObjectURL(blob);
-  var link = document.createElement("a");
-  link.href = url;
-  link.download = path.split("/").pop() || "file";
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  setTimeout(function () {
-    URL.revokeObjectURL(url);
-  }, 60000);
-}
-
 function vmBindAttachment(card) {
   if (!card || card.dataset.bound === "1") return;
   card.dataset.bound = "1";
@@ -216,20 +198,38 @@ function vmBindAttachment(card) {
   var resolve = function () {
     return explicitConv ? Promise.resolve(explicitConv) : vmActiveConversationId();
   };
-  var fetchFile = function () {
+  var nameLink = card.querySelector(".gb-attachment-name");
+  var fileName = String(path || "").split("/").pop() || "file";
+  var urlFor = function () {
     return resolve().then(function (convId) {
       if (!convId) throw new Error("No active VM");
-      return vmFetchBlob(convId, path);
+      var url = vmAttachmentUrl(convId, path);
+      if (nameLink && nameLink.tagName === "A") {
+        nameLink.href = url;
+        nameLink.setAttribute("download", fileName);
+      }
+      return url;
     });
   };
+  // Point the link as soon as the conversation is known, so the file name is
+  // a working hyperlink before the user clicks anything.
+  urlFor().catch(function () {
+    /* resolved again on click */
+  });
+
   var download = card.querySelector(".gb-attachment-download");
   var preview = card.querySelector(".gb-attachment-preview");
   if (download) {
     download.addEventListener("click", function (e) {
       e.preventDefault();
-      fetchFile()
-        .then(function (blob) {
-          vmSaveBlob(blob, path, false);
+      urlFor()
+        .then(function (url) {
+          var link = document.createElement("a");
+          link.href = url;
+          link.download = fileName;
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
         })
         .catch(vmNotifyError);
     });
@@ -237,9 +237,16 @@ function vmBindAttachment(card) {
   if (preview) {
     preview.addEventListener("click", function (e) {
       e.preventDefault();
-      fetchFile()
-        .then(function (blob) {
-          vmSaveBlob(blob, path, true);
+      resolve()
+        .then(function (convId) {
+          if (!convId) throw new Error("No active VM");
+          // A dedicated window keeps polling while the file is still being
+          // written (PDF/HTML), and survives chat navigation.
+          if (window.openDeepLink && window.WindowManager) {
+            window.openDeepLink("preview", { conversation: convId, path: path });
+            return;
+          }
+          window.open(vmAttachmentUrl(convId, path), "_blank", "noopener");
         })
         .catch(vmNotifyError);
     });
@@ -253,7 +260,7 @@ function vmAppendCard(wrapper, conversationId, path, name) {
   card.dataset.conversationId = conversationId || "";
   card.innerHTML =
     '<span class="gb-attachment-icon"></span>' +
-    '<span class="gb-attachment-name"></span>' +
+    '<a class="gb-attachment-name" href="#" download></a>' +
     '<button type="button" class="gb-attachment-btn gb-attachment-preview">Preview</button>' +
     '<button type="button" class="gb-attachment-btn gb-attachment-download">Download</button>';
   card.querySelector(".gb-attachment-icon").textContent = vmFileIcon(path);
