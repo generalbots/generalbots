@@ -236,11 +236,30 @@ pub async fn vm_exec(
         &body.language, &body.code, timeout,
     ).await?;
 
+    let files = vm::list_conversation_output(&state, &session.vm_name, &body.conversation_id)
+        .await
+        .unwrap_or_default();
+    let attachments: Vec<serde_json::Value> = files
+        .iter()
+        .map(|name| {
+            serde_json::json!({
+                "name": name,
+                "path": format!("output/{name}"),
+                "link": format!(
+                    "[{name}](vmfile:{}/output/{name})",
+                    body.conversation_id
+                ),
+            })
+        })
+        .collect();
+
     Ok(Json(serde_json::json!({
         "success": ok,
         "stdout": stdout.chars().take(20_000).collect::<String>(),
         "stderr": stderr.chars().take(20_000).collect::<String>(),
         "conversation_id": body.conversation_id,
+        "files": files,
+        "attachments": attachments,
     })))
 }
 
@@ -280,6 +299,35 @@ pub async fn vm_file(
         "path": rel_path,
         "conversation_id": clean_cid,
         "content_base64": stdout.trim(),
+    })))
+}
+
+/// `GET /api/agent/vm/files?conversation_id=` — list files in the
+/// conversation `output/` folder for chat attachment rendering.
+pub async fn vm_files(
+    State(state): State<Arc<AgentService>>,
+    headers: HeaderMap,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let (_, user_id, _) = caller_uuid(&headers)?;
+    let session = vm::get_user_vm(&state, &user_id)?
+        .ok_or_else(|| (StatusCode::NOT_FOUND, "No active VM".to_string()))?;
+    if session.status != vm::STATUS_RUNNING {
+        return Err((StatusCode::CONFLICT, format!("VM is {}", session.status)));
+    }
+    let conversation_id = params.get("conversation_id").cloned().unwrap_or_default();
+    if conversation_id.is_empty() {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            "conversation_id required".to_string(),
+        ));
+    }
+    let clean_cid = vm::sanitize_id(&conversation_id)?;
+    let files = vm::list_conversation_output(&state, &session.vm_name, &clean_cid).await?;
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "conversation_id": clean_cid,
+        "files": files,
     })))
 }
 

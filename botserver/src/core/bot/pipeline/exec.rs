@@ -389,22 +389,24 @@ pub async fn process_message_internal(
             session_id, user_id, bot_uuid,
         ).await {
             let conv_id = vm_session.active_conversation_id.as_deref().unwrap_or("default");
+            let vm_name = &vm_session.vm_name;
+            let status = &vm_session.status;
             messages.push(serde_json::json!({
                 "role": "system",
                 "content": format!(
-                    "You have a running VM workspace '{}' (status: {}). \
-                     The current conversation folder is /opt/vibe/conversations/{}. \
+                    "You have a running VM workspace '{vm_name}' (status: {status}). \
+                     The current conversation folder is /opt/vibe/conversations/{conv_id}. \
                      Subfolders: output/ for generated files, program/ for scripts, \
                      data/ for input data. \
                      When the user asks you to generate, create, or process anything \
                      (PDF, code, data, scripts), write a program (Python or Node.js) \
                      into program/, run it in the conversation folder, and save results \
                      into output/. \
-                     List any files you create in output/ in your final answer. \
+                     List every file you create in output/ in your final answer as a \
+                     markdown link in the form [name](vmfile:{conv_id}/output/name). \
                      Do NOT refuse tasks that require code execution — you have a \
                      full Linux VM available. Generate the program dynamically based \
-                     on what the user needs.",
-                    vm_session.vm_name, vm_session.status, conv_id,
+                     on what the user needs."
                 ),
             }));
         }

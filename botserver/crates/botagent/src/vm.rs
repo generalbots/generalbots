@@ -370,6 +370,34 @@ pub async fn ensure_conversation_folder(
     Ok(folder_path)
 }
 
+/// List regular files directly under the conversation's `output/` folder.
+/// Used for the chat attachment manifest (#1582).
+pub async fn list_conversation_output(
+    state: &Arc<AgentService>,
+    vm_name: &str,
+    conversation_id: &str,
+) -> Result<Vec<String>, (StatusCode, String)> {
+    let clean_cid = sanitize_id(conversation_id)?;
+    let script = format!(
+        "find /opt/vibe/conversations/{clean_cid}/output -maxdepth 1 -type f -printf '%f\\n' 2>/dev/null | sort | head -100"
+    );
+    let (ok, stdout, _) = exec_in_vm(
+        state,
+        vm_name,
+        &["sh".to_string(), "-c".to_string(), script],
+    )
+    .await?;
+    if !ok {
+        return Ok(Vec::new());
+    }
+    Ok(stdout
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .map(str::to_string)
+        .collect())
+}
+
 /// Switch active conversation: stop running jobs in the previous conversation
 /// folder, then activate the new one (#1580).
 pub async fn switch_conversation(

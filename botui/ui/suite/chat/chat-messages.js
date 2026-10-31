@@ -293,6 +293,7 @@ function addMessage(sender, content, msgId, reasoning) {
     parsed = parsed.replace(/<br\s*\/?>/gi, '');
     parsed = renderMentionInMessage(parsed);
     parsed = renderDeepLinks(parsed);
+    if (typeof renderVmFileLinks === "function") parsed = renderVmFileLinks(parsed);
     div.innerHTML = '<div class="message-content bot-message">' + thinkingHtml + parsed + "</div>";
     if (content && content.trim() !== "") {
       div.appendChild(createSpeakButton(content));
@@ -302,6 +303,14 @@ function addMessage(sender, content, msgId, reasoning) {
   messages.appendChild(div);
 
   reexecuteScripts(div);
+  // BBSIA-CHAT-02 (#1582): VM-generated files become attachment cards.
+  if (
+    sender === "bot" &&
+    !(msgId && String(msgId).indexOf("streaming-") === 0) &&
+    typeof hydrateVmAttachments === "function"
+  ) {
+    hydrateVmAttachments(div);
+  }
   if (sender === "bot" && window.ChatCodeUX) {
     ChatCodeUX.enhance(div);
     var toolCards = ChatCodeUX.extractToolCards(content);

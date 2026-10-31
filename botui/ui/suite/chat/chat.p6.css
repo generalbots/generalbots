@@ -429,6 +429,27 @@ sup.gb-cite-ref:hover {
   font-size: 12px; cursor: pointer; transition: background 0.15s;
 }
 .gb-artifact-btn:hover { background: var(--surface-3, #2a2a3e); }
+
+/* ── VM file attachments (BBSIA-CHAT-02) ── */
+.gb-attachments { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.gb-attachment {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%;
+  padding: 4px 8px; border: 1px solid var(--border, #333); border-radius: 6px;
+  background: var(--surface-2, #1e1e2e); font-size: 12px;
+}
+.gb-attachment-icon {
+  flex: none; font-size: 10px; font-weight: 700; letter-spacing: 0.4px;
+  color: var(--accent, #7aa2ff);
+}
+.gb-attachment-name {
+  color: var(--text, #e5e5e5); overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; max-width: 240px;
+}
+.gb-attachment-btn {
+  padding: 2px 8px; border-radius: 4px; border: 1px solid var(--border, #333);
+  background: transparent; color: var(--accent, #7aa2ff); cursor: pointer; font-size: 11px;
+}
+.gb-attachment-btn:hover { background: var(--surface-3, #2a2a3e); }
 .gb-artifact-panel {
   position: fixed; top: 0; right: 0; width: 50vw; min-width: 380px; height: 100vh;
   background: var(--bg, #0f0f18); border-left: 1px solid var(--border, #333);
