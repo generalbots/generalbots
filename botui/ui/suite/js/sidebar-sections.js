@@ -265,12 +265,18 @@
       return (window.APPS_REGISTRY || []).some(function (a) { return a.id === "vibe"; });
     });
     host.innerHTML = "";
+    // Chips belong in the wrapping row the stylesheet expects; appending them
+    // straight to the column host stretched each button to the rail width and
+    // centred the label like plain text.
+    var row = document.createElement("div");
+    row.className = "gb-side-actions";
+    host.appendChild(row);
     actions.forEach(function (action) {
       var chip = document.createElement("button");
       chip.className = "gb-side-action";
       chip.textContent = action.label;
       chip.addEventListener("click", action.run);
-      host.appendChild(chip);
+      row.appendChild(chip);
     });
   }
 

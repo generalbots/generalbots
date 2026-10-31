@@ -226,7 +226,9 @@
 .gb-side-action {
   padding: 5px 10px;
   border-radius: 999px;
-  border: 1px solid var(--shell-border, rgba(255, 255, 255, 0.18));
+  /* Theme-agnostic hairline: the white shell border vanished on light themes
+     and the chips read as plain text. */
+  border: 1px solid color-mix(in srgb, currentColor 24%, transparent);
   background: transparent;
   color: var(--text-secondary, #bbb);
   font-size: 11px;

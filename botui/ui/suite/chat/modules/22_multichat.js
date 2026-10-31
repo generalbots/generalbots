@@ -634,6 +634,87 @@
     MC.newChatTab();
   }, true);
 
+  /// Drops restored tabs that cannot represent a conversation: no session,
+  /// a session already open in another tab, or a duplicate of the fresh one.
+  /// Persisted carts used to accumulate dead "Chat 1" tiles on every reload.
+  function pruneTabs() {
+    if (!window.GBTabs || !GBTabs.state) return;
+    var seen = {};
+    if (window.ChatState && ChatState.currentSessionId) {
+      seen[ChatState.currentSessionId] = true;
+    }
+    var kept = [];
+    GBTabs.state.tabs.forEach(function (st) {
+      if (st.id === "tab-default") {
+        kept.unshift(st);
+        return;
+      }
+      if (!st.sessionId || seen[st.sessionId]) return;
+      seen[st.sessionId] = true;
+      kept.push(st);
+    });
+    while (kept.length > 6) kept.splice(kept.length - 1, 1);
+    if (kept.length !== GBTabs.state.tabs.length) {
+      GBTabs.state.tabs = kept;
+      if (typeof GBTabs.schedulePersist === "function") GBTabs.schedulePersist();
+    }
+  }
+
+  /// Restored tabs are labelled "Chat 1" from the persisted store. Rename
+  /// them from the conversation history so the strip shows what each tab is.
+  var titlesSynced = false;
+  function syncTabTitles() {
+    if (titlesSynced) return;
+    if (!window.GBTabs || !GBTabs.state) return;
+    var pending = GBTabs.state.tabs.filter(function (st) {
+      return st.sessionId && st.id !== "tab-default";
+    });
+    if (!pending.length) return;
+    titlesSynced = true;
+    fetch("/api/chat/history/sessions?limit=50", {
+      headers: { Authorization: "Bearer " + token() },
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (!data || !Array.isArray(data.sessions)) return;
+        var byId = {};
+        data.sessions.forEach(function (s) { byId[s.session_id] = s.title; });
+        var changed = false;
+        // A restored tab whose session has no conversation (never used, or
+        // encrypted under a dead key) is a dead "Chat N" tile: drop it.
+        GBTabs.state.tabs = GBTabs.state.tabs.filter(function (st) {
+          if (st.id === "tab-default") return true;
+          if (byId[st.sessionId]) {
+            if (st.title !== byId[st.sessionId]) {
+              st.title = byId[st.sessionId];
+              changed = true;
+            }
+            return true;
+          }
+          if (/^(Chat \d+|Conversation)$/.test(st.title)) {
+            changed = true;
+            return false;
+          }
+          return true;
+        });
+        if (changed) GBTabs.renderStrip();
+      })
+      .catch(function () { /* titles are cosmetic */ });
+  }
+
+  // The server mirror merges asynchronously and re-renders the strip; prune
+  // first so a late merge cannot resurrect the junk tabs.
+  (function hookStripRender() {
+    if (!window.GBTabs || !GBTabs.renderStrip || GBTabs.renderStrip.__mcPruned) return;
+    var orig = GBTabs.renderStrip;
+    var wrapped = function () {
+      pruneTabs();
+      return orig.apply(this, arguments);
+    };
+    wrapped.__mcPruned = true;
+    GBTabs.renderStrip = wrapped;
+  })();
+
   /* ── Public: called by 21_tabs_events after its own boot ── */
 
   var _started = false;
@@ -702,6 +783,8 @@
     t.pane = null;
     MC.activeId = first.id;
     var restored = restore();
+    pruneTabs();
+    syncTabTitles();
     // Boot always lands on the default tab. A restored parallel tab used to
     // come back as the active tab while ChatState carried the freshly minted
     // session; frames were then stamped with the OLD conversation id and new

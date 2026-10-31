@@ -485,6 +485,7 @@ if (typeof window.WindowManager === "undefined") {
       // with a stale/negative offset that pushes it off-screen. Clamp the
       // window into the visible workspace so it can never be unreachable.
       this._clampWindowIntoView(id);
+      this._applyWindowPreference(id);
       // #1432/#1439/#1434 — the open event carries the deep-link params
       // snapshot so the session restore can reopen windows to WHERE they
       // were (conversation id, person, project).
@@ -825,7 +826,44 @@ if (typeof window.WindowManager === "undefined") {
         obj.isMaximized = true;
         document.body.classList.add("window-maximized");
       }
+      this._saveWindowPreference(id, obj.isMaximized);
       this.focus(id);
+    }
+
+    /// Remember the maximized state per app so a reopened window keeps the
+    /// user's choice across reloads. Chat defaults to maximized on first use.
+    _baseAppId(id) {
+      return String(id || "").split("-")[0];
+    }
+
+    _windowPreferences() {
+      try {
+        return JSON.parse(localStorage.getItem("gb.window.prefs.v1") || "{}") || {};
+      } catch (e) {
+        return {};
+      }
+    }
+
+    _saveWindowPreference(id, maximized) {
+      const base = this._baseAppId(id);
+      try {
+        const prefs = this._windowPreferences();
+        prefs[base] = Object.assign({}, prefs[base], { maximized: !!maximized });
+        localStorage.setItem("gb.window.prefs.v1", JSON.stringify(prefs));
+      } catch (e) {
+        /* storage may be disabled; the toggle still works for the session */
+      }
+    }
+
+    _applyWindowPreference(id) {
+      const obj = this.openWindows.find((w) => w.id === id);
+      if (!obj || obj.isMaximized) return;
+      const base = this._baseAppId(id);
+      const prefs = this._windowPreferences();
+      const known = prefs[base] && typeof prefs[base].maximized === "boolean";
+      // First-ever open: the conversation surface fills the workspace.
+      const wantMax = known ? prefs[base].maximized : base === "chat";
+      if (wantMax) this.toggleMaximize(id);
     }
 
     _makeDraggable(el) {

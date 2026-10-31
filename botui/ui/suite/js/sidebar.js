@@ -350,10 +350,14 @@
     toggleBtn.addEventListener("click", loadHistory);
   }
 
-  var newBtn = document.getElementById("sidebarNewChatBtn");
-  if (newBtn) {
-    newBtn.addEventListener("click", newConversation);
-  }
+  // Delegated: the rail is re-rendered by sidebar-sections on boot and after
+  // workspace changes, which replaces the button node and drops listeners
+  // bound to the original instance ("New Conversation" did nothing).
+  document.addEventListener("click", function (e) {
+    if (e.target && e.target.closest && e.target.closest("#sidebarNewChatBtn")) {
+      newConversation();
+    }
+  });
 
   // Expose for programmatic use (taskbar, collapsed icons, other apps).
   window.GBSidebar = {
