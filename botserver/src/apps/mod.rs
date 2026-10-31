@@ -27,24 +27,13 @@ const CORE_APPS: &[&str] = &["settings", "auth", "admin"];
 /// Every other app keeps the preview behaviour (hidden until Preview mode is
 /// on). Mirrors `ALWAYS_APP_IDS` in botui/ui/suite/js/window-manager.js.
 const ALWAYS_APPS: &[&str] = &[
-    "chat",
-    "calendar",
-    "meet",
-    "sheet",
-    "people",
-    "canvas",
-    "player",
-    "goals",
-    "vibe",
-    "integrations",
-    "settings",
     "about",
     "browser",
-    "database",
-    "desktop",
-    "plugins",
-    "terminal",
+    "chat",
+    "drive",
     "editor",
+    "integrations",
+    "settings",
 ];
 
 /// In-memory app-install counters for the App Store (#1156). The frontend

@@ -183,10 +183,8 @@ if (typeof window.WindowManager === "undefined") {
   // Every other app keeps the preview behaviour (hidden until Preview mode is
   // on). Mirrors `ALWAYS_APPS` in botserver/src/apps/mod.rs.
   var ALWAYS_APP_IDS = [
-    "chat", "calendar", "meet", "sheet", "people", "canvas",
-    "player", "goals", "vibe", "integrations", "settings", "about", "browser",
-    "database", "desktop", "plugins", "terminal", "editor",
-    // Product core surfaces stay reachable too (mirrors backend CORE_APPS).
+    "about", "browser", "chat", "drive", "editor", "integrations", "settings",
+    // Non-launcher surfaces stay reachable (mirrors backend CORE_APPS).
     "admin", "auth",
   ];
   function isAlwaysAppId(id) {
