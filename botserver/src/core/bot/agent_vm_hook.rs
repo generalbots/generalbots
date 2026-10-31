@@ -120,6 +120,30 @@ pub async fn exec_in_user_vm_with_timeout(
     ).await.ok()
 }
 
+/// Executes a program, waking the workspace VM first when it is not running.
+/// A stopped/idle workspace is normal; failing with "not available" after the
+/// model already produced a program loses the whole turn.
+#[cfg(feature = "agent-vm")]
+pub async fn exec_with_wake(
+    user_id: uuid::Uuid,
+    session_id: uuid::Uuid,
+    bot_uuid: uuid::Uuid,
+    language: &str,
+    code: &str,
+    timeout_ms: u64,
+    packages: &[String],
+) -> Option<(bool, String, String)> {
+    if let Some(result) = exec_in_user_vm_with_timeout(
+        user_id, session_id, language, code, timeout_ms, packages,
+    )
+    .await
+    {
+        return Some(result);
+    }
+    ensure_agent_vm(session_id, user_id, bot_uuid).await?;
+    exec_in_user_vm_with_timeout(user_id, session_id, language, code, timeout_ms, packages).await
+}
+
 /// Container name of the caller's running agent VM, if any. Used by the
 /// terminal app to open a shell inside the user's own workspace.
 #[cfg(feature = "agent-vm")]

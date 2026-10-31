@@ -4,7 +4,8 @@ use super::attachments::find_staged_attachment;
 use super::types::SessionIdentity;
 
 mod part1;
-use part1::{all_args_are_placeholder, bot_llm_credentials};
+use part1::all_args_are_placeholder;
+pub(crate) use part1::bot_llm_credentials;
 pub use part1::{is_generic_greeting, is_placeholder_value};
 
 pub async fn run_tool_exec(identity: &SessionIdentity<'_>, tool_name: &str) {
@@ -115,6 +116,15 @@ pub async fn run_llm_tool_call(
     use crate::core::bot::ws::handler::validate_bot_name;
     use crate::core::bot::ws::handler::verify_path_within_workdir;
     use botcore::shared::utils::get_work_path;
+    // Some providers wrap function calls in an XML dialect (DSML) instead of
+    // the JSON protocol. Convert it to the wrapper this function understands.
+    if !full_response.contains("\"__tool_call__\":") {
+        if let Some(synthetic) = parse_dsml_tool_call(full_response) {
+            let text = synthetic.to_string();
+            Box::pin(run_llm_tool_call(identity, rx, &text, user_text)).await;
+            return;
+        }
+    }
     let tool_call_trigger = "\"__tool_call__\":";
     let tc_start = match full_response.find(tool_call_trigger) {
         Some(pos) => full_response[..pos].rfind('{').unwrap_or(pos),
@@ -479,4 +489,35 @@ fn extract_tool_call(raw: &str) -> Option<serde_json::Value> {
         }
     }
     serde_json::from_str(&repaired).ok()
+}
+
+/// Parses the DSML/XML tool-call dialect some providers emit:
+/// `invoke name="..."` with `parameter name="arguments"` containing the JSON
+/// arguments. Returns a wrapper object in the native protocol shape.
+fn parse_dsml_tool_call(raw: &str) -> Option<serde_json::Value> {
+    let invoke = raw.find("invoke name=")?;
+    let rest = &raw[invoke..];
+    let name_start = rest.find("name=\"")? + 6;
+    let name_end = dispatch_quote_end(rest, name_start)?;
+    let mut name = rest[name_start..name_end].trim().to_string();
+    if name.is_empty() {
+        return None;
+    }
+    // The envelope is sometimes named instead of the tool.
+    if name == "__tool_call__" || name == "tool_call" {
+        name = "vm_exec".to_string();
+    }
+    let args_at = rest.find("parameter name=\"arguments\"")?;
+    let after = &rest[args_at..];
+    let brace = after.find('{')?;
+    let value = extract_tool_call(&after[brace..])?;
+    Some(serde_json::json!({
+        "__tool_call__": true,
+        "name": name,
+        "arguments": value.to_string(),
+    }))
+}
+
+fn dispatch_quote_end(text: &str, start: usize) -> Option<usize> {
+    text[start..].find('"').map(|pos| start + pos)
 }

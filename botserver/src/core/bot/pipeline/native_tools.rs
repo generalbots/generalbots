@@ -129,6 +129,7 @@ async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         state,
         session_id,
         user_id,
+        bot_uuid,
         ..
     } = *identity;
     let background = parsed
@@ -143,9 +144,10 @@ async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         let code = code.to_string();
         let language = language.to_string();
         tokio::spawn(async move {
-            let result = crate::core::bot::agent_vm_hook::exec_in_user_vm_with_timeout(
+            let result = crate::core::bot::agent_vm_hook::exec_with_wake(
                 user_id,
                 session_id,
+                bot_uuid,
                 &language,
                 &code,
                 timeout_ms,
@@ -166,15 +168,50 @@ async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         return;
     }
 
-    let result = crate::core::bot::agent_vm_hook::exec_in_user_vm_with_timeout(
-        user_id,
-        session_id,
-        language,
-        code,
-        timeout_ms,
-        &packages,
+    // Long runs and installs need a visible status in the chat; the turn
+    // otherwise looks frozen while the program executes.
+    if !packages.is_empty() || code.len() > 4_000 {
+        let note = if packages.is_empty() {
+            "⏳ Running your program in the workspace…".to_string()
+        } else {
+            format!(
+                "⏳ Running your program in the workspace… (installing {})",
+                packages.join(", ")
+            )
+        };
+        send(identity, &note).await;
+    }
+
+    botlog::safe_info!(
+        "vm_exec start: session={session_id} language={language} bytes={} packages={:?}",
+        code.len(),
+        packages
+    );
+    let budget = std::time::Duration::from_millis(timeout_ms.saturating_add(120_000));
+    let result = match tokio::time::timeout(
+        budget,
+        crate::core::bot::agent_vm_hook::exec_with_wake(
+            user_id,
+            session_id,
+            bot_uuid,
+            language,
+            code,
+            timeout_ms,
+            &packages,
+        ),
     )
-    .await;
+    .await
+    {
+        Ok(result) => result,
+        Err(_) => {
+            botlog::safe_warn!("vm_exec exceeded its overall budget for session {session_id}");
+            None
+        }
+    };
+    botlog::safe_info!(
+        "vm_exec done: session={session_id} ok={:?}",
+        result.as_ref().map(|r| r.0)
+    );
 
     match result {
         None => {
@@ -183,11 +220,116 @@ async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
             persist(state, session_id, user_id, message).await;
         }
         Some((ok, stdout, stderr)) => {
+            if !ok && looks_like_syntax_error(&stderr) {
+                send(
+                    identity,
+                    "🔧 The generated program had a syntax error; fixing it automatically…",
+                )
+                .await;
+                // One repair pass: long generated programs occasionally carry a
+                // broken string/indent and the user should not have to retype
+                // the request.
+                if let Some(fixed) = repair_program(
+                    state, bot_uuid, language, code, &stderr,
+                )
+                .await
+                {
+                    let retry = crate::core::bot::agent_vm_hook::exec_in_user_vm_with_timeout(
+                        user_id, session_id, language, &fixed, timeout_ms, &packages,
+                    )
+                    .await;
+                    if let Some((true, fixed_out, _)) = retry {
+                        let message = render_result(
+                            user_id, session_id, true, &fixed_out, "",
+                        )
+                        .await;
+                        send(identity, &message).await;
+                        persist(state, session_id, user_id, &message).await;
+                        return;
+                    }
+                }
+            }
             let message = render_result(user_id, session_id, ok, &stdout, &stderr).await;
             send(identity, &message).await;
             persist(state, session_id, user_id, &message).await;
         }
     }
+}
+
+/// Asks the model to rewrite a program that failed with a syntax error.
+/// Returns only the corrected source, or None when the provider is absent.
+#[cfg(feature = "agent-vm")]
+async fn repair_program(
+    state: &std::sync::Arc<botcore::shared::state::AppState>,
+    bot_uuid: uuid::Uuid,
+    language: &str,
+    code: &str,
+    error: &str,
+) -> Option<String> {
+    let provider = match state.llm_provider.as_ref() {
+        Some(p) => p,
+        None => {
+            botlog::safe_warn!("program repair skipped: no LLM provider");
+            return None;
+        }
+    };
+    let (model, key) =
+        super::tool_exec::bot_llm_credentials(&state.conn, bot_uuid);
+    if model.is_empty() || key.is_empty() {
+        botlog::safe_warn!("program repair skipped: model/key empty");
+        return None;
+    }
+    let prompt = format!(
+        "The following {language} program failed with this error:\n\n{error}\n\n\
+         Program:\n\n{code}\n\n\
+         Rewrite the whole program so it runs correctly. Preserve the intent and \
+         the output path. A newline inside a quoted string is invalid Python: use \
+         \\n escapes or triple-quoted strings for multi-line text. Return ONLY the \
+         complete corrected program, no markdown fences and no explanation."
+    );
+    let reply = match provider
+        .generate(&prompt, &serde_json::json!({}), &model, &key)
+        .await
+    {
+        Ok(text) => text,
+        Err(e) => {
+            botlog::safe_warn!("program repair LLM call failed: {e}");
+            return None;
+        }
+    };
+    let cleaned = strip_code_fences(&reply);
+    if cleaned.trim().is_empty() || cleaned.trim() == code.trim() {
+        None
+    } else {
+        Some(cleaned)
+    }
+}
+
+#[cfg(feature = "agent-vm")]
+fn strip_code_fences(text: &str) -> String {
+    let trimmed = text.trim();
+    if !trimmed.starts_with("```") {
+        return trimmed.to_string();
+    }
+    let mut lines = trimmed.lines();
+    let _ = lines.next();
+    let body: Vec<&str> = lines.collect();
+    let mut out = body.join("\n");
+    if let Some(pos) = out.rfind("```") {
+        out.truncate(pos);
+    }
+    out.trim().to_string()
+}
+
+/// True when a failed run looks like a malformed program rather than a runtime
+/// error (those are reported to the user, not silently rewritten).
+#[cfg(feature = "agent-vm")]
+fn looks_like_syntax_error(stderr: &str) -> bool {
+    stderr.contains("SyntaxError")
+        || stderr.contains("IndentationError")
+        || stderr.contains("TabError")
+        || stderr.contains("Unexpected token")
+        || stderr.contains("Unexpected end of input")
 }
 
 /// Formats stdout/stderr and the files the program left in `output/`.

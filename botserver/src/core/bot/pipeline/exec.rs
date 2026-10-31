@@ -466,8 +466,10 @@ pub async fn process_message_internal(
                      e.g. \\\"packages\\\":[\\\"pandas\\\",\\\"openpyxl\\\"]. Use the distribution \
                      name for the import (docx -> python-docx, PIL -> pillow, yaml -> pyyaml, \
                      cv2 -> opencv-python-headless, sklearn -> scikit-learn, bs4 -> \
-                     beautifulsoup4). Never assume a package is preinstalled; if a run reports \
-                     a missing module, add it to packages and run again. \
+                     beautifulsoup4). The workspace ships with pandas, numpy, openpyxl, \
+                     python-pptx, pillow, matplotlib, requests, python-docx, reportlab, \
+                     beautifulsoup4, lxml and tabulate; declare anything else. If a run \
+                     reports a missing module, add it to packages and run again. \
                      Add \\\"background\\\": true for long jobs (renders, downloads, training): \
                      the job keeps running while the user moves to another conversation and \
                      its result is saved into THIS conversation. \

@@ -232,6 +232,10 @@ pub async fn ensure_vm(
         provision(state, user_id, bot_id, None).await?
     };
 
+    if row.status == STATUS_RUNNING {
+        schedule_workspace_preparation(state.clone(), row.vm_name.clone());
+    }
+
     if let Some(cid) = conversation_id {
         let _ = ensure_conversation_folder(state, &row, cid).await;
     }
@@ -328,6 +332,13 @@ export DEBIAN_FRONTEND=noninteractive
 {
   apt-get update -q
   apt-get install -y -q python3 python3-pip nodejs npm iptables iproute2
+  mkdir -p /opt/vibe/conversations
+  # Base data/document toolkit: the model should not pay an install round-trip
+  # for the common agent outputs (decks, sheets, charts, PDFs).
+  python3 -m pip install --break-system-packages --quiet --disable-pip-version-check \
+    pandas numpy openpyxl python-pptx pillow matplotlib requests python-docx \
+    reportlab beautifulsoup4 lxml tabulate || true
+  echo v2 > /opt/vibe/.provisioned
   cat > /usr/local/sbin/agent-egress.sh <<'EOS'
 #!/bin/sh
 set -eu
@@ -362,6 +373,72 @@ EOS
   systemctl enable --now agent-egress.service
 } >/tmp/agent-bootstrap.log 2>&1 || true
 "#;
+
+/// Bumped whenever the base toolkit changes; existing VMs run the prepare
+/// step once when their marker does not match.
+const WORKSPACE_PREPARE_VERSION: &str = "v2";
+
+/// Idempotent preparation of an existing workspace VM: package index, base
+/// Python toolkit and the conversations root. Runs in the background so the
+/// first chat message is never blocked by apt/pip.
+const WORKSPACE_PREPARE_SCRIPT: &str = r#"
+set -eu
+export DEBIAN_FRONTEND=noninteractive
+{
+  mkdir -p /opt/vibe/conversations
+  command -v python3 >/dev/null 2>&1 || (apt-get update -q && apt-get install -y -q python3)
+  python3 -m pip --version >/dev/null 2>&1 || (apt-get update -q && apt-get install -y -q python3-pip)
+  command -v npm >/dev/null 2>&1 || (apt-get update -q && apt-get install -y -q nodejs npm)
+  python3 -m pip install --break-system-packages --quiet --disable-pip-version-check \
+    pandas numpy openpyxl python-pptx pillow matplotlib requests python-docx \
+    reportlab beautifulsoup4 lxml tabulate || true
+  echo v2 > /opt/vibe/.provisioned
+} >/tmp/agent-prepare.log 2>&1 || true
+"#;
+
+/// Schedules workspace preparation once per VM per process. Never blocks the
+/// caller: the on-demand installer covers a request that races the setup.
+fn schedule_workspace_preparation(state: Arc<AgentService>, vm_name: String) {
+    use std::collections::HashSet;
+    use std::sync::{Mutex, OnceLock};
+    static IN_FLIGHT: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
+    let set = IN_FLIGHT.get_or_init(|| Mutex::new(HashSet::new()));
+    {
+        let mut guard = match set.lock() {
+            Ok(g) => g,
+            Err(_) => return,
+        };
+        if !guard.insert(vm_name.clone()) {
+            return;
+        }
+    }
+    tokio::spawn(async move {
+        let ready = exec_in_vm(
+            &state,
+            &vm_name,
+            &[
+                "sh".into(),
+                "-c".into(),
+                format!(
+                    "test -f /opt/vibe/.provisioned && grep -q '^{WORKSPACE_PREPARE_VERSION}$' /opt/vibe/.provisioned"
+                ),
+            ],
+        )
+        .await;
+        let already = matches!(ready, Ok((true, _, _)));
+        if !already {
+            let _ = exec_in_vm(
+                &state,
+                &vm_name,
+                &["sh".into(), "-c".into(), WORKSPACE_PREPARE_SCRIPT.into()],
+            )
+            .await;
+        }
+        if let Ok(mut guard) = set.lock() {
+            guard.remove(&vm_name);
+        }
+    });
+}
 
 /// Provision the container the same way the Vibe runtime does: a Debian
 /// system container with explicit CPU/memory limits attached to the managed
@@ -605,6 +682,14 @@ pub async fn exec_in_conversation(
 ) -> Result<(bool, String, String), (StatusCode, String)> {
     let clean_cid = sanitize_id(conversation_id)?;
     let folder = format!("{CONVERSATIONS_ROOT}/{clean_cid}");
+    // Create the conversation folders FIRST: dependency installs `cd` into
+    // this folder, and a fresh conversation has no folder yet.
+    let bootstrap = format!(
+        "mkdir -p {folder}/program {folder}/output {folder}/data"
+    );
+    tracing::info!("vm exec: bootstrap {conversation_id}");
+    run_with_timeout(state, vm_name, bootstrap, 30_000).await?;
+    tracing::info!("vm exec: folders ready {conversation_id}");
 
     let (interpreter, ext) = match language {
         "python" => ("python3", "py"),
@@ -636,14 +721,16 @@ pub async fn exec_in_conversation(
     let program_dir = format!("{folder}/program");
     let script_path = format!("{program_dir}/run_{run_id}.{ext}");
 
-    let b64 = crate::sandbox::b64_encode(code.as_bytes());
-    let setup = format!(
-        "mkdir -p {folder} {program_dir} {folder}/output {folder}/data \
-         && echo {b64} | base64 -d > {script_path} \
-         && cd {folder} && {interpreter} {script_path}"
-    );
+    // Large generated programs (a PPTX deck easily reaches tens of KB) must not
+    // travel as a single `sh -c` argument: the command guard rejects them with
+    // "Script too long". Create the folders, write the source in small base64
+    // chunks, then run it.
+    write_program(state, vm_name, &script_path, code).await?;
+    tracing::info!("vm exec: program written {script_path}");
 
-    let (first_ok, mut stdout, mut stderr) = run_with_timeout(state, vm_name, setup.clone(), timeout_ms).await?;
+    let run_cmd = format!("cd {folder} && {interpreter} {script_path}");
+    let (first_ok, mut stdout, mut stderr) =
+        run_with_timeout(state, vm_name, run_cmd.clone(), timeout_ms).await?;
     if first_ok {
         stdout = format!("{install_log}{stdout}");
         return Ok((true, stdout, stderr));
@@ -655,7 +742,7 @@ pub async fn exec_in_conversation(
         let retry_pkgs = vec![missing.clone()];
         let installed = install_packages(state, vm_name, &folder, language, &retry_pkgs).await?;
         if installed.0 {
-            let retried = run_with_timeout(state, vm_name, setup, timeout_ms).await?;
+            let retried = run_with_timeout(state, vm_name, run_cmd, timeout_ms).await?;
             let note = format!("auto-installed missing package: {missing}\n");
             return Ok((retried.0, format!("{install_log}{note}{}", retried.1), retried.2));
         }
@@ -663,6 +750,44 @@ pub async fn exec_in_conversation(
 
     stdout = format!("{install_log}{stdout}");
     Ok((false, stdout, stderr))
+}
+
+/// Writes `code` into `path` inside the VM without ever passing the whole
+/// source as one shell argument. Base64 chunks are appended, then decoded.
+async fn write_program(
+    state: &AgentService,
+    vm_name: &str,
+    path: &str,
+    code: &str,
+) -> Result<(), (StatusCode, String)> {
+    const CHUNK: usize = 1_500;
+    let b64 = crate::sandbox::b64_encode(code.as_bytes());
+    let tmp = format!("{path}.b64");
+    let _ = run_with_timeout(state, vm_name, format!(": > {tmp}"), 30_000).await?;
+    let bytes = b64.as_bytes();
+    let mut offset = 0;
+    while offset < bytes.len() {
+        let end = (offset + CHUNK).min(bytes.len());
+        let chunk = &b64[offset..end];
+        let cmd = format!("printf '%s' '{chunk}' >> {tmp}");
+        let (ok, _, err) = run_with_timeout(state, vm_name, cmd, 30_000).await?;
+        if !ok {
+            return Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                format!("failed to write program chunk: {err}"),
+            ));
+        }
+        offset = end;
+    }
+    let finish = format!("base64 -d {tmp} > {path} && rm -f {tmp}");
+    let (ok, _, err) = run_with_timeout(state, vm_name, finish, 30_000).await?;
+    if !ok {
+        return Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("failed to decode program: {err}"),
+        ));
+    }
+    Ok(())
 }
 
 /// Runs a shell command in the VM with a hard timeout.

@@ -78,7 +78,7 @@ pub fn is_generic_greeting(text: &str) -> bool {
 
 /// Model and key configured for a bot, needed when a rerouted command composes
 /// an answer. Mirrors the chat pipeline, including the environment fallback.
-pub(super) fn bot_llm_credentials(
+pub(crate) fn bot_llm_credentials(
     conn: &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
     bot_id: Uuid,
 ) -> (String, String) {
