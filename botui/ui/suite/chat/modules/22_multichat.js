@@ -323,6 +323,9 @@
     // hook stamps outgoing frames with GBTabs.activeTab().sessionId.
     GBTabs.state.tabs.forEach(function (st) { if (st.id === t.id) st.sessionId = t.sessionId; });
     GBTabs.focusTab(id);
+    // The composer must follow the active tab on every switch (including
+    // restored sessions), otherwise sends fall through to the stock surface.
+    installSendRouter();
     schedulePersist();
   }
 
@@ -698,6 +701,7 @@
       }
     });
     if (!restored) GBTabs.renderStrip();
+    installSendRouter();
   };
 
   // Late merge: restore()'s server fetch resolves AFTER start() — when it
