@@ -1012,6 +1012,43 @@
   }
   window.addEventListener("gb-preview-changed", syncPreviewToggle);
 
+  // BBSIA #1541: preview OFF is a minimal settings surface. Only Profile,
+  // Appearance, Language, About and Versions stay visible; administrative,
+  // billing, Vibe, storage and integrations sections collapse into preview
+  // mode. RBAC still applies on top for the sections that remain.
+  var PREVIEW_ESSENTIAL_NAV = ["profile", "appearance", "language", "about", "versions"];
+  var PREVIEW_HIDDEN_SECTIONS = [
+    "security-section", "notifications-section", "storage-section",
+    "integrations-section", "vibe-section", "privacy-section",
+    "billing-section", "users-section", "groups-section", "bots-section",
+    "dns-section", "audit-section", "organizations-section",
+  ];
+
+  function applyPreviewSimplifying() {
+    var on = !!(window.GBPreviewMode && GBPreviewMode.isOn());
+    document.querySelectorAll(".settings-nav .nav-item").forEach(function (item) {
+      var href = (item.getAttribute("href") || "").replace("#", "");
+      var essential = PREVIEW_ESSENTIAL_NAV.indexOf(href) !== -1;
+      item.style.display = on || essential ? "" : "none";
+    });
+    document.querySelectorAll(".settings-nav .nav-divider").forEach(function (divider) {
+      divider.style.display = on ? "" : "none";
+    });
+    PREVIEW_HIDDEN_SECTIONS.forEach(function (id) {
+      var section = document.getElementById(id);
+      if (section) section.style.display = on ? "" : "none";
+    });
+    if (!on) {
+      var active = document.querySelector(".settings-nav .nav-item.active");
+      var activeHref = active ? (active.getAttribute("href") || "").replace("#", "") : "";
+      if (PREVIEW_ESSENTIAL_NAV.indexOf(activeHref) === -1) {
+        var profile = document.querySelector('.settings-nav .nav-item[href="#profile"]');
+        if (profile) showSection("profile", profile);
+      }
+    }
+  }
+  window.addEventListener("gb-preview-changed", applyPreviewSimplifying);
+
   window.SettingsModule = {
     init: init,
     changeLanguage: window.changeLanguage,
@@ -1031,10 +1068,12 @@
   if (document.readyState === "loading") {
     (function(){ var __cb = function () {
       init();
+      applyPreviewSimplifying();
       initFromHash();
     }; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
   } else {
     init();
+    applyPreviewSimplifying();
     initFromHash();
   }
 })();
