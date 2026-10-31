@@ -550,13 +550,38 @@ function openArtifactPanel(content) {
     var ext = lang || "txt";
     if (isHtml) ext = "html";
     var fileName = "artifact-" + Date.now() + "." + ext;
-    if (window.DriveModule && typeof apiRequest === "function") {
-      apiRequest("/write", {
-        method: "POST",
-        body: JSON.stringify({ bucket: getEffectiveBucket ? getEffectiveBucket() : "", path: fileName, content: btoa(unescape(encodeURIComponent(code))), scope: "user" })
-      }).then(function () {
-        if (window.GBToasts) GBToasts.show("Saved", "File saved to Drive as " + fileName, "success");
-      }).catch(function () {});
-    }
+    var token = "";
+    try {
+      token =
+        (window.getGBAccessToken && window.getGBAccessToken()) ||
+        localStorage.getItem("gb-access-token") ||
+        sessionStorage.getItem("gb-access-token") ||
+        "";
+    } catch (e) {}
+    // #1548: save directly, without depending on the Drive app having been
+    // opened first (DriveModule/apiRequest were only defined after that).
+    fetch("/api/files/write", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: "Bearer " + token } : {}),
+      },
+      body: JSON.stringify({
+        path: fileName,
+        content: btoa(unescape(encodeURIComponent(code))),
+        scope: "user",
+      }),
+    })
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        if (window.GBToasts) {
+          GBToasts.show("Saved", "File saved to Drive as " + fileName, "success");
+        }
+      })
+      .catch(function (err) {
+        if (window.GBToasts) {
+          GBToasts.show("Save failed", err.message || "Could not save to Drive", "error");
+        }
+      });
   });
 }
