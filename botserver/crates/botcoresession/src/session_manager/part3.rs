@@ -57,31 +57,34 @@ impl SessionManager {
     pub fn get_first_user_message(
         &mut self,
         sess_id: Uuid,
-    ) -> Result<Option<String>, Box<dyn Error + Send + Sync>> {        let mut conn = self.pool.get()?;
-        let first: Option<String> = message_history::table
+    ) -> Result<Option<String>, Box<dyn Error + Send + Sync>> {
+        let mut conn = self.pool.get()?;
+        // A conversation can start with an empty control message; keep
+        // scanning user turns until one has readable text, otherwise the rail
+        // labels every conversation "Conversation · <date>".
+        let rows: Vec<String> = message_history::table
             .filter(message_history::session_id.eq(sess_id))
             .filter(message_history::role.eq(1))
             .order(message_history::message_index.asc())
             .select(message_history::content_encrypted)
-            .first::<String>(&mut conn)
-            .optional()?;
-        let Some(content) = first else {
-            return Ok(None);
-        };
+            .load::<String>(&mut conn)?;
         let bot_id: Uuid = user_sessions::table
             .filter(user_sessions::id.eq(sess_id))
             .select(user_sessions::bot_id)
             .first(&mut conn)?;
         let key_bytes = derive_scope_key(&self.master_key, "message", &bot_id);
-        match decrypt_field(&content, &key_bytes) {
-            Ok(decrypted) => Ok(Some(decrypted)),
-            // Ciphertext would surface as the session title in the UI; an
-            // unreadable title is better than a wall of base64.
-            Err(e) => {
-                botlog::safe_warn!("get_first_user_message: title unreadable for session {sess_id}: {e}");
-                Ok(None)
+        for content in rows {
+            match decrypt_field(&content, &key_bytes) {
+                Ok(decrypted) if !decrypted.trim().is_empty() => return Ok(Some(decrypted)),
+                Ok(_) => continue,
+                // Ciphertext would surface as the session title in the UI; an
+                // unreadable title is better than a wall of base64.
+                Err(e) => {
+                    botlog::safe_warn!("get_first_user_message: title unreadable for session {sess_id}: {e}");
+                }
             }
         }
+        Ok(None)
     }
 
     pub fn get_user_sessions(
