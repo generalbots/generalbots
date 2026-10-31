@@ -79,6 +79,12 @@
         mp3: "audio/mpeg",
         wav: "audio/wav",
         zip: "application/zip",
+        xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        xls: "application/vnd.ms-excel",
+        docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        doc: "application/msword",
+        pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        ppt: "application/vnd.ms-powerpoint",
       }[ext] || "application/octet-stream"
     );
   }
@@ -193,11 +199,39 @@
       return;
     }
 
-    var empty = document.createElement("div");
-    empty.className = "gb-preview-empty";
-    empty.textContent =
-      "This file type cannot be previewed here. Use Download or Open.";
-    body.appendChild(empty);
+    // Office documents have no browser renderer. Show the file itself with
+    // its size and a working download instead of a dead error.
+    var card = document.createElement("div");
+    card.className = "gb-preview-filecard";
+    var icon = document.createElement("div");
+    icon.className = "gb-preview-fileicon";
+    icon.textContent = String(state.path || "").split(".").pop().toUpperCase();
+    var meta = document.createElement("div");
+    meta.className = "gb-preview-filemeta";
+    var name = document.createElement("div");
+    name.className = "gb-preview-filename";
+    name.textContent = String(state.path || "").split("/").pop();
+    var size = document.createElement("div");
+    size.className = "gb-preview-filesize";
+    size.textContent = (bytes.length / 1024).toFixed(1) + " KB · opens after download";
+    var button = document.createElement("button");
+    button.type = "button";
+    button.className = "gb-preview-btn";
+    button.textContent = "Download";
+    button.onclick = function () {
+      var link = document.createElement("a");
+      link.href = fileUrl(state.conversation, state.path);
+      link.download = String(state.path).split("/").pop() || "file";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    };
+    meta.appendChild(name);
+    meta.appendChild(size);
+    card.appendChild(icon);
+    card.appendChild(meta);
+    card.appendChild(button);
+    body.appendChild(card);
   }
 
   function signatureOf(bytes) {

@@ -162,6 +162,12 @@
     } else if (typeof marked !== "undefined" && marked.parse) {
       try {
         inner.innerHTML = marked.parse(content || "");
+        // Replayed messages must render vmfile links as attachment cards too;
+        // the stock addMessage path does this conversion, appendToContainer
+        // (used by history replay and parallel tabs) did not.
+        if (typeof renderVmFileLinks === "function") {
+          inner.innerHTML = renderVmFileLinks(inner.innerHTML);
+        }
       } catch (e) {
         inner.textContent = content;
       }
@@ -427,6 +433,10 @@
           pushScrollback(t, sender, m.content);
           appendToContainer(t.pane, sender, m.content);
         });
+        // Bind the cards and list any output/ file the model did not link.
+        if (typeof hydrateVmAttachments === "function") {
+          hydrateVmAttachments(t.pane);
+        }
         schedulePersist();
       })
       .catch(function () { /* history replay is best-effort */ });

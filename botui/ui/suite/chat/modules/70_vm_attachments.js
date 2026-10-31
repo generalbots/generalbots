@@ -76,6 +76,12 @@ function vmFileMimeType(path) {
     zip: "application/zip",
     mp4: "video/mp4",
     mp3: "audio/mpeg",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    xls: "application/vnd.ms-excel",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    doc: "application/msword",
+    pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    ppt: "application/vnd.ms-powerpoint",
   };
   return types[ext] || "application/octet-stream";
 }
@@ -270,6 +276,20 @@ function vmAppendCard(wrapper, conversationId, path, name) {
   return card;
 }
 
+// The conversation the user is looking at, not the VM's last active folder.
+function vmCurrentConversationId() {
+  try {
+    if (window.GBTabs && GBTabs.activeTab) {
+      var tab = GBTabs.activeTab();
+      if (tab && tab.sessionId) return Promise.resolve(tab.sessionId);
+    }
+    if (window.ChatState && ChatState.currentSessionId) {
+      return Promise.resolve(ChatState.currentSessionId);
+    }
+  } catch (e) { /* fall through */ }
+  return vmActiveConversationId();
+}
+
 function vmVisiblePane() {
   var panes = document.querySelectorAll(".chat-pane-messages, #messages");
   for (var i = 0; i < panes.length; i++) {
@@ -301,7 +321,7 @@ function hydrateVmAttachments(container) {
   var anchor = vmAttachmentAnchor(container);
   if (!anchor) return;
 
-  vmActiveConversationId()
+  vmCurrentConversationId()
     .then(function (conversationId) {
       if (!conversationId) return;
       var seen = VmAttachments.renderedPaths[conversationId] || {};

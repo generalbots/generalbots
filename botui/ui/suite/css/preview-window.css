@@ -114,3 +114,43 @@
     color: var(--text-secondary, #777);
     font-size: 13px;
 }
+
+.gb-preview-filecard {
+    margin: auto;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 22px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+    max-width: 520px;
+}
+
+.gb-preview-fileicon {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #2e7d32;
+    background: #e8f0ea;
+    border-radius: 8px;
+    padding: 14px 10px;
+}
+
+.gb-preview-filemeta {
+    flex: 1;
+    min-width: 0;
+}
+
+.gb-preview-filename {
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gb-preview-filesize {
+    margin-top: 2px;
+    font-size: 11px;
+    color: #777;
+}
