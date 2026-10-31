@@ -101,6 +101,7 @@ impl LLMProvider for AzureGPT5Client {
             .post(&full_url)
             .header("Authorization", &auth_header)
             .header("Content-Type", "application/json")
+            .header("x-opencode-session", uuid::Uuid::new_v4().to_string())
             .json(&serde_json::json!({
                 "model": model,
                 "input": input_array,

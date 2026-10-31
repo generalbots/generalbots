@@ -151,6 +151,9 @@ impl LLMProvider for OpenAIClient {
                 .post(&full_url)
                 .header("Authorization", &auth_header)
                 .header("Content-Type", "application/json")
+                // OpenCode Go routes requests by session; without this header
+                // the gateway answers 400 MissingSessionID.
+                .header("x-opencode-session", uuid::Uuid::new_v4().to_string())
                 .json(&request_body)
                 .send()
                 .await
