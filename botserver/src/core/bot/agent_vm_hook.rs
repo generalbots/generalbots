@@ -1,6 +1,7 @@
 //! Agent-mode VM hook (#1167, #1580): always-on agent mode. Every
-//! authenticated user gets a VM provisioned on first message. Conversation
-//! switching stops previous jobs automatically.
+//! authenticated user gets a container provisioned on first message.
+//! Switching conversations never terminates running jobs — work continues in
+//! the background while the user moves between conversation folders.
 use std::sync::{Arc, OnceLock};
 
 static SERVICE: OnceLock<Arc<botagent::AgentService>> = OnceLock::new();
@@ -68,6 +69,21 @@ pub async fn ensure_agent_vm(
             log::warn!("auto-provision VM for user {user_id}: {err}");
             None
         }
+    }
+}
+
+/// Delete the conversation folder when the user deletes the conversation
+/// from history. Best-effort: a missing VM or service is not an error.
+pub async fn delete_conversation_folder(user_id: uuid::Uuid, session_id: uuid::Uuid) {
+    let Some(service) = SERVICE.get() else { return };
+    if let Err((code, err)) = botagent::vm::delete_conversation_folder(
+        service,
+        &user_id,
+        &session_id.to_string(),
+    )
+    .await
+    {
+        log::warn!("delete conversation folder for {session_id} failed ({code}): {err}");
     }
 }
 

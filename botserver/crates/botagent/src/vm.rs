@@ -1,7 +1,10 @@
-//! Per-user agent VM lifecycle (#1580). One running VM per logged-in user;
-//! each conversation gets its own folder inside the VM at
-//! `/opt/vibe/conversations/{conversation_id}/`. When the user switches
-//! conversations the previous job is stopped. Every invocation goes through
+//! Per-user agent container lifecycle (#1580). One running container per
+//! logged-in user; each conversation gets its own folder inside it at
+//! `/opt/vibe/conversations/{conversation_id}/`. Switching conversations only
+//! changes which folder is active — running processes are never signalled, so
+//! background work continues while the user moves between conversations.
+//! Isolation is per container (per user); folders are namespaces inside that
+//! container. Every invocation goes through
 //! `botlib::security::command_guard::SafeCommand` and runs blocking work
 //! inside `tokio::task::spawn_blocking`.
 
@@ -314,9 +317,123 @@ async fn provision(
         .ok_or_else(|| internal(format!("agent session for user {user_id} vanished after provision")))
 }
 
-async fn launch_and_wait(state: &AgentService, vm_name: &str) -> Result<(), (StatusCode, String)> {
-    run_incus(state, vec!["launch".into(), "images:ubuntu/24.04".into(), vm_name.into()]).await?;
-    wait_for_running(state, vm_name).await
+/// Installs the runtime and enforces internet-only egress inside the
+/// container. It runs once at provision and appends to
+/// `/tmp/agent-bootstrap.log`. Private ranges are rejected while the bridge
+/// resolver keeps working, so package installs and public APIs are reachable
+/// but the host, the LAN and sibling tenants are not.
+const BOOTSTRAP_SCRIPT: &str = r#"
+set -eu
+export DEBIAN_FRONTEND=noninteractive
+{
+  apt-get update -q
+  apt-get install -y -q python3 python3-pip nodejs npm iptables iproute2
+  cat > /usr/local/sbin/agent-egress.sh <<'EOS'
+#!/bin/sh
+set -eu
+GW=$(ip route | awk '/^default/ {print $3; exit}')
+[ -n "$GW" ] || exit 0
+iptables -F OUTPUT
+iptables -A OUTPUT -o lo -j ACCEPT
+iptables -A OUTPUT -d "$GW" -p udp --dport 53 -j ACCEPT
+iptables -A OUTPUT -d "$GW" -p tcp --dport 53 -j ACCEPT
+iptables -A OUTPUT -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+for net in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16; do
+  iptables -A OUTPUT -d "$net" -j REJECT
+done
+iptables -A OUTPUT -j ACCEPT
+EOS
+  chmod +x /usr/local/sbin/agent-egress.sh
+  cat > /etc/systemd/system/agent-egress.service <<'EOS'
+[Unit]
+Description=Agent internet-only egress
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/agent-egress.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOS
+  systemctl daemon-reload
+  systemctl enable --now agent-egress.service
+} >/tmp/agent-bootstrap.log 2>&1 || true
+"#;
+
+/// Provision the container the same way the Vibe runtime does: a Debian
+/// system container with explicit CPU/memory limits attached to the managed
+/// bridge (internet egress). Runtime packages (python3/node) are installed
+/// in the background so the first user message is not blocked by apt.
+async fn launch_and_wait(state: &Arc<AgentService>, vm_name: &str) -> Result<(), (StatusCode, String)> {
+    let image = std::env::var("AGENT_VM_IMAGE")
+        .unwrap_or_else(|_| "images:debian/13".to_string());
+    let cpu = std::env::var("AGENT_VM_CPU").unwrap_or_else(|_| "1".to_string());
+    let mem = std::env::var("AGENT_VM_MEMORY").unwrap_or_else(|_| "1GiB".to_string());
+    let bridge = std::env::var("AGENT_VM_BRIDGE").unwrap_or_else(|_| "incusbr0".to_string());
+
+    run_incus(
+        state,
+        vec![
+            "launch".into(),
+            image,
+            vm_name.into(),
+            "--config".into(),
+            format!("limits.cpu={cpu}"),
+            "--config".into(),
+            format!("limits.memory={mem}"),
+        ],
+    )
+    .await?;
+
+    // Attach the managed bridge. The default profile often ships no NIC;
+    // ignore the error when a NIC already exists (idempotent provisioning).
+    let _ = run_incus(
+        state,
+        vec![
+            "config".into(),
+            "device".into(),
+            "add".into(),
+            vm_name.into(),
+            "eth0".into(),
+            "nic".into(),
+            format!("network={bridge}"),
+            "name=eth0".into(),
+        ],
+    )
+    .await;
+
+    wait_for_running(state, vm_name).await?;
+
+    // Best-effort runtime bootstrap. Logs land inside the container; a
+    // failure is reported by the first exec, never by provisioning.
+    let state_for_bootstrap = Arc::clone(state);
+    let name_for_bootstrap = vm_name.to_string();
+    tokio::spawn(async move {
+        let result = tokio::time::timeout(
+            std::time::Duration::from_secs(600),
+            exec_in_vm(
+                &state_for_bootstrap,
+                &name_for_bootstrap,
+                &["sh".into(), "-c".into(), BOOTSTRAP_SCRIPT.into()],
+            ),
+        )
+        .await;
+        match result {
+            Ok(Ok((_, _, stderr))) if !stderr.trim().is_empty() => {
+                tracing::warn!("agent runtime bootstrap {name_for_bootstrap}: {stderr}");
+            }
+            Ok(Err((code, err))) => {
+                tracing::warn!("agent runtime bootstrap {name_for_bootstrap} ({code}): {err}");
+            }
+            Err(_) => tracing::warn!("agent runtime bootstrap {name_for_bootstrap} timed out"),
+            _ => {}
+        }
+    });
+
+    Ok(())
 }
 
 // ─── Conversation folder management ──────────────────────────────────────
@@ -398,8 +515,9 @@ pub async fn list_conversation_output(
         .collect())
 }
 
-/// Switch active conversation: stop running jobs in the previous conversation
-/// folder, then activate the new one (#1580).
+/// Activate a conversation: ensure its folder exists and record it as the
+/// active one. Running processes in other conversations keep running — the
+/// container is the isolation boundary, not the conversation (#BBSIA).
 pub async fn switch_conversation(
     state: &Arc<AgentService>,
     user_id: &Uuid,
@@ -412,21 +530,6 @@ pub async fn switch_conversation(
         .ok_or_else(|| bad_request("No active VM for this user"))?;
     drop(conn);
 
-    // Kill any running processes from the previous conversation folder.
-    if let Some(ref prev_cid) = session.active_conversation_id {
-        if *prev_cid != clean_cid {
-            let prev_folder = format!("{CONVERSATIONS_ROOT}/{prev_cid}");
-            let _ = exec_in_vm(
-                state,
-                &session.vm_name,
-                &[
-                    "sh".into(), "-c".into(),
-                    format!("pkill -f '{prev_folder}' 2>/dev/null || true"),
-                ],
-            ).await;
-        }
-    }
-
     ensure_conversation_folder(state, &session, &clean_cid).await?;
 
     let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
@@ -435,6 +538,57 @@ pub async fn switch_conversation(
     let mut updated = session;
     updated.active_conversation_id = Some(clean_cid);
     Ok(updated)
+}
+
+/// Delete one conversation workspace: stop processes rooted in the folder,
+/// remove the folder tree, and drop the folder row. This runs only on an
+/// explicit history deletion — never on a conversation switch.
+pub async fn delete_conversation_folder(
+    state: &Arc<AgentService>,
+    user_id: &Uuid,
+    conversation_id: &str,
+) -> Result<(), (StatusCode, String)> {
+    let clean_cid = sanitize_id(conversation_id)?;
+
+    let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+    let Some(session) = load_session_by_user(&mut conn, user_id)? else {
+        return Ok(());
+    };
+    drop(conn);
+
+    let folder = format!("{CONVERSATIONS_ROOT}/{clean_cid}");
+    // Explicit deletion is the only place a job is terminated. `rm -rf` and
+    // `pkill` run through the trusted shell-script path; `clean_cid` is
+    // restricted to ASCII alphanumerics, '-' and '_' by `sanitize_id`.
+    let script = format!("pkill -f '{folder}' 2>/dev/null || true; rm -rf '{folder}'");
+    if let Err((code, err)) = exec_in_vm(
+        state,
+        &session.vm_name,
+        &["sh".to_string(), "-c".to_string(), script],
+    )
+    .await
+    {
+        tracing::warn!("delete conversation folder {clean_cid} ({code}): {err}");
+    }
+
+    let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+    use agent_conversation_folders::dsl as cf;
+    diesel::delete(
+        cf::agent_conversation_folders
+            .filter(cf::agent_session_id.eq(session.id))
+            .filter(cf::conversation_id.eq(&clean_cid)),
+    )
+    .execute(&mut conn)
+    .map_err(|e| internal(format!("conv_folders delete: {e}")))?;
+
+    if session.active_conversation_id.as_deref() == Some(clean_cid.as_str()) {
+        use agent_sessions::dsl as s;
+        diesel::update(s::agent_sessions.filter(s::id.eq(session.id)))
+            .set(s::active_conversation_id.eq(None::<String>))
+            .execute(&mut conn)
+            .map_err(|e| internal(format!("agent_sessions clear active: {e}")))?;
+    }
+    Ok(())
 }
 
 /// Execute a program in the conversation folder. The code is written to a
@@ -459,11 +613,17 @@ pub async fn exec_in_conversation(
     };
 
     let run_id: String = Uuid::new_v4().simple().to_string().chars().take(8).collect();
-    let script_path = format!("{folder}/run_{run_id}.{ext}");
+    // #1581: generated programs live in program/, never in the conversation
+    // root. output/ and data/ are created up front so the script can write
+    // without a race.
+    let program_dir = format!("{folder}/program");
+    let script_path = format!("{program_dir}/run_{run_id}.{ext}");
 
     let b64 = crate::sandbox::b64_encode(code.as_bytes());
     let setup = format!(
-        "mkdir -p {folder} && echo {b64} | base64 -d > {script_path} && cd {folder} && {interpreter} {script_path}"
+        "mkdir -p {folder} {program_dir} {folder}/output {folder}/data \
+         && echo {b64} | base64 -d > {script_path} \
+         && cd {folder} && {interpreter} {script_path}"
     );
 
     let result = tokio::time::timeout(
