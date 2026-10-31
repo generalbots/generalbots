@@ -17,6 +17,7 @@ function sendMessage(messageContent) {
   if (!messageContent) {
     hideMentionDropdown();
     input.value = "";
+    if (input.tagName === "TEXTAREA") input.style.height = "auto";
     input.focus();
   }
 
@@ -595,6 +596,14 @@ form.onsubmit = function (e) { e.preventDefault(); sendMessage(); return false; 
 }
 
 if (input) {
+// BBSIA: grow the composer with its content, never past 180px.
+var autoGrow = function () {
+  if (input.tagName !== "TEXTAREA") return;
+  input.style.height = "auto";
+  input.style.height = Math.min(input.scrollHeight, 180) + "px";
+};
+input.addEventListener("input", autoGrow);
+
 // Only attach mention handlers if they exist
 var mentionInputHandler = window.handleMentionInput;
 var mentionKeydownHandler = window.handleMentionKeydown;
@@ -632,6 +641,19 @@ messages.scrollBy({ top: dir * messages.clientHeight, behavior: "instant" });
 
 if (sendBtn) {
 sendBtn.onclick = function (e) { e.preventDefault(); sendMessage(); };
+}
+
+// #1549: remember the selected model tier across reloads.
+var modelPicker = document.getElementById("modelPicker");
+if (modelPicker) {
+var MODEL_KEY = "gb-model-preference";
+try {
+var savedModel = localStorage.getItem(MODEL_KEY);
+if (savedModel) modelPicker.value = savedModel;
+} catch (e) {}
+modelPicker.addEventListener("change", function () {
+try { localStorage.setItem(MODEL_KEY, modelPicker.value); } catch (e) {}
+});
 }
 
 var scrollBtn = document.getElementById("scrollToBottom");

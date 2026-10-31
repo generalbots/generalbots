@@ -78,6 +78,7 @@ async function uploadFiles(files) {
     var total = files.length;
     var uploaded = 0;
     var failed = 0;
+    var failedFiles = [];
     var progressEl = showUploadProgress(total);
     for (var fi = 0; fi < files.length; fi++) {
         var file = files[fi];
@@ -98,11 +99,32 @@ async function uploadFiles(files) {
         } catch (err) {
             console.error("Upload error:", err);
             failed++;
+            failedFiles.push(file);
         }
     }
-    hideUploadProgress(progressEl);
-    if (failed === 0) showNotification("Uploaded " + uploaded + " file(s)", "success");
-    else showNotification("Uploaded " + uploaded + ", " + failed + " failed", "warning");
+    if (failed === 0) {
+        hideUploadProgress(progressEl);
+        showNotification("Uploaded " + uploaded + " file(s)", "success");
+    } else {
+        // #1550: failed uploads are retryable instead of being lost.
+        var label = document.getElementById("gb-upload-label");
+        var detail = document.getElementById("gb-upload-detail");
+        if (label) label.textContent = failed + " upload(s) failed";
+        if (detail) detail.textContent = uploaded + " uploaded";
+        var retry = document.createElement("button");
+        retry.type = "button";
+        retry.textContent = "Retry failed";
+        retry.style.cssText = "margin-top:10px;padding:6px 10px;border:0;border-radius:6px;background:#3b82f6;color:#fff;font-size:12px;cursor:pointer;";
+        retry.addEventListener("click", function () {
+            if (progressEl && progressEl.parentNode) progressEl.remove();
+            uploadFiles(failedFiles.slice());
+        });
+        if (progressEl) progressEl.appendChild(retry);
+        setTimeout(function () {
+            if (progressEl && progressEl.parentNode) progressEl.remove();
+        }, 15000);
+        showNotification("Uploaded " + uploaded + ", " + failed + " failed", "warning");
+    }
     loadFiles(currentPath, currentBucket);
 }
 

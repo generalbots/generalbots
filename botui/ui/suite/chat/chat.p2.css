@@ -448,3 +448,13 @@ form.input-container {
 .scroll-to-bottom:active {
     transform: translateY(0);
 }
+
+/* BBSIA: multiline composer (Shift+Enter newline, auto-grow up to 180px). */
+textarea#messageInput {
+    resize: none;
+    line-height: 1.45;
+    max-height: 180px;
+    overflow-y: auto;
+    font-family: inherit;
+    padding: 6px 0;
+}
