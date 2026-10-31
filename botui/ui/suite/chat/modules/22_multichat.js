@@ -588,6 +588,30 @@
 
   /* ── Hook: "+" button creates a PARALLEL conversation tab ── */
 
+  // Tabs created elsewhere (history click, tab picker, boot restore) only
+  // exist in GBTabs. Materialise an MC record, mount its pane, connect its
+  // own socket and replay the conversation — without this, "open from
+  // history" focused an empty tab and the chat behind it never changed.
+  window.addEventListener("gb-tab-focused", function (e) {
+    var tab = e && e.detail && e.detail.tab;
+    if (!tab || !window.GBTabs) return;
+    if (tab.id === "tab-default") {
+      if (MC.activeId !== tab.id) switchTo(tab.id);
+      return;
+    }
+    var t = MC.tabs[tab.id];
+    if (!t) {
+      t = ensureTab(tab.id, tab.title, tab.sessionId || null);
+      t.kind = tab.kind || "chat";
+      mountActive(t);
+      connectTab(t);
+      if (tab.sessionId) replayHistory(t);
+      installSendRouter();
+      return;
+    }
+    if (MC.activeId !== tab.id) switchTo(tab.id);
+  });
+
   // A bot switch (ChatSwitchBot) re-authenticates and mints a new session in
   // place. The default tab must adopt it immediately, otherwise the ws.send
   // hook keeps stamping the previous conversation's id on every frame.
