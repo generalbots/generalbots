@@ -692,16 +692,36 @@ async fn install_packages(
     packages: &[String],
 ) -> Result<(bool, String), (StatusCode, String)> {
     let names = packages.join(" ");
+    // Minimal images ship without pip/npm. Bootstrap the toolchain once; apt
+    // needs internet, which the workspace is allowed to use.
+    let ensure = match language {
+        "python" => Some(
+            "python3 -m pip --version >/dev/null 2>&1 || \
+             python3 -m ensurepip --upgrade >/dev/null 2>&1 || \
+             (apt-get update -qq && apt-get install -y -qq python3-pip)",
+        ),
+        "node" => Some(
+            "command -v npm >/dev/null 2>&1 || \
+             (apt-get update -qq && apt-get install -y -qq nodejs npm)",
+        ),
+        _ => None,
+    };
+    if let Some(ensure) = ensure {
+        let (ok, _, err) = run_with_timeout(state, vm_name, ensure.to_string(), 240_000).await?;
+        if !ok {
+            return Ok((false, format!("toolchain bootstrap failed: {err}")));
+        }
+    }
     let command = match language {
         "python" => format!(
-            "cd {folder} && python3 -m pip install --user --quiet --disable-pip-version-check {names}"
+            "cd {folder} && python3 -m pip install --quiet --disable-pip-version-check --break-system-packages {names}"
         ),
         "node" => format!(
             "cd {folder} && npm install --no-save --no-audit --no-fund --silent {names}"
         ),
         _ => return Ok((true, String::new())),
     };
-    let (ok, stdout, stderr) = run_with_timeout(state, vm_name, command, 120_000).await?;
+    let (ok, stdout, stderr) = run_with_timeout(state, vm_name, command, 300_000).await?;
     if ok {
         Ok((true, stdout))
     } else {
