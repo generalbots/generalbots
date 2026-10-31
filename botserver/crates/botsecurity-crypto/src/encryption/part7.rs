@@ -69,7 +69,7 @@ pub fn load_master_encryption_key() -> Vec<u8> {
     }
 
     // 4. Ephemeral fallback (dev default — no Vault/keys configured)
-    info!("No MESSAGE_ENCRYPTION_KEY or JWT_SECRET configured. Using ephemeral random key (dev mode).");
+    warn!("No master encryption key available (Vault, MESSAGE_ENCRYPTION_KEY or JWT_SECRET). Using an ephemeral key: stored messages will be unreadable after the next restart.");
     let key: Vec<u8> = rand::random::<[u8; 32]>().to_vec();
     if let Ok(mut guard) = master_key_lock().write() {
         *guard = Some(key.clone());

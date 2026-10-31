@@ -2,6 +2,34 @@ use super::*;
 
 impl VaultConfigProvider for SecretsManagerVaultProvider {
     fn get_secret(&self, path: &str) -> Result<String, String> {
+        // `get_value_blocking` only reads environment variables. Secrets such
+        // as `secret/gbo/encryption` live in Vault, so using it here silently
+        // returned "" and the crypto layer fell back to an ephemeral master
+        // key on every boot — every stored message became unreadable after a
+        // restart. Read through the async SecretsManager, which talks to
+        // Vault, and keep the env lookup as a last-resort fallback.
+        let normalized = path.trim_start_matches("secret/").to_string();
+        let sm = self.0.clone();
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build();
+            let out = match rt {
+                Ok(rt) => rt.block_on(async move { sm.get_secret(&normalized).await.ok() }),
+                Err(_) => None,
+            };
+            let _ = tx.send(out);
+        });
+        if let Ok(Some(secret)) = rx.recv_timeout(std::time::Duration::from_secs(5)) {
+            for field in ["key", "master_key", "value", "secret"] {
+                if let Some(value) = secret.get(field) {
+                    if !value.is_empty() {
+                        return Ok(value.clone());
+                    }
+                }
+            }
+        }
         let v = self.0.get_value_blocking(path, "key", "");
         if v.is_empty() {
             Ok(self.0.get_value_blocking(path, "master_key", ""))

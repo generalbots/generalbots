@@ -7,7 +7,7 @@ pub(crate) use sha2::{Digest, Sha256};
 pub(crate) use std::collections::HashMap;
 pub(crate) use std::sync::Arc;
 pub(crate) use tokio::sync::RwLock;
-pub(crate) use tracing::info;
+pub(crate) use tracing::{info, warn};
 pub(crate) use uuid::Uuid;
 
 const NONCE_SIZE: usize = 12;
