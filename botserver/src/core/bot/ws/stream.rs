@@ -224,6 +224,7 @@ pub async fn process_llm_response(
                                     "is_complete": false,
                                     "suggestions": [],
                                     "switchers": [],
+                                    "citations": [],
                                     "context_length": 0,
                                     "context_max_length": 0,
                                 });
@@ -269,6 +270,7 @@ pub async fn process_llm_response(
                 "reasoning": reasoning_accumulated.trim(),
                 "suggestions": [],
                 "switchers": [],
+                "citations": [],
                 "context_length": 0,
                 "context_max_length": 0,
             });

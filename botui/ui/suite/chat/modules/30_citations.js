@@ -119,11 +119,31 @@
    * Renders citation chips (and superscript markers) for one bot message.
    * Idempotent per message element.
    */
+  // Fallback producer: when the server did not attach a citations array,
+  // extract markdown links and bare URLs the model included in its answer.
+  function extractCitations(text) {
+    var out = [];
+    var seen = {};
+    var add = function (title, url) {
+      if (!url || seen[url] || out.length >= 8) return;
+      seen[url] = true;
+      out.push({ title: title || url, url: url });
+    };
+    var md = /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g;
+    var m;
+    while ((m = md.exec(text)) !== null) add(m[1], m[2]);
+    var bare = /(https?:\/\/[^\s<>"')]+)/g;
+    while ((m = bare.exec(text)) !== null) add("", m[1]);
+    return out;
+  }
+
   window.GBRenderCitations = function (msgEl, msgData) {
-    if (!msgEl || !msgData || !Array.isArray(msgData.citations) ||
-        !msgData.citations.length) {
-      return;
+    if (!msgEl || !msgData) return;
+    var citations = Array.isArray(msgData.citations) ? msgData.citations : [];
+    if (!citations.length && msgData.content) {
+      citations = extractCitations(String(msgData.content));
     }
+    if (!citations.length) return;
     if (msgEl.getAttribute("data-gb-citations") === "done") return;
     var content = msgEl.querySelector(".message-content") || msgEl;
     if (content.querySelector(".source-chips")) return;
@@ -131,7 +151,7 @@
     var chips = document.createElement("div");
     chips.className = "source-chips";
     var added = false;
-    msgData.citations.forEach(function (c) {
+    citations.forEach(function (c) {
       var chip = buildChip(c || {});
       if (chip) { chips.appendChild(chip); added = true; }
     });
@@ -146,7 +166,7 @@
     msgEl.setAttribute("data-gb-citations", "done");
 
     var body = msgEl.querySelector(".bot-message") || content;
-    linkifyMarkers(body, msgData.citations);
+    linkifyMarkers(body, citations);
   };
 
   // Hook: wrap the global addMessage (assignment preservation).
