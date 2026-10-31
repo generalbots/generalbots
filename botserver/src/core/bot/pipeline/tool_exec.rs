@@ -121,7 +121,17 @@ pub async fn run_llm_tool_call(
         None => return,
     };
     let tc_json = &full_response[tc_start..];
-    if let Ok(tool_call) = serde_json::from_str::<serde_json::Value>(tc_json) {
+    let tool_call = match extract_tool_call(tc_json) {
+        Some(value) => value,
+        None => {
+            botlog::safe_warn!(
+                "tool_call: could not parse the model's JSON call; reply starts with: {}",
+                tc_json.chars().take(200).collect::<String>()
+            );
+            return;
+        }
+    };
+    {
         let raw_tool_name = tool_call.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
         let mut tool_args_owned = tool_call
             .get("arguments")
@@ -393,4 +403,80 @@ pub async fn run_llm_tool_call(
             }
         }
     }
+}
+
+/// Extracts the first balanced JSON object from a model reply.
+///
+/// Models routinely embed real newlines/tabs inside the `arguments` string
+/// (generated code), which `serde_json` rejects as control characters. The
+/// first attempt parses the object as-is; the second escapes raw control
+/// characters inside string literals and retries.
+fn extract_tool_call(raw: &str) -> Option<serde_json::Value> {
+    let start = raw.find('{')?;
+    let slice = &raw[start..];
+    let mut depth = 0usize;
+    let mut in_string = false;
+    let mut escaped = false;
+    let mut end = None;
+    for (index, ch) in slice.char_indices() {
+        if in_string {
+            if escaped {
+                escaped = false;
+            } else if ch == '\\' {
+                escaped = true;
+            } else if ch == '"' {
+                in_string = false;
+            }
+            continue;
+        }
+        match ch {
+            '"' => in_string = true,
+            '{' => depth += 1,
+            '}' => {
+                depth = depth.saturating_sub(1);
+                if depth == 0 {
+                    end = Some(index + 1);
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+    let object = &slice[..end?];
+    if let Ok(value) = serde_json::from_str(object) {
+        return Some(value);
+    }
+
+    let mut repaired = String::with_capacity(object.len());
+    let mut in_string = false;
+    let mut escaped = false;
+    for ch in object.chars() {
+        if in_string {
+            if escaped {
+                repaired.push(ch);
+                escaped = false;
+                continue;
+            }
+            match ch {
+                '\\' => {
+                    repaired.push(ch);
+                    escaped = true;
+                }
+                '"' => {
+                    repaired.push(ch);
+                    in_string = false;
+                }
+                '\n' => repaired.push_str("\\n"),
+                '\r' => repaired.push_str("\\r"),
+                '\t' => repaired.push_str("\\t"),
+                other => repaired.push(other),
+            }
+        } else {
+            if ch == '"' {
+                in_string = true;
+            }
+            repaired.push(ch);
+        }
+    }
+    serde_json::from_str(&repaired).ok()
 }

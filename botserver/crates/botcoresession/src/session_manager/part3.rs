@@ -41,7 +41,20 @@ impl SessionManager {
             // encrypted messages"), so the row is dropped instead — the
             // conversation continues without it and the count is reported once.
             match decrypt_field(&content, &key_bytes) {
-                Ok(decrypted) => history.push((role_str, decrypted)),
+                Ok(decrypted) => {
+                    // The tool-call frame is a control message: the tool's
+                    // result is stored as its own assistant turn. Replaying
+                    // the raw JSON showed the protocol to the user.
+                    if other_role == 2
+                        && decrypted.trim_start().starts_with("{\"__tool_call__\"")
+                    {
+                        continue;
+                    }
+                    if decrypted.trim().is_empty() {
+                        continue;
+                    }
+                    history.push((role_str, decrypted));
+                }
                 Err(_) => unreadable += 1,
             }
         }
