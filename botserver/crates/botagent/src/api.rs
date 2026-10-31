@@ -7,6 +7,7 @@
 use axum::{
     extract::{Query, State},
     http::{HeaderMap, StatusCode},
+    response::IntoResponse,
     Json,
 };
 use diesel::prelude::*;
@@ -85,21 +86,55 @@ pub fn is_admin_claims(claims: &serde_json::Value) -> bool {
     claims.get("role").and_then(|r| r.as_str()) == Some("admin")
 }
 
+/// Verifies the token signature with the SaaS JWT secret handed over by the
+/// server at boot (`GB_AGENT_JWT_SECRET`).
+fn verified_sub(raw: &str) -> Option<Uuid> {
+    // `bearer_token` returns the whole header value; the signature covers the
+    // JWT only, so drop the scheme prefix here.
+    let token = raw
+        .strip_prefix("Bearer ")
+        .or_else(|| raw.strip_prefix("bearer "))
+        .unwrap_or(raw)
+        .trim();
+    let secret = std::env::var("GB_AGENT_JWT_SECRET").ok()?;
+    let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
+    validation.validate_exp = true;
+    // Suite tokens are claim-light (no `aud`).
+    validation.validate_aud = false;
+    let data = jsonwebtoken::decode::<serde_json::Value>(
+        token,
+        &jsonwebtoken::DecodingKey::from_secret(secret.as_bytes()),
+        &validation,
+    )
+    .map_err(|e| tracing::warn!("agent bearer rejected: {e}"))
+    .ok()?;
+    let sub = data.claims.get("sub")?.as_str()?;
+    Uuid::parse_str(sub).ok()
+}
+
 fn caller_uuid(headers: &HeaderMap) -> Result<(String, Uuid, bool), (StatusCode, String)> {
     let token = bearer_token(headers).ok_or_else(|| unauthorized("Missing bearer token"))?;
     let payload = jwt_payload(&token).ok_or_else(|| unauthorized("Invalid token"))?;
-    let admin = is_admin_claims(&payload);
     let sub = b64_json_sub(&token).ok_or_else(|| unauthorized("Token lacks sub claim"))?;
-    // A non-UUID `sub` must never collapse every caller onto a shared VM.
-    // Derive a stable id with the same namespace the chat auth uses
-    // ("zitadel:{sub}") instead of falling back to nil.
-    let user_id = Uuid::parse_str(&sub).unwrap_or_else(|_| {
-        tracing::warn!("JWT sub '{sub}' is not a UUID; deriving a stable user id");
-        Uuid::new_v5(
-            &Uuid::NAMESPACE_URL,
-            format!("zitadel:{sub}").as_bytes(),
-        )
-    });
+    // SECURITY: the payload segment is attacker-controlled. Every caller must
+    // pass signature verification before acting on another user's VM — a
+    // handcrafted `sub` used to reach any workspace.
+    let user_id = match verified_sub(&token) {
+        Some(verified) => verified,
+        None if std::env::var("GB_AGENT_JWT_SECRET").is_err() => {
+            tracing::warn!(
+                "GB_AGENT_JWT_SECRET not set; falling back to unverified claims (tests only)"
+            );
+            Uuid::parse_str(&sub).unwrap_or_else(|_| {
+                Uuid::new_v5(
+                    &Uuid::NAMESPACE_URL,
+                    format!("zitadel:{sub}").as_bytes(),
+                )
+            })
+        }
+        None => return Err(unauthorized("Invalid or unverified token")),
+    };
+    let admin = is_admin_claims(&payload);
     Ok((sub, user_id, admin))
 }
 
@@ -239,7 +274,7 @@ pub async fn vm_exec(
     let timeout = body.timeout_ms.unwrap_or(30_000).min(120_000);
     let (ok, stdout, stderr) = vm::exec_in_conversation(
         &state, &session.vm_name, &body.conversation_id,
-        &body.language, &body.code, timeout,
+        &body.language, &body.code, timeout, &body.packages,
     ).await?;
 
     let files = vm::list_conversation_output(&state, &session.vm_name, &body.conversation_id)
@@ -273,9 +308,21 @@ pub async fn vm_exec(
 /// user's VM (base64-encoded) for preview/download in chat.
 pub async fn vm_file(
     State(state): State<Arc<AgentService>>,
-    headers: HeaderMap,
+    mut headers: HeaderMap,
     Query(params): Query<HashMap<String, String>>,
-) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+) -> Result<axum::response::Response, (StatusCode, String)> {
+    // A file link must work as a plain URL: browsers cannot attach an
+    // Authorization header to a download/navigation. Accept the same verified
+    // token as a query parameter when the header is absent.
+    if !headers.contains_key(axum::http::header::AUTHORIZATION) {
+        if let Some(token) = params.get("access_token").filter(|t| !t.is_empty()) {
+            if let Ok(value) =
+                axum::http::HeaderValue::from_str(&format!("Bearer {token}"))
+            {
+                headers.insert(axum::http::header::AUTHORIZATION, value);
+            }
+        }
+    }
     let (_, user_id, _) = caller_uuid(&headers)?;
     let session = vm::get_user_vm(&state, &user_id)?
         .ok_or_else(|| (StatusCode::NOT_FOUND, "No active VM".to_string()))?;
@@ -300,12 +347,56 @@ pub async fn vm_file(
     if !ok {
         return Err((StatusCode::NOT_FOUND, format!("File not found: {}", stderr)));
     }
+    let encoded = stdout.trim().to_string();
+    // `raw=1` serves the real bytes so a plain hyperlink downloads the file
+    // itself (name, type and content), not a JSON envelope.
+    if params.contains_key("raw") {
+        use base64::Engine;
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode(encoded.as_bytes())
+            .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("decode failed: {e}")))?;
+        let file_name: String = rel_path
+            .rsplit('/')
+            .next()
+            .unwrap_or("file")
+            .chars()
+            .filter(|c| !matches!(c, '"' | '\r' | '\n' | '\\'))
+            .collect();
+        let mime = match file_name.rsplit('.').next().unwrap_or("") {
+            "png" => "image/png",
+            "jpg" | "jpeg" => "image/jpeg",
+            "gif" => "image/gif",
+            "webp" => "image/webp",
+            "svg" => "image/svg+xml",
+            "pdf" => "application/pdf",
+            "txt" => "text/plain; charset=utf-8",
+            "csv" => "text/csv; charset=utf-8",
+            "json" => "application/json",
+            "md" => "text/markdown; charset=utf-8",
+            "zip" => "application/zip",
+            "mp4" => "video/mp4",
+            "mp3" => "audio/mpeg",
+            _ => "application/octet-stream",
+        };
+        let disposition = format!("inline; filename=\"{file_name}\"");
+        return Ok((
+            [
+                (axum::http::header::CONTENT_TYPE, mime.to_string()),
+                (axum::http::header::CONTENT_DISPOSITION, disposition),
+                (axum::http::header::CACHE_CONTROL, "private, max-age=60".to_string()),
+            ],
+            bytes,
+        )
+            .into_response());
+    }
+
     Ok(Json(serde_json::json!({
         "success": true,
         "path": rel_path,
         "conversation_id": clean_cid,
-        "content_base64": stdout.trim(),
-    })))
+        "content_base64": encoded,
+    }))
+    .into_response())
 }
 
 /// `GET /api/agent/vm/files?conversation_id=` — list files in the

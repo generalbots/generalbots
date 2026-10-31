@@ -1154,12 +1154,14 @@ name = "botagent"
 version = "6.7.0"
 dependencies = [
  "axum",
+ "base64 0.22.1",
  "botlib",
  "botschema",
  "botsecurity-core",
  "chrono",
  "diesel",
  "diesel_migrations",
+ "jsonwebtoken",
  "r2d2",
  "serde",
  "serde_json",

@@ -154,6 +154,11 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
 
     let jwt_secret = crate::main_module::directory_setup::resolve_saas_jwt_secret();
 
+    // SECURITY: the agent VM API reads the token payload itself; without a
+    // signature check any handcrafted JWT reached another user's VM. Hand the
+    // signing secret to that crate (process-wide, no crate cycle).
+    std::env::set_var("GB_AGENT_JWT_SECRET", &jwt_secret);
+
     let jwt_config = JwtConfig::default();
     let jwt_key = JwtKey::from_secret(&jwt_secret);
     let jwt_manager = match JwtManager::new(jwt_config, jwt_key) {
