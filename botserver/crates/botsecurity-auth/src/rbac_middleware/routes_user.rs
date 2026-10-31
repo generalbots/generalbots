@@ -2,6 +2,8 @@ use super::*;
 
 pub(crate) fn authenticated_routes() -> Vec<RoutePermission> {
     vec![
+        // Chat history: authenticated users may delete their own conversation.
+        RoutePermission::new("/api/chat/history/**", "DELETE", ""),
 
         // Drive / Files
         RoutePermission::new("/api/drive/**", "GET", ""),
