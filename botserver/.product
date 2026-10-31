@@ -15,7 +15,7 @@ name=General Bots
 # Every other application is declared under `preview_apps` below.
 # Core surfaces (settings, auth, admin) are always enabled regardless of this
 # list, so they remain reachable.
-apps=chat,drive
+apps=chat,drive,terminal
 
 # Preview applications (comma-separated list)
 # These do NOT appear in the launcher or the sidebar by default. They are
