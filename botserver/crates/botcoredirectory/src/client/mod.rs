@@ -70,8 +70,7 @@ mod tests {
 
     #[test]
     fn test_sanitize_accepts_http_172_16_range() {
-        let base = ZitadelClient::sanitize_api_base("http://172.16.0.10:8080", false).unwrap();
-        assert_eq!(base, "http://172.16.0.10:8080");
+        assert!(ZitadelClient::sanitize_api_base("http://172.16.0.10:8080", false).is_err());
     }
 
     #[test]

@@ -8,10 +8,18 @@ impl ZitadelClient {
         // public destinations. Plain http is allowed when traffic provably
         // stays inside a trusted perimeter (loopback/private networks) or when
         // the operator explicitly opted in via `allow_insecure_http`.
+        // #1531: plain HTTP is acceptable only for loopback or when the
+        // operator explicitly opts in. Private LAN addresses no longer bypass
+        // the HTTPS requirement because tokens travel on every request.
+        let loopback = host == "localhost"
+            || host
+                .parse::<std::net::IpAddr>()
+                .map(|ip| ip.is_loopback())
+                .unwrap_or(false);
         anyhow::ensure!(
             parsed.scheme() == "https"
-                || (parsed.scheme() == "http" && (allow_insecure_http || is_private_host(&host))),
-            "Zitadel api_url must be https (or http on loopback/private networks; set allow_insecure_http to override)"
+                || (parsed.scheme() == "http" && (allow_insecure_http || loopback)),
+            "Zitadel api_url must be https (or http on loopback; set allow_insecure_http to override)"
         );
         let mut base = format!("{}://{}", parsed.scheme(), host);
         if let Some(port) = parsed.port() {
