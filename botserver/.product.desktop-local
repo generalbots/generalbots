@@ -13,8 +13,8 @@ preview_apps=
 # Chat opens automatically when the suite loads.
 suite_default_app=chat
 
-# Sidebar hidden (no multi-bot management in single-user mode).
-sidebar=false
+# Sidebar visible so conversation history is reachable (single-user mode).
+sidebar=true
 
 # Search disabled (no omnibox in local mode).
 search_enabled=false

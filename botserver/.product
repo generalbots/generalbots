@@ -31,9 +31,9 @@ preview_apps=
 
 
 # Sidebar visibility
-# Controls whether the left sidebar is shown in the suite
-# Set to false to hide the sidebar by default
-sidebar=false
+# Controls whether the left sidebar (apps + conversation history) is shown.
+# Conversation history lives in this rail, so it stays visible.
+sidebar=true
 
 # Search mechanism enabled
 # Controls whether the omnibox/search toolbar is displayed in the suite
