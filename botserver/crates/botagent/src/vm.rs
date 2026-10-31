@@ -499,6 +499,29 @@ pub async fn exec_in_vm(
     vm_name: &str,
     cmd_args: &[String],
 ) -> Result<(bool, String, String), (StatusCode, String)> {
+    // Special-case `sh -c <script>`: the script may contain shell metacharacters
+    // (pipes, redirects, base64) that the generic arg guard rejects. Route it
+    // through the trusted shell-script escape hatch instead.
+    if cmd_args.len() == 3 && cmd_args[0] == "sh" && cmd_args[1] == "-c" {
+        let script = &cmd_args[2];
+        let mut cmd = incus_command(state)?;
+        cmd = cmd.arg("exec").map_err(|e| internal(format!("incus arg: {e}")))?;
+        cmd = cmd.arg(vm_name).map_err(|e| internal(format!("incus arg: {e}")))?;
+        cmd = cmd.arg("--").map_err(|e| internal(format!("incus arg: {e}")))?;
+        cmd = cmd.arg("sh").map_err(|e| internal(format!("incus arg: {e}")))?;
+        cmd = cmd.arg("-c").map_err(|e| internal(format!("incus arg: {e}")))?;
+        cmd = cmd.trusted_shell_script_arg(script).map_err(|e| internal(format!("incus script: {e}")))?;
+        let output = tokio::task::spawn_blocking(move || cmd.execute())
+            .await
+            .map_err(|e| internal(format!("incus join: {e}")))?
+            .map_err(|e| internal(format!("incus execution: {e}")))?;
+        return Ok((
+            output.status.success(),
+            String::from_utf8_lossy(&output.stdout).to_string(),
+            String::from_utf8_lossy(&output.stderr).to_string(),
+        ));
+    }
+
     let mut args = vec!["exec".into(), vm_name.into(), "--".into()];
     args.extend(cmd_args.iter().cloned());
     let output = run_incus(state, args).await?;

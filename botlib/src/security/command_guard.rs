@@ -101,7 +101,7 @@ impl SafeCommand {
     }
 
     pub fn shell_script_arg(mut self, script: &str) -> Result<Self, CommandGuardError> {
-        let is_unix_shell = self.command == "bash" || self.command == "sh";
+        let is_unix_shell = self.command == "bash" || self.command == "sh" || self.command == "incus";
         let is_windows_cmd = self.command == "cmd";
         if !is_unix_shell && !is_windows_cmd {
             return Err(CommandGuardError::InvalidArgument(
@@ -160,7 +160,7 @@ impl SafeCommand {
         script: &str,
         trusted: bool,
     ) -> Result<Self, CommandGuardError> {
-        let is_unix_shell = self.command == "bash" || self.command == "sh";
+        let is_unix_shell = self.command == "bash" || self.command == "sh" || self.command == "incus";
         let is_windows_cmd = self.command == "cmd";
         if !is_unix_shell && !is_windows_cmd {
             return Err(CommandGuardError::InvalidArgument(
