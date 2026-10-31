@@ -452,6 +452,8 @@ if (typeof window.WindowManager === "undefined") {
       // #1315 — per-app default window size. Timer (and other small
       // utilities) open compact; users can still resize/maximize freely.
       const APP_DEFAULT_SIZE = {
+        // The primary surface gets the canvas, not a postage stamp.
+        chat: { width: 1080, height: 800 },
         timer: { width: 360, height: 300 },
         timeclock: { width: 400, height: 320 },
         calculator: { width: 320, height: 420 },

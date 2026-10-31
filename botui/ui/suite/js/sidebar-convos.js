@@ -201,10 +201,21 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
 
   mod.openConversation = function (sessionId) {
     if (!sessionId) return;
-    if (window.openDeepLink) {
-      // #1439 — clicking a history conversation opens a NEW chat window
-      // with that conversation loaded (never mutates an open chat window).
-      window.openDeepLink("chat", { session: sessionId }, { new: true });
+    // Reuse the open chat window: this opens the conversation as a TAB in the
+    // existing window instead of spawning a second window (#1439 regression).
+    var hasChatWindow = !!(
+      window.WindowManager &&
+      typeof WindowManager.getWindow === "function" &&
+      WindowManager.getWindow("chat")
+    );
+    if (hasChatWindow) {
+      window.dispatchEvent(
+        new CustomEvent("gb-open-history-tab", {
+          detail: { sessionId: sessionId, title: "Conversation" },
+        })
+      );
+    } else if (window.openDeepLink) {
+      window.openDeepLink("chat", { session: sessionId });
     }
     highlightActive(sessionId);
   };

@@ -458,3 +458,32 @@ textarea#messageInput {
     font-family: inherit;
     padding: 6px 0;
 }
+
+/* Polish: suggestion chips must hug their text, not stretch to the footer. */
+.suggestions-container {
+    align-items: flex-start;
+    align-content: flex-start;
+}
+.suggestion-chip,
+.suggestion-button {
+    align-self: flex-start;
+    height: auto;
+    min-height: 26px;
+}
+
+/* Polish: actionable retry on a failed assistant turn. */
+.gb-retry-btn {
+    margin-top: 10px;
+    padding: 6px 14px;
+    border: 1px solid var(--border, #d0d0d0);
+    border-radius: 999px;
+    background: var(--surface, #fff);
+    color: var(--text, #222);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+.gb-retry-btn:hover {
+    border-color: var(--accent, #2563eb);
+    color: var(--accent, #2563eb);
+}

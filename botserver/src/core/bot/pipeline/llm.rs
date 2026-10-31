@@ -55,7 +55,7 @@ fn llm_empty_message() -> String {
     let locale = botcore::i18n::Locale::new("pt-BR").unwrap_or_default();
     let msg = botcore::i18n::t(&locale, "error-llm-empty-response");
     if msg.starts_with('[') && msg.ends_with(']') {
-        "Desculpe, nao consegui processar sua mensagem agora. Tente novamente em alguns segundos.".to_string()
+        "Sorry, I could not process your message right now. Please try again in a few seconds.".to_string()
     } else {
         msg
     }

@@ -318,6 +318,27 @@ function addMessage(sender, content, msgId, reasoning) {
       if (tool.status) ChatCodeUX.appendCard(tool);
     });
   }
+  // Polish: a failed turn offers a one-click retry instead of dead text.
+  if (
+    sender === "bot" &&
+    /(could not process|couldn't process|não consegui processar|nao consegui processar)/i.test(content)
+  ) {
+    var retryBtn = document.createElement("button");
+    retryBtn.type = "button";
+    retryBtn.className = "gb-retry-btn";
+    retryBtn.textContent = "Retry";
+    retryBtn.addEventListener("click", function () {
+      var users = messages.querySelectorAll(".message.user");
+      var last = users.length ? users[users.length - 1] : null;
+      var text = last ? (last.querySelector(".message-content") || last).innerText.trim() : "";
+      if (text && typeof window.sendMessage === "function") {
+        window.sendMessage(text);
+      }
+    });
+    var retryTarget = div.querySelector(".message-content");
+    if (retryTarget) retryTarget.appendChild(retryBtn);
+  }
+
   if (sender === "bot" && content) {
     var codeBlocks = content.match(/```[\s\S]{300,}?```/g);
     if (codeBlocks && codeBlocks.length > 0) {

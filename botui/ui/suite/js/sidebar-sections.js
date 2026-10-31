@@ -259,6 +259,11 @@
         },
       },
     ];
+    // Preview-only shortcuts disappear with their app.
+    actions = actions.filter(function (action) {
+      if (action.label !== "Vibe") return true;
+      return (window.APPS_REGISTRY || []).some(function (a) { return a.id === "vibe"; });
+    });
     host.innerHTML = "";
     actions.forEach(function (action) {
       var chip = document.createElement("button");
