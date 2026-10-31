@@ -88,9 +88,10 @@ impl Sidecar {
     }
 
     pub async fn wait_for_api(url: &str, timeout_secs: u64) -> bool {
+        // The sidecar URL is a loopback address and uses plain HTTP; never
+        // disable certificate verification for it (#security disabled-cert).
         let client = match reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(2))
-            .danger_accept_invalid_certs(true)
             .build()
         {
             Ok(c) => c,

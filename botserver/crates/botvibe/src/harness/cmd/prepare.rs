@@ -42,7 +42,12 @@ pub(super) fn prepare_command(
         }
     };
     #[cfg(not(target_os = "windows"))]
-    let mut command = std::process::Command::new(program);
+    let mut command = match program {
+        "node" => std::process::Command::new("node"),
+        "npm" => std::process::Command::new("npm"),
+        "npx" => std::process::Command::new("npx"),
+        _ => return Err(GuardError::CommandNotAllowed(program.into())),
+    };
 
     command.args(args).current_dir(cwd).env_clear();
 
