@@ -108,6 +108,7 @@ async fn task_progress_ws_loop(
 /// The two structs are field-identical but live in different crates
 /// (botautotask has no dependency on botcore), so the mapping is explicit —
 /// the compiler forces an update here if either side gains fields.
+#[cfg(feature = "automations")]
 pub fn forward_autotask_event(app_state: &AppState, event: botautotask::types::TaskProgressEvent) {
     let core_event = botcore::shared::state::TaskProgressEvent {
         event_type: event.event_type.clone(),

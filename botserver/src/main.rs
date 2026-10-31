@@ -25,8 +25,9 @@ static GLOBAL: MiMalloc = MiMalloc;
 pub mod analytics;
 #[cfg(feature = "attendant")]
 pub mod attendant;
-#[cfg(feature = "automation")]
+#[cfg(feature = "automations")]
 pub use botautotask as auto_task;
+#[cfg(feature = "automations")]
 pub mod autotask_host;
 #[cfg(feature = "vibe")]
 pub mod vibe;
@@ -54,6 +55,7 @@ pub mod dashboards;
 #[cfg(feature = "deployment")]
 pub mod deployment;
 pub mod api;
+#[cfg(feature = "browser")]
 pub mod browser;
 #[cfg(feature = "docs")]
 pub mod docs;

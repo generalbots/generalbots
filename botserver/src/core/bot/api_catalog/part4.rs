@@ -293,6 +293,7 @@ pub async fn execute_command(
         // AutoTask: the command is advertised to the model, so it must be
         // executable here — it used to fall through to the navigation
         // catch-all and answer with a deep link while creating nothing.
+        #[cfg(feature = "automations")]
         "tasks.autotask.create" | "tasks.autotask.run" => {
             let intent = str_of("intent").unwrap_or_default();
             if intent.trim().is_empty() {

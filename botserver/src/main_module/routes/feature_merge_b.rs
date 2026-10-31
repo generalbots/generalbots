@@ -338,9 +338,10 @@ pub(super) async fn merge_part_b(
     // #1247 — Web Push subscription backend (Settings push toggle).
     { *sub_router = sub_router.clone().merge(crate::api::push::configure_push_routes(app_state.conn.clone())); }
 
-    // AutoTask routes. The ops live in `crate::auto_task::ops` so the chat
-    // command executor can build the same API for `tasks.autotask.create`.
+    #[cfg(feature = "automations")]
     {
+        // AutoTask routes. The ops live in `crate::auto_task::ops` so the chat
+        // command executor can build the same API for `tasks.autotask.create`.
         let api = crate::autotask_host::ops::build_api(app_state);
         *sub_router = sub_router.clone().merge(botautotask::api::router(
             api.state().clone(),

@@ -19,7 +19,7 @@ default = ["chat", "drive", "agent-vm", "integrations", "editor", "llm", "vector
 # Build with: cargo build --no-default-features --features "no-security,chat,llm"
 no-security = []
 
-browser = ["automation", "cache"]
+browser = ["automation", "cache", "dep:botbrowser"]
 terminal = ["automation", "cache"]
 external_sync = ["automation", "cache"]
 
@@ -37,8 +37,8 @@ crawler = ["cache"]
 chat = ["automation", "cache", "botcore/chat"]
 people = ["automation", "drive", "cache", "dep:botpeople"]
 mail = ["automation", "drive", "cache", "dep:lettre", "dep:mailparse", "dep:imap", "dep:botemail", "botemail/mail"]
-meet = ["automation", "drive", "cache"]
-social = ["automation", "drive", "cache", "dep:botsocial"]
+meet = ["automation", "drive", "cache", "dep:botmeet"]
+social = ["automation", "drive", "cache", "dep:botsocial", "dep:botchannels"]
 marketing = ["people", "automation", "drive", "cache", "dep:botmarketing"]
 
 # Productivity
@@ -72,7 +72,7 @@ sources = ["automation", "drive", "cache", "dep:botsources"]
 
 # ===== AI OS (issues #1167-#1179) =====
 agent-vm = ["automation", "cache", "dep:botagent"]
-automations = ["automation", "cache", "llm", "dep:botautomation"]
+automations = ["automation", "cache", "llm", "dep:botautomation", "dep:botautotask"]
 marketplace = ["drive", "dep:botmarketplace"]
 connectors = ["automation", "cache", "rbac", "dep:botconnectors"]
 consent = ["dep:botconsent"]
@@ -143,6 +143,7 @@ vibe = ["automation", "dep:botvibe", "botbasic_system/vibe"]
 multimodal = ["automation", "drive", "cache", "dep:botmultimodal"]
 search = ["automation", "drive", "cache", "dep:botsearch"]
 desktop = ["automation", "drive", "cache", "dep:botdesktop"]
+uifragments = ["dep:botuifragments"]
 saas = ["dep:botcloud", "billing", "providers", "botcloud/saas", "dep:botproducts"]
 providers = ["dep:botproviders"]
 
@@ -319,8 +320,8 @@ walkdir = { workspace = true }
 rust-embed = { workspace = true, optional = true }
 
 # === NON-OPTIONAL EXTRACTED CRATES (always linked, no feature gate) ===
-botchannels = { workspace = true }
-botbrowser = { workspace = true }
+botchannels = { workspace = true, optional = true }
+botbrowser = { workspace = true, optional = true }
 botcoresecrets = { workspace = true }
 botcoresession = { workspace = true }
 botsecurity-crypto = { workspace = true }
@@ -328,7 +329,7 @@ botcoreoauth = { workspace = true }
 botcorebot = { workspace = true }
 botcoredirectory = { workspace = true }
 botcorepkg = { workspace = true }
-botautotask = { workspace = true, features = ["llm"] }
+botautotask = { workspace = true, optional = true, features = ["llm"] }
 botvibe = { workspace = true, optional = true }
 botbasic_types = { workspace = true }
 botcore = { path = "crates/botcore", default-features = false }
@@ -343,7 +344,7 @@ botapi = { workspace = true }
 boteditor = { workspace = true, optional = true }
 botdatabase = { workspace = true, optional = true }
 botgit = { workspace = true, optional = true }
-botmeet = { workspace = true }
+botmeet = { workspace = true, optional = true }
 botsettings = { workspace = true }
 botdrive = { workspace = true, features = ["llm", "vectordb", "drive"] }
 
@@ -412,7 +413,7 @@ botgl = { workspace = true, optional = true }
 botretail = { workspace = true, optional = true }
 botbanking = { workspace = true, optional = true }
 botm365 = { workspace = true, optional = true }
-botuifragments = { workspace = true }
+botuifragments = { workspace = true, optional = true }
 bottax = { workspace = true, optional = true }
 botvision = { workspace = true, optional = true }
 boterp = { workspace = true, optional = true }

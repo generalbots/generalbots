@@ -7,6 +7,7 @@ pub mod commands;
 pub mod integration_catalog;
 pub mod registry;
 
+#[cfg(feature = "uifragments")]
 pub use botuifragments::*;
 
 use axum::routing::{get, post, Router};

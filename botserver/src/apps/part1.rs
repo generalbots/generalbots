@@ -6,8 +6,10 @@ pub(super) fn installs() -> Arc<AppInstallStats> {
         .clone()
 }
 pub fn register<S: Clone + Send + Sync + 'static>(r: Router<S>) -> Router<S> {
-    let router = r
-        .merge(botuifragments::register(Router::new()))
+    let router = r;
+    #[cfg(feature = "uifragments")]
+    let router = router.merge(botuifragments::register(Router::new()));
+    let router = router
         .route("/api/apps/catalog", get(catalog_handler))
         .route("/api/apps/install", post(install_handler))
         .route("/api/apps/install/stats", get(install_stats_handler))
