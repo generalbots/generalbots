@@ -2030,6 +2030,7 @@ name = "botcoresecrets"
 version = "6.7.0"
 dependencies = [
  "anyhow",
+ "botlog",
  "diesel",
  "log",
  "serde",
