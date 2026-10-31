@@ -295,12 +295,78 @@
       });
   }
 
+  function bytesToBase64(bytes) {
+    var binary = "";
+    var chunk = 0x8000;
+    for (var i = 0; i < bytes.length; i += chunk) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+  }
+
+  function saveToDrive() {
+    if (!state.conversation || !state.path) return;
+    status("Saving to Drive…", "busy");
+    var headers = {};
+    var t = token();
+    if (t) headers.Authorization = "Bearer " + t;
+    fetch(fileUrl(state.conversation, state.path), { headers: headers })
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.arrayBuffer();
+      })
+      .then(function (buffer) {
+        var name = String(state.path).split("/").pop() || "file";
+        var writeHeaders = { "Content-Type": "application/json" };
+        if (t) writeHeaders.Authorization = "Bearer " + t;
+        // The user-scope default bucket (`user-<id>`) may not exist; ask the
+        // drive API for a bucket this caller can actually write to.
+        return fetch("/api/files/buckets", { headers: headers })
+          .then(function (r) { return r.ok ? r.json() : []; })
+          .catch(function () { return []; })
+          .then(function (list) {
+            var items = Array.isArray(list) ? list : (list && list.buckets) || [];
+            var names = items
+              .map(function (b) { return b && (b.name || b.bucket || b); })
+              .filter(function (n) { return typeof n === "string" && n; });
+            var bucket =
+              names.filter(function (n) { return /\.gbai$/.test(n); })[0] || names[0];
+            var body = {
+              path: name,
+              content: bytesToBase64(new Uint8Array(buffer)),
+              scope: "user",
+            };
+            if (bucket) body.bucket = bucket;
+            return fetch("/api/files/write", {
+              method: "POST",
+              headers: writeHeaders,
+              body: JSON.stringify(body),
+            });
+          });
+      })
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        status("Saved to Drive", "ok");
+        if (window.GBToasts) {
+          GBToasts.show("Saved", "File saved to Drive", "success");
+        }
+      })
+      .catch(function (err) {
+        status("Save failed: " + err.message, "error");
+      });
+  }
+
   function setName() {
     var name = byId("gbPreviewName");
     if (name) name.textContent = String(state.path || "Preview").split("/").pop();
     var download = byId("gbPreviewDownload");
     var open = byId("gbPreviewOpen");
     var url = state.conversation && state.path ? fileUrl(state.conversation, state.path) : "";
+    var save = byId("gbPreviewSave");
+    if (save) {
+      save.disabled = !url;
+      save.onclick = saveToDrive;
+    }
     if (download) {
       download.disabled = !url;
       download.onclick = function () {

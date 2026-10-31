@@ -276,7 +276,12 @@ if (typeof window.WindowManager === "undefined") {
       );
     } catch (e) {}
     if (!authenticated && !noSecurityBuild) {
-      merged = merged.filter(function (app) { return app.id !== "drive"; });
+      // Anonymous visitors get the conversation only: no Drive, no workspace
+      // shell, no admin surface (the APIs already answer 401).
+      var privileged = ["drive", "terminal", "editor", "browser", "integrations", "admin"];
+      merged = merged.filter(function (app) {
+        return privileged.indexOf(app.id) === -1;
+      });
     }
 
     // #1539/#1540: enforce the core set even before the server catalog loads
