@@ -90,9 +90,15 @@ fn caller_uuid(headers: &HeaderMap) -> Result<(String, Uuid, bool), (StatusCode,
     let payload = jwt_payload(&token).ok_or_else(|| unauthorized("Invalid token"))?;
     let admin = is_admin_claims(&payload);
     let sub = b64_json_sub(&token).ok_or_else(|| unauthorized("Token lacks sub claim"))?;
+    // A non-UUID `sub` must never collapse every caller onto a shared VM.
+    // Derive a stable id with the same namespace the chat auth uses
+    // ("zitadel:{sub}") instead of falling back to nil.
     let user_id = Uuid::parse_str(&sub).unwrap_or_else(|_| {
-        tracing::warn!("JWT sub '{sub}' is not a UUID; using nil uuid");
-        Uuid::nil()
+        tracing::warn!("JWT sub '{sub}' is not a UUID; deriving a stable user id");
+        Uuid::new_v5(
+            &Uuid::NAMESPACE_URL,
+            format!("zitadel:{sub}").as_bytes(),
+        )
     });
     Ok((sub, user_id, admin))
 }
