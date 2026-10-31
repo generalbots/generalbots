@@ -118,8 +118,8 @@ pub async fn handle_suite_sso(
     let redirect = sanitize_redirect(&query.redirect);
     // Encode both values as JSON string literals so no quote/backslash can
     // break out of the script context (#1533).
-    let redirect_js = serde_json::to_string(&redirect).unwrap_or_else(|_| ""/"".to_string());
-    let token_js = serde_json::to_string(&suite_token).unwrap_or_else(|_| """".to_string());
+    let redirect_js = serde_json::to_string(&redirect).unwrap_or_else(|_| "\"/\"".to_string());
+    let token_js = serde_json::to_string(&suite_token).unwrap_or_else(|_| "\"\"".to_string());
 
     let html = format!(
         r##"<!DOCTYPE html>
