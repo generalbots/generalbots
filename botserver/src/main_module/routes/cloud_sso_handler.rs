@@ -116,6 +116,10 @@ pub async fn handle_suite_sso(
     let roles = resolve_session_roles(&state, user_id);
     let suite_token = create_suite_session(email, user_id, bucket, roles, claims_org(&claims)).await;
     let redirect = sanitize_redirect(&query.redirect);
+    // Encode both values as JSON string literals so no quote/backslash can
+    // break out of the script context (#1533).
+    let redirect_js = serde_json::to_string(&redirect).unwrap_or_else(|_| ""/"".to_string());
+    let token_js = serde_json::to_string(&suite_token).unwrap_or_else(|_| """".to_string());
 
     let html = format!(
         r##"<!DOCTYPE html>
@@ -124,9 +128,9 @@ pub async fn handle_suite_sso(
 <meta name="referrer" content="no-referrer">
 <script>
 try {{
-  localStorage.setItem('gb-access-token','{suite_token}');
-  window.history.replaceState({{}},'','{redirect}');
-  window.location.replace('{redirect}');
+  localStorage.setItem('gb-access-token',{token_js});
+  window.history.replaceState({{}},'',{redirect_js});
+  window.location.replace({redirect_js});
 }} catch(e) {{
   console.error('suite-sso:',e);
 }}

@@ -167,7 +167,7 @@ pub(super) async fn handle_product_edit_form(
         <button type=\"submit\" class=\"form-btn primary\">Update Product</button>\
         </div>\
         </form>",
-        id = id,
+        id = html_escape(&id.to_string()),
         name = html_escape(&product.name),
         sku = html_escape(product.sku.as_deref().unwrap_or("")),
         desc = html_escape(product.description.as_deref().unwrap_or("")),
