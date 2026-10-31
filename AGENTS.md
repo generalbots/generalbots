@@ -1644,6 +1644,12 @@ A stripped-down desktop build of General Bots containing **only Chat and Drive**
 - **Offline-first** — no downloads at first boot; all third-party binaries ship inside the installer.
 - **No authentication** — single-user desktop mode via `no_security=true` in `.product.desktop-local`.
 
+### Desktop-Local Contribution Rules
+
+- Commit each completed milestone separately with an English message prefixed `desktop-local:`.
+- Do not remove desktop-local features or apps from `main`; condition them with feature flags or runtime configuration.
+- Register the license of every third-party binary in `LICENSES-desktop.md` before packaging it.
+
 ### Feature Bundle
 
 `botserver/Cargo.toml` defines `desktop-local`:

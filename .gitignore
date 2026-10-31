@@ -30,3 +30,4 @@ opt/
 __pycache__/
 *.pyc
 *.mcp.json
+.qdrant-initializedE
