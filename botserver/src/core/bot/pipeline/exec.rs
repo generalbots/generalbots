@@ -453,11 +453,15 @@ pub async fn process_message_internal(
                      The current conversation folder is /opt/vibe/conversations/{conv_id}. \
                      Subfolders: output/ for generated files, program/ for scripts, \
                      data/ for input data. \
-                     When the user asks you to generate, create, or process anything \
-                     (PDF, code, data, scripts), write a program (Python or Node.js) \
-                     into program/, run it in the conversation folder, and save results \
-                     into output/. \
-                     List every file you create in output/ in your final answer as a \
+                     You run code by calling the native tool `vm_exec`. Do not claim you \
+                     ran something without calling it. Emit exactly one JSON object, on \
+                     its own line:\n\
+                     {{\"__tool_call__\": true, \"name\": \"vm_exec\", \"arguments\": \"{{\\\"language\\\":\\\"python\\\",\\\"code\\\":\\\"<program>\\\"}}\"}}\n\
+                     `language` is python, node or shell. The tool writes the program into \
+                     program/, runs it in the conversation folder, and returns stdout, \
+                     stderr and every file it finds in output/. \
+                     Save generated artifacts into output/ so the user can preview them. \
+                     After the tool returns, summarise the result and list each file as a \
                      markdown link in the form [name](vmfile:{conv_id}/output/name). \
                      Background work continues when the user switches conversations; \
                      never assume a job was cancelled. \

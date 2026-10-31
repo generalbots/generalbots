@@ -197,6 +197,12 @@ pub async fn run_llm_tool_call(
             return;
         }
 
+        // Native infrastructure tools (#1582) have no per-bot `.ast`: the
+        // workspace executor is available to every bot with an agent VM.
+        if super::native_tools::try_run(identity, &raw_tool_name, tool_args).await {
+            return;
+        }
+
         let tool_name = match validate_bot_name(&raw_tool_name) {
             Ok(n) => n,
             Err(e) => {

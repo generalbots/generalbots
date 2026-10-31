@@ -6,6 +6,7 @@ pub mod history;
 pub mod kb;
 pub mod llm;
 pub mod mentions;
+pub mod native_tools;
 pub mod sink;
 pub mod start_bas;
 pub mod tool_exec;

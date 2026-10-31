@@ -95,6 +95,18 @@ pub async fn exec_in_user_vm(
     language: &str,
     code: &str,
 ) -> Option<(bool, String, String)> {
+    exec_in_user_vm_with_timeout(user_id, session_id, language, code, 60_000).await
+}
+
+/// Same as [`exec_in_user_vm`] with an explicit timeout (bounded by the
+/// native tool to 120s).
+pub async fn exec_in_user_vm_with_timeout(
+    user_id: uuid::Uuid,
+    session_id: uuid::Uuid,
+    language: &str,
+    code: &str,
+    timeout_ms: u64,
+) -> Option<(bool, String, String)> {
     let service = SERVICE.get()?;
     let row = botagent::vm::get_user_vm(service, &user_id).ok()??;
     if row.status != botagent::vm::STATUS_RUNNING {
@@ -103,6 +115,25 @@ pub async fn exec_in_user_vm(
     let conversation_id = session_id.to_string();
     botagent::vm::exec_in_conversation(
         service, &row.vm_name, &conversation_id,
-        language, code, 60_000,
+        language, code, timeout_ms,
     ).await.ok()
+}
+
+/// File names currently present in the conversation's `output/` folder.
+pub async fn list_user_vm_output(
+    user_id: uuid::Uuid,
+    session_id: uuid::Uuid,
+) -> Option<Vec<String>> {
+    let service = SERVICE.get()?;
+    let row = botagent::vm::get_user_vm(service, &user_id).ok()??;
+    if row.status != botagent::vm::STATUS_RUNNING {
+        return None;
+    }
+    botagent::vm::list_conversation_output(
+        service,
+        &row.vm_name,
+        &session_id.to_string(),
+    )
+    .await
+    .ok()
 }
