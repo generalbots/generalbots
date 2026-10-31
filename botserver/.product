@@ -15,7 +15,7 @@ name=General Bots
 # Every other application is declared under `preview_apps` below.
 # Core surfaces (settings, auth, admin) are always enabled regardless of this
 # list, so they remain reachable.
-apps=chat,drive,vibe,calculator,sheet,timer,photos,weather,recycle
+apps=chat,drive
 
 # Preview applications (comma-separated list)
 # These do NOT appear in the launcher or the sidebar by default. They are
@@ -27,7 +27,7 @@ apps=chat,drive,vibe,calculator,sheet,timer,photos,weather,recycle
 # Ids are validated against the catalog in `src/apps/registry.rs` and the
 # feature map in `src/apps/mod.rs::is_app_compiled`; an id in neither place is
 # ignored by the launcher and should not be listed here.
-preview_apps=analytics,attendant,automations,banking,billing,biometry,campaigns,compliance,concierge,designer,docs,fraud,handoff,hr,itsm,jukebox,kyc,learn,lists,marketing,memory,minutes,monitoring,notes,o365,paper,plan,pos,products,project,research,retail,sales,slides,social,sources,store,tasks,tax,templates,tickets,timeclock,video,vision,workspace
+preview_apps=
 
 
 # Sidebar visibility

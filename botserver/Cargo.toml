@@ -12,7 +12,7 @@ features = ["database", "i18n", "http-client"]
 [features]
 # ===== DEFAULT =====
 # All apps except docs/slides (the two OOXML SDK consumers) — see allbutooxmlsdk
-default = ["allbutooxmlsdk"]
+default = ["chat", "drive", "agent-vm", "integrations", "editor", "llm", "vectordb", "database", "security", "directory"]
 
 # ===== SECURITY MODES =====
 # no-security: Minimal build - chat, automation, drive, cache only (no RBAC, directory, security, compliance)
@@ -331,7 +331,7 @@ botcorepkg = { workspace = true }
 botautotask = { workspace = true, features = ["llm"] }
 botvibe = { workspace = true, optional = true }
 botbasic_types = { workspace = true }
-botcore = { workspace = true }
+botcore = { workspace = true, default-features = false }
 botsecurity-core = { workspace = true }
 botbasic_core = { workspace = true }
 botbasic_data = { workspace = true }

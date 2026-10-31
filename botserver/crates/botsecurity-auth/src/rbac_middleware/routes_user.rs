@@ -342,6 +342,12 @@ pub(crate) fn authenticated_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/user/**", "GET", ""),
         RoutePermission::new("/api/user/**", "PUT", ""),
 
+        // Agent VM (per-user VM, #1580)
+        RoutePermission::new("/api/agent/**", "GET", ""),
+        RoutePermission::new("/api/agent/**", "POST", ""),
+        RoutePermission::new("/api/agent/**", "PUT", ""),
+        RoutePermission::new("/api/agent/**", "DELETE", ""),
+
     ]
 }
 

@@ -17,7 +17,7 @@ workspace = true
 
 [features]
 # All apps except docs/slides (OOXML SDK consumers) — mirrors botserver allbutooxmlsdk
-default = ["ui-server", "chat", "drive", "tasks", "admin", "mail", "calendar", "meet", "paper", "sheet", "research", "sources", "learn", "analytics", "dashboards", "monitoring", "settings", "attendant", "tools", "video", "player", "canvas", "social", "people", "tickets", "billing", "products", "designer", "workspace", "project", "goals", "editor"]
+default = ["ui-server", "chat", "drive", "editor"]
 ui-server = []
 embed-ui = ["rust-embed"]
 
@@ -72,6 +72,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 tokio-tungstenite = { workspace = true, features = ["native-tls", "connect"] }
+tower = "0.4"
 tower-http = { workspace = true, features = ["cors", "fs", "trace"] }
 
 [lints]
