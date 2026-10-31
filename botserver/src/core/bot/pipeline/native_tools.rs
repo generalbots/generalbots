@@ -48,6 +48,20 @@ async fn send(identity: &SessionIdentity<'_>, message: &str) {
     let _ = sink.send_bot_response(&resp).await;
 }
 
+/// Save an assistant turn so a result is still there after the user switches
+/// conversation, reloads, or closes the tab.
+async fn persist(
+    state: &std::sync::Arc<botcore::shared::state::AppState>,
+    session_id: uuid::Uuid,
+    user_id: uuid::Uuid,
+    text: &str,
+) {
+    let mut sm = state.session_manager.lock().await;
+    if let Err(e) = sm.save_message(session_id, user_id, 2, text, 2) {
+        botlog::safe_warn!("failed to persist workspace result for {session_id}: {e}");
+    }
+}
+
 #[cfg(feature = "agent-vm")]
 fn truncate(text: &str) -> String {
     let mut out: String = text.chars().take(OUTPUT_LIMIT).collect();
@@ -100,10 +114,44 @@ async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         .clamp(1_000, 120_000);
 
     let SessionIdentity {
+        state,
         session_id,
         user_id,
         ..
     } = *identity;
+    let background = parsed
+        .get("background")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(false);
+
+    if background {
+        // #1580: a long job must outlive the tab. Run it in its own task and
+        // save the outcome into the conversation it belongs to.
+        let worker_state = state.clone();
+        let code = code.to_string();
+        let language = language.to_string();
+        tokio::spawn(async move {
+            let result = crate::core::bot::agent_vm_hook::exec_in_user_vm_with_timeout(
+                user_id,
+                session_id,
+                &language,
+                &code,
+                timeout_ms,
+            )
+            .await;
+            let message = match result {
+                None => "The workspace became unavailable and the background job could not finish.".to_string(),
+                Some((ok, stdout, stderr)) => {
+                    render_result(user_id, session_id, ok, &stdout, &stderr).await
+                }
+            };
+            persist(&worker_state, session_id, user_id, &message).await;
+        });
+        let started = "Started in the background. The result will be saved to this conversation.";
+        send(identity, started).await;
+        persist(&state, session_id, user_id, started).await;
+        return;
+    }
 
     let result = crate::core::bot::agent_vm_hook::exec_in_user_vm_with_timeout(
         user_id,
@@ -116,47 +164,56 @@ async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
 
     match result {
         None => {
-            send(
-                identity,
-                "The workspace is not available right now. Start a new message and try again.",
-            )
-            .await;
+            let message = "The workspace is not available right now. Start a new message and try again.";
+            send(identity, message).await;
+            persist(state, session_id, user_id, message).await;
         }
         Some((ok, stdout, stderr)) => {
-            let mut message = String::new();
-            if ok {
-                message.push_str("**Program finished.**\n");
-            } else {
-                message.push_str("**Program failed.**\n");
-            }
-            let out = stdout.trim();
-            if !out.is_empty() {
-                message.push_str("\n```\n");
-                message.push_str(&truncate(out));
-                message.push_str("\n```\n");
-            }
-            let err = stderr.trim();
-            if !err.is_empty() {
-                message.push_str("\n**stderr**\n```\n");
-                message.push_str(&truncate(err));
-                message.push_str("\n```\n");
-            }
-            let files = crate::core::bot::agent_vm_hook::list_user_vm_output(
-                user_id,
-                session_id,
-            )
-            .await
-            .unwrap_or_default();
-            if !files.is_empty() {
-                let conversation = session_id.to_string();
-                message.push_str("\n**Files**\n");
-                for file in &files {
-                    message.push_str(&format!(
-                        "- [{file}](vmfile:{conversation}/output/{file})\n"
-                    ));
-                }
-            }
-            send(identity, message.trim_end()).await;
+            let message = render_result(user_id, session_id, ok, &stdout, &stderr).await;
+            send(identity, &message).await;
+            persist(state, session_id, user_id, &message).await;
         }
     }
+}
+
+/// Formats stdout/stderr and the files the program left in `output/`.
+#[cfg(feature = "agent-vm")]
+async fn render_result(
+    user_id: uuid::Uuid,
+    session_id: uuid::Uuid,
+    ok: bool,
+    stdout: &str,
+    stderr: &str,
+) -> String {
+    let mut message = String::new();
+    if ok {
+        message.push_str("**Program finished.**\n");
+    } else {
+        message.push_str("**Program failed.**\n");
+    }
+    let out = stdout.trim();
+    if !out.is_empty() {
+        message.push_str("\n```\n");
+        message.push_str(&truncate(out));
+        message.push_str("\n```\n");
+    }
+    let err = stderr.trim();
+    if !err.is_empty() {
+        message.push_str("\n**stderr**\n```\n");
+        message.push_str(&truncate(err));
+        message.push_str("\n```\n");
+    }
+    let files = crate::core::bot::agent_vm_hook::list_user_vm_output(user_id, session_id)
+        .await
+        .unwrap_or_default();
+    if !files.is_empty() {
+        let conversation = session_id.to_string();
+        message.push_str("\n**Files**\n");
+        for file in &files {
+            message.push_str(&format!(
+                "- [{file}](vmfile:{conversation}/output/{file})\n"
+            ));
+        }
+    }
+    message.trim_end().to_string()
 }

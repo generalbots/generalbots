@@ -460,6 +460,9 @@ pub async fn process_message_internal(
                      `language` is python, node or shell. The tool writes the program into \
                      program/, runs it in the conversation folder, and returns stdout, \
                      stderr and every file it finds in output/. \
+                     Add \\\"background\\\": true for long jobs (renders, downloads, training): \
+                     the job keeps running while the user moves to another conversation and \
+                     its result is saved into THIS conversation. \
                      Save generated artifacts into output/ so the user can preview them. \
                      After the tool returns, summarise the result and list each file as a \
                      markdown link in the form [name](vmfile:{conv_id}/output/name). \
