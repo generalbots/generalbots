@@ -63,13 +63,12 @@ mod tests {
     }
 
     #[test]
-    fn test_sanitize_accepts_http_private_ipv4() {
-        let base = ZitadelClient::sanitize_api_base("http://10.157.134.9:9000", false).unwrap();
-        assert_eq!(base, "http://10.157.134.9:9000");
+    fn test_sanitize_rejects_http_private_ipv4() {
+        assert!(ZitadelClient::sanitize_api_base("http://10.157.134.9:9000", false).is_err());
     }
 
     #[test]
-    fn test_sanitize_accepts_http_172_16_range() {
+    fn test_sanitize_rejects_http_172_16_range() {
         assert!(ZitadelClient::sanitize_api_base("http://172.16.0.10:8080", false).is_err());
     }
 

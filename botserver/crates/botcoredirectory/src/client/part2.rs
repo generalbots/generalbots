@@ -11,8 +11,9 @@ impl ZitadelClient {
         // #1531: plain HTTP is acceptable only for loopback or when the
         // operator explicitly opts in. Private LAN addresses no longer bypass
         // the HTTPS requirement because tokens travel on every request.
+        let host_for_ip = host.trim_start_matches('[').trim_end_matches(']');
         let loopback = host == "localhost"
-            || host
+            || host_for_ip
                 .parse::<std::net::IpAddr>()
                 .map(|ip| ip.is_loopback())
                 .unwrap_or(false);
