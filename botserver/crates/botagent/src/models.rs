@@ -97,6 +97,10 @@ pub struct VmExecBody {
     pub language: String,
     pub code: String,
     pub timeout_ms: Option<u64>,
+    /// Third-party packages to install before running (pip/npm). Declared by
+    /// the model instead of shelling out inside generated code.
+    #[serde(default)]
+    pub packages: Vec<String>,
 }
 
 #[derive(Debug, Deserialize)]

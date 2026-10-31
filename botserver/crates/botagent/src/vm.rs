@@ -601,6 +601,7 @@ pub async fn exec_in_conversation(
     language: &str,
     code: &str,
     timeout_ms: u64,
+    packages: &[String],
 ) -> Result<(bool, String, String), (StatusCode, String)> {
     let clean_cid = sanitize_id(conversation_id)?;
     let folder = format!("{CONVERSATIONS_ROOT}/{clean_cid}");
@@ -611,6 +612,22 @@ pub async fn exec_in_conversation(
         "shell" => ("sh", "sh"),
         _ => return Err(bad_request("Unsupported language")),
     };
+
+    // Declared dependencies are installed BEFORE the program runs, so the
+    // model does not have to shell out to pip/npm inside generated code (which
+    // also broke the "program/ is source only" contract).
+    let declared: Vec<String> = packages
+        .iter()
+        .filter_map(|p| sanitize_package(p))
+        .collect();
+    let mut install_log = String::new();
+    if !declared.is_empty() && language != "shell" {
+        let install = install_packages(state, vm_name, &folder, language, &declared).await?;
+        if !install.0 {
+            return Ok((false, String::new(), install.1));
+        }
+        install_log.push_str(&format!("installed: {}\n", declared.join(", ")));
+    }
 
     let run_id: String = Uuid::new_v4().simple().to_string().chars().take(8).collect();
     // #1581: generated programs live in program/, never in the conversation
@@ -626,14 +643,128 @@ pub async fn exec_in_conversation(
          && cd {folder} && {interpreter} {script_path}"
     );
 
+    let (first_ok, mut stdout, mut stderr) = run_with_timeout(state, vm_name, setup.clone(), timeout_ms).await?;
+    if first_ok {
+        stdout = format!("{install_log}{stdout}");
+        return Ok((true, stdout, stderr));
+    }
+
+    // Self-heal the common failure: the program imported a package that is not
+    // installed. Install what the interpreter asked for and retry once.
+    if let Some(missing) = missing_package(&stderr, language) {
+        let retry_pkgs = vec![missing.clone()];
+        let installed = install_packages(state, vm_name, &folder, language, &retry_pkgs).await?;
+        if installed.0 {
+            let retried = run_with_timeout(state, vm_name, setup, timeout_ms).await?;
+            let note = format!("auto-installed missing package: {missing}\n");
+            return Ok((retried.0, format!("{install_log}{note}{}", retried.1), retried.2));
+        }
+    }
+
+    stdout = format!("{install_log}{stdout}");
+    Ok((false, stdout, stderr))
+}
+
+/// Runs a shell command in the VM with a hard timeout.
+async fn run_with_timeout(
+    state: &AgentService,
+    vm_name: &str,
+    command: String,
+    timeout_ms: u64,
+) -> Result<(bool, String, String), (StatusCode, String)> {
     let result = tokio::time::timeout(
         std::time::Duration::from_millis(timeout_ms),
-        exec_in_vm(state, vm_name, &["sh".into(), "-c".into(), setup]),
-    ).await;
-
+        exec_in_vm(state, vm_name, &["sh".into(), "-c".into(), command]),
+    )
+    .await;
     match result {
         Err(_) => Ok((false, String::new(), "Execution timed out".to_string())),
         Ok(r) => r,
+    }
+}
+
+/// Installs packages for `language`. Names are validated by `sanitize_package`.
+async fn install_packages(
+    state: &AgentService,
+    vm_name: &str,
+    folder: &str,
+    language: &str,
+    packages: &[String],
+) -> Result<(bool, String), (StatusCode, String)> {
+    let names = packages.join(" ");
+    let command = match language {
+        "python" => format!(
+            "cd {folder} && python3 -m pip install --user --quiet --disable-pip-version-check {names}"
+        ),
+        "node" => format!(
+            "cd {folder} && npm install --no-save --no-audit --no-fund --silent {names}"
+        ),
+        _ => return Ok((true, String::new())),
+    };
+    let (ok, stdout, stderr) = run_with_timeout(state, vm_name, command, 120_000).await?;
+    if ok {
+        Ok((true, stdout))
+    } else {
+        Ok((false, format!("dependency install failed: {stderr}")))
+    }
+}
+
+/// Package names are interpolated into a shell command: allow only the
+/// characters real package names use.
+fn sanitize_package(name: &str) -> Option<String> {
+    let trimmed = name.trim();
+    if trimmed.is_empty() || trimmed.len() > 80 {
+        return None;
+    }
+    if trimmed
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || matches!(c, '-' | '_' | '.' | '@' | '/'))
+    {
+        Some(trimmed.to_string())
+    } else {
+        None
+    }
+}
+
+/// Maps the import name the interpreter complained about to an installable
+/// package and extracts it from the error text.
+fn missing_package(stderr: &str, language: &str) -> Option<String> {
+    let (prefix, suffix) = match language {
+        "python" => ("ModuleNotFoundError: No module named '", "'"),
+        "node" => ("Cannot find module '", "'"),
+        _ => return None,
+    };
+    let start = stderr.find(prefix)? + prefix.len();
+    let rest = &stderr[start..];
+    let end = rest.find(suffix)?;
+    let raw = rest[..end].trim();
+    // Node reports paths/relative ids; only bare (or scoped) package names are
+    // installable.
+    let name = if raw.starts_with('@') {
+        raw.splitn(3, '/').take(2).collect::<Vec<_>>().join("/")
+    } else {
+        raw.split('/').next().unwrap_or(raw).to_string()
+    };
+    if name.is_empty() {
+        return None;
+    }
+    Some(python_package_alias(&name).to_string())
+}
+
+/// The import name is not always the distribution name (`docx` → `python-docx`).
+fn python_package_alias(name: &str) -> &str {
+    match name {
+        "docx" => "python-docx",
+        "pptx" => "python-pptx",
+        "PIL" => "pillow",
+        "yaml" => "pyyaml",
+        "cv2" => "opencv-python-headless",
+        "sklearn" => "scikit-learn",
+        "bs4" => "beautifulsoup4",
+        "fitz" => "pymupdf",
+        "OpenSSL" => "pyopenssl",
+        "dotenv" => "python-dotenv",
+        other => other,
     }
 }
 

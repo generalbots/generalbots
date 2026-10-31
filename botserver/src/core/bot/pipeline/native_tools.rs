@@ -112,6 +112,18 @@ async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         .and_then(|v| v.as_u64())
         .unwrap_or(60_000)
         .clamp(1_000, 120_000);
+    // Declared third-party packages: installed before the program runs, so the
+    // model never shells out to pip/npm inside generated code.
+    let packages: Vec<String> = parsed
+        .get("packages")
+        .and_then(|v| v.as_array())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(|v| v.as_str().map(str::to_string))
+                .collect()
+        })
+        .unwrap_or_default();
 
     let SessionIdentity {
         state,
@@ -137,6 +149,7 @@ async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
                 &language,
                 &code,
                 timeout_ms,
+                &packages,
             )
             .await;
             let message = match result {
@@ -159,6 +172,7 @@ async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         language,
         code,
         timeout_ms,
+        &packages,
     )
     .await;
 

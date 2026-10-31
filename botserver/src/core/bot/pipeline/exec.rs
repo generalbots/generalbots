@@ -460,6 +460,14 @@ pub async fn process_message_internal(
                      `language` is python, node or shell. The tool writes the program into \
                      program/, runs it in the conversation folder, and returns stdout, \
                      stderr and every file it finds in output/. \
+                     Dependencies: prefer the language standard library. When a third-party \
+                     package is genuinely required, pass it in \\\"packages\\\" (pip for \
+                     python, npm for node) instead of calling pip/npm inside the program, \
+                     e.g. \\\"packages\\\":[\\\"pandas\\\",\\\"openpyxl\\\"]. Use the distribution \
+                     name for the import (docx -> python-docx, PIL -> pillow, yaml -> pyyaml, \
+                     cv2 -> opencv-python-headless, sklearn -> scikit-learn, bs4 -> \
+                     beautifulsoup4). Never assume a package is preinstalled; if a run reports \
+                     a missing module, add it to packages and run again. \
                      Add \\\"background\\\": true for long jobs (renders, downloads, training): \
                      the job keeps running while the user moves to another conversation and \
                      its result is saved into THIS conversation. \
