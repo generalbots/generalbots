@@ -90,7 +90,8 @@ pub async fn get_thread(
         html,
         r#"<div class="thread-header"><h3>{} messages</h3>\
            <p class="text-sm text-gray">Subject: {}</p></div>"#,
-        msg_count, thread_subject
+        msg_count,
+        botsecurity_core::validation::sanitize_html(thread_subject)
     );
 
     for (i, msg) in messages.iter().enumerate() {
@@ -106,6 +107,10 @@ pub async fn get_thread(
         let expanded = if i == msg_count - 1 { "expanded" } else { "collapsed" };
         let preview: String = msg.body_text.as_deref().unwrap_or("").chars().take(100).collect();
         let toggle = if i == msg_count - 1 { "&#9660;" } else { "&#9654;" };
+        let sender_safe = botsecurity_core::validation::sanitize_html(sender);
+        let from_safe = botsecurity_core::validation::sanitize_html(&msg.from_address);
+        let preview_safe = botsecurity_core::validation::sanitize_html(&preview);
+        let body_safe = botsecurity_core::validation::sanitize_html(body);
 
         let _ = write!(
             html,
@@ -120,12 +125,12 @@ pub async fn get_thread(
                 <div class="thread-msg-body">{body}</div></div>"##,
             id = msg.id,
             color = color,
-            sender = sender,
-            from = msg.from_address,
+            sender = sender_safe,
+            from = from_safe,
             date = date,
             toggle = toggle,
-            preview = preview,
-            body = body,
+            preview = preview_safe,
+            body = body_safe,
         );
     }
 
