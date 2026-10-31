@@ -394,10 +394,13 @@ pub async fn process_message_internal(
                 "content": format!(
                     "You have a running VM workspace '{}' (status: {}). \
                      The current conversation folder is /opt/vibe/conversations/{}. \
+                     Subfolders: output/ for generated files, program/ for scripts, \
+                     data/ for input data. \
                      When the user asks you to generate, create, or process anything \
                      (PDF, code, data, scripts), write a program (Python or Node.js) \
-                     and use the vm_exec tool to run it in the conversation folder. \
-                     Output files will be served back as previews. \
+                     into program/, run it in the conversation folder, and save results \
+                     into output/. \
+                     List any files you create in output/ in your final answer. \
                      Do NOT refuse tasks that require code execution — you have a \
                      full Linux VM available. Generate the program dynamically based \
                      on what the user needs.",

@@ -348,6 +348,10 @@ pub async fn ensure_conversation_folder(
     }
 
     exec_in_vm(state, &session.vm_name, &["mkdir".into(), "-p".into(), folder_path.clone()]).await?;
+    for sub in ["output", "program", "data"] {
+        let sub_path = format!("{folder_path}/{sub}");
+        let _ = exec_in_vm(state, &session.vm_name, &["mkdir".into(), "-p".into(), sub_path]).await;
+    }
 
     let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
     let row = AgentConversationFolderRow {

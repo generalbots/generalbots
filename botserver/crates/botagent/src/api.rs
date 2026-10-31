@@ -244,6 +244,45 @@ pub async fn vm_exec(
     })))
 }
 
+/// `GET /api/agent/vm/file?conversation_id=&path=` — fetch a file from the
+/// user's VM (base64-encoded) for preview/download in chat.
+pub async fn vm_file(
+    State(state): State<Arc<AgentService>>,
+    headers: HeaderMap,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
+    let (_, user_id, _) = caller_uuid(&headers)?;
+    let session = vm::get_user_vm(&state, &user_id)?
+        .ok_or_else(|| (StatusCode::NOT_FOUND, "No active VM".to_string()))?;
+    if session.status != vm::STATUS_RUNNING {
+        return Err((StatusCode::CONFLICT, format!("VM is {}", session.status)));
+    }
+    let conversation_id = params.get("conversation_id").cloned().unwrap_or_default();
+    let rel_path = params.get("path").cloned().unwrap_or_default();
+    if conversation_id.is_empty() || rel_path.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "conversation_id and path required".to_string()));
+    }
+    // Basic path safety: no traversal, no absolute paths.
+    if rel_path.contains("..") || rel_path.starts_with('/') || rel_path.contains('\\') {
+        return Err((StatusCode::BAD_REQUEST, "Invalid path".to_string()));
+    }
+    let clean_cid = vm::sanitize_id(&conversation_id)?;
+    let full_path = format!("/opt/vibe/conversations/{}/{}", clean_cid, rel_path);
+    let (ok, stdout, stderr) = vm::exec_in_vm(
+        &state, &session.vm_name,
+        &["sh".into(), "-c".into(), format!("base64 -w0 '{}'", full_path)],
+    ).await?;
+    if !ok {
+        return Err((StatusCode::NOT_FOUND, format!("File not found: {}", stderr)));
+    }
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "path": rel_path,
+        "conversation_id": clean_cid,
+        "content_base64": stdout.trim(),
+    })))
+}
+
 /// `POST /api/v1/sandbox/exec` — Bearer org key OR JWT.
 pub async fn sandbox_exec(
     State(state): State<Arc<AgentService>>,

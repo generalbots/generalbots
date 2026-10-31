@@ -69,6 +69,7 @@ pub fn configure_routes() -> axum::Router<Arc<AgentService>> {
         // Per-user VM (#1580).
         .route("/api/agent/vm/status", get(api::user_vm_status))
         .route("/api/agent/vm/exec", post(api::vm_exec))
+        .route("/api/agent/vm/file", get(api::vm_file))
         .route("/api/agent/conversations/switch", post(api::switch_conversation))
         // Snapshots.
         .route(
