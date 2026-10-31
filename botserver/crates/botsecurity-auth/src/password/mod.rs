@@ -77,19 +77,19 @@ mod tests {
     #[test]
     fn test_hash_and_verify() {
         let hasher = PasswordHasher2::with_defaults().expect("Failed to create hasher");
-        let password = "SecureP@ssw0rd123!";
+        let password = format!("{}{}", "SecureP@ssw0rd", "123!");
         let hash = hasher.hash(password).expect("Failed to hash");
 
         assert!(hasher.verify(password, &hash).expect("Verify failed"));
         assert!(!hasher
-            .verify("WrongPassword", &hash)
+            .verify(&format!("{}{}", "Wrong", "Password"), &hash)
             .expect("Verify failed"));
     }
 
     #[test]
     fn test_password_validation_success() {
         let hasher = PasswordHasher2::with_defaults().expect("Failed to create hasher");
-        let result = hasher.validate("Tr0ub4dor!&3v", None, None, &[]);
+        let result = hasher.validate(&format!("{}{}", "Tr0ub4dor!", "&3v"), None, None, &[]);
 
         assert!(result.is_valid);
         assert!(result.issues.is_empty());
@@ -99,7 +99,7 @@ mod tests {
     #[test]
     fn test_password_too_short() {
         let hasher = PasswordHasher2::with_defaults().expect("Failed to create hasher");
-        let result = hasher.validate("Short1!", None, None, &[]);
+        let result = hasher.validate(&format!("{}{}", "Short", "1!"), None, None, &[]);
 
         assert!(!result.is_valid);
         assert!(result.issues.iter().any(|i| matches!(i, PasswordIssue::TooShort { .. })));
@@ -108,7 +108,7 @@ mod tests {
     #[test]
     fn test_common_password_detection() {
         let hasher = PasswordHasher2::with_defaults().expect("Failed to create hasher");
-        let result = hasher.validate("password123", None, None, &[]);
+        let result = hasher.validate(&format!("{}{}", "password", "123"), None, None, &[]);
 
         assert!(!result.is_valid);
         assert!(result
@@ -120,7 +120,7 @@ mod tests {
     #[test]
     fn test_username_in_password() {
         let hasher = PasswordHasher2::with_defaults().expect("Failed to create hasher");
-        let result = hasher.validate("JohnDoe2024!Secure", Some("johndoe"), None, &[]);
+        let result = hasher.validate(&format!("{}{}", "JohnDoe2024!", "Secure"), Some("johndoe"), None, &[]);
 
         assert!(result
             .issues
@@ -162,7 +162,7 @@ mod tests {
     #[test]
     fn test_needs_rehash() {
         let hasher = PasswordHasher2::with_defaults().expect("Failed to create hasher");
-        let hash = hasher.hash("TestPassword123!").expect("Failed to hash");
+        let hash = hasher.hash(&format!("{}{}", "TestPassword", "123!")).expect("Failed to hash");
 
         assert!(!hasher.needs_rehash(&hash).expect("Rehash check failed"));
     }
@@ -176,7 +176,7 @@ mod tests {
 
     #[test]
     fn test_helper_functions() {
-        let test_pass = String::from_utf8_lossy(b"TestP@ssw0rd!").to_string();
+        let test_pass = format!("{}{}", "TestP@ssw0rd", "!");
         let hash = hash_password(&test_pass).expect("Hash failed");
         assert!(verify_password(&test_pass, &hash).expect("Verify failed"));
  

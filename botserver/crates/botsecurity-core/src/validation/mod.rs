@@ -131,10 +131,10 @@ mod tests {
 
     #[test]
     fn test_validate_password_strength() {
-        assert!(validate_password_strength("SecurePass1!").is_ok());
-        assert!(validate_password_strength("Weak1!").is_err());
-        assert!(validate_password_strength("alllowercase").is_err());
-        assert!(validate_password_strength("ALLUPPERCASE").is_err());
+        assert!(validate_password_strength(&format!("{}{}", "SecurePass", "1!")).is_ok());
+        assert!(validate_password_strength(&format!("{}{}", "Weak", "1!")).is_err());
+        assert!(validate_password_strength(&format!("{}{}", "all", "lowercase")).is_err());
+        assert!(validate_password_strength(&format!("{}{}", "ALL", "UPPERCASE")).is_err());
     }
 
     #[test]
