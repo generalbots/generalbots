@@ -459,6 +459,8 @@ pub async fn process_message_internal(
                      into output/. \
                      List every file you create in output/ in your final answer as a \
                      markdown link in the form [name](vmfile:{conv_id}/output/name). \
+                     Background work continues when the user switches conversations; \
+                     never assume a job was cancelled. \
                      Do NOT refuse tasks that require code execution — you have a \
                      full Linux VM available. Generate the program dynamically based \
                      on what the user needs."
