@@ -29,10 +29,44 @@ pub(super) fn checkin_postgres_client(db_url: &str, client: postgres::Client) {
         }
     }
 }
+/// Guards the generic SQL runner (CodeQL rust/sql-injection #2760).
+/// Only a single statement is accepted; DDL/DCL are rejected so request input
+/// cannot reshape the schema or grant privileges. The route is admin-scoped
+/// as a second layer.
+fn validate_generic_sql(query: &str) -> Result<(), String> {
+    let trimmed = query.trim();
+    if trimmed.is_empty() {
+        return Err("empty query".to_string());
+    }
+    let single = trimmed.trim_end_matches(';').trim();
+    if single.contains(';') {
+        return Err("multiple statements are not allowed".to_string());
+    }
+    let first = single
+        .split_whitespace()
+        .next()
+        .unwrap_or_default()
+        .to_ascii_uppercase();
+    const ALLOWED_STARTS: &[&str] = &["SELECT", "WITH", "VALUES", "EXPLAIN", "SHOW", "INSERT", "UPDATE", "DELETE"];
+    if !ALLOWED_STARTS.contains(&first.as_str()) {
+        return Err("only SELECT/WITH/VALUES/EXPLAIN/SHOW/INSERT/UPDATE/DELETE are allowed".to_string());
+    }
+    let upper = single.to_ascii_uppercase();
+    const FORBIDDEN: &[&str] = &[
+        " DROP ", " ALTER ", " CREATE ", " TRUNCATE ", " GRANT ", " REVOKE ",
+        " COPY ", " CALL ", " DO ", " VACUUM ", " REINDEX ", " CLUSTER ", " COMMENT ",
+    ];
+    if FORBIDDEN.iter().any(|kw| upper.contains(kw)) {
+        return Err("DDL/DCL statements are not allowed on the generic runner".to_string());
+    }
+    Ok(())
+}
+
 pub(super) fn execute_via_postgres_sync(
     db_url: &str,
     query: &str,
 ) -> Result<(Vec<String>, Vec<serde_json::Value>), String> {
+    validate_generic_sql(query)?;
     let mut client = match checkout_postgres_client(db_url) {
         Some(c) => c,
         None => postgres::Client::connect(db_url, postgres::NoTls)
