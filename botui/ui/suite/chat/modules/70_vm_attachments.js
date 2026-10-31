@@ -35,19 +35,18 @@ function vmAttachmentsRequest(url) {
 }
 
 function vmActiveConversationId() {
-  if (VmAttachments.conversationId) {
-    return Promise.resolve(VmAttachments.conversationId);
-  }
+  // Always refresh: the active conversation switches to the current chat
+  // session on the first message, so a cached id would list the wrong folder.
   return vmAttachmentsRequest("/api/agent/vm/status")
     .then(function (data) {
       if (data && data.has_vm && data.active_conversation_id) {
         VmAttachments.conversationId = data.active_conversation_id;
         return VmAttachments.conversationId;
       }
-      return null;
+      return VmAttachments.conversationId;
     })
     .catch(function () {
-      return null;
+      return VmAttachments.conversationId;
     });
 }
 
@@ -235,18 +234,43 @@ function vmAppendCard(wrapper, conversationId, path, name) {
   return card;
 }
 
+function vmVisiblePane() {
+  var panes = document.querySelectorAll(".chat-pane-messages, #messages");
+  for (var i = 0; i < panes.length; i++) {
+    var rect = panes[i].getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) return panes[i];
+  }
+  return null;
+}
+
+function vmAttachmentAnchor(container) {
+  if (container && container.isConnected) {
+    var rect = container.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) return container;
+  }
+  // The reply may render into a hidden chat tab; attach the manifest to the
+  // last visible bot message so the active pane always shows the files.
+  var pane = vmVisiblePane();
+  if (!pane) return null;
+  var bots = pane.querySelectorAll(".message.bot");
+  return bots.length ? bots[bots.length - 1] : null;
+}
+
 // Bind inline vmfile cards and append output/ files the model did not link.
 function hydrateVmAttachments(container) {
   if (!container) return;
   var cards = container.querySelectorAll(".gb-attachment");
   for (var i = 0; i < cards.length; i++) vmBindAttachment(cards[i]);
 
+  var anchor = vmAttachmentAnchor(container);
+  if (!anchor) return;
+
   vmActiveConversationId()
     .then(function (conversationId) {
       if (!conversationId) return;
       var seen = VmAttachments.renderedPaths[conversationId] || {};
       var present = {};
-      var existing = container.querySelectorAll(".gb-attachment");
+      var existing = anchor.querySelectorAll(".gb-attachment");
       for (var j = 0; j < existing.length; j++) {
         present[existing[j].dataset.path] = true;
         seen[existing[j].dataset.path] = true;
@@ -263,6 +287,7 @@ function hydrateVmAttachments(container) {
           VmAttachments.renderedPaths[conversationId] = seen;
           return;
         }
+        if (!anchor.isConnected) return;
         var wrapper = document.createElement("div");
         wrapper.className = "gb-attachments";
         missing.forEach(function (name) {
@@ -271,7 +296,7 @@ function hydrateVmAttachments(container) {
           seen[path] = true;
         });
         VmAttachments.renderedPaths[conversationId] = seen;
-        var target = container.querySelector(".message-content") || container;
+        var target = anchor.querySelector(".message-content") || anchor;
         target.appendChild(wrapper);
         if (
           typeof ChatState !== "undefined" &&
