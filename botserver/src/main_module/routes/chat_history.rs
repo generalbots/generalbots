@@ -118,11 +118,14 @@ pub async fn handle_chat_history_sessions(
             }
         };
         let trimmed = title.trim().replace('\n', " ");
-        // Empty conversations (opened but never used) are noise in the rail.
-        if trimmed.is_empty() {
-            continue;
-        }
-        let title = if trimmed.chars().count() > TITLE_MAX_CHARS {
+        // Empty conversations still need a unique, stable label; the short
+        // session id is more useful than a repeated "Conversation · date".
+        let title = if trimmed.is_empty() {
+            format!(
+                "Conversation {}",
+                sess.id.simple().to_string().chars().take(8).collect::<String>()
+            )
+        } else if trimmed.chars().count() > TITLE_MAX_CHARS {
             format!("{}…", trimmed.chars().take(TITLE_MAX_CHARS).collect::<String>())
         } else {
             trimmed
