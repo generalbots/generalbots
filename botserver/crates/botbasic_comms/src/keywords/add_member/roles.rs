@@ -54,7 +54,7 @@ pub(super) fn send_member_invitation(
     user_email: &str,
     role: &str,
 ) -> Result<(), String> {
-    trace!(
+    botlog::safe_trace!(
         "Invitation sent to {} for group {} with role {}",
         user_email,
         group_id,

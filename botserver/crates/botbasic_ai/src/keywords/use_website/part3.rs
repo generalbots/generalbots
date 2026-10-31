@@ -226,7 +226,7 @@ pub(super) fn add_website_to_session(
     .execute(conn)
     .map_err(|e| format!("Failed to add website to session: {}", e))?;
 
-    info!(
+    botlog::safe_info!(
         " Added website '{}' to session {} (collection: {})",
         url, session_id, collection_name
     );

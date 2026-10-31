@@ -10,6 +10,7 @@ rbac = []
 mail = ["dep:lettre"]
 
 [dependencies]
+botlog = { workspace = true }
 botcore = { workspace = true }
 botsecurity = { workspace = true }
 botcoredirectory = { workspace = true }

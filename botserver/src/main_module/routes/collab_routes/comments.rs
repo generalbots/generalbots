@@ -277,7 +277,7 @@ pub(crate) fn send_mention_emails(
         };
 
         match mailer.send(&msg) {
-            Ok(_) => info!("mention email sent to {recipient} (from {author_name})"),
+            Ok(_) => botlog::safe_info!("mention email sent to {recipient} (from {author_name})"),
             Err(e) => warn!("mention email: send failed for {recipient}: {e}"),
         }
     }
@@ -340,7 +340,7 @@ pub async fn create_comment(
     .get_result::<CreatedRow>(&mut conn)
     .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("insert failed: {e}")))?;
 
-    info!("collab comment created by {author_id} on {}:{}", req.resource_type, req.resource_id);
+    botlog::safe_info!("collab comment created by {author_id} on {}:{}", req.resource_type, req.resource_id);
     if !mentions.is_empty() {
         info!("collab mentions: {:?}", mentions);
     }

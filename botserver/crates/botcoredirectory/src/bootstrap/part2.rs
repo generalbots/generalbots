@@ -123,8 +123,8 @@ pub(super) fn print_bootstrap_credentials(result: &BootstrapResult) {
     println!("║{:^60}║", "");
     println!("║{:^60}║", "🔐 LOGIN CREDENTIALS (READY TO USE):");
     println!("║{:^60}║", "");
-    println!("║  {:<58}║", format!("Username: {}", result.username));
-    println!("║  {:<58}║", format!("Password: [set — {} chars]", result.initial_password.len()));
+    botlog::safe_println!("║  {:<58}║", format!("Username: {}", result.username));
+    botlog::safe_println!("║  {:<58}║", format!("Password: [set — {} chars]", result.initial_password.len()));
     println!("║  {:<58}║", format!("Email:    {}", result.email));
     println!("║{:^60}║", "");
 
@@ -152,7 +152,7 @@ pub(super) fn print_bootstrap_credentials(result: &BootstrapResult) {
     println!("╚{}╝", separator);
     println!();
 
-    info!(
+    botlog::safe_info!(
         "Bootstrap complete: admin user '{}' created - ready for direct login",
         result.username
     );

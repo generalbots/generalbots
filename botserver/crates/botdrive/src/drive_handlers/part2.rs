@@ -29,7 +29,7 @@ pub async fn list_files(
         Err(list_err) => {
             // Ensures a personal bucket that has never been written to still
             // renders as an empty folder instead of erroring.
-            warn!("drive: listing '{full_prefix}' failed ({list_err}); ensuring bucket '{bucket}' exists");
+            botlog::safe_warn!("drive: listing '{full_prefix}' failed ({list_err}); ensuring bucket '{bucket}' exists");
             let _ = drive.create_bucket_if_not_exists(&bucket).await;
             drive.list_objects_with_metadata(&bucket, Some(&full_prefix))
                 .await
@@ -79,7 +79,7 @@ pub async fn upload_file_to_drive(
         .await
         .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Upload failed: {e}")))?;
 
-    info!("File uploaded: {key} to bucket {bucket}");
+    botlog::safe_info!("File uploaded: {key} to bucket {bucket}");
     Ok(Json(SuccessResponse { success: true }))
 }
 /// `POST /api/files/read` — returns a file's content as raw text (`{content}`)
@@ -230,7 +230,7 @@ pub async fn delete_file(
         .await
         .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Delete failed: {e}")))?;
 
-    info!("File deleted: {key} from bucket {bucket}");
+    botlog::safe_info!("File deleted: {key} from bucket {bucket}");
     Ok(Json(SuccessResponse { success: true }))
 }
 pub async fn create_folder(
@@ -256,7 +256,7 @@ pub async fn create_folder(
         .await
         .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Create folder failed: {e}")))?;
 
-    info!("Folder created: {key} in bucket {bucket}");
+    botlog::safe_info!("Folder created: {key} in bucket {bucket}");
     Ok(Json(SuccessResponse { success: true }))
 }
 pub async fn copy_file(
@@ -284,6 +284,6 @@ pub async fn copy_file(
         .await
         .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Copy failed: {e}")))?;
 
-    info!("Copied {from_key} -> {to_key} in bucket {dest_bucket}");
+    botlog::safe_info!("Copied {from_key} -> {to_key} in bucket {dest_bucket}");
     Ok(Json(SuccessResponse { success: true }))
 }

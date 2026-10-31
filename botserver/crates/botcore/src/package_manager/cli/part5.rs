@@ -25,7 +25,7 @@ pub(super) async fn rotate_secret(component: &str) -> Result<()> {
             println!();
             println!("Run this SQL command:");
             let default_username = "postgres".to_string();
-            println!(
+            botlog::safe_println!(
                 "  ALTER USER {} WITH PASSWORD '[REDACTED — see Vault secret/gbo/tables]';",
                 secrets.get("username").unwrap_or(&default_username)
             );

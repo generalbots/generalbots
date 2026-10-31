@@ -17,6 +17,7 @@ video = []
 drive = []
 
 [dependencies]
+botlog = { workspace = true }
 botschema = { workspace = true, features = ["calendar"] }
 botlib = { workspace = true, features = ["database", "http-client"] }
 botbasic_types = { workspace = true }

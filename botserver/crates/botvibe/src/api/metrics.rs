@@ -121,7 +121,7 @@ pub(crate) async fn create_run(
     let bot_id = match req.bot_id {
         Some(bid) if !bid.is_nil() && !user.is_admin() && !bot_accessible_to_user(api.state.db_pool(), &user, &bid) => {
             let fallback = resolve_effective_bot_id(api.state.db_pool(), &user);
-            log::info!(
+            botlog::safe_info!(
                 "Vibe create run: bot {bid} not granted to user {}, falling back to effective bot {fallback}",
                 user.user_id
             );

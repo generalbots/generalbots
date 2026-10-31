@@ -117,7 +117,7 @@ fn find_or_create_session_scoped(
         ))
         .execute(&mut conn)?;
 
-    info!(
+    botlog::safe_info!(
         "Created new Telegram session {} for chat_id {}",
         session_uuid, chat_id
     );

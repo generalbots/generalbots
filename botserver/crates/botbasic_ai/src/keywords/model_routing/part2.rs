@@ -25,7 +25,7 @@ pub(super) fn set_session_model(
     .execute(&mut conn)
     .map_err(|e| format!("Failed to set session model: {}", e))?;
 
-    info!("Session {} now using model: {}", session_id, model_name);
+    botlog::safe_info!("Session {} now using model: {}", session_id, model_name);
 
     Ok(format!("Now using model: {}", model_name))
 }
@@ -60,7 +60,7 @@ pub(super) fn set_session_routing_strategy(
     .execute(&mut conn)
     .map_err(|e| format!("Failed to set routing strategy: {}", e))?;
 
-    info!(
+    botlog::safe_info!(
         "Session {} routing strategy set to: {}",
         session_id, strategy_str
     );

@@ -15,7 +15,7 @@ pub async fn process_incoming_message(
 ) -> Result<(), String> {
     let formatted_phone = format_phone_number(phone_number);
 
-    log::info!("Processing message from {}: {}", formatted_phone, content);
+    botlog::safe_info!("Processing message from {}: {}", formatted_phone, content);
 
     let (bot_id, bot_name) = if let Some(ref pni) = phone_number_id {
         (state.find_bot)(pni)
@@ -36,12 +36,12 @@ pub async fn process_incoming_message(
     };
 
     if content.trim().is_empty() {
-        log::info!("Empty message content from {}", formatted_phone);
+        botlog::safe_info!("Empty message content from {}", formatted_phone);
         return Ok(());
     }
 
     if is_list_message(&content) {
-        log::info!("List message detected from {}", formatted_phone);
+        botlog::safe_info!("List message detected from {}", formatted_phone);
     }
 
     let session_id = Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("wa-session:{}", formatted_phone).as_bytes());

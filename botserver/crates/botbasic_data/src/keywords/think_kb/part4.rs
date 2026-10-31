@@ -26,7 +26,7 @@ pub(super) async fn think_kb_search(
         (bot_name, kb_collections, consolidations, memory_stats)
     };
 
-    info!(
+    botlog::safe_info!(
         "THINK KB: bot_name={}, session={}, query='{}', {} KBs, {} consolidations",
         bot_name, session_id, query, kb_collections.len(), consolidations.len()
     );

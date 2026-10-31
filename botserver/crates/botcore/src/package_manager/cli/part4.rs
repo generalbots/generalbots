@@ -89,7 +89,7 @@ pub(super) async fn vault_get(path: &str, key: Option<&str>) -> Result<()> {
             } else {
                 v.clone()
             };
-            println!("  {}={}", k, masked);
+            botlog::safe_println!("  {}={}", k, masked);
         }
     }
 

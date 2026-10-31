@@ -165,7 +165,7 @@ impl InsightsService {
                     });
                 }
             } else {
-                debug!("No activity data found for user {}, returning empty insights", user_id);
+                botlog::safe_debug!("No activity data found for user {}, returning empty insights", user_id);
             }
 
             Ok(insights)

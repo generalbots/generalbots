@@ -255,7 +255,7 @@ impl ConfigManager {
                     if let Ok(decrypted) = decrypt_field(&value, &key_bytes) {
                         return Ok(decrypted);
                     }
-                    log::warn!("Failed to decrypt legacy value for '{}' in Vault for bot {}", key, bot_id);
+                    botlog::safe_warn!("Failed to decrypt legacy value for '{}' in Vault for bot {}", key, bot_id);
                 }
             }
             // fallback: try DB (legacy data)

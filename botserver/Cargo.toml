@@ -191,6 +191,7 @@ allbutooxmlsdk = [
 ]
 
 [dependencies]
+botlog = { workspace = true }
 botschema = { workspace = true, features = ["workspaces"] }
 diesel_migrations = { workspace = true }
 bigdecimal = { workspace = true }

@@ -9,7 +9,7 @@ pub fn send_template_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, en
     engine.register_fn(
         "SEND_TEMPLATE",
         move |template: &str, recipient: &str, channel: &str| -> Map {
-            trace!(
+            botlog::safe_trace!(
                 "SEND_TEMPLATE called: template={}, recipient={}, channel={} by user {}",
                 template,
                 recipient,
@@ -26,7 +26,7 @@ pub fn send_template_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, en
     engine.register_fn(
         "send_template",
         move |template: &str, recipient: &str, channel: &str| -> Map {
-            trace!(
+            botlog::safe_trace!(
                 "send_template called: template={}, recipient={}, channel={} by user {}",
                 template,
                 recipient,
@@ -43,7 +43,7 @@ pub fn send_template_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, en
     engine.register_fn(
         "SEND_TEMPLATE",
         move |template: &str, recipient: &str, channel: &str, variables: Map| -> Map {
-            trace!(
+            botlog::safe_trace!(
                 "SEND_TEMPLATE called with variables: template={}, recipient={}, channel={} by user {}",
                 template,
                 recipient,
@@ -67,7 +67,7 @@ pub fn send_template_to_keyword(state: Arc<dyn BasicRuntime>, user: UserSession,
     engine.register_fn(
         "SEND_TEMPLATE_TO",
         move |template: &str, recipients: Array, channel: &str| -> Map {
-            trace!(
+            botlog::safe_trace!(
                 "SEND_TEMPLATE_TO called: template={}, recipients={:?}, channel={} by user {}",
                 template,
                 recipients.len(),
@@ -84,7 +84,7 @@ pub fn send_template_to_keyword(state: Arc<dyn BasicRuntime>, user: UserSession,
     engine.register_fn(
         "SEND_TEMPLATE_TO",
         move |template: &str, recipients: Array, channel: &str, variables: Map| -> Map {
-            trace!(
+            botlog::safe_trace!(
                 "SEND_TEMPLATE_TO called with variables: template={}, recipients={:?}, channel={} by user {}",
                 template,
                 recipients.len(),
@@ -101,7 +101,7 @@ pub fn send_template_to_keyword(state: Arc<dyn BasicRuntime>, user: UserSession,
     engine.register_fn(
         "BULK_SEND",
         move |template: &str, recipients: Array, channel: &str| -> Map {
-            trace!(
+            botlog::safe_trace!(
                 "BULK_SEND called: template={}, recipients={:?}, channel={} by user {}",
                 template,
                 recipients.len(),
@@ -125,7 +125,7 @@ pub fn create_template_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
     engine.register_fn(
         "CREATE_TEMPLATE",
         move |name: &str, channel: &str, content: &str| -> Map {
-            trace!(
+            botlog::safe_trace!(
                 "CREATE_TEMPLATE called: name={}, channel={} by user {}",
                 name,
                 channel,
@@ -141,7 +141,7 @@ pub fn create_template_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
     engine.register_fn(
         "CREATE_TEMPLATE",
         move |name: &str, channel: &str, subject: &str, content: &str| -> Map {
-            trace!(
+            botlog::safe_trace!(
                 "CREATE_TEMPLATE called with subject: name={}, channel={} by user {}",
                 name,
                 channel,
@@ -157,7 +157,7 @@ pub fn create_template_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, 
     engine.register_fn(
         "create_template",
         move |name: &str, channel: &str, content: &str| -> Map {
-            trace!(
+            botlog::safe_trace!(
                 "create_template called: name={}, channel={} by user {}",
                 name,
                 channel,
@@ -179,7 +179,7 @@ pub fn get_template_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, eng
     let user_clone4 = user;
 
     engine.register_fn("GET_TEMPLATE", move |name: &str| -> Map {
-        trace!(
+        botlog::safe_trace!(
             "GET_TEMPLATE called: name={} by user {}",
             name,
             user_clone.user_id
@@ -191,7 +191,7 @@ pub fn get_template_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, eng
     let _state_clone2 = state.clone();
 
     engine.register_fn("GET_TEMPLATE", move |name: &str, channel: &str| -> Map {
-        trace!(
+        botlog::safe_trace!(
             "GET_TEMPLATE called: name={}, channel={} by user {}",
             name,
             channel,
@@ -204,7 +204,7 @@ pub fn get_template_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, eng
     let _state_clone3 = state.clone();
 
     engine.register_fn("get_template", move |name: &str| -> Map {
-        trace!(
+        botlog::safe_trace!(
             "get_template called: name={} by user {}",
             name,
             user_clone3.user_id
@@ -216,7 +216,7 @@ pub fn get_template_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, eng
     let _state_clone4 = state;
 
     engine.register_fn("LIST_TEMPLATES", move || -> Array {
-        trace!("LIST_TEMPLATES called by user {}", user_clone4.user_id);
+        botlog::safe_trace!("LIST_TEMPLATES called by user {}", user_clone4.user_id);
 
         debug!("Retrieving available message templates from database");
         let templates = vec![

@@ -46,7 +46,7 @@ impl SessionManager {
             }
         }
         if unreadable > 0 {
-            log::warn!(
+            botlog::safe_warn!(
                 "get_conversation_history: {unreadable} message(s) skipped for session {sess_id} \
                  (encrypted under another master key)"
             );
@@ -78,7 +78,7 @@ impl SessionManager {
             // Ciphertext would surface as the session title in the UI; an
             // unreadable title is better than a wall of base64.
             Err(e) => {
-                log::warn!("get_first_user_message: title unreadable for session {sess_id}: {e}");
+                botlog::safe_warn!("get_first_user_message: title unreadable for session {sess_id}: {e}");
                 Ok(None)
             }
         }
@@ -114,9 +114,9 @@ impl SessionManager {
             .set((user_sessions::user_id.eq(new_user_id.to_string()), user_sessions::updated_at.eq(chrono::Utc::now())))
             .execute(&mut conn)?;
         if updated_count == 0 {
-            warn!("No session found with ID: {}", session_id);
+            botlog::safe_warn!("No session found with ID: {}", session_id);
         } else {
-            trace!("Updated user ID for session: {}", session_id);
+            botlog::safe_trace!("Updated user ID for session: {}", session_id);
         }
         Ok(())
     }

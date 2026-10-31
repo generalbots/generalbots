@@ -72,7 +72,7 @@ impl SafetyLayer {
             bot_id: bot_id_str.clone(),
         }).collect();
 
-        info!("Loaded {} constraints for bot {bot_id}", self.constraints.len());
+        botlog::safe_info!("Loaded {} constraints for bot {bot_id}", self.constraints.len());
         Ok(())
     }
 

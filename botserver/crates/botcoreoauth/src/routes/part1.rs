@@ -206,7 +206,7 @@ pub(super) async fn oauth_callback(
 
     let redirect_url = oauth_state.redirect_after.unwrap_or_else(|| "/".to_string());
 
-    debug!("OAuth complete, redirecting to {}", redirect_url);
+    botlog::safe_debug!("OAuth complete, redirecting to {}", redirect_url);
 
     Response::builder()
         .status(StatusCode::SEE_OTHER)

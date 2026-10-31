@@ -5,7 +5,7 @@ pub async fn update_notification_preferences(
     Path(user_id): Path<String>,
     Json(req): Json<UpdateNotificationPreferencesRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
-    info!("Updating notification preferences for user: {}: {:?}", user_id, req);
+    botlog::safe_info!("Updating notification preferences for user: {}: {:?}", user_id, req);
 
     Ok(Json(serde_json::json!({
         "success": true,

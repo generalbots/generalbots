@@ -15,7 +15,7 @@ pub async fn terminal_ws(
         format!("term-{}", timestamp)
     });
 
-    info!("Terminal WebSocket connection request: {}", session_id);
+    botlog::safe_info!("Terminal WebSocket connection request: {}", session_id);
 
     ws.on_upgrade(move |socket| handle_terminal_ws(socket, state, session_id))
 }
@@ -159,5 +159,5 @@ pub(super) async fn handle_terminal_ws(
         log::error!("Failed to cleanup terminal session: {}", e);
     }
 
-    info!("Terminal session {} cleaned up", session_id);
+    botlog::safe_info!("Terminal session {} cleaned up", session_id);
 }

@@ -37,7 +37,7 @@ pub(super) async fn rotate_all_secrets() -> Result<()> {
         .put_secret(SecretPaths::TABLES, tables.clone())
         .await?;
     let default_username = "postgres".to_string();
-    println!(
+    botlog::safe_println!(
         "✓ tables: ALTER USER {} WITH PASSWORD '[REDACTED — see Vault secret/gbo/tables]';",
         tables.get("username").unwrap_or(&default_username)
     );

@@ -164,7 +164,7 @@ pub async fn bootstrap_admin(
         info!("Auto-provisioned 12 system groups for organization {}", oid);
     }
 
-    info!(
+    botlog::safe_info!(
         "Bootstrap complete: admin user {} created successfully",
         req.username
     );
@@ -241,7 +241,7 @@ pub(super) async fn resolve_session_user_id(
         .ok()?;
 
     if !response.status().is_success() {
-        log::warn!(
+        botlog::safe_warn!(
             "Session read failed for {}: {} {}",
             session_id,
             response.status(),

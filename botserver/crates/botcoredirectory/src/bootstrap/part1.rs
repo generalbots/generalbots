@@ -34,7 +34,7 @@ pub async fn check_and_bootstrap_admin(client: &ZitadelClient) -> Result<Option<
     info!("Checking if bootstrap is needed...");
 
     if let Some(state) = load_bootstrap_state() {
-        info!(
+        botlog::safe_info!(
             "Bootstrap already completed (admin: {}, org: {}). Skipping.",
             state.user_id,
             state.organization_id.as_deref().unwrap_or("none")
@@ -118,7 +118,7 @@ pub async fn ensure_admin_user(client: &ZitadelClient) -> Result<String> {
             .or_else(|| existing.get("userId"))
             .and_then(|v| v.as_str())
             .ok_or_else(|| anyhow::anyhow!("No user ID found"))?;
-        info!("Admin user already exists: {}", user_id);
+        botlog::safe_info!("Admin user already exists: {}", user_id);
         return Ok(user_id.to_string());
     }
 
@@ -130,7 +130,7 @@ pub async fn ensure_admin_user(client: &ZitadelClient) -> Result<String> {
         .await
         .map_err(|e| anyhow::anyhow!("Failed to create admin user: {}", e))?;
 
-    info!("Created admin user with ID: {}", user_id);
+    botlog::safe_info!("Created admin user with ID: {}", user_id);
 
     if let Err(e) = client.set_user_password(&user_id, &initial_password, false).await {
         info!("Failed to set initial password via API (non-critical): {}. User may use password reset flow.", e);
@@ -181,7 +181,7 @@ pub(super) async fn create_bootstrap_admin(client: &ZitadelClient) -> Result<Boo
         .await
         .map_err(|e| anyhow::anyhow!("Failed to create admin user: {}", e))?;
 
-    info!("Created admin user with ID: {}", user_id);
+    botlog::safe_info!("Created admin user with ID: {}", user_id);
 
     if let Err(e) = client.set_user_password(&user_id, &initial_password, false).await {
         info!("Failed to set initial password via API (non-critical): {}. User may need to use password reset flow.", e);

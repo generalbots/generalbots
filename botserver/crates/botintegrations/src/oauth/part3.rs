@@ -88,7 +88,7 @@ pub async fn callback(
     if row.org_id != org_id || row.branch_id != branch_id {
         return Err(error_response(StatusCode::UNAUTHORIZED, IntegrationError::UnauthorizedScope));
     }
-    log::debug!("oauth callback scope validated for bot {bot_uuid}");
+    botlog::safe_debug!("oauth callback scope validated for bot {bot_uuid}");
     drop(conn);
 
     let scope = ConnectionScope {

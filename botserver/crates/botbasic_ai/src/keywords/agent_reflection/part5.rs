@@ -53,7 +53,7 @@ impl ReflectionEngine {
             self.apply_improvements(&result)?;
         }
 
-        info!(
+        botlog::safe_info!(
             "Reflection completed for bot {} session {}: score {:.1}",
             self.bot_id, session_id, result.score
         );

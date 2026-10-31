@@ -92,7 +92,7 @@ pub fn check_table_access(
                 AccessType::Read => "read from",
                 AccessType::Write => "write to",
             };
-            warn!(
+            botlog::safe_warn!(
                 "Access denied: user {:?} cannot {} table '{}'",
                 user_roles.user_id, action, table_name
             );

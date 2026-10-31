@@ -200,7 +200,7 @@ pub async fn update_group_member_roles(
     Path(group_id): Path<String>,
     Json(req): Json<UpdateMemberRolesRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<ErrorResponse>)> {
-    info!("Updating roles for user {} in group {}", req.user_id, group_id);
+    botlog::safe_info!("Updating roles for user {} in group {}", req.user_id, group_id);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "No auth service".to_string(), details: None })))?.lock().await;
 
@@ -208,7 +208,7 @@ pub async fn update_group_member_roles(
 
     match auth_service.add_org_member(&group_id, &req.user_id, req.roles.clone()).await {
         Ok(_) => {
-            info!("Roles updated for user {} in group {}", req.user_id, group_id);
+            botlog::safe_info!("Roles updated for user {} in group {}", req.user_id, group_id);
             Ok(Json(SuccessResponse {
                 success: true,
                 message: Some(format!("Roles updated for user {} in group {}", req.user_id, group_id)),

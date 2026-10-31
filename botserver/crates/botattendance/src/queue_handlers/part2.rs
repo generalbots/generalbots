@@ -5,7 +5,7 @@ pub async fn resolve_conversation(
     Json(payload): Json<serde_json::Value>,
 ) -> impl IntoResponse {
     let session_id = payload.get("session_id").and_then(|v| v.as_str()).and_then(|s| Uuid::parse_str(s).ok()).unwrap_or_else(Uuid::nil);
-    info!("Resolving session {}", session_id);
+    botlog::safe_info!("Resolving session {}", session_id);
     let result = tokio::task::spawn_blocking({
         let pool = config.pool.clone();
         move || {
@@ -41,7 +41,7 @@ pub async fn get_insights(
     State(config): State<Arc<AttendanceConfig>>,
     Path(session_id): Path<Uuid>,
 ) -> impl IntoResponse {
-    info!("Getting insights for session {}", session_id);
+    botlog::safe_info!("Getting insights for session {}", session_id);
     let result = tokio::task::spawn_blocking({
         let pool = config.pool.clone();
         let master_key = config.master_key.clone();

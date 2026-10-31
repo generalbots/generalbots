@@ -12,6 +12,7 @@ mail = []
 default = []
 
 [dependencies]
+botlog = { workspace = true }
 anyhow = { workspace = true }
 botcore = { workspace = true }
 botcoresecrets = { workspace = true }

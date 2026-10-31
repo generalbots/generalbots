@@ -22,7 +22,7 @@ pub fn execute_webhook_registration(
     script_name: &str,
     bot_uuid: Uuid,
 ) -> Result<Value, Box<dyn Error + Send + Sync>> {
-    trace!(
+    botlog::safe_trace!(
         "Registering WEBHOOK endpoint: {}, script: {}, bot_id: {:?}",
         endpoint,
         script_name,

@@ -220,7 +220,7 @@ pub(super) async fn execute_send_sms(
     let normalized_phone = normalize_phone_number(phone);
 
     if matches!(priority, SmsPriority::High | SmsPriority::Urgent) {
-        info!(
+        botlog::safe_info!(
             "High priority SMS to {}: priority={}",
             normalized_phone, priority
         );
@@ -247,7 +247,7 @@ pub(super) async fn execute_send_sms(
 
     match result {
         Ok(message_id) => {
-            info!(
+            botlog::safe_info!(
                 "SMS sent successfully to {} via {} (priority={}): {}",
                 normalized_phone,
                 provider_name,
@@ -264,7 +264,7 @@ pub(super) async fn execute_send_sms(
             })
         }
         Err(e) => {
-            log::error!("SMS send failed to {}: {}", normalized_phone, e);
+            botlog::safe_error!("SMS send failed to {}: {}", normalized_phone, e);
             Ok(SmsSendResult {
                 success: false,
                 message_id: None,

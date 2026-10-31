@@ -309,9 +309,9 @@ impl BasicRuntime for AppStateBasicRuntime {
             let guard = channels.blocking_lock();
             let count = guard.len();
             if let Some(tx) = guard.get(&sid) {
-                info!("send_message: FOUND channel for session {} ({} channels total)", sid, count);
+                botlog::safe_info!("send_message: FOUND channel for session {} ({} channels total)", sid, count);
                 if let Err(e) = tx.try_send(resp) {
-                    warn!("send_message: try_send failed for session {}: {}", sid, e);
+                    botlog::safe_warn!("send_message: try_send failed for session {}: {}", sid, e);
                 }
                 channel_found = true;
             } else {
@@ -319,15 +319,15 @@ impl BasicRuntime for AppStateBasicRuntime {
                 let matched_key = keys.iter().find(|k| k.starts_with(&format!("{}_", sid)));
                 if let Some(key) = matched_key {
                     if let Some(tx) = guard.get(*key) {
-                        info!("send_message: FOUND channel via prefix match for session {} (key={})", sid, key);
+                        botlog::safe_info!("send_message: FOUND channel via prefix match for session {} (key={})", sid, key);
                         if let Err(e) = tx.try_send(resp) {
-                            warn!("send_message: try_send failed for session {}: {}", sid, e);
+                            botlog::safe_warn!("send_message: try_send failed for session {}: {}", sid, e);
                         }
                         channel_found = true;
                     }
                 }
                 if !channel_found {
-                    warn!("send_message: NO channel for session {} ({} channels total, keys: {:?})",
+                    botlog::safe_warn!("send_message: NO channel for session {} ({} channels total, keys: {:?})",
                         sid, count, keys);
                 }
             }
@@ -339,7 +339,7 @@ impl BasicRuntime for AppStateBasicRuntime {
         if !channel_found
             && crate::main_module::channel_delivery::deliver_via_channel(&self.0, response)
         {
-            info!("send_message: delivered session {} through the {} adapter", sid, response.channel);
+            botlog::safe_info!("send_message: delivered session {} through the {} adapter", sid, response.channel);
         }
         Ok(())
     }

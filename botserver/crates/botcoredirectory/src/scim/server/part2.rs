@@ -4,7 +4,7 @@ pub(super) async fn delete_user(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<String>,
 ) -> Result<StatusCode, (StatusCode, Json<ScimError>)> {
-    info!("SCIM DELETE /Users/{}", user_id);
+    botlog::safe_info!("SCIM DELETE /Users/{}", user_id);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
         (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {

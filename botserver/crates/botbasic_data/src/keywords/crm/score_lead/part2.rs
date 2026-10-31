@@ -4,7 +4,7 @@ pub fn ai_score_lead_keyword(_state: Arc<dyn BasicRuntime>, user: UserSession, e
     let user_clone = user.clone();
 
     engine.register_fn("AI SCORE LEAD", move |lead_data: Map| -> Map {
-        trace!(
+        botlog::safe_trace!(
             "AI SCORE LEAD called for user {} with data: {:?}",
             user_clone.user_id,
             lead_data
@@ -35,7 +35,7 @@ pub fn ai_score_lead_keyword(_state: Arc<dyn BasicRuntime>, user: UserSession, e
     let user_clone2 = user.clone();
 
     engine.register_fn("ai score lead", move |lead_data: Map| -> Map {
-        trace!(
+        botlog::safe_trace!(
             "ai score lead called for user {} with data: {:?}",
             user_clone2.user_id,
             lead_data
@@ -57,7 +57,7 @@ pub fn ai_score_lead_keyword(_state: Arc<dyn BasicRuntime>, user: UserSession, e
     engine.register_fn(
         "AI SCORE LEAD",
         move |lead_data: Map, _context: &str| -> Map {
-            trace!(
+            botlog::safe_trace!(
                 "AI SCORE LEAD with context called for user {} with data: {:?}",
                 user_clone3.user_id,
                 lead_data

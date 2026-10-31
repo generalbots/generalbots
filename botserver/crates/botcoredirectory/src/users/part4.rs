@@ -50,7 +50,7 @@ pub async fn enable_2fa(
     Path(user_id): Path<String>,
     Json(_req): Json<Enable2faRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
-    info!("Enabling 2FA for user: {}", user_id);
+    botlog::safe_info!("Enabling 2FA for user: {}", user_id);
 
     set_mfa_flag(&state, &user_id, true)?;
 
@@ -64,7 +64,7 @@ pub async fn disable_2fa(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
-    info!("Disabling 2FA for user: {}", user_id);
+    botlog::safe_info!("Disabling 2FA for user: {}", user_id);
 
     set_mfa_flag(&state, &user_id, false)?;
 
@@ -78,7 +78,7 @@ pub async fn get_user_devices(
     State(_state): State<Arc<AppState>>,
     Path(user_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
-    info!("Getting devices for user: {}", user_id);
+    botlog::safe_info!("Getting devices for user: {}", user_id);
 
     Ok(Json(serde_json::json!({
         "user_id": user_id,
@@ -89,7 +89,7 @@ pub async fn get_user_sessions(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
-    info!("Getting sessions for user: {}", user_id);
+    botlog::safe_info!("Getting sessions for user: {}", user_id);
 
     let user_uuid = user_id.parse::<uuid::Uuid>().map_err(|_| {
         (

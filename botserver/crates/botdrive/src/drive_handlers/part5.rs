@@ -88,7 +88,7 @@ pub async fn trash_file(
         .execute(&mut conn);
     }
 
-    info!("File moved to trash: {key} -> {trash_key}");
+    botlog::safe_info!("File moved to trash: {key} -> {trash_key}");
     Ok(Json(SuccessResponse { success: true }))
 }
 pub async fn restore_trash(

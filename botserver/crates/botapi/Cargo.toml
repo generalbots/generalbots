@@ -9,6 +9,7 @@ default = []
 terminal = []
 
 [dependencies]
+botlog = { workspace = true }
 botcore = { workspace = true }
 botsecurity = { workspace = true, optional = true }
 axum = { workspace = true, features = ["ws", "macros"] }

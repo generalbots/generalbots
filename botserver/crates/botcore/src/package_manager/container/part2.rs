@@ -223,7 +223,7 @@ impl ContainerOperations for PackageManager {
         let cert_base = self.base_path.join("conf/system/certificates");
         let ca_cert = cert_base.join("ca/ca.crt");
         if !ca_cert.exists() {
-            info!("No CA found at {:?}, skipping cert provisioning for {container}", ca_cert);
+            botlog::safe_info!("No CA found at {:?}, skipping cert provisioning for {container}", ca_cert);
             return Ok(());
         }
 
@@ -276,7 +276,7 @@ impl ContainerOperations for PackageManager {
         let cert_base = self.base_path.join("conf/system/certificates");
         let ca_cert = cert_base.join("ca/ca.crt");
         if !ca_cert.exists() {
-            info!("No CA found at {:?}, skipping cert provisioning for {container}", ca_cert);
+            botlog::safe_info!("No CA found at {:?}, skipping cert provisioning for {container}", ca_cert);
             return Ok(());
         }
 
@@ -297,7 +297,7 @@ impl ContainerOperations for PackageManager {
             (&cert_dir.join("server.key"), format!("/opt/gbo/conf/system/certificates/{}/server.key", settings.cert_name)),
         ] {
             if !src.exists() {
-                trace!("Cert file {:?} not found, skipping", src);
+                botlog::safe_trace!("Cert file {:?} not found, skipping", src);
                 continue;
             }
 

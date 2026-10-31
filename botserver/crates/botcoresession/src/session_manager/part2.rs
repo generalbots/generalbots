@@ -40,7 +40,7 @@ impl SessionManager {
         session_id: Uuid,
         input: String,
     ) -> Result<Option<String>, Box<dyn Error + Send + Sync>> {
-        trace!("SessionManager.provide_input called for session {}", session_id);
+        botlog::safe_trace!("SessionManager.provide_input called for session {}", session_id);
         let sess = if let Some(existing) = self.sessions.get(&session_id) {
             let mut sess = existing.clone();
             sess.data = input;
@@ -167,7 +167,7 @@ impl SessionManager {
                 e
             })?;
 
-        log::info!("User {} created resource: session {}", verified_uid, inserted.id);
+        botlog::safe_info!("User {} created resource: session {}", verified_uid, inserted.id);
         Ok(inserted)
     }
 
@@ -219,7 +219,7 @@ impl SessionManager {
                 message_history::created_at.eq(chrono::Utc::now()),
             ))
             .execute(&mut conn)?;
-        trace!("Message saved for session {} with index {}", sess_id, next_index);
+        botlog::safe_trace!("Message saved for session {} with index {}", sess_id, next_index);
         Ok(())
     }
 

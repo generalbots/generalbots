@@ -72,7 +72,7 @@ mod email_types {
             let exists = collections.collections.iter().any(|c| c.name == self.collection_name);
             if !exists {
                 client.create_collection(&self.collection_name, 1536, "Cosine").await?;
-                log::info!("Created email collection: {}", self.collection_name);
+                botlog::safe_info!("Created email collection: {}", self.collection_name);
             }
             self.client = Some(Arc::new(client));
             Ok(())

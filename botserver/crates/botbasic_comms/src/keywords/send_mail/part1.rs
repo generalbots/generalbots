@@ -26,7 +26,7 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                     attachments.push(attachments_input.to_string());
                 }
 
-                trace!(
+                botlog::safe_trace!(
                     "SEND MAIL: to={}, subject={}, attachments={:?} for user={}",
                     to,
                     subject,
@@ -107,7 +107,7 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                 let body = context.eval_expression_tree(&inputs[2])?.to_string();
                 let using_account = context.eval_expression_tree(&inputs[3])?.to_string();
 
-                info!(
+                botlog::safe_info!(
                     "SEND MAIL USING: to={}, subject={}, using={} for user={}",
                     to, subject, using_account, user_clone2.user_id
                 );
@@ -198,7 +198,7 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                     json!({})
                 };
 
-                trace!(
+                botlog::safe_trace!(
                     "SEND_TEMPLATE: recipients={:?}, template={} for user={}",
                     recipients,
                     template,

@@ -111,7 +111,7 @@ pub async fn assign_conversation(
     State(config): State<Arc<AttendanceConfig>>,
     Json(request): Json<AssignRequest>,
 ) -> impl IntoResponse {
-    info!("Assigning session {} to attendant {}", request.session_id, request.attendant_id);
+    botlog::safe_info!("Assigning session {} to attendant {}", request.session_id, request.attendant_id);
     let result = tokio::task::spawn_blocking({
         let pool = config.pool.clone();
         let session_id = request.session_id;
@@ -151,7 +151,7 @@ pub async fn assign_by_skill(
     State(config): State<Arc<AttendanceConfig>>,
     Json(request): Json<SkillBasedAssignRequest>,
 ) -> impl IntoResponse {
-    info!("Skill-based assignment for session {} with skills {:?}", request.session_id, request.required_skills);
+    botlog::safe_info!("Skill-based assignment for session {} with skills {:?}", request.session_id, request.required_skills);
     let result = tokio::task::spawn_blocking({
         let pool = config.pool.clone();
         let session_id = request.session_id;
@@ -242,7 +242,7 @@ pub async fn transfer_conversation(
     State(config): State<Arc<AttendanceConfig>>,
     Json(request): Json<TransferRequest>,
 ) -> impl IntoResponse {
-    info!("Transferring session {} from {} to {}", request.session_id, request.from_attendant_id, request.to_attendant_id);
+    botlog::safe_info!("Transferring session {} from {} to {}", request.session_id, request.from_attendant_id, request.to_attendant_id);
     let reason_for_webhook = request.reason.clone();
     let result = tokio::task::spawn_blocking({
         let pool = config.pool.clone();

@@ -239,7 +239,7 @@ pub async fn send_email(
         .await;
     }
 
-    info!("Email sent successfully from account {account_uuid} with tracking_id {tracking_id}");
+    botlog::safe_info!("Email sent successfully from account {account_uuid} with tracking_id {tracking_id}");
 
     Ok(Json(ApiResponse {
         success: true,

@@ -61,7 +61,7 @@ impl VectorDBIndexer {
 
                     for (user_id, bot_id) in users {
                         if let Err(e) = self.index_user_data(user_id, bot_id).await {
-                            log::error!("Failed to index user {}: {}", user_id, e);
+                            botlog::safe_error!("Failed to index user {}: {}", user_id, e);
                         }
                     }
                 }
@@ -99,7 +99,7 @@ impl VectorDBIndexer {
                 .filter_map(|(uid, bid)| match Uuid::parse_str(&uid) {
                     Ok(uid) => Some((uid, bid)),
                     Err(e) => {
-                        warn!("Skipping session user_id {uid:?}: {e}");
+                        botlog::safe_warn!("Skipping session user_id {uid:?}: {e}");
                         None
                     }
                 })
@@ -111,7 +111,7 @@ impl VectorDBIndexer {
     }
 
     pub(crate) async fn index_user_data(&self, user_id: Uuid, bot_id: Uuid) -> Result<()> {
-        info!("Indexing user: {} (bot: {})", user_id, bot_id);
+        botlog::safe_info!("Indexing user: {} (bot: {})", user_id, bot_id);
 
         let mut jobs = self.jobs.write().await;
         let job = jobs.entry(user_id).or_insert_with(|| {
@@ -138,7 +138,7 @@ impl VectorDBIndexer {
         });
 
         if job.status == IndexingStatus::Running {
-            warn!(
+            botlog::safe_warn!(
                 "Job already running for user {} (bot: {})",
                 job.user_id, job.bot_id
             );
@@ -152,7 +152,7 @@ impl VectorDBIndexer {
             let mut email_db =
                 UserEmailVectorDB::new(user_id, bot_id);
             if let Err(e) = email_db.initialize(&self.qdrant_url).await {
-                warn!(
+                botlog::safe_warn!(
                     "Failed to initialize email vector DB for user {}: {}",
                     user_id, e
                 );
@@ -165,7 +165,7 @@ impl VectorDBIndexer {
             let mut drive_db =
                 UserDriveVectorDB::new(user_id, bot_id, job.workspace.drive_vectordb().into());
             if let Err(e) = drive_db.initialize(&self.qdrant_url).await {
-                warn!(
+                botlog::safe_warn!(
                     "Failed to initialize drive vector DB for user {}: {}",
                     user_id, e
                 );
@@ -178,11 +178,11 @@ impl VectorDBIndexer {
 
         #[cfg(feature = "mail")]
         if let Err(e) = self.index_user_emails(user_id).await {
-            log::error!("Failed to index emails for user {}: {}", user_id, e);
+            botlog::safe_error!("Failed to index emails for user {}: {}", user_id, e);
         }
 
         if let Err(e) = self.index_user_files(user_id).await {
-            log::error!("Failed to index files for user {}: {}", user_id, e);
+            botlog::safe_error!("Failed to index files for user {}: {}", user_id, e);
         }
 
         let mut jobs = self.jobs.write().await;
@@ -202,13 +202,13 @@ impl VectorDBIndexer {
             .ok_or_else(|| anyhow::anyhow!("Job not found"))?;
 
         let Some(email_db) = &job.email_db else {
-            warn!("Email vector DB not initialized for user {}", user_id);
+            botlog::safe_warn!("Email vector DB not initialized for user {}", user_id);
             return Ok(());
         };
 
         let accounts = self.get_user_email_accounts(user_id).await?;
 
-        info!(
+        botlog::safe_info!(
             "Found {} email accounts for user {}",
             accounts.len(),
             user_id
@@ -221,7 +221,7 @@ impl VectorDBIndexer {
                         continue;
                     }
 
-                    info!(
+                    botlog::safe_info!(
                         "Indexing {} emails for account {}",
                         emails.len(),
                         account_id

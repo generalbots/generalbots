@@ -145,7 +145,7 @@ pub(super) async fn get_user(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<String>,
 ) -> Result<Json<ScimUser>, (StatusCode, Json<ScimError>)> {
-    info!("SCIM GET /Users/{}", user_id);
+    botlog::safe_info!("SCIM GET /Users/{}", user_id);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
         (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
@@ -190,7 +190,7 @@ pub(super) async fn create_user(
     State(state): State<Arc<AppState>>,
     Json(scim_user): Json<ScimUser>,
 ) -> Result<(StatusCode, Json<ScimUser>), (StatusCode, Json<ScimError>)> {
-    info!("SCIM POST /Users - creating: {}", scim_user.user_name);
+    botlog::safe_info!("SCIM POST /Users - creating: {}", scim_user.user_name);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
         (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {
@@ -237,7 +237,7 @@ pub(super) async fn update_user(
     Path(user_id): Path<String>,
     Json(scim_user): Json<ScimUser>,
 ) -> Result<Json<ScimUser>, (StatusCode, Json<ScimError>)> {
-    info!("SCIM PUT /Users/{}", user_id);
+    botlog::safe_info!("SCIM PUT /Users/{}", user_id);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| {
         (StatusCode::INTERNAL_SERVER_ERROR, Json(ScimError {

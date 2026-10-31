@@ -101,7 +101,7 @@ pub fn check_email_monitors(
     let mut events = Vec::new();
 
     for monitor in monitors {
-        trace!(
+        botlog::safe_trace!(
             "Checking email monitor for {} on bot {} (last_uid: {:?})",
             monitor.email_address,
             monitor.bot_id,

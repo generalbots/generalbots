@@ -97,7 +97,7 @@ impl IntentCompiler {
             )
             .into());
         }
-        info!(
+        botlog::safe_info!(
             "[autotask] compiling with model={model} key_len={} bot={bot_id}",
             key.len()
         );

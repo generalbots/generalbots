@@ -5,7 +5,7 @@ pub async fn add_group_member(
     Path(group_id): Path<String>,
     Json(req): Json<AddMemberRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<ErrorResponse>)> {
-    info!("Adding user {} to group {}", req.user_id, group_id);
+    botlog::safe_info!("Adding user {} to group {}", req.user_id, group_id);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "No auth service".to_string(), details: None })))?.lock().await;
 
@@ -14,7 +14,7 @@ pub async fn add_group_member(
 
     match auth_service.add_org_member(&group_id, &req.user_id, roles).await {
         Ok(_) => {
-            info!(
+            botlog::safe_info!(
                 "User {} added to group {} successfully",
                 req.user_id, group_id
             );
@@ -44,14 +44,14 @@ pub async fn remove_group_member(
     Path(group_id): Path<String>,
     Json(req): Json<AddMemberRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<ErrorResponse>)> {
-    info!("Removing user {} from group {}", req.user_id, group_id);
+    botlog::safe_info!("Removing user {} from group {}", req.user_id, group_id);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "No auth service".to_string(), details: None })))?.lock().await;
 
 
     match auth_service.remove_org_member(&group_id, &req.user_id).await {
         Ok(_) => {
-            info!(
+            botlog::safe_info!(
                 "User {} removed from group {} successfully",
                 req.user_id, group_id
             );

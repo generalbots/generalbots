@@ -41,7 +41,7 @@ pub(super) async fn build_and_stream(
     .await
     .is_err()
     {
-        log::warn!("ws_handler: inject_kb_context TIMEOUT after 30s for session {session_id}");
+        botlog::safe_warn!("ws_handler: inject_kb_context TIMEOUT after 30s for session {session_id}");
     }
 
     #[cfg(feature = "memory-os")]
@@ -85,7 +85,7 @@ pub(super) async fn build_and_stream(
     .await
     .is_err()
     {
-        log::warn!("stream_llm_response TIMEOUT after 300s for session {session_id}");
+        botlog::safe_warn!("stream_llm_response TIMEOUT after 300s for session {session_id}");
     }
 
     Ok(())
@@ -110,7 +110,7 @@ pub(super) fn resolve_bot_llm_provider(
         let llm_host = url::Url::parse(&llm_url).ok()
             .and_then(|u| u.host_str().map(|h| h.to_string()))
             .unwrap_or_else(|| "<unparseable>".to_string());
-        log::info!("BOT {bot_uuid} LLM CONFIG: host=[{llm_host}] key_len=[{}] model=[{llm_model}] provider=[{llm_provider}]", llm_key.len());
+        botlog::safe_info!("BOT {bot_uuid} LLM CONFIG: host=[{llm_host}] key_len=[{}] model=[{llm_model}] provider=[{llm_provider}]", llm_key.len());
         if !llm_url.is_empty() {
             let explicit = if llm_provider.is_empty() { None } else { crate::llm::provider_factory::llm_provider_type_from_name(&llm_provider) };
             let provider = crate::llm::provider_factory::create_llm_provider_from_url(

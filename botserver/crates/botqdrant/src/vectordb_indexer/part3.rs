@@ -8,7 +8,7 @@ impl VectorDBIndexer {
             .ok_or_else(|| anyhow::anyhow!("Job not found"))?;
 
         let Some(drive_db) = &job.drive_db else {
-            warn!("Drive vector DB not initialized for user {}", user_id);
+            botlog::safe_warn!("Drive vector DB not initialized for user {}", user_id);
             return Ok(());
         };
 
@@ -18,7 +18,7 @@ impl VectorDBIndexer {
                     return Ok(());
                 }
 
-                info!("Indexing {} files for user {}", files.len(), user_id);
+                botlog::safe_info!("Indexing {} files for user {}", files.len(), user_id);
 
                 for chunk in files.chunks(self.batch_size) {
                     for file in chunk {
@@ -54,7 +54,7 @@ impl VectorDBIndexer {
                 }
             }
             Err(e) => {
-                log::error!("Failed to get unindexed files for user {}: {}", user_id, e);
+                botlog::safe_error!("Failed to get unindexed files for user {}: {}", user_id, e);
             }
         }
 
@@ -281,7 +281,7 @@ impl VectorDBIndexer {
         let mut jobs = self.jobs.write().await;
         if let Some(job) = jobs.get_mut(&user_id) {
             job.status = IndexingStatus::Paused;
-            info!("⏸️  Paused indexing for user {}", user_id);
+            botlog::safe_info!("⏸️  Paused indexing for user {}", user_id);
         }
         Ok(())
     }
@@ -290,13 +290,13 @@ impl VectorDBIndexer {
         let mut jobs = self.jobs.write().await;
         if let Some(job) = jobs.get_mut(&user_id) {
             job.status = IndexingStatus::Idle;
-            info!("▶️  Resumed indexing for user {}", user_id);
+            botlog::safe_info!("▶️  Resumed indexing for user {}", user_id);
         }
         Ok(())
     }
 
     pub async fn trigger_user_indexing(&self, user_id: Uuid, bot_id: Uuid) -> Result<()> {
-        info!(" Triggering immediate indexing for user {}", user_id);
+        botlog::safe_info!(" Triggering immediate indexing for user {}", user_id);
         self.index_user_data(user_id, bot_id).await
     }
 }

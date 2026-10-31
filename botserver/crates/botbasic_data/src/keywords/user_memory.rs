@@ -134,7 +134,7 @@ pub fn clear_user_memory_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
                     if let Err(e) = clear_user_memory(state_for_spawn, user_id) {
                         log::error!("Failed to clear user memory: {e}");
                     } else {
-                        trace!("Cleared all user memory for user: {user_id}");
+                        botlog::safe_trace!("Cleared all user memory for user: {user_id}");
                     }
                 });
 

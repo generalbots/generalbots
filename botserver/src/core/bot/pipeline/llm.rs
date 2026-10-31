@@ -30,15 +30,15 @@ async fn get_session_tools_with_timeout(
     ).await {
         Ok(Ok(Ok(tools))) => tools,
         Ok(Ok(Err(e))) => {
-            log::warn!("get_session_tools error for {session_id_s}: {e}");
+            botlog::safe_warn!("get_session_tools error for {session_id_s}: {e}");
             Vec::new()
         }
         Ok(Err(e)) => {
-            log::warn!("get_session_tools spawn_blocking join error for {session_id_s}: {e}");
+            botlog::safe_warn!("get_session_tools spawn_blocking join error for {session_id_s}: {e}");
             Vec::new()
         }
         Err(_) => {
-            log::warn!("get_session_tools TIMEOUT after 10s for session {session_id_s}");
+            botlog::safe_warn!("get_session_tools TIMEOUT after 10s for session {session_id_s}");
             Vec::new()
         }
     }

@@ -13,7 +13,7 @@ pub fn add_member_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engin
                 let user_email = context.eval_expression_tree(&inputs[1])?.to_string();
                 let role = context.eval_expression_tree(&inputs[2])?.to_string();
 
-                trace!(
+                botlog::safe_trace!(
                     "ADD_MEMBER: group={}, user_email={}, role={} for user={}",
                     group_id,
                     user_email,
@@ -96,7 +96,7 @@ pub fn add_member_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engin
                     members.push(members_input.to_string());
                 }
 
-                trace!(
+                botlog::safe_trace!(
                     "CREATE_TEAM: name={}, members={:?}, template={} for user={}",
                     name,
                     members,

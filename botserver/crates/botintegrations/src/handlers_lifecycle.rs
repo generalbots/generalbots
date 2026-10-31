@@ -262,7 +262,7 @@ pub async fn use_for_vibe(
     let config = botcore::config::ConfigManager::new(state.pool.clone());
     let write = |key: &str, value: &str| {
         config.set_config(&bot_uuid, key, value).map_err(|e| {
-            log::error!("use_for_vibe: cannot persist {key} for {bot_uuid}: {e}");
+            botlog::safe_error!("use_for_vibe: cannot persist {key} for {bot_uuid}: {e}");
             IntegrationError::Storage(format!("cannot persist {key}"))
         })
     };

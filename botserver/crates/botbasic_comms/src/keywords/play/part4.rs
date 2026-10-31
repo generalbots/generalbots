@@ -31,7 +31,7 @@ pub(super) fn execute_play(
 
     send_play_to_client(state, session_id, &response)?;
 
-    info!(
+    botlog::safe_info!(
         "Playing {:?} content: {source} for session {session_id}",
         response.content_type
     );

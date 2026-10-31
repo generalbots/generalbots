@@ -292,7 +292,7 @@ fn sanitize_field_values(path: &str, data: HashMap<String, String>) -> HashMap<S
             Some((name, rest))
                 if !rest.is_empty() && name.eq_ignore_ascii_case(&key) =>
             {
-                warn!(
+                botlog::safe_warn!(
                     "Secret '{}': field '{}' was stored as a 'FIELD=value' assignment; using the bare value",
                     path, key
                 );

@@ -12,6 +12,7 @@ automation = []
 cache = []
 
 [dependencies]
+botlog = { workspace = true }
 botkyc = { workspace = true }
 bottimeclock = { workspace = true }
 botinventory = { workspace = true }

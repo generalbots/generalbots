@@ -360,7 +360,7 @@ impl botlib::traits::ChannelAdapter for TelegramAdapter {
                 self.send_text_message(chat_id, &response.content, None).await?;
             }
 
-            debug!(
+            botlog::safe_debug!(
                 "Telegram message sent to {} for session {}",
                 chat_id, response.session_id
             );

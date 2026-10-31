@@ -13,6 +13,7 @@ goals = []
 llm = []
 
 [dependencies]
+botlog = { workspace = true }
 botlib = { workspace = true, features = ["database"] }
 botschema = { workspace = true, features = ["goals", "dashboards"] }
 axum = { workspace = true }

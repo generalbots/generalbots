@@ -267,9 +267,9 @@ pub fn publish_media_uploaded(upload: &MediaUpload<'_>) {
         "channel_user_id": channel_user_id,
     });
     if let Err(e) = publish(pool, bot_id, MEDIA_UPLOADED, &payload) {
-        log::warn!("[basic_events] media_uploaded for bot {bot_id} not queued: {e}");
+        botlog::safe_warn!("[basic_events] media_uploaded for bot {bot_id} not queued: {e}");
     } else {
-        log::info!("[basic_events] media_uploaded queued for bot {bot_id}: {path}");
+        botlog::safe_info!("[basic_events] media_uploaded queued for bot {bot_id}: {path}");
     }
 }
 

@@ -174,7 +174,7 @@ pub async fn resolve_comment(
     if changed == 0 {
         return Err(err(StatusCode::NOT_FOUND, "Comment not found or not yours to resolve"));
     }
-    info!("collab comment {} set resolved={} by {uid}", id, req.resolved);
+    botlog::safe_info!("collab comment {} set resolved={} by {uid}", id, req.resolved);
 
     let action = if req.resolved { "resolve" } else { "reopen" };
     if let Some((resource_type, resource_id)) = comment_resource(&mut conn, id) {

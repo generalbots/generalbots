@@ -171,7 +171,7 @@ fn publish_channel_event(
     if !text.is_empty() && !text.starts_with('[') {
         let payload = serde_json::json!({ "text": text, "channel": channel });
         if let Err(e) = basic_events::publish(&state.conn, bot_uuid, basic_events::MESSAGE_RECEIVED, &payload) {
-            log::debug!("message_received not queued for bot {bot_uuid}: {e}");
+            botlog::safe_debug!("message_received not queued for bot {bot_uuid}: {e}");
         }
     }
 }

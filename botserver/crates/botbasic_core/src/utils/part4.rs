@@ -32,7 +32,7 @@ pub fn bot_drive_location_for(
         Err(e) => {
             // Without the bot name no correct key can be built, so surface it:
             // silently writing to a wrong key is how files become unreachable.
-            log::error!("bot_drive_location_for: failed to resolve bot {bot_id}: {e}");
+            botlog::safe_error!("bot_drive_location_for: failed to resolve bot {bot_id}: {e}");
             resolve_bot_drive_location("", None, None)
         }
     }

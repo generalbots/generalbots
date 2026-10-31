@@ -61,7 +61,7 @@ pub async fn ensure_agent_vm(
     match botagent::vm::ensure_vm(service, &user_id, &bot_uuid, Some(&conversation_id)).await {
         Ok(row) => {
             if let Err(e) = botagent::vm::switch_conversation(service, &user_id, &conversation_id).await {
-                log::warn!("conversation switch for {session_id}: {}", e.1);
+                botlog::safe_warn!("conversation switch for {session_id}: {}", e.1);
             }
             Some(row)
         }

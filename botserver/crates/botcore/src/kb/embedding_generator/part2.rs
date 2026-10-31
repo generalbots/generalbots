@@ -31,7 +31,7 @@ impl EmbeddingConfig {
 
         let embedding_url = if embedding_url_raw.is_empty() {
             let default_url = "http://localhost:8082/v1/embeddings".to_string();
-            info!("No embedding-url configured for bot {_bot_id}, using default: {default_url}");
+            botlog::safe_info!("No embedding-url configured for bot {_bot_id}, using default: {default_url}");
             default_url
         } else {
             embedding_url_raw
@@ -55,7 +55,7 @@ impl EmbeddingConfig {
             .and_then(|v| v.parse().ok())
             .unwrap_or_else(|| Self::detect_dimensions(&embedding_model));
 
-        info!("EmbeddingConfig::from_bot_config - bot_id: {}, embedding_url: {}, embedding_key: {}, dimensions: {}",
+        botlog::safe_info!("EmbeddingConfig::from_bot_config - bot_id: {}, embedding_url: {}, embedding_key: {}, dimensions: {}",
               _bot_id,
               botlib::text::truncate_at_char_boundary(&embedding_url, 50),
               if embedding_key.is_some() { "SET" } else { "NONE" },

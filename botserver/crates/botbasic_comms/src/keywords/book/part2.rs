@@ -19,7 +19,7 @@ pub fn book_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mu
                     .unwrap_or(30);
                 let location = context.eval_expression_tree(&inputs[4])?.to_string();
 
-                trace!(
+                botlog::safe_trace!(
                     "BOOK: title={}, start={}, duration={} min for user={}",
                     title,
                     start_time_str,
@@ -95,7 +95,7 @@ pub fn book_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mu
                     }
                 }
 
-                trace!(
+                botlog::safe_trace!(
                     "BOOK_MEETING with {} attendees for user={}",
                     attendees.len(),
                     user_clone2.user_id
@@ -152,7 +152,7 @@ pub fn book_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine: &mu
                     .as_int()
                     .unwrap_or(30);
 
-                trace!(
+                botlog::safe_trace!(
                     "CHECK_AVAILABILITY for {} on {} for user={}",
                     duration_minutes,
                     date_str,
@@ -245,7 +245,7 @@ pub(super) fn execute_book(
 
     log_booking(state, user, &created_event.id.to_string(), title)?;
 
-    info!(
+    botlog::safe_info!(
         "Appointment booked: {} at {} for user {}",
         title, start_time, user.user_id
     );

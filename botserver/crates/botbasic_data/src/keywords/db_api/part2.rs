@@ -47,7 +47,7 @@ pub async fn list_records_handler(
         match check_table_access(&mut conn, &table_name, &user_roles, AccessType::Read) {
             Ok(info) => info,
             Err(e) => {
-                warn!(
+                botlog::safe_warn!(
                     "Access denied to table {} for user {:?}",
                     table_name, user_roles.user_id
                 );

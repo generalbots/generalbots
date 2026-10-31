@@ -271,7 +271,7 @@ async fn process_message(
 
     let preview: String = content.chars().take(50).collect();
 
-    info!(
+    botlog::safe_info!(
         "Processing Telegram message from {} (chat_id={}): {}",
         user_name, chat_id, preview
     );

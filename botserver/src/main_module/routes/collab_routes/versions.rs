@@ -250,7 +250,7 @@ pub async fn name_version(
     if changed == 0 {
         return Err(err(StatusCode::NOT_FOUND, "Version not found"));
     }
-    info!("version {id} named by {}", collab_user_id(&user));
+    botlog::safe_info!("version {id} named by {}", collab_user_id(&user));
     Ok(Json(serde_json::json!({ "success": true, "name": name })))
 }
 

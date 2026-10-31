@@ -10,6 +10,7 @@ members = [
   "botschema",
   "botapp",
   "botserver/crates/botanalytics",
+  "botserver/crates/botlog",
   "botserver/crates/botcloud",
   "botserver/crates/botapi",
   "botserver/crates/botuifragments",
@@ -146,6 +147,7 @@ publish = false
 # ─── INTERNAL CRATES ───
 botautotask = { path = "botserver/crates/botautotask" }
 botlib = { path = "botlib" }
+botlog = { path = "botserver/crates/botlog" }
 http = "1.0"
 botanalytics = { path = "botserver/crates/botanalytics" }
 botbrazil = { path = "botserver/crates/botbrazil" }

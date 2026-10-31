@@ -111,7 +111,7 @@ pub async fn create_user(
 
     match result {
         Ok(_) => {
-            log::info!("User {username} created via admin UI");
+            botlog::safe_info!("User {username} created via admin UI");
             (
                 StatusCode::OK,
                 Html(load_users_rows(

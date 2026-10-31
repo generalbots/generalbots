@@ -225,7 +225,7 @@ fn register_add_to_cart(
                 let session_id = context.eval_expression_tree(&inputs[0])?.to_string();
                 let product_id = context.eval_expression_tree(&inputs[1])?.to_string();
                 let qty_expr = context.eval_expression_tree(&inputs[2])?.to_string();
-                trace!("ADD TO CART: session={session_id} product={product_id} qty={qty_expr}");
+                botlog::safe_trace!("ADD TO CART: session={session_id} product={product_id} qty={qty_expr}");
                 let request = InventoryRequest::add_to_cart(&session_id, &product_id, &qty_expr);
                 Ok(serde_json_to_dynamic(&request))
             },
@@ -249,7 +249,7 @@ fn register_checkout(
             move |context, inputs| {
                 let session_id = context.eval_expression_tree(&inputs[0])?.to_string();
                 let payment_method = context.eval_expression_tree(&inputs[1])?.to_string();
-                trace!("CHECKOUT: session={session_id} payment={payment_method}");
+                botlog::safe_trace!("CHECKOUT: session={session_id} payment={payment_method}");
                 let request = InventoryRequest::checkout(&session_id, &payment_method);
                 Ok(serde_json_to_dynamic(&request))
             },

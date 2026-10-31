@@ -4,7 +4,7 @@ pub fn score_lead_keyword(_state: Arc<dyn BasicRuntime>, user: UserSession, engi
     let user_clone = user.clone();
 
     engine.register_fn("SCORE LEAD", move |lead_data: Map| -> i64 {
-        trace!(
+        botlog::safe_trace!(
             "SCORE LEAD called for user {} with data: {:?}",
             user_clone.user_id,
             lead_data
@@ -14,7 +14,7 @@ pub fn score_lead_keyword(_state: Arc<dyn BasicRuntime>, user: UserSession, engi
 
     let user_clone2 = user.clone();
     engine.register_fn("score lead", move |lead_data: Map| -> i64 {
-        trace!(
+        botlog::safe_trace!(
             "score lead called for user {} with data: {:?}",
             user_clone2.user_id,
             lead_data
@@ -26,7 +26,7 @@ pub fn score_lead_keyword(_state: Arc<dyn BasicRuntime>, user: UserSession, engi
     engine.register_fn(
         "SCORE LEAD",
         move |lead_data: Map, scoring_rules: Map| -> i64 {
-            trace!(
+            botlog::safe_trace!(
                 "SCORE LEAD called for user {} with custom rules",
                 user_clone3.user_id
             );
@@ -41,7 +41,7 @@ pub fn get_lead_score_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
     let state_for_db = Arc::clone(&state);
 
     engine.register_fn("GET LEAD SCORE", move |lead_id: &str| -> i64 {
-        trace!(
+        botlog::safe_trace!(
             "GET LEAD SCORE called for lead {} by user {}",
             lead_id,
             user_clone.user_id
@@ -63,7 +63,7 @@ pub fn get_lead_score_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
     let state_for_db2 = Arc::clone(&state);
 
     engine.register_fn("get lead score", move |lead_id: &str| -> i64 {
-        trace!(
+        botlog::safe_trace!(
             "get lead score called for lead {} by user {}",
             lead_id,
             user_clone2.user_id
@@ -78,7 +78,7 @@ pub fn get_lead_score_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, e
     engine.register_fn(
         "GET LEAD SCORE",
         move |lead_id: &str, _option: &str| -> Map {
-            trace!(
+            botlog::safe_trace!(
                 "GET LEAD SCORE (full) called for lead {} by user {}",
                 lead_id,
                 user_clone3.user_id
@@ -117,7 +117,7 @@ pub fn qualify_lead_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, eng
     let state_for_db = Arc::clone(&state);
 
     engine.register_fn("QUALIFY LEAD", move |lead_id: &str| -> bool {
-        trace!(
+        botlog::safe_trace!(
             "QUALIFY LEAD called for lead {} by user {}",
             lead_id,
             user_clone.user_id
@@ -137,7 +137,7 @@ pub fn qualify_lead_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, eng
     let state_for_db2 = Arc::clone(&state);
 
     engine.register_fn("qualify lead", move |lead_id: &str| -> bool {
-        trace!(
+        botlog::safe_trace!(
             "qualify lead called for lead {} by user {}",
             lead_id,
             user_clone2.user_id
@@ -151,7 +151,7 @@ pub fn qualify_lead_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, eng
     engine.register_fn(
         "QUALIFY LEAD",
         move |lead_id: &str, threshold: i64| -> bool {
-            trace!(
+            botlog::safe_trace!(
                 "QUALIFY LEAD called for lead {} with threshold {} by user {}",
                 lead_id,
                 threshold,
@@ -174,7 +174,7 @@ pub fn qualify_lead_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, eng
     engine.register_fn(
         "IS QUALIFIED",
         move |lead_id: &str, threshold: i64| -> bool {
-            trace!(
+            botlog::safe_trace!(
                 "IS QUALIFIED called for lead {} with threshold {} by user {}",
                 lead_id,
                 threshold,
@@ -193,7 +193,7 @@ pub fn update_lead_score_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
     engine.register_fn(
         "UPDATE LEAD SCORE",
         move |lead_id: &str, adjustment: i64| -> i64 {
-            trace!(
+            botlog::safe_trace!(
                 "UPDATE LEAD SCORE called for lead {} with adjustment {} by user {}",
                 lead_id,
                 adjustment,
@@ -220,7 +220,7 @@ pub fn update_lead_score_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
     engine.register_fn(
         "update lead score",
         move |lead_id: &str, adjustment: i64| -> i64 {
-            trace!(
+            botlog::safe_trace!(
                 "update lead score called for lead {} with adjustment {} by user {}",
                 lead_id,
                 adjustment,
@@ -245,7 +245,7 @@ pub fn update_lead_score_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
     engine.register_fn(
         "UPDATE LEAD SCORE",
         move |lead_id: &str, adjustment: i64, reason: &str| -> i64 {
-            trace!(
+            botlog::safe_trace!(
                 "UPDATE LEAD SCORE (with reason) called for lead {} with adjustment {} reason '{}' by user {}",
                 lead_id,
                 adjustment,
@@ -271,7 +271,7 @@ pub fn update_lead_score_keyword(state: Arc<dyn BasicRuntime>, user: UserSession
     let state_for_db4 = state;
 
     engine.register_fn("SET LEAD SCORE", move |lead_id: &str, score: i64| -> i64 {
-        trace!(
+        botlog::safe_trace!(
             "SET LEAD SCORE called for lead {} with score {} by user {}",
             lead_id,
             score,

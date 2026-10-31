@@ -58,7 +58,7 @@ pub async fn delete_bot(
             .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Failed to delete bot objects: {e}")))?;
     }
 
-    info!("Bot '{}' deleted by user {}", bot_name, user.user_id);
+    botlog::safe_info!("Bot '{}' deleted by user {}", bot_name, user.user_id);
     Ok(Json(DeleteBotResponse {
         status: "deleted".to_string(),
     }))

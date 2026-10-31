@@ -4,7 +4,7 @@ pub async fn create_user(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreateUserRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<ErrorResponse>)> {
-    info!("Creating user: {} ({})", req.username, req.email);
+    botlog::safe_info!("Creating user: {} ({})", req.username, req.email);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "No auth service".to_string(), details: None })))?.lock().await;
 
@@ -27,9 +27,9 @@ pub async fn create_user(
 
     if let Some(password) = &req.password {
         if let Err(e) = auth_service.set_user_password(&user_id, password).await {
-            error!("Failed to set initial password for user {}: {}", user_id, e);
+            botlog::safe_error!("Failed to set initial password for user {}: {}", user_id, e);
         } else {
-            info!("Initial password set for user {}", user_id);
+            botlog::safe_info!("Initial password set for user {}", user_id);
         }
     }
 
@@ -37,19 +37,19 @@ pub async fn create_user(
         let roles = req.roles.clone().unwrap_or_else(|| vec!["user".to_string()]);
 
         if let Err(e) = auth_service.add_org_member(org_id, &user_id, roles.clone()).await {
-            error!(
+            botlog::safe_error!(
                 "Failed to add user {} to organization {}: {}",
                 user_id, org_id, e
             );
         } else {
-            info!(
+            botlog::safe_info!(
                 "User {} added to organization {} with roles {:?}",
                 user_id, org_id, roles
             );
         }
     }
 
-    info!("User created successfully: {}", user_id);
+    botlog::safe_info!("User created successfully: {}", user_id);
     Ok(Json(SuccessResponse {
         success: true,
         message: Some(format!("User {} created successfully", req.username)),
@@ -61,7 +61,7 @@ pub async fn update_user(
     Path(user_id): Path<String>,
     Json(req): Json<UpdateUserRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<ErrorResponse>)> {
-    info!("Updating user: {}", user_id);
+    botlog::safe_info!("Updating user: {}", user_id);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "No auth service".to_string(), details: None })))?.lock().await;
 
@@ -91,7 +91,7 @@ pub async fn update_user(
             .await
         {
             Ok(_) => {
-                info!("User {} profile updated successfully", user_id);
+                botlog::safe_info!("User {} profile updated successfully", user_id);
             }
             Err(e) => {
                 log::error!("Failed to update user profile: {}", e);
@@ -103,12 +103,12 @@ pub async fn update_user(
         let roles = req.roles.clone().unwrap_or_else(|| vec!["user".to_string()]);
 
         if let Err(e) = auth_service.add_org_member(org_id, &user_id, roles.clone()).await {
-            error!(
+            botlog::safe_error!(
                 "Failed to update user {} organization membership: {}",
                 user_id, e
             );
         } else {
-            info!(
+            botlog::safe_info!(
                 "User {} organization membership updated to {} with roles {:?}",
                 user_id, org_id, roles
             );
@@ -125,7 +125,7 @@ pub async fn delete_user(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<String>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<ErrorResponse>)> {
-    info!("Deleting user: {}", user_id);
+    botlog::safe_info!("Deleting user: {}", user_id);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "No auth service".to_string(), details: None })))?.lock().await;
 
@@ -134,7 +134,7 @@ pub async fn delete_user(
         .await
     {
         Ok(_) => {
-            info!("User {} deleted successfully", user_id);
+            botlog::safe_info!("User {} deleted successfully", user_id);
             Ok(Json(SuccessResponse {
                 success: true,
                 message: Some(format!("User {} deleted successfully", user_id)),

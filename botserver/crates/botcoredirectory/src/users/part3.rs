@@ -4,7 +4,7 @@ pub async fn get_user_permissions(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<String>,
 ) -> Result<Json<UserPermissionsResponse>, (StatusCode, Json<ErrorResponse>)> {
-    info!("Getting permissions for user: {}", user_id);
+    botlog::safe_info!("Getting permissions for user: {}", user_id);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "No auth service".to_string(), details: None })))?.lock().await;
 
@@ -41,7 +41,7 @@ pub async fn get_user_presence(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
-    info!("Getting presence for user: {}", user_id);
+    botlog::safe_info!("Getting presence for user: {}", user_id);
 
     let user_uuid = user_id.parse::<uuid::Uuid>().map_err(|_| {
         (
@@ -91,7 +91,7 @@ pub async fn get_user_activity(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
-    info!("Getting activity for user: {}", user_id);
+    botlog::safe_info!("Getting activity for user: {}", user_id);
 
     let user_uuid = user_id.parse::<uuid::Uuid>().map_err(|_| {
         (

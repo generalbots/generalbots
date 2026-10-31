@@ -37,7 +37,7 @@ impl QdrantClient {
     ) -> Result<()> {
         let url = self.collections_url();
 
-        debug!("Creating collection: {} at {}", name, url);
+        botlog::safe_debug!("Creating collection: {} at {}", name, url);
         
         let response = self
             .client
@@ -57,10 +57,10 @@ impl QdrantClient {
         let text = response.text().await.unwrap_or_default();
         
         if status.is_success() {
-            info!("Collection '{}' created successfully", name);
+            botlog::safe_info!("Collection '{}' created successfully", name);
             Ok(())
         } else {
-            log::error!("Failed to create collection '{}': {} - {}", name, status, text);
+            botlog::safe_error!("Failed to create collection '{}': {} - {}", name, status, text);
             Err(anyhow::anyhow!("HTTP {}: {}", status, text))
         }
     }
@@ -168,7 +168,7 @@ impl QdrantClient {
             "points": points
         });
 
-        debug!("Upserting {} points to {}", points.len(), collection_name);
+        botlog::safe_debug!("Upserting {} points to {}", points.len(), collection_name);
         
         let response = self
             .client

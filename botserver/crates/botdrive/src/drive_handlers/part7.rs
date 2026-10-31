@@ -64,7 +64,7 @@ pub async fn create_public_link(
         return Err(err(StatusCode::INTERNAL_SERVER_ERROR, "Failed to create link"));
     }
 
-    info!("Public link created for {path} in {bucket} by {uid}");
+    botlog::safe_info!("Public link created for {path} in {bucket} by {uid}");
     Ok(Json(CreatePublicLinkResponse {
         token: token.clone(),
         url: public_link_url(&token),
@@ -171,7 +171,7 @@ pub async fn revoke_public_link(
         return Err(err(StatusCode::NOT_FOUND, "No matching public link"));
     }
 
-    info!("Public link revoked by {uid}");
+    botlog::safe_info!("Public link revoked by {uid}");
     Ok(Json(SuccessResponse { success: true }))
 }
 /// `GET /api/files/public/{token}` — anonymous download of a shared file.

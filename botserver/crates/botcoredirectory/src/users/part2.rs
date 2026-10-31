@@ -4,7 +4,7 @@ pub async fn get_user_profile(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<String>,
 ) -> Result<Json<UserResponse>, (StatusCode, Json<ErrorResponse>)> {
-    info!("Getting profile for user: {}", user_id);
+    botlog::safe_info!("Getting profile for user: {}", user_id);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "No auth service".to_string(), details: None })))?.lock().await;
 
@@ -71,7 +71,7 @@ pub async fn get_user_profile(
                 updated_at: None,
             };
 
-            info!("User profile retrieved: {}", username);
+            botlog::safe_info!("User profile retrieved: {}", username);
             Ok(Json(user))
         }
         Err(e) => {
@@ -91,7 +91,7 @@ pub async fn assign_organization(
     Path(user_id): Path<String>,
     Json(req): Json<AssignOrganizationRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<ErrorResponse>)> {
-    info!(
+    botlog::safe_info!(
         "Assigning user {} to organization {}",
         user_id, req.organization_id
     );
@@ -105,7 +105,7 @@ pub async fn assign_organization(
         .await
     {
         Ok(()) => {
-            info!(
+            botlog::safe_info!(
                 "User {} assigned to organization {} with roles {:?}",
                 user_id, req.organization_id, roles
             );
@@ -134,13 +134,13 @@ pub async fn remove_from_organization(
     State(state): State<Arc<AppState>>,
     Path((user_id, org_id)): Path<(String, String)>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<ErrorResponse>)> {
-    info!("Removing user {} from organization {}", user_id, org_id);
+    botlog::safe_info!("Removing user {} from organization {}", user_id, org_id);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "No auth service".to_string(), details: None })))?.lock().await;
 
     match auth_service.remove_org_member(&org_id, &user_id).await {
         Ok(()) => {
-            info!("User {} removed from organization {}", user_id, org_id);
+            botlog::safe_info!("User {} removed from organization {}", user_id, org_id);
             Ok(Json(SuccessResponse {
                 success: true,
                 message: Some(format!("User removed from organization {}", org_id)),
@@ -163,13 +163,13 @@ pub async fn get_user_memberships(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
-    info!("Getting memberships for user: {}", user_id);
+    botlog::safe_info!("Getting memberships for user: {}", user_id);
 
     let auth_service = state.auth_service.as_ref().ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: "No auth service".to_string(), details: None })))?.lock().await;
 
     match auth_service.get_user_memberships(&user_id, 0, 100).await {
         Ok(memberships) => {
-            info!("Retrieved memberships for user {}", user_id);
+            botlog::safe_info!("Retrieved memberships for user {}", user_id);
             Ok(Json(memberships))
         }
         Err(e) => {
@@ -189,7 +189,7 @@ pub async fn update_user_roles(
     Path((user_id, org_id)): Path<(String, String)>,
     Json(req): Json<UpdateRolesRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<ErrorResponse>)> {
-    info!(
+    botlog::safe_info!(
         "Updating roles for user {} in organization {}: {:?}",
         user_id, org_id, req.roles
     );
@@ -205,7 +205,7 @@ pub async fn update_user_roles(
         .await
     {
         Ok(()) => {
-            info!(
+            botlog::safe_info!(
                 "User {} roles updated in organization {}: {:?}",
                 user_id, org_id, req.roles
             );

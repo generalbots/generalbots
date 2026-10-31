@@ -47,7 +47,7 @@ pub async fn admin_bots(State(state): State<Arc<AppState>>, headers: HeaderMap) 
     {
         Ok(rows) => rows,
         Err(e) => {
-            log::error!("admin_bots: failed to load bots for branch {branch_id}: {e}");
+            botlog::safe_error!("admin_bots: failed to load bots for branch {branch_id}: {e}");
             return Html(String::new());
         }
     };

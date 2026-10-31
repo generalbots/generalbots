@@ -89,7 +89,7 @@ impl TrainingTracker {
 
         self.assignments.insert(assignment.id, assignment.clone());
 
-        log::info!("Assigned training '{}' to user {}", course.title, user_id);
+        botlog::safe_info!("Assigned training '{}' to user {}", course.title, user_id);
 
         Ok(assignment)
     }
@@ -193,7 +193,7 @@ impl TrainingTracker {
 
             self.certificates.insert(certificate.id, certificate);
 
-            log::info!(
+            botlog::safe_info!(
                 "User {} completed training '{}' with score {}",
                 user_id,
                 course_title,

@@ -8,6 +8,7 @@ license = "MIT"
 default = []
 
 [dependencies]
+botlog = { workspace = true }
 botcore = { workspace = true }
 botsecurity = { workspace = true }
 botlib = { workspace = true, features = ["database"] }

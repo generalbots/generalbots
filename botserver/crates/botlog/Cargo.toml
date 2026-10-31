@@ -1,0 +1,10 @@
+[package]
+name = "botlog"
+version.workspace = true
+edition = "2021"
+license = "MIT"
+description = "Redacting log facade for sensitive identifiers"
+
+[dependencies]
+log = { workspace = true }
+regex = { workspace = true }

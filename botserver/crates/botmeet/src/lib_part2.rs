@@ -13,7 +13,7 @@ pub async fn voice_start(
         .and_then(|u| u.as_str())
         .unwrap_or("user");
 
-    info!("Voice session start request - session: {session_id}, user: {user_id}");
+    botlog::safe_info!("Voice session start request - session: {session_id}, user: {user_id}");
 
     match data
         .voice_adapter
@@ -21,14 +21,14 @@ pub async fn voice_start(
         .await
     {
         Ok(token) => {
-            info!("Voice session started successfully for session {session_id}");
+            botlog::safe_info!("Voice session started successfully for session {session_id}");
             (
                 StatusCode::OK,
                 Json(serde_json::json!({"token": token, "status": "started"})),
             )
         }
         Err(e) => {
-            error!("Failed to start voice session for session {session_id}: {e}");
+            botlog::safe_error!("Failed to start voice session for session {session_id}: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({"error": botsecurity::error_sanitizer::log_and_sanitize_json(&e, "botmeet::lib_part2", None)})),
@@ -47,14 +47,14 @@ pub async fn voice_stop(
 
     match data.voice_adapter.stop_voice_session(session_id).await {
         Ok(()) => {
-            info!("Voice session stopped successfully for session {session_id}");
+            botlog::safe_info!("Voice session stopped successfully for session {session_id}");
             (
                 StatusCode::OK,
                 Json(serde_json::json!({"status": "stopped"})),
             )
         }
         Err(e) => {
-            error!("Failed to stop voice session for session {session_id}: {e}");
+            botlog::safe_error!("Failed to stop voice session for session {session_id}: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({"error": botsecurity::error_sanitizer::log_and_sanitize_json(&e, "botmeet::lib_part2", None)})),

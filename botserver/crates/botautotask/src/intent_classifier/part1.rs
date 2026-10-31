@@ -36,7 +36,7 @@ impl IntentClassifier {
     pub async fn classify_api(
         &self, intent: &str, bot_id: Uuid,
     ) -> Result<ClassifiedIntent, Box<dyn std::error::Error + Send + Sync>> {
-        info!("API classify intent for bot {bot_id}: {}", botlib::text::truncate_at_char_boundary(intent, 100));
+        botlog::safe_info!("API classify intent for bot {bot_id}: {}", botlib::text::truncate_at_char_boundary(intent, 100));
         let heuristic = Self::classify_heuristic(intent)?;
         if !heuristic.requires_clarification {
             Ok(heuristic)

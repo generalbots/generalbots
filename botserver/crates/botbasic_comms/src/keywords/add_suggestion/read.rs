@@ -48,7 +48,7 @@ pub fn get_suggestions(
                     suggestions.push(suggestion);
                 }
             }
-                info!(
+                botlog::safe_info!(
                     "Retrieved {} suggestions for session {}",
                     suggestions.len(),
                     session_id

@@ -13,6 +13,7 @@ research = []
 llm = []
 
 [dependencies]
+botlog = { workspace = true }
 botcore = { workspace = true }
 botlib = { workspace = true }
 botbasic_core = { workspace = true }

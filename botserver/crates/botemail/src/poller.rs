@@ -95,7 +95,7 @@ async fn sync_all_accounts(pool: &DbPool) -> Result<(), String> {
         match sync_account(pool.clone(), account).await {
             Ok(()) => record_sync_outcome(pool, account.id, None).await,
             Err(e) => {
-                warn!("IMAP sync for account {} failed: {e}", account.id);
+                botlog::safe_warn!("IMAP sync for account {} failed: {e}", account.id);
                 record_sync_outcome(pool, account.id, Some(&e)).await;
             }
         }
@@ -136,8 +136,8 @@ async fn record_sync_outcome(pool: &DbPool, account_id: Uuid, error: Option<&str
 
     match handle {
         Ok(Ok(())) => {}
-        Ok(Err(e)) => warn!("Sync outcome for account {account_id} was not recorded: {e}"),
-        Err(e) => warn!("Sync outcome task for account {account_id} failed: {e}"),
+        Ok(Err(e)) => botlog::safe_warn!("Sync outcome for account {account_id} was not recorded: {e}"),
+        Err(e) => botlog::safe_warn!("Sync outcome task for account {account_id} failed: {e}"),
     }
 }
 

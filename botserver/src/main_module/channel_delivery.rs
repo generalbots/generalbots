@@ -37,7 +37,7 @@ pub fn deliver_via_channel(state: &Arc<AppState>, response: &BotResponse) -> boo
 fn deliver_telegram(state: &Arc<AppState>, response: &BotResponse) -> bool {
     let chat_id = response.user_id.trim().to_string();
     if chat_id.is_empty() {
-        log::warn!(
+        botlog::safe_warn!(
             "channel delivery: telegram reply for session {} has no chat id",
             response.session_id
         );
@@ -79,10 +79,10 @@ fn deliver_telegram(state: &Arc<AppState>, response: &BotResponse) -> bool {
             .block_on(bottelegram::ChannelAdapter::send_bot_response(&adapter, message));
 
         match sent {
-            Ok(()) => log::info!(
+            Ok(()) => botlog::safe_info!(
                 "channel delivery: telegram reply sent to chat {chat_id} for session {session_id}"
             ),
-            Err(e) => log::warn!(
+            Err(e) => botlog::safe_warn!(
                 "channel delivery: telegram reply to chat {chat_id} failed for session {session_id}: {e}"
             ),
         }

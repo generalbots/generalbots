@@ -67,7 +67,7 @@ pub(super) async fn create_or_get_oauth_user(
             .execute(&mut db_conn)
             .map_err(|e| anyhow!("Failed to create user: {}", e))?;
 
-        debug!("Created OAuth user: {} ({}) for provider {}", oauth_username, user_email_value, provider);
+        botlog::safe_debug!("Created OAuth user: {} ({}) for provider {}", oauth_username, user_email_value, provider);
 
         Ok(new_user_id)
     })

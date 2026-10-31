@@ -98,7 +98,7 @@ pub(crate) fn mark_for_compile(pool: &DbPool, branch_id: Uuid, paths: &[String],
         }
     }
     if queued > 0 {
-        log::info!("[git_monitor] queued {queued} script(s) for compile (commit {etag})");
+        botlog::safe_info!("[git_monitor] queued {queued} script(s) for compile (commit {etag})");
     }
 }
 

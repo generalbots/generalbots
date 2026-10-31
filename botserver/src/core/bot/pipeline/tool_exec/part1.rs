@@ -97,7 +97,7 @@ pub(super) fn bot_llm_credentials(
         }
     }
     if model.is_empty() {
-        log::warn!("bot {bot_id} has no llm-model; composed answers are unavailable");
+        botlog::safe_warn!("bot {bot_id} has no llm-model; composed answers are unavailable");
     }
     (model, key)
 }

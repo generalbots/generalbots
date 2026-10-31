@@ -130,7 +130,7 @@ pub async fn oauth_connect(
     let state_encoded = oauth_state.encode();
     let auth_url = provider.build_auth_url(&config, &state_encoded, oauth_state.pkce_verifier.as_deref());
 
-    log::info!("Starting OAuth account link for user {user_id} via {provider}");
+    botlog::safe_info!("Starting OAuth account link for user {user_id} via {provider}");
     // JSON response: the frontend performs the top-level navigation so the
     // browser lands on the provider's authorization page with the token in
     // hand (HTMX cannot carry the bearer header on a plain redirect).
@@ -216,7 +216,7 @@ pub async fn oauth_callback(
 
     // Persist tokens in Vault (per user), never in the DB.
     if let Err(e) = store_tokens_in_vault(&user_id, provider, &token) {
-        log::error!("Failed to store OAuth tokens in Vault for user {user_id}: {e}");
+        botlog::safe_error!("Failed to store OAuth tokens in Vault for user {user_id}: {e}");
         return redirect_to_settings("error=token_storage_failed");
     }
 
@@ -238,14 +238,14 @@ pub async fn oauth_callback(
                 success: true,
                 details: Some(&format!("Linked {} account ({})", provider, user_info.provider_id)),
             });
-            log::info!(
+            botlog::safe_info!(
                 "Linked {provider} account {} to user {user_id}",
                 user_info.provider_id
             );
             redirect_to_settings("linked=1")
         }
         Err(e) => {
-            log::error!("Failed to persist OAuth link for user {user_id}: {e}");
+            botlog::safe_error!("Failed to persist OAuth link for user {user_id}: {e}");
             redirect_to_settings("error=persist_failed")
         }
     }

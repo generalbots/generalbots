@@ -68,7 +68,7 @@ pub async fn login(
                 Ok(resp) => {
                     let status = resp.status();
                     let err = resp.text().await.unwrap_or_default();
-                    log::warn!(
+                    botlog::safe_warn!(
                         "Zitadel sessions API returned {} for loginName '{}': {}",
                         status,
                         login_name,
@@ -77,7 +77,7 @@ pub async fn login(
                     session_error = Some(format!("{status} {err}"));
                 }
                 Err(e) => {
-                    log::warn!(
+                    botlog::safe_warn!(
                         "Zitadel sessions API request failed for loginName '{}': {}",
                         login_name,
                         e
@@ -243,7 +243,7 @@ pub async fn login(
                 persist_session(&api_token, &session_user);
             }
 
-            info!("Login successful for: {} (user_id: {})", req.email, user_id_str);
+            botlog::safe_info!("Login successful for: {} (user_id: {})", req.email, user_id_str);
 
             return Ok(Json(LoginResponse {
                 success: true,

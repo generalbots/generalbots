@@ -42,7 +42,7 @@ pub fn execute_add_member(
 
     log_group_activity(state, group_id, "member_added", user_email)?;
 
-    trace!(
+    botlog::safe_trace!(
         "Added {} to group {} as {} with permissions {:?}",
         user_email,
         group_id,

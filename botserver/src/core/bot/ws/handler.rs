@@ -161,12 +161,12 @@ pub async fn websocket_handler(
                         bot_name
                     );
                 } else {
-                    warn!("WS: no bot named '{}' (session {})", bot_name, session_id);
+                    botlog::safe_warn!("WS: no bot named '{}' (session {})", bot_name, session_id);
                 }
                 return bot_not_found_response(&bot_name);
             }
             Err(BotAccessDenial::AuthRequired) => {
-                warn!(
+                botlog::safe_warn!(
                     "WS: bot '{}' is private and the caller is not a member — sign-in required (session {})",
                     bot_name, session_id
                 );
@@ -233,7 +233,7 @@ pub async fn websocket_handler_with_bot(
                         bot_name
                     );
                 } else {
-                    warn!(
+                    botlog::safe_warn!(
                         "WS: no bot named '{}' (session {})",
                         bot_name,
                         params.session_id.as_deref().unwrap_or("-")
@@ -242,7 +242,7 @@ pub async fn websocket_handler_with_bot(
                 return bot_not_found_response(&bot_name);
             }
             Err(BotAccessDenial::AuthRequired) => {
-                warn!(
+                botlog::safe_warn!(
                     "WS: bot '{}' is private and the caller is not a member — sign-in required (session {})",
                     bot_name,
                     params.session_id.as_deref().unwrap_or("-")

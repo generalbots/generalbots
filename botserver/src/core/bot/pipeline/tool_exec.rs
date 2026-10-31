@@ -41,7 +41,7 @@ pub async fn run_tool_exec(identity: &SessionIdentity<'_>, tool_name: &str) {
         if !crate::core::bot::tool_context::is_tool_associated_with_session(
             &state.conn, &session_id, tool_name,
         ) {
-            log::info!(
+            botlog::safe_info!(
                 "TOOL_EXEC: tool '{tool_name}' not associated with session {session_id}, skipping"
             );
             // The user pressed a button; silence would look like a broken bot.

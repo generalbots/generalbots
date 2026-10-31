@@ -220,7 +220,7 @@ pub(super) fn add_bot_to_session(
     .execute(&mut *conn)
     .map_err(|e| format!("Failed to add bot to session: {e}"))?;
 
-    info!(
+    botlog::safe_info!(
         "Bot '{bot_name}' added to session {session_id} with trigger type: {:?}",
         trigger.trigger_type
     );
@@ -243,7 +243,7 @@ pub(super) fn remove_bot_from_session(
     .map_err(|e| format!("Failed to remove bot: {e}"))?;
 
     if affected > 0 {
-        info!("Bot '{bot_name}' removed from session {session_id}");
+        botlog::safe_info!("Bot '{bot_name}' removed from session {session_id}");
         Ok(format!("Bot '{bot_name}' removed from conversation"))
     } else {
         Ok(format!("Bot '{bot_name}' was not in the conversation"))

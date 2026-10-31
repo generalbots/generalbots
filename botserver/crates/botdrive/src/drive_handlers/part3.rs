@@ -32,7 +32,7 @@ pub async fn move_file(
             warn!("Move: failed to delete source {from_key}: {e}");
         });
 
-    info!("Moved {from_key} -> {to_key}");
+    botlog::safe_info!("Moved {from_key} -> {to_key}");
     Ok(Json(SuccessResponse { success: true }))
 }
 pub async fn search_files(
