@@ -331,7 +331,7 @@ botcorepkg = { workspace = true }
 botautotask = { workspace = true, features = ["llm"] }
 botvibe = { workspace = true, optional = true }
 botbasic_types = { workspace = true }
-botcore = { workspace = true, default-features = false }
+botcore = { path = "crates/botcore", default-features = false }
 botsecurity-core = { workspace = true }
 botbasic_core = { workspace = true }
 botbasic_data = { workspace = true }
