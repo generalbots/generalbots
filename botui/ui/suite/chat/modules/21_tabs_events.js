@@ -252,18 +252,30 @@
       closeMenus();
       var menu = document.createElement("div");
       menu.className = "gb-context-menu";
-      menu.innerHTML = '<button type="button" data-act="open">Open in new tab</button>';
+      menu.innerHTML = '<button type="button" data-act="open">Open in new tab</button>' +
+        '<button type="button" data-act="delete" class="gb-menu-danger">Delete conversation</button>';
       document.body.appendChild(menu);
       positionMenu(menu, e.clientX, e.clientY);
       menu.addEventListener("click", function (ev) {
-        if (ev.target.getAttribute("data-act") !== "open") return;
+        var act = ev.target.getAttribute("data-act");
+        if (!act) return;
         closeMenus();
-        window.dispatchEvent(new CustomEvent("gb-open-history-tab", {
-          detail: {
-            sessionId: item.getAttribute("data-session-id"),
-            title: (item.querySelector(".chat-sidebar-conv-name") || {}).textContent || "Conversation",
-          },
-        }));
+        if (act === "open") {
+          window.dispatchEvent(new CustomEvent("gb-open-history-tab", {
+            detail: {
+              sessionId: item.getAttribute("data-session-id"),
+              title: (item.querySelector(".chat-sidebar-conv-name") || {}).textContent || "Conversation",
+            },
+          }));
+          return;
+        }
+        if (act === "delete") {
+          var sid = item.getAttribute("data-session-id");
+          if (!sid) return;
+          if (window.GBSidebarConvos && window.GBSidebarConvos.deleteConversation) {
+            window.GBSidebarConvos.deleteConversation(sid, item);
+          }
+        }
       });
     });
 
@@ -283,6 +295,18 @@
   // ── Boot ──
 
   function init() {
+    // BBSIA: deleting a conversation from the rail closes any tab bound to
+    // that session so the UI cannot keep talking to a deleted history row.
+    window.addEventListener("gb-conversation-deleted", function (e) {
+      var sid = e.detail && e.detail.sessionId;
+      if (!sid || !window.GBTabs || !GBTabs.state || !Array.isArray(GBTabs.state.tabs)) return;
+      GBTabs.state.tabs.slice().forEach(function (t) {
+        if (String(t.sessionId || "") === String(sid)) {
+          try { GBTabs.closeTab(t.id); } catch (err) { /* already gone */ }
+        }
+      });
+    });
+
     // Event DELEGATION on document: the strip is created dynamically by
     // GBTabs.renderStrip(), and this module's init can run before that (or
     // before every WM re-injection). Binding to a strip element that does

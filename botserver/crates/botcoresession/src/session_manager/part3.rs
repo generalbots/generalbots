@@ -57,8 +57,7 @@ impl SessionManager {
     pub fn get_first_user_message(
         &mut self,
         sess_id: Uuid,
-    ) -> Result<Option<String>, Box<dyn Error + Send + Sync>> {
-        let mut conn = self.pool.get()?;
+    ) -> Result<Option<String>, Box<dyn Error + Send + Sync>> {        let mut conn = self.pool.get()?;
         let first: Option<String> = message_history::table
             .filter(message_history::session_id.eq(sess_id))
             .filter(message_history::role.eq(1))
@@ -169,5 +168,36 @@ impl SessionManager {
             "today_sessions": today_count,
             "waiting_for_input": self.waiting_for_input.len()
         }))
+    }
+
+    /// Deletes one conversation (messages first, then the session row) when it
+    /// belongs to `owner_id`. Returns `false` when the session does not exist
+    /// or belongs to another user, so callers can answer 404 without leaking
+    /// ownership information. The caller is responsible for removing the
+    /// conversation folder inside the agent container.
+    pub fn delete_session(
+        &mut self,
+        sess_id: Uuid,
+        owner_id: Uuid,
+    ) -> Result<bool, Box<dyn Error + Send + Sync>> {
+        let mut conn = self.pool.get()?;
+        let owner: Option<String> = user_sessions::table
+            .filter(user_sessions::id.eq(sess_id))
+            .select(user_sessions::user_id)
+            .first(&mut conn)
+            .optional()?;
+        let Some(owner_uuid) = owner else {
+            return Ok(false);
+        };
+        if owner_uuid != owner_id.to_string() {
+            return Ok(false);
+        }
+        diesel::delete(message_history::table.filter(message_history::session_id.eq(sess_id)))
+            .execute(&mut conn)?;
+        diesel::delete(user_sessions::table.filter(user_sessions::id.eq(sess_id)))
+            .execute(&mut conn)?;
+        self.sessions.remove(&sess_id);
+        self.waiting_for_input.remove(&sess_id);
+        Ok(true)
     }
 }

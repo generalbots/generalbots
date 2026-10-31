@@ -1087,3 +1087,29 @@ body.sidebar-hidden .chat-sidebar {
   flex-shrink: 0;
   color: var(--text-secondary, #94a3b8);
 }
+
+/* BBSIA: per-conversation delete affordance (hover/focus only). */
+.chat-sidebar-conv-delete {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary, #999);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s, color 0.15s;
+}
+.chat-sidebar-conv-item:hover .chat-sidebar-conv-delete,
+.chat-sidebar-conv-delete:focus-visible {
+    opacity: 1;
+}
+.chat-sidebar-conv-delete:hover,
+.chat-sidebar-conv-delete:focus-visible {
+    background: rgba(229, 72, 77, 0.16);
+    color: #e5484d;
+    outline: none;
+}

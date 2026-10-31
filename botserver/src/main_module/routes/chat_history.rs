@@ -2,10 +2,9 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::Json,
-    routing::get,
+    routing::{delete, get},
     Router,
-};
-use diesel::prelude::*;
+};use diesel::prelude::*;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -179,11 +178,40 @@ pub async fn handle_chat_history_messages(
     })))
 }
 
+/// Deletes one conversation from history and removes its agent workspace
+/// folder. Ownership is checked against the authenticated caller; a session
+/// owned by another user is reported as 404 (no existence leak).
+pub async fn handle_delete_chat_history_session(
+    State(state): State<Arc<AppState>>,
+    Path(session_id): Path<Uuid>,
+    request: axum::extract::Request,
+) -> Result<Json<serde_json::Value>, HandlerError> {
+    let user_uuid = bearer_user(&request)?;
+    let deleted = {
+        let mut sm = state.session_manager.lock().await;
+        sm.delete_session(session_id, user_uuid)
+            .map_err(|e| db_error("delete session", e.to_string()))?
+    };
+    if !deleted {
+        return Err((StatusCode::NOT_FOUND, "Conversation not found".to_string()));
+    }
+    #[cfg(feature = "agent-vm")]
+    crate::core::bot::agent_vm_hook::delete_conversation_folder(user_uuid, session_id).await;
+    Ok(Json(serde_json::json!({
+        "deleted": true,
+        "session_id": session_id,
+    })))
+}
+
 pub fn configure_chat_history_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/chat/history/sessions", get(handle_chat_history_sessions))
         .route(
             "/api/chat/history/sessions/:session_id/messages",
             get(handle_chat_history_messages),
+        )
+        .route(
+            "/api/chat/history/sessions/:session_id",
+            delete(handle_delete_chat_history_session),
         )
 }

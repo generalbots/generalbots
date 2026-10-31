@@ -84,7 +84,9 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
       '<div class="chat-sidebar-conv-info">' +
       '<div class="chat-sidebar-conv-name"></div>' +
       "</div>" +
-      '<div class="chat-sidebar-conv-time"></div>';
+      '<div class="chat-sidebar-conv-time"></div>' +
+      '<button type="button" class="chat-sidebar-conv-delete" ' +
+      'aria-label="Delete conversation" title="Delete conversation">&times;</button>';
     item.querySelector(".chat-sidebar-conv-name").textContent =
       session.title || "Conversation";
     item.querySelector(".chat-sidebar-conv-time").textContent = mod.timeAgo(
@@ -93,8 +95,42 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
     item.addEventListener("click", function () {
       mod.openConversation(session.session_id);
     });
+    var remove = item.querySelector(".chat-sidebar-conv-delete");
+    if (remove) {
+      remove.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        mod.deleteConversation(session.session_id, item);
+      });
+    }
     return item;
   }
+
+  /// Deletes the conversation, its messages and its container folder, then
+  /// refreshes the rail. Used by the hover button and the context menu.
+  mod.deleteConversation = function (sessionId, item) {
+    if (!sessionId) return;
+    if (!window.confirm("Delete this conversation and its workspace files?")) {
+      return;
+    }
+    fetch("/api/chat/history/sessions/" + encodeURIComponent(sessionId), {
+      method: "DELETE",
+      headers: authHeaders(),
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        if (item && item.parentNode) item.parentNode.removeChild(item);
+        mod.loadHistory();
+        window.dispatchEvent(
+          new CustomEvent("gb-conversation-deleted", {
+            detail: { sessionId: sessionId },
+          })
+        );
+      })
+      .catch(function (err) {
+        window.alert("Could not delete conversation: " + err.message);
+      });
+  };
 
   mod.renderHistory = function (sessions) {
     var list = document.getElementById("chatConversations");

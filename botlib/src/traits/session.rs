@@ -97,6 +97,16 @@ pub trait SessionManagerService: Send + Debug {
     /// session has no user messages yet.
     fn get_first_user_message(&mut self, session_id: uuid::Uuid) -> Result<Option<String>, String>;
 
+    /// Deletes a conversation and its messages when it belongs to `owner_id`.
+    /// Returns `false` when the session is missing or owned by someone else.
+    fn delete_session(
+        &mut self,
+        _session_id: uuid::Uuid,
+        _owner_id: uuid::Uuid,
+    ) -> Result<bool, String> {
+        Err("delete_session is not supported by this session manager".to_string())
+    }
+
     fn get_session_context_data(
         &self,
         session_id: &uuid::Uuid,
