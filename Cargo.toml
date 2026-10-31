@@ -367,7 +367,7 @@ docx-rs = "0.4"
 ooxmlsdk = { version = "0.3", default-features = false }
 calamine = "0.26"
 spreadsheet-ods = "1.0"
-pdf-extract = "0.10.0"
+pdf-extract = "0.12.1"
 quick-xml = { version = "0.37", features = ["serialize"] }
 rust_xlsxwriter = "0.77"
 umya-spreadsheet = "2.1"
