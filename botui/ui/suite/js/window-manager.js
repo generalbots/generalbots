@@ -183,7 +183,7 @@ if (typeof window.WindowManager === "undefined") {
   // Every other app keeps the preview behaviour (hidden until Preview mode is
   // on). Mirrors `ALWAYS_APPS` in botserver/src/apps/mod.rs.
   var ALWAYS_APP_IDS = [
-    "chat", "mail", "calendar", "meet", "sheet", "people", "crm", "canvas",
+    "chat", "calendar", "meet", "sheet", "people", "canvas",
     "player", "goals", "vibe", "integrations", "settings", "about", "browser",
     "database", "desktop", "plugins", "terminal", "editor",
     // Product core surfaces stay reachable too (mirrors backend CORE_APPS).
@@ -261,6 +261,22 @@ if (typeof window.WindowManager === "undefined") {
       merged.push(a);
       known[a.id] = true;
     });
+
+    // #1544: Drive belongs to authenticated users. Anonymous visitors keep
+    // chat but must not see the Drive entry point (the API is also guarded
+    // server-side). The no-security desktop build is exempt.
+    var noSecurityBuild = !!(window.productConfig && window.productConfig.no_security === true);
+    var authenticated = false;
+    try {
+      authenticated = !!(
+        (window.GBSecurity && GBSecurity.isAuthenticated && GBSecurity.isAuthenticated()) ||
+        localStorage.getItem("gb-access-token") ||
+        sessionStorage.getItem("gb-access-token")
+      );
+    } catch (e) {}
+    if (!authenticated && !noSecurityBuild) {
+      merged = merged.filter(function (app) { return app.id !== "drive"; });
+    }
 
     window.APPS_REGISTRY = merged;
     if (catalogLoaded) window.__gbAppsCatalogLoaded = true;
@@ -1056,7 +1072,19 @@ if (typeof window.WindowManager === "undefined") {
     // Only available in the desktop shell (web channel).
     openDeepLink(appId, params, opts) {
       opts = opts || {};
-      if (!window.GBPreviewMode.isOn() && isPreviewId(appId)) return;
+      if (!window.GBPreviewMode.isOn() && isPreviewId(appId)) {
+        // #1540: disabled deep links are not silent. Explain the state and
+        // fall back to the always-available chat surface.
+        if (window.GBToasts) {
+          GBToasts.show(
+            "Preview mode",
+            "This app is available in preview mode. Opening chat instead.",
+            "info"
+          );
+        }
+        appId = "chat";
+        params = {};
+      }
       const app = (window.APPS_REGISTRY || APPS_REGISTRY).find((a) => a.id === appId);
       const title = app ? app.title : appId;
       const hxGet = app ? app.hxGet : `/suite/partials/${appId}.html`;

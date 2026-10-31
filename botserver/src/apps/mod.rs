@@ -28,12 +28,10 @@ const CORE_APPS: &[&str] = &["settings", "auth", "admin"];
 /// on). Mirrors `ALWAYS_APP_IDS` in botui/ui/suite/js/window-manager.js.
 const ALWAYS_APPS: &[&str] = &[
     "chat",
-    "mail",
     "calendar",
     "meet",
     "sheet",
     "people",
-    "crm",
     "canvas",
     "player",
     "goals",
