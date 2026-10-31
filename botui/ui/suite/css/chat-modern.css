@@ -1,0 +1,362 @@
+/* Modern chat surface — loaded after the chat partial so these rules win.
+   Deliberately theme-independent: a calm neutral canvas + brand green accent.
+   Scoped to #chat-app (conversation) and the rail/window shell around it. */
+
+#chat-app,
+.chat-sidebar {
+    --gb-bg: #fafafa;
+    --gb-surface: #ffffff;
+    --gb-text: #18181b;
+    --gb-muted: #71717a;
+    --gb-border: rgba(24, 24, 27, 0.08);
+    --gb-accent: #16a34a;
+    --gb-accent-soft: rgba(22, 163, 74, 0.10);
+}
+
+#chat-app {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto,
+        "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    color: var(--gb-text);
+    background: var(--gb-bg);
+}
+
+/* ── Conversation canvas ───────────────────────────────────────────── */
+
+#chat-app #messages {
+    padding: 26px 30px 18px;
+    gap: 14px;
+    background: var(--gb-bg);
+    scrollbar-color: rgba(24, 24, 27, 0.2) transparent;
+}
+
+#chat-app #messages::-webkit-scrollbar-thumb {
+    background: rgba(24, 24, 27, 0.18) !important;
+    border-radius: 3px;
+}
+
+#chat-app .message {
+    max-width: min(760px, 78%);
+    animation: gbMsgIn 180ms ease-out;
+}
+
+@keyframes gbMsgIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+#chat-app .message-content {
+    padding: 13px 17px;
+    border-radius: 16px;
+    font-size: 14.5px;
+    line-height: 1.58;
+    letter-spacing: 0.003em;
+}
+
+#chat-app .user-message {
+    background: var(--gb-accent);
+    color: #fff;
+    border: 0;
+    border-radius: 16px 16px 6px 16px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.10);
+}
+
+#chat-app .bot-message {
+    background: var(--gb-surface);
+    border: 1px solid var(--gb-border);
+    border-radius: 16px 16px 16px 6px;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+#chat-app .bot-message > *:first-child { margin-top: 0; }
+#chat-app .bot-message > *:last-child { margin-bottom: 0; }
+
+#chat-app .bot-message pre {
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 12.5px;
+    background: #f4f4f5;
+    color: #27272a;
+}
+
+#chat-app .bot-message code { font-size: 12.5px; }
+
+/* ── Composer ──────────────────────────────────────────────────────── */
+
+#chat-app footer {
+    padding: 0 22px 16px;
+    background: var(--gb-bg);
+}
+
+#chat-app .chat-footer-content:empty { display: none; }
+
+#chat-app .input-container {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    padding: 7px 8px 7px 6px;
+    background: var(--gb-surface);
+    border: 1px solid var(--gb-border);
+    border-radius: 18px;
+    box-shadow: 0 6px 20px rgba(16, 24, 40, 0.06);
+    transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+#chat-app .input-container:focus-within {
+    border-color: rgba(22, 163, 74, 0.55);
+    box-shadow: 0 8px 26px rgba(16, 24, 40, 0.09);
+}
+
+#chat-app .gb-attachment {
+    background: #f4f4f5 !important;
+    border: 1px solid var(--gb-border);
+    border-radius: 10px;
+    padding: 4px 8px;
+    color: var(--gb-text) !important;
+}
+
+#chat-app .gb-attachment-name {
+    color: var(--gb-text) !important;
+}
+
+#chat-app .gb-attachment-btn {
+    color: #3f3f46 !important;
+}
+
+#chat-app .gb-attachment-btn:hover {
+    color: var(--gb-accent) !important;
+}
+
+#chat-app .gb-model-picker {
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    padding: 8px 6px;
+    margin: 0 0 0 4px;
+    max-width: 76px;
+    font-size: 11.5px;
+    color: var(--gb-muted);
+    cursor: pointer;
+}
+
+#chat-app .gb-model-picker:focus {
+    outline: none;
+    color: var(--gb-text);
+}
+
+#chat-app #messageInput {
+    flex: 1;
+    min-height: 24px;
+    max-height: 180px;
+    padding: 10px 4px;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--gb-text) !important;
+    font-size: 14.5px;
+    line-height: 1.45;
+    resize: none;
+}
+
+#chat-app #messageInput::placeholder { color: #a1a1aa; }
+#chat-app #messageInput:focus { outline: none; }
+
+#chat-app #sendBtn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--gb-accent);
+    color: #fff;
+    font-size: 16px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: transform 120ms ease, filter 120ms ease;
+}
+
+#chat-app #sendBtn:hover { transform: translateY(-1px); filter: brightness(1.06); }
+#chat-app #sendBtn:disabled { opacity: 0.5; cursor: default; transform: none; }
+
+#chat-app .file-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: var(--gb-muted);
+    cursor: pointer;
+}
+
+#chat-app .file-btn:hover { background: rgba(24, 24, 27, 0.05); }
+
+/* ── Suggestions ───────────────────────────────────────────────────── */
+
+#chat-app .suggestions-container {
+    padding: 0 2px 10px;
+    gap: 6px;
+}
+
+#chat-app .suggestion-chip,
+#chat-app .suggestion-button {
+    padding: 6px 13px;
+    border-radius: 999px;
+    border: 1px solid var(--gb-border);
+    background: var(--gb-surface);
+    color: #52525b;
+    font-size: 12.5px;
+    line-height: 1.2;
+    box-shadow: none;
+    transition: border-color 120ms ease, color 120ms ease, transform 120ms ease;
+}
+
+#chat-app .suggestion-chip:hover,
+#chat-app .suggestion-button:hover {
+    border-color: rgba(22, 163, 74, 0.5);
+    color: var(--gb-accent);
+    transform: translateY(-1px);
+    background: var(--gb-surface);
+}
+
+/* ── Tab strip ─────────────────────────────────────────────────────── */
+
+#chat-app .gb-tab-strip {
+    padding: 8px 12px 6px;
+    gap: 6px;
+    border-bottom: 1px solid var(--gb-border);
+    background: var(--gb-surface);
+}
+
+#chat-app .gb-tab {
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    color: var(--gb-muted);
+    border: 1px solid transparent;
+}
+
+#chat-app .gb-tab:hover { background: rgba(24, 24, 27, 0.05); }
+
+#chat-app .gb-tab.active {
+    background: var(--gb-accent-soft);
+    border-color: rgba(22, 163, 74, 0.25);
+    color: var(--gb-accent);
+    font-weight: 600;
+}
+
+#chat-app .gb-tab-new {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    color: var(--gb-muted);
+    border: 1px dashed rgba(24, 24, 27, 0.18);
+}
+
+#chat-app .gb-tab-new:hover {
+    border-color: var(--gb-accent);
+    color: var(--gb-accent);
+}
+
+/* ── States ────────────────────────────────────────────────────────── */
+
+#chat-app .gb-state {
+    margin: auto;
+    padding: 18px 22px;
+    border-radius: 14px;
+    border: 1px solid var(--gb-border);
+    background: var(--gb-surface);
+    color: var(--gb-muted);
+    font-size: 13px;
+}
+
+/* ── Rail ──────────────────────────────────────────────────────────── */
+
+.chat-sidebar {
+    background: #fafafa !important;
+    border-right: 1px solid var(--gb-border);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto,
+        "Helvetica Neue", Arial, sans-serif;
+}
+
+.chat-sidebar-section-label {
+    font-size: 10.5px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #a1a1aa;
+    padding: 16px 14px 6px;
+}
+
+.chat-sidebar-conv-item {
+    border-radius: 10px;
+    padding: 7px 10px;
+    margin: 1px 8px;
+    transition: background 120ms ease;
+}
+
+.chat-sidebar-conv-item:hover,
+.chat-sidebar-conv-item.active {
+    background: rgba(24, 24, 27, 0.05);
+}
+
+.chat-sidebar-conv-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gb-text);
+}
+
+.chat-sidebar-conv-time {
+    font-size: 10.5px;
+    color: #a1a1aa;
+}
+
+.chat-sidebar-new-chat {
+    margin: 10px 12px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--gb-border);
+    background: var(--gb-surface);
+    color: var(--gb-text);
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.chat-sidebar-new-chat:hover {
+    border-color: rgba(22, 163, 74, 0.5);
+    color: var(--gb-accent);
+    background: var(--gb-surface);
+}
+
+/* The window body behind the chat layout must share the canvas colour,
+   otherwise a stripe of the desktop theme shows at the right edge. */
+.window-element-glass .window-body,
+.window-element .window-body {
+    background: #fafafa;
+}
+
+/* ── Window chrome ─────────────────────────────────────────────────── */
+
+.window-element-glass .window-header-glass,
+.window-element .window-header {
+    height: 42px;
+    padding: 0 14px;
+    border-bottom: 1px solid rgba(24, 24, 27, 0.07);
+    background: #fff;
+}
+
+.window-element-glass .window-title,
+.window-element .window-title {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: #3f3f46;
+}
+
+.window-element-glass .window-dot,
+.window-element .window-dot {
+    width: 10px;
+    height: 10px;
+}
