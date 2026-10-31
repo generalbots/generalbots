@@ -95,17 +95,18 @@ pub async fn exec_in_user_vm(
     language: &str,
     code: &str,
 ) -> Option<(bool, String, String)> {
-    exec_in_user_vm_with_timeout(user_id, session_id, language, code, 60_000).await
+    exec_in_user_vm_with_timeout(user_id, session_id, language, code, 60_000, &[]).await
 }
 
 /// Same as [`exec_in_user_vm`] with an explicit timeout (bounded by the
-/// native tool to 120s).
+/// native tool to 120s) and optional third-party packages to install first.
 pub async fn exec_in_user_vm_with_timeout(
     user_id: uuid::Uuid,
     session_id: uuid::Uuid,
     language: &str,
     code: &str,
     timeout_ms: u64,
+    packages: &[String],
 ) -> Option<(bool, String, String)> {
     let service = SERVICE.get()?;
     let row = botagent::vm::get_user_vm(service, &user_id).ok()??;
@@ -115,8 +116,20 @@ pub async fn exec_in_user_vm_with_timeout(
     let conversation_id = session_id.to_string();
     botagent::vm::exec_in_conversation(
         service, &row.vm_name, &conversation_id,
-        language, code, timeout_ms,
+        language, code, timeout_ms, packages,
     ).await.ok()
+}
+
+/// Container name of the caller's running agent VM, if any. Used by the
+/// terminal app to open a shell inside the user's own workspace.
+#[cfg(feature = "agent-vm")]
+pub async fn user_vm_name(user_id: uuid::Uuid) -> Option<String> {
+    let service = SERVICE.get()?;
+    let row = botagent::vm::get_user_vm(service, &user_id).ok()??;
+    if row.status != botagent::vm::STATUS_RUNNING {
+        return None;
+    }
+    Some(row.vm_name)
 }
 
 /// File names currently present in the conversation's `output/` folder.

@@ -30,6 +30,9 @@ if (typeof window.WindowManager === "undefined") {
       icon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
     { id: "terminal", title: "Terminal", category: "dev", color: "#64748b", hxGet: "/suite/terminal/terminal.html",
       icon: '<polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>' },
+    { id: "preview", title: "Preview", category: "tools", color: "#0ea5e9", hxGet: "/suite/partials/preview.html",
+      width: 780, height: 640,
+      icon: '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>' },
     { id: "drive", title: "Explorer", category: "system", color: "#f59e0b", hxGet: "/suite/drive/drive.html",
       icon: '<path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>' },
     { id: "editor", title: "Editor", category: "dev", color: "#3b82f6", hxGet: "/suite/editor.html",
@@ -461,6 +464,8 @@ if (typeof window.WindowManager === "undefined") {
         notepad: { width: 420, height: 320 },
         // #1304 — Settings is a fixed-size dialog, not a resizable workspace.
         settings: { width: 940, height: 680 },
+        // Preview is a reading surface: wide enough for a page, not full screen.
+        preview: { width: 780, height: 640 },
         admin: { width: 940, height: 680 },
       };
       const defSize = APP_DEFAULT_SIZE[id];

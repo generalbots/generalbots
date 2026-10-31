@@ -51,34 +51,48 @@ async fn create_terminal(
     Extension(user): Extension<AuthenticatedUser>,
     Json(req): Json<CreateTerminalRequest>,
 ) -> impl IntoResponse {
-    let container = req.container.clone().filter(|c| !c.trim().is_empty());
+    // The chat workspace IS the user's VM: when the caller does not name a
+    // Vibe project VM, attach to their agent container so the terminal opens
+    // where the conversation files live.
+    #[cfg(feature = "agent-vm")]
+    let agent_vm = crate::core::bot::agent_vm_hook::user_vm_name(user.user_id).await;
+    #[cfg(not(feature = "agent-vm"))]
+    let agent_vm: Option<String> = None;
+
+    let container = req
+        .container
+        .clone()
+        .filter(|c| !c.trim().is_empty())
+        .or_else(|| agent_vm.clone());
     // SECURITY: a container-less session spawns a PTY on the botserver host
     // itself — any caller could read the whole server filesystem ("terminal
-    // exposes server contents" report). Web terminals must run inside a
-    // project VM container; refuse anything else outright.
+    // exposes server contents" report). Web terminals must run inside a VM
+    // container; refuse anything else outright.
     let container = match container {
         Some(c) => c,
         None => {
             return (
                 axum::http::StatusCode::FORBIDDEN,
                 Json(serde_json::json!({
-                    "error": "Host shell denied: the terminal must run inside the project VM. Start the VM (Play) and retry."
+                    "error": "Host shell denied: send a message in chat to start your workspace VM, then reopen the terminal."
                 })),
             );
         }
     };
-    // SECURITY: even with a container, only `vm_instances` containers of
-    // projects the caller can access (viewer+) may be attached. Arbitrary
-    // names (e.g. the server's own `tables`, `vault`, `drive`, `system`
-    // containers) would otherwise grant an `incus exec` shell on production
-    // infrastructure — the same "terminal exposes server contents" flaw in
-    // another form.
-    if let Err(e) = authorize_project_container(&state.pool, user.user_id, &container) {
-        log::warn!("terminal create forbidden (user {}): {e}", user.user_id);
-        return (
-            axum::http::StatusCode::FORBIDDEN,
-            Json(serde_json::json!({ "error": e })),
-        );
+    // SECURITY: the caller may attach only to their OWN agent VM or to a
+    // `vm_instances` container of a project they can access (viewer+).
+    // Arbitrary names (e.g. the server's own `tables`, `vault`, `drive`,
+    // `system` containers) would otherwise grant an `incus exec` shell on
+    // production infrastructure.
+    let is_own_agent_vm = agent_vm.as_deref() == Some(container.as_str());
+    if !is_own_agent_vm {
+        if let Err(e) = authorize_project_container(&state.pool, user.user_id, &container) {
+            log::warn!("terminal create forbidden (user {}): {e}", user.user_id);
+            return (
+                axum::http::StatusCode::FORBIDDEN,
+                Json(serde_json::json!({ "error": e })),
+            );
+        }
     }
     let shell = req
         .shell

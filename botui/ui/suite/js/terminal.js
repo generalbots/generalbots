@@ -118,17 +118,34 @@ const botCoderTerminal = {
         }
     },
 
+    // The chat workspace container is the primary target: it holds the
+    // conversation folders the agent just wrote to. Only fall back to a Vibe
+    // project VM when the user has no agent workspace yet.
+    async resolveAgentVm() {
+        const headers = {};
+        const tok = this.token();
+        if (tok) headers['Authorization'] = 'Bearer ' + tok;
+        try {
+            const r = await fetch('/api/agent/vm/status', { headers });
+            if (!r.ok) return null;
+            const data = await r.json();
+            return data && data.has_vm && data.vm_name ? data.vm_name : null;
+        } catch (e) {
+            return null;
+        }
+    },
+
     // Open a session inside the user's VM. If no VM exists yet the terminal
     // refuses to open a botserver host shell (safety: never expose the
     // server filesystem) and prints instructions instead.
     connect: function() {
         this.sessionId = this.generateSessionId();
-        this.term.write('\x1b[36mResolving your VM…\x1b[0m\r\n');
+        this.term.write('\x1b[36mResolving your workspace VM…\x1b[0m\r\n');
 
-        this.resolveUserVm().then((container) => {
+        this.resolveAgentVm().then((agentVm) => agentVm || this.resolveUserVm()).then((container) => {
             if (!container) {
-                this.term.write('\r\n\x1b[31mNo VM found for your account.\x1b[0m\r\n');
-                this.term.write('\x1b[33mOpen Vibe, create a project and publish it to provision a VM, then reopen this terminal.\x1b[0m\r\n');
+                this.term.write('\r\n\x1b[31mNo workspace VM found for your account.\x1b[0m\r\n');
+                this.term.write('\x1b[33mSend a message in chat to start your workspace, then reopen this terminal.\x1b[0m\r\n');
                 return;
             }
             this.createSession(container);
