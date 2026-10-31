@@ -170,6 +170,13 @@
     applyReducedMotion();
     applyHighContrast();
     observeNewModals();
+    // #1551: the chat fragment mounts after DOMContentLoaded (HTMX). Re-apply
+    // landmarks when it appears so the log and composer always have labels.
+    document.body.addEventListener("htmx:afterSwap", addAriaLandmarks);
+    var chatObserver = new MutationObserver(function () {
+      if (document.getElementById("messages")) addAriaLandmarks();
+    });
+    chatObserver.observe(document.body, { childList: true, subtree: true });
   }
 
   if (document.readyState === "loading") {
