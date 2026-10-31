@@ -140,6 +140,24 @@
   }
 
   function newConversation() {
+    // A second chat WINDOW would share the page-global ChatState, so the two
+    // windows end up writing to one session. If chat is already mounted, add
+    // a tab inside it (own socket, own session) and just raise the window.
+    var chatMounted = !!document.getElementById("messageInput");
+    if (chatMounted && window.GBMultiChat && typeof window.GBMultiChat.newChatTab === "function") {
+      if (window.WindowManager) {
+        var chatWin = window.WindowManager.openWindows
+          ? window.WindowManager.openWindows.find(function (w) {
+              return String(w.id).indexOf("chat") === 0;
+            })
+          : null;
+        if (chatWin) window.WindowManager.focusWindow(chatWin.id);
+      }
+      if (window.GBMultiChat.newChatTab()) {
+        highlightActive("");
+        return;
+      }
+    }
     if (window.openDeepLink) {
       // #1432 — New Conversation always opens a NEW chat window with a
       // fresh session, even when a chat window is already open; the new

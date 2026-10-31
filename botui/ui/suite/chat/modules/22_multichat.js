@@ -588,6 +588,40 @@
 
   /* ── Hook: "+" button creates a PARALLEL conversation tab ── */
 
+  // A bot switch (ChatSwitchBot) re-authenticates and mints a new session in
+  // place. The default tab must adopt it immediately, otherwise the ws.send
+  // hook keeps stamping the previous conversation's id on every frame.
+  window.addEventListener("gb-chat-session-changed", function (e) {
+    var sid = e && e.detail && e.detail.session_id;
+    if (!sid || !window.GBTabs) return;
+    var def = MC.tabs["tab-default"];
+    if (def) def.sessionId = sid;
+    GBTabs.state.tabs.forEach(function (st) {
+      if (st.id === "tab-default") st.sessionId = sid;
+    });
+    if (typeof GBTabs.schedulePersist === "function") GBTabs.schedulePersist();
+  });
+
+  // Shared by the "+" button and the sidebar's New Conversation action: a
+  // fresh tab owns its own socket and session, so the new conversation does
+  // not write into the previous one.
+  MC.newChatTab = function () {
+    if (MC.blocked) return false;
+    if (!window.GBTabs) return false;
+    var tab = GBTabs.createTab({
+      kind: "chat",
+      title: "Chat " + ++MC.seq,
+      faviconGlyph: "\u{1F4AC}",
+    });
+    var t = ensureTab(tab.id, tab.title, null);
+    mountActive(t);
+    connectTab(t);
+    installSendRouter();
+    var input = q("messageInput");
+    if (input) input.focus();
+    return true;
+  };
+
   // ANY click on "+" starts a fresh parallel chat (capture phase, so the
   // stock click handler never sees it). Right-click on "+" still opens the
   // history picker (21_tabs_events contextmenu) — the strip is for
@@ -597,13 +631,7 @@
     if (MC.blocked) return; // boot pending — ignore creates until surfaces are ready
     e.stopPropagation();
     e.preventDefault();
-    var tab = GBTabs.createTab({ kind: "chat", title: "Chat " + ++MC.seq, faviconGlyph: "\u{1F4AC}" });
-    var t = ensureTab(tab.id, tab.title, null);
-    mountActive(t);
-    connectTab(t);
-    installSendRouter();
-    var input = q("messageInput");
-    if (input) input.focus();
+    MC.newChatTab();
   }, true);
 
   /* ── Public: called by 21_tabs_events after its own boot ── */
@@ -655,7 +683,15 @@
     var orig = GBTabs.defaultTab();
     if (!GBTabs.state.tabs.length) GBTabs.activate();
     var first = GBTabs.state.tabs[0] || GBTabs.createTab({ kind: "chat", title: orig.title, pinned: true });
-    var t = ensureTab(first.id, first.title, window.ChatState ? ChatState.currentSessionId : null);
+    // The default tab represents the session the server minted for THIS page
+    // load. A persisted tab kept the previous conversation's id, and the
+    // ws.send hook stamps that id on every frame — so new messages were
+    // written into the OLD conversation. The requested session (history
+    // click) is already in ChatState because /api/auth was called with it.
+    if (window.ChatState && ChatState.currentSessionId) {
+      first.sessionId = ChatState.currentSessionId;
+    }
+    var t = ensureTab(first.id, first.title, first.sessionId || null);
     // The canonical default tab always represents the STOCK surface, even if
     // it came back from a persisted store without a multichat record.
     t.usesStockDom = true;
@@ -666,6 +702,15 @@
     t.pane = null;
     MC.activeId = first.id;
     var restored = restore();
+    // Boot always lands on the default tab. A restored parallel tab used to
+    // come back as the active tab while ChatState carried the freshly minted
+    // session; frames were then stamped with the OLD conversation id and new
+    // messages were written into old history.
+    if (GBTabs.state.activeTabId !== first.id) {
+      GBTabs.state.activeTabId = first.id;
+      MC.activeId = first.id;
+      GBTabs.renderStrip();
+    }
     // Self-heal: restore()/server merge can add tabs to GBTabs.state.tabs
     // AFTER our boot snapshot — any state tab without an MC record here is a
     // zombie (its pane/session died with the previous injection). Register a
