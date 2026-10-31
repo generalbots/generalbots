@@ -236,7 +236,30 @@
         </style>
 
     <script>window.__BOT_IS_PUBLIC__ = false;</script>
-    </head>
+        <style>
+    /* BBSIA mobile: the chat is the product. Hide the rail and give the
+       conversation the full viewport instead of a 90px sliver. */
+    @media (max-width: 768px) {
+        .chat-sidebar { display: none !important; }
+        .main-wrapper { width: 100vw !important; }
+        .window-element,
+        .window-element-glass {
+            left: 0 !important;
+            top: 0 !important;
+            width: 100vw !important;
+            max-width: none !important;
+            height: calc(100vh - 52px) !important;
+            border-radius: 0 !important;
+        }
+        .window-element .window-body,
+        .window-element-glass .window-body {
+            height: calc(100% - 34px) !important;
+        }
+        /* The composer needs the width for the message, not a model legend. */
+        #modelPicker { display: none !important; }
+    }
+    </style>
+</head>
 
     <body>
         <!-- Boot splash: covers the shell until CSS is applied so the first
