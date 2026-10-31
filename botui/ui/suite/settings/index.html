@@ -849,6 +849,18 @@
                 <p class="subtitle">Manage your storage and sync settings</p>
             </div>
 
+            <!-- #1545: Drive as knowledge base -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Knowledge</h2>
+                </div>
+                <label style="display:flex;align-items:center;gap:10px;cursor:pointer;">
+                    <input type="checkbox" id="settings-index-all-drive" onchange="toggleIndexAllDrive(this)">
+                    <span>Use all Drive files as knowledge context</span>
+                </label>
+                <p class="subtitle" style="margin-top:8px;">When enabled, recent Drive files are included in chat context by default.</p>
+            </div>
+
             <!-- Storage Usage -->
             <div class="setting-card">
                 <div class="card-header">

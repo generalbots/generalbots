@@ -1012,6 +1012,22 @@
   }
   window.addEventListener("gb-preview-changed", syncPreviewToggle);
 
+  // #1545: Drive-as-KB setting, persisted locally and sent by the chat client.
+  window.toggleIndexAllDrive = function (el) {
+    try {
+      localStorage.setItem("gb-index-all-drive", el.checked ? "true" : "false");
+    } catch (e) {}
+  };
+  function syncIndexAllDrive() {
+    var el = document.getElementById("settings-index-all-drive");
+    if (!el) return;
+    try {
+      el.checked = localStorage.getItem("gb-index-all-drive") !== "false";
+    } catch (e) {
+      el.checked = true;
+    }
+  }
+
   // BBSIA #1541: preview OFF is a minimal settings surface. Only Profile,
   // Appearance, Language, About and Versions stay visible; administrative,
   // billing, Vibe, storage and integrations sections collapse into preview
@@ -1069,11 +1085,13 @@
     (function(){ var __cb = function () {
       init();
       applyPreviewSimplifying();
+      syncIndexAllDrive();
       initFromHash();
     }; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
   } else {
     init();
     applyPreviewSimplifying();
+    syncIndexAllDrive();
     initFromHash();
   }
 })();

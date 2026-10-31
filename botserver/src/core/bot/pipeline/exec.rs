@@ -405,6 +405,38 @@ pub async fn process_message_internal(
         }
     }
 
+    // #1545: Drive as KB by default. The chat client sends the recent Drive
+    // file names it knows about; when index_all_drive is enabled (default),
+    // expose them to the model so answers can reference the user's files.
+    let index_all_drive = parsed
+        .get("index_all_drive")
+        .and_then(|v| v.as_bool())
+        .unwrap_or(true);
+    if index_all_drive {
+        if let Some(files) = parsed
+            .get("drive_context")
+            .and_then(|v| v.get("files"))
+            .and_then(|v| v.as_array())
+        {
+            let names: Vec<String> = files
+                .iter()
+                .filter_map(|v| v.as_str())
+                .take(50)
+                .map(str::to_string)
+                .collect();
+            if !names.is_empty() {
+                messages.push(serde_json::json!({
+                    "role": "system",
+                    "content": format!(
+                        "The user's Drive contains these recent files. Use them as \
+                         context when relevant and cite the file name: {}",
+                        names.join(", ")
+                    )
+                }));
+            }
+        }
+    }
+
     // #1580: Always-on agent VM — auto-provision and inject execution context.
     #[cfg(feature = "agent-vm")]
     {
