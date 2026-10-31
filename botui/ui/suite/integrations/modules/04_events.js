@@ -343,6 +343,28 @@
         root.dataset.integrationsReady = "true";
         var state = namespace.createState(root);
         state.connectedStatus = "idle";
+        // BBSIA #1542: preview OFF exposes only production-ready connectors.
+        state.statusFilter =
+            window.GBPreviewMode && !window.GBPreviewMode.isOn() ? "must" : "all";
+        root.querySelectorAll("[data-status]").forEach(function (button) {
+            button.setAttribute(
+                "aria-pressed",
+                String(button.dataset.status === state.statusFilter)
+            );
+        });
+        window.addEventListener("gb-preview-changed", function () {
+            var next =
+                window.GBPreviewMode && !window.GBPreviewMode.isOn() ? "must" : "all";
+            if (state.statusFilter === next) return;
+            state.statusFilter = next;
+            root.querySelectorAll("[data-status]").forEach(function (button) {
+                button.setAttribute(
+                    "aria-pressed",
+                    String(button.dataset.status === next)
+                );
+            });
+            namespace.renderExplore(root);
+        });
         configureAria(root, state);
         root.addEventListener("click", function (event) { handleClick(root, event); });
         root.addEventListener("input", function (event) { handleInput(root, event); });

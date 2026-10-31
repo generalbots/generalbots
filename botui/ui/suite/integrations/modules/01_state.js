@@ -253,7 +253,7 @@
             contextStatus: "idle",
             search: "",
             category: "all",
-            statusFilter: "all",
+            statusFilter: (window.GBPreviewMode && !window.GBPreviewMode.isOn()) ? "must" : "all",
             view: "grid",
             exploreTouched: false,
             selectedProviderId: "",
