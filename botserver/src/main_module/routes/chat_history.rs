@@ -118,9 +118,11 @@ pub async fn handle_chat_history_sessions(
             }
         };
         let trimmed = title.trim().replace('\n', " ");
-        let title = if trimmed.is_empty() {
-            format!("Conversation · {}", sess.created_at.format("%b %d, %H:%M"))
-        } else if trimmed.chars().count() > TITLE_MAX_CHARS {
+        // Empty conversations (opened but never used) are noise in the rail.
+        if trimmed.is_empty() {
+            continue;
+        }
+        let title = if trimmed.chars().count() > TITLE_MAX_CHARS {
             format!("{}…", trimmed.chars().take(TITLE_MAX_CHARS).collect::<String>())
         } else {
             trimmed
