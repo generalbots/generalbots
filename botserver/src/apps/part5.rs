@@ -8,16 +8,10 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
         .map(|s| s.to_string());
     let apps = registry::all_apps();
 
-    let (enabled, preview): (
-        std::collections::HashSet<String>,
-        std::collections::HashSet<String>,
-    ) = botcore::product::PRODUCT_CONFIG
+    let enabled: std::collections::HashSet<String> = botcore::product::PRODUCT_CONFIG
         .read()
         .map(|c| {
-            (
-                normalize_email_app_alias(c.get_enabled_apps().into_iter().collect()),
-                normalize_email_app_alias(c.get_preview_apps().into_iter().collect()),
-            )
+            normalize_email_app_alias(c.get_enabled_apps().into_iter().collect())
         })
         .unwrap_or_default();
 
@@ -42,11 +36,10 @@ pub async fn catalog_handler(headers: axum::http::HeaderMap) -> Json<serde_json:
             let always = ALWAYS_APPS.contains(&id);
             let compiled = always || is_app_compiled(id) || CORE_APPS.contains(&id);
             let is_enabled = always || enabled.contains(id) || CORE_APPS.contains(&id);
-            // A preview application is listed by `.product`'s `preview_apps`
-            // instead of `apps`, so the launcher can withhold it until the user
-            // turns Preview mode on (#1348). Permanently-visible apps are never
-            // preview.
-            let is_preview = !always && preview.contains(id) && !is_enabled;
+            // #1539/#1540 — any app not explicitly enabled by `.product`'s
+            // `apps=` list is preview: hidden until the user turns Preview
+            // mode on. The always-visible core set is exempt.
+            let is_preview = !always && !is_enabled;
             // Merge curated commands with the harvested on-the-fly surface.
             let app_derived: Vec<serde_json::Value> = derived
                 .iter()

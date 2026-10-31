@@ -276,6 +276,12 @@ if (typeof window.WindowManager === "undefined") {
       merged = merged.filter(function (app) { return app.id !== "drive"; });
     }
 
+    // #1539/#1540: enforce the core set even before the server catalog loads
+    // (the embedded fallback otherwise kept every app visible).
+    if (!previewOn) {
+      merged = merged.filter(function (app) { return isAlwaysAppId(app.id); });
+    }
+
     window.APPS_REGISTRY = merged;
     if (catalogLoaded) window.__gbAppsCatalogLoaded = true;
     window.dispatchEvent(
