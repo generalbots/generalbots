@@ -54,6 +54,8 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
             .route("/api/files/recent", axum_get(crate::drive::drive_handlers::recent_files))
             .route("/api/files/search", axum_get(crate::drive::drive_handlers::search_files))
             .route("/api/files/write", axum_post(crate::drive::drive_handlers::upload_file_to_drive))
+            .route("/api/files/versions/list", axum_post(crate::drive::drive_handlers::list_versions))
+            .route("/api/files/versions/restore", axum_post(crate::drive::drive_handlers::restore_version))
             .route("/api/files/read", axum_post(crate::drive::drive_handlers::read_file))
             .route("/api/files/download", axum_post(crate::drive::drive_handlers::download_file))
             .route("/api/files/download-binary", axum_post(crate::drive::drive_handlers::download_file_binary))

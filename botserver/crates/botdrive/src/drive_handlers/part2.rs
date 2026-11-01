@@ -37,7 +37,13 @@ pub async fn list_files(
         }
     };
 
-    let keys: Vec<String> = objects.iter().map(|o| o.key.clone()).collect();
+    // Internal prefixes are not user files: versions and trash would otherwise
+    // appear as folders in the listing.
+    let keys: Vec<String> = objects
+        .iter()
+        .filter(|o| !o.key.starts_with(".versions/") && !o.key.starts_with(".trash/"))
+        .map(|o| o.key.clone())
+        .collect();
     let meta_map: HashMap<String, u64> = objects.into_iter().map(|o| (o.key, o.size)).collect();
 
     let items = build_file_list_items(&full_prefix, &keys, &meta_map);
@@ -74,6 +80,9 @@ pub async fn upload_file_to_drive(
     };
 
     let key = format!("{prefix}{}", normalize_path(&req.path));
+    // GB6-14 — the previous revision becomes restorable history before the
+    // overwrite. The snapshot never blocks the write.
+    snapshot_before_write(drive, &bucket, &key, &scope, &uid).await;
     drive
         .put_object(&bucket, &key, data, None)
         .await

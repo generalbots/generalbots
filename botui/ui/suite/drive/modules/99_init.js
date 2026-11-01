@@ -84,6 +84,7 @@ window.DriveModule = {
     emptyTrash: emptyTrash,
     showVersionHistory: showVersionHistory,
     restoreVersion: restoreVersion,
+    restoreServerVersion: restoreServerVersion,
     saveFileVersion: saveFileVersion,
     openFile: openFile,
     deleteItem: deleteItem,
