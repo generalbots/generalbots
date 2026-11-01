@@ -160,6 +160,12 @@ pub async fn terminal_exec(
     if command.is_empty() {
         return Err(api_error(StatusCode::BAD_REQUEST, "command is required"));
     }
+    if command.len() > 16_000 {
+        return Err(api_error(
+            StatusCode::BAD_REQUEST,
+            "command is limited to 16000 characters",
+        ));
+    }
     let lowered = command.to_ascii_lowercase();
     if DENIED_PATTERNS
         .iter()
