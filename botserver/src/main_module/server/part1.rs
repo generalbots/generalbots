@@ -224,7 +224,7 @@ pub(super) fn build_base_router(
     let base_router = add_video_routes(base_router, &app_state);
     #[cfg(feature = "workspaces")]
     let base_router = add_workspaces_routes(base_router, &app_state);
-    #[cfg(feature = "billing")]
+    #[cfg(feature = "products")]
     let base_router = add_products_routes(base_router, &app_state);
     #[cfg(feature = "tickets")]
     let base_router = add_tickets_routes(base_router, &app_state);

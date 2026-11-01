@@ -55,6 +55,12 @@ pub async fn ensure_agent_vm(
     user_id: uuid::Uuid,
     bot_uuid: uuid::Uuid,
 ) -> Option<botagent::models::AgentSessionRow> {
+    // Unattributed sessions (guest/anonymous web chat) must never provision a
+    // container — `Uuid::nil()` used to create `ag-u00000000-*` VMs on every
+    // anonymous message and filled the production host disk (#1596).
+    if user_id.is_nil() {
+        return None;
+    }
     let service = SERVICE.get()?;
     let conversation_id = session_id.to_string();
 

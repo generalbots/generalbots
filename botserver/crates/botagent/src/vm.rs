@@ -54,12 +54,25 @@ fn is_anonymous_email(email: &str) -> bool {
 /// Anonymous visitors must never provision a container (#1596). The guest row
 /// is minted by `/api/auth` on every anonymous page load, so provisioning one
 /// container per guest leaks disk until the host is full. Only signed-in
-/// accounts (real email rows) may own an agent workspace; a missing row is
-/// allowed because single-user/desktop builds run without accounts.
+/// accounts (real email rows) may own an agent workspace.
+///
+/// A caller whose identity has no `users` row is likewise refused: the websocket
+/// pipeline passes `Uuid::nil()` for sessions it could not attribute, and each
+/// of those used to spin up an `ag-u00000000-*` container (production host disk
+/// exhaustion). Single-user/desktop builds that run without accounts opt out
+/// explicitly with `AGENT_ALLOW_UNREGISTERED_IDENTITIES=1`.
 fn require_authenticated_identity(
     state: &AgentService,
     user_id: &Uuid,
 ) -> Result<(), (StatusCode, String)> {
+    if user_id.is_nil() {
+        tracing::warn!("agent workspace provisioning denied for nil identity");
+        return Err((
+            StatusCode::FORBIDDEN,
+            "Sign in to use the agent workspace".to_string(),
+        ));
+    }
+
     let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
     let email = users::table
         .filter(users::id.eq(*user_id))
@@ -67,6 +80,7 @@ fn require_authenticated_identity(
         .first::<String>(&mut conn)
         .optional()
         .map_err(|e| internal(format!("users lookup: {e}")))?;
+
     match email {
         Some(email) if is_anonymous_email(&email) => {
             tracing::warn!("agent workspace provisioning denied for anonymous identity {user_id}");
@@ -75,8 +89,28 @@ fn require_authenticated_identity(
                 "Sign in to use the agent workspace".to_string(),
             ))
         }
-        _ => Ok(()),
+        Some(_) => Ok(()),
+        None => {
+            if allow_unregistered_identities() {
+                return Ok(());
+            }
+            tracing::warn!(
+                "agent workspace provisioning denied for identity {user_id} without a users row"
+            );
+            Err((
+                StatusCode::FORBIDDEN,
+                "Sign in to use the agent workspace".to_string(),
+            ))
+        }
     }
+}
+
+/// Opt-out for single-user/desktop installs that run without accounts.
+fn allow_unregistered_identities() -> bool {
+    matches!(
+        std::env::var("AGENT_ALLOW_UNREGISTERED_IDENTITIES").as_deref(),
+        Ok("1") | Ok("true") | Ok("TRUE")
+    )
 }
 
 pub fn sanitize_id(raw: &str) -> Result<String, (StatusCode, String)> {
@@ -787,7 +821,7 @@ pub async fn exec_in_conversation(
     tracing::info!("vm exec: program written {script_path}");
 
     let run_cmd = format!("cd {folder} && {interpreter} {script_path}");
-    let (first_ok, mut stdout, mut stderr) =
+    let (first_ok, mut stdout, stderr) =
         run_with_timeout(state, vm_name, run_cmd.clone(), timeout_ms).await?;
     if first_ok {
         stdout = format!("{install_log}{stdout}");

@@ -160,7 +160,7 @@ pub(super) fn add_workspaces_routes(r: Router, s: &Arc<AppState>) -> Router {
     r.merge(crate::workspaces::configure_workspaces_routes().with_state(make_state()))
         .merge(crate::workspaces::configure_workspaces_ui_routes().with_state(make_state()))
 }
-#[cfg(feature = "billing")]
+#[cfg(feature = "products")]
 pub(super) fn add_products_routes(r: Router, s: &Arc<AppState>) -> Router {
     let make_state = || Arc::new(botproducts::ProductsState {
         pool: Arc::new(s.conn.clone()),
