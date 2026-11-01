@@ -30,11 +30,11 @@ pub async fn handle_web_search<S: ResearchState>(
     let max_results = payload.max_results.unwrap_or(10).min(25);
     let region = payload.region.as_deref().unwrap_or("wt-wt");
 
-    let results = match search_web(&payload.query, max_results, region).await {
-        Ok(r) => r,
+    let (results, source) = match search_web_with_source(&payload.query, max_results, region).await {
+        Ok(outcome) => (outcome.results, outcome.provider),
         Err(e) => {
             log::error!("web search failed: {}", e);
-            Vec::new()
+            (Vec::new(), "none".to_string())
         }
     };
 
@@ -45,7 +45,7 @@ pub async fn handle_web_search<S: ResearchState>(
         results,
         query: payload.query,
         search_time_ms,
-        source: "web".to_string(),
+        source,
     })
 }
 pub async fn handle_summarize<S: ResearchState>(

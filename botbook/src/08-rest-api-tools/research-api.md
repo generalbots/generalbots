@@ -329,9 +329,29 @@ Performs a web search and returns results with summaries.
   ],
   "query": "artificial intelligence healthcare applications 2026",
   "total_results": 5,
-  "search_time_ms": 340
+  "search_time_ms": 340,
+  "source": "tinyfish"
 }
 ```
+
+**Provider chain.** Chat, the `web.search` API command and the agent
+`web/search` tool share one implementation. When `TINYFISH_API_KEY` is set,
+TinyFish TinySearch answers first; on timeout, HTTP error, rate limit or empty
+results the chain falls back to DuckDuckGo → Wikipedia → Mojeek unchanged. With
+no key configured the behaviour is exactly the scraper chain. `source` reports
+the provider that answered (`tinyfish`, `duckduckgo`, `wikipedia`, `mojeek` or
+`none`).
+
+TinyFish is configured by environment variable only — never commit it:
+
+```
+TINYFISH_API_KEY=<key>
+```
+
+The client respects the account quota with one process-wide limiter: 30
+requests per minute and 500 per hour. Requests over the quota fall back rather
+than blocking a chat turn.
+
 
 ---
 

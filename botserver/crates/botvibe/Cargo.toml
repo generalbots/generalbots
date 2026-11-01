@@ -17,6 +17,7 @@ botcoresecrets = { workspace = true }
 botsecurity-core = { workspace = true }
 tar = { workspace = true }
 botlib = { workspace = true, features = ["database"] }
+botresearch = { workspace = true }
 botautotask = { workspace = true }
 botcontacts = { workspace = true }
 botdeployment = { workspace = true }
