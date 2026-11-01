@@ -20,7 +20,11 @@ pub async fn anonymous_auth_handler(
     let user_id = if is_authenticated {
         auth_user_id.clone()
     } else {
-        existing_user_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string())
+        // Never reuse a client-supplied id for an unauthenticated caller: a
+        // stale page value used to create a guest row under a real account's
+        // UUID, which then scoped Drive/files to guest_*@anonymous.local.
+        let _ = existing_user_id;
+        uuid::Uuid::new_v4().to_string()
     };
     let session_id = existing_session_id.unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
 
@@ -29,6 +33,9 @@ pub async fn anonymous_auth_handler(
         Err(_) => uuid::Uuid::new_v4(),
     };
     let user_uuid = resolve_chat_user_uuid(&user_id);
+    if is_authenticated {
+        repair_poisoned_identity(&state, user_uuid, &request);
+    }
 
     let found_bot_id = {
         let conn = state.conn.get().ok();
@@ -92,9 +99,63 @@ pub(crate) fn resolve_chat_user_uuid(user_id: &str) -> uuid::Uuid {
     )
 }
 
+/// A real account whose `users` row was first materialised by the anonymous
+/// path carries a `guest_*@anonymous.local` email. Restore the verified email
+/// from the token so Drive and file scopes address the right folder.
+fn repair_poisoned_identity(
+    state: &Arc<AppState>,
+    user_uuid: uuid::Uuid,
+    request: &axum::extract::Request,
+) {
+    use botcore::shared::models::schema::users::dsl as u;
+    use diesel::prelude::*;
+    let token = request
+        .headers()
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| s.strip_prefix("Bearer "));
+    let Some(token) = token else { return };
+    let parts: Vec<&str> = token.split('.').collect();
+    if parts.len() != 3 {
+        return;
+    }
+    let Some(payload) = base64_url_decode_impl(parts[1]) else {
+        return;
+    };
+    let Ok(payload) = serde_json::from_slice::<serde_json::Value>(&payload) else {
+        return;
+    };
+    let Some(email) = payload.get("email").and_then(|v| v.as_str()) else {
+        return;
+    };
+    if email.trim().is_empty() {
+        return;
+    }
+    let Ok(mut conn) = state.conn.get() else { return };
+    let repaired = diesel::update(
+        u::users
+            .filter(u::id.eq(user_uuid))
+            .filter(u::email.like("guest\\_%@anonymous.local")),
+    )
+    .set((
+        u::email.eq(email),
+        u::username.eq(email.split('@').next().unwrap_or("user")),
+        u::updated_at.eq(chrono::Utc::now()),
+    ))
+    .execute(&mut conn);
+    match repaired {
+        Ok(count) if count > 0 => info!(
+            "Repaired guest identity for user {} -> {}",
+            user_uuid, email
+        ),
+        _ => {}
+    }
+}
+
 pub(crate) fn resolve_session_user(
     request: &axum::extract::Request,
-) -> (String, Vec<String>, bool) {    let token = request
+) -> (String, Vec<String>, bool) {
+    let token = request
         .headers()
         .get(axum::http::header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok())
@@ -106,34 +167,37 @@ pub(crate) fn resolve_session_user(
         None => return (String::new(), Vec::new(), false),
     };
 
-    let cache = match botcoredirectory::auth_routes::SESSION_CACHE.try_read() {
-        Ok(c) => c,
-        Err(_) => return (String::new(), Vec::new(), false),
-    };
-    if let Some(user_data) = cache.get(&token) {
-        return (
-            user_data.user_id.clone(),
-            user_data.roles.clone(),
-            true,
-        );
+    match resolve_token_user(&token) {
+        Some((user_id, roles)) => (user_id, roles, true),
+        None => (String::new(), Vec::new(), false),
+    }
+}
+
+/// Resolves a raw suite/cloud token to `(user_id, roles)`. Shared by HTTP
+/// auth (`/api/auth`) and the WebSocket handshake, so a socket can never be
+/// opened under an identity the caller does not hold.
+pub(crate) fn resolve_token_user(token: &str) -> Option<(String, Vec<String>)> {
+    if token.is_empty() {
+        return None;
+    }
+    let cache = botcoredirectory::auth_routes::SESSION_CACHE.try_read().ok()?;
+    if let Some(user_data) = cache.get(token) {
+        return Some((user_data.user_id.clone(), user_data.roles.clone()));
     }
     drop(cache);
 
     // In-memory cache miss — rehydrate from the persisted login_sessions
     // table (parity with the auth middleware lookup in main.rs) so tokens
     // minted before the last restart keep their identity.
-    if let Some(user_data) = botcoredirectory::auth_routes::session_from_persisted(&token) {
-        return (
-            user_data.user_id.clone(),
-            user_data.roles.clone(),
-            true,
-        );
+    if let Some(user_data) = botcoredirectory::auth_routes::session_from_persisted(token) {
+        return Some((user_data.user_id.clone(), user_data.roles.clone()));
     }
 
     // Not an SSO-session token — try the cloud management JWT (signed with the
     // SaaS secret, subject = Zitadel user id). Verified signature required;
     // roles are resolved later through RBAC group membership.
-    resolve_cloud_jwt_user(&token)
+    let (user_id, roles, ok) = resolve_cloud_jwt_user(token);
+    ok.then_some((user_id, roles))
 }
 
 /// #1364 — verifies a bearer token as a cloud management JWT and maps it to

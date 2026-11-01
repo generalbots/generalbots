@@ -70,7 +70,8 @@ pub fn scope(state: &Arc<AppState>, bot_uuid: &Uuid, user_id: Uuid) -> Option<Dr
     Some(DriveScope {
         bucket: location.bucket,
         bot_prefix: location.key_prefix,
-        user_prefix: user_email(state, user_id),
+        user_prefix: user_email(state, user_id)
+            .map(|email| format!("users/{email}/")),
     })
 }
 

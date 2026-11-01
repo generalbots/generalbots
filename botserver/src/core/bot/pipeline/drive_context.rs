@@ -246,6 +246,7 @@ pub async fn inject(
             return;
         }
     };
+    log::info!("drive context: {} matching documents", blocks.len());
     if blocks.is_empty() {
         return;
     }

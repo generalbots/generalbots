@@ -634,14 +634,28 @@ pub async fn delete_conversation_folder(
     drop(conn);
 
     let folder = format!("{CONVERSATIONS_ROOT}/{clean_cid}");
-    // Explicit deletion is the only place a job is terminated. `rm -rf` and
-    // `pkill` run through the trusted shell-script path; `clean_cid` is
+    // Explicit deletion is the only place a job is terminated. The pkill
+    // pattern uses a bracket class (`[c]onversations`) so the shell running
+    // the command does not match itself and die before `rm` executes — that
+    // bug left every deleted conversation folder behind. `clean_cid` is
     // restricted to ASCII alphanumerics, '-' and '_' by `sanitize_id`.
-    let script = format!("pkill -f '{folder}' 2>/dev/null || true; rm -rf '{folder}'");
+    let kill = format!(
+        "pkill -f '[c]onversations/{clean_cid}' 2>/dev/null || true"
+    );
     if let Err((code, err)) = exec_in_vm(
         state,
         &session.vm_name,
-        &["sh".to_string(), "-c".to_string(), script],
+        &["sh".to_string(), "-c".to_string(), kill],
+    )
+    .await
+    {
+        tracing::warn!("stop processes for {clean_cid} ({code}): {err}");
+    }
+    let remove = format!("rm -rf '{folder}'");
+    if let Err((code, err)) = exec_in_vm(
+        state,
+        &session.vm_name,
+        &["sh".to_string(), "-c".to_string(), remove],
     )
     .await
     {

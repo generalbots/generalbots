@@ -279,18 +279,27 @@ pub async fn fetch_referenced(
     messages: &mut Vec<serde_json::Value>,
 ) {
     let names = referenced_names(text);
+    log::info!("drive bridge: referenced names {:?}", names);
     if names.is_empty() {
         return;
     }
     let Some(scope) = drive_bridge::scope(state, &bot_uuid, user_id) else {
+        log::warn!("drive bridge: no Drive scope for bot {bot_uuid}");
         return;
     };
+    log::info!(
+        "drive bridge: scope bucket={} bot_prefix={} user_prefix={:?}",
+        scope.bucket,
+        scope.bot_prefix,
+        scope.user_prefix
+    );
     let Some(_) = agent_vm_hook::ensure_agent_vm(session_id, user_id, bot_uuid).await else {
         return;
     };
     let mut fetched = Vec::new();
     for name in names {
         let Some((key, _)) = drive_bridge::find_object(state, &scope, &name).await else {
+            log::info!("drive bridge: '{name}' not found in Drive");
             continue;
         };
         let Some(bytes) = drive_bridge::read_object(state, &scope, &key).await else {

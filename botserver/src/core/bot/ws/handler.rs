@@ -55,6 +55,10 @@ pub struct WsQuery {
     pub session_id: Option<String>,
     pub user_id: Option<String>,
     pub bot_name: Option<String>,
+    /// Suite/cloud token. When valid it determines the identity; the
+    /// `user_id` query parameter alone is never trusted for an authenticated
+    /// session (a stale client id used to scope Drive and files to a guest).
+    pub access_token: Option<String>,
 }
 
 pub fn validate_bot_name(input: &str) -> Result<String, String> {
@@ -134,9 +138,14 @@ pub async fn websocket_handler(
         .session_id
         .and_then(|s| Uuid::parse_str(&s).ok())
         .unwrap_or_else(Uuid::new_v4);
-    let user_id = params
-        .user_id
+    let token_user = params
+        .access_token
         .as_deref()
+        .and_then(crate::main_module::routes::anonymous_auth::resolve_token_user)
+        .map(|(id, _)| id);
+    let user_id = token_user
+        .as_deref()
+        .or(params.user_id.as_deref())
         .map(crate::security::user_role::derive_stable_user_uuid)
         .unwrap_or_else(Uuid::new_v4);
     let raw_bot_name = params
@@ -217,9 +226,14 @@ pub async fn websocket_handler_with_bot(
     };
     params.bot_name = Some(bot_name.clone());
 
-    let user_id = params
-        .user_id
+    let token_user = params
+        .access_token
         .as_deref()
+        .and_then(crate::main_module::routes::anonymous_auth::resolve_token_user)
+        .map(|(id, _)| id);
+    let user_id = token_user
+        .as_deref()
+        .or(params.user_id.as_deref())
         .map(crate::security::user_role::derive_stable_user_uuid)
         .unwrap_or_else(Uuid::new_v4);
 

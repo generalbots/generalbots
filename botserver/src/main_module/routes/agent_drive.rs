@@ -5,9 +5,7 @@
 //! [`crate::core::bot::drive_bridge`].
 
 use axum::extract::{Json, State};
-use axum::http::StatusCode;
-use axum::Extension;
-use botcore::middleware::AuthenticatedUser;
+use axum::http::{HeaderMap, StatusCode};
 use botcore::shared::state::AppState;
 use diesel::{OptionalExtension, RunQueryDsl};
 use serde::Deserialize;
@@ -33,38 +31,47 @@ fn err(code: StatusCode, message: &str) -> ApiError {
 }
 
 /// The bot a session belongs to, only when the caller owns that session.
+/// Column types differ across deployments (uuid vs text), so both sides are
+/// compared and returned as text and parsed here.
 fn session_bot(
     state: &AppState,
     session_id: Uuid,
     user_id: Uuid,
 ) -> Result<Uuid, ApiError> {
-    use diesel::sql_types::Uuid as SqlUuid;
+    use diesel::sql_types::Text;
     #[derive(diesel::QueryableByName)]
     struct Row {
-        #[diesel(sql_type = SqlUuid)]
-        bot_id: Uuid,
-        #[diesel(sql_type = SqlUuid)]
-        user_id: Uuid,
+        #[diesel(sql_type = Text)]
+        bot_id: String,
+        #[diesel(sql_type = Text)]
+        user_id: String,
     }
     let mut conn = state
         .conn
         .get()
         .map_err(|_| err(StatusCode::SERVICE_UNAVAILABLE, "database unavailable"))?;
     let row: Option<Row> = diesel::sql_query(
-        "SELECT bot_id, user_id FROM user_sessions WHERE id = $1 LIMIT 1",
+        "SELECT bot_id::text AS bot_id, user_id::text AS user_id \
+         FROM user_sessions WHERE id::text = $1 LIMIT 1",
     )
-    .bind::<SqlUuid, _>(session_id)
+    .bind::<Text, _>(session_id.to_string())
     .get_result(&mut conn)
     .optional()
-    .map_err(|_| err(StatusCode::INTERNAL_SERVER_ERROR, "lookup failed"))?;
+    .map_err(|e| {
+        log::error!("agent drive: session lookup failed: {e}");
+        err(StatusCode::INTERNAL_SERVER_ERROR, "lookup failed")
+    })?;
     let row = row.ok_or_else(|| err(StatusCode::NOT_FOUND, "conversation not found"))?;
-    if row.user_id != user_id {
+    let owner = Uuid::parse_str(row.user_id.trim())
+        .map_err(|_| err(StatusCode::INTERNAL_SERVER_ERROR, "bad session owner"))?;
+    if owner != user_id {
         return Err(err(
             StatusCode::FORBIDDEN,
             "conversation belongs to another user",
         ));
     }
-    Ok(row.bot_id)
+    Uuid::parse_str(row.bot_id.trim())
+        .map_err(|_| err(StatusCode::INTERNAL_SERVER_ERROR, "bad session bot"))
 }
 
 fn safe_name(raw: &str) -> String {
@@ -82,11 +89,19 @@ fn safe_name(raw: &str) -> String {
 
 pub async fn save_output(
     State(state): State<Arc<AppState>>,
-    Extension(user): Extension<AuthenticatedUser>,
+    headers: HeaderMap,
     Json(req): Json<SaveOutputRequest>,
 ) -> Result<Json<Value>, ApiError> {
-    let bot_uuid = session_bot(&state, req.conversation_id, user.user_id)?;
-    let available = agent_vm_hook::list_session_folder(user.user_id, req.conversation_id, "output")
+    let token = headers
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|v| v.to_str().ok())
+        .and_then(|value| value.strip_prefix("Bearer "))
+        .ok_or_else(|| err(StatusCode::UNAUTHORIZED, "missing token"))?;
+    let (claims_user, _) = crate::main_module::routes::anonymous_auth::resolve_token_user(token)
+        .ok_or_else(|| err(StatusCode::UNAUTHORIZED, "invalid token"))?;
+    let user_id = crate::security::user_role::derive_stable_user_uuid(&claims_user);
+    let bot_uuid = session_bot(&state, req.conversation_id, user_id)?;
+    let available = agent_vm_hook::list_session_folder(user_id, req.conversation_id, "output")
         .await
         .ok_or_else(|| err(StatusCode::CONFLICT, "workspace is not running"))?;
     if available.is_empty() {
@@ -111,7 +126,7 @@ pub async fn save_output(
     let mut failed = Vec::new();
     for name in selected {
         let path = format!("output/{name}");
-        match agent_vm_hook::read_session_file(user.user_id, req.conversation_id, &path).await {
+        match agent_vm_hook::read_session_file(user_id, req.conversation_id, &path).await {
             Ok(bytes) => match drive_bridge::save_object(&state, &bot_uuid, &folder, &name, bytes)
                 .await
             {

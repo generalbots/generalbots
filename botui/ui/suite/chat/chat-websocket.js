@@ -98,11 +98,20 @@ function connectWebSocket() {
 }
 
 function dialChatSocket() {
+  // The socket must carry the suite token: the server verifies it and uses
+  // that identity over the (possibly stale) user_id the page remembers.
+  var socketToken = "";
+  try {
+    socketToken = (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) ||
+      localStorage.getItem("gb-access-token") ||
+      sessionStorage.getItem("gb-access-token") || "";
+  } catch (e) { socketToken = ""; }
   var url = WS_URL +
     (WS_URL.indexOf("?") === -1 ? "?" : "&") +
     "session_id=" + ChatState.currentSessionId +
     "&user_id=" + ChatState.currentUserId +
-    "&bot_name=" + ChatState.currentBotName;
+    "&bot_name=" + ChatState.currentBotName +
+    (socketToken ? "&access_token=" + encodeURIComponent(socketToken) : "");
 
   var ws = (ChatState.ws = new WebSocket(url));
   if (window.GBAppLifecycle) GBAppLifecycle.socket("chat", ChatState.ws);  ChatState.ws.onmessage = function (event) {
