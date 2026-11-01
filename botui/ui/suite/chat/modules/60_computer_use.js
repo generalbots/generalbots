@@ -40,6 +40,19 @@
   }
 
   function sendResultToChat(actionId, result) {
+    // GB6-19 — persist the outcome for the action the server proposed, so the
+    // assistant can read it even when the tab reconnects. The WS frame below
+    // stays as the live path.
+    if (actionId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(actionId)) {
+      var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+      fetch("/api/computer/actions/" + encodeURIComponent(actionId) + "/result", {
+        method: "POST",
+        headers: token
+          ? { "Content-Type": "application/json", Authorization: "Bearer " + token }
+          : { "Content-Type": "application/json" },
+        body: JSON.stringify(result),
+      }).catch(function () { /* the chat frame remains the live path */ });
+    }
     if (ChatState && ChatState.ws && ChatState.ws.readyState === WebSocket.OPEN) {
       ChatState.ws.send(JSON.stringify({
         bot_id: ChatState.currentBotId,
@@ -188,6 +201,32 @@
       executeAction(action);
     }
   });
+
+  // GB6-19 — poll the action queue and replay entries as the same frames the
+  // pipeline emits. A server producer therefore reaches the consent UI without
+  // a new WebSocket message type.
+  function pollPendingBrowser() {
+    var sid = window.ChatState && ChatState.currentSessionId;
+    if (!sid) return;
+    var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+    fetch("/api/computer/actions/pending?kind=browser&session_id=" + encodeURIComponent(sid), {
+      headers: token ? { Authorization: "Bearer " + token } : {},
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        (data && data.actions ? data.actions : []).forEach(function (entry) {
+          document.dispatchEvent(new CustomEvent("gb-ws-frame", {
+            detail: {
+              message_type: "browser_action",
+              action_type: "browser",
+              browser_action: Object.assign({ action_id: entry.action_id }, entry.action || {}),
+            },
+          }));
+        });
+      })
+      .catch(function () { /* offline: nothing to collect */ });
+  }
+  setInterval(pollPendingBrowser, 3000);
 
   window.GBBrowserUse = {
     show: showBrowserPanel,

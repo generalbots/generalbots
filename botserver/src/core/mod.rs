@@ -24,6 +24,7 @@ pub use botcore::urls;
 
 // These remain as thin re-exports from their own crates
 pub mod bot;
+pub mod computer_use;
 pub mod desktop_activity;
 pub mod directory;
 pub mod oauth;

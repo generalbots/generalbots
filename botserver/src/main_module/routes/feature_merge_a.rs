@@ -131,7 +131,8 @@ pub(super) async fn merge_part_a(
         crate::main_module::routes::conversation_autotasks::reconcile_on_boot(app_state);
         *api_router = api_router
             .clone()
-            .merge(crate::main_module::routes::conversation_autotasks::router());
+            .merge(crate::main_module::routes::conversation_autotasks::router())
+            .merge(crate::main_module::routes::computer_use_routes::router());
     }
 
     #[cfg(feature = "automations")]

@@ -44,18 +44,27 @@
     var tok = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token");
     if (tok) headers["Authorization"] = "Bearer " + tok;
 
-    fetch("/api/terminal/create", {
+    // The consent card IS the approval: the server refuses the request
+    // without it and re-checks the destructive patterns on its own.
+    fetch("/api/terminal/exec", {
       method: "POST",
       headers: headers,
       body: JSON.stringify({
         command: cmd,
         cwd: action.cwd || "",
         timeout_ms: action.timeout_ms || 30000,
+        approved: true,
         session_id: (ChatState && ChatState.currentSessionId) || "",
       }),
     })
       .then(function (r) { return r.json(); })
       .then(function (result) {
+        if (result.status === "failed" || result.status === "error") {
+          cardEl.innerHTML = '<div class="gb-consent-outcome"><span>❌</span> <span>' +
+            escapeHtml(result.error || result.stderr || "Command failed") + '</span></div>';
+          sendTerminalResult(action.action_id, { status: "error", error: result.error || result.stderr || "failed" });
+          return;
+        }
         var output = (result.stdout || "") + (result.stderr ? "\n[stderr]\n" + result.stderr : "");
         var exitCode = result.exit_code != null ? result.exit_code : -1;
         var statusIcon = exitCode === 0 ? "✅" : "⚠️";
@@ -74,6 +83,16 @@
   }
 
   function sendTerminalResult(actionId, result) {
+    if (actionId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(actionId)) {
+      var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+      fetch("/api/computer/actions/" + encodeURIComponent(actionId) + "/result", {
+        method: "POST",
+        headers: token
+          ? { "Content-Type": "application/json", Authorization: "Bearer " + token }
+          : { "Content-Type": "application/json" },
+        body: JSON.stringify(result),
+      }).catch(function () { /* the chat frame below is the fallback */ });
+    }
     if (ChatState && ChatState.ws && ChatState.ws.readyState === WebSocket.OPEN) {
       ChatState.ws.send(JSON.stringify({
         bot_id: ChatState.currentBotId,
@@ -143,4 +162,29 @@
     pane.appendChild(wrap);
     if (typeof scrollToBottom === "function") scrollToBottom(true);
   });
+
+  // GB6-20 — the server no longer needs to push over the WebSocket: the action
+  // queue is polled and replayed as the same frames the pipeline emits.
+  function pollPendingTerminal() {
+    var sid = window.ChatState && ChatState.currentSessionId;
+    if (!sid) return;
+    var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+    fetch("/api/computer/actions/pending?kind=terminal&session_id=" + encodeURIComponent(sid), {
+      headers: token ? { Authorization: "Bearer " + token } : {},
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        (data && data.actions ? data.actions : []).forEach(function (entry) {
+          document.dispatchEvent(new CustomEvent("gb-ws-frame", {
+            detail: {
+              message_type: "terminal_action",
+              action_type: "terminal",
+              terminal_action: Object.assign({ action_id: entry.action_id }, entry.action || {}),
+            },
+          }));
+        });
+      })
+      .catch(function () { /* offline: nothing to collect */ });
+  }
+  setInterval(pollPendingTerminal, 3000);
 })();

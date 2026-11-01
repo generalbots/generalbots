@@ -80,6 +80,12 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
         ApiEndpoint { method: "POST", path: "/api/conversations/:conversation_id/autotasks", summary: "Create a conversation autotask (title, schedule, command, kind=cron|systemd); installs a cron entry or systemd unit in the agent workspace" },
         ApiEndpoint { method: "POST", path: "/api/conversation-autotasks/:id/cancel", summary: "Stop a conversation autotask: removes the cron entry or disables the systemd unit and marks the row stopped" },
 
+        // Computer use (GB6-19/GB6-20): proposal -> consent -> execution
+        ApiEndpoint { method: "POST", path: "/api/computer/actions", summary: "Propose a browser or terminal action for a conversation (session_id, kind, action); the suite asks the user for consent" },
+        ApiEndpoint { method: "GET", path: "/api/computer/actions/pending", summary: "Poll the actions awaiting consent for a session (session_id, kind=browser|terminal)" },
+        ApiEndpoint { method: "GET", path: "/api/computer/actions/:id", summary: "Read one computer-use action with the user's decision and its result" },
+        ApiEndpoint { method: "POST", path: "/api/terminal/exec", summary: "Execute an approved terminal command inside the user's workspace container; requires approved=true and refuses destructive patterns" },
+
         // Learning / LMS
         ApiEndpoint { method: "GET", path: "/api/learn/courses", summary: "List published courses with filters (category, difficulty, search)" },
         ApiEndpoint { method: "POST", path: "/api/learn/courses", summary: "Create a course draft" },
