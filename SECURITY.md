@@ -6,7 +6,7 @@
 
 ## Reporting a Vulnerability
 
-Please, open an issue or contact us at security@generalbots.org.
+Please, open an issue or contact us at security@pragmatismo.com.br.
 
 ## Dependency Advisories
 
@@ -51,3 +51,4 @@ service advisory. Exposure is limited to operator-run local model tooling:
 the service is not exposed to end users and only loads checkpoints the
 operator places on disk. The pin is retained and re-checked on every
 dependency review; replace it as soon as an upstream fix is published.
+
