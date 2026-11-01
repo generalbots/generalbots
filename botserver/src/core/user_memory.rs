@@ -61,6 +61,12 @@ pub fn render_for_prompt(pool: &DbPool, user_id: Uuid, bot_id: Option<Uuid>) -> 
             return String::new();
         }
     };
+    render_rows(rows)
+}
+
+/// Renders already-loaded rows, bounded by `MAX_PROMPT_CHARS`. Split out from
+/// the database read so the prompt contract can be tested without a pool.
+pub fn render_rows(rows: Vec<UserMemoryRow>) -> String {
     if rows.is_empty() {
         return String::new();
     }
@@ -76,4 +82,39 @@ pub fn render_for_prompt(pool: &DbPool, user_id: Uuid, bot_id: Option<Uuid>) -> 
         block.push_str(&line);
     }
     block
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{render_rows, UserMemoryRow, MAX_PROMPT_CHARS};
+
+    fn row(key: &str, value: &str) -> UserMemoryRow {
+        UserMemoryRow {
+            memory_key: key.to_string(),
+            memory_value: value.to_string(),
+            bot_id: None,
+        }
+    }
+
+    #[test]
+    fn an_empty_store_adds_nothing_to_the_prompt() {
+        assert!(render_rows(Vec::new()).is_empty());
+    }
+
+    #[test]
+    fn stored_preferences_are_rendered_as_readable_lines() {
+        let block = render_rows(vec![row("language", "Portuguese"), row("timezone", "America/Sao_Paulo")]);
+        assert!(block.contains("- language: Portuguese"));
+        assert!(block.contains("- timezone: America/Sao_Paulo"));
+        assert!(block.contains("Settings → Memory"));
+    }
+
+    #[test]
+    fn the_block_is_bounded_and_says_when_it_truncated() {
+        let big = "x".repeat(500);
+        let rows = (0..20).map(|i| row(&format!("k{i}"), &big)).collect();
+        let block = render_rows(rows);
+        assert!(block.len() <= MAX_PROMPT_CHARS + 80, "block must stay near the cap");
+        assert!(block.contains("(more entries available in Settings)"));
+    }
 }

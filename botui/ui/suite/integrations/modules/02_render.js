@@ -165,6 +165,9 @@
     namespace.stateView = stateView;
     namespace.query = query;
     namespace.skeletonCards = skeletonCards;
+    // Exposed for the consent test: the "Shared" cell is the consent contract
+    // (which scopes, and who else can use the connection).
+    namespace.sharedCell = sharedCell;
 
     namespace.renderExplore = function (root) {
         var state = namespace.getState(root);

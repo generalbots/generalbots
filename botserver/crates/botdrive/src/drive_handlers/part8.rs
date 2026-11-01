@@ -35,7 +35,15 @@ pub struct VersionRestoreBody {
 }
 
 fn versions_prefix(scope: &FileScope, uid: &str, key: &str) -> String {
-    format!("{VERSIONS_ROOT}/{}/{}/", resolve_scope_prefix(scope, uid), key)
+    // `resolve_scope_prefix` already ends with `/` for user scope and is empty
+    // for bot scope; concatenating keeps a single separator either way.
+    format!("{VERSIONS_ROOT}/{}{key}/", resolve_scope_prefix(scope, uid))
+}
+
+/// A restore may only copy from the file's own history. The stored version key
+/// must extend the prefix (an exact prefix is a directory, not a revision).
+fn version_belongs_to_file(allowed_prefix: &str, version: &str) -> bool {
+    version.len() > allowed_prefix.len() && version.starts_with(allowed_prefix)
 }
 
 /// Copies the current object aside before it is overwritten. Called by the
@@ -161,7 +169,7 @@ pub async fn restore_version(
     // The version must live under this file's own history: a caller cannot ask
     // the endpoint to copy an arbitrary object over a target.
     let allowed_prefix = versions_prefix(&scope, &uid, &key);
-    if !req.version.starts_with(&allowed_prefix) {
+    if !version_belongs_to_file(&allowed_prefix, &req.version) {
         return Err(err(StatusCode::BAD_REQUEST, "version does not belong to this file"));
     }
     // Keep the revision we are about to replace.
@@ -171,4 +179,44 @@ pub async fn restore_version(
         .await
         .map_err(|error| err(StatusCode::INTERNAL_SERVER_ERROR, &error))?;
     Ok(Json(serde_json::json!({ "success": true, "path": req.path })))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{version_belongs_to_file, versions_prefix};
+    use crate::drive_types::FileScope;
+
+    /// History lives under the caller's own scope and under the file's own key,
+    /// so another user (or another file) can never be restored over this one.
+    #[test]
+    fn history_prefix_is_scoped_to_user_and_file() {
+        assert_eq!(
+            versions_prefix(&FileScope::User, "u-1", "users/u-1/docs/a.txt"),
+            ".versions/users/u-1/users/u-1/docs/a.txt/"
+        );
+        assert_eq!(
+            versions_prefix(&FileScope::Bot, "", "docs/a.txt"),
+            ".versions/docs/a.txt/"
+        );
+        assert!(!versions_prefix(&FileScope::User, "u-1", "docs/a.txt")
+            .contains(".versions//"));
+    }
+
+    #[test]
+    fn restore_accepts_only_a_revision_of_this_file() {
+        let prefix = versions_prefix(&FileScope::User, "u-1", "users/u-1/docs/a.txt");
+        assert!(version_belongs_to_file(
+            &prefix,
+            &format!("{prefix}20261101T120000000Z")
+        ));
+        assert!(
+            !version_belongs_to_file(&prefix, ".versions/users/u-1/users/u-1/docs/b.txt/20261101T120000000Z"),
+            "another file's history must be refused"
+        );
+        assert!(
+            !version_belongs_to_file(&prefix, ".versions/users/u-2/users/u-2/docs/a.txt/20261101T120000000Z"),
+            "another user's history must be refused"
+        );
+        assert!(!version_belongs_to_file(&prefix, &prefix), "the directory itself is not a revision");
+    }
 }
