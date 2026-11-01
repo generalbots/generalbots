@@ -418,3 +418,23 @@
 .gb-folder-grid .gb-attachment:hover {
     background: #f4f4f5;
 }
+
+/* Epic acceptance: 44 px touch targets on a 390 px viewport. */
+@media (max-width: 480px) {
+    #sendBtn,
+    #fileBtn,
+    .gb-attachment-btn,
+    .gb-folder-save,
+    .suggestion-btn,
+    .gb-artifact-btn,
+    .message-actions button,
+    .gb-retry-btn,
+    .gb-ws-tab-add,
+    .chat-sidebar-new-chat,
+    .gb-side-action,
+    .chat-sidebar-conv-delete {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 10px 12px;
+    }
+}
