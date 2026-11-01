@@ -11,6 +11,7 @@
 use axum::http::StatusCode;
 use botlib::security::command_guard::SafeCommand;
 use chrono::{DateTime, Duration, Utc};
+use botschema::users;
 use diesel::prelude::*;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -24,6 +25,12 @@ pub const STATUS_RUNNING: &str = "running";
 pub const STATUS_STOPPED: &str = "stopped";
 pub const STATUS_ERROR: &str = "error";
 
+/// Guest identities minted by the anonymous chat path. They are created per
+/// page load (`guest_<uuid>@anonymous.local`), so they must never own a
+/// container: one container per guest exhausted the production host disk.
+const ANONYMOUS_EMAIL_DOMAIN: &str = "@anonymous.local";
+const ANONYMOUS_USERNAME_PREFIX: &str = "guest_";
+
 const LAUNCH_WAIT_SECS: u64 = 60;
 const POLL_INTERVAL_SECS: u64 = 3;
 const CONVERSATIONS_ROOT: &str = "/opt/vibe/conversations";
@@ -35,6 +42,41 @@ fn internal(msg: String) -> (StatusCode, String) {
 
 fn bad_request(msg: &str) -> (StatusCode, String) {
     (StatusCode::BAD_REQUEST, msg.to_string())
+}
+
+fn is_anonymous_email(email: &str) -> bool {
+    let lower = email.to_ascii_lowercase();
+    lower
+        .strip_suffix(ANONYMOUS_EMAIL_DOMAIN)
+        .is_some_and(|local| local.starts_with(ANONYMOUS_USERNAME_PREFIX))
+}
+
+/// Anonymous visitors must never provision a container (#1596). The guest row
+/// is minted by `/api/auth` on every anonymous page load, so provisioning one
+/// container per guest leaks disk until the host is full. Only signed-in
+/// accounts (real email rows) may own an agent workspace; a missing row is
+/// allowed because single-user/desktop builds run without accounts.
+fn require_authenticated_identity(
+    state: &AgentService,
+    user_id: &Uuid,
+) -> Result<(), (StatusCode, String)> {
+    let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+    let email = users::table
+        .filter(users::id.eq(*user_id))
+        .select(users::email)
+        .first::<String>(&mut conn)
+        .optional()
+        .map_err(|e| internal(format!("users lookup: {e}")))?;
+    match email {
+        Some(email) if is_anonymous_email(&email) => {
+            tracing::warn!("agent workspace provisioning denied for anonymous identity {user_id}");
+            Err((
+                StatusCode::FORBIDDEN,
+                "Sign in to use the agent workspace".to_string(),
+            ))
+        }
+        _ => Ok(()),
+    }
 }
 
 pub fn sanitize_id(raw: &str) -> Result<String, (StatusCode, String)> {
@@ -195,6 +237,8 @@ pub async fn ensure_vm(
     bot_id: &Uuid,
     conversation_id: Option<&str>,
 ) -> Result<AgentSessionRow, (StatusCode, String)> {
+    require_authenticated_identity(state, user_id)?;
+
     let existing = {
         let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
         load_session_by_user(&mut conn, user_id)?
@@ -1025,4 +1069,23 @@ pub fn get_user_vm(
 ) -> Result<Option<AgentSessionRow>, (StatusCode, String)> {
     let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
     load_session_by_user(&mut conn, user_id)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_anonymous_email;
+
+    #[test]
+    fn guest_identities_are_anonymous() {
+        assert!(is_anonymous_email("guest_1b0d9ece@anonymous.local"));
+        assert!(is_anonymous_email("GUEST_ABC@ANONYMOUS.LOCAL"));
+    }
+
+    #[test]
+    fn real_accounts_are_not_anonymous() {
+        assert!(!is_anonymous_email("rodriguez@pragmatismo.com.br"));
+        assert!(!is_anonymous_email("guest_reader@example.com"));
+        assert!(!is_anonymous_email("someone@anonymous.local.example.com"));
+        assert!(!is_anonymous_email(""));
+    }
 }
