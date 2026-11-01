@@ -5,8 +5,11 @@ ALTER TABLE agent_sessions ADD COLUMN IF NOT EXISTS active_conversation_id VARCH
 
 -- Drop the old per-session unique constraint and add per-user unique.
 -- Only one RUNNING/PROVISIONING VM per user at a time.
-DROP INDEX IF EXISTS agent_sessions_session_id_key;
+-- The old key may exist either as a plain index or as a UNIQUE constraint
+-- (databases created by older migrations carry the constraint form, whose
+-- backing index cannot be dropped on its own). Drop the constraint first.
 ALTER TABLE agent_sessions DROP CONSTRAINT IF EXISTS agent_sessions_session_id_key;
+DROP INDEX IF EXISTS agent_sessions_session_id_key;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_agent_sessions_user_active
     ON agent_sessions(user_id) WHERE status IN ('running', 'provisioning');
 
