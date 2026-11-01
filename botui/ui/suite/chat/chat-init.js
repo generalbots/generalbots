@@ -113,6 +113,11 @@ function sendMessage(messageContent) {
 
   var finalSend = function () {
     ChatState.ws.send(JSON.stringify(payload));
+    // GB6-15: the attachment leaves the composer with a visible outcome
+    // instead of silently disappearing.
+    if (file) {
+      notify("Attachment sent: " + file.name, "success");
+    }
     if (fileInput) { fileInput.value = ""; }
     var chip = document.getElementById("fileChip");
     if (chip) { chip.style.display = "none"; chip.textContent = ""; }
@@ -122,7 +127,21 @@ function sendMessage(messageContent) {
   };
 
   if (file && ChatState.ws && ChatState.ws.readyState === WebSocket.OPEN) {
+    var activeChip = document.getElementById("fileChip");
+    if (activeChip) {
+      activeChip.textContent = "⏳ Preparing " + file.name + " (" + formatAttachSize(file.size) + ")…";
+      activeChip.style.display = "inline-flex";
+    }
     var reader = new FileReader();
+    reader.onerror = function () {
+      if (activeChip) activeChip.textContent = "⚠ Could not read " + file.name + " — try again";
+      notify("Could not read the attachment. Attach it again.", "error");
+    };
+    reader.onprogress = function (event) {
+      if (!event.lengthComputable || !activeChip) return;
+      var pct = Math.round((event.loaded / event.total) * 100);
+      activeChip.textContent = "⏳ " + file.name + " — " + pct + "%";
+    };
     reader.onload = function () {
       payload.file = {
         name: file.name,
@@ -136,6 +155,7 @@ function sendMessage(messageContent) {
   } else if (file) {
     // #1275 — reconnect may still be in flight when the user attaches a
     // file: read it now and queue the send for the reopened socket.
+    notify("Connection is back shortly — attachment queued", "info");
     var queuedReader = new FileReader();
     queuedReader.onload = function () {
       payload.file = {

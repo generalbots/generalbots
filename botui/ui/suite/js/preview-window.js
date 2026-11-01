@@ -356,6 +356,39 @@
       });
   }
 
+  function shareFile() {
+    if (!state.conversation || !state.path) return;
+    status("Creating share link…", "busy");
+    var headers = { "Content-Type": "application/json" };
+    var t = token();
+    if (t) headers.Authorization = "Bearer " + t;
+    var name = String(state.path).split("/").pop() || "file";
+    fetch("/api/agent/drive/share", {
+      method: "POST",
+      headers: headers,
+      body: JSON.stringify({ conversation_id: state.conversation, file: name }),
+    })
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.json();
+      })
+      .then(function (data) {
+        var url = (data && data.url) || "";
+        if (!url) throw new Error("no link");
+        var absolute = url.indexOf("http") === 0 ? url : window.location.origin + url;
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(absolute).catch(function () {});
+        }
+        status("Share link copied", "ok");
+        if (window.GBToasts) {
+          GBToasts.show("Link ready", absolute, "success");
+        }
+      })
+      .catch(function (err) {
+        status("Share failed: " + err.message, "error");
+      });
+  }
+
   function setName() {
     var name = byId("gbPreviewName");
     if (name) name.textContent = String(state.path || "Preview").split("/").pop();
@@ -366,6 +399,11 @@
     if (save) {
       save.disabled = !url;
       save.onclick = saveToDrive;
+    }
+    var share = byId("gbPreviewShare");
+    if (share) {
+      share.disabled = !url;
+      share.onclick = shareFile;
     }
     if (download) {
       download.disabled = !url;

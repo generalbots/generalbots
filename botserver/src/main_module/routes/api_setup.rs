@@ -78,10 +78,15 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
             .route("/api/files/public/:token", axum_get(crate::drive::drive_handlers::public_link_download));
         #[cfg(feature = "agent-vm")]
         {
-            api_router = api_router.route(
-                "/api/agent/drive/save",
-                axum_post(super::agent_drive::save_output),
-            );
+            api_router = api_router
+                .route(
+                    "/api/agent/drive/save",
+                    axum_post(super::agent_drive::save_output),
+                )
+                .route(
+                    "/api/agent/drive/share",
+                    axum_post(super::agent_drive::share_output),
+                );
         }
     }
 

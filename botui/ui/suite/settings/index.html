@@ -89,6 +89,13 @@
                 </svg>
                 <span>Privacy</span>
             </a>
+            <a href="#memory" class="nav-item" onclick="showSection('memory', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2a7 7 0 0 0-7 7c0 2 1 3 2 4v3a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-3c1-1 2-2 2-4a7 7 0 0 0-7-7z"></path>
+                    <line x1="9" y1="21" x2="15" y2="21"></line>
+                </svg>
+                <span>Memory</span>
+            </a>
             <a href="#billing" class="nav-item" onclick="showSection('billing', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
@@ -1162,6 +1169,34 @@
         </section>
 
         <!-- Billing Section -->
+        <section id="memory-section" class="settings-section">
+            <div class="section-header">
+                <h1>Memory</h1>
+                <p class="subtitle">What the assistant remembers about you across conversations</p>
+            </div>
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Remembered facts</h2>
+                </div>
+                <p class="setting-desc" style="padding:0 20px 12px;">
+                    These facts are sent with every message so answers stay consistent between
+                    conversations. Remove anything you no longer want the assistant to use.
+                </p>
+                <div id="gbMemoryList" style="padding:0 20px 16px;"></div>
+                <div class="setting-row">
+                    <div class="setting-info">
+                        <span class="setting-title">Add a fact</span>
+                        <span class="setting-desc">For example: "preferred language: Portuguese"</span>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <input id="gbMemoryKey" class="input-sm" placeholder="key" style="width:130px;">
+                        <input id="gbMemoryValue" class="input-sm" placeholder="value" style="width:220px;">
+                        <button type="button" class="btn btn-primary btn-sm" id="gbMemoryAdd">Add</button>
+                        <button type="button" class="btn btn-secondary btn-sm" id="gbMemoryClear">Clear all</button>
+                    </div>
+                </div>
+            </div>
+        </section>
         <section id="billing-section" class="settings-section">
             <div class="section-header">
                 <h1>Billing</h1>
@@ -3224,4 +3259,75 @@
 
         render();
     })();
+</script>
+<script>
+// #1551 GB6-14 - memory across conversations, visible and editable here.
+(function () {
+    function storageKey() {
+        var bot = window.__INITIAL_BOT_NAME__ || "default";
+        return "gb_chat_memory_" + bot;
+    }
+    function load() {
+        try { return JSON.parse(localStorage.getItem(storageKey()) || "{}"); }
+        catch (e) { return {}; }
+    }
+    function save(mem) {
+        try { localStorage.setItem(storageKey(), JSON.stringify(mem)); } catch (e) {}
+    }
+    function esc(value) {
+        return String(value == null ? "" : value)
+            .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    function render() {
+        var list = document.getElementById("gbMemoryList");
+        if (!list) return;
+        var mem = load();
+        var keys = Object.keys(mem);
+        if (!keys.length) {
+            list.innerHTML = '<p class="setting-desc" style="padding:8px 0;">Nothing remembered yet.</p>';
+            return;
+        }
+        list.innerHTML = keys.map(function (key) {
+            return '<div class="setting-row" data-memory-key="' + esc(key) + '">' +
+                '<div class="setting-info"><span class="setting-title">' + esc(key) + '</span>' +
+                '<span class="setting-desc">' + esc(mem[key].value || "") + '</span></div>' +
+                '<button type="button" class="btn btn-secondary btn-sm gb-memory-forget">Forget</button>' +
+                "</div>";
+        }).join("");
+    }
+    document.addEventListener("click", function (e) {
+        var forget = e.target.closest && e.target.closest(".gb-memory-forget");
+        if (forget) {
+            var row = forget.closest("[data-memory-key]");
+            var key = row && row.getAttribute("data-memory-key");
+            if (key) {
+                var mem = load();
+                delete mem[key];
+                save(mem);
+                render();
+            }
+            return;
+        }
+        if (e.target && e.target.id === "gbMemoryAdd") {
+            var keyEl = document.getElementById("gbMemoryKey");
+            var valueEl = document.getElementById("gbMemoryValue");
+            var addKey = keyEl && keyEl.value.trim();
+            var addValue = valueEl && valueEl.value.trim();
+            if (!addKey || !addValue) return;
+            var current = load();
+            current[addKey] = { value: addValue.substring(0, 500), _ts: Date.now() };
+            save(current);
+            keyEl.value = "";
+            valueEl.value = "";
+            render();
+            return;
+        }
+        if (e.target && e.target.id === "gbMemoryClear") {
+            save({});
+            render();
+        }
+    });
+    document.addEventListener("DOMContentLoaded", render);
+    if (document.readyState !== "loading") render();
+})();
 </script>
