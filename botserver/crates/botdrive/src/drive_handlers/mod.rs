@@ -8,7 +8,7 @@ pub(crate) use base64::Engine;
 pub(crate) use botsecurity_auth::auth_api::types::AuthenticatedUser;
 pub(crate) use diesel::prelude::*;
 pub(crate) use diesel::sql_types::{BigInt, Bool, Nullable, Text, Timestamptz};
-pub(crate) use log::{info, warn};
+pub(crate) use log::warn;
 pub(crate) use std::collections::HashMap;
 pub(crate) use std::sync::Arc;
 pub(crate) use std::sync::OnceLock;

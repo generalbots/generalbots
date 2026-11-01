@@ -17,7 +17,7 @@ pub struct VersionListBody {
     #[serde(default)]
     pub bucket: Option<String>,
     #[serde(default)]
-    pub scope: Option<String>,
+    pub scope: Option<FileScope>,
     #[serde(default)]
     pub user_id: Option<String>,
 }
@@ -29,13 +29,13 @@ pub struct VersionRestoreBody {
     #[serde(default)]
     pub bucket: Option<String>,
     #[serde(default)]
-    pub scope: Option<String>,
+    pub scope: Option<FileScope>,
     #[serde(default)]
     pub user_id: Option<String>,
 }
 
-fn versions_prefix(scope: &str, uid: &str, key: &str) -> String {
-    format!("{VERSIONS_ROOT}/{}/{}/", user_scope::resolve_scope_prefix(scope, uid), key)
+fn versions_prefix(scope: &FileScope, uid: &str, key: &str) -> String {
+    format!("{VERSIONS_ROOT}/{}/{}/", resolve_scope_prefix(scope, uid), key)
 }
 
 /// Copies the current object aside before it is overwritten. Called by the
@@ -44,7 +44,7 @@ pub async fn snapshot_before_write(
     drive: &Arc<dyn botlib::traits::DriveRepository>,
     bucket: &str,
     key: &str,
-    scope: &str,
+    scope: &FileScope,
     uid: &str,
 ) {
     match drive.get_object(bucket, key).await {
@@ -66,7 +66,7 @@ pub async fn snapshot_before_write(
 async fn prune_versions(
     drive: &Arc<dyn botlib::traits::DriveRepository>,
     bucket: &str,
-    scope: &str,
+    scope: &FileScope,
     uid: &str,
     key: &str,
 ) {
