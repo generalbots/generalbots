@@ -284,10 +284,10 @@ pub async fn fetch_referenced(
         return;
     }
     let Some(scope) = drive_bridge::scope(state, &bot_uuid, user_id) else {
-        log::warn!("drive bridge: no Drive scope for bot {bot_uuid}");
+        botlog::safe_warn!("drive bridge: no Drive scope for bot {bot_uuid}");
         return;
     };
-    log::info!(
+    botlog::safe_info!(
         "drive bridge: scope bucket={} bot_prefix={} user_prefix={:?}",
         scope.bucket,
         scope.bot_prefix,
@@ -328,5 +328,5 @@ pub async fn fetch_referenced(
             fetched.join(", ")
         )
     }));
-    log::info!("drive bridge: pre-fetched {} files for {session_id}", fetched.len());
+    botlog::safe_info!("drive bridge: pre-fetched {} files for {session_id}", fetched.len());
 }

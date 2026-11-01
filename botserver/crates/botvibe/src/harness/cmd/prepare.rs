@@ -49,12 +49,7 @@ pub(super) fn prepare_command(
         }
     };
     #[cfg(not(target_os = "windows"))]
-    let mut command = match program {
-        "node" => std::process::Command::new("node"),
-        "npm" => std::process::Command::new("npm"),
-        "npx" => std::process::Command::new("npx"),
-        _ => return Err(GuardError::CommandNotAllowed(program.into())),
-    };
+    let mut command = std::process::Command::new(harness_executable(program)?);
 
     command.args(args).current_dir(cwd).env_clear();
 
@@ -78,4 +73,55 @@ pub(super) fn prepare_command(
         }
     }
     Ok(command)
+}
+
+/// The only executables the harness may spawn (#1534). Every arm is a string
+/// literal, so request input selects from a fixed set instead of naming the
+/// program that gets executed.
+fn harness_executable(program: &str) -> Result<&'static str, GuardError> {
+    match program {
+        "node" => Ok("node"),
+        "npm" => Ok("npm"),
+        "npx" => Ok("npx"),
+        _ => Err(GuardError::CommandNotAllowed(program.into())),
+    }
+}
+
+#[cfg(test)]
+mod allowlist_tests {
+    use super::{harness_executable, prepare_command};
+
+    #[cfg(not(target_os = "windows"))]
+    #[test]
+    fn builds_only_allowlisted_commands() {
+        for program in ["node", "npm", "npx"] {
+            let command = prepare_command(program, &["--version".to_string()], std::path::Path::new("/tmp"));
+            assert!(command.is_ok(), "{program} must be allowed");
+        }
+    }
+
+    #[test]
+    fn rejects_any_other_program() {
+        for program in [
+            "bash",
+            "sh",
+            "/bin/sh",
+            "/usr/bin/node",
+            "node; rm -rf /",
+            "node ",
+            "NODE",
+            "",
+        ] {
+            assert!(
+                harness_executable(program).is_err(),
+                "{program:?} must be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn rejects_shell_metacharacters_in_arguments() {
+        let args = vec!["ok".to_string(), "; rm -rf /".to_string()];
+        assert!(prepare_command("node", &args, std::path::Path::new("/tmp")).is_err());
+    }
 }

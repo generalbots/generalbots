@@ -144,7 +144,7 @@ fn repair_poisoned_identity(
     ))
     .execute(&mut conn);
     match repaired {
-        Ok(count) if count > 0 => info!(
+        Ok(count) if count > 0 => botlog::safe_info!(
             "Repaired guest identity for user {} -> {}",
             user_uuid, email
         ),

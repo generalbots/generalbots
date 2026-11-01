@@ -66,7 +66,7 @@ pub async fn ensure_agent_vm(
             Some(row)
         }
         Err((_, err)) => {
-            log::warn!("auto-provision VM for user {user_id}: {err}");
+            botlog::safe_warn!("auto-provision VM for user {user_id}: {err}");
             None
         }
     }
@@ -83,7 +83,7 @@ pub async fn delete_conversation_folder(user_id: uuid::Uuid, session_id: uuid::U
     )
     .await
     {
-        log::warn!("delete conversation folder for {session_id} failed ({code}): {err}");
+        botlog::safe_warn!("delete conversation folder for {session_id} failed ({code}): {err}");
     }
 }
 

@@ -289,3 +289,43 @@ pub async fn execute_query(
         Err(e) => Err(internal_error(&format!("Query failed: {e}"))),
     }
 }
+
+#[cfg(test)]
+mod generic_sql_tests {
+    use super::validate_generic_sql;
+
+    #[test]
+    fn accepts_a_single_read_statement() {
+        assert!(validate_generic_sql("SELECT id, email FROM users LIMIT 5").is_ok());
+        assert!(validate_generic_sql("SELECT 1;").is_ok());
+        assert!(validate_generic_sql("WITH x AS (SELECT 1) SELECT * FROM x").is_ok());
+    }
+
+    #[test]
+    fn rejects_multiple_statements() {
+        assert!(validate_generic_sql("SELECT 1; DROP TABLE users").is_err());
+        assert!(validate_generic_sql("SELECT 1; SELECT 2").is_err());
+    }
+
+    #[test]
+    fn rejects_schema_and_privilege_changes() {
+        for query in [
+            "DROP TABLE users",
+            "ALTER TABLE users ADD COLUMN x INT",
+            "CREATE TABLE x (id INT)",
+            "TRUNCATE users",
+            "GRANT ALL ON users TO public",
+            "REVOKE ALL ON users FROM public",
+            "COPY users TO '/tmp/x'",
+            "VACUUM FULL users",
+            "COMMENT ON TABLE users IS 'x'",
+        ] {
+            assert!(validate_generic_sql(query).is_err(), "{query} must be rejected");
+        }
+    }
+
+    #[test]
+    fn rejects_empty_input() {
+        assert!(validate_generic_sql("   ").is_err());
+    }
+}

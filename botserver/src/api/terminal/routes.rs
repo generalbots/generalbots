@@ -87,7 +87,7 @@ async fn create_terminal(
     let is_own_agent_vm = agent_vm.as_deref() == Some(container.as_str());
     if !is_own_agent_vm {
         if let Err(e) = authorize_project_container(&state.pool, user.user_id, &container) {
-            log::warn!("terminal create forbidden (user {}): {e}", user.user_id);
+            botlog::safe_warn!("terminal create forbidden (user {}): {e}", user.user_id);
             return (
                 axum::http::StatusCode::FORBIDDEN,
                 Json(serde_json::json!({ "error": e })),
