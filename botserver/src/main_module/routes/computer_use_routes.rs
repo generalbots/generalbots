@@ -144,6 +144,16 @@ const DENIED_PATTERNS: &[&str] = &[
     "chmod -R 000 /",
 ];
 
+/// Server-side re-check of destructive patterns. The consent card enforces the
+/// same list client-side, but the server must not rely on it.
+pub(crate) fn blocked_pattern(command: &str) -> Option<&'static str> {
+    let lowered = command.to_ascii_lowercase();
+    DENIED_PATTERNS
+        .iter()
+        .find(|pattern| lowered.contains(&pattern.to_ascii_lowercase()))
+        .copied()
+}
+
 /// POST /api/terminal/exec
 pub async fn terminal_exec(
     headers: HeaderMap,
@@ -166,17 +176,13 @@ pub async fn terminal_exec(
             "command is limited to 16000 characters",
         ));
     }
-    let lowered = command.to_ascii_lowercase();
-    if DENIED_PATTERNS
-        .iter()
-        .any(|pattern| lowered.contains(&pattern.to_ascii_lowercase()))
-    {
+    if let Some(pattern) = blocked_pattern(command) {
+        log::warn!("terminal exec refused a blocked pattern ({pattern}) for user {user_id}");
         return Err(api_error(
             StatusCode::FORBIDDEN,
             "command matches a blocked destructive pattern",
         ));
     }
-
     #[cfg(feature = "agent-vm")]
     let container = crate::core::bot::agent_vm_hook::user_vm_name(user_id).await;
     #[cfg(not(feature = "agent-vm"))]
@@ -248,4 +254,24 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/computer/actions/:id", get(get_action))
         .route("/api/computer/actions/:id/result", post(submit_result))
         .route("/api/terminal/exec", post(terminal_exec))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::blocked_pattern;
+
+    #[test]
+    fn destructive_commands_are_refused_server_side() {
+        assert_eq!(blocked_pattern("rm -rf /"), Some("rm -rf /"));
+        assert_eq!(blocked_pattern("sudo SHUTDOWN now"), Some("shutdown"));
+        assert_eq!(blocked_pattern("dd if=/dev/zero of=/dev/sda"), Some("dd if="));
+        assert_eq!(blocked_pattern(":(){ :|:& };:"), Some(":(){"));
+    }
+
+    #[test]
+    fn ordinary_commands_are_not_blocked() {
+        for command in ["ls -la", "python3 make_pdf.py", "echo hi", "git status"] {
+            assert_eq!(blocked_pattern(command), None, "{command} must be allowed");
+        }
+    }
 }

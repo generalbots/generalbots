@@ -134,3 +134,72 @@ pub async fn record_terminal(
     let entry = create(session_id, user_id, "terminal_exec", action).await;
     complete(entry.id, user_id, result).await.unwrap_or(entry)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn user() -> Uuid {
+        Uuid::new_v4()
+    }
+
+    /// The suite collects each proposed action once, and only for the user and
+    /// conversation it belongs to.
+    #[tokio::test]
+    async fn pending_is_scoped_and_delivered_once() {
+        let owner = user();
+        let session = format!("s-{}", Uuid::new_v4());
+        let action = create(&session, owner, "browser", json!({"action": "open_url"})).await;
+        let other = user();
+
+        assert!(pending_for(&session, other, "browser").await.is_empty());
+        assert!(pending_for(&session, owner, "terminal").await.is_empty());
+
+        let collected = pending_for(&session, owner, "browser").await;
+        assert_eq!(collected.len(), 1);
+        assert_eq!(collected[0].id, action.id);
+        assert!(
+            pending_for(&session, owner, "browser").await.is_empty(),
+            "a reconnecting tab must not receive the same consent card twice"
+        );
+    }
+
+    #[tokio::test]
+    async fn results_are_scoped_to_the_owner() {
+        let owner = user();
+        let session = format!("s-{}", Uuid::new_v4());
+        let action = create(&session, owner, "browser", json!({"action": "extract_text"})).await;
+
+        assert!(complete(action.id, user(), json!({"status": "ok"})).await.is_none());
+        assert!(get(action.id, user()).await.is_none());
+
+        let done = complete(action.id, owner, json!({"status": "ok", "text": "hello"}))
+            .await
+            .expect("the owner can record the outcome");
+        assert_eq!(done.status, "completed");
+        assert_eq!(done.result.unwrap()["text"], "hello");
+
+        let denied = create(&session, owner, "browser", json!({"action": "click_element"})).await;
+        let denied = complete(denied.id, owner, json!({"status": "denied"}))
+            .await
+            .expect("denial is recorded");
+        assert_eq!(denied.status, "denied");
+    }
+
+    #[tokio::test]
+    async fn terminal_outcome_is_queryable_by_id() {
+        let owner = user();
+        let session = format!("s-{}", Uuid::new_v4());
+        let recorded = record_terminal(
+            &session,
+            owner,
+            json!({"command": "echo hi"}),
+            json!({"status": "ok", "stdout": "hi\n", "exit_code": 0}),
+        )
+        .await;
+        assert_eq!(recorded.status, "completed");
+        assert_eq!(recorded.kind, "terminal_exec");
+        let found = get(recorded.id, owner).await.expect("recorded action is readable");
+        assert_eq!(found.result.unwrap()["stdout"], "hi\n");
+    }
+}
