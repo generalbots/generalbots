@@ -12,6 +12,16 @@
     return window.GBSidebarBase;
   };
 
+  // #1596/#1614 — a surface may only show an app the product profile enables
+  // (and the binary compiles). `isAppEnabled` lives in base.js and returns
+  // true while the product config is still loading, so an early render is
+  // corrected by the `gb-product-config` listener in sidebar-enhance.js.
+  function isAppAvailable(id) {
+    if (!id) return true;
+    if (typeof window.isAppEnabled !== "function") return true;
+    return window.isAppEnabled(id);
+  }
+
   // ── 1. Pinned apps bar ───────────────────────────────────────
 
   function renderPins() {
@@ -24,6 +34,7 @@
     state.pinned.forEach(function (id) {
       var app = base().findApp(id);
       if (!app) return;
+      if (!isAppAvailable(id)) return;
       var item = document.createElement("div");
       item.className = "gb-side-pin";
       item.setAttribute("data-app-id", id);
@@ -73,6 +84,7 @@
     // db, metering) are accessory windows owned by the Vibe toolbar; they
     // are not user-pinnable apps.
     reg = reg.filter(function (a) { return !a.toolwindow && String(a.id).indexOf("vibe-") !== 0; });
+    reg = reg.filter(function (a) { return isAppAvailable(a.id); });
     var menu = document.createElement("div");
     menu.className = "desktop-context-menu gb-launcher-menu";
     menu.style.maxHeight = "320px";
@@ -230,6 +242,10 @@
   function renderActions() {
     var host = base().byId("gbQuickActions");
     if (!host) return;
+    // #1596 — every shortcut declares the app it launches; the filter below
+    // drops it when the product profile does not enable that app, so a
+    // removed app can never reappear through a hardcoded list. Settings is a
+    // core surface (always enabled) and declares no app.
     var actions = [
       {
         label: "New conversation",
@@ -241,6 +257,7 @@
       {
         // #1303 — Explorer replaces Terminal in the quick actions.
         label: "Explorer",
+        app: "drive",
         run: function () {
           if (window.openDeepLink) window.openDeepLink("drive", {});
         },
@@ -254,15 +271,18 @@
       {
         // #1303 — Vibe replaces the New bot shortcut.
         label: "Vibe",
+        app: "vibe",
         run: function () {
           if (window.openDeepLink) window.openDeepLink("vibe", {});
         },
       },
     ];
-    // Preview-only shortcuts disappear with their app.
     actions = actions.filter(function (action) {
-      if (action.label !== "Vibe") return true;
-      return (window.APPS_REGISTRY || []).some(function (a) { return a.id === "vibe"; });
+      if (!action.app) return true;
+      if (typeof window.isAppEnabled !== "function") {
+        return (window.APPS_REGISTRY || []).some(function (a) { return a.id === action.app; });
+      }
+      return window.isAppEnabled(action.app);
     });
     host.innerHTML = "";
     // Chips belong in the wrapping row the stylesheet expects; appending them

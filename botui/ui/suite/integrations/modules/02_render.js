@@ -284,17 +284,25 @@
             '<p class="integrations-readonly-note">Credentials stay in the server-side vault; this inventory only shows sanitized metadata.</p>';
     };
 
+    // #1616 — a failed status request is NOT a connection state. The card must
+    // say the status is unavailable and offer a retry, never imply that the
+    // user's accounts are disconnected or that the service reported an error.
     namespace.renderConnectedUnavailable = function (root) {
         var view = query(root, "[data-connected-view]");
-        query(root, "[data-connected-status]").textContent = "Connected services unavailable";
+        query(root, "[data-connected-status]").textContent = "Status unavailable";
         view.setAttribute("aria-busy", "false");
-        view.innerHTML = stateView("!", "Secure connection control plane unavailable", "The workspace context service did not respond, so connections cannot be listed. The provider catalog in Explore remains available.", "retry-connected", "Try again", true);
+        view.innerHTML = stateView("!", "Status unavailable", "The workspace context service did not answer, so connections cannot be listed right now. This is a status check failure, not a disconnected account. The provider catalog in Explore remains available.", "retry-connected", "Check again", true);
     };
 
-    namespace.renderConnectedError = function (root) {
+    namespace.renderConnectedError = function (root, reason) {
         var view = query(root, "[data-connected-view]");
-        query(root, "[data-connected-status]").textContent = "Connected services unavailable";
+        query(root, "[data-connected-status]").textContent = "Status unavailable";
         view.setAttribute("aria-busy", "false");
-        view.innerHTML = stateView("!", "Connected services could not be loaded", "This is a local connection-control-plane error. The provider catalog in Explore is still available.", "retry-connected", "Try again", true);
+        var copy = "The connection service did not answer this request, so the list cannot be shown. " +
+            "This is a status check failure, not a disconnected account.";
+        if (reason) {
+            copy += " Reported cause: " + reason + ".";
+        }
+        view.innerHTML = stateView("!", "Status unavailable", copy, "retry-connected", "Check again", true);
     };
 })(window.GBIntegrationsCatalog = window.GBIntegrationsCatalog || {});

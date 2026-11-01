@@ -75,6 +75,7 @@ pub fn get_product_config_json() -> serde_json::Value {
             "menu_launcher_enabled": c.menu_launcher_enabled.unwrap_or(false),
             "sidebar": c.sidebar,
             "suite_default_app": c.suite_default_app,
+            "hidden_apps": c.get_hidden_apps(),
             "no_security": c.no_security,
         }),
         None => serde_json::json!({
@@ -87,6 +88,7 @@ pub fn get_product_config_json() -> serde_json::Value {
             "search_enabled": false,
             "menu_launcher_enabled": false,
             "sidebar": null,
+            "hidden_apps": Vec::<String>::new(),
         }),
     }
 }

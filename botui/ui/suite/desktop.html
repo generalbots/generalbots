@@ -377,30 +377,29 @@
 
                 <!-- Bottom Taskbar (v15) -->
                 <footer class="toolbar-v15" id="taskbar">
+                    <!-- #1618 — the dock pill is a real wrapper so it hugs its
+                         content. The old empty ::before pill had min-width 420px
+                         and rendered as a blank rounded box when few items were
+                         docked. -->
+                    <div class="taskbar-shell" id="taskbarShell">
                     <div id="startBtn" onclick="window.WindowManager.toggleStartMenu()" title="Start">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="9" height="9" rx="1.5"/><rect x="13" y="2" width="9" height="9" rx="1.5"/><rect x="2" y="13" width="9" height="9" rx="1.5"/><rect x="13" y="13" width="9" height="9" rx="1.5"/></svg>
                     </div>
                     <div class="taskbar-search" id="taskbarSearchWrap">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input type="search" id="taskbarSearch" placeholder="Search apps, people, products..." aria-label="Universal search" autocomplete="off">
+                        <input type="search" id="taskbarSearch" placeholder="Search..." aria-label="Universal search" autocomplete="off">
                     </div>
-                    <div class="taskbar-center" id="taskbar-center">
-                    </div>
+                    <div class="taskbar-center" id="taskbar-center"></div>
                     <div class="taskbar-right">
                         <div class="taskbar-tray">
                             <button class="tray-btn" id="trayNotifications" title="Notifications" onclick="window.GBToasts && window.GBToasts.toggleCenter()">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                                 <span class="tray-badge" id="trayNotificationsBadge" style="display:none"></span>
                             </button>
-                            <button class="tray-btn" id="trayControlCenter" title="Control Center" onclick="window.ControlCenter && window.ControlCenter.toggle()">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="1" y="3" width="15" height="13" rx="2"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                            </button>
-                            <button class="tray-btn" id="trayMissionControl" title="Mission Control (Ctrl+Up)" onclick="window.MissionControl && window.MissionControl.toggle()">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="2" y="4" width="20" height="6" rx="1"/><rect x="2" y="14" width="9" height="6" rx="1"/><rect x="13" y="14" width="9" height="6" rx="1"/></svg>
-                            </button>
-                            <button class="tray-btn" id="trayVirtualDesktops" title="Virtual Desktops" onclick="window.VirtualDesktops && window.VirtualDesktops.toggleSwitcher()">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="2" y="4" width="9" height="7" rx="1"/><rect x="13" y="4" width="9" height="7" rx="1"/><rect x="2" y="13" width="9" height="7" rx="1"/><rect x="13" y="13" width="9" height="7" rx="1"/></svg>
-                            </button>
+                            <!-- #1617 — Control Center, Mission Control and Virtual
+                                 Desktops are not part of the current desktop scope.
+                                 Their modules stay loaded behind the keyboard
+                                 shortcuts; only the tray buttons are removed. -->
                             <button class="tray-btn" id="trayLock" title="Lock Screen" onclick="window.LockScreen && window.LockScreen.lock()">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                             </button>
@@ -410,6 +409,7 @@
                             <div id="clock-date">01/01/2026</div>
                         </div>
                     </div>
+                    </div><!-- /taskbar-shell -->
                 </footer>
             </div>
         </div>

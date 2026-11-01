@@ -383,6 +383,15 @@ if (typeof window.WindowManager === "undefined") {
     // popup-sized tool window (e.g. the Vibe Members list).
     open(id, title, htmlContent, opts) {
       opts = opts || {};
+      // #1614/#1615 — an app the product profile hides must not open through
+      // any route (launcher, palette, deep link, direct hash). Block it with
+      // an explicit message instead of rendering an unfinished surface.
+      if (typeof window.isAppHidden === "function" && window.isAppHidden(id)) {
+        if (window.GBToasts && typeof window.GBToasts.show === "function") {
+          window.GBToasts.show("Not available", "This application is not part of this edition.", "info");
+        }
+        return;
+      }
       const existingWindow = this.openWindows.find((w) => w.id === id);
       if (existingWindow) {
         if (opts.ownerId) existingWindow.ownerId = opts.ownerId;
@@ -988,7 +997,11 @@ if (typeof window.WindowManager === "undefined") {
 
       // Filter apps by product config if available
       const enabledApps = window.productConfig && window.productConfig.apps
-        ? new Set(window.productConfig.apps.map(function (a) { return a.toLowerCase(); }))
+        ? new Set(window.productConfig.apps
+            .map(function (a) { return a.toLowerCase(); })
+            .filter(function (a) {
+              return !(typeof window.isAppHidden === "function" && window.isAppHidden(a));
+            }))
         : null;
 
       let html = `<div class="start-menu-search-wrap"><div class="start-menu-search">

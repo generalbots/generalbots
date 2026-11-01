@@ -33,24 +33,25 @@
   z-index: 2000;
 }
 
-/* The actual visible dock pill */
-.toolbar-v15::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  margin: 0 auto;
+/* #1618 — the dock content is a real wrapper that hugs its items. The old
+   empty ::before pill had `min-width: 420px` and painted a blank rounded box
+   when the dock held few items. The wrapper carries no background of its own:
+   the toolbar strip is the dock surface. */
+.toolbar-v15 .taskbar-shell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: fit-content;
-  min-width: 420px;
   max-width: 92vw;
   height: 100%;
-  background: var(--shell-bg);
-  backdrop-filter: var(--shell-blur);
-  -webkit-backdrop-filter: var(--shell-blur);
-  border: 1px solid var(--shell-border);
-  border-radius: var(--shell-radius);
-  box-shadow: var(--shell-shadow);
+  padding: 0 10px;
   pointer-events: auto;
-  z-index: -1;
+}
+
+/* #1618 — no dock items means no reserved space in the middle of the bar. */
+.toolbar-v15 .taskbar-center:empty {
+  display: none;
 }
 
 .toolbar-v15 .taskbar-center,

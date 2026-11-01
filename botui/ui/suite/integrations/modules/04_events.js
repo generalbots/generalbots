@@ -56,7 +56,12 @@
             if (requestId === state.connectedRequest) {
                 state.connectors = [];
                 state.connectedStatus = "error";
-                namespace.renderConnectedError(root);
+                // #1616 — keep the diagnosis in the console (endpoint and HTTP
+                // status) so a failing deployment can be traced from the log,
+                // while the card itself only reports an unavailable status.
+                var status = error && typeof error.status === "number" ? " HTTP " + error.status : "";
+                console.warn("[integrations] connected status request failed:" + status + " " + url, error);
+                namespace.renderConnectedError(root, status ? "the endpoint answered" + status : "");
             }
         }
     };

@@ -151,6 +151,15 @@
       });
     }
 
+    // #1596/#1614 — the product config resolves after boot, so re-render the
+    // app-derived surfaces once the real app set is known.
+    document.addEventListener("gb-product-config", function () {
+      if (window.GBSidebarSections) {
+        window.GBSidebarSections.renderPins();
+        window.GBSidebarSections.renderActions();
+      }
+    });
+
     // Keep pins fresh when the pinned launcher gains an app.
     window.addEventListener("gb-launcher-pin-request", function (event) {
       var detail = event && event.detail;

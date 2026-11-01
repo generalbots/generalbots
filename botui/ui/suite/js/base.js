@@ -135,6 +135,15 @@ function applyProductConfig(config) {
       el.textContent = config.copyright;
     });
   }
+
+  // #1596 — the config arrives asynchronously, after the sidebar and the
+  // launchers may already have rendered. Announce it so surfaces that depend
+  // on `isAppEnabled()` (quick actions, pins) re-render with the real app set.
+  try {
+    document.dispatchEvent(new CustomEvent("gb-product-config", { detail: config }));
+  } catch (e) {
+    console.warn("Could not announce product config:", e);
+  }
 }
 
 // Hide UI elements that require features not compiled in the binary
@@ -163,16 +172,30 @@ function hideNonCompiledUI(compiledSet) {
   });
 }
 
+// #1614/#1615 — a product profile may hide an app that is still compiled and
+// routed (the desktop edition hides Integrations, Automations and their Data
+// Sources tab). Hiding is explicit and profile-scoped, so other editions keep
+// the surface without a code change.
+function isAppHidden(appName) {
+  if (!appName) return false;
+  const hidden = (window.productConfig && window.productConfig.hidden_apps) || [];
+  const id = String(appName).toLowerCase();
+  return hidden.some((entry) => String(entry).toLowerCase() === id);
+}
+window.isAppHidden = isAppHidden;
+
 // Filter visible apps based on enabled list
 function filterAppsByConfig(enabledApps) {
-  const enabledSet = new Set(enabledApps.map((a) => a.toLowerCase()));
+  const enabledSet = new Set(
+    enabledApps.map((a) => a.toLowerCase()).filter((a) => !isAppHidden(a)),
+  );
 
   // Hide nav items for disabled apps (data-app or data-section attribute)
   document.querySelectorAll("[data-app], [data-section]").forEach((el) => {
     const appName = (
       el.getAttribute("data-app") || el.getAttribute("data-section")
     ).toLowerCase();
-    if (!enabledSet.has(appName)) {
+    if (!enabledSet.has(appName) || isAppHidden(appName)) {
       el.style.display = "none";
     }
   });
@@ -182,11 +205,11 @@ function filterAppsByConfig(enabledApps) {
     const href = el.getAttribute("href") || el.getAttribute("hx-get") || "";
     // Match both /app and #app patterns (hash and path-based links)
     const appMatch = href.match(
-      /[\/#](chat|mail|calendar|drive|tasks|docs|paper|sheet|slides|meet|research|sources|analytics|admin|monitoring|settings)/i,
+      /[\/#](chat|mail|calendar|drive|tasks|docs|paper|sheet|slides|meet|research|sources|analytics|admin|monitoring|settings|integrations|automations|connectors)/i,
     );
     if (appMatch) {
       const appName = appMatch[1].toLowerCase();
-      if (!enabledSet.has(appName)) {
+      if (!enabledSet.has(appName) || isAppHidden(appName)) {
         el.style.display = "none";
       }
     }
@@ -195,6 +218,7 @@ function filterAppsByConfig(enabledApps) {
 
 // Check if an app is enabled
 function isAppEnabled(appName) {
+  if (isAppHidden(appName)) return false;
   if (!window.productConfig || !window.productConfig.apps) return true;
   return window.productConfig.apps
     .map((a) => a.toLowerCase())

@@ -67,6 +67,12 @@ pub struct ProductConfig {
     /// The app that opens automatically when the suite loads (e.g. "chat").
     pub suite_default_app: Option<String>,
 
+    /// Apps the profile hides even though they remain compiled and routed
+    /// (e.g. the desktop edition hides integrations and automations). Unlike
+    /// `apps`, this is an explicit deny list: a hidden app is never advertised
+    /// and cannot be opened from the suite.
+    pub hidden_apps: HashSet<String>,
+
     /// No-security mode (optional)
     /// When true, the UI skips authentication checks entirely.
     pub no_security: bool,
@@ -123,6 +129,19 @@ theme=dark
             config.replace_branding("Welcome to General Bots"),
             "Welcome to Acme Bot"
         );
+    }
+
+    #[test]
+    fn test_hidden_apps_override_enabled_apps() {
+        let content = "apps=chat,drive,integrations,automations\nhidden_apps= integrations , Automations ";
+        let config = ProductConfig::parse(content).unwrap();
+
+        assert_eq!(config.get_hidden_apps(), vec!["automations", "integrations"]);
+        assert!(config.is_app_enabled("chat"));
+        // Hidden wins over enabled: the surface stays compiled and routed but
+        // the profile never advertises it.
+        assert!(!config.is_app_enabled("integrations"));
+        assert!(!config.is_app_enabled("automations"));
     }
 
     #[test]

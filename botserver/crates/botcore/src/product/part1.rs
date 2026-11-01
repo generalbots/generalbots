@@ -82,6 +82,7 @@ impl Default for ProductConfig {
             menu_launcher_enabled: Some(false),
             sidebar: None,
             suite_default_app: None,
+            hidden_apps: HashSet::new(),
             no_security: false,
         }
     }
@@ -221,6 +222,15 @@ impl ProductConfig {
                             config.suite_default_app = Some(value.to_lowercase());
                         }
                     }
+                    "hidden_apps" => {
+                        config.hidden_apps.clear();
+                        for app in value.split(',') {
+                            let app = app.trim();
+                            if !app.is_empty() {
+                                config.hidden_apps.insert(app.to_lowercase());
+                            }
+                        }
+                    }
                     "no_security" => {
                         config.no_security = value.eq_ignore_ascii_case("true")
                             || value == "1"
@@ -247,7 +257,8 @@ impl ProductConfig {
 
     /// Check if an app is enabled
     pub fn is_app_enabled(&self, app: &str) -> bool {
-        self.apps.contains(&app.to_lowercase())
+        let id = app.to_lowercase();
+        self.apps.contains(&id) && !self.hidden_apps.contains(&id)
     }
 
     /// Check whether an app is a preview application, i.e. one that is only
@@ -298,6 +309,13 @@ impl ProductConfig {
     /// Get all enabled apps as a vector
     pub fn get_enabled_apps(&self) -> Vec<String> {
         self.apps.iter().cloned().collect()
+    }
+
+    /// Apps the profile hides even when they are compiled and routed.
+    pub fn get_hidden_apps(&self) -> Vec<String> {
+        let mut hidden: Vec<String> = self.hidden_apps.iter().cloned().collect();
+        hidden.sort();
+        hidden
     }
 
     /// Reload configuration from file
