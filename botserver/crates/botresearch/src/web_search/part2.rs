@@ -202,6 +202,8 @@ pub fn clean_query(query: &str) -> String {
             "what is the ", "what are the ", "what is ", "what are ", "who is ", "who are ",
             "how many ", "how much ", "when did ", "when was ", "where is ", "where are ",
             "tell me ", "can you tell me ", "could you tell me ", "do you know ", "please ",
+            "search the web for ", "search web for ", "search for ", "search the web ",
+            "search the internet for ", "look up ", "google ",
         ] {
             if lower.starts_with(prefix) {
                 text = text[prefix.len()..].to_string();
@@ -473,6 +475,19 @@ mod endpoint_tests {
         let url = wikipedia_search_url("../../etc/passwd", 3).expect("url");
         assert_eq!(url.host_str(), Some("en.wikipedia.org"));
         assert!(url.as_str().contains("srsearch=..%2F..%2Fetc%2Fpasswd"));
+    }
+
+    #[test]
+    fn clean_query_strips_the_search_instruction() {
+        assert_eq!(
+            super::clean_query("search web for computers virus recent"),
+            "computers virus recent"
+        );
+        assert_eq!(
+            super::clean_query("Search the web for the latest virus news."),
+            "the latest virus news"
+        );
+        assert_eq!(super::clean_query("google ransomware 2026"), "ransomware 2026");
     }
 
     #[test]

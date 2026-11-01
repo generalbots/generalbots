@@ -24,12 +24,22 @@ fn should_search(text: &str) -> bool {
     if command_starts.iter().any(|c| lower.starts_with(c)) && !lower.contains('?') {
         return false;
     }
+    // An explicit request to search is a cue on its own ("search the web for
+    // X", "google X", "pesquise sobre X") — without this the model answered by
+    // listing its own command catalog instead of searching.
+    let search_cues = [
+        "search", "look up", "lookup", "google", "web for", "browse", "find out",
+        "pesquis", "busque", "buscar", "procure", "procurar", "consulte",
+    ];
+    if search_cues.iter().any(|cue| lower.contains(cue)) {
+        return true;
+    }
     let cues = [
         "?", "quem", "qual", "quais", "quando", "onde", "como", "por que", "porque",
         "quanto", "what", "who", "when", "where", "why", "how", "which", "latest",
         "current", "hoje", "agora", "notícia", "noticia", "news", "cotação",
         "cotacao", "preço", "preco", "temperatura", "clima", "weather", "população",
-        "populacao", "eleição", "eleicao",
+        "populacao", "eleição", "eleicao", "recent", "recente", "últimas", "ultimas",
     ];
     cues.iter().any(|cue| lower.contains(cue))
 }
@@ -80,4 +90,40 @@ pub async fn inject(user_text: &str, messages: &mut Vec<serde_json::Value>) {
     }
     messages.push(json!({ "role": "system", "content": block }));
     log::info!("web context: injected {} results", results.len());
+}
+
+#[cfg(test)]
+mod routing_tests {
+    use super::should_search;
+
+    #[test]
+    fn explicit_search_requests_trigger_a_lookup() {
+        for text in [
+            "search web for computers virus recent",
+            "search the web for a recent computer virus",
+            "google the latest ransomware news",
+            "pesquise na web sobre vírus de computador recentes",
+            "busque notícias sobre vírus",
+            "look up the latest virus outbreak",
+        ] {
+            assert!(should_search(text), "{text:?} must trigger a search");
+        }
+    }
+
+    #[test]
+    fn plain_questions_still_trigger_a_lookup() {
+        assert!(should_search("what is the population of Brazil?"));
+        assert!(should_search("temperatura em São Paulo"));
+    }
+
+    #[test]
+    fn local_commands_do_not_trigger_a_lookup() {
+        for text in [
+            "crie um pptx sobre o brasil",
+            "salve este arquivo no drive",
+            "gere um gráfico de vendas",
+        ] {
+            assert!(!should_search(text), "{text:?} must stay local");
+        }
+    }
 }
