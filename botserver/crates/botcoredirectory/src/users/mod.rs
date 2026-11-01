@@ -1,7 +1,7 @@
 pub(crate) use axum::{ extract::{Path, Query, State}, http::StatusCode, response::Json, };
 pub(crate) use chrono::{DateTime, Utc};
 pub(crate) use diesel::prelude::*;
-pub(crate) use log::{error, info};
+pub(crate) use log::info;
 pub(crate) use serde::{Deserialize, Serialize};
 pub(crate) use std::sync::Arc;
 pub(crate) use botcore::shared::state::AppState;

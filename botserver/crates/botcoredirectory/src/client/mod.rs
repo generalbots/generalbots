@@ -127,7 +127,5 @@ mod part2;
 mod part3;
 mod part4;
 mod part5;
-mod part6;
 
 use part1::*;
-use part6::*;

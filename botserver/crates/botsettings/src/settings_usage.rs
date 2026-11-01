@@ -30,8 +30,6 @@ pub struct UsageQuery {
 
 #[derive(diesel::QueryableByName)]
 struct UsageRow {
-    #[diesel(sql_type = diesel::sql_types::Date)]
-    day: chrono::NaiveDate,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
     model: Option<String>,
     #[diesel(sql_type = diesel::sql_types::BigInt)]
