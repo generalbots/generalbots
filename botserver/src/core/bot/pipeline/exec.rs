@@ -333,6 +333,15 @@ pub async fn process_message_internal(
     } else {
         base_system_prompt
     };
+    // GB6-16 — persisted user preferences are part of the system prompt, so a
+    // fresh conversation starts with what the user already taught the bot.
+    let memory_block =
+        crate::core::user_memory::render_for_prompt(&state.conn, user_id, Some(bot_uuid));
+    let system_prompt = if memory_block.is_empty() {
+        system_prompt
+    } else {
+        format!("{system_prompt}{memory_block}")
+    };
     let role = crate::security::user_role::resolve_user_role(&state.conn, user_id);
     let system_prompt = if channel == "web" {
         format!(

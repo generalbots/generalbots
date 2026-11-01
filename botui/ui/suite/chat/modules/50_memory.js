@@ -22,6 +22,51 @@
     try { localStorage.setItem(storageKey(), JSON.stringify(mem)); } catch (e) {}
   }
 
+  // GB6-16 — the server is the durable copy: localStorage keeps the fast path,
+  // but every write is also persisted so a new session (or another device)
+  // starts with the same preferences.
+  function authToken() {
+    return localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+  }
+
+  function persistToServer(key, value) {
+    var token = authToken();
+    if (!token) return;
+    fetch("/api/user/memory", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + token },
+      body: JSON.stringify({ key: key, value: value }),
+    }).catch(function () { /* offline: the local copy stays authoritative */ });
+  }
+
+  function deleteOnServer(key) {
+    var token = authToken();
+    if (!token) return;
+    fetch("/api/user/memory/" + encodeURIComponent(key), {
+      method: "DELETE",
+      headers: { Authorization: "Bearer " + token },
+    }).catch(function () { /* offline */ });
+  }
+
+  async function syncFromServer() {
+    var token = authToken();
+    if (!token) return;
+    try {
+      var response = await fetch("/api/user/memory", { headers: { Authorization: "Bearer " + token } });
+      if (!response.ok) return;
+      var payload = await response.json();
+      var memories = Array.isArray(payload.memories) ? payload.memories : [];
+      if (!memories.length) return;
+      var mem = loadMemory();
+      memories.forEach(function (entry) {
+        if (!entry || !entry.key) return;
+        mem[entry.key] = { value: String(entry.value || "").substring(0, MAX_VALUE_LEN), _ts: Date.parse(entry.updated_at) || Date.now() };
+      });
+      saveMemory(mem);
+      document.dispatchEvent(new CustomEvent("gb-memory-synced"));
+    } catch (e) { /* offline: local memory still works */ }
+  }
+
   function remember(key, value) {
     if (!key || typeof key !== "string") return;
     var mem = loadMemory();
@@ -33,12 +78,14 @@
     }
     mem[key] = { value: String(value).substring(0, MAX_VALUE_LEN), _ts: Date.now() };
     saveMemory(mem);
+    persistToServer(key, String(value));
   }
 
   function forget(key) {
     var mem = loadMemory();
     delete mem[key];
     saveMemory(mem);
+    deleteOnServer(key);
   }
 
   function getMemorySummary() {
@@ -74,7 +121,11 @@
     }
   });
 
+  syncFromServer();
+  document.addEventListener("gb-chat-ready", syncFromServer);
+
   window.ChatMemory = {
+    syncFromServer: syncFromServer,
     remember: remember,
     forget: forget,
     getMemorySummary: getMemorySummary,

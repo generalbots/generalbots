@@ -175,6 +175,14 @@ pub fn configure_settings_api_routes() -> Router<Arc<AppState>> {
         .route("/api/user/billing/payment-methods", get(settings_billing::billing_payment_methods))
         .route("/api/user/data/export", post(settings_billing::data_export))
         .route("/api/user/usage/summary", get(crate::settings_usage::usage_summary))
+        .route(
+            "/api/user/memory",
+            get(crate::settings_memory::list).put(crate::settings_memory::upsert),
+        )
+        .route(
+            "/api/user/memory/:key",
+            axum::routing::delete(crate::settings_memory::delete),
+        )
         .route("/api/user/notifications/preferences", get(notif_prefs_get).put(notif_prefs_put))
         .route("/api/oauth/:provider/connect", post(oauth_connect_handler))
         .route("/api/groups/create", post(groups_create))

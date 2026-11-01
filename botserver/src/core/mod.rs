@@ -31,5 +31,6 @@ pub mod oauth;
 pub mod secrets;
 pub mod session;
 pub mod state;
+pub mod user_memory;
 // Keep the incus module if needed
 pub use botcore::incus;

@@ -204,6 +204,20 @@ diesel::table! {
     }
 }
 
+// GB6-16 — persisted user preferences, read into the conversation prompt.
+// `bot_id` NULL means the entry applies to every bot for that user.
+diesel::table! {
+    user_memories (id) {
+        id -> Uuid,
+        user_id -> Uuid,
+        bot_id -> Nullable<Uuid>,
+        memory_key -> Text,
+        memory_value -> Text,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
 diesel::table! {
     message_history (id) {
         id -> Uuid,
