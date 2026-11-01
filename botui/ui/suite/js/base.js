@@ -14,11 +14,17 @@ async function loadProductConfig() {
     const response = await fetch("/api/product");
     if (response.ok) {
       window.productConfig = await response.json();
-      // Ensure core apps are always in the launcher regardless of server config
+      // A profile that declares its app set is authoritative (#1596): forcing
+      // editor/sheet back into it made removed apps reappear in the slim
+      // desktop build. Only fill the legacy default when no set is declared.
       var coreApps = ['editor', 'sheet'];
-      for (var i = 0; i < coreApps.length; i++) {
-        if (window.productConfig.apps && window.productConfig.apps.indexOf(coreApps[i]) < 0) {
-          window.productConfig.apps.push(coreApps[i]);
+      if (!Array.isArray(window.productConfig.apps)) {
+        window.productConfig.apps = [];
+      } else if (window.productConfig.apps.length === 0) {
+        for (var i = 0; i < coreApps.length; i++) {
+          if (window.productConfig.apps.indexOf(coreApps[i]) < 0) {
+            window.productConfig.apps.push(coreApps[i]);
+          }
         }
       }
       applyProductConfig(window.productConfig);

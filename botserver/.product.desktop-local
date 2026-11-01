@@ -9,8 +9,10 @@ apps=chat,drive
 
 # #1614/#1615 — surfaces that stay compiled and routed but are never advertised
 # in this profile. Integrations owns the Data Sources tab, so hiding the app
-# hides that tab too; direct navigation is refused by the suite shell.
-hidden_apps=integrations,automations
+# hides that tab too; direct navigation is refused by the suite shell. Research
+# (and its Data Sources surface) is not part of the chat+drive edition either,
+# so it is denied explicitly instead of relying on the product app list alone.
+hidden_apps=integrations,automations,research,sources
 
 # No preview apps in the local edition.
 preview_apps=

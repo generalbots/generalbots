@@ -33,11 +33,15 @@ const sidebarSections = read("botui/ui/suite/js/sidebar-sections.js");
 
 // #1614/#1615 — the profile ships chat+drive and hides the out-of-scope apps.
 check(/^apps=chat,drive\s*$/m.test(product), "desktop profile ships only chat,drive");
-check(/^hidden_apps=integrations,automations\s*$/m.test(product),
-  "desktop profile hides integrations and automations");
+check(/^hidden_apps=integrations,automations,research,sources\s*$/m.test(product),
+  "desktop profile hides integrations, automations, research and sources");
 check(baseJs.indexOf("function isAppHidden") !== -1, "hidden_apps has a client helper");
 check(/!isAppHidden\(a\)/.test(baseJs), "enabled apps are filtered through hidden_apps");
 check(/isAppHidden\(appName\)/.test(baseJs), "nav items are filtered through hidden_apps");
+check(/if \(!Array\.isArray\(window\.productConfig\.apps\)\)/.test(baseJs),
+  "a declared product app set is authoritative (no forced editor/sheet)");
+check(/apps\.length === 0/.test(baseJs),
+  "legacy core apps only fill an empty/default app set");
 check(/window\.isAppHidden\(id\)/.test(windowManager),
   "the window manager refuses to open a hidden app");
 check(/This application is not part of this edition/.test(windowManager),
