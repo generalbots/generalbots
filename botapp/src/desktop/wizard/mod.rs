@@ -116,6 +116,8 @@ pub struct ModelDraft {
     pub endpoint: String,
     #[serde(default)]
     pub model: String,
+    #[serde(default)]
+    pub api_key: String,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]

@@ -51,6 +51,11 @@
       desc: "Runs on this machine. Nothing leaves it. Recommended for a private install."
     },
     {
+      id: "free",
+      title: "Free hosted API (no key)",
+      desc: "Kilo Code, LLM7.io or OVHcloud free endpoints. No local model is installed; prompts go to that provider under its terms."
+    },
+    {
       id: "own-key",
       title: "My own provider key",
       desc: "Prompts go to the provider you choose, and only to that provider."
@@ -61,6 +66,37 @@
       desc: "Use a managed endpoint. Prompts leave this machine for that endpoint."
     }
   ];
+
+  var FREE_PROVIDERS = [
+    {
+      id: "kilo",
+      name: "Kilo Code",
+      endpoint: "https://api.kilo.ai/api/gateway/chat/completions",
+      model: "kilo-auto/free",
+      needsKey: false
+    },
+    {
+      id: "llm7",
+      name: "LLM7.io",
+      endpoint: "https://api.llm7.io/v1/chat/completions",
+      model: "gemini-3-flash",
+      needsKey: true
+    },
+    {
+      id: "ovh",
+      name: "OVHcloud AI Endpoints",
+      endpoint: "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions",
+      model: "gpt-oss-20b",
+      needsKey: false
+    }
+  ];
+
+  function freeProviderById(id) {
+    for (var i = 0; i < FREE_PROVIDERS.length; i += 1) {
+      if (FREE_PROVIDERS[i].id === id) { return FREE_PROVIDERS[i]; }
+    }
+    return null;
+  }
 
   var state = {
     step: 1,
@@ -120,6 +156,9 @@
   }
 
   function defaultModelEndpoint(provider) {
+    for (var i = 0; i < FREE_PROVIDERS.length; i += 1) {
+      if (FREE_PROVIDERS[i].id === provider) { return FREE_PROVIDERS[i].endpoint; }
+    }
     switch (provider) {
       case "openai": return "https://api.openai.com/v1/chat/completions";
       case "anthropic": return "https://api.anthropic.com/v1/messages";
@@ -129,6 +168,9 @@
   }
 
   function defaultModelName(provider) {
+    for (var i = 0; i < FREE_PROVIDERS.length; i += 1) {
+      if (FREE_PROVIDERS[i].id === provider) { return FREE_PROVIDERS[i].model; }
+    }
     switch (provider) {
       case "openai": return "gpt-4o-mini";
       case "anthropic": return "claude-3-5-sonnet-latest";
@@ -141,6 +183,8 @@
     STEPS: STEPS,
     PROVIDERS: PROVIDERS,
     MODELS: MODELS,
+    FREE_PROVIDERS: FREE_PROVIDERS,
+    freeProviderById: freeProviderById,
     state: state,
     clone: clone,
     providerById: providerById,

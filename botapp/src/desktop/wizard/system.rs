@@ -101,7 +101,8 @@ pub async fn test_model(request: ModelRequest) -> ModelTestResult {
             latency_ms: 0,
         };
     }
-    if request.api_key.trim().is_empty() {
+    let needs_key = request.mode != "free";
+    if needs_key && request.api_key.trim().is_empty() {
         return ModelTestResult {
             ok: false,
             message: "Enter the key for this provider.".to_string(),
@@ -125,12 +126,14 @@ pub async fn test_model(request: ModelRequest) -> ModelTestResult {
 
     let started = std::time::Instant::now();
     let mut builder = client.post(request.endpoint.trim());
-    if request.provider == "anthropic" {
-        builder = builder
-            .header("x-api-key", request.api_key.trim())
-            .header("anthropic-version", "2023-06-01");
-    } else {
-        builder = builder.bearer_auth(request.api_key.trim());
+    if !request.api_key.trim().is_empty() {
+        if request.provider == "anthropic" {
+            builder = builder
+                .header("x-api-key", request.api_key.trim())
+                .header("anthropic-version", "2023-06-01");
+        } else {
+            builder = builder.bearer_auth(request.api_key.trim());
+        }
     }
     let body = serde_json::json!({
         "model": request.model,
@@ -151,7 +154,13 @@ pub async fn test_model(request: ModelRequest) -> ModelTestResult {
                 };
             }
             let message = match status.as_u16() {
-                401 | 403 => "The provider rejected this key. Check the value and try again.",
+                401 | 403 => {
+                    if request.api_key.trim().is_empty() {
+                        "This provider requires an API key. Create a free account and paste the key."
+                    } else {
+                        "The provider rejected this key. Check the value and try again."
+                    }
+                }
                 404 => "The endpoint was not found. Check the address.",
                 400 | 422 => "The provider answered; check the model identifier if requests fail.",
                 429 => "The provider is rate limiting this key. Try again in a moment.",

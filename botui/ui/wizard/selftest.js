@@ -76,11 +76,17 @@
     click("#nextBtn");
     assert(window.GBWizard.state.step === 2, "Next is blocked without a provider key");
 
+    var free = document.querySelector('input[name="modelMode"][value="free"]');
+    if (free) { free.checked = true; fire('input[name="modelMode"][value="free"]', "change"); }
+    await waitFor(function () { return !!document.getElementById("modelProvider"); }, 1000);
+    assert(!!document.getElementById("modelProvider"), "free provider selector is rendered");
+    var kilo = window.GBWizard.freeProviderById("kilo");
+    assert(!!kilo && kilo.needsKey === false, "Kilo Code is offered without a key");
+
     var local = document.querySelector('input[name="modelMode"][value="local"]');
     if (local) { local.checked = true; fire('input[name="modelMode"][value="local"]', "change"); }
     await waitFor(function () { return !document.getElementById("modelKey"); }, 1000);
-    click("#nextBtn");
-    await waitFor(function () { return window.GBWizard.state.step === 3; }, 1500);
+    click("#nextBtn");    await waitFor(function () { return window.GBWizard.state.step === 3; }, 1500);
     assert(window.GBWizard.state.step === 3, "local model passes validation");
 
     await waitFor(function () {

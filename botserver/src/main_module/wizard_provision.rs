@@ -160,6 +160,49 @@ async fn provision_component(
     Err(reason)
 }
 
+/// Saves the model the user chose on step 2 so the assistant actually uses it.
+/// Local mode is seeded by the installer; free/own-key/hosted write the global
+/// LLM secret (a desktop install is single-user).
+async fn apply_llm_choice() {
+    let mode = std::env::var("GB_WIZARD_MODEL_MODE").unwrap_or_default();
+    if mode.is_empty() || mode == "local" {
+        return;
+    }
+    let url = std::env::var("GB_WIZARD_LLM_URL").unwrap_or_default();
+    let model = std::env::var("GB_WIZARD_LLM_MODEL").unwrap_or_default();
+    if url.trim().is_empty() || model.trim().is_empty() {
+        return;
+    }
+    dotenvy::dotenv().ok();
+    let manager = match botcoresecrets::SecretsManager::get() {
+        Ok(manager) => manager,
+        Err(e) => {
+            eprintln!("provision: could not initialise secrets for the model choice: {e}");
+            return;
+        }
+    };
+    let mut data = std::collections::HashMap::new();
+    data.insert("url".to_string(), url);
+    data.insert("model".to_string(), model);
+    if let Ok(key) = std::env::var("GB_WIZARD_LLM_KEY") {
+        if !key.trim().is_empty() {
+            data.insert("openai_key".to_string(), key);
+        }
+    }
+    match manager.put_secret("gbo/llm", data).await {
+        Ok(()) => println!(
+            "GBWIZARD:{}",
+            serde_json::json!({
+                "id": "llm-config",
+                "state": "ready",
+                "message": "Model choice saved",
+                "elapsed_ms": 0,
+            })
+        ),
+        Err(e) => eprintln!("provision: could not save the model choice: {e}"),
+    }
+}
+
 pub async fn run() -> std::io::Result<()> {
     let started = Instant::now();
     // The vault check command reads `${VAULT_ADDR}`. On a first run the wizard
@@ -180,6 +223,8 @@ pub async fn run() -> std::io::Result<()> {
             return Err(std::io::Error::other(reason));
         }
     }
+
+    apply_llm_choice().await;
 
     println!(
         "GBWIZARD:{}",

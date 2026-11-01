@@ -142,6 +142,16 @@
     if (provider) {
       provider.addEventListener("change", function () {
         draft.model.provider = provider.value;
+        if (draft.model.mode === "free") {
+          draft.model.endpoint = W.defaultModelEndpoint(provider.value);
+          draft.model.model = W.defaultModelName(provider.value);
+          draft.model.tested = false;
+          document.getElementById("modelDetail").innerHTML = S.modelDetail(draft);
+          bindModelDetail();
+          renderFooter();
+          persistDraft();
+          return;
+        }
         if (provider.value !== "custom") {
           endpoint.value = W.defaultModelEndpoint(provider.value);
           modelName.value = W.defaultModelName(provider.value);

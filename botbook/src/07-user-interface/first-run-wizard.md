@@ -75,6 +75,26 @@ marketing copy:
 | Mail and files | connected providers, only for requested actions | per request |
 | Crash reports | nowhere unless the opt-in checkbox is on | opt-in |
 
+## Assistant model options
+
+Step 2 offers four choices. The first is the bundled local model
+(llama.cpp + DeepSeek-R1-Distill-Qwen-1.5B) and is the only one that installs a
+local runtime. For low-memory machines, setup can skip that bundle entirely by
+choosing a hosted option:
+
+| Option | Key | Local bundle | Where prompts go |
+|---|---|---|---|
+| Bundled local model | — | installed | nowhere (this machine) |
+| Free hosted API | not required for Kilo Code/OVHcloud; LLM7.io needs a free account key | not installed | Kilo Code (`kilo-auto/free`), LLM7.io (`gemini-3-flash`) or OVHcloud AI Endpoints (`gpt-oss-20b`) |
+| My own provider key | required | not installed | the endpoint the user enters |
+| Hosted model | required | not installed | the endpoint the user enters |
+
+The free endpoints are third-party services governed by their own terms; the
+wizard states that they have no SLA and should not receive confidential data.
+The Test button calls the chosen endpoint before Next is enabled. The choice is
+written to the stack's LLM secret (`gbo/llm`) during provisioning, so the
+assistant uses it immediately.
+
 ## Administrator credentials
 
 The finish screen shows the administrator account created by setup (email and a

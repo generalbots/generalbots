@@ -20,6 +20,37 @@
     if (m.mode === "local") {
       return '<div class="card"><p class="note ok">The bundled model runs on this machine. No prompt leaves it.</p></div>';
     }
+    if (m.mode === "free") {
+      var freeOptions = W.FREE_PROVIDERS.map(function (p) {
+        return '<option value="' + p.id + '"' + (m.provider === p.id ? " selected" : "") + ">" + esc(p.name) + "</option>";
+      }).join("");
+      var freeEndpoint = m.endpoint || W.defaultModelEndpoint(m.provider);
+      var freeModel = m.model || W.defaultModelName(m.provider);
+      var free = W.freeProviderById(m.provider);
+      var keyHint = free && free.needsKey
+        ? "LLM7.io requires a free account key."
+        : "Kilo Code and OVHcloud work without a key; leave this empty for them.";
+      return '' +
+        '<div class="card">' +
+          '<div class="field-grid">' +
+            '<div class="field"><label for="modelProvider">Free provider</label>' +
+              '<select id="modelProvider">' + freeOptions + "</select>" +
+              '<span class="hint">Third-party free tiers under their own terms; no SLA. Do not send confidential data.</span></div>' +
+            '<div class="field"><label for="modelEndpoint">Endpoint</label>' +
+              '<input type="text" id="modelEndpoint" value="' + esc(freeEndpoint) + '" placeholder="https://…" />' +
+              '<span class="hint">Prompts go only to this address.</span></div>' +
+            '<div class="field"><label for="modelName">Model</label>' +
+              '<input type="text" id="modelName" value="' + esc(freeModel) + '" placeholder="model identifier" /></div>' +
+            '<div class="field"><label for="modelKey">API key (only if the provider requires one)</label>' +
+              '<input type="password" id="modelKey" value="' + esc(m.api_key) + '" autocomplete="off" placeholder="optional" />' +
+              '<span class="hint">' + esc(keyHint) + "</span></div>" +
+            '<div class="inline-row">' +
+              '<button type="button" class="btn btn-secondary btn-sm" id="testModelBtn">Test connection</button>' +
+              '<span class="note" id="modelTestStatus" role="status">Not tested yet.</span>' +
+            "</div>" +
+          "</div>" +
+        "</div>";
+    }
     var providerOptions = ["openai", "anthropic", "nvidia", "custom"].map(function (id) {
       return '<option value="' + id + '"' + (m.provider === id ? " selected" : "") + ">" +
         esc(id === "custom" ? "Other (custom endpoint)" : id.charAt(0).toUpperCase() + id.slice(1)) +
@@ -71,7 +102,7 @@
         '<span class="choice-desc">' + esc(option.desc) + "</span></span></label>";
     }).join("");
     return '' +
-      '<p class="lead">Local model = nothing leaves the machine. Your own key = prompts go to that provider only.</p>' +
+      '<p class="lead">Local model = nothing leaves the machine. Free hosted = prompts go to a third-party free tier. Your own key = prompts go to that provider only.</p>' +
       '<div class="choice-list">' + choices + "</div>" +
       '<div style="margin-top:14px" id="modelDetail">' + modelDetail(draft) + "</div>";
   }
@@ -257,7 +288,15 @@
       if (draft.model.mode === "local") { return { ok: true }; }
       if (!draft.model.endpoint) { return { ok: false, reason: "Enter the provider endpoint." }; }
       if (!draft.model.model) { return { ok: false, reason: "Enter the model identifier." }; }
-      if (!draft.model.api_key) { return { ok: false, reason: "Enter the key for this provider, or choose the bundled local model." }; }
+      if (draft.model.mode !== "free" && !draft.model.api_key) {
+        return { ok: false, reason: "Enter the key for this provider, or choose a free or local option." };
+      }
+      if (draft.model.mode === "free") {
+        var free = W.freeProviderById(draft.model.provider);
+        if (free && free.needsKey && !draft.model.api_key) {
+          return { ok: false, reason: free.name + " requires a free account key." };
+        }
+      }
       if (!draft.model.tested) { return { ok: false, reason: "Test the connection before continuing." }; }
       return { ok: true };
     }
