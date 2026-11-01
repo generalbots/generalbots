@@ -74,6 +74,66 @@
     }
   }
 
+  // GB6-24 — importing arbitrary JSON into localStorage is the riskiest part
+  // of the backup feature: a crafted file could overwrite the session token or
+  // exhaust storage. The bundle is validated against an explicit allowlist
+  // before anything is written, and credentials are never restored.
+  var BUNDLE_VERSION = 1;
+  var TOP_LEVEL_KEYS = ["export_version", "exported_at", "app_version", "settings", "chat_history", "chat_memory", "local_storage"];
+  var STORAGE_KEY_PATTERN = /^gb[_.-][a-z0-9_.:-]+$/i;
+  var DENIED_KEYS = ["gb-access-token", "gb-desktop-local", "gb-auth-token", "management_token"];
+  var MAX_VALUE_BYTES = 256 * 1024;
+  var MAX_TOTAL_BYTES = 4 * 1024 * 1024;
+  var MAX_KEY_LENGTH = 128;
+
+  function isDeniedKey(key) {
+    var lower = String(key).toLowerCase();
+    if (lower === "__proto__" || lower === "constructor" || lower === "prototype") return true;
+    return DENIED_KEYS.indexOf(lower) !== -1;
+  }
+
+  function sanitizeBackup(bundle) {
+    if (!bundle || typeof bundle !== "object" || Array.isArray(bundle)) {
+      throw new Error("the file is not a backup object");
+    }
+    var version = Number(bundle.export_version);
+    if (!Number.isInteger(version) || version < 1 || version > BUNDLE_VERSION) {
+      throw new Error("unsupported backup version");
+    }
+    var exportedAt = Date.parse(bundle.exported_at);
+    if (!Number.isFinite(exportedAt)) {
+      throw new Error("the backup has no valid export date");
+    }
+    Object.keys(bundle).forEach(function (key) {
+      if (TOP_LEVEL_KEYS.indexOf(key) === -1) {
+        throw new Error("unexpected section: " + key);
+      }
+    });
+
+    var accepted = {};
+    var rejected = 0;
+    var totalBytes = 0;
+
+    function accept(source) {
+      if (!source || typeof source !== "object" || Array.isArray(source)) return;
+      Object.keys(source).forEach(function (key) {
+        var value = source[key];
+        if (typeof key !== "string" || key.length > MAX_KEY_LENGTH) { rejected++; return; }
+        if (isDeniedKey(key) || !STORAGE_KEY_PATTERN.test(key)) { rejected++; return; }
+        if (typeof value !== "string") { rejected++; return; }
+        var bytes = key.length + value.length;
+        if (bytes > MAX_VALUE_BYTES) { rejected++; return; }
+        if (totalBytes + bytes > MAX_TOTAL_BYTES) { rejected++; return; }
+        totalBytes += bytes;
+        accepted[key] = value;
+      });
+    }
+
+    accept(bundle.settings);
+    accept(bundle.local_storage);
+    return { exported_at: bundle.exported_at, values: accepted, rejected: rejected };
+  }
+
   function importBackup() {
     var input = document.createElement("input");
     input.type = "file";
@@ -82,12 +142,18 @@
     input.addEventListener("change", function () {
       var file = input.files && input.files[0];
       if (!file) return;
+      if (file.size > MAX_TOTAL_BYTES) {
+        if (typeof showNotification === "function") {
+          showNotification("Backup rejected: the file is larger than 4 MB", "error");
+        }
+        return;
+      }
       var reader = new FileReader();
       reader.onload = function () {
         try {
           var bundle = JSON.parse(reader.result);
-          if (!bundle.export_version) throw new Error("Invalid backup file");
-          applyBackup(bundle);
+          var clean = sanitizeBackup(bundle);
+          applyBackup(clean);
         } catch (e) {
           if (typeof showNotification === "function") {
             showNotification("Invalid backup file: " + e.message, "error");
@@ -101,30 +167,34 @@
     input.click();
   }
 
-  function applyBackup(bundle) {
-    if (!confirm("This will overwrite your current data with the backup from " + (bundle.exported_at || "unknown date") + ". Continue?")) return;
+  function applyBackup(clean) {
+    var keys = Object.keys(clean.values);
+    if (!keys.length) {
+      if (typeof showNotification === "function") {
+        showNotification("This backup contains no restorable settings", "error");
+      }
+      return;
+    }
+    if (!confirm(
+      "This will restore " + keys.length + " setting(s) from the backup of " +
+      (clean.exported_at || "unknown date") + ". Credentials and session tokens are never imported. Continue?",
+    )) return;
 
     var count = 0;
+    keys.forEach(function (key) {
+      try {
+        localStorage.setItem(key, clean.values[key]);
+        count++;
+      } catch (e) {
+        // Storage full or disabled: keep restoring the remaining keys.
+      }
+    });
 
-    if (bundle.local_storage) {
-      var ALLOWED_PREFIX = "gb_";
-      Object.keys(bundle.local_storage).forEach(function (key) {
-        if (key.indexOf(ALLOWED_PREFIX) !== 0) return;
-        try { localStorage.setItem(key, bundle.local_storage[key]); count++; } catch (e) {}
-      });
-    }
-
-    if (bundle.settings) {
-      Object.keys(bundle.settings).forEach(function (key) {
-        if (key.indexOf("gb_") !== 0) return;
-        try { localStorage.setItem(key, bundle.settings[key]); } catch (e) {}
-      });
-    }
-
+    var message = "Backup restored (" + count + " items).";
+    if (clean.rejected > 0) message += " " + clean.rejected + " entry(ies) rejected by the allowlist.";
     if (typeof showNotification === "function") {
-      showNotification("Backup restored (" + count + " items). Reloading...", "success");
+      showNotification(message + " Reloading...", "success");
     }
-
     setTimeout(function () { window.location.reload(); }, 2000);
   }
 
