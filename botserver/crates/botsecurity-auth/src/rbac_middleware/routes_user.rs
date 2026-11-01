@@ -242,6 +242,8 @@ pub(crate) fn authenticated_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/bots/{id}/integration-automations/**", "POST", ""),
         RoutePermission::new("/api/bots/{id}/integration-automations/**", "DELETE", ""),
         RoutePermission::new("/api/bots/{id}/integrations/oauth/**", "GET", ""),
+        // Saving the OAuth client (the "configure once" form) is a POST.
+        RoutePermission::new("/api/bots/{id}/integrations/oauth/**", "POST", ""),
 
         // Autotask
         RoutePermission::new("/api/autotask/**", "GET", ""),

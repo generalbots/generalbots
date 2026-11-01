@@ -372,6 +372,9 @@
             if (event.target.matches("[data-connect-form]")) {
                 event.preventDefault();
                 namespace.submitConnectForm(root, event.target);
+            } else if (event.target.matches("[data-oauth-client-form]")) {
+                event.preventDefault();
+                namespace.saveOAuthClient(root, event.target);
             }
         });
         root.addEventListener("keydown", function (event) {

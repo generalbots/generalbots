@@ -202,11 +202,27 @@
             if (!botId) return null;
             var startUrl = "/api/bots/" + encodeURIComponent(botId) +
                 "/integrations/oauth/" + encodeURIComponent(provider.id) + "/start?return_to=/integrations";
+            var origin = (window.location && window.location.origin) || "";
+            var redirectUri = origin + "/api/integrations/oauth/" + encodeURIComponent(provider.id) + "/callback";
             return '<section class="integrations-detail-section"><div class="integrations-detail-section-head"><h4>Connect securely</h4>' +
                 '<span>OAuth 2.0</span></div>' +
                 '<p class="integrations-connect-help">Authorization happens on the provider consent screen; the exchanged token is written to the server-side vault and never displayed again.</p>' +
                 '<a class="integrations-button" data-oauth-start href="' + namespace.escapeHtml(startUrl) + '">Authorize ' +
                 namespace.escapeHtml(provider.name || provider.id) + '</a>' +
+                '<details class="integrations-oauth-setup"><summary>App configuration (once per installation)</summary>' +
+                '<p class="integrations-connect-help">Register one app at the provider console with this redirect URI, then paste its client id here. Users only click Authorize afterwards; the secret is stored in the server vault.</p>' +
+                '<p class="integrations-connect-help"><code data-oauth-redirect>' + namespace.escapeHtml(redirectUri) + '</code></p>' +
+                '<form class="integrations-connect-form" data-oauth-client-form novalidate>' +
+                '<label class="integrations-field"><span class="integrations-field-label"><span>Client ID</span></span>' +
+                '<input type="text" name="oauth_client_id" required autocomplete="off" aria-label="OAuth client id"></label>' +
+                '<label class="integrations-field"><span class="integrations-field-label"><span>Client secret</span>' +
+                '<span class="integrations-field-meta"><span>Optional for public clients</span></span></span>' +
+                '<input type="password" name="oauth_client_secret" autocomplete="new-password" aria-label="OAuth client secret"></label>' +
+                '<p class="integrations-inline-progress" data-oauth-progress hidden role="status">Saving client…</p>' +
+                '<p class="integrations-inline-error" data-oauth-error hidden role="alert"></p>' +
+                '<p class="integrations-connect-success" data-oauth-success hidden role="status"></p>' +
+                '<div class="integrations-connect-actions"><button class="integrations-button" type="submit" data-action="save-oauth-client">Save app configuration</button></div>' +
+                '</form></details>' +
                 '</section>';
         }
         if (!authKind || !connectInputs(provider, uid)) {
@@ -324,6 +340,40 @@
             if (submitButton) {
                 submitButton.disabled = false;
             }
+        }
+    };
+
+    namespace.saveOAuthClient = async function (root, form) {
+        var state = namespace.getState(root);
+        var provider = state.providerMap.get(state.selectedProviderId);
+        var botId = (namespace.context && namespace.context.botId) || "";
+        var progress = form.querySelector("[data-oauth-progress]");
+        var errorLine = form.querySelector("[data-oauth-error]");
+        var successLine = form.querySelector("[data-oauth-success]");
+        if (!provider || !botId) return;
+        errorLine.hidden = true;
+        successLine.hidden = true;
+        progress.hidden = false;
+        var clientId = namespace.text(form.elements.oauth_client_id.value, "");
+        var clientSecret = namespace.text(form.elements.oauth_client_secret.value, "");
+        try {
+            await namespace.fetchJson(
+                "/api/bots/" + encodeURIComponent(botId) +
+                "/integrations/oauth/" + encodeURIComponent(provider.id) + "/client",
+                { method: "POST", body: { client_id: clientId, client_secret: clientSecret || null } }
+            );
+            form.elements.oauth_client_secret.value = "";
+            progress.hidden = true;
+            successLine.textContent = "App configuration saved. You can authorize now.";
+            successLine.hidden = false;
+            namespace.announce(root, provider.name + " OAuth app saved");
+        } catch (error) {
+            progress.hidden = true;
+            var status = error && typeof error.status === "number" ? error.status : 0;
+            errorLine.textContent = status === 403
+                ? "Only an administrator of this workspace can store the app configuration."
+                : "Could not save the app configuration (HTTP " + (status || "?") + ").";
+            errorLine.hidden = false;
         }
     };
 

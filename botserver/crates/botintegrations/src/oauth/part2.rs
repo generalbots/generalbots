@@ -194,3 +194,56 @@ mod authorize_url_tests {
         assert!(!url.contains("access_type=offline"));
     }
 }
+
+#[derive(Deserialize)]
+pub struct ClientSetupBody {
+    pub client_id: String,
+    #[serde(default)]
+    pub client_secret: Option<String>,
+}
+
+/// POST /api/bots/:bot_id/integrations/oauth/:provider/client
+///
+/// Stores the provider's OAuth client for the caller's branch, so a
+/// self-hosted operator configures the app once from the UI instead of using
+/// the Vault CLI. The secret is written to Vault and never returned.
+pub async fn save_client(
+    State(state): State<Arc<IntegrationState>>,
+    user: AuthenticatedUser,
+    Path((bot_id, provider)): Path<(String, String)>,
+    Json(body): Json<ClientSetupBody>,
+) -> Result<Json<Value>, ResponseError> {
+    let bot_uuid = parse_uuid(&bot_id)?;
+    let scope = resolve_scope(&state.pool, &user, bot_uuid).map_err(|error| {
+        error_response(StatusCode::FORBIDDEN, error)
+    })?;
+    if provider_config(&provider).is_none() {
+        return Err(error_response(
+            StatusCode::NOT_FOUND,
+            IntegrationError::Validation(format!("unknown oauth provider: {provider}")),
+        ));
+    }
+    if body.client_id.trim().is_empty() {
+        return Err(error_response(
+            StatusCode::BAD_REQUEST,
+            IntegrationError::Validation("client_id is required".to_string()),
+        ));
+    }
+    let path = state
+        .vault
+        .put_provider_client(
+            scope.org_id,
+            scope.branch_id,
+            &provider,
+            &body.client_id,
+            body.client_secret.as_deref(),
+        )
+        .await
+        .map_err(|error| ResponseError::new(error.into_response()))?;
+    log::info!("oauth client for {provider} stored at {path}");
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "provider": provider,
+        "stored_at": path,
+    })))
+}

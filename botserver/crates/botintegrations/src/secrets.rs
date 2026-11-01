@@ -115,6 +115,30 @@ impl ConnectionVault {
         Err(IntegrationError::NotFound)
     }
 
+    /// Stores a provider's OAuth client for a branch (the "configure once"
+    /// step for a self-hosted install). Returns the path written.
+    pub async fn put_provider_client(
+        &self,
+        org_id: Uuid,
+        branch_id: Uuid,
+        provider: &str,
+        client_id: &str,
+        client_secret: Option<&str>,
+    ) -> Result<String, IntegrationError> {
+        let path = format!("gbo/{org_id}/{branch_id}/integrations/oauth/{provider}");
+        let mut entries: std::collections::HashMap<String, String> =
+            std::collections::HashMap::new();
+        entries.insert("client_id".to_string(), client_id.trim().to_string());
+        if let Some(secret) = client_secret.map(str::trim).filter(|s| !s.is_empty()) {
+            entries.insert("client_secret".to_string(), secret.to_string());
+        }
+        self.manager.put_secret(&path, entries).await.map_err(|e| {
+            log::error!("vault store failed for oauth client {path}: {e}");
+            IntegrationError::VaultUnavailable
+        })?;
+        Ok(path)
+    }
+
     /// Removes the secret envelope. Failures are fail closed.
     pub async fn delete(&self, path: &str) -> Result<(), IntegrationError> {
         self.manager.delete_secret(path).await.map_err(|e| {
