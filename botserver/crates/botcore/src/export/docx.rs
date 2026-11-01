@@ -349,3 +349,38 @@ pub fn from_html(html: &str) -> Result<DocxDocument, String> {
 
     Ok(doc)
 }
+
+#[cfg(test)]
+mod zip_roundtrip_tests {
+    use super::DocxDocument;
+    use std::io::{Cursor, Read};
+
+    /// The DOCX writer goes through `zip` 9.2; a package that the same parser
+    /// cannot reopen would break every generated document (#1537).
+    #[test]
+    fn export_is_a_valid_zip_with_the_required_parts() {
+        let mut doc = DocxDocument::new();
+        doc.add_paragraph("Hello from the zip 9 migration", None);
+        doc.add_heading("Section", 1);
+        doc.add_table(
+            vec!["Region".to_string(), "Revenue".to_string()],
+            vec![vec!["Sudeste".to_string(), "86400".to_string()]],
+        );
+
+        let bytes = doc.export().expect("export docx");
+        let mut archive = zip::ZipArchive::new(Cursor::new(bytes)).expect("valid zip");
+        let mut names = Vec::new();
+        for index in 0..archive.len() {
+            let file = archive.by_index(index).expect("entry");
+            names.push(file.name().map(|n| n.to_string()).unwrap_or_default());
+        }
+        assert!(names.iter().any(|n| n == "[Content_Types].xml"), "parts: {names:?}");
+        assert!(names.iter().any(|n| n == "word/document.xml"), "parts: {names:?}");
+
+        let mut document = archive.by_name("word/document.xml").expect("document part");
+        let mut xml = String::new();
+        document.read_to_string(&mut xml).expect("read document");
+        assert!(xml.contains("Hello from the zip 9 migration"));
+        assert!(xml.contains("Sudeste"));
+    }
+}
