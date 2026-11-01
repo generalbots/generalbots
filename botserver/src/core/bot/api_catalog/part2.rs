@@ -75,6 +75,11 @@ pub fn all_endpoints() -> &'static [ApiEndpoint] {
         ApiEndpoint { method: "POST", path: "/api/bots/:bot_id/integration-actions/invoke", summary: "Execute an implemented provider action (provider, action, params); credentials load from Vault and never return" },
         ApiEndpoint { method: "GET", path: "/api/apps/integrations/context", summary: "Resolve the default active bot id, name and integration-connections base URL for suite apps" },
 
+        // Conversation autotasks (#1613): work that outlives the chat turn
+        ApiEndpoint { method: "GET", path: "/api/conversations/:conversation_id/autotasks", summary: "List the cron/systemd jobs a conversation owns, with live status, schedule and next run" },
+        ApiEndpoint { method: "POST", path: "/api/conversations/:conversation_id/autotasks", summary: "Create a conversation autotask (title, schedule, command, kind=cron|systemd); installs a cron entry or systemd unit in the agent workspace" },
+        ApiEndpoint { method: "POST", path: "/api/conversation-autotasks/:id/cancel", summary: "Stop a conversation autotask: removes the cron entry or disables the systemd unit and marks the row stopped" },
+
         // Learning / LMS
         ApiEndpoint { method: "GET", path: "/api/learn/courses", summary: "List published courses with filters (category, difficulty, search)" },
         ApiEndpoint { method: "POST", path: "/api/learn/courses", summary: "Create a course draft" },

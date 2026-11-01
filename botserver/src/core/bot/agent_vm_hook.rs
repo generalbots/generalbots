@@ -14,6 +14,52 @@ pub fn init_with(service: Arc<botagent::AgentService>) -> bool {
     SERVICE.set(service).is_ok()
 }
 
+/// Shared agent service, when agent mode has been initialised.
+pub fn service() -> Option<&'static Arc<botagent::AgentService>> {
+    SERVICE.get()
+}
+
+/// Runs a shell script inside the user's conversation folder (#1613).
+///
+/// Used by conversation autotasks to install and inspect cron/systemd entries
+/// that must keep running after the chat turn ends. Returns `None` when agent
+/// mode is unavailable; the caller then records the job as not mirrored
+/// instead of pretending it is scheduled.
+pub async fn run_shell_in_conversation(
+    user_id: uuid::Uuid,
+    bot_uuid: uuid::Uuid,
+    conversation_id: uuid::Uuid,
+    code: &str,
+    timeout_ms: u64,
+) -> Option<(bool, String, String)> {
+    let service = SERVICE.get()?;
+    let conversation = conversation_id.to_string();
+    let row = match botagent::vm::ensure_vm(service, &user_id, &bot_uuid, Some(&conversation)).await {
+        Ok(row) => row,
+        Err((status, error)) => {
+            log::warn!("autotask: could not ensure the workspace ({status}): {error}");
+            return None;
+        }
+    };
+    match botagent::vm::exec_in_conversation(
+        service,
+        &row.vm_name,
+        &conversation,
+        "shell",
+        code,
+        timeout_ms,
+        &[],
+    )
+    .await
+    {
+        Ok(outcome) => Some(outcome),
+        Err((status, error)) => {
+            log::warn!("autotask: workspace command failed ({status}): {error}");
+            None
+        }
+    }
+}
+
 /// Handles the legacy `{ "type": "agent_mode" }` control frame for backward
 /// compatibility. New clients no longer need to send this — agent mode is
 /// always on.

@@ -7,6 +7,7 @@ pub mod chat_history;
 pub mod misc_handlers;
 pub mod cloud_sso_handler;
 pub mod catalog;
+pub mod conversation_autotasks;
 pub mod desktop_status;
 pub mod channel_support;
 pub mod feature_merge_a;

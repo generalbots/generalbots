@@ -71,6 +71,31 @@ diesel::table! {
     }
 }
 
+// #1613 — one row per long-running job a conversation owns. The row mirrors a
+// cron entry or systemd unit inside the user's agent VM; `status` is the
+// reconciled live state the chat indicator reads.
+diesel::table! {
+    conversation_autotasks (id) {
+        id -> Uuid,
+        conversation_id -> Uuid,
+        bot_id -> Uuid,
+        user_id -> Uuid,
+        title -> Text,
+        kind -> Varchar,
+        schedule -> Varchar,
+        schedule_human -> Nullable<Varchar>,
+        command -> Text,
+        unit_name -> Nullable<Varchar>,
+        status -> Varchar,
+        output_path -> Nullable<Text>,
+        last_run_at -> Nullable<Timestamptz>,
+        next_run_at -> Nullable<Timestamptz>,
+        last_error -> Nullable<Text>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
 diesel::table! {
     designer_pending_changes (id) {
         id -> Uuid,

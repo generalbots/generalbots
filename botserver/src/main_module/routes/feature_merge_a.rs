@@ -124,6 +124,16 @@ pub(super) async fn merge_part_a(
             .merge(botagent::configure_routes().with_state(agent_state));
     }
 
+    // #1613 — conversation-scoped autotasks are part of chat, not of the
+    // automations dashboard: they must be present in the desktop edition too.
+    #[cfg(feature = "chat")]
+    {
+        crate::main_module::routes::conversation_autotasks::reconcile_on_boot(app_state);
+        *api_router = api_router
+            .clone()
+            .merge(crate::main_module::routes::conversation_autotasks::router());
+    }
+
     #[cfg(feature = "automations")]
     {
         let automation_state = Arc::new(

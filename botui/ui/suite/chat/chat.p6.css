@@ -538,3 +538,84 @@ sup.gb-cite-ref:hover {
 .gb-context-menu button.gb-menu-danger {
   color: #e5484d;
 }
+
+/* ============================================================
+   Conversation autotasks (#1613)
+   A green dot marks a conversation that owns background work.
+   Persistent systemd services use a deeper green and a slow
+   pulse so the distinction is visible without reading the label.
+   ============================================================ */
+.gb-tab.has-autotask .gb-tab-title::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin-right: 5px;
+    border-radius: 50%;
+    background: #3fb950;
+    vertical-align: middle;
+}
+
+.gb-tab.has-autotask-persistent .gb-tab-title::before {
+    background: #15803d;
+    box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.18);
+    animation: gb-autotask-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes gb-autotask-pulse {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(21, 128, 61, 0.16); }
+    50% { box-shadow: 0 0 0 5px rgba(21, 128, 61, 0.06); }
+}
+
+.gb-autotask-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 4px 8px 0;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: var(--muted, #888);
+    background: rgba(63, 185, 80, 0.08);
+    border: 1px solid rgba(63, 185, 80, 0.22);
+    border-radius: 999px;
+}
+
+.gb-autotask-status.persistent {
+    background: rgba(21, 128, 61, 0.10);
+    border-color: rgba(21, 128, 61, 0.30);
+}
+
+.gb-autotask-dot {
+    width: 7px;
+    height: 7px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: #3fb950;
+}
+
+.gb-autotask-status.persistent .gb-autotask-dot {
+    background: #15803d;
+    animation: gb-autotask-pulse 2.4s ease-in-out infinite;
+}
+
+.gb-autotask-text {
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.gb-autotask-cancel {
+    flex: 0 0 auto;
+    border: 1px solid rgba(63, 185, 80, 0.35);
+    background: transparent;
+    color: inherit;
+    font-size: 11px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.gb-autotask-cancel:hover {
+    background: rgba(63, 185, 80, 0.16);
+}
