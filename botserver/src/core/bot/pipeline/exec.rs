@@ -480,6 +480,15 @@ pub async fn process_message_internal(
                      conversation folder. \
                      After the tool returns, summarise the result and list each file as a \
                      markdown link in the form [name](vmfile:{conv_id}/output/name). \
+                     PROGRESS ETIQUETTE (mandatory): the user stares at a spinner while \
+                     code runs, so keep them informed. Before every tool call write one \
+                     short line, in the user's language, saying what you are about to do \
+                     ('Vou montar o PDF com o layout pedido…'). After every tool result \
+                     write one short line saying what changed ('PDF pronto (12 KB). Agora \
+                     o PPTX…'). One line per step, under 15 words, no headings; never \
+                     repeat the same sentence; never claim a file exists before the tool \
+                     returned it; if a job is long (background: true), say it is running \
+                     and that the user can keep chatting while it finishes. \
                      Background work continues when the user switches conversations; \
                      never assume a job was cancelled. \
                      Do NOT refuse tasks that require code execution — you have a \

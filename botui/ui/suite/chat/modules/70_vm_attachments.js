@@ -397,9 +397,67 @@ function vmGroupAttachments(anchor) {
   }
 }
 
+// Markdown the model emits for generated files — `[name](vmfile:CONV/output/name)`
+// — does not survive the markdown/sanitizer pipeline on every path, so it can
+// reach the DOM as plain text ("[a.pdf](vmfile:...)") with no anchor to click.
+// Scan the rendered text nodes and replace each reference with a real
+// attachment card (Preview / Download / Save).
+function vmRenderInlineReferences(root) {
+  if (!root || !root.querySelectorAll) return;
+  var nodes = root.querySelectorAll(".message-content, .bot-message, .message-text");
+  var pattern = /\[([^\]\n]{1,200})\]\(vmfile:([^)\s]+)\)/g;
+  for (var i = 0; i < nodes.length; i++) {
+    var node = nodes[i];
+    if (node.querySelector(".gb-attachment")) continue;
+    var walker = document.createTreeWalker(node, NodeFilter.SHOW_TEXT, null);
+    var targets = [];
+    var textNode;
+    while ((textNode = walker.nextNode())) {
+      if (textNode.nodeValue && textNode.nodeValue.indexOf("vmfile:") !== -1) {
+        targets.push(textNode);
+      }
+    }
+    if (!targets.length) continue;
+    for (var t = 0; t < targets.length; t++) {
+      var current = targets[t];
+      var value = current.nodeValue;
+      var replaced = document.createDocumentFragment();
+      var last = 0;
+      var hit;
+      pattern.lastIndex = 0;
+      while ((hit = pattern.exec(value)) !== null) {
+        if (hit.index > last) {
+          replaced.appendChild(document.createTextNode(value.slice(last, hit.index)));
+        }
+        var parts = vmSplitTarget(hit[2]);
+        var card = document.createElement("span");
+        card.className = "gb-attachment";
+        card.dataset.path = parts.path;
+        card.dataset.conversationId = parts.conversationId || "";
+        card.innerHTML =
+          '<span class="gb-attachment-icon">' + vmFileIcon(parts.path) + "</span>" +
+          '<a class="gb-attachment-name" href="#" download></a>' +
+          '<button type="button" class="gb-attachment-btn gb-attachment-preview">Preview</button>' +
+          '<button type="button" class="gb-attachment-btn gb-attachment-download">Download</button>' +
+          '<button type="button" class="gb-attachment-btn gb-attachment-save">Save</button>';
+        card.querySelector(".gb-attachment-name").textContent =
+          (hit[1] || "").trim() || parts.path.split("/").pop();
+        replaced.appendChild(card);
+        last = hit.index + hit[0].length;
+      }
+      if (!replaced.childNodes.length) continue;
+      if (last < value.length) {
+        replaced.appendChild(document.createTextNode(value.slice(last)));
+      }
+      if (current.parentNode) current.parentNode.replaceChild(replaced, current);
+    }
+  }
+}
+
 // Bind inline vmfile cards and append output/ files the model did not link.
 function hydrateVmAttachments(container) {
   if (!container) return;
+  vmRenderInlineReferences(container);
   var cards = container.querySelectorAll(".gb-attachment");
   for (var i = 0; i < cards.length; i++) vmBindAttachment(cards[i]);
 

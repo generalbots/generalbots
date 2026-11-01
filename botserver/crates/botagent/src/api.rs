@@ -25,6 +25,29 @@ use crate::AgentService;
 static MODE_LIMITER: LazyLock<RateLimiter> = LazyLock::new(RateLimiter::new);
 static EXEC_LIMITER: LazyLock<RateLimiter> = LazyLock::new(RateLimiter::new);
 
+/// Resolves a non-JWT suite token (`gb_<uuid>_<ts>`) to a user id. The server
+/// wires this at boot because the session store lives outside this crate.
+static EXTERNAL_TOKEN_VERIFIER: LazyLock<
+    std::sync::Mutex<Option<fn(&str) -> Option<Uuid>>>,
+> = LazyLock::new(|| std::sync::Mutex::new(None));
+
+pub fn set_external_token_verifier(resolver: fn(&str) -> Option<Uuid>) {
+    if let Ok(mut slot) = EXTERNAL_TOKEN_VERIFIER.lock() {
+        *slot = Some(resolver);
+    }
+}
+
+fn external_token_user(raw: &str) -> Option<Uuid> {
+    let token = raw
+        .strip_prefix("Bearer ")
+        .or_else(|| raw.strip_prefix("bearer "))
+        .unwrap_or(raw)
+        .trim();
+    let slot = EXTERNAL_TOKEN_VERIFIER.lock().ok()?;
+    let resolver = (*slot)?;
+    resolver(token)
+}
+
 fn internal(msg: String) -> (StatusCode, String) {
     tracing::error!("{msg}");
     (StatusCode::INTERNAL_SERVER_ERROR, "Agent request failed".to_string())
@@ -114,28 +137,37 @@ fn verified_sub(raw: &str) -> Option<Uuid> {
 
 fn caller_uuid(headers: &HeaderMap) -> Result<(String, Uuid, bool), (StatusCode, String)> {
     let token = bearer_token(headers).ok_or_else(|| unauthorized("Missing bearer token"))?;
-    let payload = jwt_payload(&token).ok_or_else(|| unauthorized("Invalid token"))?;
-    let sub = b64_json_sub(&token).ok_or_else(|| unauthorized("Token lacks sub claim"))?;
-    // SECURITY: the payload segment is attacker-controlled. Every caller must
-    // pass signature verification before acting on another user's VM — a
-    // handcrafted `sub` used to reach any workspace.
-    let user_id = match verified_sub(&token) {
-        Some(verified) => verified,
-        None if std::env::var("GB_AGENT_JWT_SECRET").is_err() => {
-            tracing::warn!(
-                "GB_AGENT_JWT_SECRET not set; falling back to unverified claims (tests only)"
-            );
-            Uuid::parse_str(&sub).unwrap_or_else(|_| {
-                Uuid::new_v5(
-                    &Uuid::NAMESPACE_URL,
-                    format!("zitadel:{sub}").as_bytes(),
-                )
-            })
-        }
-        None => return Err(unauthorized("Invalid or unverified token")),
-    };
-    let admin = is_admin_claims(&payload);
-    Ok((sub, user_id, admin))
+    // Suite/session tokens (`gb_<uuid>_<ts>`) are not JWTs: the server wires a
+    // verifier at boot so file links and VM endpoints accept the same token the
+    // chat page holds. Without it every generated-file URL answered 401 and the
+    // attachment cards were dead links.
+    if let (Some(payload), Some(sub)) = (jwt_payload(&token), b64_json_sub(&token)) {
+        // SECURITY: the payload segment is attacker-controlled. Every caller must
+        // pass signature verification before acting on another user's VM — a
+        // handcrafted `sub` used to reach any workspace.
+        let user_id = match verified_sub(&token) {
+            Some(verified) => verified,
+            None if std::env::var("GB_AGENT_JWT_SECRET").is_err() => {
+                tracing::warn!(
+                    "GB_AGENT_JWT_SECRET not set; falling back to unverified claims (tests only)"
+                );
+                Uuid::parse_str(&sub).unwrap_or_else(|_| {
+                    Uuid::new_v5(&Uuid::NAMESPACE_URL, format!("zitadel:{sub}").as_bytes())
+                })
+            }
+            None => match external_token_user(&token) {
+                Some(id) => id,
+                None => return Err(unauthorized("Invalid or unverified token")),
+            },
+        };
+        let admin = is_admin_claims(&payload);
+        return Ok((sub, user_id, admin));
+    }
+
+    if let Some(user_id) = external_token_user(&token) {
+        return Ok((user_id.to_string(), user_id, false));
+    }
+    Err(unauthorized("Invalid or unverified token"))
 }
 
 pub fn authorize_session_access(

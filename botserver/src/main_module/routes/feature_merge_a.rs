@@ -113,6 +113,10 @@ pub(super) async fn merge_part_a(
     // ===== AI OS routers (issues #1167-#1179) =====
     #[cfg(feature = "agent-vm")]
     {
+        botagent::api::set_external_token_verifier(|token: &str| {
+            crate::main_module::routes::anonymous_auth::resolve_token_user(token)
+                .map(|(id, _roles)| crate::security::user_role::derive_stable_user_uuid(&id))
+        });
         let agent_state = Arc::new(botagent::AgentService::new(app_state.conn.clone()));
         crate::core::bot::agent_vm_hook::init_with(agent_state.clone());
         *api_router = api_router

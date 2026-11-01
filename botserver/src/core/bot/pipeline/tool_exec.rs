@@ -131,7 +131,7 @@ pub async fn run_llm_tool_call(
         None => return,
     };
     let tc_json = &full_response[tc_start..];
-    let tool_call = match extract_tool_call(tc_json) {
+    let tool_call = match extract_tool_call(tc_json).or_else(|| salvage_tool_call(tc_json)) {
         Some(value) => value,
         None => {
             botlog::safe_warn!(
@@ -142,12 +142,32 @@ pub async fn run_llm_tool_call(
         }
     };
     {
-        let raw_tool_name = tool_call.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
-        let mut tool_args_owned = tool_call
-            .get("arguments")
+        // A tool call without a usable name used to return in silence: the
+        // user saw an empty bubble and a stuck "Thinking" indicator while the
+        // log only said `executing tool ''`. Recover the name when the model
+        // nests it (`tool`, `function.name`) or when the marker is followed by
+        // a bare known tool name, and always answer the user when recovery
+        // fails. `arguments` may arrive as an object instead of a string.
+        let mut raw_tool_name = tool_call
+            .get("name")
             .and_then(|v| v.as_str())
             .unwrap_or("")
+            .trim()
             .to_string();
+        let mut tool_args_owned = match tool_call.get("arguments") {
+            Some(serde_json::Value::String(s)) => s.clone(),
+            Some(serde_json::Value::Object(_)) => tool_call
+                .get("arguments")
+                .map(serde_json::Value::to_string)
+                .unwrap_or_default(),
+            _ => String::new(),
+        };
+        if raw_tool_name.is_empty() {
+            raw_tool_name = recover_tool_name(&tool_call, full_response);
+            if !raw_tool_name.is_empty() {
+                log::info!("tool_call: recovered missing tool name '{raw_tool_name}'");
+            }
+        }
 
         // Chat attachments are staged under the bot's Drive `inbox/` before
         // the LLM call. Web attachments (pipeline::exec) append
@@ -199,7 +219,23 @@ pub async fn run_llm_tool_call(
         let tool_args: &str = tool_args_owned.as_str();
 
         log::info!("LLM tool_call: executing tool '{raw_tool_name}' with args: {tool_args}");
-        if raw_tool_name.is_empty() { return; }
+        if raw_tool_name.is_empty() {
+            botlog::safe_warn!(
+                "tool_call: the model sent a call without a tool name; raw: {}",
+                tc_json.chars().take(200).collect::<String>()
+            );
+            let msg = "Não consegui identificar qual ferramenta executar para esse pedido. \
+                       Pode repetir o que você precisa?";
+            let resp = botlib::models::BotResponse::new(
+                bot_uuid.to_string(),
+                session_id.to_string(),
+                user_id.to_string(),
+                msg,
+                sink.channel_type(),
+            );
+            let _ = sink.send_bot_response(&resp).await;
+            return;
+        }
 
         if all_args_are_placeholder(tool_args) {
             log::info!("All tool args are placeholder - asking user for real data instead of executing");
@@ -421,6 +457,46 @@ pub async fn run_llm_tool_call(
 /// (generated code), which `serde_json` rejects as control characters. The
 /// first attempt parses the object as-is; the second escapes raw control
 /// characters inside string literals and retries.
+/// Native tools every bot with an agent VM can call; used to recover a tool
+/// name the model left out of its JSON call.
+const RECOVERABLE_TOOL_NAMES: [&str; 6] = [
+    "vm_exec",
+    "drive_save",
+    "drive_fetch",
+    "vm_file",
+    "vm_files",
+    "classify_media",
+];
+
+/// Recover a missing tool name from a parsed call. Providers occasionally emit
+/// `{"__tool_call__": true, "arguments": …}` with no `name`, or nest the name
+/// under `tool`/`tool_name`/`function`. Falling back to a known native tool
+/// name found in the call text keeps the request executable instead of
+/// dropping it.
+fn recover_tool_name(call: &serde_json::Value, raw: &str) -> String {
+    for key in ["tool", "tool_name", "function"] {
+        if let Some(value) = call.get(key) {
+            if let Some(name) = value.as_str() {
+                let name = name.trim();
+                if !name.is_empty() {
+                    return name.to_string();
+                }
+            }
+            if let Some(name) = value.get("name").and_then(|v| v.as_str()) {
+                let name = name.trim();
+                if !name.is_empty() {
+                    return name.to_string();
+                }
+            }
+        }
+    }
+    RECOVERABLE_TOOL_NAMES
+        .iter()
+        .find(|name| raw.contains(&format!("\"{name}\"")))
+        .map(|name| (*name).to_string())
+        .unwrap_or_default()
+}
+
 fn extract_tool_call(raw: &str) -> Option<serde_json::Value> {
     let start = raw.find('{')?;
     let slice = &raw[start..];
@@ -454,7 +530,7 @@ fn extract_tool_call(raw: &str) -> Option<serde_json::Value> {
     }
     let object = &slice[..end?];
     if let Ok(value) = serde_json::from_str(object) {
-        return Some(value);
+        return Some(normalize_tool_call(value));
     }
 
     let mut repaired = String::with_capacity(object.len());
@@ -488,7 +564,75 @@ fn extract_tool_call(raw: &str) -> Option<serde_json::Value> {
             repaired.push(ch);
         }
     }
-    serde_json::from_str(&repaired).ok()
+    serde_json::from_str(&repaired).ok().map(normalize_tool_call)
+}
+
+/// Providers do not always follow the documented envelope
+/// `{"__tool_call__": true, "name": …, "arguments": …}`. Some wrap the call
+/// inside the marker (`{"__tool_call__": {"name": …, "arguments": …}}`), which
+/// previously failed extraction and left the reply stuck on "Thinking" with no
+/// message. Unwrap that shape so the call still runs.
+fn normalize_tool_call(value: serde_json::Value) -> serde_json::Value {
+    for key in ["__tool_call__", "tool_call"] {
+        if let Some(inner) = value.get(key) {
+            if inner.is_object() {
+                return inner.clone();
+            }
+        }
+    }
+    value
+}
+
+/// Lenient recovery for the malformed JSON providers emit when the program
+/// inside `arguments` contains unescaped quotes (common with Python
+/// `print("x")`): pull the sibling `name` field and the raw `arguments`
+/// payload, decoding the escapes the model did apply. Without this the reply
+/// stops at "Thinking" and the user never sees the generated files.
+fn salvage_tool_call(raw: &str) -> Option<serde_json::Value> {
+    let name = {
+        let at = raw.find("\"name\"")?;
+        let rest = &raw[at + 6..];
+        let colon = rest.find(':')?;
+        let after = &rest[colon + 1..];
+        let start = after.find('"')? + 1;
+        let end = after[start..].find('"')? + start;
+        after[start..end].trim().to_string()
+    };
+    if name.is_empty() {
+        return None;
+    }
+    let args = {
+        let at = raw.find("\"arguments\"")?;
+        let rest = &raw[at + 11..];
+        let colon = rest.find(':')?;
+        let after = &rest[colon + 1..];
+        let start = after.find('"')? + 1;
+        let tail = &after[start..];
+        let end = tail.rfind('"')?;
+        let payload = &tail[..end];
+        let mut out = String::with_capacity(payload.len());
+        let mut chars = payload.chars();
+        while let Some(ch) = chars.next() {
+            if ch != '\\' {
+                out.push(ch);
+                continue;
+            }
+            match chars.next() {
+                Some('n') => out.push('\n'),
+                Some('r') => out.push('\r'),
+                Some('t') => out.push('\t'),
+                Some('"') => out.push('"'),
+                Some('\\') => out.push('\\'),
+                Some(other) => {
+                    out.push('\\');
+                    out.push(other);
+                }
+                None => out.push('\\'),
+            }
+        }
+        out
+    };
+    Some(serde_json::json!({ "name": name, "arguments": args }))
 }
 
 /// Parses the DSML/XML tool-call dialect some providers emit:

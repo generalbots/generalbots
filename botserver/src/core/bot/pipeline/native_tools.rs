@@ -170,14 +170,15 @@ async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         return;
     }
 
-    // Long runs and installs need a visible status in the chat; the turn
-    // otherwise looks frozen while the program executes.
-    if !packages.is_empty() || code.len() > 4_000 {
+    // Every run gets a visible status in the chat: the turn otherwise looks
+    // frozen while the program executes, and users cannot tell whether the bot
+    // is working or stuck.
+    {
         let note = if packages.is_empty() {
-            "⏳ Running your program in the workspace…".to_string()
+            format!("⏳ Executando no workspace ({language})…")
         } else {
             format!(
-                "⏳ Running your program in the workspace… (installing {})",
+                "⏳ Executando no workspace ({language})… instalando {}",
                 packages.join(", ")
             )
         };
