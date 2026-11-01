@@ -474,6 +474,10 @@ pub async fn process_message_internal(
                      the job keeps running while the user moves to another conversation and \
                      its result is saved into THIS conversation. \
                      Save generated artifacts into output/ so the user can preview them. \
+                     Files the user names may already be in data/ (fetched from their Drive); \
+                     read them from there. Use `drive_fetch` to pull a Drive file into data/ \
+                     and `drive_save` to publish output/ files to the user's Drive under the \
+                     conversation folder. \
                      After the tool returns, summarise the result and list each file as a \
                      markdown link in the form [name](vmfile:{conv_id}/output/name). \
                      Background work continues when the user switches conversations; \
@@ -486,7 +490,20 @@ pub async fn process_message_internal(
         }
     }
 
+    // #1584: files named in the message are copied from Drive into data/
+    // before the model writes the program that reads them.
+    #[cfg(all(feature = "agent-vm", feature = "drive"))]
+    super::native_drive::fetch_referenced(state, bot_uuid, user_id, session_id, &user_text, &mut messages).await;
+
     super::history::append_conversation_history(state, bot_uuid, session_id, user_id, &mut messages).await;
+
+    // #1545/#1547: grounding context goes LAST, immediately before the model
+    // call, so it is the freshest instruction in the prompt.
+    #[cfg(feature = "drive")]
+    super::drive_context::inject(state, &bot_uuid, user_id, &user_text, &mut messages).await;
+
+    #[cfg(feature = "research")]
+    super::web_context::inject(&user_text, &mut messages).await;
 
     super::history::send_stream_start_marker(sink, bot_uuid, session_id, user_id).await;
 

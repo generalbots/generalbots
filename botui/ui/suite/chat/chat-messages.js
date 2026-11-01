@@ -140,6 +140,19 @@ function renderThinkingSection(reasoning) {
 
 /* v3-indicator-fixed */
 
+// Raw HTML blocks (the model often answers with <ul>/<p>) are passed through
+// by marked verbatim, so markdown links and bold inside them stay literal.
+// Convert the inline syntax left in those blocks so citations are clickable.
+function renderInlineMarkdown(html) {
+  if (!html) return html;
+  var out = html.replace(
+    /\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g,
+    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>'
+  );
+  out = out.replace(/\*\*([^*<>]+)\*\*/g, "<strong>$1</strong>");
+  return out;
+}
+
 function convertNumberedLists(html) {
   var lines = html.split('\n');
   var result = [];
@@ -290,6 +303,7 @@ function addMessage(sender, content, msgId, reasoning) {
       parsed = hasHtmlTags ? cleanContent : escapeHtml(cleanContent);
     }
     parsed = convertNumberedLists(parsed);
+    parsed = renderInlineMarkdown(parsed);
     parsed = parsed.replace(/<br\s*\/?>/gi, '');
     parsed = renderMentionInMessage(parsed);
     parsed = renderDeepLinks(parsed);
@@ -448,6 +462,7 @@ function updateStreaming(content) {
     parsed = isHtml ? cleanContent : escapeHtml(cleanContent);
   }
   parsed = convertNumberedLists(parsed);
+  parsed = renderInlineMarkdown(parsed);
   parsed = parsed.replace(/<br\s*\/?>/gi, '');
   parsed = renderMentionInMessage(parsed);
   var thinkingHtml = renderThinkingSection(ChatState.currentReasoning);

@@ -174,3 +174,75 @@ pub async fn list_user_vm_output(
     .await
     .ok()
 }
+
+/// Reads a file from the conversation folder (#1584 drive_fetch target check).
+#[cfg(feature = "agent-vm")]
+pub async fn read_session_file(
+    user_id: uuid::Uuid,
+    session_id: uuid::Uuid,
+    rel_path: &str,
+) -> Result<Vec<u8>, String> {
+    let service = SERVICE.get().ok_or_else(|| "workspace unavailable".to_string())?;
+    let row = botagent::vm::get_user_vm(service, &user_id)
+        .map_err(|(_, e)| e)?
+        .ok_or_else(|| "no workspace".to_string())?;
+    if row.status != botagent::vm::STATUS_RUNNING {
+        return Err("workspace is not running".to_string());
+    }
+    botagent::transfer::read_file(
+        service,
+        &row.vm_name,
+        &session_id.to_string(),
+        rel_path,
+    )
+    .await
+    .map_err(|(_, e)| e)
+}
+
+/// Writes a file into the conversation folder (#1584 Drive → VM).
+#[cfg(feature = "agent-vm")]
+pub async fn write_session_file(
+    user_id: uuid::Uuid,
+    session_id: uuid::Uuid,
+    rel_path: &str,
+    bytes: &[u8],
+) -> Result<usize, String> {
+    let service = SERVICE.get().ok_or_else(|| "workspace unavailable".to_string())?;
+    let row = botagent::vm::get_user_vm(service, &user_id)
+        .map_err(|(_, e)| e)?
+        .ok_or_else(|| "no workspace".to_string())?;
+    if row.status != botagent::vm::STATUS_RUNNING {
+        return Err("workspace is not running".to_string());
+    }
+    botagent::transfer::write_file(
+        service,
+        &row.vm_name,
+        &session_id.to_string(),
+        rel_path,
+        bytes,
+    )
+    .await
+    .map_err(|(_, e)| e)
+}
+
+/// Lists `output/` or `data/` with file sizes (#1584 folder card / save).
+pub async fn list_session_folder(
+    user_id: uuid::Uuid,
+    session_id: uuid::Uuid,
+    folder: &str,
+) -> Option<Vec<(String, u64)>> {
+    let service = SERVICE.get()?;
+    let row = botagent::vm::get_user_vm(service, &user_id).ok()??;
+    if row.status != botagent::vm::STATUS_RUNNING {
+        return None;
+    }
+    botagent::transfer::list_folder(
+        service,
+        &row.vm_name,
+        &session_id.to_string(),
+        folder,
+    )
+    .await
+    .ok()
+    .map(|files| files.into_iter().map(|f| (f.name, f.size)).collect())
+}

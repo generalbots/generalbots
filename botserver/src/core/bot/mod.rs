@@ -112,6 +112,8 @@ pub mod kb_context;
 #[cfg(feature = "memory-os")]
 pub mod memory_hook;
 pub mod pipeline;
+#[cfg(feature = "drive")]
+pub mod drive_bridge;
 
 pub struct BotOrchestrator;
 

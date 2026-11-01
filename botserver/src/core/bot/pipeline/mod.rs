@@ -13,6 +13,12 @@ pub mod tool_exec;
 pub mod types;
 pub mod enriched_llm;
 pub mod vibe_route;
+#[cfg(all(feature = "agent-vm", feature = "drive"))]
+pub mod native_drive;
+#[cfg(feature = "drive")]
+pub mod drive_context;
+#[cfg(feature = "research")]
+pub mod web_context;
 
 pub use channel_entry::run_pipeline_for_channel;
 pub use exec::{process_message_internal, PipelineFn};

@@ -13,23 +13,25 @@ const OUTPUT_LIMIT: usize = 8_000;
 
 /// Returns true when `name` is a native tool and the call was answered.
 pub async fn try_run(identity: &SessionIdentity<'_>, name: &str, args: &str) -> bool {
-    match name {
-        "vm_exec" => {
-            #[cfg(feature = "agent-vm")]
-            run_vm_exec(identity, args).await;
-            #[cfg(not(feature = "agent-vm"))]
-            send(
-                identity,
-                "Workspace execution is not available in this build.",
-            )
-            .await;
-            true
-        }
-        _ => false,
+    if name == "vm_exec" {
+        #[cfg(feature = "agent-vm")]
+        run_vm_exec(identity, args).await;
+        #[cfg(not(feature = "agent-vm"))]
+        send(
+            identity,
+            "Workspace execution is not available in this build.",
+        )
+        .await;
+        return true;
     }
+    #[cfg(all(feature = "agent-vm", feature = "drive"))]
+    if super::native_drive::try_run(identity, name, args).await {
+        return true;
+    }
+    false
 }
 
-async fn send(identity: &SessionIdentity<'_>, message: &str) {
+pub(super) async fn send(identity: &SessionIdentity<'_>, message: &str) {
     let SessionIdentity {
         sink,
         bot_uuid,
@@ -50,7 +52,7 @@ async fn send(identity: &SessionIdentity<'_>, message: &str) {
 
 /// Save an assistant turn so a result is still there after the user switches
 /// conversation, reloads, or closes the tab.
-async fn persist(
+pub(super) async fn persist(
     state: &std::sync::Arc<botcore::shared::state::AppState>,
     session_id: uuid::Uuid,
     user_id: uuid::Uuid,

@@ -148,7 +148,10 @@ pub(super) async fn search_duckduckgo(
 ) -> Result<Vec<WebSearchResult>, Box<dyn std::error::Error + Send + Sync>> {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(10))
-        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+        .user_agent(
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 \
+             (KHTML, like Gecko) Chrome/126.0 Safari/537.36",
+        )
         .build()?;
 
     let encoded_query = normalize_query(query);
@@ -159,8 +162,23 @@ pub(super) async fn search_duckduckgo(
 
     debug!("Searching DuckDuckGo: {}", query);
 
-    let response = client.get(&url).send().await?;
+    let response = client
+        .get(&url)
+        .header("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+        .header("Accept-Language", "en-US,en;q=0.9")
+        .header("Sec-Fetch-Mode", "navigate")
+        .header("Sec-Fetch-Dest", "document")
+        .send()
+        .await?;
+    let status = response.status();
     let html = response.text().await?;
+    info!(
+        "DuckDuckGo HTTP {} for '{}': {} bytes, result__a markers: {}",
+        status,
+        query,
+        html.len(),
+        html.matches("result__a").count()
+    );
 
     let results = parse_duckduckgo_html(&html, max_results);
 
@@ -172,22 +190,164 @@ pub(super) async fn search_duckduckgo(
 
     Ok(results)
 }
-/// Public wrapper over the DuckDuckGo searcher so the LLM api-command catalog
-/// can answer from the web over any channel (e.g. WhatsApp). Falls back to
-/// Mojeek when DuckDuckGo returns no results (anti-bot challenge pages).
+/// Strips conversational scaffolding ("What is ... ? Cite your sources") so
+/// the engine sees the topic, not the question wrapper.
+pub fn clean_query(query: &str) -> String {
+    let mut text = query.trim().to_string();
+    let mut changed = true;
+    while changed {
+        changed = false;
+        let lower = text.to_lowercase();
+        for prefix in [
+            "what is the ", "what are the ", "what is ", "what are ", "who is ", "who are ",
+            "how many ", "how much ", "when did ", "when was ", "where is ", "where are ",
+            "tell me ", "can you tell me ", "could you tell me ", "do you know ", "please ",
+        ] {
+            if lower.starts_with(prefix) {
+                text = text[prefix.len()..].to_string();
+                changed = true;
+                break;
+            }
+        }
+        if changed {
+            continue;
+        }
+        let lower = text.to_lowercase();
+        for phrase in [
+            " cite your sources", " cite sources", " give sources", " with sources",
+            " according to the latest official estimate", " according to official sources",
+        ] {
+            if let Some(at) = lower.find(phrase) {
+                text = format!("{}{}", &text[..at], &text[at + phrase.len()..]);
+                changed = true;
+                break;
+            }
+        }
+    }
+    let text = text
+        .trim()
+        .trim_end_matches(|c: char| matches!(c, '?' | '.' | '!' | ','))
+        .trim()
+        .to_string();
+    if text.is_empty() {
+        query.trim().to_string()
+    } else {
+        text
+    }
+}
+
+/// Wikipedia search: reliable, citable and reachable from a datacenter
+/// without a key. Used when the SERP scrapers are challenge-gated.
+pub(super) async fn search_wikipedia(
+    query: &str,
+    max_results: usize,
+) -> Result<Vec<WebSearchResult>, String> {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(12))
+        .user_agent("GeneralBots/1.0 (research)")
+        .build()
+        .map_err(|e| e.to_string())?;
+    let url = format!(
+        "https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch={}\
+         &format=json&formatversion=2&srlimit={}",
+        normalize_query(query),
+        max_results.min(20)
+    );
+    let response = client.get(&url).send().await.map_err(|e| e.to_string())?;
+    let body = response.text().await.map_err(|e| e.to_string())?;
+    let parsed: serde_json::Value =
+        serde_json::from_str(&body).map_err(|e| e.to_string())?;
+    let mut results = Vec::new();
+    if let Some(items) = parsed
+        .get("query")
+        .and_then(|q| q.get("search"))
+        .and_then(|s| s.as_array())
+    {
+        for item in items.iter().take(max_results) {
+            let title = item.get("title").and_then(|t| t.as_str()).unwrap_or("");
+            if title.is_empty() {
+                continue;
+            }
+            let snippet = item
+                .get("snippet")
+                .and_then(|t| t.as_str())
+                .unwrap_or("")
+                .replace("<span class=\"searchmatch\">", "")
+                .replace("</span>", "");
+            results.push(WebSearchResult {
+                title: title.to_string(),
+                url: format!(
+                    "https://en.wikipedia.org/wiki/{}",
+                    urlencoding::encode(&title.replace(' ', "_"))
+                ),
+                snippet,
+                source: "en.wikipedia.org".to_string(),
+                favicon: Some(
+                    "https://www.google.com/s2/favicons?domain=en.wikipedia.org".to_string(),
+                ),
+                published_date: None,
+            });
+        }
+    }
+    // The search snippet is one sentence; the article summary carries the
+    // numbers and definitions a factual answer needs. Enrich the top hits.
+    for result in results.iter_mut().take(2) {
+        let url = format!(
+            "https://en.wikipedia.org/api/rest_v1/page/summary/{}",
+            urlencoding::encode(&result.title.replace(' ', "_"))
+        );
+        let response = client
+            .get(&url)
+            .header("Accept", "application/json")
+            .send()
+            .await;
+        let extract = match response {
+            Ok(response) => match response.json::<serde_json::Value>().await {
+                Ok(value) => value
+                    .get("extract")
+                    .and_then(|e| e.as_str())
+                    .map(|s| s.chars().take(900).collect::<String>()),
+                Err(_) => None,
+            },
+            Err(_) => None,
+        };
+        if let Some(extract) = extract {
+            if !extract.trim().is_empty() {
+                result.snippet = format!("{} {}", result.snippet.trim(), extract.trim());
+            }
+        }
+    }
+    info!(
+        "Wikipedia search for '{}' returned {} results",
+        query,
+        results.len()
+    );
+    Ok(results)
+}
+
+/// Public wrapper used by the pipeline, the api-command catalog and the
+/// research routes. DuckDuckGo first (best freshness), Wikipedia next
+/// (reliable and citable from a datacenter), Mojeek last.
 pub async fn search_web(
     query: &str,
     max_results: usize,
     region: &str,
 ) -> Result<Vec<WebSearchResult>, String> {
-    let ddg = search_duckduckgo(query, max_results, region)
+    let cleaned = clean_query(query);
+    let ddg = search_duckduckgo(&cleaned, max_results, region)
         .await
         .unwrap_or_default();
     if !ddg.is_empty() {
         return Ok(ddg);
     }
-    search_mojeek(query, max_results).await
+    if let Ok(wiki) = search_wikipedia(&cleaned, max_results).await {
+        if !wiki.is_empty() {
+            return Ok(wiki);
+        }
+    }
+    search_mojeek(&cleaned, max_results).await
 }
+
 /// Mojeek HTML search — a scraping-friendly engine used as a fallback when
 /// DuckDuckGo serves its anti-bot challenge page (HTTP 202, zero results).
 pub(super) async fn search_mojeek(

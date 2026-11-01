@@ -30,10 +30,10 @@ pub async fn handle_web_search<S: ResearchState>(
     let max_results = payload.max_results.unwrap_or(10).min(25);
     let region = payload.region.as_deref().unwrap_or("wt-wt");
 
-    let results = match search_duckduckgo(&payload.query, max_results, region).await {
+    let results = match search_web(&payload.query, max_results, region).await {
         Ok(r) => r,
         Err(e) => {
-            log::error!("DuckDuckGo search failed: {}", e);
+            log::error!("web search failed: {}", e);
             Vec::new()
         }
     };
@@ -45,7 +45,7 @@ pub async fn handle_web_search<S: ResearchState>(
         results,
         query: payload.query,
         search_time_ms,
-        source: "duckduckgo".to_string(),
+        source: "web".to_string(),
     })
 }
 pub async fn handle_summarize<S: ResearchState>(
@@ -138,7 +138,7 @@ pub async fn handle_deep_research<S: ResearchState>(
     let mut all_results: Vec<WebSearchResult> = Vec::new();
     let mut seen_urls: std::collections::HashSet<String> = std::collections::HashSet::new();
 
-    let initial_results = search_duckduckgo(&payload.query, max_sources, "wt-wt")
+    let initial_results = search_web(&payload.query, max_sources, "wt-wt")
         .await
         .unwrap_or_default();
 
@@ -153,7 +153,7 @@ pub async fn handle_deep_research<S: ResearchState>(
         let related_queries = generate_related_queries(&payload.query);
 
         for rq in related_queries.iter().take(depth - 1) {
-            if let Ok(more_results) = search_duckduckgo(rq, 5, "wt-wt").await {
+            if let Ok(more_results) = search_web(rq, 5, "wt-wt").await {
                 for result in more_results {
                     if !seen_urls.contains(&result.url) && all_results.len() < max_sources {
                         seen_urls.insert(result.url.clone());

@@ -292,7 +292,16 @@ pub(super) async fn handle_api_call(
                      {deep_link_instruction}",
                     json = serde_json::to_string_pretty(&result).unwrap_or_default(),
                     grounding = grounding,
-                    deep_link_instruction = if deep_links.is_empty() {
+                    deep_link_instruction = if name == "web.search" {
+                        // #1547 — answers built from search results must show
+                        // where each claim came from, and must never invent a
+                        // source when the results do not cover the question.
+                        "The results are live web search hits. Cite the source of every factual or \
+                         time-sensitive claim as a markdown link using the exact title and url from \
+                         the results, e.g. [title](url). Never invent a url or a source. If the \
+                         results do not answer the question, say what is missing instead of guessing."
+                            .to_string()
+                    } else if deep_links.is_empty() {
                         String::new()
                     } else {
                         format!(

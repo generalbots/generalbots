@@ -69,6 +69,10 @@ pub(crate) async fn generate(
                     .post(&full_url)
                     .header("Authorization", &auth_header)
                     .header("Content-Type", "application/json")
+                    // OpenCode Go routes on this header and rejects requests
+                    // without it (400 MissingSessionID) — the streaming path
+                    // already sends it.
+                    .header("x-opencode-session", uuid::Uuid::new_v4().to_string())
                     .json(&body)
                     .send()
                     .await

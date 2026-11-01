@@ -12,6 +12,7 @@ pub mod sandbox;
 pub mod schema;
 pub mod snapshots;
 pub mod state;
+pub mod transfer;
 pub mod vm;
 
 use std::sync::Arc;

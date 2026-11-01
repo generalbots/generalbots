@@ -1,62 +1,70 @@
 use super::*;
 
+/// Pulls one attribute value out of an opening tag (`href="..."`).
+fn attr_value(tag: &str, name: &str) -> Option<String> {
+    let marker = format!("{name}=\"");
+    let start = tag.find(&marker)? + marker.len();
+    let end = tag[start..].find('"')?;
+    Some(tag[start..start + end].to_string())
+}
+
+/// DuckDuckGo's HTML puts the title on the line *after* the anchor tag, so a
+/// line-oriented parser never saw a title and returned zero results. This
+/// scans anchors by position: href from the opening tag, title from the text
+/// inside `result__a`, snippet from the following `result__snippet` anchor.
 pub(super) fn parse_duckduckgo_html(html: &str, max_results: usize) -> Vec<WebSearchResult> {
     let mut results = Vec::new();
+    let mut rest = html;
 
-    let mut current_title = String::new();
-    let mut current_url = String::new();
-    let mut current_snippet = String::new();
+    while results.len() < max_results {
+        let Some(marker) = rest.find("result__a") else {
+            break;
+        };
+        let anchor_start = rest[..marker].rfind("<a ").unwrap_or(marker);
+        let after = &rest[anchor_start..];
+        let Some(open_end) = after.find('>') else {
+            break;
+        };
+        let open_tag = &after[..open_end];
+        let Some(raw_url) = attr_value(open_tag, "href") else {
+            rest = &after[open_end + 1..];
+            continue;
+        };
+        let url = decode_ddg_url(&raw_url);
+        let Some(close) = after[open_end..].find("</a>") else {
+            break;
+        };
+        let title = html_decode(&strip_html_inline(
+            &after[open_end + 1..open_end + close],
+        ));
+        let remainder = &after[open_end + close + 4..];
 
-    for line in html.lines() {
-        let line = line.trim();
+        let snippet = remainder
+            .find("result__snippet")
+            .and_then(|at| {
+                let anchor = &remainder[at..];
+                let gt = anchor.find('>')?;
+                let text = &anchor[gt + 1..];
+                let end = text.find("</a>").unwrap_or(text.len());
+                Some(html_decode(&strip_html_inline(&text[..end])))
+            })
+            .unwrap_or_default();
 
-        if line.contains("class=\"result__a\"") {
-            if let Some(href_start) = line.find("href=\"") {
-                let start = href_start + 6;
-                if let Some(href_end) = line[start..].find('"') {
-                    let raw_url = &line[start..start + href_end];
-                    current_url = decode_ddg_url(raw_url);
-                }
-            }
-
-            if let Some(title_start) = line.find('>') {
-                let after_tag = &line[title_start + 1..];
-                if let Some(title_end) = after_tag.find('<') {
-                    current_title = html_decode(&after_tag[..title_end]);
-                }
-            }
+        if !title.trim().is_empty() && !url.trim().is_empty() {
+            let domain = extract_domain(&url);
+            results.push(WebSearchResult {
+                title: title.trim().to_string(),
+                url,
+                snippet: snippet.trim().to_string(),
+                source: domain.clone(),
+                favicon: Some(format!(
+                    "https://www.google.com/s2/favicons?domain={}",
+                    domain
+                )),
+                published_date: None,
+            });
         }
-
-        if line.contains("class=\"result__snippet\"") {
-            if let Some(snippet_start) = line.find('>') {
-                let after_tag = &line[snippet_start + 1..];
-                let snippet_text = strip_html_inline(after_tag);
-                current_snippet = html_decode(&snippet_text);
-            }
-
-            if !current_title.is_empty() && !current_url.is_empty() {
-                let domain = extract_domain(&current_url);
-                results.push(WebSearchResult {
-                    title: current_title.clone(),
-                    url: current_url.clone(),
-                    snippet: current_snippet.clone(),
-                    source: domain.clone(),
-                    favicon: Some(format!(
-                        "https://www.google.com/s2/favicons?domain={}",
-                        domain
-                    )),
-                    published_date: None,
-                });
-
-                current_title.clear();
-                current_url.clear();
-                current_snippet.clear();
-
-                if results.len() >= max_results {
-                    break;
-                }
-            }
-        }
+        rest = remainder;
     }
 
     if results.is_empty() {
@@ -243,4 +251,44 @@ pub(super) async fn get_instant_answer(query: &str) -> Option<(String, String)> 
     }
 
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Mirrors html.duckduckgo.com: the title lives on the line after `<a>`.
+    const HTML: &str = r#"
+<div class="result results_links">
+  <h2 class="result__title">
+    <a rel="nofollow" class="result__a"
+       href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2Fstory&amp;rut=abc">
+      Example <b>Story</b>
+    </a>
+  </h2>
+  <a class="result__snippet" href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com">
+    A <b>short</b> snippet about the story.
+  </a>
+</div>
+"#;
+
+    #[test]
+    fn parses_multiline_anchor_title_and_snippet() {
+        let results = parse_duckduckgo_html(HTML, 5);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].url, "https://example.com/story");
+        assert!(results[0].title.contains("Example"));
+        assert!(results[0].title.contains("Story"));
+        assert!(results[0].snippet.contains("snippet"));
+        assert_eq!(results[0].source, "example.com");
+    }
+
+    #[test]
+    fn multi_line_opening_tag_still_yields_href() {
+        let html = "<a rel=\"nofollow\" class=\"result__a\"\nhref=\"https://plain.example/page\">Plain title</a>";
+        let results = parse_duckduckgo_html(html, 5);
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].url, "https://plain.example/page");
+        assert_eq!(results[0].title, "Plain title");
+    }
 }

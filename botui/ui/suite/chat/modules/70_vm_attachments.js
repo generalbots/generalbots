@@ -141,6 +141,7 @@ function renderVmFileLinks(html) {
       "</a>" +
       '<button type="button" class="gb-attachment-btn gb-attachment-preview">Preview</button>' +
       '<button type="button" class="gb-attachment-btn gb-attachment-download">Download</button>' +
+      '<button type="button" class="gb-attachment-btn gb-attachment-save">Save</button>' +
       "</span>"
     );
   });
@@ -196,6 +197,31 @@ function vmShowPreviewUrl(url, path) {
   overlay._gbUrl = url;
 }
 
+// #1584 — publish output/ to Drive under the conversation folder.
+function vmSaveToDrive(conversationId, files) {
+  var headers = { "Content-Type": "application/json" };
+  var token = vmAttachmentsToken();
+  if (token) headers.Authorization = "Bearer " + token;
+  return fetch("/api/agent/drive/save", {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify({ conversation_id: conversationId, files: files || [] }),
+  }).then(function (res) {
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return res.json();
+  });
+}
+
+function vmReportSaved(data) {
+  var saved = (data && data.saved) || [];
+  var message =
+    "Saved " + saved.length + " file" + (saved.length === 1 ? "" : "s") +
+    " to Drive (" + ((data && data.folder) || "conversations") + ")";
+  if (window.GBToasts && GBToasts.show) GBToasts.show("Saved", message, "success");
+  else if (window.showToast) window.showToast(message, "success");
+  return message;
+}
+
 function vmBindAttachment(card) {
   if (!card || card.dataset.bound === "1") return;
   card.dataset.bound = "1";
@@ -225,6 +251,19 @@ function vmBindAttachment(card) {
 
   var download = card.querySelector(".gb-attachment-download");
   var preview = card.querySelector(".gb-attachment-preview");
+  var saveBtn = card.querySelector(".gb-attachment-save");
+  if (saveBtn) {
+    saveBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      resolve()
+        .then(function (convId) {
+          if (!convId) throw new Error("No active VM");
+          return vmSaveToDrive(convId, [fileName]);
+        })
+        .then(vmReportSaved)
+        .catch(vmNotifyError);
+    });
+  }
   if (download) {
     download.addEventListener("click", function (e) {
       e.preventDefault();
@@ -268,7 +307,8 @@ function vmAppendCard(wrapper, conversationId, path, name) {
     '<span class="gb-attachment-icon"></span>' +
     '<a class="gb-attachment-name" href="#" download></a>' +
     '<button type="button" class="gb-attachment-btn gb-attachment-preview">Preview</button>' +
-    '<button type="button" class="gb-attachment-btn gb-attachment-download">Download</button>';
+    '<button type="button" class="gb-attachment-btn gb-attachment-download">Download</button>' +
+    '<button type="button" class="gb-attachment-btn gb-attachment-save">Save</button>';
   card.querySelector(".gb-attachment-icon").textContent = vmFileIcon(path);
   card.querySelector(".gb-attachment-name").textContent = name;
   wrapper.appendChild(card);
@@ -312,6 +352,51 @@ function vmAttachmentAnchor(container) {
   return bots.length ? bots[bots.length - 1] : null;
 }
 
+// One folder card for every attachment of the reply (#1584): the user sees
+// "output" as a folder with all generated files, not a flat list of links.
+function vmGroupAttachments(anchor) {
+  if (!anchor) return;
+  var cards = [];
+  var all = anchor.querySelectorAll(".gb-attachment");
+  for (var i = 0; i < all.length; i++) {
+    if (!all[i].closest(".gb-attachment-folder")) cards.push(all[i]);
+  }
+  var folder = anchor.querySelector(".gb-attachment-folder");
+  if (!folder) {
+    if (!cards.length) return;
+    folder = document.createElement("div");
+    folder.className = "gb-attachment-folder";
+    folder.innerHTML =
+      '<div class="gb-folder-head">' +
+      '<span class="gb-folder-icon">\u{1F4C1}</span>' +
+      '<span class="gb-folder-title">output</span>' +
+      '<span class="gb-folder-count"></span>' +
+      '<button type="button" class="gb-folder-save gb-attachment-btn">Save to Drive</button>' +
+      "</div>" +
+      '<div class="gb-folder-grid"></div>';
+    var target = anchor.querySelector(".message-content") || anchor;
+    target.appendChild(folder);
+  }
+  var grid = folder.querySelector(".gb-folder-grid");
+  for (var j = 0; j < cards.length; j++) grid.appendChild(cards[j]);
+  var count = grid.querySelectorAll(".gb-attachment").length;
+  folder.querySelector(".gb-folder-count").textContent =
+    count + " file" + (count === 1 ? "" : "s");
+  var saveAll = folder.querySelector(".gb-folder-save");
+  if (saveAll && !saveAll.dataset.bound) {
+    saveAll.dataset.bound = "1";
+    saveAll.addEventListener("click", function () {
+      vmCurrentConversationId()
+        .then(function (convId) {
+          if (!convId) throw new Error("No active VM");
+          return vmSaveToDrive(convId, []);
+        })
+        .then(vmReportSaved)
+        .catch(vmNotifyError);
+    });
+  }
+}
+
 // Bind inline vmfile cards and append output/ files the model did not link.
 function hydrateVmAttachments(container) {
   if (!container) return;
@@ -320,6 +405,7 @@ function hydrateVmAttachments(container) {
 
   var anchor = vmAttachmentAnchor(container);
   if (!anchor) return;
+  vmGroupAttachments(anchor);
 
   vmCurrentConversationId()
     .then(function (conversationId) {
@@ -341,6 +427,7 @@ function hydrateVmAttachments(container) {
         });
         if (!missing.length) {
           VmAttachments.renderedPaths[conversationId] = seen;
+          vmGroupAttachments(anchor);
           return;
         }
         if (!anchor.isConnected) return;
@@ -354,6 +441,7 @@ function hydrateVmAttachments(container) {
         VmAttachments.renderedPaths[conversationId] = seen;
         var target = anchor.querySelector(".message-content") || anchor;
         target.appendChild(wrapper);
+        vmGroupAttachments(anchor);
         if (
           typeof ChatState !== "undefined" &&
           !ChatState.isUserScrolling &&
