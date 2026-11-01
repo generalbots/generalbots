@@ -9,12 +9,6 @@ pub(super) fn prepare_command(
     if !program_is_allowed(program) {
         return Err(GuardError::CommandNotAllowed(program.into()));
     }
-    // #1534: narrow the executable to the three harness commands before it
-    // reaches a command line. `program_is_allowed` is the shared guard; this
-    // explicit match keeps the taint analysis honest.
-    if !matches!(program, "node" | "npm" | "npx") {
-        return Err(GuardError::CommandNotAllowed(program.into()));
-    }
     if args.len() > MAX_ARGS {
         return Err(GuardError::InvalidArgument("too many arguments".into()));
     }
@@ -75,16 +69,18 @@ pub(super) fn prepare_command(
     Ok(command)
 }
 
-/// The only executables the harness may spawn (#1534). Every arm is a string
-/// literal, so request input selects from a fixed set instead of naming the
-/// program that gets executed.
+/// The executable the harness may spawn (#1534).
+///
+/// The returned string always comes from `ALLOWED_COMMANDS`, a fixed set of
+/// string literals, so request input can only select an entry and never supply
+/// the program that reaches the command line. A path such as `/usr/bin/node`
+/// is refused even though its basename is allowlisted, because the lookup is
+/// exact.
 fn harness_executable(program: &str) -> Result<&'static str, GuardError> {
-    match program {
-        "node" => Ok("node"),
-        "npm" => Ok("npm"),
-        "npx" => Ok("npx"),
-        _ => Err(GuardError::CommandNotAllowed(program.into())),
-    }
+    ALLOWED_COMMANDS
+        .get(program)
+        .copied()
+        .ok_or_else(|| GuardError::CommandNotAllowed(program.into()))
 }
 
 #[cfg(test)]
