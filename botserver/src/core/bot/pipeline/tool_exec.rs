@@ -119,7 +119,9 @@ pub async fn run_llm_tool_call(
     // Some providers wrap function calls in an XML dialect (DSML) instead of
     // the JSON protocol. Convert it to the wrapper this function understands.
     if !full_response.contains("\"__tool_call__\":") {
-        if let Some(synthetic) = parse_dsml_tool_call(full_response) {
+        if let Some(synthetic) = parse_dsml_tool_call(full_response)
+            .or_else(|| parse_xml_tool_use(full_response))
+        {
             let text = synthetic.to_string();
             Box::pin(run_llm_tool_call(identity, rx, &text, user_text)).await;
             return;
@@ -664,4 +666,27 @@ fn parse_dsml_tool_call(raw: &str) -> Option<serde_json::Value> {
 
 fn dispatch_quote_end(text: &str, start: usize) -> Option<usize> {
     text[start..].find('"').map(|pos| start + pos)
+}
+
+/// Parses the `<tool_use>{"name": …, "arguments": …}</tool_use>` dialect
+/// emitted by some Kilo-hosted models. Returns the native wrapper shape.
+fn parse_xml_tool_use(raw: &str) -> Option<serde_json::Value> {
+    let open = raw.find("<tool_use>")? + "<tool_use>".len();
+    let close = raw[open..].find("</tool_use>")?;
+    let payload = raw[open..open + close].trim();
+    let value = extract_tool_call(payload).or_else(|| salvage_tool_call(payload))?;
+    let name = value.get("name")?.as_str()?.trim();
+    if name.is_empty() {
+        return None;
+    }
+    let args = value.get("arguments")?.clone();
+    let args = match args {
+        serde_json::Value::String(text) => text,
+        other => other.to_string(),
+    };
+    Some(serde_json::json!({
+        "__tool_call__": true,
+        "name": name,
+        "arguments": args,
+    }))
 }

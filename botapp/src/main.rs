@@ -337,12 +337,20 @@ fn main() {
             #[cfg(feature = "desktop-local")]
             let sidecar = app.state::<Sidecar>().inner().clone();
 
-            app.run(move |_handle, event| {
+            app.run(move |app, event| {
                 #[cfg(feature = "desktop-local")]
-                if let tauri::RunEvent::ExitRequested { .. } = &event {
-                    sidecar.stop();
+                if let tauri::RunEvent::ExitRequested { api, .. } = &event {
+                    // Closing the wizard must not take the suite down with it:
+                    // the main window is already answering, so keep the
+                    // process (and the sidecar) alive until it is gone.
+                    if app.get_webview_window("main").is_some() {
+                        info!("keeping the app alive: the suite window still exists");
+                        api.prevent_exit();
+                    } else {
+                        sidecar.stop();
+                    }
                 }
-                let _ = &event;
+                let _ = (&app, &event);
             });
         }
         Err(e) => {

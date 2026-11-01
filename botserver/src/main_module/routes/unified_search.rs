@@ -216,18 +216,31 @@ pub async fn handle_unified_search(
     let ilike_pattern = format!("%{}%", query.to_lowercase());
 
     // #1179 — permissioned search: tenant-scoped sources are restricted to
-    // the caller's org. Admins and anonymous requests see everything.
-    let org_id = user.and_then(|u| {
-        let is_admin = u
-            .roles
-            .iter()
-            .any(|r| matches!(r, crate::security::auth_api::types::Role::Admin));
-        if is_admin {
-            None
-        } else {
-            u.organization_id
+    // the caller's org. Admins see everything; anonymous callers (desktop
+    // no-security installs, public-bot visitors) are restricted to the global
+    // (nil) scope so they never see another org's Drive or KB metadata.
+    let org_id = match user {
+        Some(u) => {
+            let is_admin = u
+                .roles
+                .iter()
+                .any(|r| matches!(r, crate::security::auth_api::types::Role::Admin));
+            if is_admin {
+                None
+            } else {
+                Some(u.organization_id.unwrap_or_else(uuid::Uuid::nil))
+            }
         }
-    });
+        None => Some(uuid::Uuid::nil()),
+    };
+
+    // A product that only ships Chat and Drive must not surface People, CRM,
+    // Tickets, Research or Admin results: the caller cannot open them and
+    // they are not part of the edition.
+    let enabled_apps = botcore::product::PRODUCT_CONFIG
+        .read()
+        .map(|product| product.apps.clone())
+        .unwrap_or_default();
 
     let pool = state.conn.clone();
 
@@ -242,10 +255,17 @@ pub async fn handle_unified_search(
 
         let mut out: Vec<serde_json::Value> = Vec::new();
         for source in SOURCES {
+            if !enabled_apps.is_empty() && !enabled_apps.contains(source.app) {
+                continue;
+            }
             // Column is a hardcoded constant; the value is a Uuid parsed by
             // the trusted auth layer — no user-controlled SQL reaches here.
-            let org_clause = match (source.org_column, org_id) {
-                (Some(col), Some(id)) => Some(format!("{col} = '{id}'")),
+            let org_clause = match (source.table, source.org_column, org_id) {
+                // Drive/KB rows carry `bot_id`; join to the tenant owner.
+                ("drive_files" | "kb_documents", _, Some(id)) => {
+                    Some(format!("bot_id IN (SELECT id FROM bots WHERE org_id = '{id}')"))
+                }
+                (_, Some(col), Some(id)) => Some(format!("{col} = '{id}'")),
                 _ => None,
             };
             let sql = build_query(source, org_clause.as_deref());

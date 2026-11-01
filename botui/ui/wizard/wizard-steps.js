@@ -81,6 +81,7 @@
 
   function renderWelcome(draft, ctx) {
     return '' +
+      '<div class="brand-hero"><img src="/wizard/logo.svg" alt="General Bots" /></div>' +
       '<p class="lead">Runs on this machine; nothing leaves it unless you connect a service.</p>' +
       '<div class="card">' +
         '<p class="note">This setup creates a private workspace, starts the local services the assistant needs, and opens the assistant when everything answers.</p>' +
@@ -204,9 +205,25 @@
         '<button type="button" class="btn btn-secondary btn-sm" id="revealVaultBtn">Reveal vault location</button>' +
         '<span class="note" id="vaultNote">The assistant never displays a stored secret again.</span>' +
       "</div>" +
-      '<h2 style="font-size:15px;margin:22px 0 6px">Set up this machine</h2>' +
-      '<p class="note" style="margin:0 0 10px" id="provisionIntro">Starting the local services. Each step reports its own state.</p>' +
-      '<div class="components" id="componentList"></div>' +
+      '<p class="note install-next">Next installs the local services. The installer reports every component as it starts and finishes.</p>';
+  }
+
+  /* The Borland-style install screen: one prominent progress bar, then a
+     traffic light per component (yellow = working, green = ready, red = failed). */
+  function renderInstall(draft, ctx) {
+    var planned = (ctx.components || []).filter(function (component) {
+      return draft.model.mode === "local" || component.id !== "llm";
+    });
+    return '' +
+      '<div class="install-top">' +
+        '<div class="install-head">' +
+          '<span class="install-kicker">LOCAL INSTALLER</span>' +
+          '<span class="install-percent" id="installPercent">0%</span>' +
+        "</div>" +
+        '<div class="install-bar"><div class="install-bar-fill" id="installFill"></div></div>' +
+        '<p class="install-status" id="installStatus">Preparing ' + planned.length + ' components…</p>' +
+      "</div>" +
+      '<div class="component-board" id="componentList"></div>' +
       '<div id="provisionError" class="note err" role="status" style="margin-top:10px"></div>' +
       '<div class="inline-row" style="margin-top:12px">' +
         '<button type="button" class="btn btn-primary btn-sm" id="startSetupBtn">Start setup</button>' +
@@ -214,7 +231,7 @@
         '<button type="button" class="btn btn-secondary btn-sm" id="openLogsBtn">Open log folder</button>' +
         '<button type="button" class="btn btn-danger btn-sm" id="resetStackBtn">Reset stack</button>' +
       "</div>" +
-      '<details class="details"><summary>Details</summary><pre class="log" id="provisionLog">No output yet.</pre></details>';
+      '<details class="details"><summary>Installer output</summary><pre class="log" id="provisionLog">No output yet.</pre></details>';
   }
 
   function renderFinish(draft, ctx) {
@@ -266,7 +283,8 @@
       case 3: return renderWorkspace(draft, ctx);
       case 4: return renderServices(draft, ctx);
       case 5: return renderPrivacy(draft, ctx);
-      case 6: return renderFinish(draft, ctx);
+      case 6: return renderInstall(draft, ctx);
+      case 7: return renderFinish(draft, ctx);
       default: return "<p>Unknown step.</p>";
     }
   }
@@ -278,7 +296,8 @@
       case 3: return "Choose a workspace";
       case 4: return "Connect services";
       case 5: return "What leaves this machine";
-      case 6: return "Ready to open the assistant";
+      case 6: return "Setting up this machine";
+      case 7: return "Ready to open the assistant";
       default: return "Setup";
     }
   }
@@ -297,7 +316,7 @@
           return { ok: false, reason: free.name + " requires a free account key." };
         }
       }
-      if (!draft.model.tested) { return { ok: false, reason: "Test the connection before continuing." }; }
+      if (!draft.model.tested && draft.model.mode !== "free") { return { ok: false, reason: "Test the connection before continuing." }; }
       return { ok: true };
     }
     if (step === 3) {

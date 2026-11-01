@@ -54,7 +54,7 @@
     assert(ready, "wizard renders with the stack stopped and no network");
 
     var rail = document.querySelectorAll("#railSteps .rail-step");
-    assert(rail.length === 6, "six steps are present", String(rail.length));
+    assert(rail.length === 7, "seven steps are present", String(rail.length));
     assert(rail[0].getAttribute("aria-current") === "step", "rail marks the current step");
 
     var body = text("#stepBody");
@@ -113,17 +113,21 @@
     assert(map.indexOf("Nothing") !== -1 || map.indexOf("Nowhere") !== -1,
       "data map states that crash reports go nowhere by default");
 
-    click("#startSetupBtn");
+    click("#nextBtn");
+    // `next()` renders the installer synchronously, before the first timer.
+    assert(window.GBWizard.state.step === 6, "install step is reachable");
+    assert(!!document.getElementById("installPercent"), "installer progress is on screen");
+    var lit = await waitFor(function () {
+      return document.querySelectorAll("#componentList .dot.ok").length >= 6;
+    }, 12000);
+    assert(lit, "components light up green while the installer runs",
+      String(document.querySelectorAll("#componentList .dot.ok").length));
     var provisioned = await waitFor(function () {
       return window.GBWizard.state.provisioning.ready === true;
     }, 12000);
     assert(provisioned, "provisioning reaches ready");
-    var okDots = document.querySelectorAll("#componentList .dot.ok").length;
-    assert(okDots >= 6, "every component reports ready", String(okDots));
-
-    click("#nextBtn");
-    await waitFor(function () { return window.GBWizard.state.step === 6; }, 1500);
-    assert(window.GBWizard.state.step === 6, "finish step is reachable");
+    await waitFor(function () { return window.GBWizard.state.step === 7; }, 1500);
+    assert(window.GBWizard.state.step === 7, "finish step is reachable");
     assert(text("#stepBody").indexOf("Workspace") !== -1, "finish summarises the choices");
     assert(text("#stepBody").indexOf("Administrator account") !== -1,
       "finish shows the administrator account");

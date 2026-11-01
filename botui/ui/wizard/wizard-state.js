@@ -7,7 +7,8 @@
     { id: "model", name: "Assistant model" },
     { id: "workspace", name: "Workspace" },
     { id: "services", name: "Connect services" },
-    { id: "privacy", name: "Privacy and setup" },
+    { id: "privacy", name: "Privacy" },
+    { id: "install", name: "Install" },
     { id: "finish", name: "Finish" }
   ];
 
@@ -69,17 +70,17 @@
 
   var FREE_PROVIDERS = [
     {
+      id: "kilo",
+      name: "Kilo Code",
+      endpoint: "https://api.kilo.ai/api/gateway/chat/completions",
+      model: "dots-studio/dots-3-note-preview:free",
+      needsKey: false
+    },
+    {
       id: "ovh",
       name: "OVHcloud AI Endpoints",
       endpoint: "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions",
       model: "gpt-oss-20b",
-      needsKey: false
-    },
-    {
-      id: "kilo",
-      name: "Kilo Code",
-      endpoint: "https://api.kilo.ai/api/gateway/chat/completions",
-      model: "kilo-auto/free",
       needsKey: false
     },
     {

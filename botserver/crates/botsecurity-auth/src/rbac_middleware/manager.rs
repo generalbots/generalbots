@@ -32,6 +32,12 @@ impl RbacManager {
         method: &str,
         user: &AuthenticatedUser,
     ) -> AccessDecisionResult {
+        // Desktop no-security mode: the local owner is the only principal.
+        if self.config.allow_all {
+            return AccessDecisionResult::allow("no_security product: single-user install")
+                .with_rule("*".to_string());
+        }
+
         let cache_key = format!("route:{}:{}:{}", path, method, user.user_id);
 
         if self.config.enable_permission_cache {

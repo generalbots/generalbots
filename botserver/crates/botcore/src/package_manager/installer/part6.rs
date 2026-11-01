@@ -66,13 +66,27 @@ VAULT_CACERT={}
         );
 
         if env_file.exists() {
+            // Reinstalling the stack changes the vault root token; replace the
+            // stale VAULT_* lines instead of keeping them.
             let existing = std::fs::read_to_string(&env_file)?;
-            if existing.contains("VAULT_ADDR=") {
-                return Ok(());
+            let mut kept: Vec<&str> = existing
+                .lines()
+                .filter(|line| {
+                    !line.starts_with("# Vault Configuration (auto-generated)")
+                        && !line.starts_with("VAULT_ADDR=")
+                        && !line.starts_with("VAULT_TOKEN=")
+                        && !line.starts_with("VAULT_CACERT=")
+                })
+                .collect();
+            while kept.last().is_some_and(|line| line.trim().is_empty()) {
+                kept.pop();
             }
-            let mut file = std::fs::OpenOptions::new().append(true).open(&env_file)?;
-            use std::io::Write;
-            file.write_all(env_content.as_bytes())?;
+            let mut content = kept.join("\n");
+            if !content.is_empty() {
+                content.push('\n');
+            }
+            content.push_str(env_content.trim_start());
+            std::fs::write(&env_file, content)?;
         } else {
             std::fs::write(&env_file, env_content.trim_start())?;
         }

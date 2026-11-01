@@ -65,6 +65,12 @@ fn require_authenticated_identity(
     state: &AgentService,
     user_id: &Uuid,
 ) -> Result<(), (StatusCode, String)> {
+    // Single-user/desktop installs run without accounts: the opt-out covers
+    // guest identities and nil callers too, otherwise a fresh local install can
+    // never reach the agent workspace.
+    if allow_unregistered_identities() {
+        return Ok(());
+    }
     if user_id.is_nil() {
         tracing::warn!("agent workspace provisioning denied for nil identity");
         return Err((
@@ -821,8 +827,33 @@ pub async fn exec_in_conversation(
     tracing::info!("vm exec: program written {script_path}");
 
     let run_cmd = format!("cd {folder} && {interpreter} {script_path}");
-    let (first_ok, mut stdout, stderr) =
+    let (mut first_ok, mut stdout, mut stderr) =
         run_with_timeout(state, vm_name, run_cmd.clone(), timeout_ms).await?;
+
+    // A freshly provisioned workspace installs its toolkit in the background.
+    // Running a program before that finishes fails with "python3: not found",
+    // which reads like a fatal bug. Wait for the provisioning marker (bounded)
+    // and retry once so the first request of a new install succeeds.
+    if !first_ok && is_interpreter_missing(&stderr) {
+        tracing::info!("vm exec: interpreter missing, waiting for workspace provisioning");
+        for _ in 0..12 {
+            tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+            let probe = run_with_timeout(
+                state,
+                vm_name,
+                format!("test -f /opt/vibe/.provisioned && command -v {interpreter}"),
+                15_000,
+            )
+            .await?;
+            if probe.0 {
+                let retried = run_with_timeout(state, vm_name, run_cmd.clone(), timeout_ms).await?;
+                first_ok = retried.0;
+                stdout = format!("workspace prepared, retried the program\n{}", retried.1);
+                stderr = retried.2;
+                break;
+            }
+        }
+    }
     if first_ok {
         stdout = format!("{install_log}{stdout}");
         return Ok((true, stdout, stderr));
@@ -842,6 +873,17 @@ pub async fn exec_in_conversation(
 
     stdout = format!("{install_log}{stdout}");
     Ok((false, stdout, stderr))
+}
+
+/// True when the failure is only "the interpreter is not installed yet", which
+/// happens while a brand-new workspace is still installing its toolkit.
+fn is_interpreter_missing(stderr: &str) -> bool {
+    let text = stderr.to_ascii_lowercase();
+    (text.contains("not found") || text.contains("command not found"))
+        && (text.contains("python3")
+            || text.contains("node")
+            || text.contains("sh: 1:")
+            || text.contains("sh: 0:"))
 }
 
 /// Writes `code` into `path` inside the VM without ever passing the whole

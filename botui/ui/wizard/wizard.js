@@ -63,8 +63,8 @@
 
   function canAdvance() {
     if (state.provisioning.running) { return false; }
-    if (state.step === 5 && !state.provisioning.ready && !state.skipped) { return false; }
-    if (state.step === 6) { return state.provisioning.ready || state.skipped || !ctx.first_run; }
+    if (state.step === 6) { return state.provisioning.ready || state.skipped; }
+    if (state.step === 7) { return state.provisioning.ready || state.skipped || !ctx.first_run; }
     return S.validate(state.step, draft).ok;
   }
 
@@ -100,9 +100,9 @@
         input.addEventListener("change", function () {
           draft.model.mode = input.value;
           if (input.value === "free") {
-            draft.model.provider = "ovh";
-            draft.model.endpoint = W.defaultModelEndpoint("ovh");
-            draft.model.model = W.defaultModelName("ovh");
+            draft.model.provider = "kilo";
+            draft.model.endpoint = W.defaultModelEndpoint("kilo");
+            draft.model.model = W.defaultModelName("kilo");
             draft.model.api_key = "";
           } else if (input.value === "own-key" || input.value === "hosted") {
             if (!W.defaultModelEndpoint(draft.model.provider)) {
@@ -142,7 +142,8 @@
 
     if (state.step === 4) { bindServices(); }
     if (state.step === 5) { bindPrivacy(); }
-    if (state.step === 6) { bindFinish(); }
+    if (state.step === 6) { bindInstall(); }
+    if (state.step === 7) { bindFinish(); }
   }
 
   function bindModelDetail() {
@@ -265,6 +266,11 @@
     if (toggle) { toggle.addEventListener("change", function () { draft.telemetry = toggle.checked; persistDraft(); }); }
     var reveal = document.getElementById("revealVaultBtn");
     if (reveal) { reveal.addEventListener("click", function () { B.openFolder("vault"); }); }
+  }
+
+  /* The install step owns the installer: it starts on arrival (Borland
+     style), reports every component and keeps the action buttons together. */
+  function bindInstall() {
     var start = document.getElementById("startSetupBtn");
     if (start) { start.addEventListener("click", startProvisioning); }
     var cancel = document.getElementById("cancelSetupBtn");
@@ -273,8 +279,15 @@
     if (logs) { logs.addEventListener("click", function () { B.openFolder("logs"); }); }
     var reset = document.getElementById("resetStackBtn");
     if (reset) { reset.addEventListener("click", confirmReset); }
-    if (state.provisioning.running) { setProvisionUi(true); }
-    if (state.provisioning.ready) { markAllReady(); }
+    if (state.provisioning.running) {
+      setProvisionUi(true);
+      renderComponents();
+    } else if (state.provisioning.ready) {
+      markAllReady();
+      updateInstallProgress();
+    } else if (!state.skipped) {
+      startProvisioning();
+    }
   }
 
   function bindFinish() {
@@ -348,7 +361,46 @@
     if (!list) { return; }
     list.innerHTML = (ctx.components || []).map(componentTemplate).join("");
     (state.provisioning.components || []).forEach(updateComponent);
+    updateInstallProgress();
     renderLog();
+  }
+
+  function plannedComponents() {
+    return (ctx.components || []).filter(function (component) {
+      return draft.model.mode === "local" || component.id !== "llm";
+    });
+  }
+
+  function updateInstallProgress() {
+    var planned = plannedComponents();
+    var ready = 0;
+    var failed = 0;
+    planned.forEach(function (component) {
+      var entry = null;
+      for (var i = 0; i < state.provisioning.components.length; i += 1) {
+        if (state.provisioning.components[i].id === component.id) { entry = state.provisioning.components[i]; }
+      }
+      if (entry && entry.state === "ready") { ready += 1; }
+      if (entry && entry.state === "failed") { failed += 1; }
+    });
+    var percent = planned.length ? Math.round((ready / planned.length) * 100) : 0;
+    if (state.provisioning.ready) { percent = 100; }
+    var label = document.getElementById("installPercent");
+    var fill = document.getElementById("installFill");
+    var status = document.getElementById("installStatus");
+    if (label) { label.textContent = percent + "%"; }
+    if (fill) { fill.style.width = percent + "%"; }
+    if (status) {
+      if (state.provisioning.failed || failed) {
+        status.textContent = "Setup stopped: " + (state.provisioning.failed || "a component failed") + ". Retry or open the log folder.";
+      } else if (state.provisioning.ready) {
+        status.textContent = "All " + planned.length + " components are ready.";
+      } else if (state.provisioning.running) {
+        status.textContent = "Installing " + ready + " of " + planned.length + " components…";
+      } else {
+        status.textContent = "Waiting to start.";
+      }
+    }
   }
 
   function updateComponent(event) {
@@ -361,14 +413,20 @@
       entry = { id: event.id, state: "pending", message: "", elapsed_ms: 0 };
       state.provisioning.components.push(entry);
     }
+    var changed = entry.state !== event.state;
     entry.state = event.state;
     entry.message = event.message || "";
     entry.elapsed_ms = event.elapsed_ms || 0;
+    if (changed) {
+      logLines.push("[" + event.id + "] " + event.state + " — " + (event.message || event.state));
+      if (logLines.length > 200) { logLines.splice(0, logLines.length - 200); }
+    }
     if (!node) { return; }
     var dot = node.querySelector(".dot");
     dot.className = "dot " + (event.state === "starting" ? "run" : event.state === "ready" ? "ok" : event.state === "failed" ? "err" : "");
     node.querySelector(".msg").textContent = event.message || event.state;
     node.querySelector(".dur").textContent = event.elapsed_ms ? (event.elapsed_ms / 1000).toFixed(1) + "s" : "";
+    updateInstallProgress();
   }
 
   function renderLog() {
@@ -401,15 +459,19 @@
     setProvisionUi(false);
     var start = document.getElementById("startSetupBtn");
     if (start) { start.textContent = "Setup complete"; start.disabled = true; }
-    var intro = document.getElementById("provisionIntro");
-    if (intro) { intro.textContent = "All components are ready."; }
+    updateInstallProgress();
     renderFooter();
-    if (state.step === 6) { handoff(); }
+    if (state.step === 6) { goTo(7); }
   }
 
   function pollStatus() {
     B.status().then(function (status) {
-      if (!status) { return; }
+      // Keep polling while this page believes setup is running, even if the
+      // first snapshot raced the child and still reported `running: false`.
+      if (!status) {
+        if (state.provisioning.running) { setTimeout(pollStatus, 700); }
+        return;
+      }
       if (status.failed && !status.ready) {
         showProvisionError(status.failed);
         return;
@@ -417,10 +479,11 @@
       (status.components || []).forEach(function (event) {
         if (event.id !== "__done__") { updateComponent(event); }
       });
+      renderLog();
       if (status.ready) { handleDone(); return; }
-      if (status.running) { setTimeout(pollStatus, 500); }
+      if (state.provisioning.running) { setTimeout(pollStatus, 500); }
     }).catch(function () {
-      setTimeout(pollStatus, 1000);
+      if (state.provisioning.running) { setTimeout(pollStatus, 900); }
     });
   }
 
@@ -460,6 +523,7 @@
     (ctx.components || []).forEach(function (component) {
       updateComponent({ id: component.id, state: "ready", message: "Ready", elapsed_ms: 0 });
     });
+    updateInstallProgress();
   }
 
   function confirmReset() {
@@ -523,7 +587,12 @@
     if (state.step === state.totalSteps) { finish(); return; }
     var check = S.validate(state.step, draft);
     if (!check.ok) { say(check.reason); showInlineError(check.reason); return; }
-    if (state.step === 5 && !state.provisioning.ready && !state.skipped) {
+    if (state.step === 5) {
+      goTo(6);
+      startProvisioning();
+      return;
+    }
+    if (state.step === 6 && !state.provisioning.ready && !state.skipped) {
       startProvisioning();
       return;
     }

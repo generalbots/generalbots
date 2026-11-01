@@ -47,6 +47,9 @@ default = ["desktop"]
 desktop = ["desktop-tray"]
 desktop-tray = []
 desktop-local = []
+# Production-style asset embedding. `tauri build` enables it; a debug build
+# with it serves the bundled suite/wizard instead of the dev server.
+custom-protocol = ["tauri/custom-protocol"]
 
 [build-dependencies]
 tauri-build = "2"

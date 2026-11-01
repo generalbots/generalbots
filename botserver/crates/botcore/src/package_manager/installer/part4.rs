@@ -2,7 +2,6 @@ use super::*;
 
 impl PackageManager {
     pub(super) fn initialize_vault_local(&self) -> Result<()> {
-        use std::io::Write;
 
         info!("Initializing Vault locally (non-LXC mode)...");
 
@@ -173,14 +172,29 @@ VAULT_CACERT={}
         );
 
         if env_file.exists() {
+            // The stack can be erased and provisioned again, and every new Vault
+            // has a different root token. Replace the stale credentials while
+            // keeping every unrelated variable in `.env`.
             let existing = std::fs::read_to_string(&env_file)?;
-            if existing.contains("VAULT_ADDR=") {
-                warn!(".env already contains VAULT_ADDR, not overwriting");
-            } else {
-                let mut file = std::fs::OpenOptions::new().append(true).open(&env_file)?;
-                file.write_all(env_content.as_bytes())?;
-                info!("Appended Vault config to .env");
+            let mut kept: Vec<&str> = existing
+                .lines()
+                .filter(|line| {
+                    !line.starts_with("# Vault Configuration (auto-generated)")
+                        && !line.starts_with("VAULT_ADDR=")
+                        && !line.starts_with("VAULT_TOKEN=")
+                        && !line.starts_with("VAULT_CACERT=")
+                })
+                .collect();
+            while kept.last().is_some_and(|line| line.trim().is_empty()) {
+                kept.pop();
             }
+            let mut content = kept.join("\n");
+            if !content.is_empty() {
+                content.push('\n');
+            }
+            content.push_str(env_content.trim_start());
+            std::fs::write(&env_file, content)?;
+            info!("Updated Vault credentials in .env");
         } else {
             std::fs::write(&env_file, env_content.trim_start())?;
             info!("Created .env with Vault config");

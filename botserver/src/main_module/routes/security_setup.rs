@@ -35,6 +35,18 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
 
     let cors = create_cors_layer();
 
+    // Read the product file directly: security setup runs before the lazy
+    // global is touched on some boots, and the desktop edition must not come
+    // up with an auth gate it cannot satisfy.
+    let no_security = botcore::product::ProductConfig::load()
+        .map(|product| product.no_security)
+        .unwrap_or_else(|_| {
+            botcore::product::PRODUCT_CONFIG
+                .read()
+                .map(|product| product.no_security)
+                .unwrap_or(false)
+        });
+
     let auth_config = {
         let mut cfg = AuthConfig::from_env();
         // ⚠️ Remove catch-all "/" from public paths — CRITICAL SECURITY.
@@ -46,11 +58,9 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
         // Wire no_security from .product into the auth middleware: when
         // the product config sets no_security=true, failed auth falls
         // through as anonymous instead of returning 401.
-        if let Ok(product) = botcore::product::PRODUCT_CONFIG.read() {
-            if product.no_security {
-                info!("no_security=true in .product — auth middleware will allow anonymous fallback");
-                cfg.require_auth = false;
-            }
+        if no_security {
+            info!("no_security=true in .product — auth middleware will allow anonymous fallback");
+            cfg.require_auth = false;
         }
 
         Arc::new(cfg
@@ -190,7 +200,13 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
         }
     };
 
-    let rbac_config = RbacConfig::default();
+    let mut rbac_config = RbacConfig::default();
+    if no_security {
+        // Desktop-local profile: no accounts, so RBAC has no principal to
+        // check against. The product file is the explicit switch.
+        rbac_config.allow_all = true;
+        info!("no_security=true in .product — RBAC allows the local owner");
+    }
     let rbac_manager = Arc::new(RbacManager::new(rbac_config));
 
     let default_permissions = build_default_route_permissions();

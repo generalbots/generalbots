@@ -347,24 +347,54 @@ pub fn open_window(app: &tauri::AppHandle) -> Result<(), String> {
 /// than reloading) guarantees the suite boots with the final product config.
 pub fn reveal_suite(app: &tauri::AppHandle) {
     if let Some(main) = app.get_webview_window("main") {
-        // Build the target from the configured origin, not the current URL:
-        // before the API answered, the auth gate may have redirected this
-        // window to the login host, and keeping that host would send the user
-        // back to the login page.
-        let target = if cfg!(debug_assertions) {
-            app.config().build.dev_url.clone()
-        } else {
-            main.url().ok()
-        };
-        match target {
-            Some(mut url) => {
-                url.set_path("/suite/desktop.html");
-                url.set_query(None);
-                if let Err(e) = main.navigate(url) {
-                    warn!("could not navigate the suite window: {e}");
+        // Desktop installs point the window at the sidecar that serves the
+        // suite, so `/api` and `/ws` share the page origin. The window is
+        // created on that URL at startup; once the API answers we only need
+        // to reload it (judging by the page, not by a cross-origin navigate
+        // that tears the webview down).
+        let explicit = std::env::var("GB_DESKTOP_SUITE_URL")
+            .ok()
+            .and_then(|value| tauri::Url::parse(value.trim()).ok());
+        if let Some(url) = explicit {
+            // Desktop-local runs without an identity provider account: hand the
+            // suite an internal token so its client-side gate never sends the
+            // user to the login screen (the sidecar accepts it in no-security
+            // mode). It is a local marker, not a credential.
+            let _ = main.eval(
+                "try{localStorage.setItem('gb-access-token','desktop-local');\
+                 localStorage.setItem('gb-desktop-local','1');}catch(e){}",
+            );
+            let current = main.url().ok();
+            let same_origin = current
+                .as_ref()
+                .map(|c| {
+                    c.scheme() == url.scheme()
+                        && c.host_str() == url.host_str()
+                        && c.port_or_known_default() == url.port_or_known_default()
+                })
+                .unwrap_or(false);
+            if same_origin {
+                if let Err(e) = main.reload() {
+                    warn!("could not reload the suite window: {e}");
+                }
+            } else {
+                match serde_json::to_string(url.as_str()) {
+                    Ok(literal) => {
+                        let script = format!("window.location.replace({literal});");
+                        if let Err(e) = main.eval(&script) {
+                            warn!("could not navigate the suite window: {e}");
+                        }
+                    }
+                    Err(e) => warn!("could not serialise the suite URL: {e}"),
                 }
             }
-            None => warn!("could not resolve the suite window URL"),
+        } else if let Some(dev) = app.config().build.dev_url.clone() {
+            let mut url = dev;
+            url.set_path("/suite/desktop.html");
+            url.set_query(None);
+            if let Err(e) = main.navigate(url) {
+                warn!("could not navigate the suite window: {e}");
+            }
         }
         let _ = main.show();
         let _ = main.set_focus();

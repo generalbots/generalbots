@@ -454,10 +454,31 @@ function vmRenderInlineReferences(root) {
   }
 }
 
+// A card that replaced the only text of a markdown list item leaves
+// `<ul><li></li></ul>` behind — the empty bullet the user sees above the folder
+// card. Lift the card out of the list and drop the now empty list.
+function vmDropEmptyListItems(root) {
+  if (!root || !root.querySelectorAll) return;
+  var items = root.querySelectorAll("li");
+  for (var i = 0; i < items.length; i++) {
+    var li = items[i];
+    if (li.textContent.trim() !== "") continue;
+    if (!li.querySelector(".gb-attachment")) continue;
+    var list = li.parentElement;
+    if (!list || !list.parentElement) continue;
+    while (li.firstChild) {
+      list.parentElement.insertBefore(li.firstChild, list);
+    }
+    li.remove();
+    if (!list.querySelector("li")) list.remove();
+  }
+}
+
 // Bind inline vmfile cards and append output/ files the model did not link.
 function hydrateVmAttachments(container) {
   if (!container) return;
   vmRenderInlineReferences(container);
+  vmDropEmptyListItems(container);
   var cards = container.querySelectorAll(".gb-attachment");
   for (var i = 0; i < cards.length; i++) vmBindAttachment(cards[i]);
 

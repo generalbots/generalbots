@@ -161,9 +161,14 @@ embed-ui = ["dep:rust-embed"]
 sampledata = ["dep:botsampledata"]
 
 # Desktop-local: Chat + Drive for offline government distribution.
-# Includes security (auth infra) and llm (chat needs it).
+# Deliberately minimal: mail, calendar, CRM, HR, billing, social, meet,
+# analytics and every other suite domain stay OUT of the binary. The product
+# file (`.product.desktop-local`) exposes only Chat and Drive, so compiling
+# those domains only bloats the installer and slows the build.
+# `agent-vm` is required: chat generates files (PDF/DOCX) inside the local
+# workspace container.
 desktop-local = [
-    "chat", "drive", "security", "directory", "llm", "vectordb",
+    "chat", "drive", "agent-vm", "security", "directory", "llm", "vectordb",
     "settings", "no-security", "kb-extraction",
     "botcore/desktop-local",
 ]

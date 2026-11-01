@@ -33,6 +33,10 @@ pub struct RbacConfig {
     pub enable_group_inheritance: bool,
     pub default_deny: bool,
     pub audit_all_decisions: bool,
+    /// Single-user desktop installs (`no_security=true` in `.product`) run
+    /// without accounts, so the local owner is the only principal: every
+    /// route is allowed. Never enable this on a shared or public deployment.
+    pub allow_all: bool,
 }
 
 impl Default for RbacConfig {
@@ -43,6 +47,7 @@ impl Default for RbacConfig {
             enable_group_inheritance: true,
             default_deny: true,
             audit_all_decisions: false,
+            allow_all: false,
         }
     }
 }

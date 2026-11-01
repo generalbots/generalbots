@@ -7,6 +7,25 @@
         <link rel="manifest" href="/manifest.webmanifest" />
 
         <script>
+            // Desktop-local: the shell is opened with ?desktop=1 and keeps an
+            // internal marker/token so no login screen is ever shown and the
+            // client guards treat the local owner as signed in.
+            try {
+                var __desktopQuery = window.location.search.indexOf("desktop=1") !== -1;
+                if (__desktopQuery || localStorage.getItem("gb-desktop-local") === "1") {
+                    localStorage.setItem("gb-desktop-local", "1");
+                    if (!localStorage.getItem("gb-access-token")) {
+                        localStorage.setItem("gb-access-token", "desktop-local");
+                    }
+                    if (!localStorage.getItem("gb-user-data")) {
+                        localStorage.setItem("gb-user-data", JSON.stringify({
+                            id: "desktop-local",
+                            name: "Desktop",
+                            email: "desktop@localhost"
+                        }));
+                    }
+                }
+            } catch (e) {}
             window.__BOT_IS_PUBLIC__ = false;
             // Hide the shell from the very first paint: a private bot must
             // never flash an empty desktop before the auth gate resolves.
@@ -485,6 +504,13 @@
                         // toggle shares the same body.sidebar-hidden class).
                         if (window.productConfig && window.productConfig.sidebar === false) {
                             document.body.classList.add("sidebar-hidden");
+                        }
+                        // Desktop editions disable the omnibox: the taskbar
+                        // search must disappear with it, otherwise it reaches
+                        // domains this product does not ship.
+                        if (window.productConfig && window.productConfig.search_enabled === false) {
+                            var searchWrap = document.getElementById("taskbarSearchWrap");
+                            if (searchWrap) { searchWrap.remove(); }
                         }
                     }
                 } catch (e) {
@@ -1062,6 +1088,7 @@
             // Bind the taskbar universal search (mount on first paint)
             (function () {
                 var bindSearch = function () {
+                    if (window.productConfig && window.productConfig.search_enabled === false) { return; }
                     var input = document.getElementById("taskbarSearch");
                     if (input && window.GBUniversalSearch) {
                         window.GBUniversalSearch.mount(input);

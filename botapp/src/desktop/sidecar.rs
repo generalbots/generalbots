@@ -63,9 +63,13 @@ impl Sidecar {
             }
         }
 
-        let installers = resource_dir
-            .as_ref()
-            .map(|r| r.join("installers"))
+        // An explicit path wins (development runs point at the checkout's
+        // bundled installers); packaged builds use the resource directory.
+        let installers = std::env::var("BOTSERVER_INSTALLERS_PATH")
+            .ok()
+            .filter(|value| !value.trim().is_empty())
+            .map(std::path::PathBuf::from)
+            .or_else(|| resource_dir.as_ref().map(|r| r.join("installers")))
             .unwrap_or_else(|| stack.join("installers"));
 
         info!(
