@@ -49,6 +49,15 @@ impl Default for AuthConfig {
                 // request is authenticated by the signed `state` parameter
                 // instead (see botemail::handlers::oauth).
                 "/api/email/oauth/callback".to_string(),
+                // Agent workspace file fetch/list. A download link and an
+                // <iframe>/<img> preview are plain URLs: browsers cannot attach
+                // an Authorization header to them, so the suite token travels
+                // as `access_token` in the query string and both handlers verify
+                // it (botagent::api::caller_uuid) before touching the VM. The
+                // middleware must not reject the request first — that is what
+                // made download and preview answer 401 (#1582).
+                "/api/agent/vm/file".to_string(),
+                "/api/agent/vm/files".to_string(),
             ],
             public_paths: vec![
                 "/static".to_string(),

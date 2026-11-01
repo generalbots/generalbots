@@ -75,7 +75,7 @@ fn truncate(text: &str) -> String {
 
 #[cfg(feature = "agent-vm")]
 async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
-    let parsed: serde_json::Value = match serde_json::from_str(args) {
+    let parsed: serde_json::Value = match super::native_args::parse_args(args) {
         Ok(value) => value,
         Err(e) => {
             send(

@@ -376,6 +376,15 @@ pub async fn vm_file(
             "zip" => "application/zip",
             "mp4" => "video/mp4",
             "mp3" => "audio/mpeg",
+            // Office packages are what the agent produces most often; a real
+            // MIME type lets the browser hand the file to its viewer instead
+            // of treating every download as a generic octet-stream.
+            "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            "ppt" => "application/vnd.ms-powerpoint",
+            "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "doc" => "application/msword",
+            "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "xls" => "application/vnd.ms-excel",
             _ => "application/octet-stream",
         };
         let disposition = format!("inline; filename=\"{file_name}\"");

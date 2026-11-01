@@ -39,7 +39,7 @@ pub async fn try_run(identity: &SessionIdentity<'_>, name: &str, args: &str) -> 
 }
 
 fn parse(args: &str) -> serde_json::Value {
-    serde_json::from_str(args).unwrap_or_else(|_| serde_json::json!({}))
+    super::native_args::parse_args(args).unwrap_or_else(|_| serde_json::json!({}))
 }
 
 fn sanitize_name(raw: &str) -> String {
