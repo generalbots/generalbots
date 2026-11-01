@@ -1,6 +1,6 @@
 //! Persisted user memory (GB6-16).
 //!
-//! Preferences edited in Settings → Memory live in `user_memories`; this module
+//! Preferences edited in Settings → Memory live in `user_preferences`; this module
 //! is the server-side reader that puts them into the conversation prompt, so a
 //! new session starts with what the user already taught the assistant instead
 //! of repeating it.
@@ -9,7 +9,7 @@ use diesel::prelude::*;
 use uuid::Uuid;
 
 use botcore::shared::utils::DbPool;
-use botschema::user_memories;
+use botschema::user_preferences;
 
 /// Entries the prompt may carry. Keeps the injected block small and bounded.
 const MAX_PROMPT_ENTRIES: i64 = 24;
@@ -29,24 +29,24 @@ pub fn load_for_user(
     bot_id: Option<Uuid>,
 ) -> Result<Vec<UserMemoryRow>, String> {
     let mut conn = pool.get().map_err(|error| error.to_string())?;
-    let mut query = user_memories::table
-        .filter(user_memories::user_id.eq(user_id))
+    let mut query = user_preferences::table
+        .filter(user_preferences::user_id.eq(user_id))
         .into_boxed();
     if let Some(bot_id) = bot_id {
         query = query.filter(
-            user_memories::bot_id
+            user_preferences::bot_id
                 .eq(bot_id)
-                .or(user_memories::bot_id.is_null()),
+                .or(user_preferences::bot_id.is_null()),
         );
     }
     query
-        .order(user_memories::bot_id.asc())
-        .then_order_by(user_memories::updated_at.desc())
+        .order(user_preferences::bot_id.asc())
+        .then_order_by(user_preferences::updated_at.desc())
         .limit(MAX_PROMPT_ENTRIES)
         .select((
-            user_memories::memory_key,
-            user_memories::memory_value,
-            user_memories::bot_id,
+            user_preferences::memory_key,
+            user_preferences::memory_value,
+            user_preferences::bot_id,
         ))
         .load::<UserMemoryRow>(&mut conn)
         .map_err(|error| error.to_string())

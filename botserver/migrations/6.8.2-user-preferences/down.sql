@@ -1,1 +1,1 @@
-DROP TABLE IF EXISTS user_memories;
+DROP TABLE IF EXISTS user_preferences;

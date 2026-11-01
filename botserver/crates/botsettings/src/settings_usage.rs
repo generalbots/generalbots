@@ -20,7 +20,7 @@ use std::sync::Arc;
 
 use botcore::shared::state::AppState;
 
-use super::{get_conn, resolve_user_id};
+use super::settings_api::{get_conn, resolve_user_id};
 
 #[derive(Debug, Deserialize)]
 pub struct UsageQuery {

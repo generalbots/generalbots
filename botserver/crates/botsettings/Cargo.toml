@@ -11,7 +11,7 @@ mail = ["dep:lettre"]
 
 [dependencies]
 botlog = { workspace = true }
-botcore = { workspace = true }
+botcore = { workspace = true, features = ["cache"] }
 botsecurity = { workspace = true }
 botcoredirectory = { workspace = true }
 botcoreoauth = { workspace = true }
