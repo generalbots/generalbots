@@ -125,7 +125,13 @@ function sendMessage(messageContent) {
     var chip = document.getElementById("fileChip");
     if (chip) { chip.style.display = "none"; chip.textContent = ""; }
     window.dispatchEvent(new CustomEvent("gb-chat-message-sent", {
-      detail: { session_id: ChatState.currentSessionId },
+      detail: {
+        session_id: ChatState.currentSessionId,
+        // GB6-25 — the input is cleared before this event fires, so the usage
+        // panel must receive the text length (and model) with the event.
+        content_length: (content || "").length,
+        model: selectedModel,
+      },
     }));
   };
 

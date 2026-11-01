@@ -162,12 +162,16 @@
   });
 
   window.addEventListener("gb-chat-message-sent", function (e) {
+    var detail = (e && e.detail) || {};
     var input = document.getElementById("messageInput");
-    var model = "auto";
     var picker = document.getElementById("modelPicker");
-    if (picker) model = picker.value || "auto";
-    var text = input ? (input.value || "") : "";
-    trackMessage("user", text.length, model, "user:" + Date.now() + ":" + text.length);
+    var model = detail.model || (picker ? picker.value || "auto" : "auto");
+    // GB6-25 — the composer clears the input before dispatching, so prefer the
+    // length carried by the event and fall back to the field only when absent.
+    var length = typeof detail.content_length === "number"
+      ? detail.content_length
+      : (input ? (input.value || "").length : 0);
+    trackMessage("user", length, model, "user:" + Date.now() + ":" + length);
   });
 
   window.GBUsageStats = {
