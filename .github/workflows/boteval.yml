@@ -135,3 +135,39 @@ jobs:
 
       - name: Run botserver unit tests
         run: cargo test -p botserver --bin botserver
+
+  # #1621 — the slim desktop build must not report domain features it does not
+  # ship. Feature unification used to compile `botcore/default` through the
+  # workspace dependency, so /api/product advertised mail, CRM, tickets and
+  # friends for a binary that contains only Chat and Drive.
+  desktop-feature-manifest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang mold libpq-dev libssl-dev liblzma-dev pkg-config
+
+      - name: Install Rust
+        run: |
+          rustup set profile minimal
+          rustup toolchain install stable
+          rustup default stable
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-desktop-manifest-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-desktop-manifest-
+
+      - name: Desktop manifest reports only shipped features
+        run: cargo test -p botcore --no-default-features --features desktop-local desktop_manifest_lists_only_shipped_features
