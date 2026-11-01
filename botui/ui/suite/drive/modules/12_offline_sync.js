@@ -473,6 +473,9 @@
     supportsFolderSync: supportsFolderSync,
     getStatus: function () { return Object.assign({}, syncState); },
     getSyncFolder: function () { return syncState.folder; },
+    // GB6-22 — the conflict name is the visible guarantee that local work is
+    // never destroyed; exposed for its unit test.
+    conflictName: conflictName,
   };
 
   try { openDB().then(updateIndicator); } catch (e) {}
