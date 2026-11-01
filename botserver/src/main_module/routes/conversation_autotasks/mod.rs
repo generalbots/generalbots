@@ -214,6 +214,9 @@ pub async fn create(
         .values(&new_row)
         .get_result::<AutotaskRow>(&mut conn)
         .map_err(|error| api_error(StatusCode::INTERNAL_SERVER_ERROR, &error.to_string()))?;
+    // Never hold a pooled connection across the workspace call: installing a
+    // job can take seconds and would starve the pool.
+    drop(conn);
 
     let unit = workspace::unit_name_for(row.id);
     let outcome = workspace::install(
@@ -231,6 +234,10 @@ pub async fn create(
         Ok(status) => (status, None),
         Err(error) => (STATUS_FAILED.to_string(), Some(error)),
     };
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|error| api_error(StatusCode::SERVICE_UNAVAILABLE, &error.to_string()))?;
     let updated = diesel::update(table::table.find(row.id))
         .set((
             table::status.eq(&status),
