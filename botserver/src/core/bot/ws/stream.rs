@@ -35,6 +35,9 @@ pub async fn process_llm_response(
         messages,
         user_text,
     } = *turn;
+    // #1620 — mark the reply as in flight for the whole function (including
+    // tool calls) so the desktop shell never terminates mid-generation.
+    let _desktop_activity = crate::core::desktop_activity::ActivityGuard::begin();
     let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
     let mut full_response = String::new();
 

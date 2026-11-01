@@ -11,6 +11,10 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
         .route("/api/product", get(super::product_handlers::get_product_config))
         .route("/api/manifest", get(super::product_handlers::get_workspace_manifest))
         .route("/api/client-errors", post(crate::receive_client_errors))
+        .route(
+            "/api/desktop/activity",
+            get(super::desktop_status::activity),
+        )
         .route("/api/bot/config", get(crate::core::bot::get_bot_config))
         .route("/api/bot/public", get(crate::core::bot::get_public_bot_config))
         .route("/api/bots/:bot_name/access", get(crate::core::bot::check_access_handler))

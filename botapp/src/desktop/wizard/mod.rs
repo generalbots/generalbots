@@ -403,6 +403,39 @@ pub fn reveal_suite(app: &tauri::AppHandle) {
     }
 }
 
+/// Recreates the suite window after it has been destroyed (#1620).
+///
+/// A reply can outlive the window (the user closes it, or the window manager
+/// destroys it). Instead of terminating the process and killing the sidecar
+/// mid-generation, the shell recreates the window on the same URL so the
+/// result is visible when it arrives.
+pub fn ensure_suite_window(app: &tauri::AppHandle) {
+    if app.get_webview_window("main").is_some() {
+        reveal_suite(app);
+        return;
+    }
+    let url = match std::env::var("GB_DESKTOP_SUITE_URL")
+        .ok()
+        .and_then(|value| tauri::Url::parse(value.trim()).ok())
+    {
+        Some(url) => WebviewUrl::External(url),
+        None => WebviewUrl::App("suite/desktop.html".into()),
+    };
+    match WebviewWindowBuilder::new(app, "main", url)
+        .title("General Bots")
+        .inner_size(1340.0, 860.0)
+        .min_inner_size(900.0, 560.0)
+        .resizable(true)
+        .build()
+    {
+        Ok(_) => {
+            info!("suite window recreated after it was destroyed");
+            reveal_suite(app);
+        }
+        Err(e) => warn!("could not recreate the suite window: {e}"),
+    }
+}
+
 /// Writes the administrator account the wizard showed on the finish screen.
 /// The login fallback reads this file from the stack directory; the password is
 /// never logged and the file is restricted to the current user.

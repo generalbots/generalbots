@@ -346,6 +346,14 @@ fn main() {
                     if app.get_webview_window("main").is_some() {
                         info!("keeping the app alive: the suite window still exists");
                         api.prevent_exit();
+                    } else if desktop::activity::is_busy() {
+                        // #1620 — a reply is still being generated. Killing the
+                        // sidecar here truncated real answers (and the tool
+                        // call that writes a PDF). Keep the process alive and
+                        // bring the suite back so the result is visible.
+                        info!("a reply is in progress: keeping the app alive and reopening the suite");
+                        api.prevent_exit();
+                        desktop::wizard::ensure_suite_window(app);
                     } else {
                         sidecar.stop();
                     }

@@ -79,15 +79,54 @@ impl Sidecar {
             installers.display()
         );
 
-        let child = Command::new(&path)
-            .env("BOTSERVER_STACK_PATH", &stack)
-            .env("BOTSERVER_INSTALLERS_PATH", &installers)
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()?;
+        // #1620 — the sidecar output is the only place the raw model reply and
+        // the tool-call parser outcome are visible on a packaged desktop run.
+        // Capture both streams into the stack so a failed generation can be
+        // diagnosed without a debugger or a terminal.
+        let log_dir = stack.join("logs");
+        std::fs::create_dir_all(&log_dir)?;
+        let log_path = log_dir.join("botserver-sidecar.log");
+        let log_file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&log_path)
+            .ok();
 
-        info!("botserver sidecar spawned (pid {})", child.id());
-        *self.child.lock().unwrap() = Some(child);
+        let mut command = Command::new(&path);
+        command
+            .env("BOTSERVER_STACK_PATH", &stack)
+            .env("BOTSERVER_INSTALLERS_PATH", &installers);
+        match log_file.as_ref().and_then(|file| file.try_clone().ok()) {
+            Some(stdout) => {
+                command.stdout(Stdio::from(stdout));
+            }
+            None => {
+                command.stdout(Stdio::null());
+            }
+        }
+        match log_file.as_ref().and_then(|file| file.try_clone().ok()) {
+            Some(stderr) => {
+                command.stderr(Stdio::from(stderr));
+            }
+            None => {
+                command.stderr(Stdio::null());
+            }
+        }
+
+        let child = command.spawn()?;
+
+        info!(
+            "botserver sidecar spawned (pid {}), output: {}",
+            child.id(),
+            log_path.display()
+        );
+        match self.child.lock() {
+            Ok(mut slot) => *slot = Some(child),
+            Err(poisoned) => {
+                warn!("sidecar handle mutex was poisoned; recovering it");
+                *poisoned.into_inner() = Some(child);
+            }
+        }
         Ok(())
     }
 
@@ -131,7 +170,14 @@ impl Sidecar {
     }
 
     pub fn stop(&self) {
-        if let Some(mut child) = self.child.lock().unwrap().take() {
+        let mut slot = match self.child.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => {
+                warn!("sidecar handle mutex was poisoned while stopping; recovering it");
+                poisoned.into_inner()
+            }
+        };
+        if let Some(mut child) = slot.take() {
             info!("Stopping botserver sidecar (pid {})...", child.id());
             let _ = child.kill();
             let _ = child.wait();
@@ -140,7 +186,13 @@ impl Sidecar {
     }
 
     pub fn is_running(&self) -> bool {
-        let mut guard = self.child.lock().unwrap();
+        let mut guard = match self.child.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => {
+                warn!("sidecar handle mutex was poisoned while checking state; recovering it");
+                poisoned.into_inner()
+            }
+        };
         if let Some(ref mut child) = *guard {
             match child.try_wait() {
                 Ok(None) => true,
