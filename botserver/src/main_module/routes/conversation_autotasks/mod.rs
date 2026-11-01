@@ -369,3 +369,88 @@ pub fn router() -> Router<Arc<AppState>> {
         )
         .route("/api/conversation-autotasks/:id/cancel", post(cancel))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        next_run_for, respond, AutotaskRow, STATUS_ORPHANED, STATUS_RUNNING, STATUS_SCHEDULED,
+        STATUS_STOPPED,
+    };
+    use chrono::Utc;
+    use uuid::Uuid;
+
+    fn row(id: Uuid, kind: &str, status: &str) -> AutotaskRow {
+        AutotaskRow {
+            id,
+            conversation_id: Uuid::nil(),
+            bot_id: Uuid::nil(),
+            user_id: Uuid::nil(),
+            title: "Reminder".to_string(),
+            kind: kind.to_string(),
+            schedule: "0 9 * * 1".to_string(),
+            schedule_human: Some("Every Monday at 09:00".to_string()),
+            command: "echo hi".to_string(),
+            unit_name: Some(super::workspace::unit_name_for(id)),
+            status: status.to_string(),
+            output_path: None,
+            last_run_at: None,
+            next_run_at: None,
+            last_error: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    }
+
+    /// The chat indicator reads exactly these three fields.
+    #[test]
+    fn respond_reports_only_live_jobs_as_active() {
+        let rows = vec![
+            row(Uuid::new_v4(), "cron", STATUS_SCHEDULED),
+            row(Uuid::new_v4(), "systemd", STATUS_RUNNING),
+            row(Uuid::new_v4(), "cron", STATUS_STOPPED),
+            row(Uuid::new_v4(), "systemd", STATUS_ORPHANED),
+        ];
+        let view = respond(&rows);
+        assert_eq!(view["active"], 2);
+        assert_eq!(view["persistent"], 1, "only a running systemd unit is persistent");
+        assert_eq!(view["has_work"], true);
+        assert_eq!(view["autotasks"].as_array().map(|a| a.len()), Some(4));
+    }
+
+    #[test]
+    fn stopping_every_job_clears_the_indicator() {
+        let rows = vec![
+            row(Uuid::new_v4(), "cron", STATUS_STOPPED),
+            row(Uuid::new_v4(), "systemd", STATUS_ORPHANED),
+        ];
+        let view = respond(&rows);
+        assert_eq!(view["active"], 0);
+        assert_eq!(view["has_work"], false);
+        assert_eq!(view["persistent"], 0);
+    }
+
+    #[test]
+    fn unit_names_are_stable_and_namespaced() {
+        let id = Uuid::nil();
+        assert_eq!(
+            super::workspace::unit_name_for(id),
+            "gb-autotask-00000000-0000-0000-0000-000000000000"
+        );
+        assert_eq!(
+            super::workspace::conversation_root(id),
+            "/opt/vibe/conversations/00000000-0000-0000-0000-000000000000"
+        );
+    }
+
+    /// Reconciliation depends on a parseable schedule; an invalid one must not
+    /// be reported as scheduled.
+    #[test]
+    fn next_run_is_computed_only_for_valid_cron() {
+        assert!(next_run_for("not a cron expression").is_none());
+        #[cfg(feature = "automation")]
+        {
+            let next = next_run_for("0 9 * * 1").expect("valid cron must yield a next run");
+            assert!(next > Utc::now());
+        }
+    }
+}
