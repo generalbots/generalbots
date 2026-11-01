@@ -267,7 +267,7 @@ impl PackageManager {
         for i in 0..archive.len() {
             let mut entry = archive.by_index(i)
                 .with_context(|| format!("Failed to read entry {i} from zip"))?;
-            let name = entry.name().to_string();
+            let name = entry.name().map(|n| n.to_string()).unwrap_or_default();
 
             // Skip unnecessary directories to speed up extraction
             // (e.g. pgAdmin 4 in EDB PostgreSQL distribution has 22k+ files)

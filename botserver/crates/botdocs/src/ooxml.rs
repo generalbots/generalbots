@@ -124,7 +124,7 @@ pub fn update_docx_text(
                 .by_index(i)
                 .map_err(|e| format!("Failed to read archive entry: {e}"))?;
 
-            let name = file.name().to_string();
+            let name = file.name().map(|n| n.to_string()).unwrap_or_default();
 
             if name == "word/document.xml" {
                 let mut content = String::new();

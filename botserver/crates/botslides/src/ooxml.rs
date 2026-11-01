@@ -118,7 +118,7 @@ pub fn update_pptx_text(
                 .by_index(i)
                 .map_err(|e| format!("Failed to read archive entry: {e}"))?;
 
-            let name = file.name().to_string();
+            let name = file.name().map(|n| n.to_string()).unwrap_or_default();
 
             if name.starts_with("ppt/slides/slide") && name.ends_with(".xml") {
                 let slide_num = extract_slide_number(&name);

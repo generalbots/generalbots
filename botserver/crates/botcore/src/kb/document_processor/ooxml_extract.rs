@@ -13,7 +13,8 @@ pub fn extract_docx_text_from_zip(bytes: &[u8]) -> Result<String, String> {
             .by_index(i)
             .map_err(|e| format!("Failed to read ZIP entry: {e}"))?;
 
-        if file.name() == "word/document.xml" {
+        let is_document = file.name().map(|n| n == "word/document.xml").unwrap_or(false);
+        if is_document {
             let mut content = String::new();
             file.read_to_string(&mut content)
                 .map_err(|e| format!("Failed to read document.xml: {e}"))?;
@@ -91,7 +92,7 @@ pub fn extract_pptx_text_from_zip(bytes: &[u8]) -> Result<String, String> {
             .by_index(i)
             .map_err(|e| format!("Failed to read ZIP entry: {e}"))?;
 
-        let name = file.name().to_string();
+        let name = file.name().map(|n| n.to_string()).unwrap_or_default();
         if name.starts_with("ppt/slides/slide") && name.ends_with(".xml") {
             let mut content = String::new();
             file.read_to_string(&mut content)

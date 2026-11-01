@@ -91,7 +91,7 @@ pub async fn get_thread(
         r#"<div class="thread-header"><h3>{} messages</h3>\
            <p class="text-sm text-gray">Subject: {}</p></div>"#,
         msg_count,
-        botsecurity_core::validation::sanitize_html(thread_subject)
+        botsecurity_core::validation::sanitize_html(&thread_subject)
     );
 
     for (i, msg) in messages.iter().enumerate() {

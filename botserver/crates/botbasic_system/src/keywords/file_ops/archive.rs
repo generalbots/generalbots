@@ -140,7 +140,7 @@ pub async fn execute_extract(
 
         for i in 0..zip.len() {
             let mut zip_file = zip.by_index(i)?;
-            let file_name = zip_file.name().to_string();
+            let file_name = zip_file.name().map(|n| n.to_string()).unwrap_or_default();
 
             let mut content = Vec::new();
             zip_file.read_to_end(&mut content)?;

@@ -38,7 +38,14 @@ pub(super) fn prepare_command(
                 command.arg(root.join("node_modules").join("npm").join("bin").join(cli));
                 command
             }
-            _ => std::process::Command::new(program),
+            // #1534: never fall back to executing the caller-named program.
+            // Without an absolute node.exe path the harness cannot run npm/npx,
+            // so the request fails instead of spawning an arbitrary binary.
+            _ => {
+                return Err(GuardError::CommandNotAllowed(format!(
+                    "{program}: Node.js is not installed under ProgramFiles"
+                )))
+            }
         }
     };
     #[cfg(not(target_os = "windows"))]

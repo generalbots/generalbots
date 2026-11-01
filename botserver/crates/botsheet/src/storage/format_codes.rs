@@ -122,7 +122,11 @@ pub fn extract_cell_format_codes(bytes: &[u8]) -> Result<HashMap<u32, HashMap<St
         .ok_or_else(|| "Regex error".to_string())?;
     let mut sheet_files: Vec<(u32, String)> = Vec::new();
     for i in 0..archive.len() {
-        let name = archive.name_for_index(i).unwrap_or("").to_string();
+        let name = archive
+            .name_for_index(i)
+            .and_then(|entry| entry.ok())
+            .map(|n| n.to_string())
+            .unwrap_or_default();
         if sheet_name_re.is_match(&name) {
             if let Some(caps) = sheet_name_re.captures(&name) {
                 if let Ok(num) = caps[1].parse::<u32>() {

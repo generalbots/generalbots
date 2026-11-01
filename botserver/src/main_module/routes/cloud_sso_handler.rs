@@ -116,10 +116,12 @@ pub async fn handle_suite_sso(
     let roles = resolve_session_roles(&state, user_id);
     let suite_token = create_suite_session(email, user_id, bucket, roles, claims_org(&claims)).await;
     let redirect = sanitize_redirect(&query.redirect);
-    // Encode both values as JSON string literals so no quote/backslash can
-    // break out of the script context (#1533).
-    let redirect_js = serde_json::to_string(&redirect).unwrap_or_else(|_| "\"/\"".to_string());
-    let token_js = serde_json::to_string(&suite_token).unwrap_or_else(|_| "\"\"".to_string());
+    // Encode both values as script-safe string literals (#1533). A plain JSON
+    // string is not enough inside <script>: `</script>` closes the element even
+    // when it sits inside quotes, and U+2028/U+2029 terminate a JS string
+    // literal. `js_string_literal` escapes those code points as \u sequences.
+    let redirect_js = js_string_literal(&redirect);
+    let token_js = js_string_literal(&suite_token);
 
     let html = format!(
         r##"<!DOCTYPE html>
@@ -321,6 +323,60 @@ fn base64_url_encode(input: &[u8]) -> String {
         .replace('/', "_")
         .trim_end_matches('=')
         .to_string()
+}
+
+/// A JavaScript string literal that cannot terminate the enclosing
+/// `<script>` element (#1533).
+///
+/// `serde_json` quotes and escapes the value, but leaves `<`, `>` and `&`
+/// intact, so a value containing `</script>` would still close the element in
+/// an HTML parser. The line separators U+2028/U+2029 also end a JS string
+/// literal. Escaping all five as `\uXXXX` keeps the value identical while
+/// making it inert in both contexts.
+fn js_string_literal(value: &str) -> String {
+    let json = serde_json::to_string(value).unwrap_or_else(|_| "\"\"".to_string());
+    let mut out = String::with_capacity(json.len() + 8);
+    for ch in json.chars() {
+        match ch {
+            '<' => out.push_str("\\u003c"),
+            '>' => out.push_str("\\u003e"),
+            '&' => out.push_str("\\u0026"),
+            '\u{2028}' => out.push_str("\\u2028"),
+            '\u{2029}' => out.push_str("\\u2029"),
+            other => out.push(other),
+        }
+    }
+    out
+}
+
+#[cfg(test)]
+mod script_literal_tests {
+    use super::js_string_literal;
+
+    #[test]
+    fn closes_no_script_element() {
+        let literal = js_string_literal("/?next=</script><script>alert(1)</script>");
+        assert!(!literal.contains('<'), "raw '<' must not survive: {literal}");
+        assert!(!literal.contains('>'), "raw '>' must not survive: {literal}");
+        assert!(literal.starts_with('"') && literal.ends_with('"'));
+    }
+
+    #[test]
+    fn escapes_line_separators_and_ampersand() {
+        let literal = js_string_literal("a\u{2028}b\u{2029}c&d");
+        assert!(literal.contains("\\u2028"));
+        assert!(literal.contains("\\u2029"));
+        assert!(literal.contains("\\u0026"));
+    }
+
+    #[test]
+    fn round_trips_through_json() {
+        // The escaping must not change the value the browser evaluates.
+        let original = "https://example.test/path?q=1&r=<2>";
+        let literal = js_string_literal(original);
+        let decoded: String = serde_json::from_str(&literal).expect("valid JSON string");
+        assert_eq!(decoded, original);
+    }
 }
 
 fn base64_url_decode(input: &str) -> Result<Vec<u8>, &'static str> {

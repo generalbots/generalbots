@@ -108,7 +108,7 @@ fn read_zip_entries(bytes: &[u8]) -> Result<Vec<(String, Vec<u8>)>, String> {
         let mut entry = archive
             .by_index(i)
             .map_err(|e| format!("read zip entry {i}: {e}"))?;
-        let name = entry.name().to_string();
+        let name = entry.name().map(|n| n.to_string()).unwrap_or_default();
         let mut data = Vec::new();
         entry
             .read_to_end(&mut data)

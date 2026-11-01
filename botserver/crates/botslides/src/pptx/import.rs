@@ -13,7 +13,7 @@ pub fn load_pptx(bytes: &[u8]) -> Result<Presentation, String> {
     let mut slide_names: Vec<String> = Vec::new();
     for i in 0..archive.len() {
         let file = archive.by_index(i).map_err(|e| format!("read entry: {e}"))?;
-        let name = file.name().to_string();
+        let name = file.name().map(|n| n.to_string()).unwrap_or_default();
         if name.starts_with("ppt/slides/slide") && name.ends_with(".xml") && !name.contains("_rels") {
             slide_names.push(name);
         }
