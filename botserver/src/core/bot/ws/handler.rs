@@ -2,7 +2,7 @@ use axum::extract::ws::WebSocketUpgrade;
 use axum::extract::{Query, State};
 use axum::response::IntoResponse;
 use botcore::shared::state::AppState;
-use log::{error, info, warn};
+use log::{error, warn};
 use serde::Deserialize;
 use std::path::Path;
 use std::sync::Arc;

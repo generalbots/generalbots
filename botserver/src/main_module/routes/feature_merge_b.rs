@@ -12,6 +12,9 @@ pub(super) async fn merge_part_b(
     api_router: &mut Router<Arc<AppState>>,
     sub_router: &mut Router<()>,
 ) {
+    // Only the banking/m365 blocks below merge into the authenticated API
+    // router; a build without those features (the default) leaves it untouched.
+    let _ = &api_router;
     #[cfg(feature = "legal")]
     {
         let legal_pool = app_state.conn.clone();

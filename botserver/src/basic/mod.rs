@@ -1,7 +1,7 @@
 use botcore::shared::state::AppState;
 use botbasic_comms::keywords::universal_messaging::register_universal_messaging;
 use botbasic_comms::keywords::send_mail::send_mail_keyword;
-use log::{info, warn};
+use log::info;
 use rhai::{Dynamic, Engine, EvalAltResult, Scope};
 pub use botcore::shared::UserSession;
 

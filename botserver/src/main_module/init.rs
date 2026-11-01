@@ -1,6 +1,5 @@
 //! Bootstrap and application initialization logic
 
-use diesel::RunQueryDsl;
 use botcore::shared::utils::{create_conn, get_stack_path};
 use crate::core::config::AppConfig;
 use crate::core::i18n;

@@ -59,7 +59,7 @@ pub async fn list_snapshots(
     headers: HeaderMap,
     Path(session_id): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let clean = vm::sanitize_session_id(&session_id)?;
+    let clean = vm::sanitize_id(&session_id)?;
     let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
     let session = {
         use crate::schema::agent_sessions::dsl::{agent_sessions, session_id as sid};
@@ -89,7 +89,7 @@ pub async fn create_snapshot(
     Path(session_id): Path<String>,
     Json(body): Json<SnapshotCreateBody>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let clean = vm::sanitize_session_id(&session_id)?;
+    let clean = vm::sanitize_id(&session_id)?;
     let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
     let session = {
         use crate::schema::agent_sessions::dsl::{agent_sessions, session_id as sid};

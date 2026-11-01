@@ -1,6 +1,6 @@
 pub(crate) use botbasic_types::UserSession;
 pub(crate) use botbasic_types::BasicRuntime;
-pub(crate) use log::{info, trace};
+pub(crate) use log::trace;
 pub(crate) use rhai::{Dynamic, Engine};
 pub(crate) use serde::{Deserialize, Serialize};
 

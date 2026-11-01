@@ -2,7 +2,6 @@
 
 pub(crate) use axum::Router;
 pub(crate) use std::sync::Arc;
-pub(crate) use std::net::SocketAddr;
 pub(crate) use log::{error, info, warn};
 pub(crate) use tower_http::trace::TraceLayer;
 pub(crate) use tower_http::services::ServeDir;

@@ -1,7 +1,18 @@
+//! Feature routers that are only compiled when their domain feature is on.
+//!
+//! The whole module set is gated on the union of the features its helpers
+//! serve. Compiling the helpers in a build where none of those features exist
+//! produced dead-code and unused-import warnings for code that only the full
+//! product uses.
+
+#[cfg(any(feature = "paper", feature = "designer", feature = "dashboards", feature = "canvas", feature = "social", feature = "billing", feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
 pub(crate) use axum::Router;
+#[cfg(any(feature = "paper", feature = "designer", feature = "dashboards", feature = "canvas", feature = "social", feature = "billing", feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
 pub(crate) use std::sync::Arc;
+#[cfg(any(feature = "paper", feature = "designer", feature = "dashboards", feature = "canvas", feature = "social", feature = "billing", feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
 pub(crate) use botcore::shared::state::AppState;
 
+#[cfg(any(feature = "paper", feature = "designer", feature = "dashboards", feature = "canvas", feature = "social", feature = "billing", feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
 #[derive(diesel::QueryableByName)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 struct DefaultBranchRow {
@@ -9,6 +20,7 @@ struct DefaultBranchRow {
     branch_id: uuid::Uuid,
 }
 
+#[cfg(any(feature = "paper", feature = "designer", feature = "dashboards", feature = "canvas", feature = "social", feature = "billing", feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
 #[derive(diesel::QueryableByName)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 struct DefaultBotRow {
@@ -16,10 +28,17 @@ struct DefaultBotRow {
     id: uuid::Uuid,
 }
 
+#[cfg(any(feature = "paper", feature = "designer", feature = "dashboards", feature = "canvas", feature = "social", feature = "billing", feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
 mod part1;
-mod part2;
-mod part3;
-
+#[cfg(any(feature = "paper", feature = "designer", feature = "dashboards", feature = "canvas", feature = "social", feature = "billing", feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
 pub(crate) use part1::*;
+
+#[cfg(any(feature = "paper", feature = "designer", feature = "dashboards", feature = "canvas", feature = "social", feature = "billing", feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
+mod part2;
+#[cfg(any(feature = "paper", feature = "designer", feature = "dashboards", feature = "canvas", feature = "social", feature = "billing", feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
 pub(crate) use part2::*;
+
+#[cfg(any(feature = "paper", feature = "designer", feature = "dashboards", feature = "canvas", feature = "social", feature = "billing", feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
+mod part3;
+#[cfg(any(feature = "paper", feature = "designer", feature = "dashboards", feature = "canvas", feature = "social", feature = "billing", feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
 pub(crate) use part3::*;

@@ -29,7 +29,7 @@ pub(crate) use botbasic_types::{BasicRuntime, UserSession};
 pub(crate) use diesel::prelude::*;
 pub(crate) use diesel::sql_query;
 pub(crate) use diesel::sql_types::Text;
-pub(crate) use log::{trace, warn};
+pub(crate) use log::trace;
 pub(crate) use serde::{Deserialize, Serialize};
 pub(crate) use serde_json::Value;
 pub(crate) use std::collections::HashMap;

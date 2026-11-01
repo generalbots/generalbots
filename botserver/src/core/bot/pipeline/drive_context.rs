@@ -36,7 +36,6 @@ const TEXT_EXTENSIONS: &[&str] = &[
 struct IndexedDoc {
     key: String,
     relative: String,
-    size: u64,
 }
 
 type ListCache = Mutex<HashMap<String, (Instant, Vec<IndexedDoc>)>>;
@@ -124,7 +123,6 @@ async fn indexed_docs(
                 .unwrap_or(&object.key)
                 .to_string(),
             key: object.key,
-            size: object.size,
         })
         .collect();
     if let Ok(mut guard) = cache().lock() {

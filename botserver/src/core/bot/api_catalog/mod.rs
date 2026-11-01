@@ -21,7 +21,6 @@ pub(crate) use base64::Engine;
 pub(crate) use bigdecimal::BigDecimal;
 pub(crate) use botcore::shared::state::AppState;
 pub(crate) use diesel::RunQueryDsl;
-pub(crate) use rust_decimal::Decimal;
 pub(crate) use serde_json::{json, Value};
 pub(crate) use uuid::Uuid;
 pub(crate) use crate::apps::registry;

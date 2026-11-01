@@ -3,7 +3,7 @@ pub(crate) use botbasic_types::UserSession;
 pub(crate) use botbasic_types::BasicRuntime;
 pub(crate) use chrono::Utc;
 pub(crate) use diesel::prelude::*;
-pub(crate) use log::{debug, info, trace};
+pub(crate) use log::{debug, info};
 pub(crate) use rhai::{Dynamic, Engine, Map};
 pub(crate) use std::sync::Arc;
 pub(crate) use uuid::Uuid;

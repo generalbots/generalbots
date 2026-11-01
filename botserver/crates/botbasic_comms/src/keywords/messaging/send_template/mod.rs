@@ -2,7 +2,7 @@
 
 pub(crate) use botbasic_types::UserSession;
 pub(crate) use botbasic_types::BasicRuntime;
-pub(crate) use log::{debug, info, trace};
+pub(crate) use log::{debug, info};
 pub(crate) use rhai::{Array, Dynamic, Engine, Map};
 pub(crate) use std::sync::Arc;
 

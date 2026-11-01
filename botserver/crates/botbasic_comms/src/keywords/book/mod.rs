@@ -2,7 +2,7 @@ pub(crate) use botcore::shared::schema::calendar_events;
 pub(crate) use botbasic_types::UserSession;
 pub(crate) use botbasic_types::BasicRuntime;
 pub(crate) use chrono::{DateTime, Duration, Utc};
-pub(crate) use log::{info, trace};
+pub(crate) use log::info;
 pub(crate) use rhai::{Dynamic, Engine};
 
 #[derive(Debug)]

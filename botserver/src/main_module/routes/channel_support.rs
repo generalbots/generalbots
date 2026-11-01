@@ -5,7 +5,9 @@
 //! Drive. Both used to be wired inline in `feature_routers.rs`, which this
 //! module keeps from growing further.
 
+#[cfg(any(feature = "telegram", feature = "msteams", feature = "instagram"))]
 use botcore::shared::state::AppState;
+#[cfg(any(feature = "telegram", feature = "msteams", feature = "instagram"))]
 use std::sync::Arc;
 use uuid::Uuid;
 
