@@ -22,7 +22,21 @@ pub fn register<S: Clone + Send + Sync + 'static>(router: Router<S>) -> Router<S
 /// therefore never advertise an action that would fail with
 /// `action_not_available`.
 fn action_is_implemented(seed: &ProviderSeed, action: &ActionTemplate) -> bool {
-    seed.llm_available && registry_action_names(seed.id).contains(&action.key)
+    // The registry lookup is the source of truth: it is empty when the
+    // integrations feature is not compiled, and non-empty for every provider
+    // that has a live adapter — generic providers included (OneDrive, Gmail,
+    // Outlook, …). The old `llm_available` flag was only set for the four
+    // hand-written adapters, so implemented generic providers were reported as
+    // unimplemented.
+    let names = registry_action_names(seed.id);
+    // The catalog's templates use the short key (`messages.list`); generic
+    // adapters advertise the provider-prefixed key (`gmail.messages.list`).
+    // Accept both so a provider whose adapter exists is not reported as
+    // unimplemented just because of the naming difference.
+    let suffix = format!(".{}", action.key);
+    names
+        .iter()
+        .any(|key| *key == action.key || key.ends_with(suffix.as_str()))
 }
 
 /// Action keys backed by a live adapter, keyed by provider id.
@@ -67,7 +81,7 @@ fn expand(seed: &ProviderSeed) -> ProviderItem {
         auth: *seed.auth,
         action_count: actions.len(),
         actions,
-        llm_available: seed.llm_available,
+        llm_available: seed.llm_available || !registry_action_names(seed.id).is_empty(),
     }
 }
 
@@ -177,7 +191,7 @@ pub fn llm_search(
             category: seed.category,
             status: seed.status,
             action_count: seed.actions.len(),
-            llm_available: seed.llm_available,
+            llm_available: seed.llm_available || !registry_action_names(seed.id).is_empty(),
         })
         .collect()
 }

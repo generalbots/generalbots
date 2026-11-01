@@ -280,6 +280,10 @@ pub(crate) fn admin_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/integrations/**", "PUT", ""),
         RoutePermission::new("/api/integrations/**", "DELETE", ""),
         RoutePermission::new("/api/ui/integrations/**", "GET", ""),
+        // The suite's connection picker and the chat composer's @mention list
+        // live under /api/apps/integrations. The handler filters connections by
+        // owner_user_id, so any authenticated user may read their own list.
+        RoutePermission::new("/api/apps/integrations/**", "GET", ""),
 
         // User self-service (profile, security, storage)
         RoutePermission::new("/api/ui/user/**", "GET", ""),

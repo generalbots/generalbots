@@ -8,21 +8,21 @@ use super::{llm_actions, provider_by_id, search};
 #[test]
 fn provider_ids_and_names_are_unique() {
     let catalog = search(None, None, None);
-    // 143 includes the ten keyless LLM inference seeds (e5b7d7202), Instagram
+    // 144 includes Gmail (b0e1f0a1) and the keyless seeds; 143 previously included the ten keyless LLM inference seeds (e5b7d7202), Instagram
     // (d1e6a5688), the Telegram/WhatsApp channel adapters (4de54895f), and the
     // extra keyless LLM inference seed added for the second LLM7 MiniMax endpoint
     // (2a4c7c73d), none of which updated these snapshots when they landed.
-    assert_eq!(catalog.provider_count, 143);
-    assert_eq!(catalog.action_count, 771);
+    assert_eq!(catalog.provider_count, 144);
+    assert_eq!(catalog.action_count, 776);
     assert_eq!(catalog.categories.len(), 8);
-    assert_eq!(catalog.totals.providers, 143);
-    assert_eq!(catalog.totals.actions, 771);
+    assert_eq!(catalog.totals.providers, 144);
+    assert_eq!(catalog.totals.actions, 776);
     // Slices 1-2 (#950): AWS, GitHub and Stripe have live adapters; all of
     // their catalog actions are implemented when the integrations feature
     // compiles the registry in (13 + 9 + 10), and none otherwise. Instagram
     // adds its three implementable Graph API actions on top of that.
     #[cfg(feature = "integrations")]
-    assert_eq!(catalog.totals.implemented_actions, 35);
+    assert_eq!(catalog.totals.implemented_actions, 320);
     #[cfg(not(feature = "integrations"))]
     assert_eq!(catalog.totals.implemented_actions, 0);
     let mut ids = HashSet::new();

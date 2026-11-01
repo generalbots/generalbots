@@ -252,3 +252,45 @@ pub const GOOGLE_TASKS_SPEC: ProviderSpec = ProviderSpec {
     actions: GTASKS_ACTIONS,
     action_keys: GTASKS_KEYS,
 };
+
+// Gmail (Google Workspace / consumer). Read a mailbox the way the user would
+// talk about it: "what did I get today about X" (list with a query) and "open
+// that message" (get). Sending stays out: outbound mail already has an
+// approval path in SEND MAIL, and a silent send from chat is not something an
+// integration read scope should allow.
+const GMAIL_ACTIONS: &[ActionSpec] = &[
+    ActionSpec {
+        key: "gmail.messages.list",
+        method: "GET",
+        path: "/gmail/v1/users/me/messages",
+        summary: "Listed Gmail messages matching a query (Gmail search syntax).",
+        path_params: &[],
+        query: &[("q", "query"), ("maxResults", "limit")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s("query"), s("limit")],
+    },
+    ActionSpec {
+        key: "gmail.messages.get",
+        method: "GET",
+        path: "/gmail/v1/users/me/messages/{message_id}",
+        summary: "Read one Gmail message (headers, snippet, body parts).",
+        path_params: &["message_id"],
+        query: &[("format", "format")],
+        body_param: None,
+        body_wrapper: None,
+        risk: Risk::Low,
+        params: &[s_req("message_id"), s("format")],
+    },
+];
+const GMAIL_KEYS: &[&str] = &["gmail.messages.list", "gmail.messages.get"];
+pub const GMAIL_SPEC: ProviderSpec = ProviderSpec {
+    slug: "gmail",
+    origin: Origin::Static("https://gmail.googleapis.com"),
+    auth: AuthStyle::Bearer {
+        token_field: "token",
+    },
+    actions: GMAIL_ACTIONS,
+    action_keys: GMAIL_KEYS,
+};

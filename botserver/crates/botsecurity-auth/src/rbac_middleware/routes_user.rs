@@ -229,6 +229,19 @@ pub(crate) fn authenticated_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/bots", "GET", ""),
         RoutePermission::new("/api/bots/{id}", "GET", ""),
         RoutePermission::new("/api/bots/{id}/**", "GET", ""),
+        // Integration connections and actions. The handlers resolve the
+        // tenant scope from the bot id and the caller's membership, and the
+        // credential material stays in Vault, so any authenticated user may
+        // manage their own bot's connections. Without these rules the
+        // "add a Gmail/OneDrive account" flow answered 403 before reaching
+        // the handler.
+        RoutePermission::new("/api/bots/{id}/integration-connections", "POST", ""),
+        RoutePermission::new("/api/bots/{id}/integration-connections/**", "POST", ""),
+        RoutePermission::new("/api/bots/{id}/integration-connections/**", "DELETE", ""),
+        RoutePermission::new("/api/bots/{id}/integration-actions/**", "POST", ""),
+        RoutePermission::new("/api/bots/{id}/integration-automations/**", "POST", ""),
+        RoutePermission::new("/api/bots/{id}/integration-automations/**", "DELETE", ""),
+        RoutePermission::new("/api/bots/{id}/integrations/oauth/**", "GET", ""),
 
         // Autotask
         RoutePermission::new("/api/autotask/**", "GET", ""),

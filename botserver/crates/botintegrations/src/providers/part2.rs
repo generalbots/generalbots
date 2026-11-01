@@ -133,6 +133,7 @@ pub fn registry() -> Vec<Arc<dyn ProviderAdapter>> {
         Arc::new(generic::GenericAdapter::new(&generic::productivity::OUTLOOK_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::productivity::OUTLOOK_CALENDAR_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::productivity::ONEDRIVE_SPEC)),
+        Arc::new(generic::GenericAdapter::new(&generic::productivity::GMAIL_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::productivity::SHAREPOINT_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::productivity::CONFLUENCE_SPEC)),
         Arc::new(generic::GenericAdapter::new(&generic::recruiting::GREENHOUSE_SPEC)),

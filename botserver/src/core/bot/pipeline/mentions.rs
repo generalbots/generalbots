@@ -211,6 +211,21 @@ mod tests {
     }
 
     #[test]
+    fn gmail_connection_advertises_its_read_actions() {
+        let actions = botintegrations::providers::llm_safe_actions("gmail");
+        let names: Vec<&str> = actions.iter().map(|a| a.name.as_str()).collect();
+        assert!(names.contains(&"gmail.messages.list"), "got {names:?}");
+        assert!(names.contains(&"gmail.messages.get"), "got {names:?}");
+        let block = integration_mention_block("Gmail", "gmail", &actions);
+        assert!(block.contains("gmail.messages.list"));
+        assert!(block.contains("integrations.invoke"));
+        // Credential material must never reach the prompt.
+        for banned in ["token", "secret", "vault"] {
+            assert!(!block.to_lowercase().contains(banned), "block leaked {banned}");
+        }
+    }
+
+    #[test]
     fn missing_or_non_array_mentions_yield_empty_vec() {
         assert!(parse_lenient_mentions(&serde_json::json!({ "text": "x" })).is_empty());
         assert!(parse_lenient_mentions(&serde_json::json!({ "mentions": 7 })).is_empty());

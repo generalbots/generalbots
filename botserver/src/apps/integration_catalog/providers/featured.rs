@@ -88,6 +88,16 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         },
     ),
     provider(
+        "gmail",
+        "Gmail",
+        ProviderSpec {
+            category: Category::Featured, strategy: Strategy::Improve, status: Status::Built,
+            priority: Priority::Must, module: None,
+            official_docs: Some("https://developers.google.com/gmail/api/reference/rest"),
+            auth: &GOOGLE_OAUTH2, actions: MAIL_ACTIONS,
+        },
+    ),
+    provider(
         "outlook",
         "Microsoft Outlook",
         ProviderSpec {

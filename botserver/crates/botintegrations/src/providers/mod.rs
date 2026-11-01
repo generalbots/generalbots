@@ -270,7 +270,7 @@ mod tests {
             "cloudflare", "coinbase", "confluence", "crunchbase",
             "cursor", "databricks", "devin", "dhl",
             "docusign", "dropbox", "facebook_pages", "fitbit",
-            "calendar", "drive", "google_forms", "google_photos",
+            "calendar", "drive", "google_forms", "google_photos", "gmail",
             "grafana", "greenhouse", "hex", "highlevel",
             "hubspot", "hugging_face", "intercom", "jotform",
             "last_fm", "lemlist", "loops_so", "luma",
