@@ -162,3 +162,31 @@ pub const COMPILED_FEATURES: &[&str] = &[
 pub fn is_feature_compiled(name: &str) -> bool {
     COMPILED_FEATURES.contains(&name)
 }
+
+#[cfg(test)]
+mod desktop_manifest_tests {
+    /// #1621 — the desktop edition ships Chat and Drive only. Domain features
+    /// must not appear in the manifest the suite reads; until the workspace
+    /// dependency stopped inheriting `botcore/default`, feature unification
+    /// reported all of them for a binary that does not contain the code.
+    #[cfg(feature = "desktop-local")]
+    const DOMAIN_FEATURES: &[&str] = &[
+        "mail", "email", "calendar", "people", "crm", "tickets", "billing",
+        "products", "meet", "research", "analytics", "compliance", "social",
+        "goals", "canvas", "workspaces", "learn", "project", "dashboards",
+        "monitoring",
+    ];
+
+    #[cfg(feature = "desktop-local")]
+    #[test]
+    fn desktop_manifest_lists_only_shipped_features() {
+        for feature in DOMAIN_FEATURES {
+            assert!(
+                !super::is_feature_compiled(feature),
+                "the desktop build must not report the {feature} domain feature"
+            );
+        }
+        assert!(super::is_feature_compiled("chat"));
+        assert!(super::is_feature_compiled("drive"));
+    }
+}

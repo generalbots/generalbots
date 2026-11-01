@@ -254,7 +254,12 @@ bothandoff = { path = "botserver/crates/bothandoff" }
 botkyc = { path = "botserver/crates/botkyc" }
 bottimeclock = { path = "botserver/crates/bottimeclock" }
 botdomains = { path = "botserver/crates/botdomains" }
-botcore = { path = "botserver/crates/botcore" }
+# #1621 — botcore declares the domain feature set in its own `default`. Every
+# dependent crate used to inherit it, so a slim product build still compiled and
+# reported mail, calendar, CRM and the rest through feature unification. The
+# workspace dependency is now feature-neutral; the full build re-enables the set
+# explicitly with `botcore/default` in botserver's `default` feature.
+botcore = { path = "botserver/crates/botcore", default-features = false }
 botdrive = { path = "botserver/crates/botdrive" }
 botmeet = { path = "botserver/crates/botmeet" }
 botsettings = { path = "botserver/crates/botsettings" }

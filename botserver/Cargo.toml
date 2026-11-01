@@ -12,7 +12,10 @@ features = ["database", "i18n", "http-client"]
 [features]
 # ===== DEFAULT =====
 # All apps except docs/slides (the two OOXML SDK consumers) — see allbutooxmlsdk
-default = ["chat", "drive", "agent-vm", "integrations", "editor", "llm", "vectordb", "database", "security", "directory", "terminal", "research"]
+# #1621 — `botcore/default` restores the domain feature set that used to arrive
+# through workspace feature unification. Slim bundles (desktop-local, chat-drive,
+# no-security) build without it and therefore report only what they ship.
+default = ["chat", "drive", "agent-vm", "integrations", "editor", "llm", "vectordb", "database", "security", "directory", "terminal", "research", "botcore/default"]
 
 # Lean product profile: chat + drive only (no integrations app, no editor,
 # no Zitadel directory). Use with:
@@ -171,6 +174,11 @@ desktop-local = [
     "chat", "drive", "agent-vm", "security", "directory", "llm", "vectordb",
     "settings", "no-security", "kb-extraction",
     "botcore/desktop-local",
+    # #1621 — the infrastructure features the remaining crates use. The domain
+    # defaults (mail, calendar, people, tickets, billing, meet, analytics, …)
+    # stay out, so /api/product reports the slim set this binary ships.
+    "botcore/cache", "botcore/automation", "botcore/tasks", "botcore/settings",
+    "botcore/llm", "botcore/directory", "botcore/security", "botcore/vectordb",
 ]
 
 allbutooxmlsdk = [
