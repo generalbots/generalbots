@@ -201,13 +201,15 @@ pub async fn terminal_exec(
         .unwrap_or_else(|| "/opt/vibe/app".to_string());
     let timeout = Duration::from_millis(body.timeout_ms.unwrap_or(30_000).clamp(1_000, 120_000));
     let command_owned = command.to_string();
+    let container_for_exec = container.clone();
+    let cwd_for_exec = cwd.clone();
 
     let execution = tokio::task::spawn_blocking(move || {
         let guarded = SafeCommand::new("incus")
             .and_then(|cmd| cmd.arg("exec"))
-            .and_then(|cmd| cmd.arg(&container))
+            .and_then(|cmd| cmd.arg(&container_for_exec))
             .and_then(|cmd| cmd.arg("--cwd"))
-            .and_then(|cmd| cmd.arg(&cwd))
+            .and_then(|cmd| cmd.arg(&cwd_for_exec))
             .and_then(|cmd| cmd.arg("--"))
             .and_then(|cmd| cmd.arg("sh"))
             .and_then(|cmd| cmd.arg("-c"))
