@@ -165,7 +165,7 @@ pub async fn websocket_handler(
             Ok(()) => {}
             Err(BotAccessDenial::NotFound) => {
                 if RESERVED_WS_SEGMENTS.contains(&bot_name.as_str()) {
-                    warn!(
+                    botlog::safe_warn!(
                         "WS: '{}' is a console stream, not a bot (use /api/attendance/ws)",
                         bot_name
                     );
@@ -193,7 +193,7 @@ pub async fn websocket_handler(
     }
 
     let bot_uuid = lookup_bot_id(&state, &bot_name);
-    info!(
+    botlog::safe_info!(
         "WebSocket: bot={}, session={}, user={}",
         bot_name, session_id, user_id
     );

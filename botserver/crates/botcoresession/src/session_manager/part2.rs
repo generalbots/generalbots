@@ -276,11 +276,11 @@ impl SessionManager {
                             let full_key = botlib::key_utils::build_key("", &["context", &user_id.to_string(), &session_id.to_string(), &context_name]);
                             match connection.get::<_, Option<String>>(&full_key) {
                                 Ok(Some(context_value)) => {
-                                    trace!("Retrieved context value from Cache for key {}: {} chars", full_key, context_value.len());
+                                    trace!("Retrieved context value from Cache: {} chars", context_value.len());
                                     return Ok(context_value);
                                 }
                                 Ok(None) => {
-                                    trace!("No context value found for key: {}", full_key);
+                                    trace!("No context value found in Cache");
                                 }
                                 Err(e) => {
                                     warn!("Failed to retrieve context value from Cache: {}", e);
@@ -288,7 +288,7 @@ impl SessionManager {
                             }
                         }
                         Ok(None) => {
-                            trace!("No context name found for key: {}", base_key);
+                            trace!("No context name found in Cache");
                         }
                         Err(e) => {
                             warn!("Failed to retrieve context name from Cache: {}", e);
