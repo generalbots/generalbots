@@ -266,6 +266,12 @@
             </div>
             <div class="drive-toolbar-center"></div>
             <div class="drive-toolbar-right">
+                <!-- GB6-22 — offline sync state is visible without opening a menu. -->
+                <button class="btn-icon" id="gbSyncStatusBtn" title="Offline sync"
+                        onclick="window.DriveOfflineSync && DriveOfflineSync.showSyncSettings()"
+                        style="margin-right:8px">
+                    <span id="gbSyncDot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#64748b;"></span>
+                </button>
                 <button
                     class="btn-icon"
                     onclick="var sel=Array.from(DriveModule.selectedFiles||[]);if(sel.length)DriveModule.openFile(sel[0])"
