@@ -186,7 +186,19 @@ mod desktop_manifest_tests {
                 "the desktop build must not report the {feature} domain feature"
             );
         }
-        assert!(super::is_feature_compiled("chat"));
-        assert!(super::is_feature_compiled("drive"));
+        // The test also runs in CI as `-p botcore`, where only the features
+        // requested on that command line exist. Chat and drive are asserted
+        // present exactly when the build requested them, which is the contract
+        // the manifest has to keep.
+        assert_eq!(
+            super::is_feature_compiled("chat"),
+            cfg!(feature = "chat"),
+            "chat is reported exactly when compiled"
+        );
+        assert_eq!(
+            super::is_feature_compiled("drive"),
+            cfg!(feature = "drive"),
+            "drive is reported exactly when compiled"
+        );
     }
 }

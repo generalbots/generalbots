@@ -170,4 +170,4 @@ jobs:
             ${{ runner.os }}-cargo-desktop-manifest-
 
       - name: Desktop manifest reports only shipped features
-        run: cargo test -p botcore --no-default-features --features desktop-local desktop_manifest_lists_only_shipped_features
+        run: cargo test -p botcore --no-default-features --features desktop-local,chat,drive desktop_manifest_lists_only_shipped_features
