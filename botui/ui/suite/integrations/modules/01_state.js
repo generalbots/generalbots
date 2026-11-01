@@ -222,7 +222,13 @@
                     credential_version: Number.isFinite(version) ? version : 0,
                     last_test_status: namespace.text(record.last_test_status, ""),
                     last_tested_at: namespace.text(record.last_tested_at, ""),
-                    expires_at: namespace.text(record.expires_at, "")
+                    expires_at: namespace.text(record.expires_at, ""),
+                    // GB6-18 — "see exactly what is shared" needs the scopes and
+                    // visibility the provider granted, not just a status badge.
+                    granted_scopes: Array.isArray(record.granted_scopes)
+                        ? record.granted_scopes.filter(function (scope) { return typeof scope === "string"; })
+                        : [],
+                    visibility: namespace.text(record.visibility, "")
                 };
             })
             .filter(function (row) { return row.id; });

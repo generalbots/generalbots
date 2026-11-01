@@ -252,6 +252,22 @@
             '<span class="integrations-cell-subtext">' + namespace.escapeHtml(formatDate(row.last_tested_at)) + '</span>';
     }
 
+    // GB6-18 — the consent view: what the connection may read or do, and who
+    // else can use it. Empty scopes are shown honestly instead of hidden.
+    function sharedCell(row) {
+        var scopes = Array.isArray(row.granted_scopes) ? row.granted_scopes : [];
+        var visibility = row.visibility === "branch" ? "branch workspace" : row.visibility === "private" ? "only you" : "";
+        var scopeText = scopes.length
+            ? scopes.slice(0, 3).join(", ") + (scopes.length > 3 ? " +" + (scopes.length - 3) : "")
+            : "No scopes recorded";
+        var title = (scopes.length ? "Scopes: " + scopes.join(", ") : "No scopes recorded") +
+            (visibility ? " · Visible to: " + visibility : "");
+        return '<span class="integrations-shared" title="' + namespace.escapeHtml(title) + '">' +
+            namespace.escapeHtml(scopeText) +
+            (visibility ? '<span class="integrations-cell-subtext">' + namespace.escapeHtml(visibility) + '</span>' : "") +
+            '</span>';
+    }
+
     function connectionRow(row) {
         var name = row.display_name || namespace.titleCase(row.provider_slug, "Connection");
         var expires = row.expires_at ? formatDate(row.expires_at) : "No expiry";
@@ -262,6 +278,7 @@
         return '<tr><td data-label="Service"><span class="integrations-connected-name">' + namespace.escapeHtml(name) + '</span>' +
             '<span class="integrations-connected-type">' + namespace.escapeHtml(namespace.titleCase(row.provider_slug, "Provider")) + ' / ' + namespace.escapeHtml(namespace.titleCase(row.auth_kind, "Auth")) + '</span></td>' +
             '<td data-label="Status">' + statusBadge(row.status) + '</td>' +
+            '<td data-label="Shared">' + sharedCell(row) + '</td>' +
             '<td data-label="Last test">' + testCell(row) + '</td>' +
             '<td data-label="Credential">v' + namespace.escapeHtml(String(row.credential_version)) + '</td>' +
             '<td data-label="Expires">' + namespace.escapeHtml(expires) + '</td>' +
@@ -279,7 +296,7 @@
         }
         var rows = state.connectors.map(connectionRow).join("");
         view.innerHTML = '<div class="integrations-table-wrap"><table class="integrations-connected-table">' +
-            '<thead><tr><th>Service</th><th>Status</th><th>Last test</th><th>Credential</th><th>Expires</th><th>Actions</th></tr></thead>' +
+            '<thead><tr><th>Service</th><th>Status</th><th>Shared</th><th>Last test</th><th>Credential</th><th>Expires</th><th>Actions</th></tr></thead>' +
             '<tbody>' + rows + '</tbody></table></div>' +
             '<p class="integrations-readonly-note">Credentials stay in the server-side vault; this inventory only shows sanitized metadata.</p>';
     };
