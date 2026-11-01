@@ -109,43 +109,59 @@
       mock.completed = [];
       var comps = mock.context().components;
       var i = 0;
-      function step() {
-        if (mock.cancelled) { return; }
-        if (i > 0) {
-          mock.completed.push(comps[i - 1].id);
+      // Resolve only when the run is actually over. Returning immediately made
+      // the wizard jump to Finish before a single progress event could paint,
+      // which hid the install screen from the headless acceptance harness.
+      return new Promise(function (resolve, reject) {
+        mock.resolveProvision = resolve;
+        mock.rejectProvision = reject;
+        function step() {
+          if (mock.cancelled) { return; }
+          if (i > 0) {
+            mock.completed.push(comps[i - 1].id);
+            emitLocal("wizard://progress", {
+              id: comps[i - 1].id,
+              state: "ready",
+              message: "Ready",
+              elapsed_ms: now() - mock.startedAt
+            });
+          }
+          if (i >= comps.length) {
+            mock.done = true;
+            emitLocal("wizard://progress", {
+              id: "__done__",
+              state: "ready",
+              message: "Stack is ready",
+              elapsed_ms: now() - mock.startedAt
+            });
+            if (mock.resolveProvision) {
+              mock.resolveProvision();
+              mock.resolveProvision = null;
+              mock.rejectProvision = null;
+            }
+            return;
+          }
+          var comp = comps[i];
           emitLocal("wizard://progress", {
-            id: comps[i - 1].id,
-            state: "ready",
-            message: "Ready",
+            id: comp.id,
+            state: "starting",
+            message: "Starting " + comp.label.toLowerCase() + "…",
             elapsed_ms: now() - mock.startedAt
           });
+          i += 1;
+          mock.timer = setTimeout(step, 320);
         }
-        if (i >= comps.length) {
-          mock.done = true;
-          emitLocal("wizard://progress", {
-            id: "__done__",
-            state: "ready",
-            message: "Stack is ready",
-            elapsed_ms: now() - mock.startedAt
-          });
-          return;
-        }
-        var comp = comps[i];
-        emitLocal("wizard://progress", {
-          id: comp.id,
-          state: "starting",
-          message: "Starting " + comp.label.toLowerCase() + "…",
-          elapsed_ms: now() - mock.startedAt
-        });
-        i += 1;
-        mock.timer = setTimeout(step, 320);
-      }
-      step();
-      return Promise.resolve();
+        step();
+      });
     },
     cancel: function () {
       mock.cancelled = true;
       if (mock.timer) { clearTimeout(mock.timer); }
+      if (mock.rejectProvision) {
+        mock.rejectProvision(new Error("Setup was cancelled. Partial data will be reused next time."));
+        mock.resolveProvision = null;
+        mock.rejectProvision = null;
+      }
       return Promise.resolve();
     },
     status: function () {
