@@ -3770,6 +3770,7 @@ dependencies = [
  "botlib",
  "botllm",
  "botlog",
+ "botresearch",
  "botsecurity-auth",
  "botsecurity-core",
  "chrono",
