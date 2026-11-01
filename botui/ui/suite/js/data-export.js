@@ -220,5 +220,8 @@
     exportAll: exportAllData,
     importBackup: importBackup,
     showDialog: showExportDialog,
+    // GB6-24 — exposed so the validation contract can be tested without
+    // driving a file picker; the importer is its only production caller.
+    validateBackup: sanitizeBackup,
   };
 })();
