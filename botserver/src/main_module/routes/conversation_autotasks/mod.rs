@@ -105,7 +105,16 @@ fn next_run_for(schedule: &str) -> Option<DateTime<Utc>> {
     #[cfg(feature = "automation")]
     {
         use std::str::FromStr;
-        let parsed = cron::Schedule::from_str(schedule).ok()?;
+        // Users and crontab write five fields (`0 9 * * 1`); the cron crate
+        // parses six or seven (seconds first). Normalize instead of rejecting
+        // every standard crontab entry.
+        let fields = schedule.split_whitespace().count();
+        let normalized = if fields == 5 {
+            format!("0 {schedule}")
+        } else {
+            schedule.to_string()
+        };
+        let parsed = cron::Schedule::from_str(&normalized).ok()?;
         return parsed.after(&Utc::now()).next();
     }
     #[cfg(not(feature = "automation"))]
@@ -449,8 +458,10 @@ mod tests {
         assert!(next_run_for("not a cron expression").is_none());
         #[cfg(feature = "automation")]
         {
-            let next = next_run_for("0 9 * * 1").expect("valid cron must yield a next run");
+            let next = next_run_for("0 9 * * 1").expect("a 5-field crontab entry must yield a next run");
             assert!(next > Utc::now());
+            let six = next_run_for("0 0 9 * * 1").expect("a 6-field expression is accepted");
+            assert!(six > Utc::now());
         }
     }
 }
