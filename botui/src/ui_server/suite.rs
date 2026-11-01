@@ -163,8 +163,25 @@ pub async fn index(
         bot_name = Some(resolved.unwrap_or_else(|| "default".to_string()));
     }
 
+    // Desktop-local: the product config disables authentication. Honor it
+    // before the per-bot access check; otherwise a private default bot sends a
+    // freshly installed desktop to the login page instead of the desktop.
+    let no_security = {
+        let base = state.client.base_url();
+        let client = crate::ui_server::tls_policy::backend_http_client(base);
+        match client.get(format!("{base}/api/product")).send().await {
+            Ok(resp) if resp.status().is_success() => resp
+                .json::<serde_json::Value>()
+                .await
+                .ok()
+                .and_then(|value| value.get("no_security").and_then(|flag| flag.as_bool()))
+                .unwrap_or(false),
+            _ => false,
+        }
+    };
+
     if let Some(ref bot) = bot_name {
-        if !is_suite_dir {
+        if !is_suite_dir && !no_security {
         // Check for token from query param (cloud dashboard link)
         let query_token = uri.query().and_then(|q| {
             q.split('&').find_map(|p| {

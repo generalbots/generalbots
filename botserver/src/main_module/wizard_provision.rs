@@ -55,6 +55,7 @@ fn component_plan() -> Vec<Component> {
         Component { id: "cache", label: "Cache", timeout_secs: 45, optional: false },
         Component { id: "drive", label: "Object store", timeout_secs: 60, optional: false },
         Component { id: "vector_db", label: "Vector store", timeout_secs: 60, optional: false },
+        Component { id: "directory", label: "Identity provider", timeout_secs: 90, optional: false },
     ];
     if model_mode == "local" {
         plan.push(Component {

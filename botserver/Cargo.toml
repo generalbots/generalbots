@@ -163,7 +163,7 @@ sampledata = ["dep:botsampledata"]
 # Desktop-local: Chat + Drive for offline government distribution.
 # Includes security (auth infra) and llm (chat needs it).
 desktop-local = [
-    "chat", "drive", "security", "llm", "vectordb",
+    "chat", "drive", "security", "directory", "llm", "vectordb",
     "settings", "no-security", "kb-extraction",
     "botcore/desktop-local",
 ]

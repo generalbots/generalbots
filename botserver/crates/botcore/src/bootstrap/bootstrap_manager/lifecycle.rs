@@ -82,13 +82,15 @@ impl BootstrapManager {
         // Phase 2: Start all other services IN PARALLEL (vault credentials now available).
         // Start them all first (fast nohup launches), then wait for readiness concurrently.
         type ServiceConfig = (&'static str, fn() -> bool, u32, bool);
-        // desktop-local: skip directory and alm (not needed for chat+drive).
+        // desktop-local: skip alm (not needed for chat+drive); Zitadel stays
+        // because the desktop edition still has local accounts and admin login.
         let other_services: Vec<ServiceConfig> = if cfg!(feature = "desktop-local") {
             vec![
                 ("vector_db", vector_db_health_check, 45, true),
                 ("tables", tables_health_check, 0, false),
                 ("cache", cache_health_check, 30, true),
                 ("drive", drive_health_check, 0, false),
+                ("directory", zitadel_health_check, 60, true),
             ]
         } else {
             vec![
@@ -167,8 +169,9 @@ impl BootstrapManager {
 
         // Phase 3: Post-startup setup tasks (depends on services being ready)
 
-        // Directory OAuth setup (needs Zitadel running) — skipped in desktop-local.
-        if !cfg!(feature = "desktop-local") && !skip_local_directory && pm.is_installed("directory") {
+        // Directory OAuth setup (needs Zitadel running). The desktop edition
+        // keeps Zitadel for local accounts/admin login.
+        if !skip_local_directory && pm.is_installed("directory") {
             let config_path = self.stack_dir("conf/system/directory_config.json");
             if !config_path.exists() {
                 info!("Creating OAuth client for Directory service...");

@@ -28,6 +28,7 @@ pub const COMPONENTS: &[(&str, &str, bool)] = &[
     ("cache", "Cache", false),
     ("drive", "Object store", false),
     ("vector_db", "Vector store", false),
+    ("directory", "Identity provider", false),
     ("llm", "Local model runtime", true),
     ("botserver", "Assistant service", false),
 ];
@@ -173,6 +174,13 @@ pub(crate) fn stack_path() -> PathBuf {
 }
 
 pub(crate) fn installers_path(resource_dir: Option<&Path>) -> PathBuf {
+    // An explicit path wins (development runs point at the checkout's bundled
+    // installers); packaged builds fall back to the resource directory.
+    if let Ok(value) = std::env::var("BOTSERVER_INSTALLERS_PATH") {
+        if !value.trim().is_empty() {
+            return PathBuf::from(value);
+        }
+    }
     resource_dir
         .map(|dir| dir.join("installers"))
         .unwrap_or_else(|| stack_path().join("installers"))
@@ -339,15 +347,24 @@ pub fn open_window(app: &tauri::AppHandle) -> Result<(), String> {
 /// than reloading) guarantees the suite boots with the final product config.
 pub fn reveal_suite(app: &tauri::AppHandle) {
     if let Some(main) = app.get_webview_window("main") {
-        match main.url() {
-            Ok(mut url) => {
+        // Build the target from the configured origin, not the current URL:
+        // before the API answered, the auth gate may have redirected this
+        // window to the login host, and keeping that host would send the user
+        // back to the login page.
+        let target = if cfg!(debug_assertions) {
+            app.config().build.dev_url.clone()
+        } else {
+            main.url().ok()
+        };
+        match target {
+            Some(mut url) => {
                 url.set_path("/suite/desktop.html");
                 url.set_query(None);
                 if let Err(e) = main.navigate(url) {
                     warn!("could not navigate the suite window: {e}");
                 }
             }
-            Err(e) => warn!("could not read the suite window URL: {e}"),
+            None => warn!("could not resolve the suite window URL"),
         }
         let _ = main.show();
         let _ = main.set_focus();
@@ -427,7 +444,7 @@ mod tests {
         let ids: Vec<&str> = COMPONENTS.iter().map(|(id, _, _)| *id).collect();
         assert_eq!(
             ids,
-            vec!["vault", "tables", "cache", "drive", "vector_db", "llm", "botserver"]
+            vec!["vault", "tables", "cache", "drive", "vector_db", "directory", "llm", "botserver"]
         );
     }
 

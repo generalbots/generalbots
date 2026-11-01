@@ -69,6 +69,13 @@
 
   var FREE_PROVIDERS = [
     {
+      id: "ovh",
+      name: "OVHcloud AI Endpoints",
+      endpoint: "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions",
+      model: "gpt-oss-20b",
+      needsKey: false
+    },
+    {
       id: "kilo",
       name: "Kilo Code",
       endpoint: "https://api.kilo.ai/api/gateway/chat/completions",
@@ -81,13 +88,6 @@
       endpoint: "https://api.llm7.io/v1/chat/completions",
       model: "gemini-3-flash",
       needsKey: true
-    },
-    {
-      id: "ovh",
-      name: "OVHcloud AI Endpoints",
-      endpoint: "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions",
-      model: "gpt-oss-20b",
-      needsKey: false
     }
   ];
 

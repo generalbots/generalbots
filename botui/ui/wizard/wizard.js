@@ -99,6 +99,18 @@
       Array.prototype.forEach.call(document.querySelectorAll('input[name="modelMode"]'), function (input) {
         input.addEventListener("change", function () {
           draft.model.mode = input.value;
+          if (input.value === "free") {
+            draft.model.provider = "ovh";
+            draft.model.endpoint = W.defaultModelEndpoint("ovh");
+            draft.model.model = W.defaultModelName("ovh");
+            draft.model.api_key = "";
+          } else if (input.value === "own-key" || input.value === "hosted") {
+            if (!W.defaultModelEndpoint(draft.model.provider)) {
+              draft.model.provider = "openai";
+            }
+            draft.model.endpoint = W.defaultModelEndpoint(draft.model.provider);
+            draft.model.model = W.defaultModelName(draft.model.provider);
+          }
           draft.model.tested = input.value === "local";
           document.getElementById("modelDetail").innerHTML = S.modelDetail(draft);
           bindModelDetail();

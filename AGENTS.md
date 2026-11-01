@@ -1655,7 +1655,7 @@ A stripped-down desktop build of General Bots containing **only Chat and Drive**
 `botserver/Cargo.toml` defines `desktop-local`:
 ```toml
 desktop-local = [
-    "chat", "drive", "security", "llm", "vectordb",
+    "chat", "drive", "security", "directory", "llm", "vectordb",
     "settings", "no-security", "kb-extraction",
     "botcore/desktop-local",
 ]
@@ -1705,7 +1705,7 @@ Build: `cargo build -p botserver --no-default-features --features desktop-local`
 | drive (MinIO) | ✅ | ✅ |
 | llm (llama.cpp) | ✅ | ✅ |
 | vector_db (Qdrant) | ✅ | ✅ |
-| directory (Zitadel) | ✅ | ❌ |
+| directory (Zitadel) | ✅ | ✅ |
 | alm (Forgejo) | ✅ | ❌ |
 | alm-ci (Runner) | ✅ | ❌ |
 
