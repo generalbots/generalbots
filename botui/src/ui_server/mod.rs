@@ -11,7 +11,8 @@ pub mod ws;
 pub use self::assets::serve_favicon;
 #[cfg(feature = "embed-ui")]
 pub use self::assets::{
-    handle_embedded_asset, handle_embedded_root_asset, handle_site_root_asset,
+    handle_embedded_asset, handle_embedded_root_asset, handle_embedded_wizard_asset,
+    handle_site_root_asset,
 };
 pub use self::cloud::*;
 pub use self::constants::get_ui_root;
@@ -75,6 +76,8 @@ fn add_static_routes(router: Router<AppState>, _suite_path: &Path) -> Router<App
         for file in SITE_ROOT_FILES {
             r = r.route(&format!("/{}", file), get(handle_site_root_asset));
         }
+        // First-run wizard: static, outside the suite shell.
+        r = r.route("/wizard/*path", get(handle_embedded_wizard_asset));
         r
     }
     #[cfg(not(feature = "embed-ui"))]
@@ -85,6 +88,10 @@ fn add_static_routes(router: Router<AppState>, _suite_path: &Path) -> Router<App
             info!("Adding route for /suite/{} -> {:?}", dir, path);
             r = r.nest_service(&format!("/suite/{dir}"), ServeDir::new(path.clone()));
         }
+
+        let wizard_path = get_ui_root().join("wizard");
+        info!("Adding route for /wizard -> {:?}", wizard_path);
+        r = r.nest_service("/wizard", ServeDir::new(wizard_path));
 
         for file in ROOT_FILES {
             let path = _suite_path.join(file);

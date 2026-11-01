@@ -10,6 +10,7 @@
     "frontendDist": "../botui/ui"
   },
   "app": {
+    "withGlobalTauri": true,
     "security": {
       "csp": null
     },

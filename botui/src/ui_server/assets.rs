@@ -82,6 +82,26 @@ pub async fn handle_embedded_root_asset(
     }
 }
 
+/// Serves the static first-run wizard (issues #1586-#1591). The wizard is
+/// deliberately outside `suite/`: it renders before the suite and must not
+/// depend on the suite shell.
+#[cfg(feature = "embed-ui")]
+pub async fn handle_embedded_wizard_asset(
+    axum::extract::Path(path): axum::extract::Path<String>,
+) -> impl IntoResponse {
+    let asset_path = format!("wizard/{}", path);
+    match Assets::get(&asset_path) {
+        Some(content) => {
+            let mime = mime_guess::from_path(&asset_path).first_or_octet_stream();
+            (
+                [(axum::http::header::CONTENT_TYPE, mime.as_ref())],
+                content.data,
+            )
+                .into_response()
+        }
+        None => StatusCode::NOT_FOUND.into_response(),
+    }
+}
 /// Serves embedded site-root assets (`manifest.webmanifest`, `sw.js`)
 /// at the `/` scope with a correct MIME type. Without this dedicated route,
 /// those requests fall through to the desktop.html catch-all and the PWA

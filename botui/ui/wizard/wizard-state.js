@@ -1,0 +1,153 @@
+/* First-run wizard state: steps, draft shape and provider guidance. */
+(function () {
+  "use strict";
+
+  var STEPS = [
+    { id: "welcome", name: "Welcome" },
+    { id: "model", name: "Assistant model" },
+    { id: "workspace", name: "Workspace" },
+    { id: "services", name: "Connect services" },
+    { id: "privacy", name: "Privacy and setup" },
+    { id: "finish", name: "Finish" }
+  ];
+
+  var PROVIDERS = [
+    {
+      id: "gmail",
+      name: "Gmail",
+      console: "https://console.cloud.google.com/apis/credentials",
+      consoleLabel: "Open Google Cloud credentials",
+      redirectTemplate: "http://127.0.0.1:8080/api/integrations/oauth/gmail/callback",
+      steps: "Enable the Gmail API, add the redirect URI, then paste the client id and secret. Scope: gmail.readonly.",
+      scopeNote: "The assistant can read your mail; it cannot send, delete or change it.",
+      fields: { id: "Client id", secret: "Client secret" }
+    },
+    {
+      id: "onedrive",
+      name: "OneDrive",
+      console: "https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade",
+      consoleLabel: "Open Azure app registrations",
+      redirectTemplate: "http://127.0.0.1:8080/api/integrations/oauth/onedrive/callback",
+      steps: "Add the redirect URI and grant Files.Read plus offline_access, then paste the client id and secret.",
+      scopeNote: "The assistant can read your files; it cannot edit or delete them.",
+      fields: { id: "Application (client) id", secret: "Client secret" }
+    },
+    {
+      id: "dropbox",
+      name: "Dropbox",
+      console: "https://www.dropbox.com/developers/apps",
+      consoleLabel: "Open Dropbox App Console",
+      redirectTemplate: "http://127.0.0.1:8080/api/integrations/oauth/dropbox/callback",
+      steps: "Use scoped access with files.metadata.read and files.content.read, add the redirect URI, then paste the app key and secret.",
+      scopeNote: "The assistant can read file names and contents; it cannot change or remove them.",
+      fields: { id: "App key", secret: "App secret" }
+    }
+  ];
+
+  var MODELS = [
+    {
+      id: "local",
+      title: "Bundled local model",
+      desc: "Runs on this machine. Nothing leaves it. Recommended for a private install."
+    },
+    {
+      id: "own-key",
+      title: "My own provider key",
+      desc: "Prompts go to the provider you choose, and only to that provider."
+    },
+    {
+      id: "hosted",
+      title: "Hosted model",
+      desc: "Use a managed endpoint. Prompts leave this machine for that endpoint."
+    }
+  ];
+
+  var state = {
+    step: 1,
+    totalSteps: STEPS.length,
+    context: null,
+    resumed: false,
+    draft: {
+      display_name: "",
+      admin: { email: "admin@localhost", password: "", user_id: "" },
+      model: { mode: "local", provider: "openai", endpoint: "", model: "", api_key: "", tested: false },
+      workspace: { path: "", size: "standard" },
+      services: {},
+      telemetry: false
+    },
+    provisioning: {
+      running: false,
+      ready: false,
+      failed: null,
+      startedAt: 0,
+      components: []
+    }
+  };
+
+  function clone(value) {
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  function providerById(id) {
+    for (var i = 0; i < PROVIDERS.length; i += 1) {
+      if (PROVIDERS[i].id === id) { return PROVIDERS[i]; }
+    }
+    return null;
+  }
+
+  function endpointHost(endpoint) {
+    if (!endpoint) { return ""; }
+    try { return new URL(endpoint).host; } catch (e) { return endpoint; }
+  }
+
+  function isLoopback(endpoint) {
+    if (!endpoint) { return false; }
+    try {
+      var host = new URL(endpoint).hostname;
+      return host === "localhost" || host === "127.0.0.1" || host === "::1";
+    } catch (e) {
+      return endpoint.indexOf("localhost") !== -1 || endpoint.indexOf("127.0.0.1") !== -1;
+    }
+  }
+
+  function formatBytes(bytes) {
+    if (!bytes && bytes !== 0) { return "unknown"; }
+    var units = ["B", "KB", "MB", "GB", "TB"];
+    var value = bytes;
+    var unit = 0;
+    while (value >= 1024 && unit < units.length - 1) { value /= 1024; unit += 1; }
+    return value.toFixed(value >= 10 || unit === 0 ? 0 : 1) + " " + units[unit];
+  }
+
+  function defaultModelEndpoint(provider) {
+    switch (provider) {
+      case "openai": return "https://api.openai.com/v1/chat/completions";
+      case "anthropic": return "https://api.anthropic.com/v1/messages";
+      case "nvidia": return "https://integrate.api.nvidia.com/v1/chat/completions";
+      default: return "";
+    }
+  }
+
+  function defaultModelName(provider) {
+    switch (provider) {
+      case "openai": return "gpt-4o-mini";
+      case "anthropic": return "claude-3-5-sonnet-latest";
+      case "nvidia": return "meta/llama-3.1-70b-instruct";
+      default: return "";
+    }
+  }
+
+  window.GBWizard = {
+    STEPS: STEPS,
+    PROVIDERS: PROVIDERS,
+    MODELS: MODELS,
+    state: state,
+    clone: clone,
+    providerById: providerById,
+    endpointHost: endpointHost,
+    isLoopback: isLoopback,
+    formatBytes: formatBytes,
+    defaultModelEndpoint: defaultModelEndpoint,
+    defaultModelName: defaultModelName
+  };
+})();

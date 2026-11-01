@@ -20,6 +20,7 @@ mod shutdown;
 pub mod state_builder;
 mod types;
 pub mod security_cmd;
+pub mod wizard_provision;
 pub mod constants;
 pub mod init_tasks;
 pub mod ui_plan;

@@ -137,10 +137,18 @@ pub(crate) fn resolve_rbac_roles(conn: &mut diesel::PgConnection, user_id: &str)
 /// admin@localhost) — never an email-only match.
 pub(crate) fn lookup_admin_credentials_user_id(email: &str, password: &str) -> Option<String> {
     let base = std::env::current_dir().ok()?;
-    let candidates = [
+    let mut candidates = vec![
         base.join("botserver-stack/conf/directory/admin-credentials.json"),
         base.join("../botserver-stack/conf/directory/admin-credentials.json"),
     ];
+    // Desktop edition: the stack lives outside the process working directory.
+    if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
+        if !stack.trim().is_empty() {
+            candidates.push(
+                std::path::PathBuf::from(stack).join("conf/directory/admin-credentials.json"),
+            );
+        }
+    }
     for candidate in candidates {
         // Missing/unreadable file: try the NEXT candidate — an early `?` here
         // silently disabled the dev fallback whenever botserver's cwd was not

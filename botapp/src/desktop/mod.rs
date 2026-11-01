@@ -4,3 +4,5 @@ pub mod safe_command;
 pub mod sidecar;
 pub mod sync;
 pub mod tray;
+#[cfg(feature = "desktop-local")]
+pub mod wizard;

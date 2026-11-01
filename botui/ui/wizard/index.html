@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Set up General Bots</title>
+  <link rel="stylesheet" href="/wizard/wizard.css?v=2" />
+</head>
+<body>
+  <!--
+    First-run wizard (issues #1586-#1591).
+
+    This page is static and self-contained: it never fetches botserver, botui,
+    Vault, PostgreSQL or the network to render. When it runs inside the desktop
+    shell it talks to the Tauri commands in botapp/src/desktop/wizard.rs; when it
+    is opened in a plain browser it uses the deterministic in-memory harness so
+    the screen can be verified headlessly with the stack stopped.
+  -->
+  <main class="wizard" id="wizardRoot" data-state="loading">
+    <aside class="rail" aria-label="Setup steps">
+      <div class="rail-brand">
+        <svg class="rail-logo" width="28" height="28" viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="7" fill="#84d669"/><text x="14" y="19" text-anchor="middle" font-size="13" font-weight="700" fill="#0b1a06">GB</text></svg>
+        <span>General Bots</span>
+      </div>
+      <ol class="rail-steps" id="railSteps" role="list"></ol>
+      <p class="rail-note" id="railNote">Nothing is installed until you choose Start setup.</p>
+    </aside>
+
+    <section class="pane" aria-live="polite">
+      <header class="pane-head">
+        <p class="step-counter" id="stepCounter">STEP 1 OF 6</p>
+        <h1 class="step-heading" id="stepHeading" tabindex="-1">Welcome</h1>
+        <p class="note err" id="stepError" role="status" hidden></p>
+      </header>
+
+      <div class="pane-body" id="stepBody">
+        <p class="loading">Loading setup…</p>
+      </div>
+
+      <footer class="pane-foot">
+        <button type="button" class="btn btn-text" id="skipBtn">Skip setup</button>
+        <div class="foot-progress" aria-hidden="true">
+          <div class="foot-progress-fill" id="progressFill"></div>
+        </div>
+        <span class="foot-label" id="footLabel">Step 1 of 6</span>
+        <button type="button" class="btn btn-secondary" id="backBtn">Back</button>
+        <button type="button" class="btn btn-primary" id="nextBtn">Next</button>
+      </footer>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="modalBackdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <h2 id="modalTitle">Confirm</h2>
+      <p id="modalText"></p>
+      <label class="modal-field" id="modalField" hidden>
+        <span id="modalFieldLabel">Type the folder name to confirm</span>
+        <input type="text" id="modalInput" autocomplete="off" />
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" id="modalCancel">Cancel</button>
+        <button type="button" class="btn btn-danger" id="modalConfirm">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="status-live" id="statusLive" role="status" aria-live="polite"></div>
+
+  <script src="/wizard/wizard-state.js?v=2"></script>
+  <script src="/wizard/wizard-bridge.js?v=2"></script>
+  <script src="/wizard/wizard-steps.js?v=2"></script>
+  <script src="/wizard/wizard.js?v=2"></script>
+</body>
+</html>

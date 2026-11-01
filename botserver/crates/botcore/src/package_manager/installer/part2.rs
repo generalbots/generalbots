@@ -205,4 +205,104 @@ impl PackageManager {
             Err(anyhow::anyhow!("Component not found: {}", component))
         }
     }
+
+    /// Resolves the on-disk program for a component, if it can be determined
+    /// from its binary name or exec command. Used by the first-run wizard to
+    /// report a missing bundled binary immediately instead of waiting for a
+    /// health timeout.
+    pub fn executable_path(&self, component_name: &str) -> Option<std::path::PathBuf> {
+        let component = self.components.get(component_name)?;
+        let bin_root = self.base_path.join("bin").join(&component.name);
+        // The exec command is what `start` actually runs, so verify that path
+        // first; a stale install layout must be reported as missing rather than
+        // waiting for a health timeout.
+        let command = component.effective_exec_cmd();
+        let mut tokens = command.split_whitespace();
+        if let Some(first) = tokens.next() {
+            let candidate = if first == "nohup" {
+                tokens.next().unwrap_or(first)
+            } else {
+                first
+            };
+            let resolved = candidate.replace("{{BIN_PATH}}", &bin_root.to_string_lossy());
+            if resolved.contains('/') || resolved.contains('\\') {
+                return Some(std::path::PathBuf::from(resolved));
+            }
+        }
+        if let Some(name) = component.effective_binary_name() {
+            let direct = bin_root.join(&name);
+            if direct.exists() {
+                return Some(direct);
+            }
+            let nested = bin_root.join("bin").join(&name);
+            if nested.exists() {
+                return Some(nested);
+            }
+        }
+        None
+    }
+
+    /// Reports whether a component's own check command succeeds. The first-run
+    /// wizard uses it to wait for each dependency in order without restarting
+    /// an already-initialised component.
+    pub fn is_running(&self, component_name: &str) -> bool {
+        let Some(component) = self.components.get(component_name) else {
+            return false;
+        };
+        let bin_path = self.base_path.join("bin").join(&component.name);
+        let data_path = self.base_path.join("data").join(&component.name);
+        let conf_path = self.base_path.join("conf");
+        let logs_path = self.base_path.join("logs").join(&component.name);
+        let check_cmd = component
+            .effective_check_cmd()
+            .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
+            .replace("{{DATA_PATH}}", &data_path.to_string_lossy())
+            .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
+            .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy());
+        if check_cmd.trim().is_empty() {
+            return false;
+        }
+        let (shell, flag) = crate::os_abstraction::get_abstraction().shell_command();
+        let command = match SafeCommand::new(shell).and_then(|command| command.arg(flag)) {
+            Ok(command) => command,
+            Err(e) => {
+                log::debug!("is_running: could not build the {} check: {e}", component.name);
+                return false;
+            }
+        };
+        let command = match command.raw_shell_script_arg(&check_cmd) {
+            Ok(command) => command,
+            Err(e) => {
+                log::debug!("is_running: invalid {} check: {e}", component.name);
+                return false;
+            }
+        };
+        // `SafeCommand` clears the environment; the vault check reads
+        // `${VAULT_ADDR}`, so pass it explicitly (issue: first-run wizard).
+        let command = match std::env::var("VAULT_ADDR") {
+            Ok(address) if !address.trim().is_empty() => match command.env("VAULT_ADDR", &address) {
+                Ok(command) => command,
+                Err(_) => return false,
+            },
+            _ => command,
+        };
+        let check_ok = command
+            .execute()
+            .map(|output| output.status.success())
+            .unwrap_or(false);
+        if check_ok {
+            return true;
+        }
+        // A component bound to its declared port is running even when the
+        // bundled check command assumes a different scheme (for example a
+        // development MinIO serving HTTP on the same port). Without this
+        // fallback the first-run wizard would try to start a duplicate.
+        component.ports.iter().any(|port| {
+            std::net::TcpStream::connect_timeout(
+                &std::net::SocketAddr::from(([127, 0, 0, 1], *port)),
+                std::time::Duration::from_millis(300),
+            )
+            .is_ok()
+        })
+    }
 }

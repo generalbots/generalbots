@@ -1,4 +1,4 @@
-use log::{error, info, warn};
+use log::{info, warn};
 use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
@@ -15,7 +15,7 @@ impl Sidecar {
         }
     }
 
-    fn botserver_path() -> PathBuf {
+    pub(crate) fn botserver_path() -> PathBuf {
         if let Ok(p) = std::env::var("BOTSERVER_BIN") {
             return PathBuf::from(p);
         }
@@ -31,7 +31,7 @@ impl Sidecar {
         dir.join(name)
     }
 
-    fn stack_path() -> PathBuf {
+    pub(crate) fn stack_path() -> PathBuf {
         if let Ok(p) = std::env::var("BOTSERVER_STACK_PATH") {
             return PathBuf::from(p);
         }

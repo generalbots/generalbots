@@ -16,6 +16,12 @@ pub(super) async fn main() -> std::io::Result<()> {
 
     crate::main_module::handle_security_command(&args).await;
 
+    // First-run wizard (desktop-local): provision the bundled components in
+    // dependency order and exit. The wizard then starts the normal sidecar.
+    if args.iter().any(|arg| arg == "--provision-stack") {
+        return crate::main_module::wizard_provision::run().await;
+    }
+
     #[cfg(feature = "console")]
     let no_console = args.contains(&"--noconsole".to_string());
 

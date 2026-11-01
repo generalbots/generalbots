@@ -7,6 +7,8 @@ mod desktop;
 
 #[cfg(feature = "desktop-local")]
 use desktop::sidecar::Sidecar;
+#[cfg(feature = "desktop-local")]
+use desktop::wizard::WizardState;
 use desktop::tray::{RunningMode, ServiceMonitor, TrayEvent, TrayManager};
 
 #[tauri::command]
@@ -161,6 +163,25 @@ fn create_tray_with_mode(mode: String) -> Result<String, String> {
     Ok(manager.get_mode_string())
 }
 
+/// Starts the botserver sidecar and reveals the suite once the API answers.
+#[cfg(feature = "desktop-local")]
+fn start_sidecar_and_show(app: &tauri::App) {
+    let resource_dir = app.path().resource_dir().ok();
+    let sidecar = app.state::<Sidecar>();
+    if let Err(e) = sidecar.start(resource_dir) {
+        log::error!("Failed to start botserver sidecar: {e}");
+    }
+
+    let handle = app.handle().clone();
+    tauri::async_runtime::spawn(async move {
+        let ready = Sidecar::wait_for_api("http://localhost:8080/api/product", 120).await;
+        if !ready {
+            log::error!("botserver did not respond within 120s");
+        }
+        desktop::wizard::reveal_suite(&handle);
+    });
+}
+
 fn main() {
     botlib::logging::init_compact_logger("info");
     let version = env!("CARGO_PKG_VERSION");
@@ -176,66 +197,109 @@ fn main() {
         .manage(service_monitor);
 
     #[cfg(feature = "desktop-local")]
-    let builder = builder.manage(Sidecar::new());
+    let builder = builder
+        .manage(Sidecar::new())
+        .manage(WizardState::default());
+
+    #[cfg(feature = "desktop-local")]
+    let builder = builder.invoke_handler(tauri::generate_handler![
+        desktop::drive::list_files,
+        desktop::drive::upload_file,
+        desktop::drive::create_folder,
+        desktop::drive::delete_path,
+        desktop::drive::get_home_dir,
+        desktop::sync::get_sync_status,
+        desktop::sync::start_sync,
+        desktop::sync::stop_sync,
+        desktop::sync::configure_remote,
+        desktop::sync::check_rclone_installed,
+        desktop::sync::list_remotes,
+        desktop::sync::get_sync_folder,
+        desktop::sync::set_sync_folder,
+        get_tray_status,
+        start_tray,
+        stop_tray,
+        show_notification,
+        update_tray_status,
+        set_tray_tooltip,
+        get_tray_hostname,
+        set_tray_hostname,
+        handle_tray_event,
+        check_services,
+        add_service,
+        get_service,
+        all_services_running,
+        any_service_running,
+        get_tray_mode,
+        get_running_modes,
+        create_tray_with_mode,
+        desktop::wizard::wizard_context,
+        desktop::wizard::wizard_save_draft,
+        desktop::wizard::wizard_load_draft,
+        desktop::wizard::wizard_check_workspace,
+        desktop::wizard::wizard_pick_folder,
+        desktop::wizard::wizard_test_model,
+        desktop::wizard::wizard_provision,
+        desktop::wizard::wizard_cancel_provision,
+        desktop::wizard::wizard_provision_status,
+        desktop::wizard::wizard_reset_stack,
+        desktop::wizard::wizard_open_folder,
+        desktop::wizard::wizard_open_url,
+        desktop::wizard::wizard_finish,
+    ]);
+
+    #[cfg(not(feature = "desktop-local"))]
+    let builder = builder.invoke_handler(tauri::generate_handler![
+        desktop::drive::list_files,
+        desktop::drive::upload_file,
+        desktop::drive::create_folder,
+        desktop::drive::delete_path,
+        desktop::drive::get_home_dir,
+        desktop::sync::get_sync_status,
+        desktop::sync::start_sync,
+        desktop::sync::stop_sync,
+        desktop::sync::configure_remote,
+        desktop::sync::check_rclone_installed,
+        desktop::sync::list_remotes,
+        desktop::sync::get_sync_folder,
+        desktop::sync::set_sync_folder,
+        get_tray_status,
+        start_tray,
+        stop_tray,
+        show_notification,
+        update_tray_status,
+        set_tray_tooltip,
+        get_tray_hostname,
+        set_tray_hostname,
+        handle_tray_event,
+        check_services,
+        add_service,
+        get_service,
+        all_services_running,
+        any_service_running,
+        get_tray_mode,
+        get_running_modes,
+        create_tray_with_mode,
+    ]);
 
     let app = builder
-        .invoke_handler(tauri::generate_handler![
-            desktop::drive::list_files,
-            desktop::drive::upload_file,
-            desktop::drive::create_folder,
-            desktop::drive::delete_path,
-            desktop::drive::get_home_dir,
-            desktop::sync::get_sync_status,
-            desktop::sync::start_sync,
-            desktop::sync::stop_sync,
-            desktop::sync::configure_remote,
-            desktop::sync::check_rclone_installed,
-            desktop::sync::list_remotes,
-            desktop::sync::get_sync_folder,
-            desktop::sync::set_sync_folder,
-            get_tray_status,
-            start_tray,
-            stop_tray,
-            show_notification,
-            update_tray_status,
-            set_tray_tooltip,
-            get_tray_hostname,
-            set_tray_hostname,
-            handle_tray_event,
-            check_services,
-            add_service,
-            get_service,
-            all_services_running,
-            any_service_running,
-            get_tray_mode,
-            get_running_modes,
-            create_tray_with_mode,
-        ])
         .setup(|app| {
             let tray = app.state::<TrayManager>();
             let mode = tray.get_mode_string();
             info!("BotApp setup complete in {mode} mode");
 
-            // --- Sidecar: start botserver and wait for API before showing window ---
+            // --- First run: the wizard owns the stack lifecycle ---
             #[cfg(feature = "desktop-local")]
             {
-                let resource_dir = app.path().resource_dir().ok();
-                let sidecar = app.state::<Sidecar>();
-                if let Err(e) = sidecar.start(resource_dir) {
-                    log::error!("Failed to start botserver sidecar: {e}");
+                if desktop::wizard::is_first_run() {
+                    info!("First run detected: opening the setup wizard");
+                    if let Err(e) = desktop::wizard::open_window(&app.handle()) {
+                        log::error!("Could not open the setup wizard: {e}");
+                        start_sidecar_and_show(app);
+                    }
+                } else {
+                    start_sidecar_and_show(app);
                 }
-
-                let handle = app.handle().clone();
-                tauri::async_runtime::spawn(async move {
-                    let ready =
-                        Sidecar::wait_for_api("http://localhost:8080/api/product", 120).await;
-                    if !ready {
-                        log::error!("botserver did not respond within 120s");
-                    }
-                    if let Some(win) = handle.get_webview_window("main") {
-                        let _ = win.show();
-                    }
-                });
             }
 
             // --- Non-sidecar: show window immediately ---

@@ -30,6 +30,7 @@ chrono = { workspace = true, features = ["serde"] }
 dirs = { workspace = true }
 log = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
 
