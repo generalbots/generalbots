@@ -11,7 +11,7 @@ use uuid::Uuid;
 
 use crate::security::auth_api::types::AuthenticatedUser;
 
-use super::{sanitize_cwd, TerminalManager};
+use super::{sanitize_container_cwd, TerminalManager};
 use botcore::shared::utils::DbPool;
 
 #[derive(Deserialize)]
@@ -98,7 +98,16 @@ async fn create_terminal(
         .shell
         .filter(|s| !s.trim().is_empty())
         .unwrap_or_else(|| "/bin/bash".to_string());
-    let cwd = sanitize_cwd(req.cwd.as_deref().unwrap_or(""));
+    // A download/preview of conversation files is only useful if the shell
+    // starts where they are. When the caller does not name a directory, open
+    // the newest conversation folder of the user's own workspace VM.
+    let cwd = match req.cwd.as_deref().filter(|c| !c.trim().is_empty()) {
+        Some(raw) => {
+            sanitize_container_cwd(raw).unwrap_or_else(|| "/opt/vibe/app".to_string())
+        }
+        None if is_own_agent_vm => agent_conversation_cwd(&container).await,
+        None => "/opt/vibe/app".to_string(),
+    };
     let result = state.manager.create_session_with_container(shell, cwd, Some(container));
     let (code, body) = match result {
         Ok(session) => (
@@ -361,4 +370,32 @@ mod tests {
         assert_eq!(parse_resize("resize nope 40"), None);
         assert_eq!(parse_resize("echo hi"), None);
     }
+}
+
+/// Newest conversation folder inside the user's agent container, or the
+/// conversations root when the container has none yet.
+async fn agent_conversation_cwd(container: &str) -> String {
+    const ROOT: &str = "/opt/vibe/conversations";
+    let container = container.to_string();
+    let found = tokio::task::spawn_blocking(move || -> Option<String> {
+        let mut cmd = botlib::security::command_guard::SafeCommand::new("incus").ok()?;
+        cmd = cmd.arg("exec").ok()?;
+        cmd = cmd.arg(&container).ok()?;
+        cmd = cmd.arg("--").ok()?;
+        cmd = cmd.arg("sh").ok()?;
+        cmd = cmd.arg("-c").ok()?;
+        cmd = cmd
+            .trusted_shell_script_arg(&format!("ls -dt {ROOT}/*/ 2>/dev/null | head -1"))
+            .ok()?;
+        let output = cmd.execute().ok()?;
+        let path = String::from_utf8_lossy(&output.stdout)
+            .trim()
+            .trim_end_matches('/')
+            .to_string();
+        (path.starts_with(ROOT) && path.len() > ROOT.len()).then_some(path)
+    })
+    .await
+    .ok()
+    .flatten();
+    found.unwrap_or_else(|| ROOT.to_string())
 }

@@ -149,12 +149,20 @@ impl TerminalSession {
             };
             #[cfg(not(target_os = "windows"))]
             let c = {
+                // The caller may point the shell at the conversation folder
+                // (that is where output/ and data/ live); /opt/vibe/app is the
+                // fallback for a plain project VM.
+                let container_cwd = if self.cwd.starts_with('/') && !self.cwd.contains("..") {
+                    self.cwd.clone()
+                } else {
+                    "/opt/vibe/app".to_string()
+                };
                 let mut command = portable_pty::CommandBuilder::new("incus");
                 command.args([
                     "exec",
                     container,
                     "--cwd",
-                    "/opt/vibe/app",
+                    &container_cwd,
                     "--",
                     "env",
                     "TERM=xterm-256color",
@@ -391,6 +399,23 @@ impl TerminalManager {
             }
         }
     }
+}
+
+/// Validates a working directory that lives **inside** a container. The host
+/// cannot stat it, so only the shape is checked: absolute, no traversal, no
+/// shell-quoting hazards. Returns `None` when the value is unusable.
+pub fn sanitize_container_cwd(cwd: &str) -> Option<String> {
+    let trimmed = cwd.trim();
+    if trimmed.is_empty() || !trimmed.starts_with('/') || trimmed.len() > 300 {
+        return None;
+    }
+    if trimmed.contains("..") || trimmed.contains('\\') || trimmed.contains('\n') {
+        return None;
+    }
+    let allowed = trimmed
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || matches!(c, '/' | '-' | '_' | '.' | ' '));
+    allowed.then(|| trimmed.to_string())
 }
 
 pub fn sanitize_cwd(cwd: &str) -> String {
