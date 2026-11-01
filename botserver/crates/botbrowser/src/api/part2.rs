@@ -140,8 +140,19 @@ pub(super) fn is_private_ip(ip: IpAddr) -> bool {
                 )
         }
         IpAddr::V6(v6) => {
+            // `segments()` returns 16-bit groups: unique-local is fc00::/7 and
+            // link-local is fe80::/10, so the comparison has to mask the
+            // high bits of the first group (comparing it to 0xfc/0xfe never
+            // matched, which let fc00::1 and fe80::1 through).
+            let first = v6.segments()[0];
             v6.is_loopback()
-                || matches!(v6.segments(), [0xfc, ..] | [0xfd, ..] | [0xfe, 0x80, ..])
+                || v6.is_unspecified()
+                || (first & 0xfe00) == 0xfc00
+                || (first & 0xffc0) == 0xfe80
+                || (first & 0xffc0) == 0xfec0
+                || v6
+                    .to_ipv4_mapped()
+                    .is_some_and(|v4| is_private_ip(IpAddr::V4(v4)))
         }
     }
 }
