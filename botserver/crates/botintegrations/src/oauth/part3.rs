@@ -139,11 +139,18 @@ async fn callback_inner(
         .and_then(Value::as_str)
         .ok_or_else(|| error_response(StatusCode::PRECONDITION_FAILED, IntegrationError::Validation("client_id missing".to_string())))?
         .to_string();
+    // A public client (desktop / loopback install) may legitimately have no
+    // secret; providers that need confidential-client auth still require one.
     let client_secret = client
         .get("client_secret")
         .and_then(Value::as_str)
-        .ok_or_else(|| error_response(StatusCode::PRECONDITION_FAILED, IntegrationError::Validation("client_secret missing".to_string())))?
-        .to_string();
+        .map(str::to_string);
+    if config.basic_client_auth && client_secret.as_deref().unwrap_or("").is_empty() {
+        return Err(error_response(
+            StatusCode::PRECONDITION_FAILED,
+            IntegrationError::Validation("client_secret missing".to_string()),
+        ));
+    }
     let redirect_uri = match path_bot_id.as_deref() {
         Some(bot_id) if !bot_id.is_empty() => {
             format!("{base}/api/bots/{bot_id}/integrations/oauth/{provider}/callback")
@@ -155,17 +162,24 @@ async fn callback_inner(
         .timeout(std::time::Duration::from_secs(15))
         .build()
         .map_err(|_| error_response(StatusCode::INTERNAL_SERVER_ERROR, IntegrationError::VaultUnavailable))?;
-    let mut outgoing = http
-        .post(config.token_url)
-        .form(&[
-            ("grant_type", "authorization_code"),
-            ("code", code.as_str()),
-            ("client_id", client_id.as_str()),
-            ("client_secret", client_secret.as_str()),
-            ("redirect_uri", redirect_uri.as_str()),
-        ]);
+    let mut form: Vec<(&str, String)> = vec![
+        ("grant_type", "authorization_code".to_string()),
+        ("code", code.clone()),
+        ("client_id", client_id.clone()),
+        ("redirect_uri", redirect_uri.clone()),
+    ];
+    if let Some(secret) = client_secret.as_deref().filter(|s| !s.is_empty()) {
+        form.push(("client_secret", secret.to_string()));
+    }
+    if let Some(verifier) = payload.get("cv").and_then(Value::as_str) {
+        if !verifier.is_empty() {
+            form.push(("code_verifier", verifier.to_string()));
+        }
+    }
+    let mut outgoing = http.post(config.token_url).form(&form);
     if config.basic_client_auth {
-        let basic = base64::engine::general_purpose::STANDARD.encode(format!("{client_id}:{client_secret}"));
+        let secret = client_secret.as_deref().unwrap_or_default();
+        let basic = base64::engine::general_purpose::STANDARD.encode(format!("{client_id}:{secret}"));
         outgoing = outgoing.header(header::AUTHORIZATION, format!("Basic {basic}"));
     }
     let response = outgoing.send().await.map_err(|error| {
@@ -193,7 +207,7 @@ async fn callback_inner(
             &http,
             &config,
             &client_id,
-            &client_secret,
+            client_secret.as_deref().unwrap_or_default(),
             &short_lived,
         )
         .await

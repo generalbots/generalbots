@@ -15,6 +15,7 @@ pub(crate) fn build_authorize_url(
     encoded_state: &str,
     signature: &str,
     provider: &str,
+    code_challenge: &str,
 ) -> String {
     let mut url = format!(
         "{}?client_id={}&response_type=code&redirect_uri={}&state={}.{}",
@@ -27,6 +28,11 @@ pub(crate) fn build_authorize_url(
     if !config.scopes.is_empty() {
         url.push_str("&scope=");
         url.push_str(&urlencode(config.scopes));
+    }
+    if !code_challenge.is_empty() {
+        url.push_str("&code_challenge=");
+        url.push_str(&urlencode(code_challenge));
+        url.push_str("&code_challenge_method=S256");
     }
     // Google only returns a refresh token when the consent explicitly asks for
     // offline access; without it the connection dies when the 1-hour access
@@ -103,7 +109,23 @@ pub async fn start(
     // provider (Google/Microsoft do not accept wildcards).
     let redirect_uri = format!("{base}/api/integrations/oauth/{provider}/callback");
 
+    // PKCE: required for public (desktop/loopback) clients and harmless for
+    // confidential ones. The verifier rides inside the HMAC-signed state, so a
+    // self-hosted install can use a client without a secret.
+    let code_verifier = format!(
+        "{}{}",
+        uuid::Uuid::new_v4().simple(),
+        uuid::Uuid::new_v4().simple()
+    );
+    let code_challenge = {
+        use base64::Engine as _;
+        use sha2::{Digest, Sha256};
+        let digest = Sha256::digest(code_verifier.as_bytes());
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(digest)
+    };
+
     let state_payload = json!({
+        "cv": code_verifier,
         "u": scope.user_id,
         "o": scope.org_id,
         "br": scope.branch_id,
@@ -116,7 +138,15 @@ pub async fn start(
     let encoded = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(state_payload.to_string());
     let signature = sign(&encoded, &signing_key()?)?;
 
-    let url = build_authorize_url(&config, client_id, &redirect_uri, &encoded, &signature, &provider);
+    let url = build_authorize_url(
+        &config,
+        client_id,
+        &redirect_uri,
+        &encoded,
+        &signature,
+        &provider,
+        &code_challenge,
+    );
     Ok(Redirect::to(&url).into_response())
 }
 
@@ -133,6 +163,7 @@ mod authorize_url_tests {
             "state-blob",
             "sig",
             provider,
+            "challenge-abc",
         )
     }
 
@@ -144,6 +175,8 @@ mod authorize_url_tests {
         assert!(url.contains("redirect_uri=https%3A%2F%2Fbot.example"));
         assert!(url.contains("gmail.readonly"));
         assert!(url.contains("access_type=offline"));
+        assert!(url.contains("code_challenge=challenge-abc"));
+        assert!(url.contains("code_challenge_method=S256"));
         assert!(url.contains("prompt=consent"));
     }
 

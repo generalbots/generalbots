@@ -1,49 +1,100 @@
 # Integrations OAuth Administration Runbook
 
-Tenant-scoped integrations authenticate through the platform OAuth2
-authorization-code broker (`/api/bots/:bot_id/integrations/oauth/:provider/start`
-and `/callback`). The broker never embeds client secrets in code: each branch
-supplies its own provider application credentials, stored strictly in Vault.
-This runbook is the administrator checklist for enabling a provider family.
+Integrations authenticate through the platform OAuth2 authorization-code
+broker (`/api/bots/:bot_id/integrations/oauth/:provider/start` and
+`/api/integrations/oauth/:provider/callback`). Client secrets never live in
+code: each deployment supplies its own provider application credentials,
+stored strictly in Vault.
 
-## 1. Register the platform application with the vendor
+## 0. One app per deployment — why not a single public client id
 
-For every provider family below, create one developer application on the
-vendor console. Register the callback exactly as shown, replacing
-`chat.generalbots.org` when operating another domain.
+General Bots is open source: every installation runs on someone else's machine
+and domain. Shipping one maintainer-owned Google/Microsoft client id inside the
+product does not work, and it is not what the vendors allow:
 
-| Family | Vendor console | Callback URL |
+- **Exact redirect URIs.** Google and Microsoft require every redirect URI to
+  be registered verbatim — no wildcards — so a single client cannot cover
+  `https://<any-host>/api/integrations/oauth/gmail/callback`.
+- **Restricted scopes.** `gmail.readonly`, `drive.readonly` and Microsoft
+  `Mail.Read` are sensitive/restricted scopes. A client distributed to unknown
+  third parties must pass vendor verification (and, for Google restricted
+  scopes, an annual security assessment), and the maintainers would become the
+ data controller for every installer's mailbox.
+- **Shared quota and abuse.** One client means one quota, one consent screen
+  and one suspension risk: a single abusive deployment can break integrations
+  for everyone.
+- **Trust.** A self-hoster's users should see *that operator's* application
+  name and legal terms on the consent screen, not the upstream project's.
+
+So: **each deployment registers its own app once** (about five minutes), and
+the operator configures it in Vault. Users never see a client id — they only
+click *Connect* and sign in.
+
+Two supported shapes:
+
+| Shape | When | What is stored |
 |---|---|---|
-| HubSpot | app.hubspot.com → App Marketplace → Develop an app | `https://chat.generalbots.org/api/bots/*/integrations/oauth/hubspot/callback` (register per-bot exact path) |
-| Intercom | app.intercom.io → Developer Hub | `.../integrations/oauth/intercom/callback` |
-| Todoist | developer.todoist.com → Apps | `.../integrations/oauth/todoist/callback` |
-| Zoom | marketplace.zoom.us → Server-to-server is NOT used here; build OAuth app | `.../integrations/oauth/zoom/callback` |
-| Notion | notion.so/my-integrations → External OAuth | `.../integrations/oauth/notion/callback` |
-| Google (Drive, Calendar, Sheets, Tasks, Photos, Forms, YouTube Analytics) | console.cloud.google.com → OAuth consent screen + OAuth client (Web) | One client may serve all: `.../integrations/oauth/<google_slug>/callback` for every slug in use; add scopes listed in §3 to the consent screen and mark the app production |
-| Microsoft (Outlook, Outlook Calendar, OneDrive, SharePoint) | portal.azure.com → App registrations → Web redirect URI | `.../integrations/oauth/<ms_slug>/callback`; enable `offline_access` |
-| Meta (Instagram, Facebook Pages) | developers.facebook.com → My Apps → Facebook Login → Settings | `.../integrations/oauth/<slug>/callback`; one app serves both slugs. Add the Facebook Page and the Instagram Business/Creator account linked to it as app testers while the app is in Development mode |
+| Web client (**recommended**) | server install with a public hostname | `client_id` + `client_secret` |
+| Public/desktop client | local install, loopback or device redirect, no secret | `client_id` only (PKCE is always sent, and the flow works without a secret) |
 
-The botserver builds `redirect_uri` from the incoming request host, so stage
-and production environments are registered separately.
+The local/desktop edition may ship a client id for its own loopback redirect
+(`http://127.0.0.1:<port>/...`) — that is the one case where a bundled,
+non-secret client id is legitimate; the vendor treats it as an installed app.
 
-## 2. Store client credentials in Vault (per branch)
+## 1. Register the application with the vendor
 
-Path contract:
+Create **one** developer application per provider family on the vendor console.
+The callback is the same for every bot in the deployment:
 
 ```
-gbo/{org_id}/{branch_id}/{bot_id}/integrations/oauth/{provider}
+https://{your-host}/api/integrations/oauth/{provider}/callback
 ```
 
-Keys: `client_id`, `client_secret`. Example:
+| Family | Vendor console | Callback |
+|---|---|---|
+| Google (Gmail, Drive, Calendar, Photos, Forms) | console.cloud.google.com → OAuth consent screen + OAuth client (Web) | `/api/integrations/oauth/gmail/callback`, `/api/integrations/oauth/drive/callback`, … |
+| Microsoft (Outlook, Outlook Calendar, OneDrive, SharePoint) | portal.azure.com → App registrations → Web redirect URI | `/api/integrations/oauth/onedrive/callback`, … |
+| HubSpot | app.hubspot.com → App Marketplace | `/api/integrations/oauth/hubspot/callback` |
+| Intercom | app.intercom.io → Developer Hub | `/api/integrations/oauth/intercom/callback` |
+| Todoist | developer.todoist.com → Apps | `/api/integrations/oauth/todoist/callback` |
+| Zoom | marketplace.zoom.us → OAuth app | `/api/integrations/oauth/zoom/callback` |
+| Notion | notion.so/my-integrations → External OAuth | `/api/integrations/oauth/notion/callback` |
+| Meta (Instagram, Facebook Pages) | developers.facebook.com → Facebook Login | `/api/integrations/oauth/instagram/callback` |
+
+The bot id travels inside the HMAC-signed `state`, which is what lets one
+callback serve every bot. Stage and production are registered separately
+because the host differs.
+
+Google requires the app to be **published** (or the user added as a test user)
+before anyone outside the project can consent; Gmail/Drive also need their API
+enabled in the project and the scopes added to the consent screen.
+
+## 2. Store the client in Vault
+
+Resolution order, first match wins:
+
+```
+gbo/{org_id}/{branch_id}/{bot_id}/integrations/oauth/{provider}   # per bot
+gbo/{org_id}/{branch_id}/integrations/oauth/{provider}            # per branch
+integrations/oauth/{provider}                                     # platform-wide
+```
+
+For a normal install, configure the platform-wide entry once:
 
 ```bash
-vault kv put secret/gbo/<org>/<branch>/<bot>/integrations/oauth/hubspot \
+vault kv put secret/integrations/oauth/gmail \
+    client_id=<id> client_secret=<secret>
+
+vault kv put secret/integrations/oauth/onedrive \
     client_id=<id> client_secret=<secret>
 ```
 
-Google/Microsoft families repeat the command once per concrete slug that the
-workspace will authorize (`google_drive`, `outlook`, ...). A missing envelope
-makes the Authorize button answer HTTP 412 with an explanatory message.
+Describe a branch or a bot only when a tenant wants its own application. A
+missing entry makes *Authorize* answer HTTP 412 with the path it looked for.
+
+**Google needs offline consent** for a durable connection: the flow already
+sends `access_type=offline&prompt=consent`, which is what makes Google return a
+refresh token instead of a one-hour access token.
 
 ## 3. Scopes requested by the built-in flow
 
