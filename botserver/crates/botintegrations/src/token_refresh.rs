@@ -64,11 +64,18 @@ async fn refresh_one(
         .ok_or(IntegrationError::NotFound)?
         .to_string();
 
-    let client_config_path = format!(
-        "gbo/{}/{}/{}/integrations/oauth/{}",
-        row.org_id, row.branch_id, row.bot_id, row.provider_slug
+    let (client, client_config_path) = vault
+        .load_oauth_client(
+            row.org_id,
+            row.branch_id,
+            row.bot_id,
+            &row.provider_slug,
+        )
+        .await?;
+    log::debug!(
+        "token refresh: {} client loaded from {client_config_path}",
+        row.provider_slug
     );
-    let client = vault.load_strict(&client_config_path).await?;
     let client_id = client
         .get("client_id")
         .and_then(Value::as_str)

@@ -65,6 +65,10 @@ pub fn configure_connection_routes() -> Router<Arc<IntegrationState>> {
             get(crate::oauth::callback),
         )
         .route(
+            "/api/integrations/oauth/:provider/callback",
+            get(crate::oauth::callback_stable),
+        )
+        .route(
             "/api/bots/:bot_id/integration-automations",
             get(handlers_automations::list).post(handlers_automations::create),
         )

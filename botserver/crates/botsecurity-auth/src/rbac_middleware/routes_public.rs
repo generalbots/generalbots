@@ -47,6 +47,12 @@ pub(crate) fn anonymous_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/caldav/**", "PROPPATCH", ""),
         RoutePermission::new("/caldav/**", "REPORT", ""),
 
+        // Integration OAuth: the provider redirects the user's browser here
+        // with no Authorization header. The request is authenticated by the
+        // HMAC-signed `state` issued by the start handler, which also carries
+        // the bot id — hence one stable callback path for the whole platform.
+        RoutePermission::new("/api/integrations/oauth/**", "GET", "").with_anonymous(true),
+
         // Auth routes - login must be anonymous
         RoutePermission::new("/api/auth", "GET", "").with_anonymous(true),
 

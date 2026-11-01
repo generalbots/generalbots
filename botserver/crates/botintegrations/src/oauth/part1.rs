@@ -32,6 +32,15 @@ pub(crate) fn provider_config(slug: &str) -> Option<OAuthProviderConfig> {
             "",
             true,
         ),
+        // Gmail is an OAuth-only API: Google removed password/basic auth for
+        // mailbox access, so the platform registers one OAuth client and each
+        // user consents with their own account.
+        "gmail" => (
+            "https://accounts.google.com/o/oauth2/v2/auth",
+            "https://oauth2.googleapis.com/token",
+            "openid email profile https://www.googleapis.com/auth/gmail.readonly",
+            false,
+        ),
         "google_cloud" => (
             "https://accounts.google.com/o/oauth2/v2/auth",
             "https://oauth2.googleapis.com/token",

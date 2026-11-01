@@ -10,6 +10,29 @@ pub async fn callback(
     Path((bot_id, provider)): Path<(String, String)>,
     Query(query): Query<CallbackQuery>,
 ) -> Result<Response, ResponseError> {
+    callback_inner(state, Some(bot_id), provider, query).await
+}
+
+/// GET /api/integrations/oauth/:provider/callback — the stable redirect URI.
+///
+/// The bot id lives inside the HMAC-signed state, so one URI can serve every
+/// bot in the deployment. That is what makes a single OAuth app registration
+/// enough: Google/Microsoft require exact redirect URIs (no wildcards), and a
+/// per-bot URI would force an operator to register one per bot.
+pub async fn callback_stable(
+    State(state): State<Arc<IntegrationState>>,
+    Path(provider): Path<String>,
+    Query(query): Query<CallbackQuery>,
+) -> Result<Response, ResponseError> {
+    callback_inner(state, None, provider, query).await
+}
+
+async fn callback_inner(
+    state: Arc<IntegrationState>,
+    path_bot_id: Option<String>,
+    provider: String,
+    query: CallbackQuery,
+) -> Result<Response, ResponseError> {
     if let Some(error) = query.error {
         return Err(error_response(StatusCode::BAD_REQUEST, IntegrationError::Validation(error)));
     }
@@ -98,15 +121,19 @@ pub async fn callback(
         bot_id: bot_uuid,
     };
 
-    let vault_path = format!(
-        "gbo/{}/{}/{}/integrations/oauth/{provider}",
-        scope.org_id, scope.branch_id, scope.bot_id
-    );
-    let client = state.vault.load_strict(&vault_path).await.map_err(|_| {
-        error_response(StatusCode::PRECONDITION_FAILED, IntegrationError::Validation(
-            "provider oauth client credentials are not configured for this branch".to_string(),
-        ))
-    })?;
+    let (client, vault_path) = state
+        .vault
+        .load_oauth_client(scope.org_id, scope.branch_id, scope.bot_id, &provider)
+        .await
+        .map_err(|_| {
+            error_response(
+                StatusCode::PRECONDITION_FAILED,
+                IntegrationError::Validation(format!(
+                    "no OAuth client registered for {provider}; see integrations/oauth/{provider}"
+                )),
+            )
+        })?;
+    log::info!("oauth callback: provider {provider} client loaded from {vault_path}");
     let client_id = client
         .get("client_id")
         .and_then(Value::as_str)
@@ -117,7 +144,12 @@ pub async fn callback(
         .and_then(Value::as_str)
         .ok_or_else(|| error_response(StatusCode::PRECONDITION_FAILED, IntegrationError::Validation("client_secret missing".to_string())))?
         .to_string();
-    let redirect_uri = format!("{base}/api/bots/{bot_id}/integrations/oauth/{provider}/callback");
+    let redirect_uri = match path_bot_id.as_deref() {
+        Some(bot_id) if !bot_id.is_empty() => {
+            format!("{base}/api/bots/{bot_id}/integrations/oauth/{provider}/callback")
+        }
+        _ => format!("{base}/api/integrations/oauth/{provider}/callback"),
+    };
 
     let http = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(15))

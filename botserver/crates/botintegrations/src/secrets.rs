@@ -31,6 +31,34 @@ pub fn build_connection_path(scope: &ConnectionScope, connection_id: Uuid) -> St
     )
 }
 
+/// Candidate Vault paths for a provider's OAuth client, most specific first:
+/// per bot, per branch, then the platform-wide client.
+///
+/// The platform entry is the one an operator registers once
+/// (`integrations/oauth/{provider}`); a bot or branch entry overrides it for a
+/// tenant that runs its own OAuth app. Users never handle client ids.
+pub fn oauth_client_paths(
+    org_id: Uuid,
+    branch_id: Uuid,
+    bot_id: Uuid,
+    provider: &str,
+) -> [String; 3] {
+    [
+        format!("gbo/{org_id}/{branch_id}/{bot_id}/integrations/oauth/{provider}"),
+        format!("gbo/{org_id}/{branch_id}/integrations/oauth/{provider}"),
+        format!("integrations/oauth/{provider}"),
+    ]
+}
+
+fn entries_to_value(entries: std::collections::HashMap<String, String>) -> Value {
+    Value::Object(
+        entries
+            .into_iter()
+            .map(|(key, value)| (key, Value::String(value)))
+            .collect(),
+    )
+}
+
 impl ConnectionVault {
     pub fn new(manager: SecretsManager) -> Self {
         Self { manager }
@@ -67,6 +95,26 @@ impl ConnectionVault {
         Ok(Value::Object(map))
     }
 
+    /// Resolves a provider's OAuth client configuration, most specific first
+    /// (bot → branch → platform). Returns the value and the path that
+    /// answered, so callers can log which scope the client came from.
+    pub async fn load_oauth_client(
+        &self,
+        org_id: Uuid,
+        branch_id: Uuid,
+        bot_id: Uuid,
+        provider: &str,
+    ) -> Result<(Value, String), IntegrationError> {
+        for path in oauth_client_paths(org_id, branch_id, bot_id, provider) {
+            if let Ok(entries) = self.manager.get_secret(&path).await {
+                if !entries.is_empty() {
+                    return Ok((entries_to_value(entries), path));
+                }
+            }
+        }
+        Err(IntegrationError::NotFound)
+    }
+
     /// Removes the secret envelope. Failures are fail closed.
     pub async fn delete(&self, path: &str) -> Result<(), IntegrationError> {
         self.manager.delete_secret(path).await.map_err(|e| {
@@ -100,4 +148,23 @@ fn flatten_secrets(secrets: &Value) -> Result<HashMap<String, String>, Integrati
         entries.insert(key.clone(), rendered);
     }
     Ok(entries)
+}
+
+#[cfg(test)]
+mod oauth_client_path_tests {
+    use super::oauth_client_paths;
+    use uuid::Uuid;
+
+    #[test]
+    fn platform_client_is_the_last_resort_and_the_first_match_wins() {
+        let org = Uuid::from_u128(1);
+        let branch = Uuid::from_u128(2);
+        let bot = Uuid::from_u128(3);
+        let paths = oauth_client_paths(org, branch, bot, "gmail");
+        assert!(paths[0].contains(&format!("{bot}/integrations/oauth/gmail")));
+        assert!(paths[0].starts_with(&format!("gbo/{org}/{branch}/{bot}/")));
+        assert!(paths[1].starts_with(&format!("gbo/{org}/{branch}/")));
+        assert!(!paths[1].contains(&bot.to_string()), "branch path skips the bot id");
+        assert_eq!(paths[2], "integrations/oauth/gmail");
+    }
 }

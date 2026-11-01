@@ -49,6 +49,9 @@ impl Default for AuthConfig {
                 // request is authenticated by the signed `state` parameter
                 // instead (see botemail::handlers::oauth).
                 "/api/email/oauth/callback".to_string(),
+                // Integration OAuth callback: browser redirect without a
+                // bearer token; the signed state authenticates it.
+                "/api/integrations/oauth".to_string(),
                 // Agent workspace file fetch/list. A download link and an
                 // <iframe>/<img> preview are plain URLs: browsers cannot attach
                 // an Authorization header to them, so the suite token travels

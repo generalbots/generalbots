@@ -5,6 +5,47 @@ use super::*;
 /// Redirects the caller to the provider consent screen. Client credentials
 /// load strictly from the branch-scoped Vault path; the signed state carries
 /// the tenant scope and expires after a short window.
+/// Builds the provider consent URL. Pure so the provider-specific extras
+/// (Google's offline access, scopes) are unit-testable without a network or a
+/// Vault entry.
+pub(crate) fn build_authorize_url(
+    config: &super::OAuthProviderConfig,
+    client_id: &str,
+    redirect_uri: &str,
+    encoded_state: &str,
+    signature: &str,
+    provider: &str,
+) -> String {
+    let mut url = format!(
+        "{}?client_id={}&response_type=code&redirect_uri={}&state={}.{}",
+        config.authorize_url,
+        urlencode(client_id),
+        urlencode(redirect_uri),
+        urlencode(encoded_state),
+        urlencode(signature),
+    );
+    if !config.scopes.is_empty() {
+        url.push_str("&scope=");
+        url.push_str(&urlencode(config.scopes));
+    }
+    // Google only returns a refresh token when the consent explicitly asks for
+    // offline access; without it the connection dies when the 1-hour access
+    // token expires. Microsoft signals it through the offline_access scope.
+    if matches!(
+        provider,
+        "gmail"
+            | "drive"
+            | "calendar"
+            | "google_photos"
+            | "google_forms"
+            | "google_cloud"
+            | "google_workspace_admin"
+    ) {
+        url.push_str("&access_type=offline&prompt=consent");
+    }
+    url
+}
+
 pub async fn start(
     State(state): State<Arc<IntegrationState>>,
     user: AuthenticatedUser,
@@ -28,18 +69,22 @@ pub async fn start(
     let scope = resolve_scope(&state.pool, &user, uuid)
         .map_err(|error| error_response(StatusCode::FORBIDDEN, error))?;
 
-    let vault_path = format!(
-        "gbo/{}/{}/{}/integrations/oauth/{provider}",
-        scope.org_id, scope.branch_id, scope.bot_id
-    );
-    let client_config = state.vault.load_strict(&vault_path).await.map_err(
-        |_| {
-            log::warn!("oauth start without branch configuration at {vault_path}");
-            error_response(StatusCode::PRECONDITION_FAILED, IntegrationError::Validation(
-                "this branch has no oauth client credentials configured for the provider".to_string(),
-            ))
-        },
-    )?;
+    // The OAuth client is resolved bot → branch → platform, so an operator
+    // registers the provider app once and every user just clicks Connect.
+    let (client_config, vault_path) = state
+        .vault
+        .load_oauth_client(scope.org_id, scope.branch_id, scope.bot_id, &provider)
+        .await
+        .map_err(|_| {
+            log::warn!("oauth start: no client configuration for provider {provider}");
+            error_response(
+                StatusCode::PRECONDITION_FAILED,
+                IntegrationError::Validation(format!(
+                    "no OAuth client registered for {provider}. Register it once at                      integrations/oauth/{provider} (client_id, client_secret) and every user                      can connect with their own account."
+                )),
+            )
+        })?;
+    log::info!("oauth start: provider {provider} client loaded from {vault_path}");
     let client_id = client_config
         .get("client_id")
         .and_then(Value::as_str)
@@ -53,7 +98,10 @@ pub async fn start(
     let base = request_base(&headers).ok_or_else(|| {
         error_response(StatusCode::BAD_REQUEST, IntegrationError::Validation("request host missing".to_string()))
     })?;
-    let redirect_uri = format!("{base}/api/bots/{bot_id}/integrations/oauth/{provider}/callback");
+    // One stable callback for every bot: the bot id travels inside the
+    // signed state, so an operator registers a single redirect URI with the
+    // provider (Google/Microsoft do not accept wildcards).
+    let redirect_uri = format!("{base}/api/integrations/oauth/{provider}/callback");
 
     let state_payload = json!({
         "u": scope.user_id,
@@ -68,17 +116,48 @@ pub async fn start(
     let encoded = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(state_payload.to_string());
     let signature = sign(&encoded, &signing_key()?)?;
 
-    let mut url = format!(
-        "{}?client_id={}&response_type=code&redirect_uri={}&state={}.{}",
-        config.authorize_url,
-        urlencode(client_id),
-        urlencode(&redirect_uri),
-        urlencode(&encoded),
-        urlencode(&signature),
-    );
-    if !config.scopes.is_empty() {
-        url.push_str("&scope=");
-        url.push_str(&urlencode(config.scopes));
-    }
+    let url = build_authorize_url(&config, client_id, &redirect_uri, &encoded, &signature, &provider);
     Ok(Redirect::to(&url).into_response())
+}
+
+#[cfg(test)]
+mod authorize_url_tests {
+    use super::{build_authorize_url, provider_config};
+
+    fn url_for(provider: &str) -> String {
+        let config = provider_config(provider).expect("provider config");
+        build_authorize_url(
+            &config,
+            "client-123",
+            "https://bot.example/api/integrations/oauth/x/callback",
+            "state-blob",
+            "sig",
+            provider,
+        )
+    }
+
+    #[test]
+    fn gmail_consent_asks_for_offline_access_and_the_read_scope() {
+        let url = url_for("gmail");
+        assert!(url.starts_with("https://accounts.google.com/o/oauth2/v2/auth?"));
+        assert!(url.contains("client_id=client-123"));
+        assert!(url.contains("redirect_uri=https%3A%2F%2Fbot.example"));
+        assert!(url.contains("gmail.readonly"));
+        assert!(url.contains("access_type=offline"));
+        assert!(url.contains("prompt=consent"));
+    }
+
+    #[test]
+    fn onedrive_uses_microsoft_and_offline_scope() {
+        let url = url_for("onedrive");
+        assert!(url.starts_with("https://login.microsoftonline.com/common/oauth2/v2.0/authorize"));
+        assert!(url.contains("graph.microsoft.com"));
+        assert!(url.contains("offline_access"));
+    }
+
+    #[test]
+    fn other_providers_do_not_get_google_offline_params() {
+        let url = url_for("hubspot");
+        assert!(!url.contains("access_type=offline"));
+    }
 }
