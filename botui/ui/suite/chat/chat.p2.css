@@ -378,6 +378,54 @@ form.input-container {
     font-size: 16px;
 }
 
+/* #1593 — web-search switch. Two visible states, a label that never depends
+   on a hover, and a 44px touch target on coarse pointers. */
+.chat-tool-toggle.web-search-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 10px;
+    border-radius: 16px;
+    border: 1px solid var(--border, #d0d0d0);
+    background: transparent;
+    color: var(--accent, #2563eb);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+        background 0.2s ease,
+        color 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.chat-tool-toggle.web-search-toggle:hover {
+    background: var(--surface-hover, rgba(37, 99, 235, 0.08));
+}
+
+.chat-tool-toggle.web-search-toggle:focus-visible {
+    outline: 2px solid var(--accent, #2563eb);
+    outline-offset: 2px;
+}
+
+.chat-tool-toggle.web-search-toggle.is-off {
+    color: var(--text-secondary, #888);
+    border-color: var(--border, #d0d0d0);
+    opacity: 0.75;
+}
+
+.chat-tool-toggle.web-search-toggle.is-off svg {
+    opacity: 0.6;
+}
+
+@media (pointer: coarse) {
+    .chat-tool-toggle.web-search-toggle {
+        height: 44px;
+        padding: 0 12px;
+    }
+}
+
 #sendBtn {
     background: var(--accent, #2563eb);
     color: white;

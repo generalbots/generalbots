@@ -56,6 +56,9 @@ function sendMessage(messageContent) {
       catch (e) { return true; }
     })(),
     model_preference: selectedModel !== "auto" ? selectedModel : undefined,
+    // #1593 — explicit per-conversation web-search switch. When false the
+    // server skips the search pipeline entirely; default is on.
+    web_search: window.ChatWebSearch ? window.ChatWebSearch.isEnabled() : true,
     user_memory: (!isAnonymous && window.ChatMemory && ChatMemory.getMemorySummary && (!window.GBPrivacy || GBPrivacy.getSettings().save_memory !== false)) ? ChatMemory.getMemorySummary() : undefined,
     mentions: selectedMentions.map(function (mention) {
       return {

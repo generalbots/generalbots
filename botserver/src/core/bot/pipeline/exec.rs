@@ -522,9 +522,18 @@ pub async fn process_message_internal(
 
     // The model decides whether this turn needs a live web lookup; the
     // decision, the query and the sources are streamed to the chat as they
-    // happen.
+    // happen. #1593: the composer switch disables the whole step, so neither
+    // the routing completion nor the search is called when it is off.
     #[cfg(feature = "research")]
-    super::web_context::decide_and_inject(identity, &user_text, &mut messages).await;
+    {
+        let web_search_enabled = parsed
+            .get("web_search")
+            .and_then(|value| value.as_bool())
+            .unwrap_or(true);
+        if web_search_enabled {
+            super::web_context::decide_and_inject(identity, &user_text, &mut messages).await;
+        }
+    }
 
     super::history::send_stream_start_marker(sink, bot_uuid, session_id, user_id).await;
 

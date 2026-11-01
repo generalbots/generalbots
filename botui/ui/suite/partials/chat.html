@@ -1,5 +1,5 @@
 <link rel="stylesheet" href="/suite/chat/chat.p1.css?v=1" />
-<link rel="stylesheet" href="/suite/chat/chat.p2.css?v=2" />
+<link rel="stylesheet" href="/suite/chat/chat.p2.css?v=3" />
 <link rel="stylesheet" href="/suite/chat/chat.p3.css?v=1" />
 <link rel="stylesheet" href="/suite/chat/chat.p4.css?v=1" />
 <link rel="stylesheet" href="/suite/chat/chat.p5.css?v=1" />
@@ -54,6 +54,16 @@
                     </svg>
                 </label>
                 <span id="fileChip" style="display:none" title="Attached file"></span>
+                <button type="button" id="webSearchBtn" class="chat-tool-toggle web-search-toggle"
+                    aria-pressed="true" aria-label="Web search: on — answers can use live sources. Click to turn off."
+                    title="Web search: on — answers can use live sources. Click to turn off.">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <path d="M3 12h18"></path>
+                        <path d="M12 3a15 15 0 0 1 0 18a15 15 0 0 1 0-18z"></path>
+                    </svg>
+                    <span class="web-search-label">Web on</span>
+                </button>
                 <button type="submit" id="sendBtn" title="Send" data-i18n-title="chat-send">&#8593;</button>
             </form>
         </footer>
@@ -94,6 +104,7 @@
 <script src="/suite/chat/modules/22_multichat.js?v=33"></script>
 <script src="/suite/chat/modules/23_autotasks.js?v=1"></script>
 <script src="/suite/chat/modules/50_memory.js?v=1"></script>
+<script src="/suite/chat/modules/45_web_search_toggle.js?v=1"></script>
 <script src="/suite/chat/modules/30_citations.js?v=1"></script>
 <script src="/suite/chat/modules/60_computer_use.js?v=1"></script>
 <script src="/suite/chat/modules/61_terminal_use.js?v=1"></script>
