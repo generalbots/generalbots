@@ -4,6 +4,7 @@ pub mod menu_config;
 pub mod settings_billing;
 pub mod settings_credentials;
 pub mod settings_oauth;
+pub mod settings_usage;
 pub mod settings_webhooks;
 pub mod webhook_delivery;
 pub mod settings_profile;

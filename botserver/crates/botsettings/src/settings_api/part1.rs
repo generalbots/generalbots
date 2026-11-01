@@ -174,6 +174,7 @@ pub fn configure_settings_api_routes() -> Router<Arc<AppState>> {
         .route("/api/user/billing/invoices", get(settings_billing::billing_invoices))
         .route("/api/user/billing/payment-methods", get(settings_billing::billing_payment_methods))
         .route("/api/user/data/export", post(settings_billing::data_export))
+        .route("/api/user/usage/summary", get(crate::settings_usage::usage_summary))
         .route("/api/user/notifications/preferences", get(notif_prefs_get).put(notif_prefs_put))
         .route("/api/oauth/:provider/connect", post(oauth_connect_handler))
         .route("/api/groups/create", post(groups_create))
