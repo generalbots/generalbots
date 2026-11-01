@@ -502,8 +502,11 @@ pub async fn process_message_internal(
     #[cfg(feature = "drive")]
     super::drive_context::inject(state, &bot_uuid, user_id, &user_text, &mut messages).await;
 
+    // The model decides whether this turn needs a live web lookup; the
+    // decision, the query and the sources are streamed to the chat as they
+    // happen.
     #[cfg(feature = "research")]
-    super::web_context::inject(&user_text, &mut messages).await;
+    super::web_context::decide_and_inject(identity, &user_text, &mut messages).await;
 
     super::history::send_stream_start_marker(sink, bot_uuid, session_id, user_id).await;
 

@@ -139,6 +139,10 @@ function dialChatSocket() {
         } catch (e) {}
       }
 
+      if (data.type === "chat_status") {
+        if (typeof setChatStatus === "function") setChatStatus(data.text || "");
+        return;
+      }
       if (window.AgentMode && data.type &&
         ["thought_process", "terminal_output", "browser_ready", "step_progress", "step_complete", "todo_update", "agent_status", "file_created"].indexOf(data.type) !== -1) {
         window.AgentMode.handleMessage(data);

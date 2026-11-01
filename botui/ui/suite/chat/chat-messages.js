@@ -279,6 +279,29 @@ function listLocalSessions() {
   return sessions;
 }
 
+// #1547 — live status line while the assistant works (search decision,
+// lookup, sources). Cleared as soon as the answer starts.
+function setChatStatus(text) {
+  var messages = document.getElementById("messages");
+  if (!messages) return;
+  var box = document.getElementById("gbChatStatus");
+  if (!text) {
+    if (box) box.remove();
+    return;
+  }
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "gbChatStatus";
+    box.className = "chat-status";
+    box.setAttribute("role", "status");
+    box.setAttribute("aria-live", "polite");
+    messages.appendChild(box);
+  }
+  box.innerHTML = '<span class="chat-status-dot"></span><span class="chat-status-text"></span>';
+  box.querySelector(".chat-status-text").textContent = text;
+  messages.scrollTop = messages.scrollHeight;
+}
+
 function addMessage(sender, content, msgId, reasoning) {
   var messages = document.getElementById("messages");
   if (!messages) return;
@@ -288,6 +311,7 @@ function addMessage(sender, content, msgId, reasoning) {
   div.className = "message " + sender;
   if (msgId) div.id = msgId;
 
+  if (sender !== "user") setChatStatus("");
   if (sender === "user") {
     var processedContent = renderMentionInMessage(escapeHtml(content));
     div.innerHTML = '<div class="message-content user-message">' + processedContent + "</div>";

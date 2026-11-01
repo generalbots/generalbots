@@ -438,3 +438,33 @@
         padding: 10px 12px;
     }
 }
+
+/* #1547 — live "what the assistant is doing" line inside the conversation. */
+.chat-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 4px 2px;
+    padding: 6px 10px;
+    font-size: 12.5px;
+    color: #52525b;
+    background: #f8f8f9;
+    border: 1px solid rgba(24, 24, 27, 0.06);
+    border-radius: 999px;
+    width: fit-content;
+    max-width: min(100%, 640px);
+}
+
+.chat-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #10b981;
+    animation: gb-status-pulse 1.1s ease-in-out infinite;
+    flex: 0 0 auto;
+}
+
+@keyframes gb-status-pulse {
+    0%, 100% { opacity: 0.35; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1); }
+}
