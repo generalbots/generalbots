@@ -78,9 +78,15 @@ jobs:
         run: |
           set -euo pipefail
           chmod +x desktop/linux/package.sh
-          ./desktop/linux/package.sh \
-            "${{ github.event.inputs.tag || github.ref_name }}" \
-            target/release dist
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          ./desktop/linux/package.sh "$TAG" target/release dist
+          # Tag-free copy so the stable link
+          # .../releases/latest/download/generalbots-linux-x86_64.tar.gz always
+          # resolves: package.sh names the versioned file
+          # generalbots-<tag>-linux-x86_64.tar.gz, which /latest/ cannot find.
+          cp "dist/generalbots-${TAG}-linux-x86_64.tar.gz" \
+             dist/generalbots-linux-x86_64.tar.gz
+          (cd dist && sha256sum generalbots-linux-x86_64.tar.gz >> SHA256SUMS-linux)
           # Raw binaries stay attached so a single component can be inspected
           # without unpacking the suite.
           cp target/release/botapp    dist/generalbots-linux-x86_64
@@ -162,25 +168,18 @@ jobs:
           if-no-files-found: error
 
   release:
-    name: Attach binaries to the release
-    needs: [linux, windows]
+    name: Attach the Linux installer to the release
+    needs: [linux]
     runs-on: ubuntu-latest
-    # Run even when the best-effort Windows job failed, as long as Linux
-    # produced its artifacts.
-    if: always() && needs.linux.result == 'success' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch')
+    # Linux is the supported first-run artifact; it must not wait for the
+    # best-effort Windows job. Windows assets are attached by `release-windows`
+    # when (and only when) that job is green.
+    if: needs.linux.result == 'success' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch')
     steps:
       - name: Download Linux installer
         uses: actions/download-artifact@v4
         with:
           name: linux-installer
-          path: dist
-          merge-multiple: true
-
-      - name: Download Windows binaries (best effort)
-        uses: actions/download-artifact@v4
-        continue-on-error: true
-        with:
-          name: windows-binaries
           path: dist
           merge-multiple: true
 
@@ -191,6 +190,10 @@ jobs:
           name: ${{ github.event.inputs.tag || github.ref_name }}
           body: |
             Desktop edition for ${{ github.event.inputs.tag || github.ref_name }}.
+
+            Stable link (always the newest release):
+
+                https://github.com/generalbots/generalbots/releases/latest/download/generalbots-linux-x86_64.tar.gz
 
             Linux (x86_64) — download, unpack, run:
 
@@ -206,12 +209,33 @@ jobs:
 
             Also attached: `SHA256SUMS-linux`, plus the raw `generalbots` and
             `botserver` binaries for debugging.
-            Windows: `generalbots-x64.exe` (best effort — Windows runner must be green).
           files: |
             dist/*.tar.gz
             dist/SHA256SUMS-linux
             dist/generalbots-linux-x86_64
             dist/botserver-linux-x86_64
+          fail_on_unmatched_files: false
+
+  release-windows:
+    name: Attach the Windows binaries to the release
+    needs: [windows]
+    runs-on: ubuntu-latest
+    # Best effort: only runs when the Windows build itself went green.
+    if: needs.windows.result == 'success' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch')
+    steps:
+      - name: Download Windows binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-binaries
+          path: dist
+          merge-multiple: true
+
+      - name: Publish Windows assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: ${{ github.event.inputs.tag || github.ref_name }}
+          files: |
             dist/generalbots-x64.exe
             dist/botserver-x64.exe
             dist/botui-x64.exe

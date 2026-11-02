@@ -35,7 +35,10 @@ cp "$ROOT/botapp/icons/icon.png"    "$DEST/generalbots.png"
 
 tar -czf "$OUT/${PKG}.tar.gz" -C "$OUT" "$PKG"
 rm -rf "$DEST"
-( cd "$OUT" && sha256sum "${PKG}.tar.gz" > SHA256SUMS-linux )
+# Stable name so /releases/latest/download/generalbots-linux-x86_64.tar.gz keeps
+# working across tags (GitHub has no folders and no version-less asset names).
+cp "$OUT/${PKG}.tar.gz" "$OUT/generalbots-linux-x86_64.tar.gz"
+( cd "$OUT" && sha256sum "${PKG}.tar.gz" generalbots-linux-x86_64.tar.gz > SHA256SUMS-linux )
 
 echo "built $OUT/${PKG}.tar.gz"
-ls -lh "$OUT/${PKG}.tar.gz"
+ls -lh "$OUT/${PKG}.tar.gz" "$OUT/generalbots-linux-x86_64.tar.gz"
