@@ -77,29 +77,16 @@ jobs:
       - name: Assemble Linux installer
         run: |
           set -euo pipefail
-          VERSION="${{ github.event.inputs.tag || github.ref_name }}"
-          PKG="generalbots-${VERSION}-linux-x86_64"
-          DEST="dist/$PKG"
-          mkdir -p "$DEST/ui" dist
-
-          install -m 0755 target/release/botapp    "$DEST/generalbots"
-          install -m 0755 target/release/botserver "$DEST/botserver"
-          cp -a botui/ui/suite  "$DEST/ui/suite"
-          cp -a botui/ui/themes "$DEST/ui/themes"
-          cp botserver/.product.desktop-local "$DEST/.product.desktop-local"
-          install -m 0755 desktop/linux/start.sh   "$DEST/start.sh"
-          install -m 0755 desktop/linux/install.sh "$DEST/install.sh"
-          cp desktop/linux/README.txt "$DEST/README.txt"
-          cp botapp/icons/icon.png    "$DEST/generalbots.png"
-
-          # The tarball is the download a user runs; the raw binaries stay for
-          # debugging a single component without unpacking the whole suite.
-          tar -czf "dist/${PKG}.tar.gz" -C dist "$PKG"
-          rm -rf "$DEST"
+          chmod +x desktop/linux/package.sh
+          ./desktop/linux/package.sh \
+            "${{ github.event.inputs.tag || github.ref_name }}" \
+            target/release dist
+          # Raw binaries stay attached so a single component can be inspected
+          # without unpacking the suite.
           cp target/release/botapp    dist/generalbots-linux-x86_64
           cp target/release/botserver dist/botserver-linux-x86_64
           chmod +x dist/generalbots-linux-x86_64 dist/botserver-linux-x86_64
-          (cd dist && sha256sum *.tar.gz *-linux-x86_64 > SHA256SUMS-linux)
+          (cd dist && sha256sum generalbots-linux-x86_64 botserver-linux-x86_64 >> SHA256SUMS-linux)
           ls -lh dist
 
       - name: Upload Linux installer
