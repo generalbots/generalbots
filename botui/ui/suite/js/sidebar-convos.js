@@ -86,7 +86,14 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
       "</div>" +
       '<div class="chat-sidebar-conv-time"></div>' +
       '<button type="button" class="chat-sidebar-conv-delete" ' +
-      'aria-label="Delete conversation" title="Delete conversation">&times;</button>';
+      'aria-label="Delete conversation" title="Delete conversation">' +
+       '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" ' +
+       'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+       '<polyline points="3 6 5 6 21 6"></polyline>' +
+       '<path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>' +
+       '<path d="M10 11v6"></path><path d="M14 11v6"></path>' +
+       '<path d="M9 6V4a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"></path>' +
+       '</svg></button>';
     item.querySelector(".chat-sidebar-conv-name").textContent =
       session.title || "Conversation";
     item.querySelector(".chat-sidebar-conv-time").textContent = mod.timeAgo(

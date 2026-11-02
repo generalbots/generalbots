@@ -255,7 +255,7 @@ if (typeof window.WindowManager === "undefined") {
     // every launcher via the toolwindow / `vibe-` prefix filters).
     embeddedApps.forEach(function (a) {
       if (known[a.id]) return;
-      if (catalogLoaded && !isAlwaysAppId(a.id) && String(a.id).indexOf("vibe-") !== 0) return;
+      if (catalogLoaded && !isAlwaysAppId(a.id) && String(a.id).indexOf("vibe") !== 0) return;
       var preview = isPreviewId(a.id);
       if (preview && !previewOn) return;
       a.preview = preview;
