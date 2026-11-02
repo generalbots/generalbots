@@ -78,9 +78,9 @@ mod tests {
     fn test_hash_and_verify() {
         let hasher = PasswordHasher2::with_defaults().expect("Failed to create hasher");
         let password = format!("{}{}", "SecureP@ssw0rd", "123!");
-        let hash = hasher.hash(password).expect("Failed to hash");
+        let hash = hasher.hash(&password).expect("Failed to hash");
 
-        assert!(hasher.verify(password, &hash).expect("Verify failed"));
+        assert!(hasher.verify(&password, &hash).expect("Verify failed"));
         assert!(!hasher
             .verify(&format!("{}{}", "Wrong", "Password"), &hash)
             .expect("Verify failed"));
