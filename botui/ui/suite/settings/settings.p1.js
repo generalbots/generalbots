@@ -47,8 +47,58 @@
     return "/api/directory" + endpoint;
   }
 
+
+  /* #1628 — settings must match the edition. A product profile that ships
+     only chat+drive (no_security, no billing/vibe/integrations app) must not
+     offer sections that need services it does not have. */
+  function isSlimEdition(config) {
+    if (!config) { return false; }
+    if (config.no_security === true) { return true; }
+    var apps = Array.isArray(config.apps) ? config.apps : [];
+    return apps.indexOf("chat") !== -1 &&
+      apps.indexOf("drive") !== -1 &&
+      apps.indexOf("billing") === -1 &&
+      apps.indexOf("vibe") === -1 &&
+      apps.indexOf("integrations") === -1;
+  }
+
+  function hideSettingsSection(id) {
+    var section = document.getElementById(id + "-section");
+    if (section) { section.style.display = "none"; }
+    var nav = document.querySelector('.settings-nav a[href="#' + id + '"]');
+    if (nav) { nav.style.display = "none"; }
+  }
+
+  function applyEditionVisibility(config) {
+    if (!isSlimEdition(config)) { return; }
+    ["billing", "vibe", "integrations"].forEach(hideSettingsSection);
+    document.querySelectorAll('[data-admin-only="true"]').forEach(function (node) {
+      node.style.display = "none";
+    });
+    var active = document.querySelector(".settings-section.active");
+    if (active && ["billing-section", "vibe-section", "integrations-section"].indexOf(active.id) !== -1) {
+      var profile = document.querySelector('.settings-nav a[href="#profile"]');
+      if (profile) { profile.click(); }
+    }
+  }
+
+  function initEditionVisibility() {
+    if (window.productConfig) { applyEditionVisibility(window.productConfig); return; }
+    var tries = 0;
+    var timer = setInterval(function () {
+      tries += 1;
+      if (window.productConfig) {
+        clearInterval(timer);
+        applyEditionVisibility(window.productConfig);
+      } else if (tries > 40) {
+        clearInterval(timer);
+      }
+    }, 100);
+  }
+
   function init() {
     bindNavigation();
+    initEditionVisibility();
     bindToggles();
     bindThemeSelector();
     bindAvatarUpload();

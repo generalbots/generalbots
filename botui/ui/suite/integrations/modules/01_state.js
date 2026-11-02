@@ -9,6 +9,7 @@
     namespace.instanceCount = namespace.instanceCount || 0;
     namespace.categoryOrder = [
         "featured",
+        "llm",
         "productivity",
         "developer",
         "startups",

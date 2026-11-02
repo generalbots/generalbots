@@ -20,14 +20,14 @@
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                     <circle cx="12" cy="7" r="4"></circle>
                 </svg>
-                <span>Profile</span>
+                <span data-i18n="settings-profile">Profile</span>
             </a>
             <a href="#security" class="nav-item" onclick="showSection('security', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                     <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                 </svg>
-                <span>Security</span>
+                <span data-i18n="settings-security">Security</span>
             </a>
             <a href="#appearance" class="nav-item" onclick="showSection('appearance', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -41,7 +41,7 @@
                     <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
                     <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
                 </svg>
-                <span>Appearance</span>
+                <span data-i18n="settings-appearance">Appearance</span>
             </a>
             <a href="#language" class="nav-item" onclick="showSection('language', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -51,14 +51,14 @@
                         d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z">
                     </path>
                 </svg>
-                <span>Language</span>
+                <span data-i18n="settings-language">Language</span>
             </a>
             <a href="#notifications" class="nav-item" onclick="showSection('notifications', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                     <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                 </svg>
-                <span>Notifications</span>
+                <span data-i18n="settings-notifications">Notifications</span>
             </a>
             <a href="#storage" class="nav-item" onclick="showSection('storage', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -66,7 +66,7 @@
                     <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
                     <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
                 </svg>
-                <span>Storage</span>
+                <span data-i18n="settings-storage">Storage</span>
             </a>
             <!-- #1304 — Integrations is its own application window (provider
                  catalog, connections, OAuth). Settings only links to it. -->
@@ -75,38 +75,38 @@
                     <polyline points="16 18 22 12 16 6"></polyline>
                     <polyline points="8 6 2 12 8 18"></polyline>
                 </svg>
-                <span>Integrations</span>
+                <span data-i18n="settings-integrations">Integrations</span>
             </a>
             <a href="#vibe" class="nav-item" onclick="showSection('vibe', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                 </svg>
-                <span>Vibe</span>
+                <span data-i18n="settings-vibe">Vibe</span>
             </a>
             <a href="#privacy" class="nav-item" onclick="showSection('privacy', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
                 </svg>
-                <span>Privacy</span>
+                <span data-i18n="settings-privacy">Privacy</span>
             </a>
             <a href="#memory" class="nav-item" onclick="showSection('memory', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M12 2a7 7 0 0 0-7 7c0 2 1 3 2 4v3a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2v-3c1-1 2-2 2-4a7 7 0 0 0-7-7z"></path>
                     <line x1="9" y1="21" x2="15" y2="21"></line>
                 </svg>
-                <span>Memory</span>
+                <span data-i18n="settings-memory">Memory</span>
             </a>
             <a href="#billing" class="nav-item" onclick="showSection('billing', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
                     <line x1="1" y1="10" x2="23" y2="10"></line>
                 </svg>
-                <span>Billing</span>
+                <span data-i18n="nav-billing">Billing</span>
             </a>
 
             <!-- Admin Section Divider -->
             <div class="nav-divider" data-admin-only="true">
-                <span>Administration</span>
+                <span data-i18n="settings-administration">Administration</span>
             </div>
 
             <a href="#users" class="nav-item" data-admin-only="true" onclick="showSection('users', this)">
@@ -178,7 +178,7 @@
                     <circle cx="12" cy="12" r="10"></circle>
                     <polyline points="12 6 12 12 16 14"></polyline>
                 </svg>
-                <span>Versions</span>
+                <span data-i18n="settings-users">Versions</span>
             </a>
         </nav>
 
@@ -189,7 +189,7 @@
         <!-- Profile Section -->
         <section id="profile-section" class="settings-section active">
             <div class="section-header">
-                <h1>Profile Settings</h1>
+                <h1 data-i18n="settings-profile">Profile Settings</h1>
                 <p class="subtitle"><span id="profile-directory-note">Managed by the Zitadel directory</span> — <a href="#" class="info-link" onclick="return openZitadelConsole();">Open directory profile</a></p>
                 <p class="subtitle">Manage your personal information and preferences</p>
             </div>
@@ -291,7 +291,7 @@
         <!-- Security Section -->
         <section id="security-section" class="settings-section">
             <div class="section-header">
-                <h1>Security Settings</h1>
+                <h1 data-i18n="settings-security">Security Settings</h1>
                 <p class="subtitle"><span>Identity, sessions and 2FA live in the Zitadel directory</span> — <a href="#" class="info-link" onclick="return openZitadelConsole();">Open directory security</a></p>
                 <p class="subtitle">Protect your account with enhanced security</p>
             </div>
@@ -382,7 +382,7 @@
         <!-- Language Section -->
         <section id="language-section" class="settings-section">
             <div class="section-header">
-                <h1>Language & Region</h1>
+                <h1 data-i18n="settings-language">Language & Region</h1>
                 <p class="subtitle">Choose your preferred language and regional settings</p>
             </div>
 
@@ -621,7 +621,7 @@
         <!-- Appearance Section -->
         <section id="appearance-section" class="settings-section">
             <div class="section-header">
-                <h1>Appearance</h1>
+                <h1 data-i18n="settings-appearance">Appearance</h1>
                 <p class="subtitle">Customize how the application looks</p>
             </div>
 
@@ -735,7 +735,7 @@
         <!-- Notifications Section -->
         <section id="notifications-section" class="settings-section">
             <div class="section-header">
-                <h1>Notifications</h1>
+                <h1 data-i18n="settings-notifications">Notifications</h1>
                 <p class="subtitle">Control how you receive notifications</p>
             </div>
 
@@ -852,7 +852,7 @@
         <!-- Storage Section -->
         <section id="storage-section" class="settings-section">
             <div class="section-header">
-                <h1>Storage</h1>
+                <h1 data-i18n="settings-storage">Storage</h1>
                 <p class="subtitle">Manage your storage and sync settings</p>
             </div>
 
@@ -948,19 +948,8 @@
         <!-- Integrations Section -->
         <section id="integrations-section" class="settings-section">
             <div class="section-header">
-                <h1>Integrations</h1>
+                <h1 data-i18n="settings-integrations">Integrations</h1>
                 <p class="subtitle">Connect external services and manage API access</p>
-            </div>
-
-            <!-- LLM Providers (BYOK) -->
-            <div class="setting-card">
-                <div class="card-header">
-                    <h2>LLM Providers</h2>
-                    <span class="subtitle">Bring your own key for any LLM provider — then assign providers to Vibe agent types in the Vibe section</span>
-                </div>
-                <div class="llm-providers-list" id="llm-providers-list">
-                    <div class="empty-state"><p>Loading providers…</p></div>
-                </div>
             </div>
 
             <!-- API Keys -->
@@ -1075,7 +1064,7 @@
         <!-- Vibe Section -->
         <section id="vibe-section" class="settings-section">
             <div class="section-header">
-                <h1>Vibe</h1>
+                <h1 data-i18n="settings-vibe">Vibe</h1>
                 <p class="subtitle">Assign an LLM provider to each Vibe agent type. Providers are defined in Integrations → LLM Providers (BYOK) or the Cloud store.</p>
             </div>
 
@@ -1093,7 +1082,7 @@
         <!-- Privacy Section -->
         <section id="privacy-section" class="settings-section">
             <div class="section-header">
-                <h1>Privacy</h1>
+                <h1 data-i18n="settings-privacy">Privacy</h1>
                 <p class="subtitle">Manage your data and privacy settings</p>
             </div>
 
@@ -1171,7 +1160,7 @@
         <!-- Billing Section -->
         <section id="memory-section" class="settings-section">
             <div class="section-header">
-                <h1>Memory</h1>
+                <h1 data-i18n="settings-memory">Memory</h1>
                 <p class="subtitle">What the assistant remembers about you across conversations</p>
             </div>
             <div class="setting-card">
@@ -1199,7 +1188,7 @@
         </section>
         <section id="billing-section" class="settings-section">
             <div class="section-header">
-                <h1>Billing</h1>
+                <h1 data-i18n="nav-billing">Billing</h1>
                 <p class="subtitle">Manage your subscription and payment methods</p>
             </div>
 
@@ -2982,154 +2971,6 @@
         document.head.appendChild(script);
     })();
 </script>
-<script>
-    // LLM providers (BYOK): union of the integration catalog's LLM seeds and
-    // the Cloud store catalog (/api/cloud/llm-providers). Connect = store the
-    // API key in Vault; the Vibe section then assigns providers to agent types.
-    (function () {
-        "use strict";
-        var root = document.getElementById("llm-providers-list");
-        if (!root) return;
-
-        function apiFetch(url, opts) {
-            var headers = Object.assign(
-                { "Content-Type": "application/json" },
-                (opts && opts.headers) || {}
-            );
-            var token = window.getGBAccessToken
-                ? window.getGBAccessToken()
-                : (localStorage.getItem("gb-access-token") ||
-                    sessionStorage.getItem("gb-access-token") ||
-                    localStorage.getItem("management_token") || "");
-            if (token) headers["Authorization"] = "Bearer " + token;
-            return fetch(url, Object.assign({ headers: headers }, opts || {}));
-        }
-
-        function escapeHtml(text) {
-            return String(text == null ? "" : text)
-                .replace(/&/g, "&amp;").replace(/</g, "&lt;")
-                .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-        }
-
-        // Provider catalog: integration seeds (with docs urls) merged with the
-        // Cloud store catalog (models per provider). Integration entries win
-        // on slug so docs links survive.
-        function loadCatalog() {
-            var merged = {};
-            return Promise.all([
-                apiFetch("/api/apps/integrations/catalog").then(function (r) { return r.json(); }).catch(function () { return { providers: [] }; }),
-                apiFetch("/api/cloud/llm-providers").then(function (r) { return r.json(); }).catch(function () { return { providers: [] }; }),
-            ]).then(function (parts) {
-                var catalog = parts[0].providers || [];
-                var store = parts[1].providers || [];
-                store.forEach(function (p) {
-                    merged[p.id] = { slug: p.id, name: p.name, docs: p.website || "", models: (p.models || []).map(function (m) { return m.name; }) };
-                });
-                catalog.forEach(function (p) {
-                    if (!p.llm_available) return;
-                    if (!merged[p.id]) {
-                        merged[p.id] = { slug: p.id, name: p.name, docs: "", models: [] };
-                    }
-                    if (p.official_docs) merged[p.id].docs = p.official_docs;
-                });
-                return Object.keys(merged).sort().map(function (k) { return merged[k]; });
-            });
-        }
-
-        function render() {
-            loadCatalog().then(function (providers) {
-                return apiFetch("/api/apps/integrations/context")
-                    .then(function (r) { return r.json(); })
-                    .then(function (ctx) {
-                        var botId = ctx.bot_id || "";
-                        if (!botId) {
-                            root.innerHTML = '<div class="empty-state"><p>No active bot — connect a bot first.</p></div>';
-                            return;
-                        }
-                        return Promise.all([
-                            Promise.resolve(botId),
-                            apiFetch("/api/bots/" + encodeURIComponent(botId) + "/integration-connections")
-                                .then(function (r) { return r.json(); })
-                                .catch(function () { return { items: [] }; }),
-                            Promise.resolve(providers),
-                        ]);
-                    })
-                    .then(function (parts) {
-                        if (!parts) return;
-                        var botId = parts[0];
-                        var conns = (parts[1].items || []);
-                        var providers = parts[2];
-                        var rows = providers.map(function (p) {
-                            var conn = conns.find(function (c) { return c.provider_slug === p.slug && c.status !== "revoked"; });
-                            return (
-                                '<div class="llm-provider-row" style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border,#262b36);flex-wrap:wrap">' +
-                                '<div style="flex:1;min-width:180px">' +
-                                '<div style="font-weight:600">' + escapeHtml(p.name) + "</div>" +
-                                '<div style="font-size:12px;color:var(--text-muted,#8b93a7)">' +
-                                (conn ? "Connected" : "Not connected") +
-                                (p.models && p.models.length ? " · " + escapeHtml(p.models.join(", ")) : "") +
-                                "</div>" +
-                                "</div>" +
-                                (p.docs ? '<a href="' + p.docs + '" target="_blank" rel="noopener" style="font-size:12px;color:var(--accent,#4a6cf7)">Docs</a>' : "") +
-                                (conn
-                                    ? '<span class="badge" style="background:#22c55e22;color:#22c55e;padding:2px 8px;border-radius:10px;font-size:11px">Connected</span>'
-                                    : '<button type="button" class="btn-primary btn-sm" data-connect-llm="' + p.slug + '" data-bot="' + botId + '">Connect</button>') +
-                                "</div>"
-                            );
-                        });
-                        root.innerHTML = rows.join("");
-                        bindEvents(botId);
-                    });
-            }).catch(function (e) {
-                root.innerHTML = '<div class="empty-state"><p>Providers unavailable: ' + escapeHtml((e && e.message) || e) + "</p></div>";
-            });
-        }
-
-        function bindEvents(botId) {
-            root.querySelectorAll("[data-connect-llm]").forEach(function (btn) {
-                btn.addEventListener("click", function () {
-                    var slug = btn.getAttribute("data-connect-llm");
-                    // Keyless gateway providers (kilo-*, llm7-*) need no key.
-                    var keyless = /^(kilo-|llm7-)/.test(slug);
-                    var key = keyless ? "" : window.prompt("Paste your API key for " + slug + ":");
-                    if (!keyless && (!key || !key.trim())) return;
-                    btn.disabled = true;
-                    btn.textContent = "Connecting…";
-                    var body = {
-                        provider_slug: slug,
-                        display_name: slug,
-                        auth_kind: "api_key",
-                        configuration: { purpose: "llm" },
-                        granted_scopes: [],
-                        visibility: "private",
-                    };
-                    if (!keyless) body.secrets = { api_key: key.trim() };
-                    apiFetch("/api/bots/" + encodeURIComponent(botId) + "/integration-connections", {
-                        method: "POST",
-                        body: JSON.stringify(body),
-                    })
-                        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, body: j }; }); })
-                        .then(function (res) {
-                            if (res.ok) {
-                                window.alert(slug + " connected. Assign it to an agent type in the Vibe section.");
-                                render();
-                            } else {
-                                window.alert("Connect failed: " + ((res.body && (res.body.error || res.body.message)) || "unknown error"));
-                                render();
-                            }
-                        })
-                        .catch(function (e) {
-                            window.alert("Connect failed: " + ((e && e.message) || e));
-                            render();
-                        });
-                });
-            });
-        }
-
-        render();
-    })();
-</script>
-
 <script>
     // Vibe agent LLM slots: three combos (Reasoning / Agentic / Fast), each
     // selecting a connected LLM provider for this branch.

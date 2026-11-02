@@ -4,6 +4,7 @@ use serde::Serialize;
 #[serde(rename_all = "snake_case")]
 pub enum Category {
     Featured,
+    Llm,
     Productivity,
     Developer,
     Startups,
@@ -14,8 +15,9 @@ pub enum Category {
 }
 
 impl Category {
-    pub const ALL: [Self; 8] = [
+    pub const ALL: [Self; 9] = [
         Self::Featured,
+        Self::Llm,
         Self::Productivity,
         Self::Developer,
         Self::Startups,
@@ -28,6 +30,7 @@ impl Category {
     pub const fn as_str(self) -> &'static str {
         match self {
             Self::Featured => "featured",
+            Self::Llm => "llm",
             Self::Productivity => "productivity",
             Self::Developer => "developer",
             Self::Startups => "startups",
@@ -41,6 +44,7 @@ impl Category {
     pub const fn label(self) -> &'static str {
         match self {
             Self::Featured => "Featured",
+            Self::Llm => "LLM Providers",
             Self::Productivity => "Productivity",
             Self::Developer => "Developer",
             Self::Startups => "Startups",

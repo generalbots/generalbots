@@ -14,7 +14,7 @@ fn provider_ids_and_names_are_unique() {
     // (2a4c7c73d), none of which updated these snapshots when they landed.
     assert_eq!(catalog.provider_count, 144);
     assert_eq!(catalog.action_count, 776);
-    assert_eq!(catalog.categories.len(), 8);
+    assert_eq!(catalog.categories.len(), 9);
     assert_eq!(catalog.totals.providers, 144);
     assert_eq!(catalog.totals.actions, 776);
     // Slices 1-2 (#950): AWS, GitHub and Stripe have live adapters; all of

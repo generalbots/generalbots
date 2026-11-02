@@ -25,7 +25,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             "kilo-dots",
             "Kilo · Dots 3 Note",
             ProviderSpec {
-                category: Category::Developer, strategy: Strategy::Improve, status: Status::Built,
+                category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
                 priority: Priority::Must, module: None, official_docs: Some("https://api.kilo.ai"),
                 auth: &KEYLESS, actions: AI_PLATFORM_ACTIONS,
             },
@@ -37,7 +37,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             "kilo-nex",
             "Kilo · Nex N2.5 Pro",
             ProviderSpec {
-                category: Category::Developer, strategy: Strategy::Improve, status: Status::Built,
+                category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
                 priority: Priority::Must, module: None, official_docs: Some("https://api.kilo.ai"),
                 auth: &KEYLESS, actions: AI_PLATFORM_ACTIONS,
             },
@@ -49,7 +49,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             "kilo-ling",
             "Kilo · Ling 3.0 Flash",
             ProviderSpec {
-                category: Category::Developer, strategy: Strategy::Improve, status: Status::Built,
+                category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
                 priority: Priority::Must, module: None, official_docs: Some("https://api.kilo.ai"),
                 auth: &KEYLESS, actions: AI_PLATFORM_ACTIONS,
             },
@@ -61,7 +61,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             "kilo-openrouter",
             "Kilo · OpenRouter Free",
             ProviderSpec {
-                category: Category::Developer, strategy: Strategy::Improve, status: Status::Built,
+                category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
                 priority: Priority::Must, module: None, official_docs: Some("https://api.kilo.ai"),
                 auth: &KEYLESS, actions: AI_PLATFORM_ACTIONS,
             },
@@ -73,7 +73,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             "kilo-nemotron-ultra",
             "Kilo · Nemotron Ultra 550B",
             ProviderSpec {
-                category: Category::Developer, strategy: Strategy::Improve, status: Status::Built,
+                category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
                 priority: Priority::Must, module: None, official_docs: Some("https://api.kilo.ai"),
                 auth: &KEYLESS, actions: AI_PLATFORM_ACTIONS,
             },
@@ -85,7 +85,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             "kilo-nemotron-super",
             "Kilo · Nemotron Super 120B",
             ProviderSpec {
-                category: Category::Developer, strategy: Strategy::Improve, status: Status::Built,
+                category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
                 priority: Priority::Must, module: None, official_docs: Some("https://api.kilo.ai"),
                 auth: &KEYLESS, actions: AI_PLATFORM_ACTIONS,
             },
@@ -97,7 +97,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             "kilo-nemotron-lightning",
             "Kilo · Nemotron Lightning",
             ProviderSpec {
-                category: Category::Developer, strategy: Strategy::Improve, status: Status::Built,
+                category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
                 priority: Priority::Must, module: None, official_docs: Some("https://api.kilo.ai"),
                 auth: &KEYLESS, actions: AI_PLATFORM_ACTIONS,
             },
@@ -109,7 +109,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             "kilo-cohere",
             "Kilo · Cohere North Mini",
             ProviderSpec {
-                category: Category::Developer, strategy: Strategy::Improve, status: Status::Built,
+                category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
                 priority: Priority::Must, module: None, official_docs: Some("https://api.kilo.ai"),
                 auth: &KEYLESS, actions: AI_PLATFORM_ACTIONS,
             },
@@ -121,7 +121,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             "kilo-stepfun",
             "Kilo · StepFun Flash",
             ProviderSpec {
-                category: Category::Developer, strategy: Strategy::Improve, status: Status::Built,
+                category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
                 priority: Priority::Must, module: None, official_docs: Some("https://api.kilo.ai"),
                 auth: &KEYLESS, actions: AI_PLATFORM_ACTIONS,
             },
@@ -133,7 +133,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             "llm7-minimax",
             "LLM7 · MiniMax M2.7 (stable)",
             ProviderSpec {
-                category: Category::Developer, strategy: Strategy::Improve, status: Status::Built,
+                category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
                 priority: Priority::Must, module: None, official_docs: Some("https://api.llm7.io"),
                 auth: &KEYLESS, actions: AI_PLATFORM_ACTIONS,
             },
@@ -145,7 +145,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
             "llm7-minimax-v2",
             "LLM7 · MiniMax M2.7 (alt)",
             ProviderSpec {
-                category: Category::Developer, strategy: Strategy::Improve, status: Status::Built,
+                category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
                 priority: Priority::Must, module: None, official_docs: Some("https://api.llm7.io"),
                 auth: &KEYLESS, actions: AI_PLATFORM_ACTIONS,
             },
