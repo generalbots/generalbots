@@ -176,7 +176,7 @@ pub async fn terminal_exec(
             "command is limited to 16000 characters",
         ));
     }
-    if let Some(pattern) = blocked_pattern(command) {
+    if blocked_pattern(command).is_some() {
         log::warn!("terminal exec refused a blocked pattern for user {user_id}");
         return Err(api_error(
             StatusCode::FORBIDDEN,

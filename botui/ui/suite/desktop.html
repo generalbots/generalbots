@@ -429,8 +429,18 @@
                     u.searchParams.delete('token');
                     u.searchParams.delete('email');
                     u.searchParams.delete('name');
-                    window.location.replace('/api/auth/suite-sso?token=' + encodeURIComponent(cloudToken) + '&redirect=' + encodeURIComponent(u.pathname + u.search));
-                    return;
+                    // Only cloud JWTs go through the SSO hop. A suite session
+                    // token (`gb_...`) is already valid for /api and is stored
+                    // locally; sending it to suite-sso fails with 400 because
+                    // that endpoint verifies a JWT signature.
+                    if (cloudToken.split('.').length === 3) {
+                        window.location.replace('/api/auth/suite-sso?token=' + encodeURIComponent(cloudToken) + '&redirect=' + encodeURIComponent(u.pathname + u.search));
+                        return;
+                    }
+                    try {
+                        localStorage.setItem('gb-access-token', cloudToken);
+                    } catch (e) {}
+                    window.history.replaceState({}, '', u.pathname + u.search);
                 }
             })();
 
