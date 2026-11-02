@@ -31,7 +31,7 @@ botskills/
 | documentation | documentation-writer | Diátaxis-style technical documentation authoring | pedronauck/skills (curated) |
 | engineering | systematic-debugging | Root-cause-first workflow for any bug, test failure, or unexpected behavior | pedronauck/skills (curated) |
 | engineering | verification-before-completion | Mandatory verification pass before claiming work complete | pedronauck/skills (curated) |
-| engineering | extreme-software-optimization | Performance and binary-size optimization techniques | pedronauck/skills (curated) |
+| engineering | [extreme-software-optimization](https://jeffreys-skills.md/skills/extreme-software-optimization) | Performance and binary-size optimization techniques | Jeffrey's Skills (subscription only — listed by name/link, files not included) |
 | frontend | next-best-practices | Next.js conventions: RSC boundaries, data patterns, async APIs, metadata | pedronauck/skills (curated) |
 | frontend | shadcn | Building and styling UI components with shadcn/ui and Radix primitives | pedronauck/skills (curated) |
 | frontend | zod | Zod schema validation patterns for type safety and parsing | pedronauck/skills (curated) |
@@ -45,7 +45,7 @@ botskills/
 | testing | vitest | Fast unit testing with Jest-compatible API, mocking, and coverage | pedronauck/skills (curated) |
 | testing | webapp-testing | Playwright toolkit for local web app testing, screenshots, and console logs | Prat011/awesome-llm-skills |
 
-## Why these seventeen
+## Why these sixteen
 
 Selection criteria, in order:
 
@@ -86,7 +86,7 @@ skill behaviour.
 
 ## Selection from the source repos
 
-- **pedronauck/skills** contributes 13 of 23 curated skills (community and
+- **pedronauck/skills** contributes 12 of 23 curated skills (community and
   deprecated trees were reviewed; nothing met criterion 1 without heavy
   modification).
 - **Prat011/awesome-llm-skills** contributes 3 of 29 skills (the remainder are
