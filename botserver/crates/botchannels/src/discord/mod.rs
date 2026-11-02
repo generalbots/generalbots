@@ -113,7 +113,7 @@ pub struct GuildChannel {
     pub topic: Option<String>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod send_message;
+mod channel_type;
+mod send_dm;
+mod is_text_channel;

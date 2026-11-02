@@ -75,14 +75,14 @@ struct AutoTaskRow {
     updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod resolve_bot_info;
+mod classifier_for;
+mod load_plan;
+mod persist_shipped_template;
+mod into_json;
 
-pub(crate) use part1::*;
-pub use part2::*;
-pub use part3::*;
-pub(crate) use part4::*;
-pub use part5::*;
+pub(crate) use resolve_bot_info::*;
+pub use classifier_for::*;
+pub use load_plan::*;
+pub(crate) use persist_shipped_template::*;
+pub use into_json::*;

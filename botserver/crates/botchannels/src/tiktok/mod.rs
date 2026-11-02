@@ -179,16 +179,16 @@ pub struct VideoFormats;
 /// Supported image formats for TikTok photo posts
 pub struct ImageFormats;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
-mod part9;
-mod part10;
-mod part11;
+mod init_video_upload;
+mod query_videos;
+mod channel_type;
+mod is_complete;
+mod profile_url;
+mod url;
+mod can_post_public;
+mod public;
+mod user_info_basic;
+mod mp4;
+mod jpeg;
 
-pub use part9::*;
+pub use user_info_basic::*;

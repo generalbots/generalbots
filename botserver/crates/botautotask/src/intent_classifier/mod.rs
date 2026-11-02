@@ -38,8 +38,8 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod state;
+mod handle_monitor;
+mod has_any;
 
-use part3::*;
+use has_any::*;

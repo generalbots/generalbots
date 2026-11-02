@@ -83,9 +83,9 @@ pub struct LocalEmbeddingService {
     api_key: Option<String>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
+mod cache_config;
+mod cached_llmprovider;
+mod with_db_pool;
+mod find_similar_cached;
+mod generate;
+mod hash_embedding;

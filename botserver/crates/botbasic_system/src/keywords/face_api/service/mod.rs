@@ -20,9 +20,9 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod cosine_similarity;
+mod detect_faces;
+mod verify_faces_aws;
+mod verify_faces_insightface;
 
-use part1::*;
+use cosine_similarity::*;

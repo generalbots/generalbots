@@ -180,14 +180,14 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use uuid::Uuid;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
+mod default_enabled;
+mod default_timeout;
+mod default_api_key_header;
+mod get_csv_path;
+mod parse_csv_columns;
+mod generate_example_configs;
 
-use part1::*;
-use part2::*;
-use part3::*;
-pub use part6::*;
+use default_enabled::*;
+use default_timeout::*;
+use default_api_key_header::*;
+pub use generate_example_configs::*;

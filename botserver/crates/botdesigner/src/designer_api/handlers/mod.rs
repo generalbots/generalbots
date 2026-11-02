@@ -19,8 +19,8 @@ const ROUTE_MODIFY: &str = "/api/ui/designer/modify";
 const ROUTE_MAGIC: &str = "/api/ui/designer/magic";
 const ROUTE_EDITOR_MAGIC: &str = "/api/ui/editor/magic";
 
-mod part1;
-mod part2;
+mod configure_designer_routes;
+mod handle_list_dialogs;
 
-pub use part1::*;
-pub use part2::*;
+pub use configure_designer_routes::*;
+pub use handle_list_dialogs::*;

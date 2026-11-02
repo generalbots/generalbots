@@ -346,20 +346,20 @@ pub struct ProductWithVariants {
     pub variants: Vec<ProductVariant>,
 }
 
-mod lib_part1;
-mod lib_part2;
-mod lib_part3;
-mod lib_part4;
-mod lib_part5;
-mod lib_part6;
-mod lib_part7;
-mod lib_part8;
+mod get_bot_context;
+mod bd;
+mod create_product;
+mod adjust_stock;
+mod list_price_lists;
+mod handle_products_items;
+mod handle_products_pricelists;
+mod handle_product_detail_view;
 
-pub use lib_part1::*;
-use lib_part2::*;
-pub use lib_part3::*;
-pub use lib_part4::*;
-pub use lib_part5::*;
-use lib_part6::*;
-use lib_part7::*;
-pub use lib_part8::*;
+pub use get_bot_context::*;
+use bd::*;
+pub use create_product::*;
+pub use adjust_stock::*;
+pub use list_price_lists::*;
+use handle_products_items::*;
+use handle_products_pricelists::*;
+pub use handle_product_detail_view::*;

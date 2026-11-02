@@ -98,11 +98,11 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod get_manager;
+mod success;
+mod configure_protection_routes;
+mod security_fix_handler;
 
-use part1::*;
-pub use part3::*;
-use part4::*;
+use get_manager::*;
+pub use configure_protection_routes::*;
+use security_fix_handler::*;

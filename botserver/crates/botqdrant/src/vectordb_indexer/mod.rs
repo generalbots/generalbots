@@ -193,6 +193,6 @@ pub struct VectorDBIndexer {
     batch_size: usize,
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod get_path;
+mod start;
+mod index_user_files;

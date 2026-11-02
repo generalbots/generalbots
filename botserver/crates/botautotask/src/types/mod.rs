@@ -414,11 +414,11 @@ mod bot_info_drive_tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod with_details;
+mod with_speed;
+mod bucket_name;
+mod collect_llm_stream;
+mod get_content_type;
 
-pub use part4::*;
-pub use part5::*;
+pub use collect_llm_stream::*;
+pub use get_content_type::*;

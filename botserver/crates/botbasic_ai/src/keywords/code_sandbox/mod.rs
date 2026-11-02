@@ -76,16 +76,16 @@ use std::time::Duration;
 use tokio::time::timeout;
 use uuid::Uuid;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
+mod sandbox_runtime;
+mod file_extension;
+mod from_bot_config;
+mod success;
+mod execute_file;
+mod run_python_keyword;
+mod generate_python_lxc_config;
+mod read_bot_config_from_vault;
 
-pub use part5::*;
-pub use part6::*;
-pub use part7::*;
-use part8::*;
+pub use execute_file::*;
+pub use run_python_keyword::*;
+pub use generate_python_lxc_config::*;
+use read_bot_config_from_vault::*;

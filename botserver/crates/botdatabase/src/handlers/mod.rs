@@ -212,18 +212,18 @@ struct ColName {
     column_name: String,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
+mod error_response;
+mod get_bot_conn_for_env;
+mod get_schema;
+mod postgres_pool_stash;
+mod insert_row;
+mod add_column;
+mod batch_delete;
 
-use part1::*;
-use part2::*;
-pub use part3::*;
-pub use part4::*;
-pub use part5::*;
-pub use part6::*;
-pub use part7::*;
+use error_response::*;
+use get_bot_conn_for_env::*;
+pub use get_schema::*;
+pub use postgres_pool_stash::*;
+pub use insert_row::*;
+pub use add_column::*;
+pub use batch_delete::*;

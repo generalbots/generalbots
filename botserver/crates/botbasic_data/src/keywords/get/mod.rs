@@ -18,8 +18,8 @@ struct JsonRow {
     row_data: String,
 }
 
-mod part1;
-mod part2;
+mod register_get_keyword;
+mod execute_get_from;
 
-pub use part1::*;
-pub use part2::*;
+pub use register_get_keyword::*;
+pub use execute_get_from::*;

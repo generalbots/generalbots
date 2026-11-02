@@ -69,22 +69,22 @@ pub struct WsAgentParams {
     pub llm_model: Option<String>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
-mod part9;
+mod configure_routes;
+mod handle_proxy;
+mod create_session;
+mod handle_navigate;
+mod handle_click;
+mod handle_fill;
+mod handle_execute;
+mod handle_agent;
+mod handle_agent_ws_stream;
 
-pub use part1::*;
-use part2::*;
-pub use part3::*;
-pub use part4::*;
-pub use part5::*;
-pub use part6::*;
-pub use part7::*;
-pub use part8::*;
-pub use part9::*;
+pub use configure_routes::*;
+use handle_proxy::*;
+pub use create_session::*;
+pub use handle_navigate::*;
+pub use handle_click::*;
+pub use handle_fill::*;
+pub use handle_execute::*;
+pub use handle_agent::*;
+pub use handle_agent_ws_stream::*;

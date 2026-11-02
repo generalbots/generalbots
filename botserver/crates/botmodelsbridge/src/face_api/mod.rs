@@ -287,9 +287,9 @@ pub enum FaceApiError {
     ProviderNotImplemented(String),
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod dominant_emotion;
+mod detect_faces;
+mod detect_faces_insightface;
+mod create_azure_config;
 
-pub use part4::*;
+pub use create_azure_config::*;

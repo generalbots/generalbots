@@ -229,9 +229,9 @@ pub enum RedditError {
     RateLimited,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod get_authorization_url;
+mod submit_comment;
+mod is_authenticated;
+mod create_reddit_config;
 
-pub use part4::*;
+pub use create_reddit_config::*;

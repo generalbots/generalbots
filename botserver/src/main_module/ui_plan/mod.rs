@@ -165,9 +165,9 @@ Compose a message to Rodrigo."#;
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod from_label;
+mod sanitize_value;
+mod ui_automation_instructions;
 
-pub use part2::*;
-pub use part3::*;
+pub use sanitize_value::*;
+pub use ui_automation_instructions::*;

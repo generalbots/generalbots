@@ -110,8 +110,8 @@ pub struct BotScopeRow {
     pub name: String,
 }
 
-mod part1;
-mod part2;
+mod resolve_bot_scope;
+mod cashflow_diagnosis_inner;
 
-pub use part1::*;
-pub use part2::*;
+pub use resolve_bot_scope::*;
+pub use cashflow_diagnosis_inner::*;

@@ -397,8 +397,8 @@ pub struct EvidenceCollectionService {
     collection_schedules: Arc<RwLock<Vec<CollectionSchedule>>>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod collection_error;
+mod evidence_collection_service;
+mod evidence_collection_service_2;
+mod initialize_soc2_controls;
+mod get_evidence_by_framework;

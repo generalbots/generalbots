@@ -90,10 +90,10 @@ struct IdResult {
     id: Uuid,
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod parse_table_definition;
+mod generate_create_table_sql;
+mod create_table_on_external_db;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub use parse_table_definition::*;
+pub use generate_create_table_sql::*;
+pub use create_table_on_external_db::*;

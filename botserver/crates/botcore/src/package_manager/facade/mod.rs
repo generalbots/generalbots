@@ -14,15 +14,15 @@ use std::collections::HashMap;
 use std::fmt::Write as FmtWrite;
 use std::path::PathBuf;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
-mod part9;
+mod safe_lxc;
+mod install;
+mod install_container;
+mod initialize_vault;
+mod generate_connection_info;
+mod install_system_packages;
+mod install_binary;
+mod setup_port_forwarding;
+mod collapse_single_subdirectory;
 
-use part1::*;
-use part9::*;
+use safe_lxc::*;
+use collapse_single_subdirectory::*;

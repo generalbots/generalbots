@@ -283,8 +283,8 @@ impl TemplateExpectation {
     }
 }
 
-mod part2;
-mod part3;
+mod default_phone_number_id;
+mod expect_error;
 
 #[cfg(test)]
 mod tests {

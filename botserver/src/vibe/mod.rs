@@ -35,7 +35,7 @@ struct VibeStateImpl {
     config: ConfigManager,
 }
 
-mod part1;
-mod part2;
+mod resolve_llm_slot;
+mod configure_vibe_routes;
 
-pub use part2::*;
+pub use configure_vibe_routes::*;

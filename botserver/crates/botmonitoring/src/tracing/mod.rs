@@ -223,18 +223,18 @@ pub struct DistributedTracingService {
     span_buffer: Arc<RwLock<Vec<Span>>>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
-mod part9;
-mod part10;
-mod part11;
-mod part12;
+mod generate_trace_id;
+mod child;
+mod attribute_value;
+mod resource_attributes;
+mod trace_query;
+mod sampling_config;
+mod exporter_config;
+mod with_service_name;
+mod context;
+mod with_resource;
+mod query_traces;
+mod attr_to_otlp_value;
 
-use part1::*;
-use part12::*;
+use generate_trace_id::*;
+use attr_to_otlp_value::*;

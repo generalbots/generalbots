@@ -433,5 +433,5 @@ pub async fn index(
     serve_suite_impl(&state, bot_name, headers.clone()).await
 }
 
-mod part2;
-pub use part2::*;
+mod serve_suite;
+pub use serve_suite::*;

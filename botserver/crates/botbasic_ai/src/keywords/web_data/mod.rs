@@ -8,8 +8,8 @@ use reqwest::Url;
 use std::sync::Arc;
 use std::time::Duration;
 
-mod part1;
-mod part2;
+mod static_selector;
+mod register_scrape_images_keyword;
 
-pub use part1::*;
-use part2::*;
+pub use static_selector::*;
+use register_scrape_images_keyword::*;

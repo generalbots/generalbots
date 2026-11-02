@@ -3,8 +3,8 @@ pub(crate) use crate::installer::{get_component_url, get_llama_cpp_url, get_mode
 pub(crate) use log::{info, warn};
 pub(crate) use std::collections::HashMap;
 
-mod part1;
-mod part2;
+mod register_drive;
+mod register_directory;
 
-pub use part1::*;
-pub use part2::*;
+pub use register_drive::*;
+pub use register_directory::*;

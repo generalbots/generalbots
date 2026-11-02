@@ -44,6 +44,6 @@ pub enum ForgejoError {
     GitError(String),
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod create_repository;
+mod push_workflow_preserving;
+mod forgejo_error;

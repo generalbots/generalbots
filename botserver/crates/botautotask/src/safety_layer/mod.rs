@@ -297,15 +297,15 @@ pub struct SafetyLayer {
     constraints: Vec<Constraint>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
-mod part9;
-mod part10;
-mod part11;
-mod part12;
+mod constraint_check_result;
+mod constraint_type;
+mod simulation_result;
+mod impact_assessment;
+mod risk_level;
+mod data_impact;
+mod cost_impact;
+mod security_impact;
+mod predicted_resource_usage;
+mod audit_event_type;
+mod safety_config;
+mod with_config;

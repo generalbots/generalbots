@@ -11,8 +11,8 @@ pub(crate) use botcore::shared::state::AppState;
 const DEFAULT_WORKSPACE_PREFIX: &str = "default.gbai";
 const DEFAULT_GBORG_BUCKET: &str = "default.gborg";
 
-mod part1;
-mod part2;
+mod slugify_bot_name;
+mod handle_bot_config_get;
 
-pub use part1::*;
-pub use part2::*;
+pub use slugify_bot_name::*;
+pub use handle_bot_config_get::*;

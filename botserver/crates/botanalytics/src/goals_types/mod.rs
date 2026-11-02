@@ -355,12 +355,12 @@ pub enum GoalsError {
     Database(String),
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
+mod from_label;
+mod to_str;
+mod metric_type;
+mod krstatus;
+mod confidence;
+mod record_to_objective;
+mod into_response;
 
-pub(crate) use part6::*;
+pub(crate) use record_to_objective::*;

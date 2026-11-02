@@ -52,8 +52,8 @@ pub struct DocumentResponse {
     pub metadata: Option<serde_json::Value>,
 }
 
-mod part1;
-mod part2;
+mod merge_documents;
+mod export_document;
 
-pub use part1::*;
-pub use part2::*;
+pub use merge_documents::*;
+pub use export_document::*;

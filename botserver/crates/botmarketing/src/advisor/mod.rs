@@ -86,8 +86,8 @@ struct DbMetricsRow {
 
 pub struct AdvisorEngine;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod recommendation_severity;
+mod check_type;
+mod advisor_summary;
+mod analyze;
+mod check_engagement_trend;

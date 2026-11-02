@@ -6,15 +6,15 @@
 pub(crate) use crate::{ ChannelAccount, ChannelCredentials, ChannelError, ChannelProvider, ChannelType, PostContent, PostResult, };
 pub(crate) use serde::{Deserialize, Serialize};
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
+mod snapchat_provider;
+mod get_me;
+mod create_creative;
+mod create_audience;
+mod campaign_create_request;
+mod ad_create_request;
+mod oauth_token_response;
 
-pub use part1::*;
-pub use part5::*;
-pub use part6::*;
-pub use part7::*;
+pub use snapchat_provider::*;
+pub use campaign_create_request::*;
+pub use ad_create_request::*;
+pub use oauth_token_response::*;

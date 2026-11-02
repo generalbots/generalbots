@@ -25,10 +25,10 @@ struct IdRow {
 
 use crate::{DbPool, SaasConfig};
 
-mod part1;
-mod part2;
-mod part3;
+mod slugify;
+mod link_org_to_tenant;
+mod copy_dir_all;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub use slugify::*;
+pub use link_org_to_tenant::*;
+pub use copy_dir_all::*;

@@ -333,8 +333,8 @@ impl UserDriveVectorDB {
     }
 }
 
-mod part2;
-pub use part2::*;
+mod file_content_extractor;
+pub use file_content_extractor::*;
 
 #[cfg(test)]
 mod snippet_tests {

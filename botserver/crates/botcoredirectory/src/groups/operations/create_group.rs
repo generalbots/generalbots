@@ -39,7 +39,7 @@ pub async fn create_group(
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
-                    error: botsecurity::error_sanitizer::log_and_sanitize_str(&e, "botcoredirectory::groups::operations::part1", None).message,
+                    error: botsecurity::error_sanitizer::log_and_sanitize_str(&e, "botcoredirectory::groups::operations::create_group", None).message,
                     details: None,
                 }),
             ))
@@ -97,7 +97,7 @@ pub async fn update_group(
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
-                    error: botsecurity::error_sanitizer::log_and_sanitize_str(&e, "botcoredirectory::groups::operations::part1", None).message,
+                    error: botsecurity::error_sanitizer::log_and_sanitize_str(&e, "botcoredirectory::groups::operations::create_group", None).message,
                     details: None,
                 }),
             ))

@@ -241,8 +241,8 @@ BEGIN TRANSACTION
 COMMIT TRANSACTION
 "#;
 
-mod part2;
-use part2::*;
+mod http_integration_script;
+use http_integration_script::*;
 
 #[cfg(test)]
 mod tests {

@@ -26,7 +26,7 @@ pub struct ErrorSanitizer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::part2::*;
+    use super::production::*;
 
     #[derive(Debug)]
     struct TestError(String);
@@ -113,10 +113,10 @@ mod tests {
 
         let start = std::time::Instant::now();
         for _ in 0..ITERATIONS {
-            let _ = part2::redact_stack_traces(text);
-            let _ = part2::redact_file_paths(text);
-            let _ = part2::redact_ip_addresses(text);
-            let _ = part2::redact_connection_strings(text);
+            let _ = production::redact_stack_traces(text);
+            let _ = production::redact_file_paths(text);
+            let _ = production::redact_ip_addresses(text);
+            let _ = production::redact_connection_strings(text);
         }
         let elapsed = start.elapsed();
         println!(
@@ -251,8 +251,8 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod with_code;
+mod production;
+mod looks_like_connection_string;
 
-pub use part3::*;
+pub use looks_like_connection_string::*;

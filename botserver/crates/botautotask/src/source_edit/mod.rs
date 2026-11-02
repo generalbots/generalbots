@@ -110,8 +110,8 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
+mod fail;
+mod get_item_source;
 
-pub use part1::*;
-pub use part2::*;
+pub use fail::*;
+pub use get_item_source::*;

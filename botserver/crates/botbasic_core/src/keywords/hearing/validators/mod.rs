@@ -1,10 +1,10 @@
 pub(crate) use super::types::{InputType, ValidationResult};
 pub(crate) use uuid::Uuid;
 
-mod part1;
-mod part2;
-mod part3;
+mod validate_input;
+mod validate_zipcode;
+mod validate_credit_card;
 
-pub use part1::*;
-use part2::*;
-use part3::*;
+pub use validate_input::*;
+use validate_zipcode::*;
+use validate_credit_card::*;

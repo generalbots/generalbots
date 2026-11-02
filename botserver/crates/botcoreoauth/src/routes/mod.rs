@@ -41,8 +41,8 @@ pub struct ProviderInfo {
     pub login_url: String,
 }
 
-mod part1;
-mod part2;
+mod configure;
+mod create_or_get_oauth_user;
 
-pub use part1::*;
-use part2::*;
+pub use configure::*;
+use create_or_get_oauth_user::*;

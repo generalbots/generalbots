@@ -105,14 +105,14 @@ pub struct UpdateNotificationPreferencesRequest {
     pub sms: Option<bool>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod create_user;
+mod get_user_profile;
+mod get_user_permissions;
+mod set_mfa_flag;
+mod update_notification_preferences;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
-pub use part4::*;
-pub use part5::*;
+pub use create_user::*;
+pub use get_user_profile::*;
+pub use get_user_permissions::*;
+pub use set_mfa_flag::*;
+pub use update_notification_preferences::*;

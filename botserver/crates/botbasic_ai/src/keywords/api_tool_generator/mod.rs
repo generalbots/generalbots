@@ -125,10 +125,10 @@ use uuid::Uuid;
 use botbasic_types::UserSession;
 use rhai::Engine;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod api_tool_generator;
+mod sync_all_api_tools;
+mod generate_bas_file;
+mod is_success;
+mod register_api_tool_keywords;
 
-pub use part5::*;
+pub use register_api_tool_keywords::*;

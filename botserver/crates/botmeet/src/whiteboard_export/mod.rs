@@ -171,10 +171,10 @@ pub struct WhiteboardExportService {
     export_history: Arc<RwLock<HashMap<Uuid, Vec<ExportResult>>>>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
+mod add_page;
+mod export_error;
+mod export_options;
+mod whiteboard_export_service;
+mod export;
+mod fill_ellipse;
+mod generate_svg_grid;

@@ -3,10 +3,10 @@ pub(crate) use std::sync::Arc;
 pub(crate) use uuid::Uuid;
 pub(crate) use botcore::shared::state::AppState;
 
-mod part1;
-mod part2;
-mod part3;
+mod handle_meet_list_page;
+mod handle_meet_room_page;
+mod handle_meet_schedule_page;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub use handle_meet_list_page::*;
+pub use handle_meet_room_page::*;
+pub use handle_meet_schedule_page::*;

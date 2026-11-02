@@ -104,12 +104,12 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use uuid::Uuid;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod is_crm_enabled;
+mod execute_transfer;
+mod register_transfer_to_human_keyword;
+mod get_tool_definition;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
-pub use part4::*;
+pub use is_crm_enabled::*;
+pub use execute_transfer::*;
+pub use register_transfer_to_human_keyword::*;
+pub use get_tool_definition::*;

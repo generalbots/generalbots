@@ -5,8 +5,8 @@ use crate::state::AppState;
 use axum::{extract::State, response::Html, routing::get, Router};
 use std::sync::Arc;
 
-mod part1;
-mod part2;
+mod handle_sources_list_page;
+mod configure_sources_ui_routes;
 
-pub use part1::*;
-pub use part2::*;
+pub use handle_sources_list_page::*;
+pub use configure_sources_ui_routes::*;

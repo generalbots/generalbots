@@ -6,10 +6,10 @@ pub(crate) use diesel::prelude::*;
 pub(crate) use std::sync::Arc;
 pub(crate) use uuid::Uuid;
 
-mod part1;
-mod part2;
-mod part3;
+mod rbac_settings_page;
+mod user_assignment_panel;
+mod assigned_groups_for_user;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub use rbac_settings_page::*;
+pub use user_assignment_panel::*;
+pub use assigned_groups_for_user::*;

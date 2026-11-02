@@ -101,8 +101,8 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
+mod score_lead_keyword;
+mod ai_score_lead_keyword;
 
-pub use part1::*;
-pub use part2::*;
+pub use score_lead_keyword::*;
+pub use ai_score_lead_keyword::*;

@@ -16,7 +16,7 @@ pub struct YouTubeProvider {
     oauth_base_url: String,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod upload_video;
+mod update_video;
+mod get_comments;
+mod channel_type;

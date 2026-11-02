@@ -311,9 +311,9 @@ use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
+mod mcp_server_type;
+mod mcp_connection;
+mod mcp_auth;
+mod mcp_client_config;
+mod with_config;
+mod validate_stdio_command;

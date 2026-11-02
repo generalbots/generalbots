@@ -57,17 +57,17 @@ pub struct AgentPlanBody {
     app: Option<String>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod installs;
+mod install_handler;
+mod agent_plan_handler;
+mod bot_launcher_apps;
+mod catalog_handler;
 
-pub use part1::*;
+pub use installs::*;
 // Explicit import: the `botuifragments::*` glob above also exports a
 // `register`, so the app-level one must shadow it by name.
-pub use part1::register;
-pub use part2::*;
-pub use part3::*;
-use part4::*;
-pub use part5::*;
+pub use installs::register;
+pub use install_handler::*;
+pub use agent_plan_handler::*;
+use bot_launcher_apps::*;
+pub use catalog_handler::*;

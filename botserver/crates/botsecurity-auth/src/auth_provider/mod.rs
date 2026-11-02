@@ -175,10 +175,10 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod with_enabled;
+mod name;
+mod register_key;
+mod with_fallback;
+mod with_jwt_manager;
 
-pub use part5::*;
+pub use with_jwt_manager::*;

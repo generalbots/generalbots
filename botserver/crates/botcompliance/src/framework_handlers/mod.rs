@@ -66,10 +66,10 @@ pub struct ListFrameworksQuery {
     pub limit: Option<i64>,
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod audit;
+mod handle_get_framework;
+mod handle_delete_evidence;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub use audit::*;
+pub use handle_get_framework::*;
+pub use handle_delete_evidence::*;

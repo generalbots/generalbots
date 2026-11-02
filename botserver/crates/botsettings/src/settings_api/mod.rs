@@ -44,14 +44,14 @@ pub struct UserCreateForm {
     pub role: Option<String>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod saas_jwt_secret;
+mod read_pref;
+mod html_escape;
+mod groups_create;
+mod users_create;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
-pub use part4::*;
-pub use part5::*;
+pub use saas_jwt_secret::*;
+pub use read_pref::*;
+pub use html_escape::*;
+pub use groups_create::*;
+pub use users_create::*;

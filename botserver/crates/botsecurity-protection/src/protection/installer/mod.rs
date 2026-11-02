@@ -186,9 +186,9 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
+mod check_admin;
+mod install_lmd;
+mod protection_installer;
+mod print;
+mod uninstall_result;
+mod verify_result;

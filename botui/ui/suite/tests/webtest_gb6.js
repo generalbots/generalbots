@@ -262,7 +262,7 @@ test("BBSIA-04: settings preview mode toggle exists", function () {
   var settingsHtml = fs.readFileSync(path.join(SUITE_DIR, "settings/index.html"), "utf8");
   assert(settingsHtml.indexOf("settings-preview-toggle") !== -1, "preview toggle not in settings");
   assert(settingsHtml.indexOf("togglePreviewMode") !== -1, "togglePreviewMode handler not in settings HTML");
-  var settingsJs = fs.readFileSync(path.join(SUITE_DIR, "settings/settings.p1.js"), "utf8");
+  var settingsJs = fs.readFileSync(path.join(SUITE_DIR, "settings/settings-main.js"), "utf8");
   assert(settingsJs.indexOf("togglePreviewMode") !== -1, "togglePreviewMode not in settings JS");
   assert(settingsJs.indexOf("gb-preview-changed") !== -1, "gb-preview-changed listener not in settings JS");
 });

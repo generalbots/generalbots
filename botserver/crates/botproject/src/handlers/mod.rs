@@ -68,10 +68,10 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod forbidden;
+mod get_timeline;
+mod export_project;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub use forbidden::*;
+pub use get_timeline::*;
+pub use export_project::*;

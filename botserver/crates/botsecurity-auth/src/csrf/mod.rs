@@ -232,13 +232,13 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
+mod csrf_config;
+mod same_site;
+mod with_session;
+mod is_valid;
+mod from_secret;
+mod csrf_middleware;
+mod manager;
 
-pub use part5::*;
-pub use part6::*;
+pub use from_secret::*;
+pub use csrf_middleware::*;

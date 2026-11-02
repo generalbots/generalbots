@@ -430,15 +430,15 @@ pub struct AnalyticsMetrics;
 /// OAuth scopes
 pub struct PinterestScopes;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
-mod part9;
-mod part10;
-mod part11;
-mod part12;
+mod get_user;
+mod delete_board;
+mod list_campaigns;
+mod parse_error_response;
+mod channel_type;
+mod pin_url;
+mod public;
+mod awareness;
+mod active;
+mod regular;
+mod impression;
+mod boards_read;

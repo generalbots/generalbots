@@ -5,11 +5,11 @@ pub(crate) use std::sync::Arc;
 pub(crate) use tokio::sync::RwLock;
 pub(crate) use uuid::Uuid;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod rekognition_error;
+mod face_match;
+mod with_config;
+mod rand_float;
 
-pub use part1::*;
-pub use part2::*;
-use part4::*;
+pub use rekognition_error::*;
+pub use face_match::*;
+use rand_float::*;

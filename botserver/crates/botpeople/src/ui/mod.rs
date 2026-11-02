@@ -72,10 +72,10 @@ pub struct SearchQuery {
     pub q: Option<String>,
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod html_escape;
+mod handle_person_detail;
+mod handle_time_off_list;
 
-pub use part1::*;
-use part2::*;
-use part3::*;
+pub use html_escape::*;
+use handle_person_detail::*;
+use handle_time_off_list::*;

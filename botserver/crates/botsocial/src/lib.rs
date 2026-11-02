@@ -11,16 +11,16 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
-mod lib_part1;
-mod lib_part2;
-mod lib_part3;
-mod lib_part4;
-mod lib_part5;
-mod lib_part6;
+mod get_default_bot_fn;
+mod comment;
+mod handle_get_feed;
+mod handle_delete_post;
+mod handle_add_comment;
+mod handle_trending_topics;
 
-pub use lib_part1::*;
-pub use lib_part2::*;
-pub use lib_part3::*;
-pub use lib_part4::*;
-pub use lib_part5::*;
-pub use lib_part6::*;
+pub use get_default_bot_fn::*;
+pub use comment::*;
+pub use handle_get_feed::*;
+pub use handle_delete_post::*;
+pub use handle_add_comment::*;
+pub use handle_trending_topics::*;

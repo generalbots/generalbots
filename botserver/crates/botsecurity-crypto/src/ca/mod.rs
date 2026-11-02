@@ -153,7 +153,7 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod ca_config;
+mod ca_manager;
+mod init_ca;
+mod verify_certificate;

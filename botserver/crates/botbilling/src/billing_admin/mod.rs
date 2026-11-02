@@ -28,10 +28,10 @@ pub struct SubscriptionRequest {
     pub reason: Option<String>,
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod bd_to_f64;
+mod handle_upgrade;
+mod handle_subscription_upgrade;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub use bd_to_f64::*;
+pub use handle_upgrade::*;
+pub use handle_subscription_upgrade::*;

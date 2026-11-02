@@ -154,6 +154,6 @@ pub struct DataExportService {
     download_expiry_hours: u32,
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod create_deletion_request;
+mod account_deletion_error;
+mod create_export_request;

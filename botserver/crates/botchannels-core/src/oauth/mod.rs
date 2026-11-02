@@ -130,10 +130,10 @@ pub enum OAuthServiceError {
     ParseError(String),
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
+mod display_name;
+mod is_expired;
+mod encode;
+mod register_credentials;
+mod get_account_by_platform;
+mod social_oauth_service;
+mod oauth_service_error;

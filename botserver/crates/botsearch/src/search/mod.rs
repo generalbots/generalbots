@@ -215,11 +215,11 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
+mod search_source;
+mod default_config;
+mod search;
+mod reindex_source;
+mod fetch_transcriptions_for_indexing;
+mod create_search_index_migration;
 
-pub use part6::*;
+pub use create_search_index_migration::*;

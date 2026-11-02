@@ -82,9 +82,9 @@ pub struct AppLogStore {
 
 pub static APP_LOGS: LazyLock<Arc<AppLogStore>> = LazyLock::new(|| Arc::new(AppLogStore::new()));
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod log_level;
+mod log_source;
+mod app_log_store;
+mod log_generator_info;
 
-pub use part4::*;
+pub use log_generator_info::*;

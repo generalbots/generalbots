@@ -169,14 +169,14 @@ use tokio::sync::Semaphore;
 use crate::shared::DbPool;
 use super::document_processor::TextChunk;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
-mod part9;
+mod set_embedding_server_ready;
+mod from_env;
+mod kb_embedding_generator;
+mod config_read;
+mod generate_local_embeddings;
+mod generate_single_embedding;
+mod generate_text_embedding;
+mod generate_embedding;
+mod subject;
 
-pub use part1::*;
+pub use set_embedding_server_ready::*;

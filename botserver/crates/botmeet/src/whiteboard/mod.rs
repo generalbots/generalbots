@@ -194,11 +194,11 @@ pub struct WhiteboardManager {
     broadcast_channels: Arc<RwLock<HashMap<Uuid, broadcast::Sender<WhiteboardMessage>>>>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod to_rgba;
+mod shape_style;
+mod apply_operation;
+mod create_whiteboard;
+mod handle_whiteboard_socket;
 
-pub use part4::*;
-use part5::*;
+pub use create_whiteboard::*;
+use handle_whiteboard_socket::*;

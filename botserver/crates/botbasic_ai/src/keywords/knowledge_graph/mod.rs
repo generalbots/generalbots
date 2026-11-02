@@ -404,8 +404,8 @@ use std::collections::HashMap;
 use log::info;
 use uuid::Uuid;
 
-mod part1;
-mod part2;
-mod part3;
+mod knowledge_graph_config;
+mod from_config;
+mod register_knowledge_graph_keywords;
 
-pub use part3::*;
+pub use register_knowledge_graph_keywords::*;

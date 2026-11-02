@@ -298,9 +298,9 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod with_thresholds;
+mod alert_message;
+mod quota_manager;
+mod check_and_increment;
 
-pub use part4::*;
+pub use check_and_increment::*;

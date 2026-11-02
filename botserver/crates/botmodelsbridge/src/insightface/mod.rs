@@ -275,13 +275,13 @@ pub enum InsightFaceError {
     IoError(String),
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
-mod part9;
-mod part10;
+mod insight_face_config;
+mod area;
+mod is_frontal;
+mod is_acceptable;
+mod detection_options;
+mod clustering_config;
+mod with_config;
+mod remove_face_from_index;
+mod insight_face_service;
+mod insight_face_error;

@@ -16,8 +16,8 @@ pub(crate) use uuid::Uuid;
 pub(crate) use botsecurity_crypto::encryption::{decrypt_field, derive_scope_key};
 pub use queue_csv::{ find_attendant_by_identifier, find_attendants_by_channel, find_attendants_by_department, is_transfer_enabled, read_attendants_csv, };
 
-mod part1;
-mod part2;
+mod list_queue;
+mod resolve_conversation;
 
-pub use part1::*;
-pub use part2::*;
+pub use list_queue::*;
+pub use resolve_conversation::*;

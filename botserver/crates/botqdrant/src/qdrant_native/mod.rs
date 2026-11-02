@@ -137,14 +137,14 @@ pub struct DeletePointsBuilder {
     points: Vec<PointId>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
-mod part9;
-mod part10;
-mod part11;
+mod from_url;
+mod vector;
+mod vector_params_builder;
+mod distance;
+mod point_struct;
+mod must;
+mod matches;
+mod upsert_points_builder;
+mod filter;
+mod point_id;
+mod points;

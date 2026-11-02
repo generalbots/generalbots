@@ -33,16 +33,16 @@ pub struct DnsRemoveRequest {
     pub id: Option<String>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
+mod html_escape;
+mod handle_calendar_event_save;
+mod handle_autotask_create;
+mod handle_dns_search;
+mod handle_dns_register;
+mod handle_dns_remove;
 
-use part1::*;
-pub use part2::*;
-pub use part3::*;
-pub use part4::*;
-pub use part5::*;
-pub use part6::*;
+use html_escape::*;
+pub use handle_calendar_event_save::*;
+pub use handle_autotask_create::*;
+pub use handle_dns_search::*;
+pub use handle_dns_register::*;
+pub use handle_dns_remove::*;

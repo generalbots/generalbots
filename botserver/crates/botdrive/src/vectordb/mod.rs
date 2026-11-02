@@ -62,13 +62,13 @@ client: Option<Arc<Qdrant>>,
 #[derive(Debug)]
 pub struct FileContentExtractor;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod sanitize_cell_text;
+mod user_id;
+mod search;
+mod extract_text;
+mod extract_pdf_text_sync;
 
 // The extractors only exist with one of these features; without them the glob
 // re-export is empty and unused.
 #[cfg(any(feature = "drive", feature = "sheet"))]
-pub use part5::*;
+pub use extract_pdf_text_sync::*;

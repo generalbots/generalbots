@@ -213,9 +213,9 @@ pub enum MediaUploadError {
     UploadFailed(String),
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
+mod from_str_name;
+mod media_upload_service;
+mod media_upload_service_2;
+mod get_platform_limits;
+mod upload_to_azure_blob;
+mod media_upload_error;

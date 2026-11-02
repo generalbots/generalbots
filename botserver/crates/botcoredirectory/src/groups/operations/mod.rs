@@ -7,10 +7,10 @@ pub(crate) use serde_json;
 pub(crate) use botcore::shared::state::AppState;
 pub(crate) use super::types::*;
 
-mod part1;
-mod part2;
-mod part3;
+mod create_group;
+mod get_group_analytics;
+mod add_group_member;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub use create_group::*;
+pub use get_group_analytics::*;
+pub use add_group_member::*;

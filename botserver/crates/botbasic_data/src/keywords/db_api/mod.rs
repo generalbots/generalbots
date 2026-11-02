@@ -63,14 +63,14 @@ use diesel::sql_query;
 use std::sync::Arc;
 use uuid::Uuid;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod user_roles_from_headers;
+mod configure_db_routes;
+mod create_record_handler;
+mod delete_record_handler;
+mod search_records_handler;
 
-use part1::*;
-pub use part2::*;
-pub use part3::*;
-pub use part4::*;
-pub use part5::*;
+use user_roles_from_headers::*;
+pub use configure_db_routes::*;
+pub use create_record_handler::*;
+pub use delete_record_handler::*;
+pub use search_records_handler::*;

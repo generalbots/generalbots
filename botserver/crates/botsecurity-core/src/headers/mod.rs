@@ -141,7 +141,7 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
+mod strict;
+mod default_src;
 
-pub use part1::*;
+pub use strict::*;

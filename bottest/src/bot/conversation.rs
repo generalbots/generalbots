@@ -126,7 +126,7 @@ pub struct ConversationTest {
     llm_url: Option<String>,
 }
 
-mod part2;
+mod with_context;
 
 #[cfg(test)]
 mod tests {

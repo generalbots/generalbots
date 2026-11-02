@@ -227,10 +227,10 @@ pub enum TwilioError {
     InvalidSignature,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod send_sms;
+mod parse_incoming_webhook;
+mod parse_message_status;
+mod create_twilio_config;
 
-use part3::*;
-pub use part4::*;
+use parse_message_status::*;
+pub use create_twilio_config::*;

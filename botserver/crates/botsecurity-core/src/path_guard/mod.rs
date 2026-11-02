@@ -242,8 +242,8 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod path_guard_error;
+mod permissive;
+mod validate;
 
-pub use part3::*;
+pub use validate::*;

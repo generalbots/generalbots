@@ -223,12 +223,12 @@ pub struct ManifestData {
     pub monitors: Vec<MonitorDefinition>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
+mod section_type;
+mod display_name;
+mod set_current_action;
+mod with_steps;
+mod with_tables;
+mod create_manifest_from_llm_response;
 
-use part4::*;
-pub use part6::*;
+use with_steps::*;
+pub use create_manifest_from_llm_response::*;

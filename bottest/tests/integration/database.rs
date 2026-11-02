@@ -273,4 +273,4 @@ async fn test_json_handling() {
     assert_eq!(parsed["number"], 42);
 }
 
-mod part2;
+mod uuid_result;

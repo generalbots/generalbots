@@ -288,14 +288,14 @@ use uuid::Uuid;
 use crate::shared::state::AppState;
 use crate::shared::utils::DbPool;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
+mod err;
+mod to_invitation;
+mod create_invitation_params;
+mod create_invitation;
+mod resend_invitation;
+mod send_invitation_email;
+mod configure;
+mod validate_invitation;
 
-pub use part7::*;
-use part8::*;
+pub use configure::*;
+use validate_invitation::*;

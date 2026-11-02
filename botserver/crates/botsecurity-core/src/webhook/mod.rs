@@ -394,13 +394,13 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
+mod webhook_config;
+mod is_active;
+mod to_json;
+mod mark_success;
+mod is_valid;
+mod sign_payload;
+mod register_endpoint;
+mod generate_webhook_secret;
 
-pub use part8::*;
+pub use generate_webhook_secret::*;

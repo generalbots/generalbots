@@ -127,6 +127,6 @@ pub struct WebinarService {
     event_sender: broadcast::Sender<super::types::WebinarEvent>,
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod subscribe;
+mod raise_hand;
+mod row_to_webinar;

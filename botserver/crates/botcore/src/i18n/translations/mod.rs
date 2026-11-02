@@ -2,15 +2,15 @@
 
 use super::{t, Locale};
 
-mod part1;
-mod part2;
+mod translation_keys_actions;
+mod translation_keys_common;
 
 /// Every translation key exposed by the API, in catalogue order.
 fn translation_keys() -> impl Iterator<Item = &'static str> {
-    part1::TRANSLATION_KEYS
+    translation_keys_actions::TRANSLATION_KEYS
         .iter()
         .copied()
-        .chain(part2::TRANSLATION_KEYS.iter().copied())
+        .chain(translation_keys_common::TRANSLATION_KEYS.iter().copied())
 }
 
 pub fn get_translations_json(locale: &Locale) -> serde_json::Value {

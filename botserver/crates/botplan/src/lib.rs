@@ -134,8 +134,8 @@ pub struct PlanAiSuggestion {
     pub assignee: Option<String>,
 }
 
-mod lib_part1;
-mod lib_part2;
+mod get_store;
+mod default_status;
 
-pub use lib_part1::*;
-pub use lib_part2::*;
+pub use get_store::*;
+pub use default_status::*;

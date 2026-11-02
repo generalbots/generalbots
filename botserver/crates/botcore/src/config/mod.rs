@@ -83,12 +83,12 @@ pub struct ConfigManager {
 
 pub use AppConfig as Config;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
+mod app_config;
+mod is_valid;
+mod load;
+mod is_placeholder_value;
+mod resolve_bot_identity;
+mod get_bot_config_value;
+mod from_vault;
 
-use part4::*;
+use is_placeholder_value::*;

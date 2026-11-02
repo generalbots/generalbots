@@ -9,10 +9,10 @@ pub(crate) use std::fmt::Write;
 pub(crate) use std::sync::Arc;
 pub(crate) use uuid::Uuid;
 
-mod part1;
-mod part2;
-mod part3;
+mod resolve_bot_id;
+mod handle_query_knowledge_base;
+mod handle_get_stats;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub use resolve_bot_id::*;
+pub use handle_query_knowledge_base::*;
+pub use handle_get_stats::*;

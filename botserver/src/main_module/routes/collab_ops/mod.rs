@@ -57,10 +57,10 @@ pub struct ResolveBody {
 // DB helpers (all return diesel::result::Error so they compose in a txn)
 // ---------------------------------------------------------------------------
 
-mod part1;
-mod part2;
-mod part3;
+mod err;
+mod read_current_version;
+mod list_conflicts;
 
-use part1::*;
-pub use part2::*;
-pub use part3::*;
+use err::*;
+pub use read_current_version::*;
+pub use list_conflicts::*;

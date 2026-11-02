@@ -20,10 +20,10 @@ pub enum RagMode {
 
 const RRF_K: f64 = 60.0;
 
-mod part1;
-mod part2;
-mod part3;
+mod from_label;
+mod reciprocal_rank_fusion;
+mod graph_search;
 
-pub use part1::*;
-use part2::*;
-use part3::*;
+pub use from_label::*;
+use reciprocal_rank_fusion::*;
+use graph_search::*;

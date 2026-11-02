@@ -320,13 +320,13 @@ pub struct CreateTrainingRequest {
     pub certificate_url: Option<String>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
-mod part9;
-mod part10;
+mod err;
+mod compliance_status;
+mod severity;
+mod audit_event_type;
+mod action_result;
+mod risk_category;
+mod treatment_strategy;
+mod risk_status;
+mod training_type;
+mod review_status;

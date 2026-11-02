@@ -58,9 +58,9 @@ pub struct VertexClient {
     token_manager: Arc<tokio::sync::RwLock<Option<Arc<VertexTokenManager>>>>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod get_access_token;
+mod build_vertex_url;
+mod get_auth_header;
+mod generate;
 
-pub use part2::*;
+pub use build_vertex_url::*;

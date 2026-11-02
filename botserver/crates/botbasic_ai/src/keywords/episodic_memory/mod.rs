@@ -218,10 +218,10 @@ pub mod sql {
 use log::info;
 use uuid::Uuid;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod sentiment;
+mod episodic_memory_config;
+mod from_config;
+mod to_dynamic;
 
-pub use part3::*;
-pub use part4::*;
+pub use from_config::*;
+pub use to_dynamic::*;

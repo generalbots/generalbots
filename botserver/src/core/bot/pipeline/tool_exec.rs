@@ -3,10 +3,10 @@ use uuid::Uuid;
 use super::attachments::find_staged_attachment;
 use super::types::SessionIdentity;
 
-mod part1;
-use part1::all_args_are_placeholder;
-pub(crate) use part1::bot_llm_credentials;
-pub use part1::{is_generic_greeting, is_placeholder_value};
+mod is_placeholder_value;
+use is_placeholder_value::all_args_are_placeholder;
+pub(crate) use is_placeholder_value::bot_llm_credentials;
+pub use is_placeholder_value::{is_generic_greeting, is_placeholder_value};
 
 pub async fn run_tool_exec(identity: &SessionIdentity<'_>, tool_name: &str) {
     let SessionIdentity {

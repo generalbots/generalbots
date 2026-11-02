@@ -52,8 +52,8 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
+mod register_search_keyword;
+mod execute_simple_search;
 
-pub use part1::*;
-pub use part2::*;
+pub use register_search_keyword::*;
+pub use execute_simple_search::*;

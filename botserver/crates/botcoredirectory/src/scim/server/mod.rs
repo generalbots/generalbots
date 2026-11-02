@@ -5,8 +5,8 @@ pub(crate) use std::sync::Arc;
 pub(crate) use botcore::shared::state::AppState;
 pub(crate) use super::types::*;
 
-mod part1;
-mod part2;
+mod configure_scim_routes;
+mod delete_user;
 
-pub use part1::*;
-use part2::*;
+pub use configure_scim_routes::*;
+use delete_user::*;

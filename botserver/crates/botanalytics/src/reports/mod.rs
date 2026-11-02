@@ -42,8 +42,8 @@ pub struct ReportQuery {
     pub q: Option<String>,
 }
 
-mod part1;
-mod part2;
+mod count_rows;
+mod billing_payments;
 
-pub use part1::*;
-pub use part2::*;
+pub use count_rows::*;
+pub use billing_payments::*;

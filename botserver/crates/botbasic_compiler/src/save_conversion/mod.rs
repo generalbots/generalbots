@@ -8,8 +8,8 @@ pub(crate) use std::fs;
 pub(crate) use std::path::Path;
 pub(crate) use std::sync::Arc;
 
-mod part1;
-mod part2;
-mod part3;
+mod convert_save_statements;
+mod process_tables_bas;
+mod split_by_commas_outside_parens;
 
-use part3::*;
+use split_by_commas_outside_parens::*;

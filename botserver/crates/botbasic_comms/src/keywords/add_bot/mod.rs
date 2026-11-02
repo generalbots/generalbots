@@ -80,12 +80,12 @@ use std::fmt;
 use std::sync::Arc;
 use uuid::Uuid;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod trigger_type;
+mod from_tools;
+mod register_bot_keywords;
+mod list_bots_keyword;
+mod delegate_to_bot;
 
-pub use part3::*;
-use part4::*;
-pub use part5::*;
+pub use register_bot_keywords::*;
+use list_bots_keyword::*;
+pub use delegate_to_bot::*;

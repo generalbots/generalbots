@@ -280,7 +280,7 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod antivirus_config;
+mod check_windows_defender_status;
+mod run_clamav_scan;
+mod update_definitions;

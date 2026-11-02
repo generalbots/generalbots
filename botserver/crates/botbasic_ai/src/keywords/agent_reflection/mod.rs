@@ -78,15 +78,15 @@ struct ConversationMessage {
 use std::sync::Arc;
 use uuid::Uuid;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
+mod prompt_template;
+mod from_bot_config;
+mod from_llm_response;
+mod reflection_engine;
+mod with_config;
+mod get_insights;
+mod register_reflection_keywords;
+mod read_bot_config_from_vault;
 
-pub use part3::*;
-pub use part7::*;
-use part8::*;
+pub use from_llm_response::*;
+pub use register_reflection_keywords::*;
+use read_bot_config_from_vault::*;

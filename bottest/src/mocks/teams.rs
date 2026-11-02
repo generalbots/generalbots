@@ -193,8 +193,8 @@ pub struct ErrorBody {
     pub message: String,
 }
 
-mod part2;
-mod part3;
+mod default_bot_id;
+mod simulate_reaction;
 
 /// Test-only helper: build an Adaptive Card attachment.
 #[cfg(test)]

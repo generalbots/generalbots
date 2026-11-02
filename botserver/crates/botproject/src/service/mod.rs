@@ -31,6 +31,6 @@ pub struct ProjectService {
     pool: Option<DbPool>,
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod with_pool;
+mod add_dependency;
+mod project_service;

@@ -178,10 +178,10 @@ use std::collections::HashMap;
 use uuid::Uuid;
 use crate::config::ConfigManager;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
+mod from_config;
+mod kb_indexer;
+mod new_with_pool;
+mod ensure_collection_exists;
+mod delete_file_points;
+mod get_collection_info;
+mod process_gbkb_folder;

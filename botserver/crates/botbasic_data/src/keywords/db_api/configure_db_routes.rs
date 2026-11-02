@@ -26,7 +26,7 @@ pub async fn list_records_handler(
         Err(e) => {
             return (
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": botsecurity::error_sanitizer::log_and_sanitize_json(&e, "botbasic_data::keywords::db_api::part2", None) })),
+                Json(json!({ "error": botsecurity::error_sanitizer::log_and_sanitize_json(&e, "botbasic_data::keywords::db_api::configure_db_routes", None) })),
             )
                 .into_response()
         }

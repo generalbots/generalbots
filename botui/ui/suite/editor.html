@@ -93,7 +93,7 @@
             <!-- Editor body: workspace explorer + editing column -->
             <div class="editor-body">
                 <!-- File tree rooted at the project's dev-VM workspace. Populated
-                     by editor-inline.p1.js when opened with a project context; the
+                     by editor-inline-panels.js when opened with a project context; the
                      tree lists the SAME files the LLM edits via chat, so the user
                      can review/edit them before commit (Source Control) or deploy. -->
                 <div class="editor-sidebar" id="editor-sidebar" style="display: none;">
@@ -150,5 +150,5 @@
 
         <div class="gb-state gb-state-loading"><span class="gb-state-msg">Loading editor…</span></div>
 <div class="gb-state gb-state-error"><span class="gb-state-msg">Editor unavailable</span></div>
-<script src="/suite/editor-inline.p1.js?v=3"></script>
-<script src="/suite/editor-inline.p2.js?v=2"></script>
+<script src="/suite/editor-inline-panels.js?v=3"></script>
+<script src="/suite/editor-inline-monaco.js?v=2"></script>

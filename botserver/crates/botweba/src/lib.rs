@@ -129,9 +129,9 @@ pub struct ListQuery {
 #[cfg(test)]
 mod tests;
 
-mod lib_part1;
-mod lib_part2;
-mod lib_part3;
+mod weba_state;
+mod configure_routes;
+mod render_html;
 
-pub use lib_part2::*;
-pub use lib_part3::*;
+pub use configure_routes::*;
+pub use render_html::*;

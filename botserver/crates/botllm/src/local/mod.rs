@@ -13,10 +13,10 @@ pub(crate) use tokio;
 
 static LLAMA_SERVERS_STARTED: AtomicBool = AtomicBool::new(false);
 
-mod part1;
-mod part2;
-mod part3;
+mod model_file_name;
+mod ensure_llama_servers_running;
+mod extract_base_url;
 
-use part1::*;
-pub use part2::*;
-pub use part3::*;
+use model_file_name::*;
+pub use ensure_llama_servers_running::*;
+pub use extract_base_url::*;

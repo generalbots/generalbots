@@ -77,10 +77,10 @@ pub struct MentionNotification {
     pub read: bool,
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod extract_user_from_token;
+mod get_collab_channels;
+mod handle_docs_connection;
 
-use part1::*;
-pub use part2::*;
-pub use part3::*;
+use extract_user_from_token::*;
+pub use get_collab_channels::*;
+pub use handle_docs_connection::*;

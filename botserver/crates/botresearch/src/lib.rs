@@ -111,14 +111,14 @@ pub struct CollectionNameRow {
     pub name: String,
 }
 
-mod lib_part1;
-mod lib_part2;
-mod lib_part3;
-mod lib_part4;
-mod lib_part5;
+mod configure_research_routes;
+mod bot_scope_clause;
+mod handle_search;
+mod handle_prompts;
+mod handle_export_citations;
 
-pub use lib_part1::*;
-pub use lib_part2::*;
-pub use lib_part3::*;
-pub use lib_part4::*;
-pub use lib_part5::*;
+pub use configure_research_routes::*;
+pub use bot_scope_clause::*;
+pub use handle_search::*;
+pub use handle_prompts::*;
+pub use handle_export_citations::*;

@@ -414,9 +414,9 @@ pub struct IncidentResponseService {
     incident_counter: std::sync::atomic::AtomicU64,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
+mod from_label;
+mod is_active;
+mod incident_category;
+mod incident_response_service;
+mod new_incident;
+mod check_sla_breaches;

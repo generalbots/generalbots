@@ -138,14 +138,14 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod register_attendance_keywords;
+mod register_assign_conversation;
+mod get_attendants_impl;
+mod polish_message_impl;
+mod tag_conversation_impl;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
-pub use part4::*;
-pub use part5::*;
+pub use register_attendance_keywords::*;
+pub use register_assign_conversation::*;
+pub use get_attendants_impl::*;
+pub use polish_message_impl::*;
+pub use tag_conversation_impl::*;

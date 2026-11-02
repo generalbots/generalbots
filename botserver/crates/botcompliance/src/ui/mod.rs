@@ -3,10 +3,10 @@ pub(crate) use std::sync::Arc;
 pub(crate) use uuid::Uuid;
 pub(crate) use crate::DbPool;
 
-mod part1;
-mod part2;
-mod part3;
+mod handle_compliance_dashboard_page;
+mod handle_compliance_issues_page;
+mod handle_compliance_framework_page;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub use handle_compliance_dashboard_page::*;
+pub use handle_compliance_issues_page::*;
+pub use handle_compliance_framework_page::*;

@@ -22,14 +22,14 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-mod lib_part1;
-mod lib_part2;
-mod lib_part3;
-mod lib_part4;
-mod lib_part5;
+mod get_default_bot_fn;
+mod org_chart_entry;
+mod list_people;
+mod get_team;
+mod list_time_off;
 
-pub use lib_part1::*;
-pub use lib_part2::*;
-pub use lib_part3::*;
-pub use lib_part4::*;
-pub use lib_part5::*;
+pub use get_default_bot_fn::*;
+pub use org_chart_entry::*;
+pub use list_people::*;
+pub use get_team::*;
+pub use list_time_off::*;

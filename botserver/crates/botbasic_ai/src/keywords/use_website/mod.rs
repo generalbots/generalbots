@@ -33,12 +33,12 @@ mod tests {
 use std::sync::Arc;
 use uuid::Uuid;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod parse_refresh_interval;
+mod register_use_website_function;
+mod check_website_crawl_status;
+mod get_active_websites_for_session;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
-pub use part4::*;
+pub use parse_refresh_interval::*;
+pub use register_use_website_function::*;
+pub use check_website_crawl_status::*;
+pub use get_active_websites_for_session::*;

@@ -6,6 +6,6 @@ pub struct ApiUrls;
 #[derive(Debug)]
 pub struct InternalUrls;
 
-mod part1;
-mod part2;
-mod part3;
+mod users;
+mod whatsapp_send;
+mod botmodels_vision_qrcode;

@@ -32,8 +32,8 @@ message: Option<String>,
 error: Option<String>,
 }
 
-mod part1;
-mod part2;
+mod active_connection_counts;
+mod save_search_settings;
 
-pub use part1::*;
-pub use part2::*;
+pub use active_connection_counts::*;
+pub use save_search_settings::*;

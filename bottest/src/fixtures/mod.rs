@@ -244,8 +244,8 @@ pub enum Priority {
     Urgent = 3,
 }
 
-mod part2;
-pub use part2::*;
+mod queue_status;
+pub use queue_status::*;
 
 #[cfg(test)]
 mod tests {

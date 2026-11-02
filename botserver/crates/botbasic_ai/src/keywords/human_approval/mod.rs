@@ -393,9 +393,9 @@ use std::collections::HashMap;
 use log::info;
 use uuid::Uuid;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod approval_channel;
+mod approval_config;
+mod from_config;
+mod to_dynamic;
 
-pub use part4::*;
+pub use to_dynamic::*;

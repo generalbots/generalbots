@@ -365,16 +365,16 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
-mod part9;
-mod part10;
-mod part11;
+mod security_monitoring_config;
+mod severity;
+mod score;
+mod with_user;
+mod with_country;
+mod is_expired;
+mod with_event;
+mod is_known_ip;
+mod record_event;
+mod is_ip_blocked;
+mod haversine_distance;
 
-use part11::*;
+use haversine_distance::*;

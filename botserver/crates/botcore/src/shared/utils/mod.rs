@@ -21,12 +21,12 @@ struct SecretsManagerVaultProvider(SecretsManager);
 
 pub use botlib::db_pool::DbPool;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod init_secrets_manager;
+mod json_value_to_dynamic;
+mod create_conn;
+mod convert_date_to_iso_format;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
-pub use part4::*;
+pub use init_secrets_manager::*;
+pub use json_value_to_dynamic::*;
+pub use create_conn::*;
+pub use convert_date_to_iso_format::*;

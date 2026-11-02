@@ -130,11 +130,11 @@ pub async fn add_item(
             } else {
                 StatusCode::INTERNAL_SERVER_ERROR
             };
-            Err((status, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botplayer::playlists::part6", None)}))))
+            Err((status, Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botplayer::playlists::update_playlist", None)}))))
         }
         Err(e) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botplayer::playlists::part6", None) })),
+            Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botplayer::playlists::update_playlist", None) })),
         )),
     }
 }

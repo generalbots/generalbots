@@ -321,13 +321,13 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
+mod prompt_security_config;
+mod score;
+mod description;
+mod safe;
+mod output_issue;
+mod build_injection_patterns;
+mod create_safe_prompt;
+mod quick_injection_check;
 
-pub use part8::*;
+pub use quick_injection_check::*;

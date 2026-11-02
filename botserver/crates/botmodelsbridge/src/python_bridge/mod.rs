@@ -197,11 +197,11 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
+mod err;
+mod python_bridge_config;
+mod start;
+mod is_running;
+mod python_face_bridge;
+mod create_python_bridge;
 
-pub use part6::*;
+pub use create_python_bridge::*;

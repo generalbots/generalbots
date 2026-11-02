@@ -177,8 +177,8 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod binary_name;
+mod not_installed;
+mod protection_config;
+mod initialize;
+mod update_definitions;

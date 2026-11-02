@@ -303,11 +303,11 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
+mod session_config;
+mod same_site;
+mod from_user_agent;
+mod with_ip;
+mod create;
+mod create_session;
 
-pub use part6::*;
+pub use create_session::*;

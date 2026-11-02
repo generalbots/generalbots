@@ -364,15 +364,15 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
-mod part9;
-mod part10;
+mod dlp_config;
+mod severity;
+mod score;
+mod dlp_action;
+mod with_confidence;
+mod clean;
+mod with_description;
+mod build_detection_patterns;
+mod redact_content;
+mod extract_context;
 
-pub use part10::*;
+pub use extract_context::*;

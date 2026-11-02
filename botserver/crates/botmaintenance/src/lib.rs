@@ -276,16 +276,16 @@ mod tests {
     }
 }
 
-mod lib_part1;
-mod lib_part2;
-mod lib_part3;
-mod lib_part4;
-mod lib_part5;
-mod lib_part6;
-mod lib_part7;
-mod lib_part8;
-mod lib_part9;
+mod all;
+mod cleanup_config;
+mod cleanup_trigger;
+mod preview_cleanup;
+mod get_storage_usage;
+mod save_cleanup_history;
+mod format_bytes;
+mod create_cleanup_tables_migration;
+mod preview_cleanup_handler;
 
-use lib_part7::*;
-pub use lib_part8::*;
-use lib_part9::*;
+use format_bytes::*;
+pub use create_cleanup_tables_migration::*;
+use preview_cleanup_handler::*;

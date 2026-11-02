@@ -36,8 +36,8 @@ use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
 
-mod part1;
-mod part2;
+mod send_mail_keyword;
+mod execute_send_mail;
 
-pub use part1::*;
-use part2::*;
+pub use send_mail_keyword::*;
+use execute_send_mail::*;

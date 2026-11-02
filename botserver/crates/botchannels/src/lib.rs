@@ -178,9 +178,9 @@ pub struct MultiPostResult {
     pub results: Vec<PostResult>,
 }
 
-mod lib_part1;
-mod lib_part2;
-mod lib_part3;
-mod lib_part4;
-mod lib_part5;
-mod lib_part6;
+mod err;
+mod text;
+mod success;
+mod channel_error;
+mod register_provider;
+mod from_results;

@@ -111,8 +111,8 @@ pub struct BotModelsClient {
     video_config: VideoGeneratorConfig,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod from_provider;
+mod image_generator_config;
+mod video_generator_config;
+mod from_provider_all;
+mod speech_to_text;

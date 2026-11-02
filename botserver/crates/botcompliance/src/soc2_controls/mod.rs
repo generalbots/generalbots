@@ -3,12 +3,12 @@
 
 use crate::soc2::Soc2Control;
 
-mod part1;
-mod part2;
+mod controls;
+mod controls_2;
 
 /// The full default control catalog, both catalogue halves in order.
 pub(crate) fn get_default_controls() -> Vec<Soc2Control> {
-    let mut controls = part1::controls();
-    controls.extend(part2::controls());
+    let mut controls = controls::controls();
+    controls.extend(controls_2::controls());
     controls
 }

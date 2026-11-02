@@ -10,8 +10,8 @@
 
 pub(crate) use serde::{Deserialize, Serialize};
 
-mod part1;
-mod part2;
+mod video_upload_request;
+mod comment_thread;
 
-pub use part1::*;
-pub use part2::*;
+pub use video_upload_request::*;
+pub use comment_thread::*;

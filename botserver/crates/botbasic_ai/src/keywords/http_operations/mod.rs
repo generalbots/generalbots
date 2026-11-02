@@ -14,10 +14,10 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::time::Duration;
 
-mod part1;
-mod part2;
-mod part3;
+mod register_http_operations;
+mod register_set_header_keyword;
+mod execute_graphql;
 
-pub use part1::*;
-pub use part2::*;
-use part3::*;
+pub use register_http_operations::*;
+pub use register_set_header_keyword::*;
+use execute_graphql::*;

@@ -73,15 +73,15 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
+mod is_supported_protocol;
+mod create_connection;
+mod handle_connect;
+mod delete_connection;
+mod router;
+mod from_ref;
 
-use part1::*;
-pub use part2::*;
-pub use part3::*;
-pub use part4::*;
-pub use part5::*;
+use is_supported_protocol::*;
+pub use create_connection::*;
+pub use handle_connect::*;
+pub use delete_connection::*;
+pub use router::*;

@@ -174,6 +174,6 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod azure;
+mod stream_single_attempt;
+mod generate;

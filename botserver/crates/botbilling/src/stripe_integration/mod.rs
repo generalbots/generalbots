@@ -345,7 +345,7 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod stripe_error;
+mod create_customer;
+mod attach_payment_method;
+mod handle_webhook;

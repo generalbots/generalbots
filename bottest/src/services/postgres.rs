@@ -414,7 +414,7 @@ unix_socket_directories = ''
     }
 }
 
-mod part2;
+mod connection_string;
 
 #[cfg(test)]
 mod tests {

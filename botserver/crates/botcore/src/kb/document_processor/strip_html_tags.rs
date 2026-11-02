@@ -177,7 +177,7 @@ impl DocumentProcessor {
             }
 
             if let Some(stream_data) = word_doc_data {
-                let text = super::part5::extract_text_from_word_document(&stream_data);
+                let text = super::extract_text_from_word_document::extract_text_from_word_document(&stream_data);
                 if !text.trim().is_empty() {
                     return Ok(text);
                 }

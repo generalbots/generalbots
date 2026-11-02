@@ -20,7 +20,7 @@ pub struct MinioService {
     secret_key: String,
 }
 
-mod part2;
+mod default_access_key;
 
 #[cfg(test)]
 mod tests {

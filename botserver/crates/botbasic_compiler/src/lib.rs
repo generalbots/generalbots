@@ -59,8 +59,8 @@ pub struct BasicCompiler {
     pub callbacks: CompilerCallbacks,
 }
 
-mod lib_part1;
-mod lib_part2;
-mod lib_part3;
+mod compiler_callbacks;
+mod with_callbacks;
+mod preprocess_basic;
 
 mod re_cache;

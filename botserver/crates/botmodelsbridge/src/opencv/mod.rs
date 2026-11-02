@@ -159,10 +159,10 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod open_cv_detector_config;
+mod open_cv_face_detector;
+mod initialize;
+mod compute_embedding_distance;
+mod create_opencv_detector;
 
-pub use part5::*;
+pub use create_opencv_detector::*;

@@ -209,11 +209,11 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod validation_error;
+mod add_error;
+mod validate_required;
+mod required;
+mod validate_url_ssrf;
 
-pub use part3::*;
-pub use part5::*;
+pub use validate_required::*;
+pub use validate_url_ssrf::*;

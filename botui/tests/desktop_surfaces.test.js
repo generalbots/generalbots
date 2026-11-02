@@ -28,9 +28,11 @@ const product = read("botserver/.product.desktop-local");
 const defaultProduct = read("botserver/.product");
 const chatPartial = read("botui/ui/suite/partials/chat.html");
 const settingsHtml = read("botui/ui/suite/settings/index.html");
-const settingsJs = read("botui/ui/suite/settings/settings.p1.js");
+const settingsJs = read("botui/ui/suite/settings/settings-main.js");
 const catalogTypes = read("botserver/src/apps/integration_catalog/types.rs");
 const llmProviders = read("botserver/src/apps/integration_catalog/providers/llm.rs");
+const cargoToml = read("botserver/Cargo.toml");
+const pipelineExec = read("botserver/src/core/bot/pipeline/exec.rs");
 const desktop = read("botui/ui/suite/desktop.html");
 const taskbarCss = read("botui/ui/suite/css/desktop/taskbar.css");
 const baseJs = read("botui/ui/suite/js/base.js");
@@ -113,6 +115,21 @@ check(/function applyEditionVisibility/.test(settingsJs), "settings has an editi
 check(/\["billing", "vibe", "integrations"\]\.forEach\(hideSettingsSection\)/.test(settingsJs),
   "billing, vibe and integrations are hidden in the slim edition");
 check(/data-admin-only/.test(settingsJs), "administration entries are hidden in the slim edition");
+
+// #1628 — navigation targets exist and the remaining switches are wired.
+const navIds = [...settingsHtml.matchAll(/<a href="#([a-z-]+)"[^>]*class="nav-item/g)].map((m) => m[1]);
+const missingSections = navIds.filter((id) => ["integrations", "about"].indexOf(id) === -1 && settingsHtml.indexOf('id="' + id + "-section\"") === -1);
+check(navIds.length > 5, "settings has a navigation rail");
+check(missingSections.length === 0, "every settings nav item targets a rendered section" + (missingSections.length ? ": " + missingSections.join(", ") : ""));
+check(/window\.selectLanguage = function/.test(settingsJs), "language switch is wired");
+check(/window\.setTheme = function/.test(settingsJs), "theme switch is wired");
+check(/function bindToggles/.test(settingsJs) && /function loadSavedSettings/.test(settingsJs),
+  "preference toggles load and persist");
+
+// #1631 — the web-search switch reaches the pipeline in the slim build.
+check(/web-search = \[[^\]]*dep:botresearch/.test(cargoToml), "web-search feature compiles botresearch");
+check(/desktop-local = \[[\s\S]*?"web-search"/.test(cargoToml), "desktop-local enables web-search");
+check(/any\(feature = "research", feature = "web-search"\)/.test(pipelineExec), "pipeline honours web-search without the Research app");
 
 console.log(`desktop_surfaces: ${passed} passed, ${failed} failed`);
 process.exit(failed === 0 ? 0 : 1);

@@ -287,5 +287,5 @@ async fn test_queue_panel() {
     ctx.close().await;
 }
 
-mod part2;
-mod part3;
+mod lines;
+mod lines_2;

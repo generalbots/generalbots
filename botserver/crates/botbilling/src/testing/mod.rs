@@ -236,11 +236,11 @@ pub enum ExpectedResult {
     Error { code: String },
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod set_should_fail;
+mod cancel_subscription;
+mod generate_stripe_id;
+mod mock_stripe_error;
+mod create_standard_test_scenarios;
 
-use part3::*;
-pub use part5::*;
+use generate_stripe_id::*;
+pub use create_standard_test_scenarios::*;

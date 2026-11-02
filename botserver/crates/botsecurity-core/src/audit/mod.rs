@@ -346,16 +346,16 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
-mod part9;
-mod part10;
-mod part11;
+mod audit_event_category;
+mod category;
+mod audit_severity;
+mod audit_outcome;
+mod user;
+mod with_id;
+mod with_outcome;
+mod audit_config;
+mod with_time_range;
+mod store;
+mod audit_logger;
 
-pub use part11::*;
+pub use audit_logger::*;

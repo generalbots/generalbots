@@ -65,8 +65,8 @@ pub enum TimeSeriesError {
     ConfigError(String),
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod time_series_config;
+mod tag;
+mod write_point;
+mod message;
+mod time_series_error;

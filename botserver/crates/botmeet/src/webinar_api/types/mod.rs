@@ -4,8 +4,8 @@ pub(crate) use std::collections::HashMap;
 pub(crate) use uuid::Uuid;
 pub(crate) use super::constants::MAX_WEBINAR_PARTICIPANTS;
 
-mod part1;
-mod part2;
+mod webinar;
+mod poll_status;
 
-pub use part1::*;
-pub use part2::*;
+pub use webinar::*;
+pub use poll_status::*;

@@ -24,8 +24,8 @@ struct ConnectorRow {
     #[diesel(sql_type = diesel::sql_types::Timestamptz)] updated_at: chrono::DateTime<Utc>,
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod create_connector;
+mod sync_connector;
+mod build_blocking_client;
 
-use part3::*;
+use build_blocking_client::*;

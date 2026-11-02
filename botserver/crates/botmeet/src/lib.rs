@@ -86,12 +86,12 @@ pub struct MuteAllRequest {
     pub room_id: Option<String>,
 }
 
-mod lib_part1;
-mod lib_part2;
-mod lib_part3;
-mod lib_part4;
+mod configure;
+mod voice_start;
+mod handle_meet_join_htmx;
+mod handle_mute_all;
 
-pub use lib_part1::*;
-pub use lib_part2::*;
-pub use lib_part3::*;
-pub use lib_part4::*;
+pub use configure::*;
+pub use voice_start::*;
+pub use handle_meet_join_htmx::*;
+pub use handle_mute_all::*;

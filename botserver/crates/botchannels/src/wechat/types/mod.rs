@@ -8,8 +8,8 @@
 pub(crate) use serde::{Deserialize, Serialize};
 pub(crate) use std::collections::HashMap;
 
-mod part1;
-mod part2;
+mod cached_token;
+mod follower_list_response;
 
-pub use part1::*;
-pub use part2::*;
+pub use cached_token::*;
+pub use follower_list_response::*;

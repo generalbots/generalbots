@@ -48,12 +48,12 @@ pub struct CreateTerminalRequest {
     session_id: Option<String>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod configure_terminal_routes;
+mod take_output_receiver;
+mod create_session;
+mod terminal_ws;
+mod create_terminal;
 
-pub use part1::*;
-pub use part4::*;
-pub use part5::*;
+pub use configure_terminal_routes::*;
+pub use terminal_ws::*;
+pub use create_terminal::*;

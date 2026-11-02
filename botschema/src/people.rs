@@ -339,7 +339,7 @@ diesel::table! {
 }
 
 
-mod part2;
-pub use part2::*;
-mod part3;
-pub use part3::*;
+mod people_skills_tables;
+pub use people_skills_tables::*;
+mod marketing_campaign_events_tables;
+pub use marketing_campaign_events_tables::*;

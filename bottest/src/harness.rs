@@ -340,10 +340,10 @@ impl Insertable for Customer {
     }
 }
 
-mod part2;
-pub use part2::*;
-mod part3;
-pub use part3::*;
+mod bot_server_instance;
+pub use bot_server_instance::*;
+mod start;
+pub use start::*;
 
 #[cfg(test)]
 mod tests {

@@ -17,8 +17,8 @@ pub(crate) use uuid::Uuid;
 pub(crate) use crate::api::{base64_url_decode, get_branch_id_from_jwt, is_super_admin};
 pub(crate) use crate::SaasService;
 
-mod part1;
-mod part2;
+mod jwt_email;
+mod set_default_payment_card;
 
-pub use part1::*;
-pub use part2::*;
+pub use jwt_email::*;
+pub use set_default_payment_card::*;

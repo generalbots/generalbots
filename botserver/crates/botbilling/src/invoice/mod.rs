@@ -249,7 +249,7 @@ pub enum InvoiceError {
     PdfGenerationError(String),
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod with_tax_id;
+mod add_line_item;
+mod generate_invoice_html;
+mod invoice_error;

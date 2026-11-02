@@ -125,11 +125,11 @@ mod booking_persistence_tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod create_event;
+mod book_keyword;
+mod execute_book_meeting;
+mod resolve_event_scope;
 
-pub use part2::*;
-use part3::*;
-use part4::*;
+pub use book_keyword::*;
+use execute_book_meeting::*;
+use resolve_event_scope::*;

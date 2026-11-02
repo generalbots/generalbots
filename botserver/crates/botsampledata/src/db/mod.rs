@@ -29,12 +29,12 @@ struct UuidRowNamed {
     id: Uuid,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod seed;
+mod seed_people;
+mod seed_calendar;
+mod seed_social;
 
-pub use part1::*;
-use part2::*;
-use part3::*;
-use part4::*;
+pub use seed::*;
+use seed_people::*;
+use seed_calendar::*;
+use seed_social::*;

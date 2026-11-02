@@ -122,10 +122,10 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod default_project_id;
+mod sanitize_api_base;
+mod create_user_with_phone;
+mod search_users_by_metadata;
+mod set_user_password;
 
-use part1::*;
+use default_project_id::*;

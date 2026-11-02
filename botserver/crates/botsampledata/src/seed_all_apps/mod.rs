@@ -25,8 +25,8 @@ pub(crate) use diesel::sql_types::{Integer, Nullable, Text, Uuid as SqlUuid};
 pub(crate) use uuid::Uuid;
 pub(crate) use super::db::Scopes;
 
-mod part1;
-mod part2;
+mod count;
+mod seed_sales;
 
-pub use part1::*;
-use part2::*;
+pub use count::*;
+use seed_sales::*;

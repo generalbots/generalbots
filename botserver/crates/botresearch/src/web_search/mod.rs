@@ -96,10 +96,10 @@ pub struct SearchHistoryQuery {
     pub per_page: Option<i32>,
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod configure_web_search_routes;
+mod handle_search_history;
+mod parse_duckduckgo_html;
 
-pub use part1::*;
-pub use part2::*;
-use part3::*;
+pub use configure_web_search_routes::*;
+pub use handle_search_history::*;
+use parse_duckduckgo_html::*;

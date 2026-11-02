@@ -10,10 +10,10 @@ pub(crate) use crate::ComplianceError;
 
 const BRANCH_ID_PLACEHOLDER: Uuid = Uuid::nil();
 
-mod part1;
-mod part2;
-mod part3;
+mod handle_list_checks;
+mod handle_list_audit_logs;
+mod handle_get_report;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub use handle_list_checks::*;
+pub use handle_list_audit_logs::*;
+pub use handle_get_report::*;

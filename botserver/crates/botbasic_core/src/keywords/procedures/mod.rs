@@ -19,10 +19,10 @@ pub struct ProcedureDefinition {
 static PROCEDURES: std::sync::LazyLock<Arc<Mutex<HashMap<String, ProcedureDefinition>>>> =
     std::sync::LazyLock::new(|| Arc::new(Mutex::new(HashMap::new())));
 
-mod part1;
-mod part2;
-mod part3;
+mod register_procedure_keywords;
+mod register_call_keyword;
+mod preprocess_calls;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub use register_procedure_keywords::*;
+pub use register_call_keyword::*;
+pub use preprocess_calls::*;

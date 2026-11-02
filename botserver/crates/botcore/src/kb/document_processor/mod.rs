@@ -19,9 +19,9 @@ pub struct DocumentProcessor {
 }
 
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod document_processor;
+mod chunk_size;
+mod strip_html_tags;
+mod fallback_text_extraction;
+mod extract_text_from_word_document;
 

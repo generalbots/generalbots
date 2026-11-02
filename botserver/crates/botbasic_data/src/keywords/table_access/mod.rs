@@ -199,8 +199,8 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod with_user_id;
+mod can_read;
+mod load_table_access_info;
 
-pub use part3::*;
+pub use load_table_access_info::*;

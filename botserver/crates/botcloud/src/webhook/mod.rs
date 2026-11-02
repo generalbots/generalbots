@@ -12,8 +12,8 @@ pub(crate) use std::sync::Arc;
 pub(crate) use uuid::Uuid;
 pub(crate) use crate::{integration, notifier, SaasService};
 
-mod part1;
-mod part2;
+mod configure_webhook_routes;
+mod process_invoice_paid;
 
-pub use part1::*;
-use part2::*;
+pub use configure_webhook_routes::*;
+use process_invoice_paid::*;

@@ -183,7 +183,7 @@ theme=dark
     }
 }
 
-mod part1;
-mod part2;
+mod load;
+mod get_product_name;
 
-pub use part2::*;
+pub use get_product_name::*;

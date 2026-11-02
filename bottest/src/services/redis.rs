@@ -16,7 +16,7 @@ pub struct RedisService {
     password: Option<String>,
 }
 
-mod part2;
+mod start;
 
 #[cfg(test)]
 mod tests {

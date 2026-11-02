@@ -71,8 +71,8 @@ struct ActivityStatsRow {
     _days_tracked: i64,
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod track_usage;
+mod update_settings;
+mod handle_track_usage;
 
-pub use part3::*;
+pub use handle_track_usage::*;

@@ -208,12 +208,12 @@ struct MsProjectAssignment {
 #[derive(Default)]
 pub struct ProjectImportService;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
+mod import_options;
+mod parse_ms_date;
+mod import;
+mod import_ms_project_xml;
+mod import_ms_project_mpp;
+mod parse_date_flexible;
 
-use part2::*;
-use part6::*;
+use parse_ms_date::*;
+use parse_date_flexible::*;

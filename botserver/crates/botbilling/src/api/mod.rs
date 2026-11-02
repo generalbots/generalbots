@@ -12,10 +12,10 @@ pub struct BillingApiState {
     pub get_default_bot: Option<GetDefaultBotFn>,
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod create_invoice;
+mod record_payment;
+mod accept_quote;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub use create_invoice::*;
+pub use record_payment::*;
+pub use accept_quote::*;

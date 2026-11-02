@@ -169,11 +169,11 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod sanitized_api_base;
+mod to_authenticated_user;
+mod authenticate_request;
+mod get_service_token;
+mod base64_url_decode;
 
-use part2::*;
-use part5::*;
+use to_authenticated_user::*;
+use base64_url_decode::*;

@@ -123,18 +123,18 @@ struct AnalyticsRow {
     watch_seconds: i64,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
+mod db_err;
+mod default_visibility;
+mod default_event_type;
+mod resolve_branch;
+mod into_summary;
+mod update_playlist;
+mod remove_item;
 
-use part1::*;
-use part2::*;
-use part3::*;
-pub use part4::*;
-pub use part5::*;
-pub use part6::*;
-pub use part7::*;
+use db_err::*;
+use default_visibility::*;
+use default_event_type::*;
+pub use resolve_branch::*;
+pub use into_summary::*;
+pub use update_playlist::*;
+pub use remove_item::*;

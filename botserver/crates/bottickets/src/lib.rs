@@ -273,14 +273,14 @@ pub struct AiSuggestion {
     pub reasoning: String,
 }
 
-mod lib_part1;
-mod lib_part2;
-mod lib_part3;
-mod lib_part4;
-mod lib_part5;
+mod get_bot_context;
+mod change_status;
+mod list_categories;
+mod list_activities;
+mod ai_suggest_for_ticket;
 
-pub use lib_part1::*;
-pub use lib_part2::*;
-pub use lib_part3::*;
-pub use lib_part4::*;
-pub use lib_part5::*;
+pub use get_bot_context::*;
+pub use change_status::*;
+pub use list_categories::*;
+pub use list_activities::*;
+pub use ai_suggest_for_ticket::*;

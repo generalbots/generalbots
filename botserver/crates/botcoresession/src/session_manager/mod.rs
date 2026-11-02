@@ -23,6 +23,6 @@ pub struct SessionManager {
     redis: Option<Arc<Client>>,
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod session_manager;
+mod with_key;
+mod get_conversation_history;

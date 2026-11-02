@@ -64,11 +64,11 @@ pub struct SmsSendResult {
 use std::sync::Arc;
 use uuid::Uuid;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod sms_priority;
+mod register_sms_keywords;
+mod register_send_sms_full_keyword;
+mod send_via_twilio;
 
-pub use part2::*;
-pub use part3::*;
-use part4::*;
+pub use register_sms_keywords::*;
+pub use register_send_sms_full_keyword::*;
+use send_via_twilio::*;

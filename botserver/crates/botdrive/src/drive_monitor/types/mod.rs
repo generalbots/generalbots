@@ -55,17 +55,17 @@ pub struct DriveMonitor {
     pub file_repo: Arc<DriveFileRepository>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
+mod normalize_etag;
+mod start_monitoring;
+mod index_kb_file;
+mod start_kb_processor;
+mod classify_file;
+mod parse_kb_path;
+mod drive_monitor_params;
 
-pub use part1::*;
-pub use part7::DriveMonitorParams;
-use part5::*;
-// `part6` only defines `parse_kb_path`, which is behind these features.
+pub use normalize_etag::*;
+pub use drive_monitor_params::DriveMonitorParams;
+use classify_file::*;
+// `parse_kb_path` only defines `parse_kb_path`, which is behind these features.
 #[cfg(any(feature = "research", feature = "llm"))]
-use part6::*;
+use parse_kb_path::*;

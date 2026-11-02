@@ -149,10 +149,10 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod display_name;
+mod app;
+mod with_icon;
+mod get_all_items;
+mod get_docs_paper_clarification;
 
-pub use part5::*;
+pub use get_docs_paper_clarification::*;

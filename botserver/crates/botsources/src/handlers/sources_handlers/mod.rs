@@ -36,10 +36,10 @@ pub struct InstallSkillRequest {
     pub bot_id: Option<String>,
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod handle_list_repositories;
+mod handle_models;
+mod handle_install_skill;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub use handle_list_repositories::*;
+pub use handle_models::*;
+pub use handle_install_skill::*;

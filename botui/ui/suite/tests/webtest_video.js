@@ -535,7 +535,7 @@ const TESTS = [
     desc: "Settings HTML has preview toggle wired to GBPreviewMode",
     run: async (page) => {
       await loadHarness(page);
-      const steps = ["Fetch settings/index.html", "Find #settings-preview-toggle", "Check JS wiring in settings.p1.js"];
+      const steps = ["Fetch settings/index.html", "Find #settings-preview-toggle", "Check JS wiring in settings-main.js"];
       await page.evaluate(overlayScript("TC13", "Settings Toggle", "Preview mode toggle must exist and be wired in settings", steps));
       await page.waitForTimeout(W);
 
@@ -552,7 +552,7 @@ const TESTS = [
 
       await page.evaluate(activateStep(2));
       await page.waitForTimeout(300);
-      const js = await page.evaluate(async () => await (await fetch("/suite/settings/settings.p1.js?_=" + Date.now())).text());
+      const js = await page.evaluate(async () => await (await fetch("/suite/settings/settings-main.js?_=" + Date.now())).text());
       const wired = js.includes("togglePreviewMode") && js.includes("gb-preview-changed");
       await page.evaluate(completeStep(2, wired));
 

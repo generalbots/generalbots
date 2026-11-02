@@ -86,11 +86,11 @@ pub struct PinningStats {
     pub report_only: bool,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
+mod strict;
+mod backup;
+mod success;
+mod default_manager;
+mod get_stats;
+mod compute_spki_fingerprint;
 
-pub use part6::*;
+pub use compute_spki_fingerprint::*;

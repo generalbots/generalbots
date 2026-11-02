@@ -114,12 +114,12 @@ struct ErrorResponse {
     error_description: String,
 }
 
-mod part2;
-mod part3;
+mod start;
+mod expect_invalid_client;
 
 #[cfg(test)]
 mod tests {
-    use super::part3::base64_url_encode;
+    use super::expect_invalid_client::base64_url_encode;
     use super::*;
 
     #[test]

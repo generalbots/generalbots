@@ -23,12 +23,12 @@ use serde_json::json;
 use std::sync::Arc;
 use reqwest::Client;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod send_message;
+mod instagram_adapter;
+mod register_universal_messaging;
+mod send_file_to_recipient;
+mod send_web_message;
 
-pub use part3::*;
-use part4::*;
-use part5::*;
+pub use register_universal_messaging::*;
+use send_file_to_recipient::*;
+use send_web_message::*;

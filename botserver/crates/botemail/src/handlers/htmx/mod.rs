@@ -45,12 +45,12 @@ pub struct RuleRow {
 
 use axum::http::StatusCode;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod list_emails_htmx;
+mod list_labels_htmx;
+mod list_templates_htmx;
+mod search_emails_htmx;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
-pub use part4::*;
+pub use list_emails_htmx::*;
+pub use list_labels_htmx::*;
+pub use list_templates_htmx::*;
+pub use search_emails_htmx::*;

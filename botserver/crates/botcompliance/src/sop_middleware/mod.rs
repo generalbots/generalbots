@@ -146,11 +146,11 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
+mod with_severity;
+mod sop_search_query;
+mod sop_logger;
+mod with_max_entries;
+mod search;
+mod categorize_request;
 
-pub use part6::*;
+pub use categorize_request::*;

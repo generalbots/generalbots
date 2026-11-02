@@ -14,6 +14,6 @@ pub struct CanvasService {
     event_sender: broadcast::Sender<CanvasEvent>,
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod subscribe;
+mod group_elements;
+mod generate_html;

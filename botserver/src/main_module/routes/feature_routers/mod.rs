@@ -29,16 +29,16 @@ struct DefaultBotRow {
 }
 
 #[cfg(any(feature = "paper", feature = "designer", feature = "dashboards", feature = "canvas", feature = "social", feature = "billing", feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
-mod part1;
+mod resolve_default_branch;
 #[cfg(any(feature = "paper", feature = "designer", feature = "dashboards", feature = "canvas", feature = "social", feature = "billing", feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
-pub(crate) use part1::*;
+pub(crate) use resolve_default_branch::*;
 
 #[cfg(any(feature = "paper", feature = "designer", feature = "dashboards", feature = "canvas", feature = "social", feature = "billing", feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
-mod part2;
+mod resolve_default_bot_id;
 #[cfg(any(feature = "paper", feature = "designer", feature = "dashboards", feature = "canvas", feature = "social", feature = "billing", feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
-pub(crate) use part2::*;
+pub(crate) use resolve_default_bot_id::*;
 
 #[cfg(any(feature = "paper", feature = "designer", feature = "dashboards", feature = "canvas", feature = "social", feature = "billing", feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
-mod part3;
+mod make_saas_router;
 #[cfg(any(feature = "paper", feature = "designer", feature = "dashboards", feature = "canvas", feature = "social", feature = "billing", feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
-pub(crate) use part3::*;
+pub(crate) use make_saas_router::*;

@@ -95,12 +95,12 @@ function closeModal(id) {
 }
 ";
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod create_site_keyword;
+mod create_site;
+mod resolve_site_location;
+mod reexport_create_site_keyword;
 
-pub use part1::*;
-use part2::*;
-use part3::*;
-pub use part4::*;
+pub use create_site_keyword::*;
+use create_site::*;
+use resolve_site_location::*;
+pub use reexport_create_site_keyword::*;

@@ -72,7 +72,7 @@ pub struct PasswordHasher2 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::part5::*;
+    use super::verify::*;
 
     #[test]
     fn test_hash_and_verify() {
@@ -186,11 +186,11 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
+mod password_config;
+mod high_security;
+mod score;
+mod message;
+mod verify;
+mod calculate_strength;
 
-pub use part6::*;
+pub use calculate_strength::*;

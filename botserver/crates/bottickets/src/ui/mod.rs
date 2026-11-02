@@ -25,12 +25,12 @@ pub struct AiSuggestForm {
     pub description: Option<String>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod html_escape;
+mod handle_tickets_cards;
+mod handle_stats_by_status;
+mod handle_ai_suggest;
 
-pub use part1::*;
-use part2::*;
-use part3::*;
-use part4::*;
+pub use html_escape::*;
+use handle_tickets_cards::*;
+use handle_stats_by_status::*;
+use handle_ai_suggest::*;

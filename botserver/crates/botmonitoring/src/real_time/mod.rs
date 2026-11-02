@@ -183,7 +183,7 @@ pub struct MetricsCollector {
     start_time: DateTime<Utc>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod evaluate;
+mod subscribe;
+mod update_system_health;
+mod start_background_collection;

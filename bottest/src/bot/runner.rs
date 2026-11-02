@@ -107,9 +107,9 @@ pub struct LogEntry {
     pub context: HashMap<String, String>,
 }
 
-mod part2;
-mod part3;
-pub use part3::*;
+mod with_config;
+mod session_info;
+pub use session_info::*;
 
 #[cfg(test)]
 mod tests {

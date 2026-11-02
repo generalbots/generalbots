@@ -24,10 +24,10 @@ pub enum BotAccessDenial {
     Internal(String),
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod load_template_from_directory;
+mod get_public_bot_config;
+mod check_bot_access;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub use load_template_from_directory::*;
+pub use get_public_bot_config::*;
+pub use check_bot_access::*;

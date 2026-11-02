@@ -229,8 +229,8 @@ pub const SERVICE_MAP: &[(&str, &str, &str, u16, u16)] = &[
     ("llm",       "models",    "10.0.0.16", 8081, 8082),
 ];
 
-mod part2;
-mod part3;
-mod part4;
+mod configure_iptables_nat;
+mod bootstrap_container_inner;
+mod bootstrap_tenant;
 
-pub use part4::*;
+pub use bootstrap_tenant::*;

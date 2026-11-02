@@ -104,18 +104,18 @@ struct TicketRow {
     priority: String,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
+mod is_api_call_trigger;
+mod commands_list;
+mod find_api_entries;
+mod execute_command;
+mod branch_scope;
+mod list_people;
+mod archive_drive_files;
 
-pub use part1::*;
-pub use part2::*;
-use part3::*;
-pub use part4::*;
-pub(crate) use part5::*;
-use part6::*;
-use part7::*;
+pub use is_api_call_trigger::*;
+pub use commands_list::*;
+use find_api_entries::*;
+pub use execute_command::*;
+pub(crate) use branch_scope::*;
+use list_people::*;
+use archive_drive_files::*;

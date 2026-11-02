@@ -117,14 +117,14 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod predeclare_variables;
+mod convert_if_then_syntax;
+mod convert_while_wend_syntax;
+mod convert_multiword_keywords;
+mod unquote;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
-pub use part4::*;
-pub use part5::*;
+pub use predeclare_variables::*;
+pub use convert_if_then_syntax::*;
+pub use convert_while_wend_syntax::*;
+pub use convert_multiword_keywords::*;
+pub use unquote::*;

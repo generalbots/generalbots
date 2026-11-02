@@ -112,15 +112,15 @@ use std::sync::Arc;
 // Stub register function — app_server provides Axum route handlers, not Rhai keywords.
 // The routes are configured via configure_app_server_routes() at the botserver layer.
 
-mod part1;
-mod part2;
-mod part3;
+mod serve_suite_js_file;
+mod serve_app_index;
+mod register_app_server_keywords;
 
-pub use part1::*;
-// part2's handlers only exist when the Vibe app server is not compiled in; its
+pub use serve_suite_js_file::*;
+// serve_app_index's handlers only exist when the Vibe app server is not compiled in; its
 // helpers must stay in scope either way.
 #[cfg(not(feature = "vibe"))]
-pub use part2::*;
+pub use serve_app_index::*;
 #[cfg(feature = "vibe")]
-use part2::*;
-pub use part3::*;
+use serve_app_index::*;
+pub use register_app_server_keywords::*;

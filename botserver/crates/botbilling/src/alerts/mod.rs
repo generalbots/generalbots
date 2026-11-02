@@ -162,20 +162,20 @@ pub enum NotificationError {
     DeliveryFailed(String),
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
-mod part9;
-mod part10;
-mod part11;
-mod part12;
-mod part13;
-mod part14;
-mod part15;
+mod get_severity;
+mod emoji;
+mod generate_message;
+mod notification_channel;
+mod with_pool;
+mod persist_history;
+mod alert_manager;
+mod should_notify;
+mod is_active;
+mod iter_metrics;
+mod from_alert;
+mod channel;
+mod with_broadcast;
+mod alert_error;
+mod format_bytes;
 
-pub use part15::*;
+pub use format_bytes::*;

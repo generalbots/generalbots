@@ -120,10 +120,10 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod list_objectives;
+mod update_key_result;
+mod ai_suggest;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub use list_objectives::*;
+pub use update_key_result::*;
+pub use ai_suggest::*;

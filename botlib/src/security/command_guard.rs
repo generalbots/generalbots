@@ -357,7 +357,7 @@ impl SafeCommand {
 
 }
 
-mod part2;
+mod execute_async;
 
 #[cfg(test)]
 #[path = "command_guard_tests.rs"]

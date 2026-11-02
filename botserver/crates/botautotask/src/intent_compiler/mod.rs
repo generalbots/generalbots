@@ -162,9 +162,9 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod compile_prompt;
+mod state;
+mod extract_json_object;
 
-pub use part1::*;
-use part3::*;
+pub use compile_prompt::*;
+use extract_json_object::*;

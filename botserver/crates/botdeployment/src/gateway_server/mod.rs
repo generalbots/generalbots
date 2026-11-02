@@ -34,12 +34,12 @@ pub struct ContainerInfo {
     pub url: String,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod published_domain;
+mod gateway_state;
+mod container_registry;
+mod configure_gateway_routes;
+mod deploy_to_caddy;
 
-pub(crate) use part1::*;
-pub use part4::*;
-use part5::*;
+pub(crate) use published_domain::*;
+pub use configure_gateway_routes::*;
+use deploy_to_caddy::*;

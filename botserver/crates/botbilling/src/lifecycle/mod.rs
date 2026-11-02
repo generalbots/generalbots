@@ -143,10 +143,10 @@ pub enum LifecycleError {
     BillingError(String),
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod create_subscription;
+mod reactivate_subscription;
+mod record_event;
+mod subscription_lifecycle_service;
+mod process_expiring_subscriptions;
 
-pub use part5::*;
+pub use process_expiring_subscriptions::*;

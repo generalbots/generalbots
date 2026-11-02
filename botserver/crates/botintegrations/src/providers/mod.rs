@@ -301,8 +301,8 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
+mod outcome_key_is_sensitive;
+mod scrub_embedded_tokens;
 
-use part1::*;
-pub use part2::*;
+use outcome_key_is_sensitive::*;
+pub use scrub_embedded_tokens::*;

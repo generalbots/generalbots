@@ -220,15 +220,15 @@ pub enum IntentType {
     Query = 8,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
-mod part9;
-mod part10;
-mod part11;
-mod part12;
+mod to_sql;
+mod from_sql;
+mod message_type;
+mod llm_provider;
+mod context_provider;
+mod err;
+mod task_priority;
+mod execution_mode;
+mod risk_level;
+mod approval_status;
+mod approval_decision;
+mod intent_type;

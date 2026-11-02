@@ -14,12 +14,12 @@ const DEFAULT_ORG_ID: Uuid = Uuid::from_u128(1);
 const DEFAULT_BRANCH_ID: Uuid = Uuid::from_u128(1);
 const DEFAULT_BOT_ID: Uuid = Uuid::from_u128(1);
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod start_drive_monitors;
+mod ensure_org_branches_schema;
+mod process_org_bucket;
+mod ensure_tenant_and_org;
 
-pub(crate) use part1::*;
-use part2::*;
-use part3::*;
-pub(crate) use part4::*;
+pub(crate) use start_drive_monitors::*;
+use ensure_org_branches_schema::*;
+use process_org_bucket::*;
+pub(crate) use ensure_tenant_and_org::*;

@@ -5,10 +5,10 @@ pub(crate) use axum::{ extract::{Form, Json, Path, Query, State}, http::StatusCo
 pub(crate) use std::fmt::Write;
 pub(crate) use std::sync::Arc;
 
-mod part1;
-mod part2;
-mod part3;
+mod handle_list_mcp_servers_json;
+mod handle_disable_mcp_server;
+mod handle_add_from_catalog;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub use handle_list_mcp_servers_json::*;
+pub use handle_disable_mcp_server::*;
+pub use handle_add_from_catalog::*;

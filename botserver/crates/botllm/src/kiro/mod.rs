@@ -123,8 +123,8 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod kiro_model_id;
+mod emit_stream;
+mod find_json_end;
 
-use part3::*;
+use find_json_end::*;

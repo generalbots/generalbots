@@ -232,14 +232,14 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
+mod encryption_config;
+mod encryption_algorithm;
+mod to_string_compact;
+mod generate;
+mod initialize;
+mod derive_key_from_password;
+mod master_key_lock;
 
-use part5::*;
-pub use part6::*;
-pub use part7::*;
+use initialize::*;
+pub use derive_key_from_password::*;
+pub use master_key_lock::*;

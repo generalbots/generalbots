@@ -6,7 +6,7 @@
  * `.queue-list` / `.conversation-messages` (which do not exist in index.html) and
  * opened a second, misconfigured WebSocket to `/api/attendance/ws` has been removed.
  * The real initialisation and the single canonical WebSocket connection are owned by
- * attendant.p4.js (variable `ws`, connected with `?attendant_id=...&token=...`).
+ * attendant-websocket.js (variable `ws`, connected with `?attendant_id=...&token=...`).
  */
 
 if (window.GBAppLifecycle) GBAppLifecycle.begin("attendant");

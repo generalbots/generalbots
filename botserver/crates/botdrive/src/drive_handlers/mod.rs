@@ -71,20 +71,20 @@ struct PublicLinkRow {
     revoked: bool,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
+mod cached_quota;
+mod list_files;
+mod move_file;
+mod delete_bot;
+mod list_trash;
+mod ai_chat_handler;
+mod public_link_url;
+mod version_list_body;
 
-use part1::*;
-pub use part2::*;
-pub use part3::*;
-pub use part4::*;
-pub use part5::*;
-pub use part6::*;
-pub use part7::*;
-pub use part8::*;
+use cached_quota::*;
+pub use list_files::*;
+pub use move_file::*;
+pub use delete_bot::*;
+pub use list_trash::*;
+pub use ai_chat_handler::*;
+pub use public_link_url::*;
+pub use version_list_body::*;

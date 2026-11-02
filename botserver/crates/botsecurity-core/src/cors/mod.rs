@@ -25,7 +25,7 @@ pub struct OriginValidator {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use super::part3::*;
+    use super::allow_origin::*;
 
     #[test]
     fn test_default_config() {
@@ -147,9 +147,9 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod from_config_value;
+mod set_cors_allowed_origins;
+mod allow_origin;
 
-use part1::*;
-pub use part2::*;
+use from_config_value::*;
+pub use set_cors_allowed_origins::*;

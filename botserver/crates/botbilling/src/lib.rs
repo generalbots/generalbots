@@ -23,10 +23,10 @@ pub mod server_capacity;
 pub mod stripe_integration;
 pub mod testing;
 
-mod lib_part1;
-mod lib_part2;
+mod billing_alert_notification;
+mod default_product_config;
 #[cfg(test)]
 mod lib_tests;
 
-pub use lib_part1::*;
-pub use lib_part2::*;
+pub use billing_alert_notification::*;
+pub use default_product_config::*;

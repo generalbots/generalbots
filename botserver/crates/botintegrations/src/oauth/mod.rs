@@ -38,10 +38,10 @@ pub struct CallbackQuery {
     error: Option<String>,
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod provider_config;
+mod build_authorize_url;
+mod callback;
 
-pub(crate) use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub(crate) use provider_config::*;
+pub use build_authorize_url::*;
+pub use callback::*;

@@ -20,10 +20,10 @@ pub struct CreateOrgRequest {
     pub slug: Option<String>,
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod handle_get_organization;
+mod handle_office365_migration;
+mod handle_create_organization;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub use handle_get_organization::*;
+pub use handle_office365_migration::*;
+pub use handle_create_organization::*;

@@ -18,11 +18,11 @@ use botlib::security::command_guard::SafeCommand;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
+mod safe_sh_command;
+mod with_base_path;
+mod fetch_vault_credentials;
+mod initialize_vault_local;
+mod seed_vault_defaults;
+mod unseal_vault;
 
-use part1::*;
+use safe_sh_command::*;

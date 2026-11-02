@@ -39,10 +39,10 @@ pub(crate) use crate::keywords::file_ops::pdf::*;
 pub(crate) use crate::keywords::file_ops::transfer::*;
 pub(crate) use crate::keywords::file_ops::utils::dynamic_to_file_data;
 
-mod part1;
-mod part2;
-mod part3;
+mod trap_or_raise;
+mod register_copy_keyword;
+mod register_extract_keyword;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub use trap_or_raise::*;
+pub use register_copy_keyword::*;
+pub use register_extract_keyword::*;

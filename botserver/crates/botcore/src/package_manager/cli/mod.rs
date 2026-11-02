@@ -13,16 +13,16 @@ use rand::Rng;
 use std::collections::HashMap;
 use std::env;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
+mod safe_pkill;
+mod cli_run;
+mod print_usage;
+mod vault_put;
+mod rotate_secret;
+mod rotate_all_secrets;
 
-use part1::*;
-pub use part2::*;
-use part3::*;
-use part4::*;
-use part5::*;
-use part6::*;
+use safe_pkill::*;
+pub use cli_run::*;
+use print_usage::*;
+use vault_put::*;
+use rotate_secret::*;
+use rotate_all_secrets::*;

@@ -326,5 +326,5 @@ diesel::table! {
     }
 }
 
-mod part2;
-pub use part2::*;
+mod rbac_roles_tables;
+pub use rbac_roles_tables::*;

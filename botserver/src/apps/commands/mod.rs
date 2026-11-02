@@ -16,10 +16,10 @@
 
 pub(crate) use serde::Serialize;
 
-mod part1;
-mod part2;
-mod part3;
+mod app_command;
+mod app_deep_links;
+mod deep_link_params_for_app;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
+pub use app_command::*;
+pub use app_deep_links::*;
+pub use deep_link_params_for_app::*;

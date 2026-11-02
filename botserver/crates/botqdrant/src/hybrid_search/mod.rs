@@ -100,10 +100,10 @@ pub struct QueryDecomposer {
     api_key: String,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod from_bot_config;
+mod add_document;
+mod index_document;
+mod upsert_to_qdrant;
+mod decompose;
 
-use part5::*;
+use decompose::*;

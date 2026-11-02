@@ -151,11 +151,11 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
+mod expose_secret;
+mod expose_secret_mut;
+mod expose_key;
+mod from_url;
+mod algorithm;
+mod add_api_key;
 
-pub use part6::*;
+pub use add_api_key::*;

@@ -64,12 +64,12 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod register_think_kb_keyword;
+mod get_user_group_ids;
+mod get_accessible_kb_collections;
+mod think_kb_search;
 
-pub use part1::*;
-use part2::*;
-use part3::*;
-use part4::*;
+pub use register_think_kb_keyword::*;
+use get_user_group_ids::*;
+use get_accessible_kb_collections::*;
+use think_kb_search::*;

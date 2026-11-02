@@ -55,10 +55,10 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use uuid::Uuid;
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
+mod start;
+mod do_crawl_website;
+mod sanitize_url_for_kb;
+mod ensure_crawler_service_running;
 
-pub use part3::*;
-pub use part4::*;
+pub use sanitize_url_for_kb::*;
+pub use ensure_crawler_service_running::*;

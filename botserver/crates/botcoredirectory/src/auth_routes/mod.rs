@@ -127,20 +127,20 @@ pub struct BootstrapResponse {
     pub organization_id: Option<String>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
+mod session_expired;
+mod set_session_pool;
+mod set_external_token_verifier;
+mod configure;
+mod login;
+mod logout;
+mod resend_2fa;
+mod get_oauth_token;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
-pub use part4::*;
-pub use part5::*;
-pub use part6::*;
-pub use part7::*;
-use part8::*;
+pub use session_expired::*;
+pub use set_session_pool::*;
+pub use set_external_token_verifier::*;
+pub use configure::*;
+pub use login::*;
+pub use logout::*;
+pub use resend_2fa::*;
+use get_oauth_token::*;

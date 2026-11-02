@@ -133,20 +133,20 @@ pub struct GenerateReport {
     pub kind: String,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
+mod resolve_branch;
+mod default_account_type;
+mod gen_end_to_end;
+mod pix_receive;
+mod default_statement_format;
+mod default_settings;
+mod stats;
+mod generate_report;
 
-use part1::*;
-pub use part2::*;
-pub use part3::*;
-pub use part4::*;
-pub use part5::*;
-pub use part6::*;
-pub use part7::*;
-pub use part8::*;
+use resolve_branch::*;
+pub use default_account_type::*;
+pub use gen_end_to_end::*;
+pub use pix_receive::*;
+pub use default_statement_format::*;
+pub use default_settings::*;
+pub use stats::*;
+pub use generate_report::*;

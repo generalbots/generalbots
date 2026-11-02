@@ -162,7 +162,7 @@
         }
 
         // The auto-run bootstrap lives at the end of the last part
-        // (designer-inline.p4.js). This file is evaluated before p2/p3 define
+        // (designer-inline-search.js). This file is evaluated before p2/p3 define
         // initKeyboardShortcuts and initContextMenu, so initializing here threw
         // "initKeyboardShortcuts is not defined" whenever the designer was
         // injected via HTMX (#1342).

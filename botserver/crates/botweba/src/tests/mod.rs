@@ -67,13 +67,13 @@ pub struct BotManagementPage {
     base_url: String,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
-mod part9;
-mod part10;
+mod with_browser;
+mod css;
+mod description;
+mod click;
+mod with_domain;
+mod base_url;
+mod url_pattern;
+mod bot_name;
+mod queue_panel;
+mod bot_management_page;

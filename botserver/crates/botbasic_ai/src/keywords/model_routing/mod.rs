@@ -37,10 +37,10 @@ pub struct ModelRouter {
 use std::sync::Arc;
 use uuid::Uuid;
 
-mod part1;
-mod part2;
-mod part3;
+mod from_config;
+mod set_session_model;
+mod read_bot_config_from_vault;
 
-pub use part1::*;
-pub use part2::*;
-use part3::*;
+pub use from_config::*;
+pub use set_session_model::*;
+use read_bot_config_from_vault::*;

@@ -313,8 +313,8 @@ impl Page for ChatPage {
     }
 }
 
-mod part2;
-pub use part2::*;
+mod queue_page;
+pub use queue_page::*;
 
 #[cfg(test)]
 mod tests {

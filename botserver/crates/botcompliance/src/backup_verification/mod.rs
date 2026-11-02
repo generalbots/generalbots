@@ -361,9 +361,9 @@ pub struct BackupVerificationService {
     restore_tests: Arc<RwLock<Vec<RestoreTestResult>>>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
+mod retention_policy;
+mod verification_policy;
+mod backup_error;
+mod backup_verification_service;
+mod register_backup;
+mod perform_partial_restore;

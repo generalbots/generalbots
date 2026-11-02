@@ -7,11 +7,11 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-mod part1;
-mod part2;
-mod part3;
+mod large_org_optimizer;
+mod is_large_organization;
+mod get_partitions;
 #[cfg(test)]
 mod tests;
 
-pub use part1::*;
-pub use part3::*;
+pub use large_org_optimizer::*;
+pub use get_partitions::*;

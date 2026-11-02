@@ -42,18 +42,18 @@ struct CancelRequest {
     reason: Option<String>,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
+mod bd_to_f64;
+mod parse_quota_limit;
+mod html_escape;
+mod handle_invoices_export;
+mod handle_subscription_upgrade;
+mod handle_subscription_cancel;
+mod handle_quotes;
 
-use part1::*;
-use part2::*;
-pub use part3::*;
-use part4::*;
-use part5::*;
-use part6::*;
-use part7::*;
+use bd_to_f64::*;
+use parse_quota_limit::*;
+pub use html_escape::*;
+use handle_invoices_export::*;
+use handle_subscription_upgrade::*;
+use handle_subscription_cancel::*;
+use handle_quotes::*;

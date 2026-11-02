@@ -72,14 +72,14 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod query_table_field;
+mod register_delete_keyword;
+mod register_pivot_keyword;
+mod execute_insert;
+mod execute_filter;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
-use part4::*;
-use part5::*;
+pub use query_table_field::*;
+pub use register_delete_keyword::*;
+pub use register_pivot_keyword::*;
+use execute_insert::*;
+use execute_filter::*;

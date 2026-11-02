@@ -224,9 +224,9 @@ pub struct Browser {
     _handle: tokio::task::JoinHandle<()>,
 }
 
-mod part2;
-mod part3;
-pub use part3::*;
+mod launch;
+mod screenshot_to_file;
+pub use screenshot_to_file::*;
 
 #[cfg(test)]
 mod tests {

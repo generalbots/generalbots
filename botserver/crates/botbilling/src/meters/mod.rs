@@ -200,8 +200,8 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod with_aggregation_interval;
+mod calculate_trend;
+mod metering_aggregation_job;
 
-pub use part3::*;
+pub use metering_aggregation_job::*;

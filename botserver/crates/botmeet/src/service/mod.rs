@@ -204,6 +204,6 @@ pub trait TranscriptionService: Send + Sync {
 #[derive(Debug)]
 pub struct DefaultTranscriptionService;
 
-mod part1;
-mod part2;
-mod part3;
+mod meeting_settings;
+mod create_room;
+mod start_transcription;

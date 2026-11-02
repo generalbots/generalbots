@@ -218,11 +218,11 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
+mod recording_error;
+mod recording_config;
+mod storage_backend;
+mod transcription_provider;
+mod subscribe;
+mod run_transcription;
+mod format_as_srt;
+mod create_transcription_record;

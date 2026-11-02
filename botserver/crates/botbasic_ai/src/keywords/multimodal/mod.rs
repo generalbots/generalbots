@@ -34,8 +34,8 @@ pub(crate) use super::multimodal_helpers::{build_client, eval_string, resolve_me
 #[path = "../multimodal_tests.rs"]
 mod multimodal_tests;
 
-mod part1;
-mod part2;
+mod register_multimodal_keywords;
+mod register_analyze_image;
 
-pub use part1::*;
-use part2::*;
+pub use register_multimodal_keywords::*;
+use register_analyze_image::*;

@@ -41,10 +41,10 @@ pub struct KbArticleRow {
     pub is_published: bool,
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod configure_itsm_routes;
+mod list_kb_articles;
+mod render_kb_list;
 
-pub use part1::*;
-use part2::*;
-pub use part3::*;
+pub use configure_itsm_routes::*;
+use list_kb_articles::*;
+pub use render_kb_list::*;

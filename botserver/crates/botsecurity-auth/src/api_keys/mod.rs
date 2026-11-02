@@ -321,13 +321,13 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
-mod part6;
-mod part7;
-mod part8;
+mod api_key_config;
+mod includes;
+mod rate_limit_config;
+mod is_valid;
+mod record_request;
+mod create_key;
+mod cleanup_expired_keys;
+mod generate_api_key;
 
-pub use part8::*;
+pub use generate_api_key::*;

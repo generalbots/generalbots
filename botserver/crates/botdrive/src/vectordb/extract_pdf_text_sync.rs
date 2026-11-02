@@ -7,7 +7,7 @@ use super::*;
 // sheet-only helper needs its own import — without it `--features sheet` did
 // not compile (the feature is never enabled by the workspace build).
 #[cfg(feature = "sheet")]
-use super::part1::sanitize_cell_text;
+use super::sanitize_cell_text::sanitize_cell_text;
 
 #[cfg(feature = "drive")]
 pub fn extract_pdf_text_sync(file_path: &Path) -> Result<String> {

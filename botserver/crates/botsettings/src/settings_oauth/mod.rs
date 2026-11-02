@@ -53,10 +53,10 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
-mod part3;
+mod load_link_config;
+mod oauth_accounts_list;
+mod redirect_to_settings;
 
-pub use part1::*;
-pub use part2::*;
-use part3::*;
+pub use load_link_config::*;
+pub use oauth_accounts_list::*;
+use redirect_to_settings::*;

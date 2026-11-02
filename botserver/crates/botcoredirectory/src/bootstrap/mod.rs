@@ -63,8 +63,8 @@ mod tests {
     }
 }
 
-mod part1;
-mod part2;
+mod bootstrap_state_path;
+mod create_default_organization;
 
-pub use part1::*;
-pub use part2::*;
+pub use bootstrap_state_path::*;
+pub use create_default_organization::*;

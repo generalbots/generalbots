@@ -36,14 +36,14 @@ pub struct BulkAddLabelRequest {
     pub label_name: String,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod decrypt_password;
+mod list_folders;
+mod archive_emails_bulk;
+mod create_label;
+mod add_label_to_emails_bulk;
 
-pub use part1::*;
-pub use part2::*;
-pub use part3::*;
-pub use part4::*;
-pub use part5::*;
+pub use decrypt_password::*;
+pub use list_folders::*;
+pub use archive_emails_bulk::*;
+pub use create_label::*;
+pub use add_label_to_emails_bulk::*;

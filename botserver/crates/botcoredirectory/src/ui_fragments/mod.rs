@@ -20,14 +20,14 @@ struct CountResult {
     count: i64,
 }
 
-mod part1;
-mod part2;
-mod part3;
-mod part4;
-mod part5;
+mod configure_directory_ui_routes;
+mod get_conn;
+mod list_users_rows;
+mod create_group;
+mod group_detail;
 
-pub use part1::*;
-use part2::*;
-pub use part3::*;
-pub use part4::*;
-pub use part5::*;
+pub use configure_directory_ui_routes::*;
+use get_conn::*;
+pub use list_users_rows::*;
+pub use create_group::*;
+pub use group_detail::*;
