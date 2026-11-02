@@ -1,0 +1,269 @@
+/* Chat composer and suggestions — modern capsule layout.
+ *
+ * The older slices (chat.p1/p2) still carry the base geometry; this file is
+ * the visual layer on top of it: one rounded capsule, integrated tool buttons
+ * and horizontally scrollable suggestion chips. Tokens are read from the
+ * active theme with neutral fallbacks so light, dark and sentient all work.
+ */
+
+footer {
+    padding: 14px 20px calc(14px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--border, var(--border-color, #2a2a2a));
+    background: var(--surface, #f5f5f5);
+}
+
+.chat-footer-content {
+    margin-bottom: 10px;
+}
+
+/* ── Suggestions ─────────────────────────────────────────────────────── */
+.suggestions-container {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 8px;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 2px 6px;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    scroll-snap-type: x proximity;
+}
+
+.suggestions-container::-webkit-scrollbar {
+    display: none;
+}
+
+.suggestion-chip,
+.suggestion-button {
+    height: 34px;
+    min-height: 34px;
+    padding: 0 14px;
+    gap: 6px;
+    border-radius: 999px;
+    background: var(--surface-2, var(--surface, #fff));
+    border: 1px solid var(--border, var(--border-color, #d0d0d0));
+    color: var(--text, #333);
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    scroll-snap-align: start;
+    transition:
+        border-color 0.18s ease,
+        background 0.18s ease,
+        color 0.18s ease,
+        transform 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.suggestion-chip:hover,
+.suggestion-button:hover {
+    border-color: var(--accent, #2563eb);
+    color: var(--accent, #2563eb);
+    background: color-mix(in srgb, var(--accent, #2563eb) 8%, var(--surface, #fff));
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.suggestion-chip:active,
+.suggestion-button:active {
+    transform: translateY(0);
+    box-shadow: none;
+}
+
+.suggestion-chip:focus-visible,
+.suggestion-button:focus-visible {
+    outline: 2px solid var(--accent, #2563eb);
+    outline-offset: 2px;
+}
+
+/* ── Composer capsule ────────────────────────────────────────────────── */
+.input-container,
+form.input-container {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    padding: 7px 7px 7px 8px;
+    border-radius: 28px;
+    border: 1px solid var(--border, var(--border-color, #d0d0d0));
+    background: var(--surface-2, var(--surface, #fff));
+    box-shadow:
+        0 1px 2px rgba(0, 0, 0, 0.04),
+        0 8px 28px rgba(0, 0, 0, 0.07);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    transition:
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
+}
+
+.input-container:focus-within {
+    border-color: var(--accent, #2563eb);
+    box-shadow:
+        0 0 0 4px color-mix(in srgb, var(--accent, #2563eb) 16%, transparent),
+        0 8px 28px rgba(0, 0, 0, 0.08);
+}
+
+#messageInput,
+textarea#messageInput {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 38px;
+    max-height: 180px;
+    padding: 8px 4px;
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    color: var(--text, #222);
+    font-size: 15px;
+    line-height: 1.45;
+    resize: none;
+}
+
+#messageInput::placeholder {
+    color: var(--text-secondary, #888);
+}
+
+/* ── Tool buttons ────────────────────────────────────────────────────── */
+.file-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    margin-bottom: 0;
+    border-radius: 50%;
+    color: var(--text-secondary, #888);
+    cursor: pointer;
+    transition:
+        background 0.18s ease,
+        color 0.18s ease;
+}
+
+.file-btn:hover {
+    background: color-mix(in srgb, var(--accent, #2563eb) 10%, transparent);
+    color: var(--accent, #2563eb);
+}
+
+.file-btn:focus-within {
+    outline: 2px solid var(--accent, #2563eb);
+    outline-offset: 2px;
+}
+
+.chat-tool-toggle.web-search-toggle {
+    flex: 0 0 auto;
+    height: 38px;
+    padding: 0 12px;
+    margin-bottom: 0;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-secondary, #888);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.chat-tool-toggle.web-search-toggle[aria-pressed="true"] {
+    color: var(--accent, #2563eb);
+    background: color-mix(in srgb, var(--accent, #2563eb) 12%, transparent);
+    border-color: color-mix(in srgb, var(--accent, #2563eb) 24%, transparent);
+}
+
+.chat-tool-toggle.web-search-toggle.is-off {
+    color: var(--text-secondary, #888);
+    background: transparent;
+    border-color: var(--border, var(--border-color, #d0d0d0));
+}
+
+.gb-model-picker {
+    flex: 0 0 auto;
+    height: 34px;
+    max-width: 116px;
+    padding: 0 10px;
+    margin-bottom: 2px;
+    border-radius: 999px;
+    border: 1px solid var(--border, var(--border-color, #d0d0d0));
+    background: transparent;
+    color: var(--text-secondary, #888);
+    font-size: 11.5px;
+}
+
+#fileChip {
+    flex: 0 0 auto;
+    align-self: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--accent, #2563eb) 10%, transparent);
+    color: var(--text, #444);
+    font-size: 11.5px;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#sendBtn {
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    margin-bottom: 2px;
+    border-radius: 50%;
+    background: var(--accent, #2563eb);
+    color: #fff;
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--accent, #2563eb) 40%, transparent);
+    transition:
+        transform 0.15s ease,
+        background 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+#sendBtn:hover {
+    background: var(--accent-hover, #1d4ed8);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--accent, #2563eb) 45%, transparent);
+}
+
+#sendBtn:active {
+    transform: translateY(0) scale(0.96);
+    box-shadow: 0 2px 8px color-mix(in srgb, var(--accent, #2563eb) 35%, transparent);
+}
+
+#sendBtn:focus-visible,
+.gb-model-picker:focus-visible,
+.chat-tool-toggle.web-search-toggle:focus-visible {
+    outline: 2px solid var(--accent, #2563eb);
+    outline-offset: 2px;
+}
+
+/* ── Narrow screens ──────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+    footer {
+        padding: 10px 10px calc(10px + env(safe-area-inset-bottom, 0px));
+    }
+
+    .input-container,
+    form.input-container {
+        gap: 2px;
+        padding: 5px 5px 5px 6px;
+        border-radius: 24px;
+    }
+
+    .gb-model-picker {
+        display: none;
+    }
+
+    .chat-tool-toggle.web-search-toggle {
+        padding: 0 9px;
+    }
+
+    .web-search-label {
+        display: none;
+    }
+
+    #messageInput,
+    textarea#messageInput {
+        font-size: 16px; /* keeps iOS from zooming on focus */
+    }
+}
