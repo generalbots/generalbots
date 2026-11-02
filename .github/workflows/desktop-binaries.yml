@@ -74,19 +74,29 @@ jobs:
       - name: Build desktop shell
         run: cargo build -p botapp --release --features desktop-local,custom-protocol
 
+      - name: Fetch vendored drive binaries
+        run: |
+          set -euo pipefail
+          # MinIO archived the OSS server/client and removed the binaries from
+          # dl.min.io (HTTP 410). The last working Linux build is vendored in a
+          # release and pinned by checksum, so a first run always has a drive.
+          # Replace with a maintained S3 server when the drive component moves.
+          mkdir -p dist/installers
+          BASE="https://github.com/generalbots/generalbots/releases/download/drive-bin-v2"
+          curl -fsSL -o dist/installers/minio "$BASE/minio"
+          curl -fsSL -o dist/installers/mc "$BASE/mc"
+          curl -fsSL -o dist/installers/SHA256SUMS-drive-bin "$BASE/SHA256SUMS-drive-bin"
+          (cd dist/installers && sha256sum -c SHA256SUMS-drive-bin)
+          chmod +x dist/installers/minio dist/installers/mc
+
       - name: Assemble Linux installer
         run: |
           set -euo pipefail
           chmod +x desktop/linux/package.sh
           TAG="${{ github.event.inputs.tag || github.ref_name }}"
-          ./desktop/linux/package.sh "$TAG" target/release dist
-          # Tag-free copy so the stable link
-          # .../releases/latest/download/generalbots-linux-x86_64.tar.gz always
-          # resolves: package.sh names the versioned file
-          # generalbots-<tag>-linux-x86_64.tar.gz, which /latest/ cannot find.
-          cp "dist/generalbots-${TAG}-linux-x86_64.tar.gz" \
-             dist/generalbots-linux-x86_64.tar.gz
-          (cd dist && sha256sum generalbots-linux-x86_64.tar.gz >> SHA256SUMS-linux)
+          ./desktop/linux/package.sh "$TAG" target/release dist dist/installers
+          # package.sh writes both the versioned tarball and the tag-free copy
+          # used by .../releases/latest/download/generalbots-linux-x86_64.tar.gz.
           # Raw binaries stay attached so a single component can be inspected
           # without unpacking the suite.
           cp target/release/botapp    dist/generalbots-linux-x86_64
@@ -202,10 +212,16 @@ jobs:
                 ./install.sh        # per-user install, no root required
                 general-bots        # first run opens the setup wizard
 
-            The wizard provisions the service stack (PostgreSQL, Valkey, MinIO,
-            Qdrant, Vault, Zitadel, llama.cpp) into ~/.local/share/generalbots
-            and then opens the suite with Chat and Drive. `start.sh` runs the
-            same thing straight from the unpacked directory.
+            The wizard provisions the service stack (PostgreSQL, Valkey, Qdrant,
+            Vault, Zitadel, llama.cpp) into ~/.local/share/generalbots and then
+            opens the suite with Chat and Drive. `start.sh` runs the same thing
+            straight from the unpacked directory; `./start.sh --provision` does
+            it headless. Components still missing after the first run are
+            fetched once and cached under ~/.local/share/generalbots/installers.
+
+            The tarball bundles MinIO (object store) because upstream archived
+            it and removed the binaries from dl.min.io. MinIO is AGPL-3.0:
+            https://github.com/minio/minio and https://github.com/minio/mc.
 
             Also attached: `SHA256SUMS-linux`, plus the raw `generalbots` and
             `botserver` binaries for debugging.

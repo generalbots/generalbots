@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
 # General Bots desktop — assembles the Linux installer tarball.
 #
-#   ./package.sh <version> <target-dir> <output-dir>
+#   ./package.sh <version> <target-dir> <output-dir> [installers-dir]
 #
 # <target-dir> holds the built `botapp` and `botserver` binaries (target/debug
-# for a local run, target/release on CI). The same script produces the artifact
-# that CI publishes, so a local download simulation and the release asset are
-# byte-for-byte the same layout.
+# for a local run, target/release on CI). <installers-dir> is optional: when it
+# contains archives, they are bundled as `installers/` next to start.sh (used for
+# the vendors whose upstream binaries disappeared, e.g. MinIO). The same script
+# produces the artifact that CI publishes, so a local download simulation and
+# the release asset are byte-for-byte the same layout.
 set -euo pipefail
 
 VERSION="${1:?version is required (for example v6.7.0)}"
 TARGET="${2:?target directory is required (for example target/release)}"
 OUT="${3:?output directory is required (for example dist)}"
+VENDOR="${4:-}"
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PKG="generalbots-${VERSION}-linux-x86_64"
@@ -32,6 +35,13 @@ install -m 0755 "$ROOT/desktop/linux/start.sh"   "$DEST/start.sh"
 install -m 0755 "$ROOT/desktop/linux/install.sh" "$DEST/install.sh"
 cp "$ROOT/desktop/linux/README.txt" "$DEST/README.txt"
 cp "$ROOT/botapp/icons/icon.png"    "$DEST/generalbots.png"
+
+# Vendored components travel with the installer: the first run copies them into
+# the user's cache and only downloads what is still missing.
+if [ -n "$VENDOR" ] && [ -d "$VENDOR" ]; then
+  mkdir -p "$DEST/installers"
+  cp -a "$VENDOR/." "$DEST/installers/"
+fi
 
 tar -czf "$OUT/${PKG}.tar.gz" -C "$OUT" "$PKG"
 rm -rf "$DEST"

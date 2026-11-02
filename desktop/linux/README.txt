@@ -49,7 +49,12 @@ Offline installation
 --------------------
 Put the component archives in an `installers/` directory next to start.sh
 before the first run (the same layout as botserver-installers in the source
-tree). When that directory has files, nothing is downloaded.
+tree). Archives found there are preferred over the network. Set
+GB_DESKTOP_OFFLINE=1 to refuse any download at all.
+
+The download already bundles MinIO (object store) because upstream archived it
+and removed the binaries from dl.min.io. Those files are AGPL-3.0; see
+https://github.com/minio/minio and https://github.com/minio/mc for the source.
 
 Troubleshooting
 ---------------

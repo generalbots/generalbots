@@ -3,15 +3,39 @@ use std::path::PathBuf;
 use std::process::{Child, Command, Stdio};
 use std::sync::{Arc, Mutex};
 
+/// Owns the child process handle. Kept behind an `Arc` so that dropping a clone
+/// of [`Sidecar`] (for example a temporary taken from Tauri's managed state)
+/// does not kill a sidecar another handle is still using.
+struct SidecarInner {
+    child: Mutex<Option<Child>>,
+}
+
+impl Drop for SidecarInner {
+    fn drop(&mut self) {
+        let child = match self.child.lock() {
+            Ok(mut slot) => slot.take(),
+            Err(poisoned) => poisoned.into_inner().take(),
+        };
+        if let Some(mut child) = child {
+            info!("Stopping botserver sidecar (pid {})...", child.id());
+            let _ = child.kill();
+            let _ = child.wait();
+            info!("botserver sidecar stopped");
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct Sidecar {
-    child: Arc<Mutex<Option<Child>>>,
+    inner: Arc<SidecarInner>,
 }
 
 impl Sidecar {
     pub fn new() -> Self {
         Self {
-            child: Arc::new(Mutex::new(None)),
+            inner: Arc::new(SidecarInner {
+                child: Mutex::new(None),
+            }),
         }
     }
 
@@ -149,7 +173,7 @@ impl Sidecar {
             child.id(),
             log_path.display()
         );
-        match self.child.lock() {
+        match self.inner.child.lock() {
             Ok(mut slot) => *slot = Some(child),
             Err(poisoned) => {
                 warn!("sidecar handle mutex was poisoned; recovering it");
@@ -199,7 +223,7 @@ impl Sidecar {
     }
 
     pub fn stop(&self) {
-        let mut slot = match self.child.lock() {
+        let mut slot = match self.inner.child.lock() {
             Ok(guard) => guard,
             Err(poisoned) => {
                 warn!("sidecar handle mutex was poisoned while stopping; recovering it");
@@ -215,7 +239,7 @@ impl Sidecar {
     }
 
     pub fn is_running(&self) -> bool {
-        let mut guard = match self.child.lock() {
+        let mut guard = match self.inner.child.lock() {
             Ok(guard) => guard,
             Err(poisoned) => {
                 warn!("sidecar handle mutex was poisoned while checking state; recovering it");
@@ -233,11 +257,5 @@ impl Sidecar {
         } else {
             false
         }
-    }
-}
-
-impl Drop for Sidecar {
-    fn drop(&mut self) {
-        self.stop();
     }
 }

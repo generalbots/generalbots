@@ -20,20 +20,33 @@ fi
 export BOTSERVER_STACK_PATH="$STACK"
 export BOTUI_PATH="${BOTUI_PATH:-$HERE/ui/suite}"
 
-# Services (PostgreSQL, Valkey, MinIO, Qdrant, Vault, Zitadel, llama.cpp ...) are
-# installed on the first wizard run. Two shapes are supported:
-#   - offline bundle: `installers/` next to this script already holds the
-#     archives; nothing is downloaded.
-#   - slim download: no archives, so they are fetched once into the user's data
-#     directory and reused by later runs (a reinstall never re-downloads).
-INSTALLERS="${BOTSERVER_INSTALLERS_PATH:-$HERE/installers}"
-if [ -d "$INSTALLERS" ] && [ -n "$(ls -A "$INSTALLERS" 2>/dev/null)" ]; then
-  export BOTSERVER_INSTALLERS_PATH="$INSTALLERS"
+# Where the provisioner looks for component archives and caches the ones it
+# downloads. Keep it in the user's data directory: the install directory may be
+# read-only and is replaced on upgrade, while this survives reinstalls.
+if [ -n "${BOTSERVER_INSTALLERS_PATH:-}" ]; then
+  INSTALLERS="$BOTSERVER_INSTALLERS_PATH"
 else
-  export BOTSERVER_INSTALLERS_PATH="$(dirname "$STACK")/installers"
+  INSTALLERS="$(dirname "$STACK")/installers"
+fi
+mkdir -p "$INSTALLERS"
+
+# Components vendored with the download (MinIO, whose upstream binaries are
+# gone) are seeded into the cache once; the provisioner then downloads whatever
+# is still missing into the same directory.
+if [ -d "$HERE/installers" ]; then
+  for archive in "$HERE/installers"/*; do
+    [ -f "$archive" ] || continue
+    name="$(basename "$archive")"
+    [ -e "$INSTALLERS/$name" ] || cp "$archive" "$INSTALLERS/$name"
+  done
+fi
+export BOTSERVER_INSTALLERS_PATH="$INSTALLERS"
+
+# Missing components are fetched on the first run and reused afterwards.
+# Air-gapped installations set GB_DESKTOP_OFFLINE=1 to refuse any download.
+if [ "${GB_DESKTOP_OFFLINE:-0}" != "1" ]; then
   export GB_DESKTOP_ALLOW_DOWNLOAD=1
 fi
-mkdir -p "$BOTSERVER_INSTALLERS_PATH"
 
 # Headless provisioning: the setup wizard spawns exactly this child. Exposed
 # here so the same component order can be driven from a terminal or a CI test
