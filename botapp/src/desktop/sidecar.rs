@@ -63,6 +63,23 @@ impl Sidecar {
             }
         }
 
+        // Development runs are built from the checkout, where Tauri's resource
+        // directory does not contain the product file. Seed the stack from the
+        // repository so the desktop-local profile (apps, no auth bypass,
+        // taskbar search) is what the sidecar actually loads.
+        let stack_product = stack.join(".product.desktop-local");
+        if !stack_product.exists() {
+            let dev_product = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                .join("..")
+                .join("botserver")
+                .join(".product.desktop-local");
+            if dev_product.exists() {
+                if let Err(e) = std::fs::copy(&dev_product, &stack_product) {
+                    warn!("Could not seed .product.desktop-local from the checkout: {e}");
+                }
+            }
+        }
+
         // Packaged builds ship the suite next to this executable; the sidecar
         // serves it so the page and `/api` share the `http://127.0.0.1:8080`
         // origin. An explicit BOTUI_PATH still wins.
