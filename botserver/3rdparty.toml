@@ -208,6 +208,15 @@ url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345
 filename = "llama-b7345-bin-ubuntu-vulkan-x64.zip"
 sha256 = "03f0b3acbead2ddc23267073a8f8e0207937c849d3704c46c61cf167c1001442"
 
+# Portable CPU build. get_llama_cpp_url() falls back to this component when the
+# host has no Vulkan (no /usr/share/vulkan, no VULKAN_SDK); without it the local
+# model was silently unavailable on plain servers and CI runners.
+[components.llm]
+name = "Llama.cpp Server (Linux x64 CPU)"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-ubuntu-x64.zip"
+filename = "llama-b7345-bin-ubuntu-x64.zip"
+sha256 = "91b066ecc53c20693a2d39703c12bc7a69c804b0768fee064d47df702f616e52"
+
 [components.llm_linux_s390x]
 name = "Llama.cpp Server (Linux s390x)"
 url = "https://github.com/ggml-org/llama.cpp/releases/download/b7345/llama-b7345-bin-ubuntu-s390x.zip"
