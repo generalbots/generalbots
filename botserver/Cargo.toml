@@ -76,6 +76,8 @@ canvas = ["automation", "drive", "cache", "dep:botcanvas"]
 # Learning
 learn = ["automation", "drive", "cache", "crawler", "dep:botlearn"]
 research = ["automation", "drive", "cache", "llm", "vectordb", "dep:botresearch"]
+# Web lookup inside chat without the Research application (desktop-local).
+web-search = ["llm", "dep:botresearch"]
 sources = ["automation", "drive", "cache", "dep:botsources"]
 
 # ===== AI OS (issues #1167-#1179) =====
@@ -172,7 +174,7 @@ sampledata = ["dep:botsampledata"]
 # workspace container.
 desktop-local = [
     "chat", "drive", "agent-vm", "security", "directory", "llm", "vectordb",
-    "settings", "no-security", "kb-extraction",
+    "settings", "no-security", "kb-extraction", "web-search",
     "botcore/desktop-local",
     # #1621 — the infrastructure features the remaining crates use. The domain
     # defaults (mail, calendar, people, tickets, billing, meet, analytics, …)

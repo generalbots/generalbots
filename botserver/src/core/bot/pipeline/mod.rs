@@ -18,7 +18,7 @@ pub mod vibe_route;
 pub mod native_drive;
 #[cfg(feature = "drive")]
 pub mod drive_context;
-#[cfg(feature = "research")]
+#[cfg(any(feature = "research", feature = "web-search"))]
 pub mod web_context;
 
 pub use channel_entry::run_pipeline_for_channel;

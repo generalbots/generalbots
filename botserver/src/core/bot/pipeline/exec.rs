@@ -524,7 +524,7 @@ pub async fn process_message_internal(
     // decision, the query and the sources are streamed to the chat as they
     // happen. #1593: the composer switch disables the whole step, so neither
     // the routing completion nor the search is called when it is off.
-    #[cfg(feature = "research")]
+    #[cfg(any(feature = "research", feature = "web-search"))]
     {
         let web_search_enabled = parsed
             .get("web_search")

@@ -62,7 +62,7 @@ pub async fn execute_command(
             let to = str_of("to").ok_or_else(|| "params.to is required".to_string())?;
             move_drive_file(state, &bot_uuid, &from, &to).await
         }
-        #[cfg(feature = "research")]
+        #[cfg(any(feature = "research", feature = "web-search"))]
         "web.search" => {
             let query = str_of("query").ok_or_else(|| "params.query is required".to_string())?;
             let max: usize = obj
