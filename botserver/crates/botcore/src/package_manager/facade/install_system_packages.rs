@@ -277,9 +277,42 @@ impl PackageManager {
 
             let target = bin_path.join(&name);
             trace!("extracting[{}]: {}", i, name);
+            // Unix symlinks are stored as regular entries whose content is the
+            // link target. Writing them as files leaves a 20-byte "library"
+            // that the loader rejects with "file too short"; llama.cpp ships its
+            // whole .so chain that way.
+            let is_symlink = entry
+                .unix_mode()
+                .map(|mode| mode & 0o170000 == 0o120000)
+                .unwrap_or(false);
             if entry.is_dir() {
                 std::fs::create_dir_all(&target)
                     .with_context(|| format!("Failed to create dir: {}", target.display()))?;
+            } else if is_symlink {
+                #[cfg(unix)]
+                {
+                    let mut link_target = String::new();
+                    if let Err(e) = std::io::Read::read_to_string(&mut entry, &mut link_target) {
+                        warn!("could not read symlink entry {}: {e}", name);
+                    }
+                    let _ = std::fs::remove_file(&target);
+                    if let Err(e) =
+                        std::os::unix::fs::symlink(link_target.trim(), &target)
+                    {
+                        warn!(
+                            "could not create symlink {} -> {}: {e}",
+                            target.display(),
+                            link_target.trim()
+                        );
+                    }
+                }
+                #[cfg(not(unix))]
+                {
+                    let mut outfile = std::fs::File::create(&target)
+                        .with_context(|| format!("Failed to create file: {}", target.display()))?;
+                    std::io::copy(&mut entry, &mut outfile)
+                        .with_context(|| format!("Failed to write: {}", target.display()))?;
+                }
             } else {
                 if let Some(parent) = target.parent() {
                     std::fs::create_dir_all(parent)

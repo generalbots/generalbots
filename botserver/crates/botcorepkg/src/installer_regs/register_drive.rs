@@ -172,10 +172,14 @@ pub fn register_llm(components: &mut HashMap<String, ComponentConfig>) {
                 get_model_url("deepseek_small").unwrap_or_default(),
                 get_model_url("bge_embedding").unwrap_or_default(),
             ],
-            exec_cmd: "nohup {{BIN_PATH}}/build/bin/llama-server --port 8081 --ssl-key-file {{CONF_PATH}}/system/certificates/llm/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/llm/server.crt -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf --ubatch-size 512 > {{LOGS_PATH}}/llm.log 2>&1 & nohup {{BIN_PATH}}/build/bin/llama-server --port 8082 --ssl-key-file {{CONF_PATH}}/system/certificates/embedding/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/embedding/server.crt -m {{DATA_PATH}}/bge-small-en-v1.5-f32.gguf --embeddings --pooling mean --n-gpu-layers 0 --ctx-size 512 --ubatch-size 512 > {{LOGS_PATH}}/embedding.log 2>&1 &".to_string(),
-            check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:8081/health >/dev/null 2>&1 && curl -f -k --connect-timeout 2 -m 5 https://localhost:8082/health >/dev/null 2>&1".to_string(),
-            exec_cmd_windows: Some("start /B {{BIN_PATH}}\\build\\bin\\llama-server --port 8081 --ssl-key-file {{CONF_PATH}}\\system\\certificates\\llm\\server.key --ssl-cert-file {{CONF_PATH}}\\system\\certificates\\llm\\server.crt -m {{DATA_PATH}}\\DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf --ubatch-size 512 > {{LOGS_PATH}}\\llm.log 2>&1".to_string()),
-            check_cmd_windows: Some("curl -f -k --connect-timeout 2 -m 5 https://localhost:8081/health >NUL 2>&1".to_string()),
+            // The llama.cpp release archives unpack to `bin/`, and every consumer
+            // of the local model calls it over plain HTTP (`http://127.0.0.1:8081`,
+            // `http://localhost:8082/v1/embeddings`). Do not pass TLS flags: the
+            // stack has no certificates for these ports.
+            exec_cmd: "nohup {{BIN_PATH}}/bin/llama-server --port 8081 --host 127.0.0.1 -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf --ubatch-size 512 > {{LOGS_PATH}}/llm.log 2>&1 & nohup {{BIN_PATH}}/bin/llama-server --port 8082 --host 127.0.0.1 -m {{DATA_PATH}}/bge-small-en-v1.5-f32.gguf --embeddings --pooling mean --n-gpu-layers 0 --ctx-size 512 --ubatch-size 512 > {{LOGS_PATH}}/embedding.log 2>&1 &".to_string(),
+            check_cmd: "curl -fsS --connect-timeout 2 -m 5 http://127.0.0.1:8081/health >/dev/null 2>&1 && curl -fsS --connect-timeout 2 -m 5 http://127.0.0.1:8082/health >/dev/null 2>&1".to_string(),
+            exec_cmd_windows: Some("start /B {{BIN_PATH}}\\bin\\llama-server.exe --port 8081 --host 127.0.0.1 -m {{DATA_PATH}}\\DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf --ubatch-size 512 > {{LOGS_PATH}}\\llm.log 2>&1".to_string()),
+            check_cmd_windows: Some("curl -fsS --connect-timeout 2 -m 5 http://127.0.0.1:8081/health >NUL 2>&1".to_string()),
             container: None,
         },
     );
