@@ -69,6 +69,11 @@ fn collect_forbidden(root: &Path, hits: &mut Vec<String>) {
         .expect("valid forbidden token regex");
 
     for path in source_files(root) {
+        // This file must name the forbidden tokens to scan for them; otherwise
+        // the guard reports itself and can never pass.
+        if path.ends_with("bottest/tests/unit/pii_guard.rs") {
+            continue;
+        }
         if let Ok(content) = std::fs::read(&path) {
             if re.is_match(&content) {
                 hits.push(path.display().to_string());
