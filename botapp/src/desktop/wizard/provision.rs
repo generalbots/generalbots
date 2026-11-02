@@ -269,7 +269,33 @@ async fn start_assistant(
             .start(resource_dir.clone())
             .map_err(|e| format!("could not start the assistant: {e}"))?;
     }
-    if Sidecar::wait_for_api(API_PRODUCT, 120).await {
+    // A cold first boot runs migrations, seeds the vault and starts every
+    // service; 120 s was too tight and the wizard declared the assistant dead
+    // while it was still starting.
+    if Sidecar::wait_for_api(API_PRODUCT, 300).await {
+        // The identity provider's OAuth client is created by the assistant
+        // during its first boot. Until that file exists the auth service cannot
+        // initialise and the suite's sign-in answers 500. Wait for it, then
+        // restart the sidecar once so the auth service starts with it.
+        let directory_config = stack_path().join("conf/system/directory_config.json");
+        let mut appeared = directory_config.exists();
+        for _ in 0..150 {
+            if appeared {
+                break;
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+            appeared = directory_config.exists();
+        }
+        if appeared {
+            log::info!("directory config is ready; restarting the assistant once");
+            sidecar.stop();
+            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+            if let Err(e) = sidecar.start(resource_dir.clone()) {
+                log::warn!("could not restart the assistant: {e}");
+            } else {
+                let _ = Sidecar::wait_for_api(API_PRODUCT, 180).await;
+            }
+        }
         progress(
             app,
             state,
@@ -285,7 +311,7 @@ async fn start_assistant(
     // finishing (the identity provider writes its config a few seconds after
     // being reported ready). One deliberate retry with a fresh process beats
     // failing the whole first run.
-    log::warn!("assistant did not answer in 120s; restarting it once");
+    log::warn!("assistant did not answer in 300s; restarting it once");
     progress(
         app,
         state,

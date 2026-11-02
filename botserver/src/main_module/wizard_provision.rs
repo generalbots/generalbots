@@ -48,7 +48,18 @@ fn progress(
 }
 
 fn component_plan() -> Vec<Component> {
-    let model_mode = std::env::var("GB_WIZARD_MODEL_MODE").unwrap_or_else(|_| "local".to_string());
+    // An empty mode with a remote endpoint/model means the user picked a hosted
+    // provider: never install the ~1.8 GB local runtime in that case. The old
+    // `unwrap_or("local")` treated a missing value as "local", so the Kilo flow
+    // still downloaded and started llama.cpp (and failed on slow links).
+    let model_mode = std::env::var("GB_WIZARD_MODEL_MODE").unwrap_or_default();
+    let remote_model = !std::env::var("GB_WIZARD_LLM_URL").unwrap_or_default().trim().is_empty()
+        && !std::env::var("GB_WIZARD_LLM_MODEL").unwrap_or_default().trim().is_empty();
+    let wants_local = if model_mode.trim().is_empty() {
+        !remote_model
+    } else {
+        model_mode.eq_ignore_ascii_case("local")
+    };
     let mut plan = vec![
         Component { id: "vault", label: "Local vault", timeout_secs: 90, optional: false },
         Component { id: "tables", label: "Database", timeout_secs: 90, optional: false },
@@ -57,7 +68,7 @@ fn component_plan() -> Vec<Component> {
         Component { id: "vector_db", label: "Vector store", timeout_secs: 60, optional: false },
         Component { id: "directory", label: "Identity provider", timeout_secs: 90, optional: false },
     ];
-    if model_mode == "local" {
+    if wants_local {
         plan.push(Component {
             id: "llm",
             label: "Local model runtime",
@@ -178,7 +189,14 @@ async fn provision_component(
 /// LLM secret (a desktop install is single-user).
 async fn apply_llm_choice() {
     let mode = std::env::var("GB_WIZARD_MODEL_MODE").unwrap_or_default();
-    if mode.is_empty() || mode == "local" {
+    let remote_model = !std::env::var("GB_WIZARD_LLM_URL").unwrap_or_default().trim().is_empty()
+        && !std::env::var("GB_WIZARD_LLM_MODEL").unwrap_or_default().trim().is_empty();
+    let wants_local = if mode.trim().is_empty() {
+        !remote_model
+    } else {
+        mode.eq_ignore_ascii_case("local")
+    };
+    if wants_local {
         return;
     }
     let url = std::env::var("GB_WIZARD_LLM_URL").unwrap_or_default();

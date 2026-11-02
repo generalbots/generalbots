@@ -220,6 +220,14 @@ function dialChatSocket() {
     ChatState.offlineQueue = [];
     queued.forEach(function (payload) {
       try {
+        // Rebind the queued turn to the session that is live NOW: a message
+        // composed while the socket was still connecting captured an empty
+        // session id, which the server drops without a trace (the first
+        // message after the wizard looked silently lost).
+        payload.bot_id = ChatState.currentBotId;
+        payload.user_id = ChatState.currentUserId;
+        payload.session_id = ChatState.currentSessionId;
+        payload.active_switchers = Array.from(ChatState.activeSwitchers || []);
         ChatState.ws.send(JSON.stringify(payload));
         window.dispatchEvent(new CustomEvent("gb-chat-message-sent", {
           detail: { session_id: ChatState.currentSessionId, queued: true },

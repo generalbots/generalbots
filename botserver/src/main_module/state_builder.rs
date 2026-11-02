@@ -132,7 +132,7 @@ pub async fn create_app_state(
         loop {
             match init_directory_service().await {
                 Ok((service, config)) => break (Some(service), config),
-                Err(e) if attempt < 40 => {
+                Err(e) if attempt < 360 => {
                     attempt += 1;
                     if attempt == 1 {
                         log::warn!("Directory service not ready ({e}); waiting for it");
