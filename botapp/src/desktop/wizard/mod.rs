@@ -447,7 +447,12 @@ fn reveal_suite_with_token(app: &tauri::AppHandle, token: Option<&str>) {
         .and_then(|value| tauri::Url::parse(value.trim()).ok())
         .or_else(|| {
             // Development runs are served by botui (devUrl); packaged builds
-            // are served by the sidecar itself.
+            // are served by the sidecar itself. Never follow devUrl in a
+            // release binary — that would open localhost:3000, which does not
+            // exist next to a release install.
+            if !cfg!(debug_assertions) {
+                return None;
+            }
             app.config().build.dev_url.clone().map(|mut url| {
                 url.set_path("/suite/desktop.html");
                 url.set_query(None);
@@ -488,6 +493,9 @@ pub fn ensure_suite_window(app: &tauri::AppHandle) {
             .ok()
             .and_then(|value| tauri::Url::parse(value.trim()).ok())
             .or_else(|| {
+                if !cfg!(debug_assertions) {
+                    return None;
+                }
                 handle.config().build.dev_url.clone().map(|mut url| {
                     url.set_path("/suite/desktop.html");
                     url.set_query(None);

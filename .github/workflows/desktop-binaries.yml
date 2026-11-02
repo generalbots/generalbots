@@ -1,0 +1,190 @@
+name: Desktop binaries
+
+# Builds the desktop edition binaries on GitHub-hosted runners and attaches
+# them to a GitHub Release ("release folder"). Manual runs need a tag; pushing
+# a v* tag runs it automatically. Public repository: runner minutes are free.
+#
+# Artifacts per run:
+#   linux:   generalbots-linux-x86_64, botserver-linux-x86_64, botui-linux-x86_64
+#   windows: generalbots-x64.exe, botserver-x64.exe, botui-x64.exe (best effort)
+#
+# The self-extracting payload (#1633) is assembled in a later step; this
+# workflow produces the raw binaries the release folder carries today.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag (for example v6.7.0). Created if missing."
+        required: true
+        type: string
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  linux:
+    name: Linux binaries
+    runs-on: ubuntu-22.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential clang mold pkg-config \
+            libpq-dev libssl-dev liblzma-dev \
+            libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+
+      - name: Install Rust
+        run: |
+          rustup set profile minimal
+          rustup toolchain install stable
+          rustup default stable
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-desktop-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-desktop-
+
+      - name: Build botserver (desktop-local)
+        run: cargo build -p botserver --release --no-default-features --features desktop-local
+
+      - name: Build botui
+        run: cargo build -p botui --release
+
+      - name: Build desktop shell
+        run: cargo build -p botapp --release --features desktop-local,custom-protocol
+
+      - name: Assemble release files
+        run: |
+          mkdir -p dist
+          cp target/release/botapp            dist/generalbots-linux-x86_64
+          cp target/release/botserver         dist/botserver-linux-x86_64
+          cp target/release/botui             dist/botui-linux-x86_64
+          chmod +x dist/*
+          (cd dist && sha256sum * > SHA256SUMS-linux)
+
+      - name: Upload Linux binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-binaries
+          path: dist/*
+          if-no-files-found: error
+
+  windows:
+    name: Windows binaries
+    runs-on: windows-latest
+    timeout-minutes: 150
+    # Kept non-blocking while the Windows toolchain image is validated: a
+    # Windows runner failure must not hide the Linux binaries from the release.
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client libraries (libpq)
+        shell: pwsh
+        run: |
+          choco install postgresql16 --no-progress -y
+          $pg = Get-ChildItem "C:\Program Files\PostgreSQL" -Directory |
+            Sort-Object Name | Select-Object -Last 1
+          if (-not $pg) { throw "PostgreSQL install directory not found" }
+          "PQ_LIB_DIR=$($pg.FullName)\lib" >> $env:GITHUB_ENV
+          "$($pg.FullName)\bin" >> $env:GITHUB_PATH
+
+      - name: Install Rust
+        shell: pwsh
+        run: |
+          rustup set profile minimal
+          rustup toolchain install stable
+          rustup default stable
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-desktop-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-desktop-
+
+      - name: Build botserver (desktop-local)
+        run: cargo build -p botserver --release --no-default-features --features desktop-local
+
+      - name: Build botui
+        run: cargo build -p botui --release
+
+      - name: Build desktop shell
+        run: cargo build -p botapp --release --features desktop-local,custom-protocol
+
+      - name: Assemble release files
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item target/release/botapp.exe    dist/generalbots-x64.exe
+          Copy-Item target/release/botserver.exe dist/botserver-x64.exe
+          Copy-Item target/release/botui.exe     dist/botui-x64.exe
+          Get-FileHash dist/*.exe -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash)  $([System.IO.Path]::GetFileName($_.Path))" } |
+            Out-File dist/SHA256SUMS-windows.txt -Encoding ascii
+
+      - name: Upload Windows binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-binaries
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    name: Attach binaries to the release
+    needs: [linux, windows]
+    runs-on: ubuntu-latest
+    # Run even when the best-effort Windows job failed, as long as Linux
+    # produced its artifacts.
+    if: always() && needs.linux.result == 'success' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch')
+    steps:
+      - name: Download Linux binaries
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-binaries
+          path: dist
+          merge-multiple: true
+
+      - name: Download Windows binaries (best effort)
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: windows-binaries
+          path: dist
+          merge-multiple: true
+
+      - name: Publish release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          name: ${{ github.event.inputs.tag || github.ref_name }}
+          body: |
+            Desktop binaries for ${{ github.event.inputs.tag || github.ref_name }}.
+
+            - Linux: `generalbots-linux-x86_64` (chmod +x, run; first run provisions the stack)
+            - Windows: `generalbots-x64.exe` (best effort — Windows runner must be green)
+            - Services/sidecars: `botserver-*`, `botui-*`
+          files: dist/*
+          fail_on_unmatched_files: false
