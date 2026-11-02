@@ -85,6 +85,12 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
       '<div class="chat-sidebar-conv-name"></div>' +
       "</div>" +
       '<div class="chat-sidebar-conv-time"></div>' +
+       '<button type="button" class="chat-sidebar-conv-rename" ' +
+       'aria-label="Rename conversation" title="Rename conversation">' +
+       '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" ' +
+       'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+       '<path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>' +
+       '</svg></button>' +
       '<button type="button" class="chat-sidebar-conv-delete" ' +
       'aria-label="Delete conversation" title="Delete conversation">' +
        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" ' +
@@ -102,6 +108,14 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
     item.addEventListener("click", function () {
       mod.openConversation(session.session_id);
     });
+    var renameBtn = item.querySelector(".chat-sidebar-conv-rename");
+    if (renameBtn) {
+      renameBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        mod.renameConversation(session.session_id, item);
+      });
+    }
     var remove = item.querySelector(".chat-sidebar-conv-delete");
     if (remove) {
       remove.addEventListener("click", function (e) {
@@ -136,6 +150,35 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
       })
       .catch(function (err) {
         window.alert("Could not delete conversation: " + err.message);
+      });
+  };
+
+  mod.renameConversation = function (sessionId, item) {
+    if (!sessionId) return;
+    var currentName = "";
+    if (item) {
+      var nameEl = item.querySelector(".chat-sidebar-conv-name");
+      if (nameEl) currentName = nameEl.textContent || "";
+    }
+    var next = window.prompt("Rename conversation:", currentName);
+    if (next === null) return;
+    next = String(next).trim();
+    if (!next) return;
+    fetch("/api/chat/history/sessions/" + encodeURIComponent(sessionId), {
+      method: "PUT",
+      headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
+      body: JSON.stringify({ title: next }),
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        if (item) {
+          var nameEl = item.querySelector(".chat-sidebar-conv-name");
+          if (nameEl) nameEl.textContent = next;
+        }
+        mod.loadHistory();
+      })
+      .catch(function (err) {
+        window.alert("Could not rename conversation: " + err.message);
       });
   };
 

@@ -216,4 +216,35 @@ impl SessionManager {
         self.waiting_for_input.remove(&sess_id);
         Ok(true)
     }
+
+    /// Renames a conversation owned by `owner_id`. Returns `false` when the
+    /// session does not exist or belongs to another user. The new title is
+    /// truncated to TITLE_MAX_CHARS.
+    pub fn rename_session(
+        &mut self,
+        sess_id: Uuid,
+        owner_id: Uuid,
+        new_title: &str,
+    ) -> Result<bool, Box<dyn Error + Send + Sync>> {
+        let mut conn = self.pool.get()?;
+        let owner: Option<String> = user_sessions::table
+            .filter(user_sessions::id.eq(sess_id))
+            .select(user_sessions::user_id)
+            .first(&mut conn)
+            .optional()?;
+        let Some(owner_uuid) = owner else {
+            return Ok(false);
+        };
+        if owner_uuid != owner_id.to_string() {
+            return Ok(false);
+        }
+        let trimmed: String = new_title.trim().chars().take(80).collect();
+        if trimmed.is_empty() {
+            return Ok(false);
+        }
+        diesel::update(user_sessions::table.filter(user_sessions::id.eq(sess_id)))
+            .set(user_sessions::title.eq(&trimmed))
+            .execute(&mut conn)?;
+        Ok(true)
+    }
 }
