@@ -1,8 +1,12 @@
-/* Step rendering, validation and collection for the first-run wizard. */
+/* Step rendering, validation and collection for the first-run wizard.
+ * Every user-visible string goes through window.WizardI18n (see wizard-i18n.js);
+ * the English dictionary is the fallback for any missing key. */
 (function () {
   "use strict";
 
   var W = window.GBWizard;
+  var I = window.WizardI18n;
+  var t = function (key, params) { return I.t(key, params); };
   var esc = function (value) {
     return String(value == null ? "" : value)
       .replace(/&/g, "&amp;")
@@ -18,7 +22,7 @@
   function modelDetail(draft) {
     var m = draft.model;
     if (m.mode === "local") {
-      return '<div class="card"><p class="note ok">The bundled model runs on this machine. No prompt leaves it.</p></div>';
+      return '<div class="card"><p class="note ok">' + esc(t("model.local-note")) + "</p></div>";
     }
     if (m.mode === "free") {
       var freeOptions = W.FREE_PROVIDERS.map(function (p) {
@@ -28,32 +32,32 @@
       var freeModel = m.model || W.defaultModelName(m.provider);
       var free = W.freeProviderById(m.provider);
       var keyHint = free && free.needsKey
-        ? "LLM7.io requires a free account key."
-        : "Kilo Code and OVHcloud work without a key; leave this empty for them.";
+        ? t("model.key-hint-llm7")
+        : t("model.key-hint-keyless");
       return '' +
         '<div class="card">' +
           '<div class="field-grid">' +
-            '<div class="field"><label for="modelProvider">Free provider</label>' +
+            '<div class="field"><label for="modelProvider">' + esc(t("model.free-provider")) + "</label>" +
               '<select id="modelProvider">' + freeOptions + "</select>" +
-              '<span class="hint">Third-party free tiers under their own terms; no SLA. Do not send confidential data.</span></div>' +
-            '<div class="field"><label for="modelEndpoint">Endpoint</label>' +
+              '<span class="hint">' + esc(t("model.free-hint")) + "</span></div>" +
+            '<div class="field"><label for="modelEndpoint">' + esc(t("model.endpoint")) + "</label>" +
               '<input type="text" id="modelEndpoint" value="' + esc(freeEndpoint) + '" placeholder="https://…" />' +
-              '<span class="hint">Prompts go only to this address.</span></div>' +
-            '<div class="field"><label for="modelName">Model</label>' +
-              '<input type="text" id="modelName" value="' + esc(freeModel) + '" placeholder="model identifier" /></div>' +
-            '<div class="field"><label for="modelKey">API key (only if the provider requires one)</label>' +
-              '<input type="password" id="modelKey" value="' + esc(m.api_key) + '" autocomplete="off" placeholder="optional" />' +
+              '<span class="hint">' + esc(t("model.endpoint-hint")) + "</span></div>" +
+            '<div class="field"><label for="modelName">' + esc(t("model.name")) + "</label>" +
+              '<input type="text" id="modelName" value="' + esc(freeModel) + '" placeholder="' + esc(t("model.name-placeholder")) + '" /></div>' +
+            '<div class="field"><label for="modelKey">' + esc(t("model.key-optional")) + "</label>" +
+              '<input type="password" id="modelKey" value="' + esc(m.api_key) + '" autocomplete="off" placeholder="' + esc(t("model.key-placeholder")) + '" />' +
               '<span class="hint">' + esc(keyHint) + "</span></div>" +
             '<div class="inline-row">' +
-              '<button type="button" class="btn btn-secondary btn-sm" id="testModelBtn">Test connection</button>' +
-              '<span class="note" id="modelTestStatus" role="status">Not tested yet.</span>' +
+              '<button type="button" class="btn btn-secondary btn-sm" id="testModelBtn">' + esc(t("model.test")) + "</button>" +
+              '<span class="note" id="modelTestStatus" role="status">' + esc(t("model.untested")) + "</span>" +
             "</div>" +
           "</div>" +
         "</div>";
     }
     var providerOptions = ["openai", "anthropic", "nvidia", "custom"].map(function (id) {
       return '<option value="' + id + '"' + (m.provider === id ? " selected" : "") + ">" +
-        esc(id === "custom" ? "Other (custom endpoint)" : id.charAt(0).toUpperCase() + id.slice(1)) +
+        esc(id === "custom" ? t("model.other") : id.charAt(0).toUpperCase() + id.slice(1)) +
         "</option>";
     }).join("");
     var endpoint = m.endpoint || (m.provider === "custom" ? "" : W.defaultModelEndpoint(m.provider));
@@ -61,19 +65,19 @@
     return '' +
       '<div class="card">' +
         '<div class="field-grid">' +
-          '<div class="field"><label for="modelProvider">Provider</label>' +
+          '<div class="field"><label for="modelProvider">' + esc(t("model.provider")) + "</label>" +
             '<select id="modelProvider">' + providerOptions + "</select></div>" +
-          '<div class="field"><label for="modelEndpoint">Endpoint</label>' +
+          '<div class="field"><label for="modelEndpoint">' + esc(t("model.endpoint")) + "</label>" +
             '<input type="text" id="modelEndpoint" value="' + esc(endpoint) + '" placeholder="https://…" />' +
-            '<span class="hint">Prompts go only to this address.</span></div>' +
-          '<div class="field"><label for="modelName">Model</label>' +
-            '<input type="text" id="modelName" value="' + esc(modelName) + '" placeholder="model identifier" /></div>' +
-          '<div class="field"><label for="modelKey">API key</label>' +
-            '<input type="password" id="modelKey" value="' + esc(m.api_key) + '" autocomplete="off" placeholder="stored in the local vault" />' +
-            '<span class="hint">Never displayed again after setup and never written to a config file.</span></div>' +
+            '<span class="hint">' + esc(t("model.endpoint-hint")) + "</span></div>" +
+          '<div class="field"><label for="modelName">' + esc(t("model.name")) + "</label>" +
+            '<input type="text" id="modelName" value="' + esc(modelName) + '" placeholder="' + esc(t("model.name-placeholder")) + '" /></div>' +
+          '<div class="field"><label for="modelKey">' + esc(t("model.key")) + "</label>" +
+            '<input type="password" id="modelKey" value="' + esc(m.api_key) + '" autocomplete="off" placeholder="' + esc(t("model.key-placeholder-own")) + '" />' +
+            '<span class="hint">' + esc(t("model.key-hint-own")) + "</span></div>" +
           '<div class="inline-row">' +
-            '<button type="button" class="btn btn-secondary btn-sm" id="testModelBtn">Test connection</button>' +
-            '<span class="note" id="modelTestStatus" role="status">Not tested yet.</span>' +
+            '<button type="button" class="btn btn-secondary btn-sm" id="testModelBtn">' + esc(t("model.test")) + "</button>" +
+            '<span class="note" id="modelTestStatus" role="status">' + esc(t("model.untested")) + "</span>" +
           "</div>" +
         "</div>" +
       "</div>";
@@ -82,15 +86,15 @@
   function renderWelcome(draft, ctx) {
     return '' +
       '<div class="brand-hero"><img src="/wizard/logo.svg" alt="General Bots" /></div>' +
-      '<p class="lead">Runs on this machine; nothing leaves it unless you connect a service.</p>' +
+      '<p class="lead">' + esc(t("welcome.lead")) + "</p>" +
       '<div class="card">' +
-        '<p class="note">This setup creates a private workspace, starts the local services the assistant needs, and opens the assistant when everything answers.</p>' +
-        '<p class="note">It takes about a minute. You can stop and continue later without losing what you entered.</p>' +
+        '<p class="note">' + esc(t("welcome.note1")) + "</p>" +
+        '<p class="note">' + esc(t("welcome.note2")) + "</p>" +
       "</div>" +
       '<div class="field-grid" style="margin-top:16px">' +
-        '<div class="field"><label for="displayName">What should the assistant call you? (optional)</label>' +
-          '<input type="text" id="displayName" value="' + esc(draft.display_name) + '" placeholder="Your name" /></div>' +
-        '<p class="note">Workspace: <strong>' + esc(ctx.workspace_path) + "</strong></p>" +
+        '<div class="field"><label for="displayName">' + esc(t("welcome.name-label")) + "</label>" +
+          '<input type="text" id="displayName" value="' + esc(draft.display_name) + '" placeholder="' + esc(t("welcome.name-placeholder")) + '" /></div>' +
+        '<p class="note">' + esc(t("welcome.workspace")) + " <strong>" + esc(ctx.workspace_path) + "</strong></p>" +
       "</div>";
   }
 
@@ -99,11 +103,11 @@
       var selected = draft.model.mode === option.id;
       return '<label class="choice' + (selected ? " selected" : "") + '">' +
         '<input type="radio" name="modelMode" value="' + option.id + '"' + (selected ? " checked" : "") + " />" +
-        '<span><span class="choice-title">' + esc(option.title) + '</span>' +
-        '<span class="choice-desc">' + esc(option.desc) + "</span></span></label>";
+        '<span><span class="choice-title">' + esc(t(option.titleKey)) + '</span>' +
+        '<span class="choice-desc">' + esc(t(option.descKey)) + "</span></span></label>";
     }).join("");
     return '' +
-      '<p class="lead">Local model = nothing leaves the machine. Free hosted = prompts go to a third-party free tier. Your own key = prompts go to that provider only.</p>' +
+      '<p class="lead">' + esc(t("model.lead")) + "</p>" +
       '<div class="choice-list">' + choices + "</div>" +
       '<div style="margin-top:14px" id="modelDetail">' + modelDetail(draft) + "</div>";
   }
@@ -111,50 +115,50 @@
   function renderWorkspace(draft, ctx) {
     var path = draft.workspace.path || ctx.workspace_path;
     return '' +
-      '<p class="lead">Files and database live in this folder; you can move it later. Size is shown up front.</p>' +
+      '<p class="lead">' + esc(t("workspace.lead")) + "</p>" +
       '<div class="field-grid">' +
-        '<div class="field"><label for="workspacePath">Workspace folder</label>' +
+        '<div class="field"><label for="workspacePath">' + esc(t("workspace.folder")) + "</label>" +
           '<div class="inline-row">' +
             '<input type="text" id="workspacePath" value="' + esc(path) + '" />' +
-            '<button type="button" class="btn btn-secondary btn-sm" id="browseFolderBtn">Browse…</button>' +
+            '<button type="button" class="btn btn-secondary btn-sm" id="browseFolderBtn">' + esc(t("workspace.browse")) + "</button>" +
           "</div>" +
-          '<span class="hint" id="workspaceStatus" role="status">Checking the folder…</span></div>' +
-        '<div class="field"><label for="workspaceSize">Space for the local model</label>' +
+          '<span class="hint" id="workspaceStatus" role="status">' + esc(t("workspace.checking")) + "</span></div>" +
+        '<div class="field"><label for="workspaceSize">' + esc(t("workspace.size")) + "</label>" +
           '<select id="workspaceSize">' +
-            '<option value="standard"' + (draft.workspace.size === "standard" ? " selected" : "") + ">Standard — about 1.8 GB</option>" +
-            '<option value="compact"' + (draft.workspace.size === "compact" ? " selected" : "") + ">Compact — about 900 MB</option>" +
+            '<option value="standard"' + (draft.workspace.size === "standard" ? " selected" : "") + ">" + esc(t("workspace.size-standard")) + "</option>" +
+            '<option value="compact"' + (draft.workspace.size === "compact" ? " selected" : "") + ">" + esc(t("workspace.size-compact")) + "</option>" +
           "</select>" +
-          '<span class="hint" id="workspaceFree">Free space is checked when you choose a folder.</span></div>' +
+          '<span class="hint" id="workspaceFree">' + esc(t("workspace.free-hint")) + "</span></div>" +
       "</div>";
   }
 
   function renderServiceCard(provider, draft, ctx) {
     var saved = draft.services[provider.id] || {};
-    var state = saved.connected ? "Connected" : (saved.client_id ? "Needs attention" : "Not connected");
+    var state = saved.connected ? t("services.connected") : (saved.client_id ? t("services.attention") : t("services.not-connected"));
     var kind = saved.connected ? "ok" : (saved.client_id ? "warn" : "");
     var redirect = (ctx.redirect_uri || provider.redirectTemplate).replace("{provider}", provider.id);
     return '' +
       '<div class="card" data-service="' + provider.id + '">' +
         '<div class="card-head"><span class="card-title">' + esc(provider.name) + "</span>" +
           statusBadge(state, kind) + "</div>" +
-        '<p class="note" style="margin:8px 0">' + esc(provider.steps) + "</p>" +
-        '<p class="note" style="margin:0 0 8px">' + esc(provider.scopeNote) + "</p>" +
+        '<p class="note" style="margin:8px 0">' + esc(t(provider.stepsKey)) + "</p>" +
+        '<p class="note" style="margin:0 0 8px">' + esc(t(provider.scopeNoteKey)) + "</p>" +
         '<div class="field" style="margin-bottom:10px">' +
-          '<label>Redirect URI</label>' +
+          '<label>' + esc(t("services.redirect")) + "</label>" +
           '<div class="inline-row">' +
             '<input type="text" readonly value="' + esc(redirect) + '" />' +
-            '<button type="button" class="btn btn-secondary btn-sm" data-copy="' + esc(redirect) + '">Copy</button>' +
+            '<button type="button" class="btn btn-secondary btn-sm" data-copy="' + esc(redirect) + '">' + esc(t("services.copy")) + "</button>" +
           "</div>" +
         "</div>" +
         '<div class="inline-row" style="margin-bottom:10px">' +
-          '<button type="button" class="btn btn-secondary btn-sm" data-console="' + esc(provider.console) + '">' + esc(provider.consoleLabel) + "</button>" +
+          '<button type="button" class="btn btn-secondary btn-sm" data-console="' + esc(provider.console) + '">' + esc(t(provider.consoleLabelKey)) + "</button>" +
         "</div>" +
         '<div class="field-grid">' +
-          '<div class="field"><label>' + esc(provider.fields.id) + '</label>' +
+          '<div class="field"><label>' + esc(t(provider.fields.id)) + '</label>' +
             '<input type="text" data-service-id="' + provider.id + '" value="' + esc(saved.client_id || "") + '" autocomplete="off" /></div>' +
-          '<div class="field"><label>' + esc(provider.fields.secret) + '</label>' +
+          '<div class="field"><label>' + esc(t(provider.fields.secret)) + '</label>' +
             '<input type="password" data-service-secret="' + provider.id + '" value="' + esc(saved.client_secret || "") + '" autocomplete="off" />' +
-            '<span class="hint">Optional for desktop clients that use loopback redirects and PKCE.</span></div>' +
+            '<span class="hint">' + esc(t("services.secret-hint")) + "</span></div>" +
         "</div>" +
         '<p class="note" data-service-note="' + provider.id + '"></p>' +
       "</div>";
@@ -162,30 +166,30 @@
 
   function renderServices(draft, ctx) {
     return '' +
-      '<p class="lead">Each service is optional and can be added later in Settings → Integrations.</p>' +
+      '<p class="lead">' + esc(t("services.lead")) + "</p>" +
       W.PROVIDERS.map(function (p) { return renderServiceCard(p, draft, ctx); }).join("") +
-      '<p class="note">Skipping leaves no partial state: nothing is stored and nothing is authorized.</p>';
+      '<p class="note">' + esc(t("services.note")) + "</p>";
   }
 
   function dataMapRows(draft, ctx) {
     var model = draft.model;
     var prompts;
     if (model.mode === "local") {
-      prompts = "Stays on this machine (bundled local model)";
+      prompts = t("privacy.local-prompts");
     } else {
-      var host = W.endpointHost(model.endpoint || W.defaultModelEndpoint(model.provider)) || "the provider you choose";
-      prompts = "Sent to " + host + (W.isLoopback(model.endpoint) ? " (on this machine)" : "");
+      var host = W.endpointHost(model.endpoint || W.defaultModelEndpoint(model.provider)) || t("nav.unknown");
+      prompts = t("privacy.sent-to", { host: host }) + (W.isLoopback(model.endpoint) ? t("privacy.on-this-machine") : "");
     }
     var connected = W.PROVIDERS.filter(function (p) {
       var s = draft.services[p.id];
       return s && s.client_id;
     }).map(function (p) { return p.name; });
     return [
-      ["Conversations, generated files, database", "This machine — " + (draft.workspace.path || ctx.workspace_path), "Always"],
-      ["API keys and OAuth tokens", "Local vault on this machine — " + ctx.stack_path, "When you save them"],
-      ["Prompts and answers", prompts, "Every message"],
-      ["Mail and files", connected.length ? connected.join(", ") + " — only for actions you ask for" : "No service connected", "Per request"],
-      ["Crash reports", draft.telemetry ? "Crash signature, version and operating system — no prompt text, no file names" : "Nowhere (telemetry is off)", "Opt-in only"]
+      [t("privacy.conversations"), t("privacy.conversations-dest", { path: draft.workspace.path || ctx.workspace_path }), t("privacy.always")],
+      [t("privacy.keys"), t("privacy.keys-dest", { path: ctx.stack_path }), t("privacy.when-saved")],
+      [t("privacy.prompts"), prompts, t("privacy.every-message")],
+      [t("privacy.services"), connected.length ? connected.join(", ") + t("privacy.only-actions") : t("privacy.no-service"), t("privacy.per-request")],
+      [t("privacy.crashes"), draft.telemetry ? t("privacy.crash-on") : t("privacy.crash-off"), t("privacy.opt-in")]
     ];
   }
 
@@ -194,18 +198,18 @@
       return "<tr><td>" + esc(row[0]) + "</td><td>" + esc(row[1]) + "</td><td>" + esc(row[2]) + "</td></tr>";
     }).join("");
     return '' +
-      '<p class="lead">Conversations and files stay local; keys are sealed in the local vault; only your chosen model sees prompts.</p>' +
-      '<table class="datamap"><thead><tr><th>Data</th><th>Destination</th><th>Trigger</th></tr></thead><tbody>' +
+      '<p class="lead">' + esc(t("privacy.lead")) + "</p>" +
+      '<table class="datamap"><thead><tr><th>' + esc(t("privacy.data")) + "</th><th>" + esc(t("privacy.destination")) + "</th><th>" + esc(t("privacy.trigger")) + "</th></tr></thead><tbody>" +
       rows + "</tbody></table>" +
       '<div class="checkbox-row">' +
         '<input type="checkbox" id="telemetryToggle"' + (draft.telemetry ? " checked" : "") + " />" +
-        '<label for="telemetryToggle">Send anonymous crash reports. Off by default; enabling sends only the crash signature, version and operating system.</label>' +
+        '<label for="telemetryToggle">' + esc(t("privacy.telemetry")) + "</label>" +
       "</div>" +
       '<div class="inline-row" style="margin-top:12px">' +
-        '<button type="button" class="btn btn-secondary btn-sm" id="revealVaultBtn">Reveal vault location</button>' +
-        '<span class="note" id="vaultNote">The assistant never displays a stored secret again.</span>' +
+        '<button type="button" class="btn btn-secondary btn-sm" id="revealVaultBtn">' + esc(t("privacy.reveal-vault")) + "</button>" +
+        '<span class="note" id="vaultNote">' + esc(t("privacy.vault-note")) + "</span>" +
       "</div>" +
-      '<p class="note install-next">Next installs the local services. The installer reports every component as it starts and finishes.</p>';
+      '<p class="note install-next">' + esc(t("privacy.next-note")) + "</p>";
   }
 
   /* The Borland-style install screen: one prominent progress bar, then a
@@ -217,27 +221,27 @@
     return '' +
       '<div class="install-top">' +
         '<div class="install-head">' +
-          '<span class="install-kicker">LOCAL INSTALLER</span>' +
+          '<span class="install-kicker">' + esc(t("install.title")) + "</span>" +
           '<span class="install-percent" id="installPercent">0%</span>' +
         "</div>" +
         '<div class="install-bar"><div class="install-bar-fill" id="installFill"></div></div>' +
-        '<p class="install-status" id="installStatus">Preparing ' + planned.length + ' components…</p>' +
+        '<p class="install-status" id="installStatus">' + esc(t("install.preparing", { count: planned.length })) + "</p>" +
       "</div>" +
       '<div class="component-board" id="componentList"></div>' +
       '<div id="provisionError" class="note err" role="status" style="margin-top:10px"></div>' +
       '<div class="inline-row" style="margin-top:12px">' +
-        '<button type="button" class="btn btn-primary btn-sm" id="startSetupBtn">Start setup</button>' +
-        '<button type="button" class="btn btn-secondary btn-sm" id="cancelSetupBtn" disabled>Cancel</button>' +
-        '<button type="button" class="btn btn-secondary btn-sm" id="openLogsBtn">Open log folder</button>' +
-        '<button type="button" class="btn btn-danger btn-sm" id="resetStackBtn">Reset stack</button>' +
+        '<button type="button" class="btn btn-primary btn-sm" id="startSetupBtn">' + esc(t("install.start")) + "</button>" +
+        '<button type="button" class="btn btn-secondary btn-sm" id="cancelSetupBtn" disabled>' + esc(t("install.cancel")) + "</button>" +
+        '<button type="button" class="btn btn-secondary btn-sm" id="openLogsBtn">' + esc(t("install.open-logs")) + "</button>" +
+        '<button type="button" class="btn btn-danger btn-sm" id="resetStackBtn">' + esc(t("install.reset")) + "</button>" +
       "</div>" +
-      '<details class="details"><summary>Installer output</summary><pre class="log" id="provisionLog">No output yet.</pre></details>';
+      '<details class="details"><summary>' + esc(t("install.output")) + '</summary><pre class="log" id="provisionLog">' + esc(t("install.no-output")) + "</pre></details>";
   }
 
   function renderFinish(draft, ctx) {
     var modelLabel = draft.model.mode === "local"
-      ? "Bundled local model (nothing leaves this machine)"
-      : (draft.model.mode === "own-key" ? "Your own key — " : "Hosted — ") +
+      ? t("finish.model-local")
+      : (draft.model.mode === "own-key" ? t("finish.model-own") : t("finish.model-hosted")) +
         (W.endpointHost(draft.model.endpoint) || draft.model.provider);
     var connected = W.PROVIDERS.filter(function (p) {
       var s = draft.services[p.id];
@@ -248,31 +252,31 @@
       return !s || !s.client_id;
     }).map(function (p) { return p.name; });
     return '' +
-      '<p class="lead">Review what this machine will do. Save the administrator account, then open the assistant.</p>' +
+      '<p class="lead">' + esc(t("finish.lead")) + "</p>" +
       '<div class="card" id="adminCard">' +
-        '<div class="card-head"><span class="card-title">Administrator account</span>' +
-          statusBadge("Created by setup", "ok") + "</div>" +
-        '<p class="note" style="margin:8px 0">Use these to sign in to the management area. Save the password now — it is shown only on this screen.</p>' +
+        '<div class="card-head"><span class="card-title">' + esc(t("finish.admin")) + "</span>" +
+          statusBadge(t("finish.admin-created"), "ok") + "</div>" +
+        '<p class="note" style="margin:8px 0">' + esc(t("finish.admin-note")) + "</p>" +
         '<div class="field-grid">' +
-          '<div class="field"><label for="adminEmail">Email</label>' +
+          '<div class="field"><label for="adminEmail">' + esc(t("finish.email")) + "</label>" +
             '<input type="text" id="adminEmail" value="' + esc(draft.admin.email) + '" autocomplete="off" /></div>' +
-          '<div class="field"><label for="adminPassword">Password</label>' +
+          '<div class="field"><label for="adminPassword">' + esc(t("finish.password")) + "</label>" +
             '<div class="inline-row">' +
               '<input type="text" id="adminPassword" readonly value="' + esc(draft.admin.password) + '" />' +
-              '<button type="button" class="btn btn-secondary btn-sm" id="copyAdminBtn">Copy</button>' +
-              '<button type="button" class="btn btn-secondary btn-sm" id="regenerateAdminBtn">Regenerate</button>' +
+              '<button type="button" class="btn btn-secondary btn-sm" id="copyAdminBtn">' + esc(t("finish.copy")) + "</button>" +
+              '<button type="button" class="btn btn-secondary btn-sm" id="regenerateAdminBtn">' + esc(t("finish.regenerate")) + "</button>" +
             "</div>" +
-            '<span class="hint">Stored only on this machine, in the local vault configuration.</span></div>' +
+            '<span class="hint">' + esc(t("finish.password-hint")) + "</span></div>" +
         "</div>" +
       "</div>" +
       '<div class="summary" style="margin-top:16px">' +
-        '<div class="summary-row"><span>Workspace</span><span>' + esc(draft.workspace.path || ctx.workspace_path) + "</span></div>" +
-        '<div class="summary-row"><span>Assistant model</span><span>' + esc(modelLabel) + "</span></div>" +
-        '<div class="summary-row"><span>Connected services</span><span>' + esc(connected.length ? connected.join(", ") : "None") + "</span></div>" +
-        '<div class="summary-row"><span>Not connected</span><span>' + esc(notConnected.length ? notConnected.join(", ") : "None") + "</span></div>" +
-        '<div class="summary-row"><span>Crash reports</span><span>' + (draft.telemetry ? "Enabled" : "Off") + "</span></div>" +
+        '<div class="summary-row"><span>' + esc(t("finish.workspace")) + "</span><span>" + esc(draft.workspace.path || ctx.workspace_path) + "</span></div>" +
+        '<div class="summary-row"><span>' + esc(t("finish.model")) + "</span><span>" + esc(modelLabel) + "</span></div>" +
+        '<div class="summary-row"><span>' + esc(t("finish.connected")) + "</span><span>" + esc(connected.length ? connected.join(", ") : t("finish.none")) + "</span></div>" +
+        '<div class="summary-row"><span>' + esc(t("finish.not-connected")) + "</span><span>" + esc(notConnected.length ? notConnected.join(", ") : t("finish.none")) + "</span></div>" +
+        '<div class="summary-row"><span>' + esc(t("finish.crash")) + "</span><span>" + esc(draft.telemetry ? t("finish.enabled") : t("finish.off")) + "</span></div>" +
       "</div>" +
-      '<p class="note" style="margin-top:16px">You can change every choice later in Settings. Nothing is sent anywhere until you ask the assistant to use a connected service.</p>' +
+      '<p class="note" style="margin-top:16px">' + esc(t("finish.change-later")) + "</p>" +
       '<div id="finishStatus" class="note" role="status" style="margin-top:12px"></div>';
   }
 
@@ -285,43 +289,43 @@
       case 5: return renderPrivacy(draft, ctx);
       case 6: return renderInstall(draft, ctx);
       case 7: return renderFinish(draft, ctx);
-      default: return "<p>Unknown step.</p>";
+      default: return "<p>" + esc(t("wizard.unknown-step")) + "</p>";
     }
   }
 
   function heading(step) {
     switch (step) {
-      case 1: return "Welcome";
-      case 2: return "Choose the assistant model";
-      case 3: return "Choose a workspace";
-      case 4: return "Connect services";
-      case 5: return "What leaves this machine";
-      case 6: return "Setting up this machine";
-      case 7: return "Ready to open the assistant";
-      default: return "Setup";
+      case 1: return t("heading.welcome");
+      case 2: return t("heading.model");
+      case 3: return t("heading.workspace");
+      case 4: return t("heading.services");
+      case 5: return t("heading.privacy");
+      case 6: return t("heading.install");
+      case 7: return t("heading.finish");
+      default: return t("wizard.title");
     }
   }
 
   function validate(step, draft) {
     if (step === 2) {
       if (draft.model.mode === "local") { return { ok: true }; }
-      if (!draft.model.endpoint) { return { ok: false, reason: "Enter the provider endpoint." }; }
-      if (!draft.model.model) { return { ok: false, reason: "Enter the model identifier." }; }
+      if (!draft.model.endpoint) { return { ok: false, reason: t("model.endpoint") + " — " + t("workspace.choose") }; }
+      if (!draft.model.model) { return { ok: false, reason: t("model.name") }; }
       if (draft.model.mode !== "free" && !draft.model.api_key) {
-        return { ok: false, reason: "Enter the key for this provider, or choose a free or local option." };
+        return { ok: false, reason: t("model.key") };
       }
       if (draft.model.mode === "free") {
         var free = W.freeProviderById(draft.model.provider);
         if (free && free.needsKey && !draft.model.api_key) {
-          return { ok: false, reason: free.name + " requires a free account key." };
+          return { ok: false, reason: t("model.key-hint-llm7") };
         }
       }
-      if (!draft.model.tested && draft.model.mode !== "free") { return { ok: false, reason: "Test the connection before continuing." }; }
+      if (!draft.model.tested && draft.model.mode !== "free") { return { ok: false, reason: t("model.test") }; }
       return { ok: true };
     }
     if (step === 3) {
-      if (!draft.workspace.path) { return { ok: false, reason: "Choose a workspace folder." }; }
-      if (draft.workspace.blocked) { return { ok: false, reason: draft.workspace.block_reason || "The folder is not writable." }; }
+      if (!draft.workspace.path) { return { ok: false, reason: t("workspace.choose") }; }
+      if (draft.workspace.blocked) { return { ok: false, reason: draft.workspace.block_reason || t("workspace.not-writable") }; }
       return { ok: true };
     }
     return { ok: true };

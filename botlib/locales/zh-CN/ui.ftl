@@ -1807,3 +1807,42 @@ dashboards-x-axis = X 轴字段
 dashboards-y-axis = Y 轴字段
 
 settings-theme-desc = 选择您偏好的颜色主题
+
+chat-format = 格式
+chat-model-title = 快速：迅速且经济 · 均衡：默认 · 质量：最佳回答，较慢
+chat-model-auto = 自动
+chat-model-fast = 快速 · 迅速
+chat-model-balanced = 均衡 · 默认
+chat-model-quality = 质量 · 最佳
+chat-attach = 附加文件
+chat-attached = 已附加文件
+chat-web-on-short = 网页开
+chat-web-off-short = 网页关
+chat-web-on = 网页搜索：开启 — 回答可使用实时来源。点击关闭。
+chat-web-off = 网页搜索：关闭 — 回答不使用实时来源。点击开启。
+chat-scroll-bottom = 滚动到底部
+chat-private-signin = 私有机器人 — 请登录后继续
+
+settings-profile = 个人资料
+settings-appearance = 外观
+settings-storage = 存储
+settings-integrations = 集成
+settings-vibe = Vibe
+settings-memory = 记忆
+settings-administration = 管理
+settings-users = 用户
+settings-audit = 审计日志
+settings-bots = 机器人
+settings-groups = 群组
+settings-dns = DNS
+settings-integrations-desc = 集成与连接的服务
+
+chat-connecting = 正在连接…
+drive-download = 下载
+drive-delete = 删除
+drive-rename = 重命名
+drive-move = 移动
+drive-copy = 复制
+drive-share = 共享
+drive-properties = 属性
+drive-search-placeholder = 搜索文件和文件夹

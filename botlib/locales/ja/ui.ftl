@@ -1807,3 +1807,42 @@ dashboards-x-axis = X軸フィールド
 dashboards-y-axis = Y軸フィールド
 
 settings-theme-desc = お好みのカラーテーマを選択してください
+
+chat-format = 形式
+chat-model-title = 高速: 素早く低コスト · バランス: 標準 · 品質: 最良の回答、低速
+chat-model-auto = 自動
+chat-model-fast = 高速 · 素早い
+chat-model-balanced = バランス · 標準
+chat-model-quality = 品質 · 最良
+chat-attach = ファイルを添付
+chat-attached = 添付ファイル
+chat-web-on-short = Web オン
+chat-web-off-short = Web オフ
+chat-web-on = Web 検索: オン — 回答はライブ情報を使用できます。クリックでオフ。
+chat-web-off = Web 検索: オフ — 回答はライブ情報を使用しません。クリックでオン。
+chat-scroll-bottom = 一番下へ
+chat-private-signin = プライベートボット — 続行するにはサインインしてください
+
+settings-profile = プロフィール
+settings-appearance = 外観
+settings-storage = ストレージ
+settings-integrations = 連携
+settings-vibe = Vibe
+settings-memory = メモリ
+settings-administration = 管理
+settings-users = ユーザー
+settings-audit = 監査ログ
+settings-bots = ボット
+settings-groups = グループ
+settings-dns = DNS
+settings-integrations-desc = 連携と接続サービス
+
+chat-connecting = 接続中…
+drive-download = ダウンロード
+drive-delete = 削除
+drive-rename = 名前を変更
+drive-move = 移動
+drive-copy = コピー
+drive-share = 共有
+drive-properties = プロパティ
+drive-search-placeholder = ファイルとフォルダを検索

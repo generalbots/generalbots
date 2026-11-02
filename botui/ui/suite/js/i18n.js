@@ -44,7 +44,7 @@
   }
 
   function getCacheKey(locale) {
-    return `gb-i18n-cache-${locale}}-${CACHE_VERSION}`;
+    return `gb-i18n-cache-${locale}-${CACHE_VERSION}`;
   }
 
   function getCachedTranslations(locale) {
@@ -211,6 +211,11 @@
         detail: { locale: currentLocale },
       }),
     );
+    window.dispatchEvent(
+      new CustomEvent("i18n:localeChanged", {
+        detail: { locale: currentLocale },
+      }),
+    );
   }
 
   function setupBodyListeners() {
@@ -313,6 +318,7 @@
     t,
     init,
     setLocale,
+    getLocale: getCurrentLocale,
     getCurrentLocale,
     getAvailableLocales,
     translatePage,

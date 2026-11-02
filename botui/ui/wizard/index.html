@@ -29,6 +29,10 @@
 
     <section class="pane" aria-live="polite">
       <header class="pane-head">
+        <div class="pane-lang">
+          <label id="wizardLanguageLabel" for="wizardLanguage">Language</label>
+          <select id="wizardLanguage" aria-label="Language"></select>
+        </div>
         <p class="step-counter" id="stepCounter">STEP 1 OF 6</p>
         <h1 class="step-heading" id="stepHeading" tabindex="-1">Welcome</h1>
         <p class="note err" id="stepError" role="status" hidden></p>
@@ -67,9 +71,18 @@
 
   <div class="status-live" id="statusLive" role="status" aria-live="polite"></div>
 
-  <script src="/wizard/wizard-state.js?v=2"></script>
+  <script src="/wizard/i18n/en.js"></script>
+  <script src="/wizard/i18n/pt-BR.js"></script>
+  <script src="/wizard/i18n/es.js"></script>
+  <script src="/wizard/i18n/fr.js"></script>
+  <script src="/wizard/i18n/de.js"></script>
+  <script src="/wizard/i18n/ja.js"></script>
+  <script src="/wizard/i18n/ko.js"></script>
+  <script src="/wizard/i18n/zh-CN.js"></script>
+  <script src="/wizard/wizard-i18n.js?v=1"></script>
+  <script src="/wizard/wizard-state.js?v=3"></script>
   <script src="/wizard/wizard-bridge.js?v=2"></script>
-  <script src="/wizard/wizard-steps.js?v=2"></script>
-  <script src="/wizard/wizard.js?v=2"></script>
+  <script src="/wizard/wizard-steps.js?v=3"></script>
+  <script src="/wizard/wizard.js?v=3"></script>
 </body>
 </html>

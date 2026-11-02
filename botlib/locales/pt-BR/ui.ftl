@@ -1786,3 +1786,52 @@ nav-about = Sobre
 nav-organizations = Organizações
 
 settings-theme-desc = Escolha o seu tema de cores preferido
+
+chat-format = Formato
+chat-model-title = Rápido: ágil e econômico · Equilibrado: padrão · Qualidade: melhores respostas, mais lento
+chat-model-auto = Automático
+chat-model-fast = Rápido · ágil
+chat-model-balanced = Equilibrado · padrão
+chat-model-quality = Qualidade · melhor
+chat-attach = Anexar arquivo
+chat-attached = Arquivo anexado
+chat-web-on-short = Web ativa
+chat-web-off-short = Web desligada
+chat-web-on = Busca na web: ativa — as respostas podem usar fontes ao vivo. Clique para desligar.
+chat-web-off = Busca na web: desligada — as respostas não usam fontes ao vivo. Clique para ligar.
+chat-scroll-bottom = Rolar para o fim
+chat-private-signin = Bot privado — entre para continuar
+
+settings-profile = Perfil
+settings-appearance = Aparência
+settings-storage = Armazenamento
+settings-integrations = Integrações
+settings-vibe = Vibe
+settings-memory = Memória
+settings-administration = Administração
+settings-users = Usuários
+settings-audit = Registro de auditoria
+settings-bots = Bots
+settings-groups = Grupos
+settings-dns = DNS
+settings-integrations-desc = Integrações e serviços conectados
+
+chat-connecting = Conectando…
+drive-download = Baixar
+drive-delete = Excluir
+drive-rename = Renomear
+drive-move = Mover
+drive-copy = Copiar
+drive-share = Compartilhar
+drive-properties = Propriedades
+drive-search-placeholder = Pesquisar arquivos e pastas
+
+dashboards-edit-widget = Editar widget
+dashboards-widget-title = Título do widget
+dashboards-widget-title-placeholder = Título do widget
+dashboards-widget-type = Tipo de widget
+dashboards-width = Largura
+dashboards-height = Altura
+dashboards-data-source = Fonte de dados
+dashboards-x-axis = Eixo X
+dashboards-y-axis = Eixo Y

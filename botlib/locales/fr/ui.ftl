@@ -1807,3 +1807,42 @@ dashboards-x-axis = Champ de l'axe X
 dashboards-y-axis = Champ de l'axe Y
 
 settings-theme-desc = Choisissez votre thème de couleurs préféré
+
+chat-format = Format
+chat-model-title = Rapide : vif et économique · Équilibré : par défaut · Qualité : meilleures réponses, plus lent
+chat-model-auto = Automatique
+chat-model-fast = Rapide · vif
+chat-model-balanced = Équilibré · par défaut
+chat-model-quality = Qualité · meilleur
+chat-attach = Joindre un fichier
+chat-attached = Fichier joint
+chat-web-on-short = Web activé
+chat-web-off-short = Web désactivé
+chat-web-on = Recherche web : activée — les réponses peuvent utiliser des sources en direct. Cliquez pour désactiver.
+chat-web-off = Recherche web : désactivée — les réponses n’utilisent pas de sources en direct. Cliquez pour activer.
+chat-scroll-bottom = Aller en bas
+chat-private-signin = Bot privé — connectez-vous pour continuer
+
+settings-profile = Profil
+settings-appearance = Apparence
+settings-storage = Stockage
+settings-integrations = Intégrations
+settings-vibe = Vibe
+settings-memory = Mémoire
+settings-administration = Administration
+settings-users = Utilisateurs
+settings-audit = Journal d’audit
+settings-bots = Bots
+settings-groups = Groupes
+settings-dns = DNS
+settings-integrations-desc = Intégrations et services connectés
+
+chat-connecting = Connexion…
+drive-download = Télécharger
+drive-delete = Supprimer
+drive-rename = Renommer
+drive-move = Déplacer
+drive-copy = Copier
+drive-share = Partager
+drive-properties = Propriétés
+drive-search-placeholder = Rechercher des fichiers et dossiers

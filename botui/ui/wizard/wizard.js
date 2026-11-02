@@ -6,6 +6,8 @@
   var S = window.GBWizardSteps;
   var B = window.GBWizardBridge;
   var esc = S.esc;
+  var I = window.WizardI18n;
+  var t = function (key, params) { return I.t(key, params); };
 
   var el = {
     root: document.getElementById("wizardRoot"),
@@ -20,6 +22,8 @@
     back: document.getElementById("backBtn"),
     next: document.getElementById("nextBtn"),
     skip: document.getElementById("skipBtn"),
+    lang: document.getElementById("wizardLanguage"),
+    langLabel: document.getElementById("wizardLanguageLabel"),
     status: document.getElementById("statusLive"),
     modal: document.getElementById("modalBackdrop"),
     modalTitle: document.getElementById("modalTitle"),
@@ -47,18 +51,18 @@
       return '<li class="rail-step' + (done ? " done" : "") + '"' +
         (current ? ' aria-current="step"' : "") + ">" +
         '<span class="num" aria-hidden="true">' + (done ? "✓" : n) + "</span>" +
-        '<span class="name">' + esc(step.name) + "</span></li>";
+        '<span class="name">' + esc(t(step.key)) + "</span></li>";
     }).join("");
   }
 
   function renderFooter() {
     var last = state.step === state.totalSteps;
     el.back.disabled = state.step === 1 || state.provisioning.running;
-    el.next.textContent = last ? "Open the assistant" : "Next";
+    el.next.textContent = last ? t("wizard.open-assistant") : t("wizard.next");
     el.next.disabled = !canAdvance();
     el.progress.style.width = Math.round((state.step / state.totalSteps) * 100) + "%";
-    el.footLabel.textContent = "Step " + state.step + " of " + state.totalSteps;
-    el.counter.textContent = "STEP " + state.step + " OF " + state.totalSteps;
+    el.footLabel.textContent = t("wizard.foot-step", { current: state.step, total: state.totalSteps });
+    el.counter.textContent = t("wizard.step-counter", { current: state.step, total: state.totalSteps });
   }
 
   function canAdvance() {
@@ -68,7 +72,16 @@
     return S.validate(state.step, draft).ok;
   }
 
+  function syncChrome() {
+    document.title = t("wizard.title");
+    if (el.langLabel) { el.langLabel.textContent = t("wizard.language"); }
+    if (el.back) { el.back.textContent = t("wizard.back"); }
+    if (el.skip) { el.skip.textContent = t("wizard.skip"); }
+    if (el.modalCancel) { el.modalCancel.textContent = t("wizard.cancel"); }
+  }
+
   function render() {
+    syncChrome();
     renderRail();
     renderFooter();
     el.heading.textContent = S.heading(state.step);
@@ -77,7 +90,7 @@
     if (state.step === 5) { renderComponents(); }
     bindStep();
     el.heading.focus();
-    say("Step " + state.step + " of " + state.totalSteps + ": " + S.heading(state.step));
+    say(t("wizard.step-say", { current: state.step, total: state.totalSteps, title: S.heading(state.step) }));
   }
 
   function persistDraft() {
@@ -172,7 +185,7 @@
         draft.model.endpoint = endpoint.value;
         draft.model.model = modelName.value;
         draft.model.tested = false;
-        document.getElementById("modelTestStatus").textContent = "Not tested yet.";
+        document.getElementById("modelTestStatus").textContent = t("model.untested");
         renderFooter();
       });
     }
@@ -182,7 +195,7 @@
     if (test) {
       test.addEventListener("click", function () {
         var status = document.getElementById("modelTestStatus");
-        status.textContent = "Testing…";
+        status.textContent = t("model.testing");
         status.className = "note";
         test.disabled = true;
         draft.model.endpoint = endpoint ? endpoint.value.trim() : "";
@@ -217,14 +230,14 @@
     var free = document.getElementById("workspaceFree");
     if (!status) { return; }
     var path = draft.workspace.path;
-    if (!path) { status.textContent = "Choose a folder."; return; }
-    status.textContent = "Checking the folder…";
+    if (!path) { status.textContent = t("workspace.choose"); return; }
+    status.textContent = t("workspace.checking");
     B.checkWorkspace(path).then(function (result) {
       draft.workspace.blocked = !result.writable;
       draft.workspace.block_reason = result.reason || "";
-      status.textContent = result.writable ? "Folder is writable." : (result.reason || "Folder is not writable.");
+      status.textContent = result.writable ? t("workspace.writable") : (result.reason || t("workspace.not-writable"));
       status.className = "hint " + (result.writable ? "ok" : "err");
-      if (free) { free.textContent = "Free space at this location: " + W.formatBytes(result.free_bytes) + "."; }
+      if (free) { free.textContent = t("workspace.free", { size: W.formatBytes(result.free_bytes) }); }
       renderFooter();
       persistDraft();
     }).catch(function (e) {
@@ -252,7 +265,7 @@
       button.addEventListener("click", function () {
         var value = button.getAttribute("data-copy");
         if (navigator.clipboard) {
-          navigator.clipboard.writeText(value).then(function () { say("Redirect URI copied."); });
+          navigator.clipboard.writeText(value).then(function () { say(t("nav.copied-redirect")); });
         }
       });
     });
@@ -301,7 +314,7 @@
       copy.addEventListener("click", function () {
         var value = "email: " + draft.admin.email + "\npassword: " + draft.admin.password;
         if (navigator.clipboard) {
-          navigator.clipboard.writeText(value).then(function () { say("Administrator credentials copied."); });
+          navigator.clipboard.writeText(value).then(function () { say(t("nav.copied-admin")); });
         }
       });
     }
@@ -310,12 +323,12 @@
       regenerate.addEventListener("click", function () {
         draft.admin.password = generatePassword();
         if (password) { password.value = draft.admin.password; }
-        say("A new administrator password was generated.");
+        say(t("nav.new-password"));
       });
     }
     var status = document.getElementById("finishStatus");
     if (status && !state.provisioning.ready && !state.skipped) {
-      status.textContent = "Start setup on the previous step to enable this action.";
+      status.textContent = t("finish.start-prev");
     }
   }
 
@@ -352,7 +365,7 @@
     return '<div class="component" data-comp="' + esc(component.id) + '">' +
       '<span class="dot" aria-hidden="true"></span>' +
       '<span><span class="card-title" style="font-size:13px">' + esc(component.label) + "</span>" +
-      '<span class="msg" style="display:block">Pending</span></span>' +
+      '<span class="msg" style="display:block">' + esc(t("install.pending")) + '</span></span>' +
       '<span class="dur"></span></div>';
   }
 
@@ -392,13 +405,13 @@
     if (fill) { fill.style.width = percent + "%"; }
     if (status) {
       if (state.provisioning.failed || failed) {
-        status.textContent = "Setup stopped: " + (state.provisioning.failed || "a component failed") + ". Retry or open the log folder.";
+        status.textContent = t("install.stopped", { reason: state.provisioning.failed || t("nav.unknown") });
       } else if (state.provisioning.ready) {
-        status.textContent = "All " + planned.length + " components are ready.";
+        status.textContent = t("install.all-ready", { count: planned.length });
       } else if (state.provisioning.running) {
-        status.textContent = "Installing " + ready + " of " + planned.length + " components…";
+        status.textContent = t("install.installing", { ready: ready, total: planned.length });
       } else {
-        status.textContent = "Waiting to start.";
+        status.textContent = t("install.waiting");
       }
     }
   }
@@ -431,7 +444,7 @@
 
   function renderLog() {
     var pre = document.getElementById("provisionLog");
-    if (pre) { pre.textContent = logLines.length ? logLines.slice(-40).join("\n") : "No output yet."; }
+    if (pre) { pre.textContent = logLines.length ? logLines.slice(-40).join("\n") : t("install.no-output"); }
   }
 
   function setProvisionUi(running) {
@@ -453,12 +466,12 @@
     state.provisioning.running = false;
     state.provisioning.ready = true;
     state.provisioning.failed = null;
-    logLines.push("Stack is ready");
+    logLines.push(t("install.stack-ready"));
     renderLog();
     markAllReady();
     setProvisionUi(false);
     var start = document.getElementById("startSetupBtn");
-    if (start) { start.textContent = "Setup complete"; start.disabled = true; }
+    if (start) { start.textContent = t("install.complete"); start.disabled = true; }
     updateInstallProgress();
     renderFooter();
     if (state.step === 6) { goTo(7); }
@@ -512,7 +525,7 @@
     var box = document.getElementById("provisionError");
     if (box) {
       box.innerHTML = esc(message) +
-        ' <button type="button" class="btn btn-secondary btn-sm" id="retryComponentBtn">Retry</button>';
+        ' <button type="button" class="btn btn-secondary btn-sm" id="retryComponentBtn">' + esc(t("install.retry")) + '</button>';
       var retry = document.getElementById("retryComponentBtn");
       if (retry) { retry.addEventListener("click", function () { startProvisioning(); }); }
     }
@@ -521,23 +534,23 @@
 
   function markAllReady() {
     (ctx.components || []).forEach(function (component) {
-      updateComponent({ id: component.id, state: "ready", message: "Ready", elapsed_ms: 0 });
+      updateComponent({ id: component.id, state: "ready", message: t("install.ready"), elapsed_ms: 0 });
     });
     updateInstallProgress();
   }
 
   function confirmReset() {
     openModal({
-      title: "Reset the stack?",
-      text: "This empties exactly this folder and nothing else:\n" + ctx.stack_path,
-      fieldLabel: "Type the folder name to confirm",
-      confirmLabel: "Reset stack",
+      title: t("nav.reset-title"),
+      text: t("nav.reset-text", { path: ctx.stack_path }),
+      fieldLabel: t("nav.reset-field"),
+      confirmLabel: t("nav.reset-confirm"),
       onConfirm: function (value) {
         B.resetStack(value).then(function () {
           state.provisioning.ready = false;
           state.provisioning.components = [];
           render();
-          say("Stack reset.");
+          say(t("nav.reset-done"));
         });
       }
     });
@@ -551,7 +564,7 @@
     el.modalField.hidden = !options.fieldLabel;
     el.modalFieldLabel.textContent = options.fieldLabel || "";
     el.modalInput.value = "";
-    el.modalConfirm.textContent = options.confirmLabel || "Confirm";
+    el.modalConfirm.textContent = options.confirmLabel || t("wizard.confirm");
     el.modal.hidden = false;
     modalAction = options.onConfirm;
     if (options.fieldLabel) { el.modalInput.focus(); } else { el.modalConfirm.focus(); }
@@ -610,7 +623,7 @@
   function skip() {
     state.skipped = true;
     goTo(state.totalSteps);
-    say("Setup skipped. You can finish it later in Settings.");
+    say(t("nav.skipped"));
   }
 
   function finish() {
@@ -621,7 +634,7 @@
 
   function handoff() {
     el.next.disabled = true;
-    el.next.textContent = "Opening…";
+    el.next.textContent = t("finish.opening");
     B.finish({
       display_name: draft.display_name,
       telemetry: draft.telemetry,
@@ -630,10 +643,10 @@
       services: draft.services,
       admin: draft.admin
     }).then(function () {
-      say("Opening the assistant.");
+      say(t("finish.opened"));
     }).catch(function (e) {
       el.next.disabled = false;
-      el.next.textContent = "Open the assistant";
+      el.next.textContent = t("wizard.open-assistant");
       var status = document.getElementById("finishStatus");
       if (status) { status.textContent = String(e && e.message ? e.message : e); status.className = "note err"; }
     });
@@ -659,8 +672,7 @@
     var banner = document.createElement("div");
     banner.className = "card";
     banner.style.marginBottom = "14px";
-    banner.innerHTML = '<p class="note warn" style="margin:0">Setup was interrupted at step ' +
-      esc(ctx.resume_step) + ' — continue.</p>';
+    banner.innerHTML = '<p class="note warn" style="margin:0">' + esc(t("nav.resume", { step: ctx.resume_step })) + '</p>';
     el.body.insertBefore(banner, el.body.firstChild);
   }
 
@@ -679,7 +691,13 @@
     logLines.push("[" + event.id + "] " + event.state + " — " + event.message);
     updateComponent(event);
     renderLog();
-    if (event.state === "ready" && event.id === "botserver") { say("Assistant service is ready."); }
+    if (event.state === "ready" && event.id === "botserver") { say(t("nav.assistant-ready")); }
+  });
+
+  I.populate(el.lang);
+  window.addEventListener("wizard:localeChanged", function () {
+    if (!ctx) { return; }
+    render();
   });
 
   B.context().then(function (context) {
@@ -708,8 +726,8 @@
       state.step = ctx.resume_step || 1;
       el.root.setAttribute("data-state", "ready");
       el.note.textContent = ctx.desktop_local
-        ? "Desktop edition. Nothing is installed until you choose Start setup."
-        : "Setup runs locally. Nothing is installed until you choose Start setup.";
+        ? t("nav.rail-desktop")
+        : t("nav.rail-local");
       render();
       if (state.resumed) { resumeBanner(); }
       if (ctx.first_run === false) {
@@ -718,7 +736,7 @@
       }
     });
   }).catch(function (e) {
-    el.body.innerHTML = '<p class="note err">Could not read the setup state: ' + esc(e && e.message ? e.message : e) + "</p>";
+    el.body.innerHTML = '<p class="note err">' + esc(t("nav.state-error", { error: e && e.message ? e.message : e })) + "</p>";
     el.root.setAttribute("data-state", "error");
   });
 })();

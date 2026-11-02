@@ -3,13 +3,13 @@
   "use strict";
 
   var STEPS = [
-    { id: "welcome", name: "Welcome" },
-    { id: "model", name: "Assistant model" },
-    { id: "workspace", name: "Workspace" },
-    { id: "services", name: "Connect services" },
-    { id: "privacy", name: "Privacy" },
-    { id: "install", name: "Install" },
-    { id: "finish", name: "Finish" }
+    { id: "welcome", key: "step.welcome" },
+    { id: "model", key: "step.model" },
+    { id: "workspace", key: "step.workspace" },
+    { id: "services", key: "step.services" },
+    { id: "privacy", key: "step.privacy" },
+    { id: "install", key: "step.install" },
+    { id: "finish", key: "step.finish" }
   ];
 
   var PROVIDERS = [
@@ -17,54 +17,54 @@
       id: "gmail",
       name: "Gmail",
       console: "https://console.cloud.google.com/apis/credentials",
-      consoleLabel: "Open Google Cloud credentials",
+      consoleLabelKey: "services.gmail.console",
       redirectTemplate: "http://127.0.0.1:8080/api/integrations/oauth/gmail/callback",
-      steps: "Enable the Gmail API, add the redirect URI, then paste the client id and secret. Scope: gmail.readonly.",
-      scopeNote: "The assistant can read your mail; it cannot send, delete or change it.",
-      fields: { id: "Client id", secret: "Client secret" }
+      stepsKey: "services.gmail.steps",
+      scopeNoteKey: "services.gmail.scope",
+      fields: { id: "services.client-id", secret: "services.client-secret" }
     },
     {
       id: "onedrive",
       name: "OneDrive",
       console: "https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade",
-      consoleLabel: "Open Azure app registrations",
+      consoleLabelKey: "services.onedrive.console",
       redirectTemplate: "http://127.0.0.1:8080/api/integrations/oauth/onedrive/callback",
-      steps: "Add the redirect URI and grant Files.Read plus offline_access, then paste the client id and secret.",
-      scopeNote: "The assistant can read your files; it cannot edit or delete them.",
-      fields: { id: "Application (client) id", secret: "Client secret" }
+      stepsKey: "services.onedrive.steps",
+      scopeNoteKey: "services.onedrive.scope",
+      fields: { id: "services.client-id", secret: "services.client-secret" }
     },
     {
       id: "dropbox",
       name: "Dropbox",
       console: "https://www.dropbox.com/developers/apps",
-      consoleLabel: "Open Dropbox App Console",
+      consoleLabelKey: "services.dropbox.console",
       redirectTemplate: "http://127.0.0.1:8080/api/integrations/oauth/dropbox/callback",
-      steps: "Use scoped access with files.metadata.read and files.content.read, add the redirect URI, then paste the app key and secret.",
-      scopeNote: "The assistant can read file names and contents; it cannot change or remove them.",
-      fields: { id: "App key", secret: "App secret" }
+      stepsKey: "services.dropbox.steps",
+      scopeNoteKey: "services.dropbox.scope",
+      fields: { id: "services.client-id", secret: "services.client-secret" }
     }
   ];
 
   var MODELS = [
     {
       id: "local",
-      title: "Bundled local model",
-      desc: "Runs on this machine. Nothing leaves it. Recommended for a private install."
+      titleKey: "model.local.title",
+      descKey: "model.local.desc"
     },
     {
       id: "free",
-      title: "Free hosted API (no key)",
-      desc: "Kilo Code, LLM7.io or OVHcloud free endpoints. No local model is installed; prompts go to that provider under its terms."
+      titleKey: "model.free.title",
+      descKey: "model.free.desc"
     },
     {
       id: "own-key",
-      title: "My own provider key",
-      desc: "Prompts go to the provider you choose, and only to that provider."
+      titleKey: "model.ownkey.title",
+      descKey: "model.ownkey.desc"
     },
     {
       id: "hosted",
-      title: "Hosted model",
-      desc: "Use a managed endpoint. Prompts leave this machine for that endpoint."
+      titleKey: "model.hosted.title",
+      descKey: "model.hosted.desc"
     }
   ];
 
@@ -148,7 +148,7 @@
   }
 
   function formatBytes(bytes) {
-    if (!bytes && bytes !== 0) { return "unknown"; }
+    if (!bytes && bytes !== 0) { return (window.WizardI18n ? window.WizardI18n.t("nav.unknown") : "unknown"); }
     var units = ["B", "KB", "MB", "GB", "TB"];
     var value = bytes;
     var unit = 0;

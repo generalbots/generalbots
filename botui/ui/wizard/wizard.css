@@ -157,6 +157,35 @@ button, input, select, textarea { font: inherit; color: inherit; }
 
 .pane-head {
   padding: 20px 32px 0;
+  position: relative;
+}
+/* Language selector: always available, including the very first screen. */
+.pane-lang {
+  position: absolute;
+  top: 18px;
+  right: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.pane-lang label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.pane-lang select {
+  padding: 6px 28px 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.pane-lang select:focus-visible {
+  outline: none;
+  box-shadow: var(--focus);
 }
 .step-counter {
   margin: 0 0 6px;
@@ -441,6 +470,8 @@ table.datamap td:first-child { font-weight: 600; }
   .rail-step .name { display: none; }
   .rail-step .num { width: 28px; height: 28px; font-size: 13px; }
   .pane-head { padding: 20px 20px 0; }
+  .pane-lang { top: 14px; right: 20px; }
+  .pane-lang label { display: none; }
   .pane-body { padding: 14px 20px 20px; }
   .pane-foot { padding: 12px 20px; }
   .step-heading { font-size: 21px; }

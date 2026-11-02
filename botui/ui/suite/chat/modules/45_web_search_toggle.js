@@ -42,10 +42,18 @@
     }
   }
 
+  function tr(key, fallback) {
+    if (window.i18n && typeof window.i18n.t === "function") {
+      var value = window.i18n.t(key);
+      return value === key ? fallback : value;
+    }
+    return fallback;
+  }
+
   function copy() {
     return enabled
-      ? "Web search: on — answers can use live sources. Click to turn off."
-      : "Web search: off — answers use no live sources. Click to turn on.";
+      ? tr("chat-web-on-title", "Web search: on — answers can use live sources. Click to turn off.")
+      : tr("chat-web-off-title", "Web search: off — answers use no live sources. Click to turn on.");
   }
 
   function paint() {
@@ -56,7 +64,7 @@
     button.title = copy();
     button.setAttribute("aria-label", copy());
     var label = button.querySelector(".web-search-label");
-    if (label) label.textContent = enabled ? "Web on" : "Web off";
+    if (label) label.textContent = enabled ? tr("chat-web-on-short", "Web on") : tr("chat-web-off-short", "Web off");
   }
 
   function setEnabled(next) {

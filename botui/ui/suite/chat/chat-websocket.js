@@ -67,7 +67,9 @@ function showAuthRequired(botName) {
   if (statusEl) {
     statusEl.className = "connection-status disconnected";
     var statusText = statusEl.querySelector(".connection-text");
-    if (statusText) statusText.textContent = "Private bot — sign in required";
+    if (statusText) {
+      statusText.textContent = (window.i18n && window.i18n.t("chat-private-signin")) || "Private bot — sign in required";
+    }
     statusEl.style.display = "flex";
   }
   var login = window.GB_LOGIN_URL || "/login";

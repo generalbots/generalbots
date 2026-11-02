@@ -1807,3 +1807,42 @@ dashboards-x-axis = X축 필드
 dashboards-y-axis = Y축 필드
 
 settings-theme-desc = 선호하는 색상 테마를 선택하세요
+
+chat-format = 형식
+chat-model-title = 빠름: 신속하고 저렴 · 균형: 기본 · 품질: 최고 답변, 느림
+chat-model-auto = 자동
+chat-model-fast = 빠름 · 신속
+chat-model-balanced = 균형 · 기본
+chat-model-quality = 품질 · 최고
+chat-attach = 파일 첨부
+chat-attached = 첨부된 파일
+chat-web-on-short = 웹 켜짐
+chat-web-off-short = 웹 꺼짐
+chat-web-on = 웹 검색: 켜짐 — 답변에 실시간 소스를 사용할 수 있습니다. 클릭하면 끕니다.
+chat-web-off = 웹 검색: 꺼짐 — 답변에 실시간 소스를 사용하지 않습니다. 클릭하면 켭니다.
+chat-scroll-bottom = 맨 아래로
+chat-private-signin = 비공개 봇 — 계속하려면 로그인하세요
+
+settings-profile = 프로필
+settings-appearance = 모양
+settings-storage = 저장소
+settings-integrations = 통합
+settings-vibe = Vibe
+settings-memory = 메모리
+settings-administration = 관리
+settings-users = 사용자
+settings-audit = 감사 로그
+settings-bots = 봇
+settings-groups = 그룹
+settings-dns = DNS
+settings-integrations-desc = 통합 및 연결된 서비스
+
+chat-connecting = 연결 중…
+drive-download = 다운로드
+drive-delete = 삭제
+drive-rename = 이름 바꾸기
+drive-move = 이동
+drive-copy = 복사
+drive-share = 공유
+drive-properties = 속성
+drive-search-placeholder = 파일 및 폴더 검색
