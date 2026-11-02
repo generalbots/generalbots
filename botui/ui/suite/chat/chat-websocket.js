@@ -71,12 +71,8 @@ function showAuthRequired(botName) {
     statusEl.style.display = "flex";
   }
   var login = window.GB_LOGIN_URL || "/login";
-  var ret = encodeURIComponent(window.location.href);
-  var cta = document.getElementById("publicSignupCta");
-  if (cta) {
-    cta.innerHTML = '<span>This bot is private. Sign in with an account of its organization.</span>' +
-      '<a href="' + login + "?redirect=" + ret + '">Sign in</a>';
-    cta.style.display = "flex";
+  if (statusEl) {
+    statusEl.title = "Sign in at " + login;
   }
   if (window.GBAppLifecycle) {
     GBAppLifecycle.setState("error", "This bot is private. Sign in to continue.");

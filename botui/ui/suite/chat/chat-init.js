@@ -723,17 +723,6 @@ function initChat() {
   }
 proceedWithChatInit();
 autoFocusInput();
-
-// Show signup CTA for public bots when not authenticated
-var cta = document.getElementById('publicSignupCta');
-if (cta && window.__BOT_IS_PUBLIC__ === true) {
-  setTimeout(function() {
-    var isAuth = window.GBSecurity && window.GBSecurity.isAuthenticated();
-    if (!isAuth) {
-      cta.style.display = 'flex';
-    }
-  }, 2000);
-}
 }
 
 function showChatApp() {

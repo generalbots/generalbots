@@ -25,6 +25,8 @@ function check(condition, label) {
 }
 
 const product = read("botserver/.product.desktop-local");
+const defaultProduct = read("botserver/.product");
+const chatPartial = read("botui/ui/suite/partials/chat.html");
 const desktop = read("botui/ui/suite/desktop.html");
 const taskbarCss = read("botui/ui/suite/css/desktop/taskbar.css");
 const baseJs = read("botui/ui/suite/js/base.js");
@@ -78,6 +80,15 @@ check(/\.toolbar-v15 \.taskbar-shell/.test(taskbarRules), "dock wrapper has its 
 // buttons (their modules stay loaded for keyboard shortcuts only).
 check(!/toggleControlCenter|toggleMissionControl|toggleVirtualDesktops/.test(desktop),
   "no handlers reference the removed tray buttons");
+
+// #1626 — Research is not part of the default product, not even as a preview app.
+const defaultPreview = (defaultProduct.match(/^preview_apps=(.*)$/m) || [])[1] || "";
+check(defaultPreview.split(",").map((s) => s.trim()).indexOf("research") === -1,
+  "default product does not advertise Research, even in Preview mode");
+
+// #1629 — the chat composer has no create-a-free-account CTA.
+check(chatPartial.indexOf("publicSignupCta") === -1, "chat no longer renders a signup CTA");
+check(!/free account/i.test(chatPartial), "chat has no create-a-free-account copy");
 
 console.log(`desktop_surfaces: ${passed} passed, ${failed} failed`);
 process.exit(failed === 0 ? 0 : 1);
