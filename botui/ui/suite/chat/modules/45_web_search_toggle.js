@@ -6,7 +6,7 @@
  * chat payload sends `web_search` with every message; when it is false the
  * server skips the whole search pipeline. Default is on. */
 (function () {
-  var STORAGE_PREFIX = "gb-web-search:";
+  var STORAGE_PREFIX = "gb-web-search:v2:";
   // Off by default: the desktop assistant answers from the model and the
   // knowledge base unless the user explicitly asks for live sources.
   var enabled = false;
@@ -29,10 +29,13 @@
   function read() {
     try {
       var raw = window.localStorage.getItem(storageKey());
-      if (raw === null) return true;
+      // Off by default: no stored choice means the user never turned it on.
+      // The early `true` returns made a fresh install start with web on, so
+      // every message went through the search pipeline.
+      if (raw === null) return false;
       return raw === "true";
     } catch (e) {
-      return true;
+      return false;
     }
   }
 

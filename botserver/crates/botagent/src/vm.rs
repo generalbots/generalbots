@@ -584,7 +584,14 @@ async fn launch_and_wait(state: &Arc<AgentService>, vm_name: &str) -> Result<(),
     )
     .await;
 
-    wait_for_running(state, vm_name).await?;
+    if wait_for_running(state, vm_name).await.is_err() {
+        // The first launch of a fresh image can exceed the window while the
+        // layers unpack; the container stays created but stopped. Start it
+        // explicitly and wait again instead of failing the whole workspace.
+        tracing::warn!("container {vm_name} did not start in time; retrying incus start");
+        let _ = run_incus(state, vec!["start".into(), vm_name.into()]).await;
+        wait_for_running(state, vm_name).await?;
+    }
 
     // Best-effort runtime bootstrap. Logs land inside the container; a
     // failure is reported by the first exec, never by provisioning.
@@ -854,12 +861,16 @@ pub async fn exec_in_conversation(
     // and retry once so the first request of a new install succeeds.
     if !first_ok && is_interpreter_missing(&stderr) {
         tracing::info!("vm exec: interpreter missing, waiting for workspace provisioning");
-        for _ in 0..12 {
+        // First boot of a workspace runs apt (python, node, pip) and pip
+        // installs the document toolkit; on a cold image that takes minutes,
+        // so wait up to three minutes for the interpreter itself instead of
+        // failing the user's first request.
+        for _ in 0..36 {
             tokio::time::sleep(std::time::Duration::from_secs(5)).await;
             let probe = run_with_timeout(
                 state,
                 vm_name,
-                format!("test -f /opt/vibe/.provisioned && command -v {interpreter}"),
+                format!("command -v {interpreter}"),
                 15_000,
             )
             .await?;

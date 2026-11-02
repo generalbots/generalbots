@@ -739,9 +739,11 @@
       ensureAdmin();
       state.step = ctx.resume_step || 1;
       el.root.setAttribute("data-state", "ready");
-      el.note.textContent = ctx.desktop_local
-        ? t("nav.rail-desktop")
-        : t("nav.rail-local");
+      if (el.note) {
+        el.note.textContent = ctx.desktop_local
+          ? t("nav.rail-desktop")
+          : t("nav.rail-local");
+      }
       render();
       if (state.resumed) { resumeBanner(); }
       if (ctx.first_run === false) {

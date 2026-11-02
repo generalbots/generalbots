@@ -13,6 +13,56 @@ use std::sync::Arc;
 use super::directory_setup::{bootstrap_directory_admin, init_directory_service};
 use super::llm_setup::init_llm_provider;
 
+/// Copies `conf/system/model-choice.json` into the Vault LLM secret and removes
+/// it. No-op when the file is absent or Vault is unavailable.
+async fn apply_staged_model_choice() {
+    let stack = botcore::shared::utils::get_stack_path();
+    let path = std::path::PathBuf::from(&stack).join("conf/system/model-choice.json");
+    let raw = match std::fs::read_to_string(&path) {
+        Ok(raw) => raw,
+        Err(_) => return,
+    };
+    let parsed: serde_json::Value = match serde_json::from_str(&raw) {
+        Ok(value) => value,
+        Err(e) => {
+            log::warn!("staged model choice is not valid JSON: {e}");
+            return;
+        }
+    };
+    let url = parsed.get("url").and_then(|v| v.as_str()).unwrap_or("").trim();
+    let model = parsed.get("model").and_then(|v| v.as_str()).unwrap_or("").trim();
+    if url.is_empty() || model.is_empty() {
+        let _ = std::fs::remove_file(&path);
+        return;
+    }
+    let manager = match botcoresecrets::SecretsManager::from_env() {
+        Ok(manager) => manager,
+        Err(e) => {
+            log::warn!("could not initialise secrets to apply the model choice: {e}");
+            return;
+        }
+    };
+    if !manager.is_enabled() {
+        log::warn!("Vault is not enabled yet; the staged model choice stays on disk");
+        return;
+    }
+    let mut data = std::collections::HashMap::new();
+    data.insert("url".to_string(), url.to_string());
+    data.insert("model".to_string(), model.to_string());
+    if let Some(key) = parsed.get("api_key").and_then(|v| v.as_str()) {
+        if !key.trim().is_empty() {
+            data.insert("openai_key".to_string(), key.to_string());
+        }
+    }
+    match manager.put_secret("gbo/llm", data).await {
+        Ok(()) => {
+            log::info!("Applied the wizard model choice: {model} at {url}");
+            let _ = std::fs::remove_file(&path);
+        }
+        Err(e) => log::warn!("could not apply the model choice: {e}"),
+    }
+}
+
 pub async fn create_app_state(
     cfg: AppConfig,
     pool: botcore::shared::utils::DbPool,
@@ -53,6 +103,11 @@ pub async fn create_app_state(
         info!("Drive credentials not configured — skipping MinIO/Drive initialization");
         None
     };
+
+    // Apply a model choice staged by the first-run wizard. It is written
+    // before Vault credentials exist, so the boot applies it here, before the
+    // LLM provider is constructed, and the first message already uses it.
+    apply_staged_model_choice().await;
 
     let session_manager_inner =
         crate::core::session::LocalSessionManager(botcoresession::SessionManager::new(

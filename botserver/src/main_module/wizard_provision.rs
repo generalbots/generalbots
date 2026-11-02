@@ -187,6 +187,33 @@ async fn apply_llm_choice() {
         return;
     }
     dotenvy::dotenv().ok();
+
+    // On a first run the stack `.env` (and therefore VAULT_TOKEN) is written by
+    // the assistant's first boot, which happens after provisioning. The Vault
+    // root token is already on disk from the install, so use it here instead of
+    // silently dropping the model choice.
+    let stack = std::path::PathBuf::from(
+        std::env::var("BOTSERVER_STACK_PATH").unwrap_or_default(),
+    );
+    if std::env::var("VAULT_TOKEN").map(|v| v.trim().is_empty()).unwrap_or(true) {
+        let init = stack.join("conf/vault/init.json");
+        if let Ok(raw) = std::fs::read_to_string(&init) {
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&raw) {
+                if let Some(token) = json.get("root_token").and_then(|t| t.as_str()) {
+                    std::env::set_var("VAULT_TOKEN", token);
+                }
+            }
+        }
+    }
+    if std::env::var("VAULT_ADDR").map(|v| v.trim().is_empty()).unwrap_or(true) {
+        std::env::set_var("VAULT_ADDR", "https://127.0.0.1:8200");
+    }
+    if std::env::var("VAULT_CACERT").is_err() {
+        let ca = stack.join("conf/system/certificates/ca/ca.crt");
+        if ca.exists() {
+            std::env::set_var("VAULT_CACERT", ca);
+        }
+    }
     // Build the manager from the environment we just loaded instead of the
     // process-wide singleton: provisioning calls the secret store before the
     // stack `.env` exists, so the singleton may have been cached as disabled.
@@ -198,7 +225,22 @@ async fn apply_llm_choice() {
         }
     };
     if !manager.is_enabled() {
-        eprintln!("provision: Vault credentials are not available yet; the model choice was not saved");
+        // Vault is not reachable from the provisioner on a first run (its
+        // credentials land in the stack .env during the assistant's first
+        // boot). Persist the choice on disk; the boot applies it before the
+        // LLM provider is built, so the very first message already uses it.
+        let stack = std::path::PathBuf::from(
+            std::env::var("BOTSERVER_STACK_PATH").unwrap_or_default(),
+        );
+        let path = stack.join("conf/system/model-choice.json");
+        let payload = serde_json::json!({ "url": url, "model": model, "api_key": std::env::var("GB_WIZARD_LLM_KEY").unwrap_or_default() });
+        if let Some(parent) = path.parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        match std::fs::write(&path, payload.to_string()) {
+            Ok(()) => eprintln!("provision: model choice staged at {}", path.display()),
+            Err(e) => eprintln!("provision: could not stage the model choice: {e}"),
+        }
         return;
     }
     let mut data = std::collections::HashMap::new();
@@ -244,6 +286,17 @@ pub async fn run() -> std::io::Result<()> {
         }
     }
 
+    // Vault finishes initialization a few seconds after its process reports
+    // ready; wait for the init file so the model choice can actually be saved.
+    for _ in 0..120 {
+        let stack = std::path::PathBuf::from(
+            std::env::var("BOTSERVER_STACK_PATH").unwrap_or_default(),
+        );
+        if stack.join("conf/vault/init.json").exists() {
+            break;
+        }
+        tokio::time::sleep(Duration::from_secs(1)).await;
+    }
     apply_llm_choice().await;
 
     println!(
