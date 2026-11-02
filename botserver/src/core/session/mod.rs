@@ -62,6 +62,12 @@ impl botlib::traits::SessionManagerService for LocalSessionManager {
     fn delete_session(&mut self, session_id: uuid::Uuid, owner_id: uuid::Uuid) -> Result<bool, String> {
         self.0.delete_session(session_id, owner_id).map_err(|e| e.to_string())
     }
+    fn rename_session(&mut self, session_id: uuid::Uuid, owner_id: uuid::Uuid, new_title: &str) -> Result<bool, String> {
+        self.0.rename_session(session_id, owner_id, new_title).map_err(|e| e.to_string())
+    }
+    fn ensure_title_from_message(&mut self, session_id: uuid::Uuid, owner_id: uuid::Uuid, content: &str) -> Result<bool, String> {
+        self.0.ensure_title_from_message(session_id, owner_id, content).map_err(|e| e.to_string())
+    }
     fn get_session_context_data(&self, session_id: &uuid::Uuid, user_id: &uuid::Uuid) -> Result<String, String> {
         self.0.get_session_context_data(session_id, user_id).map(|v| v.to_string()).map_err(|e| e.to_string())
     }

@@ -175,13 +175,20 @@ async fn apply_llm_choice() {
         return;
     }
     dotenvy::dotenv().ok();
-    let manager = match botcoresecrets::SecretsManager::get() {
+    // Build the manager from the environment we just loaded instead of the
+    // process-wide singleton: provisioning calls the secret store before the
+    // stack `.env` exists, so the singleton may have been cached as disabled.
+    let manager = match botcoresecrets::SecretsManager::from_env() {
         Ok(manager) => manager,
         Err(e) => {
             eprintln!("provision: could not initialise secrets for the model choice: {e}");
             return;
         }
     };
+    if !manager.is_enabled() {
+        eprintln!("provision: Vault credentials are not available yet; the model choice was not saved");
+        return;
+    }
     let mut data = std::collections::HashMap::new();
     data.insert("url".to_string(), url);
     data.insert("model".to_string(), model);

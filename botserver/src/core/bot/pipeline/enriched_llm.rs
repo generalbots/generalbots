@@ -69,6 +69,10 @@ pub(super) async fn build_and_stream(
     if !is_switcher_replay {
         let mut sm = state.session_manager.lock().await;
         let _ = sm.save_message(session_id, user_id, 1, user_text, 1);
+        // Name the conversation as soon as it starts, from the user's own
+        // words. Only runs while the title is still a placeholder, so a later
+        // rename (manual or automatic) is preserved.
+        let _ = sm.ensure_title_from_message(session_id, user_id, user_text);
     }
 
     if let Some(arr) = messages_val.as_array_mut() {

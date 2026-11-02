@@ -107,6 +107,29 @@ pub trait SessionManagerService: Send + Debug {
         Err("delete_session is not supported by this session manager".to_string())
     }
 
+    /// Renames a conversation when it belongs to `owner_id`. Returns `false`
+    /// when the session is missing, owned by someone else, or the title is
+    /// empty after trimming.
+    fn rename_session(
+        &mut self,
+        _session_id: uuid::Uuid,
+        _owner_id: uuid::Uuid,
+        _new_title: &str,
+    ) -> Result<bool, String> {
+        Err("rename_session is not supported by this session manager".to_string())
+    }
+
+    /// Names a conversation from its first user turn when it has no meaningful
+    /// title yet. Returns `true` when a title was written.
+    fn ensure_title_from_message(
+        &mut self,
+        _session_id: uuid::Uuid,
+        _owner_id: uuid::Uuid,
+        _content: &str,
+    ) -> Result<bool, String> {
+        Ok(false)
+    }
+
     fn get_session_context_data(
         &self,
         session_id: &uuid::Uuid,

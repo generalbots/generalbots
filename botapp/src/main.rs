@@ -167,13 +167,19 @@ fn create_tray_with_mode(mode: String) -> Result<String, String> {
 #[cfg(feature = "desktop-local")]
 fn start_sidecar_and_show(app: &tauri::App) {
     let resource_dir = app.path().resource_dir().ok();
-    let sidecar = app.state::<Sidecar>();
-    if let Err(e) = sidecar.start(resource_dir) {
-        log::error!("Failed to start botserver sidecar: {e}");
-    }
 
     let handle = app.handle().clone();
     tauri::async_runtime::spawn(async move {
+        // A previous run may have left the sidecar alive (for example when the
+        // window was closed without a graceful exit). Reuse it instead of
+        // starting a second listener on the same port.
+        let already_running = Sidecar::wait_for_api("http://localhost:8080/api/product", 2).await;
+        if !already_running {
+            let sidecar = handle.state::<Sidecar>().inner().clone();
+            if let Err(e) = sidecar.start(resource_dir.clone()) {
+                log::error!("Failed to start botserver sidecar: {e}");
+            }
+        }
         let ready = Sidecar::wait_for_api("http://localhost:8080/api/product", 120).await;
         if !ready {
             log::error!("botserver did not respond within 120s");

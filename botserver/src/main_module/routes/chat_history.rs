@@ -2,9 +2,10 @@ use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::Json,
-    routing::{delete, get, put},
+    routing::{delete, get},
     Router,
-};use diesel::prelude::*;
+};
+use diesel::prelude::*;
 use serde::Serialize;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -129,7 +130,18 @@ pub async fn handle_chat_history_sessions(
         if out.len() >= limit as usize {
             break;
         }
-        let title = {
+        // Prefer the stored title: it is written from the first user turn when
+        // the conversation starts and replaced when the user renames it.
+        // Sessions created before titles were persisted fall back to the
+        // decrypted first message.
+        let stored = sess.title.trim();
+        let has_stored_title = !stored.is_empty()
+            && !stored.eq_ignore_ascii_case("new conversation")
+            && !stored.eq_ignore_ascii_case("nova conversa")
+            && !stored.eq_ignore_ascii_case("untitled");
+        let title = if has_stored_title {
+            stored.to_string()
+        } else {
             let mut sm = state.session_manager.lock().await;
             match sm.get_first_user_message(sess.id) {
                 Ok(Some(first)) => first,

@@ -184,6 +184,46 @@ impl SessionManager {
         self.create_session_with_id(session_id, uid, bid, session_title)
     }
 
+    /// Gives a new conversation a human-readable name from its first user
+    /// turn. A title that was already set (automatically or by the user) is
+    /// never overwritten, so a later rename wins.
+    pub fn ensure_title_from_message(
+        &mut self,
+        sess_id: Uuid,
+        owner_id: Uuid,
+        content: &str,
+    ) -> Result<bool, Box<dyn Error + Send + Sync>> {
+        let mut conn = self.pool.get()?;
+        let row: Option<(String, String)> = user_sessions::table
+            .filter(user_sessions::id.eq(sess_id))
+            .select((user_sessions::title, user_sessions::user_id))
+            .first::<(String, String)>(&mut conn)
+            .optional()?;
+        let Some((current, owner)) = row else {
+            return Ok(false);
+        };
+        if owner != owner_id.to_string() || !is_placeholder_title(&current) {
+            return Ok(false);
+        }
+        let title: String = content
+            .lines()
+            .next()
+            .unwrap_or("")
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+            .chars()
+            .take(80)
+            .collect();
+        if title.trim().is_empty() {
+            return Ok(false);
+        }
+        diesel::update(user_sessions::table.filter(user_sessions::id.eq(sess_id)))
+            .set(user_sessions::title.eq(&title))
+            .execute(&mut conn)?;
+        Ok(true)
+    }
+
     pub fn save_message(
         &mut self,
         sess_id: Uuid,
@@ -299,4 +339,14 @@ impl SessionManager {
         }
         Ok(String::new())
     }
+}
+
+/// Titles that carry no information: the conversation still needs a name.
+fn is_placeholder_title(title: &str) -> bool {
+    let lowered = title.trim().to_lowercase();
+    lowered.is_empty()
+        || lowered == "new conversation"
+        || lowered == "nova conversa"
+        || lowered == "untitled"
+        || lowered == "sem título"
 }
