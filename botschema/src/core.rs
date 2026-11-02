@@ -204,14 +204,14 @@ diesel::table! {
     }
 }
 
-// GB6-16 — persisted user preferences, read into the conversation prompt.
+// GB6-16 — persisted chat preferences, read into the conversation prompt.
 // `bot_id` NULL means the entry applies to every bot for that user.
 //
 // This is a separate table from the canonical `user_memories` (owner/branch/
-// kind/content, migration 6.5.88): sharing the name made the 6.8.2 migration a
-// no-op and left the code reading columns that did not exist.
+// kind/content, migration 6.5.88) and from the browser policy document in
+// `user_preferences` (JSONB, one row per user/key).
 diesel::table! {
-    user_preferences (id) {
+    chat_preferences (id) {
         id -> Uuid,
         user_id -> Uuid,
         bot_id -> Nullable<Uuid>,

@@ -15,7 +15,7 @@ use serde_json::json;
 use uuid::Uuid;
 
 use botcore::shared::state::AppState;
-use botschema::user_preferences;
+use botschema::chat_preferences;
 
 use super::settings_api::{get_conn, resolve_user_id};
 
@@ -52,14 +52,14 @@ pub async fn list(
         Ok(id) => id,
         Err((status, _)) => return auth_error(status),
     };
-    let rows = user_preferences::table
-        .filter(user_preferences::user_id.eq(user_id))
-        .order(user_preferences::updated_at.desc())
+    let rows = chat_preferences::table
+        .filter(chat_preferences::user_id.eq(user_id))
+        .order(chat_preferences::updated_at.desc())
         .select((
-            user_preferences::memory_key,
-            user_preferences::memory_value,
-            user_preferences::bot_id,
-            user_preferences::updated_at,
+            chat_preferences::memory_key,
+            chat_preferences::memory_value,
+            chat_preferences::bot_id,
+            chat_preferences::updated_at,
         ))
         .load::<(String, String, Option<Uuid>, chrono::DateTime<chrono::Utc>)>(&mut conn);
     match rows {
@@ -125,7 +125,7 @@ pub async fn upsert(
     // The unique index is expression-based (NULL bot id normalised), so the
     // upsert must name the same expression rather than a constraint.
     let result = diesel::sql_query(
-        "INSERT INTO user_preferences (user_id, bot_id, memory_key, memory_value) \
+        "INSERT INTO chat_preferences (user_id, bot_id, memory_key, memory_value) \
          VALUES ($1, $2, $3, $4) \
          ON CONFLICT (user_id, COALESCE(bot_id, '00000000-0000-0000-0000-000000000000'::uuid), memory_key) \
          DO UPDATE SET memory_value = EXCLUDED.memory_value, updated_at = NOW()",
@@ -170,9 +170,9 @@ pub async fn delete(
         Err((status, _)) => return auth_error(status),
     };
     let removed = diesel::delete(
-        user_preferences::table
-            .filter(user_preferences::user_id.eq(user_id))
-            .filter(user_preferences::memory_key.eq(&key)),
+        chat_preferences::table
+            .filter(chat_preferences::user_id.eq(user_id))
+            .filter(chat_preferences::memory_key.eq(&key)),
     )
     .execute(&mut conn);
     match removed {

@@ -150,7 +150,13 @@ pub fn extract_zip(zip_path: &PathBuf, dest_dir: &PathBuf) -> Result<()> {
             None => continue,
         };
 
-        if file.name().ends_with('/') {
+        // zip 9 returns the entry name as a Result; a name that cannot be
+        // decoded is treated as a file, never as a directory.
+        let is_dir = file
+            .name()
+            .map(|name| name.ends_with('/'))
+            .unwrap_or(false);
+        if is_dir {
             std::fs::create_dir_all(&outpath)?;
         } else {
             if let Some(p) = outpath.parent() {
