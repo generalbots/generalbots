@@ -6,7 +6,7 @@ Contents
   generalbots              desktop shell (Chat + Drive)
   botserver                local API + suite server started by the shell
   ui/suite, ui/themes      web suite served by botserver on 127.0.0.1:8080
-  .product.desktop-local   desktop profile: Chat + Drive, no login screen
+  .product.desktop-local   desktop profile: Chat + Drive, single-user sign-in
   start.sh                 launcher (also the entry point of the desktop file)
   install.sh               per-user installer, no root required
 
