@@ -1,15 +1,18 @@
 name: Desktop binaries
 
-# Builds the desktop edition binaries on GitHub-hosted runners and attaches
-# them to a GitHub Release ("release folder"). Manual runs need a tag; pushing
-# a v* tag runs it automatically. Public repository: runner minutes are free.
+# Builds the desktop edition on GitHub-hosted runners and attaches it to a
+# GitHub Release ("release folder"). Manual runs need a tag; pushing a v* tag
+# runs it automatically. Public repository: runner minutes are free.
 #
-# Artifacts per run:
-#   linux:   generalbots-linux-x86_64, botserver-linux-x86_64, botui-linux-x86_64
-#   windows: generalbots-x64.exe, botserver-x64.exe, botui-x64.exe (best effort)
+# Release assets:
+#   linux:   generalbots-<tag>-linux-x86_64.tar.gz  (installer: binaries,
+#            suite, launcher, per-user install.sh) + SHA256SUMS-linux
+#   windows: generalbots-x64.exe (best effort)
 #
-# The self-extracting payload (#1633) is assembled in a later step; this
-# workflow produces the raw binaries the release folder carries today.
+# The Linux tarball is what a user downloads and runs (#1633). It ships no
+# service archives: the first-run wizard fetches them, so the download stays
+# small. An offline bundle (app + installers/) is built locally with the same
+# layout by dropping the component archives into installers/ before the run.
 
 on:
   workflow_dispatch:
@@ -71,19 +74,38 @@ jobs:
       - name: Build desktop shell
         run: cargo build -p botapp --release --features desktop-local,custom-protocol
 
-      - name: Assemble release files
+      - name: Assemble Linux installer
         run: |
-          mkdir -p dist
-          cp target/release/botapp            dist/generalbots-linux-x86_64
-          cp target/release/botserver         dist/botserver-linux-x86_64
-          cp target/release/botui             dist/botui-linux-x86_64
-          chmod +x dist/*
-          (cd dist && sha256sum * > SHA256SUMS-linux)
+          set -euo pipefail
+          VERSION="${{ github.event.inputs.tag || github.ref_name }}"
+          PKG="generalbots-${VERSION}-linux-x86_64"
+          DEST="dist/$PKG"
+          mkdir -p "$DEST/ui" dist
 
-      - name: Upload Linux binaries
+          install -m 0755 target/release/botapp    "$DEST/generalbots"
+          install -m 0755 target/release/botserver "$DEST/botserver"
+          cp -a botui/ui/suite  "$DEST/ui/suite"
+          cp -a botui/ui/themes "$DEST/ui/themes"
+          cp botserver/.product.desktop-local "$DEST/.product.desktop-local"
+          install -m 0755 desktop/linux/start.sh   "$DEST/start.sh"
+          install -m 0755 desktop/linux/install.sh "$DEST/install.sh"
+          cp desktop/linux/README.txt "$DEST/README.txt"
+          cp botapp/icons/icon.png    "$DEST/generalbots.png"
+
+          # The tarball is the download a user runs; the raw binaries stay for
+          # debugging a single component without unpacking the whole suite.
+          tar -czf "dist/${PKG}.tar.gz" -C dist "$PKG"
+          rm -rf "$DEST"
+          cp target/release/botapp    dist/generalbots-linux-x86_64
+          cp target/release/botserver dist/botserver-linux-x86_64
+          chmod +x dist/generalbots-linux-x86_64 dist/botserver-linux-x86_64
+          (cd dist && sha256sum *.tar.gz *-linux-x86_64 > SHA256SUMS-linux)
+          ls -lh dist
+
+      - name: Upload Linux installer
         uses: actions/upload-artifact@v4
         with:
-          name: linux-binaries
+          name: linux-installer
           path: dist/*
           if-no-files-found: error
 
@@ -160,10 +182,10 @@ jobs:
     # produced its artifacts.
     if: always() && needs.linux.result == 'success' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch')
     steps:
-      - name: Download Linux binaries
+      - name: Download Linux installer
         uses: actions/download-artifact@v4
         with:
-          name: linux-binaries
+          name: linux-installer
           path: dist
           merge-multiple: true
 
@@ -181,10 +203,30 @@ jobs:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           name: ${{ github.event.inputs.tag || github.ref_name }}
           body: |
-            Desktop binaries for ${{ github.event.inputs.tag || github.ref_name }}.
+            Desktop edition for ${{ github.event.inputs.tag || github.ref_name }}.
 
-            - Linux: `generalbots-linux-x86_64` (chmod +x, run; first run provisions the stack)
-            - Windows: `generalbots-x64.exe` (best effort — Windows runner must be green)
-            - Services/sidecars: `botserver-*`, `botui-*`
-          files: dist/*
+            Linux (x86_64) — download, unpack, run:
+
+                tar -xzf generalbots-${{ github.event.inputs.tag || github.ref_name }}-linux-x86_64.tar.gz
+                cd generalbots-${{ github.event.inputs.tag || github.ref_name }}-linux-x86_64
+                ./install.sh        # per-user install, no root required
+                general-bots        # first run opens the setup wizard
+
+            The wizard provisions the service stack (PostgreSQL, Valkey, MinIO,
+            Qdrant, Vault, Zitadel, llama.cpp) into ~/.local/share/generalbots
+            and then opens the suite with Chat and Drive. `start.sh` runs the
+            same thing straight from the unpacked directory.
+
+            Also attached: `SHA256SUMS-linux`, plus the raw `generalbots` and
+            `botserver` binaries for debugging.
+            Windows: `generalbots-x64.exe` (best effort — Windows runner must be green).
+          files: |
+            dist/*.tar.gz
+            dist/SHA256SUMS-linux
+            dist/generalbots-linux-x86_64
+            dist/botserver-linux-x86_64
+            dist/generalbots-x64.exe
+            dist/botserver-x64.exe
+            dist/botui-x64.exe
+            dist/SHA256SUMS-windows.txt
           fail_on_unmatched_files: false

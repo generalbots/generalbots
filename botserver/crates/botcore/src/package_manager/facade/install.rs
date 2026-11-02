@@ -89,7 +89,7 @@ impl PackageManager {
                     }
                 }
 
-                if cfg!(feature = "desktop-local") {
+                if cfg!(feature = "desktop-local") && !desktop_download_allowed() {
                     return Err(anyhow::anyhow!(
                         "Offline mode: data file '{}' for '{}' not found in bundled installers. \
                          Desktop-local builds must not download at runtime.",

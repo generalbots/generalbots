@@ -88,7 +88,7 @@ impl PackageManager {
                 url: download_url,
                 cache_path,
             } => {
-                if cfg!(feature = "desktop-local") {
+                if cfg!(feature = "desktop-local") && !desktop_download_allowed() {
                     return Err(anyhow::anyhow!(
                         "Offline mode: component '{}' not found in bundled installers. \
                          Expected file at {}. Desktop-local builds must not download at runtime.",

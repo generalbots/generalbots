@@ -14,6 +14,18 @@ use std::collections::HashMap;
 use std::fmt::Write as FmtWrite;
 use std::path::PathBuf;
 
+/// Desktop-local builds are offline by default: the downloadable bundle carries
+/// every component next to the binary, so provisioning never touches the
+/// network. A slim download ships no bundled installers; its launcher sets
+/// `GB_DESKTOP_ALLOW_DOWNLOAD=1` and the provisioner resolves what it needs from
+/// `3rdparty.toml` instead of failing the component.
+pub(crate) fn desktop_download_allowed() -> bool {
+    matches!(
+        std::env::var("GB_DESKTOP_ALLOW_DOWNLOAD").as_deref(),
+        Ok("1") | Ok("true") | Ok("yes")
+    )
+}
+
 mod safe_lxc;
 mod install;
 mod install_container;
