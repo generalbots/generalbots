@@ -105,6 +105,74 @@ jobs:
           (cd dist && sha256sum generalbots-linux-x86_64 botserver-linux-x86_64 >> SHA256SUMS-linux)
           ls -lh dist
 
+      # A published installer is only as good as its first run. This unpacks the
+      # tarball built above on a clean runner, installs it, provisions the stack
+      # over the network and waits for the suite — the same sequence a user runs,
+      # with the optional 1 GB local model replaced by an external provider.
+      - name: First-run smoke test of the installer
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          PKG="generalbots-${TAG}-linux-x86_64"
+          WORK="$RUNNER_TEMP/first-run"
+          rm -rf "$WORK"
+          mkdir -p "$WORK/home"
+          tar -xzf "dist/${PKG}.tar.gz" -C "$WORK"
+
+          export HOME="$WORK/home"
+          export GB_WIZARD_MODEL_MODE=external
+          export GB_WIZARD_LLM_URL="https://example.invalid/v1"
+          export GB_WIZARD_LLM_MODEL="smoke"
+          export GB_WIZARD_LLM_KEY="smoke"
+
+          cd "$WORK/$PKG"
+          # Same entry point a user runs, but without a display.
+          ./start.sh --provision | tee "$WORK/provision.log"
+          grep -q '"id":"components".*"state":"ready"' "$WORK/provision.log" \
+            || { echo "provisioning did not reach the ready state"; exit 1; }
+          if grep -q '"state":"failed"' "$WORK/provision.log"; then
+            echo "a component failed"; exit 1
+          fi
+
+          # What the wizard's finish step writes once the user is done.
+          STACK="$HOME/.local/share/generalbots/stack"
+          printf '{"completed_at":"ci","desktop_local":true}\n' > "$STACK/.initialized"
+
+          # The suite window cannot be driven headless, so start the sidecar it
+          # would start and assert the API and the page it serves.
+          BOTSERVER_STACK_PATH="$STACK" \
+          BOTSERVER_INSTALLERS_PATH="$HOME/.local/share/generalbots/installers" \
+          BOTUI_PATH="$PWD/ui/suite" \
+            nohup "$PWD/botserver" --noconsole > "$WORK/botserver.log" 2>&1 &
+          BOTSERVER_PID=$!
+          for _ in $(seq 1 180); do
+            if curl -fs -o /dev/null http://127.0.0.1:8080/health; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8080/health
+          curl -fsS http://127.0.0.1:8080/api/product | tee "$WORK/product.json"
+          grep -q '"chat"' "$WORK/product.json" || { echo "chat is not advertised"; exit 1; }
+          grep -q '"drive"' "$WORK/product.json" || { echo "drive is not advertised"; exit 1; }
+          test "$(curl -fsS -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/suite/desktop.html)" = "200"
+          grep -q "Successfully uploaded to S3" "$WORK/botserver.log" \
+            || { echo "the drive never accepted an upload"; exit 1; }
+
+          kill "$BOTSERVER_PID" 2>/dev/null || true
+          echo "first run is green"
+
+      - name: Upload first-run logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: first-run-logs
+          path: |
+            ${{ runner.temp }}/first-run/provision.log
+            ${{ runner.temp }}/first-run/botserver.log
+            ${{ runner.temp }}/first-run/home/.local/share/generalbots/stack/logs/
+          if-no-files-found: warn
+          retention-days: 7
+
       - name: Upload Linux installer
         uses: actions/upload-artifact@v4
         with:
