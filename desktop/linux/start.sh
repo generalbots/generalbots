@@ -7,6 +7,27 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# A truncated download extracts a partial tree (usually without `generalbots`).
+# Fail with the recovery command instead of "No such file or directory" from exec.
+missing=""
+for required in generalbots botserver ui/suite/desktop.html .product.desktop-local; do
+  [ -e "$HERE/$required" ] || missing="$missing $required"
+done
+if [ -n "$missing" ]; then
+  cat >&2 <<MSG
+This copy of General Bots is incomplete: missing$missing
+
+The download was interrupted or truncated. Re-download and verify it:
+
+  curl -fL -o generalbots-linux-x86_64.tar.gz \\
+    https://github.com/generalbots/generalbots/releases/latest/download/generalbots-linux-x86_64.tar.gz
+  sha256sum generalbots-linux-x86_64.tar.gz   # compare with SHA256SUMS-linux
+  tar -xzf generalbots-linux-x86_64.tar.gz
+MSG
+  exit 1
+fi
+
 STACK="${BOTSERVER_STACK_PATH:-${XDG_DATA_HOME:-$HOME/.local/share}/generalbots/stack}"
 mkdir -p "$STACK"
 

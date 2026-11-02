@@ -273,12 +273,21 @@ jobs:
 
                 https://github.com/generalbots/generalbots/releases/latest/download/generalbots-linux-x86_64.tar.gz
 
-            Linux (x86_64) — download, unpack, run:
+            Linux (x86_64) — download, verify, unpack, run:
 
-                tar -xzf generalbots-${{ github.event.inputs.tag || github.ref_name }}-linux-x86_64.tar.gz
-                cd generalbots-${{ github.event.inputs.tag || github.ref_name }}-linux-x86_64
+                curl -fL -o generalbots-linux-x86_64.tar.gz \
+                  https://github.com/generalbots/generalbots/releases/latest/download/generalbots-linux-x86_64.tar.gz
+                curl -fL -o SHA256SUMS-linux \
+                  https://github.com/generalbots/generalbots/releases/latest/download/SHA256SUMS-linux
+                sha256sum -c <(grep ' generalbots-linux-x86_64.tar.gz' SHA256SUMS-linux)
+                tar -xzf generalbots-linux-x86_64.tar.gz
+                cd generalbots-*-linux-x86_64
                 ./install.sh        # per-user install, no root required
                 general-bots        # first run opens the setup wizard
+
+            Do not interrupt the download: a truncated archive extracts a partial
+            tree. start.sh and install.sh detect that and print the recovery
+            command instead of failing with "No such file or directory".
 
             The wizard provisions the service stack (PostgreSQL, Valkey, Qdrant,
             Vault, Zitadel, llama.cpp) into ~/.local/share/generalbots and then

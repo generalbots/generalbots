@@ -10,6 +10,22 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+missing=""
+for required in generalbots botserver ui/suite/desktop.html .product.desktop-local; do
+  [ -e "$HERE/$required" ] || missing="$missing $required"
+done
+if [ -n "$missing" ]; then
+  cat >&2 <<MSG
+This copy of General Bots is incomplete: missing$missing
+
+The download was interrupted or truncated. Re-download the tarball from
+https://github.com/generalbots/generalbots/releases/latest and check it with
+sha256sum against SHA256SUMS-linux before installing.
+MSG
+  exit 1
+fi
+
 PREFIX="${1:-$HOME/.local/opt}"
 TARGET="$PREFIX/general-bots"
 BIN_DIR="$HOME/.local/bin"

@@ -20,10 +20,18 @@ Requirements
 
 Install and run
 ---------------
-  tar -xzf generalbots-*-linux-x86_64.tar.gz
+  curl -fL -o generalbots-linux-x86_64.tar.gz \
+    https://github.com/generalbots/generalbots/releases/latest/download/generalbots-linux-x86_64.tar.gz
+  curl -fL -o SHA256SUMS-linux \
+    https://github.com/generalbots/generalbots/releases/latest/download/SHA256SUMS-linux
+  sha256sum -c <(grep ' generalbots-linux-x86_64.tar.gz' SHA256SUMS-linux)
+  tar -xzf generalbots-linux-x86_64.tar.gz
   cd generalbots-*-linux-x86_64
   ./install.sh              # installs into ~/.local/opt/general-bots
   general-bots              # first run opens the setup wizard
+
+A truncated download extracts without `generalbots` and `install.sh`; start.sh
+and install.sh refuse to run in that case and print the re-download command.
 
 Running ./start.sh directly from the extracted directory works too: nothing is
 written next to the binaries. Runtime state lives in
