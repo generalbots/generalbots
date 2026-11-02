@@ -970,6 +970,29 @@ if (typeof window.WindowManager === "undefined") {
       document.body.classList.add("start-menu-open");
       this.startMenuOpen = true;
 
+      // #1632 item 1 — anchor the launcher to its trigger (the Start button)
+      // and clamp it to the viewport instead of relying on the overlay's
+      // centering, which pushed the menu off-screen in short windows.
+      const startBtn = document.getElementById("startBtn");
+      if (startBtn) {
+        const anchorRect = startBtn.getBoundingClientRect();
+        const menuW = menu.offsetWidth || 660;
+        const menuH = menu.offsetHeight || 560;
+        const margin = 8;
+        const left = Math.min(
+          Math.max(margin, anchorRect.left),
+          Math.max(margin, window.innerWidth - menuW - margin),
+        );
+        let top = anchorRect.top - menuH - margin;
+        if (top < margin) {
+          top = Math.max(margin, window.innerHeight - menuH - margin);
+        }
+        menu.style.position = "fixed";
+        menu.style.margin = "0";
+        menu.style.left = `${left}px`;
+        menu.style.top = `${top}px`;
+      }
+
       const input = menu.querySelector("#startMenuSearchInput");
       if (input) {
         setTimeout(() => input.focus(), 100);

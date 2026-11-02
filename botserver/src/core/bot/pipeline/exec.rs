@@ -520,18 +520,18 @@ pub async fn process_message_internal(
     #[cfg(feature = "drive")]
     super::drive_context::inject(state, &bot_uuid, user_id, &user_text, &mut messages).await;
 
-    // The model decides whether this turn needs a live web lookup; the
-    // decision, the query and the sources are streamed to the chat as they
-    // happen. #1593: the composer switch disables the whole step, so neither
-    // the routing completion nor the search is called when it is off.
+    // #1632 item 3 — the composer's Web switch is the decision. When it is on
+    // the turn is searched as written; when it is off nothing is searched and
+    // the model can still call the `web.search` command itself. No routing
+    // completion asks whether the turn "needs" the web.
     #[cfg(any(feature = "research", feature = "web-search"))]
     {
         let web_search_enabled = parsed
             .get("web_search")
             .and_then(|value| value.as_bool())
-            .unwrap_or(true);
+            .unwrap_or(false);
         if web_search_enabled {
-            super::web_context::decide_and_inject(identity, &user_text, &mut messages).await;
+            super::web_context::search_and_inject(identity, &user_text, &mut messages).await;
         }
     }
 

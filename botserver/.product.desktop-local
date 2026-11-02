@@ -23,8 +23,8 @@ suite_default_app=chat
 # Sidebar visible so conversation history is reachable (single-user mode).
 sidebar=true
 
-# Search disabled (no omnibox in local mode).
-search_enabled=false
+# Search enabled: #1632 item 2 restores the taskbar search box and tray.
+search_enabled=true
 
 # Menu launcher enabled so the user can switch between Chat and Drive.
 menu_launcher_enabled=true
