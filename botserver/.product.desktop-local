@@ -29,7 +29,9 @@ search_enabled=false
 # Menu launcher enabled so the user can switch between Chat and Drive.
 menu_launcher_enabled=true
 
-# No authentication required in desktop-local mode.
+# Authentication is required: the wizard administrator signs in through
+# /api/auth/login and keeps a real suite session (the agent VM is only
+# provisioned for a logged-in account).
 no_security=false
 
 # Default theme

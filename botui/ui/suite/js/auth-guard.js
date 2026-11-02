@@ -47,12 +47,7 @@
 
   function getToken() { return read(KEYS.TOKEN); }
 
-  function isDesktopLocal() {
-    try { return localStorage.getItem("gb-desktop-local") === "1"; } catch (_) { return false; }
-  }
-
   function isAuthenticated() {
-    if (isDesktopLocal()) { return true; }
     const t = getToken();
     if (!t) return false;
     return !isExpired();
@@ -64,9 +59,6 @@
   }
 
   function require() {
-    if (isDesktopLocal()) {
-      return Promise.resolve({ id: "desktop-local", name: "Desktop", email: "desktop@localhost", token: "desktop-local" });
-    }
     if (isAuthenticated()) {
       return Promise.resolve(Object.assign({ token: getToken() }, getUser()));
     }

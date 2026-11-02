@@ -176,9 +176,38 @@ impl BootstrapManager {
             if !config_path.exists() {
                 info!("Creating OAuth client for Directory service...");
                 #[cfg(feature = "directory")]
-                match crate::package_manager::setup_directory().await {
-                    Ok(_) => info!("OAuth client created successfully"),
-                    Err(e) => warn!("Failed to create OAuth client in Directory service (Zitadel): {}. Make sure Zitadel is running on the configured port.", e),
+                {
+                    // On a cold start Zitadel accepts connections before it
+                    // finishes initialising its default project. A single
+                    // attempt left `directory_config.json` unwritten, so the
+                    // auth service built afterwards had an empty API URL and
+                    // the first boot could only sign in after a restart.
+                    // Retry until the config exists (bounded) instead.
+                    let mut created = false;
+                    for attempt in 1..=12u32 {
+                        match crate::package_manager::setup_directory().await {
+                            Ok(_) => {
+                                info!("OAuth client created successfully");
+                                created = true;
+                                break;
+                            }
+                            Err(e) => {
+                                if attempt == 12 {
+                                    warn!(
+                                        "Failed to create OAuth client in Directory service (Zitadel) after {attempt} attempts: {e}. Make sure Zitadel is running on the configured port."
+                                    );
+                                } else {
+                                    info!(
+                                        "Directory is not ready for OAuth setup yet (attempt {attempt}/12): {e}"
+                                    );
+                                    tokio::time::sleep(Duration::from_secs(5)).await;
+                                }
+                            }
+                        }
+                    }
+                    if !created {
+                        warn!("Directory OAuth setup did not complete; the local administrator login remains available");
+                    }
                 }
                 #[cfg(not(feature = "directory"))]
                 info!("Directory feature not enabled, skipping OAuth setup");

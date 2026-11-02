@@ -123,6 +123,7 @@ async fn run_components(
     let mut command = tokio::process::Command::new(&binary);
     command
         .arg("--provision-stack")
+        .current_dir(&stack)
         .env("BOTSERVER_STACK_PATH", &stack)
         .env("BOTSERVER_INSTALLERS_PATH", &installers)
         .env("GB_WIZARD_WORKSPACE", &workspace)

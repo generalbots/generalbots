@@ -3,7 +3,8 @@
     "targets": ["nsis", "msi", "deb", "appimage"],
     "resources": {
       "../botserver/.product.desktop-local": ".product.desktop-local",
-      "../botserver/botserver-installers/*": "installers/"
+      "../botserver/botserver-installers/*": "installers/",
+      "../botui/ui": "ui"
     },
     "externalBin": [
       "binaries/botserver"

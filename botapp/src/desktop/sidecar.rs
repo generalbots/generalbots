@@ -63,6 +63,14 @@ impl Sidecar {
             }
         }
 
+        // Packaged builds ship the suite next to this executable; the sidecar
+        // serves it so the page and `/api` share the `http://127.0.0.1:8080`
+        // origin. An explicit BOTUI_PATH still wins.
+        let packaged_ui = resource_dir
+            .as_ref()
+            .map(|dir| dir.join("ui").join("suite"))
+            .filter(|dir| dir.exists());
+
         // An explicit path wins (development runs point at the checkout's
         // bundled installers); packaged builds use the resource directory.
         let installers = std::env::var("BOTSERVER_INSTALLERS_PATH")
@@ -94,8 +102,12 @@ impl Sidecar {
 
         let mut command = Command::new(&path);
         command
+            .current_dir(&stack)
             .env("BOTSERVER_STACK_PATH", &stack)
             .env("BOTSERVER_INSTALLERS_PATH", &installers);
+        if let Some(ref ui) = packaged_ui {
+            command.env("BOTUI_PATH", ui);
+        }
         match log_file.as_ref().and_then(|file| file.try_clone().ok()) {
             Some(stdout) => {
                 command.stdout(Stdio::from(stdout));

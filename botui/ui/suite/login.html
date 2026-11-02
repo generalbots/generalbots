@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Sign in — General Bots</title>
+        <link rel="stylesheet" href="/suite/css/app.css" />
+        <link rel="stylesheet" href="/suite/css/base.css" />
+        <link rel="stylesheet" href="/suite/css/theme-sentient.css" />
+        <style>
+            html, body { height: 100%; margin: 0; }
+            body {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: var(--bg, #0b0b12);
+                color: var(--fg, #e8e8ee);
+                font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            }
+            .card {
+                width: min(360px, calc(100vw - 48px));
+                padding: 28px;
+                border: 1px solid rgba(255, 255, 255, .1);
+                border-radius: 14px;
+                background: rgba(255, 255, 255, .03);
+                box-shadow: 0 20px 60px rgba(0, 0, 0, .35);
+            }
+            .card h1 { margin: 0 0 4px; font-size: 1.3rem; }
+            .card p { margin: 0 0 20px; font-size: .85rem; opacity: .7; }
+            label { display: block; margin: 12px 0 6px; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; opacity: .7; }
+            input {
+                width: 100%;
+                box-sizing: border-box;
+                padding: 11px 13px;
+                border-radius: 8px;
+                border: 1px solid rgba(255, 255, 255, .16);
+                background: rgba(0, 0, 0, .25);
+                color: inherit;
+                font: inherit;
+            }
+            input:focus { outline: none; border-color: #3b82f6; }
+            button {
+                width: 100%;
+                margin-top: 18px;
+                padding: 11px 14px;
+                border: 0;
+                border-radius: 8px;
+                background: #2563eb;
+                color: #fff;
+                font: inherit;
+                font-weight: 600;
+                cursor: pointer;
+            }
+            button:disabled { opacity: .55; cursor: default; }
+            .error {
+                display: none;
+                margin-top: 14px;
+                padding: 9px 11px;
+                border-radius: 8px;
+                background: rgba(220, 38, 38, .14);
+                border: 1px solid rgba(220, 38, 38, .35);
+                color: #fca5a5;
+                font-size: .8rem;
+            }
+        </style>
+    </head>
+    <body>
+        <form class="card" id="login-form" autocomplete="on">
+            <h1>General Bots</h1>
+            <p>Sign in with the local administrator account.</p>
+            <label for="login-email">Email</label>
+            <input id="login-email" name="email" type="email" autocomplete="username" required />
+            <label for="login-password">Password</label>
+            <input id="login-password" name="password" type="password" autocomplete="current-password" required />
+            <button id="login-btn" type="submit">Sign in</button>
+            <div class="error" id="login-error" role="alert"></div>
+        </form>
+        <script>
+            (function () {
+                "use strict";
+                var params = new URLSearchParams(window.location.search);
+                var target = params.get("return_to") || params.get("redirect") || "/suite/desktop.html";
+                // Never bounce back to the login page itself.
+                if (/\/(login|signup)(\?|$)/.test(target)) { target = "/suite/desktop.html"; }
+
+                function redirect(token, email) {
+                    try {
+                        localStorage.setItem("gb-access-token", token);
+                        localStorage.setItem("gb-user-data", JSON.stringify({
+                            id: email || "admin",
+                            name: (email || "admin").split("@")[0],
+                            email: email || ""
+                        }));
+                        sessionStorage.removeItem("gb-signed-out");
+                    } catch (e) { /* storage disabled: the server still has the session */ }
+                    var url = target + (target.indexOf("?") === -1 ? "?" : "&") + "token=" + encodeURIComponent(token);
+                    window.location.replace(url);
+                }
+
+                // A valid session skips the form.
+                var existing = "";
+                try { existing = localStorage.getItem("gb-access-token") || ""; } catch (e) { /* ignore */ }
+                if (existing) {
+                    fetch("/api/auth/me", { headers: { Authorization: "Bearer " + existing } })
+                        .then(function (r) { return r.ok ? r.json() : null; })
+                        .then(function (me) {
+                            if (me && !me.is_anonymous) { redirect(existing, me.email || ""); }
+                        })
+                        .catch(function () { /* fall through to the form */ });
+                }
+
+                document.getElementById("login-form").addEventListener("submit", function (event) {
+                    event.preventDefault();
+                    var btn = document.getElementById("login-btn");
+                    var err = document.getElementById("login-error");
+                    var email = document.getElementById("login-email").value.trim();
+                    var password = document.getElementById("login-password").value;
+                    btn.disabled = true;
+                    btn.textContent = "Signing in…";
+                    err.style.display = "none";
+                    fetch("/api/auth/login", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ email: email, password: password })
+                    }).then(function (response) {
+                        return response.text().then(function (text) {
+                            var data = {};
+                            try { data = JSON.parse(text); } catch (e) { data = { error: text }; }
+                            if (!response.ok) { throw new Error(data.error || data.detail || "Sign in failed"); }
+                            return data;
+                        });
+                    }).then(function (data) {
+                        var token = data.access_token || data.token;
+                        if (!token) { throw new Error("The server did not return a session token"); }
+                        redirect(token, data.email || email);
+                    }).catch(function (error) {
+                        err.textContent = error.message || String(error);
+                        err.style.display = "block";
+                        btn.disabled = false;
+                        btn.textContent = "Sign in";
+                    });
+                });
+            })();
+        </script>
+    </body>
+</html>

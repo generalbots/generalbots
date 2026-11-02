@@ -340,67 +340,134 @@ pub fn open_window(app: &tauri::AppHandle) -> Result<(), String> {
         .map_err(|e| format!("could not open the setup window: {e}"))
 }
 
+/// Default entry point for packaged desktop builds: the sidecar serves both the
+/// suite and `/api`, so the page and the API share one origin.
+fn sidecar_suite_url() -> Option<tauri::Url> {
+    tauri::Url::parse("http://127.0.0.1:8080/suite/desktop.html").ok()
+}
+
+fn admin_credentials_path() -> PathBuf {
+    stack_path()
+        .join("conf")
+        .join("directory")
+        .join("admin-credentials.json")
+}
+
+/// Mints a real suite session for the wizard administrator.
+///
+/// The desktop edition has no browser login hop between the wizard and the
+/// suite: the wizard owns the only credential (`admin-credentials.json`). This
+/// signs that account in through the same `/api/auth/login` route the suite
+/// uses, so the desktop opens with a server-verified identity and the agent VM
+/// is only ever provisioned for a logged-in account.
+pub async fn mint_desktop_session() -> Option<String> {
+    #[derive(serde::Deserialize)]
+    struct Credentials {
+        email: String,
+        password: String,
+    }
+
+    let raw = std::fs::read_to_string(admin_credentials_path()).ok()?;
+    let credentials: Credentials = serde_json::from_str(&raw).ok()?;
+    if credentials.email.trim().is_empty() || credentials.password.is_empty() {
+        return None;
+    }
+
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(10))
+        .build()
+        .ok()?;
+    let response = client
+        .post("http://127.0.0.1:8080/api/auth/login")
+        .json(&serde_json::json!({
+            "email": credentials.email.trim(),
+            "password": credentials.password,
+        }))
+        .send()
+        .await
+        .ok()?;
+    if !response.status().is_success() {
+        warn!(
+            "wizard: desktop session login was refused ({})",
+            response.status()
+        );
+        return None;
+    }
+    let body: serde_json::Value = response.json().await.ok()?;
+    body.get("access_token")
+        .and_then(|value| value.as_str())
+        .filter(|token| !token.is_empty())
+        .map(str::to_string)
+}
+
+/// The sidecar accepts connections shortly after `/api/product` answers, so a
+/// failed first login is expected on a cold start; retry for a short while.
+async fn wait_for_desktop_session(attempts: u32) -> Option<String> {
+    for attempt in 0..attempts {
+        if let Some(token) = mint_desktop_session().await {
+            return Some(token);
+        }
+        if attempt + 1 < attempts {
+            tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+        }
+    }
+    warn!("wizard: could not mint a desktop session; the suite will ask for sign-in");
+    None
+}
+
+fn suite_url_with_token(mut url: tauri::Url, token: Option<&str>) -> tauri::Url {
+    if let Some(token) = token {
+        url.query_pairs_mut().append_pair("token", token);
+    }
+    url
+}
+
 /// Re-navigates the hidden suite window to its entry point and reveals it.
 ///
 /// The window is created at startup, before the API answers, so it may have
 /// been redirected to the login page by the auth gate. Navigating again (rather
-/// than reloading) guarantees the suite boots with the final product config.
+/// than reloading) guarantees the suite boots with the final product config and
+/// a freshly minted session.
 pub fn reveal_suite(app: &tauri::AppHandle) {
-    if let Some(main) = app.get_webview_window("main") {
-        // Desktop installs point the window at the sidecar that serves the
-        // suite, so `/api` and `/ws` share the page origin. The window is
-        // created on that URL at startup; once the API answers we only need
-        // to reload it (judging by the page, not by a cross-origin navigate
-        // that tears the webview down).
-        let explicit = std::env::var("GB_DESKTOP_SUITE_URL")
-            .ok()
-            .and_then(|value| tauri::Url::parse(value.trim()).ok());
-        if let Some(url) = explicit {
-            // Desktop-local runs without an identity provider account: hand the
-            // suite an internal token so its client-side gate never sends the
-            // user to the login screen (the sidecar accepts it in no-security
-            // mode). It is a local marker, not a credential.
-            let _ = main.eval(
-                "try{localStorage.setItem('gb-access-token','desktop-local');\
-                 localStorage.setItem('gb-desktop-local','1');}catch(e){}",
-            );
-            let current = main.url().ok();
-            let same_origin = current
-                .as_ref()
-                .map(|c| {
-                    c.scheme() == url.scheme()
-                        && c.host_str() == url.host_str()
-                        && c.port_or_known_default() == url.port_or_known_default()
-                })
-                .unwrap_or(false);
-            if same_origin {
-                if let Err(e) = main.reload() {
-                    warn!("could not reload the suite window: {e}");
-                }
-            } else {
-                match serde_json::to_string(url.as_str()) {
-                    Ok(literal) => {
-                        let script = format!("window.location.replace({literal});");
-                        if let Err(e) = main.eval(&script) {
-                            warn!("could not navigate the suite window: {e}");
-                        }
-                    }
-                    Err(e) => warn!("could not serialise the suite URL: {e}"),
-                }
-            }
-        } else if let Some(dev) = app.config().build.dev_url.clone() {
-            let mut url = dev;
-            url.set_path("/suite/desktop.html");
-            url.set_query(None);
-            if let Err(e) = main.navigate(url) {
-                warn!("could not navigate the suite window: {e}");
-            }
-        }
-        let _ = main.show();
-        let _ = main.set_focus();
-    } else {
+    let handle = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let token = wait_for_desktop_session(15).await;
+        reveal_suite_with_token(&handle, token.as_deref());
+    });
+}
+
+fn reveal_suite_with_token(app: &tauri::AppHandle, token: Option<&str>) {
+    let Some(main) = app.get_webview_window("main") else {
         warn!("main window is not available during wizard handoff");
+        return;
+    };
+
+    let target = std::env::var("GB_DESKTOP_SUITE_URL")
+        .ok()
+        .and_then(|value| tauri::Url::parse(value.trim()).ok())
+        .or_else(|| {
+            // Development runs are served by botui (devUrl); packaged builds
+            // are served by the sidecar itself.
+            app.config().build.dev_url.clone().map(|mut url| {
+                url.set_path("/suite/desktop.html");
+                url.set_query(None);
+                url
+            })
+        })
+        .or_else(sidecar_suite_url);
+
+    let Some(url) = target else {
+        warn!("no suite URL is configured");
+        let _ = main.show();
+        return;
+    };
+
+    let url = suite_url_with_token(url, token);
+    if let Err(e) = main.navigate(url) {
+        warn!("could not navigate the suite window: {e}");
     }
+    let _ = main.show();
+    let _ = main.set_focus();
 }
 
 /// Recreates the suite window after it has been destroyed (#1620).
@@ -414,26 +481,39 @@ pub fn ensure_suite_window(app: &tauri::AppHandle) {
         reveal_suite(app);
         return;
     }
-    let url = match std::env::var("GB_DESKTOP_SUITE_URL")
-        .ok()
-        .and_then(|value| tauri::Url::parse(value.trim()).ok())
-    {
-        Some(url) => WebviewUrl::External(url),
-        None => WebviewUrl::App("suite/desktop.html".into()),
-    };
-    match WebviewWindowBuilder::new(app, "main", url)
+    let handle = app.clone();
+    tauri::async_runtime::spawn(async move {
+        let token = wait_for_desktop_session(5).await;
+        let target = std::env::var("GB_DESKTOP_SUITE_URL")
+            .ok()
+            .and_then(|value| tauri::Url::parse(value.trim()).ok())
+            .or_else(|| {
+                handle.config().build.dev_url.clone().map(|mut url| {
+                    url.set_path("/suite/desktop.html");
+                    url.set_query(None);
+                    url
+                })
+            })
+            .or_else(sidecar_suite_url);
+        let Some(url) = target else {
+            warn!("could not recreate the suite window: no suite URL is configured");
+            return;
+        };
+        match WebviewWindowBuilder::new(
+            &handle,
+            "main",
+            WebviewUrl::External(suite_url_with_token(url, token.as_deref())),
+        )
         .title("General Bots")
         .inner_size(1340.0, 860.0)
         .min_inner_size(900.0, 560.0)
         .resizable(true)
         .build()
-    {
-        Ok(_) => {
-            info!("suite window recreated after it was destroyed");
-            reveal_suite(app);
+        {
+            Ok(_) => info!("suite window recreated after it was destroyed"),
+            Err(e) => warn!("could not recreate the suite window: {e}"),
         }
-        Err(e) => warn!("could not recreate the suite window: {e}"),
-    }
+    });
 }
 
 /// Writes the administrator account the wizard showed on the finish screen.
