@@ -15,7 +15,7 @@ name=General Bots
 # Every other application is declared under `preview_apps` below.
 # Core surfaces (settings, auth, admin) are always enabled regardless of this
 # list, so they remain reachable.
-apps=chat,drive,terminal,editor,integrations
+apps=chat,drive,terminal,editor,integrations,clock-widget,jukebox,sheet,database,player,calculator,notes,photos,timer,weather
 
 # Preview applications (comma-separated list)
 # These do NOT appear in the launcher or the sidebar by default. They are
@@ -27,7 +27,7 @@ apps=chat,drive,terminal,editor,integrations
 # Ids are validated against the catalog in `src/apps/registry.rs` and the
 # feature map in `src/apps/mod.rs::is_app_compiled`; an id in neither place is
 # ignored by the launcher and should not be listed here.
-preview_apps=analytics,attendant,automations,banking,billing,browser,calculator,calendar,campaigns,canvas,clock-widget,compliance,concierge,crm,database,designer,docs,fraud,goals,handoff,hr,jukebox,kyc,learn,lists,mail,meet,memory,minutes,monitoring,notes,o365,paper,people,photos,plan,player,plugins,pos,products,project,recycle,retail,sheet,slides,social,store,tasks,tax,templates,tickets,timeclock,timer,vibe,video,vision,weather,workspace
+preview_apps=analytics,attendant,automations,banking,billing,browser,calendar,campaigns,canvas,compliance,concierge,crm,designer,docs,fraud,goals,handoff,hr,kyc,learn,lists,mail,meet,memory,minutes,monitoring,o365,paper,people,plan,plugins,pos,products,project,recycle,retail,slides,social,store,tasks,tax,templates,tickets,timeclock,vibe,video,vision,workspace
 
 
 # Sidebar visibility

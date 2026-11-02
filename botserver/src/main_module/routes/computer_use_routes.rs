@@ -177,7 +177,7 @@ pub async fn terminal_exec(
         ));
     }
     if let Some(pattern) = blocked_pattern(command) {
-        log::warn!("terminal exec refused a blocked pattern ({pattern}) for user {user_id}");
+        log::warn!("terminal exec refused a blocked pattern for user {user_id}");
         return Err(api_error(
             StatusCode::FORBIDDEN,
             "command matches a blocked destructive pattern",

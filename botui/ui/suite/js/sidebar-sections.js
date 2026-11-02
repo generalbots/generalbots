@@ -268,14 +268,6 @@
           if (window.openDeepLink) window.openDeepLink("settings", {});
         },
       },
-      {
-        // #1303 — Vibe replaces the New bot shortcut.
-        label: "Vibe",
-        app: "vibe",
-        run: function () {
-          if (window.openDeepLink) window.openDeepLink("vibe", {});
-        },
-      },
     ];
     actions = actions.filter(function (action) {
       if (!action.app) return true;

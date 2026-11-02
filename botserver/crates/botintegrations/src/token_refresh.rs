@@ -73,7 +73,7 @@ async fn refresh_one(
         )
         .await?;
     log::debug!(
-        "token refresh: {} client loaded from {client_config_path}",
+        "token refresh: {} client loaded",
         row.provider_slug
     );
     let client_id = client

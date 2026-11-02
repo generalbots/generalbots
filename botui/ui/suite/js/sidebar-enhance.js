@@ -12,8 +12,8 @@
   if (window.GBSidebarEnhance) return;
 
   var PINS_KEY = "gb_pinned_apps";
-  // #1303 — default pinned set: Chat, Explorer, Vibe.
-  var DEFAULT_PINS = ["chat", "drive", "vibe"];
+  // #1303 — default pinned set: Chat, Explorer (Vibe removed from pins).
+  var DEFAULT_PINS = ["chat", "drive"];
 
   var state = {
     pinned: readPins(),
