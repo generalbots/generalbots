@@ -9,7 +9,10 @@
 # ~/.local/share/generalbots and survives reinstalls and upgrades.
 set -euo pipefail
 
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve the symlink so a launcher installed elsewhere still finds the real
+# files (BASH_SOURCE[0] is the link path when invoked through one).
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+HERE="$(cd "$(dirname "$SELF")" && pwd)"
 
 missing=""
 for required in generalbots botserver ui/suite/desktop.html .product.desktop-local; do

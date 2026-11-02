@@ -338,6 +338,10 @@ jobs:
       - name: Publish Windows assets
         uses: softprops/action-gh-release@v2
         with:
+          # Never let the Windows release take "latest": the stable Linux link
+          # /releases/latest/download/generalbots-linux-x86_64.tar.gz must keep
+          # resolving to the release that actually carries that asset.
+          make_latest: false
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}-windows
           name: ${{ github.event.inputs.tag || github.ref_name }} (Windows)
           body: |

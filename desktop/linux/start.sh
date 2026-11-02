@@ -6,7 +6,12 @@
 # every mutable file (stack, logs, workspace) lives under ~/.local/share.
 set -euo pipefail
 
-HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# Resolve the symlink: `~/.local/bin/general-bots` points at start.sh, so
+# BASH_SOURCE[0] is the link path and dirname would be ~/.local/bin — every
+# file next to the real script (generalbots, ui/, installers/) would look
+# missing.
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+HERE="$(cd "$(dirname "$SELF")" && pwd)"
 
 # A truncated download extracts a partial tree (usually without `generalbots`).
 # Fail with the recovery command instead of "No such file or directory" from exec.
