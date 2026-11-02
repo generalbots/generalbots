@@ -236,7 +236,10 @@ jobs:
     name: Attach the Windows binaries to the release
     needs: [windows]
     runs-on: ubuntu-latest
-    # Best effort: only runs when the Windows build itself went green.
+    # Best effort: only runs when the Windows build itself went green, and never
+    # fails the workflow. Releases are immutable, so assets cannot be appended
+    # to the Linux tag after publication — the Windows build gets its own tag.
+    continue-on-error: true
     if: needs.windows.result == 'success' && (startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch')
     steps:
       - name: Download Windows binaries
@@ -249,8 +252,12 @@ jobs:
       - name: Publish Windows assets
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
-          name: ${{ github.event.inputs.tag || github.ref_name }}
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}-windows
+          name: ${{ github.event.inputs.tag || github.ref_name }} (Windows)
+          body: |
+            Windows binaries for ${{ github.event.inputs.tag || github.ref_name }}.
+            Best effort: the Linux installer is the supported artifact and lives
+            on the `${{ github.event.inputs.tag || github.ref_name }}` tag.
           files: |
             dist/generalbots-x64.exe
             dist/botserver-x64.exe
