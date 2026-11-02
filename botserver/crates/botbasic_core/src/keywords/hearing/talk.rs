@@ -148,16 +148,26 @@ mod tests {
     use uuid::Uuid;
 
     fn session(context: serde_json::Value, user_id: Uuid) -> UserSession {
+        let now = chrono::Utc::now();
         UserSession {
             id: Uuid::new_v4(),
-            user_id,
+            user_id: user_id.to_string(),
             branch_id: Uuid::nil(),
             bot_id: Uuid::new_v4(),
             title: String::new(),
+            answer_mode: 0,
             context_data: context,
             current_tool: None,
-            created_at: chrono::Utc::now(),
-            updated_at: chrono::Utc::now(),
+            message_count: 0,
+            total_tokens: 0,
+            created_at: now,
+            updated_at: now,
+            last_activity: now,
+            tenant_id: None,
+            active_email_account_id: None,
+            session_id: None,
+            data: None,
+            expires_at: None,
         }
     }
 
