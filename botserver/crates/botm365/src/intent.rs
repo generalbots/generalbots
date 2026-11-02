@@ -12,8 +12,11 @@ use serde_json::{json, Value};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum M365RequestKind {
+    #[serde(rename = "sharepoint_lists")]
     SharePointLists,
+    #[serde(rename = "sharepoint_item")]
     SharePointItem,
+    #[serde(rename = "teams_message")]
     TeamsMessage,
 }
 

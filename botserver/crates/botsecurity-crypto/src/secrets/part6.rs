@@ -108,8 +108,11 @@ fn masking_rules() -> &'static [(regex::Regex, &'static str)] {
     RULES.get_or_init(|| {
         PATTERNS
             .iter()
+            // `cached_re!` declares a `static` inside the expansion, so calling
+            // it in a loop would compile only the first pattern and reuse it for
+            // every rule. These are compiled once for the whole process here.
             .filter_map(|(pattern, replacement)| {
-                crate::re_cache::cached_re!(pattern).map(|re| (re.clone(), *replacement))
+                crate::re_cache::compile(*pattern).map(|re| (re, *replacement))
             })
             .collect()
     })

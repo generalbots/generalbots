@@ -14,8 +14,33 @@ use super::{
 /// A parsed CSV row: header name → raw cell value.
 pub(super) type Row = BTreeMap<String, String>;
 
-/// Splits a CSV into rows keyed by the header line. Quoting is not supported —
-/// the same contract as before this logic moved into the crate (#1506).
+/// Splits one CSV line into cells. Double-quoted cells may contain the
+/// delimiter (`"R$ 1.234,56"`), and `""` inside a quoted cell is a literal
+/// quote. Unquoted cells keep the previous lenient behaviour.
+fn split_csv_line(line: &str) -> Vec<String> {
+    let mut cells = Vec::new();
+    let mut current = String::new();
+    let mut quoted = false;
+    let mut chars = line.chars().peekable();
+    while let Some(ch) = chars.next() {
+        match ch {
+            '"' if quoted && chars.peek() == Some(&'"') => {
+                current.push('"');
+                chars.next();
+            }
+            '"' => quoted = !quoted,
+            ',' if !quoted => {
+                cells.push(current.trim().to_string());
+                current.clear();
+            }
+            _ => current.push(ch),
+        }
+    }
+    cells.push(current.trim().to_string());
+    cells
+}
+
+/// Splits a CSV into rows keyed by the header line.
 pub(super) fn parse_csv_rows(csv: &str) -> Vec<Row> {
     let mut rows: Vec<Row> = Vec::new();
     let mut lines = csv.lines();
@@ -23,16 +48,16 @@ pub(super) fn parse_csv_rows(csv: &str) -> Vec<Row> {
         Some(h) => h,
         None => return rows,
     };
-    let headers: Vec<&str> = header_line.split(',').map(|s| s.trim()).collect();
+    let headers = split_csv_line(header_line);
     for line in lines {
         if line.trim().is_empty() {
             continue;
         }
-        let values: Vec<&str> = line.split(',').map(|s| s.trim()).collect();
+        let values = split_csv_line(line);
         let mut row = Row::new();
         for (i, header) in headers.iter().enumerate() {
-            let value = values.get(i).copied().unwrap_or("").to_string();
-            row.insert((*header).to_string(), value);
+            let value = values.get(i).cloned().unwrap_or_default();
+            row.insert(header.clone(), value);
         }
         rows.push(row);
     }
@@ -157,7 +182,7 @@ mod tests {
     #[test]
     fn bank_statement_accepts_english_headers() {
         let csv = "date,description,amount,bank,account\n\
-                   01/08/2026,PIX RECEBIDO,R$ 1.234,56,Itau,12345\n";
+                   01/08/2026,PIX RECEBIDO,\"R$ 1.234,56\",Itau,12345\n";
         let json = value(&import_bank_statement(csv));
         assert_eq!(json["kind"], "bank_transactions");
         assert_eq!(json["count"], 1);
@@ -169,7 +194,7 @@ mod tests {
 
     #[test]
     fn bank_statement_accepts_pt_br_headers() {
-        let csv = "data,historico,valor\n15/07/2026,TARIFA,-12,00\n";
+        let csv = "data,historico,valor\n15/07/2026,TARIFA,\"-12,00\"\n";
         let json = value(&import_bank_statement(csv));
         assert_eq!(json["rows"][0]["transaction_date"], "2026-07-15");
         assert_eq!(json["rows"][0]["description"], "TARIFA");
@@ -188,7 +213,7 @@ mod tests {
     #[test]
     fn platform_orders_derive_net_from_subtotal_and_commission() {
         let csv = "platform,order_id,date,customer,subtotal,delivery_fee,commission\n\
-                   ifood,99,02/08/2026,Ana,100,00,5,00,20,00\n";
+                   ifood,99,02/08/2026,Ana,\"100,00\",\"5,00\",\"20,00\"\n";
         let json = value(&import_platform_orders(csv));
         assert_eq!(json["kind"], "delivery_transactions");
         assert_eq!(json["rows"][0]["order_date"], "2026-08-02");
