@@ -64,7 +64,17 @@ pub async fn create_app_state(
         Arc::new(tokio::sync::Mutex::new(session_manager_inner));
 
     #[cfg(feature = "directory")]
-    let (auth_service, zitadel_config) = init_directory_service().await?;
+    // A fresh desktop install can reach this point before the identity provider
+    // has written conf/system/directory_config.json. Aborting the whole process
+    // there left the first run with a dead assistant; single-user mode does not
+    // need the directory, so boot continues without it.
+    let (auth_service, zitadel_config) = match init_directory_service().await {
+        Ok((service, config)) => (Some(service), config),
+        Err(e) => {
+            log::error!("Directory service unavailable at boot: {e}; continuing without it");
+            (None, super::directory_setup::default_zitadel_config())
+        }
+    };
 
     #[cfg(feature = "directory")]
     {
@@ -276,9 +286,9 @@ pub async fn create_app_state(
         #[cfg(feature = "llm")]
         dynamic_llm_provider: Some(dynamic_llm_provider.clone()),
         #[cfg(feature = "directory")]
-        auth_service: Some(
-            auth_service.clone() as Arc<tokio::sync::Mutex<dyn botlib::traits::AuthServiceTrait>>
-        ),
+        auth_service: auth_service
+            .clone()
+            .map(|svc| svc as Arc<tokio::sync::Mutex<dyn botlib::traits::AuthServiceTrait>>),
         #[cfg(not(feature = "directory"))]
         auth_service: None,
         channels: Arc::new(tokio::sync::Mutex::new({

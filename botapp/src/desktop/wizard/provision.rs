@@ -262,10 +262,42 @@ async fn start_assistant(
     let resource_dir = app.path().resource_dir().ok();
     if !sidecar.is_running() {
         sidecar
-            .start(resource_dir)
+            .start(resource_dir.clone())
             .map_err(|e| format!("could not start the assistant: {e}"))?;
     }
     if Sidecar::wait_for_api(API_PRODUCT, 120).await {
+        progress(
+            app,
+            state,
+            "botserver",
+            "ready",
+            "Assistant service is ready",
+            0,
+        );
+        return Ok(());
+    }
+
+    // A clean install can lose the first boot to a component that is still
+    // finishing (the identity provider writes its config a few seconds after
+    // being reported ready). One deliberate retry with a fresh process beats
+    // failing the whole first run.
+    log::warn!("assistant did not answer in 120s; restarting it once");
+    progress(
+        app,
+        state,
+        "botserver",
+        "starting",
+        "Starting the assistant service again…",
+        0,
+    );
+    sidecar.stop();
+    tokio::time::sleep(std::time::Duration::from_secs(3)).await;
+    if let Err(e) = sidecar.start(resource_dir) {
+        let reason = format!("could not start the assistant: {e}");
+        progress(app, state, "botserver", "failed", &reason, 0);
+        return Err(reason);
+    }
+    if Sidecar::wait_for_api(API_PRODUCT, 180).await {
         progress(
             app,
             state,

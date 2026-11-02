@@ -207,7 +207,7 @@ pub(crate) async fn init_directory_service() -> Result<(Arc<Mutex<crate::directo
 }
 
 #[cfg(feature = "directory")]
-fn default_zitadel_config() -> crate::directory::ZitadelConfig {
+pub(crate) fn default_zitadel_config() -> crate::directory::ZitadelConfig {
     crate::directory::ZitadelConfig {
         issuer_url: "".to_string(),
         issuer: "".to_string(),
