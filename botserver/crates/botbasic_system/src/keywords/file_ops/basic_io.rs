@@ -63,6 +63,18 @@ pub async fn execute_write(
     path: &str,
     content: &str,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    execute_write_bytes(state, user, path, content.as_bytes().to_vec(), None).await
+}
+
+/// Write raw bytes to the bot's `.gbdrive`. Used by binary-producing keywords
+/// (`GENERATE PDF`) that cannot round-trip through UTF-8.
+pub async fn execute_write_bytes(
+    state: &Arc<dyn BasicRuntime>,
+    user: &UserSession,
+    path: &str,
+    content: Vec<u8>,
+    content_type: Option<&str>,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
     let client = state.drive_repository().ok_or("S3 client not configured")?;
 
     let loc = {
@@ -72,12 +84,13 @@ pub async fn execute_write(
     let bucket_name = loc.bucket.clone();
     let key = loc.key_for(path);
 
+    let len = content.len();
     client
-        .put_object(&bucket_name, &key, content.as_bytes().to_vec(), None)
+        .put_object(&bucket_name, &key, content, content_type)
         .await
         .map_err(|e| format!("S3 put failed: {e}"))?;
 
-    trace!("WRITE successful: {} bytes to {path}", content.len());
+    trace!("WRITE successful: {len} bytes to {path}");
     Ok(())
 }
 

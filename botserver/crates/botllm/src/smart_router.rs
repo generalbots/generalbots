@@ -68,7 +68,7 @@ impl SmartLLMRouter {
         }
 
         if candidates.is_empty() {
-            return Ok("gpt-4o-mini".to_string()); // Fallback model
+            return Ok("gpt-5.6-sol".to_string()); // Fallback model
         }
 
         // Select based on optimization goal
@@ -98,7 +98,7 @@ impl SmartLLMRouter {
 
         Ok(selected
             .map(|p| p.model_name.clone())
-            .unwrap_or_else(|| "gpt-4o-mini".to_string()))
+            .unwrap_or_else(|| "gpt-5.6-sol".to_string()))
     }
 
     pub async fn track_performance(
@@ -179,8 +179,9 @@ pub async fn enhanced_llm_call(
     // Track performance
     let latency = start_time.elapsed().as_millis() as u64;
     let cost_per_token = match actual_model.as_str() {
-        "gpt-4" => 0.03,
+        "gpt-5.6-sol" => 0.00125,
         "gpt-4o-mini" => 0.0015,
+        "claude-sonnet-5-5" => 0.003,
         "claude-3-sonnet" => 0.015,
         _ => 0.01,
     };

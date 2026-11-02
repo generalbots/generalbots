@@ -278,8 +278,10 @@ async fn repair_program(
     };
     let (model, key) =
         super::tool_exec::bot_llm_credentials(&state.conn, bot_uuid);
-    if model.is_empty() || key.is_empty() {
-        botlog::safe_warn!("program repair skipped: model/key empty");
+    // Keyless gateways (Kilo free tier) legitimately carry an empty key; only
+    // a missing model makes the repair call impossible.
+    if model.is_empty() {
+        botlog::safe_warn!("program repair skipped: no llm-model configured");
         return None;
     }
     let prompt = format!(

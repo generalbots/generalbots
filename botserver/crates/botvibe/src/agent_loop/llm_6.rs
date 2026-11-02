@@ -106,7 +106,11 @@ pub(crate) fn usage_from_payload(payload: &serde_json::Value) -> Option<LlmUsage
 /// 0.0) rather than fabricating a price, so a budget is never under-charged.
 pub(crate) fn estimate_llm_cost(model: &str, prompt_tokens: u32, completion_tokens: u32) -> f64 {
     let m = model.to_ascii_lowercase();
-    let (input, output): (f64, f64) = if m.contains("gpt-4o-mini") {
+    let (input, output): (f64, f64) = if m.contains("gpt-5.6") || m.contains("gpt-5.") {
+        (1.25, 10.0)
+    } else if m.contains("claude-sonnet-5") || m.contains("claude-opus-5") {
+        (4.0, 20.0)
+    } else if m.contains("gpt-4o-mini") {
         (0.15, 0.60)
     } else if m.contains("gpt-4o") {
         (2.50, 10.0)

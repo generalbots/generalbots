@@ -112,7 +112,7 @@ fn require_authenticated_identity(
 }
 
 /// Opt-out for single-user/desktop installs that run without accounts.
-fn allow_unregistered_identities() -> bool {
+pub(crate) fn allow_unregistered_identities() -> bool {
     matches!(
         std::env::var("AGENT_ALLOW_UNREGISTERED_IDENTITIES").as_deref(),
         Ok("1") | Ok("true") | Ok("TRUE")

@@ -297,7 +297,7 @@ impl AgentLoop {
             .clone()
             .or_else(|| llm.as_ref().map(|l| l.model.clone()))
             .or_else(|| std::env::var("LLM_MODEL").ok())
-            .unwrap_or_else(|| "gpt-4o-mini".to_string());
+            .unwrap_or_else(|| "gpt-5.6-sol".to_string());
         let api_key = run
             .config
             .llm_key

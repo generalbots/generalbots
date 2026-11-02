@@ -1,5 +1,55 @@
 use super::*;
 
+
+/// Desktop/single-user installs have no reachable identity provider API for
+/// password checks (Zitadel v2 sessions is not exposed by the bundled build).
+/// The first-run wizard writes `conf/directory/admin-credentials.json`; when
+/// the local password matches that file, this signs the administrator in with
+/// the same persisted suite session a directory login would mint. The email
+/// alone is never enough — the password must match.
+fn local_admin_user_id(email: &str, password: &str) -> Option<String> {
+    let mut candidates: Vec<std::path::PathBuf> = Vec::new();
+    if let Ok(stack) = std::env::var("BOTSERVER_STACK_PATH") {
+        if !stack.trim().is_empty() {
+            candidates.push(std::path::PathBuf::from(stack).join("conf/directory/admin-credentials.json"));
+        }
+    }
+    if let Ok(stack) = std::env::var("GBO_STACK_PATH") {
+        if !stack.trim().is_empty() {
+            candidates.push(std::path::PathBuf::from(stack).join("conf/directory/admin-credentials.json"));
+        }
+    }
+    if let Ok(cwd) = std::env::current_dir() {
+        candidates.push(cwd.join("botserver-stack/conf/directory/admin-credentials.json"));
+        candidates.push(cwd.join("../botserver-stack/conf/directory/admin-credentials.json"));
+    }
+    for candidate in candidates {
+        let Ok(content) = std::fs::read_to_string(&candidate) else {
+            continue;
+        };
+        let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) else {
+            continue;
+        };
+        let file_email = json.get("email").and_then(|v| v.as_str()).unwrap_or("");
+        let file_password = json.get("password").and_then(|v| v.as_str()).unwrap_or("");
+        if !file_email.is_empty()
+            && file_email.eq_ignore_ascii_case(email)
+            && !file_password.is_empty()
+            && file_password == password
+        {
+            let user_id = json
+                .get("user_id")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .trim();
+            if !user_id.is_empty() {
+                return Some(user_id.to_string());
+            }
+        }
+    }
+    None
+}
+
 pub async fn login(
     State(state): State<Arc<AppState>>,
     Json(req): Json<LoginRequest>,
@@ -266,6 +316,44 @@ pub async fn login(
         }
     } else {
         log::info!("No admin token available, falling back to local credential check");
+    }
+
+    // Directory could not verify the credentials. Desktop/single-user installs
+    // keep the wizard-created administrator in `admin-credentials.json`; accept
+    // that account here so login and logout work without a cloud identity
+    // provider, exactly like the wizard's auto-login did.
+    if let Some(user_id) = local_admin_user_id(&req.email, &req.password) {
+        let api_token = format!("gb_{}_{}", uuid::Uuid::new_v4(), chrono::Utc::now().timestamp());
+        let session_user = SessionUserData {
+            user_id: user_id.clone(),
+            email: req.email.clone(),
+            username: req.email.split('@').next().unwrap_or("admin").to_string(),
+            first_name: None,
+            last_name: None,
+            display_name: Some(req.email.split('@').next().unwrap_or("Admin").to_string()),
+            organization_id: None,
+            roles: vec!["admin".to_string()],
+            bucket: None,
+            created_at: chrono::Utc::now().timestamp(),
+        };
+        {
+            let mut cache = SESSION_CACHE.write().await;
+            cache.insert(api_token.clone(), session_user.clone());
+            persist_session(&api_token, &session_user);
+        }
+        botlog::safe_info!("Local administrator login for: {} (user_id: {})", req.email, user_id);
+        return Ok(Json(LoginResponse {
+            success: true,
+            user_id: Some(user_id),
+            session_id: None,
+            access_token: Some(api_token),
+            refresh_token: None,
+            expires_in: Some(3600),
+            requires_2fa: false,
+            session_token: None,
+            redirect: Some("/".to_string()),
+            message: Some("Login successful".to_string()),
+        }));
     }
 
     // Zitadel sessions API failed — no fallback; Zitadel is the only auth provider

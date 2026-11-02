@@ -68,6 +68,9 @@
     }
   ];
 
+  // The free tier ships a single keyless provider. Kilo's gateway is the only
+  // free endpoint verified to follow the native vm_exec JSON protocol and to
+  // return well-formed tool calls (OVH answers in prose, LLM7 requires a key).
   var FREE_PROVIDERS = [
     {
       id: "kilo",
@@ -75,20 +78,6 @@
       endpoint: "https://api.kilo.ai/api/gateway/chat/completions",
       model: "dots-studio/dots-3-note-preview:free",
       needsKey: false
-    },
-    {
-      id: "ovh",
-      name: "OVHcloud AI Endpoints",
-      endpoint: "https://oai.endpoints.kepler.ai.cloud.ovh.net/v1/chat/completions",
-      model: "gpt-oss-20b",
-      needsKey: false
-    },
-    {
-      id: "llm7",
-      name: "LLM7.io",
-      endpoint: "https://api.llm7.io/v1/chat/completions",
-      model: "gemini-3-flash",
-      needsKey: true
     }
   ];
 
@@ -173,9 +162,9 @@
       if (FREE_PROVIDERS[i].id === provider) { return FREE_PROVIDERS[i].model; }
     }
     switch (provider) {
-      case "openai": return "gpt-4o-mini";
-      case "anthropic": return "claude-3-5-sonnet-latest";
-      case "nvidia": return "meta/llama-3.1-70b-instruct";
+      case "openai": return "gpt-5.6-sol";
+      case "anthropic": return "claude-sonnet-5-5";
+      case "nvidia": return "meta/llama-4-maverick-17b-128e-instruct";
       default: return "";
     }
   }

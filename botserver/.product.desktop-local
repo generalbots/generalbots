@@ -30,7 +30,7 @@ search_enabled=false
 menu_launcher_enabled=true
 
 # No authentication required in desktop-local mode.
-no_security=true
+no_security=false
 
 # Default theme
 theme=sentient

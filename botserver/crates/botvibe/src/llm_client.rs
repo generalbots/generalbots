@@ -31,7 +31,7 @@ pub fn resolve_llm(
     let mut model = override_model
         .map(str::to_string)
         .or_else(|| std::env::var("LLM_MODEL").ok())
-        .unwrap_or_else(|| "gpt-4o-mini".to_string());
+        .unwrap_or_else(|| "gpt-5.6-sol".to_string());
     let mut key = override_key
         .map(str::to_string)
         .or_else(|| std::env::var("LLM_KEY").ok())
@@ -49,7 +49,7 @@ pub fn resolve_llm(
                     key = v.clone();
                 }
             }
-            if model == "gpt-4o-mini" {
+            if model == "gpt-5.6-sol" {
                 if let Some(v) = secrets.get("model") {
                     model = v.clone();
                 }

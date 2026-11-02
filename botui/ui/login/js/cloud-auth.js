@@ -64,26 +64,41 @@ async function handleLogin(e) {
   errEl.style.display = 'none';
 
   try {
-    const res = await fetch(`${API_BASE}/auth/login`, {
+    // Cloud installs expose the management login under /api/cloud. The
+    // desktop edition ships without the cloud router: when that endpoint is
+    // absent (404) sign in through the directory route (/api/auth/login),
+    // which verifies the wizard's administrator credentials.
+    const attempt = (base) => fetch(base + '/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
+    let res = await attempt(API_BASE);
+    if (res.status === 404) {
+      res = await attempt('/api');
+    }
     const text = await res.text();
     let data = {};
     try { data = JSON.parse(text); } catch (_) { data = { detail: text }; }
     if (!res.ok) {
-      errEl.textContent = data.detail || 'Login failed. Check your credentials.';
+      errEl.textContent = data.detail || data.error || 'Login failed. Check your credentials.';
+      errEl.style.display = 'block';
+      return;
+    }
+    const token = data.token || data.access_token;
+    if (!token) {
+      errEl.textContent = 'Login succeeded but no session token was returned.';
       errEl.style.display = 'block';
       return;
     }
     // Persist session
-    localStorage.setItem('management_token', data.token);
+    localStorage.setItem('management_token', token);
+    localStorage.setItem('gb-access-token', token);
     localStorage.setItem('management_email', data.email || email);
     localStorage.setItem('management_name',  data.name  || '');
-    notifyParentSuccess(data.token, data.email || email, data.name || '');
+    notifyParentSuccess(token, data.email || email, data.name || '');
     var dest = resolveRedirect() || (CLOUD_CONFIG.baseUrl + '/dashboard');
-    window.location.href = dest + '?token=' + encodeURIComponent(data.token) + '&email=' + encodeURIComponent(data.email || email) + '&name=' + encodeURIComponent(data.name  || '');
+    window.location.href = dest + '?token=' + encodeURIComponent(token) + '&email=' + encodeURIComponent(data.email || email) + '&name=' + encodeURIComponent(data.name  || '');
   } catch (err) {
     errEl.textContent = 'Network error: ' + err.message;
     errEl.style.display = 'block';

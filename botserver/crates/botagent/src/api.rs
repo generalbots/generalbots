@@ -336,6 +336,56 @@ pub async fn vm_exec(
     })))
 }
 
+#[derive(diesel::QueryableByName)]
+struct VmNameRow {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    vm_name: String,
+}
+
+/// Desktop/single-user installs run without accounts, so the chat page holds
+/// no bearer token and a plain download link cannot authenticate. In that mode
+/// the conversation id carried by the link identifies the workspace: resolve
+/// the VM from `agent_sessions.active_conversation_id` instead of inventing an
+/// identity. Authenticated callers always take the normal per-user path.
+fn desktop_vm_name(state: &Arc<AgentService>, conversation_id: &str) -> Option<String> {
+    if conversation_id.is_empty() {
+        return None;
+    }
+    let mut conn = state.pool().get().ok()?;
+    let rows = diesel::sql_query(
+        "SELECT vm_name FROM agent_sessions WHERE status = 'running' \
+         AND active_conversation_id = $1 LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Text, _>(conversation_id)
+    .load::<VmNameRow>(&mut conn)
+    .ok()?;
+    rows.into_iter().next().map(|row| row.vm_name)
+}
+
+fn resolve_vm_name(
+    state: &Arc<AgentService>,
+    headers: &HeaderMap,
+    conversation_id: &str,
+) -> Result<String, (StatusCode, String)> {
+    if let Ok((_, user_id, _)) = caller_uuid(headers) {
+        let session = vm::get_user_vm(state, &user_id)?
+            .ok_or_else(|| (StatusCode::NOT_FOUND, "No active VM".to_string()))?;
+        if session.status != vm::STATUS_RUNNING {
+            return Err((StatusCode::CONFLICT, format!("VM is {}", session.status)));
+        }
+        return Ok(session.vm_name);
+    }
+    // Single-user/desktop installs opt in with AGENT_ALLOW_UNREGISTERED_IDENTITIES=1
+    // (the same flag that lets the chat provision a VM without accounts).
+    let desktop = vm::allow_unregistered_identities();
+    if desktop {
+        if let Some(name) = desktop_vm_name(state, conversation_id) {
+            return Ok(name);
+        }
+    }
+    Err(unauthorized("Missing credentials"))
+}
+
 /// `GET /api/agent/vm/file?conversation_id=&path=` — fetch a file from the
 /// user's VM (base64-encoded) for preview/download in chat.
 pub async fn vm_file(
@@ -355,13 +405,8 @@ pub async fn vm_file(
             }
         }
     }
-    let (_, user_id, _) = caller_uuid(&headers)?;
-    let session = vm::get_user_vm(&state, &user_id)?
-        .ok_or_else(|| (StatusCode::NOT_FOUND, "No active VM".to_string()))?;
-    if session.status != vm::STATUS_RUNNING {
-        return Err((StatusCode::CONFLICT, format!("VM is {}", session.status)));
-    }
     let conversation_id = params.get("conversation_id").cloned().unwrap_or_default();
+    let vm_name = resolve_vm_name(&state, &headers, &conversation_id)?;
     let rel_path = params.get("path").cloned().unwrap_or_default();
     if conversation_id.is_empty() || rel_path.is_empty() {
         return Err((StatusCode::BAD_REQUEST, "conversation_id and path required".to_string()));
@@ -373,7 +418,7 @@ pub async fn vm_file(
     let clean_cid = vm::sanitize_id(&conversation_id)?;
     let full_path = format!("/opt/vibe/conversations/{}/{}", clean_cid, rel_path);
     let (ok, stdout, stderr) = vm::exec_in_vm(
-        &state, &session.vm_name,
+        &state, &vm_name,
         &["sh".into(), "-c".into(), format!("base64 -w0 '{}'", full_path)],
     ).await?;
     if !ok {
@@ -447,13 +492,8 @@ pub async fn vm_files(
     headers: HeaderMap,
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let (_, user_id, _) = caller_uuid(&headers)?;
-    let session = vm::get_user_vm(&state, &user_id)?
-        .ok_or_else(|| (StatusCode::NOT_FOUND, "No active VM".to_string()))?;
-    if session.status != vm::STATUS_RUNNING {
-        return Err((StatusCode::CONFLICT, format!("VM is {}", session.status)));
-    }
     let conversation_id = params.get("conversation_id").cloned().unwrap_or_default();
+    let vm_name = resolve_vm_name(&state, &headers, &conversation_id)?;
     if conversation_id.is_empty() {
         return Err((
             StatusCode::BAD_REQUEST,
@@ -461,7 +501,7 @@ pub async fn vm_files(
         ));
     }
     let clean_cid = vm::sanitize_id(&conversation_id)?;
-    let files = vm::list_conversation_output(&state, &session.vm_name, &clean_cid).await?;
+    let files = vm::list_conversation_output(&state, &vm_name, &clean_cid).await?;
     Ok(Json(serde_json::json!({
         "success": true,
         "conversation_id": clean_cid,

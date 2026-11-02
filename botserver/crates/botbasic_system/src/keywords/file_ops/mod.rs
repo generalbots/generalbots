@@ -5,6 +5,7 @@ pub mod create;
 pub mod create_shortcut;
 pub mod handlers;
 pub mod pdf;
+pub mod pdf_writer;
 pub mod transfer;
 pub mod utils;
 

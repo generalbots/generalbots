@@ -36,7 +36,7 @@ use std::error::Error;
 use std::fmt::Write as FmtWrite;
 use std::sync::Arc;
 
-use crate::keywords::file_ops::basic_io::{execute_read, execute_write};
+use crate::keywords::file_ops::basic_io::{execute_read, execute_write, execute_write_bytes};
 use crate::keywords::file_ops::utils::dynamic_to_json;
 
 pub struct PdfResult {
@@ -222,10 +222,8 @@ pub async fn execute_generate_pdf(
         }
     }
 
-    let mut pdf_content = String::from("<!-- PDF Content Generated from Template: ");
-    let _ = writeln!(pdf_content, "{template} -->\n{html_content}");
-
-    execute_write(state, user, output, &pdf_content).await?;
+    let pdf_bytes = crate::keywords::file_ops::pdf_writer::html_to_pdf(&html_content);
+    execute_write_bytes(state, user, output, pdf_bytes, Some("application/pdf")).await?;
 
     let bot_name: String = {
         let mut db_conn = state.db_pool().get().map_err(|e| format!("DB error: {e}"))?;

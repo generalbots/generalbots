@@ -8,16 +8,13 @@ use super::{ProviderSpec, provider};
 /// assign providers to the three Vibe agent types (Reasoning / Agentic /
 /// Fast) in the Vibe settings section.
 ///
-/// Only providers verified with a tool-capable burst test (10 parallel
-/// requests, 15s max, tool-call support) are listed here:
-/// - Kilo gateway (`api.kilo.ai`) — keyless free-tier models, all 10/10 200
-///   on burst with tool calls (except `nex-agi` 1x transient 429 upstream).
-/// - LLM7 (`api.llm7.io`) — `minimax-m2.7` passes tool-capable sequentially
-///   (the endpoint enforces a single concurrent request, so parallel bursts
-///   return 429 by design).
-///
-/// Excluded: `mistral-Nemo-Instruct-2407` (no tool support) and
-/// `nvidia/nemotron-3-ultra-550b` (read timeouts on the 15s budget).
+/// The free tier ships the Kilo gateway only (`api.kilo.ai`): every slug below
+/// maps to a model that is currently served with the `:free` suffix, and each
+/// one was checked against the gateway model list at build time. LLM7 was
+/// removed from the catalog because its free tier requires an account key and
+/// its keyless request returns 401, and the OVHcloud endpoint was removed from
+/// the product selection because it answers plain questions in prose instead of
+/// following the native `vm_exec` tool protocol.
 pub(super) const PROVIDERS: &[ProviderSeed] = &[
     ProviderSeed {
         llm_available: true,
@@ -34,44 +31,8 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
     ProviderSeed {
         llm_available: true,
         ..provider(
-            "kilo-nex",
-            "Kilo · Nex N2.5 Pro",
-            ProviderSpec {
-                category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
-                priority: Priority::Must, module: None, official_docs: Some("https://api.kilo.ai"),
-                auth: &KEYLESS, actions: AI_PLATFORM_ACTIONS,
-            },
-        )
-    },
-    ProviderSeed {
-        llm_available: true,
-        ..provider(
-            "kilo-ling",
-            "Kilo · Ling 3.0 Flash",
-            ProviderSpec {
-                category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
-                priority: Priority::Must, module: None, official_docs: Some("https://api.kilo.ai"),
-                auth: &KEYLESS, actions: AI_PLATFORM_ACTIONS,
-            },
-        )
-    },
-    ProviderSeed {
-        llm_available: true,
-        ..provider(
-            "kilo-openrouter",
-            "Kilo · OpenRouter Free",
-            ProviderSpec {
-                category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
-                priority: Priority::Must, module: None, official_docs: Some("https://api.kilo.ai"),
-                auth: &KEYLESS, actions: AI_PLATFORM_ACTIONS,
-            },
-        )
-    },
-    ProviderSeed {
-        llm_available: true,
-        ..provider(
             "kilo-nemotron-ultra",
-            "Kilo · Nemotron Ultra 550B",
+            "Kilo · Nemotron 3 Ultra 550B",
             ProviderSpec {
                 category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
                 priority: Priority::Must, module: None, official_docs: Some("https://api.kilo.ai"),
@@ -83,7 +44,7 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         llm_available: true,
         ..provider(
             "kilo-nemotron-super",
-            "Kilo · Nemotron Super 120B",
+            "Kilo · Nemotron 3.5 Super VL",
             ProviderSpec {
                 category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
                 priority: Priority::Must, module: None, official_docs: Some("https://api.kilo.ai"),
@@ -95,7 +56,19 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
         llm_available: true,
         ..provider(
             "kilo-nemotron-lightning",
-            "Kilo · Nemotron Lightning",
+            "Kilo · Nemotron 3.5 Lightning",
+            ProviderSpec {
+                category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
+                priority: Priority::Must, module: None, official_docs: Some("https://api.kilo.ai"),
+                auth: &KEYLESS, actions: AI_PLATFORM_ACTIONS,
+            },
+        )
+    },
+    ProviderSeed {
+        llm_available: true,
+        ..provider(
+            "kilo-nano",
+            "Kilo · Nemotron 3 Nano Omni",
             ProviderSpec {
                 category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
                 priority: Priority::Must, module: None, official_docs: Some("https://api.kilo.ai"),
@@ -118,8 +91,8 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
     ProviderSeed {
         llm_available: true,
         ..provider(
-            "kilo-stepfun",
-            "Kilo · StepFun Flash",
+            "kilo-openrouter",
+            "Kilo · OpenRouter Free",
             ProviderSpec {
                 category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
                 priority: Priority::Must, module: None, official_docs: Some("https://api.kilo.ai"),
@@ -130,11 +103,11 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
     ProviderSeed {
         llm_available: true,
         ..provider(
-            "llm7-minimax",
-            "LLM7 · MiniMax M2.7 (stable)",
+            "kilo-flint",
+            "Kilo · Flint 1.0",
             ProviderSpec {
                 category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
-                priority: Priority::Must, module: None, official_docs: Some("https://api.llm7.io"),
+                priority: Priority::Must, module: None, official_docs: Some("https://api.kilo.ai"),
                 auth: &KEYLESS, actions: AI_PLATFORM_ACTIONS,
             },
         )
@@ -142,11 +115,11 @@ pub(super) const PROVIDERS: &[ProviderSeed] = &[
     ProviderSeed {
         llm_available: true,
         ..provider(
-            "llm7-minimax-v2",
-            "LLM7 · MiniMax M2.7 (alt)",
+            "kilo-xing",
+            "Kilo · Xing 4.0 29B",
             ProviderSpec {
                 category: Category::Llm, strategy: Strategy::Improve, status: Status::Built,
-                priority: Priority::Must, module: None, official_docs: Some("https://api.llm7.io"),
+                priority: Priority::Must, module: None, official_docs: Some("https://api.kilo.ai"),
                 auth: &KEYLESS, actions: AI_PLATFORM_ACTIONS,
             },
         )
