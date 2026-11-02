@@ -59,29 +59,31 @@ pub fn get_session_tools(
         info!("Created work directory at: {:?}", work_root);
     }
 
-    let rel_path_str = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog", org_id = bot_name);
-    let rel_path = std::path::Path::new(&rel_path_str);
-    if !crate::security::code_scan_fixes::is_safe_path(&work_root, rel_path) {
-        return Err(format!("Path traversal detected for bot '{}'", bot_name).into());
-    }
-    let work_path = work_root.join(rel_path);
+    let work_root_str = work_root.to_string_lossy().to_string();
 
     info!(
         "Loading {} tools for session {} from {:?}",
         tool_names.len(),
         session_id,
-        work_path
+        work_root
     );
 
     let mut tools = Vec::new();
 
     for tool_name in &tool_names {
-        let mcp_path = work_path.join(format!("{}.mcp.json", tool_name));
-
-        if !mcp_path.exists() {
-            warn!("Tool JSON file not found: {:?}", mcp_path);
+        // The org directory is `<org-id>.gborg`, not `<bot>.gborg`; resolving
+        // the manifest by name keeps both layouts working.
+        let Some(mcp_path) = crate::core::bot::pipeline::tool_paths::resolve_bot_file(
+            &work_root_str,
+            &bot_name,
+            &format!("{tool_name}.mcp.json"),
+        ) else {
+            warn!(
+                "Tool JSON file not found for '{}' under {:?}",
+                tool_name, work_root
+            );
             continue;
-        }
+        };
 
         let mcp_content = std::fs::read_to_string(&mcp_path)
             .map_err(|e| format!("Failed to read tool file {:?}: {}", mcp_path, e))?;

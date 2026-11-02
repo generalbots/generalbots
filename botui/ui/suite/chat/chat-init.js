@@ -185,6 +185,15 @@ function sendMessage(messageContent) {
 // #1275 — messages composed while the socket is down are kept here (most
 // recent last) and flushed in order after the WebSocket reconnects. The
 // queue is capped so a stuck socket cannot grow memory without bound.
+// Shared by the composer chip and the send path: it used to live inside the
+// file-button IIFE, so `sendMessage` threw "formatAttachSize is not defined"
+// as soon as a file was attached and the message never left the browser.
+function formatAttachSize(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+}
+
 function queueOfflineMessage(payload) {
   if (!Array.isArray(ChatState.offlineQueue)) ChatState.offlineQueue = [];
   ChatState.offlineQueue.push(payload);
@@ -218,12 +227,6 @@ window.sendMessage = sendMessage;
     chip.textContent = "📎 " + file.name + " (" + formatAttachSize(file.size) + ")";
     chip.style.display = "inline-flex";
     chip.title = file.name;
-  }
-
-  function formatAttachSize(bytes) {
-    if (bytes < 1024) return bytes + " B";
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
-    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
   }
 
   fileBtn.addEventListener("click", function (e) {

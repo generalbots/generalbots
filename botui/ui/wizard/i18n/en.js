@@ -151,6 +151,8 @@ window.GBWizardLocales["en"] = {
   "finish.admin-note": "Use these to sign in to the management area. Save the password now — it is shown only on this screen.",
   "finish.email": "Email",
   "finish.password": "Password",
+  "finish.show-password": "Show password",
+  "finish.hide-password": "Hide password",
   "finish.copy": "Copy",
   "finish.regenerate": "Regenerate",
   "finish.password-hint": "Stored only on this machine, in the local vault configuration.",

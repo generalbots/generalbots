@@ -10,6 +10,7 @@ pub mod native_args;
 pub mod native_tools;
 pub mod sink;
 pub mod start_bas;
+pub mod tool_paths;
 pub mod tool_exec;
 pub mod types;
 pub mod enriched_llm;

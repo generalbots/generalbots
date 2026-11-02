@@ -96,7 +96,10 @@
     draft: {
       display_name: "",
       admin: { email: "admin@localhost", password: "", user_id: "" },
-      model: { mode: "local", provider: "openai", endpoint: "", model: "", api_key: "", tested: false },
+      // Default to the keyless free tier (Kilo). It needs no download, answers
+      // immediately, and keeps the first install small; the bundled local model
+      // stays available as an explicit choice.
+      model: { mode: "free", provider: "kilo", endpoint: "https://api.kilo.ai/api/gateway/chat/completions", model: "dots-studio/dots-3-note-preview:free", api_key: "", tested: false },
       workspace: { path: "", size: "standard" },
       services: {},
       telemetry: false

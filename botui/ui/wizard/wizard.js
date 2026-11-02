@@ -309,6 +309,20 @@
     if (email) {
       email.addEventListener("input", function () { draft.admin.email = email.value.trim(); });
     }
+    var togglePassword = document.getElementById("toggleAdminPasswordBtn");
+    if (togglePassword) {
+      togglePassword.addEventListener("click", function () {
+        var field = document.getElementById("adminPassword");
+        if (!field) return;
+        var reveal = field.type === "password";
+        field.type = reveal ? "text" : "password";
+        togglePassword.setAttribute("aria-pressed", reveal ? "true" : "false");
+        togglePassword.textContent = reveal
+          ? (window.WizardI18n ? WizardI18n.t("finish.hide-password") : "Hide password")
+          : (window.WizardI18n ? WizardI18n.t("finish.show-password") : "Show password");
+      });
+    }
+
     var copy = document.getElementById("copyAdminBtn");
     if (copy) {
       copy.addEventListener("click", function () {

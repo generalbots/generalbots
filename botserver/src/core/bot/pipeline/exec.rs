@@ -283,10 +283,11 @@ pub async fn process_message_internal(
             message_type: botlib::message_types::MessageType::BOT_RESPONSE,
             stream_token: None,
             is_complete: true,
-            suggestions: post_start_suggestions
-                .into_iter()
-                .map(|s| botlib::models::Suggestion::new(s.text))
-                .collect(),
+            // Keep the full suggestion: `Suggestion::new(text)` discards the
+            // `action`, so every chip re-sent after start.bas reached the
+            // client as a plain message and tool chips (`invoke_tool`) stopped
+            // executing the tool (they sent `message_type: 1` instead of 6).
+            suggestions: post_start_suggestions,
             switchers: post_start_switchers,
             context_name: None,
             context_length: 0,
@@ -465,7 +466,7 @@ pub async fn process_message_internal(
                      You run code by calling the native tool `vm_exec`. Do not claim you \
                      ran something without calling it. Emit exactly one JSON object, on \
                      its own line:\n\
-                     {{\"__tool_call__\": true, \"name\": \"vm_exec\", \"arguments\": \"{{\\\"language\\\":\\\"python\\\",\\\"code\\\":\\\"<program>\\\"}}\"}}\n\
+                     {{\"__tool_call__\": true, \"name\": \"vm_exec\", \"arguments\": {{\"language\": \"python\", \"code\": \"<program>\"}}}}\n\
                      `language` is python, node or shell. The tool writes the program into \
                      program/, runs it in the conversation folder, and returns stdout, \
                      stderr and every file it finds in output/. \

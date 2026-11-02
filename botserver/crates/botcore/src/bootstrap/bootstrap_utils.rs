@@ -357,6 +357,15 @@ pub fn tables_health_check() -> bool {
 }
 
 /// Check if MinIO/Drive is healthy
+/// llama.cpp answers /health once the model is loaded (10-20 s on CPU).
+pub fn llm_health_check() -> bool {
+    SafeCommand::new("curl")
+        .and_then(|c| c.args(&["-sf", "--connect-timeout", "2", "-m", "3", "http://127.0.0.1:8081/health"]))
+        .and_then(|c| c.execute())
+        .map(|output| output.status.success())
+        .unwrap_or(false)
+}
+
 pub fn drive_health_check() -> bool {
     let urls = [
         "http://127.0.0.1:9100/minio/health/live",

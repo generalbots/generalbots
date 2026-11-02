@@ -262,7 +262,8 @@
             '<input type="text" id="adminEmail" value="' + esc(draft.admin.email) + '" autocomplete="off" /></div>' +
           '<div class="field"><label for="adminPassword">' + esc(t("finish.password")) + "</label>" +
             '<div class="inline-row">' +
-              '<input type="text" id="adminPassword" readonly value="' + esc(draft.admin.password) + '" />' +
+              '<input type="password" id="adminPassword" readonly autocomplete="new-password" value="' + esc(draft.admin.password) + '" />' +
+              '<button type="button" class="btn btn-secondary btn-sm" id="toggleAdminPasswordBtn" aria-pressed="false">' + esc(t("finish.show-password")) + "</button>" +
               '<button type="button" class="btn btn-secondary btn-sm" id="copyAdminBtn">' + esc(t("finish.copy")) + "</button>" +
               '<button type="button" class="btn btn-secondary btn-sm" id="regenerateAdminBtn">' + esc(t("finish.regenerate")) + "</button>" +
             "</div>" +

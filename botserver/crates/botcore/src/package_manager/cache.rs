@@ -146,6 +146,19 @@ impl DownloadCache {
         self.cache_dir.join(filename)
     }
 
+    /// Checksum pinned in 3rdparty.toml for a download URL. The component id
+    /// and the archive are not always the same entry (the `llm` component
+    /// downloads the Vulkan or the CPU build depending on the host), so
+    /// verification must follow the URL in use instead of the component name.
+    pub fn checksum_for_url(&self, url: &str) -> Option<String> {
+        self.config
+            .components
+            .values()
+            .find(|component| component.url == url)
+            .map(|component| component.sha256.clone())
+            .filter(|sha| !sha.is_empty())
+    }
+
     pub fn get_component(&self, component: &str) -> Option<&ComponentDownload> {
         self.config.components.get(component)
     }

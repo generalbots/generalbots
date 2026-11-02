@@ -441,6 +441,7 @@ fn reveal_suite_with_token(app: &tauri::AppHandle, token: Option<&str>) {
         warn!("main window is not available during wizard handoff");
         return;
     };
+    fit_to_screen(&main);
 
     let target = std::env::var("GB_DESKTOP_SUITE_URL")
         .ok()
@@ -522,6 +523,40 @@ pub fn ensure_suite_window(app: &tauri::AppHandle) {
             Err(e) => warn!("could not recreate the suite window: {e}"),
         }
     });
+}
+
+/// Keep the assistant window inside the display. The configured 1200x800 does
+/// not fit a 1366x768 laptop once the panel and decorations are drawn, and a
+/// window taller than the screen hides the composer and the send button.
+fn fit_to_screen(window: &tauri::WebviewWindow) {
+    // Prefer the primary display: current_monitor() reports the (smaller)
+    // monitor a partially offscreen window sits on, which shrank the window a
+    // little more on every launch.
+    let monitor = match window.primary_monitor() {
+        Ok(Some(monitor)) => monitor,
+        _ => match window.current_monitor() {
+            Ok(Some(monitor)) => monitor,
+            _ => return,
+        },
+    };
+    let scale = if monitor.scale_factor() > 0.0 {
+        monitor.scale_factor()
+    } else {
+        1.0
+    };
+    let available_width = f64::from(monitor.size().width) / scale;
+    let available_height = f64::from(monitor.size().height) / scale;
+    let width = 1200.0_f64.min(available_width - 40.0).max(900.0);
+    let height = 800.0_f64.min(available_height - 80.0).max(560.0);
+    if width <= 0.0 || height <= 0.0 {
+        return;
+    }
+    if let Err(e) = window.set_size(tauri::LogicalSize::new(width, height)) {
+        warn!("could not fit the assistant window to the screen: {e}");
+    }
+    if let Err(e) = window.center() {
+        warn!("could not centre the assistant window: {e}");
+    }
 }
 
 /// Writes the administrator account the wizard showed on the finish screen.

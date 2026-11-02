@@ -140,19 +140,22 @@
   }
 
   function newConversation() {
-    // A second chat WINDOW would share the page-global ChatState, so the two
-    // windows end up writing to one session. If chat is already mounted, add
-    // a tab inside it (own socket, own session) and just raise the window.
+    // Desktop single-pane chat: a "new conversation" is a fresh session in the
+    // same pane. Routing it through the parallel-tab strip created a tab that
+    // was pruned immediately and left two sockets on one session, so the
+    // greeting rendered twice and the view stayed on the old conversation.
+    // The strip keeps its own "+" button for parallel chats.
+    // A full reload is the one path that guarantees a clean conversation:
+    // exactly one socket, and /api/auth mints a fresh session because no
+    // session_id is requested. Switching the socket in place raced with the
+    // boot connect and rendered the greeting twice.
+    try {
+      sessionStorage.setItem("gb:new-conversation", "1");
+    } catch (e) {}
+    window.location.reload();
+    return;
     var chatMounted = !!document.getElementById("messageInput");
     if (chatMounted && window.GBMultiChat && typeof window.GBMultiChat.newChatTab === "function") {
-      if (window.WindowManager) {
-        var chatWin = window.WindowManager.openWindows
-          ? window.WindowManager.openWindows.find(function (w) {
-              return String(w.id).indexOf("chat") === 0;
-            })
-          : null;
-        if (chatWin) window.WindowManager.focusWindow(chatWin.id);
-      }
       if (window.GBMultiChat.newChatTab()) {
         highlightActive("");
         return;

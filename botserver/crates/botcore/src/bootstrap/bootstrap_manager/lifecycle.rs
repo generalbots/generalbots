@@ -91,6 +91,10 @@ impl BootstrapManager {
                 ("cache", cache_health_check, 30, true),
                 ("drive", drive_health_check, 0, false),
                 ("directory", zitadel_health_check, 60, true),
+                // The wizard installs and starts the local model once; without
+                // this a restart left chat without any model (llama.cpp was
+                // never relaunched) and every answer waited for a dead port.
+                ("llm", llm_health_check, 60, false),
             ]
         } else {
             vec![

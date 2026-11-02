@@ -19,22 +19,31 @@ pub async fn run_tool_exec(identity: &SessionIdentity<'_>, tool_name: &str) {
     } = *identity;
     let channel = sink.channel_type();
     let work_path = botcore::shared::utils::get_work_path();
-    let read_tool = |gbdialog_dir: &str| -> Option<String> {
-        let ast_p = format!("{gbdialog_dir}/{tool_name}.ast");
-        let bas_p = ast_p.replace(".ast", ".bas");
-        std::fs::read_to_string(&ast_p).ok()
-            .or_else(|| std::fs::read_to_string(&bas_p).ok())
-    };
 
-    let primary_rel = format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/");
-    let tool_content = if crate::core::bot::ws::handler::verify_path_within_workdir(&primary_rel) {
-        let gbdialog_dir = format!("{work_path}/{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/");
-        read_tool(&gbdialog_dir)
-    } else {
-        None
-    };
+    // Resolve through the shared work-tree resolver: the org directory is
+    // `<org-id>.gborg`, so the old `{bot}.gborg` assumption matched nothing
+    // and the tool was skipped without any log line (the button did nothing).
+    // Tools reach the work tree as `.bas` (compiled to `.ast` only after the
+    // compiler pass), so both spellings must be attempted: resolving only the
+    // `.ast` returned None on a fresh install and the button did nothing.
+    let ast_content = ["ast", "bas"]
+        .iter()
+        .find_map(|ext| {
+            super::tool_paths::resolve_bot_file(
+                &work_path,
+                bot_name,
+                &format!("{tool_name}.{ext}"),
+            )
+            .and_then(|path| std::fs::read_to_string(path).ok())
+            .filter(|c| !c.is_empty())
+        })
+        .unwrap_or_default();
 
-    let ast_content = tool_content.unwrap_or_default();
+    if ast_content.is_empty() {
+        botlog::safe_info!(
+            "TOOL_EXEC: no compiled script for tool '{tool_name}' of bot '{bot_name}'"
+        );
+    }
 
     if !ast_content.is_empty() {
         // Declarative gate: only execute tools the bot script associated
@@ -276,13 +285,19 @@ pub async fn run_llm_tool_call(
             return;
         }
 
-        let ast_path = format!("{work_path}/{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast");
-        let ast_content = match tokio::fs::read_to_string(&ast_path).await {
-            Ok(c) if !c.is_empty() => c,
-            _ => {
-                let bas_path = ast_path.replace(".ast", ".bas");
-                tokio::fs::read_to_string(&bas_path).await.unwrap_or_default()
-            }
+        // The org directory is named after the org id (`<uuid>.gborg`), not the
+        // bot: assuming `{bot}.gborg` meant every tool call resolved to a
+        // missing file and was dropped as "no compiled script".
+        let ast_path = super::tool_paths::resolve_bot_file(&work_path, &bot_name, &format!("{tool_name}.ast"));
+        let ast_content = match ast_path.as_ref() {
+            Some(path) => match tokio::fs::read_to_string(path).await {
+                Ok(c) if !c.is_empty() => c,
+                _ => {
+                    let bas_path = path.with_extension("bas");
+                    tokio::fs::read_to_string(&bas_path).await.unwrap_or_default()
+                }
+            },
+            None => String::new(),
         };
 
         if ast_content.is_empty() {
@@ -671,22 +686,44 @@ fn dispatch_quote_end(text: &str, start: usize) -> Option<usize> {
 /// Parses the `<tool_use>{"name": …, "arguments": …}</tool_use>` dialect
 /// emitted by some Kilo-hosted models. Returns the native wrapper shape.
 fn parse_xml_tool_use(raw: &str) -> Option<serde_json::Value> {
-    let open = raw.find("<tool_use>")? + "<tool_use>".len();
-    let close = raw[open..].find("</tool_use>")?;
-    let payload = raw[open..open + close].trim();
-    let value = extract_tool_call(payload).or_else(|| salvage_tool_call(payload))?;
-    let name = value.get("name")?.as_str()?.trim();
-    if name.is_empty() {
-        return None;
+    // Two shapes reach us: `<tool_use>{"name": …}</tool_use>` and the
+    // attribute dialect `<tool_use name="vm_exec">{"language": …}</tool_use>`.
+    // The latter used to leak into the chat as raw text ("vm_exec">…") because
+    // only the JSON-named form was recognised.
+    let tag = raw.find("<tool_use")?;
+    let after_tag = tag + "<tool_use".len();
+    let tag_end = raw[after_tag..].find('>')? + after_tag;
+    let header = &raw[after_tag..tag_end];
+    let attribute_name = header
+        .split_once("name=")
+        .map(|(_, rest)| rest.trim_matches(|c| c == '"' || c == '\'' || c == ' ').to_string())
+        .filter(|n| !n.is_empty());
+    let body_start = tag_end + 1;
+    let close = raw[body_start..].find("</tool_use>")?;
+    let payload = raw[body_start..body_start + close].trim();
+
+    if let Some(value) = extract_tool_call(payload).or_else(|| salvage_tool_call(payload)) {
+        if let Some(name) = value.get("name").and_then(|n| n.as_str()) {
+            let name = name.trim();
+            if !name.is_empty() {
+                let args = value.get("arguments")?.clone();
+                let args = match args {
+                    serde_json::Value::String(text) => text,
+                    other => other.to_string(),
+                };
+                return Some(serde_json::json!({
+                    "__tool_call__": true,
+                    "name": name,
+                    "arguments": args,
+                }));
+            }
+        }
     }
-    let args = value.get("arguments")?.clone();
-    let args = match args {
-        serde_json::Value::String(text) => text,
-        other => other.to_string(),
-    };
+    // Attribute dialect: the body IS the arguments object.
+    let name = attribute_name?;
     Some(serde_json::json!({
         "__tool_call__": true,
         "name": name,
-        "arguments": args,
+        "arguments": payload,
     }))
 }

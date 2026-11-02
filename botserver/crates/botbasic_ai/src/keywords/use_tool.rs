@@ -135,6 +135,73 @@ pub fn use_tool_keyword(state: Arc<dyn BasicRuntime>, user: UserSession, engine:
         }
     });
 }
+
+/// Locates a tool's manifest inside the materialized work tree.
+///
+/// The org directory is named after the org id (`<uuid>.gborg`) while this
+/// lookup used to assume `{bot}.gborg`, so every `USE TOOL` on a desktop
+/// install failed with ".mcp.json not found" and the tool was never associated
+/// with the session (the button was registered but did nothing).
+///
+/// The manifest is written by the compiler; when only the source is present it
+/// is generated here so a shipped `.bas` tool is usable on a fresh install.
+fn resolve_tool_manifest(
+    work_root: &Path,
+    bot_name: &str,
+    tool_name: &str,
+) -> Option<std::path::PathBuf> {
+    let dialog_rel = format!("{bot_name}.gbai/{bot_name}.gbdialog");
+    let manifest = format!("{tool_name}.mcp.json");
+    let source = format!("{tool_name}.bas");
+
+    let mut candidates: Vec<std::path::PathBuf> = Vec::new();
+    // Historical layout: the org directory carried the bot name.
+    candidates.push(work_root.join(format!("{bot_name}.gborg")).join(&dialog_rel));
+    // Actual layout: one directory per org id.
+    if let Ok(entries) = std::fs::read_dir(work_root) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.is_dir()
+                && path
+                    .file_name()
+                    .and_then(|name| name.to_str())
+                    .map(|name| name.ends_with(".gborg"))
+                    .unwrap_or(false)
+            {
+                candidates.push(path.join(&dialog_rel));
+            }
+        }
+    }
+
+    for dir in candidates {
+        let manifest_path = dir.join(&manifest);
+        if manifest_path.exists() {
+            return Some(manifest_path);
+        }
+        let source_path = dir.join(&source);
+        if source_path.exists() {
+            let generated = serde_json::json!({
+                "name": tool_name,
+                "description": format!("Tool {tool_name}"),
+                "input_schema": { "type": "object", "properties": {}, "required": [] }
+            });
+            match serde_json::to_string_pretty(&generated) {
+                Ok(raw) => {
+                    if std::fs::write(&manifest_path, raw).is_ok() {
+                        info!(
+                            "Generated missing tool manifest {:?} from {}",
+                            manifest_path, source
+                        );
+                        return Some(manifest_path);
+                    }
+                }
+                Err(e) => warn!("could not serialize manifest for {}: {e}", tool_name),
+            }
+        }
+    }
+    None
+}
+
 fn associate_tool_with_session(
     state: &Arc<dyn BasicRuntime>,
     user: &UserSession,
@@ -147,22 +214,20 @@ fn associate_tool_with_session(
 
     // Get bot name to construct the path
     let bot_name = get_bot_name_from_id(state, &user.bot_id)?;
-    let org_path = format!("{org_id}.gborg/{bot_name}.gbai/{bot_name}.gbdialog", org_id = bot_name);
-    let work_path = Path::new(&work_root).join(&org_path);
-    let mcp_path = work_path.join(format!("{}.mcp.json", tool_name));
-
-    trace!("Checking for tool .mcp.json at: {:?}", mcp_path);
-
-    if !mcp_path.exists() {
+    let Some(mcp_path) =
+        resolve_tool_manifest(Path::new(&work_root), &bot_name, tool_name)
+    else {
         warn!(
-            "Tool '{}' .mcp.json file not found at {:?}",
-            tool_name, mcp_path
+            "Tool '{}' .mcp.json file not found under {:?} for bot '{}'",
+            tool_name, work_root, bot_name
         );
         return Err(format!(
             "Tool '{}' is not available. .mcp.json file not found.",
             tool_name
         ));
-    }
+    };
+
+    trace!("Checking for tool .mcp.json at: {:?}", mcp_path);
 
     info!(
         "Tool '{}' .mcp.json found, proceeding with session association",

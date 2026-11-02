@@ -1440,13 +1440,16 @@ if (typeof window.WindowManager === "undefined") {
   function restoreChatSidebar() {
     const sidebar = document.getElementById("chatSidebar");
     if (!sidebar) return;
-    let collapsed = "";
+    let collapsed = "1";
     try {
-      collapsed = localStorage.getItem(SIDEBAR_STATE_KEY) || "";
+      // Default to the collapsed rail: the desktop chat is the first screen and
+      // the full sidebar covered most of it on small displays. A user who
+      // expands it keeps that choice ("0") across reloads.
+      collapsed = localStorage.getItem(SIDEBAR_STATE_KEY) || "1";
     } catch (e) {
       /* storage unavailable — leave default */
     }
-    sidebar.classList.toggle("collapsed", collapsed === "1");
+    sidebar.classList.toggle("collapsed", collapsed !== "0");
     // #1433 — the Settings "show sidebar" toggle persists to a separate key;
     // honor it here so a previously-hidden rail stays hidden across reloads.
     let sidebarVisible = "true";

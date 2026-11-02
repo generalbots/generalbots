@@ -91,7 +91,17 @@ async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         .get("language")
         .and_then(|v| v.as_str())
         .unwrap_or("python");
-    let code = parsed.get("code").and_then(|v| v.as_str()).unwrap_or("");
+    let raw_code = parsed.get("code").and_then(|v| v.as_str()).unwrap_or("");
+    // Models sometimes leave the JSON envelope glued to the program: the code
+    // string arrives ending in `"} or \"} (the closing quote/brace of the
+    // request), which turns a correct program into a SyntaxError. Strip that
+    // artifact; a real program never ends with those bytes.
+    let trimmed = raw_code.trim_end();
+    let code = trimmed
+        .strip_suffix("\"}")
+        .or_else(|| trimmed.strip_suffix("\"}"))
+        .unwrap_or(trimmed)
+        .trim_end();
     if code.trim().is_empty() {
         send(
             identity,

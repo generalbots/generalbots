@@ -7,7 +7,9 @@
  * server skips the whole search pipeline. Default is on. */
 (function () {
   var STORAGE_PREFIX = "gb-web-search:";
-  var enabled = true;
+  // Off by default: the desktop assistant answers from the model and the
+  // knowledge base unless the user explicitly asks for live sources.
+  var enabled = false;
 
   function botName() {
     if (window.__INITIAL_BOT_NAME__) return String(window.__INITIAL_BOT_NAME__);

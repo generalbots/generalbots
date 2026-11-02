@@ -57,6 +57,50 @@ pub fn load_system_prompt_for_channel(bot_name: &str, channel: &str) -> String {
         }
     }
 
+    // The materialized org directory is `<org-id>.gborg`, which on a desktop
+    // install is the all-zero id: neither path above matches, so the bot used
+    // to answer with the generic fallback and the agent never received its
+    // instructions. Resolve the prompt through the shared work-tree resolver.
+    let channel_file = format!("PROMPT-{}.md", channel.to_uppercase());
+    let candidates = [
+        channel_file.clone(),
+        format!("PROMPT-{}.md", channel.to_lowercase()),
+        "PROMPT.md".to_string(),
+        "prompt.md".to_string(),
+        "PROMPT.txt".to_string(),
+        "prompt.txt".to_string(),
+    ];
+    let channel_prompt = crate::core::bot::pipeline::tool_paths::resolve_bot_file(
+        &work_dir,
+        bot_name,
+        &channel_file,
+    )
+    .and_then(|path| std::fs::read_to_string(path).ok());
+    if let Some(p) = channel_prompt {
+        let base = candidates
+            .iter()
+            .skip(2)
+            .find_map(|name| {
+                crate::core::bot::pipeline::tool_paths::resolve_bot_file(
+                    &work_dir,
+                    bot_name,
+                    name,
+                )
+                .and_then(|path| std::fs::read_to_string(path).ok())
+            });
+        return match base {
+            Some(b) => format!("{p}\n\n{b}"),
+            None => p,
+        };
+    }
+    let base_prompt = candidates.iter().skip(2).find_map(|name| {
+        crate::core::bot::pipeline::tool_paths::resolve_bot_file(&work_dir, bot_name, name)
+            .and_then(|path| std::fs::read_to_string(path).ok())
+    });
+    if let Some(p) = base_prompt {
+        return p;
+    }
+
     let now = chrono::Utc::now().format("%B %d, %Y").to_string();
     format!("Today is {now}.\n\nYou are a helpful assistant. Be concise. Respond in plain text.")
 }
@@ -207,13 +251,35 @@ pub async fn run_start_bas_on_connect(
     bot_name: &str,
 ) -> bool {
     {
-        let guards = state.start_bas_guards.lock().await;
+        // Reserve the session in the SAME lock scope as the check: two sockets
+        // connecting at once both saw an empty guard and ran start.bas twice,
+        // which rendered the greeting twice.
+        let mut guards = state.start_bas_guards.lock().await;
         if guards.contains_key(&session_id) {
             info!("start.bas execution skipped: session already initialized (in-memory guard)");
+            drop(guards);
             send_start_suggestions(state, ws_sender, bot_uuid, session_id, user_id).await;
             return false;
         }
+        guards.insert(session_id, true);
         info!("start.bas execution proceeding: session not found in guard");
+    }
+
+    // A conversation that already has messages is being reopened (history tab,
+    // sidebar click, reload): running start.bas again appended its greeting to
+    // the restored transcript and looked like a duplicated/foreign message.
+    {
+        let has_history = {
+            let mut sm = state.session_manager.lock().await;
+            sm.get_conversation_history(session_id, user_id, Some(1))
+                .map(|h| !h.is_empty())
+                .unwrap_or(false)
+        };
+        if has_history {
+            info!("start.bas skipped: session {session_id} already has messages");
+            send_start_suggestions(state, ws_sender, bot_uuid, session_id, user_id).await;
+            return false;
+        }
     }
 
     let session_init_key = botlib::key_utils::build_key("", &["start_bas_executed", &bot_uuid.to_string(), &session_id.to_string()]);

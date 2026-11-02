@@ -17,6 +17,23 @@ pub struct ScriptService {
     pub role: String,
 }
 
+/// Removes compile-time-only metadata lines (`DESCRIPTION`, `PARAM`) from a
+/// raw BASIC source. Mirrors `preprocess_basic`, which drops them before the
+/// compiler writes the AST.
+fn strip_metadata_lines(source: &str) -> String {
+    let mut out = String::with_capacity(source.len());
+    for line in source.lines() {
+        let trimmed = line.trim_start();
+        let upper = trimmed.to_uppercase();
+        if upper.starts_with("PARAM ") || upper.starts_with("DESCRIPTION ") {
+            continue;
+        }
+        out.push_str(line);
+        out.push('\n');
+    }
+    out
+}
+
 impl ScriptService {
     #[must_use]
     pub fn new(state: Arc<AppState>, user: LocalUserSession) -> Self {
@@ -95,7 +112,13 @@ impl ScriptService {
         if let Err(e) = std::fs::write("/tmp/run_ast_input.txt", ast_content) {
             log::warn!("Failed to write /tmp/run_ast_input.txt: {}", e);
         }
-        let preprocessed = compiler::syntax_transforms::convert_multiword_keywords(ast_content);
+        // A tool that reaches the runtime before the compiler pass is still raw
+        // BASIC: `DESCRIPTION`/`PARAM` are compile-time metadata and Rhai
+        // rejects them ("Expecting ';'"). Strip them here so an uncompiled
+        // `.bas` (fresh install, Drive sync not finished) still runs; on an
+        // already-compiled AST this is a no-op.
+        let source = strip_metadata_lines(ast_content);
+        let preprocessed = compiler::syntax_transforms::convert_multiword_keywords(&source);
         if let Err(e) = std::fs::write("/tmp/run_preprocessed.txt", &preprocessed) {
             log::warn!("Failed to write /tmp/run_preprocessed.txt: {}", e);
         }

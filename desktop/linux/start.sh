@@ -67,6 +67,9 @@ if [ -d "$HERE/installers" ]; then
   done
 fi
 export BOTSERVER_INSTALLERS_PATH="$INSTALLERS"
+# Desktop installs run without accounts: the local user is the only identity,
+# so the agent workspace must accept it (there is no sign-in screen).
+export AGENT_ALLOW_UNREGISTERED_IDENTITIES="${AGENT_ALLOW_UNREGISTERED_IDENTITIES:-1}"
 
 # Missing components are fetched on the first run and reused afterwards.
 # Air-gapped installations set GB_DESKTOP_OFFLINE=1 to refuse any download.

@@ -11,7 +11,9 @@ fn to_lib_session(s: botcoresession::UserSession) -> botlib::models::UserSession
         user_id: uuid::Uuid::parse_str(&s.user_id).unwrap_or(uuid::Uuid::nil()),
         branch_id: s.branch_id,
         bot_id: s.bot_id,
-        title: String::new(),
+        // The stored title must survive the bridge: dropping it made every
+        // rename invisible (the listing fell back to the first user message).
+        title: s.title.clone(),
         context_data: serde_json::Value::Null,
         current_tool: None,
         created_at: s.created_at,

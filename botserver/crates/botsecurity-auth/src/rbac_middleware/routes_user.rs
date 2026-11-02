@@ -2,7 +2,11 @@ use super::*;
 
 pub(crate) fn authenticated_routes() -> Vec<RoutePermission> {
     vec![
-        // Chat history: authenticated users may delete their own conversation.
+        // Chat history: authenticated users manage their own conversations.
+        // PUT was missing, so renaming a conversation was rejected by the
+        // default-deny catalogue with 403 before reaching the handler.
+        RoutePermission::new("/api/chat/history/**", "GET", ""),
+        RoutePermission::new("/api/chat/history/**", "PUT", ""),
         RoutePermission::new("/api/chat/history/**", "DELETE", ""),
 
         // Drive / Files

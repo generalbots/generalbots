@@ -86,6 +86,18 @@ async fn provision_component(
         );
         if let Err(e) = pm.install(component.id).await {
             let reason = format!("{} could not be installed: {e}", component.label);
+            // An optional component must never block the wizard: the desktop
+            // edition offers external providers, so a missing local runtime is
+            // a degraded feature, not a broken install.
+            if component.optional {
+                progress(
+                    component.id,
+                    "ready",
+                    "Skipped (optional) — install failed",
+                    started,
+                );
+                return Ok(());
+            }
             progress(component.id, "failed", &reason, started);
             return Err(reason);
         }

@@ -3,7 +3,7 @@
 //! Bootstrap manager: stack lifecycle, install, template sync and directory helpers.
 
 pub(crate) use crate::bootstrap::bootstrap_types::{BootstrapManager, BootstrapProgress};
-pub(crate) use crate::bootstrap::bootstrap_utils::{ alm_health_check, cache_health_check, drive_health_check, safe_pkill, tables_health_check, vault_health_check, vector_db_health_check, zitadel_health_check, };
+pub(crate) use crate::bootstrap::bootstrap_utils::{ alm_health_check, cache_health_check, drive_health_check, llm_health_check, safe_pkill, tables_health_check, vault_health_check, vector_db_health_check, zitadel_health_check, };
 pub(crate) use crate::package_manager::{InstallMode, PackageManager};
 pub(crate) use anyhow::Context;
 pub(crate) use diesel::RunQueryDsl;

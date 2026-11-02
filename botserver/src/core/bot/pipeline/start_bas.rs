@@ -16,13 +16,33 @@ pub async fn run_start_bas(
     rx: &mut tokio::sync::mpsc::Receiver<botlib::models::BotResponse>,
 ) -> PipelineResult<bool> {
     {
-        let guards = state.start_bas_guards.lock().await;
+        // Atomic check-and-reserve (see the connect path): inserting later let
+        // two concurrent runs execute the script twice.
+        let mut guards = state.start_bas_guards.lock().await;
         if guards.contains_key(&session_id) {
             log::info!("start.bas execution skipped: session already initialized (in-memory guard)");
+            drop(guards);
             send_start_suggestions(sink, state, bot_uuid, session_id, user_id).await;
             return Ok(false);
         }
+        guards.insert(session_id, true);
         log::info!("start.bas execution proceeding: session not found in guard");
+    }
+
+    // Reopened conversations keep their transcript: a fresh greeting would be
+    // appended to the restored messages (duplicate/foreign bubble).
+    {
+        let has_history = {
+            let mut sm = state.session_manager.lock().await;
+            sm.get_conversation_history(session_id, user_id, Some(1))
+                .map(|h| !h.is_empty())
+                .unwrap_or(false)
+        };
+        if has_history {
+            log::info!("start.bas skipped: session {session_id} already has messages");
+            send_start_suggestions(sink, state, bot_uuid, session_id, user_id).await;
+            return Ok(false);
+        }
     }
 
     let session_init_key = botlib::key_utils::build_key("", &["start_bas_executed", &bot_uuid.to_string(), &session_id.to_string()]);

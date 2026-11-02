@@ -107,23 +107,30 @@ impl PackageManager {
             }
         };
 
-        if let Some(comp_info) = cache.get_component(component) {
-            let expected = &comp_info.sha256;
+        // The component id and the archive are not always the same entry: the
+        // "llm" component downloads the platform-specific build (Vulkan on a
+        // host with /usr/share/vulkan, the CPU zip otherwise), so the checksum
+        // must be resolved from the URL in use, never from the component id.
+        // Looking it up by id made every Vulkan host fail with
+        // "Checksum verification failed for 'llm'".
+        let expected = cache.checksum_for_url(url)
+            .or_else(|| cache.get_component(component).map(|info| info.sha256.clone()))
+            .unwrap_or_default();
+        if !expected.is_empty() {
             let filename = DownloadCache::extract_filename(url);
-            if !expected.is_empty() {
-                if !cache.verify_checksum(&filename, expected)? {
-                    return Err(anyhow::anyhow!(
-                        "Checksum verification failed for '{}'. The bundled file may be corrupt.",
-                        component
-                    ));
-                }
-                info!("Checksum verified for {}", component);
-            } else if cfg!(feature = "desktop-local") {
-                warn!(
-                    "No SHA256 checksum configured for '{}'; skipping verification",
-                    component
-                );
+            if !cache.verify_checksum(&filename, &expected)? {
+                return Err(anyhow::anyhow!(
+                    "Checksum verification failed for '{}' ({}). The bundled file may be corrupt.",
+                    component,
+                    filename
+                ));
             }
+            info!("Checksum verified for {}", component);
+        } else if cfg!(feature = "desktop-local") {
+            warn!(
+                "No SHA256 checksum configured for '{}'; skipping verification",
+                component
+            );
         }
 
         self.handle_downloaded_file(&source_file, &bin_path, binary_name)?;

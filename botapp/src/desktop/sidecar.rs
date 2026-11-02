@@ -145,7 +145,10 @@ impl Sidecar {
         command
             .current_dir(&stack)
             .env("BOTSERVER_STACK_PATH", &stack)
-            .env("BOTSERVER_INSTALLERS_PATH", &installers);
+            .env("BOTSERVER_INSTALLERS_PATH", &installers)
+            // Single-user desktop: there is no sign-in screen, so the local
+            // identity must be allowed to provision the agent workspace.
+            .env("AGENT_ALLOW_UNREGISTERED_IDENTITIES", "1");
         if let Some(ref ui) = packaged_ui {
             command.env("BOTUI_PATH", ui);
         }
