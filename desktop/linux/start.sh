@@ -29,4 +29,13 @@ if [ ! -d "$BOTSERVER_INSTALLERS_PATH" ] || [ -z "$(ls -A "$BOTSERVER_INSTALLERS
   export GB_DESKTOP_ALLOW_DOWNLOAD=1
 fi
 
+# Headless provisioning: the setup wizard spawns exactly this child. Exposed
+# here so the same component order can be driven from a terminal or a CI test
+# without a display.
+if [ "${1:-}" = "--provision" ]; then
+  shift
+  cd "$STACK"
+  exec "$HERE/botserver" --provision-stack "$@"
+fi
+
 exec "$HERE/generalbots" "$@"

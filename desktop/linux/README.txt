@@ -29,6 +29,14 @@ Running ./start.sh directly from the extracted directory works too: nothing is
 written next to the binaries. Runtime state lives in
 ~/.local/share/generalbots (override with BOTSERVER_STACK_PATH).
 
+Headless provisioning
+---------------------
+  ./start.sh --provision
+
+Runs the same component sequence the wizard runs, without a display, and prints
+one GBWIZARD:{...} progress line per component. Useful on a server or in a CI
+test; the wizard UI is not involved.
+
 First run
 ---------
   1. The shell starts the local botserver.
