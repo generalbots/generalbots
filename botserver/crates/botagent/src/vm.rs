@@ -553,7 +553,7 @@ async fn launch_and_wait(state: &Arc<AgentService>, vm_name: &str) -> Result<(),
     let mem = std::env::var("AGENT_VM_MEMORY").unwrap_or_else(|_| "1GiB".to_string());
     let bridge = std::env::var("AGENT_VM_BRIDGE").unwrap_or_else(|_| "incusbr0".to_string());
 
-    run_incus(
+    let launch = run_incus(
         state,
         vec![
             "launch".into(),
@@ -565,7 +565,14 @@ async fn launch_and_wait(state: &Arc<AgentService>, vm_name: &str) -> Result<(),
             format!("limits.memory={mem}"),
         ],
     )
-    .await?;
+    .await;
+    if let Err(e) = launch {
+        // A previous attempt can leave the container created but stopped; the
+        // launch then fails with "already exists" and the workspace stayed
+        // permanently unavailable. Start the existing container instead.
+        tracing::warn!("incus launch for {vm_name} failed ({}); starting the existing container", e.1);
+        let _ = run_incus(state, vec!["start".into(), vm_name.into()]).await;
+    }
 
     // Attach the managed bridge. The default profile often ships no NIC;
     // ignore the error when a NIC already exists (idempotent provisioning).

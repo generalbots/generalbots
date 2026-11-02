@@ -344,12 +344,21 @@ pub async fn process_message_internal(
         format!("{system_prompt}{memory_block}")
     };
     let role = crate::security::user_role::resolve_user_role(&state.conn, user_id);
+    // The desktop product's action surface is the agent VM (`vm_exec`), not the
+    // SaaS REST catalogue. Teaching `api.find` there made the free model look
+    // for a PDF endpoint instead of writing the program, and the call then
+    // leaked into the chat as raw text.
+    let include_api_catalog = !cfg!(feature = "desktop-local");
     let system_prompt = if channel == "web" {
-        format!(
-            "{system_prompt}\n\n{}\n\n{}",
-            crate::core::bot::api_catalog::api_command_instructions(&role),
-            crate::main_module::ui_plan::ui_automation_instructions(),
-        )
+        if include_api_catalog {
+            format!(
+                "{system_prompt}\n\n{}\n\n{}",
+                crate::core::bot::api_catalog::api_command_instructions(&role),
+                crate::main_module::ui_plan::ui_automation_instructions(),
+            )
+        } else {
+            system_prompt
+        }
     } else if channel == "whatsapp" {
         format!(
             "{system_prompt}\n\n---\nThis conversation is on WhatsApp.\n\n{}",
