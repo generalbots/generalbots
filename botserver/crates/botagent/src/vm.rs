@@ -413,6 +413,15 @@ async fn provision(
 const BOOTSTRAP_SCRIPT: &str = r#"
 set -eu
 export DEBIAN_FRONTEND=noninteractive
+# Debian containers can boot without /etc/resolv.conf; apt then fails to
+# resolve and the runtime is never installed ("python3: not found" on the
+# first vm_exec). Point the container at the bridge resolver before apt.
+GW=$(ip route 2>/dev/null | awk '/^default/ {print $3; exit}')
+{
+  [ -n "${GW:-}" ] && echo "nameserver $GW"
+  echo "nameserver 1.1.1.1"
+  echo "nameserver 8.8.8.8"
+} > /etc/resolv.conf
 {
   apt-get update -q
   apt-get install -y -q python3 python3-pip nodejs npm iptables iproute2
@@ -422,7 +431,7 @@ export DEBIAN_FRONTEND=noninteractive
   python3 -m pip install --break-system-packages --quiet --disable-pip-version-check \
     pandas numpy openpyxl python-pptx pillow matplotlib requests python-docx \
     reportlab beautifulsoup4 lxml tabulate || true
-  echo v2 > /opt/vibe/.provisioned
+  echo v3 > /opt/vibe/.provisioned
   cat > /usr/local/sbin/agent-egress.sh <<'EOS'
 #!/bin/sh
 set -eu
@@ -460,7 +469,7 @@ EOS
 
 /// Bumped whenever the base toolkit changes; existing VMs run the prepare
 /// step once when their marker does not match.
-const WORKSPACE_PREPARE_VERSION: &str = "v2";
+const WORKSPACE_PREPARE_VERSION: &str = "v3";
 
 /// Idempotent preparation of an existing workspace VM: package index, base
 /// Python toolkit and the conversations root. Runs in the background so the
@@ -468,6 +477,15 @@ const WORKSPACE_PREPARE_VERSION: &str = "v2";
 const WORKSPACE_PREPARE_SCRIPT: &str = r#"
 set -eu
 export DEBIAN_FRONTEND=noninteractive
+# Debian containers can boot without /etc/resolv.conf; apt then fails to
+# resolve and the runtime is never installed ("python3: not found" on the
+# first vm_exec). Point the container at the bridge resolver before apt.
+GW=$(ip route 2>/dev/null | awk '/^default/ {print $3; exit}')
+{
+  [ -n "${GW:-}" ] && echo "nameserver $GW"
+  echo "nameserver 1.1.1.1"
+  echo "nameserver 8.8.8.8"
+} > /etc/resolv.conf
 {
   mkdir -p /opt/vibe/conversations
   command -v python3 >/dev/null 2>&1 || (apt-get update -q && apt-get install -y -q python3)
@@ -476,7 +494,7 @@ export DEBIAN_FRONTEND=noninteractive
   python3 -m pip install --break-system-packages --quiet --disable-pip-version-check \
     pandas numpy openpyxl python-pptx pillow matplotlib requests python-docx \
     reportlab beautifulsoup4 lxml tabulate || true
-  echo v2 > /opt/vibe/.provisioned
+  echo v3 > /opt/vibe/.provisioned
 } >/tmp/agent-prepare.log 2>&1 || true
 "#;
 

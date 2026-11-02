@@ -68,11 +68,30 @@ pub async fn create_app_state(
     // has written conf/system/directory_config.json. Aborting the whole process
     // there left the first run with a dead assistant; single-user mode does not
     // need the directory, so boot continues without it.
-    let (auth_service, zitadel_config) = match init_directory_service().await {
-        Ok((service, config)) => (Some(service), config),
-        Err(e) => {
-            log::error!("Directory service unavailable at boot: {e}; continuing without it");
-            (None, super::directory_setup::default_zitadel_config())
+    let (auth_service, zitadel_config) = {
+        // The identity provider writes conf/system/directory_config.json as its
+        // last provisioning step; boot can land a fraction of a second earlier
+        // and would then run without the auth service (desktop sign-in failed
+        // with 500). Give the file a short window to appear before giving up.
+        let mut attempt = 0;
+        loop {
+            match init_directory_service().await {
+                Ok((service, config)) => break (Some(service), config),
+                Err(e) if attempt < 40 => {
+                    attempt += 1;
+                    if attempt == 1 {
+                        log::warn!("Directory service not ready ({e}); waiting for it");
+                    }
+                    tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                }
+                Err(e) => {
+                    log::error!(
+                        "Directory service unavailable after {}s: {e}; continuing without it",
+                        attempt / 2
+                    );
+                    break (None, super::directory_setup::default_zitadel_config());
+                }
+            }
         }
     };
 

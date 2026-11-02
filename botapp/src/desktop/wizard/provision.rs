@@ -128,6 +128,10 @@ async fn run_components(
         .env("BOTSERVER_INSTALLERS_PATH", &installers)
         .env("GB_WIZARD_WORKSPACE", &workspace)
         .env("GB_WIZARD_MODEL_MODE", &request.model.mode)
+        // The provisioner only saves a non-local model when it knows the mode;
+        // without this the free/hosted choice was silently dropped and the
+        // assistant kept answering with the bundled local model.
+        .env("GB_WIZARD_MODEL_MODE", &request.model.mode)
         .env("GB_WIZARD_LLM_URL", &request.model.endpoint)
         .env("GB_WIZARD_LLM_MODEL", &request.model.model)
         .env("GB_WIZARD_LLM_KEY", &request.model.api_key)
