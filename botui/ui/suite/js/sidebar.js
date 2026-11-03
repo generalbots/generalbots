@@ -9,7 +9,7 @@
   // Path segments that are suite routes/apps — never treated as bot names
   // when deriving the active bot from location.pathname.
   var ROUTE_SEGMENTS = ["suite", "cloud", "login", "signup", "chat", "app",
-    "ws", "ui", "api", "auth", "desktop", "sources", "integrations", "settings", "admin"];
+    "ws", "ui", "api", "auth", "desktop", "sources", "integrations", "settings", "admin", "wizard"];
 
   var FALLBACK_APPS = {
     chat: {
@@ -91,7 +91,15 @@
 
   function storedBot() {
     try {
-      return localStorage.getItem("gb_selected_bot") || "";
+      var name = localStorage.getItem("gb_selected_bot") || "";
+      // A route segment can be persisted as a bot by an older build (for
+      // example /wizard/index.html). Never open a socket for it: the server
+      // answers 404 and the chat stays on "Connecting…" forever.
+      if (name && ROUTE_SEGMENTS.indexOf(name) !== -1) {
+        localStorage.removeItem("gb_selected_bot");
+        return "";
+      }
+      return name;
     } catch (e) {
       return "";
     }
