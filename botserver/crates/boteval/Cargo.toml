@@ -17,6 +17,7 @@ reqwest = { workspace = true, features = ["json"], optional = true, default-feat
 async-trait = { workspace = true }
 uuid = { workspace = true, features = ["v4", "serde"], default-features = true }
 toml = { workspace = true }
+botevents = { workspace = true }
 botvibe = { workspace = true, optional = true }
 diesel = { workspace = true, features = ["postgres", "r2d2"], optional = true }
 

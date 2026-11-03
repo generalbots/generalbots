@@ -1,0 +1,1542 @@
+[
+  {
+    "id": "prose-001",
+    "prompt": "what is the capital of the ocean",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-002",
+    "prompt": "what is the capital of a compiler",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-003",
+    "prompt": "what is the capital of a binary tree",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-004",
+    "prompt": "what is the capital of Portuguese grammar",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-005",
+    "prompt": "what is the capital of the moon",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-006",
+    "prompt": "what is the capital of a database index",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-007",
+    "prompt": "what is the capital of HTTP caching",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-008",
+    "prompt": "what is the capital of a linked list",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-009",
+    "prompt": "what is the capital of the Amazon river",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-010",
+    "prompt": "what is the capital of a hash table",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-011",
+    "prompt": "what is the capital of recursion",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-012",
+    "prompt": "what is the capital of a REST API",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-013",
+    "prompt": "what is the capital of the periodic table",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-014",
+    "prompt": "what is the capital of a unit test",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-015",
+    "prompt": "what is the capital of the solar system",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-016",
+    "prompt": "summarize this paragraph: the ocean",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-017",
+    "prompt": "summarize this paragraph: a compiler",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-018",
+    "prompt": "summarize this paragraph: a binary tree",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-019",
+    "prompt": "summarize this paragraph: Portuguese grammar",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-020",
+    "prompt": "summarize this paragraph: the moon",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-021",
+    "prompt": "summarize this paragraph: a database index",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-022",
+    "prompt": "summarize this paragraph: HTTP caching",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-023",
+    "prompt": "summarize this paragraph: a linked list",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-024",
+    "prompt": "summarize this paragraph: the Amazon river",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-025",
+    "prompt": "summarize this paragraph: a hash table",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-026",
+    "prompt": "summarize this paragraph: recursion",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-027",
+    "prompt": "summarize this paragraph: a REST API",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-028",
+    "prompt": "summarize this paragraph: the periodic table",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-029",
+    "prompt": "summarize this paragraph: a unit test",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-030",
+    "prompt": "summarize this paragraph: the solar system",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-031",
+    "prompt": "who wrote the ocean",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-032",
+    "prompt": "who wrote a compiler",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-033",
+    "prompt": "who wrote a binary tree",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-034",
+    "prompt": "who wrote Portuguese grammar",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-035",
+    "prompt": "who wrote the moon",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-036",
+    "prompt": "who wrote a database index",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-037",
+    "prompt": "who wrote HTTP caching",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-038",
+    "prompt": "who wrote a linked list",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-039",
+    "prompt": "who wrote the Amazon river",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-040",
+    "prompt": "who wrote a hash table",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-041",
+    "prompt": "who wrote recursion",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-042",
+    "prompt": "who wrote a REST API",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-043",
+    "prompt": "who wrote the periodic table",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-044",
+    "prompt": "who wrote a unit test",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-045",
+    "prompt": "who wrote the solar system",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-046",
+    "prompt": "explain the difference between the ocean and y",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-047",
+    "prompt": "explain the difference between a compiler and y",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-048",
+    "prompt": "explain the difference between a binary tree and y",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-049",
+    "prompt": "explain the difference between Portuguese grammar and y",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-050",
+    "prompt": "explain the difference between the moon and y",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-051",
+    "prompt": "explain the difference between a database index and y",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-052",
+    "prompt": "explain the difference between HTTP caching and y",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-053",
+    "prompt": "explain the difference between a linked list and y",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-054",
+    "prompt": "explain the difference between the Amazon river and y",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-055",
+    "prompt": "explain the difference between a hash table and y",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-056",
+    "prompt": "explain the difference between recursion and y",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-057",
+    "prompt": "explain the difference between a REST API and y",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-058",
+    "prompt": "explain the difference between the periodic table and y",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-059",
+    "prompt": "explain the difference between a unit test and y",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-060",
+    "prompt": "explain the difference between the solar system and y",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-061",
+    "prompt": "write a haiku about the ocean",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-062",
+    "prompt": "write a haiku about a compiler",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-063",
+    "prompt": "write a haiku about a binary tree",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-064",
+    "prompt": "write a haiku about Portuguese grammar",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-065",
+    "prompt": "write a haiku about the moon",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-066",
+    "prompt": "write a haiku about a database index",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-067",
+    "prompt": "write a haiku about HTTP caching",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-068",
+    "prompt": "write a haiku about a linked list",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-069",
+    "prompt": "write a haiku about the Amazon river",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-070",
+    "prompt": "write a haiku about a hash table",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-071",
+    "prompt": "write a haiku about recursion",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-072",
+    "prompt": "write a haiku about a REST API",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-073",
+    "prompt": "write a haiku about the periodic table",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-074",
+    "prompt": "write a haiku about a unit test",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-075",
+    "prompt": "write a haiku about the solar system",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-076",
+    "prompt": "what does the ocean mean",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-077",
+    "prompt": "what does a compiler mean",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-078",
+    "prompt": "what does a binary tree mean",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-079",
+    "prompt": "what does Portuguese grammar mean",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-080",
+    "prompt": "what does the moon mean",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-081",
+    "prompt": "what does a database index mean",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-082",
+    "prompt": "what does HTTP caching mean",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-083",
+    "prompt": "what does a linked list mean",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-084",
+    "prompt": "what does the Amazon river mean",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-085",
+    "prompt": "what does a hash table mean",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-086",
+    "prompt": "what does recursion mean",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-087",
+    "prompt": "what does a REST API mean",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-088",
+    "prompt": "what does the periodic table mean",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-089",
+    "prompt": "what does a unit test mean",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-090",
+    "prompt": "what does the solar system mean",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-091",
+    "prompt": "translate 'the ocean' to French",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-092",
+    "prompt": "translate 'a compiler' to French",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-093",
+    "prompt": "translate 'a binary tree' to French",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-094",
+    "prompt": "translate 'Portuguese grammar' to French",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-095",
+    "prompt": "translate 'the moon' to French",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-096",
+    "prompt": "translate 'a database index' to French",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-097",
+    "prompt": "translate 'HTTP caching' to French",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-098",
+    "prompt": "translate 'a linked list' to French",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-099",
+    "prompt": "translate 'the Amazon river' to French",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-100",
+    "prompt": "translate 'a hash table' to French",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-101",
+    "prompt": "translate 'recursion' to French",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-102",
+    "prompt": "translate 'a REST API' to French",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-103",
+    "prompt": "translate 'the periodic table' to French",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-104",
+    "prompt": "translate 'a unit test' to French",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-105",
+    "prompt": "translate 'the solar system' to French",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-106",
+    "prompt": "is the ocean a prime number",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-107",
+    "prompt": "is a compiler a prime number",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-108",
+    "prompt": "is a binary tree a prime number",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-109",
+    "prompt": "is Portuguese grammar a prime number",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-110",
+    "prompt": "is the moon a prime number",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-111",
+    "prompt": "is a database index a prime number",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-112",
+    "prompt": "is HTTP caching a prime number",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-113",
+    "prompt": "is a linked list a prime number",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-114",
+    "prompt": "is the Amazon river a prime number",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-115",
+    "prompt": "is a hash table a prime number",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-116",
+    "prompt": "is recursion a prime number",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-117",
+    "prompt": "is a REST API a prime number",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-118",
+    "prompt": "is the periodic table a prime number",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-119",
+    "prompt": "is a unit test a prime number",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "prose-120",
+    "prompt": "is the solar system a prime number",
+    "tag": "should-be-prose",
+    "expects_ui": false,
+    "notes": null
+  },
+  {
+    "id": "ui-001",
+    "prompt": "show me the deployment pipeline for the api service",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-002",
+    "prompt": "show me the deployment pipeline for the staging cluster",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-003",
+    "prompt": "show me the deployment pipeline for the billing job",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-004",
+    "prompt": "show me the deployment pipeline for the search index",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-005",
+    "prompt": "show me the deployment pipeline for the auth flow",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-006",
+    "prompt": "show me the deployment pipeline for the data warehouse",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-007",
+    "prompt": "show me the deployment pipeline for the mobile release",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-008",
+    "prompt": "show me the deployment pipeline for the backup job",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-009",
+    "prompt": "show me the deployment pipeline for the queue worker",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-010",
+    "prompt": "show me the deployment pipeline for the edge cache",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-011",
+    "prompt": "compare the api service across three environments",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-012",
+    "prompt": "compare the staging cluster across three environments",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-013",
+    "prompt": "compare the billing job across three environments",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-014",
+    "prompt": "compare the search index across three environments",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-015",
+    "prompt": "compare the auth flow across three environments",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-016",
+    "prompt": "compare the data warehouse across three environments",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-017",
+    "prompt": "compare the mobile release across three environments",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-018",
+    "prompt": "compare the backup job across three environments",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-019",
+    "prompt": "compare the queue worker across three environments",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-020",
+    "prompt": "compare the edge cache across three environments",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-021",
+    "prompt": "build a dashboard for the api service",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-022",
+    "prompt": "build a dashboard for the staging cluster",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-023",
+    "prompt": "build a dashboard for the billing job",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-024",
+    "prompt": "build a dashboard for the search index",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-025",
+    "prompt": "build a dashboard for the auth flow",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-026",
+    "prompt": "build a dashboard for the data warehouse",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-027",
+    "prompt": "build a dashboard for the mobile release",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-028",
+    "prompt": "build a dashboard for the backup job",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-029",
+    "prompt": "build a dashboard for the queue worker",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-030",
+    "prompt": "build a dashboard for the edge cache",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-031",
+    "prompt": "walk me through the steps to deploy the api service",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-032",
+    "prompt": "walk me through the steps to deploy the staging cluster",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-033",
+    "prompt": "walk me through the steps to deploy the billing job",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-034",
+    "prompt": "walk me through the steps to deploy the search index",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-035",
+    "prompt": "walk me through the steps to deploy the auth flow",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-036",
+    "prompt": "walk me through the steps to deploy the data warehouse",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-037",
+    "prompt": "walk me through the steps to deploy the mobile release",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-038",
+    "prompt": "walk me through the steps to deploy the backup job",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-039",
+    "prompt": "walk me through the steps to deploy the queue worker",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-040",
+    "prompt": "walk me through the steps to deploy the edge cache",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-041",
+    "prompt": "show the run status of the api service",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-042",
+    "prompt": "show the run status of the staging cluster",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-043",
+    "prompt": "show the run status of the billing job",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-044",
+    "prompt": "show the run status of the search index",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-045",
+    "prompt": "show the run status of the auth flow",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-046",
+    "prompt": "show the run status of the data warehouse",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-047",
+    "prompt": "show the run status of the mobile release",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-048",
+    "prompt": "show the run status of the backup job",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-049",
+    "prompt": "show the run status of the queue worker",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-050",
+    "prompt": "show the run status of the edge cache",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-051",
+    "prompt": "chart the latency of the api service over time",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-052",
+    "prompt": "chart the latency of the staging cluster over time",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-053",
+    "prompt": "chart the latency of the billing job over time",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-054",
+    "prompt": "chart the latency of the search index over time",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-055",
+    "prompt": "chart the latency of the auth flow over time",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-056",
+    "prompt": "chart the latency of the data warehouse over time",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-057",
+    "prompt": "chart the latency of the mobile release over time",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-058",
+    "prompt": "chart the latency of the backup job over time",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-059",
+    "prompt": "chart the latency of the queue worker over time",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-060",
+    "prompt": "chart the latency of the edge cache over time",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-061",
+    "prompt": "make a plan to migrate the api service",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-062",
+    "prompt": "make a plan to migrate the staging cluster",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-063",
+    "prompt": "make a plan to migrate the billing job",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-064",
+    "prompt": "make a plan to migrate the search index",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-065",
+    "prompt": "make a plan to migrate the auth flow",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-066",
+    "prompt": "make a plan to migrate the data warehouse",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-067",
+    "prompt": "make a plan to migrate the mobile release",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-068",
+    "prompt": "make a plan to migrate the backup job",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-069",
+    "prompt": "make a plan to migrate the queue worker",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-070",
+    "prompt": "make a plan to migrate the edge cache",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-071",
+    "prompt": "show which environment the api service is running in",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-072",
+    "prompt": "show which environment the staging cluster is running in",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-073",
+    "prompt": "show which environment the billing job is running in",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-074",
+    "prompt": "show which environment the search index is running in",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-075",
+    "prompt": "show which environment the auth flow is running in",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-076",
+    "prompt": "show which environment the data warehouse is running in",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-077",
+    "prompt": "show which environment the mobile release is running in",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-078",
+    "prompt": "show which environment the backup job is running in",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-079",
+    "prompt": "show which environment the queue worker is running in",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-080",
+    "prompt": "show which environment the edge cache is running in",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-081",
+    "prompt": "display the metrics for the api service",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-082",
+    "prompt": "display the metrics for the staging cluster",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-083",
+    "prompt": "display the metrics for the billing job",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-084",
+    "prompt": "display the metrics for the search index",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-085",
+    "prompt": "display the metrics for the auth flow",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-086",
+    "prompt": "display the metrics for the data warehouse",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-087",
+    "prompt": "display the metrics for the mobile release",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-088",
+    "prompt": "display the metrics for the backup job",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-089",
+    "prompt": "display the metrics for the queue worker",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-090",
+    "prompt": "display the metrics for the edge cache",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-091",
+    "prompt": "show the test results for the api service",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-092",
+    "prompt": "show the test results for the staging cluster",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-093",
+    "prompt": "show the test results for the billing job",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-094",
+    "prompt": "show the test results for the search index",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-095",
+    "prompt": "show the test results for the auth flow",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-096",
+    "prompt": "show the test results for the data warehouse",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-097",
+    "prompt": "show the test results for the mobile release",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-098",
+    "prompt": "show the test results for the backup job",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-099",
+    "prompt": "show the test results for the queue worker",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  },
+  {
+    "id": "ui-100",
+    "prompt": "show the test results for the edge cache",
+    "tag": "ui-worthy",
+    "expects_ui": true,
+    "notes": null
+  }
+]

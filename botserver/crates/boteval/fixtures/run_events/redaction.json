@@ -1,0 +1,43 @@
+[
+  {
+    "name": "environment_canary",
+    "secrets": [
+      "canary-eval-8f3a"
+    ],
+    "payload": {
+      "stdout": "using canary-eval-8f3a now"
+    },
+    "must_not_contain": [
+      "canary-eval-8f3a"
+    ],
+    "must_contain": [
+      "[REDACTED]"
+    ]
+  },
+  {
+    "name": "bearer_token",
+    "secrets": [],
+    "payload": {
+      "log": "Authorization: Bearer abcdef0123456789"
+    },
+    "must_not_contain": [
+      "abcdef0123456789"
+    ],
+    "must_contain": [
+      "Bearer [REDACTED]"
+    ]
+  },
+  {
+    "name": "connection_string",
+    "secrets": [],
+    "payload": {
+      "dsn": "postgres://user:supersecret@db:5432/app"
+    },
+    "must_not_contain": [
+      "supersecret"
+    ],
+    "must_contain": [
+      "[REDACTED]"
+    ]
+  }
+]

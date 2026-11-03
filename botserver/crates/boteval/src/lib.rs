@@ -1,6 +1,7 @@
 pub mod ci_gate;
 pub mod contracts;
 pub mod dataset;
+pub mod frames;
 pub mod runner;
 pub mod scoring;
 pub mod vibe_suite;

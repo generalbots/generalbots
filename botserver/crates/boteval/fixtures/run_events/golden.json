@@ -1,0 +1,253 @@
+[
+  {
+    "name": "chat-run",
+    "description": "A tool run, a question card and a surface",
+    "frames": [
+      {
+        "v": 1,
+        "thread_id": "thread-golden",
+        "run_id": "run-golden",
+        "ts": "2026-11-03T12:00:00Z",
+        "source": "runtime",
+        "type": "RUN_STARTED",
+        "seq": 1,
+        "event_id": "g000000000000000000000000000000000000000000000000000000000000001",
+        "data": {
+          "agent": "chat"
+        }
+      },
+      {
+        "v": 1,
+        "thread_id": "thread-golden",
+        "run_id": "run-golden",
+        "ts": "2026-11-03T12:00:00Z",
+        "source": "runtime",
+        "type": "STEP_STARTED",
+        "seq": 2,
+        "event_id": "g000000000000000000000000000000000000000000000000000000000000002",
+        "data": {
+          "step_id": "s1",
+          "name": "run tests"
+        }
+      },
+      {
+        "v": 1,
+        "thread_id": "thread-golden",
+        "run_id": "run-golden",
+        "ts": "2026-11-03T12:00:00Z",
+        "source": "runtime",
+        "type": "TOOL_CALL_START",
+        "seq": 3,
+        "event_id": "g000000000000000000000000000000000000000000000000000000000000003",
+        "data": {
+          "call_id": "c1",
+          "name": "run_script"
+        }
+      },
+      {
+        "v": 1,
+        "thread_id": "thread-golden",
+        "run_id": "run-golden",
+        "ts": "2026-11-03T12:00:00Z",
+        "source": "runtime",
+        "type": "TOOL_CALL_ARGS",
+        "seq": 4,
+        "event_id": "g000000000000000000000000000000000000000000000000000000000000004",
+        "data": {
+          "call_id": "c1",
+          "arguments": {
+            "cmd": "cargo test"
+          }
+        }
+      },
+      {
+        "v": 1,
+        "thread_id": "thread-golden",
+        "run_id": "run-golden",
+        "ts": "2026-11-03T12:00:00Z",
+        "source": "runtime",
+        "type": "TOOL_CALL_RESULT",
+        "seq": 5,
+        "event_id": "g000000000000000000000000000000000000000000000000000000000000005",
+        "data": {
+          "call_id": "c1",
+          "status": "ok",
+          "result": {
+            "exit_code": 0
+          }
+        }
+      },
+      {
+        "v": 1,
+        "thread_id": "thread-golden",
+        "run_id": "run-golden",
+        "ts": "2026-11-03T12:00:00Z",
+        "source": "runtime",
+        "type": "STEP_FINISHED",
+        "seq": 6,
+        "event_id": "g000000000000000000000000000000000000000000000000000000000000006",
+        "data": {
+          "step_id": "s1",
+          "status": "ok"
+        }
+      },
+      {
+        "v": 1,
+        "thread_id": "thread-golden",
+        "run_id": "run-golden",
+        "ts": "2026-11-03T12:00:00Z",
+        "source": "runtime",
+        "type": "TEXT_MESSAGE_START",
+        "seq": 7,
+        "event_id": "g000000000000000000000000000000000000000000000000000000000000007",
+        "data": {
+          "message_id": "m1"
+        }
+      },
+      {
+        "v": 1,
+        "thread_id": "thread-golden",
+        "run_id": "run-golden",
+        "ts": "2026-11-03T12:00:00Z",
+        "source": "runtime",
+        "type": "TEXT_MESSAGE_CONTENT",
+        "seq": 8,
+        "event_id": "g000000000000000000000000000000000000000000000000000000000000008",
+        "data": {
+          "message_id": "m1",
+          "delta": "All 42 tests passed."
+        }
+      },
+      {
+        "v": 1,
+        "thread_id": "thread-golden",
+        "run_id": "run-golden",
+        "ts": "2026-11-03T12:00:00Z",
+        "source": "runtime",
+        "type": "TEXT_MESSAGE_END",
+        "seq": 9,
+        "event_id": "g000000000000000000000000000000000000000000000000000000000000009",
+        "data": {
+          "message_id": "m1"
+        }
+      },
+      {
+        "v": 1,
+        "thread_id": "thread-golden",
+        "run_id": "run-golden",
+        "ts": "2026-11-03T12:00:00Z",
+        "source": "runtime",
+        "type": "CUSTOM",
+        "seq": 10,
+        "event_id": "g00000000000000000000000000000000000000000000000000000000000000a",
+        "data": {
+          "name": "gb.question",
+          "payload": {
+            "question_id": "q1",
+            "fallback": "Which environment should I deploy to?",
+            "fields": [
+              {
+                "id": "env",
+                "type": "select"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "v": 1,
+        "thread_id": "thread-golden",
+        "run_id": "run-golden",
+        "ts": "2026-11-03T12:00:00Z",
+        "source": "runtime",
+        "type": "CUSTOM",
+        "seq": 11,
+        "event_id": "g00000000000000000000000000000000000000000000000000000000000000b",
+        "data": {
+          "name": "gb.surface",
+          "payload": {
+            "fallback": "Pipeline: build, test, deploy",
+            "surface": {
+              "components": []
+            }
+          }
+        }
+      },
+      {
+        "v": 1,
+        "thread_id": "thread-golden",
+        "run_id": "run-golden",
+        "ts": "2026-11-03T12:00:00Z",
+        "source": "runtime",
+        "type": "RUN_FINISHED",
+        "seq": 12,
+        "event_id": "g00000000000000000000000000000000000000000000000000000000000000c",
+        "data": {
+          "state": "succeeded",
+          "duration_ms": 2400
+        }
+      }
+    ]
+  },
+  {
+    "name": "subagent-run",
+    "description": "A parent run with one nested child",
+    "frames": [
+      {
+        "v": 1,
+        "thread_id": "thread-golden",
+        "run_id": "run-parent",
+        "ts": "2026-11-03T12:00:00Z",
+        "source": "runtime",
+        "type": "RUN_STARTED",
+        "seq": 1,
+        "event_id": "g000000000000000000000000000000000000000000000000000000000000001",
+        "data": {
+          "agent": "chat"
+        }
+      },
+      {
+        "v": 1,
+        "thread_id": "thread-golden",
+        "run_id": "run-parent",
+        "ts": "2026-11-03T12:00:00Z",
+        "source": "runtime",
+        "type": "SUBAGENT_STARTED",
+        "seq": 2,
+        "event_id": "g000000000000000000000000000000000000000000000000000000000000002",
+        "data": {
+          "child_run_id": "run-child",
+          "agent_name": "researcher"
+        }
+      },
+      {
+        "v": 1,
+        "thread_id": "thread-golden",
+        "run_id": "run-parent",
+        "ts": "2026-11-03T12:00:00Z",
+        "source": "runtime",
+        "type": "SUBAGENT_FINISHED",
+        "seq": 3,
+        "event_id": "g000000000000000000000000000000000000000000000000000000000000003",
+        "data": {
+          "child_run_id": "run-child",
+          "state": "succeeded"
+        }
+      },
+      {
+        "v": 1,
+        "thread_id": "thread-golden",
+        "run_id": "run-parent",
+        "ts": "2026-11-03T12:00:00Z",
+        "source": "runtime",
+        "type": "RUN_FINISHED",
+        "seq": 4,
+        "event_id": "g000000000000000000000000000000000000000000000000000000000000004",
+        "data": {
+          "state": "succeeded",
+          "duration_ms": 900
+        }
+      }
+    ]
+  }
+]

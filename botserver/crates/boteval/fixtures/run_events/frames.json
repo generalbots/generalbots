@@ -1,0 +1,604 @@
+[
+  {
+    "name": "valid_run_started",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "RUN_STARTED",
+      "seq": 1,
+      "event_id": "0000000000000000000000000000000000000000000000000000000000000001",
+      "data": {}
+    },
+    "valid": true
+  },
+  {
+    "name": "valid_step_started",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "STEP_STARTED",
+      "seq": 2,
+      "event_id": "0000000000000000000000000000000000000000000000000000000000000002",
+      "data": {
+        "step_id": "s1",
+        "name": "prepare workspace"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "valid_tool_call_start",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "TOOL_CALL_START",
+      "seq": 3,
+      "event_id": "0000000000000000000000000000000000000000000000000000000000000003",
+      "data": {
+        "call_id": "c1",
+        "name": "run_script"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "valid_tool_call_args",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "TOOL_CALL_ARGS",
+      "seq": 4,
+      "event_id": "0000000000000000000000000000000000000000000000000000000000000004",
+      "data": {
+        "call_id": "c1",
+        "arguments": {
+          "cmd": "cargo test"
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "valid_tool_call_end",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "TOOL_CALL_END",
+      "seq": 5,
+      "event_id": "0000000000000000000000000000000000000000000000000000000000000005",
+      "data": {
+        "call_id": "c1"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "valid_tool_call_result",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "TOOL_CALL_RESULT",
+      "seq": 6,
+      "event_id": "0000000000000000000000000000000000000000000000000000000000000006",
+      "data": {
+        "call_id": "c1",
+        "status": "ok",
+        "result": {
+          "exit_code": 0
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "valid_step_finished",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "STEP_FINISHED",
+      "seq": 7,
+      "event_id": "0000000000000000000000000000000000000000000000000000000000000007",
+      "data": {
+        "step_id": "s1",
+        "status": "ok",
+        "duration_ms": 1200
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "valid_text_message_start",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "TEXT_MESSAGE_START",
+      "seq": 8,
+      "event_id": "0000000000000000000000000000000000000000000000000000000000000008",
+      "data": {
+        "message_id": "m1",
+        "role": "assistant"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "valid_text_message_content",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "TEXT_MESSAGE_CONTENT",
+      "seq": 9,
+      "event_id": "0000000000000000000000000000000000000000000000000000000000000009",
+      "data": {
+        "message_id": "m1",
+        "delta": "The tests passed."
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "valid_text_message_end",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "TEXT_MESSAGE_END",
+      "seq": 10,
+      "event_id": "000000000000000000000000000000000000000000000000000000000000000a",
+      "data": {
+        "message_id": "m1",
+        "content": "The tests passed."
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "valid_state_snapshot",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "STATE_SNAPSHOT",
+      "seq": 11,
+      "event_id": "000000000000000000000000000000000000000000000000000000000000000b",
+      "data": {
+        "state": {
+          "phase": "done",
+          "count": 1
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "valid_state_delta",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "STATE_DELTA",
+      "seq": 12,
+      "event_id": "000000000000000000000000000000000000000000000000000000000000000c",
+      "data": {
+        "patch": [
+          {
+            "op": "replace",
+            "path": "/count",
+            "value": 2
+          }
+        ]
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "valid_messages_snapshot",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "MESSAGES_SNAPSHOT",
+      "seq": 13,
+      "event_id": "000000000000000000000000000000000000000000000000000000000000000d",
+      "data": {
+        "messages": [
+          {
+            "id": "m1",
+            "role": "assistant",
+            "content": "The tests passed."
+          }
+        ]
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "valid_activity_snapshot",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "ACTIVITY_SNAPSHOT",
+      "seq": 14,
+      "event_id": "000000000000000000000000000000000000000000000000000000000000000e",
+      "data": {
+        "activity_id": "a1",
+        "activity_type": "log",
+        "content": {
+          "lines": []
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "valid_activity_delta",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "ACTIVITY_DELTA",
+      "seq": 15,
+      "event_id": "000000000000000000000000000000000000000000000000000000000000000f",
+      "data": {
+        "activity_id": "a1",
+        "patch": [
+          {
+            "op": "add",
+            "path": "/lines/-",
+            "value": "ok"
+          }
+        ]
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "valid_custom",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "CUSTOM",
+      "seq": 16,
+      "event_id": "0000000000000000000000000000000000000000000000000000000000000010",
+      "data": {
+        "name": "gb.question",
+        "payload": {
+          "question_id": "q1",
+          "fallback": "Which environment?",
+          "fields": []
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "valid_custom",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "CUSTOM",
+      "seq": 17,
+      "event_id": "0000000000000000000000000000000000000000000000000000000000000011",
+      "data": {
+        "name": "gb.surface",
+        "payload": {
+          "fallback": "Pipeline: build, test, deploy",
+          "surface": {}
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "valid_raw",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "RAW",
+      "seq": 18,
+      "event_id": "0000000000000000000000000000000000000000000000000000000000000012",
+      "data": {
+        "raw": {
+          "note": "vendor frame"
+        }
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "valid_subagent_started",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "SUBAGENT_STARTED",
+      "seq": 19,
+      "event_id": "0000000000000000000000000000000000000000000000000000000000000013",
+      "data": {
+        "child_run_id": "run-child",
+        "agent_name": "researcher"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "valid_subagent_finished",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "SUBAGENT_FINISHED",
+      "seq": 20,
+      "event_id": "0000000000000000000000000000000000000000000000000000000000000014",
+      "data": {
+        "child_run_id": "run-child",
+        "state": "succeeded"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "valid_run_finished",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "RUN_FINISHED",
+      "seq": 21,
+      "event_id": "0000000000000000000000000000000000000000000000000000000000000015",
+      "data": {
+        "state": "succeeded",
+        "duration_ms": 2400
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "missing_step_name",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "STEP_STARTED",
+      "seq": 1,
+      "event_id": "bad0000000000000000000000000000000000000000000000000000000000001",
+      "data": {
+        "step_id": "s1"
+      }
+    },
+    "valid": false,
+    "expected_error_paths": [
+      "data.name"
+    ]
+  },
+  {
+    "name": "unsupported_version",
+    "envelope": {
+      "v": 2,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "RUN_STARTED",
+      "seq": 1,
+      "event_id": "bad0000000000000000000000000000000000000000000000000000000000001",
+      "data": {}
+    },
+    "valid": false,
+    "expected_error_paths": [
+      "v"
+    ]
+  },
+  {
+    "name": "finish_running_state",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "RUN_FINISHED",
+      "seq": 1,
+      "event_id": "bad0000000000000000000000000000000000000000000000000000000000001",
+      "data": {
+        "state": "running"
+      }
+    },
+    "valid": false,
+    "expected_error_paths": [
+      "data.state"
+    ]
+  },
+  {
+    "name": "self_parent",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "RUN_STARTED",
+      "seq": 1,
+      "event_id": "bad0000000000000000000000000000000000000000000000000000000000001",
+      "data": {},
+      "parent_run_id": "run-1"
+    },
+    "valid": false,
+    "expected_error_paths": [
+      "parent_run_id"
+    ]
+  },
+  {
+    "name": "empty_thread",
+    "envelope": {
+      "v": 1,
+      "thread_id": "",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "RUN_STARTED",
+      "seq": 1,
+      "event_id": "bad0000000000000000000000000000000000000000000000000000000000001",
+      "data": {}
+    },
+    "valid": false,
+    "expected_error_paths": [
+      "thread_id"
+    ]
+  },
+  {
+    "name": "seq_zero",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "RUN_STARTED",
+      "seq": 0,
+      "event_id": "bad0000000000000000000000000000000000000000000000000000000000000",
+      "data": {}
+    },
+    "valid": false,
+    "expected_error_paths": [
+      "seq"
+    ]
+  },
+  {
+    "name": "payload_not_object",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "CUSTOM",
+      "seq": 1,
+      "event_id": "bad0000000000000000000000000000000000000000000000000000000000001",
+      "data": "nope"
+    },
+    "valid": false,
+    "expected_error_paths": [
+      "data"
+    ]
+  },
+  {
+    "name": "bad_tool_status",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "TOOL_CALL_RESULT",
+      "seq": 1,
+      "event_id": "bad0000000000000000000000000000000000000000000000000000000000001",
+      "data": {
+        "call_id": "c1",
+        "status": "great"
+      }
+    },
+    "valid": false,
+    "expected_error_paths": [
+      "data.status"
+    ]
+  },
+  {
+    "name": "custom_missing_name",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "CUSTOM",
+      "seq": 1,
+      "event_id": "bad0000000000000000000000000000000000000000000000000000000000001",
+      "data": {
+        "payload": {}
+      }
+    },
+    "valid": false,
+    "expected_error_paths": [
+      "data.name"
+    ]
+  },
+  {
+    "name": "subagent_same_run",
+    "envelope": {
+      "v": 1,
+      "thread_id": "eval-thread-1",
+      "run_id": "run-1",
+      "ts": "2026-11-03T12:00:00Z",
+      "source": "runtime",
+      "type": "SUBAGENT_STARTED",
+      "seq": 1,
+      "event_id": "bad0000000000000000000000000000000000000000000000000000000000001",
+      "data": {
+        "child_run_id": "run-1",
+        "agent_name": "x"
+      }
+    },
+    "valid": false,
+    "expected_error_paths": [
+      "data.child_run_id"
+    ]
+  }
+]
