@@ -160,7 +160,7 @@ pub async fn usage_summary(
         total_messages += row.messages;
         let day_entry = per_day
             .entry(row.day.clone())
-            .or_insert_with(|| json!({ "day": row.day, "tokens": 0, "messages": 0 }));
+            .or_insert_with(|| json!({ "day": row.day.clone(), "tokens": 0, "messages": 0 }));
         if let Some(object) = day_entry.as_object_mut() {
             let tokens = object.get("tokens").and_then(serde_json::Value::as_i64).unwrap_or(0);
             let messages = object.get("messages").and_then(serde_json::Value::as_i64).unwrap_or(0);

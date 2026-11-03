@@ -112,7 +112,7 @@ def main() -> int:
         actual = args.page.read_text(encoding="utf-8")
         if actual != expected:
             errors.append(
-                f"{args.page.relative_to(ROOT)} is stale: run "
+                f"{args.page} is stale: run "
                 "python3 desktop/gb6/generate_features.py"
             )
 
