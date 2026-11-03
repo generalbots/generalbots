@@ -109,7 +109,7 @@ pub fn extract_remember_directive(text: &str) -> Option<String> {
     let lower = original.to_lowercase();
     let prefix = REMEMBER_PREFIXES
         .iter()
-        .find(|prefix| lower.starts_with(**prefix))?;
+        .find(|prefix| lower.starts_with(*prefix))?;
     let fact: String = original
         .chars()
         .skip(prefix.chars().count())
