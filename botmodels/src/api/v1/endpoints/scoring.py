@@ -11,8 +11,12 @@ from pydantic import BaseModel
 
 from ....core.logging import get_logger
 from ...dependencies import verify_api_key
-from .engine import ENGINE_VERSION, generate_recommendations, score_lead
-from .schemas import (
+from ....services.scoring.engine import (
+    ENGINE_VERSION,
+    generate_recommendations,
+    score_lead,
+)
+from ....services.scoring.schemas import (
     BatchScoreRequest,
     BatchScoreResponse,
     LeadScoreResponse,

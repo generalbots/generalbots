@@ -72,6 +72,9 @@ jobs:
           echo "bundling $url"
           curl -fsSL --retry 3 --retry-delay 5 -o /tmp/python.tar.gz "$url"
 
+      - name: Check relative imports
+        run: python3 botmodels/scripts/check_imports.py
+
       - name: Assemble the pythonbox
         run: |
           set -euo pipefail
@@ -99,27 +102,57 @@ jobs:
           cat > "$ROOT/install.sh" <<'EOF'
           #!/usr/bin/env bash
           # Materialise the virtual environment for this pythonbox.
-          # Usage: ./install.sh [--with jupyter] [--offline-wheels DIR] [-r EXTRA_REQ]
+          #
+          # Usage: ./install.sh [--with jupyter] [--offline-wheels DIR]
+          #                     [--python PATH] [--site DIR] [-r EXTRA_REQ]
+          #
+          # --python  interpreter used to create the venv (default: the bundled one)
+          # --site    extra package tree to reuse (for example /opt/gbo/pylibs on a
+          #           server, so torch and transformers are not downloaded twice)
           set -euo pipefail
           ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
           VENV="$ROOT/.venv"
+          PYTHON="$ROOT/python/bin/python3"
           EXTRAS=""
           PIP_ARGS=()
+          SITE=""
 
           while [ $# -gt 0 ]; do
             case "$1" in
               --with) EXTRAS="${EXTRAS} -r $ROOT/requirements-$2.txt"; shift 2 ;;
               --offline-wheels) PIP_ARGS+=(--no-index --find-links "$2"); shift 2 ;;
+              --python) PYTHON="$2"; shift 2 ;;
+              --site) SITE="$2"; shift 2 ;;
               -r) EXTRAS="${EXTRAS} -r $2"; shift 2 ;;
               *) echo "unknown option: $1" >&2; exit 2 ;;
             esac
           done
 
-          "$ROOT/python/bin/python3" -m venv "$VENV"
-          "$VENV/bin/python" -m pip install --upgrade pip
+          # pyzbar loads libzbar at import time; the service cannot start without it.
+          if ! ldconfig -p 2>/dev/null | grep -q libzbar; then
+            echo "warning: libzbar is missing (apt-get install -y libzbar0)" >&2
+          fi
+
+          if [ ! -x "$VENV/bin/python" ]; then
+            "$PYTHON" -m venv --system-site-packages "$VENV"
+          fi
+
+          if [ -n "$SITE" ]; then
+            site_dir="$("$VENV/bin/python" -c 'import sysconfig; print(sysconfig.get_paths()["purelib"])')"
+            printf '%s\n' "$SITE" > "$site_dir/zzz-pythonbox-site.pth"
+          fi
+
+          wanted="$(sha256sum "$ROOT/requirements.txt" | cut -d' ' -f1)"
+          if [ -f "$ROOT/.installed" ] && [ "$(cat "$ROOT/.installed")" = "$wanted" ]; then
+            echo "pythonbox already installed (requirements $wanted)"
+            exit 0
+          fi
+
+          "$VENV/bin/python" -m pip install --upgrade pip --no-cache-dir
           # shellcheck disable=SC2086
-          "$VENV/bin/python" -m pip install "${PIP_ARGS[@]}" -r "$ROOT/requirements.txt" $EXTRAS
+          "$VENV/bin/python" -m pip install --no-cache-dir "${PIP_ARGS[@]}" -r "$ROOT/requirements.txt" $EXTRAS
           "$VENV/bin/python" -c 'import fastapi, uvicorn; print("pythonbox ready")'
+          printf '%s\n' "$wanted" > "$ROOT/.installed"
           EOF
 
           cat > "$ROOT/run.sh" <<'EOF'
@@ -152,6 +185,10 @@ jobs:
             ./run.sh                         # serve on :8085 (BOTMODELS_PORT)
 
           Health: GET http://127.0.0.1:8085/api/health
+
+          System libraries (not installable with pip):
+            libzbar0   required at import time (QR/barcode)
+            tesseract  required by the OCR backend at request time
 
           The box is relocatable: move the directory, the interpreter keeps
           working. Delete ./.venv to start from scratch.
