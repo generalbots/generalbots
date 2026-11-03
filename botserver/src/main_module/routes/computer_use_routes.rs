@@ -20,10 +20,18 @@ use axum::Router;
 use botcore::shared::state::AppState;
 use botlib::security::command_guard::SafeCommand;
 use serde::Deserialize;
-use diesel::sql_types::{Integer, Nullable, Text, Uuid as DieselUuid};
-use diesel::RunQueryDsl;
 use serde_json::{json, Value};
 use uuid::Uuid;
+
+mod audit;
+mod page;
+
+pub use audit::spawn_terminal_audit_purge;
+pub use audit::terminal_audit;
+use audit::{audit_terminal, TerminalAuditRow};
+use page::fetch_page;
+mod terminal_rules;
+use terminal_rules::blocked_pattern;
 
 use crate::core::computer_use;
 
@@ -167,27 +175,6 @@ pub struct TerminalExecRequest {
     /// #1645 — the action whose consent record authorises this execution.
     #[serde(default)]
     pub action_id: Option<Uuid>,
-}
-
-const DENIED_PATTERNS: &[&str] = &[
-    "rm -rf /",
-    "mkfs",
-    "dd if=",
-    "shutdown",
-    "reboot",
-    ":(){",
-    "> /dev/sda",
-    "chmod -R 000 /",
-];
-
-/// Server-side re-check of destructive patterns. The consent card enforces the
-/// same list client-side, but the server must not rely on it.
-pub(crate) fn blocked_pattern(command: &str) -> Option<&'static str> {
-    let lowered = command.to_ascii_lowercase();
-    DENIED_PATTERNS
-        .iter()
-        .find(|pattern| lowered.contains(&pattern.to_ascii_lowercase()))
-        .copied()
 }
 
 /// POST /api/terminal/exec
@@ -441,231 +428,6 @@ pub async fn execute_action(
     Ok(Json(result))
 }
 
-struct PageContent {
-    url: String,
-    title: String,
-    text: String,
-}
-
-/// Fetches a page server-side and returns a bounded, readable extract. This is
-/// what lets the assistant cite a real page title even when the client iframe
-/// cannot read a cross-origin document.
-async fn fetch_page(url: &str) -> Result<PageContent, String> {
-    if !(url.starts_with("http://") || url.starts_with("https://")) {
-        return Err("only http(s) URLs can be opened".to_string());
-    }
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(20))
-        .user_agent("GeneralBots-ComputerUse/1.0")
-        .build()
-        .map_err(|e| format!("http client: {e}"))?;
-    let response = client
-        .get(url)
-        .send()
-        .await
-        .map_err(|e| format!("fetch failed: {e}"))?;
-    if !response.status().is_success() {
-        return Err(format!("the page answered HTTP {}", response.status().as_u16()));
-    }
-    let final_url = response.url().to_string();
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|e| format!("read failed: {e}"))?;
-    let html = String::from_utf8_lossy(&bytes[..bytes.len().min(2_000_000)]).to_string();
-    Ok(PageContent {
-        url: final_url,
-        title: extract_tag(&html, "title").unwrap_or_default(),
-        text: html_to_text(&html, 12_000),
-    })
-}
-
-fn extract_tag(html: &str, tag: &str) -> Option<String> {
-    let pattern = format!(r"(?is)<{tag}[^>]*>(.*?)</{tag}>");
-    let re = regex::Regex::new(&pattern).ok()?;
-    let captures = re.captures(html)?;
-    let value = captures.get(1)?.as_str().trim();
-    if value.is_empty() {
-        None
-    } else {
-        Some(decode_entities(value))
-    }
-}
-
-fn html_to_text(html: &str, limit: usize) -> String {
-    let mut out = String::with_capacity(limit.min(html.len()));
-    let mut tag = String::new();
-    let mut in_tag = false;
-    let mut skip = false;
-    for ch in html.chars() {
-        if in_tag {
-            if ch == '>' {
-                let closing = tag.starts_with('/');
-                let name = tag
-                    .trim_start_matches('/')
-                    .split_whitespace()
-                    .next()
-                    .unwrap_or("")
-                    .to_lowercase();
-                match name.as_str() {
-                    "script" | "style" | "noscript" => skip = !closing,
-                    "p" | "br" | "div" | "li" | "tr" | "h1" | "h2" | "h3" | "h4" | "td" => {
-                        out.push(' ')
-                    }
-                    _ => {}
-                }
-                in_tag = false;
-                tag.clear();
-            } else {
-                tag.push(ch);
-            }
-        } else if ch == '<' {
-            in_tag = true;
-            tag.clear();
-        } else if !skip {
-            out.push(ch);
-        }
-        if out.len() >= limit {
-            break;
-        }
-    }
-    let collapsed = out.split_whitespace().collect::<Vec<_>>().join(" ");
-    decode_entities(&collapsed)
-}
-
-fn decode_entities(text: &str) -> String {
-    text.replace("&amp;", "&")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", "\"")
-        .replace("&#39;", "'")
-        .replace("&nbsp;", " ")
-}
-
-struct TerminalAuditRow<'a> {
-    user_id: Uuid,
-    session_id: &'a str,
-    action_id: Option<Uuid>,
-    command: &'a str,
-    cwd: &'a str,
-    container: &'a str,
-    decision: &'a str,
-    exit_code: Option<i32>,
-    output: &'a str,
-}
-
-fn audit_terminal(pool: &botcore::shared::utils::DbPool, row: TerminalAuditRow<'_>) {
-    let Ok(mut conn) = pool.get() else {
-        log::warn!("terminal audit: database unavailable, row not written");
-        return;
-    };
-    let excerpt: String = row.output.chars().take(2000).collect();
-    if let Err(error) = diesel::sql_query(
-        "INSERT INTO terminal_audit
-            (user_id, session_id, action_id, command, cwd, container, decision, exit_code, output_excerpt)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-    )
-    .bind::<DieselUuid, _>(row.user_id)
-    .bind::<Nullable<Text>, _>(Some(row.session_id))
-    .bind::<Nullable<DieselUuid>, _>(row.action_id)
-    .bind::<Text, _>(row.command.chars().take(16_000).collect::<String>())
-    .bind::<Nullable<Text>, _>(Some(row.cwd))
-    .bind::<Nullable<Text>, _>(Some(row.container))
-    .bind::<Text, _>(row.decision)
-    .bind::<Nullable<Integer>, _>(row.exit_code)
-    .bind::<Nullable<Text>, _>(Some(excerpt))
-    .execute(&mut conn)
-    {
-        log::warn!("terminal audit insert failed: {error}");
-    }
-}
-
-#[derive(Debug, Deserialize)]
-pub struct AuditQuery {
-    #[serde(default)]
-    pub limit: Option<i64>,
-}
-
-/// GET /api/terminal/audit — the visible trail: command, decision, exit code
-/// and timestamp, independent of the 30-minute in-memory registry.
-pub async fn terminal_audit(
-    State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
-    Query(query): Query<AuditQuery>,
-) -> Result<Json<Value>, ApiError> {
-    let user_id = resolve_user(&headers)?;
-    let limit = query.limit.unwrap_or(50).clamp(1, 200);
-    let mut conn = state
-        .conn
-        .get()
-        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
-    #[derive(diesel::QueryableByName)]
-    struct Row {
-        #[diesel(sql_type = Text)]
-        id: String,
-        #[diesel(sql_type = Text)]
-        command: String,
-        #[diesel(sql_type = Nullable<Text>)]
-        cwd: Option<String>,
-        #[diesel(sql_type = Text)]
-        decision: String,
-        #[diesel(sql_type = Nullable<Integer>)]
-        exit_code: Option<i32>,
-        #[diesel(sql_type = Nullable<Text>)]
-        output_excerpt: Option<String>,
-        #[diesel(sql_type = Text)]
-        created_at: String,
-    }
-    let rows = diesel::sql_query(
-        "SELECT id::text, command, cwd, decision, exit_code, output_excerpt,
-                created_at::text AS created_at
-         FROM terminal_audit WHERE user_id = $1
-         ORDER BY created_at DESC LIMIT $2",
-    )
-    .bind::<DieselUuid, _>(user_id)
-    .bind::<diesel::sql_types::BigInt, _>(limit)
-    .load::<Row>(&mut conn)
-    .unwrap_or_default();
-    Ok(Json(json!({
-        "entries": rows.into_iter().map(|row| json!({
-            "id": row.id,
-            "command": row.command,
-            "cwd": row.cwd,
-            "decision": row.decision,
-            "exit_code": row.exit_code,
-            "output_excerpt": row.output_excerpt,
-            "created_at": row.created_at,
-        })).collect::<Vec<_>>(),
-    })))
-}
-
-/// #1645 — 90-day retention. Started from the background boot sequence.
-pub fn spawn_terminal_audit_purge(state: Arc<AppState>) {
-    tokio::spawn(async move {
-        let secs: u64 = std::env::var("GB_TERMINAL_AUDIT_PURGE_SECS")
-            .ok()
-            .and_then(|value| value.parse().ok())
-            .filter(|value| *value >= 60)
-            .unwrap_or(3600);
-        loop {
-            tokio::time::sleep(Duration::from_secs(secs)).await;
-            match state.conn.get() {
-                Ok(mut conn) => {
-                    let deleted = diesel::sql_query(
-                        "DELETE FROM terminal_audit WHERE created_at < NOW() - INTERVAL '90 days'",
-                    )
-                    .execute(&mut conn)
-                    .unwrap_or(0);
-                    if deleted > 0 {
-                        log::info!("terminal audit: purged {deleted} row(s) older than 90 days");
-                    }
-                }
-                Err(error) => log::warn!("terminal audit purge: db pool: {error}"),
-            }
-        }
-    });
-}
-
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/computer/actions", post(create_action))
@@ -676,24 +438,4 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/computer/actions/:id/result", post(submit_result))
         .route("/api/terminal/exec", post(terminal_exec))
         .route("/api/terminal/audit", get(terminal_audit))
-}
-
-#[cfg(test)]
-mod tests {
-    use super::blocked_pattern;
-
-    #[test]
-    fn destructive_commands_are_refused_server_side() {
-        assert_eq!(blocked_pattern("rm -rf /"), Some("rm -rf /"));
-        assert_eq!(blocked_pattern("sudo SHUTDOWN now"), Some("shutdown"));
-        assert_eq!(blocked_pattern("dd if=/dev/zero of=/dev/sda"), Some("dd if="));
-        assert_eq!(blocked_pattern(":(){ :|:& };:"), Some(":(){"));
-    }
-
-    #[test]
-    fn ordinary_commands_are_not_blocked() {
-        for command in ["ls -la", "python3 make_pdf.py", "echo hi", "git status"] {
-            assert_eq!(blocked_pattern(command), None, "{command} must be allowed");
-        }
-    }
 }

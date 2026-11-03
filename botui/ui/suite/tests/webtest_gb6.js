@@ -305,7 +305,7 @@ test("BBSIA-07: 98_actions.js loaded in drive.html", function () {
 // ═══════════════════════════════════════════════════════════════════
 
 test("GB6-09: artifact detector covers prose and markdown, not only fenced code", function () {
-  var src = readFile("chat/chat-messages.js");
+  var src = readFile("chat/chat-artifacts.js");
   assert(src.indexOf("window.GBArtifacts") !== -1, "GBArtifacts helper not found");
   assert(src.indexOf("words >= 250") !== -1, "prose length threshold not found");
   assert(src.indexOf("headings > 0") !== -1, "markdown structure detection not found");
@@ -313,7 +313,7 @@ test("GB6-09: artifact detector covers prose and markdown, not only fenced code"
 });
 
 test("GB6-09: markdown artifacts render as documents and save under the title", function () {
-  var src = readFile("chat/chat-messages.js");
+  var src = readFile("chat/chat-artifacts.js");
   assert(src.indexOf("gb-artifact-doc") !== -1, "document container not found");
   assert(src.indexOf("renderMarkdown") !== -1, "markdown renderer not wired");
   assert(src.indexOf("gb-artifact-folder") !== -1, "folder selection not found");

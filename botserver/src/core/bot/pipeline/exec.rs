@@ -1,6 +1,5 @@
 use std::sync::Arc;
 
-use base64::Engine;
 use uuid::Uuid;
 
 use log::info;
@@ -171,88 +170,11 @@ pub async fn process_message_internal(
         }
     }
 
-    // Optional chat file attachment (base64) -> stored under inbox/ and read
-    // into the prompt. #1641: the model receives an excerpt of the file, not a
-    // path hint, and a failed store is visible in the transcript.
-    let mut attachment_note: Option<String> = None;
-    if let Some(file) = parsed.get("file").and_then(|v| v.as_object()) {
-        let fname = file
-            .get("name")
-            .and_then(|v| v.as_str())
-            .unwrap_or("")
-            .to_string();
-        let b64 = file
-            .get("content_base64")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
-        if !fname.is_empty() && !b64.is_empty() {
-            match base64::engine::general_purpose::STANDARD.decode(b64) {
-                Ok(data) => {
-                    let excerpt = super::attachment_text::extract_excerpt(&fname, &data);
-                    let media = super::attachment_text::is_media(&fname);
-                    let mut stored = false;
-                    if let Some(drive) = state.drive.as_ref() {
-                        // Same resolution as the channel stagers: an org-hosted
-                        // bot lives under `{slug}.gborg`, so the bucket cannot be
-                        // derived from the bot name.
-                        let loc = {
-                            match state.conn.get() {
-                                Ok(mut conn) => {
-                                    botbasic_core::utils::bot_drive_location_for(&mut conn, bot_uuid)
-                                }
-                                Err(e) => {
-                                    log::error!("chat attachment: DB error: {e}");
-                                    botbasic_core::utils::resolve_bot_drive_location(
-                                        bot_name,
-                                        None,
-                                        None,
-                                    )
-                                }
-                            }
-                        };
-                        let bucket = loc.bucket.clone();
-                        let key = loc.key_for(&format!("inbox/{fname}"));
-                        match drive.put_object(&bucket, &key, data, None).await {
-                            Ok(()) => {
-                                stored = true;
-                                log::info!("stored chat attachment: {bucket}/{key}");
-                            }
-                            Err(e) => {
-                                log::error!("chat attachment store failed: {e}");
-                                user_text = format!(
-                                    "{user_text}\n\n📎 {fname} (the upload could not be stored: {e})"
-                                );
-                            }
-                        }
-                    } else {
-                        user_text = format!(
-                            "{user_text}\n\n📎 {fname} (Drive is not configured, so the file was not stored)"
-                        );
-                    }
-                    if stored {
-                        user_text = format!("{user_text}\n\n📎 {fname}");
-                        attachment_note = Some(match excerpt {
-                            Some(text) => format!(
-                                "The user attached '{fname}'. The file is stored at inbox/{fname} and its extracted text is reproduced below. Use it to answer; never claim content that is not in it.\n\n--- BEGIN ATTACHMENT {fname} ---\n{text}\n--- END ATTACHMENT {fname} ---"
-                            ),
-                            None if media => format!(
-                                "The user attached the media file '{fname}' (stored at inbox/{fname}). This build cannot read its pixels or audio. Answer only from the user's text and say plainly that you cannot see the file's content. Never invent what it shows."
-                            ),
-                            None => format!(
-                                "The user attached '{fname}' (stored at inbox/{fname}). No text extractor is available for this format, so you cannot read its content. Say the file is stored and ask the user to paste the relevant text (or to convert it). Never invent its content."
-                            ),
-                        });
-                    }
-                }
-                Err(e) => {
-                    log::warn!("chat attachment decode failed: {e}");
-                    user_text = format!(
-                        "{user_text}\n\n📎 {fname} (the file could not be decoded and was not stored)"
-                    );
-                }
-            }
-        }
-    }
+    // #1641 — store the attachment and turn it into prompt content.
+    let attachment =
+        super::turn_hooks::ingest_attachment(state, bot_uuid, bot_name, &parsed, user_text).await;
+    let user_text = attachment.user_text;
+    let mut attachment_note = attachment.note;
 
     // #1642 — the assistant finally has a writer. An explicit "remember …"
     // turn is persisted to chat_preferences; the prompt already reads that
@@ -266,58 +188,9 @@ pub async fn process_message_internal(
         );
     }
 
-    // #1644 — producer: an explicit "open/read <url>" becomes a browser
-    // action with a consent card. The model is not involved, so the action
-    // cannot be hallucinated into a fake tool call.
-    if msg_type == 1 && sink.supports_raw_frames() {
-        if let Some(action) = crate::core::computer_use::propose_from_text(&user_text) {
-            let proposal = crate::core::computer_use::create(
-                &session_id.to_string(),
-                user_id,
-                "browser",
-                action.clone(),
-            )
-            .await;
-            let frame = serde_json::json!({
-                "type": "browser_action",
-                "action_type": "browser",
-                "message_type": "browser_action",
-                "bot_id": bot_uuid.to_string(),
-                "session_id": session_id.to_string(),
-                "browser_action": {
-                    "action_id": proposal.id,
-                    "action": "open_url",
-                    "url": action.get("url").cloned().unwrap_or_default(),
-                },
-            });
-            let _ = sink.send_raw_json(&frame).await;
-            return Ok(());
-        }
-        // #1645 — same producer contract for terminal commands.
-        if let Some(action) = crate::core::computer_use::propose_terminal_from_text(&user_text) {
-            let proposal = crate::core::computer_use::create(
-                &session_id.to_string(),
-                user_id,
-                "terminal",
-                action.clone(),
-            )
-            .await;
-            let frame = serde_json::json!({
-                "type": "terminal_action",
-                "action_type": "terminal",
-                "message_type": "terminal_action",
-                "bot_id": bot_uuid.to_string(),
-                "session_id": session_id.to_string(),
-                "terminal_action": {
-                    "action_id": proposal.id,
-                    "command": action.get("command").cloned().unwrap_or_default(),
-                    "cwd": action.get("cwd").cloned().unwrap_or_default(),
-                    "reason": action.get("reason").cloned().unwrap_or_default(),
-                },
-            });
-            let _ = sink.send_raw_json(&frame).await;
-            return Ok(());
-        }
+    // #1644/#1645 — an explicit URL or command request becomes a consent card.
+    if super::turn_hooks::propose_computer_action(identity, msg_type, &user_text).await {
+        return Ok(());
     }
 
     if user_text.starts_with("__TOOL__:") {
