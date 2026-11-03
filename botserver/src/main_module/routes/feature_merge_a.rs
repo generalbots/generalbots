@@ -25,6 +25,12 @@ pub(super) async fn merge_part_a(
 
     *api_router = api_router.clone().merge(crate::apps::register(Router::new()));
 
+    // #1674 — signed, content-addressed sandbox resources. The handler is
+    // origin-independent; the dedicated listener below provides isolation.
+    *api_router = api_router
+        .clone()
+        .merge(crate::core::bot::sandbox::routes::router());
+
     *api_router = api_router
         .clone()
         .merge(super::workspace_tabs::configure_workspace_tabs_routes());

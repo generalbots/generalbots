@@ -157,6 +157,11 @@ pub(super) async fn main() -> std::io::Result<()> {
 
     let app_state = main_module::create_app_state(cfg, pool, &redis_client).await?;
 
+    // #1674 — model-authored UI is served from a separate origin. On desktop
+    // this is loopback port 8081; cloud deployments set GB_SANDBOX_PORT and
+    // proxy the sandbox hostname to it.
+    crate::core::bot::sandbox::routes::spawn_listener(app_state.clone());
+
     // #1665 — run event retention. Frames expire; the run summary in
     // `agent_runs` does not. Runs in the background so a slow delete never
     // delays boot.
