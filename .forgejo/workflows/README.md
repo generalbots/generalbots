@@ -20,3 +20,24 @@ Division of work:
 
 If an ALM-runnable workflow is ever needed in this repository, put the real
 `.yaml` files next to this README — they will be picked up by the `gbo` runner.
+
+## Why `ubuntu-latest` is not mapped to the `gbo` runner
+
+Changing `runs-on` to `gbo` looks like the obvious fix and does not work:
+
+- `gbo` is a **host executor** on the production host (sudo for `incus`). A
+  `cargo build -p botserver` there competes with the live botserver/botui for
+  30–60 minutes per push and duplicates a build GitHub already made.
+- Both `publish` jobs call `gh release create … --repo generalbots/generalbots`
+  with `github.token`. On Forgejo that token belongs to the ALM instance, so the
+  GitHub release is never created and the job fails.
+- `boteval.yml` needs `secrets.BOTEVAL_ENDPOINT` / `secrets.BOTEVAL_API_KEY`,
+  which only exist on GitHub.
+- `actions/upload-artifact@v4` / `download-artifact@v4` are only supported by
+  Forgejo as v3 or patched v4.
+- `desktop-binaries.yml` needs `windows-latest`, which ALM can never provide.
+
+Each job therefore carries `if: github.server_url == 'https://github.com'` as a
+second guard: even if this README is deleted, ALM marks those jobs *skipped*
+instead of queueing them forever. The deploy path stays `generalbots/gb` → `gbo`.
+
