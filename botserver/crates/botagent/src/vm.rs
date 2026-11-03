@@ -464,8 +464,8 @@ GW=$(ip route 2>/dev/null | awk '/^default/ {print $3; exit}')
   echo "nameserver 8.8.8.8"
 } > /etc/resolv.conf
 {
-  apt-get update -q
-  apt-get install -y -q python3 python3-pip nodejs npm iptables iproute2
+  apt-get -o DPkg::Lock::Timeout=300 update -q
+  apt-get -o DPkg::Lock::Timeout=300 install -y -q python3 python3-pip nodejs npm iptables iproute2
   mkdir -p /opt/vibe/conversations
   # Base data/document toolkit: the model should not pay an install round-trip
   # for the common agent outputs (decks, sheets, charts, PDFs).
@@ -529,9 +529,9 @@ GW=$(ip route 2>/dev/null | awk '/^default/ {print $3; exit}')
 } > /etc/resolv.conf
 {
   mkdir -p /opt/vibe/conversations
-  command -v python3 >/dev/null 2>&1 || (apt-get update -q && apt-get install -y -q python3)
-  python3 -m pip --version >/dev/null 2>&1 || (apt-get update -q && apt-get install -y -q python3-pip)
-  command -v npm >/dev/null 2>&1 || (apt-get update -q && apt-get install -y -q nodejs npm)
+  command -v python3 >/dev/null 2>&1 || (apt-get -o DPkg::Lock::Timeout=300 update -q && apt-get -o DPkg::Lock::Timeout=300 install -y -q python3)
+  python3 -m pip --version >/dev/null 2>&1 || (apt-get -o DPkg::Lock::Timeout=300 update -q && apt-get -o DPkg::Lock::Timeout=300 install -y -q python3-pip)
+  command -v npm >/dev/null 2>&1 || (apt-get -o DPkg::Lock::Timeout=300 update -q && apt-get -o DPkg::Lock::Timeout=300 install -y -q nodejs npm)
   python3 -m pip install --break-system-packages --quiet --disable-pip-version-check \
     pandas numpy openpyxl python-pptx pillow matplotlib requests python-docx \
     reportlab beautifulsoup4 lxml tabulate || true
@@ -1045,11 +1045,11 @@ async fn install_packages(
         "python" => Some(
             "python3 -m pip --version >/dev/null 2>&1 || \
              python3 -m ensurepip --upgrade >/dev/null 2>&1 || \
-             (apt-get update -qq && apt-get install -y -qq python3-pip)",
+             (apt-get -o DPkg::Lock::Timeout=300 update -qq && apt-get -o DPkg::Lock::Timeout=300 install -y -qq python3-pip)",
         ),
         "node" => Some(
             "command -v npm >/dev/null 2>&1 || \
-             (apt-get update -qq && apt-get install -y -qq nodejs npm)",
+             (apt-get -o DPkg::Lock::Timeout=300 update -qq && apt-get -o DPkg::Lock::Timeout=300 install -y -qq nodejs npm)",
         ),
         _ => None,
     };
