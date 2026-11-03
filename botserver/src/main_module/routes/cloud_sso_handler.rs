@@ -7,7 +7,7 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use botcore::shared::state::AppState;
-use botcoredirectory::auth_routes::{SESSION_CACHE, SessionUserData, persist_session};
+use botcoredirectory::auth_routes::{SESSION_CACHE, SessionUserData, persist_session, session_from_persisted};
 
 #[derive(Debug, Deserialize)]
 pub struct SsoRequest {
@@ -95,19 +95,49 @@ pub async fn handle_suite_sso(
     let jwt_secret = get_saas_jwt_secret();
 
     let parts: Vec<&str> = query.token.split('.').collect();
+
+    // #1660 — `/api/auth/login` issues opaque `gb_<uuid>_<ts>` session tokens,
+    // not JWTs. Validate those against the directory session store and hand
+    // the same token to the suite; never answer the main frame with a 400.
     if parts.len() != 3 {
-        return Err(StatusCode::BAD_REQUEST);
+        if !query.token.starts_with("gb_") {
+            return Ok(redirect_to_login("invalid_token"));
+        }
+        let valid = {
+            let cache = SESSION_CACHE.read().await;
+            match cache.get(&query.token) {
+                Some(session) => chrono::Utc::now().timestamp() - session.created_at < 3600,
+                // Cache miss after a restart: fall back to the persisted
+                // login_sessions row the auth middleware would use.
+                None => session_from_persisted(&query.token)
+                    .map(|session| chrono::Utc::now().timestamp() - session.created_at < 3600)
+                    .unwrap_or(false),
+            }
+        };
+        if !valid {
+            return Ok(redirect_to_login("session_expired"));
+        }
+        return Ok(session_cookie(
+            query.token.clone(),
+            Html(sso_html(&query.token, &sanitize_redirect(&query.redirect))),
+        ));
     }
 
     let message = format!("{}.{}", parts[0], parts[1]);
     let sig_ok = jwt_sign_inner(&message, jwt_secret.as_bytes()).map(|s| s == parts[2]).unwrap_or(false);
     if !sig_ok {
         log::warn!("suite-sso: JWT signature mismatch — rejecting token");
-        return Err(StatusCode::UNAUTHORIZED);
+        return Ok(redirect_to_login("invalid_token"));
     }
 
-    let payload_bytes = base64_url_decode(parts[1]).map_err(|_| StatusCode::BAD_REQUEST)?;
-    let claims: serde_json::Value = serde_json::from_slice(&payload_bytes).map_err(|_| StatusCode::BAD_REQUEST)?;
+    let payload_bytes = match base64_url_decode(parts[1]) {
+        Ok(bytes) => bytes,
+        Err(_) => return Ok(redirect_to_login("invalid_token")),
+    };
+    let claims: serde_json::Value = match serde_json::from_slice(&payload_bytes) {
+        Ok(value) => value,
+        Err(_) => return Ok(redirect_to_login("invalid_token")),
+    };
 
     let email = claims.get("email").and_then(|v| v.as_str()).unwrap_or("user@localhost");
     let user_id = claims.get("sub").and_then(|v| v.as_str()).unwrap_or("unknown");
@@ -116,14 +146,15 @@ pub async fn handle_suite_sso(
     let roles = resolve_session_roles(&state, user_id);
     let suite_token = create_suite_session(email, user_id, bucket, roles, claims_org(&claims)).await;
     let redirect = sanitize_redirect(&query.redirect);
-    // Encode both values as script-safe string literals (#1533). A plain JSON
-    // string is not enough inside <script>: `</script>` closes the element even
-    // when it sits inside quotes, and U+2028/U+2029 terminate a JS string
-    // literal. `js_string_literal` escapes those code points as \u sequences.
-    let redirect_js = js_string_literal(&redirect);
-    let token_js = js_string_literal(&suite_token);
+    let html = Html(sso_html(&suite_token, &redirect));
+    Ok(session_cookie(suite_token, html))
+}
 
-    let html = format!(
+/// Token handoff page shared by the JWT and opaque-session paths.
+fn sso_html(token: &str, redirect: &str) -> String {
+    let redirect_js = js_string_literal(redirect);
+    let token_js = js_string_literal(token);
+    format!(
         r##"<!DOCTYPE html>
 <html>
 <head>
@@ -140,9 +171,30 @@ try {{
 </head>
 <body></body>
 </html>"##
-    );
+    )
+}
 
-    Ok(session_cookie(suite_token.clone(), Html(html)))
+/// Invalid or expired SSO hops show a readable page and hand off to sign-in
+/// client-side. A 3xx here would be followed by the botui proxy into a plain
+/// 401 JSON, which is what produced the blank error screen (#1660).
+fn redirect_to_login(reason: &str) -> Response {
+    let login = std::env::var("GB_LOGIN_URL")
+        .ok()
+        .filter(|value| value.starts_with("http"))
+        .unwrap_or_else(|| "/login".to_string());
+    let target = format!("{}/login?error={}", login.trim_end_matches('/'), reason);
+    let target_js = js_string_literal(&target);
+    Html(format!(
+        r##"<!DOCTYPE html>
+<html><head><meta name="referrer" content="no-referrer"><title>Sign in again</title></head>
+<body style="font:15px system-ui;padding:40px;color:#334155">
+<p>Your session expired or is invalid.</p>
+<p><a href="{target}">Continue to sign in</a></p>
+<script>setTimeout(function(){{ window.location.replace({target_js}); }}, 800);</script>
+</body></html>"##,
+        target = target
+    ))
+    .into_response()
 }
 
 fn session_cookie(token: String, html: Html<String>) -> Response {
