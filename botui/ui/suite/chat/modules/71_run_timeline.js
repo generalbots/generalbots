@@ -270,6 +270,21 @@
             entry.card.classList.add("expanded");
             entry.stop.hidden = true;
         }
+        // #1677 — opt-in completion notification. Never fires per step, and
+        // never requests permission on its own.
+        try {
+            if (
+                localStorage.getItem("gb.run.notify") === "1" &&
+                "Notification" in window &&
+                window.Notification.permission === "granted" &&
+                document.visibilityState !== "visible"
+            ) {
+                new window.Notification(entry.title.textContent || "Run finished", {
+                    body: label,
+                    tag: "gb-run-" + entry.id,
+                });
+            }
+        } catch (e) { /* notifications unavailable */ }
         if (activeRunId === entry.id) activeRunId = null;
     }
 

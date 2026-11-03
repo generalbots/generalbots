@@ -36,6 +36,7 @@ pub struct ThreadChannel {
     meta: Mutex<RunMeta>,
     subscribers: Mutex<Vec<mpsc::UnboundedSender<Value>>>,
     last_seq: AtomicU64,
+    steering: Mutex<std::collections::VecDeque<String>>,
 }
 
 impl ThreadChannel {
@@ -142,6 +143,34 @@ impl ThreadChannel {
     pub fn observe_seq(&self, seq: u64) {
         self.last_seq.fetch_max(seq, Ordering::SeqCst);
     }
+
+    /// Queues a message sent while the run is active. Delivery happens at the
+    /// next turn boundary; the queue survives until then.
+    pub fn push_steering(&self, text: &str) {
+        let mut queue = match self.steering.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        if queue.len() < 20 {
+            queue.push_back(text.to_string());
+        }
+    }
+
+    pub fn take_steering(&self) -> Option<String> {
+        let mut queue = match self.steering.lock() {
+            Ok(guard) => guard,
+            Err(poisoned) => poisoned.into_inner(),
+        };
+        queue.pop_front()
+    }
+
+    #[must_use]
+    pub fn steering_len(&self) -> usize {
+        match self.steering.lock() {
+            Ok(guard) => guard.len(),
+            Err(poisoned) => poisoned.into_inner().len(),
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -205,6 +234,14 @@ impl RunBus {
 
     pub fn finish(&self, thread_id: &str, state: RunState) {
         self.thread(thread_id).finish(state);
+    }
+
+    pub fn push_steering(&self, thread_id: &str, text: &str) {
+        self.thread(thread_id).push_steering(text);
+    }
+
+    pub fn take_steering(&self, thread_id: &str) -> Option<String> {
+        self.thread(thread_id).take_steering()
     }
 }
 

@@ -164,6 +164,12 @@ function dialChatSocket(seq) {
         if (typeof setChatStatus === "function") setChatStatus(data.text || "");
         return;
       }
+      if (data.type === "gb.steering_queued") {
+        if (typeof window.showToast === "function") {
+          window.showToast(data.message || "Queued for the next step.", "info");
+        }
+        return;
+      }
       // #1668 — every run frame feeds the timeline, regardless of agent mode.
       if (window.RunTimeline) {
         window.RunTimeline.handleFrame(data);

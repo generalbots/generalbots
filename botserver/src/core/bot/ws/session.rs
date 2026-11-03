@@ -228,16 +228,17 @@ pub async fn handle_ws(
                             .send(Message::Text(ack.to_string()))
                             .await;
 
-                        // #1677 will queue this as steering. Until then a
-                        // second turn on a busy thread is refused instead of
-                        // interleaving two agents on the same history.
+                        // #1677 — a message sent during a run is steering:
+                        // queue it, acknowledge and deliver at the next turn
+                        // boundary instead of interleaving two agents.
                         if bus::bus().is_running(&thread_id) {
-                            let busy = serde_json::json!({
-                                "type": "gb.run_busy",
+                            bus::bus().push_steering(&thread_id, &text);
+                            let queued = serde_json::json!({
+                                "type": "gb.steering_queued",
                                 "session_id": session_id,
-                                "message": "A run is already in progress for this conversation.",
+                                "message": "Queued. The agent will pick this up at the next step.",
                             });
-                            let _ = ws_sender.lock().await.send(Message::Text(busy.to_string())).await;
+                            let _ = ws_sender.lock().await.send(Message::Text(queued.to_string())).await;
                             continue;
                         }
 
@@ -261,22 +262,37 @@ pub async fn handle_ws(
                                 user_id,
                                 bot_name: &task_bot_name,
                             };
-                            let (closed_tx, mut task_rx) =
-                                mpsc::channel::<botlib::models::BotResponse>(1);
-                            drop(closed_tx);
-                            let result = pipeline::process_message_internal(
-                                &identity,
-                                &mut task_rx,
-                                &mut task_start_bas_ran,
-                                &task_text,
-                            )
-                            .await;
-                            match result {
-                                Ok(()) => bus::bus().finish(&task_thread, botevents::RunState::Succeeded),
-                                Err(error) => {
-                                    error!("pipeline task failed: {error}");
-                                    bus::bus().finish(&task_thread, botevents::RunState::Failed);
+                            let mut next_text = Some(task_text);
+                            let mut first_turn = true;
+                            while let Some(turn_text) = next_text {
+                                if !first_turn {
+                                    let next_run = Uuid::new_v4().to_string();
+                                    bus::bus().start(&task_thread, &next_run);
                                 }
+                                let (closed_tx, mut task_rx) =
+                                    mpsc::channel::<botlib::models::BotResponse>(1);
+                                drop(closed_tx);
+                                let result = pipeline::process_message_internal(
+                                    &identity,
+                                    &mut task_rx,
+                                    &mut task_start_bas_ran,
+                                    &turn_text,
+                                )
+                                .await;
+                                match result {
+                                    Ok(()) => {
+                                        bus::bus().finish(&task_thread, botevents::RunState::Succeeded)
+                                    }
+                                    Err(error) => {
+                                        error!("pipeline task failed: {error}");
+                                        bus::bus().finish(&task_thread, botevents::RunState::Failed);
+                                        break;
+                                    }
+                                }
+                                // Deliver steering at the turn boundary. The
+                                // queued text is processed exactly once.
+                                next_text = bus::bus().take_steering(&task_thread);
+                                first_turn = false;
                             }
                         });
                     }
