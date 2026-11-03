@@ -9,6 +9,7 @@ pub async fn handle_list_mcp_servers_json(
 
     let loader = make_mcp_loader(&state.mcp_loader, &work_path, &bot_id);
     let scan_result = loader.load();
+    let catalog = crate::mcp_ui::load_catalog(&work_path, &bot_id);
 
     let servers: Vec<McpServerResponse> = scan_result
         .servers
@@ -24,6 +25,7 @@ pub async fn handle_list_mcp_servers_json(
             source: "directory".to_string(),
             tags: Vec::new(),
             requires_approval: s.tools.iter().any(|t| t.requires_approval),
+            ui_resources: crate::mcp_ui::views(&crate::mcp_ui::entries_for(&catalog, &s.name)),
         })
         .collect();
 
@@ -105,9 +107,10 @@ pub async fn handle_get_mcp_server(
 
     match loader.load_server(&name) {
         Some(server) => {
+            let catalog = crate::mcp_ui::load_catalog(&work_path, &bot_id);
             let response = McpServerResponse {
                 id: server.id,
-                name: server.name,
+                name: server.name.clone(),
                 description: server.description,
                 server_type: server.server_type,
                 status: server.status,
@@ -116,6 +119,7 @@ pub async fn handle_get_mcp_server(
                 source: "directory".to_string(),
                 tags: Vec::new(),
                 requires_approval: server.tools.iter().any(|t| t.requires_approval),
+                ui_resources: crate::mcp_ui::views(&crate::mcp_ui::entries_for(&catalog, &server.name)),
             };
             Json(ApiResponse::success(response)).into_response()
         }

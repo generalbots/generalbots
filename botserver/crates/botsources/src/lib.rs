@@ -3,6 +3,7 @@ pub mod connector_types;
 pub mod connectors;
 pub mod handlers;
 pub mod m365_auth;
+pub mod mcp_ui;
 pub mod models;
 pub mod outlook;
 pub mod outlook_handlers;

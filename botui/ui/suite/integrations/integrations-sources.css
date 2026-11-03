@@ -134,3 +134,46 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* #1675 — declared MCP UI resources and sandboxed preview. */
+.integrations-app .integrations-ui-resources { margin-top: 8px; }
+.integrations-app .integrations-ui-resources h4 { margin: 0 0 4px; font-size: 13px; }
+.integrations-app .integrations-ui-resources ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.integrations-app .integrations-ui-resource {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--gb-border, #d7dbe2);
+    border-radius: 6px;
+    padding: 6px 8px;
+}
+.integrations-app .integrations-ui-resource > div:first-child { flex: 1 1 180px; display: flex; flex-direction: column; }
+.integrations-app .integrations-ui-meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.integrations-ui-preview-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+.integrations-ui-preview-panel {
+    width: min(900px, 92vw);
+    height: min(640px, 88vh);
+    background: var(--gb-surface, #fff);
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.integrations-ui-preview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--gb-border, #d7dbe2);
+    font-weight: 600;
+}
+.integrations-ui-preview-frame { flex: 1 1 auto; width: 100%; border: 0; background: #fff; }

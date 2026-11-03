@@ -24,6 +24,25 @@ pub struct McpServerResponse {
     pub source: String,
     pub tags: Vec<String>,
     pub requires_approval: bool,
+    #[serde(default)]
+    pub ui_resources: Vec<McpUiResourceView>,
+}
+
+/// A UI resource declared for an MCP server. `pin_changed` is set when the
+/// resource hash differs from the hash the user approved.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct McpUiResourceView {
+    pub uri: String,
+    pub name: String,
+    pub mime_type: String,
+    #[serde(default)]
+    pub permissions: Vec<String>,
+    #[serde(default)]
+    pub connect_domains: Vec<String>,
+    #[serde(default)]
+    pub resource_domains: Vec<String>,
+    pub hash: String,
+    pub pin_changed: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -2,6 +2,102 @@ pub(crate) use botsecurity::command_guard::SafeCommand;
 pub(crate) use botbasic_types::BasicRuntime;
 pub(crate) use chrono::{DateTime, Utc};
 pub(crate) use serde::{Deserialize, Serialize};
+use serde_json::Value;
+
+/// Interactive-app metadata declared by an MCP server (`_meta.ui`).
+///
+/// The modern key is `resourceUri`; older servers use `ui/resourceUri`. Both
+/// are accepted, and an app-only tool (`visibility: ["app"]`) is never exposed
+/// to the model.
+#[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
+pub struct McpUiMeta {
+    #[serde(default)]
+    pub resource_uri: Option<String>,
+    #[serde(default)]
+    pub csp: Option<Value>,
+    #[serde(default)]
+    pub permissions: Vec<String>,
+    #[serde(default)]
+    pub domain: Option<String>,
+    #[serde(default)]
+    pub visibility: Vec<String>,
+}
+
+impl McpUiMeta {
+    #[must_use]
+    pub fn from_meta(meta: &Value) -> Self {
+        let ui = meta.get("ui").unwrap_or(meta);
+        let modern = ui.get("resourceUri").and_then(Value::as_str);
+        let legacy = ui.get("ui/resourceUri").and_then(Value::as_str);
+        Self {
+            resource_uri: modern.or(legacy).map(str::to_string),
+            csp: ui.get("csp").cloned(),
+            permissions: string_list(ui.get("permissions")),
+            domain: ui.get("domain").and_then(Value::as_str).map(str::to_string),
+            visibility: string_list(ui.get("visibility")),
+        }
+    }
+
+    #[must_use]
+    pub fn is_app_only(&self) -> bool {
+        self.visibility.iter().any(|value| value == "app")
+            && !self.visibility.iter().any(|value| value == "model")
+    }
+}
+
+fn string_list(value: Option<&Value>) -> Vec<String> {
+    value
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// A `ui://` resource advertised by an MCP server.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct McpResource {
+    pub uri: String,
+    pub name: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub mime_type: String,
+    #[serde(default)]
+    pub meta: Option<Value>,
+    #[serde(default)]
+    pub ui: Option<McpUiMeta>,
+}
+
+impl McpResource {
+    #[must_use]
+    pub fn is_ui_app(&self) -> bool {
+        self.mime_type.starts_with("text/html;profile=mcp-app")
+            || self.uri.starts_with("ui://")
+            || self.ui.is_some()
+    }
+}
+
+impl McpServer {
+    /// Tools the model may call. App-only tools are filtered out.
+    #[must_use]
+    pub fn model_tools(&self) -> Vec<&McpTool> {
+        self.tools
+            .iter()
+            .filter(|tool| !tool.visibility.iter().any(|value| value == "app"))
+            .collect()
+    }
+
+    /// Resources that render an interactive app.
+    #[must_use]
+    pub fn ui_resources(&self) -> Vec<&McpResource> {
+        self.resources.iter().filter(|resource| resource.is_ui_app()).collect()
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpServer {
@@ -18,6 +114,9 @@ pub struct McpServer {
     pub auth: McpAuth,
 
     pub tools: Vec<McpTool>,
+
+    #[serde(default)]
+    pub resources: Vec<McpResource>,
 
     pub capabilities: McpCapabilities,
 
@@ -163,6 +262,12 @@ pub struct McpTool {
     pub is_destructive: bool,
 
     pub requires_approval: bool,
+
+    #[serde(default)]
+    pub ui: Option<McpUiMeta>,
+
+    #[serde(default)]
+    pub visibility: Vec<String>,
 
     pub rate_limit: Option<i32>,
 

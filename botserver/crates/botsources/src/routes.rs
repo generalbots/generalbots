@@ -35,6 +35,8 @@ pub fn configure_sources_api_routes() -> Router<Arc<AppState>> {
         )
         .route("/:name/test", axum::routing::post(handle_test_mcp_server))
         .route("/:name/tools", get(handle_list_mcp_server_tools))
+        .route("/:name/ui", get(handle_mcp_ui_catalog))
+        .route("/:name/ui/:index", get(handle_mcp_ui_preview))
         .route("/:name/enable", axum::routing::post(handle_enable_mcp_server))
         .route(
             "/:name/disable",

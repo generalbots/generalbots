@@ -73,6 +73,7 @@ impl McpClient {
                 connection: serde_json::from_str(&row.config).unwrap_or_default(),
                 auth: McpAuth::default(),
                 tools: Vec::new(),
+                resources: Vec::new(),
                 capabilities: McpCapabilities::default(),
                 status: match row.status.as_str() {
                     "active" => McpServerStatus::Active,

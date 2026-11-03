@@ -8,7 +8,9 @@ pub(crate) use std::sync::Arc;
 mod handle_list_mcp_servers_json;
 mod handle_disable_mcp_server;
 mod handle_add_from_catalog;
+mod handle_mcp_ui;
 
 pub use handle_list_mcp_servers_json::*;
 pub use handle_disable_mcp_server::*;
 pub use handle_add_from_catalog::*;
+pub use handle_mcp_ui::*;
