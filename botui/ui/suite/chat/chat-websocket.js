@@ -176,6 +176,8 @@ function dialChatSocket(seq) {
           window.SurfaceRenderer.renderQuestion(data);
         } else if (data.data.name === "gb.plan") {
           window.SurfaceRenderer.renderFromFrame(data);
+        } else if (data.data.name === "gb.surface_update") {
+          window.SurfaceRenderer.applyUpdate(data);
         }
       }
       if (window.AgentMode && data.type &&

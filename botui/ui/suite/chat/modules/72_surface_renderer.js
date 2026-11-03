@@ -14,6 +14,10 @@
         "flow", "timeline", "form", "plan", "diff", "tabs",
     ];
 
+    // Mounted surfaces by id, so a STATE_DELTA / gb.surface_update can patch
+    // the data model and re-render only the affected card.
+    var mounted = Object.create(null);
+
     function isObject(value) {
         return value !== null && typeof value === "object" && !Array.isArray(value);
     }
@@ -158,6 +162,11 @@
     }
 
     function vizFallback(component, kind) {
+        if (window.Viz) {
+            try {
+                return kind === "bars" ? window.Viz.renderBars(component) : window.Viz.renderLines(component);
+            } catch (e) { /* fall through to the table */ }
+        }
         var title = component.title || kind;
         var wrapper = element("div", "surface-viz");
         wrapper.appendChild(element("h4", "", title));
@@ -453,7 +462,7 @@
             case "text": return renderText(component);
             case "callout": return renderCallout(component);
             case "table": return renderTable(component);
-            case "metrics": return renderMetrics(component);
+            case "metrics": return window.Viz ? window.Viz.renderMetrics(component) : renderMetrics(component);
             case "bars": return vizFallback(component, "bars");
             case "lines": return vizFallback(component, "lines");
             case "flow": return renderFlow(component);
@@ -515,6 +524,15 @@
             body.appendChild(renderComponent(component, context, onSubmit));
         });
         wrapper.appendChild(body);
+        if (surface.surface_id) {
+            mounted[surface.surface_id] = {
+                surface: surface,
+                body: body,
+                context: context,
+                onSubmit: onSubmit,
+                wrapper: wrapper,
+            };
+        }
         if (surface.fallback) {
             var details = document.createElement("details");
             details.className = "surface-fallback-details";
@@ -594,11 +612,56 @@
         return card;
     }
 
+    function applyPatch(document, patch) {
+        if (!Array.isArray(patch)) return false;
+        patch.forEach(function (operation) {
+            var path = operation && operation.path;
+            if (typeof path !== "string") return;
+            var parts = path.replace(/^\//, "").split("/").map(function (part) {
+                return part.replace(/~1/g, "/").replace(/~0/g, "~");
+            });
+            if (!parts.length || !parts[0]) return;
+            var parent = document;
+            for (var i = 0; i < parts.length - 1; i += 1) {
+                if (parent === null || typeof parent !== "object") return;
+                if (!(parts[i] in parent)) parent[parts[i]] = {};
+                parent = parent[parts[i]];
+            }
+            var key = parts[parts.length - 1];
+            if (operation.op === "remove") {
+                if (Array.isArray(parent)) parent.splice(Number(key), 1);
+                else delete parent[key];
+            } else if (operation.op === "add" && Array.isArray(parent) && key === "-") {
+                parent.push(operation.value);
+            } else {
+                parent[key] = operation.value;
+            }
+        });
+        return true;
+    }
+
+    function applyUpdate(frame) {
+        var payload = frame && frame.data ? frame.data.payload || {} : {};
+        var surfaceId = payload.surface_id || (frame.data && frame.data.surface_id);
+        var entry = surfaceId ? mounted[surfaceId] : null;
+        if (!entry) return false;
+        var dataModel = entry.surface.data || {};
+        if (payload.state) dataModel = payload.state;
+        applyPatch(dataModel, payload.patch || []);
+        entry.surface.data = dataModel;
+        entry.body.textContent = "";
+        (entry.surface.components || []).forEach(function (raw) {
+            entry.body.appendChild(renderComponent(resolve(raw, dataModel), entry.context, entry.onSubmit));
+        });
+        return true;
+    }
+
     window.SurfaceRenderer = {
         render: render,
         renderFromFrame: renderFromFrame,
         renderQuestion: renderQuestion,
         validate: validate,
+        applyUpdate: applyUpdate,
         catalog: CATALOG.slice(),
     };
 })();
