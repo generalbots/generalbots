@@ -63,6 +63,31 @@ fn status_for(row: Option<&Value>) -> String {
         .to_string()
 }
 
+/// Ensures the suite identity has a `users` row before an AI-account FK is
+/// written. The desktop login fallback mints a session from
+/// `admin-credentials.json` without inserting the row; without this the first
+/// connect fails with a foreign-key violation.
+pub fn ensure_user(pool: &DbPool, user_id: Uuid, email: Option<&str>) -> Result<(), String> {
+    if user_id.is_nil() {
+        return Err("Anonymous sessions cannot own an AI account.".to_string());
+    }
+    let email = email
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("admin@localhost");
+    let mut conn = pool.get().map_err(|error| error.to_string())?;
+    diesel::sql_query(
+        "INSERT INTO users (id, username, email, password_hash, is_admin) \
+         VALUES ($1, $2, $2, '', FALSE) \
+         ON CONFLICT DO NOTHING",
+    )
+    .bind::<DieselUuid, _>(user_id)
+    .bind::<Text, _>(email)
+    .execute(&mut conn)
+    .map_err(|error| error.to_string())?;
+    Ok(())
+}
+
 /// Records a successful provider login without storing any credential.
 pub fn mark_linked(
     pool: &DbPool,

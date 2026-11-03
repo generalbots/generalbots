@@ -186,13 +186,14 @@ pub async fn wizard_ai_connect(
     provider: String,
     admin: super::AdminDraft,
 ) -> Result<serde_json::Value, String> {
-    // Provisioning the VM and installing the Claude CLI can take a minute.
+    // Provisioning the VM and installing the Claude CLI can take a few
+    // minutes on a cold cache; the API installs on demand before replying.
     api_request(
         reqwest::Method::POST,
         &format!("/api/ai-accounts/{provider}/connect"),
         &admin,
         Some(serde_json::json!({})),
-        180,
+        600,
     )
     .await
 }
@@ -238,6 +239,21 @@ pub async fn wizard_ai_code(
         &admin,
         Some(serde_json::json!({ "code": code })),
         90,
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn wizard_ai_use_chat(
+    provider: String,
+    admin: super::AdminDraft,
+) -> Result<serde_json::Value, String> {
+    api_request(
+        reqwest::Method::POST,
+        &format!("/api/ai-accounts/{provider}/use-for-chat"),
+        &admin,
+        Some(serde_json::json!({})),
+        30,
     )
     .await
 }

@@ -39,6 +39,11 @@ fn agent_service() -> Result<&'static Arc<botagent::AgentService>, ApiError> {
         .ok_or_else(|| err(StatusCode::SERVICE_UNAVAILABLE, "The agent workspace is not available in this build"))
 }
 
+fn ensure_user(state: &Arc<AppState>, user: &AuthenticatedUser) -> Result<(), ApiError> {
+    ai_accounts::ensure_user(&state.conn, user.user_id, user.email.as_deref())
+        .map_err(|error| err(StatusCode::INTERNAL_SERVER_ERROR, &error))
+}
+
 /// First bot is the desktop default; the VM is per user, so any stable bot id
 /// works for provisioning.
 fn first_bot_id(state: &Arc<AppState>) -> Result<Uuid, ApiError> {
@@ -157,6 +162,7 @@ pub async fn connect(
     Path(provider): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
     let provider = provider_or_error(&provider)?;
+    ensure_user(&state, &user)?;
     match provider {
         ai_accounts::CLAUDE_CODE => connect_claude(&state, user.user_id).await,
         ai_accounts::CHATGPT_PLAN => connect_chatgpt(&state, user.user_id).await,
@@ -182,6 +188,7 @@ pub async fn status(
     Path(provider): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
     let provider = provider_or_error(&provider)?;
+    ensure_user(&state, &user)?;
     let account = if provider == ai_accounts::CLAUDE_CODE {
         let vm = botagent::vm::get_user_vm(
             agent_service()?,
@@ -277,6 +284,7 @@ pub async fn disconnect(
     Path(provider): Path<String>,
 ) -> Result<Json<Value>, ApiError> {
     let provider = provider_or_error(&provider)?;
+    ensure_user(&state, &user)?;
     match provider {
         ai_accounts::CLAUDE_CODE => {
             if let Some(service) = crate::core::bot::agent_vm_hook::service() {
@@ -323,6 +331,7 @@ pub async fn claude_code(
     Json(body): Json<ClaudeCodeBody>,
 ) -> Result<Json<Value>, ApiError> {
     let service = agent_service()?;
+    ensure_user(&state, &user)?;
     let row = ensure_vm(&state, user.user_id).await?;
     let status = botagent::claude::submit_code(service, &row.vm_name, &body.code)
         .await
@@ -383,6 +392,7 @@ pub async fn use_for_vibe(
     Json(body): Json<UseForVibeBody>,
 ) -> Result<Json<Value>, ApiError> {
     let provider = provider_or_error(&provider)?;
+    ensure_user(&state, &user)?;
     if !VIBE_AGENTS.contains(&body.agent.as_str()) {
         return Err(err(StatusCode::BAD_REQUEST, "agent must be reasoning, agentic or fast"));
     }
@@ -420,6 +430,55 @@ pub async fn use_for_vibe(
     })))
 }
 
+/// POST /api/ai-accounts/:provider/use-for-chat
+///
+/// Selects a linked subscription as the bot's chat provider. Only provider and
+/// model are written; any previous HTTP endpoint/key is cleared so the request
+/// cannot accidentally use a different account.
+pub async fn use_for_chat(
+    State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Path(provider): Path<String>,
+) -> Result<Json<Value>, ApiError> {
+    let provider = provider_or_error(&provider)?;
+    ensure_user(&state, &user)?;
+    let Some(_linked) = ai_accounts::linked_account(&state.conn, user.user_id, provider) else {
+        return Err(err(
+            StatusCode::CONFLICT,
+            "Connect the account before selecting it for chat.",
+        ));
+    };
+    let bot_id = first_bot_id(&state)?;
+    let model = ai_accounts::default_model(provider).to_string();
+    let config = botcore::config::ConfigManager::new(state.conn.clone());
+    for (key, value) in [
+        ("llm-provider".to_string(), provider.to_string()),
+        ("llm-model".to_string(), model.clone()),
+    ] {
+        config.set_config(&bot_id, &key, &value).map_err(|error| {
+            log::warn!("ai accounts: cannot persist {key}: {error}");
+            err(StatusCode::INTERNAL_SERVER_ERROR, "Could not select the chat provider")
+        })?;
+    }
+    for key in [
+        "llm-url",
+        "llm-key",
+        "llm-model-fast",
+        "llm-model-balanced",
+        "llm-model-quality",
+    ] {
+        if let Err(error) = config.set_config(&bot_id, key, "") {
+            log::warn!("ai accounts: cannot clear {key}: {error}");
+        }
+    }
+    Ok(Json(json!({
+        "success": true,
+        "provider": provider,
+        "model": model,
+        "bot_id": bot_id,
+    })))
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/ai-accounts", get(list))
@@ -428,5 +487,6 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/ai-accounts/:provider/status", post(status))
         .route("/api/ai-accounts/:provider/disconnect", post(disconnect))
         .route("/api/ai-accounts/:provider/use-for-vibe", post(use_for_vibe))
+        .route("/api/ai-accounts/:provider/use-for-chat", post(use_for_chat))
         .route("/api/ai-accounts/claude-code/code", post(claude_code))
 }

@@ -9,7 +9,6 @@
     { id: "services", key: "step.services" },
     { id: "privacy", key: "step.privacy" },
     { id: "install", key: "step.install" },
-    { id: "accounts", key: "step.accounts" },
     { id: "finish", key: "step.finish" }
   ];
 
@@ -48,6 +47,20 @@
 
   var MODELS = [
     {
+      id: "claude-code",
+      titleKey: "model.claude.title",
+      descKey: "model.claude.desc",
+      logo: "/wizard/logo-claude.svg",
+      badgeKey: "model.subscription"
+    },
+    {
+      id: "chatgpt-plan",
+      titleKey: "model.chatgpt.title",
+      descKey: "model.chatgpt.desc",
+      logo: "/wizard/logo-chatgpt.svg",
+      badgeKey: "model.subscription"
+    },
+    {
       id: "local",
       titleKey: "model.local.title",
       descKey: "model.local.desc"
@@ -61,11 +74,6 @@
       id: "own-key",
       titleKey: "model.ownkey.title",
       descKey: "model.ownkey.desc"
-    },
-    {
-      id: "hosted",
-      titleKey: "model.hosted.title",
-      descKey: "model.hosted.desc"
     }
   ];
 
@@ -154,6 +162,8 @@
       if (FREE_PROVIDERS[i].id === provider) { return FREE_PROVIDERS[i].endpoint; }
     }
     switch (provider) {
+      case "claude-code": return "";
+      case "chatgpt-plan": return "";
       case "openai": return "https://api.openai.com/v1/chat/completions";
       case "anthropic": return "https://api.anthropic.com/v1/messages";
       case "nvidia": return "https://integrate.api.nvidia.com/v1/chat/completions";
@@ -166,6 +176,8 @@
       if (FREE_PROVIDERS[i].id === provider) { return FREE_PROVIDERS[i].model; }
     }
     switch (provider) {
+      case "claude-code": return "claude-sonnet-4-5";
+      case "chatgpt-plan": return "gpt-5-codex";
       case "openai": return "gpt-5.6-sol";
       case "anthropic": return "claude-sonnet-5-5";
       case "nvidia": return "meta/llama-4-maverick-17b-128e-instruct";

@@ -280,6 +280,8 @@ async fn exchange(pool: &DbPool, code: &str, verifier: &str, user_id: Uuid) -> R
         .put_secret(&vault_path, data)
         .await
         .map_err(|error| format!("could not store the token in Vault: {error}"))?;
+    ai_accounts::ensure_user(pool, user_id, email.as_deref())
+        .map_err(|error| format!("could not record the account owner: {error}"))?;
     ai_accounts::mark_linked(
         pool,
         user_id,

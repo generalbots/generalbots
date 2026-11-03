@@ -260,6 +260,7 @@ fn main() {
         desktop::wizard::wizard_ai_status,
         desktop::wizard::wizard_ai_disconnect,
         desktop::wizard::wizard_ai_code,
+        desktop::wizard::wizard_ai_use_chat,
         desktop::wizard::wizard_finish,
     ]);
 

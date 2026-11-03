@@ -256,6 +256,42 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .choice .choice-title { display: block; font-weight: 600; margin-bottom: 2px; }
 .choice .choice-desc { display: block; font-size: 12.5px; color: var(--muted); }
 
+/* #1655 — large provider buttons with brand marks. */
+.model-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.model-card {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  text-align: left;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  cursor: pointer;
+  min-height: 116px;
+  transition: border-color .12s ease, transform .12s ease, box-shadow .12s ease;
+}
+.model-card:hover { border-color: #b9b9c2; transform: translateY(-1px); }
+.model-card.selected { border-color: var(--accent); background: #f1f1f4; box-shadow: 0 0 0 2px rgba(16, 16, 24, .08); }
+.model-logo { width: 44px; height: 44px; object-fit: contain; flex: 0 0 44px; }
+.model-logo-text { display: flex; align-items: center; justify-content: center; font-size: 24px; border-radius: 10px; background: var(--surface-2); }
+.model-copy { display: flex; flex-direction: column; gap: 3px; }
+.model-title { font-weight: 700; font-size: 15px; }
+.model-desc { font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+.model-badge {
+  align-self: flex-start;
+  margin-top: 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--muted);
+}
+.card-title .model-logo { width: 22px; height: 22px; vertical-align: middle; }
+@media (max-width: 760px) { .model-grid { grid-template-columns: 1fr; } }
+
 .inline-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .inline-row input[type="text"] { flex: 1; min-width: 240px; }
 

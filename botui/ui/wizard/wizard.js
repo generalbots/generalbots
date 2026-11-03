@@ -48,7 +48,7 @@
     el.rail.innerHTML = W.STEPS.map(function (step, index) {
       var n = index + 1;
       var current = n === state.step;
-      var done = n < state.step || (state.provisioning.ready && n <= 6);
+      var done = n < state.step || (state.provisioning.ready && n <= 5);
       return '<li class="rail-step' + (done ? " done" : "") + '"' +
         (current ? ' aria-current="step"' : "") + ">" +
         '<span class="num" aria-hidden="true">' + (done ? "✓" : n) + "</span>" +
@@ -69,8 +69,7 @@
   function canAdvance() {
     if (state.provisioning.running) { return false; }
     if (state.step === 6) { return state.provisioning.ready || state.skipped; }
-    if (state.step === 7) { return true; }
-    if (state.step === 8) { return state.provisioning.ready || state.skipped || !ctx.first_run; }
+    if (state.step === 7) { return state.provisioning.ready || state.skipped || !ctx.first_run; }
     return S.validate(state.step, draft).ok;
   }
 
@@ -111,26 +110,34 @@
     }
 
     if (state.step === 2) {
-      Array.prototype.forEach.call(document.querySelectorAll('input[name="modelMode"]'), function (input) {
-        input.addEventListener("change", function () {
-          draft.model.mode = input.value;
-          if (input.value === "free") {
+      Array.prototype.forEach.call(document.querySelectorAll('[data-model-mode]'), function (card) {
+        card.addEventListener("click", function () {
+          var mode = card.getAttribute("data-model-mode");
+          draft.model.mode = mode;
+          if (mode === "claude-code" || mode === "chatgpt-plan") {
+            draft.model.provider = mode;
+            draft.model.endpoint = "";
+            draft.model.model = W.defaultModelName(mode);
+            draft.model.api_key = "";
+            draft.model.tested = true;
+          } else if (mode === "free") {
             draft.model.provider = "kilo";
             draft.model.endpoint = W.defaultModelEndpoint("kilo");
             draft.model.model = W.defaultModelName("kilo");
             draft.model.api_key = "";
-          } else if (input.value === "own-key" || input.value === "hosted") {
+            draft.model.tested = false;
+          } else if (mode === "own-key" || mode === "hosted") {
             if (!W.defaultModelEndpoint(draft.model.provider)) {
               draft.model.provider = "openai";
             }
             draft.model.endpoint = W.defaultModelEndpoint(draft.model.provider);
             draft.model.model = W.defaultModelName(draft.model.provider);
+            draft.model.tested = false;
+          } else if (mode === "local") {
+            draft.model.tested = true;
           }
-          draft.model.tested = input.value === "local";
-          document.getElementById("modelDetail").innerHTML = S.modelDetail(draft);
-          bindModelDetail();
-          renderFooter();
           persistDraft();
+          render();
         });
       });
       bindModelDetail();
@@ -158,8 +165,7 @@
     if (state.step === 4) { bindServices(); }
     if (state.step === 5) { bindPrivacy(); }
     if (state.step === 6) { bindInstall(); }
-    if (state.step === 7) { bindAccounts(); }
-    if (state.step === 8) { bindFinish(); }
+    if (state.step === 7) { bindFinish(); }
   }
 
   function bindModelDetail() {
@@ -306,7 +312,7 @@
     }
   }
 
-  /* ---------------- AI accounts (#1655) ---------------- */
+  /* ---------------- subscription account on Finish (#1655) ---------------- */
 
   function accountLabel(status) {
     switch (status) {
@@ -318,109 +324,116 @@
     }
   }
 
-  function renderAccount(provider, status, message) {
-    var badge = document.getElementById("accountStatus-" + provider);
-    var detail = document.getElementById("accountDetail-" + provider);
-    var disconnect = document.getElementById("accountDisconnect-" + provider);
-    var connect = document.getElementById("accountConnect-" + provider);
-    var codeRow = document.getElementById("accountCodeRow-" + provider);
-    if (badge) { badge.textContent = accountLabel(status); }
-    if (detail) { detail.textContent = message || ""; }
-    if (disconnect) { disconnect.hidden = status === "unlinked"; }
-    if (connect) { connect.hidden = status === "linked"; }
-    if (codeRow) {
-      codeRow.hidden = !(provider === "claude-code" && (status === "connecting" || status === "waiting"));
+  function finishAccountNodes() {
+    return {
+      badge: document.getElementById("finishAccountStatus"),
+      detail: document.getElementById("finishAccountDetail"),
+      connect: document.getElementById("finishAccountConnect"),
+      disconnect: document.getElementById("finishAccountDisconnect"),
+      codeRow: document.getElementById("finishAccountCodeRow"),
+      code: document.getElementById("finishAccountCode"),
+      codeBtn: document.getElementById("finishAccountCodeBtn")
+    };
+  }
+
+  function renderFinishAccount(status, message) {
+    var nodes = finishAccountNodes();
+    if (nodes.badge) { nodes.badge.textContent = accountLabel(status); }
+    if (nodes.detail) { nodes.detail.textContent = message || ""; }
+    if (nodes.connect) { nodes.connect.hidden = status === "linked"; }
+    if (nodes.disconnect) { nodes.disconnect.hidden = status !== "linked"; }
+    if (nodes.codeRow) {
+      nodes.codeRow.hidden = !(draft.model.mode === "claude-code" &&
+        (status === "connecting" || status === "waiting"));
     }
   }
 
-  function stopAccountTimers() {
-    Object.keys(accountTimers).forEach(function (provider) {
-      if (accountTimers[provider]) { clearTimeout(accountTimers[provider]); }
-      delete accountTimers[provider];
-    });
+  function stopAccountTimer() {
+    if (accountTimers.finish) { clearTimeout(accountTimers.finish); }
+    delete accountTimers.finish;
   }
 
-  function pollAccount(provider) {
-    if (accountTimers[provider]) { clearTimeout(accountTimers[provider]); }
+  function finishUseChat(provider) {
+    return B.aiUseChat(provider, draft.admin)
+      .then(function () {
+        renderFinishAccount("linked", t("finish.account-selected"));
+      })
+      .catch(function (error) {
+        renderFinishAccount("linked", String(error && error.message ? error.message : error));
+      });
+  }
+
+  function pollFinishAccount(provider) {
+    stopAccountTimer();
     var deadline = Date.now() + 300000;
     function tick() {
       if (state.step !== 7) { return; }
       B.aiStatus(provider, draft.admin).then(function (data) {
         var account = (data && data.account) || data || {};
         var status = account.status || "unlinked";
-        renderAccount(provider, status, account.message || "");
-        if (status === "linked" || status === "error" || status === "expired") { return; }
-        if (Date.now() < deadline) {
-          accountTimers[provider] = setTimeout(tick, 3000);
-        }
+        renderFinishAccount(status, account.message || "");
+        if (status === "linked") { finishUseChat(provider); return; }
+        if (status === "error" || status === "expired") { return; }
+        if (Date.now() < deadline) { accountTimers.finish = setTimeout(tick, 3000); }
       }).catch(function () {
-        if (Date.now() < deadline) {
-          accountTimers[provider] = setTimeout(tick, 5000);
-        }
+        if (Date.now() < deadline) { accountTimers.finish = setTimeout(tick, 5000); }
       });
     }
-    accountTimers[provider] = setTimeout(tick, 2000);
+    accountTimers.finish = setTimeout(tick, 2000);
   }
 
-  function loadAccounts() {
-    return B.aiAccounts(draft.admin).then(function (data) {
-      (data && data.accounts ? data.accounts : []).forEach(function (account) {
-        renderAccount(account.provider, account.status || "unlinked", "");
-      });
-    }).catch(function (error) {
-      say(String(error && error.message ? error.message : error));
-    });
-  }
-
-  function bindAccounts() {
+  function bindFinishAccount() {
+    var provider = draft.model.mode;
+    if (provider !== "claude-code" && provider !== "chatgpt-plan") { return; }
     ensureAdmin();
-    // The accounts API is authenticated; save the same credentials Finish will
-    // write, then use them to mint a suite session for this step only.
-    B.saveAdmin(draft.admin).catch(function () {}).then(loadAccounts);
+    var nodes = finishAccountNodes();
+    B.saveAdmin(draft.admin).catch(function () {}).then(function () {
+      return B.aiStatus(provider, draft.admin);
+    }).then(function (data) {
+      var account = (data && data.account) || data || {};
+      var status = account.status || "unlinked";
+      renderFinishAccount(status, account.message || "");
+      if (status === "linked") { finishUseChat(provider); }
+      if (status === "connecting") { pollFinishAccount(provider); }
+    }).catch(function () {});
 
-    ["claude-code", "chatgpt-plan"].forEach(function (provider) {
-      var connect = document.getElementById("accountConnect-" + provider);
-      if (connect) {
-        connect.addEventListener("click", function () {
-          connect.disabled = true;
-          renderAccount(provider, "connecting", t("accounts.starting"));
-          B.aiConnect(provider, draft.admin).then(function (data) {
-            if (data && data.url) { B.openUrl(data.url); }
-            var status = (data && (data.status || data.state)) || "connecting";
-            renderAccount(provider, status, data && data.message);
-            if (status !== "linked") { pollAccount(provider); }
-          }).catch(function (error) {
-            renderAccount(provider, "error", String(error && error.message ? error.message : error));
-          }).then(function () { connect.disabled = false; });
+    if (nodes.connect) {
+      nodes.connect.addEventListener("click", function () {
+        nodes.connect.disabled = true;
+        renderFinishAccount("connecting", t("accounts.starting"));
+        B.aiConnect(provider, draft.admin).then(function (data) {
+          if (data && data.url) { B.openUrl(data.url); }
+          var status = (data && (data.status || data.state)) || "connecting";
+          renderFinishAccount(status, data && data.message);
+          if (status !== "linked") { pollFinishAccount(provider); }
+        }).catch(function (error) {
+          renderFinishAccount("error", String(error && error.message ? error.message : error));
+        }).then(function () { nodes.connect.disabled = false; });
+      });
+    }
+    if (nodes.disconnect) {
+      nodes.disconnect.addEventListener("click", function () {
+        B.aiDisconnect(provider, draft.admin).then(function () {
+          renderFinishAccount("unlinked", "");
+        }).catch(function (error) {
+          renderFinishAccount("error", String(error && error.message ? error.message : error));
         });
-      }
-      var disconnect = document.getElementById("accountDisconnect-" + provider);
-      if (disconnect) {
-        disconnect.addEventListener("click", function () {
-          B.aiDisconnect(provider, draft.admin).then(function () {
-            renderAccount(provider, "unlinked", "");
-          }).catch(function (error) {
-            renderAccount(provider, "error", String(error && error.message ? error.message : error));
-          });
-        });
-      }
-      var codeBtn = document.getElementById("accountCodeBtn-" + provider);
-      if (codeBtn) {
-        codeBtn.addEventListener("click", function () {
-          var input = document.getElementById("accountCode-" + provider);
-          var code = input ? input.value.trim() : "";
-          if (!code) { return; }
-          codeBtn.disabled = true;
-          B.aiCode(code, draft.admin).then(function (data) {
-            var status = (data && (data.status || data.state)) || "error";
-            renderAccount(provider, status, data && data.message);
-            if (status === "linked") { input.value = ""; }
-          }).catch(function (error) {
-            renderAccount(provider, "error", String(error && error.message ? error.message : error));
-          }).then(function () { codeBtn.disabled = false; });
-        });
-      }
-    });
+      });
+    }
+    if (nodes.codeBtn) {
+      nodes.codeBtn.addEventListener("click", function () {
+        var code = nodes.code ? nodes.code.value.trim() : "";
+        if (!code) { return; }
+        nodes.codeBtn.disabled = true;
+        B.aiCode(code, draft.admin).then(function (data) {
+          var status = (data && (data.status || data.state)) || "error";
+          renderFinishAccount(status, data && data.message);
+          if (status === "linked") { if (nodes.code) nodes.code.value = ""; finishUseChat(provider); }
+        }).catch(function (error) {
+          renderFinishAccount("error", String(error && error.message ? error.message : error));
+        }).then(function () { nodes.codeBtn.disabled = false; });
+      });
+    }
   }
 
   function bindFinish() {
@@ -464,6 +477,7 @@
     if (status && !state.provisioning.ready && !state.skipped) {
       status.textContent = t("finish.start-prev");
     }
+    bindFinishAccount();
   }
 
   function generatePassword() {
@@ -725,7 +739,7 @@
 
   function goTo(step) {
     if (step < 1 || step > state.totalSteps) { return; }
-    if (step !== 7) { stopAccountTimers(); }
+    if (step !== 7) { stopAccountTimer(); }
     state.step = step;
     render();
     persistDraft();

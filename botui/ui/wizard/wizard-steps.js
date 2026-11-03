@@ -21,6 +21,10 @@
 
   function modelDetail(draft) {
     var m = draft.model;
+    if (m.mode === "claude-code" || m.mode === "chatgpt-plan") {
+      var name = m.mode === "claude-code" ? "Claude Code" : "ChatGPT plan";
+      return '<div class="card"><p class="note ok">' + esc(t("model.subscription-note", { name: name })) + "</p></div>";
+    }
     if (m.mode === "local") {
       return '<div class="card"><p class="note ok">' + esc(t("model.local-note")) + "</p></div>";
     }
@@ -101,14 +105,24 @@
   function renderModel(draft) {
     var choices = W.MODELS.map(function (option) {
       var selected = draft.model.mode === option.id;
-      return '<label class="choice' + (selected ? " selected" : "") + '">' +
-        '<input type="radio" name="modelMode" value="' + option.id + '"' + (selected ? " checked" : "") + " />" +
-        '<span><span class="choice-title">' + esc(t(option.titleKey)) + '</span>' +
-        '<span class="choice-desc">' + esc(t(option.descKey)) + "</span></span></label>";
+      var logo = option.logo
+        ? '<img class="model-logo" src="' + esc(option.logo) + '" alt="" aria-hidden="true" />'
+        : '<span class="model-logo model-logo-text" aria-hidden="true">' + esc(option.id === "local" ? "⌂" : (option.id === "free" ? "☁" : "⚿")) + "</span>";
+      var badge = option.badgeKey
+        ? '<span class="model-badge">' + esc(t(option.badgeKey)) + "</span>"
+        : "";
+      return '<button type="button" class="model-card' + (selected ? " selected" : "") + '"' +
+        ' data-model-mode="' + esc(option.id) + '" aria-pressed="' + (selected ? "true" : "false") + '">' +
+        logo +
+        '<span class="model-copy">' +
+          '<span class="model-title">' + esc(t(option.titleKey)) + "</span>" +
+          '<span class="model-desc">' + esc(t(option.descKey)) + "</span>" +
+          badge +
+        "</span></button>";
     }).join("");
     return '' +
       '<p class="lead">' + esc(t("model.lead")) + "</p>" +
-      '<div class="choice-list">' + choices + "</div>" +
+      '<div class="model-grid">' + choices + "</div>" +
       '<div style="margin-top:14px" id="modelDetail">' + modelDetail(draft) + "</div>";
   }
 
@@ -238,44 +252,32 @@
       '<details class="details"><summary>' + esc(t("install.output")) + '</summary><pre class="log" id="provisionLog">' + esc(t("install.no-output")) + "</pre></details>";
   }
 
-  function renderAccounts(draft) {
-    var cards = [
-      {
-        id: "claude-code",
-        title: "Claude Code",
-        desc: "Use a Claude Pro or Max subscription. The Claude Code CLI runs inside your private workspace; the credential never leaves it.",
-        connect: "Connect Claude"
-      },
-      {
-        id: "chatgpt-plan",
-        title: "ChatGPT plan",
-        desc: "Use your ChatGPT plan allowance. The browser sign-in returns to this machine; the token is stored in the local vault.",
-        connect: "Connect ChatGPT"
-      }
-    ];
+  function renderFinishAccount(draft) {
+    var subscription = draft.model.mode === "claude-code" || draft.model.mode === "chatgpt-plan";
+    if (!subscription) { return ""; }
+    var name = draft.model.mode === "claude-code" ? "Claude Code" : "ChatGPT plan";
+    var logo = draft.model.mode === "claude-code" ? "/wizard/logo-claude.svg" : "/wizard/logo-chatgpt.svg";
+    var codeRow = draft.model.mode === "claude-code"
+      ? '<div class="field" id="finishAccountCodeRow" hidden>' +
+          '<label for="finishAccountCode">' + esc(t("accounts.code")) + "</label>" +
+          '<div class="inline-row">' +
+            '<input type="text" id="finishAccountCode" autocomplete="off" placeholder="' + esc(t("accounts.code-placeholder")) + '" />' +
+            '<button type="button" class="btn btn-primary btn-sm" id="finishAccountCodeBtn">' + esc(t("accounts.submit")) + "</button>" +
+          "</div></div>"
+      : "";
     return '' +
-      '<p class="lead">' + esc(t("accounts.lead")) + "</p>" +
-      cards.map(function (card) {
-        return '' +
-          '<div class="card" data-account="' + card.id + '" style="margin-top:14px">' +
-            '<div class="card-head"><span class="card-title">' + esc(card.title) + "</span>" +
-              '<span class="status-badge" id="accountStatus-' + card.id + '">' + esc(t("accounts.unlinked")) + "</span></div>" +
-            '<p class="note" style="margin:8px 0">' + esc(card.desc) + "</p>" +
-            '<div class="inline-row">' +
-              '<button type="button" class="btn btn-primary btn-sm" id="accountConnect-' + card.id + '">' + esc(card.connect) + "</button>" +
-              '<button type="button" class="btn btn-secondary btn-sm" id="accountDisconnect-' + card.id + '" hidden>' + esc(t("accounts.disconnect")) + "</button>" +
-            "</div>" +
-            '<div class="note" id="accountDetail-' + card.id + '" role="status" style="margin-top:8px"></div>' +
-            '<div class="field" id="accountCodeRow-' + card.id + '" hidden>' +
-              '<label for="accountCode-' + card.id + '">' + esc(t("accounts.code")) + "</label>" +
-              '<div class="inline-row">' +
-                '<input type="text" id="accountCode-' + card.id + '" autocomplete="off" placeholder="' + esc(t("accounts.code-placeholder")) + '" />' +
-                '<button type="button" class="btn btn-primary btn-sm" id="accountCodeBtn-' + card.id + '">' + esc(t("accounts.submit")) + "</button>" +
-              "</div>" +
-            "</div>" +
-          "</div>";
-      }).join("") +
-      '<p class="note" style="margin-top:16px">' + esc(t("accounts.later")) + "</p>";
+      '<div class="card" id="finishAccountCard" style="margin-top:16px">' +
+        '<div class="card-head"><span class="card-title"><img class="model-logo" src="' + logo + '" alt="" aria-hidden="true" /> ' +
+          esc(t("finish.connect-title", { name: name })) + "</span>" +
+          '<span class="badge" id="finishAccountStatus">' + esc(t("accounts.checking")) + "</span></div>" +
+        '<p class="note" style="margin:8px 0">' + esc(t("finish.connect-note", { name: name })) + "</p>" +
+        '<div class="inline-row">' +
+          '<button type="button" class="btn btn-primary btn-sm" id="finishAccountConnect">' + esc(t("finish.connect-button", { name: name })) + "</button>" +
+          '<button type="button" class="btn btn-secondary btn-sm" id="finishAccountDisconnect" hidden>' + esc(t("accounts.disconnect")) + "</button>" +
+        "</div>" +
+        '<div class="note" id="finishAccountDetail" role="status" style="margin-top:8px"></div>' +
+        codeRow +
+      "</div>";
   }
 
   function renderFinish(draft, ctx) {
@@ -310,6 +312,7 @@
             '<span class="hint">' + esc(t("finish.password-hint")) + "</span></div>" +
         "</div>" +
       "</div>" +
+      renderFinishAccount(draft) +
       '<div class="summary" style="margin-top:16px">' +
         '<div class="summary-row"><span>' + esc(t("finish.workspace")) + "</span><span>" + esc(draft.workspace.path || ctx.workspace_path) + "</span></div>" +
         '<div class="summary-row"><span>' + esc(t("finish.model")) + "</span><span>" + esc(modelLabel) + "</span></div>" +
@@ -329,8 +332,7 @@
       case 4: return renderServices(draft, ctx);
       case 5: return renderPrivacy(draft, ctx);
       case 6: return renderInstall(draft, ctx);
-      case 7: return renderAccounts(draft);
-      case 8: return renderFinish(draft, ctx);
+      case 7: return renderFinish(draft, ctx);
       default: return "<p>" + esc(t("wizard.unknown-step")) + "</p>";
     }
   }
@@ -343,8 +345,7 @@
       case 4: return t("heading.services");
       case 5: return t("heading.privacy");
       case 6: return t("heading.install");
-      case 7: return t("heading.accounts");
-      case 8: return t("heading.finish");
+      case 7: return t("heading.finish");
       default: return t("wizard.title");
     }
   }
@@ -352,6 +353,9 @@
   function validate(step, draft) {
     if (step === 2) {
       if (draft.model.mode === "local") { return { ok: true }; }
+      if (draft.model.mode === "claude-code" || draft.model.mode === "chatgpt-plan") {
+        return { ok: true };
+      }
       if (!draft.model.endpoint) { return { ok: false, reason: t("model.endpoint") + " — " + t("workspace.choose") }; }
       if (!draft.model.model) { return { ok: false, reason: t("model.name") }; }
       if (draft.model.mode !== "free" && !draft.model.api_key) {

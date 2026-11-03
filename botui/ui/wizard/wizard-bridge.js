@@ -232,6 +232,9 @@
         status: "linked",
         message: "Claude Code is connected inside your workspace."
       });
+    },
+    aiUseChat: function (provider) {
+      return Promise.resolve({ success: true, provider: provider });
     }
   };
 
@@ -321,6 +324,12 @@
       return isDesktop
         ? invoke("wizard_ai_code", { code: code, admin: admin })
         : mock.aiCode(code);
+    },
+
+    aiUseChat: function (provider, admin) {
+      return isDesktop
+        ? invoke("wizard_ai_use_chat", { provider: provider, admin: admin })
+        : mock.aiUseChat(provider);
     },
 
     onProgress: function (handler) {

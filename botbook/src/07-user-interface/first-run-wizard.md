@@ -47,7 +47,7 @@ app start
   │     wizard spawns `botserver --provision-stack`
   │       vault → tables → cache → drive → vector_db → llm (if local)
   │     wizard starts the normal sidecar and waits for /api/product
-  │     step 6 connects Claude Code / ChatGPT plan accounts (optional)
+  │     the Finish screen connects the Claude/ChatGPT choice from step 2 (optional)
   │     wizard stores OAuth clients through the API (if any)
   │     handoff: write stack/.initialized, show suite, close wizard
   └─ otherwise → start sidecar and show the suite (previous behaviour)
@@ -78,17 +78,18 @@ marketing copy:
 
 ## Assistant model options
 
-Step 2 offers four choices. The first is the bundled local model
-(llama.cpp + DeepSeek-R1-Distill-Qwen-1.5B) and is the only one that installs a
-local runtime. For low-memory machines, setup can skip that bundle entirely by
-choosing a hosted option:
+Step 2 offers five large cards. Claude Code and ChatGPT plan use the user's
+subscription and are connected on the Finish screen; the bundled local model
+(llama.cpp + DeepSeek-R1-Distill-Qwen-1.5B) is the only option that installs a
+local runtime. For low-memory machines, setup can skip that bundle entirely:
 
 | Option | Key | Local bundle | Where prompts go |
 |---|---|---|---|
+| Claude Code | none (subscription) | not installed | the user's agent VM |
+| ChatGPT plan | none (subscription) | not installed | the user's ChatGPT plan through the local loopback |
 | Bundled local model | — | installed | nowhere (this machine) |
-| Free hosted API | not required for Kilo Code/OVHcloud; LLM7.io needs a free account key | not installed | Kilo Code (`kilo-auto/free`), LLM7.io (`gemini-3-flash`) or OVHcloud AI Endpoints (`gpt-oss-20b`) |
+| Free hosted API | Kilo Code needs no key | not installed | the free gateway named in the card |
 | My own provider key | required | not installed | the endpoint the user enters |
-| Hosted model | required | not installed | the endpoint the user enters |
 
 The free endpoints are third-party services governed by their own terms; the
 wizard states that they have no SLA and should not receive confidential data.
@@ -106,31 +107,34 @@ fallback reads that file from `BOTSERVER_STACK_PATH` as well as the process
 working directory, so a packaged desktop install can sign in with the account
 the wizard displayed.
 
-## AI accounts step
+## AI accounts
 
-After provisioning, the wizard offers the two subscription accounts:
+Step 2 offers Claude Code and ChatGPT plan as large provider cards with their
+brand marks, alongside the local model, the free gateway and the own-key
+options. Selecting a subscription records the provider; the account is
+connected on the **Finish** screen, after the services are installed:
 
-| Card | Store | Login flow |
+| Provider | Store | Login flow |
 |---|---|---|
 | Claude Code | the agent VM (`/home/claude/.claude`, 0700) | `claude setup-token` runs under the `claude` user; the URL is shown in the wizard, and the pasted code is forwarded to the VM |
 | ChatGPT plan | the local Vault (`gbo/users/{user_id}/chatgpt-plan`) | loopback OAuth on `127.0.0.1:1455` (`OPENAI_OAUTH_CLIENT_ID` / `OPENAI_OAUTH_REDIRECT`) |
 
-Both cards are optional: the assistant works without a subscription, and the
-same accounts can be connected later in Settings → AI accounts.
+Connecting is optional and can be done later in Settings → AI accounts. When it
+succeeds, the wizard selects the provider as the bot's chat model.
 
 ## Acceptance
 
 `botui/ui/wizard/selftest.html` runs the real controller against the in-browser
 bridge with the stack stopped and no network. It asserts:
 
-- the wizard renders and the rail exposes eight steps with `aria-current`;
+- the wizard renders and the rail exposes seven steps with `aria-current`;
 - copy names no operating system;
 - step 2 blocks an own-key setup without a key and passes with the local model;
 - workspace writability is reported;
 - the redirect URI shown matches the backend callback;
 - the data map reflects the selected model;
 - provisioning reaches `ready` and every component reports `ready`;
-- the AI accounts step renders the Claude Code and ChatGPT plan cards;
+- step 2 renders the Claude Code and ChatGPT plan cards with their logos;
 - the finish step summarises the choices.
 
 The matrix in #1591 (operating systems, offline, invalid keys, interruptions)

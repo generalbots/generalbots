@@ -54,7 +54,7 @@
     assert(ready, "wizard renders with the stack stopped and no network");
 
     var rail = document.querySelectorAll("#railSteps .rail-step");
-    assert(rail.length === 8, "eight steps are present", String(rail.length));
+    assert(rail.length === 7, "seven steps are present", String(rail.length));
     assert(rail[0].getAttribute("aria-current") === "step", "rail marks the current step");
 
     var body = text("#stepBody");
@@ -69,22 +69,27 @@
     await waitFor(function () { return window.GBWizard.state.step === 2; }, 1500);
     assert(window.GBWizard.state.step === 2, "Next advances to the model step");
 
+    var claudeCard = document.querySelector('[data-model-mode="claude-code"]');
+    var chatgptCard = document.querySelector('[data-model-mode="chatgpt-plan"]');
+    assert(!!claudeCard && !!chatgptCard, "Claude and ChatGPT are offered in step 2");
+    assert(!!document.querySelector('img[src*="logo-claude"]') &&
+      !!document.querySelector('img[src*="logo-chatgpt"]'), "provider logos are rendered");
+
     // Own key without a key must block.
-    var own = document.querySelector('input[name="modelMode"][value="own-key"]');
-    if (own) { own.checked = true; fire('input[name="modelMode"][value="own-key"]', "change"); }
+    if (claudeCard) { click('[data-model-mode="claude-code"]'); }
+    await waitFor(function () { return window.GBWizard.state.step === 2; }, 500);
+    click('[data-model-mode="own-key"]');
     await waitFor(function () { return !!document.getElementById("modelKey"); }, 1000);
     click("#nextBtn");
     assert(window.GBWizard.state.step === 2, "Next is blocked without a provider key");
 
-    var free = document.querySelector('input[name="modelMode"][value="free"]');
-    if (free) { free.checked = true; fire('input[name="modelMode"][value="free"]', "change"); }
+    click('[data-model-mode="free"]');
     await waitFor(function () { return !!document.getElementById("modelProvider"); }, 1000);
     assert(!!document.getElementById("modelProvider"), "free provider selector is rendered");
     var kilo = window.GBWizard.freeProviderById("kilo");
     assert(!!kilo && kilo.needsKey === false, "Kilo Code is offered without a key");
 
-    var local = document.querySelector('input[name="modelMode"][value="local"]');
-    if (local) { local.checked = true; fire('input[name="modelMode"][value="local"]', "change"); }
+    click('[data-model-mode="local"]');
     await waitFor(function () { return !document.getElementById("modelKey"); }, 1000);
     click("#nextBtn");    await waitFor(function () { return window.GBWizard.state.step === 3; }, 1500);
     assert(window.GBWizard.state.step === 3, "local model passes validation");
@@ -127,13 +132,7 @@
     }, 12000);
     assert(provisioned, "provisioning reaches ready");
     await waitFor(function () { return window.GBWizard.state.step === 7; }, 1500);
-    assert(window.GBWizard.state.step === 7, "AI accounts step is reachable");
-    var accounts = text("#stepBody");
-    assert(accounts.indexOf("Claude Code") !== -1, "Claude Code card is rendered");
-    assert(accounts.indexOf("ChatGPT plan") !== -1, "ChatGPT plan card is rendered");
-    click("#nextBtn");
-    await waitFor(function () { return window.GBWizard.state.step === 8; }, 1500);
-    assert(window.GBWizard.state.step === 8, "finish step is reachable");
+    assert(window.GBWizard.state.step === 7, "finish step is reachable");
     assert(text("#stepBody").indexOf("Workspace") !== -1, "finish summarises the choices");
     assert(text("#stepBody").indexOf("Administrator account") !== -1,
       "finish shows the administrator account");
