@@ -38,3 +38,26 @@
 @media (max-width: 640px) {
     .gb-app-frame { height: 280px; }
 }
+
+/* #1680 — mobile full-screen sheet and visible focus. */
+.gb-app-btn:focus-visible,
+.gb-app-poster:focus-visible {
+    outline: 2px solid #1f6feb;
+    outline-offset: 2px;
+}
+@media (max-width: 640px) {
+    .gb-app-card.expanded {
+        position: fixed;
+        inset: 0;
+        z-index: 1500;
+        border-radius: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+    }
+    .gb-app-card.expanded .gb-app-body { flex: 1 1 auto; }
+    .gb-app-card.expanded .gb-app-frame { height: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .gb-app-card { transition: none; }
+}

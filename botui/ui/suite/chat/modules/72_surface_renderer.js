@@ -503,6 +503,8 @@
     function render(surface, fallback, onSubmit) {
         var result = validate(surface);
         var wrapper = element("section", "surface-card");
+        wrapper.setAttribute("role", "group");
+        wrapper.setAttribute("aria-label", (surface && surface.title) || "Result");
         wrapper.setAttribute("data-surface-id", (surface && surface.surface_id) || "");
         if (!result.ok) {
             var warning = element("div", "surface-callout tone-error");

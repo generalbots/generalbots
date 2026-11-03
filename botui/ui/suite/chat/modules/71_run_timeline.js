@@ -98,6 +98,8 @@
 
         var summary = document.createElement("div");
         summary.className = "run-summary";
+        summary.setAttribute("role", "status");
+        summary.setAttribute("aria-live", "polite");
         summary.textContent = "Starting…";
 
         var rows = document.createElement("div");
@@ -156,6 +158,12 @@
         runs[runId] = entry;
         activeRunId = runId;
         startTimer();
+        // #1680 — first-paint sample for the performance gate.
+        try {
+            window.dispatchEvent(new CustomEvent("gb-run-card-mounted", {
+                detail: { run_id: runId, startedAt: entry.startedAt },
+            }));
+        } catch (e) { /* CustomEvent unavailable */ }
         return entry;
     }
 

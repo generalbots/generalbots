@@ -171,6 +171,16 @@ function dialChatSocket(seq) {
         return;
       }
       // #1668 — every run frame feeds the timeline, regardless of agent mode.
+      if (data.seq) {
+        try {
+          window.dispatchEvent(new CustomEvent("gb-run-frame", { detail: { frame: data } }));
+        } catch (e) { /* CustomEvent unavailable */ }
+      }
+      if (data.type === "run_resume_done") {
+        try {
+          window.dispatchEvent(new CustomEvent("run_resume_done", { detail: data }));
+        } catch (e) { /* CustomEvent unavailable */ }
+      }
       if (window.RunTimeline) {
         window.RunTimeline.handleFrame(data);
       }
