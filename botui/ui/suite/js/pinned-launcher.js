@@ -16,7 +16,15 @@
 
   function readStore() {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      if (!Array.isArray(parsed)) return [];
+      // #1632 item 6 — a previous build allowed Vibe to be pinned; drop it on
+      // load so the taskbar never renders a chip the launcher no longer owns.
+      return parsed.filter(function (item) {
+        if (!item || item.kind !== "app") return true;
+        var id = String(item.appId || "");
+        return id !== "vibe" && id.indexOf("vibe-") !== 0;
+      });
     } catch (e) {
       return [];
     }
@@ -42,9 +50,15 @@
     return null;
   }
 
-  // #1312 — Vibe toolwindows are not user-pinnable apps.
+  // #1312/#1632 — Vibe is reached from its own launcher entry, never pinned
+  // as a taskbar chip; its toolwindows are views, not apps either.
   function isPinnable(app) {
-    return app && !app.toolwindow && String(app.id).indexOf("vibe-") !== 0;
+    return (
+      app &&
+      app.id !== "vibe" &&
+      !app.toolwindow &&
+      String(app.id).indexOf("vibe-") !== 0
+    );
   }
 
   function iconFor(item) {

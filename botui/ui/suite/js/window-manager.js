@@ -437,10 +437,18 @@ if (typeof window.WindowManager === "undefined") {
         leftBase = Math.max(180, vRect.left - wRect.left + 12);
       }
       const offset = (this.openWindows.length * 28) % 140;
-      // Explicit positions (opts.top/left) win — e.g. Project Info opens
-      // pinned to the top of the workspace instead of below the Vibe bar.
-      const top = typeof opts.top === "number" ? opts.top : topBase + offset;
-      const left = typeof opts.left === "number" ? opts.left : leftBase + offset;
+      // #1632 item 7 — Chat is the primary surface: give it a stable
+      // top-left footprint inside the workspace instead of the cascade
+      // offset, which pushed the first window under the taskbar/sidebar on
+      // narrow screens. Explicit opts still win.
+      const APP_DEFAULT_POSITION = { chat: { top: 24, left: 24 } };
+      const defPos = APP_DEFAULT_POSITION[id];
+      const top = typeof opts.top === "number"
+        ? opts.top
+        : defPos ? defPos.top : topBase + offset;
+      const left = typeof opts.left === "number"
+        ? opts.left
+        : defPos ? defPos.left : leftBase + offset;
 
       const windowEl = document.createElement("div");
       windowEl.id = `window-${id}`;
@@ -708,6 +716,9 @@ if (typeof window.WindowManager === "undefined") {
     }
 
     _trackRecent(id, title) {
+      // #1632 item 6 — Vibe is opened from its own entry and must not show up
+      // in the launcher's quick-access (Recent) grid.
+      if (id === "vibe" || String(id).indexOf("vibe-") === 0) return;
       try {
         let recent = JSON.parse(localStorage.getItem("gb-recent-apps") || "[]");
         recent = recent.filter((r) => r.id !== id);
@@ -720,10 +731,12 @@ if (typeof window.WindowManager === "undefined") {
     getRecentApps() {
       try {
         const recent = JSON.parse(localStorage.getItem("gb-recent-apps") || "[]");
-        return recent.map((r) => {
-          const app = (window.APPS_REGISTRY || APPS_REGISTRY).find((a) => a.id === r.id);
-          return app || { id: r.id, title: r.title, category: "recent", color: "#666", icon: "", hxGet: "" };
-        });
+        return recent
+          .filter((r) => r && r.id !== "vibe" && String(r.id).indexOf("vibe-") !== 0)
+          .map((r) => {
+            const app = (window.APPS_REGISTRY || APPS_REGISTRY).find((a) => a.id === r.id);
+            return app || { id: r.id, title: r.title, category: "recent", color: "#666", icon: "", hxGet: "" };
+          });
       } catch (e) {
         return [];
       }

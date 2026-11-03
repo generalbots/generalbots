@@ -5,7 +5,10 @@
 name=General Bots
 
 # Only Chat and Drive are active in the desktop-local edition.
-apps=chat,drive
+# #1632 item 8 — the everyday tools ship enabled in the launcher too; every
+# other application stays behind `preview_apps` (empty here, so the minimal
+# profile shows exactly this list).
+apps=chat,drive,clock-widget,jukebox,sheet,database,player,calculator,notes,photos,timer,weather
 
 # #1614/#1615 — surfaces that stay compiled and routed but are never advertised
 # in this profile. Integrations owns the Data Sources tab, so hiding the app
