@@ -625,7 +625,7 @@ test("ISSUE #1637: model tiers select real models and the picker is hydrated", f
   assert(llm.indexOf("llm-model-{tier}") !== -1, "per-tier model key missing");
   var handlers = readFile("../../../botserver/src/main_module/routes/chat_handlers.rs");
   assert(handlers.indexOf("/api/chat/models") !== -1, "tier endpoint missing");
-  var init = readFile("chat/chat-init.js");
+  var init = readFile("chat/chat-model-picker.js");
   assert(init.indexOf("/api/chat/models") !== -1, "picker does not hydrate from the endpoint");
   assert(init.indexOf("option.disabled") !== -1, "unconfigured tiers are not disabled");
 });
