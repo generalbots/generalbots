@@ -476,13 +476,16 @@ pub async fn run_llm_tool_call(
 /// characters inside string literals and retries.
 /// Native tools every bot with an agent VM can call; used to recover a tool
 /// name the model left out of its JSON call.
-const RECOVERABLE_TOOL_NAMES: [&str; 6] = [
+const RECOVERABLE_TOOL_NAMES: [&str; 9] = [
     "vm_exec",
     "drive_save",
     "drive_fetch",
     "vm_file",
     "vm_files",
     "classify_media",
+    "ask_user",
+    "propose_plan",
+    "show_surface",
 ];
 
 /// Recover a missing tool name from a parsed call. Providers occasionally emit

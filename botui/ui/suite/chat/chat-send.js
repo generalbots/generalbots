@@ -2,7 +2,7 @@
  * Split out of chat-init.js so every chat script stays under 450 lines. */
 "use strict";
 
-function sendMessage(messageContent) {
+function sendMessage(messageContent, extra) {
   var input = document.getElementById("messageInput");
   if (!input) return;
 
@@ -75,6 +75,14 @@ function sendMessage(messageContent) {
     }),
     timestamp: new Date().toISOString(),
   };
+
+  // #1670 — structured answers ride with the same turn so the server can
+  // record the field ids and stop asking them again.
+  if (extra && typeof extra === "object") {
+    Object.keys(extra).forEach(function (key) {
+      if (extra[key] !== undefined) payload[key] = extra[key];
+    });
+  }
 
   var projectMention = selectedMentions.find(function (mention) {
     return mention.kind === "project" && mention.id;
@@ -248,3 +256,25 @@ function queueOfflineMessage(payload) {
 }
 
 window.sendMessage = sendMessage;
+
+// #1670 — the surface renderer submits forms and plan approvals here.
+window.ChatSend = window.ChatSend || {};
+window.ChatSend.sendStructured = function (detail) {
+  detail = detail || {};
+  if (detail.action === "approve_plan") {
+    var steps = Array.isArray(detail.steps) ? detail.steps : [];
+    var titles = steps.map(function (step) { return step.title || ""; }).filter(Boolean);
+    sendMessage("Approved plan: " + titles.join(" → "), {
+      plan_approval: { surface_id: detail.surface_id || null, steps: steps },
+    });
+    return;
+  }
+  var values = detail.values || {};
+  var text = Object.keys(values).map(function (key) {
+    return key + ": " + values[key];
+  }).join("\n");
+  sendMessage(text || "Continue.", {
+    question_answers: values,
+    question_id: detail.surface_id || null,
+  });
+};

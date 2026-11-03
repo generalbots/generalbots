@@ -131,6 +131,10 @@ pub(super) async fn build_and_stream(
         .await;
     } else {
         let cancelled = crate::core::bot::runs::bus::bus().is_cancelled(&run.thread_id);
+        let waiting = crate::core::bot::runs::bus::bus()
+            .thread(&run.thread_id)
+            .state()
+            .is_waiting();
         let final_state = if cancelled {
             botevents::RunState::Cancelled
         } else {
@@ -145,14 +149,18 @@ pub(super) async fn build_and_stream(
             None,
         )
         .await;
-        super::event_sink::run_finished(
-            identity.sink,
-            &run,
-            final_state,
-            started.elapsed().as_millis() as u64,
-            None,
-        )
-        .await;
+        // #1670 — a turn that asked a question or proposed a plan is not
+        // finished; the answer starts the next run in the same thread.
+        if !waiting {
+            super::event_sink::run_finished(
+                identity.sink,
+                &run,
+                final_state,
+                started.elapsed().as_millis() as u64,
+                None,
+            )
+            .await;
+        }
     }
 
     if let Ok(run_uuid) = uuid::Uuid::parse_str(&run.run_id) {

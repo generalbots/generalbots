@@ -99,6 +99,11 @@ impl ThreadChannel {
         if meta.state.is_terminal() {
             return;
         }
+        // A turn that ended by asking a question keeps the run waiting: the
+        // answer starts the next turn, it does not fail the current one.
+        if meta.state.is_waiting() && state == RunState::Succeeded {
+            return;
+        }
         meta.state = if meta.cancelled {
             RunState::Cancelled
         } else {

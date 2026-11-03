@@ -236,14 +236,17 @@ pub async fn process_message_internal(
     }
 
     let channel = sink.channel_type();
-    let system_prompt = super::system_prompt::build(
-        state,
-        bot_uuid,
-        session_id,
-        user_id,
-        bot_name,
+    let system_prompt = super::system_prompt::with_structured_tools(
+        super::system_prompt::build(
+            state,
+            bot_uuid,
+            session_id,
+            user_id,
+            bot_name,
+            channel,
+            &active_switchers,
+        ),
         channel,
-        &active_switchers,
     );
 
     let session_context = {
@@ -255,6 +258,29 @@ pub async fn process_message_internal(
 
     let mut messages =
         vec![serde_json::json!({"role": "system", "content": system_prompt.clone()})];
+
+    // #1670 — structured answers travel with the user turn. Record them so a
+    // field is never asked twice, and make the model treat them as the
+    // authoritative value for this conversation.
+    if let Some(values) = parsed.get("question_answers").and_then(|value| value.as_object()) {
+        super::surface_tools::record_answers(&session_id.to_string(), values);
+        let rendered = serde_json::to_string(values).unwrap_or_default();
+        messages.push(serde_json::json!({
+            "role": "system",
+            "content": format!(
+                "The user answered the structured question with {rendered}. These values are authoritative; do not ask for the same fields again."
+            )
+        }));
+    }
+    if let Some(plan) = parsed.get("plan_approval") {
+        let rendered = serde_json::to_string(plan).unwrap_or_default();
+        messages.push(serde_json::json!({
+            "role": "system",
+            "content": format!(
+                "The user approved the plan with {rendered}. Execute it; do not propose it again."
+            )
+        }));
+    }
 
 
     // #1549/#1637: the tier now selects a real model in

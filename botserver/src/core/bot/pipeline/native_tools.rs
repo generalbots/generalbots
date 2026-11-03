@@ -13,6 +13,9 @@ const OUTPUT_LIMIT: usize = 8_000;
 
 /// Returns true when `name` is a native tool and the call was answered.
 pub async fn try_run(identity: &SessionIdentity<'_>, name: &str, args: &str) -> bool {
+    if super::surface_tools::try_run(identity, name, args).await {
+        return true;
+    }
     if name == "vm_exec" {
         #[cfg(feature = "agent-vm")]
         run_vm_exec(identity, args).await;

@@ -80,3 +80,13 @@ pub(super) fn build(
         )
     }
 }
+
+/// The structured-interaction surface is advertised only when the client can
+/// receive run events; otherwise the model would offer cards that this build
+/// cannot render.
+pub(crate) fn with_structured_tools(prompt: String, channel: &str) -> String {
+    if channel != "web" || !super::event_sink::enabled() {
+        return prompt;
+    }
+    format!("{prompt}\n\n{}", super::surface_tools::instructions())
+}
