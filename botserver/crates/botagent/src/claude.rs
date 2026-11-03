@@ -124,6 +124,16 @@ while time.time() < deadline:
             break
         log.write(data)
         log.flush()
+        text = data.decode("utf-8", "replace")
+        if "Invalid code" in text or "OAuth error" in text:
+            # The CLI rejected a partial/incorrect paste. Return to the code
+            # prompt instead of leaving the status stuck on "verifying".
+            sent = False
+            set_status("waiting")
+            try:
+                os.write(fd, b"\r")
+            except OSError:
+                pass
     if not sent and os.path.exists(CODE):
         code = ""
         try:
