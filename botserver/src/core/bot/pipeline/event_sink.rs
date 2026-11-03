@@ -20,6 +20,7 @@ use uuid::Uuid;
 use botcore::shared::state::AppState;
 
 use super::sink::ChannelSink;
+use super::super::runs::observability;
 
 /// Security-backed redactor: known credential values from the environment,
 /// then the security crate's masking rules, applied to every string in the
@@ -256,6 +257,7 @@ pub async fn emit_custom(
 
 pub async fn run_started(sink: &dyn ChannelSink, context: &RunContext, title: Option<&str>) {
     crate::core::bot::runs::bus::bus().thread(&context.thread_id).set_state(RunState::Running);
+    observability::start_run(&context.thread_id, &context.run_id, Some(&context.agent));
     let data = serde_json::json!({
         "agent": context.agent,
         "title": title,
@@ -271,6 +273,11 @@ pub async fn run_finished(
     exit_code: Option<i32>,
 ) {
     crate::core::bot::runs::bus::bus().finish(&context.thread_id, state);
+    observability::finish_run(
+        &context.run_id,
+        &state.to_string(),
+        context.state.as_ref().map(|app| &app.conn),
+    );
     let data = serde_json::json!({
         "state": state,
         "duration_ms": duration_ms,
@@ -286,6 +293,11 @@ pub async fn run_error(
     code: Option<&str>,
 ) {
     crate::core::bot::runs::bus::bus().finish(&context.thread_id, RunState::Failed);
+    observability::finish_run(
+        &context.run_id,
+        "failed",
+        context.state.as_ref().map(|app| &app.conn),
+    );
     let data = serde_json::json!({
         "message": message,
         "code": code,
@@ -305,6 +317,12 @@ pub async fn step_started(
         "name": name,
         "index": index,
     });
+    observability::start_span(
+        &context.run_id,
+        "step",
+        step_id,
+        vec![("gb.step.name".to_string(), name.to_string())],
+    );
     let _ = emit(sink, context, EventType::StepStarted, data).await;
 }
 
@@ -322,6 +340,15 @@ pub async fn step_finished(
         "duration_ms": duration_ms,
         "exit_code": exit_code,
     });
+    observability::finish_span(
+        &context.run_id,
+        "step",
+        step_id,
+        vec![(
+            "gb.step.status".to_string(),
+            status.to_string(),
+        )],
+    );
     let _ = emit(sink, context, EventType::StepFinished, data).await;
 }
 
@@ -337,6 +364,12 @@ pub async fn tool_started(
         "name": name,
         "risk": risk,
     });
+    observability::start_span(
+        &context.run_id,
+        "tool",
+        call_id,
+        vec![("gen_ai.tool.name".to_string(), name.to_string())],
+    );
     let _ = emit(sink, context, EventType::ToolCallStart, data).await;
 }
 
@@ -354,6 +387,12 @@ pub async fn tool_result(
         "result": result,
         "duration_ms": duration_ms,
     });
+    observability::finish_span(
+        &context.run_id,
+        "tool",
+        call_id,
+        vec![("gb.tool.status".to_string(), status.to_string())],
+    );
     let _ = emit(sink, context, EventType::ToolCallResult, data).await;
 }
 

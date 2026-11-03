@@ -30,6 +30,9 @@ pub(super) async fn merge_part_a(
     *api_router = api_router
         .clone()
         .merge(crate::core::bot::sandbox::routes::router());
+    *api_router = api_router
+        .clone()
+        .merge(crate::core::bot::runs::quality::router());
 
     *api_router = api_router
         .clone()

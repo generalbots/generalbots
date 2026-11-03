@@ -1,0 +1,75 @@
+<link rel="stylesheet" href="/suite/admin/admin.p1.css" />
+<section class="gb-admin-panel" data-run-quality>
+    <header class="gb-admin-panel-head">
+        <div>
+            <p class="gb-admin-eyebrow">Observability</p>
+            <h1>Run quality</h1>
+            <p>Frame validity, consent denials, sandbox errors and token usage for the recent run log.</p>
+        </div>
+        <button type="button" class="gb-btn" data-run-quality-refresh>Refresh</button>
+    </header>
+    <p class="gb-admin-status" data-run-quality-status role="status" aria-live="polite">Loading…</p>
+    <div class="gb-admin-metric-grid" data-run-quality-metrics></div>
+</section>
+
+<script>
+(function () {
+    "use strict";
+    var root = document.querySelector("[data-run-quality]");
+    if (!root) return;
+    function token() {
+        try {
+            return (window.getGBAccessToken && window.getGBAccessToken()) ||
+                localStorage.getItem("gb-access-token") || "";
+        } catch (e) { return ""; }
+    }
+    function card(label, value, hint) {
+        var box = document.createElement("article");
+        box.className = "gb-admin-metric-card";
+        var name = document.createElement("div");
+        name.className = "gb-admin-metric-label";
+        name.textContent = label;
+        var number = document.createElement("div");
+        number.className = "gb-admin-metric-value";
+        number.textContent = String(value);
+        box.appendChild(name);
+        box.appendChild(number);
+        if (hint) {
+            var note = document.createElement("div");
+            note.className = "gb-admin-metric-hint";
+            note.textContent = hint;
+            box.appendChild(note);
+        }
+        return box;
+    }
+    function load() {
+        var status = root.querySelector("[data-run-quality-status]");
+        var grid = root.querySelector("[data-run-quality-metrics]");
+        status.textContent = "Loading…";
+        var headers = { Accept: "application/json" };
+        if (token()) headers.Authorization = "Bearer " + token();
+        fetch("/api/runs/quality", { credentials: "same-origin", headers: headers })
+            .then(function (response) {
+                if (!response.ok) throw new Error("HTTP " + response.status);
+                return response.json();
+            })
+            .then(function (data) {
+                status.textContent = "Updated " + (data.generated_at || "");
+                grid.textContent = "";
+                grid.appendChild(card("Frames", data.frames || 0, "Persisted run events"));
+                grid.appendChild(card("UI frames", data.ui_frames || 0, (data.ui_frames_per_run || 0).toFixed(2) + " per run"));
+                grid.appendChild(card("Questions", data.question_frames || 0, "Structured questions asked"));
+                grid.appendChild(card("Apps", data.app_frames || 0, "Inline MCP apps mounted"));
+                grid.appendChild(card("Consent denials", data.consent_denials_24h || 0, "Last 24 hours"));
+                grid.appendChild(card("Sandbox errors", data.sandbox_errors || 0, "Recorded frame errors"));
+                grid.appendChild(card("Tokens in", data.tokens_in || 0, "agent_spans total"));
+                grid.appendChild(card("Tokens out", data.tokens_out || 0, "agent_spans total"));
+            })
+            .catch(function (error) {
+                status.textContent = "Quality metrics unavailable: " + error.message;
+            });
+    }
+    root.querySelector("[data-run-quality-refresh]").addEventListener("click", load);
+    load();
+})();
+</script>

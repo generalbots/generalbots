@@ -445,3 +445,19 @@ dialog.modal[open] {
     cursor: pointer;
     transition: opacity 0.2s;
 }
+
+/* #1679 — run quality dashboard. */
+.gb-admin-metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+.gb-admin-metric-card {
+    border: 1px solid var(--gb-border, #d7dbe2);
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+.gb-admin-metric-label { font-size: 12px; color: var(--gb-text-muted, #57606a); }
+.gb-admin-metric-value { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.gb-admin-metric-hint { font-size: 12px; color: var(--gb-text-muted, #57606a); }

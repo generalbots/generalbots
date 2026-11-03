@@ -4,4 +4,6 @@
 //! `run_events` log around it.
 
 pub mod bus;
+pub mod observability;
+pub mod quality;
 pub mod store;
