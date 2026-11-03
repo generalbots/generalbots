@@ -181,8 +181,9 @@ pub async fn oauth_callback(
     };
 
     // Each provider has its own token response type, so the two arms are
-// flattened into the three fields that actually get stored.
-    let (access_token, refresh_token, expires_at) = match provider {
+    // flattened into the fields that actually get stored. #1643 — `scope`
+    // carries what the provider reports as granted, for the consent record.
+    let (access_token, refresh_token, expires_at, granted_scope) = match provider {
         Provider::OneDrive => {
             match crate::external::onedrive::exchange_code(
                 &http,
@@ -194,7 +195,7 @@ pub async fn oauth_callback(
             )
             .await
             {
-                Ok(t) => (t.access_token, t.refresh_token, t.expires_at),
+                Ok(t) => (t.access_token, t.refresh_token, t.expires_at, t.scope),
                 Err(e) => {
                     log::warn!("external drive oauth exchange failed: {e}");
                     return back("external=error&reason=exchange_failed").into_response();
@@ -211,7 +212,7 @@ pub async fn oauth_callback(
             )
             .await
             {
-                Ok(t) => (t.access_token, t.refresh_token, t.expires_at),
+                Ok(t) => (t.access_token, t.refresh_token, t.expires_at, t.scope),
                 Err(e) => {
                     log::warn!("external drive oauth exchange failed: {e}");
                     return back("external=error&reason=exchange_failed").into_response();
@@ -235,6 +236,7 @@ pub async fn oauth_callback(
             refresh_enc.as_deref(),
             Some(expires_at),
             None,
+            granted_scope.as_deref(),
         )
     })();
     if let Err(e) = stored {

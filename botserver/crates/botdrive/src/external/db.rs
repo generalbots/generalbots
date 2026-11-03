@@ -63,6 +63,11 @@ pub fn ensure_schema(conn: &mut diesel::PgConnection) -> Result<(), String> {
             ON external_drive_files (branch_id, provider)",
         "CREATE INDEX IF NOT EXISTS idx_external_files_branch_path
             ON external_drive_files (branch_id, provider, path)",
+        // #1643 — the consent snapshot: which scopes the provider granted, who
+        // can see the mirrored metadata, and when the user agreed.
+        "ALTER TABLE external_drive_connections ADD COLUMN IF NOT EXISTS scopes TEXT",
+        "ALTER TABLE external_drive_connections ADD COLUMN IF NOT EXISTS visibility TEXT NOT NULL DEFAULT 'private'",
+        "ALTER TABLE external_drive_connections ADD COLUMN IF NOT EXISTS consented_at TIMESTAMPTZ",
         // The sync loop reads only rows whose backoff has elapsed.
         "CREATE INDEX IF NOT EXISTS idx_external_connections_due
             ON external_drive_connections (next_retry_at)",
@@ -83,12 +88,14 @@ pub fn upsert_connection(
     refresh_token_enc: Option<&str>,
     expires_at: Option<DateTime<Utc>>,
     account: Option<&str>,
+    granted_scopes: Option<&str>,
 ) -> Result<(), String> {
     diesel::sql_query(
         "INSERT INTO external_drive_connections
             (branch_id, provider, access_token_enc, refresh_token_enc, expires_at,
-             status, attempt_count, next_retry_at, account, updated_at)
-         VALUES ($1, $2, $3, $4, $5, 'connected', 0, NULL, $6, NOW())
+             status, attempt_count, next_retry_at, account, scopes, visibility,
+             consented_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, 'connected', 0, NULL, $6, $7, 'private', NOW(), NOW())
          ON CONFLICT (branch_id, provider) DO UPDATE SET
             access_token_enc = EXCLUDED.access_token_enc,
             refresh_token_enc = COALESCE(EXCLUDED.refresh_token_enc,
@@ -99,6 +106,8 @@ pub fn upsert_connection(
             next_retry_at = NULL,
             last_error = NULL,
             account = COALESCE(EXCLUDED.account, external_drive_connections.account),
+            scopes = EXCLUDED.scopes,
+            consented_at = NOW(),
             updated_at = NOW()",
     )
     .bind::<DieselUuid, _>(branch_id)
@@ -107,6 +116,12 @@ pub fn upsert_connection(
     .bind::<Nullable<Text>, _>(refresh_token_enc)
     .bind::<Nullable<Timestamptz>, _>(expires_at)
     .bind::<Nullable<Text>, _>(account)
+    .bind::<Text, _>(
+        granted_scopes
+            .map(|value| value.to_string())
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| provider.scopes().join(" ")),
+    )
     .execute(conn)
     .map_err(|e| format!("upsert connection: {e}"))?;
     Ok(())
@@ -314,6 +329,15 @@ pub struct ConnectionStatus {
     /// Last error message.
     #[diesel(sql_type = Nullable<Text>)]
     pub last_error: Option<String>,
+    /// #1643 — scopes recorded at consent time (space-separated).
+    #[diesel(sql_type = Nullable<Text>)]
+    pub scopes: Option<String>,
+    /// #1643 — `private` or `workspace`.
+    #[diesel(sql_type = Nullable<Text>)]
+    pub visibility: Option<String>,
+    /// #1643 — when the user agreed to the grant.
+    #[diesel(sql_type = Nullable<Timestamptz>)]
+    pub consented_at: Option<DateTime<Utc>>,
 }
 
 /// Status rows for the UI, including providers with no connection yet.
@@ -322,7 +346,8 @@ pub fn list_connection_status(
     branch_id: Uuid,
 ) -> Result<Vec<ConnectionStatus>, String> {
     diesel::sql_query(
-        "SELECT provider, status, sync_minutes, account, last_sync, last_error
+        "SELECT provider, status, sync_minutes, account, last_sync, last_error,
+                scopes, visibility, consented_at
          FROM external_drive_connections WHERE branch_id = $1 ORDER BY provider",
     )
     .bind::<DieselUuid, _>(branch_id)

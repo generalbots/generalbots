@@ -48,6 +48,29 @@ impl Provider {
 
     /// Every provider, in display order.
     pub const ALL: [Self; 2] = [Self::OneDrive, Self::GoogleDrive];
+
+    /// OAuth scopes requested at connect time (#1643). The consent screen and
+    /// the connected card render exactly this list, so what the user is asked
+    /// to allow is what the deployment actually requests — no hand-written
+    /// marketing copy.
+    pub const fn scopes(self) -> &'static [&'static str] {
+        match self {
+            Self::OneDrive => &["offline_access", "Files.Read.All", "User.Read"],
+            Self::GoogleDrive => &["https://www.googleapis.com/auth/drive.readonly"],
+        }
+    }
+
+    /// Plain-language description of each requested scope.
+    pub const fn scope_descriptions(self) -> &'static [&'static str] {
+        match self {
+            Self::OneDrive => &[
+                "Stay connected and refresh the token without asking again",
+                "Read every file and folder in the account",
+                "Read the account's name and e-mail",
+            ],
+            Self::GoogleDrive => &["Read every file and folder in Google Drive (read-only)"],
+        }
+    }
 }
 
 /// One file or folder as reported by a provider.

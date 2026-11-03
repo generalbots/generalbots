@@ -64,6 +64,24 @@ pub async fn list_connections(
             "last_sync": status.and_then(|s| s.last_sync),
             "last_error": status.and_then(|s| s.last_error.clone()),
             "file_count": files,
+            // #1643 — what this deployment actually requests, and (once
+            // connected) the snapshot the user consented to.
+            "requested_scopes": provider.scopes(),
+            "scope_descriptions": provider.scope_descriptions(),
+            "scopes": status
+                .and_then(|s| s.scopes.clone())
+                .map(|value| {
+                    value
+                        .split_whitespace()
+                        .map(|scope| scope.to_string())
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default(),
+            "visibility": status
+                .and_then(|s| s.visibility.clone())
+                .unwrap_or_else(|| "private".to_string()),
+            "consented_at": status.and_then(|s| s.consented_at),
+            "configured_scopes": provider.scopes(),
         }));
     }
     Ok(Json(serde_json::json!({ "providers": providers })))

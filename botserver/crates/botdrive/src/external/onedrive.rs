@@ -30,6 +30,9 @@ pub struct TokenSet {
     pub refresh_token: Option<String>,
     /// Absolute expiry, derived from `expires_in`.
     pub expires_at: DateTime<Utc>,
+    /// Scopes the provider reports as granted (#1643). Falls back to the
+    /// requested list when the provider omits it.
+    pub scope: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -39,6 +42,8 @@ struct TokenResponse {
     refresh_token: Option<String>,
     #[serde(default)]
     expires_in: Option<i64>,
+    #[serde(default)]
+    scope: Option<String>,
 }
 
 impl TokenResponse {
@@ -47,6 +52,7 @@ impl TokenResponse {
             access_token: self.access_token,
             refresh_token: self.refresh_token,
             expires_at: now + chrono::Duration::seconds(self.expires_in.unwrap_or(3600)),
+            scope: self.scope,
         }
     }
 }

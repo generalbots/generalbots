@@ -227,7 +227,8 @@ test("GB6-27: Accessibility — skip-nav, ARIA, keyboard shortcuts", function ()
 test("GB6-18: Connector consent modal", function () {
   var src = readFile("drive/modules/11_external.js");
   assert(src.indexOf("showConnectorConsent") !== -1, "showConnectorConsent not found");
-  assert(src.indexOf("CONNECTOR_PERMISSIONS") !== -1, "CONNECTOR_PERMISSIONS not found");
+  // #1643 — the modal now renders the server-declared scopes, not a static list.
+  assert(src.indexOf("requested_scopes") !== -1, "server scopes not used");
 });
 
 test("GB6-11: Drive preview (markdown/CSV/JSON)", function () {
@@ -354,6 +355,24 @@ test("GB6-16: Settings memory reads and writes the server API", function () {
   assert(settings.indexOf("serverDelete") !== -1, "settings does not delete server-side");
   var chat = readFile("chat/chat-init.js");
   assert(chat.indexOf("user_memory:") === -1, "dead user_memory payload still sent");
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// CONNECTOR CONSENT (GB6-18 / #1643)
+// ═══════════════════════════════════════════════════════════════════
+
+test("GB6-18: consent renders the server's requested scopes", function () {
+  var src = readFile("drive/modules/11_external.js");
+  assert(src.indexOf("requested_scopes") !== -1, "requested_scopes not read");
+  assert(src.indexOf("scope_descriptions") !== -1, "scope descriptions not read");
+  assert(src.indexOf("CONNECTOR_PERMISSIONS") === -1, "static permission copy still present");
+});
+
+test("GB6-18: connected card shows granted scopes and visibility", function () {
+  var src = readFile("drive/modules/11_external.js");
+  assert(src.indexOf("Granted scopes") !== -1, "granted scopes not rendered");
+  assert(src.indexOf("Visibility:") !== -1, "visibility not rendered");
+  assert(src.indexOf("consented_at") !== -1, "consent timestamp not rendered");
 });
 
 // ═══════════════════════════════════════════════════════════════════
