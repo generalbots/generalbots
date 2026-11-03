@@ -709,6 +709,59 @@ test("SIZE: touched chat and pipeline files stay under the 450-line limit", func
   });
 });
 
+test("DRIVE: tabs are simplified to My Files, Shared and Public", function () {
+  var html = readFile("drive/drive.html");
+  var tabs = (html.match(/data-tab="([a-z]+)"/g) || []).map(function (entry) {
+    return entry.split('"')[1];
+  });
+  assert(tabs.join(",") === "myfiles,shared,public",
+    "unexpected tabs: " + tabs.join(","));
+  assert(html.indexOf('data-tab="myfiles" id="tab-myfiles"') !== -1 &&
+    html.indexOf("top-tab active") !== -1, "My Files must be the active tab");
+  assert(html.indexOf("gbSyncStatusBtn") === -1, "offline sync button still present");
+  var state = readFile("drive/modules/01_state.js");
+  assert(state.indexOf('let currentTab = "myfiles";') !== -1, "default tab is not My Files");
+});
+
+test("DRIVE: share by email is wired to the server and the sender picker", function () {
+  var modals = readFile("drive/modules/08_modals.js");
+  assert(modals.indexOf('id="share-email-to"') !== -1, "recipient input missing");
+  assert(modals.indexOf('id="share-email-sender"') !== -1, "sender picker missing");
+  assert(modals.indexOf("/share/email/accounts") !== -1, "sender lookup not wired");
+  assert(modals.indexOf('"/share/email"') !== -1, "email send not wired");
+  assert(modals.indexOf("origin: window.location.origin") !== -1, "absolute link origin missing");
+  var init = readFile("drive/modules/99_init.js");
+  assert(init.indexOf("sendShareEmail: sendShareEmail") !== -1, "email action not exported");
+  var routes = readFile("../../../botserver/src/main_module/routes/api_setup.rs");
+  assert(routes.indexOf("/api/files/share/email") !== -1, "email route not registered");
+  var handler = readFile("../../../botserver/crates/botdrive/src/drive_handlers/share_email.rs");
+  assert(handler.indexOf("botemail::oauth::resolve_credentials") !== -1,
+    "connected account credentials not used");
+  assert(handler.indexOf("get_email_config") !== -1, "native Stalwart fallback missing");
+});
+
+test("ISSUE #1635: sources are delivered after the typed stream", function () {
+  var exec = readFile("../../../botserver/src/core/bot/pipeline/exec.rs");
+  assert(exec.indexOf('"type": "citations"') !== -1, "post-stream citations frame missing");
+  assert(exec.indexOf("send_raw_json") !== -1, "citations frame not sent to the client");
+  var client = readFile("chat/modules/30_citations.js");
+  assert(client.indexOf('d.type === "citations"') !== -1, "client ignores the citations frame");
+  assert(client.indexOf("GBRenderCitations(last") !== -1, "chips are not attached to the last message");
+});
+
+test("ISSUE #1645: terminal output is read from the recorded action", function () {
+  var src = readFile("chat/modules/61_terminal_use.js");
+  assert(src.indexOf("response.result || response") !== -1,
+    "terminal client does not unwrap the recorded action result");
+  assert(src.indexOf("result.stdout") !== -1, "stdout not rendered");
+});
+
+test("ISSUE #1638: search walks nested keys, not only top-level folders", function () {
+  var src = readFile("../../../botserver/crates/botdrive/src/drive_handlers/search_files.rs");
+  assert(src.indexOf("key.rsplit('/').next()") !== -1, "nested key names are not inspected");
+  assert(src.indexOf("build_file_list_items(&prefix") === -1, "the collapsing listing helper is still used");
+});
+
 // ═══════════════════════════════════════════════════════════════════
 // RESULTS
 // ═══════════════════════════════════════════════════════════════════
