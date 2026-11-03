@@ -1,0 +1,285 @@
+name: BotModels pythonbox bundle
+
+# Packages BotModels as a self-contained "pythonbox": a relocatable CPython
+# (python-build-standalone) plus the service sources and an installer that
+# materialises the virtual environment on first run. Desktop users get a Python
+# service they can start without a system interpreter, and the same box is the
+# base for other Python services (JupyterLab ships as an opt-in extra).
+#
+# Why not vendor the wheels: torch/transformers/diffusers are multi-gigabyte.
+# The bundle stays small and resolves the pinned `requirements.txt` once, into
+# its own virtual environment; `--offline-wheels <dir>` installs from a local
+# wheelhouse when the machine has no network.
+#
+# Published on its own rolling tag (never "latest", so the desktop installer
+# link keeps pointing at the desktop release):
+#   https://github.com/generalbots/generalbots/releases/download/pythonbox-latest/botmodels-pythonbox-linux-x86_64.tar.gz
+#   https://github.com/generalbots/generalbots/releases/download/pythonbox-latest/pythonbox-manifest.json
+#
+# The ALM (Forgejo) workflow `botmodels.yaml` reads the manifest to confirm the
+# bundle for its own commit exists; it never builds anything.
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "botmodels/**"
+      - ".github/workflows/botmodels-pythonbox.yml"
+  workflow_dispatch:
+    inputs:
+      python_version:
+        description: "CPython version to bundle (3.12 recommended)"
+        required: false
+        default: "3.12"
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pythonbox-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PYTHONBOX_TAG: pythonbox-latest
+  PYTHON_VERSION: ${{ github.event.inputs.python_version || '3.12' }}
+
+jobs:
+  bundle:
+    name: Bundle pythonbox (linux x86_64)
+    runs-on: ubuntu-22.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch relocatable CPython
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # python-build-standalone publishes install_only trees that carry
+          # their own shared libraries; no system Python is required. Take the
+          # newest release and the newest patch of the requested minor.
+          api="repos/astral-sh/python-build-standalone/releases/latest"
+          url=$(gh api "$api" --jq '.assets[].browser_download_url' \
+            | grep -E "/cpython-${PYTHON_VERSION}\.[0-9]+\+[0-9]+-x86_64-unknown-linux-gnu-install_only\.tar\.gz$" \
+            | sort -V | tail -n 1)
+          if [ -z "$url" ]; then
+            echo "::error::no python-build-standalone asset for CPython ${PYTHON_VERSION} (x86_64 linux)"
+            exit 1
+          fi
+          echo "bundling $url"
+          curl -fsSL --retry 3 --retry-delay 5 -o /tmp/python.tar.gz "$url"
+
+      - name: Assemble the pythonbox
+        run: |
+          set -euo pipefail
+          ROOT="dist/botmodels-pythonbox"
+          rm -rf dist
+          mkdir -p "$ROOT"
+
+          tar -xzf /tmp/python.tar.gz -C "$ROOT"
+          # install_only archives unpack as `python/`.
+          test -x "$ROOT/python/bin/python3"
+
+          cp -r botmodels/src "$ROOT/src"
+          cp botmodels/requirements.txt "$ROOT/requirements.txt"
+          cp botmodels/.env.example "$ROOT/.env.example" 2>/dev/null || true
+
+          # Optional extras: services a desktop user may want on top of the
+          # BotModels runtime (JupyterLab is the reference case).
+          cat > "$ROOT/requirements-extras.txt" <<'EOF'
+          # Installed by `./install.sh --with jupyter`
+          jupyterlab>=4.2
+          notebook>=7.2
+          ipykernel>=6.29
+          EOF
+
+          cat > "$ROOT/install.sh" <<'EOF'
+          #!/usr/bin/env bash
+          # Materialise the virtual environment for this pythonbox.
+          # Usage: ./install.sh [--with jupyter] [--offline-wheels DIR] [-r EXTRA_REQ]
+          set -euo pipefail
+          ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          VENV="$ROOT/.venv"
+          EXTRAS=""
+          PIP_ARGS=()
+
+          while [ $# -gt 0 ]; do
+            case "$1" in
+              --with) EXTRAS="${EXTRAS} -r $ROOT/requirements-$2.txt"; shift 2 ;;
+              --offline-wheels) PIP_ARGS+=(--no-index --find-links "$2"); shift 2 ;;
+              -r) EXTRAS="${EXTRAS} -r $2"; shift 2 ;;
+              *) echo "unknown option: $1" >&2; exit 2 ;;
+            esac
+          done
+
+          "$ROOT/python/bin/python3" -m venv "$VENV"
+          "$VENV/bin/python" -m pip install --upgrade pip
+          # shellcheck disable=SC2086
+          "$VENV/bin/python" -m pip install "${PIP_ARGS[@]}" -r "$ROOT/requirements.txt" $EXTRAS
+          "$VENV/bin/python" -c 'import fastapi, uvicorn; print("pythonbox ready")'
+          EOF
+
+          cat > "$ROOT/run.sh" <<'EOF'
+          #!/usr/bin/env bash
+          # Start BotModels. Installs the virtual environment on first run.
+          set -euo pipefail
+          ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+          cd "$ROOT"
+          if [ ! -x "$ROOT/.venv/bin/python" ]; then
+            "$ROOT/install.sh" "$@"
+            set --
+          fi
+          exec "$ROOT/.venv/bin/python" -m uvicorn src.main:app \
+            --host "${BOTMODELS_HOST:-0.0.0.0}" \
+            --port "${BOTMODELS_PORT:-8085}"
+          EOF
+
+          chmod +x "$ROOT/install.sh" "$ROOT/run.sh"
+
+          cat > "$ROOT/README.txt" <<'EOF'
+          BotModels pythonbox
+          ===================
+
+          Self-contained Python service bundle: the interpreter is included, the
+          dependencies are installed once into ./.venv.
+
+            ./install.sh                     # resolve requirements.txt
+            ./install.sh --offline-wheels D  # install from a local wheelhouse
+            ./install.sh --with jupyter      # add JupyterLab/Notebook
+            ./run.sh                         # serve on :8085 (BOTMODELS_PORT)
+
+          Health: GET http://127.0.0.1:8085/api/health
+
+          The box is relocatable: move the directory, the interpreter keeps
+          working. Delete ./.venv to start from scratch.
+          EOF
+
+          printf 'version=%s\ncommit=%s\npython=%s\nbuilt=%s\n' \
+            "2.1.0" "${GITHUB_SHA}" "${PYTHON_VERSION}" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            > "$ROOT/VERSION"
+
+          tar -czf dist/botmodels-pythonbox-linux-x86_64.tar.gz -C dist botmodels-pythonbox
+          rm -rf dist/botmodels-pythonbox
+
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import subprocess
+
+          archive = "dist/botmodels-pythonbox-linux-x86_64.tar.gz"
+          digest = hashlib.sha256()
+          with open(archive, "rb") as handle:
+              for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                  digest.update(chunk)
+          manifest = {
+              "schema": 1,
+              "component": "botmodels-pythonbox",
+              "commit": os.environ["GITHUB_SHA"],
+              "ref": os.environ["GITHUB_REF"],
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "built_at": subprocess.check_output(
+                  ["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"], text=True
+              ).strip(),
+              "python": os.environ["PYTHON_VERSION"],
+              "target": "x86_64-unknown-linux-gnu",
+              "assets": {
+                  os.path.basename(archive): {
+                      "sha256": digest.hexdigest(),
+                      "size": os.path.getsize(archive),
+                  }
+              },
+          }
+          with open("dist/pythonbox-manifest.json", "w", encoding="utf-8") as handle:
+              json.dump(manifest, handle, indent=2, sort_keys=True)
+              handle.write("\n")
+          print(json.dumps(manifest, indent=2))
+          PY
+
+          (cd dist && sha256sum botmodels-pythonbox-linux-x86_64.tar.gz > SHA256SUMS-pythonbox && ls -lh)
+
+      - name: Smoke test the box
+        run: |
+          set -euo pipefail
+          WORK="$RUNNER_TEMP/pythonbox-smoke"
+          rm -rf "$WORK"
+          mkdir -p "$WORK"
+          tar -xzf dist/botmodels-pythonbox-linux-x86_64.tar.gz -C "$WORK"
+          cd "$WORK/botmodels-pythonbox"
+          # The interpreter must work without any system Python on PATH.
+          env -u PYTHONHOME -u PYTHONPATH ./python/bin/python3 -c \
+            'import sys, ssl, sqlite3, venv; print(sys.version)'
+          bash -n install.sh
+          bash -n run.sh
+          ./python/bin/python3 - <<'PY'
+          import ast
+          import pathlib
+
+          for required in ("install.sh", "run.sh", "requirements.txt", "src/main.py", "README.txt"):
+              assert pathlib.Path(required).exists(), required
+          ast.parse(pathlib.Path("src/main.py").read_text())
+          print("pythonbox layout ok")
+          PY
+          echo "smoke test passed"
+
+      - name: Upload bundle artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: botmodels-pythonbox
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish to the rolling pythonbox-latest release
+    needs: [bundle]
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: botmodels-pythonbox
+          path: dist
+          merge-multiple: true
+
+      - name: Publish assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="${PYTHONBOX_TAG}"
+          REPO="${GITHUB_REPOSITORY}"
+
+          for attempt in $(seq 1 5); do
+            if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+              break
+            fi
+            gh release create "$TAG" --repo "$REPO" --latest=false \
+              --title "BotModels pythonbox (rolling)" \
+              --notes "Self-contained Python service bundle for the desktop edition." \
+              && break || sleep 5
+          done
+          gh release view "$TAG" --repo "$REPO" >/dev/null
+
+          gh release upload "$TAG" dist/* --repo "$REPO" --clobber
+          gh release edit "$TAG" --repo "$REPO" --latest=false \
+            --notes "Self-contained Python service bundle for the desktop edition.
+
+          commit: ${GITHUB_SHA}
+          built:  $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          run:    ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+
+          \`\`\`
+          curl -fL -o pythonbox.tar.gz \\
+            ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/download/${TAG}/botmodels-pythonbox-linux-x86_64.tar.gz
+          tar -xzf pythonbox.tar.gz
+          cd botmodels-pythonbox
+          ./install.sh              # or: ./install.sh --with jupyter
+          ./run.sh                  # BotModels on :8085
+          \`\`\`
+
+          The bundle carries its own CPython; no system interpreter is needed.
+          \`pythonbox-manifest.json\` records the commit and the archive checksum."
