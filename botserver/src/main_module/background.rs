@@ -112,6 +112,10 @@ pub async fn start_background_services(
   #[cfg(feature = "drive")]
   start_drive_compiler(app_state.clone()).await;
 
+  // #1640 — Trash retention: purge rows whose 30-day `expires_at` elapsed.
+  #[cfg(feature = "drive")]
+  crate::drive::drive_handlers::spawn_trash_purge(app_state.clone());
+
   // Reform #1500/#1501/#1502 — Vibe git bot monitor: bot sources come from
   // Forgejo (one repo per project in the branch org) instead of Drive. The
   // import pass moves legacy Drive sources into git once (idempotent), then

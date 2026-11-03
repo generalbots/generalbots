@@ -4,13 +4,15 @@
 // ── File Actions ─────────────────────────────────────────────
 async function deleteItem(path) {
     const fileName = path.split("/").pop();
-    if (!confirm('Delete "' + fileName + '"?')) return;
+    if (!confirm('Move "' + fileName + '" to Trash? It can be restored for 30 days.')) return;
     try {
-        await apiRequest("/delete", {
+        // #1640 — user deletes go to Trash, not a hard delete; permanent
+        // deletion only happens through Empty Trash.
+        await apiRequest("/trash/move", {
             method: "POST",
             body: JSON.stringify({ bucket: getEffectiveBucket(), path: path, scope: currentScope }),
         });
-        showNotification("Item deleted", "success");
+        showNotification("Moved to Trash", "success");
         selectedFiles.delete(path);
         loadFiles(currentPath, currentBucket);
     } catch (err) {
@@ -90,20 +92,21 @@ async function exportPaths(paths, folder) {
 async function deleteSelected() {
     if (selectedFiles.size === 0) return;
     const count = selectedFiles.size;
-    if (!confirm("Delete " + count + " item(s)?")) return;
+    if (!confirm("Move " + count + " item(s) to Trash? They can be restored for 30 days.")) return;
     var deleted = 0;
     for (const path of selectedFiles) {
         try {
-            await apiRequest("/delete", {
+            // #1640 — same Trash route as the single-item delete.
+            await apiRequest("/trash/move", {
                 method: "POST",
                 body: JSON.stringify({ bucket: getEffectiveBucket(), path: path, scope: currentScope }),
             });
             deleted++;
         } catch (err) {
-            console.error("Failed to delete " + path + ":", err);
+            console.error("Failed to trash " + path + ":", err);
         }
     }
-    showNotification("Deleted " + deleted + " of " + count + " item(s)", deleted === count ? "success" : "warning");
+    showNotification("Moved " + deleted + " of " + count + " item(s) to Trash", deleted === count ? "success" : "warning");
     clearSelection();
     loadFiles(currentPath, currentBucket);
 }

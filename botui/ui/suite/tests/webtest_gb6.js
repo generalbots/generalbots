@@ -326,6 +326,24 @@ test("GB6-13: recipient sharing and archive export are wired", function () {
 });
 
 // ═══════════════════════════════════════════════════════════════════
+// TRASH AND VERSIONS (GB6-14 / #1640)
+// ═══════════════════════════════════════════════════════════════════
+
+test("GB6-14: user deletes move to Trash, not hard delete", function () {
+  var src = readFile("drive/modules/98_actions.js");
+  assert(src.indexOf("/trash/move") !== -1, "trash/move not called");
+  assert(src.indexOf('"/delete"') === -1, "hard delete still used by the UI");
+  assert(src.indexOf("30 days") !== -1, "retention copy not found");
+});
+
+test("GB6-14: Trash shows how long is left before purge", function () {
+  var src = readFile("drive/modules/05_files.js");
+  assert(src.indexOf("daysLeft") !== -1, "retention computation not found");
+  assert(src.indexOf("expires_at") !== -1, "expires_at not read");
+  assert(src.indexOf("purge due") !== -1, "expired state not shown");
+});
+
+// ═══════════════════════════════════════════════════════════════════
 // JS SYNTAX VALIDATION
 // ═══════════════════════════════════════════════════════════════════
 

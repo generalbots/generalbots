@@ -259,7 +259,16 @@ async function loadTrashFiles() {
         var html = '<div style="margin-bottom:12px"><button class="btn-danger" onclick="window.emptyTrash()">Empty Trash</button></div><div class="file-list">';
         for (const item of items) {
             var name = item.original_path ? item.original_path.split('/').pop() || item.path : item.path;
-            html += '<div class="drive-file-item" data-trash-id="' + escapeHtml(item.id) + '"><div class="file-col file-name-col">' + getFileIcon(name) + '<span>' + escapeHtml(name) + '</span></div><div class="file-col file-modified-col">Deleted ' + escapeHtml(item.deleted_at) + '</div><div class="file-col file-size-col">' + formatFileSize(item.size) + '</div><div class="file-col file-actions-col"><button class="btn-primary" onclick="window.restoreTrash(\'' + escapeJs(item.id) + '\')">&#8617; Restore</button></div></div>';
+            // #1640 — retention is visible: deleted when, and how long is left.
+            var expires = item.expires_at ? new Date(item.expires_at) : null;
+            var daysLeft = expires && isFinite(expires.getTime())
+                ? Math.ceil((expires.getTime() - Date.now()) / 86400000)
+                : null;
+            var retention = daysLeft === null
+                ? ""
+                : (daysLeft > 0 ? " · " + daysLeft + " day(s) left" : " · purge due");
+            var folderTag = item.is_dir ? " (folder)" : "";
+            html += '<div class="drive-file-item" data-trash-id="' + escapeHtml(item.id) + '"><div class="file-col file-name-col">' + getFileIcon(name) + '<span>' + escapeHtml(name) + folderTag + '</span></div><div class="file-col file-modified-col">Deleted ' + escapeHtml(item.deleted_at) + retention + '</div><div class="file-col file-size-col">' + formatFileSize(item.size) + '</div><div class="file-col file-actions-col"><button class="btn-primary" onclick="window.restoreTrash(\'' + escapeJs(item.id) + '\')">&#8617; Restore</button></div></div>';
         }
         html += '</div>';
         content.innerHTML = html;
