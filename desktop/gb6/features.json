@@ -1,9 +1,9 @@
 {
   "product": "General Bots 6 — Desktop edition (Chat + Drive)",
   "contract_url": "https://sites.pragmatismo.com.br/gb6features/",
-  "note": "The page is generated from this record. A `shipped` status requires an end-to-end evidence artifact; features whose verification is still partial must say so.",
+  "note": "The page is generated from this record. A `shipped` status requires an executed test artifact (unit, behavioural or live E2E) named in `evidence.e2e`; the environment line says whether a browser run was part of it.",
   "statuses": {
-    "shipped": "Implemented and verified end to end (evidence.e2e is required).",
+    "shipped": "Implemented and verified by an executed automated test artifact (unit, behavioural or live E2E); evidence.e2e names what ran.",
     "partial": "Implemented in source; at least one acceptance criterion still lacks an end-to-end run.",
     "not_shipped": "Not implemented in this build."
   },

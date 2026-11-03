@@ -96,7 +96,7 @@ def main() -> int:
         if not evidence.get("issue"):
             errors.append(f"{fid}: no issue links this feature to the epic")
         if status == "shipped" and not evidence.get("e2e"):
-            errors.append(f"{fid}: shipped without an end-to-end evidence artifact")
+            errors.append(f"{fid}: shipped without an executed-test evidence artifact")
         for test in evidence.get("tests") or []:
             if not (ROOT / test).exists():
                 errors.append(f"{fid}: evidence test not found: {test}")

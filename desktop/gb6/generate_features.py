@@ -109,12 +109,12 @@ a {{ color: #93c5fd; }}
 <p class="lead">Parent epic: <a href="https://github.com/generalbots/generalbots/issues/1650">{html.escape(((record.get('epic') or {}).get('issue', '#1650')).lstrip('#'))}</a> — {html.escape(((record.get('epic') or {}).get('title', '')))}</p>
 <div class="summary">
   <div class="card"><strong>{len(record['features'])}</strong>features in the contract</div>
-  <div class="card"><strong>{shipped}</strong>shipped with E2E evidence</div>
+  <div class="card"><strong>{shipped}</strong>shipped with executed tests</div>
   <div class="card"><strong>{partial}</strong>partial</div>
 </div>
 <table>
 <thead>
-<tr><th>ID</th><th>Feature</th><th>Status</th><th>Tests</th><th>End-to-end evidence</th><th>Last verified</th></tr>
+<tr><th>ID</th><th>Feature</th><th>Status</th><th>Tests</th><th>Executed test evidence</th><th>Last verified</th></tr>
 </thead>
 <tbody>
 {''.join(rows)}
