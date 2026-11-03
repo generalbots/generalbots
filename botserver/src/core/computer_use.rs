@@ -27,6 +27,11 @@ pub struct ComputerAction {
     pub status: String,
     pub result: Option<Value>,
     pub created_at: u64,
+    /// #1644/#1645 — approval is a server-side record, not a flag the client
+    /// can assert. Set by `approve`; checked by every executor.
+    pub approved_at: Option<u64>,
+    /// #1644 — the next turn has already been told about this outcome.
+    pub reported: bool,
 }
 
 impl ComputerAction {
@@ -40,6 +45,7 @@ impl ComputerAction {
             "status": self.status,
             "result": self.result,
             "created_at": self.created_at,
+            "approved": self.approved_at.is_some(),
         })
     }
 }
@@ -73,6 +79,8 @@ pub async fn create(session_id: &str, user_id: Uuid, kind: &str, action: Value) 
         status: "pending".to_string(),
         result: None,
         created_at: now(),
+        approved_at: None,
+        reported: false,
     };
     let mut map = registry().lock().await;
     prune(&mut map);
@@ -133,6 +141,75 @@ pub async fn record_terminal(
 ) -> ComputerAction {
     let entry = create(session_id, user_id, "terminal_exec", action).await;
     complete(entry.id, user_id, result).await.unwrap_or(entry)
+}
+
+/// Records the user's approval for one action. Executors require this record;
+/// `approved=true` in a request body is no longer sufficient (#1644/#1645).
+pub async fn approve(id: Uuid, user_id: Uuid) -> Option<ComputerAction> {
+    let mut map = registry().lock().await;
+    let entry = map.get_mut(&id)?;
+    if entry.user_id != user_id || entry.status == "denied" {
+        return None;
+    }
+    entry.approved_at = Some(now());
+    entry.status = "approved".to_string();
+    Some(entry.clone())
+}
+
+pub async fn is_approved(id: Uuid, user_id: Uuid) -> bool {
+    let map = registry().lock().await;
+    map.get(&id)
+        .filter(|action| action.user_id == user_id)
+        .is_some_and(|action| action.approved_at.is_some())
+}
+
+/// Completed outcomes not yet shown to the model, oldest first. Marks them
+/// reported so one result never leaks into two turns (#1644).
+pub async fn take_completed_for_prompt(
+    session_id: &str,
+    user_id: Uuid,
+) -> Vec<ComputerAction> {
+    let mut map = registry().lock().await;
+    prune(&mut map);
+    let mut collected = Vec::new();
+    for action in map.values_mut() {
+        if action.session_id != session_id || action.user_id != user_id {
+            continue;
+        }
+        if action.reported || action.result.is_none() {
+            continue;
+        }
+        action.reported = true;
+        collected.push(action.clone());
+    }
+    collected.sort_by_key(|action| action.created_at);
+    collected
+}
+
+/// Turns an explicit "open/read <url>" request into a browser proposal. This
+/// is the producer the desktop build lacked: the assistant can act on a URL
+/// without the model having to know an HTTP endpoint.
+pub fn propose_from_text(text: &str) -> Option<Value> {
+    let lower = text.to_lowercase();
+    let intent = [
+        "open ", "abrir ", "read ", "leia ", "extract ", "extraia ", "visit ", "aceda ",
+        "navigate to ", "acesse ",
+    ]
+    .iter()
+    .any(|verb| lower.contains(verb));
+    if !intent {
+        return None;
+    }
+    let url = text
+        .split_whitespace()
+        .find(|word| word.starts_with("http://") || word.starts_with("https://"))?
+        .trim_end_matches(|c: char| matches!(c, '.' | ',' | ';' | ')' | ']' | '>'))
+        .to_string();
+    Some(json!({
+        "action": "open_url",
+        "url": url,
+        "extract": "title_and_text",
+    }))
 }
 
 #[cfg(test)]
@@ -201,5 +278,43 @@ mod tests {
         assert_eq!(recorded.kind, "terminal_exec");
         let found = get(recorded.id, owner).await.expect("recorded action is readable");
         assert_eq!(found.result.unwrap()["stdout"], "hi\n");
+    }
+
+    /// #1644 — a URL in an explicit "open/read" request becomes a browser
+    /// proposal; ordinary text with no verb or no URL stays with the model.
+    #[test]
+    fn explicit_url_requests_become_proposals() {
+        let proposal = propose_from_text("please open https://example.com/docs.")
+            .expect("a URL with an open verb must propose an action");
+        assert_eq!(proposal["action"], "open_url");
+        assert_eq!(proposal["url"], "https://example.com/docs");
+        assert!(propose_from_text("what is the weather?").is_none());
+        assert!(propose_from_text("open the settings window").is_none());
+    }
+
+    #[tokio::test]
+    async fn execution_requires_a_stored_approval() {
+        let owner = user();
+        let session = format!("s-{}", Uuid::new_v4());
+        let action = create(&session, owner, "browser", json!({"action": "open_url"})).await;
+        assert!(!is_approved(action.id, owner).await);
+        assert!(approve(action.id, user()).await.is_none());
+        let approved = approve(action.id, owner).await.expect("owner can approve");
+        assert!(approved.approved_at.is_some());
+        assert!(is_approved(action.id, owner).await);
+    }
+
+    #[tokio::test]
+    async fn completed_outcomes_are_reported_once() {
+        let owner = user();
+        let session = format!("s-{}", Uuid::new_v4());
+        let action = create(&session, owner, "browser", json!({"action": "open_url"})).await;
+        complete(action.id, owner, json!({"status": "ok", "title": "Example"})).await;
+        let first = take_completed_for_prompt(&session, owner).await;
+        assert_eq!(first.len(), 1);
+        assert!(
+            take_completed_for_prompt(&session, owner).await.is_empty(),
+            "the same outcome must not enter two turns"
+        );
     }
 }

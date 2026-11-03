@@ -5,10 +5,11 @@
 "use strict";
 
 (function () {
+  // #1644 — `screenshot` was a canvas drawing of innerText, not a capture:
+  // removed rather than shown as a fake screenshot.
   var BROWSER_ACTIONS = {
     open_url: { label: "Open a web page", icon: "🌐", needs_consent: true },
     extract_text: { label: "Read page content", icon: "📄", needs_consent: true },
-    screenshot: { label: "Take a screenshot", icon: "📸", needs_consent: true },
     click_element: { label: "Click an element", icon: "👆", needs_consent: true },
     fill_field: { label: "Fill a form field", icon: "✏️", needs_consent: true },
     scroll: { label: "Scroll the page", icon: "📜", needs_consent: false },
@@ -66,72 +67,105 @@
     }
   }
 
-  function executeAction(action) {
-    var frame = getBrowserFrame();
+  function postJson(path, body) {
+    var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+    return fetch(path, {
+      method: "POST",
+      headers: token
+        ? { "Content-Type": "application/json", Authorization: "Bearer " + token }
+        : { "Content-Type": "application/json" },
+      body: JSON.stringify(body || {}),
+    }).then(function (res) {
+      if (!res.ok) {
+        return res.json().catch(function () { return {}; }).then(function (payload) {
+          throw new Error(payload.error || ("HTTP " + res.status));
+        });
+      }
+      return res.json();
+    });
+  }
+
+  function showServerResult(frame, result) {
+    showBrowserPanel();
+    try {
+      var doc = frame.contentDocument || frame.contentWindow.document;
+      doc.open();
+      doc.write(
+        '<div style="font:14px system-ui;padding:16px;color:#0f172a;">' +
+        '<h3 style="margin:0 0 8px;">' + escapeHtml(result.title || result.url || "Page") + "</h3>" +
+        '<p style="color:#475569;margin:0 0 12px;">' + escapeHtml(result.url || "") + "</p>" +
+        '<pre style="white-space:pre-wrap;font:12px/1.5 monospace;max-height:260px;overflow:auto;">' +
+        escapeHtml((result.text || "").substring(0, 4000)) + "</pre></div>",
+      );
+      doc.close();
+    } catch (e) { /* the panel is progressive; the result still reaches chat */ }
+  }
+
+  async function executeAction(action) {
+    var actionId = action.action_id;
+    // #1644 — approval is a server-side consent record; without it the
+    // executor refuses even when the body says approved=true.
+    try {
+      await postJson("/api/computer/actions/" + encodeURIComponent(actionId) + "/approve", {
+        action_id: actionId,
+      });
+    } catch (e) {
+      sendResultToChat(actionId, { status: "error", error: "Approval could not be recorded: " + e.message });
+      return;
+    }
+
+    if (action.action === "open_url" || action.action === "extract_text") {
+      var frame = getBrowserFrame();
+      showBrowserPanel();
+      try {
+        var result = await postJson(
+          "/api/computer/actions/" + encodeURIComponent(actionId) + "/execute",
+          { approved: true },
+        );
+        showServerResult(frame, result);
+        sendResultToChat(actionId, result);
+      } catch (e) {
+        sendResultToChat(actionId, { status: "error", error: e.message });
+      }
+      return;
+    }
+
     switch (action.action) {
-      case "open_url":
-        showBrowserPanel();
-        frame.src = action.url || "about:blank";
-        sendResultToChat(action.action_id, { status: "ok", url: action.url });
-        break;
-      case "extract_text":
-        try {
-          var doc = frame.contentDocument || frame.contentWindow.document;
-          var text = (doc.body && doc.body.innerText) || "";
-          sendResultToChat(action.action_id, { status: "ok", text: text.substring(0, 5000) });
-        } catch (e) {
-          sendResultToChat(action.action_id, { status: "error", error: "Cannot access page content (cross-origin)" });
-        }
-        break;
-      case "screenshot":
-        try {
-          var doc = frame.contentDocument || frame.contentWindow.document;
-          var canvas = document.createElement("canvas");
-          canvas.width = frame.clientWidth;
-          canvas.height = frame.clientHeight;
-          var ctx = canvas.getContext("2d");
-          ctx.fillStyle = "#fff";
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          ctx.font = "14px monospace";
-          ctx.fillStyle = "#333";
-          var lines = ((doc.body && doc.body.innerText) || "").split("\n").slice(0, 30);
-          lines.forEach(function (line, i) { ctx.fillText(line.substring(0, 80), 10, 20 + i * 18); });
-          sendResultToChat(action.action_id, { status: "ok", image_data: canvas.toDataURL("image/png") });
-        } catch (e) {
-          sendResultToChat(action.action_id, { status: "error", error: "Screenshot failed: " + e.message });
-        }
-        break;
       case "click_element":
         try {
-          var doc = frame.contentDocument || frame.contentWindow.document;
+          var doc = getBrowserFrame().contentDocument || getBrowserFrame().contentWindow.document;
           var el = doc.querySelector(action.selector);
-          if (el) { el.click(); sendResultToChat(action.action_id, { status: "ok" }); }
-          else sendResultToChat(action.action_id, { status: "error", error: "Element not found: " + action.selector });
+          if (el) { el.click(); sendResultToChat(actionId, { status: "ok" }); }
+          else sendResultToChat(actionId, { status: "error", error: "Element not found: " + action.selector });
         } catch (e) {
-          sendResultToChat(action.action_id, { status: "error", error: e.message });
+          sendResultToChat(actionId, { status: "error", error: e.message });
         }
         break;
       case "fill_field":
         try {
+          var frame = getBrowserFrame();
           var doc = frame.contentDocument || frame.contentWindow.document;
           var el = doc.querySelector(action.selector);
-          if (el) { el.value = action.value || ""; el.dispatchEvent(new Event("input", { bubbles: true })); sendResultToChat(action.action_id, { status: "ok" }); }
-          else sendResultToChat(action.action_id, { status: "error", error: "Field not found: " + action.selector });
+          if (el) {
+            el.value = action.value || "";
+            el.dispatchEvent(new Event("input", { bubbles: true }));
+            sendResultToChat(actionId, { status: "ok" });
+          } else sendResultToChat(actionId, { status: "error", error: "Field not found: " + action.selector });
         } catch (e) {
-          sendResultToChat(action.action_id, { status: "error", error: e.message });
+          sendResultToChat(actionId, { status: "error", error: e.message });
         }
         break;
       case "scroll":
         try {
-          var win = frame.contentWindow;
+          var win = getBrowserFrame().contentWindow;
           if (win) win.scrollBy(0, action.amount || 300);
-          sendResultToChat(action.action_id, { status: "ok" });
+          sendResultToChat(actionId, { status: "ok" });
         } catch (e) {
-          sendResultToChat(action.action_id, { status: "error", error: e.message });
+          sendResultToChat(actionId, { status: "error", error: e.message });
         }
         break;
       default:
-        sendResultToChat(action.action_id, { status: "error", error: "Unknown action: " + action.action });
+        sendResultToChat(actionId, { status: "error", error: "Unknown action: " + action.action });
     }
   }
 

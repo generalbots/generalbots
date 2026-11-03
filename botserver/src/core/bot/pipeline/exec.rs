@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use base64::Engine;
+use uuid::Uuid;
 
 use log::info;
 use super::types::{PipelineResult, SessionIdentity};
@@ -59,6 +60,22 @@ pub async fn process_message_internal(
             let _ = sink.send_bot_response(&resp).await;
             return Ok(());
         }
+    }
+
+    // #1644 — the client reports what happened for the action it executed.
+    // This is the frame the old build sent with no server handler.
+    if parsed.get("type").and_then(|v| v.as_str()) == Some("browser_result")
+        || parsed.get("message_type").and_then(|v| v.as_str()) == Some("browser_result")
+    {
+        let action_id = parsed
+            .get("action_id")
+            .and_then(|v| v.as_str())
+            .and_then(|value| Uuid::parse_str(value).ok());
+        if let Some(id) = action_id {
+            let result = parsed.get("result").cloned().unwrap_or_default();
+            let _ = crate::core::computer_use::complete(id, user_id, result).await;
+        }
+        return Ok(());
     }
 
     let mut user_text = parsed
@@ -243,6 +260,35 @@ pub async fn process_message_internal(
             Some(bot_uuid),
             &user_text,
         );
+    }
+
+    // #1644 — producer: an explicit "open/read <url>" becomes a browser
+    // action with a consent card. The model is not involved, so the action
+    // cannot be hallucinated into a fake tool call.
+    if msg_type == 1 && sink.supports_raw_frames() {
+        if let Some(action) = crate::core::computer_use::propose_from_text(&user_text) {
+            let proposal = crate::core::computer_use::create(
+                &session_id.to_string(),
+                user_id,
+                "browser",
+                action.clone(),
+            )
+            .await;
+            let frame = serde_json::json!({
+                "type": "browser_action",
+                "action_type": "browser",
+                "message_type": "browser_action",
+                "bot_id": bot_uuid.to_string(),
+                "session_id": session_id.to_string(),
+                "browser_action": {
+                    "action_id": proposal.id,
+                    "action": "open_url",
+                    "url": action.get("url").cloned().unwrap_or_default(),
+                },
+            });
+            let _ = sink.send_raw_json(&frame).await;
+            return Ok(());
+        }
     }
 
     if user_text.starts_with("__TOOL__:") {
@@ -592,6 +638,32 @@ pub async fn process_message_internal(
     // persisted as if the user had typed the whole file.
     if let Some(note) = attachment_note.take() {
         messages.push(serde_json::json!({"role": "system", "content": note}));
+    }
+
+    // #1644 — results of approved browser/terminal actions are fed back into
+    // the conversation before the model answers, so the next reply can cite
+    // the page title (or say the action was denied/failed).
+    let completed =
+        crate::core::computer_use::take_completed_for_prompt(&session_id.to_string(), user_id).await;
+    if !completed.is_empty() {
+        let mut block = String::from(
+            "Results of computer actions the user approved in this conversation:\n",
+        );
+        for action in &completed {
+            let name = action
+                .action
+                .get("action")
+                .and_then(|value| value.as_str())
+                .unwrap_or(&action.kind);
+            block.push_str(&format!(
+                "- {name}: {}\n",
+                serde_json::to_string(&action.result).unwrap_or_default()
+            ));
+        }
+        block.push_str(
+            "Answer from these results; quote the page title/URL when the user asked about a page. If a result says denied or error, say so plainly.",
+        );
+        messages.push(serde_json::json!({"role": "system", "content": block}));
     }
 
     // #1545/#1547: grounding context goes LAST, immediately before the model

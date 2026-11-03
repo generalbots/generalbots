@@ -170,6 +170,11 @@ test("GB6-19: Computer use with consent", function () {
   var src = readFile("chat/modules/60_computer_use.js");
   assert(src.indexOf("GBBrowserUse") !== -1, "GBBrowserUse not found");
   assert(src.indexOf("needs_consent") !== -1, "needs_consent not found");
+  // #1644 — approval is recorded server-side and the page is read by the
+  // server (the cross-origin iframe cannot); the fake screenshot is gone.
+  assert(src.indexOf("/approve") !== -1, "server approval not requested");
+  assert(src.indexOf("/execute") !== -1, "server execution not requested");
+  assert(src.indexOf("case \"screenshot\"") === -1, "fake screenshot still present");
 });
 
 test("GB6-20: Terminal use with blocked patterns", function () {
