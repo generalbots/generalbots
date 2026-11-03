@@ -164,6 +164,10 @@ function dialChatSocket(seq) {
         if (typeof setChatStatus === "function") setChatStatus(data.text || "");
         return;
       }
+      // #1668 — every run frame feeds the timeline, regardless of agent mode.
+      if (window.RunTimeline) {
+        window.RunTimeline.handleFrame(data);
+      }
       if (window.AgentMode && data.type &&
         ["thought_process", "terminal_output", "browser_ready", "step_progress", "step_complete", "todo_update", "agent_status", "file_created"].indexOf(data.type) !== -1) {
         window.AgentMode.handleMessage(data);
@@ -243,6 +247,13 @@ function dialChatSocket(seq) {
     // #1275 — the socket is healthy again: stop the “offline” state, then
     // flush messages queued while disconnected, in order, on THIS socket.
     updateConnectionStatus("connected");
+    // #1668 — announce the fresh socket so the timeline can replay the
+    // frames this client has not seen yet.
+    try {
+      window.dispatchEvent(new CustomEvent("gb-chat-connected", {
+        detail: { session_id: ChatState.currentSessionId },
+      }));
+    } catch (e) { /* CustomEvent unavailable */ }
     var queued = Array.isArray(ChatState.offlineQueue) ? ChatState.offlineQueue : [];
     ChatState.offlineQueue = [];
     queued.forEach(function (payload) {
