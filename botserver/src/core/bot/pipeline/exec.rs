@@ -64,9 +64,13 @@ pub async fn process_message_internal(
 
     // #1644 — the client reports what happened for the action it executed.
     // This is the frame the old build sent with no server handler.
-    if parsed.get("type").and_then(|v| v.as_str()) == Some("browser_result")
-        || parsed.get("message_type").and_then(|v| v.as_str()) == Some("browser_result")
-    {
+    if matches!(
+        parsed.get("type").and_then(|v| v.as_str()),
+        Some("browser_result") | Some("terminal_result")
+    ) || matches!(
+        parsed.get("message_type").and_then(|v| v.as_str()),
+        Some("browser_result") | Some("terminal_result")
+    ) {
         let action_id = parsed
             .get("action_id")
             .and_then(|v| v.as_str())
@@ -284,6 +288,31 @@ pub async fn process_message_internal(
                     "action_id": proposal.id,
                     "action": "open_url",
                     "url": action.get("url").cloned().unwrap_or_default(),
+                },
+            });
+            let _ = sink.send_raw_json(&frame).await;
+            return Ok(());
+        }
+        // #1645 — same producer contract for terminal commands.
+        if let Some(action) = crate::core::computer_use::propose_terminal_from_text(&user_text) {
+            let proposal = crate::core::computer_use::create(
+                &session_id.to_string(),
+                user_id,
+                "terminal",
+                action.clone(),
+            )
+            .await;
+            let frame = serde_json::json!({
+                "type": "terminal_action",
+                "action_type": "terminal",
+                "message_type": "terminal_action",
+                "bot_id": bot_uuid.to_string(),
+                "session_id": session_id.to_string(),
+                "terminal_action": {
+                    "action_id": proposal.id,
+                    "command": action.get("command").cloned().unwrap_or_default(),
+                    "cwd": action.get("cwd").cloned().unwrap_or_default(),
+                    "reason": action.get("reason").cloned().unwrap_or_default(),
                 },
             });
             let _ = sink.send_raw_json(&frame).await;

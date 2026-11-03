@@ -21,6 +21,21 @@
     return true;
   }
 
+  function postJson(path, body) {
+    var headers = { "Content-Type": "application/json" };
+    var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+    if (token) headers.Authorization = "Bearer " + token;
+    return fetch(path, { method: "POST", headers: headers, body: JSON.stringify(body || {}) })
+      .then(function (res) {
+        if (!res.ok) {
+          return res.json().catch(function () { return {}; }).then(function (payload) {
+            throw new Error(payload.error || ("HTTP " + res.status));
+          });
+        }
+        return res.json();
+      });
+  }
+
   function renderTerminalOutput(text) {
     var el = document.createElement("pre");
     el.style.cssText = "background:#0f172a;color:#e2e8f0;padding:12px 16px;border-radius:8px;font-size:12px;line-height:1.5;max-height:300px;overflow:auto;margin-top:8px;white-space:pre-wrap;word-break:break-all;";
@@ -28,7 +43,7 @@
     return el;
   }
 
-  function executeTerminalAction(action, cardEl) {
+  async function executeTerminalAction(action, cardEl) {
     var cmd = action.command;
     if (!cmd) return;
 
@@ -38,26 +53,31 @@
       return;
     }
 
+    cardEl.innerHTML = '<div class="gb-consent-outcome"><span>⏳</span> <span>Recording approval...</span></div>';
+
+    // #1645 — the approval is a server-side consent record bound to the action
+    // id; `approved=true` in the body alone is refused.
+    try {
+      await postJson("/api/computer/actions/" + encodeURIComponent(action.action_id) + "/approve", {
+        action_id: action.action_id,
+      });
+    } catch (err) {
+      cardEl.innerHTML = '<div class="gb-consent-outcome"><span>❌</span> <span>' +
+        escapeHtml(err.message) + '</span></div>';
+      sendTerminalResult(action.action_id, { status: "error", error: err.message });
+      return;
+    }
+
     cardEl.innerHTML = '<div class="gb-consent-outcome"><span>⏳</span> <span>Running...</span></div>';
 
-    var headers = { "Content-Type": "application/json" };
-    var tok = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token");
-    if (tok) headers["Authorization"] = "Bearer " + tok;
-
-    // The consent card IS the approval: the server refuses the request
-    // without it and re-checks the destructive patterns on its own.
-    fetch("/api/terminal/exec", {
-      method: "POST",
-      headers: headers,
-      body: JSON.stringify({
-        command: cmd,
-        cwd: action.cwd || "",
-        timeout_ms: action.timeout_ms || 30000,
-        approved: true,
-        session_id: (ChatState && ChatState.currentSessionId) || "",
-      }),
+    postJson("/api/terminal/exec", {
+      command: cmd,
+      cwd: action.cwd || "",
+      timeout_ms: action.timeout_ms || 30000,
+      approved: true,
+      action_id: action.action_id,
+      session_id: (ChatState && ChatState.currentSessionId) || "",
     })
-      .then(function (r) { return r.json(); })
       .then(function (result) {
         if (result.status === "failed" || result.status === "error") {
           cardEl.innerHTML = '<div class="gb-consent-outcome"><span>❌</span> <span>' +
@@ -187,4 +207,69 @@
       .catch(function () { /* offline: nothing to collect */ });
   }
   setInterval(pollPendingTerminal, 3000);
+
+  // #1645 — the durable trail is visible without a console: a taskbar button
+  // opens the last 50 commands with decision, exit code and timestamp.
+  function ensureAuditButton() {
+    if (document.getElementById("gbTerminalAuditBtn")) return;
+    var host = document.querySelector(".taskbar-tray");
+    if (!host) return;
+    var button = document.createElement("button");
+    button.id = "gbTerminalAuditBtn";
+    button.className = "tray-btn";
+    button.title = "Terminal audit trail";
+    button.textContent = "⌨";
+    button.addEventListener("click", openTerminalAudit);
+    host.appendChild(button);
+  }
+
+  async function openTerminalAudit() {
+    var existing = document.getElementById("gb-terminal-audit");
+    if (existing) { existing.remove(); return; }
+    var overlay = document.createElement("div");
+    overlay.id = "gb-terminal-audit";
+    overlay.style.cssText = "position:fixed;inset:0;background:rgba(15,23,42,0.8);z-index:9998;display:flex;align-items:center;justify-content:center;";
+    var panel = document.createElement("div");
+    panel.style.cssText = "background:#1e293b;border:1px solid #334155;border-radius:12px;width:90%;max-width:760px;max-height:80vh;overflow:auto;padding:20px;color:#e2e8f0;font:13px system-ui;";
+    panel.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
+      '<strong>Terminal audit trail</strong>' +
+      '<button id="gbTerminalAuditClose" style="background:#334155;border:none;border-radius:6px;color:#f8fafc;padding:6px 12px;cursor:pointer;">Close</button></div>' +
+      '<p style="color:#94a3b8;margin:0 0 12px;">Last 50 commands · retained 90 days. Denied requests are listed too.</p>' +
+      '<div id="gbTerminalAuditBody">Loading…</div>';
+    overlay.appendChild(panel);
+    overlay.addEventListener("click", function (e) { if (e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+    panel.querySelector("#gbTerminalAuditClose").addEventListener("click", function () { overlay.remove(); });
+
+    try {
+      var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
+      var response = await fetch("/api/terminal/audit?limit=50", {
+        headers: token ? { Authorization: "Bearer " + token } : {},
+      });
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      var payload = await response.json();
+      var entries = payload.entries || [];
+      var body = panel.querySelector("#gbTerminalAuditBody");
+      if (!entries.length) {
+        body.innerHTML = '<p style="color:#94a3b8;">No terminal command has been requested yet.</p>';
+        return;
+      }
+      body.innerHTML = '<table style="width:100%;border-collapse:collapse;">' +
+        '<thead><tr style="text-align:left;color:#94a3b8;"><th style="padding:6px;">When</th><th>Command</th><th>Decision</th><th>Exit</th></tr></thead><tbody>' +
+        entries.map(function (entry) {
+          return '<tr style="border-top:1px solid #334155;">' +
+            '<td style="padding:6px;color:#94a3b8;">' + escapeHtml(entry.created_at || "") + '</td>' +
+            '<td style="padding:6px;"><code>' + escapeHtml(entry.command || "") + '</code></td>' +
+            '<td style="padding:6px;">' + escapeHtml(entry.decision || "") + '</td>' +
+            '<td style="padding:6px;">' + (entry.exit_code == null ? "—" : escapeHtml(String(entry.exit_code))) + '</td>' +
+            '</tr>';
+        }).join("") + "</tbody></table>";
+    } catch (err) {
+      panel.querySelector("#gbTerminalAuditBody").textContent = "Audit unavailable: " + err.message;
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", ensureAuditButton);
+  if (document.readyState !== "loading") ensureAuditButton();
+  window.GBTerminalAudit = { open: openTerminalAudit };
 })();

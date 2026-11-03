@@ -13,13 +13,15 @@
 use std::sync::Arc;
 use std::time::Duration;
 
-use axum::extract::{Json, Path, Query};
+use axum::extract::{Json, Path, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::Router;
 use botcore::shared::state::AppState;
 use botlib::security::command_guard::SafeCommand;
 use serde::Deserialize;
+use diesel::sql_types::{Integer, Nullable, Text, Uuid as DieselUuid};
+use diesel::RunQueryDsl;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
@@ -95,11 +97,42 @@ pub async fn pending(
 
 /// POST /api/computer/actions/:id/result
 pub async fn submit_result(
+    State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Path(id): Path<Uuid>,
     Json(result): Json<Value>,
 ) -> Result<Json<Value>, ApiError> {
     let user_id = resolve_user(&headers)?;
+    // A denial is an auditable decision even though nothing ran.
+    if result.get("status").and_then(Value::as_str) == Some("denied") {
+        if let Some(action) = computer_use::get(id, user_id).await {
+            if action.kind == "terminal" {
+                let command = action
+                    .action
+                    .get("command")
+                    .and_then(Value::as_str)
+                    .unwrap_or("");
+                audit_terminal(
+                    &state.conn,
+                    TerminalAuditRow {
+                        user_id,
+                        session_id: &action.session_id,
+                        action_id: Some(id),
+                        command,
+                        cwd: action
+                            .action
+                            .get("cwd")
+                            .and_then(Value::as_str)
+                            .unwrap_or(""),
+                        container: "",
+                        decision: "denied",
+                        exit_code: None,
+                        output: "user denied consent",
+                    },
+                );
+            }
+        }
+    }
     match computer_use::complete(id, user_id, result).await {
         Some(action) => Ok(Json(action.to_json())),
         None => Err(api_error(StatusCode::NOT_FOUND, "action not found")),
@@ -131,6 +164,9 @@ pub struct TerminalExecRequest {
     pub approved: bool,
     #[serde(default)]
     pub session_id: Option<String>,
+    /// #1645 — the action whose consent record authorises this execution.
+    #[serde(default)]
+    pub action_id: Option<Uuid>,
 }
 
 const DENIED_PATTERNS: &[&str] = &[
@@ -156,6 +192,7 @@ pub(crate) fn blocked_pattern(command: &str) -> Option<&'static str> {
 
 /// POST /api/terminal/exec
 pub async fn terminal_exec(
+    State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Json(body): Json<TerminalExecRequest>,
 ) -> Result<Json<Value>, ApiError> {
@@ -164,6 +201,34 @@ pub async fn terminal_exec(
         return Err(api_error(
             StatusCode::FORBIDDEN,
             "terminal execution requires explicit user approval",
+        ));
+    }
+    // #1645 — `approved=true` alone is forgeable. Execution requires the
+    // action id whose consent record /approve created.
+    let action_id = body.action_id.ok_or_else(|| {
+        api_error(
+            StatusCode::FORBIDDEN,
+            "terminal execution requires an approved action_id",
+        )
+    })?;
+    if !computer_use::is_approved(action_id, user_id).await {
+        audit_terminal(
+            &state.conn,
+            TerminalAuditRow {
+                user_id,
+                session_id: body.session_id.as_deref().unwrap_or(""),
+                action_id: Some(action_id),
+                command: body.command.trim(),
+                cwd: body.cwd.as_deref().unwrap_or(""),
+                container: "",
+                decision: "denied",
+                exit_code: None,
+                output: "no consent record",
+            },
+        );
+        return Err(api_error(
+            StatusCode::FORBIDDEN,
+            "no consent record for this action; approve it first",
         ));
     }
     let command = body.command.trim();
@@ -178,6 +243,20 @@ pub async fn terminal_exec(
     }
     if blocked_pattern(command).is_some() {
         log::warn!("terminal exec refused a blocked pattern for user {user_id}");
+        audit_terminal(
+            &state.conn,
+            TerminalAuditRow {
+                user_id,
+                session_id: body.session_id.as_deref().unwrap_or(""),
+                action_id: Some(action_id),
+                command,
+                cwd: "",
+                container: "",
+                decision: "denied",
+                exit_code: None,
+                output: "blocked destructive pattern",
+            },
+        );
         return Err(api_error(
             StatusCode::FORBIDDEN,
             "command matches a blocked destructive pattern",
@@ -239,6 +318,31 @@ pub async fn terminal_exec(
         command.len(),
         outcome.get("status").and_then(Value::as_str).unwrap_or("unknown")
     );
+    // #1645 — durable row, independent of the in-memory registry TTL.
+    let exit_code = outcome
+        .get("exit_code")
+        .and_then(Value::as_i64)
+        .map(|value| value as i32);
+    let output_excerpt = format!(
+        "{}{}",
+        outcome.get("stdout").and_then(Value::as_str).unwrap_or(""),
+        outcome.get("stderr").and_then(Value::as_str).unwrap_or("")
+    );
+    audit_terminal(
+        &state.conn,
+        TerminalAuditRow {
+            user_id,
+            session_id: body.session_id.as_deref().unwrap_or(""),
+            action_id: Some(action_id),
+            command,
+            cwd: &cwd,
+            container: &container,
+            decision: "approved",
+            exit_code,
+            output: &output_excerpt,
+        },
+    );
+
     let recorded = computer_use::record_terminal(
         body.session_id.as_deref().unwrap_or(""),
         user_id,
@@ -438,6 +542,130 @@ fn decode_entities(text: &str) -> String {
         .replace("&nbsp;", " ")
 }
 
+struct TerminalAuditRow<'a> {
+    user_id: Uuid,
+    session_id: &'a str,
+    action_id: Option<Uuid>,
+    command: &'a str,
+    cwd: &'a str,
+    container: &'a str,
+    decision: &'a str,
+    exit_code: Option<i32>,
+    output: &'a str,
+}
+
+fn audit_terminal(pool: &botcore::shared::utils::DbPool, row: TerminalAuditRow<'_>) {
+    let Ok(mut conn) = pool.get() else {
+        log::warn!("terminal audit: database unavailable, row not written");
+        return;
+    };
+    let excerpt: String = row.output.chars().take(2000).collect();
+    if let Err(error) = diesel::sql_query(
+        "INSERT INTO terminal_audit
+            (user_id, session_id, action_id, command, cwd, container, decision, exit_code, output_excerpt)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+    )
+    .bind::<DieselUuid, _>(row.user_id)
+    .bind::<Nullable<Text>, _>(Some(row.session_id))
+    .bind::<Nullable<DieselUuid>, _>(row.action_id)
+    .bind::<Text, _>(row.command.chars().take(16_000).collect::<String>())
+    .bind::<Nullable<Text>, _>(Some(row.cwd))
+    .bind::<Nullable<Text>, _>(Some(row.container))
+    .bind::<Text, _>(row.decision)
+    .bind::<Nullable<Integer>, _>(row.exit_code)
+    .bind::<Nullable<Text>, _>(Some(excerpt))
+    .execute(&mut conn)
+    {
+        log::warn!("terminal audit insert failed: {error}");
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AuditQuery {
+    #[serde(default)]
+    pub limit: Option<i64>,
+}
+
+/// GET /api/terminal/audit — the visible trail: command, decision, exit code
+/// and timestamp, independent of the 30-minute in-memory registry.
+pub async fn terminal_audit(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Query(query): Query<AuditQuery>,
+) -> Result<Json<Value>, ApiError> {
+    let user_id = resolve_user(&headers)?;
+    let limit = query.limit.unwrap_or(50).clamp(1, 200);
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = Text)]
+        id: String,
+        #[diesel(sql_type = Text)]
+        command: String,
+        #[diesel(sql_type = Nullable<Text>)]
+        cwd: Option<String>,
+        #[diesel(sql_type = Text)]
+        decision: String,
+        #[diesel(sql_type = Nullable<Integer>)]
+        exit_code: Option<i32>,
+        #[diesel(sql_type = Nullable<Text>)]
+        output_excerpt: Option<String>,
+        #[diesel(sql_type = Text)]
+        created_at: String,
+    }
+    let rows = diesel::sql_query(
+        "SELECT id::text, command, cwd, decision, exit_code, output_excerpt,
+                created_at::text AS created_at
+         FROM terminal_audit WHERE user_id = $1
+         ORDER BY created_at DESC LIMIT $2",
+    )
+    .bind::<DieselUuid, _>(user_id)
+    .bind::<diesel::sql_types::BigInt, _>(limit)
+    .load::<Row>(&mut conn)
+    .unwrap_or_default();
+    Ok(Json(json!({
+        "entries": rows.into_iter().map(|row| json!({
+            "id": row.id,
+            "command": row.command,
+            "cwd": row.cwd,
+            "decision": row.decision,
+            "exit_code": row.exit_code,
+            "output_excerpt": row.output_excerpt,
+            "created_at": row.created_at,
+        })).collect::<Vec<_>>(),
+    })))
+}
+
+/// #1645 — 90-day retention. Started from the background boot sequence.
+pub fn spawn_terminal_audit_purge(state: Arc<AppState>) {
+    tokio::spawn(async move {
+        let secs: u64 = std::env::var("GB_TERMINAL_AUDIT_PURGE_SECS")
+            .ok()
+            .and_then(|value| value.parse().ok())
+            .filter(|value| *value >= 60)
+            .unwrap_or(3600);
+        loop {
+            tokio::time::sleep(Duration::from_secs(secs)).await;
+            match state.conn.get() {
+                Ok(mut conn) => {
+                    let deleted = diesel::sql_query(
+                        "DELETE FROM terminal_audit WHERE created_at < NOW() - INTERVAL '90 days'",
+                    )
+                    .execute(&mut conn)
+                    .unwrap_or(0);
+                    if deleted > 0 {
+                        log::info!("terminal audit: purged {deleted} row(s) older than 90 days");
+                    }
+                }
+                Err(error) => log::warn!("terminal audit purge: db pool: {error}"),
+            }
+        }
+    });
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/computer/actions", post(create_action))
@@ -447,6 +675,7 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/computer/actions/:id/execute", post(execute_action))
         .route("/api/computer/actions/:id/result", post(submit_result))
         .route("/api/terminal/exec", post(terminal_exec))
+        .route("/api/terminal/audit", get(terminal_audit))
 }
 
 #[cfg(test)]

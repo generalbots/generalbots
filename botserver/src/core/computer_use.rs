@@ -212,6 +212,48 @@ pub fn propose_from_text(text: &str) -> Option<Value> {
     }))
 }
 
+/// Turns an explicit "run/execute <command>" request into a terminal
+/// proposal (#1645). A backticked command wins; otherwise the text after the
+/// verb is used. The consent card still gates execution.
+pub fn propose_terminal_from_text(text: &str) -> Option<Value> {
+    let trimmed = text.trim();
+    let lower = trimmed.to_lowercase();
+    let prefixes = [
+        "run the command ",
+        "execute the command ",
+        "run ",
+        "execute ",
+        "rode ",
+        "roda ",
+        "executar ",
+        "executa ",
+    ];
+    let rest = prefixes.iter().find_map(|prefix| {
+        lower
+            .starts_with(prefix)
+            .then(|| trimmed.chars().skip(prefix.chars().count()).collect::<String>())
+    })?;
+    let rest = rest.trim();
+    let command = if let Some(start) = rest.find('`') {
+        let after = &rest[start + 1..];
+        after
+            .find('`')
+            .map(|end| after[..end].trim().to_string())?
+    } else {
+        rest.trim_matches(|c: char| c == '"' || c == '\'' || c == '.' || c == ';')
+            .trim()
+            .to_string()
+    };
+    if command.is_empty() || command.len() > 16_000 {
+        return None;
+    }
+    Some(json!({
+        "command": command,
+        "cwd": "/opt/vibe/app",
+        "reason": "requested in chat",
+    }))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -316,5 +358,17 @@ mod tests {
             take_completed_for_prompt(&session, owner).await.is_empty(),
             "the same outcome must not enter two turns"
         );
+    }
+
+    #[test]
+    fn explicit_terminal_requests_become_proposals() {
+        let proposal = propose_terminal_from_text("run `ls -la` in the workspace")
+            .expect("a backticked command must propose a terminal action");
+        assert_eq!(proposal["command"], "ls -la");
+        let plain = propose_terminal_from_text("execute echo hello")
+            .expect("a plain command after the verb is accepted");
+        assert_eq!(plain["command"], "echo hello");
+        assert!(propose_terminal_from_text("what is the weather?").is_none());
+        assert!(propose_terminal_from_text("run ").is_none());
     }
 }

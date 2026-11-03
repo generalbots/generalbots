@@ -180,7 +180,13 @@ test("GB6-19: Computer use with consent", function () {
 test("GB6-20: Terminal use with blocked patterns", function () {
   var src = readFile("chat/modules/61_terminal_use.js");
   assert(src.indexOf("BLOCKED_PATTERNS") !== -1, "BLOCKED_PATTERNS not found");
-  assert(src.indexOf("/api/terminal/create") !== -1, "correct endpoint not found");
+  assert(src.indexOf("/api/terminal/exec") !== -1, "exec endpoint not found");
+  // #1645 — execution is bound to a server-side approval, and the durable
+  // audit trail is reachable from the tray.
+  assert(src.indexOf("/approve") !== -1, "approval record not requested");
+  assert(src.indexOf("action_id") !== -1, "action id not sent");
+  assert(src.indexOf("/api/terminal/audit") !== -1, "audit endpoint not used");
+  assert(src.indexOf("gbTerminalAuditBtn") !== -1, "audit entry point missing");
 });
 
 test("GB6-21: Sandbox approval queue", function () {

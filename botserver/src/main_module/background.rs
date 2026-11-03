@@ -116,6 +116,12 @@ pub async fn start_background_services(
   #[cfg(feature = "drive")]
   crate::drive::drive_handlers::spawn_trash_purge(app_state.clone());
 
+  // #1645 — terminal audit retention (90 days).
+  #[cfg(feature = "chat")]
+  crate::main_module::routes::computer_use_routes::spawn_terminal_audit_purge(
+    app_state.clone(),
+  );
+
   // Reform #1500/#1501/#1502 — Vibe git bot monitor: bot sources come from
   // Forgejo (one repo per project in the branch org) instead of Drive. The
   // import pass moves legacy Drive sources into git once (idempotent), then
