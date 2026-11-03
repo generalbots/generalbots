@@ -130,7 +130,7 @@
             stop: stop,
             steps: Object.create(null),
             tools: Object.create(null),
-            startedAt: Date.now(),
+            startedAt: (data && Number(data.startedAt)) || Date.now(),
             terminal: false,
             logLines: 0,
             collapsed: false,
@@ -317,7 +317,17 @@
         var type = frame.type;
 
         if (type === "RUN_STARTED") {
-            if (!entry && runId) createCard(runId, frame.data || {});
+            // A new run on the same thread means the previous waiting card was
+            // answered or approved; close it instead of leaving it spinning.
+            Object.keys(runs).forEach(function (key) {
+                var previous = runs[key];
+                if (previous.waiting && !previous.terminal) {
+                    finish(previous, "succeeded", {});
+                }
+            });
+            if (!entry && runId) createCard(runId, Object.assign({}, frame.data || {}, {
+                startedAt: Date.parse(frame.ts) || Date.now(),
+            }));
             return;
         }
         if (type === "RUN_FINISHED") {
@@ -387,18 +397,23 @@
             } else if (name === "gb.question") {
                 row(entry, "question:" + (payload.question_id || "q"), "Waiting for your answer", "waiting");
                 entry.card.classList.add("waiting");
+                entry.waiting = true;
                 entry.summary.textContent = "Waiting for input";
             } else if (name === "gb.surface") {
                 row(entry, "surface:" + (payload.surface_id || "s"), "Showing a result", "ok");
             } else if (name === "gb.plan") {
                 row(entry, "plan", "Plan proposed", "waiting");
+                entry.waiting = true;
             }
         }
     }
 
     function resume() {
-        var last = readLastSeq();
-        if (!last) return;
+        // A fresh page has no cards: replay from the beginning so the run
+        // summaries are restored together with the conversation. A reconnect
+        // with cards already mounted resumes from the last seen frame.
+        var hasCards = document.querySelectorAll(".run-card").length > 0;
+        var last = hasCards ? readLastSeq() : 0;
         var ws = window.ChatState && window.ChatState.ws;
         if (!ws || ws.readyState !== WebSocket.OPEN) return;
         ws.send(JSON.stringify({

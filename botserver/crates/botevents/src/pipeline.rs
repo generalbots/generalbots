@@ -117,10 +117,12 @@ impl EventPipeline {
             thread_id: thread_id.clone(),
             run_id,
             parent_run_id,
-            // Placeholder, replaced after validation so a rejected frame does
-            // not consume a sequence number.
+            // Placeholders, replaced after validation so a rejected frame does
+            // not consume a sequence number. The validator only requires a
+            // non-empty id here; the content-derived id is assigned after the
+            // sequence number.
             seq: 1,
-            event_id: String::new(),
+            event_id: "pending-event-id".to_string(),
             ts: Utc::now(),
             source,
             data,

@@ -16,6 +16,7 @@
     var samples = [];
     var reconnectStarted = null;
     var firstCardAt = null;
+    var resuming = false;
 
     function now() {
         return window.performance && performance.now ? performance.now() : Date.now();
@@ -41,6 +42,7 @@
     });
 
     window.addEventListener("gb-run-frame", function (event) {
+        if (resuming) return;
         var frame = event.detail && event.detail.frame;
         if (!frame || !frame.ts) return;
         var sent = Date.parse(frame.ts);
@@ -50,9 +52,12 @@
 
     window.addEventListener("gb-chat-connected", function () {
         reconnectStarted = now();
+        // A resume replays frames recorded earlier; they are not live latency.
+        resuming = true;
     });
 
     window.addEventListener("run_resume_done", function () {
+        resuming = false;
         if (reconnectStarted !== null) {
             push("reconnect_resume", now() - reconnectStarted);
             reconnectStarted = null;

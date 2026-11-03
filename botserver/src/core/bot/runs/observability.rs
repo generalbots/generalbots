@@ -9,7 +9,6 @@
 
 use std::collections::HashMap;
 use std::sync::{Mutex, OnceLock};
-use std::time::Instant;
 
 use serde::Serialize;
 use sha2::{Digest, Sha256};
@@ -20,7 +19,6 @@ struct OpenSpan {
     span_id: String,
     name: String,
     kind: &'static str,
-    started: Instant,
     started_unix_nano: u128,
     attributes: Vec<(String, String)>,
 }
@@ -42,7 +40,6 @@ struct FinishedSpan {
 #[derive(Debug, Default)]
 struct RunTrace {
     trace_id: String,
-    started: Option<Instant>,
     spans: Vec<OpenSpan>,
     finished: Vec<FinishedSpan>,
 }
@@ -93,12 +90,10 @@ pub fn start_run(thread_id: &str, run_id: &str, model: Option<&str>) {
     let mut guard = lock_traces();
     let entry = guard.entry(run_id.to_string()).or_default();
     entry.trace_id = trace_id;
-    entry.started = Some(Instant::now());
     entry.spans.push(OpenSpan {
         span_id: hex_id(&format!("{run_id}|run")),
         name: "chat.run".to_string(),
         kind: "run",
-        started: Instant::now(),
         started_unix_nano: unix_nanos(),
         attributes: model
             .map(|model| vec![("gen_ai.request.model".to_string(), model.to_string())])
@@ -114,7 +109,6 @@ pub fn start_span(run_id: &str, kind: &'static str, name: &str, attributes: Vec<
         span_id: hex_id(&key),
         name: name.to_string(),
         kind,
-        started: Instant::now(),
         started_unix_nano: unix_nanos(),
         attributes,
     });
@@ -146,7 +140,6 @@ pub fn finish_span(run_id: &str, kind: &'static str, name: &str, extra: Vec<(Str
         end_unix_nano: unix_nanos(),
         attributes: span.attributes,
     });
-    let _ = span.started;
 }
 
 /// Ends the run span, exports the trace and removes it from memory.

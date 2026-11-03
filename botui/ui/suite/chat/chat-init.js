@@ -25,6 +25,13 @@ function proceedWithChatInit() {
   }
   var storageKey = "gb_chat_" + botName;
   var requestedSession = readRequestedSession();
+  // #1668 — reload returns to the same conversation so the run cards and
+  // surfaces can be restored from the event log instead of starting over.
+  if (!requestedSession) {
+    try {
+      requestedSession = localStorage.getItem("gb.chat.session." + botName) || "";
+    } catch (e) { /* storage unavailable */ }
+  }
 
   // #753 — cross-surface deeplinks: ?vibe= / ?run_id= open the Vibe app
   // (desktop shell) or mark the chat tab for the Vibe surface.
@@ -105,6 +112,7 @@ function proceedWithChatInit() {
       ChatState.currentBotName = botName;
       try {
         localStorage.setItem(storageKey, JSON.stringify({ user_id: auth.user_id }));
+        localStorage.setItem("gb.chat.session." + botName, auth.session_id);
       } catch (e) {}
 
       window.dispatchEvent(new CustomEvent("gb-chat-session-changed", {

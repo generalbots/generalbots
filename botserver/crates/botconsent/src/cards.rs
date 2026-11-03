@@ -158,6 +158,9 @@ mod tests {
             app_id: "crm".to_string(),
             action_class: "payment".to_string(),
             detail: serde_json::json!({ "amount": "R$ 10,00", "note": "<b>" }),
+            thread_id: None,
+            run_id: None,
+            risk_tier: "high".to_string(),
         };
         let html = prompt_card_html(&req);
         assert!(html.contains("hx-post=\"/api/consent/resolve\""));

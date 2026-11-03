@@ -6,7 +6,7 @@
 //! reconnect replays the persisted frames from the requested `seq`.
 
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, OnceLock};
 
 use serde_json::Value;

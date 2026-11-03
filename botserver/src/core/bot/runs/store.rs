@@ -9,7 +9,7 @@ use serde_json::Value;
 use uuid::Uuid;
 
 use botevents::{Envelope, EventSource, EventType};
-use botschema::{message_history, run_events};
+use botschema::run_events;
 use botlib::db_pool::DbPool;
 
 /// The durable projection of one envelope. Column order matches the table
@@ -104,18 +104,16 @@ pub fn attach_message_run(
     run_id: Uuid,
     thread_id: &str,
 ) -> Result<usize, String> {
-    let target = message_history::table
-        .filter(message_history::session_id.eq(session_id))
-        .select(message_history::id)
-        .order(message_history::message_index.desc())
-        .limit(1);
-    diesel::update(message_history::table.filter(message_history::id.eq_any(target)))
-        .set((
-            message_history::run_id.eq(Some(run_id)),
-            message_history::thread_id.eq(Some(thread_id.to_string())),
-        ))
-        .execute(conn)
-        .map_err(|error| format!("message_history run pointer failed: {error}"))
+    diesel::sql_query(
+        "UPDATE message_history SET run_id = $1, thread_id = $2 \
+         WHERE id = (SELECT id FROM message_history WHERE session_id = $3 \
+                     ORDER BY message_index DESC LIMIT 1)",
+    )
+    .bind::<diesel::sql_types::Uuid, _>(run_id)
+    .bind::<diesel::sql_types::Text, _>(thread_id)
+    .bind::<diesel::sql_types::Uuid, _>(session_id)
+    .execute(conn)
+    .map_err(|error| format!("message_history run pointer failed: {error}"))
 }
 
 /// Deletes frames older than the configured retention window. The summary in

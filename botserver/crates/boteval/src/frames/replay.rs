@@ -453,7 +453,7 @@ pub fn apply_patch(document: &mut Value, patch: &[Value]) -> Result<(), ReplayEr
             None => ("", path.trim_start_matches('/')),
         };
         let parent = if parent_pointer.is_empty() {
-            document
+            &mut *document
         } else {
             document.pointer_mut(parent_pointer).ok_or_else(|| {
                 ReplayError::InvalidPayload(format!("patch path {parent_pointer} not found"))

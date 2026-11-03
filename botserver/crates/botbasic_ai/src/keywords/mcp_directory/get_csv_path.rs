@@ -266,6 +266,7 @@ impl McpCsvLoader {
             connection,
             auth,
             tools: Vec::new(),
+            resources: Vec::new(),
             capabilities: McpCapabilities {
                 tools: true,
                 resources: false,
