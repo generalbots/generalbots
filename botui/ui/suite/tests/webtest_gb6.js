@@ -709,12 +709,12 @@ test("SIZE: touched chat and pipeline files stay under the 450-line limit", func
   });
 });
 
-test("DRIVE: tabs are simplified to My Files, Shared and Public", function () {
+test("DRIVE: tabs are simplified to My Files, Shared, Connected and Public", function () {
   var html = readFile("drive/drive.html");
   var tabs = (html.match(/data-tab="([a-z]+)"/g) || []).map(function (entry) {
     return entry.split('"')[1];
   });
-  assert(tabs.join(",") === "myfiles,shared,public",
+  assert(tabs.join(",") === "myfiles,shared,external,public",
     "unexpected tabs: " + tabs.join(","));
   assert(html.indexOf('data-tab="myfiles" id="tab-myfiles"') !== -1 &&
     html.indexOf("top-tab active") !== -1, "My Files must be the active tab");

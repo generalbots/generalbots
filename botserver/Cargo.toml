@@ -175,6 +175,8 @@ sampledata = ["dep:botsampledata"]
 desktop-local = [
     "chat", "drive", "agent-vm", "security", "directory", "llm", "vectordb",
     "settings", "no-security", "kb-extraction", "web-search",
+    # Drive's Connected tab: OneDrive/Google Drive consent surface.
+    "external_sync",
     # #1632 item 8 — the everyday tools enabled in the launcher by default.
     "sheet", "database", "player",
     "botcore/desktop-local",

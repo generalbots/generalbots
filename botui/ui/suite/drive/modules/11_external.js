@@ -70,7 +70,11 @@ function renderExternalConnections() {
               '<div class="storage-detail">Visibility: ' + extEscape(p.visibility || "private") +
               (p.consented_at ? " &middot; consented " + extEscape(formatDate(p.consented_at)) : "") +
               "</div>"
-            : (p.connected ? '<div class="storage-detail">No scope snapshot was recorded for this legacy connection.</div>' : "");
+            : (p.connected
+                ? '<div class="storage-detail">No scope snapshot was recorded for this legacy connection.</div>'
+                : '<div class="storage-detail">Will request: ' +
+                  (Array.isArray(p.requested_scopes) ? p.requested_scopes.join(", ") : "") +
+                  '</div>');
         return (
             '<div class="drive-card" data-provider-card="' + extEscape(p.provider) + '">' +
             '<h3>' + extEscape(p.display_name) + "</h3>" +
