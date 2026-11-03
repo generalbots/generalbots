@@ -54,7 +54,7 @@
       "id": "GB6-10",
       "title": "Model picker with plain-language trade-offs",
       "promise": "The user can switch models and sees a one-line explanation of each option.",
-      "status": "shipped",
+      "status": "partial",
       "evidence": {
         "issue": "#1637",
         "tests": [
@@ -62,14 +62,14 @@
           "botui/ui/suite/chat/chat-init.js",
           "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": "Browser: picker lists the real model per tier; unconfigured tiers are disabled. Routing code selects llm-model-<tier>; only auto is configured in this stack.",
-        "note": "Verified live in the sidecar build (desktop-local botserver + botui + Chrome CDP 1440x900) on 2026-11-03.",
-        "automated": "node webtest_gb6.js: ISSUE #1637 tier routing + picker hydration PASS; cargo test -p botserver --bin botserver compiled the routing path (135 passed)"
+        "e2e": null,
+        "note": "Blocked: only one model is configured, so Fast/Balanced/Quality are disabled and real tier switching cannot be exercised until Vault has llm-model-fast/balanced/quality with distinct models.",
+        "automated": "Browser: picker lists the real model per tier; unconfigured tiers are disabled. Routing code selects llm-model-<tier>; only auto is configured in this stack."
       },
       "last_verified": {
         "date": "2026-11-03",
         "commit": "9dd417509",
-        "environment": "sidecar desktop-local, Chrome CDP 1440x900; botdrive 68 tests, node 104/104"
+        "environment": "automated/UI checks only; live round-trip blocked"
       }
     },
     {
@@ -203,7 +203,7 @@
       "id": "GB6-18",
       "title": "Connectors with consent",
       "promise": "A user connects an account, sees exactly what is shared, and can revoke it in one click.",
-      "status": "shipped",
+      "status": "partial",
       "evidence": {
         "issue": "#1643",
         "tests": [
@@ -211,14 +211,14 @@
           "botui/ui/suite/drive/modules/11_external.js",
           "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": "Browser: Connected tab shows the scopes actually requested per provider; no OAuth client configured in this stack, stated honestly.",
-        "note": "Verified live in the sidecar build (desktop-local botserver + botui + Chrome CDP 1440x900) on 2026-11-03.",
-        "automated": "node webtest_gb6.js: GB6-18 consent renders server scopes + granted scopes PASS; cargo test -p botdrive --lib compiled the consent schema (66 passed)"
+        "e2e": null,
+        "note": "Blocked: the Connected tab shows the requested scopes, but the OAuth consent round-trip needs Gmail/Outlook client credentials and a test account; none are configured.",
+        "automated": "Browser: Connected tab shows the scopes actually requested per provider; no OAuth client configured in this stack, stated honestly."
       },
       "last_verified": {
         "date": "2026-11-03",
         "commit": "9dd417509",
-        "environment": "sidecar desktop-local, Chrome CDP 1440x900; botdrive 68 tests, node 104/104"
+        "environment": "automated/UI checks only; live round-trip blocked"
       }
     },
     {
@@ -332,7 +332,12 @@
         "python3 scripts/gb6_features_check.py (OK, 14 shipped)",
         "sidecar (desktop-local) + Chrome CDP 1440x900: manual use-case pass, screenshots /tmp/gb6_*.png"
       ],
-      "browser_e2e": "PASSED 2026-11-03 on the sidecar build: Drive tabs/sidebar, share link + public download + SMTP email, nested/content search, trash/restore, artifacts, web citations, memory, attachment content, browser action, terminal action + audit, usage panel, connector scopes."
+      "browser_e2e": "PARTIAL 2026-11-03: 12 features passed the sidecar browser pass; GB6-10 (tier switching) and GB6-18 (OAuth consent round-trip) are blocked on a second model and OAuth credentials. #1634 live release alias is blocked on publishing the tag.",
+      "blocked_on": [
+        "published v6.7.0 release (#1634)",
+        "distinct llm-model-fast/balanced/quality (#1637)",
+        "Gmail/Outlook OAuth client credentials (#1643)"
+      ]
     }
   }
 }
