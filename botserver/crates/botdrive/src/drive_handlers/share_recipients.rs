@@ -1,5 +1,7 @@
 use super::*;
 
+use serde::Deserialize;
+
 #[derive(Debug, Deserialize)]
 pub struct RecipientsQuery {
     pub query: Option<String>,
