@@ -101,9 +101,12 @@ pub struct RunContext {
 impl RunContext {
     #[must_use]
     pub fn new(thread_id: &str, agent: &str) -> Self {
+        let run_id = crate::core::bot::runs::bus::bus()
+            .current_run_id(thread_id)
+            .unwrap_or_else(|| Uuid::new_v4().to_string());
         Self {
             thread_id: thread_id.to_string(),
-            run_id: Uuid::new_v4().to_string(),
+            run_id,
             parent_run_id: None,
             agent: agent.to_string(),
             bot_id: None,
@@ -252,6 +255,7 @@ pub async fn emit_custom(
 }
 
 pub async fn run_started(sink: &dyn ChannelSink, context: &RunContext, title: Option<&str>) {
+    crate::core::bot::runs::bus::bus().thread(&context.thread_id).set_state(RunState::Running);
     let data = serde_json::json!({
         "agent": context.agent,
         "title": title,
@@ -266,6 +270,7 @@ pub async fn run_finished(
     duration_ms: u64,
     exit_code: Option<i32>,
 ) {
+    crate::core::bot::runs::bus::bus().finish(&context.thread_id, state);
     let data = serde_json::json!({
         "state": state,
         "duration_ms": duration_ms,
@@ -280,6 +285,7 @@ pub async fn run_error(
     message: &str,
     code: Option<&str>,
 ) {
+    crate::core::bot::runs::bus::bus().finish(&context.thread_id, RunState::Failed);
     let data = serde_json::json!({
         "message": message,
         "code": code,

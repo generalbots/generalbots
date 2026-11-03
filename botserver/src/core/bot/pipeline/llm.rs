@@ -172,6 +172,19 @@ pub async fn stream_llm_response(
                 let mut keepalive = tokio::time::interval(Duration::from_millis(800));
                 keepalive.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
                 loop {
+                    // #1666 — Stop is cooperative: the owner checks between
+                    // chunks and ends the turn without running tool calls.
+                    if crate::core::bot::runs::bus::bus().is_cancelled(&session_id_s) {
+                        let cancelled = botlib::models::BotResponse::new(
+                            &bot_uuid_s,
+                            &session_id_s,
+                            user_id.to_string(),
+                            "Stopped.",
+                            "web",
+                        );
+                        let _ = sink.send_bot_response(&cancelled).await;
+                        return Ok(());
+                    }
                     tokio::select! {
                         chunk = retry_rx.recv() => {
                             match chunk {

@@ -3,40 +3,58 @@ use std::sync::Arc;
 use axum::extract::ws::{Message, WebSocket};
 use botcore::shared::state::AppState;
 use futures_util::{SinkExt, StreamExt};
-use log::{error, info};
+use log::{error, info, warn};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use super::message::run_start_bas_on_connect;
 use crate::core::bot::pipeline::{self, ChannelSink, PipelineError, SessionIdentity};
+use crate::core::bot::runs::{bus, store};
 
-struct WebSocketSink(Arc<tokio::sync::Mutex<futures_util::stream::SplitSink<WebSocket, Message>>>);
+/// Sink used by a background turn: frames are published to the thread channel
+/// so every subscribed socket receives them, and the turn keeps running after
+/// the socket that started it is gone.
+struct RunBusSink {
+    thread_id: String,
+}
 
 #[async_trait::async_trait]
-impl ChannelSink for WebSocketSink {
-    async fn send_bot_response(&self, response: &botlib::models::BotResponse) -> Result<(), PipelineError> {
-        if let Ok(json) = serde_json::to_string(response) {
-            self.0.lock().await.send(Message::Text(json)).await
-                .map_err(|e| PipelineError::Transport(format!("WS send: {e}")))?;
-        }
+impl ChannelSink for RunBusSink {
+    async fn send_bot_response(
+        &self,
+        response: &botlib::models::BotResponse,
+    ) -> Result<(), PipelineError> {
+        let frame = serde_json::to_value(response)
+            .map_err(|error| PipelineError::Transport(format!("run frame encode: {error}")))?;
+        bus::bus().publish(&self.thread_id, frame);
         Ok(())
     }
 
     async fn send_raw_json(&self, json: &serde_json::Value) -> Result<(), PipelineError> {
-        self.0.lock().await.send(Message::Text(json.to_string())).await
-            .map_err(|e| PipelineError::Transport(format!("WS raw send: {e}")))?;
+        bus::bus().publish(&self.thread_id, json.clone());
         Ok(())
     }
 
     async fn send_error(&self, session_id: &str, message: &str) -> Result<(), PipelineError> {
-        let resp = botlib::models::BotResponse::new("", session_id, "", message, "web");
-        self.send_bot_response(&resp).await
+        let response = botlib::models::BotResponse::new("", session_id, "", message, "web");
+        self.send_bot_response(&response).await
     }
 
-    fn channel_type(&self) -> &str { "web" }
-    fn supports_streaming(&self) -> bool { true }
-    fn supports_suggestions(&self) -> bool { true }
-    fn supports_raw_frames(&self) -> bool { true }
+    fn channel_type(&self) -> &str {
+        "web"
+    }
+
+    fn supports_streaming(&self) -> bool {
+        true
+    }
+
+    fn supports_suggestions(&self) -> bool {
+        true
+    }
+
+    fn supports_raw_frames(&self) -> bool {
+        true
+    }
 }
 
 pub async fn handle_ws(
@@ -99,8 +117,23 @@ pub async fn handle_ws(
     ).await;
     drop(start_bas_guard);
 
+    // #1666 — the socket subscribes to the thread, it does not own the run.
+    // Frames produced by a background turn (or another tab) arrive here too.
+    let thread_id = session_id.to_string();
+    let (_live_seq, mut bus_rx) = bus::bus().subscribe(&thread_id);
+
     loop {
         tokio::select! {
+            frame = bus_rx.recv() => {
+                match frame {
+                    Some(frame) => {
+                        if ws_sender.lock().await.send(Message::Text(frame.to_string())).await.is_err() {
+                            break;
+                        }
+                    }
+                    None => break,
+                }
+            }
             response = rx.recv() => {
                 if let Some(response) = response {
                     if let Ok(json) = serde_json::to_string(&response) {
@@ -120,6 +153,68 @@ pub async fn handle_ws(
                             text.len(),
                             text.chars().take(70).collect::<String>()
                         );
+                        let parsed: Option<serde_json::Value> = serde_json::from_str(&text).ok();
+                        let frame_type = parsed
+                            .as_ref()
+                            .and_then(|value| value.get("type"))
+                            .and_then(serde_json::Value::as_str)
+                            .unwrap_or("");
+
+                        // #1666 — resume after a reconnect: replay only the
+                        // frames the client has not seen.
+                        if frame_type == "run_resume" {
+                            let after_seq = parsed
+                                .as_ref()
+                                .and_then(|value| value.get("last_seq"))
+                                .and_then(serde_json::Value::as_u64)
+                                .unwrap_or(0);
+                            match state.conn.get() {
+                                Ok(mut conn) => {
+                                    match store::load_thread(&mut conn, bot_uuid, &thread_id, after_seq) {
+                                        Ok(events) => {
+                                            for envelope in events {
+                                                match envelope.to_json() {
+                                                    Ok(mut frame) => {
+                                                        if let Some(map) = frame.as_object_mut() {
+                                                            map.insert(
+                                                                "gb_event".to_string(),
+                                                                serde_json::Value::Bool(true),
+                                                            );
+                                                        }
+                                                        let _ = ws_sender
+                                                            .lock()
+                                                            .await
+                                                            .send(Message::Text(frame.to_string()))
+                                                            .await;
+                                                    }
+                                                    Err(error) => warn!("resume frame encode failed: {error}"),
+                                                }
+                                            }
+                                        }
+                                        Err(error) => warn!("run resume load failed: {error}"),
+                                    }
+                                }
+                                Err(error) => warn!("run resume skipped: pool error: {error}"),
+                            }
+                            let done = serde_json::json!({
+                                "type": "run_resume_done",
+                                "session_id": session_id,
+                                "last_seq": after_seq,
+                            });
+                            let _ = ws_sender.lock().await.send(Message::Text(done.to_string())).await;
+                            continue;
+                        }
+
+                        if frame_type == "run_cancel" {
+                            bus::bus().cancel(&thread_id);
+                            let ack = serde_json::json!({
+                                "type": "run_cancelled",
+                                "session_id": session_id,
+                            });
+                            let _ = ws_sender.lock().await.send(Message::Text(ack.to_string())).await;
+                            continue;
+                        }
+
                         // Receipt: the client clears its retry timer on this
                         // frame only, so a turn accepted here is never resent
                         // and one dropped by a dying socket is.
@@ -132,18 +227,58 @@ pub async fn handle_ws(
                             .await
                             .send(Message::Text(ack.to_string()))
                             .await;
-                        let sink = WebSocketSink(ws_sender.clone());
-                        let identity = SessionIdentity {
-                            sink: &sink,
-                            state: &state,
-                            bot_uuid,
-                            session_id,
-                            user_id,
-                            bot_name: &bot_name,
-                        };
-                        let _ = pipeline::process_message_internal(
-                            &identity, &mut rx, &mut start_bas_ran, &text,
-                        ).await;
+
+                        // #1677 will queue this as steering. Until then a
+                        // second turn on a busy thread is refused instead of
+                        // interleaving two agents on the same history.
+                        if bus::bus().is_running(&thread_id) {
+                            let busy = serde_json::json!({
+                                "type": "gb.run_busy",
+                                "session_id": session_id,
+                                "message": "A run is already in progress for this conversation.",
+                            });
+                            let _ = ws_sender.lock().await.send(Message::Text(busy.to_string())).await;
+                            continue;
+                        }
+
+                        let run_id = Uuid::new_v4().to_string();
+                        bus::bus().start(&thread_id, &run_id);
+                        let task_thread = thread_id.clone();
+                        let task_bot_name = bot_name.clone();
+                        let task_state = state.clone();
+                        let task_text = text;
+                        let mut task_start_bas_ran = start_bas_ran;
+                        start_bas_ran = true;
+                        tokio::spawn(async move {
+                            let sink = RunBusSink {
+                                thread_id: task_thread.clone(),
+                            };
+                            let identity = SessionIdentity {
+                                sink: &sink,
+                                state: &task_state,
+                                bot_uuid,
+                                session_id,
+                                user_id,
+                                bot_name: &task_bot_name,
+                            };
+                            let (closed_tx, mut task_rx) =
+                                mpsc::channel::<botlib::models::BotResponse>(1);
+                            drop(closed_tx);
+                            let result = pipeline::process_message_internal(
+                                &identity,
+                                &mut task_rx,
+                                &mut task_start_bas_ran,
+                                &task_text,
+                            )
+                            .await;
+                            match result {
+                                Ok(()) => bus::bus().finish(&task_thread, botevents::RunState::Succeeded),
+                                Err(error) => {
+                                    error!("pipeline task failed: {error}");
+                                    bus::bus().finish(&task_thread, botevents::RunState::Failed);
+                                }
+                            }
+                        });
                     }
                     Some(Ok(Message::Ping(data))) => {
                         let _ = ws_sender.lock().await.send(Message::Pong(data)).await;

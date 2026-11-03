@@ -11,7 +11,7 @@ use serde_json::{json, Map, Value};
 use super::envelope::ENVELOPE_VERSION;
 use super::events::EventType;
 
-pub const SCHEMA_ID: &str = "https://general bots/events/run-event.v1.json";
+pub const SCHEMA_ID: &str = "https://generalbots.org/events/run-event.v1.json";
 
 #[must_use]
 pub fn envelope_schema() -> Value {

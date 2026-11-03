@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://general bots/events/run-event.v1.json",
+  "$id": "https://generalbots.org/events/run-event.v1.json",
   "title": "General Bots run event",
   "description": "One AG-UI compatible frame in a conversation thread. Sequence numbers are dense and gapless per thread.",
   "type": "object",

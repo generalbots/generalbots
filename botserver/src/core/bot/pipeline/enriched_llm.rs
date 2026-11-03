@@ -130,11 +130,17 @@ pub(super) async fn build_and_stream(
         )
         .await;
     } else {
+        let cancelled = crate::core::bot::runs::bus::bus().is_cancelled(&run.thread_id);
+        let final_state = if cancelled {
+            botevents::RunState::Cancelled
+        } else {
+            botevents::RunState::Succeeded
+        };
         super::event_sink::step_finished(
             identity.sink,
             &run,
             "llm",
-            "ok",
+            if cancelled { "cancelled" } else { "ok" },
             Some(started.elapsed().as_millis() as u64),
             None,
         )
@@ -142,7 +148,7 @@ pub(super) async fn build_and_stream(
         super::event_sink::run_finished(
             identity.sink,
             &run,
-            botevents::RunState::Succeeded,
+            final_state,
             started.elapsed().as_millis() as u64,
             None,
         )

@@ -3,4 +3,5 @@
 //! The summary row lives in `agent_runs`; this module owns only the ordered
 //! `run_events` log around it.
 
+pub mod bus;
 pub mod store;
