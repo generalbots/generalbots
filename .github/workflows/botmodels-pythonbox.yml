@@ -47,6 +47,8 @@ env:
 jobs:
   bundle:
     name: Bundle pythonbox (linux x86_64)
+    # GitHub-only: ALM has no ubuntu-* runner and must not build on the host.
+    if: ${{ github.server_url == 'https://github.com' }}
     runs-on: ubuntu-22.04
     timeout-minutes: 60
     steps:
@@ -273,7 +275,7 @@ jobs:
   publish:
     name: Publish the bundle as a release
     needs: [bundle]
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    if: ${{ github.server_url == 'https://github.com' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

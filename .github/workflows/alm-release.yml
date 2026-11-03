@@ -54,6 +54,9 @@ env:
 jobs:
   build:
     name: Build deployable binaries
+    # GitHub-only: the ALM runner has no ubuntu-* label and must never compile
+    # on the production host (it deploys the release this job publishes).
+    if: ${{ github.server_url == 'https://github.com' }}
     runs-on: ubuntu-22.04
     timeout-minutes: 180
     steps:
@@ -153,7 +156,7 @@ jobs:
   publish:
     name: Publish the build as a release
     needs: [build]
-    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    if: ${{ github.server_url == 'https://github.com' && (github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
