@@ -12,10 +12,26 @@ var SUITE_DIR = path.resolve(__dirname, "..");
 var PASS = 0;
 var FAIL = 0;
 var RESULTS = [];
+var PENDING = [];
 
 function test(name, fn) {
   try {
-    fn();
+    var output = fn();
+    if (output && typeof output.then === "function") {
+      PENDING.push(
+        output.then(
+          function () {
+            PASS++;
+            RESULTS.push({ name: name, status: "PASS" });
+          },
+          function (e) {
+            FAIL++;
+            RESULTS.push({ name: name, status: "FAIL", error: e.message });
+          },
+        ),
+      );
+      return;
+    }
     PASS++;
     RESULTS.push({ name: name, status: "PASS" });
   } catch (e) {
@@ -122,11 +138,15 @@ test("FUNC-05: no_security wired to auth middleware require_auth", function () {
 // ═══════════════════════════════════════════════════════════════════
 
 var featureFiles = [
+  "chat/chat-artifacts.js",
+  "chat/chat-render.js",
+  "chat/chat-messages.js",
   "chat/modules/30_citations.js",
   "chat/modules/50_memory.js",
   "chat/modules/60_computer_use.js",
   "chat/modules/61_terminal_use.js",
   "chat/modules/62_sandbox.js",
+  "drive/modules/05_files.js",
   "drive/modules/08_modals.js",
   "drive/modules/11_external.js",
   "drive/modules/12_offline_sync.js",
@@ -404,9 +424,273 @@ allJsFiles.forEach(function (f) {
 });
 
 // ═══════════════════════════════════════════════════════════════════
+// BEHAVIOURAL TESTS (execute the shipped functions, not just source text)
+// ═══════════════════════════════════════════════════════════════════
+
+var vm = require("vm");
+
+function loadScript(relPath, sandbox) {
+  var context = vm.createContext(sandbox);
+  vm.runInContext(readFile(relPath), context, { filename: relPath });
+  return context;
+}
+
+function memoryStorage() {
+  var store = {};
+  return {
+    getItem: function (key) { return Object.prototype.hasOwnProperty.call(store, key) ? store[key] : null; },
+    setItem: function (key, value) { store[key] = String(value); },
+    removeItem: function (key) { delete store[key]; },
+  };
+}
+
+test("BEHAVE GB6-09: artifact detector classifies prose, markdown, HTML and code", function () {
+  var window = {};
+  var context = loadScript("chat/chat-artifacts.js", {
+    window: window,
+    document: {},
+    console: console,
+  });
+  var artifacts = context.window.GBArtifacts;
+  assert(artifacts, "GBArtifacts was not exported");
+  assert(artifacts.detect("too short") === null, "short text must not become an artifact");
+  var prose = "This paragraph explains the quarterly result in detail. ".repeat(60);
+  assert(artifacts.detect(prose) && artifacts.detect(prose).kind === "markdown",
+    "a long prose answer must be offered as a document");
+  var code = "```js\n" + "var x = 1;\n".repeat(60) + "```";
+  assert(artifacts.detect(code).kind === "code", "fenced code must stay a code artifact");
+  assert(artifacts.detect("<html><body>hi</body></html>").kind === "html", "HTML page not detected");
+  assert(artifacts.slug("Meu Relatório de Vendas") === "meu-relatorio-de-vendas",
+    "slug must transliterate the title");
+});
+
+test("BEHAVE GB6-09: artifact HTML sanitizer strips scripts and handlers", function () {
+  function node() {
+    return {
+      attrs: [],
+      removed: false,
+      remove: function () { this.removed = true; },
+      get attributes() { return this.attrs; },
+      removeAttribute: function (name) { this.attrs = this.attrs.filter(function (a) { return a.name !== name; }); },
+    };
+  }
+  var nodes = [];
+  var document = {
+    createElement: function () {
+      return {
+        innerHTML: "",
+        content: {
+          querySelectorAll: function (selector) {
+            if (selector === "*") return nodes;
+            return nodes;
+          },
+        },
+      };
+    },
+  };
+  var context = loadScript("chat/chat-artifacts.js", { window: {}, document: document, console: console });
+  var evil = node();
+  evil.attrs = [{ name: "onclick", value: "alert(1)" }, { name: "href", value: "javascript:alert(2)" }];
+  nodes.push(evil);
+  var cleaned = context.window.GBArtifacts.safeHtml("<a onclick='alert(1)'>x</a>");
+  assert(evil.attrs.length === 0, "event handler and javascript: URL must be removed");
+  assert(typeof cleaned === "string", "sanitizer must return markup");
+});
+
+test("BEHAVE GB6-25: usage tracking counts a message once and totals it", function () {
+  var storage = memoryStorage();
+  var window = {};
+  window.addEventListener = function () {};
+  var context = loadScript("js/usage-stats.js", {
+    window: window,
+    document: { addEventListener: function () {}, getElementById: function () { return null; } },
+    localStorage: storage,
+    sessionStorage: memoryStorage(),
+    console: console,
+  });
+  var usage = context.window.GBUsageStats;
+  assert(usage, "GBUsageStats was not exported");
+  usage.track("user", 120, "auto", "m-1");
+  usage.track("user", 120, "auto", "m-1");
+  usage.track("bot", 240, "auto", "m-2");
+  var summary = usage.getSummary(1);
+  assert(summary.messages_sent === 1, "duplicate frame must be counted once, got " + summary.messages_sent);
+  assert(summary.messages_received === 1, "bot reply not counted");
+  assert(summary.tokens_estimated === 90, "4 chars/token estimate: " + summary.tokens_estimated);
+});
+
+test("BEHAVE GB6-13: share expiry offers 7 days and refuses a past date", function () {
+  var selectValue = "7";
+  var context = loadScript("drive/modules/08_modals.js", {
+    window: { location: { origin: "http://localhost:8080" } },
+    document: { getElementById: function (id) { return id === "share-expiry" ? { value: selectValue } : null; } },
+    localStorage: memoryStorage(),
+    sessionStorage: memoryStorage(),
+    console: console,
+  });
+  var iso = context.shareExpiryIso();
+  var when = Date.parse(iso);
+  var days = (when - Date.now()) / 86400000;
+  assert(days > 6.9 && days < 7.1, "expiry must be ~7 days, got " + days);
+  selectValue = "never";
+  assert(context.shareExpiryIso() === null, "never must send no expiry");
+  assert(context.isExpired("2000-01-01T00:00:00Z") === true, "past link must be expired");
+  assert(context.isExpired(null) === false, "no expiry must not be expired");
+});
+
+test("BEHAVE #1638: Drive search asks for every bucket and file content", async function () {
+  var requested = null;
+  var context = loadScript("drive/modules/05_files.js", {
+    URLSearchParams: URLSearchParams,
+    document: { getElementById: function () { return { innerHTML: "" }; } },
+    apiRequest: function (endpoint) {
+      requested = endpoint;
+      return Promise.resolve([
+        { name: "report.pdf", path: "docs/report.pdf", is_dir: false, size: 10, bucket: "bot.gbai" },
+      ]);
+    },
+    renderFiles: function () {},
+    showNotification: function () {},
+    escapeHtml: function (value) { return String(value); },
+    humanizeError: function (value) { return String(value); },
+    currentPath: "",
+    currentBucket: "bot.gbai",
+    currentScope: "user",
+    getEffectiveBucket: function () { return "bot.gbai"; },
+    console: console,
+  });
+  return context.searchFiles("report", true).then(function () {
+    assert(requested, "search did not call the API");
+    assert(requested.indexOf("all_buckets=true") !== -1, "cross-bucket flag missing: " + requested);
+    assert(requested.indexOf("content=true") !== -1, "content flag missing: " + requested);
+    assert(requested.indexOf("query=report") !== -1, "query missing: " + requested);
+  });
+});
+
+// ═══════════════════════════════════════════════════════════════════
+// ISSUE COVERAGE (one test per open issue)
+// ═══════════════════════════════════════════════════════════════════
+
+test("ISSUE #1632: stored Vibe pins are dropped by the launcher", function () {
+  var storage = memoryStorage();
+  storage.setItem("gb-pinned-launcher", JSON.stringify([
+    { kind: "app", appId: "vibe" },
+    { kind: "app", appId: "vibe-code" },
+    { kind: "app", appId: "chat" },
+  ]));
+  var window = {};
+  var context = loadScript("js/pinned-launcher.js", {
+    window: window,
+    localStorage: storage,
+    document: { addEventListener: function () {}, getElementById: function () { return null; } },
+    console: console,
+  });
+  var list = context.window.GBPinnedLauncher.list();
+  assert(list.length === 1 && list[0].appId === "chat",
+    "Vibe entries must be purged, got " + JSON.stringify(list));
+});
+
+test("ISSUE #1633: payload trailer reader and sidecar stack fallback exist", function () {
+  var payload = readFile("../../../botapp/src/desktop/payload.rs");
+  assert(payload.indexOf("GB6PAYLOAD!!") !== -1, "trailer magic missing");
+  assert(payload.indexOf("payload_digest") !== -1, "checksum verification missing");
+  assert(payload.indexOf("--extract-only") !== -1, "offline extraction flag missing");
+  var sidecar = readFile("../../../botapp/src/desktop/sidecar.rs");
+  assert(sidecar.indexOf("Self::stack_path().join(name)") !== -1,
+    "sidecar does not fall back to the extracted stack");
+});
+
+test("ISSUE #1634: release workflow verifies the stable aliases", function () {
+  var workflow = readFile("../../../.github/workflows/desktop-binaries.yml");
+  assert(workflow.indexOf("Verify the stable download aliases") !== -1, "alias check missing");
+  assert(workflow.indexOf("sha256sum -c SHA256SUMS-linux --ignore-missing") !== -1,
+    "checksum verification missing");
+  assert(workflow.indexOf("make_latest: true") !== -1, "latest release not pinned");
+});
+
+test("ISSUE #1635: web sources become structured citations", function () {
+  var web = readFile("../../../botserver/src/core/bot/pipeline/web_context.rs");
+  assert(web.indexOf("pub async fn search_and_inject") !== -1 &&
+    web.indexOf("-> Vec<serde_json::Value>") !== -1, "search does not return citations");
+  var stream = readFile("../../../botserver/src/core/bot/ws/stream.rs");
+  assert(stream.indexOf("pending_citations") !== -1, "final frame does not drain citations");
+  var exec = readFile("../../../botserver/src/core/bot/pipeline/exec.rs");
+  assert(exec.indexOf("pending_citations") !== -1, "turn does not store citations");
+});
+
+test("ISSUE #1637: model tiers select real models and the picker is hydrated", function () {
+  var llm = readFile("../../../botserver/src/core/bot/pipeline/enriched_llm.rs");
+  assert(llm.indexOf("llm-model-{tier}") !== -1, "per-tier model key missing");
+  var handlers = readFile("../../../botserver/src/main_module/routes/chat_handlers.rs");
+  assert(handlers.indexOf("/api/chat/models") !== -1, "tier endpoint missing");
+  var init = readFile("chat/chat-init.js");
+  assert(init.indexOf("/api/chat/models") !== -1, "picker does not hydrate from the endpoint");
+  assert(init.indexOf("option.disabled") !== -1, "unconfigured tiers are not disabled");
+});
+
+test("ISSUE #1641: attachment content is extracted and injected", function () {
+  var text = readFile("../../../botserver/src/core/bot/pipeline/attachment_text.rs");
+  assert(text.indexOf("pub fn extract_excerpt") !== -1, "excerpt extractor missing");
+  assert(text.indexOf("fn docx_text") !== -1, "DOCX reader missing");
+  assert(text.indexOf("is_media") !== -1, "media honesty check missing");
+  var exec = readFile("../../../botserver/src/core/bot/pipeline/exec.rs");
+  assert(exec.indexOf("turn_hooks::ingest_attachment") !== -1, "attachment not ingested");
+  assert(exec.indexOf("attachment_note") !== -1, "attachment content not injected");
+});
+
+test("ISSUE #1644: browser actions have a producer, consent and feedback", function () {
+  var core = readFile("../../../botserver/src/core/computer_use.rs");
+  assert(core.indexOf("propose_from_text") !== -1, "URL producer missing");
+  assert(core.indexOf("take_completed_for_prompt") !== -1, "results not fed back");
+  var routes = readFile("../../../botserver/src/main_module/routes/computer_use_routes.rs");
+  assert(routes.indexOf("/approve") !== -1 && routes.indexOf("/execute") !== -1,
+    "consent/execute endpoints missing");
+  var client = readFile("chat/modules/60_computer_use.js");
+  assert(client.indexOf("/execute") !== -1 && client.indexOf("case \"screenshot\"") === -1,
+    "client still fakes screenshots or lacks execute");
+});
+
+test("ISSUE #1645: terminal consent is bound to an audit record", function () {
+  var routes = readFile("../../../botserver/src/main_module/routes/computer_use_routes.rs");
+  assert(routes.indexOf("body.action_id") !== -1, "execution not bound to an action id");
+  assert(routes.indexOf("/api/terminal/audit") !== -1, "audit endpoint missing");
+  var migration = readFile("../../../botserver/migrations/6.8.3-terminal-audit/up.sql");
+  assert(migration.indexOf("CREATE TABLE IF NOT EXISTS terminal_audit") !== -1,
+    "audit table missing");
+  var client = readFile("chat/modules/61_terminal_use.js");
+  assert(client.indexOf("/api/terminal/audit") !== -1, "audit panel not reachable");
+});
+
+test("ISSUE #1649: the published page is generated from the record", function () {
+  var record = JSON.parse(readFile("../../../desktop/gb6/features.json"));
+  var ids = record.features.map(function (f) { return f.id; });
+  assert(ids.length === 14, "expected 14 features, got " + ids.length);
+  assert(ids.indexOf("GB6-22") === -1 && ids.indexOf("GB6-24") === -1,
+    "removed features still listed");
+  record.features.forEach(function (feature) {
+    assert(feature.evidence && feature.evidence.issue, feature.id + " has no issue link");
+    if (feature.status === "shipped") {
+      assert(feature.evidence.e2e, feature.id + " is shipped without E2E evidence");
+      assert(feature.last_verified && feature.last_verified.date,
+        feature.id + " has no verification date");
+    }
+  });
+});
+
+test("ISSUE #1650: the epic definition of done is recorded", function () {
+  var record = JSON.parse(readFile("../../../desktop/gb6/features.json"));
+  assert(record.epic && record.epic.issue === "#1650", "epic metadata missing");
+  assert(Array.isArray(record.epic.definition_of_done) &&
+    record.epic.definition_of_done.length >= 4, "definition of done missing");
+  assert(record.epic.removed_from_scope.indexOf("GB6-22") !== -1,
+    "removed scope not recorded");
+});
+
+// ═══════════════════════════════════════════════════════════════════
 // RESULTS
 // ═══════════════════════════════════════════════════════════════════
 
+function report() {
 console.log("\n" + "=".repeat(60));
 console.log("GB6 WEB AUTOMATION TEST RESULTS");
 console.log("=".repeat(60));
@@ -419,3 +703,10 @@ console.log("TOTAL: " + (PASS + FAIL) + " | PASS: " + PASS + " | FAIL: " + FAIL)
 console.log("=".repeat(60));
 
 process.exit(FAIL > 0 ? 1 : 0);
+}
+
+if (PENDING.length) {
+  Promise.all(PENDING).then(report);
+} else {
+  report();
+}
