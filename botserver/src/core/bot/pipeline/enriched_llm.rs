@@ -15,6 +15,7 @@ pub(super) async fn build_and_stream(
     user_text: &str,
     #[cfg(feature = "integrations")] mentions: &[botlib::models::MentionRef],
     is_switcher_replay: bool,
+    model_preference: &str,
 ) -> PipelineResult<()> {
     let SessionIdentity {
         state,
@@ -84,7 +85,13 @@ pub(super) async fn build_and_stream(
 
     if tokio::time::timeout(
         std::time::Duration::from_secs(300),
-        super::llm::stream_llm_response(identity, rx, &messages_val, &user_query),
+        super::llm::stream_llm_response(
+            identity,
+            rx,
+            &messages_val,
+            &user_query,
+            model_preference,
+        ),
     )
     .await
     .is_err()
@@ -100,6 +107,7 @@ pub(super) async fn build_and_stream(
 pub(super) fn resolve_bot_llm_provider(
     state: &Arc<AppState>,
     bot_uuid: Uuid,
+    model_preference: &str,
 ) -> Option<(Arc<dyn botlib::traits::LLMProvider>, String, String)> {
     let bot_llm_provider: Option<(Arc<dyn botlib::traits::LLMProvider>, String, String)> = {
         use botcore::config::ConfigManager;
@@ -108,6 +116,25 @@ pub(super) fn resolve_bot_llm_provider(
         let mut llm_key = cfg.get_config(&bot_uuid, "llm-key", Some("")).unwrap_or_default();
         let mut llm_model = cfg.get_config(&bot_uuid, "llm-model", Some("")).unwrap_or_default();
         let llm_provider = cfg.get_config(&bot_uuid, "llm-provider", Some("")).unwrap_or_default();
+        // #1637 — a tier is a real model, not a tone. The picker's value
+        // selects `llm-model-<tier>`; when the bot has no model configured for
+        // that tier the request keeps the default model, and `auto` always
+        // means the default (unchanged behaviour).
+        let tier = model_preference.trim().to_lowercase();
+        if matches!(tier.as_str(), "fast" | "balanced" | "quality") {
+            let tier_key = format!("llm-model-{tier}");
+            let tier_model = cfg.get_config(&bot_uuid, &tier_key, Some("")).unwrap_or_default();
+            if !tier_model.is_empty() {
+                botlog::safe_info!(
+                    "BOT {bot_uuid} model tier '{tier}' -> model=[{tier_model}]"
+                );
+                llm_model = tier_model;
+            } else {
+                botlog::safe_info!(
+                    "BOT {bot_uuid} model tier '{tier}' is not configured; using the default model [{llm_model}]"
+                );
+            }
+        }
         if let Ok(val) = std::env::var("LLM_URL") { if !val.is_empty() { llm_url = val; } }
         if let Ok(val) = std::env::var("LLM_KEY") { if !val.is_empty() { llm_key = val; } }
         if let Ok(val) = std::env::var("LLM_MODEL") { if !val.is_empty() { llm_model = val; } }

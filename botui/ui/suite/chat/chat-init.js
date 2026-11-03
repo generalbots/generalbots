@@ -726,6 +726,31 @@ if (savedModel) modelPicker.value = savedModel;
 modelPicker.addEventListener("change", function () {
 try { localStorage.setItem(MODEL_KEY, modelPicker.value); } catch (e) {}
 });
+// #1637 — label each tier with the model it actually selects. A tier the bot
+// has not configured is disabled instead of pretending to switch models.
+(function hydrateModelTiers() {
+  var botName = window.__INITIAL_BOT_NAME__ || "";
+  var url = "/api/chat/models" + (botName ? "?bot=" + encodeURIComponent(botName) : "");
+  fetch(url)
+    .then(function (res) { return res.ok ? res.json() : null; })
+    .then(function (data) {
+      if (!data || !Array.isArray(data.tiers)) return;
+      data.tiers.forEach(function (tier) {
+        var option = modelPicker.querySelector('option[value="' + tier.id + '"]');
+        if (!option) return;
+        var model = tier.model ? " · " + tier.model : "";
+        option.textContent = tier.label + model;
+        option.title = tier.tradeoff || "";
+        option.disabled = tier.id !== "auto" && tier.configured === false;
+        if (option.disabled && option.selected) {
+          modelPicker.value = "auto";
+        }
+      });
+    })
+    .catch(function () {
+      /* keep the static honest labels when the endpoint is unavailable */
+    });
+})();
 }
 
 var scrollBtn = document.getElementById("scrollToBottom");

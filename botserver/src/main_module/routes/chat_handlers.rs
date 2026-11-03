@@ -1,8 +1,8 @@
 use axum::{
-    extract::State,
+    extract::{Query, State},
     http::StatusCode,
     response::{Html, IntoResponse, Json},
-    routing::post,
+    routing::{get, post},
     Form, Router,
 };
 use serde::Deserialize;
@@ -10,6 +10,12 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use botcore::shared::state::AppState;
+
+#[derive(Debug, Deserialize)]
+pub struct ChatModelsQuery {
+    /// Bot name from the page the picker belongs to; the tier keys are per bot.
+    pub bot: Option<String>,
+}
 
 #[derive(Debug, Deserialize)]
 pub struct ChatMessageRequest {
@@ -182,6 +188,80 @@ pub fn configure_chat_routes() -> Router<Arc<AppState>> {
         .route("/api/chat", post(handle_chat_message))
         .route("/api/chat/message", post(handle_chat_message_htmx))
         .route("/api/chat/context", post(handle_chat_context))
+        .route("/api/chat/models", get(handle_chat_models))
         .route("/api/chat/sessions/new", post(handle_new_session))
         .route("/api/sessions/current/message", post(handle_sessions_current_message))
+}
+
+/// #1637 — reports the model behind each picker tier so the UI can label the
+/// options honestly ("Fast · gpt-4o-mini" or "Fast · uses the default model")
+/// instead of promising a trade-off the bot has not configured.
+pub async fn handle_chat_models(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<ChatModelsQuery>,
+) -> Json<serde_json::Value> {
+    use botcore::shared::schema::bots;
+    use diesel::prelude::*;
+
+    let requested = query.bot.unwrap_or_default();
+    let bot_uuid = if requested.trim().is_empty() {
+        Uuid::nil()
+    } else {
+        match state.conn.get() {
+            Ok(mut conn) => bots::table
+                .filter(bots::name.eq(requested.trim()))
+                .select(bots::id)
+                .first::<Uuid>(&mut conn)
+                .unwrap_or(Uuid::nil()),
+            Err(e) => {
+                log::warn!("chat models: database unavailable: {e}");
+                Uuid::nil()
+            }
+        }
+    };
+
+    let cfg = botcore::config::ConfigManager::new(state.conn.clone());
+    let mut default_model = cfg
+        .get_config(&bot_uuid, "llm-model", Some(""))
+        .unwrap_or_default();
+    if default_model.is_empty() {
+        default_model = std::env::var("LLM_MODEL").unwrap_or_default();
+    }
+
+    let tier = |id: &str, label: &str, tradeoff: &str| {
+        let key = format!("llm-model-{id}");
+        let configured = cfg
+            .get_config(&bot_uuid, &key, Some(""))
+            .map(|value| !value.trim().is_empty())
+            .unwrap_or(false);
+        let model = if configured {
+            cfg.get_config(&bot_uuid, &key, Some(""))
+                .unwrap_or_default()
+        } else {
+            default_model.clone()
+        };
+        serde_json::json!({
+            "id": id,
+            "label": label,
+            "model": model,
+            "configured": configured,
+            "tradeoff": tradeoff,
+        })
+    };
+
+    Json(serde_json::json!({
+        "default_model": default_model,
+        "tiers": [
+            {
+                "id": "auto",
+                "label": "Auto",
+                "model": default_model,
+                "configured": true,
+                "tradeoff": "Uses the bot's configured model."
+            },
+            tier("fast", "Fast", "Quick answers; the cheapest model the bot has configured."),
+            tier("balanced", "Balanced", "Middle ground between speed and depth."),
+            tier("quality", "Quality", "Best answer quality; slower and usually more expensive."),
+        ],
+    }))
 }

@@ -66,6 +66,7 @@ pub async fn stream_llm_response(
     rx: &mut tokio::sync::mpsc::Receiver<botlib::models::BotResponse>,
     messages: &serde_json::Value,
     user_text: &str,
+    model_preference: &str,
 ) -> PipelineResult<()> {
     let SessionIdentity {
         sink,
@@ -75,7 +76,8 @@ pub async fn stream_llm_response(
         user_id,
         bot_name,
     } = *identity;
-    let bot_llm_provider = super::enriched_llm::resolve_bot_llm_provider(state, bot_uuid);
+    let bot_llm_provider =
+        super::enriched_llm::resolve_bot_llm_provider(state, bot_uuid, model_preference);
 
     if super::enriched_llm::respond_in_answer_mode(
         sink, state, user_text, bot_uuid, bot_name, session_id, user_id,

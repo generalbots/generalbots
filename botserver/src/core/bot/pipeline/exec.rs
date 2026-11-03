@@ -395,9 +395,9 @@ pub async fn process_message_internal(
     let mut messages =
         vec![serde_json::json!({"role": "system", "content": system_prompt.clone()})];
 
-    // #1549: honour the selected trade-off tier. This shapes the answer
-    // length/depth immediately; provider-level model routing is tracked in
-    // the issue as the remaining step.
+    // #1549/#1637: the tier now selects a real model in
+    // `resolve_bot_llm_provider` (`llm-model-<tier>`); this sentence is only a
+    // secondary shaping hint, not the routing mechanism.
     if model_preference != "auto" && !model_preference.is_empty() {
         let directive = match model_preference.as_str() {
             "fast" => "The user selected Fast mode: answer as concisely as possible and prioritise latency over exhaustive detail.",
@@ -582,6 +582,7 @@ pub async fn process_message_internal(
             #[cfg(feature = "integrations")]
             &mentions,
             is_switcher_replay,
+            &model_preference,
         ),
     )
     .await
