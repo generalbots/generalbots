@@ -245,6 +245,7 @@ pub async fn process_message_internal(
             bot_name,
             channel,
             &active_switchers,
+            parsed.get("client_capabilities"),
         ),
         channel,
     );

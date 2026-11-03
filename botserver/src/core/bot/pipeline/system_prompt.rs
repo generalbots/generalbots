@@ -25,6 +25,7 @@ pub(super) fn build(
     bot_name: &str,
     channel: &str,
     active_switchers: &[String],
+    client_caps: Option<&serde_json::Value>,
 ) -> String {
     let base_system_prompt =
         crate::core::bot::ws::message::load_system_prompt_for_channel(bot_name, channel);
@@ -58,7 +59,7 @@ pub(super) fn build(
     // for a PDF endpoint instead of writing the program, and the call then
     // leaked into the chat as raw text.
     let include_api_catalog = !cfg!(feature = "desktop-local");
-    if channel == "web" {
+    let channel_prompt = if channel == "web" {
         if include_api_catalog {
             format!(
                 "{system_prompt}\n\n{}\n\n{}",
@@ -78,7 +79,52 @@ pub(super) fn build(
             "{system_prompt}\n\n{}",
             crate::core::bot::api_catalog::api_command_instructions(&role),
         )
-    }
+    };
+    format!("{channel_prompt}\n\n{}", capability_block(channel, client_caps))
+}
+
+/// Per-session capability block (#1678). The model must not offer a surface
+/// this client did not announce.
+#[must_use]
+pub fn capability_block(channel: &str, client_caps: Option<&serde_json::Value>) -> String {
+    let caps = client_caps.unwrap_or(&serde_json::Value::Null);
+    let surfaces = caps
+        .get("surfaces")
+        .and_then(serde_json::Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(serde_json::Value::as_str)
+                .collect::<Vec<_>>()
+                .join(", ")
+        })
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| {
+            if super::event_sink::enabled() {
+                "text, gb.basic.v1".to_string()
+            } else {
+                "text".to_string()
+            }
+        });
+    let motion = caps
+        .get("motion")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("full");
+    let locale = caps
+        .get("locale")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("en");
+    let input = caps
+        .get("input")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("text,file");
+    let max_live = caps
+        .get("max_live_apps")
+        .and_then(serde_json::Value::as_u64)
+        .unwrap_or(2);
+    format!(
+        "CLIENT CAPABILITIES\nchannel={channel}; surfaces={surfaces}; max_live_apps={max_live}; motion={motion}; locale={locale}; input={input}.\nOnly use a surface listed above. If the client lists only `text`, answer in prose and never claim a card was shown. Respect reduced motion (no decorative animation) and the locale."
+    )
 }
 
 /// The structured-interaction surface is advertised only when the client can
