@@ -33,6 +33,11 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["full"] }
 reqwest = { workspace = true, features = ["json", "rustls-tls"] }
+# #1633 — self-extracting payload (trailer + tar.zst).
+tar = { workspace = true }
+zstd = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
 
 # Unix process control
 [target.'cfg(unix)'.dependencies]

@@ -44,7 +44,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            build-essential clang mold pkg-config \
+            build-essential clang mold pkg-config zstd \
             libpq-dev libssl-dev liblzma-dev \
             libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
 
@@ -104,6 +104,30 @@ jobs:
           chmod +x dist/generalbots-linux-x86_64 dist/botserver-linux-x86_64
           (cd dist && sha256sum generalbots-linux-x86_64 botserver-linux-x86_64 >> SHA256SUMS-linux)
           ls -lh dist
+
+      # #1633 — one self-extracting executable: the app with the stack
+      # appended as [payload.tar.zst][magic+offset+length+sha256].
+      - name: Build self-extracting binary
+        run: |
+          set -euo pipefail
+          rm -rf dist/payload
+          mkdir -p dist/payload/bin dist/payload/ui
+          cp target/release/botserver dist/payload/botserver
+          cp -a botui/ui/suite  dist/payload/ui/suite
+          cp -a botui/ui/themes dist/payload/ui/themes
+          cp botserver/.product.desktop-local dist/payload/
+          if [ -d dist/installers ]; then
+            cp -a dist/installers/. dist/payload/installers/
+          fi
+          python3 scripts/build-self-extractor.py \
+            --app target/release/botapp \
+            --payload dist/payload \
+            --out dist/generalbots
+          chmod +x dist/generalbots
+          (cd dist && sha256sum generalbots >> SHA256SUMS-linux)
+          # Offline inspection works without a display:
+          ./dist/generalbots --version
+          ./dist/generalbots --verify
 
       # A published installer is only as good as its first run. This unpacks the
       # tarball built above on a clean runner, installs it, provisions the stack
@@ -247,6 +271,28 @@ jobs:
             ForEach-Object { "$($_.Hash)  $([System.IO.Path]::GetFileName($_.Path))" } |
             Out-File dist/SHA256SUMS-windows.txt -Encoding ascii
 
+      # #1633 — same trailer format on Windows. The zstd CLI is installed
+      # here because the payload builder shells out to it.
+      - name: Build self-extracting Windows binary
+        shell: pwsh
+        run: |
+          choco install zstd --no-progress -y
+          New-Item -ItemType Directory -Force dist/payload | Out-Null
+          New-Item -ItemType Directory -Force dist/payload/bin | Out-Null
+          New-Item -ItemType Directory -Force dist/payload/ui | Out-Null
+          Copy-Item target/release/botserver.exe dist/payload/botserver.exe
+          Copy-Item -Recurse botui/ui/suite  dist/payload/ui/suite
+          Copy-Item -Recurse botui/ui/themes dist/payload/ui/themes
+          Copy-Item botserver/.product.desktop-local dist/payload/
+          python scripts/build-self-extractor.py `
+            --app target/release/botapp.exe `
+            --payload dist/payload `
+            --out dist/generalbots.exe
+          .\dist\generalbots.exe --verify
+          Get-FileHash dist/generalbots.exe -Algorithm SHA256 |
+            ForEach-Object { "$($_.Hash)  generalbots.exe" } |
+            Out-File dist/SHA256SUMS-windows.txt -Encoding ascii -Append
+
       - name: Upload Windows binaries
         uses: actions/upload-artifact@v4
         with:
@@ -328,11 +374,14 @@ jobs:
             it and removed the binaries from dl.min.io. MinIO is AGPL-3.0:
             https://github.com/minio/minio and https://github.com/minio/mc.
 
-            Also attached: `SHA256SUMS-linux`, plus the raw `generalbots` and
-            `botserver` binaries for debugging.
+            Also attached: the self-extracting `generalbots` executable
+            (the app with the stack appended: verify with `--verify`, unpack
+            with `--extract-only`), `SHA256SUMS-linux`, and the raw
+            `generalbots`/`botserver` binaries for debugging.
           files: |
             dist/*.tar.gz
             dist/SHA256SUMS-linux
+            dist/generalbots
             dist/generalbots-linux-x86_64
             dist/botserver-linux-x86_64
           fail_on_unmatched_files: false
@@ -368,6 +417,7 @@ jobs:
             Best effort: the Linux installer is the supported artifact and lives
             on the `${{ github.event.inputs.tag || github.ref_name }}` tag.
           files: |
+            dist/generalbots.exe
             dist/generalbots-x64.exe
             dist/botserver-x64.exe
             dist/botui-x64.exe

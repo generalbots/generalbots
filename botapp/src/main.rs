@@ -189,6 +189,9 @@ fn start_sidecar_and_show(app: &tauri::App) {
 }
 
 fn main() {
+    if let Some(code) = desktop::payload::handle_cli() {
+        std::process::exit(code);
+    }
     botlib::logging::init_compact_logger("info");
     let version = env!("CARGO_PKG_VERSION");
     info!("BotApp {version} starting...");
@@ -290,6 +293,11 @@ fn main() {
 
     let app = builder
         .setup(|app| {
+            // #1633 — first run of the self-extracting build provisions the
+            // embedded stack before the wizard or the sidecar looks for it.
+            if let Err(error) = desktop::payload::extract_if_present() {
+                log::error!("embedded payload could not be extracted: {error}");
+            }
             let tray = app.state::<TrayManager>();
             let mode = tray.get_mode_string();
             info!("BotApp setup complete in {mode} mode");

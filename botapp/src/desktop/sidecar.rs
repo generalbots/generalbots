@@ -52,7 +52,13 @@ impl Sidecar {
         #[cfg(not(target_os = "windows"))]
         let name = "botserver";
 
-        dir.join(name)
+        let beside = dir.join(name);
+        if beside.exists() {
+            return beside;
+        }
+        // #1633 — the self-extracting build has no sibling binary: the payload
+        // extracted botserver into the per-user stack.
+        Self::stack_path().join(name)
     }
 
     pub(crate) fn stack_path() -> PathBuf {
@@ -110,7 +116,11 @@ impl Sidecar {
         let packaged_ui = resource_dir
             .as_ref()
             .map(|dir| dir.join("ui").join("suite"))
-            .filter(|dir| dir.exists());
+            .filter(|dir| dir.exists())
+            .or_else(|| {
+                let stack_ui = stack.join("ui").join("suite");
+                stack_ui.exists().then_some(stack_ui)
+            });
 
         // An explicit path wins (development runs point at the checkout's
         // bundled installers); packaged builds use the resource directory.
