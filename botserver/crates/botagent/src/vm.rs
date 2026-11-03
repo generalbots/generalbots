@@ -194,6 +194,35 @@ pub(crate) async fn wait_for_running(state: &AgentService, vm_name: &str) -> Res
     Err(internal(format!("container {vm_name} did not reach RUNNING within {LAUNCH_WAIT_SECS}s")))
 }
 
+/// Last `ERROR` entries of the container's own start log. The host-side
+/// reason a container refuses to run lives here, not in the start exit code
+/// (the daemon reports exit 0 while the instance stays STOPPED).
+async fn instance_log_tail(state: &AgentService, vm_name: &str) -> Option<String> {
+    let output = run_incus(
+        state,
+        vec![
+            "info".to_string(),
+            vm_name.to_string(),
+            "--show-log".to_string(),
+        ],
+    )
+    .await
+    .ok()?;
+    let text = String::from_utf8_lossy(&output.stdout);
+    let errors: Vec<String> = text
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty() && line.contains("ERROR"))
+        .rev()
+        .take(2)
+        .map(|line| line.chars().take(160).collect::<String>())
+        .collect();
+    if errors.is_empty() {
+        return None;
+    }
+    Some(errors.join(" | "))
+}
+
 // ─── DB helpers ────────────────────────────────────────────────────────────
 
 fn load_session_by_user(
@@ -609,7 +638,18 @@ async fn launch_and_wait(state: &Arc<AgentService>, vm_name: &str) -> Result<(),
         // explicitly and wait again instead of failing the whole workspace.
         tracing::warn!("container {vm_name} did not start in time; retrying incus start");
         let _ = run_incus(state, vec!["start".into(), vm_name.into()]).await;
-        wait_for_running(state, vm_name).await?;
+        if let Err(wait_error) = wait_for_running(state, vm_name).await {
+            // A created-but-never-running container keeps its reason inside
+            // the instance log (bpf/mount/cgroup host-side failures); the
+            // daemon can even return exit 0 from `start` while the instance
+            // stays STOPPED. Attach that evidence so callers surface the
+            // true cause instead of a bare timeout.
+            let reason = match instance_log_tail(state, vm_name).await {
+                Some(tail) => format!("{}; instance log: {tail}", wait_error.1),
+                None => wait_error.1,
+            };
+            return Err((wait_error.0, reason));
+        }
     }
 
     // Best-effort runtime bootstrap. Logs land inside the container; a

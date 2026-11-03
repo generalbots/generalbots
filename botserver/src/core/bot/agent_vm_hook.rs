@@ -139,6 +139,12 @@ pub async fn delete_conversation_folder(user_id: uuid::Uuid, session_id: uuid::U
     }
 }
 
+/// Concrete workspace failure: HTTP-ish status plus the reason text produced
+/// by the VM subsystem. Threaded into chat so the user sees the real cause
+/// (for example a sandbox host that cannot start containers) instead of a
+/// dead-end "workspace is not available" phrase.
+pub type WorkspaceError = (u16, String);
+
 /// Execute code in the user's VM within the conversation folder. Returns
 /// (success, stdout, stderr) or None if the service is absent.
 pub async fn exec_in_user_vm(
@@ -160,23 +166,94 @@ pub async fn exec_in_user_vm_with_timeout(
     timeout_ms: u64,
     packages: &[String],
 ) -> Option<(bool, String, String)> {
-    let service = SERVICE.get()?;
-    let row = botagent::vm::get_user_vm(service, &user_id).ok()??;
+    exec_in_user_vm_result(user_id, session_id, language, code, timeout_ms, packages)
+        .await
+        .ok()
+        .flatten()
+}
+
+/// Detailed sibling of [`exec_in_user_vm_with_timeout`]. `Ok(None)` still
+/// means "wake the workspace and retry"; `Err` carries the concrete failure
+/// so callers can show the true reason.
+pub async fn exec_in_user_vm_result(
+    user_id: uuid::Uuid,
+    session_id: uuid::Uuid,
+    language: &str,
+    code: &str,
+    timeout_ms: u64,
+    packages: &[String],
+) -> Result<Option<(bool, String, String)>, WorkspaceError> {
+    let Some(service) = SERVICE.get() else {
+        return Ok(None);
+    };
+    let row = match botagent::vm::get_user_vm(service, &user_id) {
+        Ok(Some(row)) => row,
+        Ok(None) => return Ok(None),
+        Err((_, error)) => {
+            botlog::safe_warn!("workspace lookup for {user_id}: {error}");
+            return Ok(None);
+        }
+    };
     if row.status != botagent::vm::STATUS_RUNNING {
-        return None;
+        return Ok(None);
     }
     let conversation_id = session_id.to_string();
-    botagent::vm::exec_in_conversation(
-        service, &row.vm_name, &conversation_id,
-        language, code, timeout_ms, packages,
-    ).await.ok()
+    match botagent::vm::exec_in_conversation(
+        service,
+        &row.vm_name,
+        &conversation_id,
+        language,
+        code,
+        timeout_ms,
+        packages,
+    )
+    .await
+    {
+        Ok(outcome) => Ok(Some(outcome)),
+        Err((status, error)) => Err((status.as_u16(), error)),
+    }
+}
+
+/// Auto-provision with the failure reason threaded out;
+/// [`ensure_agent_vm`] keeps the None form for callers that only mirror a
+/// job. Guest sessions (nil user) never provision — the concrete error keeps
+/// that truthful.
+pub async fn ensure_agent_vm_result(
+    session_id: uuid::Uuid,
+    user_id: uuid::Uuid,
+    bot_uuid: uuid::Uuid,
+) -> Result<botagent::models::AgentSessionRow, WorkspaceError> {
+    if user_id.is_nil() {
+        return Err((
+            403,
+            "guest sessions have no workspace; sign in to use yours".to_string(),
+        ));
+    }
+    let Some(service) = SERVICE.get() else {
+        return Err((
+            503,
+            "the agent workspace subsystem is unavailable".to_string(),
+        ));
+    };
+    let conversation_id = session_id.to_string();
+    match botagent::vm::ensure_vm(service, &user_id, &bot_uuid, Some(&conversation_id)).await {
+        Ok(row) => {
+            if let Err(e) =
+                botagent::vm::switch_conversation(service, &user_id, &conversation_id).await
+            {
+                botlog::safe_warn!("conversation switch for {session_id}: {}", e.1);
+            }
+            Ok(row)
+        }
+        Err((code, error)) => Err((code.as_u16(), error)),
+    }
 }
 
 /// Executes a program, waking the workspace VM first when it is not running.
 /// A stopped/idle workspace is normal; failing with "not available" after the
 /// model already produced a program loses the whole turn.
 #[cfg(feature = "agent-vm")]
-pub async fn exec_with_wake(
+pub async fn exec_with_wake_result(
     user_id: uuid::Uuid,
     session_id: uuid::Uuid,
     bot_uuid: uuid::Uuid,
@@ -184,16 +261,42 @@ pub async fn exec_with_wake(
     code: &str,
     timeout_ms: u64,
     packages: &[String],
-) -> Option<(bool, String, String)> {
-    if let Some(result) = exec_in_user_vm_with_timeout(
+) -> Result<Option<(bool, String, String)>, WorkspaceError> {
+    match exec_in_user_vm_result(
         user_id, session_id, language, code, timeout_ms, packages,
     )
     .await
     {
-        return Some(result);
+        Ok(Some(outcome)) => return Ok(Some(outcome)),
+        Ok(None) => {}
+        Err((status, error)) => {
+            // The wake below still retries the run; keep the first failure
+            // visible for diagnosis instead of discarding it.
+            botlog::safe_warn!("workspace rapid try failed ({status}): {error}");
+        }
     }
-    ensure_agent_vm(session_id, user_id, bot_uuid).await?;
-    exec_in_user_vm_with_timeout(user_id, session_id, language, code, timeout_ms, packages).await
+    let row = ensure_agent_vm_result(session_id, user_id, bot_uuid).await?;
+    let Some(service) = SERVICE.get() else {
+        return Err((
+            503,
+            "the agent workspace subsystem is unavailable".to_string(),
+        ));
+    };
+    let conversation_id = session_id.to_string();
+    match botagent::vm::exec_in_conversation(
+        service,
+        &row.vm_name,
+        &conversation_id,
+        language,
+        code,
+        timeout_ms,
+        packages,
+    )
+    .await
+    {
+        Ok(outcome) => Ok(Some(outcome)),
+        Err((status, error)) => Err((status.as_u16(), error)),
+    }
 }
 
 /// Container name of the caller's running agent VM, if any. Used by the

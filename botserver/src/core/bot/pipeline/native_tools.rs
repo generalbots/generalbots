@@ -73,6 +73,27 @@ fn truncate(text: &str) -> String {
     out
 }
 
+/// The truthful replacement for the dead-end "workspace is not available"
+/// phrase: show the concrete reason the VM subsystem reports (status is
+/// logged only, never shown), then one short pointer forward.
+#[cfg(feature = "agent-vm")]
+fn workspace_failure_message(reason: &str) -> String {
+    let trimmed = reason.trim();
+    if trimmed.is_empty() {
+        return "The workspace could not run this program. Start a new message and try again."
+            .to_string();
+    }
+    let clipped: String = trimmed.chars().take(320).collect();
+    let clipped = if trimmed.chars().count() > 320 {
+        format!("{clipped}…")
+    } else {
+        clipped
+    };
+    format!(
+        "The workspace could not run this program: {clipped}. Start a new message once the sandbox host is back; on a desktop install, restarting the app brings the workspace up."
+    )
+}
+
 #[cfg(feature = "agent-vm")]
 async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     let parsed: serde_json::Value = match super::native_args::parse_args(args) {
@@ -156,7 +177,7 @@ async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         let code = code.to_string();
         let language = language.to_string();
         tokio::spawn(async move {
-            let result = crate::core::bot::agent_vm_hook::exec_with_wake(
+            let result = crate::core::bot::agent_vm_hook::exec_with_wake_result(
                 user_id,
                 session_id,
                 bot_uuid,
@@ -167,8 +188,12 @@ async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
             )
             .await;
             let message = match result {
-                None => "The workspace became unavailable and the background job could not finish.".to_string(),
-                Some((ok, stdout, stderr)) => {
+                Err((status, reason)) => {
+                    botlog::safe_warn!("background job workspace failure ({status}): {reason}");
+                    workspace_failure_message(&reason)
+                }
+                Ok(None) => "The workspace became unavailable and the background job could not finish.".to_string(),
+                Ok(Some((ok, stdout, stderr))) => {
                     render_result(user_id, session_id, ok, &stdout, &stderr).await
                 }
             };
@@ -203,7 +228,7 @@ async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
     let budget = std::time::Duration::from_millis(timeout_ms.saturating_add(120_000));
     let result = match tokio::time::timeout(
         budget,
-        crate::core::bot::agent_vm_hook::exec_with_wake(
+        crate::core::bot::agent_vm_hook::exec_with_wake_result(
             user_id,
             session_id,
             bot_uuid,
@@ -218,21 +243,35 @@ async fn run_vm_exec(identity: &SessionIdentity<'_>, args: &str) {
         Ok(result) => result,
         Err(_) => {
             botlog::safe_warn!("vm_exec exceeded its overall budget for session {session_id}");
-            None
+            Err((
+                503,
+                "the run budget elapsed before the workspace answered".to_string(),
+            ))
         }
     };
     botlog::safe_info!(
         "vm_exec done: session={session_id} ok={:?}",
-        result.as_ref().map(|r| r.0)
+        result
+            .as_ref()
+            .ok()
+            .and_then(|outcome| outcome.as_ref().map(|r| r.0))
     );
 
     match result {
-        None => {
+        Err((status, reason)) => {
+            botlog::safe_warn!(
+                "vm_exec workspace failure for session {session_id}: status={status} reason={reason}"
+            );
+            let message = workspace_failure_message(&reason);
+            send(identity, &message).await;
+            persist(state, session_id, user_id, &message).await;
+        }
+        Ok(None) => {
             let message = "The workspace is not available right now. Start a new message and try again.";
             send(identity, message).await;
             persist(state, session_id, user_id, message).await;
         }
-        Some((ok, stdout, stderr)) => {
+        Ok(Some((ok, stdout, stderr))) => {
             if !ok && looks_like_syntax_error(&stderr) {
                 send(
                     identity,
@@ -388,4 +427,37 @@ async fn render_result(
         }
     }
     message.trim_end().to_string()
+}
+
+#[cfg(all(test, feature = "agent-vm"))]
+mod workspace_failure_message_tests {
+    use super::workspace_failure_message;
+
+    #[test]
+    fn empty_reason_keeps_a_short_call_to_action() {
+        let message = workspace_failure_message("   ");
+        assert_eq!(
+            message,
+            "The workspace could not run this program. Start a new message and try again."
+        );
+    }
+
+    #[test]
+    fn the_reason_is_shown_so_the_cause_stays_actionable() {
+        let message = workspace_failure_message(
+            "container ag-uf4b70eb7-7e97 did not reach RUNNING within 60s; instance log: bpf_program_load_kernel: Operation not permitted",
+        );
+        assert!(message.contains("container ag-uf4b70eb7-7e97"));
+        assert!(message.contains("Operation not permitted"));
+        assert!(message.starts_with("The workspace could not run this program: "));
+    }
+
+    #[test]
+    fn a_reason_far_beyond_the_limit_is_clipped_with_an_ellipsis() {
+        let long = "x".repeat(600);
+        let message = workspace_failure_message(&long);
+        assert!(message.contains('…'), "clip marker present");
+        assert!(message.chars().count() < 500, "message stays readable");
+        assert!(message.ends_with("brings the workspace up."));
+    }
 }
