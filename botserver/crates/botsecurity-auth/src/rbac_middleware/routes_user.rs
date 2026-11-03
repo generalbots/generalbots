@@ -19,6 +19,15 @@ pub(crate) fn authenticated_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/files/**", "PUT", ""),
         RoutePermission::new("/api/files/**", "DELETE", ""),
 
+        // Computer use (browser + terminal consent and execution)
+        RoutePermission::new("/api/computer/**", "GET", ""),
+        RoutePermission::new("/api/computer/**", "POST", ""),
+        RoutePermission::new("/api/terminal/**", "GET", ""),
+        RoutePermission::new("/api/terminal/**", "POST", ""),
+        // Connected external drives (compiled only with external_sync)
+        RoutePermission::new("/api/external-drives/**", "GET", ""),
+        RoutePermission::new("/api/external-drives/**", "POST", ""),
+
         // Editor
         RoutePermission::new("/api/editor/**", "GET", ""),
         RoutePermission::new("/api/editor/**", "POST", ""),

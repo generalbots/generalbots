@@ -78,7 +78,9 @@
       action_id: action.action_id,
       session_id: (ChatState && ChatState.currentSessionId) || "",
     })
-      .then(function (result) {
+      .then(function (response) {
+        // The executor returns the recorded action: {status, result:{...}}.
+        var result = response.result || response;
         if (result.status === "failed" || result.status === "error") {
           cardEl.innerHTML = '<div class="gb-consent-outcome"><span>❌</span> <span>' +
             escapeHtml(result.error || result.stderr || "Command failed") + '</span></div>';

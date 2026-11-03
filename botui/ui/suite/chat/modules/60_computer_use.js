@@ -65,6 +65,18 @@
         timestamp: new Date().toISOString(),
       }));
     }
+    // The consent card used to stay on "executing..." forever because the
+    // result only reached the next prompt. Show the outcome in the chat now.
+    var summary;
+    if (result && result.status === "ok") {
+      summary = result.title
+        ? "Opened: " + result.title + "\n" + (result.url || "") + "\n\n" +
+          String(result.text || "").slice(0, 800)
+        : "Action completed.";
+    } else {
+      summary = "Action failed: " + ((result && (result.error || result.message)) || "unknown error");
+    }
+    if (typeof addMessage === "function") addMessage("bot", summary);
   }
 
   function postJson(path, body) {
