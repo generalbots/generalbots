@@ -188,9 +188,13 @@ sha256 = ""
 # ./install.sh on first start (torch-sized dependencies are not vendored).
 # Optional: the first-run wizard only provisions it when
 # GB_WIZARD_WITH_BOTMODELS=1; `./install.sh --with jupyter` adds JupyterLab.
+#
+# `{tag}` is resolved at install time to the newest release that carries the
+# file: releases are immutable, so every build publishes its own tag
+# (pythonbox-<UTC stamp>-<sha7>) instead of overwriting a stable one.
 [components.botmodels]
 name = "BotModels Python Service (pythonbox)"
-url = "https://github.com/generalbots/generalbots/releases/download/pythonbox-latest/botmodels-pythonbox-linux-x86_64.tar.gz"
+url = "https://github.com/generalbots/generalbots/releases/download/{tag}/botmodels-pythonbox-linux-x86_64.tar.gz"
 filename = "botmodels-pythonbox-linux-x86_64.tar.gz"
 sha256 = ""
 
