@@ -168,6 +168,16 @@ function dialChatSocket(seq) {
       if (window.RunTimeline) {
         window.RunTimeline.handleFrame(data);
       }
+      // #1669 — trusted catalog surfaces and structured questions.
+      if (data.type === "CUSTOM" && data.data && window.SurfaceRenderer) {
+        if (data.data.name === "gb.surface") {
+          window.SurfaceRenderer.renderFromFrame(data);
+        } else if (data.data.name === "gb.question") {
+          window.SurfaceRenderer.renderQuestion(data);
+        } else if (data.data.name === "gb.plan") {
+          window.SurfaceRenderer.renderFromFrame(data);
+        }
+      }
       if (window.AgentMode && data.type &&
         ["thought_process", "terminal_output", "browser_ready", "step_progress", "step_complete", "todo_update", "agent_status", "file_created"].indexOf(data.type) !== -1) {
         window.AgentMode.handleMessage(data);
