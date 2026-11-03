@@ -1,5 +1,6 @@
 <link rel="stylesheet" href="/suite/settings/settings.p1.css?v=1" />
 <script src="/suite/settings/settings-main.js?v=3"></script>
+<script src="/suite/settings/settings-ai-accounts.js?v=1"></script>
 
 <div class="gb-app settings-layout" data-gb-app="settings">
     <!-- Sidebar Navigation -->
@@ -76,6 +77,13 @@
                     <polyline points="8 6 2 12 8 18"></polyline>
                 </svg>
                 <span data-i18n="settings-integrations">Integrations</span>
+            </a>
+            <a href="#ai-accounts" class="nav-item" onclick="showSection('ai-accounts', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span data-i18n="settings-ai-accounts">AI accounts</span>
             </a>
             <a href="#vibe" class="nav-item" onclick="showSection('vibe', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1058,6 +1066,24 @@
                 <div class="oauth-accounts" id="oauth-accounts-fragment">
                     <div class="empty-state"><p>Loading linked accounts…</p></div>
                 </div>
+            </div>
+        </section>
+
+        <!-- AI Accounts Section (#1654/#1655/#1656) -->
+        <section id="ai-accounts-section" class="settings-section">
+            <div class="section-header">
+                <h1 data-i18n="settings-ai-accounts">AI accounts</h1>
+                <p class="subtitle">Claude Code and ChatGPT plan subscriptions are per user. Credentials stay in your agent VM or the local vault; only the status and display metadata are stored here.</p>
+            </div>
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Subscription accounts</h2>
+                    <span class="subtitle">Connect an account, then assign it to a Vibe agent type</span>
+                </div>
+                <div id="ai-accounts-list">
+                    <div class="empty-state"><p>Loading AI accounts…</p></div>
+                </div>
+                <div class="note" id="ai-accounts-status" role="status" style="margin-top:12px"></div>
             </div>
         </section>
 

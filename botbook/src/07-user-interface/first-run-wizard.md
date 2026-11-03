@@ -47,6 +47,7 @@ app start
   │     wizard spawns `botserver --provision-stack`
   │       vault → tables → cache → drive → vector_db → llm (if local)
   │     wizard starts the normal sidecar and waits for /api/product
+  │     step 6 connects Claude Code / ChatGPT plan accounts (optional)
   │     wizard stores OAuth clients through the API (if any)
   │     handoff: write stack/.initialized, show suite, close wizard
   └─ otherwise → start sidecar and show the suite (previous behaviour)
@@ -105,18 +106,31 @@ fallback reads that file from `BOTSERVER_STACK_PATH` as well as the process
 working directory, so a packaged desktop install can sign in with the account
 the wizard displayed.
 
+## AI accounts step
+
+After provisioning, the wizard offers the two subscription accounts:
+
+| Card | Store | Login flow |
+|---|---|---|
+| Claude Code | the agent VM (`/home/claude/.claude`, 0700) | `claude setup-token` runs under the `claude` user; the URL is shown in the wizard, and the pasted code is forwarded to the VM |
+| ChatGPT plan | the local Vault (`gbo/users/{user_id}/chatgpt-plan`) | loopback OAuth on `127.0.0.1:1455` (`OPENAI_OAUTH_CLIENT_ID` / `OPENAI_OAUTH_REDIRECT`) |
+
+Both cards are optional: the assistant works without a subscription, and the
+same accounts can be connected later in Settings → AI accounts.
+
 ## Acceptance
 
 `botui/ui/wizard/selftest.html` runs the real controller against the in-browser
 bridge with the stack stopped and no network. It asserts:
 
-- the wizard renders and the rail exposes six steps with `aria-current`;
+- the wizard renders and the rail exposes eight steps with `aria-current`;
 - copy names no operating system;
 - step 2 blocks an own-key setup without a key and passes with the local model;
 - workspace writability is reported;
 - the redirect URI shown matches the backend callback;
 - the data map reflects the selected model;
 - provisioning reaches `ready` and every component reports `ready`;
+- the AI accounts step renders the Claude Code and ChatGPT plan cards;
 - the finish step summarises the choices.
 
 The matrix in #1591 (operating systems, offline, invalid keys, interruptions)

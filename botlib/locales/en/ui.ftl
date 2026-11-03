@@ -1833,6 +1833,7 @@ settings-appearance = Appearance
 settings-storage = Storage
 settings-integrations = Integrations
 settings-vibe = Vibe
+settings-ai-accounts = AI accounts
 settings-memory = Memory
 settings-administration = Administration
 settings-users = Users

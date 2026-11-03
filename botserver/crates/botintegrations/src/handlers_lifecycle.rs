@@ -237,6 +237,23 @@ pub async fn use_for_vibe(
             ))
         })?;
 
+    // #1654/#1656 — subscription providers are per-user accounts. They are
+    // never copied into the bot's shared Vibe config: require a linked account
+    // and persist only provider + model; the account token is resolved per run.
+    let subscription = crate::llm_providers::is_subscription_provider(&row.provider_slug);
+    if subscription
+        && !subscription_account_linked(&state.pool, user.user_id, &row.provider_slug)
+    {
+        return Err(IntegrationError::Validation(format!(
+            "Connect your {} account in Settings \u{2192} AI accounts first.",
+            if row.provider_slug == crate::llm_providers::CLAUDE_CODE_SLUG {
+                "Claude Code"
+            } else {
+                "ChatGPT plan"
+            }
+        )));
+    }
+
     // Keyless providers (free gateway models) carry no Vault secret; the
     // connection may be stored without any secrets envelope at all.
     let api_key = if crate::llm_providers::llm_provider_keyless(&row.provider_slug) {
@@ -267,9 +284,11 @@ pub async fn use_for_vibe(
         })
     };
     write(&format!("{prefix}provider"), &row.provider_slug)?;
-    write(&format!("{prefix}url"), default_url)?;
     write(&format!("{prefix}model"), default_model)?;
-    write(&format!("{prefix}key"), &api_key)?;
+    if !subscription {
+        write(&format!("{prefix}url"), default_url)?;
+        write(&format!("{prefix}key"), &api_key)?;
+    }
 
     let mut conn = state.pool.get()?;
     record_outcome(
@@ -283,6 +302,7 @@ pub async fn use_for_vibe(
             "provider": row.provider_slug,
             "agent": agent,
             "model": default_model,
+            "subscription": subscription,
         }),
     );
 
@@ -291,6 +311,37 @@ pub async fn use_for_vibe(
         "agent": agent,
         "provider": row.provider_slug,
         "model": default_model,
-        "url": default_url,
+        "url": if subscription { "" } else { default_url },
     })))
+}
+
+/// Reads `user_llm_accounts` directly: botintegrations must not depend on the
+/// botserver binary crate, and the table is the shared contract.
+fn subscription_account_linked(
+    pool: &botcore::shared::utils::DbPool,
+    user_id: uuid::Uuid,
+    provider: &str,
+) -> bool {
+    use diesel::prelude::*;
+    use diesel::sql_types::{Bool, Text, Uuid as DieselUuid};
+
+    #[derive(QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = Bool)]
+        linked: bool,
+    }
+    let Ok(mut conn) = pool.get() else {
+        return false;
+    };
+    diesel::sql_query(
+        "SELECT EXISTS (SELECT 1 FROM user_llm_accounts \
+         WHERE user_id = $1 AND provider = $2 AND status = 'linked') AS linked",
+    )
+    .bind::<DieselUuid, _>(user_id)
+    .bind::<Text, _>(provider)
+    .load::<Row>(&mut conn)
+    .ok()
+    .and_then(|rows| rows.into_iter().next())
+    .map(|row| row.linked)
+    .unwrap_or(false)
 }

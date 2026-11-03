@@ -1,6 +1,8 @@
 use std::sync::Arc;
 pub use botllm::*;
 
+pub mod subscription;
+
 
 pub struct BotlibLLMProviderWrapper {
     pub inner: Arc<dyn crate::llm::traits::LLMProvider>,

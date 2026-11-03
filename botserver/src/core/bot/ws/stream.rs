@@ -41,23 +41,30 @@ pub async fn process_llm_response(
     let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
     let mut full_response = String::new();
 
-    let bot_llm_provider: Option<(Arc<dyn botlib::traits::LLMProvider>, String, String)> = {
-        use botcore::config::ConfigManager;
-        let cfg = ConfigManager::new(state.conn.clone());
-        let mut llm_url = cfg.get_config(&bot_uuid, "llm-url", Some("")).unwrap_or_default();
-        let mut llm_key = cfg.get_config(&bot_uuid, "llm-key", Some("")).unwrap_or_default();
-        let mut llm_model = cfg.get_config(&bot_uuid, "llm-model", Some("")).unwrap_or_default();
-        // Env var overrides for production (take priority over DB config)
-        if let Ok(val) = std::env::var("LLM_URL") { if !val.is_empty() { llm_url = val; } }
-        if let Ok(val) = std::env::var("LLM_KEY") { if !val.is_empty() { llm_key = val; } }
-        if let Ok(val) = std::env::var("LLM_MODEL") { if !val.is_empty() { llm_model = val; } }
-        if !llm_url.is_empty() {
-            let provider = crate::llm::provider_factory::create_llm_provider_from_url(&llm_url, if llm_model.is_empty() { None } else { Some(llm_model.clone()) }, None, None);
-            Some((Arc::new(crate::llm::BotlibLLMProviderWrapper::new(provider, llm_model.clone(), llm_key.clone())) as Arc<dyn botlib::traits::LLMProvider>, llm_key, llm_model))
-        } else {
-            None
-        }
-    };
+    let bot_llm_provider: Option<(Arc<dyn botlib::traits::LLMProvider>, String, String)> =
+        match crate::core::bot::pipeline::enriched_llm::resolve_bot_llm_provider(
+            state, bot_uuid, user_id, session_id, "auto",
+        )
+        .await
+        {
+            Ok(provider) => provider,
+            Err(message) => {
+                // #1654 — a subscription provider without a linked account must
+                // tell the user what to do instead of silently using another key.
+                let err_resp = serde_json::json!({
+                    "bot_id": bot_uuid.to_string(),
+                    "user_id": user_id.to_string(),
+                    "session_id": session_id.to_string(),
+                    "channel": "web",
+                    "content": format!("<p>{}</p>", message),
+                    "message_type": 2, "is_complete": true,
+                    "suggestions": [], "switchers": [],
+                    "context_length": 0, "context_max_length": 0,
+                });
+                let _ = ws_sender.send(Message::Text(err_resp.to_string())).await;
+                return;
+            }
+        };
 
     let answer_mode = {
         #[cfg(feature = "chat")]

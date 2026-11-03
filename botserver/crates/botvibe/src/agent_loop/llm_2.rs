@@ -285,6 +285,20 @@ impl AgentLoop {
     /// per-bot config (Vault for secrets, Drive config.csv for the rest) >
     /// environment > built-in defaults.
     pub(crate) fn resolve_llm(&self, run: &VibeRun) -> (String, String, String) {
+        // #1654 — a subscription slot is served by the local bridge so the
+        // loop still sees one OpenAI-compatible endpoint. It never falls back
+        // to another user's bot/global key. `agentic` is the default slot.
+        let agent = run.config.agent.as_deref().unwrap_or("agentic");
+        if let Some(llm) = self.state.subscription_llm(
+            &run.bot_id, agent, run.user_id, run.session_id,
+        ) {
+            let model = run
+                .config
+                .model
+                .clone()
+                .unwrap_or(llm.model);
+            return (model, llm.key, llm.url);
+        }
         let llm = run
             .config
             .agent

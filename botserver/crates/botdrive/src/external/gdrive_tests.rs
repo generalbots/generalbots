@@ -84,3 +84,51 @@ fn entries_without_a_name_are_skipped() {
         let page = parse_page(&json!({ "files": [{ "id": "x" }, { "name": "" }] }));
         assert!(page.items.is_empty());
 }
+
+/// #1643 — proves the OAuth exchange captures the scopes the provider reports
+/// (not the static copy) and returns a usable token set. A local HTTP server
+/// stands in for Google so the test needs no client credentials.
+#[test]
+fn exchange_code_captures_the_granted_scope_from_the_provider() {
+    use std::io::{Read, Write};
+    use std::net::TcpListener;
+
+    let listener = TcpListener::bind("127.0.0.1:0").expect("listener");
+    let address = listener.local_addr().expect("address");
+    let handle = std::thread::spawn(move || {
+        if let Ok((mut stream, _)) = listener.accept() {
+            let mut request = [0u8; 4096];
+            let _ = stream.read(&mut request);
+            let body = r#"{"access_token":"ya29.test","refresh_token":"refresh-1","expires_in":3600,"scope":"https://www.googleapis.com/auth/drive.readonly"}"#;
+            let response = format!(
+                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                body.len(),
+                body
+            );
+            let _ = stream.write_all(response.as_bytes());
+        }
+    });
+
+    std::env::set_var(
+        "EXTERNAL_DRIVE_GOOGLE_TOKEN_URL",
+        format!("http://{address}/token"),
+    );
+    let runtime = tokio::runtime::Runtime::new().expect("runtime");
+    let result = runtime.block_on(exchange_code(
+        &reqwest::Client::new(),
+        "client-id",
+        "client-secret",
+        "http://127.0.0.1:8080/api/external-drives/callback",
+        "code-1",
+    ));
+    std::env::remove_var("EXTERNAL_DRIVE_GOOGLE_TOKEN_URL");
+    let _ = handle.join();
+
+    let token = result.expect("token exchange");
+    assert_eq!(token.access_token, "ya29.test");
+    assert_eq!(token.refresh_token.as_deref(), Some("refresh-1"));
+    assert_eq!(
+        token.scope.as_deref(),
+        Some("https://www.googleapis.com/auth/drive.readonly")
+    );
+}

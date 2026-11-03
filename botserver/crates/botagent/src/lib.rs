@@ -6,6 +6,7 @@
 //! go through `botlib::security::command_guard::SafeCommand`.
 
 pub mod api;
+pub mod claude;
 pub mod keys;
 pub mod models;
 pub mod sandbox;

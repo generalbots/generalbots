@@ -15,7 +15,7 @@ pub(crate) fn driver_cwd() -> std::path::PathBuf {
     }
 }
 
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", test))]
 pub(crate) fn wsl_distro() -> String {
     std::env::var("GBO_WSL_DISTRO")
         .ok()
@@ -24,17 +24,23 @@ pub(crate) fn wsl_distro() -> String {
         .unwrap_or_else(|| "Debian".to_string())
 }
 
-#[cfg(target_os = "windows")]
-pub(crate) fn wsl_exec_args(command: &[String]) -> Vec<String> {
+/// Pure argument builder, testable on every host.
+#[cfg(any(target_os = "windows", test))]
+pub(crate) fn wsl_exec_args_for(distro: &str, command: &[String]) -> Vec<String> {
     let mut args = vec![
         "-d".to_string(),
-        wsl_distro(),
+        distro.to_string(),
         "-u".to_string(),
         "root".to_string(),
         "--".to_string(),
     ];
     args.extend(command.iter().cloned());
     args
+}
+
+#[cfg(target_os = "windows")]
+pub(crate) fn wsl_exec_args(command: &[String]) -> Vec<String> {
+    wsl_exec_args_for(&wsl_distro(), command)
 }
 
 #[cfg(target_os = "windows")]
@@ -217,5 +223,24 @@ impl VmLifecycle {
                     .find(|a| a["family"].as_str() == Some("inet"))
                     .and_then(|a| a["address"].as_str().map(str::to_string))
             }))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::wsl_exec_args_for;
+
+    #[test]
+    fn wsl_arguments_run_as_root_before_the_command() {
+        let command = vec!["incus".to_string(), "list".to_string()];
+        let args = wsl_exec_args_for("Debian", &command);
+        assert_eq!(&args[0..5], ["-d", "Debian", "-u", "root", "--"]);
+        assert_eq!(&args[5..], ["incus", "list"]);
+    }
+
+    #[test]
+    fn a_custom_distro_is_preserved() {
+        let args = wsl_exec_args_for("Ubuntu-24.04", &[]);
+        assert_eq!(args[1], "Ubuntu-24.04");
     }
 }

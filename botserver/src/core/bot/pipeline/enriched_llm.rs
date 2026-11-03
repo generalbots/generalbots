@@ -104,64 +104,94 @@ pub(super) async fn build_and_stream(
 
 /// Resolves the per-bot LLM provider (Vault config → env override), logging
 /// the host/model pair. Returns None when llm-url is empty (global fallback).
-pub(super) fn resolve_bot_llm_provider(
+///
+/// A subscription provider (`claude-code` / `chatgpt-plan`) never falls back
+/// to the bot or global API key: it resolves the requesting user's linked
+/// account and returns an actionable error when the account is missing.
+pub(crate) async fn resolve_bot_llm_provider(
     state: &Arc<AppState>,
     bot_uuid: Uuid,
+    user_id: Uuid,
+    session_id: Uuid,
     model_preference: &str,
-) -> Option<(Arc<dyn botlib::traits::LLMProvider>, String, String)> {
-    let bot_llm_provider: Option<(Arc<dyn botlib::traits::LLMProvider>, String, String)> = {
-        use botcore::config::ConfigManager;
-        let cfg = ConfigManager::new(state.conn.clone());
-        let mut llm_url = cfg.get_config(&bot_uuid, "llm-url", Some("")).unwrap_or_default();
-        let mut llm_key = cfg.get_config(&bot_uuid, "llm-key", Some("")).unwrap_or_default();
-        let mut llm_model = cfg.get_config(&bot_uuid, "llm-model", Some("")).unwrap_or_default();
-        let llm_provider = cfg.get_config(&bot_uuid, "llm-provider", Some("")).unwrap_or_default();
-        // #1637 — a tier is a real model, not a tone. The picker's value
-        // selects `llm-model-<tier>`; when the bot has no model configured for
-        // that tier the request keeps the default model, and `auto` always
-        // means the default (unchanged behaviour).
-        let tier = model_preference.trim().to_lowercase();
-        if matches!(tier.as_str(), "fast" | "balanced" | "quality") {
-            let tier_key = format!("llm-model-{tier}");
-            let tier_model = cfg.get_config(&bot_uuid, &tier_key, Some("")).unwrap_or_default();
-            if !tier_model.is_empty() {
-                botlog::safe_info!(
-                    "BOT {bot_uuid} model tier '{tier}' -> model=[{tier_model}]"
-                );
-                llm_model = tier_model;
-            } else {
-                botlog::safe_info!(
-                    "BOT {bot_uuid} model tier '{tier}' is not configured; using the default model [{llm_model}]"
-                );
-            }
-        }
-        if let Ok(val) = std::env::var("LLM_URL") { if !val.is_empty() { llm_url = val; } }
-        if let Ok(val) = std::env::var("LLM_KEY") { if !val.is_empty() { llm_key = val; } }
-        if let Ok(val) = std::env::var("LLM_MODEL") { if !val.is_empty() { llm_model = val; } }
-        let llm_host = url::Url::parse(&llm_url).ok()
-            .and_then(|u| u.host_str().map(|h| h.to_string()))
-            .unwrap_or_else(|| "<unparseable>".to_string());
-        botlog::safe_info!("BOT {bot_uuid} LLM CONFIG: host=[{llm_host}] key_len=[{}] model=[{llm_model}] provider=[{llm_provider}]", llm_key.len());
-        if !llm_url.is_empty() {
-            let explicit = if llm_provider.is_empty() { None } else { crate::llm::provider_factory::llm_provider_type_from_name(&llm_provider) };
-            let provider = crate::llm::provider_factory::create_llm_provider_from_url(
-                &llm_url,
-                if llm_model.is_empty() { None } else { Some(llm_model.clone()) },
-                None, explicit,
-            );
-            Some((
-                Arc::new(crate::llm::BotlibLLMProviderWrapper::new(
-                    provider, llm_model.clone(), llm_key.clone(),
-                )) as Arc<dyn botlib::traits::LLMProvider>,
-                llm_key, llm_model,
-            ))
-        } else {
-            log::warn!("CRISTO BOT: llm-url is EMPTY, falling back to global provider");
-            None
-        }
-    };
+) -> Result<Option<(Arc<dyn botlib::traits::LLMProvider>, String, String)>, String> {
+    use botcore::config::ConfigManager;
+    let cfg = ConfigManager::new(state.conn.clone());
+    let mut llm_url = cfg.get_config(&bot_uuid, "llm-url", Some("")).unwrap_or_default();
+    let mut llm_key = cfg.get_config(&bot_uuid, "llm-key", Some("")).unwrap_or_default();
+    let mut llm_model = cfg.get_config(&bot_uuid, "llm-model", Some("")).unwrap_or_default();
+    let llm_provider = cfg.get_config(&bot_uuid, "llm-provider", Some("")).unwrap_or_default();
 
-    bot_llm_provider
+    // #1652/#1653/#1654 — subscription accounts are resolved per user before
+    // any HTTP provider is built. `choose_for_request` refuses to fall back
+    // when the requested provider is a subscription and no account is linked.
+    if crate::core::ai_accounts::is_subscription_provider(&llm_provider) {
+        let linked = crate::core::ai_accounts::linked_account(
+            &state.conn, user_id, &llm_provider,
+        );
+        let resolved = crate::core::ai_accounts::choose_for_request(
+            Some(&llm_provider),
+            linked.as_ref(),
+            Some((llm_provider.as_str(), llm_model.as_str())),
+            None,
+        )?;
+        let Some(resolved) = resolved else {
+            return Ok(None);
+        };
+        let provider = crate::llm::subscription::build(
+            state, user_id, session_id, bot_uuid, &resolved,
+        )
+        .await?;
+        botlog::safe_info!(
+            "BOT {bot_uuid} subscription LLM: provider=[{}] model=[{}] source=[{}]",
+            resolved.provider, resolved.model, resolved.source
+        );
+        return Ok(Some((provider, String::new(), resolved.model)));
+    }
+
+    // #1637 — a tier is a real model, not a tone. The picker's value
+    // selects `llm-model-<tier>`; when the bot has no model configured for
+    // that tier the request keeps the default model, and `auto` always
+    // means the default (unchanged behaviour).
+    let tier = model_preference.trim().to_lowercase();
+    if matches!(tier.as_str(), "fast" | "balanced" | "quality") {
+        let tier_key = format!("llm-model-{tier}");
+        let tier_model = cfg.get_config(&bot_uuid, &tier_key, Some("")).unwrap_or_default();
+        if !tier_model.is_empty() {
+            botlog::safe_info!(
+                "BOT {bot_uuid} model tier '{tier}' -> model=[{tier_model}]"
+            );
+            llm_model = tier_model;
+        } else {
+            botlog::safe_info!(
+                "BOT {bot_uuid} model tier '{tier}' is not configured; using the default model [{llm_model}]"
+            );
+        }
+    }
+    if let Ok(val) = std::env::var("LLM_URL") { if !val.is_empty() { llm_url = val; } }
+    if let Ok(val) = std::env::var("LLM_KEY") { if !val.is_empty() { llm_key = val; } }
+    if let Ok(val) = std::env::var("LLM_MODEL") { if !val.is_empty() { llm_model = val; } }
+    let llm_host = url::Url::parse(&llm_url).ok()
+        .and_then(|u| u.host_str().map(|h| h.to_string()))
+        .unwrap_or_else(|| "<unparseable>".to_string());
+    botlog::safe_info!("BOT {bot_uuid} LLM CONFIG: host=[{llm_host}] key_len=[{}] model=[{llm_model}] provider=[{llm_provider}]", llm_key.len());
+    if !llm_url.is_empty() {
+        let explicit = if llm_provider.is_empty() { None } else { crate::llm::provider_factory::llm_provider_type_from_name(&llm_provider) };
+        let provider = crate::llm::provider_factory::create_llm_provider_from_url(
+            &llm_url,
+            if llm_model.is_empty() { None } else { Some(llm_model.clone()) },
+            None, explicit,
+        );
+        Ok(Some((
+            Arc::new(crate::llm::BotlibLLMProviderWrapper::new(
+                provider, llm_model.clone(), llm_key.clone(),
+            )) as Arc<dyn botlib::traits::LLMProvider>,
+            llm_key, llm_model,
+        )))
+    } else {
+        log::warn!("CRISTO BOT: llm-url is EMPTY, falling back to global provider");
+        Ok(None)
+    }
 }
 
 /// When the answer mode is Data/Chart, generates and sends the specialized

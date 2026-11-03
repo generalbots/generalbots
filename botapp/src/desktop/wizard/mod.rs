@@ -563,7 +563,12 @@ fn fit_to_screen(window: &tauri::WebviewWindow) {
 /// The login fallback reads this file from the stack directory; the password is
 /// never logged and the file is restricted to the current user.
 fn write_admin_credentials(request: &FinishRequest) -> Result<(), String> {
-    let admin = &request.admin;
+    write_admin_credentials_draft(&request.admin)
+}
+
+/// Writes the administrator account from the wizard draft. The accounts step
+/// runs before Finish, so it saves the same file early and signs in with it.
+pub(crate) fn write_admin_credentials_draft(admin: &AdminDraft) -> Result<(), String> {
     if admin.email.trim().is_empty() || admin.password.is_empty() {
         return Ok(());
     }

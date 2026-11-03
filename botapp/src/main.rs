@@ -254,6 +254,12 @@ fn main() {
         desktop::wizard::wizard_reset_stack,
         desktop::wizard::wizard_open_folder,
         desktop::wizard::wizard_open_url,
+        desktop::wizard::wizard_save_admin,
+        desktop::wizard::wizard_ai_accounts,
+        desktop::wizard::wizard_ai_connect,
+        desktop::wizard::wizard_ai_status,
+        desktop::wizard::wizard_ai_disconnect,
+        desktop::wizard::wizard_ai_code,
         desktop::wizard::wizard_finish,
     ]);
 

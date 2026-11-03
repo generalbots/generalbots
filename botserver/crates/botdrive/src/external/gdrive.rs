@@ -19,6 +19,15 @@ const DRIVE_API: &str = "https://www.googleapis.com/drive/v3";
 /// OAuth endpoints.
 const AUTH_URL: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 const TOKEN_URL: &str = "https://oauth2.googleapis.com/token";
+
+/// Token endpoint; overridable for a local mock in tests or a proxy mirror.
+fn token_url() -> String {
+    std::env::var("EXTERNAL_DRIVE_GOOGLE_TOKEN_URL")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| TOKEN_URL.to_string())
+}
 /// Folder mime type — the only one that is a directory rather than a blob.
 const FOLDER_MIME: &str = "application/vnd.google-apps.folder";
 /// The field mask keeps responses small; the default projection omits nothing
@@ -117,7 +126,7 @@ async fn post_token(
     form: &[(&str, &str)],
 ) -> Result<TokenSet, SyncError> {
     let res = http
-        .post(TOKEN_URL)
+        .post(token_url())
         .form(form)
         .send()
         .await

@@ -182,7 +182,57 @@
       window.open(url, "_blank", "noopener");
       return Promise.resolve();
     },
-    finish: function () { return Promise.resolve({ ok: true }); }
+    finish: function () { return Promise.resolve({ ok: true }); },
+    ai: { "claude-code": "unlinked", "chatgpt-plan": "unlinked" },
+    saveAdmin: function () { return Promise.resolve(); },
+    aiAccounts: function () {
+      var accounts = ["claude-code", "chatgpt-plan"].map(function (provider) {
+        return {
+          provider: provider,
+          status: mock.ai[provider] || "unlinked",
+          account_email: null,
+          plan: null,
+          vm_name: null,
+          vault_path: null,
+          last_verified_at: null
+        };
+      });
+      return Promise.resolve({ accounts: accounts, providers: [] });
+    },
+    aiConnect: function (provider) {
+      mock.ai[provider] = "waiting";
+      return Promise.resolve({
+        provider: provider,
+        state: "waiting",
+        status: "connecting",
+        url: "https://example.invalid/oauth/authorize?mock=1",
+        message: "Mock sign-in: open the link, then paste the code."
+      });
+    },
+    aiStatus: function (provider) {
+      return Promise.resolve({
+        account: {
+          provider: provider,
+          status: mock.ai[provider] || "unlinked",
+          account_email: null,
+          plan: null
+        },
+        checked_at: new Date().toISOString()
+      });
+    },
+    aiDisconnect: function (provider) {
+      mock.ai[provider] = "unlinked";
+      return Promise.resolve({ provider: provider, status: "unlinked" });
+    },
+    aiCode: function () {
+      mock.ai["claude-code"] = "linked";
+      return Promise.resolve({
+        provider: "claude-code",
+        state: "linked",
+        status: "linked",
+        message: "Claude Code is connected inside your workspace."
+      });
+    }
   };
 
   /* ---------------- public API ---------------- */
@@ -239,6 +289,38 @@
 
     finish: function (payload) {
       return isDesktop ? invoke("wizard_finish", { request: payload }) : mock.finish(payload);
+    },
+
+    saveAdmin: function (admin) {
+      return isDesktop ? invoke("wizard_save_admin", { admin: admin }) : mock.saveAdmin(admin);
+    },
+
+    aiAccounts: function (admin) {
+      return isDesktop ? invoke("wizard_ai_accounts", { admin: admin }) : mock.aiAccounts();
+    },
+
+    aiConnect: function (provider, admin) {
+      return isDesktop
+        ? invoke("wizard_ai_connect", { provider: provider, admin: admin })
+        : mock.aiConnect(provider);
+    },
+
+    aiStatus: function (provider, admin) {
+      return isDesktop
+        ? invoke("wizard_ai_status", { provider: provider, admin: admin })
+        : mock.aiStatus(provider);
+    },
+
+    aiDisconnect: function (provider, admin) {
+      return isDesktop
+        ? invoke("wizard_ai_disconnect", { provider: provider, admin: admin })
+        : mock.aiDisconnect(provider);
+    },
+
+    aiCode: function (code, admin) {
+      return isDesktop
+        ? invoke("wizard_ai_code", { code: code, admin: admin })
+        : mock.aiCode(code);
     },
 
     onProgress: function (handler) {

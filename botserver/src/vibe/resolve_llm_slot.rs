@@ -48,6 +48,56 @@ impl VibeState for VibeStateImpl {
         // agentic default written by older deployments.
         self.resolve_llm_slot(bot_id, "vibe-llm-")
     }
+
+    /// #1654 — subscription slots resolve the requesting user's account and
+    /// hand the loop a local OpenAI-compatible bridge. Unlinked accounts still
+    /// receive a bridge URL, but its token is `unlinked`, so the run fails with
+    /// the actionable "connect your account" message instead of borrowing a key.
+    fn subscription_llm(
+        &self,
+        bot_id: &Uuid,
+        agent: &str,
+        user_id: Uuid,
+        session_id: Uuid,
+    ) -> Option<LlmConfig> {
+        let read = |key: &str| {
+            self.config
+                .get_config(bot_id, key, None)
+                .ok()
+                .filter(|value| !value.trim().is_empty())
+        };
+        let provider = read(&format!("vibe-llm-{agent}-provider"))
+            .or_else(|| read("vibe-llm-provider"))?;
+        if !crate::core::ai_accounts::is_subscription_provider(&provider) {
+            return None;
+        }
+        let canonical = crate::core::ai_accounts::normalize_provider(&provider)
+            .unwrap_or("claude-code");
+        let linked = crate::core::ai_accounts::linked_account(&self.pool, user_id, canonical);
+        let model = read(&format!("vibe-llm-{agent}-model"))
+            .or_else(|| read("vibe-llm-model"))
+            .unwrap_or_else(|| crate::core::ai_accounts::default_model(canonical).to_string());
+        let token = if linked.is_some() {
+            crate::main_module::routes::subscription_llm::issue_token(
+                user_id,
+                canonical,
+                &model,
+                *bot_id,
+                session_id,
+            )
+        } else {
+            "unlinked".to_string()
+        };
+        let base = std::env::var("GB_SELF_URL")
+            .ok()
+            .filter(|value| !value.trim().is_empty())
+            .unwrap_or_else(|| "http://127.0.0.1:8080".to_string());
+        Some(LlmConfig {
+            model,
+            key: token,
+            url: format!("{}/api/llm/subscription/chat/completions", base.trim_end_matches('/')),
+        })
+    }
 }
 impl VibeStateImpl {
     /// Resolves a complete `{prefix}{provider,url,model,key}` config set for

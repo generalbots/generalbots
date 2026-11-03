@@ -54,7 +54,7 @@
     assert(ready, "wizard renders with the stack stopped and no network");
 
     var rail = document.querySelectorAll("#railSteps .rail-step");
-    assert(rail.length === 7, "seven steps are present", String(rail.length));
+    assert(rail.length === 8, "eight steps are present", String(rail.length));
     assert(rail[0].getAttribute("aria-current") === "step", "rail marks the current step");
 
     var body = text("#stepBody");
@@ -127,7 +127,13 @@
     }, 12000);
     assert(provisioned, "provisioning reaches ready");
     await waitFor(function () { return window.GBWizard.state.step === 7; }, 1500);
-    assert(window.GBWizard.state.step === 7, "finish step is reachable");
+    assert(window.GBWizard.state.step === 7, "AI accounts step is reachable");
+    var accounts = text("#stepBody");
+    assert(accounts.indexOf("Claude Code") !== -1, "Claude Code card is rendered");
+    assert(accounts.indexOf("ChatGPT plan") !== -1, "ChatGPT plan card is rendered");
+    click("#nextBtn");
+    await waitFor(function () { return window.GBWizard.state.step === 8; }, 1500);
+    assert(window.GBWizard.state.step === 8, "finish step is reachable");
     assert(text("#stepBody").indexOf("Workspace") !== -1, "finish summarises the choices");
     assert(text("#stepBody").indexOf("Administrator account") !== -1,
       "finish shows the administrator account");

@@ -91,3 +91,153 @@ pub async fn wizard_finish(
 ) -> Result<(), String> {
     provision::finish(app, request).await
 }
+
+const API_BASE: &str = "http://127.0.0.1:8080";
+
+async fn api_login(admin: &super::AdminDraft) -> Result<String, String> {
+    if admin.email.trim().is_empty() || admin.password.is_empty() {
+        return Err("The administrator account is not ready yet.".to_string());
+    }
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .map_err(|e| format!("HTTP client: {e}"))?;
+    let response = client
+        .post(format!("{API_BASE}/api/auth/login"))
+        .json(&serde_json::json!({
+            "email": admin.email.trim(),
+            "password": admin.password,
+        }))
+        .send()
+        .await
+        .map_err(|e| format!("Could not reach the assistant: {e}"))?;
+    let status = response.status();
+    let body: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("The assistant returned an unreadable answer: {e}"))?;
+    if !status.is_success() {
+        let message = body
+            .get("error")
+            .or_else(|| body.get("detail"))
+            .and_then(|value| value.as_str())
+            .unwrap_or("The administrator sign-in was refused.");
+        return Err(message.to_string());
+    }
+    body.get("access_token")
+        .or_else(|| body.get("token"))
+        .and_then(|value| value.as_str())
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+        .ok_or_else(|| "The assistant returned no session token.".to_string())
+}
+
+async fn api_request(
+    method: reqwest::Method,
+    path: &str,
+    admin: &super::AdminDraft,
+    body: Option<serde_json::Value>,
+    timeout_secs: u64,
+) -> Result<serde_json::Value, String> {
+    let token = api_login(admin).await?;
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(timeout_secs))
+        .build()
+        .map_err(|e| format!("HTTP client: {e}"))?;
+    let mut request = client
+        .request(method, format!("{API_BASE}{path}"))
+        .bearer_auth(token);
+    if let Some(payload) = body {
+        request = request.json(&payload);
+    }
+    let response = request
+        .send()
+        .await
+        .map_err(|e| format!("Could not reach the assistant: {e}"))?;
+    let status = response.status();
+    let payload: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("The assistant returned an unreadable answer: {e}"))?;
+    if !status.is_success() {
+        let message = payload
+            .get("error")
+            .and_then(|value| value.as_str())
+            .unwrap_or("The assistant refused the request.");
+        return Err(message.to_string());
+    }
+    Ok(payload)
+}
+
+#[tauri::command]
+pub fn wizard_save_admin(admin: super::AdminDraft) -> Result<(), String> {
+    super::write_admin_credentials_draft(&admin)
+}
+
+#[tauri::command]
+pub async fn wizard_ai_accounts(
+    admin: super::AdminDraft,
+) -> Result<serde_json::Value, String> {
+    api_request(reqwest::Method::GET, "/api/ai-accounts", &admin, None, 15).await
+}
+
+#[tauri::command]
+pub async fn wizard_ai_connect(
+    provider: String,
+    admin: super::AdminDraft,
+) -> Result<serde_json::Value, String> {
+    // Provisioning the VM and installing the Claude CLI can take a minute.
+    api_request(
+        reqwest::Method::POST,
+        &format!("/api/ai-accounts/{provider}/connect"),
+        &admin,
+        Some(serde_json::json!({})),
+        180,
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn wizard_ai_status(
+    provider: String,
+    admin: super::AdminDraft,
+) -> Result<serde_json::Value, String> {
+    api_request(
+        reqwest::Method::POST,
+        &format!("/api/ai-accounts/{provider}/status"),
+        &admin,
+        Some(serde_json::json!({})),
+        60,
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn wizard_ai_disconnect(
+    provider: String,
+    admin: super::AdminDraft,
+) -> Result<serde_json::Value, String> {
+    api_request(
+        reqwest::Method::POST,
+        &format!("/api/ai-accounts/{provider}/disconnect"),
+        &admin,
+        Some(serde_json::json!({})),
+        30,
+    )
+    .await
+}
+
+#[tauri::command]
+pub async fn wizard_ai_code(
+    code: String,
+    admin: super::AdminDraft,
+) -> Result<serde_json::Value, String> {
+    api_request(
+        reqwest::Method::POST,
+        "/api/ai-accounts/claude-code/code",
+        &admin,
+        Some(serde_json::json!({ "code": code })),
+        90,
+    )
+    .await
+}

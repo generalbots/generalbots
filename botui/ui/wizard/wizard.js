@@ -40,6 +40,7 @@
   var ctx = null;
   var logLines = [];
   var modalAction = null;
+  var accountTimers = {};
 
   function say(text) { el.status.textContent = text; }
 
@@ -47,7 +48,7 @@
     el.rail.innerHTML = W.STEPS.map(function (step, index) {
       var n = index + 1;
       var current = n === state.step;
-      var done = n < state.step || (state.provisioning.ready && n <= 5);
+      var done = n < state.step || (state.provisioning.ready && n <= 6);
       return '<li class="rail-step' + (done ? " done" : "") + '"' +
         (current ? ' aria-current="step"' : "") + ">" +
         '<span class="num" aria-hidden="true">' + (done ? "✓" : n) + "</span>" +
@@ -68,7 +69,8 @@
   function canAdvance() {
     if (state.provisioning.running) { return false; }
     if (state.step === 6) { return state.provisioning.ready || state.skipped; }
-    if (state.step === 7) { return state.provisioning.ready || state.skipped || !ctx.first_run; }
+    if (state.step === 7) { return true; }
+    if (state.step === 8) { return state.provisioning.ready || state.skipped || !ctx.first_run; }
     return S.validate(state.step, draft).ok;
   }
 
@@ -156,7 +158,8 @@
     if (state.step === 4) { bindServices(); }
     if (state.step === 5) { bindPrivacy(); }
     if (state.step === 6) { bindInstall(); }
-    if (state.step === 7) { bindFinish(); }
+    if (state.step === 7) { bindAccounts(); }
+    if (state.step === 8) { bindFinish(); }
   }
 
   function bindModelDetail() {
@@ -301,6 +304,123 @@
     } else if (!state.skipped) {
       startProvisioning();
     }
+  }
+
+  /* ---------------- AI accounts (#1655) ---------------- */
+
+  function accountLabel(status) {
+    switch (status) {
+      case "linked": return t("accounts.linked");
+      case "connecting": return t("accounts.connecting");
+      case "expired": return t("accounts.expired");
+      case "error": return t("accounts.error");
+      default: return t("accounts.unlinked");
+    }
+  }
+
+  function renderAccount(provider, status, message) {
+    var badge = document.getElementById("accountStatus-" + provider);
+    var detail = document.getElementById("accountDetail-" + provider);
+    var disconnect = document.getElementById("accountDisconnect-" + provider);
+    var connect = document.getElementById("accountConnect-" + provider);
+    var codeRow = document.getElementById("accountCodeRow-" + provider);
+    if (badge) { badge.textContent = accountLabel(status); }
+    if (detail) { detail.textContent = message || ""; }
+    if (disconnect) { disconnect.hidden = status === "unlinked"; }
+    if (connect) { connect.hidden = status === "linked"; }
+    if (codeRow) {
+      codeRow.hidden = !(provider === "claude-code" && (status === "connecting" || status === "waiting"));
+    }
+  }
+
+  function stopAccountTimers() {
+    Object.keys(accountTimers).forEach(function (provider) {
+      if (accountTimers[provider]) { clearTimeout(accountTimers[provider]); }
+      delete accountTimers[provider];
+    });
+  }
+
+  function pollAccount(provider) {
+    if (accountTimers[provider]) { clearTimeout(accountTimers[provider]); }
+    var deadline = Date.now() + 300000;
+    function tick() {
+      if (state.step !== 7) { return; }
+      B.aiStatus(provider, draft.admin).then(function (data) {
+        var account = (data && data.account) || data || {};
+        var status = account.status || "unlinked";
+        renderAccount(provider, status, account.message || "");
+        if (status === "linked" || status === "error" || status === "expired") { return; }
+        if (Date.now() < deadline) {
+          accountTimers[provider] = setTimeout(tick, 3000);
+        }
+      }).catch(function () {
+        if (Date.now() < deadline) {
+          accountTimers[provider] = setTimeout(tick, 5000);
+        }
+      });
+    }
+    accountTimers[provider] = setTimeout(tick, 2000);
+  }
+
+  function loadAccounts() {
+    return B.aiAccounts(draft.admin).then(function (data) {
+      (data && data.accounts ? data.accounts : []).forEach(function (account) {
+        renderAccount(account.provider, account.status || "unlinked", "");
+      });
+    }).catch(function (error) {
+      say(String(error && error.message ? error.message : error));
+    });
+  }
+
+  function bindAccounts() {
+    ensureAdmin();
+    // The accounts API is authenticated; save the same credentials Finish will
+    // write, then use them to mint a suite session for this step only.
+    B.saveAdmin(draft.admin).catch(function () {}).then(loadAccounts);
+
+    ["claude-code", "chatgpt-plan"].forEach(function (provider) {
+      var connect = document.getElementById("accountConnect-" + provider);
+      if (connect) {
+        connect.addEventListener("click", function () {
+          connect.disabled = true;
+          renderAccount(provider, "connecting", t("accounts.starting"));
+          B.aiConnect(provider, draft.admin).then(function (data) {
+            if (data && data.url) { B.openUrl(data.url); }
+            var status = (data && (data.status || data.state)) || "connecting";
+            renderAccount(provider, status, data && data.message);
+            if (status !== "linked") { pollAccount(provider); }
+          }).catch(function (error) {
+            renderAccount(provider, "error", String(error && error.message ? error.message : error));
+          }).then(function () { connect.disabled = false; });
+        });
+      }
+      var disconnect = document.getElementById("accountDisconnect-" + provider);
+      if (disconnect) {
+        disconnect.addEventListener("click", function () {
+          B.aiDisconnect(provider, draft.admin).then(function () {
+            renderAccount(provider, "unlinked", "");
+          }).catch(function (error) {
+            renderAccount(provider, "error", String(error && error.message ? error.message : error));
+          });
+        });
+      }
+      var codeBtn = document.getElementById("accountCodeBtn-" + provider);
+      if (codeBtn) {
+        codeBtn.addEventListener("click", function () {
+          var input = document.getElementById("accountCode-" + provider);
+          var code = input ? input.value.trim() : "";
+          if (!code) { return; }
+          codeBtn.disabled = true;
+          B.aiCode(code, draft.admin).then(function (data) {
+            var status = (data && (data.status || data.state)) || "error";
+            renderAccount(provider, status, data && data.message);
+            if (status === "linked") { input.value = ""; }
+          }).catch(function (error) {
+            renderAccount(provider, "error", String(error && error.message ? error.message : error));
+          }).then(function () { codeBtn.disabled = false; });
+        });
+      }
+    });
   }
 
   function bindFinish() {
@@ -605,6 +725,7 @@
 
   function goTo(step) {
     if (step < 1 || step > state.totalSteps) { return; }
+    if (step !== 7) { stopAccountTimers(); }
     state.step = step;
     render();
     persistDraft();

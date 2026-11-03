@@ -1,0 +1,23 @@
+name: Windows agent VM adapter
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  check:
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check the Windows agent/VM adapters
+        run: cargo check -p botagent --lib -p botvibe --lib

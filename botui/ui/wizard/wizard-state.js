@@ -9,6 +9,7 @@
     { id: "services", key: "step.services" },
     { id: "privacy", key: "step.privacy" },
     { id: "install", key: "step.install" },
+    { id: "accounts", key: "step.accounts" },
     { id: "finish", key: "step.finish" }
   ];
 

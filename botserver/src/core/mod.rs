@@ -24,6 +24,7 @@ pub use botcore::urls;
 
 // These remain as thin re-exports from their own crates
 pub mod ai_accounts;
+pub mod ai_accounts_chatgpt;
 pub mod bot;
 pub mod computer_use;
 pub mod desktop_activity;

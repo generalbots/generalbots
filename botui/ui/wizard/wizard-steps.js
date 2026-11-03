@@ -238,6 +238,46 @@
       '<details class="details"><summary>' + esc(t("install.output")) + '</summary><pre class="log" id="provisionLog">' + esc(t("install.no-output")) + "</pre></details>";
   }
 
+  function renderAccounts(draft) {
+    var cards = [
+      {
+        id: "claude-code",
+        title: "Claude Code",
+        desc: "Use a Claude Pro or Max subscription. The Claude Code CLI runs inside your private workspace; the credential never leaves it.",
+        connect: "Connect Claude"
+      },
+      {
+        id: "chatgpt-plan",
+        title: "ChatGPT plan",
+        desc: "Use your ChatGPT plan allowance. The browser sign-in returns to this machine; the token is stored in the local vault.",
+        connect: "Connect ChatGPT"
+      }
+    ];
+    return '' +
+      '<p class="lead">' + esc(t("accounts.lead")) + "</p>" +
+      cards.map(function (card) {
+        return '' +
+          '<div class="card" data-account="' + card.id + '" style="margin-top:14px">' +
+            '<div class="card-head"><span class="card-title">' + esc(card.title) + "</span>" +
+              '<span class="status-badge" id="accountStatus-' + card.id + '">' + esc(t("accounts.unlinked")) + "</span></div>" +
+            '<p class="note" style="margin:8px 0">' + esc(card.desc) + "</p>" +
+            '<div class="inline-row">' +
+              '<button type="button" class="btn btn-primary btn-sm" id="accountConnect-' + card.id + '">' + esc(card.connect) + "</button>" +
+              '<button type="button" class="btn btn-secondary btn-sm" id="accountDisconnect-' + card.id + '" hidden>' + esc(t("accounts.disconnect")) + "</button>" +
+            "</div>" +
+            '<div class="note" id="accountDetail-' + card.id + '" role="status" style="margin-top:8px"></div>' +
+            '<div class="field" id="accountCodeRow-' + card.id + '" hidden>' +
+              '<label for="accountCode-' + card.id + '">' + esc(t("accounts.code")) + "</label>" +
+              '<div class="inline-row">' +
+                '<input type="text" id="accountCode-' + card.id + '" autocomplete="off" placeholder="' + esc(t("accounts.code-placeholder")) + '" />' +
+                '<button type="button" class="btn btn-primary btn-sm" id="accountCodeBtn-' + card.id + '">' + esc(t("accounts.submit")) + "</button>" +
+              "</div>" +
+            "</div>" +
+          "</div>";
+      }).join("") +
+      '<p class="note" style="margin-top:16px">' + esc(t("accounts.later")) + "</p>";
+  }
+
   function renderFinish(draft, ctx) {
     var modelLabel = draft.model.mode === "local"
       ? t("finish.model-local")
@@ -289,7 +329,8 @@
       case 4: return renderServices(draft, ctx);
       case 5: return renderPrivacy(draft, ctx);
       case 6: return renderInstall(draft, ctx);
-      case 7: return renderFinish(draft, ctx);
+      case 7: return renderAccounts(draft);
+      case 8: return renderFinish(draft, ctx);
       default: return "<p>" + esc(t("wizard.unknown-step")) + "</p>";
     }
   }
@@ -302,7 +343,8 @@
       case 4: return t("heading.services");
       case 5: return t("heading.privacy");
       case 6: return t("heading.install");
-      case 7: return t("heading.finish");
+      case 7: return t("heading.accounts");
+      case 8: return t("heading.finish");
       default: return t("wizard.title");
     }
   }

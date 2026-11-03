@@ -77,7 +77,17 @@ pub async fn stream_llm_response(
         bot_name,
     } = *identity;
     let bot_llm_provider =
-        super::enriched_llm::resolve_bot_llm_provider(state, bot_uuid, model_preference);
+        match super::enriched_llm::resolve_bot_llm_provider(
+            state, bot_uuid, user_id, session_id, model_preference,
+        ).await {
+            Ok(provider) => provider,
+            Err(message) => {
+                // #1654 — a requested subscription without a linked account is
+                // an actionable error, never a silent fallback to another key.
+                sink.send_error(&session_id.to_string(), &message).await?;
+                return Ok(());
+            }
+        };
 
     if super::enriched_llm::respond_in_answer_mode(
         sink, state, user_text, bot_uuid, bot_name, session_id, user_id,

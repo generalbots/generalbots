@@ -510,7 +510,7 @@ EOS
 
 /// Bumped whenever the base toolkit changes; existing VMs run the prepare
 /// step once when their marker does not match.
-const WORKSPACE_PREPARE_VERSION: &str = "v4";
+const WORKSPACE_PREPARE_VERSION: &str = "v5";
 
 /// Idempotent preparation of an existing workspace VM: package index, base
 /// Python toolkit and the conversations root. Runs in the background so the
@@ -542,10 +542,15 @@ GW=$(ip route 2>/dev/null | awk '/^default/ {print $3; exit}')
   command -v python3 >/dev/null 2>&1 || (apt-get -o DPkg::Lock::Timeout=300 update -q && apt-get -o DPkg::Lock::Timeout=300 install -y -q python3)
   python3 -m pip --version >/dev/null 2>&1 || (apt-get -o DPkg::Lock::Timeout=300 update -q && apt-get -o DPkg::Lock::Timeout=300 install -y -q python3-pip)
   command -v npm >/dev/null 2>&1 || (apt-get -o DPkg::Lock::Timeout=300 update -q && apt-get -o DPkg::Lock::Timeout=300 install -y -q nodejs npm)
+  # #1652 — Claude Code subscription provider. The CLI runs as `claude`; its
+  # credentials stay under /home/claude/.claude (0700). Installing it here
+  # keeps the first "Connect Claude" click fast; a failed install is reported
+  # by the provider, never silently treated as connected.
+  command -v claude >/dev/null 2>&1 || npm install -g @anthropic-ai/claude-code >/tmp/claude-install.log 2>&1 || true
   python3 -m pip install --break-system-packages --quiet --disable-pip-version-check \
     pandas numpy openpyxl python-pptx pillow matplotlib requests python-docx \
     reportlab beautifulsoup4 lxml tabulate || true
-  echo v4 > /opt/vibe/.provisioned
+  echo v5 > /opt/vibe/.provisioned
 } >/tmp/agent-prepare.log 2>&1 || true
 "#;
 

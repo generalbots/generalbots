@@ -1,6 +1,7 @@
 pub mod anonymous_auth;
 pub mod agent_drive;
 pub mod ai_accounts;
+pub mod subscription_llm;
 pub mod api_setup;
 pub mod bot_tree;
 pub mod chat_handlers;

@@ -40,6 +40,19 @@ pub trait VibeState: Send + Sync {
         let _ = (bot_id, agent);
         self.llm_config(bot_id)
     }
+
+    /// Per-user subscription provider bridge (#1654). Returns a local
+    /// OpenAI-compatible endpoint when the agent slot is configured for
+    /// `claude-code` / `chatgpt-plan`; `None` means "use the normal chain".
+    fn subscription_llm(
+        &self,
+        _bot_id: &Uuid,
+        _agent: &str,
+        _user_id: Uuid,
+        _session_id: Uuid,
+    ) -> Option<LlmConfig> {
+        None
+    }
 }
 
 pub const VIBE_SCHEMA: &str = r"
