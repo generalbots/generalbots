@@ -13,6 +13,7 @@ pub mod sandbox;
 pub mod schema;
 pub mod snapshots;
 pub mod state;
+pub mod stream;
 pub mod transfer;
 pub mod vm;
 

@@ -13,11 +13,16 @@ use botlib::security::command_guard::SafeCommand;
 use chrono::{DateTime, Duration, Utc};
 use botschema::users;
 use diesel::prelude::*;
-use std::sync::Arc;
+use std::process::Stdio;
+use std::sync::atomic::AtomicBool;
+use std::sync::{Arc, Mutex};
+use std::time::{Duration as StdDuration, Instant};
+use tokio::sync::mpsc;
 use uuid::Uuid;
 
 use crate::models::{AgentConversationFolderRow, AgentSessionRow};
 use crate::schema::{agent_conversation_folders, agent_sessions};
+use crate::stream::{pump_lines, wait_for_child, ExecEvent};
 use crate::AgentService;
 
 pub const STATUS_PROVISIONING: &str = "provisioning";
@@ -1219,37 +1224,137 @@ pub async fn exec_in_vm(
     vm_name: &str,
     cmd_args: &[String],
 ) -> Result<(bool, String, String), (StatusCode, String)> {
-    // Special-case `sh -c <script>`: the script may contain shell metacharacters
-    // (pipes, redirects, base64) that the generic arg guard rejects. Route it
-    // through the trusted shell-script escape hatch instead.
-    if cmd_args.len() == 3 && cmd_args[0] == "sh" && cmd_args[1] == "-c" {
-        let script = &cmd_args[2];
-        let mut cmd = incus_command(state)?;
-        cmd = cmd.arg("exec").map_err(|e| internal(format!("incus arg: {e}")))?;
-        cmd = cmd.arg(vm_name).map_err(|e| internal(format!("incus arg: {e}")))?;
-        cmd = cmd.arg("--").map_err(|e| internal(format!("incus arg: {e}")))?;
-        cmd = cmd.arg("sh").map_err(|e| internal(format!("incus arg: {e}")))?;
-        cmd = cmd.arg("-c").map_err(|e| internal(format!("incus arg: {e}")))?;
-        cmd = cmd.trusted_shell_script_arg(script).map_err(|e| internal(format!("incus script: {e}")))?;
-        let output = tokio::task::spawn_blocking(move || cmd.execute())
-            .await
-            .map_err(|e| internal(format!("incus join: {e}")))?
-            .map_err(|e| internal(format!("incus execution: {e}")))?;
-        return Ok((
-            output.status.success(),
-            String::from_utf8_lossy(&output.stdout).to_string(),
-            String::from_utf8_lossy(&output.stderr).to_string(),
-        ));
+    let outcome = exec_in_vm_streaming(state, vm_name, cmd_args, None, None, None).await?;
+    Ok((outcome.success, outcome.stdout, outcome.stderr))
+}
+
+/// The result of one VM command. `success` is kept separate from `exit_code`
+/// because a cancelled or timed-out process has no exit code at all.
+#[derive(Debug, Clone, Default)]
+pub struct ExecOutcome {
+    pub success: bool,
+    pub exit_code: Option<i32>,
+    pub stdout: String,
+    pub stderr: String,
+    pub duration_ms: u64,
+    pub cancelled: bool,
+    pub timed_out: bool,
+}
+
+/// Runs a command and streams stdout/stderr as line events while it runs.
+///
+/// The guarded `SafeCommand` still builds the invocation; this path only adds
+/// piped readers, a real exit code, a timeout and cooperative cancellation.
+pub async fn exec_in_vm_streaming(
+    state: &AgentService,
+    vm_name: &str,
+    cmd_args: &[String],
+    timeout: Option<StdDuration>,
+    cancel: Option<Arc<AtomicBool>>,
+    events: Option<mpsc::UnboundedSender<ExecEvent>>,
+) -> Result<ExecOutcome, (StatusCode, String)> {
+    let mut cmd = incus_command(state)?;
+    cmd = cmd
+        .arg("exec")
+        .map_err(|error| internal(format!("incus arg: {error}")))?;
+    cmd = cmd
+        .arg(vm_name)
+        .map_err(|error| internal(format!("incus arg: {error}")))?;
+    cmd = cmd
+        .arg("--")
+        .map_err(|error| internal(format!("incus arg: {error}")))?;
+
+    let is_shell_script = cmd_args.len() == 3 && cmd_args[0] == "sh" && cmd_args[1] == "-c";
+    if is_shell_script {
+        cmd = cmd
+            .arg("sh")
+            .map_err(|error| internal(format!("incus arg: {error}")))?;
+        cmd = cmd
+            .arg("-c")
+            .map_err(|error| internal(format!("incus arg: {error}")))?;
+        cmd = cmd
+            .trusted_shell_script_arg(&cmd_args[2])
+            .map_err(|error| internal(format!("incus script: {error}")))?;
+    } else {
+        for arg in cmd_args {
+            cmd = cmd
+                .arg(arg)
+                .map_err(|error| internal(format!("incus arg: {error}")))?;
+        }
+    }
+    cmd = cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+
+    if let Some(sender) = &events {
+        let label: String = cmd_args.join(" ").chars().take(500).collect();
+        let _ = sender.send(ExecEvent::Started { command: label });
     }
 
-    let mut args = vec!["exec".into(), vm_name.into(), "--".into()];
-    args.extend(cmd_args.iter().cloned());
-    let output = run_incus(state, args).await?;
-    Ok((
-        output.status.success(),
-        String::from_utf8_lossy(&output.stdout).to_string(),
-        String::from_utf8_lossy(&output.stderr).to_string(),
-    ))
+    let started = Instant::now();
+    let mut child = cmd
+        .spawn()
+        .map_err(|error| internal(format!("incus spawn: {error}")))?;
+
+    let stdout_pipe = child.stdout.take();
+    let stderr_pipe = child.stderr.take();
+    let stdout_capture = Arc::new(Mutex::new(String::new()));
+    let stderr_capture = Arc::new(Mutex::new(String::new()));
+    let mut readers = Vec::new();
+
+    if let Some(pipe) = stdout_pipe {
+        let capture = stdout_capture.clone();
+        let sender = events.clone();
+        readers.push(std::thread::spawn(move || {
+            pump_lines(pipe, false, sender, capture);
+        }));
+    }
+    if let Some(pipe) = stderr_pipe {
+        let capture = stderr_capture.clone();
+        let sender = events.clone();
+        readers.push(std::thread::spawn(move || {
+            pump_lines(pipe, true, sender, capture);
+        }));
+    }
+
+    let wait = tokio::task::spawn_blocking(move || {
+        wait_for_child(child, started, timeout, cancel)
+    })
+    .await
+    .map_err(|error| internal(format!("incus wait join: {error}")))?;
+    let (exit_code, cancelled, timed_out) = wait;
+
+    for reader in readers {
+        let _ = reader.join();
+    }
+
+    let duration_ms = u64::try_from(started.elapsed().as_millis()).unwrap_or(u64::MAX);
+    let success = exit_code == Some(0) && !cancelled && !timed_out;
+    let stdout = stdout_capture
+        .lock()
+        .map(|buffer| buffer.clone())
+        .unwrap_or_default();
+    let stderr = stderr_capture
+        .lock()
+        .map(|buffer| buffer.clone())
+        .unwrap_or_default();
+
+    if let Some(sender) = &events {
+        let _ = sender.send(ExecEvent::Finished {
+            exit_code,
+            duration_ms,
+            cancelled,
+            timed_out,
+        });
+    }
+
+    Ok(ExecOutcome {
+        success,
+        exit_code,
+        stdout,
+        stderr,
+        duration_ms,
+        cancelled,
+        timed_out,
+    })
 }
 
 pub fn expiry_from_now(idle_timeout_secs: i64) -> Option<DateTime<Utc>> {
