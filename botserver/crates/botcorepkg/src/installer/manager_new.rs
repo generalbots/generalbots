@@ -65,6 +65,7 @@ impl PackageManager {
         installer_regs2::register_vault(&mut components);
         installer_regs2::register_observability(&mut components);
         installer_regs2::register_host(&mut components);
+        installer_regs::register_botmodels(&mut components);
         components
     }
 }

@@ -76,6 +76,18 @@ fn component_plan() -> Vec<Component> {
             optional: true,
         });
     }
+    // BotModels ships as a pythonbox whose virtual environment is resolved on
+    // first start, so it never belongs in a default install — the wizard only
+    // provisions it on request and never lets it block the setup.
+    let with_botmodels = std::env::var("GB_WIZARD_WITH_BOTMODELS").unwrap_or_default();
+    if with_botmodels.trim() == "1" {
+        plan.push(Component {
+            id: "botmodels",
+            label: "AI media service",
+            timeout_secs: 900,
+            optional: true,
+        });
+    }
     plan
 }
 
