@@ -18,10 +18,10 @@ pub mod store;
 pub use botlib::db_pool::DbPool;
 
 pub use enforce::{
-    authorize, resolve, take_pending_approved, ConsentDecision, ConsentService, PendingRequest,
-    ResolvedOutcome,
+    authorize, authorize_with_context, resolve, take_pending_approved, ConsentContext,
+    ConsentDecision, ConsentService, PendingRequest, ResolvedOutcome,
 };
-pub use models::{AppPermissionRow, Decision, GrantBody, ResolveBody};
+pub use models::{AppPermissionRow, ConsentScope, Decision, GrantBody, ResolveBody};
 
 /// Builds the consent router over a shared service instance. The integrator
 /// merges this into the server router and calls

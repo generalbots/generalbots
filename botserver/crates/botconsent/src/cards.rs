@@ -57,12 +57,21 @@ pub fn prompt_card_html(req: &PendingRequest) -> String {
         r#"<div class="consent-card gb-consent-prompt" data-request-id="{request_id}">
   <div class="gb-consent-title">Consent required</div>
   <div class="gb-consent-subtitle">Application <strong>{app}</strong> requests permission to perform a <strong>{class}</strong> action on your behalf.</div>
+  <div class="gb-consent-risk risk-{risk}">Risk: {risk}</div>
   <div class="gb-consent-details">{details}</div>
   <div class="gb-consent-actions">
     <button type="button" class="gb-consent-btn gb-consent-btn-allow-once"
       hx-post="/api/consent/resolve"
       hx-vals='{{"request_id":"{request_id}","decision":"allow_once"}}'
       hx-target="closest .consent-card" hx-swap="outerHTML">Allow once</button>
+    <button type="button" class="gb-consent-btn gb-consent-btn-allow-run"
+      hx-post="/api/consent/resolve"
+      hx-vals='{{"request_id":"{request_id}","decision":"allow_run"}}'
+      hx-target="closest .consent-card" hx-swap="outerHTML">Allow for this run</button>
+    <button type="button" class="gb-consent-btn gb-consent-btn-allow-workspace"
+      hx-post="/api/consent/resolve"
+      hx-vals='{{"request_id":"{request_id}","decision":"allow_workspace"}}'
+      hx-target="closest .consent-card" hx-swap="outerHTML">Allow for 1 hour</button>
     <button type="button" class="gb-consent-btn gb-consent-btn-always"
       hx-post="/api/consent/resolve"
       hx-vals='{{"request_id":"{request_id}","decision":"always"}}'
@@ -77,6 +86,7 @@ pub fn prompt_card_html(req: &PendingRequest) -> String {
         request_id = request_id,
         app = app,
         class = class,
+        risk = escape_html(&req.risk_tier),
     )
 }
 
@@ -84,7 +94,7 @@ pub fn prompt_card_html(req: &PendingRequest) -> String {
 /// `outcome` is one of `allow_once`, `always`, `deny`, `expired` or `error`.
 pub fn summary_card_html(outcome: &str) -> String {
     let (label, css) = match outcome {
-        "always" | "allow_once" => ("Access granted", "gb-consent-ok"),
+        "always" | "allow_once" | "run" | "workspace" => ("Access granted", "gb-consent-ok"),
         "deny" => ("Access denied", "gb-consent-denied"),
         "expired" => ("This request expired. Please try again.", "gb-consent-expired"),
         _ => ("Could not process this request.", "gb-consent-error"),

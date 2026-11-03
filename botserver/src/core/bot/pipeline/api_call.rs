@@ -237,11 +237,13 @@ pub(super) async fn handle_api_call(
         let app_id = crate::apps::commands::command_by_name(&name)
             .map(|c| c.app.to_string())
             .unwrap_or_else(|| name.clone());
-        let gate = crate::core::bot::consent_gate::check(
+        let gate = crate::core::bot::consent_gate::check_with_context(
             user_id,
             &app_id,
             "update",
             serde_json::json!({ "command": name, "params": params }),
+            Some(session_id.to_string()),
+            crate::core::bot::runs::bus::bus().current_run_id(&session_id.to_string()),
         )
         .await;
         if !gate.allowed {

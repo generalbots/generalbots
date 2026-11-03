@@ -18,6 +18,7 @@ use crate::schema::{app_permissions, consent_audit};
 /// Outcome label written to `consent_audit.outcome`.
 pub const OUTCOME_GRANTED: &str = "granted";
 pub const OUTCOME_PENDING: &str = "pending";
+pub const OUTCOME_PENDING_DESTRUCTIVE: &str = "pending_destructive";
 pub const OUTCOME_DENIED: &str = "denied";
 
 /// Last instant of the current UTC month (first instant of the next month).
@@ -145,6 +146,25 @@ pub fn effective_grant(
     app_id: &str,
     action_class: &str,
 ) -> Result<Option<AppPermissionRow>, String> {
+    effective_grant_for(
+        conn,
+        user_id,
+        app_id,
+        action_class,
+        &crate::enforce::ConsentContext::default(),
+    )
+}
+
+/// Scope-aware lookup. A `run` grant only matches the same run; a `workspace`
+/// grant only matches the same thread; a legacy empty scope keeps the old
+/// always-until-expiry behavior.
+pub fn effective_grant_for(
+    conn: &mut PgConnection,
+    user_id: Uuid,
+    app_id: &str,
+    action_class: &str,
+    context: &crate::enforce::ConsentContext,
+) -> Result<Option<AppPermissionRow>, String> {
     use app_permissions::dsl;
     let row = dsl::app_permissions
         .filter(dsl::user_id.eq(user_id))
@@ -155,7 +175,38 @@ pub fn effective_grant(
         .optional()
         .map_err(|e| format!("grant lookup failed: {e}"))?;
     let now = Utc::now();
-    Ok(row.filter(|r| effective_expiry(r, now).is_some()))
+    Ok(row.filter(|r| {
+        effective_expiry(r, now).is_some() && scope_allows(&r.scope, context)
+    }))
+}
+
+/// Whether a stored scope covers this call.
+#[must_use]
+pub fn scope_allows(scope: &Value, context: &crate::enforce::ConsentContext) -> bool {
+    let kind = scope.get("kind").and_then(Value::as_str).unwrap_or("");
+    match kind {
+        "run" => {
+            let stored_thread = scope.get("thread_id").and_then(Value::as_str);
+            let stored_run = scope.get("run_id").and_then(Value::as_str);
+            let thread_ok = match (stored_thread, context.thread_id.as_deref()) {
+                (Some(stored), Some(current)) => stored == current,
+                (None, _) => true,
+                (Some(_), None) => false,
+            };
+            let run_ok = match (stored_run, context.run_id.as_deref()) {
+                (Some(stored), Some(current)) => stored == current,
+                (None, _) => true,
+                (Some(_), None) => false,
+            };
+            thread_ok && run_ok
+        }
+        "workspace" => match (scope.get("thread_id").and_then(Value::as_str), context.thread_id.as_deref()) {
+            (Some(stored), Some(current)) => stored == current,
+            (None, _) => true,
+            (Some(_), None) => false,
+        },
+        _ => true,
+    }
 }
 
 /// Appends one audit entry; audit failures are logged and never abort the

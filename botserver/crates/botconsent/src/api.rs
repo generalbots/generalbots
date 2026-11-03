@@ -250,7 +250,7 @@ pub async fn resolve_consent(
 
     let label = match outcome {
         enforce::ResolvedOutcome::ConsumeOnce(_) => "allow_once",
-        enforce::ResolvedOutcome::PersistGrant(_) => "always",
+        enforce::ResolvedOutcome::PersistGrant(_, scope) => scope.as_str(),
         enforce::ResolvedOutcome::RecordDenial(_) => "deny",
     };
     if is_hx_request(&headers) {

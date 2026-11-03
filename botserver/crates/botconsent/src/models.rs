@@ -21,6 +21,10 @@ pub const ACTION_CLASSES: &[&str] = &[
 /// regardless of a stored "always" decision.
 pub const ALWAYS_REPROMPT: &[&str] = &["payment"];
 
+/// Classes that always re-prompt, regardless of a stored grant: they are
+/// destructive enough that consent is per-call by design.
+pub const DESTRUCTIVE_CLASSES: &[&str] = &["delete", "payment"];
+
 /// Classes reserved for administrator pre-approval (placeholder for future use).
 pub const ADMIN_PREAPPROVAL_ONLY: &[&str] = &[];
 
@@ -30,6 +34,56 @@ pub fn is_known_action_class(class: &str) -> bool {
 
 pub fn is_reprompt_class(class: &str) -> bool {
     ALWAYS_REPROMPT.contains(&class)
+}
+
+pub fn is_destructive_class(class: &str) -> bool {
+    DESTRUCTIVE_CLASSES.contains(&class)
+}
+
+/// Risk tier shown on the consent card and used to decide whether a stored
+/// grant may satisfy a call.
+#[must_use]
+pub fn risk_tier(class: &str) -> &'static str {
+    match class {
+        "read" => "low",
+        "create" | "update" | "share" => "medium",
+        "delete" | "payment" | "publish" => "high",
+        _ => "unknown",
+    }
+}
+
+/// Lifetime of a grant. `Run` is scoped to one run id, `Workspace` to one
+/// hour, `Always` until the sensitive-class cycle cap.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum ConsentScope {
+    Once,
+    Run,
+    Workspace,
+    Always,
+}
+
+impl ConsentScope {
+    #[must_use]
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Once => "once",
+            Self::Run => "run",
+            Self::Workspace => "workspace",
+            Self::Always => "always",
+        }
+    }
+
+    /// Seconds a persisted grant lives; `Once` is never persisted.
+    #[must_use]
+    pub fn lifetime_secs(self) -> Option<i64> {
+        match self {
+            Self::Once => None,
+            Self::Run => Some(6 * 60 * 60),
+            Self::Workspace => Some(60 * 60),
+            Self::Always => None,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Selectable, Insertable)]
@@ -77,6 +131,10 @@ pub struct GrantBody {
 pub enum Decision {
     #[serde(rename = "allow_once")]
     AllowOnce,
+    #[serde(rename = "allow_run")]
+    AllowRun,
+    #[serde(rename = "allow_workspace")]
+    AllowWorkspace,
     #[serde(rename = "always")]
     Always,
     #[serde(rename = "deny")]

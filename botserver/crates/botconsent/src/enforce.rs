@@ -12,12 +12,23 @@ use serde::Serialize;
 use serde_json::Value;
 use uuid::Uuid;
 
-use crate::models::{is_known_action_class, Decision};
+use crate::models::{
+    is_destructive_class, is_known_action_class, ConsentScope, Decision,
+};
 use crate::store;
 use crate::DbPool;
 
 /// How long a pending (or approved allow-once) request stays in memory.
 pub const PENDING_TTL_SECS: u64 = 300;
+
+/// The run/thread a tool call belongs to. Used to scope "this run" grants and
+/// to correlate the audit trail with `run_events`.
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub struct ConsentContext {
+    pub thread_id: Option<String>,
+    pub run_id: Option<String>,
+    pub workspace_id: Option<String>,
+}
 
 #[derive(Debug, Clone, PartialEq, Serialize)]
 pub struct PendingRequest {
@@ -26,6 +37,12 @@ pub struct PendingRequest {
     pub app_id: String,
     pub action_class: String,
     pub detail: Value,
+    #[serde(default)]
+    pub thread_id: Option<String>,
+    #[serde(default)]
+    pub run_id: Option<String>,
+    #[serde(default)]
+    pub risk_tier: String,
 }
 
 /// Pending requests keyed by request id, each paired with the instant it was
@@ -42,7 +59,7 @@ pub enum ConsentDecision {
 #[derive(Debug, Clone, PartialEq)]
 pub enum ResolvedOutcome {
     ConsumeOnce(PendingRequest),
-    PersistGrant(PendingRequest),
+    PersistGrant(PendingRequest, ConsentScope),
     RecordDenial(PendingRequest),
 }
 
@@ -105,25 +122,48 @@ pub async fn authorize(
     class: &str,
     detail: Value,
 ) -> ConsentDecision {
+    authorize_with_context(
+        state,
+        user_id,
+        app_id,
+        class,
+        detail,
+        &ConsentContext::default(),
+    )
+    .await
+}
+
+/// Entry point with run/thread context. Destructive classes always prompt;
+/// stored grants are checked against their scope.
+pub async fn authorize_with_context(
+    state: &Arc<ConsentService>,
+    user_id: Uuid,
+    app_id: &str,
+    class: &str,
+    detail: Value,
+    context: &ConsentContext,
+) -> ConsentDecision {
     if !is_known_action_class(class) {
-        return deny_audited(state, user_id, app_id, class, &detail);
+        return deny_audited(state, user_id, app_id, class, &detail, context);
     }
 
-    let request_json = serde_json::json!({
-        "app_id": app_id,
-        "action_class": class,
-        "detail": detail,
-    });
+    let request_json = audit_request(app_id, class, &detail, context);
 
-    let lookup = {
-        let mut conn = match state.pool.get() {
-            Ok(c) => c,
+    // A destructive action is consent-per-call by design: an "always" grant
+    // never covers a delete or a payment.
+    let destructive = is_destructive_class(class);
+    let lookup = if destructive {
+        Ok(None)
+    } else {
+        match state.pool.get() {
+            Ok(mut conn) => {
+                store::effective_grant_for(&mut conn, user_id, app_id, class, context)
+            }
             Err(e) => {
                 tracing::error!("consent authorize: pool unavailable: {e}");
                 return ConsentDecision::Denied;
             }
-        };
-        store::effective_grant(&mut conn, user_id, app_id, class)
+        }
     };
 
     match lookup {
@@ -145,13 +185,23 @@ pub async fn authorize(
                 app_id: app_id.to_string(),
                 action_class: class.to_string(),
                 detail,
+                thread_id: context.thread_id.clone(),
+                run_id: context.run_id.clone(),
+                risk_tier: crate::models::risk_tier(class).to_string(),
             };
             let mut pend = state.pending.lock().await;
             sweep_maps(&mut pend, &mut HashMap::new(), Instant::now());
             pend.insert(req.request_id.clone(), (req.clone(), Instant::now()));
             drop(pend);
             if let Ok(mut conn) = state.pool.get() {
-                store::audit(&mut conn, None, Some(user_id), &request_json, store::OUTCOME_PENDING, None);
+                store::audit(
+                    &mut conn,
+                    None,
+                    Some(user_id),
+                    &request_json,
+                    if destructive { store::OUTCOME_PENDING_DESTRUCTIVE } else { store::OUTCOME_PENDING },
+                    None,
+                );
             } else {
                 tracing::error!("consent authorize audit: pool unavailable");
             }
@@ -159,9 +209,39 @@ pub async fn authorize(
         }
         Err(e) => {
             tracing::error!("consent authorize lookup failed: {e}");
-            deny_audited(state, user_id, app_id, class, &detail)
+            deny_audited(state, user_id, app_id, class, &detail, context)
         }
     }
+}
+
+fn audit_request(
+    app_id: &str,
+    class: &str,
+    detail: &Value,
+    context: &ConsentContext,
+) -> Value {
+    serde_json::json!({
+        "app_id": app_id,
+        "action_class": class,
+        "risk_tier": crate::models::risk_tier(class),
+        "app_hash": hash_text(app_id),
+        "argument_hash": hash_text(&detail.to_string()),
+        "thread_id": context.thread_id,
+        "run_id": context.run_id,
+        "workspace_id": context.workspace_id,
+        "detail": detail,
+    })
+}
+
+fn hash_text(text: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    hasher.update(text.as_bytes());
+    hasher
+        .finalize()
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect()
 }
 
 fn deny_audited(
@@ -170,12 +250,9 @@ fn deny_audited(
     app_id: &str,
     class: &str,
     detail: &Value,
+    context: &ConsentContext,
 ) -> ConsentDecision {
-    let request_json = serde_json::json!({
-        "app_id": app_id,
-        "action_class": class,
-        "detail": detail,
-    });
+    let request_json = audit_request(app_id, class, detail, context);
     if let Ok(mut conn) = state.pool.get() {
         store::audit(&mut conn, None, Some(user_id), &request_json, store::OUTCOME_DENIED, None);
     } else {
@@ -203,7 +280,11 @@ pub(crate) fn resolve_in_memory(
             approved_once.insert(request_id.to_string(), (req.clone(), now));
             Ok(ResolvedOutcome::ConsumeOnce(req))
         }
-        Decision::Always => Ok(ResolvedOutcome::PersistGrant(req)),
+        Decision::AllowRun => Ok(ResolvedOutcome::PersistGrant(req, ConsentScope::Run)),
+        Decision::AllowWorkspace => {
+            Ok(ResolvedOutcome::PersistGrant(req, ConsentScope::Workspace))
+        }
+        Decision::Always => Ok(ResolvedOutcome::PersistGrant(req, ConsentScope::Always)),
         Decision::Deny => Ok(ResolvedOutcome::RecordDenial(req)),
     }
 }
@@ -229,14 +310,22 @@ pub async fn resolve(
 
     if let Ok(mut conn) = state.pool.get() {
         match &outcome {
-            ResolvedOutcome::PersistGrant(req) => {
+            ResolvedOutcome::PersistGrant(req, scope) => {
+                let expires_at = scope
+                    .lifetime_secs()
+                    .map(|seconds| chrono::Utc::now() + chrono::Duration::seconds(seconds));
+                let scope_json = serde_json::json!({
+                    "kind": scope.as_str(),
+                    "thread_id": req.thread_id,
+                    "run_id": req.run_id,
+                });
                 let spec = store::GrantSpec {
                     user_id,
                     app_id: &req.app_id,
                     action_class: &req.action_class,
-                    scope: &serde_json::json!({}),
+                    scope: &scope_json,
                     granted_via: "prompt",
-                    expires_at: None,
+                    expires_at,
                 };
                 match store::grant(&mut conn, spec) {
                     Ok(row) => store::audit(
@@ -249,7 +338,7 @@ pub async fn resolve(
             ResolvedOutcome::ConsumeOnce(_) | ResolvedOutcome::RecordDenial(_) => {}
         }
         let outcome_label = match &outcome {
-            ResolvedOutcome::PersistGrant(_) | ResolvedOutcome::ConsumeOnce(_) => store::OUTCOME_GRANTED,
+            ResolvedOutcome::PersistGrant(_, _) | ResolvedOutcome::ConsumeOnce(_) => store::OUTCOME_GRANTED,
             ResolvedOutcome::RecordDenial(_) => store::OUTCOME_DENIED,
         };
         store::audit(
@@ -286,6 +375,9 @@ mod tests {
             app_id: "crm".to_string(),
             action_class: "create".to_string(),
             detail: serde_json::json!({ "name": "cmd" }),
+            thread_id: None,
+            run_id: None,
+            risk_tier: "medium".to_string(),
         }
     }
 
@@ -314,7 +406,7 @@ mod tests {
         p.insert("r2".into(), (req("r2"), Instant::now()));
         let out = resolve_in_memory(&mut p, &mut a, "r2", Decision::Always, Instant::now())
             .expect("transition ok");
-        assert_eq!(out, ResolvedOutcome::PersistGrant(req("r2")));
+        assert_eq!(out, ResolvedOutcome::PersistGrant(req("r2"), ConsentScope::Always));
         assert!(a.is_empty());
         assert!(p.is_empty());
     }

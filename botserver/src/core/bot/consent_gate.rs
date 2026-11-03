@@ -31,10 +31,37 @@ pub async fn check(
     action_class: &str,
     detail: serde_json::Value,
 ) -> GateOutcome {
+    check_with_context(user_id, app_id, action_class, detail, None, None).await
+}
+
+/// Same decision with the run/thread that originated it, so "this run" grants
+/// and the audit trail can be correlated.
+pub async fn check_with_context(
+    user_id: uuid::Uuid,
+    app_id: &str,
+    action_class: &str,
+    detail: serde_json::Value,
+    thread_id: Option<String>,
+    run_id: Option<String>,
+) -> GateOutcome {
     let Some(service) = service() else {
         return GateOutcome { allowed: true, request_id: None, pending_request: None, card_html: None };
     };
-    match botconsent::enforce::authorize(service, user_id, app_id, action_class, detail).await {
+    let context = botconsent::enforce::ConsentContext {
+        thread_id,
+        run_id,
+        workspace_id: None,
+    };
+    match botconsent::enforce::authorize_with_context(
+        service,
+        user_id,
+        app_id,
+        action_class,
+        detail,
+        &context,
+    )
+    .await
+    {
         botconsent::enforce::ConsentDecision::Granted(_) => GateOutcome {
             allowed: true,
             request_id: None,

@@ -649,3 +649,13 @@ sup.gb-cite-ref:hover {
 .gb-autotask-cancel:hover {
     background: rgba(63, 185, 80, 0.16);
 }
+
+/* #1671 — consent risk tier and scoped grant buttons. */
+.gb-consent-risk {
+  font-size: 12px;
+  margin: 6px 0 0;
+  color: var(--gb-text-muted, #57606a);
+}
+.gb-consent-risk.risk-high { color: #cf222e; font-weight: 600; }
+.gb-consent-risk.risk-medium { color: #9a6700; }
+.gb-consent-actions { flex-wrap: wrap; }

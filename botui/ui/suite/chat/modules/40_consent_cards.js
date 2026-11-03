@@ -13,6 +13,8 @@
 (function () {
   var DECISIONS = {
     allow_once: { label: "Allow once", outcome: "Allowed once" },
+    allow_run: { label: "Allow for this run", outcome: "Allowed for this run" },
+    allow_workspace: { label: "Allow for 1 hour", outcome: "Allowed for 1 hour" },
     always: { label: "Always allow", outcome: "Always allowed" },
     deny: { label: "Deny", outcome: "Denied" },
   };
@@ -50,14 +52,20 @@
       '<div class="gb-consent-app"></div>' +
       "</div></div>" +
       '<div class="gb-consent-detail"></div>' +
+      '<div class="gb-consent-risk"></div>' +
       '<div class="gb-consent-actions">' +
       '<button type="button" class="gb-consent-btn primary" data-decision="allow_once">Allow once</button>' +
+      '<button type="button" class="gb-consent-btn" data-decision="allow_run">This run</button>' +
+      '<button type="button" class="gb-consent-btn" data-decision="allow_workspace">1 hour</button>' +
       '<button type="button" class="gb-consent-btn" data-decision="always">Always allow</button>' +
       '<button type="button" class="gb-consent-btn danger" data-decision="deny">Deny</button>' +
       "</div>";
     card.querySelector(".gb-consent-app").textContent =
       req.app_id + " \u00B7 " + (req.action_class || "action");
     card.querySelector(".gb-consent-detail").textContent = req.detail || "";
+    var risk = card.querySelector(".gb-consent-risk");
+    risk.textContent = req.risk_tier ? "Risk: " + req.risk_tier : "";
+    risk.className = "gb-consent-risk risk-" + (req.risk_tier || "unknown");
     card.addEventListener("click", function (e) {
       var btn = e.target.closest(".gb-consent-btn");
       if (!btn) return;
