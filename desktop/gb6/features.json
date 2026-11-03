@@ -1,10 +1,10 @@
 {
   "product": "General Bots 6 — Desktop edition (Chat + Drive)",
   "contract_url": "https://sites.pragmatismo.com.br/gb6features/",
-  "note": "The page is generated from this record. A `shipped` status requires an executed test artifact (unit, behavioural or live E2E) named in `evidence.e2e`; the environment line says whether a browser run was part of it.",
+  "note": "The page is generated from this record. A `shipped` status requires an executed automated test artifact *and* a live verification (browser or release) for user-facing features. Live browser verification is currently blocked: the dev binary predates these commits and AGENTS.md forbids building/running without authorization.",
   "statuses": {
-    "shipped": "Implemented and verified by an executed automated test artifact (unit, behavioural or live E2E); evidence.e2e names what ran.",
-    "partial": "Implemented in source; at least one acceptance criterion still lacks an end-to-end run.",
+    "shipped": "Implemented, covered by executed automated tests, and verified live (browser or release) where the feature is user-facing.",
+    "partial": "Implemented in source and covered by automated tests; the live browser/release verification is still pending (currently blocked).",
     "not_shipped": "Not implemented in this build."
   },
   "features": [
@@ -12,47 +12,49 @@
       "id": "GB6-08",
       "title": "Web search with citations",
       "promise": "Answers that use the web show clickable sources and never present unverified claims as fact.",
-      "status": "shipped",
+      "status": "partial",
       "evidence": {
         "issue": "#1635",
         "tests": [
           "botserver/src/core/bot/pipeline/web_context.rs",
           "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": "cargo test -p botserver --bin botserver: web_context::citation_carries_title_url_and_host PASS; node webtest_gb6.js: ISSUE #1635 PASS (94/94 suite)",
-        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
+        "e2e": null,
+        "note": "Live browser verification blocked: target/debug/botserver predates the fix and building/starting it needs authorization (AGENTS.md). Automated tests pass.",
+        "automated": "cargo test -p botserver --bin botserver: web_context::citation_carries_title_url_and_host PASS; node webtest_gb6.js: ISSUE #1635 PASS (94/94 suite)"
       },
       "last_verified": {
         "date": "2026-11-03",
         "commit": "2622f0997",
-        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
+        "environment": "automated tests only (cargo test + node webtest); live browser not run"
       }
     },
     {
       "id": "GB6-09",
       "title": "Artifacts and generated documents",
       "promise": "The assistant can produce a document the user can preview, keep in Drive and open later.",
-      "status": "shipped",
+      "status": "partial",
       "evidence": {
         "issue": "#1636",
         "tests": [
           "botui/ui/suite/chat/chat-artifacts.js",
           "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": "node webtest_gb6.js: BEHAVE GB6-09 detector + sanitizer PASS and artifact wiring PASS",
-        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
+        "e2e": null,
+        "note": "Live browser verification blocked: target/debug/botserver predates the fix and building/starting it needs authorization (AGENTS.md). Automated tests pass.",
+        "automated": "node webtest_gb6.js: BEHAVE GB6-09 detector + sanitizer PASS and artifact wiring PASS"
       },
       "last_verified": {
         "date": "2026-11-03",
         "commit": "2622f0997",
-        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
+        "environment": "automated tests only (cargo test + node webtest); live browser not run"
       }
     },
     {
       "id": "GB6-10",
       "title": "Model picker with plain-language trade-offs",
       "promise": "The user can switch models and sees a one-line explanation of each option.",
-      "status": "shipped",
+      "status": "partial",
       "evidence": {
         "issue": "#1637",
         "tests": [
@@ -60,33 +62,35 @@
           "botui/ui/suite/chat/chat-init.js",
           "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": "node webtest_gb6.js: ISSUE #1637 tier routing + picker hydration PASS; cargo test -p botserver --bin botserver compiled the routing path (135 passed)",
-        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
+        "e2e": null,
+        "note": "Live browser verification blocked: target/debug/botserver predates the fix and building/starting it needs authorization (AGENTS.md). Automated tests pass.",
+        "automated": "node webtest_gb6.js: ISSUE #1637 tier routing + picker hydration PASS; cargo test -p botserver --bin botserver compiled the routing path (135 passed)"
       },
       "last_verified": {
         "date": "2026-11-03",
         "commit": "2622f0997",
-        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
+        "environment": "automated tests only (cargo test + node webtest); live browser not run"
       }
     },
     {
       "id": "GB6-11",
       "title": "Search across all files",
       "promise": "One search box finds files across all folders by name and content.",
-      "status": "shipped",
+      "status": "partial",
       "evidence": {
         "issue": "#1638",
         "tests": [
           "botserver/crates/botdrive/src/drive_handlers/search_files.rs",
           "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": "cargo test -p botdrive --lib: search_content_tests 2 PASS (66 total); node BEHAVE #1638 cross-bucket+content request PASS",
-        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
+        "e2e": null,
+        "note": "Live browser verification blocked: target/debug/botserver predates the fix and building/starting it needs authorization (AGENTS.md). Automated tests pass.",
+        "automated": "cargo test -p botdrive --lib: search_content_tests 2 PASS (66 total); node BEHAVE #1638 cross-bucket+content request PASS"
       },
       "last_verified": {
         "date": "2026-11-03",
         "commit": "2622f0997",
-        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
+        "environment": "automated tests only (cargo test + node webtest); live browser not run"
       }
     },
     {
@@ -112,7 +116,7 @@
       "id": "GB6-13",
       "title": "Share and export a file",
       "promise": "The user can create a shareable link and download/export any file.",
-      "status": "shipped",
+      "status": "partial",
       "evidence": {
         "issue": "#1639",
         "tests": [
@@ -120,20 +124,21 @@
           "botserver/crates/botdrive/src/drive_handlers/export_archive.rs",
           "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": "node webtest_gb6.js: BEHAVE GB6-13 7-day/never expiry PASS and share+export wiring PASS; cargo test -p botdrive --lib compiled export/trash handlers (66 passed)",
-        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
+        "e2e": null,
+        "note": "Live browser verification blocked: target/debug/botserver predates the fix and building/starting it needs authorization (AGENTS.md). Automated tests pass.",
+        "automated": "node webtest_gb6.js: BEHAVE GB6-13 7-day/never expiry PASS and share+export wiring PASS; cargo test -p botdrive --lib compiled export/trash handlers (66 passed)"
       },
       "last_verified": {
         "date": "2026-11-03",
         "commit": "2622f0997",
-        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
+        "environment": "automated tests only (cargo test + node webtest); live browser not run"
       }
     },
     {
       "id": "GB6-14",
       "title": "Version history and trash",
       "promise": "Deleted files go to Trash (restorable) and edits keep prior versions.",
-      "status": "shipped",
+      "status": "partial",
       "evidence": {
         "issue": "#1640",
         "tests": [
@@ -141,40 +146,42 @@
           "botui/ui/suite/drive/modules/98_actions.js",
           "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": "node webtest_gb6.js: GB6-14 trash routing + retention tests PASS; cargo test -p botdrive --lib compiled trash/restore/purge (66 passed)",
-        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
+        "e2e": null,
+        "note": "Live browser verification blocked: target/debug/botserver predates the fix and building/starting it needs authorization (AGENTS.md). Automated tests pass.",
+        "automated": "node webtest_gb6.js: GB6-14 trash routing + retention tests PASS; cargo test -p botdrive --lib compiled trash/restore/purge (66 passed)"
       },
       "last_verified": {
         "date": "2026-11-03",
         "commit": "2622f0997",
-        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
+        "environment": "automated tests only (cargo test + node webtest); live browser not run"
       }
     },
     {
       "id": "GB6-15",
       "title": "Attachments in chat",
       "promise": "Drag or attach a file in chat; the answer uses it immediately.",
-      "status": "shipped",
+      "status": "partial",
       "evidence": {
         "issue": "#1641",
         "tests": [
           "botserver/src/core/bot/pipeline/attachment_text.rs",
           "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": "cargo test -p botserver --bin botserver: attachment_text 5 tests PASS (135 total); node ISSUE #1641 PASS",
-        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
+        "e2e": null,
+        "note": "Live browser verification blocked: target/debug/botserver predates the fix and building/starting it needs authorization (AGENTS.md). Automated tests pass.",
+        "automated": "cargo test -p botserver --bin botserver: attachment_text 5 tests PASS (135 total); node ISSUE #1641 PASS"
       },
       "last_verified": {
         "date": "2026-11-03",
         "commit": "2622f0997",
-        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
+        "environment": "automated tests only (cargo test + node webtest); live browser not run"
       }
     },
     {
       "id": "GB6-16",
       "title": "Memory across conversations",
       "promise": "User preferences persist and are visible/editable in settings.",
-      "status": "shipped",
+      "status": "partial",
       "evidence": {
         "issue": "#1642",
         "tests": [
@@ -182,20 +189,21 @@
           "botui/ui/suite/settings/index.html",
           "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": "cargo test -p botserver --bin botserver: user_memory 6 tests PASS; node GB6-16 + ISSUE #1642 PASS",
-        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
+        "e2e": null,
+        "note": "Live browser verification blocked: target/debug/botserver predates the fix and building/starting it needs authorization (AGENTS.md). Automated tests pass.",
+        "automated": "cargo test -p botserver --bin botserver: user_memory 6 tests PASS; node GB6-16 + ISSUE #1642 PASS"
       },
       "last_verified": {
         "date": "2026-11-03",
         "commit": "2622f0997",
-        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
+        "environment": "automated tests only (cargo test + node webtest); live browser not run"
       }
     },
     {
       "id": "GB6-18",
       "title": "Connectors with consent",
       "promise": "A user connects an account, sees exactly what is shared, and can revoke it in one click.",
-      "status": "shipped",
+      "status": "partial",
       "evidence": {
         "issue": "#1643",
         "tests": [
@@ -203,20 +211,21 @@
           "botui/ui/suite/drive/modules/11_external.js",
           "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": "node webtest_gb6.js: GB6-18 consent renders server scopes + granted scopes PASS; cargo test -p botdrive --lib compiled the consent schema (66 passed)",
-        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
+        "e2e": null,
+        "note": "Live browser verification blocked: target/debug/botserver predates the fix and building/starting it needs authorization (AGENTS.md). Automated tests pass.",
+        "automated": "node webtest_gb6.js: GB6-18 consent renders server scopes + granted scopes PASS; cargo test -p botdrive --lib compiled the consent schema (66 passed)"
       },
       "last_verified": {
         "date": "2026-11-03",
         "commit": "2622f0997",
-        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
+        "environment": "automated tests only (cargo test + node webtest); live browser not run"
       }
     },
     {
       "id": "GB6-19",
       "title": "Computer use — browser actions",
       "promise": "The user approves a browser task, watches it run, and gets the result in chat.",
-      "status": "shipped",
+      "status": "partial",
       "evidence": {
         "issue": "#1644",
         "tests": [
@@ -224,20 +233,21 @@
           "botserver/src/main_module/routes/computer_use_routes.rs",
           "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": "cargo test -p botserver --bin botserver: 6 computer_use tests PASS (proposal, approval, report-once); node ISSUE #1644 PASS",
-        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
+        "e2e": null,
+        "note": "Live browser verification blocked: target/debug/botserver predates the fix and building/starting it needs authorization (AGENTS.md). Automated tests pass.",
+        "automated": "cargo test -p botserver --bin botserver: 6 computer_use tests PASS (proposal, approval, report-once); node ISSUE #1644 PASS"
       },
       "last_verified": {
         "date": "2026-11-03",
         "commit": "2622f0997",
-        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
+        "environment": "automated tests only (cargo test + node webtest); live browser not run"
       }
     },
     {
       "id": "GB6-20",
       "title": "Computer use — terminal actions",
       "promise": "Commands run only with explicit approval and a visible audit trail.",
-      "status": "shipped",
+      "status": "partial",
       "evidence": {
         "issue": "#1645",
         "tests": [
@@ -245,20 +255,21 @@
           "botui/ui/suite/chat/modules/61_terminal_use.js",
           "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": "cargo test -p botserver --bin botserver: terminal_rules tests PASS (135 total); node ISSUE #1645 consent+audit PASS",
-        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
+        "e2e": null,
+        "note": "Live browser verification blocked: target/debug/botserver predates the fix and building/starting it needs authorization (AGENTS.md). Automated tests pass.",
+        "automated": "cargo test -p botserver --bin botserver: terminal_rules tests PASS (135 total); node ISSUE #1645 consent+audit PASS"
       },
       "last_verified": {
         "date": "2026-11-03",
         "commit": "2622f0997",
-        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
+        "environment": "automated tests only (cargo test + node webtest); live browser not run"
       }
     },
     {
       "id": "GB6-25",
       "title": "Usage and cost transparency",
       "promise": "A simple usage view shows tokens/cost per period and per model.",
-      "status": "shipped",
+      "status": "partial",
       "evidence": {
         "issue": "#1648",
         "tests": [
@@ -266,13 +277,14 @@
           "botui/ui/suite/js/usage-stats.js",
           "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": "cargo test -p botsettings --lib: 4 price-list tests PASS (14 total); node BEHAVE GB6-25 dedupe/totals PASS",
-        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
+        "e2e": null,
+        "note": "Live browser verification blocked: target/debug/botserver predates the fix and building/starting it needs authorization (AGENTS.md). Automated tests pass.",
+        "automated": "cargo test -p botsettings --lib: 4 price-list tests PASS (14 total); node BEHAVE GB6-25 dedupe/totals PASS"
       },
       "last_verified": {
         "date": "2026-11-03",
         "commit": "2622f0997",
-        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
+        "environment": "automated tests only (cargo test + node webtest); live browser not run"
       }
     },
     {
@@ -300,7 +312,7 @@
     "title": "GB6 parity: make the published 14-feature contract true in src",
     "definition_of_done": [
       "Every child issue is implemented in source and linked from the record.",
-      "Every shipped feature names an executed test artifact (unit, behavioural or live E2E).",
+      "Every shipped feature has a live verification artifact (browser or release) in addition to automated tests.",
       "The page is generated from the record and lists 14 features.",
       "No feature claims verification without date, commit and environment."
     ],
@@ -319,7 +331,7 @@
         "node botui/ui/suite/tests/webtest_gb6.js (94 passed)",
         "python3 scripts/gb6_features_check.py (OK, 14 shipped)"
       ],
-      "browser_e2e": "not part of this offline run: no botserver/Chrome session was started (AGENTS forbids cargo build/run)"
+      "browser_e2e": "blocked 2026-11-03: target/debug/botserver was built at 00:37, before the fixes (last commit 13:28); restart.sh requires `cargo build -p botserver` and `cargo build -p botui`, which AGENTS.md forbids without explicit authorization. No botserver on :8080 and no Chrome CDP on :9222. Waiting for authorization to build/run and drive Chrome."
     }
   }
 }
