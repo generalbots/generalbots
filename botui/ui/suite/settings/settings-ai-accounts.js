@@ -233,11 +233,24 @@
     if (window.location.hash === "#ai-accounts") load();
   }
 
-  document.addEventListener("DOMContentLoaded", function () {
+  function init() {
     openFromHash();
     document.querySelectorAll('a[href="#ai-accounts"]').forEach(function (link) {
       link.addEventListener("click", function () { setTimeout(load, 0); });
     });
+  }
+
+  // The settings page is injected into a desktop window after the document has
+  // already loaded, so DOMContentLoaded never fires here. Run immediately in
+  // that case instead of leaving the card on its loading placeholder.
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+  document.addEventListener("click", function (event) {
+    var link = event.target && event.target.closest ? event.target.closest('a[href="#ai-accounts"]') : null;
+    if (link) setTimeout(load, 0);
   });
   window.addEventListener("hashchange", openFromHash);
   window.loadAiAccounts = load;

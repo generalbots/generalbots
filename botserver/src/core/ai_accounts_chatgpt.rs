@@ -377,6 +377,16 @@ pub async fn disconnect(pool: &DbPool, user_id: Uuid) -> Result<(), String> {
     )
 }
 
+/// True while this user has an OAuth callback waiting.
+pub fn pending_for(user_id: Uuid) -> bool {
+    let now = now_secs();
+    if let Ok(mut pending) = PENDING.lock() {
+        pending.retain(|_, entry| now.saturating_sub(entry.created) < 900);
+        return pending.values().any(|entry| entry.user_id == user_id);
+    }
+    false
+}
+
 /// Current row, without making a network call.
 pub fn status(pool: &DbPool, user_id: Uuid) -> Value {
     ai_accounts::list_accounts(pool, user_id)

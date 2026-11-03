@@ -227,6 +227,18 @@ pub async fn status(
         }
     } else {
         let row = ai_accounts_chatgpt::status(&state.conn, user.user_id);
+        if row.get("status").and_then(Value::as_str) == Some("unlinked")
+            && ai_accounts_chatgpt::pending_for(user.user_id)
+        {
+            return Ok(Json(json!({
+                "account": {
+                    "provider": ai_accounts::CHATGPT_PLAN,
+                    "status": "connecting",
+                    "message": "Finish the ChatGPT sign-in in your browser."
+                },
+                "checked_at": chrono::Utc::now().to_rfc3339(),
+            })));
+        }
         if row.get("status").and_then(Value::as_str) == Some("linked") {
             // A stored refresh token can still be expired; surface the honest
             // state instead of reporting a dead account as linked.

@@ -395,6 +395,7 @@ pub(super) const TRANSLATION_KEYS: &[&str] = &[
     "settings-storage",
     "settings-integrations",
     "settings-vibe",
+    "settings-ai-accounts",
     "settings-memory",
     "settings-administration",
     "settings-users",
