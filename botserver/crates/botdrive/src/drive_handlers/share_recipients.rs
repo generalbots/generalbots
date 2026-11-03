@@ -10,9 +10,12 @@ pub struct RecipientsQuery {
 /// has to choose one, and the share row is written by `share_folder`.
 pub async fn list_share_recipients(
     State(state): State<Arc<AppState>>,
-    Extension(_user): Extension<AuthenticatedUser>,
+    Extension(user): Extension<AuthenticatedUser>,
     Query(params): Query<RecipientsQuery>,
 ) -> Result<Json<Vec<serde_json::Value>>, (StatusCode, Json<serde_json::Value>)> {
+    // The extractor enforces authentication; the caller's identity is not
+    // needed beyond that for a directory search.
+    let _ = user;
     let query = params.query.unwrap_or_default().trim().to_lowercase();
     if query.len() < 2 {
         return Ok(Json(Vec::new()));

@@ -117,7 +117,8 @@ fn extract_pdf(path: &std::path::Path) -> String {
     crate::vectordb::extract_pdf_text_sync(path).unwrap_or_default()
 }
 #[cfg(not(feature = "drive"))]
-fn extract_pdf(_path: &std::path::Path) -> String {
+fn extract_pdf(path: &std::path::Path) -> String {
+    let _ = path;
     String::new()
 }
 
@@ -126,7 +127,8 @@ fn extract_docx(path: &std::path::Path) -> String {
     crate::vectordb::extract_docx_text_sync(path).unwrap_or_default()
 }
 #[cfg(not(feature = "drive"))]
-fn extract_docx(_path: &std::path::Path) -> String {
+fn extract_docx(path: &std::path::Path) -> String {
+    let _ = path;
     String::new()
 }
 
@@ -135,7 +137,8 @@ fn extract_xlsx(path: &std::path::Path) -> String {
     crate::vectordb::extract_xlsx_text_sync(path).unwrap_or_default()
 }
 #[cfg(not(feature = "sheet"))]
-fn extract_xlsx(_path: &std::path::Path) -> String {
+fn extract_xlsx(path: &std::path::Path) -> String {
+    let _ = path;
     String::new()
 }
 

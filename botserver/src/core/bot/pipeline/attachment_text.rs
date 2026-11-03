@@ -112,7 +112,8 @@ fn pdf_text(bytes: &[u8]) -> Option<String> {
 }
 
 #[cfg(not(feature = "drive"))]
-fn pdf_text(_bytes: &[u8]) -> Option<String> {
+fn pdf_text(bytes: &[u8]) -> Option<String> {
+    let _ = bytes;
     None
 }
 
