@@ -78,7 +78,7 @@ test("SEC-06: gb-ws-frame single dispatch (double dispatch fixed)", function () 
 });
 
 test("SEC-07: Drive path traversal — normalize_path rejects '..'", function () {
-  var src = fs.readFileSync(path.resolve(__dirname, "../../../../botserver/crates/botdrive/src/drive_handlers/part1.rs"), "utf8");
+  var src = fs.readFileSync(path.resolve(__dirname, "../../../../botserver/crates/botdrive/src/drive_handlers/cached_quota.rs"), "utf8");
   assert(src.indexOf('".."') !== -1, ".. rejection not found in normalize_path");
   assert(src.indexOf('"."') !== -1, ". rejection not found in normalize_path");
 });
@@ -214,10 +214,13 @@ test("GB6-24: Data export backup/restore", function () {
   assert(src.indexOf("export_version") !== -1, "export_version not found");
 });
 
-test("GB6-25: Usage stats tracking", function () {
-  var src = readFile("js/usage-stats.js");
-  assert(src.indexOf("GBUsageStats") !== -1, "GBUsageStats not found");
-  assert(src.indexOf("TOKEN_COST_PER_1K") !== -1, "TOKEN_COST_PER_1K not found");
+test("GB6-25: Usage panel is reachable and reads the server", function () {
+  var usage = readFile("js/usage-stats.js");
+  assert(usage.indexOf("/api/user/usage/summary") !== -1, "server endpoint not used");
+  assert(usage.indexOf("pricing_available") !== -1, "pricing availability not read");
+  assert(usage.indexOf("data-usage-days") !== -1, "period selector missing");
+  var desktop = readFile("desktop.html");
+  assert(desktop.indexOf("GBUsageStats.showPanel") !== -1, "no UI entry point");
 });
 
 test("GB6-26: Privacy controls — all telemetry OFF by default", function () {

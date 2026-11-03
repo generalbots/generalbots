@@ -60,6 +60,12 @@
     return result;
   }
 
+  function esc(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
   function formatCost(amount) {
     if (amount < 0.01) return "< $0.01";
     return "$" + amount.toFixed(2);
@@ -101,13 +107,16 @@
     };
   }
 
-  async function serverSummary(days) {
+  async function fetchServerSummary(days) {
     var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
     var response = await fetch("/api/user/usage/summary?days=" + days, {
       headers: token ? { Authorization: "Bearer " + token } : {},
     });
     if (!response.ok) throw new Error("HTTP " + response.status);
-    var payload = await response.json();
+    return response.json();
+  }
+
+  function serverSummary(payload) {
     var totals = payload.totals || {};
     var priced = payload.pricing_available === true && totals.cost != null;
     return {
@@ -116,39 +125,108 @@
       tokens: formatTokens(totals.tokens || 0),
       tokens_sub: "recorded",
       cost: priced ? formatCost(totals.cost) : "unavailable",
-      cost_sub: priced ? "from price list" : "no price list",
+      cost_sub: priced ? "from the configured price list" : "no price list configured",
     };
+  }
+
+  function breakdownTable(payload) {
+    var models = payload.models || {};
+    var keys = Object.keys(models).sort();
+    if (!keys.length) return "";
+    var rows = keys.map(function (model) {
+      var entry = models[model] || {};
+      var cost = entry.cost == null ? "unavailable" : formatCost(entry.cost);
+      return '<tr><td style="padding:6px;border-top:1px solid #334155;">' + esc(model) + '</td>' +
+        '<td style="padding:6px;border-top:1px solid #334155;">' + formatTokens(entry.tokens || 0) + '</td>' +
+        '<td style="padding:6px;border-top:1px solid #334155;">' + (entry.messages || 0) + '</td>' +
+        '<td style="padding:6px;border-top:1px solid #334155;">' + cost + '</td></tr>';
+    }).join("");
+    return '<h4 style="color:#f8fafc;font-size:13px;margin:18px 0 8px;">Per model</h4>' +
+      '<table style="width:100%;border-collapse:collapse;color:#cbd5e1;font-size:12px;">' +
+      '<thead><tr style="text-align:left;color:#64748b;"><th>Model</th><th>Tokens</th><th>Messages</th><th>Cost</th></tr></thead>' +
+      "<tbody>" + rows + "</tbody></table>";
+  }
+
+  function perDayTable(payload) {
+    var days = payload.per_day || [];
+    if (!days.length) return "";
+    var rows = days.map(function (entry) {
+      return '<tr><td style="padding:4px 6px;border-top:1px solid #334155;">' + esc(entry.day || "") + '</td>' +
+        '<td style="padding:4px 6px;border-top:1px solid #334155;">' + formatTokens(entry.tokens || 0) + '</td>' +
+        '<td style="padding:4px 6px;border-top:1px solid #334155;">' + (entry.messages || 0) + '</td></tr>';
+    }).join("");
+    return '<h4 style="color:#f8fafc;font-size:13px;margin:18px 0 8px;">Per day</h4>' +
+      '<div style="max-height:180px;overflow:auto;"><table style="width:100%;border-collapse:collapse;color:#cbd5e1;font-size:12px;">' +
+      '<thead><tr style="text-align:left;color:#64748b;"><th>Day</th><th>Tokens</th><th>Messages</th></tr></thead>' +
+      "<tbody>" + rows + "</tbody></table></div>";
+  }
+
+  async function renderUsageModal(days) {
+    var box = document.querySelector("#usage-modal [data-usage-box]");
+    if (!box) return;
+    var period = document.querySelector("#usage-modal [data-usage-period]");
+    if (period) period.textContent = "Last " + days + " days";
+    box.innerHTML = '<p style="color:#94a3b8;font-size:12px;">Loading usage…</p>';
+    var summary;
+    var payload = null;
+    var note;
+    try {
+      payload = await fetchServerSummary(days);
+      summary = serverSummary(payload);
+      note = "Counts come from recorded message history (" + (payload.source || "message_history") + "). " +
+        (payload.pricing_available
+          ? "Cost is priced with the configured model price list."
+          : "Cost is unavailable — no price list is configured (llm-pricing or GB_LLM_PRICING).");
+    } catch (error) {
+      summary = localSummary(days);
+      note = "The usage service is unreachable, so these numbers are estimated locally (4 characters per token). Cost stays unavailable because no authoritative price list was read.";
+    }
+    box.innerHTML =
+      cardMarkup("Last " + days + " days", summary, "") +
+      (payload ? perDayTable(payload) : "") +
+      (payload ? breakdownTable(payload) : "") +
+      '<p style="color:#475569;font-size:11px;margin:16px 0 0;">' + note + "</p>";
   }
 
   async function showUsagePanel() {
     var modal = document.getElementById("usage-modal");
-    if (modal) modal.remove();
+    if (modal) { modal.remove(); return; }
     modal = document.createElement("div");
     modal.id = "usage-modal";
     modal.style.cssText = "position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.85);display:flex;align-items:center;justify-content:center;z-index:99999;backdrop-filter:blur(8px);";
-    modal.innerHTML = '<div style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:90%;max-width:520px;padding:24px;color:#94a3b8;">Loading usage…</div>';
+    modal.innerHTML = '<div data-usage-box style="background:#1e293b;border:1px solid #334155;border-radius:12px;width:90%;max-width:640px;max-height:85vh;overflow:auto;padding:24px;color:#94a3b8;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">' +
+      '<h3 style="margin:0;color:#f8fafc;">Usage &amp; Cost</h3>' +
+      '<button type="button" data-usage-close style="background:none;border:none;color:#94a3b8;font-size:24px;cursor:pointer;">×</button></div>' +
+      '<div style="display:flex;gap:8px;margin-bottom:16px;">' +
+      '<span data-usage-period style="color:#64748b;font-size:12px;align-self:center;margin-right:auto;">Last 30 days</span>' +
+      '<button type="button" data-usage-days="7" style="background:#0f172a;border:1px solid #334155;border-radius:6px;color:#cbd5e1;padding:5px 10px;cursor:pointer;font-size:12px;">7 days</button>' +
+      '<button type="button" data-usage-days="30" style="background:#0f172a;border:1px solid #334155;border-radius:6px;color:#cbd5e1;padding:5px 10px;cursor:pointer;font-size:12px;">30 days</button>' +
+      '<button type="button" data-usage-days="90" style="background:#0f172a;border:1px solid #334155;border-radius:6px;color:#cbd5e1;padding:5px 10px;cursor:pointer;font-size:12px;">90 days</button>' +
+      '</div><div data-usage-body></div></div>';
     modal.addEventListener("click", function (e) { if (e.target === modal) modal.remove(); });
     document.body.appendChild(modal);
-
-    var week;
-    var month;
-    var note;
-    try {
-      week = await serverSummary(7);
-      month = await serverSummary(30);
-      note = "Counts come from recorded message history. Cost is reported only when the deployment publishes a price list (GB_LLM_PRICING); otherwise it stays unavailable instead of being estimated.";
-    } catch (error) {
-      week = localSummary(7);
-      month = localSummary(30);
-      note = "The usage service is unreachable, so these numbers are local estimates (4 characters per token). Cost stays unavailable because no authoritative price list was read.";
-    }
-    var box = modal.firstElementChild;
-    if (!box) return;
-    box.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;"><h3 style="margin:0;color:#f8fafc;">Usage &amp; Cost</h3><button type="button" style="background:none;border:none;color:#94a3b8;font-size:24px;cursor:pointer;">×</button></div>'
-      + cardMarkup("Last 7 days", week, "")
-      + cardMarkup("Last 30 days", month, note);
-    box.querySelector("button").addEventListener("click", function () { modal.remove(); });
+    modal.querySelector("[data-usage-close]").addEventListener("click", function () { modal.remove(); });
+    Array.prototype.forEach.call(modal.querySelectorAll("[data-usage-days]"), function (button) {
+      button.addEventListener("click", function () {
+        renderUsageModal(parseInt(button.getAttribute("data-usage-days"), 10) || 30);
+      });
+    });
+    var host = modal.querySelector("[data-usage-box]");
+    if (host) host.setAttribute("data-usage-box", "");
+    // Render below the fixed header into the body container.
+    var bodyHost = modal.querySelector("[data-usage-body]");
+    if (bodyHost) bodyHost.setAttribute("data-usage-box", "");
+    var headerBox = modal.querySelector("[data-usage-box]:not([data-usage-body])");
+    if (headerBox) headerBox.removeAttribute("data-usage-box");
+    await renderUsageModal(30);
   }
+
+  window.GBUsageStats = {
+    track: trackMessage,
+    getSummary: getUsageSummary,
+    showPanel: showUsagePanel,
+  };
 
   document.addEventListener("gb-ws-frame", function (e) {
     var data = e.detail;
@@ -174,9 +252,4 @@
     trackMessage("user", length, model, "user:" + Date.now() + ":" + length);
   });
 
-  window.GBUsageStats = {
-    track: trackMessage,
-    getSummary: getUsageSummary,
-    showPanel: showUsagePanel,
-  };
 })();

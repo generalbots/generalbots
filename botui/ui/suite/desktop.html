@@ -398,6 +398,10 @@
                     <div class="taskbar-center" id="taskbar-center"></div>
                     <div class="taskbar-right">
                         <div class="taskbar-tray">
+                            <!-- #1648 — the usage panel finally has a caller. -->
+                            <button class="tray-btn" id="trayUsage" title="Usage &amp; cost" onclick="window.GBUsageStats &amp;&amp; window.GBUsageStats.showPanel()">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
+                            </button>
                             <button class="tray-btn" id="trayNotifications" title="Notifications" onclick="window.GBToasts && window.GBToasts.toggleCenter()">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                                 <span class="tray-badge" id="trayNotificationsBadge" style="display:none"></span>
