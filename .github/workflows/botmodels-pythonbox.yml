@@ -254,18 +254,13 @@ jobs:
           TAG="${PYTHONBOX_TAG}"
           REPO="${GITHUB_REPOSITORY}"
 
-          for attempt in $(seq 1 5); do
-            if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
-              break
-            fi
-            gh release create "$TAG" --repo "$REPO" --latest=false \
-              --title "BotModels pythonbox (rolling)" \
-              --notes "Self-contained Python service bundle for the desktop edition." \
-              && break || sleep 5
-          done
-          gh release view "$TAG" --repo "$REPO" >/dev/null
-
-          gh release upload "$TAG" dist/* --repo "$REPO" --clobber
+          # Releases are immutable in this repository, so the rolling tag is
+          # replaced instead of updated.
+          gh release delete "$TAG" --repo "$REPO" --yes --cleanup-tag >/dev/null 2>&1 || true
+          gh release create "$TAG" --repo "$REPO" --latest=false \
+            --title "BotModels pythonbox (rolling)" \
+            --notes "Self-contained Python service bundle for the desktop edition."
+          gh release upload "$TAG" dist/* --repo "$REPO"
           gh release edit "$TAG" --repo "$REPO" --latest=false \
             --notes "Self-contained Python service bundle for the desktop edition.
 
