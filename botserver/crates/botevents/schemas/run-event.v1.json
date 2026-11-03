@@ -1,0 +1,632 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://general bots/events/run-event.v1.json",
+  "title": "General Bots run event",
+  "description": "One AG-UI compatible frame in a conversation thread. Sequence numbers are dense and gapless per thread.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "v",
+    "type",
+    "thread_id",
+    "run_id",
+    "seq",
+    "event_id",
+    "ts",
+    "source",
+    "data"
+  ],
+  "properties": {
+    "v": {
+      "const": 1
+    },
+    "type": {
+      "enum": [
+        "RUN_STARTED",
+        "RUN_FINISHED",
+        "RUN_ERROR",
+        "STEP_STARTED",
+        "STEP_FINISHED",
+        "TOOL_CALL_START",
+        "TOOL_CALL_ARGS",
+        "TOOL_CALL_END",
+        "TOOL_CALL_RESULT",
+        "TEXT_MESSAGE_START",
+        "TEXT_MESSAGE_CONTENT",
+        "TEXT_MESSAGE_END",
+        "STATE_SNAPSHOT",
+        "STATE_DELTA",
+        "MESSAGES_SNAPSHOT",
+        "ACTIVITY_SNAPSHOT",
+        "ACTIVITY_DELTA",
+        "CUSTOM",
+        "RAW",
+        "SUBAGENT_STARTED",
+        "SUBAGENT_FINISHED"
+      ]
+    },
+    "thread_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "parent_run_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "seq": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 16,
+      "maxLength": 128
+    },
+    "ts": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "source": {
+      "enum": [
+        "runtime",
+        "model",
+        "tool",
+        "app",
+        "user",
+        "system",
+        "channel"
+      ]
+    },
+    "data": {
+      "type": "object"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "RUN_ERROR"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "message"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "STEP_STARTED"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "step_id",
+              "name"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "STEP_FINISHED"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "step_id",
+              "status"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "TOOL_CALL_START"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "call_id",
+              "name"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "TOOL_CALL_ARGS"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "call_id"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "TOOL_CALL_END"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "call_id"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "TOOL_CALL_RESULT"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "call_id",
+              "status"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "TEXT_MESSAGE_START"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "message_id"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "TEXT_MESSAGE_CONTENT"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "message_id",
+              "delta"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "TEXT_MESSAGE_END"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "message_id"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "STATE_SNAPSHOT"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "state"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "STATE_DELTA"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "patch"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "MESSAGES_SNAPSHOT"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "messages"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "ACTIVITY_SNAPSHOT"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "activity_id",
+              "activity_type"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "ACTIVITY_DELTA"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "activity_id",
+              "patch"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "CUSTOM"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "name"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "RAW"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "raw"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "SUBAGENT_STARTED"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "child_run_id",
+              "agent_name"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "const": "SUBAGENT_FINISHED"
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": [
+              "child_run_id",
+              "state"
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "x-event-specs": {
+    "RUN_STARTED": {
+      "required": []
+    },
+    "RUN_FINISHED": {
+      "required": []
+    },
+    "RUN_ERROR": {
+      "required": [
+        "message"
+      ]
+    },
+    "STEP_STARTED": {
+      "required": [
+        "step_id",
+        "name"
+      ]
+    },
+    "STEP_FINISHED": {
+      "required": [
+        "step_id",
+        "status"
+      ]
+    },
+    "TOOL_CALL_START": {
+      "required": [
+        "call_id",
+        "name"
+      ]
+    },
+    "TOOL_CALL_ARGS": {
+      "required": [
+        "call_id"
+      ]
+    },
+    "TOOL_CALL_END": {
+      "required": [
+        "call_id"
+      ]
+    },
+    "TOOL_CALL_RESULT": {
+      "required": [
+        "call_id",
+        "status"
+      ]
+    },
+    "TEXT_MESSAGE_START": {
+      "required": [
+        "message_id"
+      ]
+    },
+    "TEXT_MESSAGE_CONTENT": {
+      "required": [
+        "message_id",
+        "delta"
+      ]
+    },
+    "TEXT_MESSAGE_END": {
+      "required": [
+        "message_id"
+      ]
+    },
+    "STATE_SNAPSHOT": {
+      "required": [
+        "state"
+      ]
+    },
+    "STATE_DELTA": {
+      "required": [
+        "patch"
+      ]
+    },
+    "MESSAGES_SNAPSHOT": {
+      "required": [
+        "messages"
+      ]
+    },
+    "ACTIVITY_SNAPSHOT": {
+      "required": [
+        "activity_id",
+        "activity_type"
+      ]
+    },
+    "ACTIVITY_DELTA": {
+      "required": [
+        "activity_id",
+        "patch"
+      ]
+    },
+    "CUSTOM": {
+      "required": [
+        "name"
+      ]
+    },
+    "RAW": {
+      "required": [
+        "raw"
+      ]
+    },
+    "SUBAGENT_STARTED": {
+      "required": [
+        "child_run_id",
+        "agent_name"
+      ]
+    },
+    "SUBAGENT_FINISHED": {
+      "required": [
+        "child_run_id",
+        "state"
+      ]
+    }
+  }
+}

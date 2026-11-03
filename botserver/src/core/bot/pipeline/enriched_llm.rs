@@ -83,7 +83,13 @@ pub(super) async fn build_and_stream(
         }));
     }
 
-    if tokio::time::timeout(
+    let run = super::event_sink::RunContext::new(&session_id.to_string(), "chat");
+    let started = std::time::Instant::now();
+    let title: String = user_text.chars().take(80).collect();
+    super::event_sink::run_started(identity.sink, &run, Some(title.as_str())).await;
+    super::event_sink::step_started(identity.sink, &run, "llm", "Answering", Some(0)).await;
+
+    let timed_out = tokio::time::timeout(
         std::time::Duration::from_secs(300),
         super::llm::stream_llm_response(
             identity,
@@ -94,9 +100,51 @@ pub(super) async fn build_and_stream(
         ),
     )
     .await
-    .is_err()
-    {
+    .is_err();
+    if timed_out {
         botlog::safe_warn!("stream_llm_response TIMEOUT after 300s for session {session_id}");
+        super::event_sink::step_finished(
+            identity.sink,
+            &run,
+            "llm",
+            "error",
+            Some(started.elapsed().as_millis() as u64),
+            None,
+        )
+        .await;
+        super::event_sink::run_error(
+            identity.sink,
+            &run,
+            "The model did not answer before the turn timeout.",
+            Some("llm_timeout"),
+        )
+        .await;
+        super::event_sink::run_finished(
+            identity.sink,
+            &run,
+            botevents::RunState::Failed,
+            started.elapsed().as_millis() as u64,
+            None,
+        )
+        .await;
+    } else {
+        super::event_sink::step_finished(
+            identity.sink,
+            &run,
+            "llm",
+            "ok",
+            Some(started.elapsed().as_millis() as u64),
+            None,
+        )
+        .await;
+        super::event_sink::run_finished(
+            identity.sink,
+            &run,
+            botevents::RunState::Succeeded,
+            started.elapsed().as_millis() as u64,
+            None,
+        )
+        .await;
     }
 
     Ok(())

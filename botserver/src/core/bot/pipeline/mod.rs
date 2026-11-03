@@ -20,6 +20,7 @@ pub mod tool_exec;
 pub mod turn_hooks;
 pub mod types;
 pub mod enriched_llm;
+pub mod event_sink;
 pub mod vibe_route;
 #[cfg(all(feature = "agent-vm", feature = "drive"))]
 pub mod native_drive;

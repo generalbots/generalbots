@@ -52,6 +52,7 @@ members = [
   "botserver/crates/botcoresession",
   "botserver/crates/botdashboards",
   "botserver/crates/botdeployment",
+  "botserver/crates/botevents",
   "botserver/crates/botdesigner",
   "botserver/crates/botagent",
   "botserver/crates/botautomation",
@@ -152,6 +153,7 @@ http = "1.0"
 botanalytics = { path = "botserver/crates/botanalytics" }
 botbrazil = { path = "botserver/crates/botbrazil" }
 boteval = { path = "botserver/crates/boteval" }
+botevents = { path = "botserver/crates/botevents" }
 botfraud = { path = "botserver/crates/botfraud" }
 botgl = { path = "botserver/crates/botgl" }
 botinventory = { path = "botserver/crates/botinventory" }
