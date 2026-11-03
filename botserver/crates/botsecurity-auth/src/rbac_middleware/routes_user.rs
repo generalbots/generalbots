@@ -20,6 +20,8 @@ pub(crate) fn authenticated_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/files/**", "DELETE", ""),
         RoutePermission::new("/api/ai-accounts/**", "GET", ""),
         RoutePermission::new("/api/ai-accounts/**", "POST", ""),
+        // Sandbox configuration for the chat client (#1674)
+        RoutePermission::new("/api/sandbox/config", "GET", ""),
 
         // Computer use (browser + terminal consent and execution)
         RoutePermission::new("/api/computer/**", "GET", ""),

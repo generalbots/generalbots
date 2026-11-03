@@ -55,6 +55,10 @@ pub(crate) fn admin_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/ui/monitoring/**", "GET", "")
             .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
 
+        // Run quality (admin observability view, #1679)
+        RoutePermission::new("/api/runs/quality", "GET", "")
+            .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),
+
         // Audit logs
         RoutePermission::new("/api/audit/**", "GET", "")
             .with_roles(vec!["Admin".into(), "SuperAdmin".into()]),

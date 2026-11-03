@@ -11,6 +11,10 @@ pub(crate) fn anonymous_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/i18n/**", "GET", "").with_anonymous(true),
         // App catalog drives every launcher — must be reachable by any user
         RoutePermission::new("/api/apps/catalog", "GET", "").with_anonymous(true),
+        // Sandbox resources are protected by their own short-lived signed
+        // token, not the suite session (#1674).
+        RoutePermission::new("/sandbox/ui/**", "GET", "").with_anonymous(true),
+        RoutePermission::new("/api/sandbox/config", "GET", "").with_anonymous(true),
 
         // WhatsApp webhook - anonymous for Meta verification and message delivery
         RoutePermission::new("/webhook/whatsapp/{bot_id}", "GET", "").with_anonymous(true),
