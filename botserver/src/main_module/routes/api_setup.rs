@@ -75,6 +75,14 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
                 "/api/files/share/recipients",
                 axum_get(crate::drive::drive_handlers::list_share_recipients),
             )
+            .route(
+                "/api/files/share/email/accounts",
+                axum_get(crate::drive::drive_handlers::share_email_accounts),
+            )
+            .route(
+                "/api/files/share/email",
+                axum_post(crate::drive::drive_handlers::send_share_email),
+            )
             .route("/api/files/trash", axum_get(crate::drive::drive_handlers::list_trash))
             .route("/api/files/trash/move", axum_post(crate::drive::drive_handlers::trash_file))
             .route("/api/files/trash/restore", axum_post(crate::drive::drive_handlers::restore_trash))

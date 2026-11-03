@@ -182,6 +182,20 @@ function shareFile(path) {
         '<div id="share-recipient-results" style="margin-top:8px;"></div>' +
         '<p id="share-recipient-status" style="color:#94a3b8; font-size:12px; margin:8px 0 0;">Type at least two characters to find an account.</p>' +
         '</div>' +
+        '<div style="border-top:1px solid #334155; padding-top:14px; margin-top:14px;">' +
+        '<h4 style="margin:0 0 8px; color:#f8fafc; font-size:14px;">Send the link by email</h4>' +
+        '<div style="display:flex; gap:8px; margin-bottom:8px;">' +
+        '<select id="share-email-sender" style="background:#0f172a; border:1px solid #334155; border-radius:6px; color:#f8fafc; padding:9px 10px; font-size:13px; max-width:220px;">' +
+        '<option value="">Loading senders…</option>' +
+        '</select>' +
+        '<input id="share-email-to" type="text" placeholder="name@example.com, other@example.com" autocomplete="off" style="flex-grow:1; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#f8fafc; padding:9px 12px; font-size:13px;" />' +
+        '</div>' +
+        '<textarea id="share-email-message" rows="2" placeholder="Optional message" style="width:100%; box-sizing:border-box; background:#0f172a; border:1px solid #334155; border-radius:6px; color:#f8fafc; padding:9px 12px; font-size:13px; resize:vertical;"></textarea>' +
+        '<div style="display:flex; align-items:center; gap:10px; margin-top:8px;">' +
+        '<button id="share-email-send" onclick="DriveModule.sendShareEmail(\'' + escapeJs(path) + '\')" style="background:#3b82f6; border:none; border-radius:6px; color:#fff; padding:9px 16px; cursor:pointer; font-weight:500; font-size:13px;">Send link</button>' +
+        '<span id="share-email-status" style="color:#94a3b8; font-size:12px;"></span>' +
+        '</div>' +
+        '</div>' +
         '<div style="display:flex; justify-content:flex-end; margin-top:16px;">' +
         '<button onclick="document.getElementById(\'share-modal\').remove()" style="background:#334155; border:none; border-radius:6px; color:#f8fafc; padding:10px 20px; cursor:pointer; font-weight:500; font-size:13px;">Close</button>' +
         '</div>';
@@ -190,6 +204,7 @@ function shareFile(path) {
 
     bindShareRecipientSearch(path);
     loadExistingShareLink(path);
+    loadShareEmailSenders();
 }
 
 function shareExpiryIso() {
@@ -319,6 +334,109 @@ async function shareWithRecipient(path, recipientId, email) {
         showNotification("Shared with " + (email || "the selected account"), "success");
     } catch (err) {
         if (status) status.textContent = "Share failed: " + err.message;
+    }
+}
+
+async function loadShareEmailSenders() {
+    var select = document.getElementById("share-email-sender");
+    var status = document.getElementById("share-email-status");
+    if (!select) return;
+    try {
+        var payload = await apiRequest("/share/email/accounts");
+        var options = [];
+        if (payload && payload.native && payload.native.configured) {
+            options.push('<option value="">Server email' +
+                (payload.native.from ? " (" + escapeHtml(payload.native.from) + ")" : "") +
+                "</option>");
+        }
+        (payload && payload.accounts ? payload.accounts : []).forEach(function (account) {
+            var label = account.email || account.display_name || "Connected account";
+            options.push('<option value="' + escapeHtml(account.id) + '">' + escapeHtml(label) + "</option>");
+        });
+        var sendBtn = document.getElementById("share-email-send");
+        var toInput = document.getElementById("share-email-to");
+        if (!options.length) {
+            select.innerHTML = '<option value="">No email sender configured</option>';
+            select.disabled = true;
+            if (sendBtn) sendBtn.disabled = true;
+            if (toInput) toInput.disabled = true;
+            if (status) status.textContent = "Connect Gmail/Outlook in Integrations or configure the server mailbox.";
+        } else {
+            select.disabled = false;
+            if (sendBtn) sendBtn.disabled = false;
+            if (toInput) toInput.disabled = false;
+            select.innerHTML = options.join("");
+        }
+    } catch (error) {
+        select.innerHTML = '<option value="">Sender lookup failed</option>';
+        select.disabled = true;
+        if (status) status.textContent = error.message || "Could not load email senders.";
+    }
+}
+
+async function sendShareEmail(path) {
+    var to = document.getElementById("share-email-to");
+    var sender = document.getElementById("share-email-sender");
+    var message = document.getElementById("share-email-message");
+    var status = document.getElementById("share-email-status");
+    var button = document.getElementById("share-email-send");
+    if (!to || !to.value.trim()) {
+        if (status) status.textContent = "Type at least one recipient email.";
+        return;
+    }
+    if (button) button.disabled = true;
+    if (status) status.textContent = "Sending…";
+    try {
+        var payload = await apiRequest("/share/email", {
+            method: "POST",
+            body: JSON.stringify({
+                bucket: getEffectiveBucket(),
+                path: path,
+                scope: currentScope,
+                origin: window.location.origin,
+                recipients: [to.value],
+                message: message ? message.value : "",
+                expires_at: shareExpiryIso(),
+                account_id: sender && !sender.disabled ? sender.value : "",
+            }),
+        });
+        if (status) {
+            status.textContent = "Sent to " + (payload.recipients || []).join(", ") +
+                (payload.failed ? " (" + payload.failed + " failed)" : "") + ".";
+        }
+        if (window.GBToasts) GBToasts.show("Email sent", "The share link was emailed.", "success");
+    } catch (error) {
+        if (status) status.textContent = error.message || "The email could not be sent.";
+    } finally {
+        if (button) button.disabled = false;
+    }
+}
+
+async function revokeShareLink(token, path) {
+    if (!token) return;
+    if (!confirm("Revoke this link? Anyone holding it will lose access immediately.")) return;
+    try {
+        await apiRequest("/revoke-link", {
+            method: "POST",
+            body: JSON.stringify({
+                token: token,
+                bucket: getEffectiveBucket(),
+                path: path,
+                scope: currentScope,
+            }),
+        });
+        var row = document.getElementById("share-link-row");
+        if (row) {
+            row.style.display = "none";
+            row.dataset.token = "";
+        }
+        var createBtn = document.getElementById("share-create-btn");
+        if (createBtn) createBtn.style.display = "inline-block";
+        var status = document.getElementById("share-status");
+        if (status) status.textContent = "Link revoked. Create a new one if you still need to share.";
+        showNotification("Link revoked", "success");
+    } catch (error) {
+        showNotification("Revoke failed: " + (error.message || "unknown error"), "error");
     }
 }
 

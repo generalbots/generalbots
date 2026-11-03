@@ -6,39 +6,48 @@ pub(super) fn public_link_url(token: &str) -> String {
 pub(super) fn format_link_time(dt: Option<chrono::DateTime<chrono::Utc>>) -> Option<String> {
     dt.map(|d| d.to_rfc3339())
 }
-/// `POST /api/files/share-link` — create a revocable public link for a file.
-pub async fn create_public_link(
-    State(state): State<Arc<AppState>>,
-    Extension(user): Extension<AuthenticatedUser>,
-    Json(req): Json<CreatePublicLinkBody>,
-) -> Result<Json<CreatePublicLinkResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let drive = get_drive(&state)?;
-    let scope = req.scope.unwrap_or_default();
-    let uid = effective_uid(&state, &user, req.user_id.as_deref());
-    let bucket = resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
-    let prefix = resolve_scope_prefix(&scope, &uid);
-    let path = normalize_path(&req.path);
+pub(super) struct MintedPublicLink {
+    pub token: String,
+    pub url: String,
+    pub expires_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+/// Mints a revocable public link for one file after checking that it exists in
+/// the caller's scope. Shared by the link endpoint and the email share flow.
+pub(super) async fn mint_public_link(
+    state: &Arc<AppState>,
+    uid: &str,
+    bucket: &str,
+    scope: &FileScope,
+    prefix: &str,
+    path: &str,
+    expires_at: Option<chrono::DateTime<chrono::Utc>>,
+) -> Result<MintedPublicLink, (StatusCode, Json<serde_json::Value>)> {
+    let drive = get_drive(state)?;
+    let path = normalize_path(path);
     if path.is_empty() {
         return Err(err(StatusCode::BAD_REQUEST, "path is required"));
     }
     if path.ends_with('/') {
-        return Err(err(StatusCode::BAD_REQUEST, "Public links are only available for files"));
+        return Err(err(
+            StatusCode::BAD_REQUEST,
+            "Public links are only available for files",
+        ));
     }
-    let key = format!("{prefix}{path}");
+    // Listings under a user scope already return the scope prefix in `path`
+    // (`users/<id>/file`), while uploads send it relative. Accept both shapes
+    // instead of doubling the prefix and reporting a false "File not found".
+    let key = if prefix.is_empty() || path.starts_with(prefix) {
+        path.clone()
+    } else {
+        format!("{prefix}{path}")
+    };
 
     // The file must exist and belong to the caller before a link is minted.
     drive
-        .get_object(&bucket, &key)
+        .get_object(bucket, &key)
         .await
         .map_err(|_| err(StatusCode::NOT_FOUND, "File not found"))?;
-
-    let expires_at = match req.expires_at.as_deref() {
-        None | Some("") => None,
-        Some(s) => match chrono::DateTime::parse_from_rfc3339(s) {
-            Ok(dt) => Some(dt.with_timezone(&chrono::Utc)),
-            Err(_) => return Err(err(StatusCode::BAD_REQUEST, "expires_at must be RFC3339")),
-        },
-    };
 
     let token = uuid::Uuid::new_v4().simple().to_string();
     let mut conn = state
@@ -50,11 +59,11 @@ pub async fn create_public_link(
         "INSERT INTO drive_public_links (owner_id, bucket, path, key, scope, share_token, expires_at) \
          VALUES ($1, $2, $3, $4, $5, $6, $7)",
     )
-    .bind::<Text, _>(&uid)
-    .bind::<Text, _>(&bucket)
+    .bind::<Text, _>(uid)
+    .bind::<Text, _>(bucket)
     .bind::<Text, _>(&path)
     .bind::<Text, _>(&key)
-    .bind::<Text, _>(scope_label(&scope))
+    .bind::<Text, _>(scope_label(scope))
     .bind::<Text, _>(&token)
     .bind::<Nullable<Timestamptz>, _>(expires_at)
     .execute(&mut conn)
@@ -65,11 +74,46 @@ pub async fn create_public_link(
     }
 
     botlog::safe_info!("Public link created for {path} in {bucket} by {uid}");
-    Ok(Json(CreatePublicLinkResponse {
+    Ok(MintedPublicLink {
         token: token.clone(),
         url: public_link_url(&token),
+        expires_at,
+    })
+}
+
+/// `POST /api/files/share-link` — create a revocable public link for a file.
+pub async fn create_public_link(
+    State(state): State<Arc<AppState>>,
+    Extension(user): Extension<AuthenticatedUser>,
+    Json(req): Json<CreatePublicLinkBody>,
+) -> Result<Json<CreatePublicLinkResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let scope = req.scope.unwrap_or_default();
+    let uid = effective_uid(&state, &user, req.user_id.as_deref());
+    let bucket =
+        resolve_bucket(&state, req.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
+    let prefix = resolve_scope_prefix(&scope, &uid);
+    let expires_at = match req.expires_at.as_deref() {
+        None | Some("") => None,
+        Some(s) => match chrono::DateTime::parse_from_rfc3339(s) {
+            Ok(dt) => Some(dt.with_timezone(&chrono::Utc)),
+            Err(_) => return Err(err(StatusCode::BAD_REQUEST, "expires_at must be RFC3339")),
+        },
+    };
+    let minted = mint_public_link(
+        &state,
+        &uid,
+        &bucket,
+        &scope,
+        &prefix,
+        &req.path,
+        expires_at,
+    )
+    .await?;
+    Ok(Json(CreatePublicLinkResponse {
+        token: minted.token,
+        url: minted.url,
         created_at: chrono::Utc::now().to_rfc3339(),
-        expires_at: format_link_time(expires_at),
+        expires_at: format_link_time(minted.expires_at),
     }))
 }
 pub(super) fn scope_label(scope: &FileScope) -> &'static str {

@@ -2,12 +2,8 @@
 "use strict";
 
 async function init() {
-    await fetchUserInfo();
-
-    // Show Root tab only for admins
-    var rootTab = document.getElementById("tab-root");
-    if (rootTab) rootTab.style.display = isAdmin ? "flex" : "none";
-
+    // Bind the shell first: a slow or failing user lookup must never leave the
+    // tabs and buttons unresponsive (seen when Drive is injected over HTMX).
     bindTopTabs();
     bindNavigation();
     bindViewToggle();
@@ -22,7 +18,21 @@ async function init() {
     bindNewBotBtn();
     if (window.DriveExternal && DriveExternal.bind) DriveExternal.bind();
 
-    var savedTab = sessionStorage.getItem("drive-tab") || TAB_BRANCHDRIVE;
+    try {
+        await fetchUserInfo();
+    } catch (e) {
+        console.warn("[drive] user lookup failed; continuing with the cached user:", e);
+    }
+
+    // Show Root tab only for admins
+    var rootTab = document.getElementById("tab-root");
+    if (rootTab) rootTab.style.display = isAdmin ? "flex" : "none";
+
+    var savedTab = sessionStorage.getItem("drive-tab") || TAB_MYFILES;
+    if (["branchdrive", "bots", "root", "desktop", "external"].indexOf(savedTab) !== -1) {
+        savedTab = TAB_MYFILES;
+        sessionStorage.setItem("drive-tab", savedTab);
+    }
     switch (savedTab) {
         case TAB_BRANCHDRIVE:
             await loadBranchDriveTab();
@@ -50,7 +60,7 @@ async function init() {
             await loadExternalTab();
             break;
         default:
-            await loadBranchDriveTab();
+            await loadMyFilesTab();
             break;
     }
     loadStorageInfo();
@@ -75,6 +85,8 @@ window.DriveModule = {
     createShareLinkNow: createShareLinkNow,
     revokeShareLinkFromModal: revokeShareLinkFromModal,
     shareWithRecipient: shareWithRecipient,
+    sendShareEmail: sendShareEmail,
+    loadShareEmailSenders: loadShareEmailSenders,
     exportPaths: exportPaths,
     copyShareLink: copyShareLink,
     revokeShareLink: revokeShareLink,
