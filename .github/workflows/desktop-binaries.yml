@@ -270,11 +270,30 @@ jobs:
           path: dist
           merge-multiple: true
 
+      # #1634 — /releases/latest/download/<name> only resolves an asset whose
+      # name matches exactly, so a missing tag-free copy silently turns every
+      # stable link into a 404. Fail before publishing rather than after.
+      - name: Verify the stable download aliases
+        run: |
+          set -euo pipefail
+          TAG="${{ github.event.inputs.tag || github.ref_name }}"
+          test -f "dist/generalbots-linux-x86_64.tar.gz"
+          test -f "dist/generalbots-${TAG}-linux-x86_64.tar.gz"
+          grep -qE "  generalbots-linux-x86_64\.tar\.gz$" dist/SHA256SUMS-linux
+          grep -qE "  generalbots-${TAG}-linux-x86_64\.tar\.gz$" dist/SHA256SUMS-linux
+          (cd dist && sha256sum -c SHA256SUMS-linux --ignore-missing)
+          echo "stable alias and both checksums are present"
+
       - name: Publish release assets
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.event.inputs.tag || github.ref_name }}
           name: ${{ github.event.inputs.tag || github.ref_name }}
+          # #1634 — the Linux artifact must be the newest *normal* release;
+          # drafts and pre-releases never back /releases/latest.
+          draft: false
+          prerelease: false
+          make_latest: true
           body: |
             Desktop edition for ${{ github.event.inputs.tag || github.ref_name }}.
 
