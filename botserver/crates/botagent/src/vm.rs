@@ -472,7 +472,7 @@ GW=$(ip route 2>/dev/null | awk '/^default/ {print $3; exit}')
   python3 -m pip install --break-system-packages --quiet --disable-pip-version-check \
     pandas numpy openpyxl python-pptx pillow matplotlib requests python-docx \
     reportlab beautifulsoup4 lxml tabulate || true
-  echo v3 > /opt/vibe/.provisioned
+  echo v4 > /opt/vibe/.provisioned
   cat > /usr/local/sbin/agent-egress.sh <<'EOS'
 #!/bin/sh
 set -eu
@@ -510,7 +510,7 @@ EOS
 
 /// Bumped whenever the base toolkit changes; existing VMs run the prepare
 /// step once when their marker does not match.
-const WORKSPACE_PREPARE_VERSION: &str = "v3";
+const WORKSPACE_PREPARE_VERSION: &str = "v4";
 
 /// Idempotent preparation of an existing workspace VM: package index, base
 /// Python toolkit and the conversations root. Runs in the background so the
@@ -529,13 +529,23 @@ GW=$(ip route 2>/dev/null | awk '/^default/ {print $3; exit}')
 } > /etc/resolv.conf
 {
   mkdir -p /opt/vibe/conversations
+  # #1658 — two identities: `claude` owns the subscription credentials,
+  # `runner` executes model-generated code. Generated code must never be able
+  # to read /home/claude.
+  id -u runner >/dev/null 2>&1 || useradd -m -s /bin/bash runner
+  id -u claude >/dev/null 2>&1 || useradd -m -s /bin/bash claude
+  mkdir -p /home/claude/.claude
+  chown -R claude:claude /home/claude
+  chmod 700 /home/claude
+  chmod 700 /home/claude/.claude
+  chown -R runner:runner /opt/vibe/conversations
   command -v python3 >/dev/null 2>&1 || (apt-get -o DPkg::Lock::Timeout=300 update -q && apt-get -o DPkg::Lock::Timeout=300 install -y -q python3)
   python3 -m pip --version >/dev/null 2>&1 || (apt-get -o DPkg::Lock::Timeout=300 update -q && apt-get -o DPkg::Lock::Timeout=300 install -y -q python3-pip)
   command -v npm >/dev/null 2>&1 || (apt-get -o DPkg::Lock::Timeout=300 update -q && apt-get -o DPkg::Lock::Timeout=300 install -y -q nodejs npm)
   python3 -m pip install --break-system-packages --quiet --disable-pip-version-check \
     pandas numpy openpyxl python-pptx pillow matplotlib requests python-docx \
     reportlab beautifulsoup4 lxml tabulate || true
-  echo v3 > /opt/vibe/.provisioned
+  echo v4 > /opt/vibe/.provisioned
 } >/tmp/agent-prepare.log 2>&1 || true
 "#;
 
@@ -853,6 +863,12 @@ pub async fn delete_conversation_folder(
 /// Execute a program in the conversation folder. The code is written to a
 /// temp file inside the folder and run with the appropriate interpreter.
 /// Returns (success, stdout, stderr).
+/// Shell command that runs a generated program as the unprivileged `runner`
+/// user (#1658). Paths are already sanitized by the caller.
+fn runner_command(folder: &str, interpreter: &str, script_path: &str) -> String {
+    format!("su runner -s /bin/sh -c 'cd {folder} && {interpreter} {script_path}'")
+}
+
 pub async fn exec_in_conversation(
     state: &AgentService,
     vm_name: &str,
@@ -910,7 +926,16 @@ pub async fn exec_in_conversation(
     write_program(state, vm_name, &script_path, code).await?;
     tracing::info!("vm exec: program written {script_path}");
 
-    let run_cmd = format!("cd {folder} && {interpreter} {script_path}");
+    // The program file is written by root; hand the tree to `runner` before
+    // executing it so generated code cannot touch root-owned state.
+    let _ = run_with_timeout(
+        state,
+        vm_name,
+        format!("chown -R runner:runner {folder}"),
+        15_000,
+    )
+    .await;
+    let run_cmd = runner_command(&folder, interpreter, &script_path);
     let (mut first_ok, mut stdout, mut stderr) =
         run_with_timeout(state, vm_name, run_cmd.clone(), timeout_ms).await?;
 
@@ -1251,5 +1276,22 @@ mod tests {
         assert!(!is_anonymous_email("guest_reader@example.com"));
         assert!(!is_anonymous_email("someone@anonymous.local.example.com"));
         assert!(!is_anonymous_email(""));
+    }
+}
+
+#[cfg(test)]
+mod isolation_tests {
+    use super::runner_command;
+
+    #[test]
+    fn generated_code_runs_as_runner() {
+        let command = runner_command(
+            "/opt/vibe/conversations/abc",
+            "python3",
+            "/opt/vibe/conversations/abc/program/run_1.py",
+        );
+        assert!(command.starts_with("su runner -s /bin/sh -c"));
+        assert!(command.contains("python3"));
+        assert!(!command.contains("root"));
     }
 }
