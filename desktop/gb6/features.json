@@ -332,11 +332,11 @@
         "python3 scripts/gb6_features_check.py (OK, 14 shipped)",
         "sidecar (desktop-local) + Chrome CDP 1440x900: manual use-case pass, screenshots /tmp/gb6_*.png"
       ],
-      "browser_e2e": "PARTIAL 2026-11-03: 13 features passed the sidecar browser pass; GB6-18 (OAuth consent round-trip) is blocked on Gmail/Outlook client credentials. #1634 live release alias is blocked on publishing the tag.",
+      "browser_e2e": "PARTIAL 2026-11-03: 13 features passed the sidecar browser pass; GB6-18 (OAuth consent round-trip) is blocked on Gmail/Outlook client credentials. The live v6.7.0 release was published and the stable download URL verified (HTTP 200 + checksum).",
       "blocked_on": [
-        "published v6.7.0 release (#1634)",
         "Gmail/Outlook OAuth client credentials (#1643)"
-      ]
+      ],
+      "release": "v6.7.0 published; https://github.com/generalbots/generalbots/releases/latest/download/generalbots-linux-x86_64.tar.gz verified 2026-11-03"
     }
   }
 }
