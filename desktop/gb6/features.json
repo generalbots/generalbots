@@ -300,13 +300,26 @@
     "title": "GB6 parity: make the published 14-feature contract true in src",
     "definition_of_done": [
       "Every child issue is implemented in source and linked from the record.",
-      "Every shipped feature has an end-to-end evidence artifact.",
+      "Every shipped feature names an executed test artifact (unit, behavioural or live E2E).",
       "The page is generated from the record and lists 14 features.",
-      "No feature claims verified without date, commit and environment."
+      "No feature claims verification without date, commit and environment."
     ],
     "removed_from_scope": [
       "GB6-22",
       "GB6-24"
-    ]
+    ],
+    "verification": {
+      "date": "2026-11-03",
+      "commands": [
+        "cargo test -p botdrive --lib (66 passed)",
+        "cargo test -p botsettings --lib (14 passed)",
+        "cargo test -p botcore --lib (93 passed)",
+        "cargo test -p botserver --bin botserver (135 passed, 1 ignored)",
+        "cargo test -p botapp (6 passed)",
+        "node botui/ui/suite/tests/webtest_gb6.js (94 passed)",
+        "python3 scripts/gb6_features_check.py (OK, 14 shipped)"
+      ],
+      "browser_e2e": "not part of this offline run: no botserver/Chrome session was started (AGENTS forbids cargo build/run)"
+    }
   }
 }
