@@ -7,16 +7,18 @@ name: ALM release binaries
 # compilation, so there is exactly one build per commit and both CI systems
 # agree on what was built.
 #
-# Where the assets live: the rolling tag `alm-latest` (never "latest", so the
-# desktop release link stays untouched). Every push to main replaces the
-# assets and the MANIFEST records the commit and the build time — ALM deploys
-# the newest build and refuses anything older than a few hours, which is what
-# a missing or red build looks like from the other side.
+# Where the assets live: one immutable release per build, tagged
+# `alm-<UTC timestamp>-<short sha>` (for example alm-20261103T141600Z-ac25e5a).
+# Releases are immutable in this organisation, so a tag can never be reused —
+# a new tag per build is the only shape that works and it also gives ALM an
+# unambiguous ordering: it picks the newest `alm-*` tag with `git ls-remote`
+# and refuses a build older than a few hours (that is what a red or missing
+# build looks like from the other side).
 #
-# Stable URLs (public repository, no token needed by ALM):
-#   https://github.com/generalbots/generalbots/releases/download/alm-latest/MANIFEST.json
-#   https://github.com/generalbots/generalbots/releases/download/alm-latest/botserver-linux-x86_64
-#   https://github.com/generalbots/generalbots/releases/download/alm-latest/botui-linux-x86_64
+# The release URL for a given build (public repository, no token needed):
+#   https://github.com/generalbots/generalbots/releases/download/alm-<stamp>-<sha>/MANIFEST.json
+#
+# Only the newest releases are kept; older ones are pruned after publishing.
 #
 # Build profile matches what ALM used to compile on the runner:
 #   botserver: debug, default features   (the production feature set)
@@ -48,7 +50,6 @@ concurrency:
 env:
   CARGO_TERM_COLOR: always
   RUST_BACKTRACE: 1
-  ALM_RELEASE_TAG: alm-latest
 
 jobs:
   build:
@@ -150,7 +151,7 @@ jobs:
           retention-days: 14
 
   publish:
-    name: Publish to the rolling alm-latest release
+    name: Publish the build as a release
     needs: [build]
     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -167,20 +168,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="${ALM_RELEASE_TAG}"
           REPO="${GITHUB_REPOSITORY}"
+          # Sortable, unique, and readable in the releases list.
+          TAG="alm-$(date -u +%Y%m%dT%H%M%SZ)-${GITHUB_SHA:0:7}"
 
-          # Releases are immutable in this repository, so a rolling tag is
-          # replaced rather than updated: deleting first keeps the stable URL
-          # (/download/alm-latest/...) pointing at exactly one build.
-          gh release delete "$TAG" --repo "$REPO" --yes --cleanup-tag >/dev/null 2>&1 || true
           gh release create "$TAG" --repo "$REPO" --latest=false \
-            --title "ALM deploy binaries (rolling)" \
-            --notes "Binaries consumed by the ALM (Forgejo) CI; the commit sha lives in MANIFEST.json."
-          gh release upload "$TAG" dist/* --repo "$REPO"
-
-          gh release edit "$TAG" --repo "$REPO" --latest=false \
-            --notes "Binaries consumed by the ALM (Forgejo) CI.
+            --title "ALM binaries ${GITHUB_SHA:0:7}" \
+            --notes "Deployable binaries for the ALM (Forgejo) CI.
 
           commit: ${GITHUB_SHA}
           built:  $(date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -189,3 +183,19 @@ jobs:
           ALM downloads these files and runs the deploy it always ran; it does
           not compile anything. \`MANIFEST.json\` lists each asset with its
           sha256 and the time it was built."
+          gh release upload "$TAG" dist/* --repo "$REPO"
+          echo "published ${GITHUB_SERVER_URL}/${REPO}/releases/tag/${TAG}"
+
+      - name: Prune old builds
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          REPO="${GITHUB_REPOSITORY}"
+          # Assets are hundreds of megabytes each: keep the newest five.
+          mapfile -t stale < <(gh release list --repo "$REPO" --limit 100 \
+            --json tagName --jq '.[] | select(.tagName | startswith("alm-")) | .tagName' \
+            | tail -n +6)
+          for tag in "${stale[@]}"; do
+            gh release delete "$tag" --repo "$REPO" --yes --cleanup-tag >/dev/null 2>&1 || true
+          done

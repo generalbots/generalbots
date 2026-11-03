@@ -11,13 +11,14 @@ name: BotModels pythonbox bundle
 # its own virtual environment; `--offline-wheels <dir>` installs from a local
 # wheelhouse when the machine has no network.
 #
-# Published on its own rolling tag (never "latest", so the desktop installer
-# link keeps pointing at the desktop release):
-#   https://github.com/generalbots/generalbots/releases/download/pythonbox-latest/botmodels-pythonbox-linux-x86_64.tar.gz
-#   https://github.com/generalbots/generalbots/releases/download/pythonbox-latest/pythonbox-manifest.json
+# Published on its own tags (never "latest", so the desktop installer link
+# keeps pointing at the desktop release). ALM and the installer resolve the
+# newest tag with `git ls-remote --tags ... 'pythonbox-*'`:
+#   https://github.com/generalbots/generalbots/releases/download/<tag>/botmodels-pythonbox-linux-x86_64.tar.gz
+#   https://github.com/generalbots/generalbots/releases/download/<tag>/pythonbox-manifest.json
 #
-# The ALM (Forgejo) workflow `botmodels.yaml` reads the manifest to confirm the
-# bundle for its own commit exists; it never builds anything.
+# The ALM (Forgejo) workflow `botmodels.yaml` reads the newest manifest to
+# confirm a bundle exists; it never builds anything.
 
 on:
   push:
@@ -41,7 +42,6 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  PYTHONBOX_TAG: pythonbox-latest
   PYTHON_VERSION: ${{ github.event.inputs.python_version || '3.12' }}
 
 jobs:
@@ -234,7 +234,7 @@ jobs:
           retention-days: 14
 
   publish:
-    name: Publish to the rolling pythonbox-latest release
+    name: Publish the bundle as a release
     needs: [bundle]
     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -251,17 +251,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          TAG="${PYTHONBOX_TAG}"
           REPO="${GITHUB_REPOSITORY}"
+          # One immutable release per build; the tag is sortable and unique.
+          TAG="pythonbox-$(date -u +%Y%m%dT%H%M%SZ)-${GITHUB_SHA:0:7}"
 
-          # Releases are immutable in this repository, so the rolling tag is
-          # replaced instead of updated.
-          gh release delete "$TAG" --repo "$REPO" --yes --cleanup-tag >/dev/null 2>&1 || true
           gh release create "$TAG" --repo "$REPO" --latest=false \
-            --title "BotModels pythonbox (rolling)" \
-            --notes "Self-contained Python service bundle for the desktop edition."
-          gh release upload "$TAG" dist/* --repo "$REPO"
-          gh release edit "$TAG" --repo "$REPO" --latest=false \
+            --title "BotModels pythonbox ${GITHUB_SHA:0:7}" \
             --notes "Self-contained Python service bundle for the desktop edition.
 
           commit: ${GITHUB_SHA}
@@ -279,3 +274,19 @@ jobs:
 
           The bundle carries its own CPython; no system interpreter is needed.
           \`pythonbox-manifest.json\` records the commit and the archive checksum."
+          gh release upload "$TAG" dist/* --repo "$REPO"
+          echo "published ${GITHUB_SERVER_URL}/${REPO}/releases/tag/${TAG}"
+
+      - name: Prune old bundles
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          REPO="${GITHUB_REPOSITORY}"
+          # Each archive is tens of megabytes: keep the newest five.
+          mapfile -t stale < <(gh release list --repo "$REPO" --limit 100 \
+            --json tagName --jq '.[] | select(.tagName | startswith("pythonbox-")) | .tagName' \
+            | tail -n +6)
+          for tag in "${stale[@]}"; do
+            gh release delete "$tag" --repo "$REPO" --yes --cleanup-tag >/dev/null 2>&1 || true
+          done
