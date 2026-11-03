@@ -99,7 +99,16 @@ for path in (LOG, CODE):
 set_status("starting")
 pid, fd = pty.fork()
 if pid == 0:
-    os.execvp("claude", ["claude", "setup-token"])
+    # npm can still be flushing the freshly installed binary when the PTY
+    # starts; retry the transient "Text file busy" instead of losing the login.
+    for attempt in range(30):
+        try:
+            os.execvp("claude", ["claude", "setup-token"])
+        except OSError as error:
+            if getattr(error, "errno", None) == 26 and attempt < 29:
+                time.sleep(0.5)
+                continue
+            raise
 set_status("waiting")
 log = open(LOG, "wb", 0)
 sent = False
