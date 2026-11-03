@@ -17,15 +17,15 @@ use botcore::shared::state::AppState;
 use super::{api_error, resolve_user, ApiError};
 
 pub(super) struct TerminalAuditRow<'a> {
-    user_id: Uuid,
-    session_id: &'a str,
-    action_id: Option<Uuid>,
-    command: &'a str,
-    cwd: &'a str,
-    container: &'a str,
-    decision: &'a str,
-    exit_code: Option<i32>,
-    output: &'a str,
+    pub(super) user_id: Uuid,
+    pub(super) session_id: &'a str,
+    pub(super) action_id: Option<Uuid>,
+    pub(super) command: &'a str,
+    pub(super) cwd: &'a str,
+    pub(super) container: &'a str,
+    pub(super) decision: &'a str,
+    pub(super) exit_code: Option<i32>,
+    pub(super) output: &'a str,
 }
 
 pub(super) fn audit_terminal(pool: &botcore::shared::utils::DbPool, row: TerminalAuditRow<'_>) {
