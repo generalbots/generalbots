@@ -1,0 +1,234 @@
+{
+  "product": "General Bots 6 — Desktop edition (Chat + Drive)",
+  "contract_url": "https://sites.pragmatismo.com.br/gb6features/",
+  "note": "The page is generated from this record. A `shipped` status requires an end-to-end evidence artifact; features whose verification is still partial must say so.",
+  "statuses": {
+    "shipped": "Implemented and verified end to end (evidence.e2e is required).",
+    "partial": "Implemented in source; at least one acceptance criterion still lacks an end-to-end run.",
+    "not_shipped": "Not implemented in this build."
+  },
+  "features": [
+    {
+      "id": "GB6-08",
+      "title": "Web search with citations",
+      "promise": "Answers that use the web show clickable sources and never present unverified claims as fact.",
+      "status": "partial",
+      "evidence": {
+        "issue": "#1635",
+        "tests": [
+          "botserver/src/core/bot/pipeline/web_context.rs",
+          "botui/ui/suite/tests/webtest_gb6.js"
+        ],
+        "e2e": null,
+        "note": "Server now emits {title,url,host,favicon} in the final frame; browser E2E with a live search is still pending."
+      },
+      "last_verified": { "date": "2026-11-03", "commit": "b6f73bdc1", "environment": "offline source review + node test suite" }
+    },
+    {
+      "id": "GB6-09",
+      "title": "Artifacts and generated documents",
+      "promise": "The assistant can produce a document the user can preview, keep in Drive and open later.",
+      "status": "partial",
+      "evidence": {
+        "issue": "#1636",
+        "tests": [
+          "botui/ui/suite/chat/chat-messages.js",
+          "botui/ui/suite/tests/webtest_gb6.js"
+        ],
+        "e2e": null,
+        "note": "Prose/markdown artifacts, title-derived save and folder choice implemented; browser open→save→reopen is pending."
+      },
+      "last_verified": { "date": "2026-11-03", "commit": "dd694c591", "environment": "offline source review + node test suite" }
+    },
+    {
+      "id": "GB6-10",
+      "title": "Model picker with plain-language trade-offs",
+      "promise": "The user can switch models and sees a one-line explanation of each option.",
+      "status": "partial",
+      "evidence": {
+        "issue": "#1637",
+        "tests": [
+          "botserver/src/core/bot/pipeline/enriched_llm.rs",
+          "botui/ui/suite/chat/chat-init.js"
+        ],
+        "e2e": null,
+        "note": "llm-model-<tier> routing and /api/chat/models are implemented; a three-tier live request comparison is pending."
+      },
+      "last_verified": { "date": "2026-11-03", "commit": "71bfb2ec5", "environment": "offline source review" }
+    },
+    {
+      "id": "GB6-11",
+      "title": "Search across all files",
+      "promise": "One search box finds files across all folders by name and content.",
+      "status": "partial",
+      "evidence": {
+        "issue": "#1638",
+        "tests": [
+          "botui/ui/suite/drive/modules/05_files.js",
+          "botserver/crates/botdrive/src/drive_handlers/search_files.rs"
+        ],
+        "e2e": null,
+        "note": "Toolbar box, cross-bucket fan-out and bounded content scan implemented; browser E2E against PDF/DOCX fixtures is pending."
+      },
+      "last_verified": { "date": "2026-11-03", "commit": "9277bf87b", "environment": "offline source review" }
+    },
+    {
+      "id": "GB6-12",
+      "title": "File previews",
+      "promise": "Files open in a preview instead of forcing a download.",
+      "status": "shipped",
+      "evidence": {
+        "issue": "#1548",
+        "tests": [
+          "botui/ui/suite/drive/modules/08_modals.js"
+        ],
+        "e2e": "previously verified 2026-10-31 in the desktop build (inline renderers + docx/xlsx conversion)",
+        "note": "Verified before this parity pass; unchanged by it."
+      },
+      "last_verified": { "date": "2026-10-31", "commit": "a604e942b", "environment": "desktop build, browser" }
+    },
+    {
+      "id": "GB6-13",
+      "title": "Share and export a file",
+      "promise": "The user can create a shareable link and download/export any file.",
+      "status": "partial",
+      "evidence": {
+        "issue": "#1639",
+        "tests": [
+          "botui/ui/suite/drive/modules/08_modals.js",
+          "botserver/crates/botdrive/src/drive_handlers/export_archive.rs"
+        ],
+        "e2e": null,
+        "note": "Expiry selector, recipient sharing and single-archive export implemented; link→open→expiry-rejection E2E is pending."
+      },
+      "last_verified": { "date": "2026-11-03", "commit": "ff41222a9", "environment": "offline source review" }
+    },
+    {
+      "id": "GB6-14",
+      "title": "Version history and trash",
+      "promise": "Deleted files go to Trash (restorable) and edits keep prior versions.",
+      "status": "partial",
+      "evidence": {
+        "issue": "#1640",
+        "tests": [
+          "botserver/crates/botdrive/src/drive_handlers/list_trash.rs",
+          "botui/ui/suite/drive/modules/98_actions.js"
+        ],
+        "e2e": null,
+        "note": "Trash routing, recursive restore, snapshot-before-restore and purge loop implemented; browser delete→restore E2E is pending."
+      },
+      "last_verified": { "date": "2026-11-03", "commit": "3e8bd476f", "environment": "offline source review" }
+    },
+    {
+      "id": "GB6-15",
+      "title": "Attachments in chat",
+      "promise": "Drag or attach a file in chat; the answer uses it immediately.",
+      "status": "partial",
+      "evidence": {
+        "issue": "#1641",
+        "tests": [
+          "botserver/src/core/bot/pipeline/attachment_text.rs",
+          "botui/ui/suite/chat/chat-messages.js"
+        ],
+        "e2e": null,
+        "note": "Text/PDF/DOCX excerpts, honest image copy and transcript-visible failures implemented; drag→answer→reload E2E is pending."
+      },
+      "last_verified": { "date": "2026-11-03", "commit": "2845b477f", "environment": "offline source review" }
+    },
+    {
+      "id": "GB6-16",
+      "title": "Memory across conversations",
+      "promise": "User preferences persist and are visible/editable in settings.",
+      "status": "partial",
+      "evidence": {
+        "issue": "#1642",
+        "tests": [
+          "botserver/src/core/user_memory.rs",
+          "botui/ui/suite/settings/index.html"
+        ],
+        "e2e": null,
+        "note": "Explicit remember turns persist; Settings reads/writes the server copy. A brand-new-session prompt check is pending."
+      },
+      "last_verified": { "date": "2026-11-03", "commit": "00a243c4c", "environment": "offline source review" }
+    },
+    {
+      "id": "GB6-18",
+      "title": "Connectors with consent",
+      "promise": "A user connects an account, sees exactly what is shared, and can revoke it in one click.",
+      "status": "partial",
+      "evidence": {
+        "issue": "#1643",
+        "tests": [
+          "botserver/crates/botdrive/src/external/types.rs",
+          "botui/ui/suite/drive/modules/11_external.js"
+        ],
+        "e2e": null,
+        "note": "Scopes are recorded at consent and rendered from the server; an OAuth round trip against a provider is still pending."
+      },
+      "last_verified": { "date": "2026-11-03", "commit": "b0a91a1ce", "environment": "offline source review" }
+    },
+    {
+      "id": "GB6-19",
+      "title": "Computer use — browser actions",
+      "promise": "The user approves a browser task, watches it run, and gets the result in chat.",
+      "status": "partial",
+      "evidence": {
+        "issue": "#1644",
+        "tests": [
+          "botserver/src/core/computer_use.rs",
+          "botserver/src/main_module/routes/computer_use_routes.rs"
+        ],
+        "e2e": null,
+        "note": "Producer, stored approval, server-side page fetch and result feedback implemented; live browser E2E is pending."
+      },
+      "last_verified": { "date": "2026-11-03", "commit": "3202438d2", "environment": "offline source review" }
+    },
+    {
+      "id": "GB6-20",
+      "title": "Computer use — terminal actions",
+      "promise": "Commands run only with explicit approval and a visible audit trail.",
+      "status": "partial",
+      "evidence": {
+        "issue": "#1645",
+        "tests": [
+          "botserver/src/main_module/routes/computer_use_routes.rs",
+          "botserver/migrations/6.8.3-terminal-audit/up.sql"
+        ],
+        "e2e": null,
+        "note": "Producer, consent binding and durable audit implemented; propose→approve→audit E2E is pending."
+      },
+      "last_verified": { "date": "2026-11-03", "commit": "dfab453f7", "environment": "offline source review" }
+    },
+    {
+      "id": "GB6-25",
+      "title": "Usage and cost transparency",
+      "promise": "A simple usage view shows tokens/cost per period and per model.",
+      "status": "partial",
+      "evidence": {
+        "issue": "#1648",
+        "tests": [
+          "botui/ui/suite/js/usage-stats.js",
+          "botserver/crates/botsettings/src/settings_usage.rs"
+        ],
+        "e2e": null,
+        "note": "Panel entry point, per-day/per-model tables and configured-price resolution implemented; a browser screenshot with real rows is pending."
+      },
+      "last_verified": { "date": "2026-11-03", "commit": "7d1a656f1", "environment": "offline source review" }
+    },
+    {
+      "id": "GB6-31",
+      "title": "Chat opens on launch",
+      "promise": "The desktop opens directly in the conversation, not on an empty shell.",
+      "status": "shipped",
+      "evidence": {
+        "issue": "#1615",
+        "tests": [
+          "botserver/.product.desktop-local"
+        ],
+        "e2e": "previously verified 2026-10-31: suite_default_app=chat opens the Chat window on load",
+        "note": "Verified before this parity pass; unchanged by it."
+      },
+      "last_verified": { "date": "2026-10-31", "commit": "05af4d3c2", "environment": "desktop build, browser" }
+    }
+  ]
+}

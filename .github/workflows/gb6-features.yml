@@ -1,0 +1,33 @@
+name: GB6 feature contract
+
+# #1649 — the published feature page is generated from a machine-readable
+# record. This job fails the build when the page is edited by hand, when a
+# `shipped` status has no end-to-end evidence, or when a removed feature
+# (GB6-22 / GB6-24) reappears.
+on:
+  push:
+    paths:
+      - "desktop/gb6/**"
+      - "scripts/gb6_features_check.py"
+      - ".github/workflows/gb6-features.yml"
+  pull_request:
+    paths:
+      - "desktop/gb6/**"
+      - "scripts/gb6_features_check.py"
+      - ".github/workflows/gb6-features.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Verify the feature record
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify record, evidence and generated page
+        run: |
+          set -euo pipefail
+          python3 --version
+          python3 scripts/gb6_features_check.py

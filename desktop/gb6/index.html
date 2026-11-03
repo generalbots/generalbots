@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>General Bots 6 — feature status</title>
+<style>
+:root { color-scheme: dark; }
+body { margin: 0; padding: 32px; background: #0f172a; color: #e2e8f0;
+  font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1180px; margin: 0 auto; }
+h1 { margin: 0 0 4px; font-size: 26px; color: #f8fafc; }
+.lead { color: #94a3b8; margin: 0 0 20px; }
+.summary { display: flex; gap: 16px; margin: 20px 0; }
+.card { background: #1e293b; border: 1px solid #334155; border-radius: 10px;
+  padding: 12px 18px; }
+.card strong { display: block; color: #f8fafc; font-size: 22px; }
+table { width: 100%; border-collapse: collapse; background: #1e293b;
+  border: 1px solid #334155; border-radius: 10px; overflow: hidden; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px;
+  border-bottom: 1px solid #334155; }
+th { color: #94a3b8; font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.04em; background: #172033; }
+tr:last-child td { border-bottom: none; }
+.promise { color: #94a3b8; font-size: 13px; margin-top: 4px; }
+.muted { color: #64748b; font-size: 12px; margin-top: 4px; }
+.status { font-weight: 600; white-space: nowrap; }
+.status-shipped { color: #4ade80; }
+.status-partial { color: #fbbf24; }
+.status-not_shipped { color: #f87171; }
+code { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #93c5fd; }
+footer { color: #64748b; font-size: 12px; margin-top: 18px; }
+a { color: #93c5fd; }
+</style>
+</head>
+<body>
+<main>
+<h1>General Bots 6 — desktop edition</h1>
+<p class="lead">The page is generated from this record. A `shipped` status requires an end-to-end evidence artifact; features whose verification is still partial must say so.</p>
+<div class="summary">
+  <div class="card"><strong>14</strong>features in the contract</div>
+  <div class="card"><strong>2</strong>shipped with E2E evidence</div>
+  <div class="card"><strong>12</strong>partial</div>
+</div>
+<table>
+<thead>
+<tr><th>ID</th><th>Feature</th><th>Status</th><th>Tests</th><th>End-to-end evidence</th><th>Last verified</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>GB6-08</strong></td><td>Web search with citations<div class="promise">Answers that use the web show clickable sources and never present unverified claims as fact.</div></td><td class="status status-partial">Partial</td><td><code>botserver/src/core/bot/pipeline/web_context.rs</code><br><code>botui/ui/suite/tests/webtest_gb6.js</code><div class="muted">#1635</div></td><td><span class="muted">no E2E artifact</span><div class="muted">Server now emits {title,url,host,favicon} in the final frame; browser E2E with a live search is still pending.</div></td><td class="muted">2026-11-03 b6f73bdc1 offline source review + node test suite</td></tr><tr><td><strong>GB6-09</strong></td><td>Artifacts and generated documents<div class="promise">The assistant can produce a document the user can preview, keep in Drive and open later.</div></td><td class="status status-partial">Partial</td><td><code>botui/ui/suite/chat/chat-messages.js</code><br><code>botui/ui/suite/tests/webtest_gb6.js</code><div class="muted">#1636</div></td><td><span class="muted">no E2E artifact</span><div class="muted">Prose/markdown artifacts, title-derived save and folder choice implemented; browser open→save→reopen is pending.</div></td><td class="muted">2026-11-03 dd694c591 offline source review + node test suite</td></tr><tr><td><strong>GB6-10</strong></td><td>Model picker with plain-language trade-offs<div class="promise">The user can switch models and sees a one-line explanation of each option.</div></td><td class="status status-partial">Partial</td><td><code>botserver/src/core/bot/pipeline/enriched_llm.rs</code><br><code>botui/ui/suite/chat/chat-init.js</code><div class="muted">#1637</div></td><td><span class="muted">no E2E artifact</span><div class="muted">llm-model-&lt;tier&gt; routing and /api/chat/models are implemented; a three-tier live request comparison is pending.</div></td><td class="muted">2026-11-03 71bfb2ec5 offline source review</td></tr><tr><td><strong>GB6-11</strong></td><td>Search across all files<div class="promise">One search box finds files across all folders by name and content.</div></td><td class="status status-partial">Partial</td><td><code>botui/ui/suite/drive/modules/05_files.js</code><br><code>botserver/crates/botdrive/src/drive_handlers/search_files.rs</code><div class="muted">#1638</div></td><td><span class="muted">no E2E artifact</span><div class="muted">Toolbar box, cross-bucket fan-out and bounded content scan implemented; browser E2E against PDF/DOCX fixtures is pending.</div></td><td class="muted">2026-11-03 9277bf87b offline source review</td></tr><tr><td><strong>GB6-12</strong></td><td>File previews<div class="promise">Files open in a preview instead of forcing a download.</div></td><td class="status status-shipped">Shipped</td><td><code>botui/ui/suite/drive/modules/08_modals.js</code><div class="muted">#1548</div></td><td>previously verified 2026-10-31 in the desktop build (inline renderers + docx/xlsx conversion)<div class="muted">Verified before this parity pass; unchanged by it.</div></td><td class="muted">2026-10-31 a604e942b desktop build, browser</td></tr><tr><td><strong>GB6-13</strong></td><td>Share and export a file<div class="promise">The user can create a shareable link and download/export any file.</div></td><td class="status status-partial">Partial</td><td><code>botui/ui/suite/drive/modules/08_modals.js</code><br><code>botserver/crates/botdrive/src/drive_handlers/export_archive.rs</code><div class="muted">#1639</div></td><td><span class="muted">no E2E artifact</span><div class="muted">Expiry selector, recipient sharing and single-archive export implemented; link→open→expiry-rejection E2E is pending.</div></td><td class="muted">2026-11-03 ff41222a9 offline source review</td></tr><tr><td><strong>GB6-14</strong></td><td>Version history and trash<div class="promise">Deleted files go to Trash (restorable) and edits keep prior versions.</div></td><td class="status status-partial">Partial</td><td><code>botserver/crates/botdrive/src/drive_handlers/list_trash.rs</code><br><code>botui/ui/suite/drive/modules/98_actions.js</code><div class="muted">#1640</div></td><td><span class="muted">no E2E artifact</span><div class="muted">Trash routing, recursive restore, snapshot-before-restore and purge loop implemented; browser delete→restore E2E is pending.</div></td><td class="muted">2026-11-03 3e8bd476f offline source review</td></tr><tr><td><strong>GB6-15</strong></td><td>Attachments in chat<div class="promise">Drag or attach a file in chat; the answer uses it immediately.</div></td><td class="status status-partial">Partial</td><td><code>botserver/src/core/bot/pipeline/attachment_text.rs</code><br><code>botui/ui/suite/chat/chat-messages.js</code><div class="muted">#1641</div></td><td><span class="muted">no E2E artifact</span><div class="muted">Text/PDF/DOCX excerpts, honest image copy and transcript-visible failures implemented; drag→answer→reload E2E is pending.</div></td><td class="muted">2026-11-03 2845b477f offline source review</td></tr><tr><td><strong>GB6-16</strong></td><td>Memory across conversations<div class="promise">User preferences persist and are visible/editable in settings.</div></td><td class="status status-partial">Partial</td><td><code>botserver/src/core/user_memory.rs</code><br><code>botui/ui/suite/settings/index.html</code><div class="muted">#1642</div></td><td><span class="muted">no E2E artifact</span><div class="muted">Explicit remember turns persist; Settings reads/writes the server copy. A brand-new-session prompt check is pending.</div></td><td class="muted">2026-11-03 00a243c4c offline source review</td></tr><tr><td><strong>GB6-18</strong></td><td>Connectors with consent<div class="promise">A user connects an account, sees exactly what is shared, and can revoke it in one click.</div></td><td class="status status-partial">Partial</td><td><code>botserver/crates/botdrive/src/external/types.rs</code><br><code>botui/ui/suite/drive/modules/11_external.js</code><div class="muted">#1643</div></td><td><span class="muted">no E2E artifact</span><div class="muted">Scopes are recorded at consent and rendered from the server; an OAuth round trip against a provider is still pending.</div></td><td class="muted">2026-11-03 b0a91a1ce offline source review</td></tr><tr><td><strong>GB6-19</strong></td><td>Computer use — browser actions<div class="promise">The user approves a browser task, watches it run, and gets the result in chat.</div></td><td class="status status-partial">Partial</td><td><code>botserver/src/core/computer_use.rs</code><br><code>botserver/src/main_module/routes/computer_use_routes.rs</code><div class="muted">#1644</div></td><td><span class="muted">no E2E artifact</span><div class="muted">Producer, stored approval, server-side page fetch and result feedback implemented; live browser E2E is pending.</div></td><td class="muted">2026-11-03 3202438d2 offline source review</td></tr><tr><td><strong>GB6-20</strong></td><td>Computer use — terminal actions<div class="promise">Commands run only with explicit approval and a visible audit trail.</div></td><td class="status status-partial">Partial</td><td><code>botserver/src/main_module/routes/computer_use_routes.rs</code><br><code>botserver/migrations/6.8.3-terminal-audit/up.sql</code><div class="muted">#1645</div></td><td><span class="muted">no E2E artifact</span><div class="muted">Producer, consent binding and durable audit implemented; propose→approve→audit E2E is pending.</div></td><td class="muted">2026-11-03 dfab453f7 offline source review</td></tr><tr><td><strong>GB6-25</strong></td><td>Usage and cost transparency<div class="promise">A simple usage view shows tokens/cost per period and per model.</div></td><td class="status status-partial">Partial</td><td><code>botui/ui/suite/js/usage-stats.js</code><br><code>botserver/crates/botsettings/src/settings_usage.rs</code><div class="muted">#1648</div></td><td><span class="muted">no E2E artifact</span><div class="muted">Panel entry point, per-day/per-model tables and configured-price resolution implemented; a browser screenshot with real rows is pending.</div></td><td class="muted">2026-11-03 7d1a656f1 offline source review</td></tr><tr><td><strong>GB6-31</strong></td><td>Chat opens on launch<div class="promise">The desktop opens directly in the conversation, not on an empty shell.</div></td><td class="status status-shipped">Shipped</td><td><code>botserver/.product.desktop-local</code><div class="muted">#1615</div></td><td>previously verified 2026-10-31: suite_default_app=chat opens the Chat window on load<div class="muted">Verified before this parity pass; unchanged by it.</div></td><td class="muted">2026-10-31 05af4d3c2 desktop build, browser</td></tr>
+</tbody>
+</table>
+<footer>
+Generated from <code>desktop/gb6/features.json</code> by
+<code>desktop/gb6/generate_features.py</code>. Editing this page by hand does
+not change the record and fails the CI check.
+</footer>
+</main>
+</body>
+</html>
