@@ -106,6 +106,7 @@ a {{ color: #93c5fd; }}
 <main>
 <h1>General Bots 6 — desktop edition</h1>
 <p class="lead">{html.escape(record.get('note', ''))}</p>
+<p class="lead">Parent epic: <a href="https://github.com/generalbots/generalbots/issues/1650">{html.escape(((record.get('epic') or {}).get('issue', '#1650')).lstrip('#'))}</a> — {html.escape(((record.get('epic') or {}).get('title', '')))}</p>
 <div class="summary">
   <div class="card"><strong>{len(record['features'])}</strong>features in the contract</div>
   <div class="card"><strong>{shipped}</strong>shipped with E2E evidence</div>

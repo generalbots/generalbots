@@ -22,7 +22,11 @@
         "e2e": null,
         "note": "Server now emits {title,url,host,favicon} in the final frame; browser E2E with a live search is still pending."
       },
-      "last_verified": { "date": "2026-11-03", "commit": "b6f73bdc1", "environment": "offline source review + node test suite" }
+      "last_verified": {
+        "date": "2026-11-03",
+        "commit": "b6f73bdc1",
+        "environment": "offline source review + node test suite"
+      }
     },
     {
       "id": "GB6-09",
@@ -38,7 +42,11 @@
         "e2e": null,
         "note": "Prose/markdown artifacts, title-derived save and folder choice implemented; browser open→save→reopen is pending."
       },
-      "last_verified": { "date": "2026-11-03", "commit": "dd694c591", "environment": "offline source review + node test suite" }
+      "last_verified": {
+        "date": "2026-11-03",
+        "commit": "dd694c591",
+        "environment": "offline source review + node test suite"
+      }
     },
     {
       "id": "GB6-10",
@@ -54,7 +62,11 @@
         "e2e": null,
         "note": "llm-model-<tier> routing and /api/chat/models are implemented; a three-tier live request comparison is pending."
       },
-      "last_verified": { "date": "2026-11-03", "commit": "71bfb2ec5", "environment": "offline source review" }
+      "last_verified": {
+        "date": "2026-11-03",
+        "commit": "71bfb2ec5",
+        "environment": "offline source review"
+      }
     },
     {
       "id": "GB6-11",
@@ -70,7 +82,11 @@
         "e2e": null,
         "note": "Toolbar box, cross-bucket fan-out and bounded content scan implemented; browser E2E against PDF/DOCX fixtures is pending."
       },
-      "last_verified": { "date": "2026-11-03", "commit": "9277bf87b", "environment": "offline source review" }
+      "last_verified": {
+        "date": "2026-11-03",
+        "commit": "9277bf87b",
+        "environment": "offline source review"
+      }
     },
     {
       "id": "GB6-12",
@@ -85,7 +101,11 @@
         "e2e": "previously verified 2026-10-31 in the desktop build (inline renderers + docx/xlsx conversion)",
         "note": "Verified before this parity pass; unchanged by it."
       },
-      "last_verified": { "date": "2026-10-31", "commit": "a604e942b", "environment": "desktop build, browser" }
+      "last_verified": {
+        "date": "2026-10-31",
+        "commit": "a604e942b",
+        "environment": "desktop build, browser"
+      }
     },
     {
       "id": "GB6-13",
@@ -101,7 +121,11 @@
         "e2e": null,
         "note": "Expiry selector, recipient sharing and single-archive export implemented; link→open→expiry-rejection E2E is pending."
       },
-      "last_verified": { "date": "2026-11-03", "commit": "ff41222a9", "environment": "offline source review" }
+      "last_verified": {
+        "date": "2026-11-03",
+        "commit": "ff41222a9",
+        "environment": "offline source review"
+      }
     },
     {
       "id": "GB6-14",
@@ -117,7 +141,11 @@
         "e2e": null,
         "note": "Trash routing, recursive restore, snapshot-before-restore and purge loop implemented; browser delete→restore E2E is pending."
       },
-      "last_verified": { "date": "2026-11-03", "commit": "3e8bd476f", "environment": "offline source review" }
+      "last_verified": {
+        "date": "2026-11-03",
+        "commit": "3e8bd476f",
+        "environment": "offline source review"
+      }
     },
     {
       "id": "GB6-15",
@@ -133,7 +161,11 @@
         "e2e": null,
         "note": "Text/PDF/DOCX excerpts, honest image copy and transcript-visible failures implemented; drag→answer→reload E2E is pending."
       },
-      "last_verified": { "date": "2026-11-03", "commit": "2845b477f", "environment": "offline source review" }
+      "last_verified": {
+        "date": "2026-11-03",
+        "commit": "2845b477f",
+        "environment": "offline source review"
+      }
     },
     {
       "id": "GB6-16",
@@ -149,7 +181,11 @@
         "e2e": null,
         "note": "Explicit remember turns persist; Settings reads/writes the server copy. A brand-new-session prompt check is pending."
       },
-      "last_verified": { "date": "2026-11-03", "commit": "00a243c4c", "environment": "offline source review" }
+      "last_verified": {
+        "date": "2026-11-03",
+        "commit": "00a243c4c",
+        "environment": "offline source review"
+      }
     },
     {
       "id": "GB6-18",
@@ -165,7 +201,11 @@
         "e2e": null,
         "note": "Scopes are recorded at consent and rendered from the server; an OAuth round trip against a provider is still pending."
       },
-      "last_verified": { "date": "2026-11-03", "commit": "b0a91a1ce", "environment": "offline source review" }
+      "last_verified": {
+        "date": "2026-11-03",
+        "commit": "b0a91a1ce",
+        "environment": "offline source review"
+      }
     },
     {
       "id": "GB6-19",
@@ -181,7 +221,11 @@
         "e2e": null,
         "note": "Producer, stored approval, server-side page fetch and result feedback implemented; live browser E2E is pending."
       },
-      "last_verified": { "date": "2026-11-03", "commit": "3202438d2", "environment": "offline source review" }
+      "last_verified": {
+        "date": "2026-11-03",
+        "commit": "3202438d2",
+        "environment": "offline source review"
+      }
     },
     {
       "id": "GB6-20",
@@ -197,7 +241,11 @@
         "e2e": null,
         "note": "Producer, consent binding and durable audit implemented; propose→approve→audit E2E is pending."
       },
-      "last_verified": { "date": "2026-11-03", "commit": "dfab453f7", "environment": "offline source review" }
+      "last_verified": {
+        "date": "2026-11-03",
+        "commit": "dfab453f7",
+        "environment": "offline source review"
+      }
     },
     {
       "id": "GB6-25",
@@ -213,7 +261,11 @@
         "e2e": null,
         "note": "Panel entry point, per-day/per-model tables and configured-price resolution implemented; a browser screenshot with real rows is pending."
       },
-      "last_verified": { "date": "2026-11-03", "commit": "7d1a656f1", "environment": "offline source review" }
+      "last_verified": {
+        "date": "2026-11-03",
+        "commit": "7d1a656f1",
+        "environment": "offline source review"
+      }
     },
     {
       "id": "GB6-31",
@@ -228,7 +280,25 @@
         "e2e": "previously verified 2026-10-31: suite_default_app=chat opens the Chat window on load",
         "note": "Verified before this parity pass; unchanged by it."
       },
-      "last_verified": { "date": "2026-10-31", "commit": "05af4d3c2", "environment": "desktop build, browser" }
+      "last_verified": {
+        "date": "2026-10-31",
+        "commit": "05af4d3c2",
+        "environment": "desktop build, browser"
+      }
     }
-  ]
+  ],
+  "epic": {
+    "issue": "#1650",
+    "title": "GB6 parity: make the published 14-feature contract true in src",
+    "definition_of_done": [
+      "Every child issue is implemented in source and linked from the record.",
+      "Every shipped feature has an end-to-end evidence artifact.",
+      "The page is generated from the record and lists 14 features.",
+      "No feature claims verified without date, commit and environment."
+    ],
+    "removed_from_scope": [
+      "GB6-22",
+      "GB6-24"
+    ]
+  }
 }

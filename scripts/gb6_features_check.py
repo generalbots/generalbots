@@ -93,6 +93,8 @@ def main() -> int:
             errors.append(f"{fid}: invalid status {status!r}")
             continue
         evidence = feature.get("evidence") or {}
+        if not evidence.get("issue"):
+            errors.append(f"{fid}: no issue links this feature to the epic")
         if status == "shipped" and not evidence.get("e2e"):
             errors.append(f"{fid}: shipped without an end-to-end evidence artifact")
         for test in evidence.get("tests") or []:
@@ -119,6 +121,13 @@ def main() -> int:
         for error in errors:
             print(f"  - {error}")
         return 1
+
+    epic = record.get("epic") or {}
+    if not epic.get("issue"):
+        errors.append("record has no parent epic")
+    for removed in record.get("epic", {}).get("removed_from_scope", []):
+        if removed in ids:
+            errors.append(f"{removed} is removed from scope but listed")
 
     shipped = sum(1 for feature in features if feature.get("status") == "shipped")
     print(
