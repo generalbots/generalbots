@@ -108,6 +108,8 @@ const SOURCES: &[EntitySource] = &[
         subtitle_columns: &["file_path"],
         url: "/suite/drive/drive.html",
         filter: None,
+        // #1638 — drive_files has no org_id; the query below scopes it through
+        // the owning bot (bot_id -> bots.org_id) so names never cross tenants.
         org_column: None,
     },
     EntitySource {

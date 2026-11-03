@@ -25,16 +25,20 @@ function renderFileCard(file) {
     var iconClass = file.is_dir ? "folder" : getFileTypeClass(file.name);
     var iconSvg = file.is_dir ? getFolderIcon() : getFileIcon(file.name);
     var sizeText = file.is_dir ? "" : formatFileSize(file.size);
+    var provenance = file.bucket ? escapeHtml(file.bucket) : "";
+    var metaText = [sizeText, provenance].filter(Boolean).join(" · ");
     var checked = selectedFiles.has(file.path) ? "checked" : "";
     var selected = selectedFiles.has(file.path) ? "selected" : "";
     var kbTag = file.is_kb ? '<span class="kb-tag ' + (file.is_public ? "public" : "private") + '" title="' + (file.is_public ? "Public KB" : "Restricted KB") + '">KB</span>' : "";
-    return '<div class="file-card ' + selected + '" data-path="' + escapeHtml(file.path) + '" data-name="' + escapeHtml(file.name) + '" data-type="' + (file.is_dir ? "folder" : "file") + '" data-size="' + (file.size || 0) + '"><input type="checkbox" class="file-checkbox" ' + checked + ' onchange="DriveModule.toggleSelection(\'' + escapeJs(file.path) + '\')"><div class="file-card-preview ' + iconClass + '">' + iconSvg + kbTag + '</div><div class="file-card-info"><div class="file-card-name" title="' + escapeHtml(file.name) + '">' + escapeHtml(file.name) + '</div><div class="file-card-meta">' + sizeText + '</div></div></div>';
+    return '<div class="file-card ' + selected + '" data-path="' + escapeHtml(file.path) + '" data-name="' + escapeHtml(file.name) + '" data-bucket="' + escapeHtml(file.bucket || "") + '" data-type="' + (file.is_dir ? "folder" : "file") + '" data-size="' + (file.size || 0) + '"><input type="checkbox" class="file-checkbox" ' + checked + ' onchange="DriveModule.toggleSelection(\'' + escapeJs(file.path) + '\')"><div class="file-card-preview ' + iconClass + '">' + iconSvg + kbTag + '</div><div class="file-card-info"><div class="file-card-name" title="' + escapeHtml(file.name) + '">' + escapeHtml(file.name) + '</div><div class="file-card-meta">' + metaText + '</div></div></div>';
 }
 
 function renderFileRow(file) {
     var iconSvg = file.is_dir ? getFolderIcon() : getFileIcon(file.name);
     var sizeText = file.is_dir ? "\u2014" : formatFileSize(file.size);
-    var modifiedText = file.modified ? formatDate(file.modified) : "\u2014";
+    var modifiedText = file.bucket
+        ? escapeHtml(file.bucket) + (file.is_dir ? "" : "")
+        : (file.modified ? formatDate(file.modified) : "\u2014");
     var checked = selectedFiles.has(file.path) ? "checked" : "";
     var selected = selectedFiles.has(file.path) ? "selected" : "";
     var downloadIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>';
@@ -43,7 +47,7 @@ function renderFileRow(file) {
         ? '<button class="btn-icon-sm" title="Download" onclick="event.stopPropagation(); DriveModule.downloadFile(\'' + escapeJs(file.path) + '\')">' + downloadIcon + '</button>'
         : '';
     var kbTag = file.is_kb ? '<span class="kb-tag ' + (file.is_public ? "public" : "private") + '" title="' + (file.is_public ? "Public KB" : "Restricted KB") + '">' + (file.is_public ? "\uD83D\uDD13" : "\uD83D\uDD12") + ' KB</span>' : '';
-    return '<div class="drive-file-item ' + (file.is_dir ? "folder" : "") + ' ' + selected + '" data-path="' + escapeHtml(file.path) + '" data-name="' + escapeHtml(file.name) + '" data-type="' + (file.is_dir ? "folder" : "file") + '" data-size="' + (file.size || 0) + '"><div class="file-col file-name-col"><input type="checkbox" class="file-checkbox" ' + checked + ' onclick="event.stopPropagation()" onchange="DriveModule.toggleSelection(\'' + escapeJs(file.path) + '\')">' + iconSvg + '<span>' + escapeHtml(file.name) + '</span>' + kbTag + '</div><div class="file-col file-modified-col">' + modifiedText + '</div><div class="file-col file-size-col">' + sizeText + '</div><div class="file-col file-actions-col">' + downloadBtn + '<button class="btn-icon-sm" title="More" onclick="event.stopPropagation(); DriveModule.showContextMenuFor(event, \'' + escapeJs(file.path) + '\')">' + moreIcon + '</button></div></div>';
+    return '<div class="drive-file-item ' + (file.is_dir ? "folder" : "") + ' ' + selected + '" data-path="' + escapeHtml(file.path) + '" data-name="' + escapeHtml(file.name) + '" data-bucket="' + escapeHtml(file.bucket || "") + '" data-type="' + (file.is_dir ? "folder" : "file") + '" data-size="' + (file.size || 0) + '"><div class="file-col file-name-col"><input type="checkbox" class="file-checkbox" ' + checked + ' onclick="event.stopPropagation()" onchange="DriveModule.toggleSelection(\'' + escapeJs(file.path) + '\')">' + iconSvg + '<span>' + escapeHtml(file.name) + '</span>' + kbTag + '</div><div class="file-col file-modified-col">' + modifiedText + '</div><div class="file-col file-size-col">' + sizeText + '</div><div class="file-col file-actions-col">' + downloadBtn + '<button class="btn-icon-sm" title="More" onclick="event.stopPropagation(); DriveModule.showContextMenuFor(event, \'' + escapeJs(file.path) + '\')">' + moreIcon + '</button></div></div>';
 }
 
 function bindFileEvents() {
@@ -64,7 +68,14 @@ function bindFileEvents() {
         if (e.target.closest(".file-checkbox")) return;
         var path = item.dataset.path;
         var type = item.dataset.type;
-        if (type === "folder") loadFiles(path, getEffectiveBucket());
+        // #1638 — a search hit can come from another bucket; switch to the
+        // hit's own bucket before navigating so the path resolves.
+        var hitBucket = item.dataset.bucket || "";
+        if (hitBucket && hitBucket !== getEffectiveBucket()) {
+            currentBucket = hitBucket;
+            updateBucketSelector();
+        }
+        if (type === "folder") loadFiles(path, hitBucket || getEffectiveBucket());
         // Media (mp4/jpg/png/...) has no app window to open — /api/files/open
         // would route it to the docs viewer, which just renders nothing. Send
         // it to the player/viewer instead. `openFile` is left untouched so the

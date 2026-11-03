@@ -264,7 +264,19 @@
                     </button>
                 </div>
             </div>
-            <div class="drive-toolbar-center"></div>
+            <div class="drive-toolbar-center">
+                <!-- #1638 — one box finds files in every folder and bucket; the
+                     server also matches text extracted from the file body. -->
+                <div class="search-box drive-search" role="search">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input id="search-input" type="search" placeholder="Search all files… (Ctrl+K)"
+                           aria-label="Search all files by name and content" autocomplete="off" />
+                    <kbd class="drive-search-kbd">Ctrl K</kbd>
+                </div>
+            </div>
             <div class="drive-toolbar-right">
                 <!-- GB6-22 — offline sync state is visible without opening a menu. -->
                 <button class="btn-icon" id="gbSyncStatusBtn" title="Offline sync"

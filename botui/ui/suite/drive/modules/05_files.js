@@ -271,24 +271,28 @@ async function loadTrashFiles() {
 async function searchFiles(query, allBuckets) {
     const content = document.getElementById("drive-content") || document.getElementById("file-grid");
     if (!content) return;
-    content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Searching' + (allBuckets ? ' everywhere' : '') + '...</p></div>';
+    const everywhere = allBuckets !== false;
+    content.innerHTML = '<div class="loading-state"><div class="spinner"></div><p>Searching ' + (everywhere ? 'every folder and bucket' : 'this folder') + '...</p></div>';
     try {
         const params = new URLSearchParams();
         params.set("query", query);
-        if (!allBuckets && currentBucket) params.set("bucket", getEffectiveBucket());
+        // #1638 — the toolbar box always searches everywhere; the server also
+        // matches text extracted from the file body (bounded scan).
+        params.set("all_buckets", everywhere ? "true" : "false");
+        params.set("content", "true");
+        if (currentBucket) params.set("bucket", getEffectiveBucket());
         params.set("scope", currentScope);
         const files = await apiRequest("/search?" + params.toString());
-        if ((!files || files.length === 0) && !allBuckets && currentBucket) {
-            return searchFiles(query, true);
+        if (!files || files.length === 0) {
+            content.innerHTML = '<div class="empty-state"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg><h3>No matches for "' + escapeHtml(query) + '"</h3><p>Search covers file names and the text inside text, PDF, DOCX and XLSX files.</p><button class="btn-primary" onclick="DriveModule.loadFiles()">Back to files</button></div>';
+            return;
         }
         renderFiles(files);
-        if (files && files.length > 0) {
-            showNotification("Found " + files.length + " result(s)", "success");
-        } else {
-            content.innerHTML = '<div class="empty-state"><h3>No results</h3><p>No files matched "' + escapeHtml(query) + '"</p></div>';
-        }
+        showNotification("Found " + files.length + " result(s)", "success");
     } catch (err) {
-        content.innerHTML = '<div class="empty-state"><h3>Search failed</h3><p>' + escapeHtml(humanizeError(err.message)) + '</p></div>';
+        // #1638 — distinguish “the server could not search” from “nothing
+        // matched”, otherwise a broken search looks like an empty folder.
+        content.innerHTML = '<div class="empty-state"><h3>Search unavailable</h3><p>' + escapeHtml(humanizeError(err.message)) + '</p><button class="btn-primary" onclick="DriveModule.loadFiles()">Back to files</button></div>';
     }
 }
 

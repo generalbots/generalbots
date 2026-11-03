@@ -193,6 +193,7 @@ pub(super) fn build_file_list_items(
                 modified: None,
                 is_kb: false,
                 is_public: false,
+                bucket: None,
             });
         } else {
             let file_name = parts[0];
@@ -211,6 +212,7 @@ pub(super) fn build_file_list_items(
                 modified,
                 is_kb,
                 is_public: false,
+                bucket: None,
             });
         }
     }

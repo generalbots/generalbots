@@ -43,30 +43,189 @@ pub async fn search_files(
     let drive = get_drive(&state)?;
     let scope = params.scope.unwrap_or_default();
     let uid = effective_uid(&state, &user, params.user_id.as_deref());
-    let bucket = resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
+    let current_bucket =
+        resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
     let query = params.query.unwrap_or_default();
-    let query_lower = query.to_lowercase();
+    let query_lower = query.trim().to_lowercase();
+    if query_lower.is_empty() {
+        return Ok(Json(Vec::new()));
+    }
 
-    let keys = drive
-        .list_objects(&bucket, Some(&prefix))
-        .await
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Search failed: {e}")))?;
+    // #1638 — "search everywhere" means every bucket this caller may address,
+    // never another tenant's. Without `all_buckets` the old single-bucket
+    // behaviour is preserved for callers that ask for it explicitly.
+    let mut buckets: Vec<String> = if params.all_buckets.unwrap_or(false) {
+        super::cached_quota::allowed_buckets_for(&state, &user)
+    } else {
+        vec![current_bucket.clone()]
+    };
+    buckets.retain(|b| !b.trim().is_empty());
+    let mut seen_buckets = std::collections::HashSet::new();
+    buckets.retain(|bucket| seen_buckets.insert(bucket.clone()));
 
-    let mut meta_map: HashMap<String, u64> = HashMap::new();
-    if let Ok(objects) = drive.list_objects_with_metadata(&bucket, Some(&prefix)).await {
-        for obj in objects {
-            meta_map.insert(obj.key, obj.size);
+    let search_content = params.content.unwrap_or(true);
+    let mut filtered: Vec<FileListItem> = Vec::new();
+    let mut content_scanned = 0usize;
+
+    for bucket in &buckets {
+        let keys = match drive.list_objects(bucket, Some(&prefix)).await {
+            Ok(keys) => keys,
+            Err(e) => {
+                warn!("search: listing {bucket} failed: {e}");
+                continue;
+            }
+        };
+
+        let mut meta_map: HashMap<String, u64> = HashMap::new();
+        if let Ok(objects) = drive.list_objects_with_metadata(bucket, Some(&prefix)).await {
+            for obj in objects {
+                meta_map.insert(obj.key, obj.size);
+            }
+        }
+
+        let all_items = build_file_list_items(&prefix, &keys, &meta_map);
+        for mut item in all_items {
+            let name_match = item.name.to_lowercase().contains(&query_lower);
+            let mut content_match = false;
+            if !name_match && search_content && !item.is_dir && content_scanned < SEARCH_MAX_CONTENT_FILES
+            {
+                let key = format!("{prefix}{}", item.path);
+                if !item.path.is_empty() {
+                    content_scanned += 1;
+                    content_match =
+                        object_contains_query(drive.as_ref(), bucket, &key, &item.name, &query_lower)
+                            .await;
+                }
+            }
+            if name_match || content_match {
+                if buckets.len() > 1 {
+                    item.bucket = Some(bucket.clone());
+                }
+                filtered.push(item);
+            }
         }
     }
 
-    let all_items = build_file_list_items(&prefix, &keys, &meta_map);
-    let filtered: Vec<FileListItem> = all_items
-        .into_iter()
-        .filter(|item| item.name.to_lowercase().contains(&query_lower))
-        .collect();
-
     Ok(Json(filtered))
+}
+
+/// Upper bounds for the content scan: a search must not turn into a full
+/// bucket download. The newest/biggest documents beyond these limits are
+/// still findable by name.
+const SEARCH_MAX_CONTENT_FILES: usize = 120;
+const SEARCH_MAX_CONTENT_BYTES: usize = 4 * 1024 * 1024;
+
+fn is_text_like(ext: &str) -> bool {
+    matches!(
+        ext,
+        "txt"
+            | "md"
+            | "markdown"
+            | "csv"
+            | "tsv"
+            | "json"
+            | "jsonl"
+            | "html"
+            | "htm"
+            | "xml"
+            | "yaml"
+            | "yml"
+            | "toml"
+            | "ini"
+            | "log"
+            | "rs"
+            | "js"
+            | "ts"
+            | "py"
+            | "sh"
+            | "bas"
+            | "sql"
+            | "css"
+    )
+}
+
+#[cfg(feature = "drive")]
+fn extract_pdf(path: &std::path::Path) -> String {
+    crate::vectordb::extract_pdf_text_sync(path).unwrap_or_default()
+}
+#[cfg(not(feature = "drive"))]
+fn extract_pdf(_path: &std::path::Path) -> String {
+    String::new()
+}
+
+#[cfg(feature = "drive")]
+fn extract_docx(path: &std::path::Path) -> String {
+    crate::vectordb::extract_docx_text_sync(path).unwrap_or_default()
+}
+#[cfg(not(feature = "drive"))]
+fn extract_docx(_path: &std::path::Path) -> String {
+    String::new()
+}
+
+#[cfg(feature = "sheet")]
+fn extract_xlsx(path: &std::path::Path) -> String {
+    crate::vectordb::extract_xlsx_text_sync(path).unwrap_or_default()
+}
+#[cfg(not(feature = "sheet"))]
+fn extract_xlsx(_path: &std::path::Path) -> String {
+    String::new()
+}
+
+/// True when the object's body contains the query. Text formats are read
+/// directly; PDF/DOCX/XLSX go through the same extractors the indexer uses,
+/// via a short-lived temp file. Any failure is a non-match, never an error
+/// that aborts the whole search.
+async fn object_contains_query(
+    drive: &dyn botlib::traits::DriveRepository,
+    bucket: &str,
+    key: &str,
+    name: &str,
+    query_lower: &str,
+) -> bool {
+    let ext = name
+        .rsplit('.')
+        .next()
+        .unwrap_or("")
+        .to_lowercase();
+    let office = matches!(ext.as_str(), "pdf" | "docx" | "xlsx");
+    if !is_text_like(&ext) && !office {
+        return false;
+    }
+    let bytes = match drive.get_object(bucket, key).await {
+        Ok(bytes) => bytes,
+        Err(e) => {
+            warn!("search: reading {bucket}/{key} failed: {e}");
+            return false;
+        }
+    };
+    if bytes.is_empty() || bytes.len() > SEARCH_MAX_CONTENT_BYTES {
+        return false;
+    }
+    if is_text_like(&ext) {
+        return String::from_utf8_lossy(&bytes)
+            .to_lowercase()
+            .contains(query_lower);
+    }
+
+    let tmp = std::env::temp_dir().join(format!("gb-search-{}.{ext}", uuid::Uuid::new_v4()));
+    if tokio::fs::write(&tmp, &bytes).await.is_err() {
+        return false;
+    }
+    let path = tmp.clone();
+    let text = tokio::task::spawn_blocking(move || {
+        let text = match ext.as_str() {
+            "pdf" => extract_pdf(&path),
+            "docx" => extract_docx(&path),
+            "xlsx" => extract_xlsx(&path),
+            _ => String::new(),
+        };
+        let _ = std::fs::remove_file(&path);
+        text
+    })
+    .await
+    .unwrap_or_default();
+    text.to_lowercase().contains(query_lower)
 }
 pub async fn recent_files(
     State(state): State<Arc<AppState>>,
@@ -113,6 +272,7 @@ pub async fn recent_files(
                     modified: r.last_modified.map(|d| d.to_rfc3339()),
                     is_kb: r.file_type == "kb",
                     is_public: false,
+                    bucket: None,
                 }
             }).collect();
             return Ok(Json(items));
@@ -275,4 +435,23 @@ pub async fn create_bot(
         name: name.clone(),
         status: "created".to_string(),
     }))
+}
+
+#[cfg(test)]
+mod search_content_tests {
+    use super::is_text_like;
+
+    #[test]
+    fn text_formats_are_scanned() {
+        for ext in ["txt", "md", "csv", "json", "html", "rs", "bas"] {
+            assert!(is_text_like(ext), "{ext} should be treated as text");
+        }
+    }
+
+    #[test]
+    fn binary_formats_are_not_read_as_text() {
+        for ext in ["png", "jpg", "zip", "mp4", "exe"] {
+            assert!(!is_text_like(ext), "{ext} must not be read as text");
+        }
+    }
 }

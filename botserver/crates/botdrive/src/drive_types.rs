@@ -156,6 +156,10 @@ pub struct FileListItem {
     pub modified: Option<String>,
     pub is_kb: bool,
     pub is_public: bool,
+    /// #1638 — which bucket the hit came from when a search fans out. `None`
+    /// for a normal listing (the caller already knows its bucket).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub bucket: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -230,6 +234,12 @@ pub struct SearchQueryParams {
     pub bucket: Option<String>,
     pub scope: Option<FileScope>,
     pub user_id: Option<String>,
+    /// #1638 — search every bucket the caller is entitled to, not only the
+    /// current one. The UI sets this for the toolbar search.
+    pub all_buckets: Option<bool>,
+    /// #1638 — also match text extracted from the file body. Defaults to on
+    /// for toolbox search; the scan is bounded (size + file count).
+    pub content: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

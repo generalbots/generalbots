@@ -273,9 +273,30 @@ function bindSearchInput() {
         clearTimeout(debounceTimer);
         debounceTimer = setTimeout(function() {
             const query = e.target.value.trim();
-            if (query) searchFiles(query);
-            else loadFiles(currentPath, currentBucket);
+            // #1638 — one character is not a query; restore the listing.
+            if (query.length >= 2) searchFiles(query, true);
+            else if (!query) loadFiles(currentPath, currentBucket);
         }, 300);
+    });
+    // Enter searches immediately; Escape clears and returns to the folder.
+    searchInput.addEventListener("keydown", function(e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            clearTimeout(debounceTimer);
+            const query = searchInput.value.trim();
+            if (query) searchFiles(query, true);
+        } else if (e.key === "Escape") {
+            searchInput.value = "";
+            loadFiles(currentPath, currentBucket);
+        }
+    });
+    // Ctrl/Cmd+K focuses the box from anywhere in the Drive window.
+    document.addEventListener("keydown", function(e) {
+        if ((e.ctrlKey || e.metaKey) && (e.key === "k" || e.key === "K")) {
+            e.preventDefault();
+            searchInput.focus();
+            searchInput.select();
+        }
     });
 }
 

@@ -443,6 +443,24 @@
     color: var(--text-secondary, #6b6b80);
 }
 
+/* #1638 — keyboard hint for the always-visible Drive search box. */
+.search-box input {
+    padding-right: 64px;
+}
+.drive-search-kbd {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 10px;
+    color: var(--text-secondary, #6b6b80);
+    border: 1px solid var(--border, #2a2a3a);
+    border-radius: 4px;
+    padding: 1px 5px;
+    background: var(--surface-2, #1a1a24);
+    pointer-events: none;
+}
+
 /* Drop Overlay */
 .drop-overlay {
     position: absolute;
