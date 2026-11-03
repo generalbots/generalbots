@@ -1,0 +1,240 @@
+/* chat.p7.css — chat window rework (v1)
+ * One place for the three complaints: broken/jumpy scrolling, the loud
+ * connection/empty cards, and raw file/console output. Scoped to #chat-app so
+ * the desktop, drive and monitor apps are untouched.
+ */
+
+/* ── 1. Scroll hygiene ──────────────────────────────────────────────── */
+
+/* The window must not scroll: only the message area does. A wrapper that
+ * overflows created the second (window-edge) scrollbar users saw. */
+#chat-app,
+#chat-app .chat-content-wrapper {
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* Chromium animates every scrollTop assignment with `smooth`, so each streamed
+ * chunk retriggers an animation and the view visibly lags or jumps. Direct
+ * scrolling is the correct model for a live tail. */
+#chat-app #messages,
+#chat-app .chat-pane-messages {
+  scroll-behavior: auto;
+  overscroll-behavior: contain;
+  padding: 18px 20px 8px;
+}
+
+/* One shared slim, inset scrollbar (native + pane messages, suggestions row,
+ * mention results). Blue thumbs made the gutter look like UI noise; a quiet
+ * neutral thumb appears on hover/idle instead. */
+#chat-app #messages,
+#chat-app .chat-pane-messages,
+#chat-app .mention-results,
+#chat-app .suggestions-container,
+#chat-app .chat-pane-suggestions {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.2s ease;
+}
+#chat-app #messages:hover,
+#chat-app .chat-pane-messages:hover,
+#chat-app .mention-results:hover,
+#chat-app .suggestions-container:hover {
+  scrollbar-color: rgba(127, 127, 150, 0.45) transparent;
+}
+#chat-app #messages::-webkit-scrollbar,
+#chat-app .chat-pane-messages::-webkit-scrollbar,
+#chat-app .mention-results::-webkit-scrollbar {
+  width: 11px;
+  height: 11px;
+}
+#chat-app #messages::-webkit-scrollbar-track,
+#chat-app .chat-pane-messages::-webkit-scrollbar-track,
+#chat-app .mention-results::-webkit-scrollbar-track {
+  background: transparent;
+}
+#chat-app #messages::-webkit-scrollbar-thumb,
+#chat-app .chat-pane-messages::-webkit-scrollbar-thumb,
+#chat-app .mention-results::-webkit-scrollbar-thumb {
+  background: transparent;
+  border: 3px solid transparent;
+  border-radius: 8px;
+  background-clip: padding-box;
+}
+#chat-app #messages:hover::-webkit-scrollbar-thumb,
+#chat-app .chat-pane-messages:hover::-webkit-scrollbar-thumb,
+#chat-app .mention-results:hover::-webkit-scrollbar-thumb {
+  background: rgba(127, 127, 150, 0.45);
+  background-clip: padding-box;
+}
+#chat-app #messages:hover::-webkit-scrollbar-thumb:hover,
+#chat-app .chat-pane-messages:hover::-webkit-scrollbar-thumb:hover {
+  background: rgba(127, 127, 150, 0.7);
+  background-clip: padding-box;
+}
+
+/* ── 2. Connection / empty states: quiet, informative, not a billboard ─ */
+
+#chat-app .gb-state {
+  min-height: 0;
+  margin: 28px auto 0;
+  padding: 10px 18px;
+  align-items: center;
+  gap: 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface, #1a1a24) 72%, transparent);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.08);
+  font-size: 13px;
+  color: var(--text-secondary, #9aa0aa);
+}
+/* Replaces the 6px red bar with a small status dot */
+#chat-app .gb-state::before {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+}
+#chat-app .gb-state-loading::before {
+  background: var(--accent, #7c5cff);
+  animation: mnd-pulse 1.2s ease-in-out infinite;
+}
+#chat-app .gb-state-error::before {
+  background: var(--mnd-warn, #f59e0b);
+}
+/* The error card sits inside the flow while the perpetual reconnect works;
+ * keep it short-lived visually by fading it after a few seconds. */
+#chat-app .gb-state-error {
+  animation: gb-state-calm 0.3s ease;
+}
+@keyframes gb-state-calm {
+  from { opacity: 0; transform: translateY(4px); }
+}
+
+/* ── 3. File output: attachment chips ──────────────────────────────── */
+
+#chat-app .gb-attachment {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 340px;
+  padding: 7px 10px;
+  margin: 2px 0;
+  border: 1px solid color-mix(in srgb, var(--accent, #7c5cff) 22%, transparent);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--accent, #7c5cff) 9%, var(--surface, #1e1e2e));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  font-size: 12.5px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+#chat-app .gb-attachment:hover {
+  border-color: color-mix(in srgb, var(--accent, #7c5cff) 45%, transparent);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+#chat-app .gb-attachment-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent, #7c5cff) 16%, transparent);
+  color: var(--accent, #a78bfa);
+  font-size: 13px;
+  line-height: 1;
+}
+#chat-app .gb-attachment-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: var(--text, #e5e5e5);
+  text-decoration: none;
+}
+#chat-app .gb-attachment-name:hover {
+  text-decoration: underline;
+  color: var(--accent, #a78bfa);
+}
+#chat-app .gb-attachment-btn {
+  padding: 3px 9px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-secondary, #9aa0aa);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+#chat-app .gb-attachment:hover .gb-attachment-btn,
+#chat-app .gb-attachment:focus-within .gb-attachment-btn {
+  opacity: 1;
+}
+#chat-app .gb-attachment-btn:hover {
+  background: color-mix(in srgb, var(--accent, #7c5cff) 18%, transparent);
+  color: var(--text, #fff);
+}
+#chat-app .gb-attachment-btn.gb-attachment-download {
+  color: var(--accent, #a78bfa);
+}
+
+/* ── 4. Console blocks: workspace tool output ──────────────────────── */
+
+#chat-app .gb-console {
+  margin: 8px 0 4px;
+  max-width: 560px;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 11px;
+  background: color-mix(in srgb, currentColor 3%, transparent);
+  overflow: hidden;
+}
+#chat-app .gb-console-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+  background: color-mix(in srgb, currentColor 5%, transparent);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary, #9aa0aa);
+}
+#chat-app .gb-console-head::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+  background: var(--success, #34d399);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--success, #34d399) 22%, transparent);
+}
+#chat-app .gb-console pre {
+  margin: 0;
+  padding: 10px 13px;
+  max-height: 200px;
+  overflow: auto;
+  background: transparent;
+  font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text, #d5d8e0);
+  white-space: pre-wrap;
+  word-break: break-word;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(127, 127, 150, 0.4) transparent;
+}
+
+/* ── 5. Small bubble refinements the restructure leans on ──────────── */
+
+/* Inline file mentions in bot prose stay quiet: the chip is the object. */
+#chat-app .bot-message code {
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-size: 11.5px;
+}

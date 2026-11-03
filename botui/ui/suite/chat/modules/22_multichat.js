@@ -168,6 +168,9 @@
         if (typeof renderVmFileLinks === "function") {
           inner.innerHTML = renderVmFileLinks(inner.innerHTML);
         }
+        if (typeof polishOutputBlocks === "function") {
+          polishOutputBlocks(inner);
+        }
       } catch (e) {
         inner.textContent = content;
       }

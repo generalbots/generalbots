@@ -333,6 +333,7 @@ function addMessage(sender, content, msgId, reasoning) {
     parsed = renderDeepLinks(parsed);
     if (typeof renderVmFileLinks === "function") parsed = renderVmFileLinks(parsed);
     div.innerHTML = '<div class="message-content bot-message">' + thinkingHtml + parsed + "</div>";
+    polishOutputBlocks(div);
     if (content && content.trim() !== "") {
       div.appendChild(createSpeakButton(content));
     }
