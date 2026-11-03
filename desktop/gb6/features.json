@@ -54,7 +54,7 @@
       "id": "GB6-10",
       "title": "Model picker with plain-language trade-offs",
       "promise": "The user can switch models and sees a one-line explanation of each option.",
-      "status": "partial",
+      "status": "shipped",
       "evidence": {
         "issue": "#1637",
         "tests": [
@@ -62,14 +62,14 @@
           "botui/ui/suite/chat/chat-init.js",
           "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": null,
-        "note": "Blocked: only one model is configured, so Fast/Balanced/Quality are disabled and real tier switching cannot be exercised until Vault has llm-model-fast/balanced/quality with distinct models.",
+        "e2e": "Browser: Fast -> reflection/beam-free returned FAST-TIER-OK; Quality -> cohere/north-mini-code:free returned QUALITY-TIER-OK; server logged each tier's model. Balanced falls back to the default and is disabled. Screenshot /tmp/gb6_47_tiers.png.",
+        "note": "Two distinct Kilo models configured and exercised live on 2026-11-03.",
         "automated": "Browser: picker lists the real model per tier; unconfigured tiers are disabled. Routing code selects llm-model-<tier>; only auto is configured in this stack."
       },
       "last_verified": {
         "date": "2026-11-03",
-        "commit": "9dd417509",
-        "environment": "automated/UI checks only; live round-trip blocked"
+        "commit": "8b4da349b",
+        "environment": "sidecar desktop-local, Chrome CDP 1440x900"
       }
     },
     {
@@ -332,10 +332,9 @@
         "python3 scripts/gb6_features_check.py (OK, 14 shipped)",
         "sidecar (desktop-local) + Chrome CDP 1440x900: manual use-case pass, screenshots /tmp/gb6_*.png"
       ],
-      "browser_e2e": "PARTIAL 2026-11-03: 12 features passed the sidecar browser pass; GB6-10 (tier switching) and GB6-18 (OAuth consent round-trip) are blocked on a second model and OAuth credentials. #1634 live release alias is blocked on publishing the tag.",
+      "browser_e2e": "PARTIAL 2026-11-03: 13 features passed the sidecar browser pass; GB6-18 (OAuth consent round-trip) is blocked on Gmail/Outlook client credentials. #1634 live release alias is blocked on publishing the tag.",
       "blocked_on": [
         "published v6.7.0 release (#1634)",
-        "distinct llm-model-fast/balanced/quality (#1637)",
         "Gmail/Outlook OAuth client credentials (#1643)"
       ]
     }
