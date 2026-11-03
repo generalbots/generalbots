@@ -44,33 +44,44 @@ pub async fn search_files(
             }
         };
 
-        let mut meta_map: HashMap<String, u64> = HashMap::new();
+        let mut sizes: std::collections::HashMap<String, u64> =
+            std::collections::HashMap::new();
         if let Ok(objects) = drive.list_objects_with_metadata(bucket, Some(&prefix)).await {
-            for obj in objects {
-                meta_map.insert(obj.key, obj.size);
+            for object in objects {
+                sizes.insert(object.key, object.size);
             }
         }
 
-        let all_items = build_file_list_items(&prefix, &keys, &meta_map);
-        for mut item in all_items {
-            let name_match = item.name.to_lowercase().contains(&query_lower);
+        // Walk the keys themselves: build_file_list_items collapses nested
+        // objects into their top-level folder, so a file inside a folder was
+        // invisible to search.
+        for key in keys {
+            if key.ends_with('/') {
+                continue;
+            }
+            let Some(name) = key.rsplit('/').next().filter(|name| !name.is_empty()) else {
+                continue;
+            };
+            let name_match = name.to_lowercase().contains(&query_lower);
             let mut content_match = false;
-            if !name_match && search_content && !item.is_dir && content_scanned < SEARCH_MAX_CONTENT_FILES
-            {
-                let key = format!("{prefix}{}", item.path);
-                if !item.path.is_empty() {
-                    content_scanned += 1;
-                    content_match =
-                        object_contains_query(drive.as_ref(), bucket, &key, &item.name, &query_lower)
-                            .await;
-                }
+            if !name_match && search_content && content_scanned < SEARCH_MAX_CONTENT_FILES {
+                content_scanned += 1;
+                content_match =
+                    object_contains_query(drive.as_ref(), bucket, &key, name, &query_lower).await;
             }
-            if name_match || content_match {
-                if buckets.len() > 1 {
-                    item.bucket = Some(bucket.clone());
-                }
-                filtered.push(item);
+            if !name_match && !content_match {
+                continue;
             }
+            filtered.push(FileListItem {
+                name: name.to_string(),
+                path: key.clone(),
+                is_dir: false,
+                size: sizes.get(&key).copied().unwrap_or(0),
+                modified: None,
+                is_kb: key.contains(".gbkb"),
+                is_public: false,
+                bucket: (buckets.len() > 1).then(|| bucket.clone()),
+            });
         }
     }
 
