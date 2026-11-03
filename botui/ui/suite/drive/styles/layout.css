@@ -63,7 +63,7 @@
 }
 
 .drive-nav-item.active {
-    background: var(--primary);
+    background: hsl(var(--primary, 217 91% 60%));
     color: white;
 }
 
@@ -76,7 +76,7 @@
 
 .storage-fill {
     height: 100%;
-    background: var(--primary);
+    background: hsl(var(--primary, 217 91% 60%));
     border-radius: 2px;
 }
 
@@ -242,12 +242,12 @@
 }
 
 .file-card:hover {
-    border-color: var(--primary);
+    border-color: hsl(var(--primary, 217 91% 60%));
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 .file-card.selected {
-    border-color: var(--primary);
+    border-color: hsl(var(--primary, 217 91% 60%));
     background: var(--primary-light);
 }
 
@@ -383,7 +383,7 @@
 
 .upload-zone:hover,
 .upload-zone.dragover {
-    border-color: var(--primary);
+    border-color: hsl(var(--primary, 217 91% 60%));
     background: var(--primary-light);
 }
 

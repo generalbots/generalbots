@@ -31,8 +31,8 @@
 }
 
 .top-tab.active {
-    color: var(--primary);
-    border-bottom-color: var(--primary);
+    color: hsl(var(--primary, 217 91% 60%));
+    border-bottom-color: hsl(var(--primary, 217 91% 60%));
     background: transparent;
 }
 
@@ -76,7 +76,7 @@
 
 .bot-search:focus {
     outline: none;
-    border-color: var(--primary);
+    border-color: hsl(var(--primary, 217 91% 60%));
 }
 
 .bot-search::placeholder {
@@ -107,7 +107,7 @@
 
 .bot-item.active {
     background: rgba(99, 102, 241, 0.15);
-    color: var(--primary);
+    color: hsl(var(--primary, 217 91% 60%));
 }
 
 /* ── Bot Cards (grid) ──────────────────────────────────────── */
@@ -125,7 +125,7 @@
 }
 
 .bot-card:hover {
-    border-color: var(--primary);
+    border-color: hsl(var(--primary, 217 91% 60%));
     transform: translateY(-2px);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
@@ -180,7 +180,7 @@
 }
 
 .folder-tile:hover {
-    border-color: var(--primary);
+    border-color: hsl(var(--primary, 217 91% 60%));
     background: rgba(99, 102, 241, 0.05);
     transform: translateY(-1px);
 }
@@ -188,7 +188,7 @@
 .folder-tile-icon {
     font-size: 32px;
     margin-bottom: 10px;
-    color: var(--primary);
+    color: hsl(var(--primary, 217 91% 60%));
 }
 
 .folder-tile-icon svg {

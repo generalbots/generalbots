@@ -35,5 +35,5 @@ let currentGborgBranch = null;
 let bucketLayoutResolved = false;
 
 // Tab state
-let currentTab = "branchdrive";
+let currentTab = "myfiles";
 let sharedCache = [];

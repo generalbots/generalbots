@@ -44,7 +44,12 @@ function bindTopTabs() {
             }
         });
     });
-    var savedTab = sessionStorage.getItem("drive-tab") || TAB_BRANCHDRIVE;
+    var savedTab = sessionStorage.getItem("drive-tab") || TAB_MYFILES;
+    // Older sessions may remember a tab that no longer exists.
+    if (["branchdrive", "bots", "root", "desktop", "external"].indexOf(savedTab) !== -1) {
+        savedTab = TAB_MYFILES;
+        sessionStorage.setItem("drive-tab", savedTab);
+    }
     document.querySelectorAll(".top-tab").forEach(function(t) {
         t.classList.toggle("active", t.dataset.tab === savedTab);
     });

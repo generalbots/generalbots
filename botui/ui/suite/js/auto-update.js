@@ -11,6 +11,9 @@
   var appVersion = currentVersion ? currentVersion.content : "0.0.0";
 
   function checkForUpdate() {
+    // Without a version meta tag the comparison is meaningless (0.0.0 vs the
+    // server version) and the banner appeared on every load. Skip it instead.
+    if (!appVersion || appVersion === "0.0.0") return;
     fetch("/api/product", { cache: "no-store" })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
