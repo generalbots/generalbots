@@ -5,6 +5,8 @@ pub(crate) use std::collections::HashMap;
 
 mod register_drive;
 mod register_directory;
+mod register_botmodels;
 
 pub use register_drive::*;
 pub use register_directory::*;
+pub use register_botmodels::*;

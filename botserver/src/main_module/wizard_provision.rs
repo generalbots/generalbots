@@ -24,6 +24,9 @@ struct Component {
     label: &'static str,
     timeout_secs: u64,
     optional: bool,
+    /// When false the wizard only materialises the files and leaves the
+    /// service to start on first use (heavy dependencies, no blocking).
+    start: bool,
 }
 
 fn emit(event: WizardEvent) {
@@ -61,12 +64,12 @@ fn component_plan() -> Vec<Component> {
         model_mode.eq_ignore_ascii_case("local")
     };
     let mut plan = vec![
-        Component { id: "vault", label: "Local vault", timeout_secs: 90, optional: false },
-        Component { id: "tables", label: "Database", timeout_secs: 90, optional: false },
-        Component { id: "cache", label: "Cache", timeout_secs: 45, optional: false },
-        Component { id: "drive", label: "Object store", timeout_secs: 60, optional: false },
-        Component { id: "vector_db", label: "Vector store", timeout_secs: 60, optional: false },
-        Component { id: "directory", label: "Identity provider", timeout_secs: 90, optional: false },
+        Component { id: "vault", label: "Local vault", timeout_secs: 90, optional: false, start: true },
+        Component { id: "tables", label: "Database", timeout_secs: 90, optional: false, start: true },
+        Component { id: "cache", label: "Cache", timeout_secs: 45, optional: false, start: true },
+        Component { id: "drive", label: "Object store", timeout_secs: 60, optional: false, start: true },
+        Component { id: "vector_db", label: "Vector store", timeout_secs: 60, optional: false, start: true },
+        Component { id: "directory", label: "Identity provider", timeout_secs: 90, optional: false, start: true },
     ];
     if wants_local {
         plan.push(Component {
@@ -74,6 +77,21 @@ fn component_plan() -> Vec<Component> {
             label: "Local model runtime",
             timeout_secs: 120,
             optional: true,
+            start: true,
+        });
+    }
+    // BotModels ships as a pythonbox: the installer carries the archive, so the
+    // wizard only has to unpack it. The virtual environment resolves on first
+    // use (torch-sized downloads), which must never block setup — hence
+    // `start: false`. GB_WIZARD_WITH_BOTMODELS=0 opts out entirely.
+    let with_botmodels = std::env::var("GB_WIZARD_WITH_BOTMODELS").unwrap_or_default();
+    if with_botmodels.trim() != "0" {
+        plan.push(Component {
+            id: "botmodels",
+            label: "AI media service",
+            timeout_secs: 120,
+            optional: true,
+            start: false,
         });
     }
     plan
@@ -133,6 +151,11 @@ async fn provision_component(
             progress(component.id, "failed", &message, started);
             return Err(message);
         }
+    }
+
+    if !component.start {
+        progress(component.id, "ready", "Bundled — starts on first use", started);
+        return Ok(());
     }
 
     if !pm.is_running(component.id) {

@@ -89,6 +89,24 @@ jobs:
           (cd dist/installers && sha256sum -c SHA256SUMS-drive-bin)
           chmod +x dist/installers/minio dist/installers/mc
 
+      - name: Fetch the BotModels pythonbox
+        run: |
+          set -euo pipefail
+          # BotModels ships as a self-contained pythonbox (relocatable CPython +
+          # service sources). Carrying it in installers/ means the desktop
+          # edition provisions the AI media service without a network round
+          # trip; its virtual environment still resolves on first use.
+          TAG=$(git ls-remote --tags --refs https://github.com/generalbots/generalbots.git 'pythonbox-*' \
+            | awk '{print $2}' | sed 's#refs/tags/##' | sort | tail -n 1)
+          if [ -z "$TAG" ]; then
+            echo "::warning::no pythonbox release found; the installer ships without BotModels"
+            exit 0
+          fi
+          mkdir -p dist/installers
+          curl -fsSL -o dist/installers/botmodels-pythonbox-linux-x86_64.tar.gz \
+            "https://github.com/generalbots/generalbots/releases/download/${TAG}/botmodels-pythonbox-linux-x86_64.tar.gz"
+          echo "bundled ${TAG} ($(du -h dist/installers/botmodels-pythonbox-linux-x86_64.tar.gz | cut -f1))"
+
       - name: Assemble Linux installer
         run: |
           set -euo pipefail

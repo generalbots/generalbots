@@ -3,6 +3,8 @@ fastapi==0.115.0
 uvicorn[standard]==0.30.6
 pydantic==2.9.0
 pydantic-settings==2.5.2
+# EmailStr used by the contact schemas: pydantic raises at import time without it.
+email-validator>=2.2.0
 
 # Hardware detection for min/max tier resolution (has /proc + sysctl fallbacks)
 psutil>=6.0.0

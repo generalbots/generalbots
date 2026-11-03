@@ -12,8 +12,8 @@ import json
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from ...core.config import settings
-from ...services.realtime import (
+from ....core.config import settings
+from ....services.realtime import (
     ENERGY_GATE,
     SILENCE_THRESHOLD_MS,
     TARGET_SAMPLE_RATE,
@@ -23,7 +23,7 @@ from ...services.realtime import (
     frame_duration_ms,
     rms_energy,
 )
-from ...core.logging import get_logger
+from ....core.logging import get_logger
 
 logger = get_logger("voice")
 

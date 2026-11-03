@@ -6,6 +6,7 @@ the rules are testable on their own.
 """
 
 from datetime import datetime
+from typing import List
 
 from .schemas import (
     LeadBehavior,

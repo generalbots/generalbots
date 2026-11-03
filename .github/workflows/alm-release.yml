@@ -1,0 +1,204 @@
+name: ALM release binaries
+
+# Publishes the binaries the ALM (Forgejo) CI deploys.
+#
+# The ALM runner no longer compiles anything: it downloads these assets and
+# runs the same deploy steps it always ran. GitHub-hosted runners do the
+# compilation, so there is exactly one build per commit and both CI systems
+# agree on what was built.
+#
+# Where the assets live: one immutable release per build, tagged
+# `alm-<UTC timestamp>-<short sha>` (for example alm-20261103T141600Z-ac25e5a).
+# Releases are immutable in this organisation, so a tag can never be reused —
+# a new tag per build is the only shape that works and it also gives ALM an
+# unambiguous ordering: it picks the newest `alm-*` tag with `git ls-remote`
+# and refuses a build older than a few hours (that is what a red or missing
+# build looks like from the other side).
+#
+# The release URL for a given build (public repository, no token needed):
+#   https://github.com/generalbots/generalbots/releases/download/alm-<stamp>-<sha>/MANIFEST.json
+#
+# Only the newest releases are kept; older ones are pruned after publishing.
+#
+# Build profile matches what ALM used to compile on the runner:
+#   botserver: debug, default features   (the production feature set)
+#   botui:     debug, default features
+# Release tarballs for end users stay in `.github/workflows/desktop-binaries.yml`.
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "botserver/**"
+      - "botlib/**"
+      - "botui/**"
+      - "botschema/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/alm-release.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Newer pushes supersede older builds: only the newest main commit matters,
+# and its ALM run is the one that deploys.
+concurrency:
+  group: alm-release-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  build:
+    name: Build deployable binaries
+    runs-on: ubuntu-22.04
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential clang pkg-config \
+            libpq-dev libssl-dev liblzma-dev
+
+      - name: Install Rust
+        run: |
+          rustup set profile minimal
+          rustup toolchain install stable
+          rustup default stable
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-alm-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-alm-
+
+      - name: Build botserver (debug, default features)
+        run: cargo build -p botserver
+
+      - name: Build botui (debug, default features)
+        run: cargo build -p botui
+
+      - name: Package assets and manifest
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          install -m 0755 target/debug/botserver dist/botserver-linux-x86_64
+          install -m 0755 target/debug/botui     dist/botui-linux-x86_64
+
+          python3 - <<'PY'
+          import hashlib
+          import json
+          import os
+          import platform
+          import subprocess
+
+          dist = "dist"
+          assets = {}
+          for name in sorted(os.listdir(dist)):
+              if name == "MANIFEST.json":
+                  continue
+              path = os.path.join(dist, name)
+              digest = hashlib.sha256()
+              with open(path, "rb") as handle:
+                  for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                      digest.update(chunk)
+              assets[name] = {
+                  "sha256": digest.hexdigest(),
+                  "size": os.path.getsize(path),
+              }
+
+          manifest = {
+              "schema": 1,
+              "commit": os.environ["GITHUB_SHA"],
+              "ref": os.environ["GITHUB_REF"],
+              "run_id": os.environ["GITHUB_RUN_ID"],
+              "run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+              "repository": os.environ["GITHUB_REPOSITORY"],
+              "built_at": subprocess.check_output(
+                  ["date", "-u", "+%Y-%m-%dT%H:%M:%SZ"], text=True
+              ).strip(),
+              "target": "x86_64-unknown-linux-gnu",
+              "profile": "debug",
+              "features": "default",
+              "build_arch": platform.machine(),
+              "assets": assets,
+          }
+          with open(os.path.join(dist, "MANIFEST.json"), "w", encoding="utf-8") as handle:
+              json.dump(manifest, handle, indent=2, sort_keys=True)
+              handle.write("\n")
+          print(json.dumps(manifest, indent=2))
+          PY
+
+          (cd dist && ls -lh)
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: alm-binaries
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 14
+
+  publish:
+    name: Publish the build as a release
+    needs: [build]
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: alm-binaries
+          path: dist
+          merge-multiple: true
+
+      - name: Publish assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          REPO="${GITHUB_REPOSITORY}"
+          # Sortable, unique, and readable in the releases list.
+          TAG="alm-$(date -u +%Y%m%dT%H%M%SZ)-${GITHUB_SHA:0:7}"
+
+          gh release create "$TAG" --draft --repo "$REPO" --latest=false \
+            --title "ALM binaries ${GITHUB_SHA:0:7}" \
+            --notes "Deployable binaries for the ALM (Forgejo) CI.
+
+          commit: ${GITHUB_SHA}
+          built:  $(date -u +%Y-%m-%dT%H:%M:%SZ)
+          run:    ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}
+
+          ALM downloads these files and runs the deploy it always ran; it does
+          not compile anything. \`MANIFEST.json\` lists each asset with its
+          sha256 and the time it was built."
+          gh release upload "$TAG" dist/* --repo "$REPO"
+          # Assets can only be attached to a draft: publishing first makes
+          # the release immutable and every upload fails with HTTP 422.
+          gh release edit "$TAG" --draft=false --repo "$REPO"
+          echo "published ${GITHUB_SERVER_URL}/${REPO}/releases/tag/${TAG}"
+
+      - name: Prune old builds
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          REPO="${GITHUB_REPOSITORY}"
+          # Assets are hundreds of megabytes each: keep the newest five.
+          mapfile -t stale < <(gh release list --repo "$REPO" --limit 100 \
+            --json tagName --jq '.[] | select(.tagName | startswith("alm-")) | .tagName' \
+            | tail -n +6)
+          for tag in "${stale[@]}"; do
+            gh release delete "$tag" --repo "$REPO" --yes --cleanup-tag >/dev/null 2>&1 || true
+          done
