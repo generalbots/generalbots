@@ -180,9 +180,11 @@ window.ChatSwitchBot = function (botName) {
     if (!local || local.length === 0) return;
     var pane = document.getElementById("messages");
     if (pane) pane.innerHTML = "";
+    ChatState.suppressPersist = true;
     local.forEach(function (m) {
       addMessage(m.sender, m.content);
     });
+    ChatState.suppressPersist = false;
     scrollToBottom(false);
   }
 
@@ -200,9 +202,11 @@ window.ChatSwitchBot = function (botName) {
         }
         var pane = document.getElementById("messages");
         if (pane) pane.innerHTML = "";
+        ChatState.suppressPersist = true;
         data.messages.forEach(function (m) {
           addMessage(m.role === "user" ? "user" : "bot", m.content);
         });
+        ChatState.suppressPersist = false;
         scrollToBottom(false);
       })
       .catch(function () { restoreLocalHistory(); });

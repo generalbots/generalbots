@@ -100,7 +100,9 @@ function setChatStatus(text) {
 function addMessage(sender, content, msgId, reasoning) {
   var messages = document.getElementById("messages");
   if (!messages) return;
-  if (content && sender) persistLocalMessage(sender, content);
+  // Do not re-persist messages that are being replayed from history: it
+  // doubled the stored transcript on every reload (three identical greetings).
+  if (content && sender && !ChatState.suppressPersist) persistLocalMessage(sender, content);
 
   var div = document.createElement("div");
   div.className = "message " + sender;
