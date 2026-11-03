@@ -116,13 +116,13 @@ test("FUNC-02: GBSandbox.addPending wired in terminal_use", function () {
 });
 
 test("FUNC-03: Privacy toggle controls drive_context and user_memory", function () {
-  var src = readFile("chat/chat-init.js");
-  assert(src.indexOf("GBPrivacy") !== -1, "GBPrivacy not referenced in chat-init");
+  var src = readFile("chat/chat-send.js");
+  assert(src.indexOf("GBPrivacy") !== -1, "GBPrivacy not referenced in chat-send");
   assert(src.indexOf("save_memory") !== -1, "save_memory check not found");
 });
 
 test("FUNC-04: Anonymous sessions skip memory and drive_context", function () {
-  var src = readFile("chat/chat-init.js");
+  var src = readFile("chat/chat-send.js");
   assert(src.indexOf("isAnonymous") !== -1, "isAnonymous check not found");
   assert(src.indexOf("!isAnonymous") !== -1, "isAnonymous gating not applied");
 });
@@ -141,6 +141,8 @@ var featureFiles = [
   "chat/chat-artifacts.js",
   "chat/chat-render.js",
   "chat/chat-messages.js",
+  "chat/chat-send.js",
+  "chat/chat-session.js",
   "chat/modules/30_citations.js",
   "chat/modules/50_memory.js",
   "chat/modules/60_computer_use.js",
@@ -303,7 +305,7 @@ test("BBSIA-04: settings preview mode toggle exists", function () {
 });
 
 test("BBSIA-05: drive_context framed as untrusted data", function () {
-  var src = readFile("chat/chat-init.js");
+  var src = readFile("chat/chat-send.js");
   assert(src.indexOf("untrusted: true") !== -1, "untrusted flag not found in drive_context");
   assert(src.indexOf("source: \"user_drive\"") !== -1, "source label not found in drive_context");
 });
@@ -684,6 +686,27 @@ test("ISSUE #1650: the epic definition of done is recorded", function () {
     record.epic.definition_of_done.length >= 4, "definition of done missing");
   assert(record.epic.removed_from_scope.indexOf("GB6-22") !== -1,
     "removed scope not recorded");
+});
+
+test("SIZE: touched chat and pipeline files stay under the 450-line limit", function () {
+  var files = [
+    "chat/chat-init.js",
+    "chat/chat-send.js",
+    "chat/chat-session.js",
+    "chat/chat-messages.js",
+    "chat/chat-render.js",
+    "chat/chat-artifacts.js",
+    "../../../botserver/src/core/bot/pipeline/exec.rs",
+    "../../../botserver/src/core/bot/pipeline/system_prompt.rs",
+    "../../../botserver/src/core/bot/pipeline/start_gate.rs",
+    "../../../botserver/src/core/bot/pipeline/turn_context.rs",
+    "../../../botserver/src/core/bot/pipeline/agent_vm_context.rs",
+    "../../../botserver/src/main_module/routes/computer_use_routes.rs"
+  ];
+  files.forEach(function (file) {
+    var lines = readFile(file).split("\n").length;
+    assert(lines <= 450, file + " has " + lines + " lines (max 450)");
+  });
 });
 
 // ═══════════════════════════════════════════════════════════════════
