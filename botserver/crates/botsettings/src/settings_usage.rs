@@ -95,7 +95,7 @@ fn prices_for(state: &Arc<AppState>, models: &[String]) -> BTreeMap<String, f64>
     prices
 }
 
-/// GET /api/user/usage/summary?days=30/// GET /api/user/usage/summary?days=30
+/// GET /api/user/usage/summary?days=30
 pub async fn usage_summary(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
