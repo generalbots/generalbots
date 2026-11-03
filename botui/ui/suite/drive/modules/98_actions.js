@@ -20,15 +20,71 @@ async function deleteItem(path) {
 
 async function downloadSelected() {
     if (selectedFiles.size === 0) return;
-    var paths = Array.from(selectedFiles).filter(function(p) {
+    var paths = [];
+    var folders = [];
+    Array.from(selectedFiles).forEach(function (p) {
         var el = document.querySelector('[data-path="' + CSS.escape(p) + '"]');
-        return !el || el.dataset.type !== "folder";
+        if (el && el.dataset.type === "folder") folders.push(p);
+        else paths.push(p);
     });
-    if (paths.length === 0) { showNotification("Select files to download (folders are excluded)", "warning"); return; }
-    showNotification("Downloading " + paths.length + " file(s)...", "info");
-    for (var i = 0; i < paths.length; i++) {
-        await downloadFile(paths[i]);
+    if (paths.length === 0 && folders.length === 0) {
+        showNotification("Select files or a folder to download", "warning");
+        return;
     }
+    // #1639 — one archive instead of N separate downloads. A folder selection
+    // exports recursively; mixed selections produce one archive per folder
+    // plus one for the loose files.
+    try {
+        if (folders.length === 0) {
+            await exportPaths(paths, null);
+        } else {
+            for (var i = 0; i < folders.length; i++) {
+                await exportPaths([], folders[i]);
+            }
+            if (paths.length) await exportPaths(paths, null);
+        }
+    } catch (err) {
+        showNotification("Export failed: " + err.message, "error");
+    }
+}
+
+async function exportPaths(paths, folder) {
+    showNotification("Building archive" + (folder ? " for " + folder : "") + "...", "info");
+    var token = "";
+    try {
+        token =
+            (window.getGBAccessToken && window.getGBAccessToken()) ||
+            localStorage.getItem("gb-access-token") ||
+            sessionStorage.getItem("gb-access-token") ||
+            "";
+    } catch (e) {}
+    var res = await fetch(API_BASE + "/export", {
+        method: "POST",
+        headers: Object.assign(
+            { "Content-Type": "application/json" },
+            token ? { Authorization: "Bearer " + token } : {},
+        ),
+        body: JSON.stringify({
+            bucket: getEffectiveBucket(),
+            scope: currentScope,
+            paths: paths || [],
+            folder: folder || null,
+        }),
+    });
+    if (!res.ok) {
+        var detail = await res.json().catch(function () { return {}; });
+        throw new Error(detail.error || ("HTTP " + res.status));
+    }
+    var blob = await res.blob();
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    link.href = url;
+    link.download = folder ? folder.split("/").pop() + ".zip" : "general-bots-export.zip";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 5000);
+    showNotification("Archive downloaded", "success");
 }
 
 async function deleteSelected() {

@@ -53,6 +53,7 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
             .route("/api/files/quota", axum_get(crate::drive::drive_handlers::quota))
             .route("/api/files/recent", axum_get(crate::drive::drive_handlers::recent_files))
             .route("/api/files/search", axum_get(crate::drive::drive_handlers::search_files))
+            .route("/api/files/export", axum_post(crate::drive::drive_handlers::export_archive))
             .route("/api/files/write", axum_post(crate::drive::drive_handlers::upload_file_to_drive))
             .route("/api/files/versions/list", axum_post(crate::drive::drive_handlers::list_versions))
             .route("/api/files/versions/restore", axum_post(crate::drive::drive_handlers::restore_version))
@@ -70,6 +71,10 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
             .route("/api/files/favorite/toggle", axum_post(crate::drive::drive_handlers::toggle_star))
             .route("/api/files/shared", axum_get(crate::drive::drive_handlers::list_shared))
             .route("/api/files/share", axum_post(crate::drive::drive_handlers::share_folder))
+            .route(
+                "/api/files/share/recipients",
+                axum_get(crate::drive::drive_handlers::list_share_recipients),
+            )
             .route("/api/files/trash", axum_get(crate::drive::drive_handlers::list_trash))
             .route("/api/files/trash/move", axum_post(crate::drive::drive_handlers::trash_file))
             .route("/api/files/trash/restore", axum_post(crate::drive::drive_handlers::restore_trash))

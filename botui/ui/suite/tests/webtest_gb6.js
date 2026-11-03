@@ -306,6 +306,26 @@ test("GB6-09: markdown artifacts render as documents and save under the title", 
 });
 
 // ═══════════════════════════════════════════════════════════════════
+// SHARE AND EXPORT (GB6-13 / #1639)
+// ═══════════════════════════════════════════════════════════════════
+
+test("GB6-13: share modal sends a visible expiry", function () {
+  var src = readFile("drive/modules/08_modals.js");
+  assert(src.indexOf("share-expiry") !== -1, "expiry selector not found");
+  assert(src.indexOf("expires_at") !== -1, "expires_at not sent to the API");
+  assert(src.indexOf("isExpired") !== -1, "expired links not detected in the modal");
+});
+
+test("GB6-13: recipient sharing and archive export are wired", function () {
+  var modals = readFile("drive/modules/08_modals.js");
+  assert(modals.indexOf("/share/recipients") !== -1, "recipient search not wired");
+  assert(modals.indexOf('"/share"') !== -1, "share call not wired");
+  var actions = readFile("drive/modules/98_actions.js");
+  assert(actions.indexOf("/export") !== -1, "archive export endpoint not used");
+  assert(actions.indexOf("exportPaths") !== -1, "export helper not found");
+});
+
+// ═══════════════════════════════════════════════════════════════════
 // JS SYNTAX VALIDATION
 // ═══════════════════════════════════════════════════════════════════
 
