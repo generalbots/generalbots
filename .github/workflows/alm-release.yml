@@ -172,7 +172,7 @@ jobs:
           # Sortable, unique, and readable in the releases list.
           TAG="alm-$(date -u +%Y%m%dT%H%M%SZ)-${GITHUB_SHA:0:7}"
 
-          gh release create "$TAG" --repo "$REPO" --latest=false \
+          gh release create "$TAG" --draft --repo "$REPO" --latest=false \
             --title "ALM binaries ${GITHUB_SHA:0:7}" \
             --notes "Deployable binaries for the ALM (Forgejo) CI.
 
@@ -184,6 +184,9 @@ jobs:
           not compile anything. \`MANIFEST.json\` lists each asset with its
           sha256 and the time it was built."
           gh release upload "$TAG" dist/* --repo "$REPO"
+          # Assets can only be attached to a draft: publishing first makes
+          # the release immutable and every upload fails with HTTP 422.
+          gh release edit "$TAG" --draft=false --repo "$REPO"
           echo "published ${GITHUB_SERVER_URL}/${REPO}/releases/tag/${TAG}"
 
       - name: Prune old builds

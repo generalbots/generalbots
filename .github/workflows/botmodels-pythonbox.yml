@@ -255,7 +255,7 @@ jobs:
           # One immutable release per build; the tag is sortable and unique.
           TAG="pythonbox-$(date -u +%Y%m%dT%H%M%SZ)-${GITHUB_SHA:0:7}"
 
-          gh release create "$TAG" --repo "$REPO" --latest=false \
+          gh release create "$TAG" --draft --repo "$REPO" --latest=false \
             --title "BotModels pythonbox ${GITHUB_SHA:0:7}" \
             --notes "Self-contained Python service bundle for the desktop edition.
 
@@ -275,6 +275,9 @@ jobs:
           The bundle carries its own CPython; no system interpreter is needed.
           \`pythonbox-manifest.json\` records the commit and the archive checksum."
           gh release upload "$TAG" dist/* --repo "$REPO"
+          # Assets can only be attached to a draft: publishing first makes
+          # the release immutable and every upload fails with HTTP 422.
+          gh release edit "$TAG" --draft=false --repo "$REPO"
           echo "published ${GITHUB_SERVER_URL}/${REPO}/releases/tag/${TAG}"
 
       - name: Prune old bundles
