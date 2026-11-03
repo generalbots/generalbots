@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use base64::Engine;
 
+use log::info;
 use super::types::{PipelineResult, SessionIdentity};
 
 pub type PipelineFn = std::sync::Arc<
@@ -110,7 +111,12 @@ pub async fn process_message_internal(
         let _ = sm.get_or_create_session_by_id(session_id, user_id, bot_uuid, "");
     }
 
+    info!(
+        "WS message: type={msg_type} content_chars={} session={session_id} bot={bot_name}",
+        user_text.chars().count()
+    );
     if msg_type == 7 || msg_type == 0 {
+        info!("WS message type {msg_type} is consumed without a reply");
         return Ok(());
     }
 
@@ -479,15 +485,18 @@ pub async fn process_message_internal(
                      `language` is python, node or shell. The tool writes the program into \
                      program/, runs it in the conversation folder, and returns stdout, \
                      stderr and every file it finds in output/. \
-                     Dependencies: prefer the language standard library. When a third-party \
-                     package is genuinely required, pass it in \\\"packages\\\" (pip for \
-                     python, npm for node) instead of calling pip/npm inside the program, \
-                     e.g. \\\"packages\\\":[\\\"pandas\\\",\\\"openpyxl\\\"]. Use the distribution \
+                     Dependencies: prefer the language standard library. Declare EVERY \
+                     third-party package the program imports in \\\"packages\\\" (pip for \
+                     python, npm for node), EVEN the preinstalled ones: a declared package \
+                     is installed before the program starts, so the first run on a cold \
+                     workspace cannot race the background bootstrap. Never call pip/npm inside \
+                     the program, e.g. \\\"packages\\\":[\\\"reportlab\\\"] for PDFs and \
+                     \\\"packages\\\":[\\\"pandas\\\",\\\"openpyxl\\\"] for spreadsheets. Use the distribution \
                      name for the import (docx -> python-docx, PIL -> pillow, yaml -> pyyaml, \
                      cv2 -> opencv-python-headless, sklearn -> scikit-learn, bs4 -> \
                      beautifulsoup4). The workspace ships with pandas, numpy, openpyxl, \
                      python-pptx, pillow, matplotlib, requests, python-docx, reportlab, \
-                     beautifulsoup4, lxml and tabulate; declare anything else. If a run \
+                     beautifulsoup4, lxml and tabulate; the background bootstrap installs them too. If a run \
                      reports a missing module, add it to packages and run again. \
                      Add \\\"background\\\": true for long jobs (renders, downloads, training): \
                      the job keeps running while the user moves to another conversation and \

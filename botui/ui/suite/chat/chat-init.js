@@ -120,20 +120,34 @@ function sendMessage(messageContent) {
     // Delivery guard: a send that never reaches the server used to look like a
     // bot that ignores the user. Watch for any frame of this conversation for
     // a few seconds; if nothing arrives, reopen the socket and resend once.
-    ChatState.pendingSend = { payload: sentPayload, at: Date.now(), retried: false };
+    ChatState.pendingSend = {
+      payload: sentPayload,
+      at: Date.now(),
+      attempts: 1,
+      acked: false,
+    };
     setTimeout(function () {
       var pending = ChatState.pendingSend;
       if (!pending || pending.payload !== sentPayload) return;
-      if (ChatState.lastFrameAt && ChatState.lastFrameAt >= pending.at) {
+      // Only the server's own receipt proves the turn was accepted; another
+      // frame (welcome, suggestions) can arrive while the message was lost.
+      if (pending.acked) {
         ChatState.pendingSend = null;
         return;
       }
-      ChatState.pendingSend = null;
-      if (pending.retried) return;
-      sentPayload.retried = true;
+      if (pending.attempts >= 3) {
+        ChatState.pendingSend = null;
+        notify("Message not delivered — reconnecting", "error");
+        return;
+      }
+      ChatState.pendingSend = {
+        payload: sentPayload,
+        at: Date.now(),
+        attempts: pending.attempts + 1,
+        acked: false,
+      };
       if (!Array.isArray(ChatState.offlineQueue)) ChatState.offlineQueue = [];
       ChatState.offlineQueue.push(sentPayload);
-      try { if (ChatState.ws) ChatState.ws.close(); } catch (e) {}
       if (typeof connectWebSocket === "function") connectWebSocket();
     }, 6000);
     // GB6-15: the attachment leaves the composer with a visible outcome

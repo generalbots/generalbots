@@ -115,6 +115,23 @@ pub async fn handle_ws(
             msg = ws_receiver.next() => {
                 match msg {
                     Some(Ok(Message::Text(text))) => {
+                        info!(
+                            "WS frame received: session={session_id} bytes={} head={}",
+                            text.len(),
+                            text.chars().take(70).collect::<String>()
+                        );
+                        // Receipt: the client clears its retry timer on this
+                        // frame only, so a turn accepted here is never resent
+                        // and one dropped by a dying socket is.
+                        let ack = serde_json::json!({
+                            "type": "message_received",
+                            "session_id": session_id,
+                        });
+                        let _ = ws_sender
+                            .lock()
+                            .await
+                            .send(Message::Text(ack.to_string()))
+                            .await;
                         let sink = WebSocketSink(ws_sender.clone());
                         let identity = SessionIdentity {
                             sink: &sink,

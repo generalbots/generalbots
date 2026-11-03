@@ -140,20 +140,10 @@
   }
 
   function newConversation() {
-    // Desktop single-pane chat: a "new conversation" is a fresh session in the
-    // same pane. Routing it through the parallel-tab strip created a tab that
-    // was pruned immediately and left two sockets on one session, so the
-    // greeting rendered twice and the view stayed on the old conversation.
-    // The strip keeps its own "+" button for parallel chats.
-    // A full reload is the one path that guarantees a clean conversation:
-    // exactly one socket, and /api/auth mints a fresh session because no
-    // session_id is requested. Switching the socket in place raced with the
-    // boot connect and rendered the greeting twice.
-    try {
-      sessionStorage.setItem("gb:new-conversation", "1");
-    } catch (e) {}
-    window.location.reload();
-    return;
+    // A new conversation is a new TAB in the same chat window. Mounting a
+    // parallel tab costs no reload, keeps the strip visible, and the user can
+    // switch back with one click. The reload is only the fallback for a chat
+    // that is not mounted (no #messageInput — deeper app pages).
     var chatMounted = !!document.getElementById("messageInput");
     if (chatMounted && window.GBMultiChat && typeof window.GBMultiChat.newChatTab === "function") {
       if (window.GBMultiChat.newChatTab()) {
@@ -161,13 +151,10 @@
         return;
       }
     }
-    if (window.openDeepLink) {
-      // #1432 — New Conversation always opens a NEW chat window with a
-      // fresh session, even when a chat window is already open; the new
-      // window is created focused/raised (openDeepLink focuses on open).
-      window.openDeepLink("chat", {}, { new: true });
-    }
-    highlightActive("");
+    try {
+      sessionStorage.setItem("gb:new-conversation", "1");
+    } catch (e) {}
+    window.location.reload();
   }
 
   // ── User profile block (moved from the taskbar tray) ─────────────

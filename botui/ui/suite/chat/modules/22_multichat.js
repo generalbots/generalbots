@@ -683,6 +683,13 @@
         kept.unshift(st);
         return;
       }
+      // A tab created seconds ago earns a grace period: its socket mints the
+      // session asynchronously, and the strip render triggered right after
+      // createTab used to wipe the tile before that session ever existed.
+      if (!st.sessionId && st.fresh && Date.now() - st.fresh < 120000) {
+        kept.push(st);
+        return;
+      }
       if (!st.sessionId || seen[st.sessionId]) return;
       seen[st.sessionId] = true;
       kept.push(st);

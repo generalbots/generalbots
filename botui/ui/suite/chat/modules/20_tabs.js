@@ -120,6 +120,11 @@ window.GBTabs = {
     if (opts.sessionId) tab.sessionId = opts.sessionId;
     if (opts.botId) tab.botId = opts.botId;
     if (opts.faviconGlyph) tab.faviconGlyph = opts.faviconGlyph;
+    // A brand-new tab has no session yet (its socket mints one after the
+    // upgrade). Mark it so the conversation prune (chat/modules/22) cannot
+    // delete it between create and first use — the prune used to drop every
+    // fresh tab on the very strip render that was supposed to show it.
+    tab.fresh = Date.now();
     // Enforce the strip cap: drop the OLDEST unpinned tab when full.
     if (GBTabs.state.tabs.length >= 10) {
       var dropIdx = -1;

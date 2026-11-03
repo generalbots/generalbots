@@ -9,9 +9,21 @@ use std::path::{Path, PathBuf};
 /// Returns the path of `file` inside the bot's `.gbdialog`, accepting both the
 /// historical `<bot>.gborg` layout and the real `<org-id>.gborg` one.
 pub fn resolve_bot_file(work_root: &str, bot_name: &str, file: &str) -> Option<PathBuf> {
+    resolve_bot_file_in(work_root, bot_name, "gbdialog", file)
+}
+
+/// Same lookup for any of the bot's sibling trees (`gbdialog`, `gbot`, `gbkb`,
+/// `gbdrive`). The prompt lives in `.gbot`, so reusing the dialog-only resolver
+/// made `PROMPT-WEB.md` invisible and the model ran without instructions.
+pub fn resolve_bot_file_in(
+    work_root: &str,
+    bot_name: &str,
+    tree: &str,
+    file: &str,
+) -> Option<PathBuf> {
     let root = Path::new(work_root);
     let direct = root.join(format!(
-        "{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{file}"
+        "{bot_name}.gborg/{bot_name}.gbai/{bot_name}.{tree}/{file}"
     ));
     if direct.exists() {
         return Some(direct);
@@ -28,7 +40,7 @@ pub fn resolve_bot_file(work_root: &str, bot_name: &str, file: &str) -> Option<P
         if !is_org || !dir.is_dir() {
             continue;
         }
-        let candidate = dir.join(format!("{bot_name}.gbai/{bot_name}.gbdialog/{file}"));
+        let candidate = dir.join(format!("{bot_name}.gbai/{bot_name}.{tree}/{file}"));
         if candidate.exists() {
             return Some(candidate);
         }

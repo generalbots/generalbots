@@ -70,9 +70,10 @@ pub fn load_system_prompt_for_channel(bot_name: &str, channel: &str) -> String {
         "PROMPT.txt".to_string(),
         "prompt.txt".to_string(),
     ];
-    let channel_prompt = crate::core::bot::pipeline::tool_paths::resolve_bot_file(
+    let channel_prompt = crate::core::bot::pipeline::tool_paths::resolve_bot_file_in(
         &work_dir,
         bot_name,
+        "gbot",
         &channel_file,
     )
     .and_then(|path| std::fs::read_to_string(path).ok());
@@ -81,9 +82,10 @@ pub fn load_system_prompt_for_channel(bot_name: &str, channel: &str) -> String {
             .iter()
             .skip(2)
             .find_map(|name| {
-                crate::core::bot::pipeline::tool_paths::resolve_bot_file(
+                crate::core::bot::pipeline::tool_paths::resolve_bot_file_in(
                     &work_dir,
                     bot_name,
+                    "gbot",
                     name,
                 )
                 .and_then(|path| std::fs::read_to_string(path).ok())
@@ -94,7 +96,7 @@ pub fn load_system_prompt_for_channel(bot_name: &str, channel: &str) -> String {
         };
     }
     let base_prompt = candidates.iter().skip(2).find_map(|name| {
-        crate::core::bot::pipeline::tool_paths::resolve_bot_file(&work_dir, bot_name, name)
+        crate::core::bot::pipeline::tool_paths::resolve_bot_file_in(&work_dir, bot_name, "gbot", name)
             .and_then(|path| std::fs::read_to_string(path).ok())
     });
     if let Some(p) = base_prompt {

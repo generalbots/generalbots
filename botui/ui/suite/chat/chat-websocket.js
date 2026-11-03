@@ -83,19 +83,31 @@ function showAuthRequired(botName) {
   console.warn("[WS] bot '" + botName + "' is private; WebSocket not attempted");
 }
 
+// One dial at a time: several boot modules call connectWebSocket() while the
+// first probe is still in flight, and each late callback used to dial another
+// socket. The loser stayed open as an orphan while ChatState.ws pointed at a
+// dead one, so the composer kept writing into a closed socket.
+var chatDialSeq = 0;
+
 function connectWebSocket() {
-  if (ChatState.ws) ChatState.ws.close();
+  var seq = ++chatDialSeq;
+  if (ChatState.ws) {
+    // Detach lifecycles first: the superseded socket must not schedule dials.
+    try { ChatState.ws.onclose = null; ChatState.ws.onopen = null; } catch (e) {}
+    try { ChatState.ws.close(); } catch (e) {}
+  }
   updateConnectionStatus("connecting");
   probeBotAccess(function (state) {
+    if (seq !== chatDialSeq) return;
     if (state === "auth_required") {
       showAuthRequired(ChatState.currentBotName);
       return;
     }
-    dialChatSocket();
+    dialChatSocket(seq);
   });
 }
 
-function dialChatSocket() {
+function dialChatSocket(seq) {
   // The socket must carry the suite token: the server verifies it and uses
   // that identity over the (possibly stale) user_id the page remembers.
   var socketToken = "";
@@ -118,6 +130,14 @@ function dialChatSocket() {
       // Any frame proves the socket is alive; the send guard in chat-init
       // uses this to decide whether a message needs to be resent.
       ChatState.lastFrameAt = Date.now();
+
+      // Server receipt for a chat turn. The send guard in chat-init waits for
+      // this instead of "any frame", so a message accepted by the socket but
+      // lost in a dying connection is resent instead of silently ignored.
+      if (data.type === "message_received") {
+        if (ChatState.pendingSend) ChatState.pendingSend.acked = true;
+        return;
+      }
 
       if (data.type === "connected") {
         ChatState.reconnectAttempts = 0;
@@ -189,16 +209,20 @@ function dialChatSocket() {
       notify("Disconnected from chat server", "error");
       ChatState.disconnectNotified = true;
     }
-    if (ChatState.reconnectAttempts < ChatState.maxReconnectAttempts) {
-      ChatState.reconnectAttempts++;
-      updateConnectionStatus("connecting");
-      setTimeout(connectWebSocket, 1000 * ChatState.reconnectAttempts);
-    }
+    // Keep dialling forever with a capped backoff. The old code stopped after
+    // five attempts and left the app permanently "Disconnected" — no thinking
+    // indicator, no reply, and the composer looked broken.
+    ChatState.reconnectAttempts++;
+    var delay = Math.min(1000 * ChatState.reconnectAttempts, 10000);
+    updateConnectionStatus("connecting");
+    setTimeout(connectWebSocket, delay);
   };
 
   ChatState.ws.onopen = function () {
     // Stale socket racing its replacement: ignore its lifecycle entirely.
     if (ChatState.ws !== ws) return;
+    ChatState.reconnectAttempts = 0;
+    ChatState.disconnectNotified = false;
     // Reset streaming state and reveal the app (the original onopen — its
     // logic was silently DISCARDED by a second onopen assignment below,
     // leaving the loading overlay stuck on every reconnect).
