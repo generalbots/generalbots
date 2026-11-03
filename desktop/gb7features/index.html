@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>GB7 — Chat + Drive Features</title>
+<meta name="description" content="Commercial feature set for the GB7 Chat + Drive edition: what each capability delivers and its current availability." />
+<style>
+  :root {
+    --bg: #ffffff;
+    --panel: #f7f9fc;
+    --panel-2: #eef2f8;
+    --ink: #1a202c;
+    --muted: #5b6578;
+    --line: #d9e0ea;
+    --accent: #2563eb;
+    --ok: #16a34a;
+    --warn: #d97706;
+    --bad: #dc2626;
+    --grey: #6b7280;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .wrap { max-width: 1360px; margin: 0 auto; padding: 0 24px 64px; }
+  header.hero {
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(180deg, #f0f5ff 0%, #ffffff 100%);
+    padding: 40px 0 24px;
+    margin-bottom: 24px;
+  }
+  header.hero .wrap { padding-bottom: 0; }
+  .brand { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .brand img { height: 32px; width: auto; }
+  .brand span { color: var(--accent); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; font-weight: 700; }
+  h1 { font-size: clamp(26px, 3.4vw, 38px); line-height: 1.12; margin: 8px 0 10px; letter-spacing: -.02em; }
+  .lede { color: var(--muted); max-width: 90ch; margin: 0; }
+  .counts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+  .count { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 5px 12px; font-size: 12.5px; color: var(--muted); }
+  .count strong { color: var(--ink); }
+
+  /* Cards on the left, availability table on the right — side by side. */
+  .layout { display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: 30px; align-items: start; }
+  .table-col { position: sticky; top: 18px; }
+
+  .section { margin: 28px 0 12px; }
+  .section h2 { font-size: 18px; margin: 0 0 6px; letter-spacing: -.01em; }
+  .section p { color: var(--muted); margin: 0 0 14px; max-width: 80ch; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .card:hover { border-color: var(--accent); }
+  .card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .id { color: var(--muted); font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  .title { font-weight: 700; font-size: 15px; color: var(--ink); margin: 0; display: flex; align-items: center; gap: 8px; }
+  .title svg { width: 18px; height: 18px; flex: 0 0 18px; stroke: var(--accent); }
+  .desc { color: var(--muted); font-size: 13px; margin: 0; }
+  .outcome { color: var(--ink); font-size: 12.5px; background: #ffffff; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; margin-top: 2px; }
+  .outcome strong { color: var(--accent); }
+  .note { color: var(--muted); font-size: 12px; font-style: italic; margin: 0; }
+  .tag { display: inline-block; border-radius: 999px; padding: 1px 9px; font-size: 11px; font-weight: 700; white-space: nowrap; }
+  .s-shipped { background: #dcfce7; color: #166534; }
+  .s-partial { background: #fef3c7; color: #92400e; }
+  .s-notshipped { background: #fee2e2; color: #991b1b; }
+
+  .table-panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+  .table-panel h2 { font-size: 16px; margin: 0 0 4px; letter-spacing: -.01em; }
+  .table-panel .hint { color: var(--muted); font-size: 12.5px; margin: 0 0 14px; }
+  .status-table { width: 100%; border-collapse: collapse; }
+  .status-table th { text-align: left; color: var(--muted); font-size: 10.5px; text-transform: uppercase;
+    letter-spacing: .08em; padding: 0 0 8px; border-bottom: 1px solid var(--line); }
+  .status-table th:last-child { text-align: right; }
+  .status-table td { vertical-align: top; padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+  .status-table td:last-child { text-align: right; white-space: nowrap; padding-left: 10px; }
+  .status-table tr:last-child td { border-bottom: none; }
+  .status-table .name { display: block; font-weight: 650; color: var(--ink); }
+  .status-table .delivers { display: block; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+  .legend { color: var(--muted); font-size: 11.5px; margin: 12px 0 0; }
+
+  footer { margin-top: 22px; color: var(--muted); font-size: 12.5px; display: flex; flex-wrap: wrap; gap: 8px 18px; justify-content: space-between; border-top: 1px solid var(--line); padding-top: 16px; }
+  @media (max-width: 1120px) {
+    .layout { grid-template-columns: 1fr; }
+    .table-col { position: static; order: -1; }
+  }
+  @media (max-width: 640px) { .grid { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <div class="brand">
+      <img src="https://generalbots.org/logo.svg" alt="General Bots" />
+      <span>General Bots · GB7 Chat + Drive</span>
+    </div>
+    <h1>Feature Set — Chat + Drive</h1>
+    <p class="lede">
+      The commercial feature case for GB7: a private, file-aware assistant for the desktop. Each card states the
+      customer problem and the outcome delivered, and the availability table shows what a customer can use today
+      in the current edition.
+    </p>
+    <div class="counts">
+      <span class="count"><strong>14</strong> features</span>
+      <span class="count"><strong>12</strong> available</span>
+      <span class="count"><strong>2</strong> partially available</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="layout">
+    <div class="cards-col">
+
+      <section class="section">
+        <h2>Chat experience</h2>
+        <p>Everything the user does in the conversation: asking, searching, generating, attaching and remembering.</p>
+        <div class="grid">
+          <article class="card">
+            <div class="card-head"><span class="id">GB6-08</span><span class="tag s-shipped">Available</span></div>
+            <h3 class="title"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>Web search with citations</h3>
+            <p class="desc">Users expect current answers; unsourced answers feel less trustworthy than the web itself.</p>
+            <div class="outcome"><strong>Outcome:</strong> Answers that use the web carry clickable source chips taken from the pages actually read.</div>
+            <p class="note">Sources travel with the answer and are presented as references, so a claim can always be traced back.</p>
+          </article>
+          <article class="card">
+            <div class="card-head"><span class="id">GB6-09</span><span class="tag s-shipped">Available</span></div>
+            <h3 class="title"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h5"/></svg>Artifacts and generated documents</h3>
+            <p class="desc">Long-form output is the top “wow” moment for assistants; plain chat text undersells the product.</p>
+            <div class="outcome"><strong>Outcome:</strong> A long answer, report or page can be opened as a document, previewed, saved to Drive and opened later.</div>
+            <p class="note">Works for prose reports, structured markdown, HTML pages and code — not only for code blocks.</p>
+          </article>
+          <article class="card">
+            <div class="card-head"><span class="id">GB6-10</span><span class="tag s-shipped">Available</span></div>
+            <h3 class="title"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h4M4 12h10M4 18h7"/><circle cx="10" cy="6" r="2"/><circle cx="16" cy="12" r="2"/><circle cx="13" cy="18" r="2"/></svg>Model picker with plain-language trade-offs</h3>
+            <p class="desc">Power users cannot tune speed, quality or cost; there is no visible control over the assistant.</p>
+            <div class="outcome"><strong>Outcome:</strong> The user switches between Fast, Balanced and Quality, each labelled with its trade-off, and the request is routed to the model configured for that tier.</div>
+            <p class="note">Unconfigured tiers fall back to the default model, so the switch never breaks a conversation.</p>
+          </article>
+          <article class="card">
+            <div class="card-head"><span class="id">GB6-15</span><span class="tag s-shipped">Available</span></div>
+            <h3 class="title"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Attachments in chat</h3>
+            <p class="desc">Users expect to drag a file into the conversation instead of uploading first.</p>
+            <div class="outcome"><strong>Outcome:</strong> Drag or attach a file in chat; the assistant reads its content and answers from it in the same turn.</div>
+            <p class="note">Text, CSV, JSON, markdown and office/PDF documents are extracted into the conversation; media is reported honestly as unreadable.</p>
+          </article>
+          <article class="card">
+            <div class="card-head"><span class="id">GB6-16</span><span class="tag s-shipped">Available</span></div>
+            <h3 class="title"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3a3 3 0 0 0-3 3v1a3 3 0 0 0 0 6v1a3 3 0 0 0 3 3"/><path d="M15 3a3 3 0 0 1 3 3v1a3 3 0 0 1 0 6v1a3 3 0 0 1-3 3"/><path d="M9 9h6M9 15h6"/></svg>Memory across conversations</h3>
+            <p class="desc">Repeating context every session makes the assistant feel dumb.</p>
+            <div class="outcome"><strong>Outcome:</strong> “Remember …” stores the preference on the server, every later session starts with it, and settings show what is remembered.</div>
+            <p class="note">Memory is scoped to the user and the bot, and can be reviewed or removed in Settings.</p>
+          </article>
+          <article class="card">
+            <div class="card-head"><span class="id">GB6-31</span><span class="tag s-shipped">Available</span></div>
+            <h3 class="title"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8M8 12h5"/></svg>Chat opens automatically on launch</h3>
+            <p class="desc">The user should land on the main job, not a launcher.</p>
+            <div class="outcome"><strong>Outcome:</strong> The desktop opens straight into a ready conversation.</div>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Drive and files</h2>
+        <p>Finding, previewing, sharing and recovering the user’s files.</p>
+        <div class="grid">
+          <article class="card">
+            <div class="card-head"><span class="id">GB6-11</span><span class="tag s-shipped">Available</span></div>
+            <h3 class="title"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 7a2 2 0 0 1 2-2h5l2 2h9a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z"/><circle cx="15" cy="13" r="3"/><path d="m19 17-2.2-2.2"/></svg>Search across all files</h3>
+            <p class="desc">Folder browsing alone does not scale; finding a file is table stakes for a file space.</p>
+            <div class="outcome"><strong>Outcome:</strong> One search box covers every folder the user can open and matches both file names and file content.</div>
+            <p class="note">Nested folders are searched, result sizes are shown, and the search never reaches another tenant’s files.</p>
+          </article>
+          <article class="card">
+            <div class="card-head"><span class="id">GB6-12</span><span class="tag s-shipped">Available</span></div>
+            <h3 class="title"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>File previews for common formats</h3>
+            <p class="desc">Users must confirm they picked the right file before acting on it.</p>
+            <div class="outcome"><strong>Outcome:</strong> PDF, images, text, CSV and office documents open in a preview instead of being downloaded.</div>
+            <p class="note">Office documents are converted for preview, so the customer never leaves the app to check a file.</p>
+          </article>
+          <article class="card">
+            <div class="card-head"><span class="id">GB6-13</span><span class="tag s-shipped">Available</span></div>
+            <h3 class="title"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7"/><path d="M16 6l-4-4-4 4"/><path d="M12 2v13"/></svg>Share and export a file</h3>
+            <p class="desc">Files are only useful if they can leave the app when the user needs them to.</p>
+            <div class="outcome"><strong>Outcome:</strong> Create a link with a chosen expiry, send it to a recipient, or export a folder as a single archive.</div>
+            <p class="note">Links are revocable and expire automatically; exports produce one downloadable file instead of many.</p>
+          </article>
+          <article class="card">
+            <div class="card-head"><span class="id">GB6-14</span><span class="tag s-shipped">Available</span></div>
+            <h3 class="title"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3 8a9 9 0 1 0 2.6-6.4"/><path d="M12 7v5l3 2"/></svg>Version history and trash</h3>
+            <p class="desc">Mistakes must be recoverable; otherwise users are afraid to edit.</p>
+            <div class="outcome"><strong>Outcome:</strong> Deleting moves the file to Trash with 30-day retention and one-click restore; overwriting keeps the previous versions.</div>
+            <p class="note">Both the Trash and the version list are reachable from the Drive window, not hidden in a developer screen.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Automation and integrations</h2>
+        <p>Letting the assistant work with the user’s tools, not only describe them.</p>
+        <div class="grid">
+          <article class="card">
+            <div class="card-head"><span class="id">GB6-18</span><span class="tag s-partial">Partially available</span></div>
+            <h3 class="title"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>Connectors with consent</h3>
+            <p class="desc">Move from “assistant that reads files” to “assistant that works with your tools”.</p>
+            <div class="outcome"><strong>Outcome:</strong> A user connects a cloud account, sees exactly which permissions are requested and granted, and can disconnect in one click.</div>
+            <p class="note">The consent and disconnect experience is in place; connecting a live Google or Microsoft account still requires the provider credentials to be configured for the deployment.</p>
+          </article>
+          <article class="card">
+            <div class="card-head"><span class="id">GB6-19</span><span class="tag s-shipped">Available</span></div>
+            <h3 class="title"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>Computer use — browser actions</h3>
+            <p class="desc">Lets the assistant do work on the web instead of only describing it.</p>
+            <div class="outcome"><strong>Outcome:</strong> The assistant proposes opening a page, the user approves the action, and the result appears in the conversation.</div>
+            <p class="note">Nothing runs silently: every browser action starts from an explicit consent card.</p>
+          </article>
+          <article class="card">
+            <div class="card-head"><span class="id">GB6-20</span><span class="tag s-shipped">Available</span></div>
+            <h3 class="title"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m7 9 3 3-3 3M13 15h4"/></svg>Computer use — terminal actions</h3>
+            <p class="desc">Power users want scripts and local tools driven by the assistant.</p>
+            <div class="outcome"><strong>Outcome:</strong> A command runs only after explicit approval, and every decision is recorded in an audit trail.</div>
+            <p class="note">Approval, exit status and output are kept together, so an administrator can reconstruct what ran and why.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>Product and trust</h2>
+        <p>Controls that make the assistant usable and accountable every day.</p>
+        <div class="grid">
+          <article class="card">
+            <div class="card-head"><span class="id">GB6-25</span><span class="tag s-partial">Partially available</span></div>
+            <h3 class="title"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>Usage and cost transparency</h3>
+            <p class="desc">Users need to understand what each model costs before trusting the tool daily.</p>
+            <div class="outcome"><strong>Outcome:</strong> A usage view lists messages and tokens per day and per model; when a price list is configured it also shows the cost.</div>
+            <p class="note">Without a price list the panel says that cost is unavailable instead of showing a made-up number.</p>
+          </article>
+        </div>
+      </section>
+
+    </div>
+
+    <aside class="table-col">
+      <div class="table-panel">
+        <h2>Availability at a glance</h2>
+        <p class="hint">What the customer can use in the current edition, mapped to the outcome each feature delivers.</p>
+        <table class="status-table">
+          <thead>
+            <tr><th>Feature</th><th>Availability</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><span class="name">Web search with citations</span><span class="delivers">Clickable sources on every web-assisted answer</span></td><td><span class="tag s-shipped">Available</span></td></tr>
+            <tr><td><span class="name">Artifacts and documents</span><span class="delivers">Long answers become previewable, saveable documents</span></td><td><span class="tag s-shipped">Available</span></td></tr>
+            <tr><td><span class="name">Model picker</span><span class="delivers">Fast, Balanced and Quality route to real models</span></td><td><span class="tag s-shipped">Available</span></td></tr>
+            <tr><td><span class="name">Attachments in chat</span><span class="delivers">Attached files are read and used in the answer</span></td><td><span class="tag s-shipped">Available</span></td></tr>
+            <tr><td><span class="name">Memory across conversations</span><span class="delivers">Preferences persist and are editable in settings</span></td><td><span class="tag s-shipped">Available</span></td></tr>
+            <tr><td><span class="name">Chat opens on launch</span><span class="delivers">The app lands in a ready conversation</span></td><td><span class="tag s-shipped">Available</span></td></tr>
+            <tr><td><span class="name">Search across all files</span><span class="delivers">One box, every folder, names and content</span></td><td><span class="tag s-shipped">Available</span></td></tr>
+            <tr><td><span class="name">File previews</span><span class="delivers">Documents open in place instead of downloading</span></td><td><span class="tag s-shipped">Available</span></td></tr>
+            <tr><td><span class="name">Share and export</span><span class="delivers">Expiring links, e-mail delivery and archive export</span></td><td><span class="tag s-shipped">Available</span></td></tr>
+            <tr><td><span class="name">Version history and trash</span><span class="delivers">30-day Trash restore and prior-version recovery</span></td><td><span class="tag s-shipped">Available</span></td></tr>
+            <tr><td><span class="name">Connectors with consent</span><span class="delivers">Scope-by-scope consent and one-click disconnect</span></td><td><span class="tag s-partial">Partial</span></td></tr>
+            <tr><td><span class="name">Browser actions</span><span class="delivers">Approved web tasks with the result in chat</span></td><td><span class="tag s-shipped">Available</span></td></tr>
+            <tr><td><span class="name">Terminal actions</span><span class="delivers">Approved commands with an audit trail</span></td><td><span class="tag s-shipped">Available</span></td></tr>
+            <tr><td><span class="name">Usage and cost</span><span class="delivers">Usage per day and model; cost when priced</span></td><td><span class="tag s-partial">Partial</span></td></tr>
+          </tbody>
+        </table>
+        <p class="legend">
+          <strong>Available</strong> — shipped and covered by automated tests plus a live check.<br />
+          <strong>Partial</strong> — the experience is in place, but live activation or pricing data is still required.
+        </p>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<footer class="wrap">
+  <span>General Bots — GB7 Chat + Drive features</span>
+  <span>Updated 2026-11-03 · 14 features · status reflects the source and test record</span>
+</footer>
+</body>
+</html>
