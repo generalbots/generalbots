@@ -88,7 +88,34 @@ function vmFileMimeType(path) {
 
 function vmFilePreviewable(path) {
   var mime = vmFileMimeType(path);
-  return mime === "application/pdf" || mime.indexOf("image/") === 0;
+  return (
+    mime === "application/pdf" ||
+    mime === "text/html" ||
+    mime.indexOf("image/") === 0 ||
+    mime.indexOf("officedocument") !== -1 ||
+    mime === "application/msword" ||
+    mime === "application/vnd.ms-excel" ||
+    mime === "application/vnd.ms-powerpoint"
+  );
+}
+
+// #1672 — preview kinds: image renders as <img>, pdf/html as a sandboxed
+// iframe, office has no inline renderer in the browser and falls back to an
+// explicit window preview.
+function vmInlineKind(path) {
+  var mime = vmFileMimeType(path);
+  if (mime.indexOf("image/") === 0) return "image";
+  if (mime === "application/pdf") return "pdf";
+  if (mime === "text/html") return "html";
+  if (
+    mime.indexOf("officedocument") !== -1 ||
+    mime === "application/msword" ||
+    mime === "application/vnd.ms-excel" ||
+    mime === "application/vnd.ms-powerpoint"
+  ) {
+    return "office";
+  }
+  return "other";
 }
 
 function vmFileIcon(path) {
@@ -167,6 +194,96 @@ function vmNotifyError(err) {
     "Attachment failed: " + (err && err.message ? err.message : "unknown error");
   if (window.showToast) window.showToast(message, "error");
   else console.error(message);
+}
+
+// #1672 — inline preview inside the attachment card. The frame is created
+// lazily on the first click; nothing is fetched while the card is idle.
+function vmToggleInlinePreview(card, url, path) {
+  if (!card) return;
+  var existing = card.querySelector(".gb-attachment-inline");
+  if (existing) {
+    existing.remove();
+    return;
+  }
+  var kind = vmInlineKind(path);
+  var name = String(path || "").split("/").pop() || "file";
+  var box = document.createElement("div");
+  box.className = "gb-attachment-inline";
+
+  var head = document.createElement("div");
+  head.className = "gb-attachment-inline-head";
+  var title = document.createElement("span");
+  title.textContent = name;
+  head.appendChild(title);
+
+  var expand = document.createElement("button");
+  expand.type = "button";
+  expand.className = "gb-attachment-inline-btn";
+  expand.textContent = "Expand";
+  expand.addEventListener("click", function () {
+    box.classList.toggle("expanded");
+    expand.textContent = box.classList.contains("expanded") ? "Collapse" : "Expand";
+  });
+  head.appendChild(expand);
+
+  var open = document.createElement("button");
+  open.type = "button";
+  open.className = "gb-attachment-inline-btn";
+  open.textContent = "Open in window";
+  open.addEventListener("click", function () {
+    vmShowPreviewUrl(url, path);
+  });
+  head.appendChild(open);
+
+  var close = document.createElement("button");
+  close.type = "button";
+  close.className = "gb-attachment-inline-btn";
+  close.setAttribute("aria-label", "Close preview");
+  close.textContent = "×";
+  close.addEventListener("click", function () {
+    box.remove();
+  });
+  head.appendChild(close);
+  box.appendChild(head);
+
+  var body = document.createElement("div");
+  body.className = "gb-attachment-inline-body";
+  if (kind === "image") {
+    var img = document.createElement("img");
+    img.src = url;
+    img.loading = "lazy";
+    img.alt = name;
+    body.appendChild(img);
+  } else if (kind === "pdf" || kind === "html") {
+    var frame = document.createElement("iframe");
+    // No scripts and no same-origin: sanitized HTML cannot execute, and the
+    // PDF viewer cannot reach the host page.
+    frame.setAttribute("sandbox", "");
+    frame.setAttribute("title", name);
+    frame.src = url;
+    body.appendChild(frame);
+  } else if (kind === "office") {
+    var note = document.createElement("div");
+    note.className = "gb-attachment-inline-note";
+    note.textContent =
+      "Office files are not rendered inside the conversation. Open the window preview to read this file.";
+    var openBtn = document.createElement("button");
+    openBtn.type = "button";
+    openBtn.className = "gb-attachment-btn";
+    openBtn.textContent = "Open preview";
+    openBtn.addEventListener("click", function () {
+      vmShowPreviewUrl(url, path);
+    });
+    note.appendChild(openBtn);
+    body.appendChild(note);
+  } else {
+    var other = document.createElement("div");
+    other.className = "gb-attachment-inline-note";
+    other.textContent = "This file type has no inline preview.";
+    body.appendChild(other);
+  }
+  box.appendChild(body);
+  card.appendChild(box);
 }
 
 function vmShowPreviewUrl(url, path) {
@@ -282,16 +399,9 @@ function vmBindAttachment(card) {
   if (preview) {
     preview.addEventListener("click", function (e) {
       e.preventDefault();
-      resolve()
-        .then(function (convId) {
-          if (!convId) throw new Error("No active VM");
-          // A dedicated window keeps polling while the file is still being
-          // written (PDF/HTML), and survives chat navigation.
-          if (window.openDeepLink && window.WindowManager) {
-            window.openDeepLink("preview", { conversation: convId, path: path });
-            return;
-          }
-          window.open(vmAttachmentUrl(convId, path), "_blank", "noopener");
+      urlFor()
+        .then(function (url) {
+          vmToggleInlinePreview(card, url, path);
         })
         .catch(vmNotifyError);
     });
