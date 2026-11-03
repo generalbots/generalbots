@@ -207,3 +207,34 @@ pub async fn usage_summary(
         })),
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::parse_price_list;
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn empty_price_list_means_cost_is_unavailable() {
+        assert!(parse_price_list("").is_empty());
+        assert!(parse_price_list("   ").is_empty());
+    }
+
+    #[test]
+    fn invalid_json_is_ignored_instead_of_inventing_prices() {
+        assert!(parse_price_list("{not json").is_empty());
+        assert!(parse_price_list("[1, 2, 3]").is_empty());
+    }
+
+    #[test]
+    fn per_model_prices_are_lowercased() {
+        let prices: BTreeMap<String, f64> =
+            parse_price_list(r#"{"GPT-4o-mini": {"input_per_million": 0.15}}"#);
+        assert_eq!(prices.get("gpt-4o-mini").copied(), Some(0.15));
+    }
+
+    #[test]
+    fn the_shorthand_key_is_accepted() {
+        let prices = parse_price_list(r#"{"llama-3.1": {"per_million": 2.0}}"#);
+        assert_eq!(prices.get("llama-3.1").copied(), Some(2.0));
+    }
+}
