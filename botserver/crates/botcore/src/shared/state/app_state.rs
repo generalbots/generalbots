@@ -39,6 +39,7 @@ impl Clone for AppState {
             dynamic_llm_provider: self.dynamic_llm_provider.clone(),
             start_bas_guards: Arc::clone(&self.start_bas_guards),
             pending_stream_responses: Arc::clone(&self.pending_stream_responses),
+            pending_citations: Arc::clone(&self.pending_citations),
         }
     }
 }

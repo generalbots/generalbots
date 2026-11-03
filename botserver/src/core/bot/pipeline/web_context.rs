@@ -70,11 +70,16 @@ async fn status(
 
 /// Searches the user's turn directly and injects the results. Called only when
 /// the composer's Web switch is on.
+///
+/// Returns the sources as structured citations (`title`, `url`, `host`) so the
+/// caller can attach them to the final answer frame (#1635). An empty answer
+/// means the turn had no usable sources; the reason is already streamed as a
+/// status line.
 pub async fn search_and_inject(
     identity: &SessionIdentity<'_>,
     user_text: &str,
     messages: &mut Vec<serde_json::Value>,
-) {
+) -> Vec<serde_json::Value> {
     let SessionIdentity {
         sink,
         bot_uuid,
@@ -85,7 +90,7 @@ pub async fn search_and_inject(
 
     let query = normalize_query(user_text);
     if query.is_empty() {
-        return;
+        return Vec::new();
     }
 
     status(
@@ -107,17 +112,17 @@ pub async fn search_and_inject(
         Ok(Err(e)) => {
             log::info!("web context: search failed: {e}");
             status(sink, bot_uuid, session_id, user_id, "The search failed — answering from what I know.").await;
-            return;
+            return Vec::new();
         }
         Err(_) => {
             log::info!("web context: search timed out");
             status(sink, bot_uuid, session_id, user_id, "The search timed out — answering from what I know.").await;
-            return;
+            return Vec::new();
         }
     };
     if results.is_empty() {
         status(sink, bot_uuid, session_id, user_id, "No usable sources — answering from what I know.").await;
-        return;
+        return Vec::new();
     }
 
     let domains: Vec<&str> = {
@@ -164,11 +169,27 @@ pub async fn search_and_inject(
         results.len(),
         query
     );
+
+    // #1635 — the same sources that went into the prompt become the structured
+    // citations of the answer, so the chips always describe what the model was
+    // actually given (never an invented list).
+    results.iter().map(citation_for).collect()
+}
+
+/// Maps one search result to the citation shape the chat renderer consumes
+/// (`30_citations.js`): `{title, url, host}` plus the optional favicon.
+fn citation_for(result: &botresearch::web_search::WebSearchResult) -> serde_json::Value {
+    json!({
+        "title": result.title,
+        "url": result.url,
+        "host": result.source,
+        "favicon": result.favicon,
+    })
 }
 
 #[cfg(test)]
 mod tests {
-    use super::normalize_query;
+    use super::{citation_for, normalize_query};
 
     #[test]
     fn collapses_whitespace() {
@@ -184,5 +205,27 @@ mod tests {
     #[test]
     fn empty_input_stays_empty() {
         assert!(normalize_query("   \n\t ").is_empty());
+    }
+
+    /// #1635 — the final frame must carry the exact url/host of the result that
+    /// went into the prompt; the renderer keys the chip target off `url`.
+    #[test]
+    fn citation_carries_title_url_and_host() {
+        let result = botresearch::web_search::WebSearchResult {
+            title: "Umbrella - Wikipedia".to_string(),
+            url: "https://en.wikipedia.org/wiki/Umbrella".to_string(),
+            snippet: "An umbrella is a canopy device.".to_string(),
+            source: "en.wikipedia.org".to_string(),
+            favicon: Some("https://en.wikipedia.org/favicon.ico".to_string()),
+            published_date: None,
+        };
+        let citation = citation_for(&result);
+        assert_eq!(citation["title"], "Umbrella - Wikipedia");
+        assert_eq!(citation["url"], "https://en.wikipedia.org/wiki/Umbrella");
+        assert_eq!(citation["host"], "en.wikipedia.org");
+        assert_eq!(
+            citation["favicon"],
+            "https://en.wikipedia.org/favicon.ico"
+        );
     }
 }

@@ -129,6 +129,11 @@ pub struct AppState {
     pub dynamic_llm_provider: Option<UnresolvedService>,
     pub start_bas_guards: Arc<tokio::sync::Mutex<HashMap<uuid::Uuid, bool>>>,
     pub pending_stream_responses: Arc<tokio::sync::Mutex<HashMap<String, String>>>,
+    /// #1635 — sources attached to the turn currently being streamed, keyed by
+    /// session id. `web_context::search_and_inject` fills it and the final
+    /// WebSocket frame drains it, so the chips describe the sources actually
+    /// used for that answer instead of a hardcoded empty array.
+    pub pending_citations: Arc<tokio::sync::Mutex<HashMap<String, Vec<serde_json::Value>>>>,
 }
 
 mod agent_activity;

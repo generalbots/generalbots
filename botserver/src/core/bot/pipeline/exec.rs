@@ -31,6 +31,14 @@ pub async fn process_message_internal(
     } = *identity;
     let parsed: serde_json::Value = serde_json::from_str(text).unwrap_or_default();
 
+    // #1635 — citations belong to exactly one turn. Drop anything left from a
+    // previous turn (or from a stream that was interrupted before its final
+    // frame) so a later answer can never inherit stale sources.
+    {
+        let mut pending = state.pending_citations.lock().await;
+        pending.remove(&session_id.to_string());
+    }
+
     // Agent-mode control frame (legacy toggle, #1167). Always-on since #1580
     // but kept for backward compat — the frame is consumed so it never
     // reaches the LLM.
@@ -550,7 +558,15 @@ pub async fn process_message_internal(
             .and_then(|value| value.as_bool())
             .unwrap_or(false);
         if web_search_enabled {
-            super::web_context::search_and_inject(identity, &user_text, &mut messages).await;
+            let citations =
+                super::web_context::search_and_inject(identity, &user_text, &mut messages).await;
+            if !citations.is_empty() {
+                state
+                    .pending_citations
+                    .lock()
+                    .await
+                    .insert(session_id.to_string(), citations);
+            }
         }
     }
 

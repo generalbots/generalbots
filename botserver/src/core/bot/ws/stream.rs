@@ -262,6 +262,14 @@ pub async fn process_llm_response(
                 final_content = final_content[..pos].trim_end().to_string();
             }
 
+            // #1635 — drain the sources for this turn. The frame below is the
+            // only place the renderer reads `citations` from, so an empty vec
+            // here means the answer was produced without live sources.
+            let citations = {
+                let mut pending = state.pending_citations.lock().await;
+                pending.remove(&session_id_s).unwrap_or_default()
+            };
+
             let final_resp = serde_json::json!({
                 "bot_id": bot_uuid_s,
                 "user_id": user_id.to_string(),
@@ -273,7 +281,7 @@ pub async fn process_llm_response(
                 "reasoning": reasoning_accumulated.trim(),
                 "suggestions": [],
                 "switchers": [],
-                "citations": [],
+                "citations": citations,
                 "context_length": 0,
                 "context_max_length": 0,
             });

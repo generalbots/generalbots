@@ -418,6 +418,7 @@ pub async fn create_app_state(
         rbac_manager: None,
         start_bas_guards: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
         pending_stream_responses: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
+        pending_citations: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
         script_runner: None,
     });
 
