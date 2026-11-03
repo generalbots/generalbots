@@ -368,7 +368,7 @@ notify = "8.0"
 flate2 = "1.0"
 zip = "9.2"
 tar = "0.4"
-zstd = "0.13"
+zstd = "0.14"
 
 # ─── DOCUMENT PROCESSING ───
 docx-rs = "0.4"

@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use uuid::Uuid;
 
 use log::info;
@@ -232,152 +230,21 @@ pub async fn process_message_internal(
         return Ok(());
     }
 
-    let runtime: Arc<dyn botbasic_types::BasicRuntime> =
-        Arc::new(crate::basic::AppStateBasicRuntime(state.clone()));
-    let delivered = crate::basic::keywords::hearing::deliver_hear_input(
-        &runtime,
-        session_id,
-        user_text.clone(),
-    );
-    if delivered {
+    // #1580 — hearing, start.bas and the opening frames.
+    if super::start_gate::gate_turn(identity, rx, start_bas_ran, &user_text).await? {
         return Ok(());
     }
 
-    if !*start_bas_ran {
-        let guards = state.start_bas_guards.lock().await;
-        if !guards.contains_key(&session_id) {
-            drop(guards);
-            *start_bas_ran = super::start_bas::run_start_bas(
-                sink, state, bot_uuid, session_id, user_id, bot_name, rx,
-            )
-            .await
-            .unwrap_or(false);
-        }
-    }
-    let mut guards = state.start_bas_guards.lock().await;
-    guards.entry(session_id).or_insert(true);
-
-    let post_start_suggestions = {
-        #[cfg(feature = "chat")]
-        {
-            crate::basic::keywords::add_suggestion::get_suggestions(
-                state.cache.as_ref(),
-                &bot_uuid.to_string(),
-                &session_id.to_string(),
-            )
-        }
-        #[cfg(not(feature = "chat"))]
-        Vec::new()
-    };
-    let post_start_switchers = {
-        #[cfg(feature = "chat")]
-        {
-            crate::basic::keywords::switcher::get_switchers(
-                state.cache.as_ref(),
-                &bot_uuid.to_string(),
-                &session_id.to_string(),
-            )
-        }
-        #[cfg(not(feature = "chat"))]
-        Vec::new()
-    };
-    if !post_start_suggestions.is_empty() || !post_start_switchers.is_empty() {
-        let resp = botlib::models::BotResponse {
-            bot_id: bot_uuid.to_string(),
-            user_id: user_id.to_string(),
-            session_id: session_id.to_string(),
-            channel: "web".to_string(),
-            content: String::new(),
-            message_type: botlib::message_types::MessageType::BOT_RESPONSE,
-            stream_token: None,
-            is_complete: true,
-            // Keep the full suggestion: `Suggestion::new(text)` discards the
-            // `action`, so every chip re-sent after start.bas reached the
-            // client as a plain message and tool chips (`invoke_tool`) stopped
-            // executing the tool (they sent `message_type: 1` instead of 6).
-            suggestions: post_start_suggestions,
-            switchers: post_start_switchers,
-            context_name: None,
-            context_length: 0,
-            context_max_length: 0,
-            reasoning: String::new(),
-        };
-        let _ = sink.send_bot_response(&resp).await;
-    }
-
-    let _ = sink
-        .send_bot_response(&botlib::models::BotResponse {
-            bot_id: bot_uuid.to_string(),
-            user_id: user_id.to_string(),
-            session_id: session_id.to_string(),
-            channel: "web".to_string(),
-            content: String::new(),
-            message_type: botlib::message_types::MessageType::BOT_RESPONSE,
-            stream_token: None,
-            is_complete: false,
-            suggestions: Vec::new(),
-            switchers: Vec::new(),
-            context_name: None,
-            context_length: 0,
-            context_max_length: 0,
-            reasoning: String::new(),
-        })
-        .await;
-
     let channel = sink.channel_type();
-    let base_system_prompt =
-        crate::core::bot::ws::message::load_system_prompt_for_channel(bot_name, channel);
-    let system_prompt = if !active_switchers.is_empty() {
-        let switcher_prompts = crate::basic::keywords::switcher::resolve_active_switchers(
-            state.cache.as_ref(),
-            &bot_uuid.to_string(),
-            &session_id.to_string(),
-            &active_switchers,
-        );
-        if switcher_prompts.is_empty() {
-            base_system_prompt
-        } else {
-            format!("{base_system_prompt}\n\n{switcher_prompts}")
-        }
-    } else {
-        base_system_prompt
-    };
-    // GB6-16 — persisted user preferences are part of the system prompt, so a
-    // fresh conversation starts with what the user already taught the bot.
-    let memory_block =
-        crate::core::user_memory::render_for_prompt(&state.conn, user_id, Some(bot_uuid));
-    let system_prompt = if memory_block.is_empty() {
-        system_prompt
-    } else {
-        format!("{system_prompt}{memory_block}")
-    };
-    let role = crate::security::user_role::resolve_user_role(&state.conn, user_id);
-    // The desktop product's action surface is the agent VM (`vm_exec`), not the
-    // SaaS REST catalogue. Teaching `api.find` there made the free model look
-    // for a PDF endpoint instead of writing the program, and the call then
-    // leaked into the chat as raw text.
-    let include_api_catalog = !cfg!(feature = "desktop-local");
-    let system_prompt = if channel == "web" {
-        if include_api_catalog {
-            format!(
-                "{system_prompt}\n\n{}\n\n{}",
-                crate::core::bot::api_catalog::api_command_instructions(&role),
-                crate::main_module::ui_plan::ui_automation_instructions(),
-            )
-        } else {
-            system_prompt
-        }
-    } else if channel == "whatsapp" {
-        format!(
-            "{system_prompt}\n\n---\nThis conversation is on WhatsApp.\n\n{}",
-            crate::core::bot::api_catalog::api_command_instructions(&role),
-        )
-    } else {
-        format!(
-            "{system_prompt}\n\n{}",
-            crate::core::bot::api_catalog::api_command_instructions(&role),
-        )
-    };
+    let system_prompt = super::system_prompt::build(
+        state,
+        bot_uuid,
+        session_id,
+        user_id,
+        bot_name,
+        channel,
+        &active_switchers,
+    );
 
     let session_context = {
         let sm = state.session_manager.lock().await;
@@ -389,145 +256,29 @@ pub async fn process_message_internal(
     let mut messages =
         vec![serde_json::json!({"role": "system", "content": system_prompt.clone()})];
 
+
     // #1549/#1637: the tier now selects a real model in
     // `resolve_bot_llm_provider` (`llm-model-<tier>`); this sentence is only a
     // secondary shaping hint, not the routing mechanism.
-    if model_preference != "auto" && !model_preference.is_empty() {
-        let directive = match model_preference.as_str() {
-            "fast" => "The user selected Fast mode: answer as concisely as possible and prioritise latency over exhaustive detail.",
-            "quality" => "The user selected Quality mode: take extra care, verify assumptions, and provide thorough reasoning and complete answers.",
-            "balanced" => "The user selected Balanced mode: balance completeness with brevity.",
-            _ => "",
-        };
-        if !directive.is_empty() {
-            messages.push(serde_json::json!({"role": "system", "content": directive}));
-        }
-    }
+    super::turn_context::apply_model_preference(&mut messages, &model_preference);
+    super::turn_context::apply_session_context(&mut messages, &session_context);
 
-    if !session_context.is_empty() {
-        messages.push(serde_json::json!({
-            "role": "system",
-            "content": format!("Contexto da conversa:\n{session_context}")
-        }));
-    }
-
-    if super::vibe_route::route_vibe_project(
-        state, sink, project_context.as_ref(), &user_text,
-        bot_uuid, session_id, user_id,
-    ).await? {
+    let routing = super::turn_context::TurnRouting {
+        state,
+        sink,
+        bot_uuid,
+        session_id,
+        user_id,
+    };
+    if super::turn_context::route_project(&routing, project_context.as_ref(), &user_text, &mut messages)
+        .await?
+    {
         return Ok(());
     }
-    if let Some(context) = project_context.as_ref() {
-        let project_id = context.get("project_id").and_then(|v| v.as_str()).unwrap_or("");
-        let project_name = context.get("project_name").and_then(|v| v.as_str()).unwrap_or("");
-        if !project_id.is_empty() || !project_name.is_empty() {
-            messages.push(serde_json::json!({
-                "role": "system",
-                "content": format!(
-                    "The user referenced Vibe project '{project_name}' (id: {project_id}).\n\
-                     For code changes to this project, use the vibe.project.change command with \
-                     project_id='{project_id}', project_name='{project_name}', and the user's requested intent."
-                ),
-            }));
-        }
-    }
-
-    // #1545: Drive as KB by default. The chat client sends the recent Drive
-    // file names it knows about; when index_all_drive is enabled (default),
-    // expose them to the model so answers can reference the user's files.
-    let index_all_drive = parsed
-        .get("index_all_drive")
-        .and_then(|v| v.as_bool())
-        .unwrap_or(true);
-    if index_all_drive {
-        if let Some(files) = parsed
-            .get("drive_context")
-            .and_then(|v| v.get("files"))
-            .and_then(|v| v.as_array())
-        {
-            let names: Vec<String> = files
-                .iter()
-                .filter_map(|v| v.as_str())
-                .take(50)
-                .map(str::to_string)
-                .collect();
-            if !names.is_empty() {
-                messages.push(serde_json::json!({
-                    "role": "system",
-                    "content": format!(
-                        "The user's Drive contains these recent files. Use them as \
-                         context when relevant and cite the file name: {}",
-                        names.join(", ")
-                    )
-                }));
-            }
-        }
-    }
+    super::turn_context::apply_drive_listing(&mut messages, &parsed);
 
     // #1580: Always-on agent VM — auto-provision and inject execution context.
-    #[cfg(feature = "agent-vm")]
-    {
-        if let Some(vm_session) = crate::core::bot::agent_vm_hook::ensure_agent_vm(
-            session_id, user_id, bot_uuid,
-        ).await {
-            let conv_id = vm_session.active_conversation_id.as_deref().unwrap_or("default");
-            let vm_name = &vm_session.vm_name;
-            let status = &vm_session.status;
-            messages.push(serde_json::json!({
-                "role": "system",
-                "content": format!(
-                    "You have a running VM workspace '{vm_name}' (status: {status}). \
-                     The current conversation folder is /opt/vibe/conversations/{conv_id}. \
-                     Subfolders: output/ for generated files, program/ for scripts, \
-                     data/ for input data. \
-                     You run code by calling the native tool `vm_exec`. Do not claim you \
-                     ran something without calling it. Emit exactly one JSON object, on \
-                     its own line:\n\
-                     {{\"__tool_call__\": true, \"name\": \"vm_exec\", \"arguments\": {{\"language\": \"python\", \"code\": \"<program>\"}}}}\n\
-                     `language` is python, node or shell. The tool writes the program into \
-                     program/, runs it in the conversation folder, and returns stdout, \
-                     stderr and every file it finds in output/. \
-                     Dependencies: prefer the language standard library. Declare EVERY \
-                     third-party package the program imports in \\\"packages\\\" (pip for \
-                     python, npm for node), EVEN the preinstalled ones: a declared package \
-                     is installed before the program starts, so the first run on a cold \
-                     workspace cannot race the background bootstrap. Never call pip/npm inside \
-                     the program, e.g. \\\"packages\\\":[\\\"reportlab\\\"] for PDFs and \
-                     \\\"packages\\\":[\\\"pandas\\\",\\\"openpyxl\\\"] for spreadsheets. Use the distribution \
-                     name for the import (docx -> python-docx, PIL -> pillow, yaml -> pyyaml, \
-                     cv2 -> opencv-python-headless, sklearn -> scikit-learn, bs4 -> \
-                     beautifulsoup4). The workspace ships with pandas, numpy, openpyxl, \
-                     python-pptx, pillow, matplotlib, requests, python-docx, reportlab, \
-                     beautifulsoup4, lxml and tabulate; the background bootstrap installs them too. If a run \
-                     reports a missing module, add it to packages and run again. \
-                     Add \\\"background\\\": true for long jobs (renders, downloads, training): \
-                     the job keeps running while the user moves to another conversation and \
-                     its result is saved into THIS conversation. \
-                     Save generated artifacts into output/ so the user can preview them. \
-                     Files the user names may already be in data/ (fetched from their Drive); \
-                     read them from there. Use `drive_fetch` to pull a Drive file into data/ \
-                     and `drive_save` to publish output/ files to the user's Drive under the \
-                     conversation folder. \
-                     After the tool returns, summarise the result and list each file as a \
-                     markdown link in the form [name](vmfile:{conv_id}/output/name). \
-                     PROGRESS ETIQUETTE (mandatory): the user stares at a spinner while \
-                     code runs, so keep them informed. Before every tool call write one \
-                     short line, in the user's language, saying what you are about to do \
-                     ('Vou montar o PDF com o layout pedido…'). After every tool result \
-                     write one short line saying what changed ('PDF pronto (12 KB). Agora \
-                     o PPTX…'). One line per step, under 15 words, no headings; never \
-                     repeat the same sentence; never claim a file exists before the tool \
-                     returned it; if a job is long (background: true), say it is running \
-                     and that the user can keep chatting while it finishes. \
-                     Background work continues when the user switches conversations; \
-                     never assume a job was cancelled. \
-                     Do NOT refuse tasks that require code execution — you have a \
-                     full Linux VM available. Generate the program dynamically based \
-                     on what the user needs."
-                ),
-            }));
-        }
-    }
+    super::agent_vm_context::inject(session_id, user_id, bot_uuid, &mut messages).await;
 
     // #1584: files named in the message are copied from Drive into data/
     // before the model writes the program that reads them.
