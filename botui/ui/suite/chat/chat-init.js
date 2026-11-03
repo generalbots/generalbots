@@ -115,7 +115,27 @@ function sendMessage(messageContent) {
   }
 
   var finalSend = function () {
-    ChatState.ws.send(JSON.stringify(payload));
+    var sentPayload = payload;
+    ChatState.ws.send(JSON.stringify(sentPayload));
+    // Delivery guard: a send that never reaches the server used to look like a
+    // bot that ignores the user. Watch for any frame of this conversation for
+    // a few seconds; if nothing arrives, reopen the socket and resend once.
+    ChatState.pendingSend = { payload: sentPayload, at: Date.now(), retried: false };
+    setTimeout(function () {
+      var pending = ChatState.pendingSend;
+      if (!pending || pending.payload !== sentPayload) return;
+      if (ChatState.lastFrameAt && ChatState.lastFrameAt >= pending.at) {
+        ChatState.pendingSend = null;
+        return;
+      }
+      ChatState.pendingSend = null;
+      if (pending.retried) return;
+      sentPayload.retried = true;
+      if (!Array.isArray(ChatState.offlineQueue)) ChatState.offlineQueue = [];
+      ChatState.offlineQueue.push(sentPayload);
+      try { if (ChatState.ws) ChatState.ws.close(); } catch (e) {}
+      if (typeof connectWebSocket === "function") connectWebSocket();
+    }, 6000);
     // GB6-15: the attachment leaves the composer with a visible outcome
     // instead of silently disappearing.
     if (file) {

@@ -286,12 +286,24 @@ pub async fn ensure_vm(
 
     let row = if let Some(row) = existing {
         match row.status.as_str() {
-            STATUS_RUNNING => {
+            // Trust the row only when the container behind it still exists:
+            // after a cleanup or a failed provisioning the database could say
+            // "running" while `incus list` was empty, so every vm_exec returned
+            // nothing and the workspace looked permanently unavailable.
+            STATUS_RUNNING if is_running(state, &row.vm_name).await? => {
                 let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
                 touch_last_active(&mut conn, row.id)?;
                 row
             }
-            STATUS_PROVISIONING => row,
+            STATUS_RUNNING | STATUS_PROVISIONING if container_exists(state, &row.vm_name).await? => {
+                let _ = run_incus(state, vec!["start".into(), row.vm_name.clone()]).await;
+                wait_for_running(state, &row.vm_name).await?;
+                let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;
+                set_status(&mut conn, row.id, STATUS_RUNNING)?;
+                let mut fresh = row;
+                fresh.status = STATUS_RUNNING.to_string();
+                fresh
+            }
             _ => {
                 if is_running(state, &row.vm_name).await? {
                     let mut conn = state.pool().get().map_err(|e| internal(format!("DB pool: {e}")))?;

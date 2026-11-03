@@ -115,6 +115,9 @@ function dialChatSocket() {
   if (window.GBAppLifecycle) GBAppLifecycle.socket("chat", ChatState.ws);  ChatState.ws.onmessage = function (event) {
     try {
       var data = JSON.parse(event.data);
+      // Any frame proves the socket is alive; the send guard in chat-init
+      // uses this to decide whether a message needs to be resent.
+      ChatState.lastFrameAt = Date.now();
 
       if (data.type === "connected") {
         ChatState.reconnectAttempts = 0;
