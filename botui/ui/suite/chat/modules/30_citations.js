@@ -17,6 +17,15 @@
     if (d.message_type === 2 && Array.isArray(d.citations) && d.citations.length) {
       lastBotFrame = d;
     }
+    // #1635 — the pipeline sends sources in a dedicated frame after the
+    // answer (typed BotResponse frames cannot carry them). Attach the chips
+    // to the message that just finished streaming.
+    if ((d.type === "citations" || d.message_type === "citations")
+        && Array.isArray(d.citations) && d.citations.length) {
+      var pane = document.getElementById("messages");
+      var last = pane ? pane.querySelector(".message.bot:last-of-type") : null;
+      if (last) window.GBRenderCitations(last, { citations: d.citations });
+    }
   });
 
   function hostOf(url) {

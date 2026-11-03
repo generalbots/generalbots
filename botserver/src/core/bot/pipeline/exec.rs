@@ -368,5 +368,23 @@ pub async fn process_message_internal(
         log::warn!("stream_llm_response TIMEOUT after 300s for session {session_id}");
     }
 
+    // #1635 — the pipeline streams typed BotResponse frames, which have no
+    // citations field. Send the sources as one explicit frame after the answer
+    // so the renderer can attach the chips to the message that just completed.
+    let citations = {
+        let mut pending = state.pending_citations.lock().await;
+        pending.remove(&session_id.to_string()).unwrap_or_default()
+    };
+    if !citations.is_empty() {
+        let frame = serde_json::json!({
+            "type": "citations",
+            "message_type": "citations",
+            "bot_id": bot_uuid.to_string(),
+            "session_id": session_id.to_string(),
+            "citations": citations,
+        });
+        let _ = sink.send_raw_json(&frame).await;
+    }
+
     Ok(())
 }
