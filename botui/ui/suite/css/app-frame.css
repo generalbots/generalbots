@@ -1,0 +1,40 @@
+/* Inline MCP Apps frame (#1676). */
+.gb-app-card {
+    border: 1px solid var(--gb-border, #d7dbe2);
+    border-radius: 10px;
+    margin: 8px 0;
+    overflow: hidden;
+    background: var(--gb-surface, #fff);
+}
+.gb-app-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: var(--gb-surface-muted, #f6f7f9);
+}
+.gb-app-title { font-weight: 600; flex: 1 1 auto; overflow-wrap: anywhere; }
+.gb-app-status { font-size: 12px; color: var(--gb-text-muted, #57606a); }
+.gb-app-btn {
+    border: 1px solid var(--gb-border, #d7dbe2);
+    background: transparent;
+    border-radius: 4px;
+    padding: 1px 7px;
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+}
+.gb-app-frame { width: 100%; height: 360px; border: 0; display: block; background: #fff; }
+.gb-app-card.expanded .gb-app-frame { height: min(80vh, 900px); }
+.gb-app-poster {
+    width: 100%;
+    padding: 20px;
+    border: 0;
+    background: var(--gb-surface-muted, #f6f7f9);
+    color: var(--gb-text-muted, #57606a);
+    cursor: pointer;
+    font: inherit;
+}
+@media (max-width: 640px) {
+    .gb-app-frame { height: 280px; }
+}
