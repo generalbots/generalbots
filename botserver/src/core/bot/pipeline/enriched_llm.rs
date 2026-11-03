@@ -83,7 +83,9 @@ pub(super) async fn build_and_stream(
         }));
     }
 
-    let run = super::event_sink::RunContext::new(&session_id.to_string(), "chat");
+    let run = super::event_sink::RunContext::new(&session_id.to_string(), "chat")
+        .with_state(state.clone())
+        .with_scope(bot_uuid, user_id, None);
     let started = std::time::Instant::now();
     let title: String = user_text.chars().take(80).collect();
     super::event_sink::run_started(identity.sink, &run, Some(title.as_str())).await;
@@ -145,6 +147,22 @@ pub(super) async fn build_and_stream(
             None,
         )
         .await;
+    }
+
+    if let Ok(run_uuid) = uuid::Uuid::parse_str(&run.run_id) {
+        match state.conn.get() {
+            Ok(mut conn) => {
+                if let Err(error) = crate::core::bot::runs::store::attach_message_run(
+                    &mut conn,
+                    session_id,
+                    run_uuid,
+                    &run.thread_id,
+                ) {
+                    log::warn!("message run pointer failed: {error}");
+                }
+            }
+            Err(error) => log::warn!("message run pointer skipped: pool error: {error}"),
+        }
     }
 
     Ok(())

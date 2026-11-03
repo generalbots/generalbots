@@ -238,6 +238,8 @@ diesel::table! {
         llm_model -> Nullable<Varchar>,
         created_at -> Timestamptz,
         message_index -> Int4,
+        run_id -> Nullable<Uuid>,
+        thread_id -> Nullable<Text>,
     }
 }
 

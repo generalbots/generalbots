@@ -157,6 +157,25 @@ pub(super) async fn main() -> std::io::Result<()> {
 
     let app_state = main_module::create_app_state(cfg, pool, &redis_client).await?;
 
+    // #1665 — run event retention. Frames expire; the run summary in
+    // `agent_runs` does not. Runs in the background so a slow delete never
+    // delays boot.
+    {
+        let retention_pool = app_state.conn.clone();
+        tokio::spawn(async move {
+            loop {
+                match crate::core::bot::runs::store::cleanup_expired(&retention_pool) {
+                    Ok(removed) if removed > 0 => {
+                        log::info!("run_events retention removed {removed} expired frames");
+                    }
+                    Ok(_) => {}
+                    Err(error) => log::warn!("run_events retention failed: {error}"),
+                }
+                tokio::time::sleep(std::time::Duration::from_secs(6 * 60 * 60)).await;
+            }
+        });
+    }
+
     // Seed the fiscal Drive objects (invoice folder + cash-flow spreadsheets,
     // issues #722/#723/#724) once the drive client is available.
     // PRODUCTION GUARD: demo seeding is opt-in ONLY via GB_ALLOW_SAMPLEDATA=1.

@@ -38,6 +38,10 @@ diesel::table! {
         started_at -> Nullable<Timestamptz>,
         finished_at -> Nullable<Timestamptz>,
         created_at -> Timestamptz,
+        session_id -> Nullable<Uuid>,
+        thread_id -> Nullable<Text>,
+        user_id -> Nullable<Uuid>,
+        parent_run_id -> Nullable<Uuid>,
     }
 }
 
