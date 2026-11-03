@@ -1,3 +1,5 @@
+pub mod user_llm_accounts;
+
 diesel::table! {
     tenants (id) {
 

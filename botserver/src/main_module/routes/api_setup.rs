@@ -116,6 +116,7 @@ pub fn setup_api_routes() -> Router<Arc<AppState>> {
     // Merged here (not in the feature-gated drive block) because the backing
     // tables are created at boot regardless of the `drive` feature.
     api_router = api_router.merge(botdrive::external::routes::configure());
+    api_router = api_router.merge(crate::main_module::routes::ai_accounts::router());
 
     // Public catalog API — no auth required (before auth middleware)
     api_router = api_router.merge(super::catalog::configure_catalog_routes());

@@ -18,6 +18,8 @@ pub(crate) fn authenticated_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/files/**", "POST", ""),
         RoutePermission::new("/api/files/**", "PUT", ""),
         RoutePermission::new("/api/files/**", "DELETE", ""),
+        RoutePermission::new("/api/ai-accounts/**", "GET", ""),
+        RoutePermission::new("/api/ai-accounts/**", "POST", ""),
 
         // Computer use (browser + terminal consent and execution)
         RoutePermission::new("/api/computer/**", "GET", ""),
