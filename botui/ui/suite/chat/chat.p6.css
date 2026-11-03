@@ -450,6 +450,13 @@ sup.gb-cite-ref:hover {
   background: transparent; color: var(--accent, #7aa2ff); cursor: pointer; font-size: 11px;
 }
 .gb-attachment-btn:hover { background: var(--surface-3, #2a2a3e); }
+/* #1641 — attachment restored from history, shown as a chip under the turn. */
+.gb-attachment-restored {
+  display: inline-block; margin-top: 6px; padding: 2px 9px;
+  border: 1px solid var(--border, #333); border-radius: 999px;
+  font-size: 11px; color: var(--text-secondary, #888);
+  background: var(--surface-2, #1e1e2e);
+}
 .gb-artifact-panel {
   position: fixed; top: 0; right: 0; width: 50vw; min-width: 380px; height: 100vh;
   background: var(--bg, #0f0f18); border-left: 1px solid var(--border, #333);

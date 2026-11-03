@@ -1,5 +1,6 @@
 pub mod api_call;
 pub mod attachments;
+pub mod attachment_text;
 pub mod channel_entry;
 pub mod exec;
 pub mod history;

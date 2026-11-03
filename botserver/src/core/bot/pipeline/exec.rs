@@ -150,8 +150,10 @@ pub async fn process_message_internal(
         }
     }
 
-    // Optional chat file attachment (base64) -> stored under inbox/ so the
-    // catalog `drive.file` command can organize it into the right folder.
+    // Optional chat file attachment (base64) -> stored under inbox/ and read
+    // into the prompt. #1641: the model receives an excerpt of the file, not a
+    // path hint, and a failed store is visible in the transcript.
+    let mut attachment_note: Option<String> = None;
     if let Some(file) = parsed.get("file").and_then(|v| v.as_object()) {
         let fname = file
             .get("name")
@@ -163,37 +165,69 @@ pub async fn process_message_internal(
             .and_then(|v| v.as_str())
             .unwrap_or("");
         if !fname.is_empty() && !b64.is_empty() {
-            if let Some(drive) = state.drive.as_ref() {
-                if let Ok(data) = base64::engine::general_purpose::STANDARD.decode(b64) {
-                    // Same resolution as the channel stagers: an org-hosted bot
-                    // lives under `{slug}.gborg`, so the bucket cannot be
-                    // derived from the bot name.
-                    let loc = {
-                        match state.conn.get() {
-                            Ok(mut conn) => {
-                                botbasic_core::utils::bot_drive_location_for(&mut conn, bot_uuid)
+            match base64::engine::general_purpose::STANDARD.decode(b64) {
+                Ok(data) => {
+                    let excerpt = super::attachment_text::extract_excerpt(&fname, &data);
+                    let media = super::attachment_text::is_media(&fname);
+                    let mut stored = false;
+                    if let Some(drive) = state.drive.as_ref() {
+                        // Same resolution as the channel stagers: an org-hosted
+                        // bot lives under `{slug}.gborg`, so the bucket cannot be
+                        // derived from the bot name.
+                        let loc = {
+                            match state.conn.get() {
+                                Ok(mut conn) => {
+                                    botbasic_core::utils::bot_drive_location_for(&mut conn, bot_uuid)
+                                }
+                                Err(e) => {
+                                    log::error!("chat attachment: DB error: {e}");
+                                    botbasic_core::utils::resolve_bot_drive_location(
+                                        bot_name,
+                                        None,
+                                        None,
+                                    )
+                                }
+                            }
+                        };
+                        let bucket = loc.bucket.clone();
+                        let key = loc.key_for(&format!("inbox/{fname}"));
+                        match drive.put_object(&bucket, &key, data, None).await {
+                            Ok(()) => {
+                                stored = true;
+                                log::info!("stored chat attachment: {bucket}/{key}");
                             }
                             Err(e) => {
-                                log::error!("chat attachment: DB error: {e}");
-                                botbasic_core::utils::resolve_bot_drive_location(
-                                    bot_name,
-                                    None,
-                                    None,
-                                )
+                                log::error!("chat attachment store failed: {e}");
+                                user_text = format!(
+                                    "{user_text}\n\n📎 {fname} (the upload could not be stored: {e})"
+                                );
                             }
                         }
-                    };
-                    let bucket = loc.bucket.clone();
-                    let key = loc.key_for(&format!("inbox/{fname}"));
-                    match drive.put_object(&bucket, &key, data, None).await {
-                        Ok(()) => {
-                            log::info!("stored chat attachment: {bucket}/{key}");
-                            user_text = format!(
-                                "{user_text}\n[User attached a file stored at inbox/{fname}; when a media filing tool such as classify_media is available for this session, call it with path=inbox/{fname} and the user's message as caption; otherwise use the drive.file command to organize it into its folder]"
-                            );
-                        }
-                        Err(e) => log::error!("chat attachment store failed: {e}"),
+                    } else {
+                        user_text = format!(
+                            "{user_text}\n\n📎 {fname} (Drive is not configured, so the file was not stored)"
+                        );
                     }
+                    if stored {
+                        user_text = format!("{user_text}\n\n📎 {fname}");
+                        attachment_note = Some(match excerpt {
+                            Some(text) => format!(
+                                "The user attached '{fname}'. The file is stored at inbox/{fname} and its extracted text is reproduced below. Use it to answer; never claim content that is not in it.\n\n--- BEGIN ATTACHMENT {fname} ---\n{text}\n--- END ATTACHMENT {fname} ---"
+                            ),
+                            None if media => format!(
+                                "The user attached the media file '{fname}' (stored at inbox/{fname}). This build cannot read its pixels or audio. Answer only from the user's text and say plainly that you cannot see the file's content. Never invent what it shows."
+                            ),
+                            None => format!(
+                                "The user attached '{fname}' (stored at inbox/{fname}). No text extractor is available for this format, so you cannot read its content. Say the file is stored and ask the user to paste the relevant text (or to convert it). Never invent its content."
+                            ),
+                        });
+                    }
+                }
+                Err(e) => {
+                    log::warn!("chat attachment decode failed: {e}");
+                    user_text = format!(
+                        "{user_text}\n\n📎 {fname} (the file could not be decoded and was not stored)"
+                    );
                 }
             }
         }
@@ -541,6 +575,12 @@ pub async fn process_message_internal(
     super::native_drive::fetch_referenced(state, bot_uuid, user_id, session_id, &user_text, &mut messages).await;
 
     super::history::append_conversation_history(state, bot_uuid, session_id, user_id, &mut messages).await;
+
+    // #1641 — attachment content is a separate system block so it never gets
+    // persisted as if the user had typed the whole file.
+    if let Some(note) = attachment_note.take() {
+        messages.push(serde_json::json!({"role": "system", "content": note}));
+    }
 
     // #1545/#1547: grounding context goes LAST, immediately before the model
     // call, so it is the freshest instruction in the prompt.

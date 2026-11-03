@@ -378,6 +378,19 @@ function addMessage(sender, content, msgId, reasoning) {
     if (retryTarget) retryTarget.appendChild(retryBtn);
   }
 
+  // #1641 — the persisted user turn carries `📎 name`; render it as a chip so
+  // reopening the conversation still shows the attachment on the message.
+  if (sender === "user" && content) {
+    var attachment = content.match(/📎\s+([^\n]+)/);
+    if (attachment) {
+      var restored = document.createElement("div");
+      restored.className = "gb-attachment-restored";
+      restored.textContent = "📎 " + attachment[1].trim();
+      var contentEl = div.querySelector(".message-content");
+      if (contentEl) contentEl.appendChild(restored);
+    }
+  }
+
   if (sender === "bot" && content) {
     var artifact = window.GBArtifacts && window.GBArtifacts.detect(content);
     if (artifact) {
