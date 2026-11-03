@@ -59,7 +59,8 @@ function sendMessage(messageContent) {
     // #1593 — explicit per-conversation web-search switch. When false the
     // server skips the search pipeline entirely; default is on.
     web_search: window.ChatWebSearch ? window.ChatWebSearch.isEnabled() : true,
-    user_memory: (!isAnonymous && window.ChatMemory && ChatMemory.getMemorySummary && (!window.GBPrivacy || GBPrivacy.getSettings().save_memory !== false)) ? ChatMemory.getMemorySummary() : undefined,
+    // #1642 — the prompt reads chat_preferences server-side; the old
+    // `user_memory` payload was ignored by the server and is gone.
     mentions: selectedMentions.map(function (mention) {
       return {
         kind: mention.kind,

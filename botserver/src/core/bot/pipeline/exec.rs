@@ -233,6 +233,18 @@ pub async fn process_message_internal(
         }
     }
 
+    // #1642 — the assistant finally has a writer. An explicit "remember …"
+    // turn is persisted to chat_preferences; the prompt already reads that
+    // table, so the next session starts knowing the preference.
+    if msg_type == 1 {
+        crate::core::user_memory::capture_from_message(
+            &state.conn,
+            user_id,
+            Some(bot_uuid),
+            &user_text,
+        );
+    }
+
     if user_text.starts_with("__TOOL__:") {
         let tool_name = user_text.trim_start_matches("__TOOL__:").trim().to_string();
         if !tool_name.is_empty() {

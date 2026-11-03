@@ -344,6 +344,19 @@ test("GB6-14: Trash shows how long is left before purge", function () {
 });
 
 // ═══════════════════════════════════════════════════════════════════
+// MEMORY (GB6-16 / #1642)
+// ═══════════════════════════════════════════════════════════════════
+
+test("GB6-16: Settings memory reads and writes the server API", function () {
+  var settings = readFile("settings/index.html");
+  assert(settings.indexOf("/api/user/memory") !== -1, "settings does not call the memory API");
+  assert(settings.indexOf("serverPut") !== -1, "settings does not persist edits");
+  assert(settings.indexOf("serverDelete") !== -1, "settings does not delete server-side");
+  var chat = readFile("chat/chat-init.js");
+  assert(chat.indexOf("user_memory:") === -1, "dead user_memory payload still sent");
+});
+
+// ═══════════════════════════════════════════════════════════════════
 // JS SYNTAX VALIDATION
 // ═══════════════════════════════════════════════════════════════════
 
