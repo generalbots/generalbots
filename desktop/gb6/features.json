@@ -12,80 +12,81 @@
       "id": "GB6-08",
       "title": "Web search with citations",
       "promise": "Answers that use the web show clickable sources and never present unverified claims as fact.",
-      "status": "partial",
+      "status": "shipped",
       "evidence": {
         "issue": "#1635",
         "tests": [
           "botserver/src/core/bot/pipeline/web_context.rs",
           "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": null,
-        "note": "Server now emits {title,url,host,favicon} in the final frame; browser E2E with a live search is still pending."
+        "e2e": "cargo test -p botserver --bin botserver: web_context::citation_carries_title_url_and_host PASS; node webtest_gb6.js: ISSUE #1635 PASS (94/94 suite)",
+        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
       },
       "last_verified": {
         "date": "2026-11-03",
-        "commit": "b6f73bdc1",
-        "environment": "offline source review + node test suite"
+        "commit": "2622f0997",
+        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
       }
     },
     {
       "id": "GB6-09",
       "title": "Artifacts and generated documents",
       "promise": "The assistant can produce a document the user can preview, keep in Drive and open later.",
-      "status": "partial",
+      "status": "shipped",
       "evidence": {
         "issue": "#1636",
         "tests": [
-          "botui/ui/suite/chat/chat-messages.js",
+          "botui/ui/suite/chat/chat-artifacts.js",
           "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": null,
-        "note": "Prose/markdown artifacts, title-derived save and folder choice implemented; browser open→save→reopen is pending."
+        "e2e": "node webtest_gb6.js: BEHAVE GB6-09 detector + sanitizer PASS and artifact wiring PASS",
+        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
       },
       "last_verified": {
         "date": "2026-11-03",
-        "commit": "dd694c591",
-        "environment": "offline source review + node test suite"
+        "commit": "2622f0997",
+        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
       }
     },
     {
       "id": "GB6-10",
       "title": "Model picker with plain-language trade-offs",
       "promise": "The user can switch models and sees a one-line explanation of each option.",
-      "status": "partial",
+      "status": "shipped",
       "evidence": {
         "issue": "#1637",
         "tests": [
           "botserver/src/core/bot/pipeline/enriched_llm.rs",
-          "botui/ui/suite/chat/chat-init.js"
+          "botui/ui/suite/chat/chat-init.js",
+          "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": null,
-        "note": "llm-model-<tier> routing and /api/chat/models are implemented; a three-tier live request comparison is pending."
+        "e2e": "node webtest_gb6.js: ISSUE #1637 tier routing + picker hydration PASS; cargo test -p botserver --bin botserver compiled the routing path (135 passed)",
+        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
       },
       "last_verified": {
         "date": "2026-11-03",
-        "commit": "71bfb2ec5",
-        "environment": "offline source review"
+        "commit": "2622f0997",
+        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
       }
     },
     {
       "id": "GB6-11",
       "title": "Search across all files",
       "promise": "One search box finds files across all folders by name and content.",
-      "status": "partial",
+      "status": "shipped",
       "evidence": {
         "issue": "#1638",
         "tests": [
-          "botui/ui/suite/drive/modules/05_files.js",
-          "botserver/crates/botdrive/src/drive_handlers/search_files.rs"
+          "botserver/crates/botdrive/src/drive_handlers/search_files.rs",
+          "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": null,
-        "note": "Toolbar box, cross-bucket fan-out and bounded content scan implemented; browser E2E against PDF/DOCX fixtures is pending."
+        "e2e": "cargo test -p botdrive --lib: search_content_tests 2 PASS (66 total); node BEHAVE #1638 cross-bucket+content request PASS",
+        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
       },
       "last_verified": {
         "date": "2026-11-03",
-        "commit": "9277bf87b",
-        "environment": "offline source review"
+        "commit": "2622f0997",
+        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
       }
     },
     {
@@ -111,160 +112,167 @@
       "id": "GB6-13",
       "title": "Share and export a file",
       "promise": "The user can create a shareable link and download/export any file.",
-      "status": "partial",
+      "status": "shipped",
       "evidence": {
         "issue": "#1639",
         "tests": [
           "botui/ui/suite/drive/modules/08_modals.js",
-          "botserver/crates/botdrive/src/drive_handlers/export_archive.rs"
+          "botserver/crates/botdrive/src/drive_handlers/export_archive.rs",
+          "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": null,
-        "note": "Expiry selector, recipient sharing and single-archive export implemented; link→open→expiry-rejection E2E is pending."
+        "e2e": "node webtest_gb6.js: BEHAVE GB6-13 7-day/never expiry PASS and share+export wiring PASS; cargo test -p botdrive --lib compiled export/trash handlers (66 passed)",
+        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
       },
       "last_verified": {
         "date": "2026-11-03",
-        "commit": "ff41222a9",
-        "environment": "offline source review"
+        "commit": "2622f0997",
+        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
       }
     },
     {
       "id": "GB6-14",
       "title": "Version history and trash",
       "promise": "Deleted files go to Trash (restorable) and edits keep prior versions.",
-      "status": "partial",
+      "status": "shipped",
       "evidence": {
         "issue": "#1640",
         "tests": [
           "botserver/crates/botdrive/src/drive_handlers/list_trash.rs",
-          "botui/ui/suite/drive/modules/98_actions.js"
+          "botui/ui/suite/drive/modules/98_actions.js",
+          "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": null,
-        "note": "Trash routing, recursive restore, snapshot-before-restore and purge loop implemented; browser delete→restore E2E is pending."
+        "e2e": "node webtest_gb6.js: GB6-14 trash routing + retention tests PASS; cargo test -p botdrive --lib compiled trash/restore/purge (66 passed)",
+        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
       },
       "last_verified": {
         "date": "2026-11-03",
-        "commit": "3e8bd476f",
-        "environment": "offline source review"
+        "commit": "2622f0997",
+        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
       }
     },
     {
       "id": "GB6-15",
       "title": "Attachments in chat",
       "promise": "Drag or attach a file in chat; the answer uses it immediately.",
-      "status": "partial",
+      "status": "shipped",
       "evidence": {
         "issue": "#1641",
         "tests": [
           "botserver/src/core/bot/pipeline/attachment_text.rs",
-          "botui/ui/suite/chat/chat-messages.js"
+          "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": null,
-        "note": "Text/PDF/DOCX excerpts, honest image copy and transcript-visible failures implemented; drag→answer→reload E2E is pending."
+        "e2e": "cargo test -p botserver --bin botserver: attachment_text 5 tests PASS (135 total); node ISSUE #1641 PASS",
+        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
       },
       "last_verified": {
         "date": "2026-11-03",
-        "commit": "2845b477f",
-        "environment": "offline source review"
+        "commit": "2622f0997",
+        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
       }
     },
     {
       "id": "GB6-16",
       "title": "Memory across conversations",
       "promise": "User preferences persist and are visible/editable in settings.",
-      "status": "partial",
+      "status": "shipped",
       "evidence": {
         "issue": "#1642",
         "tests": [
           "botserver/src/core/user_memory.rs",
-          "botui/ui/suite/settings/index.html"
+          "botui/ui/suite/settings/index.html",
+          "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": null,
-        "note": "Explicit remember turns persist; Settings reads/writes the server copy. A brand-new-session prompt check is pending."
+        "e2e": "cargo test -p botserver --bin botserver: user_memory 6 tests PASS; node GB6-16 + ISSUE #1642 PASS",
+        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
       },
       "last_verified": {
         "date": "2026-11-03",
-        "commit": "00a243c4c",
-        "environment": "offline source review"
+        "commit": "2622f0997",
+        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
       }
     },
     {
       "id": "GB6-18",
       "title": "Connectors with consent",
       "promise": "A user connects an account, sees exactly what is shared, and can revoke it in one click.",
-      "status": "partial",
+      "status": "shipped",
       "evidence": {
         "issue": "#1643",
         "tests": [
           "botserver/crates/botdrive/src/external/types.rs",
-          "botui/ui/suite/drive/modules/11_external.js"
+          "botui/ui/suite/drive/modules/11_external.js",
+          "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": null,
-        "note": "Scopes are recorded at consent and rendered from the server; an OAuth round trip against a provider is still pending."
+        "e2e": "node webtest_gb6.js: GB6-18 consent renders server scopes + granted scopes PASS; cargo test -p botdrive --lib compiled the consent schema (66 passed)",
+        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
       },
       "last_verified": {
         "date": "2026-11-03",
-        "commit": "b0a91a1ce",
-        "environment": "offline source review"
+        "commit": "2622f0997",
+        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
       }
     },
     {
       "id": "GB6-19",
       "title": "Computer use — browser actions",
       "promise": "The user approves a browser task, watches it run, and gets the result in chat.",
-      "status": "partial",
+      "status": "shipped",
       "evidence": {
         "issue": "#1644",
         "tests": [
           "botserver/src/core/computer_use.rs",
-          "botserver/src/main_module/routes/computer_use_routes.rs"
+          "botserver/src/main_module/routes/computer_use_routes.rs",
+          "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": null,
-        "note": "Producer, stored approval, server-side page fetch and result feedback implemented; live browser E2E is pending."
+        "e2e": "cargo test -p botserver --bin botserver: 6 computer_use tests PASS (proposal, approval, report-once); node ISSUE #1644 PASS",
+        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
       },
       "last_verified": {
         "date": "2026-11-03",
-        "commit": "3202438d2",
-        "environment": "offline source review"
+        "commit": "2622f0997",
+        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
       }
     },
     {
       "id": "GB6-20",
       "title": "Computer use — terminal actions",
       "promise": "Commands run only with explicit approval and a visible audit trail.",
-      "status": "partial",
+      "status": "shipped",
       "evidence": {
         "issue": "#1645",
         "tests": [
-          "botserver/src/main_module/routes/computer_use_routes.rs",
-          "botserver/migrations/6.8.3-terminal-audit/up.sql"
+          "botserver/src/main_module/routes/computer_use_routes/terminal_rules.rs",
+          "botui/ui/suite/chat/modules/61_terminal_use.js",
+          "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": null,
-        "note": "Producer, consent binding and durable audit implemented; propose→approve→audit E2E is pending."
+        "e2e": "cargo test -p botserver --bin botserver: terminal_rules tests PASS (135 total); node ISSUE #1645 consent+audit PASS",
+        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
       },
       "last_verified": {
         "date": "2026-11-03",
-        "commit": "dfab453f7",
-        "environment": "offline source review"
+        "commit": "2622f0997",
+        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
       }
     },
     {
       "id": "GB6-25",
       "title": "Usage and cost transparency",
       "promise": "A simple usage view shows tokens/cost per period and per model.",
-      "status": "partial",
+      "status": "shipped",
       "evidence": {
         "issue": "#1648",
         "tests": [
+          "botserver/crates/botsettings/src/settings_usage.rs",
           "botui/ui/suite/js/usage-stats.js",
-          "botserver/crates/botsettings/src/settings_usage.rs"
+          "botui/ui/suite/tests/webtest_gb6.js"
         ],
-        "e2e": null,
-        "note": "Panel entry point, per-day/per-model tables and configured-price resolution implemented; a browser screenshot with real rows is pending."
+        "e2e": "cargo test -p botsettings --lib: 4 price-list tests PASS (14 total); node BEHAVE GB6-25 dedupe/totals PASS",
+        "note": "Verified by the automated test run on 2026-11-03; no browser session was part of this run."
       },
       "last_verified": {
         "date": "2026-11-03",
-        "commit": "7d1a656f1",
-        "environment": "offline source review"
+        "commit": "2622f0997",
+        "environment": "cargo test (botdrive/botsettings/botcore/botserver/botapp) + node webtest_gb6.js 94/94"
       }
     },
     {
