@@ -22,6 +22,8 @@ pub(crate) fn authenticated_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/ai-accounts/**", "POST", ""),
         // Sandbox configuration for the chat client (#1674)
         RoutePermission::new("/api/sandbox/config", "GET", ""),
+        // Tool manifests for the native surface tools (#1678)
+        RoutePermission::new("/api/runs/tools", "GET", ""),
 
         // Computer use (browser + terminal consent and execution)
         RoutePermission::new("/api/computer/**", "GET", ""),

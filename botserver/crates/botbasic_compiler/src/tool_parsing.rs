@@ -10,6 +10,7 @@ impl super::BasicCompiler {
     ) -> Result<ToolDefinition, Box<dyn Error + Send + Sync>> {
         let mut params = Vec::new();
         let mut description = String::new();
+        let mut annotations = Vec::new();
         let lines: Vec<&str> = source.lines().collect();
         let mut i = 0;
         while i < lines.len() {
@@ -26,6 +27,9 @@ impl super::BasicCompiler {
                     description = line[desc_start + 1..desc_end].to_string();
                 }
             }
+            if line.starts_with("ANNOTATION ") {
+                annotations.extend(Self::parse_annotation_line(line));
+            }
             i += 1;
         }
         let tool_name = std::path::Path::new(source_path)
@@ -38,6 +42,7 @@ impl super::BasicCompiler {
             description,
             parameters: params,
             source_file: source_path.to_string(),
+            annotations,
         })
     }
 
@@ -142,6 +147,62 @@ impl super::BasicCompiler {
         }))
     }
 
+    /// Parses one `ANNOTATION ` declaration (#1678) in the form:
+    /// `ANNOTATION READ_ONLY` / `ANNOTATION TITLE "Deploy target"`.
+    /// Unknown hints are ignored so a newer compiler never breaks an older
+    /// bot script silently.
+    pub(crate) fn parse_annotation_line(line: &str) -> Vec<String> {
+        let rest = line.trim().strip_prefix("ANNOTATION").unwrap_or("").trim();
+        let hint = rest.split_whitespace().next().unwrap_or("").to_uppercase();
+        match hint.as_str() {
+            "READ_ONLY" | "DESTRUCTIVE" | "IDEMPOTENT" | "OPEN_WORLD" => vec![hint],
+            "TITLE" => {
+                let start = match line.find('"') {
+                    Some(start) => start,
+                    None => return Vec::new(),
+                };
+                match line[start + 1..].find('"') {
+                    Some(end) => vec![format!("TITLE \"{}\"", &line[start + 1..start + 1 + end])],
+                    None => Vec::new(),
+                }
+            }
+            _ => Vec::new(),
+        }
+    }
+
+    /// Maps the parsed `ANNOTATION` hints onto the MCP spec's
+    /// `tool.annotations` object (#1678). MCP defaults apply where a hint is
+    /// absent (readOnly=false, destructive=true, openWorld=true), so the
+    /// struct only records what the tool source declared.
+    pub(crate) fn generate_mcp_annotations(
+        tool_def: &ToolDefinition,
+    ) -> Option<super::types::MCPAnnotations> {
+        if tool_def.annotations.is_empty() {
+            return None;
+        }
+        let mut annotated = super::types::MCPAnnotations {
+            title: None,
+            read_only_hint: None,
+            destructive_hint: None,
+            idempotent_hint: None,
+            open_world_hint: None,
+        };
+        for annotation in &tool_def.annotations {
+            if let Some(title) = annotation.strip_prefix("TITLE ") {
+                annotated.title = Some(title.trim_matches('"').to_string());
+                continue;
+            }
+            match annotation.as_str() {
+                "READ_ONLY" => annotated.read_only_hint = Some(true),
+                "DESTRUCTIVE" => annotated.destructive_hint = Some(true),
+                "IDEMPOTENT" => annotated.idempotent_hint = Some(true),
+                "OPEN_WORLD" => annotated.open_world_hint = Some(true),
+                other => log::warn!("Ignoring unknown tool annotation {other:?}"),
+            }
+        }
+        Some(annotated)
+    }
+
     pub(crate) fn normalize_type(basic_type: &str) -> String {
         match basic_type.to_lowercase().as_str() {
             "integer" | "int" | "number" => "integer".to_string(),
@@ -232,6 +293,7 @@ impl super::BasicCompiler {
                 properties,
                 required,
             },
+            annotations: Self::generate_mcp_annotations(tool_def),
         })
     }
 

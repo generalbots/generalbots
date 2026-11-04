@@ -15,6 +15,7 @@ pub mod turn_context;
 pub mod start_gate;
 pub mod agent_vm_context;
 pub mod surface_tools;
+pub mod surface_catalog;
 pub mod system_prompt;
 pub mod tool_paths;
 pub mod tool_exec;

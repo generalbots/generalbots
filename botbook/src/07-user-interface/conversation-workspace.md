@@ -99,3 +99,23 @@ The client stores the highest `seq` per session and sends `{"type":"run_resume",
 ## Quality dashboard
 
 `GET /api/runs/quality` returns frame/UI/question/app counts, consent denials (24 h), sandbox errors and token totals. The admin fragment is `botui/ui/suite/admin/run-quality.html`.
+
+## Tool discovery and manifests
+
+The native surface tools (`ask_user`, `propose_plan`, `show_surface`, `show_app`) are declared once in `botserver/src/core/bot/pipeline/surface_catalog.rs`. The seed is the single source of truth for:
+
+- the capability block injected into the web system prompt (`prompt_block()`), including the when-not-to-use rubric and one few-shot per tool;
+- the MCP-spec manifests served at `GET /api/runs/tools` (`name`, `title`, `description`, `inputSchema`, `annotations` with `readOnlyHint` / `destructiveHint` / `openWorldHint`).
+
+Adding a tool is a single entry in the seed; a test fails if the prompt, the dispatch table in `surface_tools::try_run` and the manifests drift apart.
+
+Tool scripts can declare the same annotations in BASIC. The compiler parses the lines and emits them into the generated `.mcp.json`:
+
+```basic
+DESCRIPTION "Classify an inbound image or document and file it in Drive."
+PARAM path AS string DESCRIPTION "Drive path of the received media"
+ANNOTATION READ_ONLY
+ANNOTATION TITLE "Classify and file media"
+```
+
+Unknown annotation hints are ignored (forward compatibility), and a tool without hints keeps the plain manifest. `cargo test -p botbasic_compiler` guards the source-to-manifest flow.

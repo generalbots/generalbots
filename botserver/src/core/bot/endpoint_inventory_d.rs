@@ -219,6 +219,7 @@ pub(crate) const ALL_ROUTES_D: &[ApiEndpoint] = &[
     ApiEndpoint { method: "POST", path: "/api/workspaces/:workspace_id/members", summary: "registered in crates/botworkspaces/src/lib.rs" },
     ApiEndpoint { method: "GET", path: "/api/workspaces/:workspace_id/search", summary: "registered in crates/botworkspaces/src/lib.rs" },
     ApiEndpoint { method: "GET", path: "/api/workspaces/commands", summary: "registered in crates/botworkspaces/src/lib.rs" },
+    ApiEndpoint { method: "GET", path: "/api/runs/tools", summary: "native surface tool manifests (name, inputSchema, annotations) for run-event capable clients" },
     ApiEndpoint { method: "GET", path: "/api/workspaces/{workspace_id}", summary: "registered in crates/botworkspaces/src/lib.rs" },
     ApiEndpoint { method: "DELETE", path: "/api/workspaces/{workspace_id}/members/{user_id}", summary: "registered in crates/botworkspaces/src/lib.rs" },
     ApiEndpoint { method: "GET", path: "/api/workspaces/{workspace_id}/pages", summary: "registered in crates/botworkspaces/src/lib.rs" },

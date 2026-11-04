@@ -7,3 +7,4 @@ pub mod bus;
 pub mod observability;
 pub mod quality;
 pub mod store;
+pub mod tools;
