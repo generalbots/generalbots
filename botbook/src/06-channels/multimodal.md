@@ -62,26 +62,28 @@ Add to `config.csv`:
 ```csv
 botmodels-enabled,true
 botmodels-host,localhost
-botmodels-port,5000
+botmodels-port,8085
 botmodels-api-key,your-api-key
-botmodels-use-https,false
+botmodels-https,false
 ```
 
 ### Image Generation Config
 
 ```csv
-botmodels-image-model,stable-diffusion
-botmodels-image-steps,20
-botmodels-image-width,512
-botmodels-image-height,512
+image-generator-model,
+image-generator-steps,4
+image-generator-width,512
+image-generator-height,512
 ```
 
 ### Video Generation Config
 
 ```csv
-botmodels-video-model,text2video
-botmodels-video-frames,16
-botmodels-video-fps,8
+video-generator-model,
+video-generator-frames,24
+video-generator-fps,8
+video-generator-width,320
+video-generator-height,576
 ```
 
 ## BotModels Client
@@ -89,13 +91,18 @@ botmodels-video-fps,8
 Rust API for direct integration:
 
 ```rust
-let client = BotModelsClient::from_state(&state, &bot_id);
+let provider = MyConfigProvider::new(&bot_id);
+let client = botmultimodal::BotModelsClient::from_provider_all(&provider, &bot_id);
 
 if client.is_enabled() {
-    let image_url = client.generate_image("A beautiful garden").await?;
+    let image_path = client.generate_image("A beautiful garden").await?;
     let description = client.describe_image("path/to/photo.jpg").await?;
 }
 ```
+
+`from_provider_all` reads the `botmodels-*` keys, then the image and video
+generator settings, through the `ConfigProvider` trait. The client is also
+available to BASIC keywords through `botbasic_ai`.
 
 ### Available Methods
 
@@ -105,9 +112,8 @@ if client.is_enabled() {
 | `generate_video(prompt)` | Create video from text |
 | `generate_audio(text)` | Create speech audio |
 | `describe_image(path)` | Get image caption |
-| `describe_video(path)` | Get video description |
+| `describe_video(path)` | Sample frames and get a video description |
 | `speech_to_text(audio_path)` | Transcribe audio |
-| `health_check()` | Check BotModels server status |
 
 ## Response Structures
 
@@ -115,10 +121,11 @@ if client.is_enabled() {
 
 ```json
 {
-    "status": "success",
-    "file_path": "/path/to/generated/file.png",
+    "status": "completed",
+    "file_path": "/outputs/images/20261104_120000_ab12cd34.png",
     "generation_time": 12.5,
-    "error": null
+    "error": null,
+    "timestamp": "2026-11-04T12:00:00"
 }
 ```
 
@@ -127,15 +134,19 @@ if client.is_enabled() {
 ```json
 {
     "description": "A golden retriever playing fetch in a park",
-    "confidence": 0.92
+    "confidence": null,
+    "generation_time": 5.6
 }
 ```
 
+The captioner does not emit a calibrated confidence, so the field is `null`
+rather than a fabricated constant.
+
 ## Requirements
 
-- BotModels server running (separate service)
-- GPU recommended for generation tasks
-- Sufficient disk space for generated media
+- BotModels process running as a local sidecar (default port 8085)
+- A model tier that fits the host: `min` runs on CPU; `max` needs a GPU
+- Sufficient disk space for generated media and model caches
 
 ## See Also
 

@@ -7,19 +7,20 @@ General Bots integrates with botmodels—a Python service for multimodal AI task
 ## Architecture
 
 ```
-┌─────────────┐     HTTPS      ┌─────────────┐
-│  botserver  │ ────────────▶  │  botmodels  │
-│   (Rust)    │                │  (Python)   │
-└─────────────┘                └─────────────┘
-      │                              │
-      │ BASIC Keywords               │ AI Models
-      │ - IMAGE                      │ - Stable Diffusion
-      │ - VIDEO                      │ - Zeroscope
-      │ - AUDIO                      │ - TTS (OpenAI/Google) / STT (Groq/OpenAI API)
-      │ - SEE                        │ - BLIP2
+┌─────────────┐   HTTP / WS    ┌──────────────────────────────┐
+│  botserver  │ ────────────▶  │  botmodels (local process)   │
+│   (Rust)    │                │  faster-whisper · Piper      │
+└─────────────┘                │  BLIP · RapidOCR             │
+      │                        │  SD-Turbo · Zeroscope        │
+      │ BASIC keywords         │  ACE-Step (external process) │
+      │ chat attachments       └──────────────────────────────┘
 ```
 
-When a BASIC script calls a multimodal keyword, botserver forwards the request to botmodels, which runs the appropriate AI model and returns the generated content.
+When a BASIC script calls a multimodal keyword, or a chat attachment needs
+transcription or description, botserver forwards the bytes to botmodels. The
+service runs the model selected by its hardware tier and returns text or a
+file. Speech, vision and OCR run locally; the opt-in remote providers are the
+only paths that leave the host.
 
 ## Configuration
 
@@ -57,6 +58,71 @@ Add these settings to your bot's `config.csv` file to enable multimodal capabili
 | `video-generator-height` | `576` | Output video height in pixels |
 | `video-generator-gpu-layers` | `15` | Layers to offload to GPU |
 | `video-generator-batch-size` | `1` | Batch size for generation |
+
+## Local open-source model bundle
+
+BotModels selects one backend per capability from a hardware tier frozen at
+startup (`botmodels/src/core/mode.py`). The tier is `min` unless the host has a
+GPU with at least 16 GB VRAM and 32 GB RAM, so a CPU-only host never tries to
+load a 7B checkpoint.
+
+| Capability | `min` | `max` |
+|------------|-------|-------|
+| Vision | BLIP base captioner (`blip`) | Qwen3-VL (`qwen3-vl`) |
+| Speech-to-text | faster-whisper (`faster-whisper`) | Qwen3-ASR (`qwen3-asr`) |
+| Text-to-speech | Piper (`piper`) | Kokoro (`kokoro`) |
+| OCR | Tesseract, falling back to RapidOCR when the binary is absent | PaddleOCR-VL (`paddleocr-vl`) |
+| Image | SD-Turbo (`sd-turbo`) | Qwen-Image (`qwen-image`) |
+| Video | Zeroscope (`zeroscope`) | Wan 2.2 (`wan22`) |
+| Music | ACE-Step 1.5 | ACE-Step 1.5 |
+
+The `min` tier deliberately uses the BLIP **base** captioner instead of
+BLIP2 2.7B: the larger checkpoint does not fit the under-8 GB hosts the tier
+targets. Both `blip2` and `qwen3-vl` remain registered for larger machines.
+
+### Provisioning
+
+`botmodels/scripts/provision_models.py` verifies the imports and fetches the
+weights. It never installs Python packages; the environment manager owns that.
+
+```bash
+cd botmodels
+
+# Offline verification: imports, Piper voice file and Hub cache entries.
+python scripts/provision_models.py --check
+
+# CI-safe: verify importable dependencies only, no weights.
+python scripts/provision_models.py --check --deps-only
+
+# Download the min-tier weights into the Hub cache and the Piper voice.
+python scripts/provision_models.py --install
+```
+
+`--install` writes `botmodels/models/manifest.json` with each entry's status,
+cache path and size. `--tier max` lists the larger checkpoints without
+downloading them. The script is idempotent and respects `HF_HUB_OFFLINE=1`.
+
+Required open-source packages for the `min` speech/vision/OCR path:
+
+```text
+faster-whisper>=1.0.3
+piper-tts>=1.3.0
+av>=16,<19            # faster-whisper passes metadata_errors= to av.open
+rapidocr-onnxruntime>=1.2.3
+```
+
+Piper voices are files, not Hub repositories. The default voice is
+`en_US-lessac-medium` at `models/piper/en_US-lessac-medium.onnx`; override it
+with `BOTMODELS_TTS_PATH`. Whisper size and device are selected with
+`BOTMODELS_STT_MODEL` (default `small`) and `BOTMODELS_DEVICE`.
+
+### Model source resolution
+
+Backends accept either a local path or a Hugging Face id
+(`botmodels/src/services/backends/sources.py`). An existing local path wins;
+otherwise the canonical Hub id is used, so a prefetched cache works offline and
+a fresh install downloads once. The previous defaults (`./models/blip2`,
+`./models/zeroscope-v2`) always failed when those directories were absent.
 
 ## Example Configuration
 
@@ -130,22 +196,32 @@ The SEE keyword uses vision models to understand visual content and return natur
 
 ## Starting BotModels
 
-Before using multimodal features, start the botmodels service:
+Run it from `botmodels/` so the relative model paths resolve. The service's
+`API_KEY` must equal the value botserver sends as `BOTMODELS_API_KEY`; otherwise
+HTTP calls return `401` and voice sockets close with code `1008`. The sanctioned
+`restart.sh` derives it automatically.
 
 ```bash
 cd botmodels
-python -m uvicorn src.main:app --host 0.0.0.0 --port 8085
+python -m pip install -r requirements.txt
+python scripts/provision_models.py --install
+API_KEY="$BOTMODELS_API_KEY" python -m uvicorn src.main:app --host 0.0.0.0 --port 8085
 ```
 
 For production with HTTPS:
 
 ```bash
-python -m uvicorn src.main:app \
+API_KEY="$BOTMODELS_API_KEY" python -m uvicorn src.main:app \
     --host 0.0.0.0 \
     --port 8085 \
     --ssl-keyfile key.pem \
     --ssl-certfile cert.pem
 ```
+
+`MODE=min` or `MODE=max` forces a tier; `MODE=auto` probes the hardware once at
+startup and freezes the result for the process lifetime. The default remote
+speech setting is `ALLOW_REMOTE_SPEECH=false`: audio and images stay on the host
+unless an operator explicitly opts in.
 
 ## Media Auto-Task (inbound media → classification → filing)
 
@@ -233,31 +309,97 @@ The botmodels service exposes these REST endpoints:
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
-| `/api/image/generate` | POST | Generate image from prompt |
-| `/api/video/generate` | POST | Generate video from prompt |
-| `/api/speech/generate` | POST | Generate speech from text |
-| `/api/speech/totext` | POST | Transcribe audio to text |
-| `/api/vision/describe` | POST | Describe an image |
-| `/api/vision/describe_video` | POST | Describe a video |
+| `/api/image/generate` | POST | Generate an image from a prompt |
+| `/api/video/generate` | POST | Generate a video from a prompt |
+| `/api/speech/generate` | POST | Synthesize speech; returns `file_path` under `/outputs/audio/` |
+| `/api/speech/totext` | POST | Transcribe an uploaded audio file |
+| `/api/speech/detect_language` | POST | Detect the spoken language |
+| `/api/speech/realtime` | POST | One-shot speech-to-speech (optional PersonaPlex checkpoint) |
+| `/api/vision/describe` | POST | Caption an image |
+| `/api/vision/describe-video` | POST | Sample frames and describe a video (`/describe_video` is an alias) |
+| `/api/vision/ocr` | POST | Extract text (Tesseract or RapidOCR) |
 | `/api/vision/vqa` | POST | Visual question answering |
-| `/api/health` | GET | Health check |
+| `/api/health` | GET | Health, tier and loaded-backend status |
 
-All endpoints except `/api/health` require the `X-API-Key` header for authentication.
+All HTTP endpoints except `/api/health` require the `X-API-Key` header.
+
+### Streaming voice sockets
+
+Two WebSocket endpoints carry raw 16-bit PCM at 16 kHz. They authenticate with
+`?api_key=` because an upgrade cannot carry the header dependency.
+
+| Endpoint | Direction | Protocol |
+|----------|-----------|----------|
+| `/v1/audio/stt/stream` | client → server | binary PCM frames; `{"type":"config","sample_rate":…}`, `{"type":"flush"}`; server answers `partial`/`final` JSON |
+| `/v1/audio/tts/stream` | server → client | send `{"text":"…"}`; server answers a `meta` frame, binary PCM frames, then `{"type":"done"}` |
+
+The two sockets are independent half-duplex streams. Running both at once is
+the substrate for a full-duplex client; there is no single duplex socket, no
+barge-in state machine and no echo cancellation in this service.
+
+```bash
+# HTTP round-trip
+curl -s -H "X-API-Key: $API_KEY" \
+  -H 'Content-Type: application/json' \
+  -d '{"prompt":"Local speech works."}' \
+  http://127.0.0.1:8085/api/speech/generate
+
+curl -s -H "X-API-Key: $API_KEY" \
+  -F "file=@/path/to/audio.wav;type=audio/wav" \
+  http://127.0.0.1:8085/api/speech/totext
+```
+
+`/api/health` reports `backends` (the tier's selection) and
+`backends_loaded` (what has actually loaded, with errors). A backend that is
+merely configured does not appear in `backends_loaded` until the first request.
+
+## Chat attachment ingestion
+
+Web chat attachments are staged in the bot's Drive `inbox/` and then handed to
+the local model service by `botserver/src/core/bot/pipeline/turn_hooks.rs`:
+
+| Attachment | BotModels call | Prompt content |
+|------------|----------------|----------------|
+| audio (`.mp3`, `.wav`, `.ogg`, `.m4a`, `.flac`) | `/api/speech/totext` | bounded transcript block |
+| image (`.png`, `.jpg`, `.gif`, `.webp`, `.bmp`, `.heic`) | `/api/vision/describe` | caption block |
+| video (`.mp4`, `.mov`, `.webm`, `.avi`, `.mkv`) | `/api/vision/describe-video` | description of six sampled frames |
+
+The call uses the bot's `botmodels-*` settings, falling back to
+`BOTMODELS_HOST`/`BOTMODELS_API_KEY` in the server environment. When the
+service is disabled or unreachable, the model is told plainly that the media
+content is unavailable; it is never asked to invent a transcript or caption.
+
+## GB7 test scripts
+
+The published feature suite (`gb7features/test-scripts.html`) exercises chat,
+Drive and the local model service. Two scripts depend on BotModels:
+
+| Script | Steps that use BotModels | Local bundle |
+|--------|--------------------------|--------------|
+| TS-01 | “describe the image” after attaching a PNG | BLIP captioner |
+| TS-02 | transcribe a voice note, describe a short video | faster-whisper, BLIP on sampled frames |
+
+TS-03, TS-04, TS-06, TS-07, TS-08, TS-09 and TS-10 do not need a local model
+beyond the external chat completion endpoint. TS-05 is a negative test: it
+expects voice/live mode to be absent, so no duplex UI is required (or wanted)
+for that script.
 
 ## Model Paths
 
-Configure model paths relative to the botmodels service directory. Typical layout:
+Local files live under `botmodels/models/`. Hub checkpoints are resolved from
+the Hugging Face cache when the configured path does not exist, so a local
+directory is optional once the cache is warm.
 
 ```
-data/
-├── diffusion/
-│   ├── sd_turbo_f16.gguf          # Stable Diffusion
-│   └── zeroscope_v2_576w/         # Zeroscope video
-├── tts/
-│   └── model.onnx                 # Text-to-speech
-└── vision/
-    └── blip2/                     # Vision model
+models/
+├── piper/
+│   └── en_US-lessac-medium.onnx    # Piper voice (+ .onnx.json)
+└── manifest.json                   # written by provision_models.py
 ```
+
+The path settings are `VISION_MODEL_PATH`, `IMAGE_MODEL_PATH`,
+`VIDEO_MODEL_PATH`, `OCR_MODEL_PATH` and `BOTMODELS_TTS_PATH`. `--install`
+records the resolved cache paths in `models/manifest.json`.
 
 ## GPU Acceleration
 
@@ -291,11 +433,16 @@ Ensure `botmodels-api-key` in config.csv matches the `API_KEY` environment varia
 
 **Model not found**
 
-Verify model paths are correct and models are downloaded to the expected locations.
+Run `python scripts/provision_models.py --check`. A configured local path that
+does not exist falls back to the canonical Hub id; if neither is available the
+backend reports the attempted source in the load error. `--install` fetches the
+min-tier bundle.
 
 **Out of memory**
 
-Reduce `gpu-layers` or `batch-size`. Video generation is particularly memory-intensive.
+Reduce `gpu-layers` or `batch-size`. Video generation is particularly
+memory-intensive. On CPU-only hosts the min tier uses the BLIP base captioner
+rather than BLIP2 2.7B; forcing `MODE=max` on such a host will fail at load.
 
 ## Security Considerations
 
