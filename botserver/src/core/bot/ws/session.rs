@@ -238,6 +238,7 @@ pub async fn handle_ws(
                                 .as_ref()
                                 .and_then(|value| value.get("run_id"))
                                 .and_then(serde_json::Value::as_str)
+                                .filter(|value| !value.trim().is_empty())
                                 .map(str::to_string)
                                 .or_else(|| bus::bus().current_run_id(&thread_id))
                                 .unwrap_or_default();

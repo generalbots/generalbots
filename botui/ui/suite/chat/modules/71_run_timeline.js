@@ -13,6 +13,9 @@
     var runs = Object.create(null);
     var seenSeq = Object.create(null);
     var activeRunId = null;
+    // #1677 — takeover segments that arrived before the run card existed
+    // (the WS broadcast can beat RUN_STARTED). Applied on card creation.
+    var pendingTakeover = Object.create(null);
     var timer = null;
     var logBuffer = [];
     var flushScheduled = false;
@@ -288,6 +291,11 @@
 
         runs[runId] = entry;
         activeRunId = runId;
+        var pending = pendingTakeover[runId];
+        if (pending) {
+            applyTakeover(runId, pending.state, pending.surface);
+            delete pendingTakeover[runId];
+        }
         startTimer();
         // #1680 — first-paint sample for the performance gate.
         try {
@@ -458,9 +466,16 @@
         // controls after a reload, on any device.
         if (type === "CUSTOM") {
             var custom = frame.data || {};
-            if (custom.name === "gb.takeover" && entry) {
+            if (custom.name === "gb.takeover") {
                 var payload = custom.payload || {};
-                applyTakeover(entry.id, payload.state || "taken_over", payload.surface || "terminal");
+                if (entry) {
+                    applyTakeover(entry.id, payload.state || "taken_over", payload.surface || "terminal");
+                } else {
+                    pendingTakeover[runId || "pending"] = {
+                        state: payload.state || "taken_over",
+                        surface: payload.surface || "terminal",
+                    };
+                }
             }
             return;
         }

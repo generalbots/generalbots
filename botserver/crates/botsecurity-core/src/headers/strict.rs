@@ -200,10 +200,11 @@ pub(super) fn apply_security_headers(response: &mut Response, config: &SecurityH
 
     if let Some(ref csp) = config.content_security_policy {
         if let Ok(value) = HeaderValue::from_str(csp) {
-            headers.insert(
-                HeaderName::from_static("content-security-policy"),
-                value,
-            );
+            // A handler-scoped policy wins: sandboxed previews and signed
+            // resources ship a stricter CSP than the global default (#1672).
+            headers
+                .entry(HeaderName::from_static("content-security-policy"))
+                .or_insert(value);
         }
     }
 

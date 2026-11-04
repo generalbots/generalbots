@@ -28,6 +28,30 @@ mod tests {
         (StatusCode::OK, "Hello, world!")
     }
 
+    async fn strict_csp_handler() -> axum::response::Response {
+        let mut response = axum::response::Response::new(Body::from("preview"));
+        response.headers_mut().insert(
+            HeaderName::from_static("content-security-policy"),
+            HeaderValue::from_static("default-src 'none'; style-src 'unsafe-inline'"),
+        );
+        response
+    }
+
+    #[tokio::test]
+    async fn handler_scoped_csp_is_preserved() {
+        let config = SecurityHeadersConfig::default();
+        let app = Router::new()
+            .route("/strict", get(strict_csp_handler))
+            .layer(axum::middleware::from_fn(security_headers_middleware))
+            .layer(axum::Extension(config));
+        let request = Request::builder().uri("/strict").body(Body::empty()).unwrap();
+        let response = app.oneshot(request).await.unwrap();
+        assert_eq!(
+            response.headers().get("content-security-policy").unwrap(),
+            "default-src 'none'; style-src 'unsafe-inline'"
+        );
+    }
+
     #[tokio::test]
     async fn test_security_headers_middleware_application() {
         let config = SecurityHeadersConfig::default();

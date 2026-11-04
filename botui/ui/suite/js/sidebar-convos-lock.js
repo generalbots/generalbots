@@ -17,7 +17,7 @@
     }
     fetch("/api/chat/history/sessions/" + encodeURIComponent(sessionId) + "/lock", {
       method: "POST",
-      headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
+      headers: Object.assign({ "Content-Type": "application/json" }, mod.authHeaders()),
       body: JSON.stringify({ pin: pin }),
     })
       .then(function (r) {
@@ -37,8 +37,8 @@
     if (!list) return;
     fetch(
       "/api/chat/history/sessions?locked=1&limit=50&bot_name=" +
-        encodeURIComponent(resolveBot()),
-      { headers: authHeaders() }
+        encodeURIComponent(mod.resolveBot()),
+      { headers: mod.authHeaders() }
     )
       .then(function (r) {
         if (!r.ok) throw new Error("HTTP " + r.status);
@@ -89,7 +89,7 @@
     if (pin === null) return;
     fetch("/api/chat/history/sessions/" + encodeURIComponent(sessionId) + "/unlock", {
       method: "POST",
-      headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
+      headers: Object.assign({ "Content-Type": "application/json" }, mod.authHeaders()),
       body: JSON.stringify({ pin: String(pin).trim() }),
     })
       .then(function (r) {

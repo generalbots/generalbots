@@ -195,6 +195,18 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
       });
   };
 
+  function lockedToggleButton() {
+    var lockedToggle = document.createElement("button");
+    lockedToggle.type = "button";
+    lockedToggle.className = "chat-sidebar-conv-locked-toggle";
+    lockedToggle.textContent = "\u{1F512} Locked conversations";
+    lockedToggle.addEventListener("click", function (e) {
+      e.preventDefault();
+      mod.showLocked();
+    });
+    return lockedToggle;
+  }
+
   mod.renderHistory = function (sessions) {
     var list = document.getElementById("chatConversations");
     if (!list) return;
@@ -204,20 +216,15 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
       empty.className = "chat-sidebar-history-empty";
       empty.textContent = "No conversations yet";
       list.appendChild(empty);
+      // #1682 — the locked entry must stay reachable when every conversation
+      // is locked (otherwise the user can never unlock one).
+      list.appendChild(lockedToggleButton());
       return;
     }
     sessions.forEach(function (s) {
       list.appendChild(historyItem(s));
     });
-    var lockedToggle = document.createElement("button");
-    lockedToggle.type = "button";
-    lockedToggle.className = "chat-sidebar-conv-locked-toggle";
-    lockedToggle.textContent = "\u{1F512} Locked conversations";
-    lockedToggle.addEventListener("click", function (e) {
-      e.preventDefault();
-      mod.showLocked();
-    });
-    list.appendChild(lockedToggle);
+    list.appendChild(lockedToggleButton());
     highlightActive(currentActiveSession());
   };
 
