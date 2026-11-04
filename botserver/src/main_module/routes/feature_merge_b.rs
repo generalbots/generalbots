@@ -195,7 +195,44 @@ pub(super) async fn merge_part_b(
     #[cfg(all(feature = "analytics", feature = "goals"))]
     {
         let goals_pool = Arc::new(app_state.conn.clone());
-        let goals_bot_context: crate::analytics::GetBotContextFn = Arc::new(|| (uuid::Uuid::nil(), uuid::Uuid::nil()));
+
+        // The previous closure returned (nil, nil). `okr_objectives.org_id`
+        // has an FK to `organizations`, so every create failed with a
+        // foreign-key violation. Resolve the default bot's real tenant once;
+        // the goals API has no request-scoped context to read it from.
+        let goals_context = (|| {
+            #[derive(diesel::QueryableByName)]
+            struct DefaultBotContext {
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                org_id: String,
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                branch_id: String,
+            }
+            use diesel::RunQueryDsl;
+            let mut conn = match goals_pool.get() {
+                Ok(conn) => conn,
+                Err(error) => {
+                    log::warn!("goals: no DB connection for tenant context: {error}");
+                    return (uuid::Uuid::nil(), uuid::Uuid::nil());
+                }
+            };
+            let row: Result<DefaultBotContext, _> = diesel::sql_query(
+                "SELECT org_id::text AS org_id, branch_id::text AS branch_id \
+                 FROM bots WHERE name = 'default' ORDER BY created_at LIMIT 1",
+            )
+            .get_result(&mut conn);
+            match row {
+                Ok(row) => (
+                    uuid::Uuid::parse_str(&row.org_id).unwrap_or_default(),
+                    uuid::Uuid::parse_str(&row.branch_id).unwrap_or_default(),
+                ),
+                Err(error) => {
+                    log::warn!("goals: default bot tenant context unavailable: {error}");
+                    (uuid::Uuid::nil(), uuid::Uuid::nil())
+                }
+            }
+        })();
+        let goals_bot_context: crate::analytics::GetBotContextFn = Arc::new(move || goals_context);
         let goals_default_bot: crate::analytics::GetDefaultBotFn = Arc::new(|_c: &mut diesel::PgConnection| uuid::Uuid::nil());
         *sub_router = sub_router.clone().merge(crate::analytics::goals::configure_goals_routes().with_state((goals_pool.clone(), goals_bot_context)));
         *sub_router = sub_router.clone().merge(crate::analytics::goals_ui::configure_goals_ui_routes().with_state((goals_pool, goals_default_bot)));

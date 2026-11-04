@@ -132,6 +132,9 @@ impl OpenAiCompatibleTarget {
             .client
             .post(&self.endpoint)
             .bearer_auth(&self.api_key)
+            // Some OpenAI-compatible gateways route by a session id and reject
+            // requests without it; other providers ignore the header.
+            .header("x-opencode-session", uuid::Uuid::new_v4().to_string())
             .json(&request)
             .send()
             .await

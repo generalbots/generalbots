@@ -124,3 +124,65 @@ TTFT checks were not run.
   executed (it requires building the runner and spending model calls).
 - SSO remains blocked by the invalid Zitadel admin PAT (the bootstrap logs
   “No access token”).
+
+## Follow-up 2 — goal checkpoints, TTFT, evals, caps
+
+### Goal checkpoints (TS-06)
+
+The goals feature was compiled (`GB_BOTSERVER_FEATURES=sources,goals`) and its
+tenant context was fixed: the router previously passed `(nil, nil)` into the
+`okr_objectives` FK. It now resolves the default bot's real `org_id`/`branch_id`
+at startup (`feature_merge_b.rs`). With the fix:
+
+- `POST /api/goals/objectives` → 200, `organization_id` = the default org.
+- `POST …/key-results` → 200 (`number`, target 10).
+- Two check-ins: 0 → 1 and 1 → 3.
+- `GET …/history` returns both checkpoints with `previous_value` 0→1 and 1→3.
+- `GET /api/goals/dashboard` reports 1 objective and 1 key result.
+
+The goals POST extractor still requires a JWT and rejects the normal suite
+session (`gb_…`); a forged unsigned JWT is accepted. That is filed separately
+as #1687 (security).
+
+### TTFT (TS-06)
+
+A fresh session ran 12 turns. Client-measured time to the first bot message:
+
+```
+turn 1:  464 ms
+turn 12: 2850 ms
+```
+
+The server-side history limit is 10 turns (`history.rs`), so the 12th turn is
+already past the payload bound; no TTFT improvement was observed in this
+sample. The 100-turn comparison was not run. `llm_metrics` exists but contains
+zero rows, so server-side TTFT is not currently recorded.
+
+### Evals (TS-10)
+
+`boteval-run` was executed against the configured chat endpoint with a small
+dataset and a permissive gate:
+
+```
+7 tasks: 7 passed, 0 failed, rate 1.0
+gate: PASS (no reasons)
+total_cost: 0.008464
+```
+
+`boteval` now sends `x-opencode-session` like the chat client, so the same
+endpoint works for both. The full 210-entry vibe suite was not run.
+
+### Browser caps (TS-10)
+
+`cargo test -p botbrowserpolicy --lib budget` → **5 passed**:
+
+```
+caps_derive_from_policy_defaults
+charges_within_caps_and_reports_snapshot
+rehydrated_usage_counts_toward_cap
+rejects_step_over_cap
+rejects_cost_over_cap
+```
+
+That covers browser-task step/cost caps. No per-run chat/VM spend cap was
+found in the chat path.
