@@ -252,7 +252,7 @@ pub async fn run_llm_tool_call(
 
         if all_args_are_placeholder(tool_args) {
             log::info!("All tool args are placeholder - asking user for real data instead of executing");
-            let msg = "Para agendar o servico, preciso de algumas informacoes. Por favor, me diga os dados solicitados um de cada vez.".to_string();
+            let msg = "I need the actual values before I can run that tool. Please provide the requested details.".to_string();
             let resp = botlib::models::BotResponse::new(
                 bot_uuid.to_string(), session_id.to_string(),
                 user_id.to_string(), &msg, sink.channel_type(),

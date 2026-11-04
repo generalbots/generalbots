@@ -45,7 +45,14 @@ pub(super) fn all_args_are_placeholder(args: &str) -> bool {
                 .values()
                 .filter(|v| match v {
                     serde_json::Value::String(s) => is_placeholder_value(s),
-                    _ => true,
+                    // Structured/typed arguments are real payloads: an
+                    // `ask_user` form is an array of fields and `blocking` is
+                    // a boolean. Counting those as placeholders blocked every
+                    // surface tool before dispatch.
+                    serde_json::Value::Array(items) => items.is_empty(),
+                    serde_json::Value::Object(map) => map.is_empty(),
+                    serde_json::Value::Null => true,
+                    _ => false,
                 })
                 .count();
             return placeholder_count > total / 2;
