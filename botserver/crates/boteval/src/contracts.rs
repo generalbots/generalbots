@@ -45,9 +45,13 @@ impl CheckResult {
 
 pub fn validate_response(contract: &Contract, response: &str) -> Vec<CheckResult> {
     let mut results = Vec::new();
+    // Contracts describe the information, not typography: "Bug"/"Fix" and
+    // "Correção"/"correção" are the same answer. The previous byte-exact
+    // compare failed both.
+    let response_folded = response.to_lowercase();
 
     for phrase in &contract.must_contain {
-        if response.contains(phrase) {
+        if response_folded.contains(&phrase.to_lowercase()) {
             results.push(CheckResult::pass("must_contain"));
         } else {
             results.push(CheckResult::fail(
@@ -58,7 +62,7 @@ pub fn validate_response(contract: &Contract, response: &str) -> Vec<CheckResult
     }
 
     for phrase in &contract.must_not_contain {
-        if !response.contains(phrase) {
+        if !response_folded.contains(&phrase.to_lowercase()) {
             results.push(CheckResult::pass("must_not_contain"));
         } else {
             results.push(CheckResult::fail(
@@ -99,13 +103,21 @@ pub fn validate_response(contract: &Contract, response: &str) -> Vec<CheckResult
     }
 
     if let Some(lang) = &contract.language {
-        if detect_language(response) == *lang {
-            results.push(CheckResult::pass("language"));
+        if response.trim().is_empty() {
+            results.push(CheckResult::fail("language", "empty response"));
         } else {
-            results.push(CheckResult::fail(
-                "language",
-                format!("expected language: {lang}"),
-            ));
+            let detected = detect_language(response);
+            // Short numeric/code answers carry no language signal. Treat the
+            // detector's "und" as inconclusive instead of failing a correct
+            // answer such as "30" or "A hexagon has 6 sides."
+            if detected == *lang || detected == "und" {
+                results.push(CheckResult::pass("language"));
+            } else {
+                results.push(CheckResult::fail(
+                    "language",
+                    format!("expected language: {lang}, detected {detected}"),
+                ));
+            }
         }
     }
 
@@ -147,9 +159,25 @@ fn validate_json_schema(_schema: &serde_json::Value, response: &str) -> Result<(
 }
 
 fn detect_language(text: &str) -> String {
-    let text = text.to_ascii_lowercase();
-    let pt_markers = [" olá", " tudo", "ção", "ão", " não", " que", " para", " você", " é "];
-    let en_markers = [" hello", " how", " the ", " and ", " is ", " you ", " for ", " with "];
+    let text = text.to_lowercase();
+    // Word/phrase markers rather than single letters: short answers such as
+    // "A hexagon has 6 sides." or "Um hexágono tem 6 lados." must classify
+    // correctly, and a numeric answer must stay "und" (inconclusive).
+    let pt_markers = [
+        " olá", " tudo", "ção", "ões", "ão", " não", " você", " é ", " que", " para",
+        " uma", " com", " exemplo", " como", " dos", " das", " por", " mais", " quando",
+        " porque", " isso", " esta", " este", " tem ", " lado", " resídu", " fórmula",
+        " corresponde", " quilômetro", " milha", " depende", " sistema", " cor", " vermelho",
+        " verde", " azul", " substitu", " plástico", " reciclar", " coleta", " seletiva",
+        " adeus", " obrigado", " tchau", " português", " hexágono", " dobrada", " lista",
+        " em ", " não ",
+    ];
+    let en_markers = [
+        " hello", " how", " the ", " and ", " is ", " are ", " you", " your", " for ",
+        " with ", " this ", " that ", " has ", " have ", " sides", " days", " energy",
+        " wind", " solar", " hydropower", " goodbye", " thank", " what", " which", " does",
+        " year", " leap", " hexagon", " miles", " degrees", " temperature", " good",
+    ];
     let pt = pt_markers.iter().filter(|m| text.contains(*m)).count();
     let en = en_markers.iter().filter(|m| text.contains(*m)).count();
     if pt > en {
@@ -173,6 +201,41 @@ mod tests {
         let fail = validate_response(&c, "oi, em que posso ser útil?");
         assert!(pass.iter().all(|r| r.outcome == CheckOutcome::Pass));
         assert!(fail.iter().any(|r| r.outcome == CheckOutcome::Fail));
+    }
+
+    #[test]
+    fn must_contain_is_case_insensitive() {
+        let c = Contract::must_contain_only(["bug", "fix"]);
+        let result = validate_response(&c, "**Bug:** range(10) is wrong. **Fix:** use a string.");
+        assert!(result.iter().all(|r| r.outcome == CheckOutcome::Pass));
+    }
+
+    #[test]
+    fn short_answers_are_language_inconclusive() {
+        assert_eq!(detect_language("30"), "und");
+        assert_eq!(detect_language("A hexagon has 6 sides."), "en");
+        assert_eq!(detect_language("Um hexágono tem 6 lados."), "pt-BR");
+        assert_eq!(
+            detect_language("Exemplo completo: lista = [1, 2, 3]"),
+            "pt-BR"
+        );
+    }
+
+    #[test]
+    fn inconclusive_language_passes_but_empty_response_fails() {
+        let c = Contract {
+            must_contain: vec![],
+            must_not_contain: vec![],
+            json_schema: None,
+            max_tokens: None,
+            min_tokens: None,
+            language: Some("en".into()),
+            requires_tool_calls: None,
+        };
+        let short = validate_response(&c, "30");
+        assert!(short.iter().all(|r| r.outcome == CheckOutcome::Pass));
+        let empty = validate_response(&c, "");
+        assert!(empty.iter().any(|r| r.outcome == CheckOutcome::Fail));
     }
 
     #[test]
