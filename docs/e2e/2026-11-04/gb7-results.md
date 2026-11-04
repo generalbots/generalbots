@@ -257,3 +257,56 @@ Steering is now visible: the server persisted `STEER-OK`, and
 `chat-messages.js` was clearing the accumulated stream before rendering the
 completion frame. After capturing the accumulated content first, the browser
 shows `STEER-OK` (screenshot `ts06-steer-visible.png`).
+
+## TS-08 — Telegram messaging leg (PASS)
+
+The bot token was verified with `getMe`: **@aabb_test_bot** ("AABB-bot").
+It is stored only in Vault at the default bot's per-bot path
+(`secret/gbo/{org}/{branch}/{bot_id}`), together with a generated
+`telegram-webhook-secret`; neither value is in the repository.
+
+A public tunnel (`*.lhr.life`) exposed botserver:8080 and the webhook was
+registered at `/webhook/telegram/default` with the secret header. The
+`telegram` feature initially did not compile because `UserSession` was missing
+the `locked`/`lock_pin_hash` columns from 6.8.7-chat-lock; that is fixed in
+`221e6ea4f`.
+
+Two synthetic Telegram updates were delivered through the public URL:
+
+```text
+update 900003  "Hello AABB bot! What can you help me with?"
+update 900004  "Use vm_exec to run date; echo TELEGRAM-TOOL-OK"
+```
+
+Server evidence for each delivery:
+
+```text
+webhook:Telegram webhook received: update_id=900003
+botlog:Created new Telegram session … for chat_id …
+botlog:Processing Telegram message from Rodrigo (chat_id=…)
+session:Routing Telegram message to bot for session …
+botlog:BOT … LLM CONFIG: host=[opencode.ai] key_len=[51] model=[deepseek-v4.1-flash]
+llm:LLM REQUEST: 2 messages, model=deepseek-v4.1-flash
+openai_stream:LLM HTTP response status: 200 OK
+llm:LLM RESPONSE end: 133 bytes …
+adapter:Telegram message sent to chat 6676512312
+```
+
+`getWebhookInfo` reports `last_error_message: None`, `pending_update_count: 0`.
+The agent-workspace tool is denied to anonymous channel users
+("Sign in to use the agent workspace"), which is correct: the channel identity
+is not a suite session. Non-VM chat and replies work.
+
+**Caveat:** the tunnel URL is temporary. A durable deployment needs a stable
+public hostname in `setWebhook`; the bot token and secret are already in Vault.
+
+## Login app on :5000 (PASS)
+
+`http://localhost:5000/login` with the bootstrap administrator
+(`admin@localhost`) returned the cloud session and redirected to
+`http://localhost:4000/dashboard`; the dashboard renders `admin@localhost` and
+the Free plan. Screenshot: `login-app-5000.png`.
+
+This also confirms the local-admin fallback works even though the bundled
+Zitadel build does not expose `/v2/sessions`; member/SSO login remains the
+separate TS-10 blocker.
