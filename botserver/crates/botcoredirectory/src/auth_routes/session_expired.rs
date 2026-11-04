@@ -9,5 +9,5 @@ use super::*;
 /// token would stay valid forever on the rehydrate path.
 pub fn session_expired(user: &SessionUserData) -> bool {
     let now = chrono::Utc::now().timestamp();
-    now.saturating_sub(user.created_at) > SESSION_TTL_SECS
+    now.saturating_sub(user.created_at) > session_ttl_secs()
 }

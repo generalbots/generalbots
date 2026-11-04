@@ -30,7 +30,17 @@ pub static SESSION_CACHE: Lazy<RwLock<HashMap<String, SessionUserData>>> =
 /// Session lifetime in seconds. Mirrors `expires_in` returned by login;
 /// enforced on every `get_current_user` lookup (cache + persisted store) so
 /// stale sessions cannot outlive their TTL after a restart.
-const SESSION_TTL_SECS: i64 = 3600;
+/// Suite session lifetime. A desktop window that sleeps overnight must still
+/// be signed in on wake; the previous hard 1-hour cutoff forced a login
+/// redirect and looked like a "token error" after every long pause.
+/// Override with `GB_SESSION_TTL_SECS` (minimum 300 s).
+fn session_ttl_secs() -> i64 {
+    std::env::var("GB_SESSION_TTL_SECS")
+        .ok()
+        .and_then(|value| value.trim().parse::<i64>().ok())
+        .filter(|value| *value >= 300)
+        .unwrap_or(7 * 24 * 60 * 60)
+}
 
 /// Optional DB pool used to persist suite sessions across restarts. Wired once
 /// at bootstrap (main.rs); when present, session creation writes a row to
