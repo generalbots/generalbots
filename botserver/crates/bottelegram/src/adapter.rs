@@ -1,5 +1,5 @@
 use botlib::models::BotResponse;
-use log::{debug, info};
+use log::info;
 use serde::{Deserialize, Serialize};
 
 use crate::state::{GetConfigFn, DbPool};

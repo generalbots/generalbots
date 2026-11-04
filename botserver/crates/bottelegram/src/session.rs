@@ -31,6 +31,10 @@ pub struct UserSession {
     pub session_id: Option<String>,
     pub data: Option<serde_json::Value>,
     pub expires_at: Option<chrono::DateTime<Utc>>,
+    // #1682 — locked conversations. The canonical table gained these in
+    // 6.8.7-chat-lock; the Telegram projection must match its column order.
+    pub locked: bool,
+    pub lock_pin_hash: Option<String>,
 }
 
 /// Session for the per-bot webhook route: the bot comes from the URL path
