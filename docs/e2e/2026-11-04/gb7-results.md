@@ -328,5 +328,5 @@ cost/task: $0.00193  (cap $0.05)
 ```
 
 Harness was re-run once after the schema/LLM-header/answer fixes (67/68).
-**Do not run boteval again in this environment:** it spends paid model calls.
-This recorded result is the reference.
+**Boteval runs on CI only.** Do not run it locally or in dev: every task
+spends paid model calls. This recorded result is the reference.
