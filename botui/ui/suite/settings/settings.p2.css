@@ -201,3 +201,79 @@
   width: 100%;
   font-size: 12px;
 }
+
+/* #1675 — MCP server management embedded in Settings. */
+.settings-mcp-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+.settings-mcp-row:last-child {
+  border-bottom: none;
+}
+.settings-mcp-desc {
+  display: block;
+  max-width: 46ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.settings-mcp-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.settings-mcp-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.settings-mcp-badge.is-healthy {
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+}
+.settings-mcp-badge.is-error {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+.settings-mcp-status {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #64748b;
+  min-height: 16px;
+}
+.settings-mcp-status.is-error {
+  color: #ef4444;
+}
+.settings-mcp-preview-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.settings-mcp-preview-panel {
+  width: min(860px, 92vw);
+  height: min(600px, 84vh);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--gb-surface, #0f172a);
+  border-radius: 12px;
+  padding: 12px;
+}
+.settings-mcp-preview-frame {
+  flex: 1;
+  border: none;
+  border-radius: 8px;
+  background: #fff;
+}

@@ -69,9 +69,10 @@
                 </svg>
                 <span data-i18n="settings-storage">Storage</span>
             </a>
-            <!-- #1304 — Integrations is its own application window (provider
-                 catalog, connections, OAuth). Settings only links to it. -->
-            <a href="#integrations" class="nav-item" onclick="return openIntegrationsWindow();">
+            <!-- #1675 — Integrations shows the in-place section (MCP servers,
+                 API keys, webhooks, OAuth). The full provider catalog window
+                 stays reachable from the section header. -->
+            <a href="#integrations" class="nav-item" onclick="showSection('integrations', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <polyline points="16 18 22 12 16 6"></polyline>
                     <polyline points="8 6 2 12 8 18"></polyline>
@@ -1002,6 +1003,24 @@
                         <p>No webhooks configured</p>
                     </div>
                 </div>
+            </div>
+
+            <!-- #1675 — MCP server management embedded in Settings. Same API
+                 as the Integrations app (/api/sources/mcp); no parallel store.
+                 The component renders with GBSettingsMcp (settings-mcp.js). -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>MCP Servers</h2>
+                    <button class="btn-secondary btn-sm" onclick="return openIntegrationsWindow()">
+                        Full catalog
+                    </button>
+                </div>
+                <div class="connections-list settings-mcp-list" id="settings-mcp-list" aria-busy="true">
+                    <div class="empty-state">
+                        <p>Loading MCP servers</p>
+                    </div>
+                </div>
+                <div class="settings-mcp-status" id="settings-mcp-status" role="status"></div>
             </div>
 
             <!-- OAuth Connections -->
@@ -2500,6 +2519,7 @@
     </svg>
 </button>
 
+<script src="/suite/settings/settings-mcp.js"></script>
 <script>
     // #1304 — Integrations lives in its own app window; Settings just opens
     // it (window manager when available, desktop route otherwise).

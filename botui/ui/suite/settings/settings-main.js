@@ -49,8 +49,11 @@
 
 
   /* #1628 — settings must match the edition. A product profile that ships
-     only chat+drive (no_security, no billing/vibe/integrations app) must not
-     offer sections that need services it does not have. */
+     billing/vibe-less (no_security, chat+drive) must not offer sections that
+     need services it does not have. #1675 — Integrations is NO LONGER hidden
+     in the slim/desktop edition: MCP server management ships there too
+     (Claude-Desktop-style Extensions panel), while the full provider catalog
+     window stays available through the section header. */
   function isSlimEdition(config) {
     if (!config) { return false; }
     if (config.no_security === true) { return true; }
@@ -58,8 +61,7 @@
     return apps.indexOf("chat") !== -1 &&
       apps.indexOf("drive") !== -1 &&
       apps.indexOf("billing") === -1 &&
-      apps.indexOf("vibe") === -1 &&
-      apps.indexOf("integrations") === -1;
+      apps.indexOf("vibe") === -1;
   }
 
   function hideSettingsSection(id) {
@@ -71,12 +73,12 @@
 
   function applyEditionVisibility(config) {
     if (!isSlimEdition(config)) { return; }
-    ["billing", "vibe", "integrations"].forEach(hideSettingsSection);
+    ["billing", "vibe"].forEach(hideSettingsSection);
     document.querySelectorAll('[data-admin-only="true"]').forEach(function (node) {
       node.style.display = "none";
     });
     var active = document.querySelector(".settings-section.active");
-    if (active && ["billing-section", "vibe-section", "integrations-section"].indexOf(active.id) !== -1) {
+    if (active && ["billing-section", "vibe-section"].indexOf(active.id) !== -1) {
       var profile = document.querySelector('.settings-nav a[href="#profile"]');
       if (profile) { profile.click(); }
     }
