@@ -587,6 +587,21 @@ paper-export-txt = Plain Text
 
 # Additional Chat translations
 chat-voice = Voice input
+chat-camera = Camera
+chat-camera-title = Take a photo
+chat-camera-capture = Take photo
+chat-camera-cancel = Cancel
+chat-camera-sent = Photo sent.
+chat-camera-denied = Camera permission was denied. Allow it in the browser to take photos.
+chat-camera-missing = No camera was found on this device.
+chat-camera-error = Could not start the camera.
+chat-camera-unsupported = This browser does not provide camera access.
+voice-mode-title = Voice conversation
+voice-mode-listening = Listening… speak naturally
+voice-mode-thinking = Thinking…
+voice-mode-speaking = Speaking…
+voice-mode-idle = Voice conversation
+voice-mode-end = End voice conversation
 chat-message-placeholder = Message...
 
 # Drive translations

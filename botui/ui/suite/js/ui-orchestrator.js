@@ -380,7 +380,9 @@
         var appWin = document.getElementById("window-" + appId);
         return appWin && appWin.querySelector("input, select, textarea, button");
       }, STEP_TIMEOUT_MS).then(function () {
-        return waitMs(600);
+        // waitMs resolves undefined; a step must resolve true or the chain
+        // counts it as a failure even though the window opened.
+        return waitMs(600).then(function () { return true; });
       });
     });
   }
@@ -518,8 +520,42 @@
   function stepSubmit(step) {
     var scope = fieldScope();
     var form = scope.querySelector("form");
-    if (!form && scope !== document) form = document.querySelector("form");
     if (!form) {
+      // Weather, calculator and other panel apps run their action from a
+      // plain button instead of a <form>. Click the app-scoped action button
+      // rather than falling back to the chat form in the rest of the page.
+      if (scope !== document) {
+        var buttons = Array.prototype.slice.call(
+          scope.querySelectorAll("button, input[type=button], input[type=submit]")
+        ).filter(function (button) {
+          var rect = button.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0 && !button.disabled;
+        });
+        var action = buttons.filter(function (button) {
+          return /search|go|submit|apply|save|send|run|refresh/i.test(
+            (button.textContent || button.value || "")
+          );
+        })[0] || buttons[0];
+        if (action) {
+          var actionRect = getElementRect(action);
+          return new Promise(function (resolve) {
+            moveCursorTo(actionRect, function () {
+              highlightFlash(action);
+              pulseClick();
+              try {
+                action.click();
+              } catch (e) {
+                action.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+              }
+              reportStep("Clicked '" + (visibleText(action) || "action") + "'", "done");
+              setTimeout(function () {
+                focusRing.style.display = "none";
+                resolve(true);
+              }, 800);
+            });
+          });
+        }
+      }
       reportStep("No form found to submit", "warn");
       return Promise.resolve(false);
     }
@@ -627,10 +663,40 @@
      Public API
      ------------------------------------------------------------ */
 
+  var lastPlanSignature = "";
+  var lastPlanAt = 0;
+
   function executePlan(plan) {
     if (!plan || !plan.steps || !plan.steps.length) {
       reportStep("Empty UI plan", "warn");
       return Promise.resolve(false);
+    }
+    // The plan can reach both the stock socket handler and a parallel tab's
+    // socket handler. Run one copy; a duplicate within three seconds is the
+    // same automation, not a second request.
+    var signature = JSON.stringify(plan);
+    if (signature === lastPlanSignature && Date.now() - lastPlanAt < 3000) {
+      return Promise.resolve(false);
+    }
+    lastPlanSignature = signature;
+    lastPlanAt = Date.now();
+    // #1691 — never drive an app the product profile does not expose. The
+    // prompt already lists only enabled apps; this is the defense-in-depth
+    // check for a stale or hallucinated plan.
+    var registry = Array.isArray(window.APPS_REGISTRY) ? window.APPS_REGISTRY : [];
+    if (registry.length) {
+      var wanted = [];
+      if (plan.app) wanted.push(plan.app);
+      plan.steps.forEach(function (step) {
+        if (step && step.op === "open" && step.app) wanted.push(step.app);
+      });
+      for (var i = 0; i < wanted.length; i++) {
+        var available = registry.some(function (app) { return app.id === wanted[i]; });
+        if (!available) {
+          reportStep("App '" + wanted[i] + "' is not enabled in this product", "warn");
+          return Promise.resolve(false);
+        }
+      }
     }
     if (ACTIVE) {
       reportStep("Another automation is already running", "warn");

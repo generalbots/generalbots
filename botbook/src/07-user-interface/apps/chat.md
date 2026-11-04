@@ -50,12 +50,20 @@ Two composer controls cover hands-on and hands-free use:
 | Control | What it does |
 |---------|--------------|
 | 🎤 **Microphone** | Records one utterance, then sends it as an audio attachment. BotModels `faster-whisper` transcribes it server-side (`/api/speech/totext`) and the answer arrives as normal chat. Silence ends the recording automatically. |
-| 🎧 **Full duplex** | Continuously re-arms the microphone after every reply and reads the answer aloud, so you can hold a spoken conversation without touching the keyboard. |
+| 🎧 **Full duplex** | Continuously re-arms the microphone after every reply and reads the answer aloud, so you can hold a spoken conversation without touching the keyboard. It opens an immersive panel with a live waveform: green while listening, amber while thinking, blue while the assistant speaks. |
 
 Microphone permission is requested by the browser on first use. If it is
 denied, the composer shows a localized explanation instead of failing
 silently. Recordings are ordinary chat attachments, so they also appear in the
 conversation history and can be transcribed again later.
+
+### Camera
+
+The camera button in the composer opens a live browser preview and captures
+one frame as a JPEG attachment. The server describes image attachments with
+BotModels (`/api/vision/describe`), so the assistant can answer questions about
+the photo in the same turn. Browsers without `getUserMedia` fall back to the
+native image-capture input.
 
 ### Conversation tabs
 
@@ -71,6 +79,14 @@ Generated files appear as attachment cards. Clicking the file name opens it in
 a new browser tab: images, PDFs, text, audio and video use the raw file
 endpoint, while Office documents use the sanitized server-side preview. The
 explicit **Download** button keeps the save-to-disk behavior.
+
+### App availability
+
+The assistant is told only about applications the product profile actually
+exposes. When a request needs an app that is not enabled (for example Weather
+removed from `apps=`), the model answers in prose instead of emitting an
+open-app plan. The client repeats the check before executing any plan, and
+preview apps join the catalog only while the Preview switch is on.
 
 ### Localization
 

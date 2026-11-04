@@ -6,7 +6,7 @@
   // Languages rendered right-to-left; the document dir attribute follows.
   const RTL_LANGUAGES = ["ar", "he", "fa", "ur"];
   const STORAGE_KEY = "gb-locale";
-  const CACHE_VERSION = "v4";
+  const CACHE_VERSION = "v5";
   const CACHE_TTL_MS = 3600000;
 
   // IMPORTANT: Increment CACHE_VERSION when translation structure changes

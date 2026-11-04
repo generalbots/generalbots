@@ -283,7 +283,9 @@ pub async fn stream_llm_response(
                 }
 
                 if has_ui_plan {
-                    content_buffer = crate::main_module::ui_plan::strip_plan_json(&content_buffer);
+                    content_buffer = crate::main_module::ui_plan::scrub_plan_fragments(
+                        &crate::main_module::ui_plan::strip_plan_json(&content_buffer),
+                    );
                     if let Some(plan) = crate::main_module::ui_plan::extract_and_validate_plan(&full_response) {
                         match plan {
                             Ok(validated) => {

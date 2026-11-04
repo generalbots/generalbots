@@ -141,6 +141,26 @@
     return "🌡";
   }
 
+  function mapForecast(wx, cityLabel) {
+    if (!wx || !wx.current) throw new Error("no data");
+    return normalize({
+      city: cityLabel,
+      temp: wx.current.temperature_2m,
+      desc: "Current conditions",
+      emoji: emojiFor(wx.current.weather_code),
+      humidity: wx.current.relative_humidity_2m,
+      wind: wx.current.wind_speed_10m,
+      daily: (wx.daily && wx.daily.time || []).map(function (day, i) {
+        return {
+          day: new Date(day).toLocaleDateString([], { weekday: "short" }),
+          emoji: emojiFor((wx.daily.weather_code || [])[i]),
+          max: (wx.daily.temperature_2m_max || [])[i],
+          min: (wx.daily.temperature_2m_min || [])[i],
+        };
+      }),
+    });
+  }
+
   function fetchForecast(lat, lon, cityLabel) {
     const wxUrl =
       "https://api.open-meteo.com/v1/forecast?latitude=" + lat +
@@ -149,41 +169,47 @@
       "&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=auto&forecast_days=" + FORECAST_DAYS;
     return fetch(wxUrl)
       .then(function (r) { return r.json(); })
-      .then(function (wx) {
-        if (!wx || !wx.current) throw new Error("no data");
-        return normalize({
-          city: cityLabel,
-          temp: wx.current.temperature_2m,
-          desc: "Current conditions",
-          emoji: emojiFor(wx.current.weather_code),
-          humidity: wx.current.relative_humidity_2m,
-          wind: wx.current.wind_speed_10m,
-          daily: (wx.daily && wx.daily.time || []).map(function (day, i) {
-            return {
-              day: new Date(day).toLocaleDateString([], { weekday: "short" }),
-              emoji: emojiFor((wx.daily.weather_code || [])[i]),
-              max: (wx.daily.temperature_2m_max || [])[i],
-              min: (wx.daily.temperature_2m_min || [])[i],
-            };
-          }),
-        });
-      });
+      .then(function (wx) { return mapForecast(wx, cityLabel); });
   }
 
+  // #1691 — prefer the botserver proxy: it reaches Open-Meteo on networks
+  // where the browser picks an unreachable IPv6 geocoding host, and it keeps
+  // the app working behind CORS/CSP restrictions. Direct Open-Meteo remains a
+  // fallback when the API is unavailable.
+  function fetchForecastProxy(params) {
+    var query = Object.keys(params).map(function (key) {
+      return encodeURIComponent(key) + "=" + encodeURIComponent(params[key]);
+    }).join("&");
+    return fetch("/api/weather?" + query)
+      .then(function (r) {
+        if (!r.ok) throw new Error("weather proxy " + r.status);
+        return r.json();
+      })
+      .then(function (wx) { return mapForecast(wx, wx.city || params.city || "My location"); });
+  }
+
+  // A slow geolocation failure used to overwrite a city the user had just
+  // searched. Every explicit search invalidates the pending auto-discovery.
+  let discoverGeneration = 0;
+
   function search(city) {
+    discoverGeneration++;
     const current = document.getElementById("weatherCurrent");
     const forecast = document.getElementById("weatherForecast");
     if (!current) return;
     current.innerHTML = '<div class="weather-empty">Searching…</div>';
     forecast.innerHTML = "";
 
-    const geoUrl = "https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(city) + "&count=1&language=en&format=json";
-    fetch(geoUrl)
-      .then(function (r) { return r.json(); })
-      .then(function (geo) {
-        const hit = geo && geo.results && geo.results[0];
-        if (!hit) throw new Error("not found");
-        return fetchForecast(hit.latitude, hit.longitude, safeStr(city));
+    fetchForecastProxy({ city: safeStr(city) })
+      .catch(function () {
+        const geoUrl = "https://geocoding-api.open-meteo.com/v1/search?name=" + encodeURIComponent(city) + "&count=1&language=en&format=json";
+        return fetch(geoUrl)
+          .then(function (r) { return r.json(); })
+          .then(function (geo) {
+            const hit = geo && geo.results && geo.results[0];
+            if (!hit) throw new Error("not found");
+            return fetchForecast(hit.latitude, hit.longitude, safeStr(city));
+          });
       })
       .then(function (data) {
         writeCache(data);
@@ -198,13 +224,18 @@
   // #1341 — a user with no saved city previously saw an empty panel. Use the
   // device location first, otherwise ask for a city — never render "undefined".
   function requestDefaultCity() {
+    // An explicit search or an automation already chose a city; a late
+    // geolocation failure must never replace it with the empty prompt.
+    if (discoverGeneration > 0) return;
     const current = document.getElementById("weatherCurrent");
     if (!navigator.geolocation) {
       showCityPrompt();
       return;
     }
     current.innerHTML = '<div class="weather-empty">Locating…</div>';
+    const generation = ++discoverGeneration;
     const onFail = function () {
+      if (generation !== discoverGeneration) return;
       try {
         const c = document.getElementById("weatherCurrent");
         if (c) c.innerHTML = "";
@@ -215,6 +246,7 @@
     navigator.geolocation.getCurrentPosition(
       function (pos) {
         clearTimeout(timer);
+        if (generation !== discoverGeneration) return;
         searchByCoords(pos.coords.latitude, pos.coords.longitude);
       },
       function () {
@@ -239,12 +271,14 @@
   }
 
   function searchByCoords(lat, lon) {
+    discoverGeneration++;
     const current = document.getElementById("weatherCurrent");
     const forecast = document.getElementById("weatherForecast");
     if (!current) return;
     current.innerHTML = '<div class="weather-empty">Locating…</div>';
     forecast.innerHTML = "";
-    fetchForecast(lat, lon, "My location")
+    fetchForecastProxy({ lat: lat, lon: lon })
+      .catch(function () { return fetchForecast(lat, lon, "My location"); })
       .then(function (data) {
         writeCache(data);
         render(data);
@@ -353,6 +387,7 @@
       return;
     }
     restoreCityFromProfile(function (profileCity) {
+      if (discoverGeneration > 0) return;
       if (profileCity) {
         input.value = profileCity;
         search(profileCity);

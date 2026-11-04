@@ -587,6 +587,21 @@ paper-export-txt = プレーンテキスト
 
 # Additional Chat translations
 chat-voice = 音声入力
+chat-camera = カメラ
+chat-camera-title = 写真を撮る
+chat-camera-capture = 撮影
+chat-camera-cancel = キャンセル
+chat-camera-sent = 写真を送信しました。
+chat-camera-denied = カメラの許可が拒否されました。ブラウザで許可して写真を撮ってください。
+chat-camera-missing = このデバイスにカメラが見つかりません。
+chat-camera-error = カメラを起動できませんでした。
+chat-camera-unsupported = このブラウザはカメラへのアクセスを提供していません。
+voice-mode-title = 音声会話
+voice-mode-listening = 聞き取り中… 自然に話してください
+voice-mode-thinking = 考え中…
+voice-mode-speaking = 話しています…
+voice-mode-idle = 音声会話
+voice-mode-end = 音声会話を終了
 chat-message-placeholder = メッセージ...
 
 # Drive translations

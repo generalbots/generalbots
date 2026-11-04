@@ -425,7 +425,6 @@
 
 body.window-maximized .window-element-glass.window-maximized-target,
 body.window-maximized .window-element.window-maximized-target {
-  z-index: 9998 !important;
   top: 0 !important;
   height: calc(100vh - var(--taskbar-h, 30px)) !important;
   width: 100% !important;

@@ -385,6 +385,12 @@
             if (data.type === "connected") return;
             if (data.event) return; // run events route elsewhere
             if (data.message_type === 2) handleBotFrame(t, data);
+            // The stock socket executes UI plans in chat-websocket.js; a
+            // parallel tab has its own socket and used to drop the frame, so
+            // "open Weather" answered but never opened the window (#1691).
+            if (data.message_type === 9 && data.plan && window.GBUiOrchestrator) {
+              window.GBUiOrchestrator.executePlan(data.plan);
+            }
           } catch (e) { /* ignore malformed frame */ }
         };
 
@@ -468,8 +474,19 @@
       t.streamingEl = null;
       t.streamingContent = "";
       if (data.content && data.content.trim()) {
-        appendToContainer(t.pane, "bot", data.content);
-        pushScrollback(t, "bot", data.content);
+        // The server can emit the same completion frame twice (stream end +
+        // final message). Keep one bubble: only dedupe an immediately
+        // preceding identical bot turn, never a legitimate repeat after a
+        // user message.
+        var previous = t.scrollback[t.scrollback.length - 1];
+        var duplicate = previous &&
+          previous.sender === "bot" &&
+          previous.content === data.content &&
+          Date.now() - (previous.at || 0) < 4000;
+        if (!duplicate) {
+          appendToContainer(t.pane, "bot", data.content);
+          pushScrollback(t, "bot", data.content);
+        }
       }
       bumpUnread(t);
       schedulePersist();
@@ -538,6 +555,9 @@
       content: text,
       message_type: 1,
       timestamp: new Date().toISOString(),
+      client_capabilities: window.gbClientCapabilities
+        ? window.gbClientCapabilities()
+        : undefined,
     };
     function dispatch() {
       t.pending = t.pending || [];

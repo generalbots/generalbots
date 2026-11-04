@@ -183,6 +183,7 @@ pub static UI_SEQUENCE_HINTS: &[(&str, &str)] = &[
     ("workspace", "open → pages list loads → open a page"),
     ("editor", "open → file tree → open a file"),
     ("vibe", "open → runs list → run/inspect an assistant run"),
+    ("weather", "open → fill the Search city field → click Search (there is no form submit) → current conditions and the week forecast render"),
     ("research", "open → search UI loads → run a web search"),
     ("video", "open → projects/cameras load → open a project"),
     ("learn", "open → courses load → open a course"),

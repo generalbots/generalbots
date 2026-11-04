@@ -76,6 +76,7 @@ pub async fn setup_security(app_state: &Arc<AppState>) -> SecurityComponents {
             .add_anonymous_path("/api/auth/bootstrap")
             .add_anonymous_path("/api/setup/status")
             .add_anonymous_path("/api/bot/public")
+            .add_anonymous_path("/api/weather")
             .add_anonymous_path("/api/marketing/track/")
             .add_anonymous_path("/api/suggestions")
             .add_anonymous_path("/api/client-errors")

@@ -337,7 +337,6 @@ body.window-maximized .window-element.window-maximized-target {
   height: calc(100vh - var(--taskbar-h)) !important;
   max-height: calc(100vh - var(--taskbar-h)) !important;
   border-radius: 0 !important;
-  z-index: 1500 !important;
 }
 
 /* The rail ends where the taskbar begins, so its footer controls stay

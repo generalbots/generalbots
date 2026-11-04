@@ -34,7 +34,19 @@
     maxTimer: null,
     noSpeechTimer: null,
     restartTimer: null,
+    level: 0,
+    phase: "idle",
   };
+
+  function setPhase(phase) {
+    if (state.phase === phase) return;
+    state.phase = phase;
+    try {
+      window.dispatchEvent(new CustomEvent("gb-voice-state", {
+        detail: { phase: phase, duplex: state.duplex },
+      }));
+    } catch (e) { /* CustomEvent unavailable */ }
+  }
 
   function tr(key, fallback) {
     if (window.i18n && typeof window.i18n.t === "function") {
@@ -155,6 +167,7 @@
         sum += v * v;
       }
       var rms = Math.sqrt(sum / buffer.length);
+      state.level = Math.min(1, rms * 8);
       if (rms >= SPEECH_RMS) {
         state.speechSeen = true;
         state.silenceTicks = 0;
@@ -201,6 +214,7 @@
         recorder.start();
         state.recording = true;
         state.starting = false;
+        setPhase("listening");
         paint();
         monitorSilence(stream, recorder);
         state.maxTimer = setTimeout(function () {
@@ -245,8 +259,10 @@
     var discard = state.discard === true || !state.speechSeen;
     state.discard = false;
     state.recording = false;
+    state.level = 0;
     state.chunks = [];
     cleanupStream();
+    if (state.phase === "listening") setPhase("idle");
     paint();
     if (discard) {
       if (!state.duplex && !state.speechSeen) {
@@ -273,6 +289,7 @@
       return;
     }
     if (typeof window.sendMessage === "function") {
+      setPhase("thinking");
       window.sendMessage("");
       notify(tr("chat-voice-sent", "Voice message sent."), "success");
     }
@@ -281,6 +298,7 @@
   function scheduleNext() {
     if (!state.duplex) return;
     if (state.restartTimer) clearTimeout(state.restartTimer);
+    setPhase(window.speechSynthesis && window.speechSynthesis.speaking ? "speaking" : "listening");
     var waited = 0;
     (function waitForSpeech() {
       if (!state.duplex) return;
@@ -298,6 +316,11 @@
 
   function setDuplex(enabled) {
     state.duplex = enabled === true;
+    try {
+      window.dispatchEvent(new CustomEvent("gb-voice-duplex", {
+        detail: { enabled: state.duplex },
+      }));
+    } catch (e) { /* CustomEvent unavailable */ }
     if (state.duplex) {
       if (window.TTSState) window.TTSState.autoSpeak = true;
       paint();
@@ -309,6 +332,7 @@
       }
       if (state.recording) stop();
       if (window.speechSynthesis) window.speechSynthesis.cancel();
+      setPhase("idle");
       paint();
     }
   }
@@ -339,8 +363,11 @@
   window.GBVoice = {
     start: start,
     stop: function () { stop(); },
+    setDuplex: setDuplex,
     isRecording: function () { return state.recording; },
     isDuplex: function () { return state.duplex; },
+    getLevel: function () { return state.level; },
+    getPhase: function () { return state.phase; },
   };
 
   if (document.readyState === "loading") {

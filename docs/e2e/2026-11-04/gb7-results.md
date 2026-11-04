@@ -346,3 +346,17 @@ spends paid model calls. This recorded result is the reference.
 | i18n (chrome, chat, dates, model tiers) | PASS | `1690-sidebar-i18n.png`; pt-BR strings/date verified |
 
 Details: `issue-1690.md`.
+
+## Human review 2 (#1691) — PASS
+
+| Item | Result | Evidence |
+|------|--------|----------|
+| Audio icon + full-duplex voice panel with waveform | PASS | `1691-voice-mode.png`; 32 bars, listening/speaking/thinking phases |
+| Camera button sends a photo for analysis | PASS | `1691-camera-preview.png`, `1691-camera-analysis.png`; 1280×720 frame |
+| Weather enabled and working | PASS | `1691-weather-app.png`; `/api/weather` 200, São Paulo 29.3 °C |
+| Chat opens Weather and fills a city | PASS | `1691-weather-automation.png`; 4/4 steps, Salvador 28 °C, Fortaleza 28 °C |
+| Only enabled apps are offered | PASS | CRM request answered in prose, 0 CRM windows; prompt filter unit test passes |
+| App-plan execution gate | PASS | `executePlan` for CRM returns false; registry has Weather |
+| Duplicate bot replies in new tabs | PASS | completion frames deduped; one bubble per turn |
+
+Details: `issue-1691.md`.

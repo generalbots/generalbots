@@ -5,7 +5,8 @@
 <link rel="stylesheet" href="/suite/chat/chat.p5.css?v=1" />
 <link rel="stylesheet" href="/suite/chat/chat.p6.css?v=1" />
 <link rel="stylesheet" href="/suite/chat/chat.p7.css?v=2" />
-<link rel="stylesheet" href="/suite/chat/chat-composer.css?v=2" />
+<link rel="stylesheet" href="/suite/chat/chat-composer.css?v=3" />
+<link rel="stylesheet" href="/suite/chat/chat-voice-camera.css?v=3" />
 <link rel="stylesheet" href="/suite/css/markdown-message.css?v=1" />
 <link rel="stylesheet" href="/suite/css/chat-agent-mode.css" />
 <link rel="stylesheet" href="/suite/css/run-timeline.css?v=1" />
@@ -55,6 +56,16 @@
                     </svg>
                 </label>
                 <span id="fileChip" style="display:none" data-i18n-title="chat-attached" title="Attached file"></span>
+                <button type="button" id="cameraBtn" class="chat-tool-toggle camera-toggle"
+                    aria-label="Take a photo" data-i18n-aria-label="chat-camera-title"
+                    title="Take a photo" data-i18n-title="chat-camera-title">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                    <span class="sr-only" data-i18n="chat-camera-title">Take a photo</span>
+                </button>
+                <input type="file" id="cameraFileInput" accept="image/*" capture="environment" style="display:none" />
                 <button type="button" id="webSearchBtn" class="chat-tool-toggle web-search-toggle"
                     aria-pressed="false" aria-label="Web search: off — answers use no live sources. Click to turn on." data-i18n-aria-label="chat-web-off"
                     title="Web search: off — answers use no live sources. Click to turn on.">
@@ -123,13 +134,13 @@
 <script src="/suite/chat/chat-theme.js?v=6"></script>
 <script src="/suite/chat/chat-websocket.js?v=23"></script>
 <script src="/suite/chat/chat-session.js?v=1"></script>
-<script src="/suite/chat/chat-send.js?v=2"></script>
+<script src="/suite/chat/chat-send.js?v=3"></script>
 <script src="/suite/chat/chat-init.js?v=23"></script>
 <script src="/suite/chat/chat-model-picker.js?v=4"></script>
 <script src="/suite/chat/chat-bot-env-tabs.js?v=1"></script>
 <script src="/suite/chat/modules/20_tabs.js?v=7"></script>
 <script src="/suite/chat/modules/21_tabs_events.js?v=8"></script>
-<script src="/suite/chat/modules/22_multichat.js?v=36"></script>
+<script src="/suite/chat/modules/22_multichat.js?v=39"></script>
 <script src="/suite/chat/modules/23_autotasks.js?v=1"></script>
 <script src="/suite/chat/modules/50_memory.js?v=1"></script>
 <script src="/suite/chat/modules/45_web_search_toggle.js?v=3"></script>
@@ -142,9 +153,10 @@
 <script src="/suite/chat/modules/74_viz.js?v=1"></script>
 <script src="/suite/chat/modules/73_app_frame.js?v=2"></script>
 <script src="/suite/chat/modules/75_perf.js?v=2"></script>
-<script src="/suite/chat/modules/76_voice.js?v=1"></script>
+<script src="/suite/chat/modules/76_voice.js?v=2"></script>
+<script src="/suite/chat/modules/77_camera.js?v=1"></script>
+<script src="/suite/chat/modules/78_voice_mode.js?v=3"></script>
 <script src="/suite/chat/modules/62_sandbox.js?v=1"></script>
 <script src="/suite/js/chat-agent-mode.js?v=4"></script>
-<script src="/suite/js/ui-orchestrator.js?v=2"></script>
 <script src="/suite/js/gb-search.js"></script>
 

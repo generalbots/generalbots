@@ -587,6 +587,21 @@ paper-export-txt = 纯文本
 
 # Additional Chat translations
 chat-voice = 语音输入
+chat-camera = 相机
+chat-camera-title = 拍照
+chat-camera-capture = 拍照
+chat-camera-cancel = 取消
+chat-camera-sent = 照片已发送。
+chat-camera-denied = 相机权限被拒绝。请在浏览器中允许以拍照。
+chat-camera-missing = 此设备上未找到相机。
+chat-camera-error = 无法启动相机。
+chat-camera-unsupported = 此浏览器不提供相机访问。
+voice-mode-title = 语音对话
+voice-mode-listening = 正在聆听… 请自然说话
+voice-mode-thinking = 思考中…
+voice-mode-speaking = 正在说话…
+voice-mode-idle = 语音对话
+voice-mode-end = 结束语音对话
 chat-message-placeholder = 留言...
 
 # Drive translations

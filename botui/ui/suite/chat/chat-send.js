@@ -2,6 +2,22 @@
  * Split out of chat-init.js so every chat script stays under 450 lines. */
 "use strict";
 
+// #1691 — the server needs the client's real surfaces and the Preview-mode
+// switch to advertise only the applications this session can actually use.
+function clientCapabilities() {
+  return {
+    surfaces: ["text", "ui_plan"],
+    input: "text,file,audio,camera",
+    locale: (function () {
+      try { return localStorage.getItem("gb-locale") || navigator.language || "en"; }
+      catch (e) { return "en"; }
+    })(),
+    preview_mode: !!(window.GBPreviewMode && window.GBPreviewMode.isOn()),
+    max_live_apps: 2,
+  };
+}
+window.gbClientCapabilities = clientCapabilities;
+
 function sendMessage(messageContent, extra) {
   var input = document.getElementById("messageInput");
   if (!input) return;
@@ -60,6 +76,7 @@ function sendMessage(messageContent, extra) {
       catch (e) { return true; }
     })(),
     model_preference: selectedModel !== "auto" ? selectedModel : undefined,
+    client_capabilities: clientCapabilities(),
     // #1593 — explicit per-conversation web-search switch. When false the
     // server skips the search pipeline entirely; default is on.
     web_search: window.ChatWebSearch ? window.ChatWebSearch.isEnabled() : true,

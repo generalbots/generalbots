@@ -175,6 +175,7 @@ pub mod weba;
 #[cfg(feature = "whatsapp")]
 pub mod whatsapp;
 
+pub mod weather;
 
 #[cfg(feature = "telegram")]
 pub mod telegram;

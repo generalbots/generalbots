@@ -587,6 +587,21 @@ paper-export-txt = 일반 텍스트
 
 # Additional Chat translations
 chat-voice = 음성 입력
+chat-camera = 카메라
+chat-camera-title = 사진 찍기
+chat-camera-capture = 사진 찍기
+chat-camera-cancel = 취소
+chat-camera-sent = 사진을 보냈습니다.
+chat-camera-denied = 카메라 권한이 거부되었습니다. 브라우저에서 허용하여 사진을 찍으세요.
+chat-camera-missing = 이 기기에서 카메라를 찾을 수 없습니다.
+chat-camera-error = 카메라를 시작할 수 없습니다.
+chat-camera-unsupported = 이 브라우저는 카메라 액세스를 제공하지 않습니다.
+voice-mode-title = 음성 대화
+voice-mode-listening = 듣는 중… 자연스럽게 말하세요
+voice-mode-thinking = 생각 중…
+voice-mode-speaking = 말하는 중…
+voice-mode-idle = 음성 대화
+voice-mode-end = 음성 대화 종료
 chat-message-placeholder = 메시지...
 
 # Drive translations

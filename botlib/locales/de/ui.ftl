@@ -587,6 +587,21 @@ paper-export-txt = Klartext
 
 # Additional Chat translations
 chat-voice = Spracheingabe
+chat-camera = Kamera
+chat-camera-title = Foto aufnehmen
+chat-camera-capture = Foto aufnehmen
+chat-camera-cancel = Abbrechen
+chat-camera-sent = Foto gesendet.
+chat-camera-denied = Die Kameraberechtigung wurde verweigert. Erlauben Sie sie im Browser, um Fotos aufzunehmen.
+chat-camera-missing = Auf diesem Gerät wurde keine Kamera gefunden.
+chat-camera-error = Die Kamera konnte nicht gestartet werden.
+chat-camera-unsupported = Dieser Browser bietet keinen Kamerazugriff.
+voice-mode-title = Sprachgespräch
+voice-mode-listening = Zuhören… sprechen Sie natürlich
+voice-mode-thinking = Denke nach…
+voice-mode-speaking = Spricht…
+voice-mode-idle = Sprachgespräch
+voice-mode-end = Sprachgespräch beenden
 chat-message-placeholder = Nachricht...
 
 # Drive translations

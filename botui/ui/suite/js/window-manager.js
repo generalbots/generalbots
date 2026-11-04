@@ -26,7 +26,7 @@ if (typeof window.WindowManager === "undefined") {
     { id: "tasks", title: "Tasks", category: "office", color: "#22c55e", hxGet: "/suite/tasks/tasks.html",
       launcher_default: true,
       icon: '<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>' },
-    { id: "chat", title: "Chat", category: "ai", color: "#84d669", hxGet: "/suite/partials/chat.html?v=13",
+    { id: "chat", title: "Chat", category: "ai", color: "#84d669", hxGet: "/suite/partials/chat.html?v=23",
       icon: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' },
     { id: "terminal", title: "Terminal", category: "dev", color: "#64748b", hxGet: "/suite/partials/terminal.html",
       icon: '<polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>' },
@@ -177,6 +177,10 @@ if (typeof window.WindowManager === "undefined") {
   var catalogApps = null;
   var catalogLoaded = false;
   var productPreviewIds = {};
+  // Apps explicitly listed in `.product`'s `apps=` line. They stay visible
+  // even when they are not part of the always-on core set (weather, notes,
+  // calculator …), because the product owner enabled them on purpose.
+  var productAppIds = {};
 
   // #1409 — Permanently-visible surface. These apps are NEVER preview and are
   // always enabled, regardless of the product file: neither a catalog preview
@@ -219,6 +223,9 @@ if (typeof window.WindowManager === "undefined") {
       // #1386c — launcher visibility flag; surfaces that list apps to open
       // (start menu, sidebar rail) honour it, programmatic openers do not.
       launcher_default: a.launcher_default !== false,
+      // Catalog entries carry the authoritative enabled flag from the
+      // product file; the embedded fallback has no such field.
+      enabled: a.enabled !== false,
       // #1289/#1291 — bot and vibe-app tiles deep-link their window (chat bot
       // binding, browser URL); launchFromMenu passes them to openDeepLink.
       deep_link_params: a.deep_link_params || null,
@@ -287,7 +294,14 @@ if (typeof window.WindowManager === "undefined") {
     // #1539/#1540: enforce the core set even before the server catalog loads
     // (the embedded fallback otherwise kept every app visible).
     if (!previewOn) {
-      merged = merged.filter(function (app) { return isAlwaysAppId(app.id); });
+      // Keep the always-on core, every app the product owner enabled, and
+      // catalog entries the backend marked enabled. The old core-only filter
+      // hid product-enabled apps such as Weather until Preview mode was on.
+      merged = merged.filter(function (app) {
+        return isAlwaysAppId(app.id) ||
+          productAppIds[app.id] === true ||
+          app.enabled === true;
+      });
     }
 
     window.APPS_REGISTRY = merged;
@@ -311,11 +325,19 @@ if (typeof window.WindowManager === "undefined") {
     fetch("/api/product")
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
-        if (!data || !Array.isArray(data.preview_apps)) return;
-        productPreviewIds = {};
-        data.preview_apps.forEach(function (id) {
-          productPreviewIds[String(id)] = true;
-        });
+        if (!data) return;
+        if (Array.isArray(data.preview_apps)) {
+          productPreviewIds = {};
+          data.preview_apps.forEach(function (id) {
+            productPreviewIds[String(id)] = true;
+          });
+        }
+        if (Array.isArray(data.apps)) {
+          productAppIds = {};
+          data.apps.forEach(function (id) {
+            productAppIds[String(id)] = true;
+          });
+        }
         rebuildAppsRegistry();
       })
       .catch(function () { /* embedded list stays authoritative */ });

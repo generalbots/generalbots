@@ -78,7 +78,7 @@ pub(super) fn build(
             format!(
                 "{system_prompt}\n\n{}\n\n{}",
                 crate::core::bot::api_catalog::api_command_instructions(&role),
-                crate::main_module::ui_plan::ui_automation_instructions(),
+                crate::main_module::ui_plan::ui_automation_instructions(client_caps),
             )
         } else {
             system_prompt

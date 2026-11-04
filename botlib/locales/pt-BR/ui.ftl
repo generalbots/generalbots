@@ -589,6 +589,21 @@ paper-export-txt = Texto Simples
 
 # Traduções adicionais do Chat
 chat-voice = Entrada de voz
+chat-camera = Câmera
+chat-camera-title = Tirar uma foto
+chat-camera-capture = Tirar foto
+chat-camera-cancel = Cancelar
+chat-camera-sent = Foto enviada.
+chat-camera-denied = A permissão da câmera foi negada. Autorize-a no navegador para tirar fotos.
+chat-camera-missing = Nenhuma câmera foi encontrada neste dispositivo.
+chat-camera-error = Não foi possível iniciar a câmera.
+chat-camera-unsupported = Este navegador não oferece acesso à câmera.
+voice-mode-title = Conversa por voz
+voice-mode-listening = Ouvindo… fale naturalmente
+voice-mode-thinking = Pensando…
+voice-mode-speaking = Falando…
+voice-mode-idle = Conversa por voz
+voice-mode-end = Encerrar conversa por voz
 chat-message-placeholder = Mensagem...
 
 # Traduções do Drive

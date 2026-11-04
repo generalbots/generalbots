@@ -1,14 +1,19 @@
 
-/// Builds the system-prompt fragment teaching the LLM the `__ui_plan__`
-/// contract. Includes the app catalog so the model only references apps
-/// that actually exist in this build.
-pub fn ui_automation_instructions() -> String {
+
+/// Formats the three prompt catalogues for the apps accepted by `available`.
+/// Kept separate from the product-config lookup so the filter is testable.
+fn catalog_lines<F>(available: F) -> (Vec<String>, Vec<String>, Vec<String>)
+where
+    F: Fn(&str) -> bool,
+{
     let apps: Vec<String> = crate::apps::registry::all_apps()
         .iter()
+        .filter(|a| available(&a.id))
         .map(|a| format!("- {} (id: {}) — {}", a.title, a.id, a.description))
         .collect();
     let deep_links: Vec<String> = crate::apps::commands::APP_DEEP_LINKS
         .iter()
+        .filter(|(app_id, _)| available(app_id))
         .map(|(app_id, params)| {
             let keys = params
                 .iter()
@@ -20,8 +25,32 @@ pub fn ui_automation_instructions() -> String {
         .collect();
     let seq_hints: Vec<String> = crate::apps::commands::UI_SEQUENCE_HINTS
         .iter()
+        .filter(|(app_id, _)| available(app_id))
         .map(|(app_id, hint)| format!("- {app_id}: {hint}"))
         .collect();
+    (apps, deep_links, seq_hints)
+}
+
+/// Builds the system-prompt fragment teaching the LLM the `__ui_plan__`
+/// contract. Includes the app catalog so the model only references apps
+/// that actually exist in this build.
+pub fn ui_automation_instructions(client_caps: Option<&serde_json::Value>) -> String {
+    // #1691 — advertise only apps that are really available to this session.
+    // `.product` controls the effective set; preview apps join it only while
+    // the client says Preview mode is on.
+    let preview_on = client_caps
+        .and_then(|caps| caps.get("preview_mode"))
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false);
+    let available = |id: &str| -> bool {
+        botcore::product::PRODUCT_CONFIG
+            .read()
+            .map(|config| {
+                config.is_app_enabled(id) || (preview_on && config.is_app_preview(id))
+            })
+            .unwrap_or(false)
+    };
+    let (apps, deep_links, seq_hints) = catalog_lines(available);
     format!(
         r#"---
 ## Agentic UI Automation
@@ -33,6 +62,10 @@ by a short user-facing confirmation message.
 
 Available applications:
 {apps}
+
+Only plan applications listed above. If the user asks for something that
+needs an application outside this list, answer in prose (or explain that the
+capability is not enabled) and NEVER emit a plan for an unlisted app id.
 
 Contract — emit exactly:
 {{"__ui_plan__": {{"app": "<app-id>", "steps": [
@@ -91,4 +124,17 @@ plan should navigate the app realistically instead of guessing buttons.
         deep_links = deep_links.join("\n"),
         seq_hints = seq_hints.join("\n"),
     )
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn only_enabled_apps_enter_the_prompt_catalogue() {
+        let (apps, deep_links, hints) = catalog_lines(|id| id == "weather");
+        assert!(apps.iter().any(|line| line.contains("(id: weather)")), "{apps:?}");
+        assert!(!apps.iter().any(|line| line.contains("(id: crm)")), "{apps:?}");
+        assert!(deep_links.iter().all(|line| line.starts_with("- weather")), "{deep_links:?}");
+        assert!(hints.iter().all(|line| line.starts_with("- weather")), "{hints:?}");
+    }
 }

@@ -210,3 +210,36 @@ pub fn strip_plan_json(raw_response: &str) -> String {
     stripped.push_str(raw_response[end..].trim_start_matches('\n'));
     stripped.trim().to_string()
 }
+
+/// Removes leftover plan syntax that survived [`strip_plan_json`] (for
+/// example when the model opened the JSON inside a prose brace and only the
+/// tail matched the brace scanner). Plan lines carry JSON keys such as
+/// `"op"`, `"steps"` or `"__ui_plan__"`; user-facing prose does not.
+pub fn scrub_plan_fragments(text: &str) -> String {
+    let filtered: Vec<&str> = text
+        .lines()
+        .filter(|line| {
+            let value = line.trim();
+            !(value.contains("\"__ui_plan__\"")
+                || value.contains("\"op\":")
+                || value.contains("\"steps\":")
+                || (value.contains("\"app\":")
+                    && (value.contains('{') || value.contains('['))))
+        })
+        .collect();
+    filtered.join("\n").trim().to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn plan_tail_is_scrubbed_from_the_user_message() {
+        let leaked = "city\", \"value\": \"Curitiba\"}, {\"op\": \"click\", \"label\": \"Search\"}]}}\n\n\
+                      Opening Weather for Curitiba.";
+        let cleaned = scrub_plan_fragments(leaked);
+        assert!(!cleaned.contains("\"op\""), "{cleaned}");
+        assert!(cleaned.contains("Opening Weather for Curitiba."), "{cleaned}");
+    }
+}

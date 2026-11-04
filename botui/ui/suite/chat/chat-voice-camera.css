@@ -1,0 +1,255 @@
+/* Camera capture and immersive full-duplex voice mode. */
+
+/* ── Composer camera button (matches the voice controls) ─────────────── */
+
+.chat-tool-toggle.camera-toggle {
+    flex: 0 0 auto;
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    margin-bottom: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--text-secondary, #888);
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease;
+}
+
+.chat-tool-toggle.camera-toggle:hover {
+    color: var(--text, #222);
+    background: color-mix(in srgb, var(--text, #222) 7%, transparent);
+}
+
+.chat-tool-toggle.camera-toggle:focus-visible {
+    outline: 2px solid var(--accent, #2563eb);
+    outline-offset: 2px;
+}
+
+/* ── Camera preview dialog ───────────────────────────────────────────── */
+
+.gb-camera {
+    position: fixed;
+    inset: 0;
+    z-index: 21000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(9, 12, 20, 0.62);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+}
+
+.gb-camera-card {
+    width: min(92vw, 560px);
+    border-radius: 22px;
+    padding: 14px;
+    background: var(--surface, #fff);
+    color: var(--text, #111);
+    border: 1px solid var(--gb-border, rgba(24, 24, 27, 0.12));
+    box-shadow: 0 30px 90px rgba(0, 0, 0, 0.4);
+}
+
+.gb-camera-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 2px 4px 12px;
+}
+
+.gb-camera-close {
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--gb-muted, #71717a);
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.gb-camera-close:hover {
+    background: rgba(127, 127, 127, 0.14);
+}
+
+.gb-camera video {
+    display: block;
+    width: 100%;
+    max-height: 62vh;
+    aspect-ratio: 16 / 9;
+    object-fit: cover;
+    border-radius: 14px;
+    background: #0b0f17;
+}
+
+.gb-camera-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    padding-top: 14px;
+}
+
+.gb-camera-actions button {
+    height: 40px;
+    padding: 0 18px;
+    border-radius: 999px;
+    border: 1px solid var(--gb-border, rgba(24, 24, 27, 0.12));
+    background: transparent;
+    color: var(--text, #111);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.gb-camera-actions .gb-camera-shutter {
+    border-color: transparent;
+    background: var(--accent, #16a34a);
+    color: #fff;
+}
+
+.gb-camera-actions .gb-camera-shutter:hover {
+    filter: brightness(1.05);
+}
+
+/* ── Full-duplex voice mode ──────────────────────────────────────────── */
+
+.gb-voice-mode {
+    position: fixed;
+    inset: 0;
+    z-index: 20000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background:
+        radial-gradient(circle at 50% 42%, rgba(22, 163, 74, 0.16), transparent 46%),
+        rgba(8, 11, 18, 0.72);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+}
+
+.gb-voice-mode.visible {
+    display: flex;
+}
+
+.gb-voice-mode-card {
+    position: relative;
+    width: min(92vw, 760px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+    text-align: center;
+    color: #f4f4f5;
+}
+
+.gb-voice-mode-close {
+    position: absolute;
+    top: -8px;
+    right: 0;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.10);
+    color: #f4f4f5;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.gb-voice-mode-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: rgba(244, 244, 245, 0.62);
+}
+
+.gb-voice-mode-wave {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    width: 100%;
+    height: 176px;
+}
+
+.gb-voice-mode-bar {
+    display: block;
+    width: 8px;
+    height: 140px;
+    border-radius: 999px;
+    background: var(--accent, #22c55e);
+    box-shadow: 0 0 18px rgba(34, 197, 94, 0.35);
+    transform: scaleY(0.08);
+    transform-origin: center;
+    transition: transform 90ms linear, background 220ms ease;
+}
+
+.gb-voice-mode[data-phase="speaking"] .gb-voice-mode-bar {
+    background: #60a5fa;
+    box-shadow: 0 0 18px rgba(96, 165, 250, 0.35);
+}
+
+.gb-voice-mode[data-phase="thinking"] .gb-voice-mode-bar {
+    background: #fbbf24;
+    box-shadow: 0 0 18px rgba(251, 191, 36, 0.28);
+}
+
+.gb-voice-mode-status {
+    font-size: clamp(17px, 2.4vw, 22px);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    color: #f4f4f5;
+    min-height: 1.4em;
+}
+
+.gb-voice-mode-transcript {
+    max-width: 620px;
+    min-height: 44px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: rgba(244, 244, 245, 0.72);
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.gb-voice-mode-end {
+    height: 42px;
+    padding: 0 26px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    background: rgba(255, 255, 255, 0.10);
+    color: #f4f4f5;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.gb-voice-mode-end:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+@media (max-width: 640px) {
+    .gb-voice-mode-wave {
+        height: 120px;
+        gap: 4px;
+    }
+
+    .gb-voice-mode-bar {
+        width: 5px;
+        height: 88px;
+    }
+
+    .gb-camera {
+        padding: 10px;
+    }
+}

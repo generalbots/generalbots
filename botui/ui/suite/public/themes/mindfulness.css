@@ -55,7 +55,7 @@
   --gb-secondary-foreground: hsl(var(--secondary-foreground));
   --gb-muted: hsl(var(--muted));
   --gb-muted-foreground: hsl(var(--muted-foreground));
-  --gb-accent: hsl(var(--primary));
+  --gb-accent: var(--primary);
   --gb-accent-soft: hsl(var(--accent));
   --gb-accent-foreground: hsl(var(--accent-foreground));
   --gb-destructive: hsl(var(--destructive));

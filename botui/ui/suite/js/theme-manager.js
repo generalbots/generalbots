@@ -95,7 +95,7 @@ const ThemeManager = (() => {
     const link = document.createElement("link");
     link.id = "theme-css";
     link.rel = "stylesheet";
-    link.href = `/suite/public/themes/${theme.file}`;
+    link.href = `/suite/public/themes/${theme.file}?v=2`;
     link.onload = () => {
       if (document.getElementById("theme-css") !== link) return;
       console.log("✓ Theme loaded:", theme.name);
