@@ -258,6 +258,20 @@ fn synonyms(token: &str) -> &'static [&'static str] {
         "thank" | "thanks" | "obrigado" | "agradeco" | "agradeço" => {
             &["thank", "thanks", "obrigado", "agradeco", "agradeço", "agradecido"]
         }
+        // A bug report can name the remedy as a noun or a verb: "a correção"
+        // and "como corrigir" are the same answer.
+        "fix" | "fixes" | "correct" | "corrigir" | "correcao" | "correção" => {
+            &[
+                "fix",
+                "fixes",
+                "correct",
+                "corrigir",
+                "corrige",
+                "correcao",
+                "correção",
+                "remedy",
+            ]
+        }
         _ => &[],
     }
 }
@@ -413,6 +427,22 @@ mod tests {
         let bad = validate_response(&c, "we got an error");
         assert!(ok.iter().all(|r| r.outcome == CheckOutcome::Pass));
         assert!(bad.iter().any(|r| r.outcome == CheckOutcome::Fail));
+    }
+
+    #[test]
+    fn must_contain_ignores_capitalization() {
+        let c = Contract::must_contain_only(["bug", "fix"]);
+        let response = "**The Bug**: `.upper()` on an int. **The Fix**: print(i).";
+        let results = validate_response(&c, response);
+        assert!(results.iter().all(|r| r.outcome == CheckOutcome::Pass));
+    }
+
+    #[test]
+    fn must_contain_accepts_fix_as_verb_or_noun() {
+        let c = Contract::must_contain_only(["correção"]);
+        let response = "O erro está em `i.upper()`. Como corrigir: use `str(i)`.";
+        let results = validate_response(&c, response);
+        assert!(results.iter().all(|r| r.outcome == CheckOutcome::Pass));
     }
 
     #[test]

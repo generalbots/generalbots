@@ -11,10 +11,19 @@ const COST_PER_CHAR: f64 = 0.000002;
 const MAX_RETRIES: u32 = 2;
 const RETRY_DELAYS_SECS: [u64; 2] = [1, 3];
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize)]
 struct Message {
     pub role: String,
     pub content: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct ResponseMessage {
+    // Reasoning models behind free gateways return `content: null` and put the
+    // text in `reasoning` when the budget runs out. Rejecting the whole
+    // response over that turned every such task into a transport error.
+    #[serde(default)]
+    pub content: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -28,14 +37,13 @@ struct ChatRequest<'a> {
 
 #[derive(Debug, serde::Deserialize)]
 struct ChatResponseChoice {
-    pub message: Message,
+    pub message: ResponseMessage,
 }
 
 #[derive(Debug, serde::Deserialize)]
 struct ChatResponse {
     pub choices: Vec<ChatResponseChoice>,
 }
-
 pub struct OpenAiCompatibleTarget {
     pub endpoint: String,
     pub api_key: String,
@@ -145,10 +153,14 @@ impl OpenAiCompatibleTarget {
             temperature: self.temperature,
             max_tokens: Some(1024),
         };
-        let response = self
-            .client
-            .post(&self.endpoint)
-            .bearer_auth(&self.api_key)
+        let mut request_builder = self.client.post(&self.endpoint);
+        // An empty key means anonymous access: free gateway models accept it,
+        // but a literal `Authorization: Bearer ` header is rejected as an
+        // invalid token, so omit the header entirely.
+        if !self.api_key.is_empty() {
+            request_builder = request_builder.bearer_auth(&self.api_key);
+        }
+        let response = request_builder
             // Some OpenAI-compatible gateways route by a session id and reject
             // requests without it; other providers ignore the header.
             .header("x-opencode-session", uuid::Uuid::new_v4().to_string())
@@ -169,7 +181,29 @@ impl OpenAiCompatibleTarget {
             .choices
             .into_iter()
             .next()
-            .map(|c| c.message.content)
+            .and_then(|c| c.message.content)
             .unwrap_or_default())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::ChatResponse;
+
+    #[test]
+    fn parses_content_when_present() {
+        let raw = r#"{"choices":[{"message":{"role":"assistant","content":"ok"}}]}"#;
+        let parsed: ChatResponse = serde_json::from_str(raw).expect("valid response");
+        assert_eq!(
+            parsed.choices[0].message.content.as_deref(),
+            Some("ok")
+        );
+    }
+
+    #[test]
+    fn parses_null_content_from_reasoning_models() {
+        let raw = r#"{"choices":[{"message":{"role":"assistant","content":null,"reasoning":"thinking"}}]}"#;
+        let parsed: ChatResponse = serde_json::from_str(raw).expect("null content must parse");
+        assert_eq!(parsed.choices[0].message.content, None);
     }
 }

@@ -69,6 +69,13 @@ pub struct EntryReport {
     pub response: String,
     pub cost: f64,
     pub tool_calls: u32,
+    /// True only when this entry was executed through a `HarnessTarget`.
+    ///
+    /// The tool-call floor is meaningful only for real harness runs; a text
+    /// run evaluates the same entries as plain LLM calls, where tool calls
+    /// are structurally zero. Defaults to false so older reports still parse.
+    #[serde(default)]
+    pub harness: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -113,6 +120,7 @@ pub async fn run_evaluation<T: LlmTarget + ?Sized>(
             response: outcome.response,
             cost: outcome.cost,
             tool_calls: outcome.tool_calls,
+            harness: false,
         });
     }
     let per_tag_score: HashMap<String, Score> = per_tag
@@ -140,7 +148,7 @@ pub async fn run_mixed_evaluation<T: LlmTarget + ?Sized, H: HarnessTarget + ?Siz
     let mut total_cost = 0.0;
     let mut total_tool_calls = 0;
     for entry in &dataset.entries {
-        let (response, results, entry_cost, entry_tool_calls) =
+        let (response, results, entry_cost, entry_tool_calls, is_harness) =
             if entry.tags.iter().any(|t| t == "harness") {
                 let ran = harness.run(&entry.prompt).await;
                 // #817 — a harness entry must satisfy BOTH its completion
@@ -156,7 +164,7 @@ pub async fn run_mixed_evaluation<T: LlmTarget + ?Sized, H: HarnessTarget + ?Siz
                 if let Some(floor) = validate_tool_floor(&entry.contract, ran.tool_calls) {
                     results.push(floor);
                 }
-                (ran.summary, results, ran.cost, ran.tool_calls)
+                (ran.summary, results, ran.cost, ran.tool_calls, true)
             } else {
                 let completed = llm
                     .complete_with_usage(entry.system_prompt.as_deref(), &entry.prompt)
@@ -167,6 +175,7 @@ pub async fn run_mixed_evaluation<T: LlmTarget + ?Sized, H: HarnessTarget + ?Siz
                     validate_response(&entry.contract, &response),
                     completed.cost,
                     completed.tool_calls,
+                    false,
                 )
             };
         total_cost += entry_cost;
@@ -187,6 +196,7 @@ pub async fn run_mixed_evaluation<T: LlmTarget + ?Sized, H: HarnessTarget + ?Siz
             response,
             cost: entry_cost,
             tool_calls: entry_tool_calls,
+            harness: is_harness,
         });
     }
     let per_tag_score: HashMap<String, Score> = per_tag

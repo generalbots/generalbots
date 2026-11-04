@@ -101,24 +101,20 @@ impl CiGate {
             }
         }
         if self.config.harness_min_tool_calls > 0 {
-            let harness_entries: Vec<&crate::runner::EntryReport> = report
+            // Only real harness executions carry tool calls. A text run
+            // evaluates harness-tagged entries as plain LLM calls, where the
+            // count is structurally zero; enforcing the floor there would fail
+            // every run regardless of response quality.
+            let offenders = report
                 .per_entry
                 .iter()
-                .filter(|e| e.tag.split(',').any(|t| t == "harness"))
-                .collect();
-            if harness_entries.is_empty() {
-                reasons.push("no harness-tagged tasks evaluated".to_string());
-            } else {
-                let offenders = harness_entries
-                    .iter()
-                    .filter(|e| e.tool_calls < self.config.harness_min_tool_calls)
-                    .count();
-                if offenders > 0 {
-                    reasons.push(format!(
-                        "{offenders} harness tasks used fewer than {} tool calls",
-                        self.config.harness_min_tool_calls
-                    ));
-                }
+                .filter(|e| e.harness && e.tool_calls < self.config.harness_min_tool_calls)
+                .count();
+            if offenders > 0 {
+                reasons.push(format!(
+                    "{offenders} harness tasks used fewer than {} tool calls",
+                    self.config.harness_min_tool_calls
+                ));
             }
         }
         if reasons.is_empty() {
@@ -300,6 +296,7 @@ mod tests {
             response: "ok".into(),
             cost: 0.0,
             tool_calls: 0,
+            harness: true,
         });
         let verdict = gate.evaluate(&report);
         assert!(!verdict.pass);
@@ -309,5 +306,34 @@ mod tests {
                 .iter()
                 .any(|r| r.contains("harness tasks used fewer"))
         );
+    }
+
+    #[test]
+    fn text_run_does_not_fail_the_harness_floor() {
+        // CI runs the benchmark without `--harness`; the harness-tagged entries
+        // are then plain LLM calls and cannot produce tool calls. The floor
+        // must not turn every text run into a guaranteed failure.
+        let gate = CiGate::new(CiGateConfig {
+            harness_min_tool_calls: 2,
+            ..CiGateConfig::default()
+        });
+        let mut report = empty_report();
+        report.per_entry.push(crate::runner::EntryReport {
+            entry_id: uuid::Uuid::new_v4(),
+            tag: "software_development,harness".into(),
+            score: crate::scoring::Score {
+                total: 1,
+                passed: 1,
+                failed: 0,
+                skipped: 0,
+                rate: 1.0,
+            },
+            results: vec![],
+            response: "ok".into(),
+            cost: 0.0,
+            tool_calls: 0,
+            harness: false,
+        });
+        assert!(gate.evaluate(&report).pass);
     }
 }

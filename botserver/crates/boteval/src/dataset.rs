@@ -74,11 +74,17 @@ impl Dataset {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Contract {
+    #[serde(default)]
     pub must_contain: Vec<String>,
+    #[serde(default)]
     pub must_not_contain: Vec<String>,
+    #[serde(default)]
     pub json_schema: Option<serde_json::Value>,
+    #[serde(default)]
     pub max_tokens: Option<u32>,
+    #[serde(default)]
     pub min_tokens: Option<u32>,
+    #[serde(default)]
     pub language: Option<String>,
     /// #817 — minimum number of tool calls the agent must make to satisfy
     /// this entry. Enforced on harness entries (where tool-call counts are
