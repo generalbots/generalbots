@@ -227,3 +227,33 @@ result.
 Steering remains partial: the second run is started with the steer text
 (`run_events` shows `RUN_STARTED` titled with the steering message), but the
 model produced reasoning-only content and no visible `STEER-OK`.
+
+## Corrigendum — validator fixes and steering UI
+
+The first full-suite run exposed two scoring defects, not model defects:
+
+- `must_contain` compared case-sensitively, so `**Bug:**`/`**Fix:**` and
+  `**Correção:**` failed the lowercase contracts.
+- The language detector had no markers for short answers (`A hexagon has 6
+  sides.`, `Um hexágono tem 6 lados.`, `30`) and returned `und`; `und` is now
+  treated as inconclusive (but an empty response still fails).
+
+After the fixes and a full 210-entry rerun:
+
+```
+508 / 551 checks = 92.20%   (was 468 / 551 = 84.94%)
+43 failures: must_contain 40, language 3
+per tag: software 96.3%, financial 98.0%, customer 93.6%,
+         en 95.3%, pt-BR 89.1%, harness 87.5%, general 87.1%
+```
+
+The remaining failures are mostly contract phrasing rather than wrong
+answers: `binary search` vs the code identifier `binary_search`, `six` vs
+`6`, Portuguese synonyms (`cancelar`/`cancelamento`, `físico`/`física`,
+`reutilizar`/`reutilizáveis`), plus two empty responses. The official 95% /
+0.90-per-tag gate still fails. Tracked as #1688.
+
+Steering is now visible: the server persisted `STEER-OK`, and
+`chat-messages.js` was clearing the accumulated stream before rendering the
+completion frame. After capturing the accumulated content first, the browser
+shows `STEER-OK` (screenshot `ts06-steer-visible.png`).
