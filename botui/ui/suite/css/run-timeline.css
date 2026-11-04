@@ -141,3 +141,20 @@
     .run-elapsed { margin-left: auto; }
     .run-log { max-height: 160px; }
 }
+
+/* #1677 — takeover bar: the user holds the terminal/browser session. */
+.run-takeover {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding: 6px 8px;
+    border: 1px solid #f59e0b;
+    border-radius: 8px;
+    background: rgba(245, 158, 11, 0.08);
+}
+.run-takeover[hidden] { display: none; }
+.run-takeover-hint {
+    flex: 1 1 100%;
+    color: var(--gb-text-muted, #57606a);
+}

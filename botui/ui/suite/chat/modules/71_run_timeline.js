@@ -22,6 +22,72 @@
         return String(id);
     }
 
+    // #1677 — takeover events are mirrored to the run so hand-off and return
+    // are visible to run subscribers and the model, without a frame the UI
+    // can lose. The WS frame is the live path; nothing here is pending state.
+    function reportTakeover(runId, state, surface) {
+        var ws = window.ChatState && window.ChatState.ws;
+        if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        ws.send(JSON.stringify({
+            type: "run_takeover",
+            bot_id: window.ChatState.currentBotId,
+            user_id: window.ChatState.currentUserId,
+            session_id: sessionKey(),
+            run_id: runId,
+            state: state,
+            surface: surface || "terminal",
+            timestamp: new Date().toISOString(),
+        }));
+    }
+
+    // #1677 — takeover asked from a terminal/browser card without the run id
+    // in scope (61_terminal_use.js). Uses the active run.
+    function reportTakeoverState(state, surface) {
+        if (!activeRunId) return;
+        applyTakeover(activeRunId, state, surface || "terminal");
+        reportTakeover(activeRunId, state, surface || "terminal");
+    }
+
+    // #1677 — ESC interrupts the run (Claude-Code-style): same message the
+    // Stop button sends. An input or textarea keeps the key to itself.
+    document.addEventListener("keydown", function (event) {
+        if (event.key !== "Escape" || !activeRunId) return;
+        var target = event.target;
+        if (target) {
+            var tag = String(target.tagName || "").toLowerCase();
+            if (tag === "input" || tag === "textarea" || tag === "select" || target.isContentEditable) return;
+        }
+        if (function () {
+            var overlay = document.querySelector("dialog[open], .settings-mcp-preview-overlay");
+            return Boolean(overlay);
+        }()) return;
+        var ws = window.ChatState && window.ChatState.ws;
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: "run_cancel", session_id: sessionKey() }));
+        }
+    });
+
+    // #1677 — reflect a takeover/hand-back segment on the run card. Used by
+    // the local controls and by replicated frames (live broadcast or replay).
+    function applyTakeover(runId, state, surface) {
+        var entry = runs[runId];
+        if (!entry || !entry.takeoverBar) return;
+        if (state === "handed_back") {
+            entry.takeoverBar.hidden = true;
+            entry.takeoverBar.setAttribute("data-mode", "");
+            if (entry.takeover) { entry.takeover.textContent = "Take over"; }
+            return;
+        }
+        entry.takeoverBar.hidden = false;
+        entry.takeoverBar.setAttribute("data-mode", "active");
+        if (entry.takeover) { entry.takeover.textContent = "You control"; }
+        var hint = entry.takeoverBar.querySelector(".run-takeover-hint");
+        if (hint) {
+            hint.textContent = (surface === "browser" ? "You control the browser. " : "You control the terminal. ") +
+                "Hand input back when done — ESC interrupts the run.";
+        }
+    }
+
     function lastSeqKey() {
         return LAST_SEQ_PREFIX + sessionKey();
     }
@@ -87,10 +153,20 @@
         stop.className = "run-stop";
         stop.textContent = "Stop";
 
+        // #1677 — takeover: while the run holds a terminal or browser
+        // session the user can take it over from the agent without
+        // cancelling the run.
+        var takeover = document.createElement("button");
+        takeover.type = "button";
+        takeover.className = "run-toggle";
+        takeover.textContent = "Take over";
+        takeover.hidden = true;
+
         head.appendChild(dot);
         head.appendChild(title);
         head.appendChild(elapsed);
         head.appendChild(toggle);
+        head.appendChild(takeover);
         head.appendChild(stop);
 
         var body = document.createElement("div");
@@ -102,6 +178,58 @@
         summary.setAttribute("aria-live", "polite");
         summary.textContent = "Starting…";
 
+        // #1677 — takeover controls, shown when the user takes over a live
+        // terminal or browser session from the run.
+        var takeoverBar = document.createElement("div");
+        takeoverBar.className = "run-takeover";
+        takeoverBar.hidden = true;
+
+        var takeoverHint = document.createElement("span");
+        takeoverHint.className = "run-takeover-hint";
+        takeoverHint.textContent = "You control the session. Hand input back when done — ESC interrupts the run.";
+        takeoverBar.appendChild(takeoverHint);
+
+        // The two live surfaces a takeover can attach to. The Terminal app
+        // attaches a real interactive pty for this workspace; the browser
+        // panel is the consented computer-use pane.
+        var openTerminal = document.createElement("button");
+        openTerminal.type = "button";
+        openTerminal.className = "run-toggle";
+        openTerminal.textContent = "Terminal window";
+        openTerminal.addEventListener("click", function () {
+            if (window.WindowManager && typeof window.WindowManager.openDeepLink === "function") {
+                window.WindowManager.openDeepLink("terminal", {});
+            } else {
+                window.open("/suite/desktop.html?app=terminal", "_blank", "noopener");
+            }
+        });
+        takeoverBar.appendChild(openTerminal);
+
+        var openBrowser = document.createElement("button");
+        openBrowser.type = "button";
+        openBrowser.className = "run-toggle";
+        openBrowser.textContent = "Browser panel";
+        openBrowser.addEventListener("click", function () {
+            if (window.GBBrowserUse) window.GBBrowserUse.show();
+        });
+        takeoverBar.appendChild(openBrowser);
+
+        var handBack = document.createElement("button");
+        handBack.type = "button";
+        handBack.className = "run-toggle";
+        handBack.textContent = "Hand back";
+        handBack.addEventListener("click", function () {
+            applyTakeover(runId, "handed_back", "terminal");
+            reportTakeover(runId, "handed_back", "terminal");
+        });
+        takeoverBar.appendChild(handBack);
+
+        takeover.addEventListener("click", function () {
+            applyTakeover(runId, "taken_over", "terminal");
+            reportTakeover(runId, "taken_over", "terminal");
+            if (window.GBBrowserUse) window.GBBrowserUse.show();
+        });
+
         var rows = document.createElement("div");
         rows.className = "run-rows";
 
@@ -112,6 +240,7 @@
         log.hidden = true;
 
         body.appendChild(summary);
+        body.appendChild(takeoverBar);
         body.appendChild(rows);
         body.appendChild(log);
         card.appendChild(head);
@@ -128,6 +257,8 @@
             log: log,
             toggle: toggle,
             stop: stop,
+            takeover: takeover,
+            takeoverBar: takeoverBar,
             steps: Object.create(null),
             tools: Object.create(null),
             startedAt: (data && Number(data.startedAt)) || Date.now(),
@@ -307,14 +438,37 @@
     }
 
     function handleFrame(frame) {
-        if (!frame || !frame.type) return;
+        if (!frame) return;
+        // Replayed frames come back as AG-UI envelopes (`event_type`); the
+        // live path uses `type`. Normalize so both render identically.
+        if (!frame.type && frame.event_type) {
+            frame = Object.assign({}, frame, { type: frame.event_type });
+        }
+        if (!frame.type) return;
         var runId = frame.run_id || frame.runId || "";
         if (frame.seq) writeLastSeq(frame.seq);
         if (runId && frame.seq && seenSeq[runId + ":" + frame.seq]) return;
         if (runId && frame.seq) seenSeq[runId + ":" + frame.seq] = true;
 
         var entry = runId ? runs[runId] : null;
+        if (!entry && activeRunId) entry = runs[activeRunId] || null;
         var type = frame.type;
+
+        // #1677 — takeover segments (live broadcast or replay) restore the
+        // controls after a reload, on any device.
+        if (type === "CUSTOM") {
+            var custom = frame.data || {};
+            if (custom.name === "gb.takeover" && entry) {
+                var payload = custom.payload || {};
+                applyTakeover(entry.id, payload.state || "taken_over", payload.surface || "terminal");
+            }
+            return;
+        }
+
+        // A run that touched the terminal or the browser exposes takeover.
+        if ((type === "terminal_output" || type === "browser_ready") && entry && entry.takeover) {
+            entry.takeover.hidden = false;
+        }
 
         if (type === "RUN_STARTED") {
             // A new run on the same thread means the previous waiting card was
@@ -441,5 +595,6 @@
         resume: resume,
         reset: reset,
         activeRunId: function () { return activeRunId; },
+        reportTakeoverState: reportTakeoverState,
     };
 })();

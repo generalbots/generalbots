@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use axum::extract::ws::{Message, WebSocket};
+use botevents::{Envelope, EventSource, EventType};
 use botcore::shared::state::AppState;
 use futures_util::{SinkExt, StreamExt};
 use log::{error, info, warn};
@@ -215,6 +216,87 @@ pub async fn handle_ws(
                             continue;
                         }
 
+                        // #1677 — takeover/hand-back: the user takes over the
+                        // live terminal or browser surface. The segment is
+                        // persisted as a CUSTOM run event (seq'd) so a reload
+                        // or a second device restores it, then broadcast to
+                        // every subscriber of this thread.
+                        if frame_type == "run_takeover" {
+                            let state_label = parsed
+                                .as_ref()
+                                .and_then(|value| value.get("state"))
+                                .and_then(serde_json::Value::as_str)
+                                .unwrap_or("taken_over")
+                                .to_string();
+                            let surface = parsed
+                                .as_ref()
+                                .and_then(|value| value.get("surface"))
+                                .and_then(serde_json::Value::as_str)
+                                .unwrap_or("terminal")
+                                .to_string();
+                            let run_id = parsed
+                                .as_ref()
+                                .and_then(|value| value.get("run_id"))
+                                .and_then(serde_json::Value::as_str)
+                                .map(str::to_string)
+                                .or_else(|| bus::bus().current_run_id(&thread_id))
+                                .unwrap_or_default();
+                            if run_id.is_empty() {
+                                let denied = serde_json::json!({
+                                    "type": "run_takeover_ack",
+                                    "accepted": false,
+                                    "message": "No active run to take over",
+                                    "session_id": session_id,
+                                });
+                                let _ = ws_sender.lock().await.send(Message::Text(denied.to_string())).await;
+                                continue;
+                            }
+                            let seq = persist_takeover(
+                                &state,
+                                bot_uuid,
+                                user_id,
+                                &thread_id,
+                                &run_id,
+                                &state_label,
+                                &surface,
+                            );
+                            #[cfg(feature = "consent")]
+                            if let Ok(mut conn) = state.conn.get() {
+                                botconsent::store::audit(
+                                    &mut conn,
+                                    None,
+                                    Some(user_id),
+                                    &serde_json::json!({
+                                        "action": "run_takeover",
+                                        "thread_id": thread_id,
+                                        "run_id": run_id,
+                                        "state": state_label,
+                                        "surface": surface,
+                                    }),
+                                    "allowed",
+                                    None,
+                                );
+                            }
+                            let frame = serde_json::json!({
+                                "type": "CUSTOM",
+                                "run_id": run_id,
+                                "seq": seq,
+                                "data": {
+                                    "name": "gb.takeover",
+                                    "payload": { "state": state_label, "surface": surface },
+                                },
+                            });
+                            bus::bus().publish(&thread_id, frame);
+                            let ack = serde_json::json!({
+                                "type": "run_takeover_ack",
+                                "accepted": true,
+                                "state": state_label,
+                                "seq": seq,
+                            });
+                            let _ = ws_sender.lock().await.send(Message::Text(ack.to_string())).await;
+                            continue;
+                        }
+
                         // Receipt: the client clears its retry timer on this
                         // frame only, so a turn accepted here is never resent
                         // and one dropped by a dying socket is.
@@ -324,4 +406,51 @@ pub async fn handle_ws(
         hear_map.remove(&session_id);
     }
     info!("WebSocket disconnected: session={session_id}");
+}
+/// Persists one takeover segment as a CUSTOM run event (#1677). Returns the
+/// allocated sequence, or 0 when persistence is unavailable — the live frame
+/// still reaches subscribers in that case.
+fn persist_takeover(
+    state: &Arc<AppState>,
+    bot_uuid: Uuid,
+    user_id: Uuid,
+    thread_id: &str,
+    run_id: &str,
+    state_label: &str,
+    surface: &str,
+) -> u64 {
+    let mut conn = match state.conn.get() {
+        Ok(conn) => conn,
+        Err(error) => {
+            warn!("takeover event skipped: pool error: {error}");
+            return 0;
+        }
+    };
+    let seq = match store::last_seq(&mut conn, bot_uuid, thread_id) {
+        Ok(last) => last.saturating_add(1),
+        Err(error) => {
+            warn!("takeover seq lookup failed: {error}");
+            return 0;
+        }
+    };
+    let envelope = Envelope {
+        v: 1,
+        event_type: EventType::Custom,
+        thread_id: thread_id.to_string(),
+        run_id: run_id.to_string(),
+        parent_run_id: None,
+        seq,
+        event_id: Uuid::new_v4().to_string(),
+        ts: chrono::Utc::now(),
+        source: EventSource::User,
+        data: serde_json::json!({
+            "name": "gb.takeover",
+            "payload": { "state": state_label, "surface": surface },
+        }),
+    };
+    if let Err(error) = store::append(&mut conn, &envelope, bot_uuid, Some(user_id), None) {
+        warn!("takeover event persist failed: {error}");
+        return 0;
+    }
+    seq
 }

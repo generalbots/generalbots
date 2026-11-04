@@ -96,6 +96,27 @@
         outcomeDiv.innerHTML = '<span>' + statusIcon + '</span> <span>Exit code: ' + exitCode + '</span>';
         cardEl.appendChild(outcomeDiv);
         if (output.trim()) cardEl.appendChild(renderTerminalOutput(output.substring(0, 5000)));
+        // #1677 — takeover affordance: the run's terminal session can be
+        // continued interactively by the user without cancelling the run.
+        var takeoverRow = document.createElement("div");
+        takeoverRow.className = "gb-takeover-row";
+        var takeoverBtn = document.createElement("button");
+        takeoverBtn.type = "button";
+        takeoverBtn.className = "gb-consent-btn primary";
+        takeoverBtn.textContent = "Take over in terminal";
+        takeoverBtn.addEventListener("click", function () {
+            if (window.RunTimeline && typeof window.RunTimeline.reportTakeoverState === "function") {
+                window.RunTimeline.reportTakeoverState("taken_over", "terminal");
+            }
+            takeoverBtn.disabled = true;
+            if (window.WindowManager && typeof window.WindowManager.openDeepLink === "function") {
+                window.WindowManager.openDeepLink("terminal", {});
+            } else {
+                window.open("/suite/desktop.html?app=terminal", "_blank", "noopener");
+            }
+        });
+        takeoverRow.appendChild(takeoverBtn);
+        cardEl.appendChild(takeoverRow);
         sendTerminalResult(action.action_id, { status: "ok", exit_code: exitCode, output: output.substring(0, 5000) });
       })
       .catch(function (err) {
