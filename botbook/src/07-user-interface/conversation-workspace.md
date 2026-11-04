@@ -49,7 +49,7 @@ The checked-in schema is `botserver/crates/botevents/schemas/run-event.v1.json`;
 Native tools (no `.bas` required, advertised on web when run events are enabled):
 
 - `ask_user` — one or more fields; blocking questions end the turn in `waiting_input` and the answer starts the next turn. Answered field ids are remembered per thread.
-- `propose_plan` — steps the user can reorder/remove/approve before execution.
+- `propose_plan` — steps the user can reorder/remove/approve before execution. It also accepts an optional `questions` array (same field schema as `ask_user`): the plan is followed by a `gb.question` form in the same turn, so a plan that needs decisions asks for them instead of ending in prose. Fields already answered in the thread are not asked again.
 - `show_surface` — components from the trusted catalog `gb.basic.v1` plus a mandatory fallback.
 - `show_app` — self-contained HTML published through the sandbox store and rendered in an opaque iframe.
 
@@ -61,10 +61,20 @@ Invalid calls return schema paths and the model is expected to correct them. The
 |---|---|
 | `chat/modules/71_run_timeline.js` | Run card, steps, tool rows, live log, Stop, resume |
 | `chat/modules/72_surface_renderer.js` | Tier 1 catalog, forms, plans, data bindings, JSON Patch updates |
-| `chat/modules/73_app_frame.js` | MCP Apps iframe, JSON-RPC bridge, hibernation, live-app cap |
+| `chat/modules/73_app_frame.js` | MCP Apps iframe, JSON-RPC bridge, hibernation, live-app cap. A card that starts below the fold remounts when it enters the viewport, and a generated app without the handshake settles from “Starting…” to “Running”. |
 | `chat/modules/74_viz.js` | Flow, timeline, metrics, bars, lines with fallbacks |
 | `chat/modules/75_perf.js` | First-paint, log-latency and resume budgets (`window.GBPerf`) |
 | `chat/chat-websocket.js` | Feeds frames to the timeline, surfaces and apps; `run_resume` |
+
+### Inline file previews
+
+Attachment cards preview PDFs, images and Office files in place. PDFs use the
+same-origin `/api/agent/vm/file?raw=1` response, which sends
+`X-Frame-Options: SAMEORIGIN` (handler-scoped headers win over the global
+`DENY`) and must **not** be sandboxed: Chrome refuses to run its PDF viewer in
+a sandboxed frame. Office packages keep the server-side, script-free HTML
+conversion in a fully opaque frame, and generated HTML keeps
+`allow-scripts` without `allow-same-origin`.
 
 Security invariants:
 

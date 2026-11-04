@@ -73,6 +73,17 @@ workspace re-attaches panes), the composer stays below the messages, and only
 the message list scrolls — the window frame itself no longer grows a second
 scrollbar.
 
+Each tab owns one WebSocket and one session; reconnecting reuses the tab's
+session id instead of minting a new conversation. A reload starts from the
+canonical **Default** conversation (old parallel tabs reconnected stale
+sockets), while tabs created in the current session stay in the strip. Hidden
+tabs move into a `… +N` overflow menu rather than scrolling the strip.
+
+Exactly one stock `<main id="messages">` may exist: a duplicate orphan main
+used to split the window 50/50 and push the composer under the tabs. The chat
+module now removes duplicates, restores the parked stock surface when Default
+is focused, and replays its history once per session.
+
 ### Attachments
 
 Generated files appear as attachment cards. Clicking the file name opens it in
