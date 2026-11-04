@@ -333,19 +333,28 @@ function processMessage(data) {
   }
 
   if (data.is_complete) {
+    // Capture the accumulated stream before finalizeStreaming() clears it.
+    // Completion frames often carry only reasoning; dropping the accumulated
+    // content left a "Thinking" bubble with no visible answer (the persisted
+    // message still had the answer).
+    var finalContent =
+      (data.content && data.content.trim() !== "")
+        ? data.content
+        : (ChatState.currentStreamingContent || "");
+    var finalReasoning = data.reasoning || ChatState.currentReasoning || "";
     hideThinkingIndicator();
     if (ChatState.isStreaming) {
       finalizeStreaming();
     }
-    if (data.content && data.content.trim() !== "") {
-      addMessage("bot", data.content, null, data.reasoning || ChatState.currentReasoning);
+    if (finalContent && finalContent.trim() !== "") {
+      addMessage("bot", finalContent, null, finalReasoning);
       if (TTSState.autoSpeak) {
-        speakText(data.content);
+        speakText(finalContent);
       }
-    } else if ((data.reasoning || ChatState.currentReasoning) && (data.reasoning || ChatState.currentReasoning).trim() !== "") {
-      addMessage("bot", "", null, data.reasoning || ChatState.currentReasoning);
+    } else if (finalReasoning && finalReasoning.trim() !== "") {
+      addMessage("bot", "", null, finalReasoning);
       if (TTSState.autoSpeak) {
-        speakText(data.reasoning);
+        speakText(finalReasoning);
       }
     }
     ChatState.isStreaming = false;
