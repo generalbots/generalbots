@@ -234,8 +234,23 @@ pub(super) async fn merge_part_b(
         })();
         let goals_bot_context: crate::analytics::GetBotContextFn = Arc::new(move || goals_context);
         let goals_default_bot: crate::analytics::GetDefaultBotFn = Arc::new(|_c: &mut diesel::PgConnection| uuid::Uuid::nil());
-        *sub_router = sub_router.clone().merge(crate::analytics::goals::configure_goals_routes().with_state((goals_pool.clone(), goals_bot_context)));
-        *sub_router = sub_router.clone().merge(crate::analytics::goals_ui::configure_goals_ui_routes().with_state((goals_pool, goals_default_bot)));
+        // The global auth middleware classifies an invalid bearer token as
+        // anonymous and still inserts an extension, so the shared extractor
+        // alone let anonymous callers read and mutate goals (a forged JWT was
+        // one way in). Require a real authenticated user on both surfaces.
+        let require_auth = axum::middleware::from_fn(
+            crate::security::botsecurity_auth::auth_api::middleware::require_auth_middleware,
+        );
+        *sub_router = sub_router.clone().merge(
+            crate::analytics::goals::configure_goals_routes()
+                .with_state((goals_pool.clone(), goals_bot_context))
+                .layer(require_auth.clone()),
+        );
+        *sub_router = sub_router.clone().merge(
+            crate::analytics::goals_ui::configure_goals_ui_routes()
+                .with_state((goals_pool, goals_default_bot))
+                .layer(require_auth),
+        );
     }
 
     #[cfg(feature = "analytics")]

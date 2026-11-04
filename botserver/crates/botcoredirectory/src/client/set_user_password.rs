@@ -31,19 +31,34 @@ impl ZitadelClient {
 
     pub async fn list_organizations(&self, limit: u32, offset: u32) -> Result<Vec<serde_json::Value>> {
         let token = self.get_access_token().await?;
-        let url = format!(
-            "{}/management/v1/orgs/_search?limit={}&offset={}",
-            self.api_base, limit, offset
-        );
-
-        let response = self
+        // The bundled Zitadel build does not route the management org search
+        // (404); the instance-level admin API does. Try management first for
+        // upstream compatibility, then fall back on 404.
+        let mut response = self
             .http_client
-            .post(&url)
+            .post(format!(
+                "{}/management/v1/orgs/_search?limit={limit}&offset={offset}",
+                self.api_base
+            ))
             .bearer_auth(&token)
             .json(&serde_json::json!({}))
             .send()
             .await
             .map_err(|e| anyhow!("Failed to list organizations: {}", e))?;
+
+        if response.status() == reqwest::StatusCode::NOT_FOUND {
+            response = self
+                .http_client
+                .post(format!(
+                    "{}/admin/v1/orgs/_search?limit={limit}&offset={offset}",
+                    self.api_base
+                ))
+                .bearer_auth(&token)
+                .json(&serde_json::json!({}))
+                .send()
+                .await
+                .map_err(|e| anyhow!("Failed to list organizations: {}", e))?;
+        }
 
         if !response.status().is_success() {
             let error_text = response.text().await.unwrap_or_default();

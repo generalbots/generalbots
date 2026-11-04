@@ -305,19 +305,15 @@ pub(crate) async fn bootstrap_directory_admin(zitadel_config: &crate::directory:
         }
     }
 
-    let management_client = match ZitadelClient::new(zitadel_config.clone()) {
-        Ok(client) => client,
-        Err(e) => {
-            warn!("Failed to create management client with OAuth2: {}", e);
-            return;
-        }
-    };
-
-    if let Err(e) = bootstrap::ensure_default_organization(&management_client).await {
+    // The PAT client is already authenticated as an instance manager. Rebuilding
+    // an OAuth2 client here discarded that credential and every management call
+    // failed with "No access token" (the client-credentials flow is not
+    // configured for the BotServer OIDC app).
+    if let Err(e) = bootstrap::ensure_default_organization(&bootstrap_client).await {
         info!("Failed to ensure default organization (non-critical): {}", e);
     }
 
-    if let Err(e) = bootstrap::ensure_admin_user(&management_client).await {
+    if let Err(e) = bootstrap::ensure_admin_user(&bootstrap_client).await {
         info!("Failed to ensure admin user (non-critical): {}", e);
     }
 }

@@ -14,6 +14,7 @@ llm = []
 
 [dependencies]
 botlog = { workspace = true }
+botsecurity-auth = { workspace = true }
 botlib = { workspace = true, features = ["database"] }
 botschema = { workspace = true, features = ["goals", "dashboards"] }
 axum = { workspace = true }

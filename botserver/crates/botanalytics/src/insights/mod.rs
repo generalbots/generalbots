@@ -2,7 +2,6 @@ pub(crate) use axum::{ extract::{Query, State}, routing::{get, post, put}, Json,
 pub(crate) use chrono::{Datelike, Duration, NaiveDate, Utc};
 pub(crate) use diesel::prelude::*;
 pub(crate) use diesel::sql_types::{BigInt, Date, Double, Uuid as DieselUuid};
-pub(crate) use log::debug;
 pub(crate) use std::sync::Arc;
 pub(crate) use uuid::Uuid;
 pub(crate) use crate::insights_types::*;

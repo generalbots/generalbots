@@ -269,3 +269,46 @@ fn test_highest_role() {
 
     assert_eq!(user.highest_role(), &Role::Admin);
 }
+
+#[test]
+fn forged_bearer_jwt_is_rejected() {
+    let user_id = uuid::Uuid::new_v4();
+    let header = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
+    let payload = base64::Engine::encode(
+        &base64::engine::general_purpose::URL_SAFE_NO_PAD,
+        serde_json::json!({"sub": user_id, "exp": 4_000_000_000u64}).to_string(),
+    );
+    let config = AuthConfig::default().with_jwt_secret("unit-test-secret");
+    let token = format!("{header}.{payload}.not-a-signature");
+    let result = super::auth_api_utils::validate_bearer_token_sync(&token, &config);
+    assert!(matches!(result, Err(AuthError::InvalidToken)));
+}
+
+#[test]
+fn signed_bearer_jwt_is_accepted() {
+    let user_id = uuid::Uuid::new_v4();
+    let config = AuthConfig::default().with_jwt_secret("unit-test-secret");
+    let claims = serde_json::json!({
+        "sub": user_id,
+        "email": "user@example.com",
+        "roles": ["Admin"],
+        "exp": 4_000_000_000u64,
+    });
+    let token = jsonwebtoken::encode(
+        &jsonwebtoken::Header::new(jsonwebtoken::Algorithm::HS256),
+        &claims,
+        &jsonwebtoken::EncodingKey::from_secret(b"unit-test-secret"),
+    )
+    .expect("test JWT encodes");
+    let user = super::auth_api_utils::validate_bearer_token_sync(&token, &config)
+        .expect("signed JWT verifies");
+    assert_eq!(user.user_id, user_id);
+    assert_eq!(user.email.as_deref(), Some("user@example.com"));
+    assert!(user.roles.contains(&Role::Admin));
+}
+
+#[test]
+fn unknown_session_token_is_rejected() {
+    let result = super::auth_api_utils::validate_session_sync("gb_not-in-the-session-store");
+    assert!(matches!(result, Err(AuthError::SessionExpired)));
+}

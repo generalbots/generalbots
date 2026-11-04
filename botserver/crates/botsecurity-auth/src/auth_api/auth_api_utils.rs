@@ -35,7 +35,7 @@ pub fn extract_user_from_request(
             .map(str::to_string)
             .or_else(|| basic_password_as_token(auth_header));
         if let Some(token) = token {
-            let mut user = validate_bearer_token_sync(&token)?;
+            let mut user = validate_bearer_token_sync(&token, config)?;
 
             if let Some(bot_id) = extract_bot_id_from_request(request, config) {
                 user = user.with_current_bot(bot_id);
@@ -74,7 +74,7 @@ pub fn extract_user_from_request(
                 }
             })
         {
-            let mut user = validate_bearer_token_sync(&token)?;
+            let mut user = validate_bearer_token_sync(&token, config)?;
 
             if let Some(bot_id) = extract_bot_id_from_request(request, config) {
                 user = user.with_current_bot(bot_id);
@@ -159,7 +159,10 @@ fn validate_api_key_sync(api_key: &str) -> Result<AuthenticatedUser, AuthError> 
         .with_metadata("api_key_prefix", botlib::text::truncate_at_char_boundary(api_key, 8)))
 }
 
-fn validate_bearer_token_sync(token: &str) -> Result<AuthenticatedUser, AuthError> {
+pub(super) fn validate_bearer_token_sync(
+    token: &str,
+    config: &AuthConfig,
+) -> Result<AuthenticatedUser, AuthError> {
     if token.is_empty() {
         return Err(AuthError::InvalidToken);
     }
@@ -169,10 +172,72 @@ fn validate_bearer_token_sync(token: &str) -> Result<AuthenticatedUser, AuthErro
         return Err(AuthError::InvalidToken);
     }
 
-    Ok(AuthenticatedUser::new(
-        Uuid::new_v4(),
-        "jwt-user".to_string(),
-    ))
+    // A JWT-shaped token is only a credential if its signature and expiry
+    // verify. The previous implementation accepted ANY three-part string and
+    // minted a random `jwt-user`, so `<anything>.<base64>.<anything>` was a
+    // full authentication bypass (and a new identity on every request).
+    let secret = config.jwt_secret.as_deref().unwrap_or("");
+    if secret.is_empty() {
+        warn!("JWT-shaped bearer token rejected: no jwt_secret configured");
+        return Err(AuthError::InvalidToken);
+    }
+
+    let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
+    validation.validate_exp = true;
+    validation.required_spec_claims =
+        std::collections::HashSet::from(["exp".to_string()]);
+    let data = jsonwebtoken::decode::<serde_json::Value>(
+        token,
+        &jsonwebtoken::DecodingKey::from_secret(secret.as_bytes()),
+        &validation,
+    )
+    .map_err(|error| {
+        warn!("JWT bearer token rejected: {error}");
+        AuthError::InvalidToken
+    })?;
+
+    let claims = data.claims;
+    let sub = claims
+        .get("sub")
+        .and_then(|value| value.as_str())
+        .unwrap_or_default();
+    if sub.is_empty() {
+        return Err(AuthError::InvalidToken);
+    }
+    let user_id = Uuid::parse_str(sub)
+        .unwrap_or_else(|_| Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("zitadel:{sub}").as_bytes()));
+    let email = claims
+        .get("email")
+        .and_then(|value| value.as_str())
+        .unwrap_or_default();
+    let username = claims
+        .get("username")
+        .and_then(|value| value.as_str())
+        .or_else(|| email.split('@').next())
+        .unwrap_or("user")
+        .to_string();
+
+    let mut user = AuthenticatedUser::new(user_id, username).with_email(email.to_string());
+    if let Some(roles) = claims.get("roles").and_then(|value| value.as_array()) {
+        for role in roles.iter().filter_map(|value| value.as_str()) {
+            let role = match role.to_lowercase().as_str() {
+                "admin" | "administrator" => Role::Admin,
+                "superadmin" | "super_admin" => Role::SuperAdmin,
+                "moderator" => Role::Moderator,
+                "bot_owner" => Role::BotOwner,
+                _ => Role::User,
+            };
+            user = user.with_role(role);
+        }
+    }
+    if let Some(org) = claims
+        .get("org_id")
+        .and_then(|value| value.as_str())
+        .and_then(|value| Uuid::parse_str(value).ok())
+    {
+        user = user.with_organization(org);
+    }
+    Ok(user)
 }
 
 
@@ -247,18 +312,13 @@ pub fn validate_session_sync(session_id: &str) -> Result<AuthenticatedUser, Auth
             return Ok(user);
         }
 
-        // Uncacheable token (e.g. a raw JWT that failed provider lookup): map
-        // it to a deterministic UUIDv5 identity instead of a random UUID, so
-        // repeated requests with the same token resolve to the same user.
-        let user = AuthenticatedUser::new(
-            Uuid::new_v5(&Uuid::NAMESPACE_DNS, format!("session:{session_id}").as_bytes()),
-            "session-user".to_string(),
-        )
-        .with_session(session_id)
-        .with_role(Role::User);
-
-    debug!("Session validated (uncached), user granted User role");
-    Ok(user)
+    // An unknown token is not a session. The previous fallback mapped ANY
+    // uncacheable value (including a forged JWT) to a deterministic
+    // `session-user`, which made every route that only checked
+    // `is_authenticated()` a public endpoint. Only the verified providers and
+    // the persisted login-session cache may mint an identity.
+    warn!("Session validation failed: token not present in the session store");
+    Err(AuthError::SessionExpired)
 }
 
 /// Check if a token looks like a JWT (3 base64 parts separated by dots)
