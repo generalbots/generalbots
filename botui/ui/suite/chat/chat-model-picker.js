@@ -25,8 +25,14 @@
     tiers.forEach(function (tier) {
       var option = select.querySelector('option[value="' + tier.id + '"]');
       if (!option) return;
-      option.textContent = tier.label + (tier.model ? " · " + tier.model : "");
-      option.title = tier.tradeoff || "";
+      // Never leak a raw model id into the picker: the test suite (TS-01)
+      // requires plain-language cost/speed/fit labels.
+      option.textContent =
+        tier.label + (tier.tradeoff ? " · " + tier.tradeoff : "");
+      option.title = tier.inherits_default
+        ? (tier.tradeoff || "") +
+          " Uses the bot's default model until a tier-specific model is configured."
+        : tier.tradeoff || "";
       option.disabled = tier.id !== "auto" && tier.configured === false;
       if (option.disabled && option.selected) select.value = "auto";
     });

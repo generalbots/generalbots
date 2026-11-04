@@ -230,21 +230,25 @@ pub async fn handle_chat_models(
 
     let tier = |id: &str, label: &str, tradeoff: &str| {
         let key = format!("llm-model-{id}");
-        let configured = cfg
+        let tier_model = cfg
             .get_config(&bot_uuid, &key, Some(""))
-            .map(|value| !value.trim().is_empty())
-            .unwrap_or(false);
-        let model = if configured {
-            cfg.get_config(&bot_uuid, &key, Some(""))
-                .unwrap_or_default()
-        } else {
+            .unwrap_or_default();
+        let inherits_default = tier_model.trim().is_empty();
+        let model = if inherits_default {
             default_model.clone()
+        } else {
+            tier_model
         };
+        // A tier is selectable when it has a model of its own OR can inherit
+        // the bot's default model. Disabling every tier except "auto" made the
+        // picker unusable on single-model deployments.
+        let configured = !model.trim().is_empty();
         serde_json::json!({
             "id": id,
             "label": label,
             "model": model,
             "configured": configured,
+            "inherits_default": inherits_default,
             "tradeoff": tradeoff,
         })
     };
@@ -259,9 +263,9 @@ pub async fn handle_chat_models(
                 "configured": true,
                 "tradeoff": "Uses the bot's configured model."
             },
-            tier("fast", "Fast", "Quick answers; the cheapest model the bot has configured."),
-            tier("balanced", "Balanced", "Middle ground between speed and depth."),
-            tier("quality", "Quality", "Best answer quality; slower and usually more expensive."),
+            tier("fast", "Fast", "cheapest, quick"),
+            tier("balanced", "Balanced", "middle ground"),
+            tier("quality", "Quality", "best, slower"),
         ],
     }))
 }
