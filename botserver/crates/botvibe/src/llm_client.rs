@@ -117,6 +117,9 @@ pub async fn chat_completion(
         .post(&settings.url)
         .header("Authorization", format!("Bearer {}", settings.key))
         .header("Content-Type", "application/json")
+        // Some OpenAI-compatible gateways route by a session id and reject
+        // requests without it; other providers ignore the header.
+        .header("x-opencode-session", uuid::Uuid::new_v4().to_string())
         .json(&body)
         .send()
         .await

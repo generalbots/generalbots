@@ -72,7 +72,24 @@ impl LlmTarget for OpenAiCompatibleTarget {
         let mut attempt = 0;
         loop {
             match self.complete_once(system_prompt, user_prompt).await {
-                Ok(response) => return Ok(response),
+                // An empty completion is a provider hiccup, not a wrong
+                // answer. Retry it like a transport error so a blank response
+                // never counts as a failed contract.
+                Ok(response) if !response.trim().is_empty() => return Ok(response),
+                Ok(_) => {
+                    attempt += 1;
+                    if attempt > MAX_RETRIES {
+                        return Ok(String::new());
+                    }
+                    log::warn!(
+                        "boteval attempt {attempt} returned an empty completion; retrying in {}s",
+                        RETRY_DELAYS_SECS[(attempt - 1) as usize]
+                    );
+                    tokio::time::sleep(Duration::from_secs(
+                        RETRY_DELAYS_SECS[(attempt - 1) as usize],
+                    ))
+                    .await;
+                }
                 Err(e) => {
                     attempt += 1;
                     if attempt > MAX_RETRIES {

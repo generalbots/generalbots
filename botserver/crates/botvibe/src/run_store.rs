@@ -246,6 +246,9 @@ impl RunRow {
                 .map(parse_ts)
                 .transpose()?,
             error: self.error.clone(),
+            // The store schema predates the field; the live run carries it and
+            // the harness reads it from memory.
+            final_response: None,
         })
     }
 }

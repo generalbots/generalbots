@@ -190,6 +190,7 @@ impl AgentLoop {
             .post(&api_url)
             .header("Authorization", format!("Bearer {api_key}"))
             .header("Content-Type", "application/json")
+            .header("x-opencode-session", uuid::Uuid::new_v4().to_string())
             .json(&body)
             .send()
             .await;
@@ -312,6 +313,7 @@ impl AgentLoop {
             .post(api_url)
             .header("Authorization", format!("Bearer {api_key}"))
             .header("Content-Type", "application/json")
+            .header("x-opencode-session", uuid::Uuid::new_v4().to_string())
             .json(&body)
             .send()
             .await

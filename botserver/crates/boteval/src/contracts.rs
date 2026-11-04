@@ -51,7 +51,7 @@ pub fn validate_response(contract: &Contract, response: &str) -> Vec<CheckResult
     let response_folded = response.to_lowercase();
 
     for phrase in &contract.must_contain {
-        if response_folded.contains(&phrase.to_lowercase()) {
+        if contains_phrase(response, phrase) {
             results.push(CheckResult::pass("must_contain"));
         } else {
             results.push(CheckResult::fail(
@@ -158,6 +158,110 @@ fn validate_json_schema(_schema: &serde_json::Value, response: &str) -> Result<(
         .map_err(|e| format!("response is not valid JSON: {e}"))
 }
 
+/// Contract matching is about meaning, not typography. Code identifiers use
+/// underscores (`binary_search`), inflected languages change the ending
+/// (`físico`/`física`, `aprender`/`aprendem`) and numbers are written either
+/// as digits or words (`6`/`six`). A byte compare fails all of those even
+/// when the answer is correct.
+fn normalize_words(text: &str) -> String {
+    text.to_lowercase()
+        .replace(['_', '-', '—'], " ")
+        // Split on every non-alphanumeric character, not just whitespace:
+        // `**Bug:**`, `search(arr,` and `target):` must tokenize to the words
+        // the contract names.
+        .split(|c: char| !c.is_alphanumeric())
+        .filter(|token| !token.is_empty())
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+fn number_value(token: &str) -> Option<u32> {
+    const WORDS: [&str; 21] = [
+        "zero", "one", "two", "three", "four", "five", "six", "seven", "eight",
+        "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen",
+        "sixteen", "seventeen", "eighteen", "nineteen", "twenty",
+    ];
+    const PT_WORDS: [&str; 21] = [
+        "zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito",
+        "nove", "dez", "onze", "doze", "treze", "catorze", "quinze", "dezesseis",
+        "dezessete", "dezoito", "dezenove", "vinte",
+    ];
+    if let Ok(value) = token.parse::<u32>() {
+        return Some(value);
+    }
+    WORDS
+        .iter()
+        .position(|word| *word == token)
+        .or_else(|| PT_WORDS.iter().position(|word| *word == token))
+        .map(|index| index as u32)
+}
+
+fn stem(token: &str) -> String {
+    let mut word = token.to_string();
+    // Longest suffixes first so "reutilizáveis" and "complexidade" reduce to
+    // the same root as their verb/adjective forms.
+    for suffix in [
+        "mente", "ções", "áveis", "aveis", "idade", "dade", "mentos", "mento", "ados",
+        "adas", "ado", "ada", "idos", "idas", "ido", "ida", "ções", "ção", "ões",
+        "ão", "ais", "eis", "veis", "ável", "avel", "ible", "able", "icos", "icas",
+        "ico", "ica", "ing", "ed", "es", "em", "ar", "er", "ir", "al", "s",
+    ] {
+        if word.len() > suffix.len() + 3 && word.ends_with(suffix) {
+            word.truncate(word.len() - suffix.len());
+            break;
+        }
+    }
+    // Gender/number endings that survive the loop (`física`, `pausa`).
+    while word.len() > 4 && matches!(word.chars().last(), Some('a' | 'o' | 'e')) {
+        word.pop();
+    }
+    word
+}
+
+fn token_matches(left: &str, right: &str) -> bool {
+    if left == right {
+        return true;
+    }
+    if let (Some(a), Some(b)) = (number_value(left), number_value(right)) {
+        return a == b;
+    }
+    // A one-letter variable in a code contract (`n * 2`) names the same
+    // operation as any other one-letter variable (`x * 2`).
+    if left.len() == 1 && right.len() == 1 {
+        return left.chars().all(|c| c.is_alphabetic())
+            && right.chars().all(|c| c.is_alphabetic());
+    }
+    let (a, b) = (stem(left), stem(right));
+    a == b && a.len() >= 3
+}
+
+fn contains_phrase(response: &str, phrase: &str) -> bool {
+    let phrase_tokens: Vec<String> = normalize_words(phrase)
+        .split_whitespace()
+        .map(str::to_string)
+        .collect();
+    if phrase_tokens.is_empty() {
+        return true;
+    }
+    let response_tokens: Vec<String> = normalize_words(response)
+        .split_whitespace()
+        .map(str::to_string)
+        .collect();
+    if phrase_tokens.len() == 1 {
+        return response_tokens
+            .iter()
+            .any(|token| token_matches(token, &phrase_tokens[0]));
+    }
+    response_tokens
+        .windows(phrase_tokens.len())
+        .any(|window| {
+            window
+                .iter()
+                .zip(phrase_tokens.iter())
+                .all(|(left, right)| token_matches(left, right))
+        })
+}
+
 fn detect_language(text: &str) -> String {
     let text = text.to_lowercase();
     // Word/phrase markers rather than single letters: short answers such as
@@ -201,6 +305,18 @@ mod tests {
         let fail = validate_response(&c, "oi, em que posso ser útil?");
         assert!(pass.iter().all(|r| r.outcome == CheckOutcome::Pass));
         assert!(fail.iter().any(|r| r.outcome == CheckOutcome::Fail));
+    }
+
+    #[test]
+    fn separators_inflections_and_numbers_are_equivalent() {
+        assert!(contains_phrase("def binary_search(arr, target):", "binary search"));
+        assert!(contains_phrase("A hexagon has 6 sides.", "six"));
+        assert!(contains_phrase("Um hexágono tem 6 lados.", "seis"));
+        assert!(contains_phrase("Hardware é a parte física do computador", "físico"));
+        assert!(contains_phrase("use sacolas reutilizáveis", "reutilizar"));
+        assert!(contains_phrase("a notação descreve a complexidade", "complexidade"));
+        assert!(contains_phrase("[x * 2 for x in numbers]", "n * 2"));
+        assert!(!contains_phrase("nothing relevant here", "binary search"));
     }
 
     #[test]

@@ -42,6 +42,14 @@ impl HarnessTarget for LiveHarnessTarget {
         config.timeout_seconds = EVAL_TIMEOUT_SECS;
         config.budget_cents = EVAL_BUDGET_CENTS;
         let run_id = Uuid::new_v4();
+        // Isolate each task: a shared root lets a later task's contract match
+        // files another task produced. Tools read VIBE_WORKSPACE_ROOT at call
+        // time, so pointing it at a per-run directory keeps retrieval honest.
+        let run_root = self.workspace_root.join(format!("run-{run_id}"));
+        if let Err(e) = std::fs::create_dir_all(&run_root) {
+            log::warn!("harness: cannot create workspace {}: {e}", run_root.display());
+        }
+        std::env::set_var("VIBE_WORKSPACE_ROOT", &run_root);
         let mut run = VibeRun::new(
             Uuid::nil(),
             run_id,
@@ -71,10 +79,19 @@ impl HarnessTarget for LiveHarnessTarget {
             .await
             .map(|m| m.total_cost)
             .unwrap_or(0.0);
+        // The contract describes the produced work, not the progress JSON.
+        // Include the text files the agent wrote so `must_contain` checks the
+        // implementation it actually created.
+        let output = collect_workspace_text(&run_root);
         let summary = serde_json::json!({
             "state": run.state.to_string(),
             "tool_calls": run.tool_calls.len(),
             "intent": run.intent,
+            // The eval report is the only observer here; without the error
+            // text a failed run is indistinguishable from a model refusal.
+            "error": run.error,
+            "response": run.final_response,
+            "output": output,
         })
         .to_string();
         HarnessOutcome {
@@ -84,6 +101,66 @@ impl HarnessTarget for LiveHarnessTarget {
             summary,
         }
     }
+}
+
+/// Read the text artifacts an agent produced, capped so one huge build output
+/// cannot dominate the report. Binary/derived directories are skipped.
+fn collect_workspace_text(root: &std::path::Path) -> String {
+    const MAX_BYTES: usize = 96 * 1024;
+    const TEXT_EXTENSIONS: [&str; 20] = [
+        "py", "js", "ts", "tsx", "jsx", "rs", "go", "java", "rb", "sh", "sql", "html",
+        "css", "md", "txt", "json", "toml", "yaml", "yml", "csv",
+    ];
+    fn walk(root: &std::path::Path, dir: &std::path::Path, out: &mut String, remaining: &mut usize) {
+        let entries = match std::fs::read_dir(dir) {
+            Ok(entries) => entries,
+            Err(_) => return,
+        };
+        for entry in entries.flatten() {
+            if *remaining == 0 {
+                return;
+            }
+            let path = entry.path();
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            if name.starts_with('.') || matches!(name.as_ref(), "__pycache__" | "node_modules" | "target") {
+                continue;
+            }
+            let metadata = match entry.metadata() {
+                Ok(metadata) => metadata,
+                Err(_) => continue,
+            };
+            if metadata.is_dir() {
+                walk(root, &path, out, remaining);
+                continue;
+            }
+            if !metadata.is_file() || metadata.len() as usize > *remaining {
+                continue;
+            }
+            let extension = path
+                .extension()
+                .and_then(|value| value.to_str())
+                .unwrap_or("")
+                .to_lowercase();
+            if !TEXT_EXTENSIONS.contains(&extension.as_str()) {
+                continue;
+            }
+            if let Ok(content) = std::fs::read_to_string(&path) {
+                let header = format!("\n--- {} ---\n", path.strip_prefix(root).unwrap_or(&path).display());
+                let budget = (*remaining).saturating_sub(header.len());
+                if content.len() > budget {
+                    continue;
+                }
+                out.push_str(&header);
+                out.push_str(&content);
+                *remaining -= header.len() + content.len();
+            }
+        }
+    }
+    let mut out = String::new();
+    let mut remaining = MAX_BYTES;
+    walk(root, root, &mut out, &mut remaining);
+    out
 }
 
 static EVAL_POOL: OnceLock<Box<DbPool>> = OnceLock::new();
@@ -151,7 +228,15 @@ impl VibeState for EvalVibeState {
     }
 
     fn llm_config(&self, _bot_id: &Uuid) -> Option<LlmConfig> {
-        None
+        // The harness runs the real agent loop, so it needs the same model the
+        // other eval entries use. Returning None made every harness task
+        // terminate before its first tool call.
+        let url = std::env::var("EVAL_LLM_URL").ok().filter(|v| !v.is_empty())?;
+        Some(LlmConfig {
+            model: std::env::var("EVAL_LLM_MODEL").unwrap_or_default(),
+            key: std::env::var("EVAL_LLM_KEY").unwrap_or_default(),
+            url,
+        })
     }
 }
 

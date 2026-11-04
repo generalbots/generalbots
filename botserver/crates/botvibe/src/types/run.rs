@@ -126,6 +126,10 @@ pub struct VibeRun {
     pub updated_at: chrono::DateTime<chrono::Utc>,
     pub completed_at: Option<chrono::DateTime<chrono::Utc>>,
     pub error: Option<String>,
+    /// Final assistant text when the loop ends on a prose answer. `None` for
+    /// runs still executing or terminated by a tool/while-loop failure.
+    #[serde(default)]
+    pub final_response: Option<String>,
 }
 
 impl VibeRun {
@@ -151,6 +155,7 @@ impl VibeRun {
             updated_at: now,
             completed_at: None,
             error: None,
+            final_response: None,
         }
     }
 

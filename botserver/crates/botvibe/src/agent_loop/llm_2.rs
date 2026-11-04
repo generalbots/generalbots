@@ -150,6 +150,7 @@ impl AgentLoop {
                     && !mutation_pending
                     || empty_parse_rounds + 1 >= MAX_EMPTY_PARSE_RETRIES
                 {
+                    run.final_response = Some(llm_response.clone());
                     context.add_assistant_message(llm_response);
                     self.finish_truthfully(run, "Agent finished — no more tool calls")
                         .await;
