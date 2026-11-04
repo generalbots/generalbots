@@ -21,7 +21,10 @@ cargo build -p botui
 
 cd botmodels
 UVICORN=$(which uvicorn 2>/dev/null || echo "$HOME/.local/bin/uvicorn")
-nohup $UVICORN src.main:app --host 0.0.0.0 --port 8085 > ../botmodels.log 2>&1 &
+# BotModels authenticates HTTP with API_KEY and voice sockets with ?api_key=.
+# Keep it in sync with the value botserver sends (BOTMODELS_API_KEY); the
+# previous mismatch (default "change-me" vs "starter") made every real call 401.
+API_KEY="${API_KEY:-${BOTMODELS_API_KEY:-change-me}}" nohup $UVICORN src.main:app --host 0.0.0.0 --port 8085 > ../botmodels.log 2>&1 &
 echo "  botmodels PID: $!"
 cd ..
 

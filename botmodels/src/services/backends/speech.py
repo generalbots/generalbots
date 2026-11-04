@@ -72,11 +72,22 @@ class PiperTtsBackend(Backend):
             handle.setsampwidth(2)
             handle.setframerate(self.sample_rate)
             for chunk in chunks:
+                # Newer piper exposes ready-made int16 bytes; older versions
+                # expose a float array. Casting the array with float() raised
+                # "only length-1 arrays can be converted to Python scalars".
+                data = getattr(chunk, "audio_int16_bytes", None)
+                if data is not None:
+                    handle.writeframes(bytes(data))
+                    continue
                 audio = getattr(chunk, "audio_float_array", chunk)
                 if isinstance(audio, (bytes, bytearray)):
                     handle.writeframes(bytes(audio))
                 else:
-                    handle.writeframes((float(audio) * 32767).astype("int16").tobytes())
+                    import numpy as np
+
+                    samples = np.asarray(audio, dtype="float32")
+                    pcm = (samples * 32767.0).clip(-32768, 32767).astype("int16")
+                    handle.writeframes(pcm.tobytes())
         return buffer.getvalue()
 
 
