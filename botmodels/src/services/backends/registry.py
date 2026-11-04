@@ -37,11 +37,24 @@ def build(capability: str) -> Backend:
     if capability not in REGISTRY:
         raise UnsupportedBackendError(capability, capability, list(REGISTRY))
 
-    selected = backends_for(settings.resolved_mode or "min")[capability]
+    import os
+
+    tier_selected = backends_for(settings.resolved_mode or "min")[capability]
+    override = (os.environ.get(f"BOTMODELS_{capability.upper()}_BACKEND") or "").strip()
+    selected = override or tier_selected
     registry = REGISTRY[capability]
 
     if selected not in registry:
-        raise UnsupportedBackendError(capability, selected, list(registry))
+        if override:
+            logger.warning(
+                "Ignoring unknown backend override",
+                capability=capability,
+                override=selected,
+                fallback=tier_selected,
+            )
+            selected = tier_selected
+        else:
+            raise UnsupportedBackendError(capability, selected, list(registry))
 
     # Prefer the tier's backend, but fall back to another registered backend
     # when the preferred one cannot even import (e.g. tesseract's system

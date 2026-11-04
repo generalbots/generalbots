@@ -16,7 +16,13 @@ from ...core.config import settings
 from ...core.logging import get_logger
 from ..errors import BackendNotLoadedError
 from .base import Backend
-from .sources import BLIP2_MODEL, BLIP_CAPTION_MODEL, QWEN_VL_MODEL, resolve_model_source
+from .sources import (
+    BLIP2_MODEL,
+    BLIP_CAPTION_MODEL,
+    MOONDREAM_MODEL,
+    QWEN_VL_MODEL,
+    resolve_model_source,
+)
 
 logger = get_logger("backends.vision")
 
@@ -89,8 +95,69 @@ class BlipCaptionBackend(Backend):
         return self.processor.decode(generated[0], skip_special_tokens=True).strip()
 
 
+class MoondreamBackend(Backend):
+    """Moondream2: a compact VLM that works on CPU and answers questions.
+
+    It is the better-quality CPU alternative to BLIP: BLIP only captions, while
+    Moondream can follow a question. It is heavier (~3.7 GB in float32), so it
+    is opt-in via ``BOTMODELS_VISION_BACKEND=moondream`` rather than the min
+    default. No GPU is required, but a GPU host is much faster.
+    """
+
+    name = "moondream"
+    capability = "vision"
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.model = None
+
+    def is_available(self) -> bool:
+        try:
+            import torch  # noqa: F401
+            from transformers import AutoModelForCausalLM  # noqa: F401
+
+            return True
+        except ImportError:
+            return False
+
+    def _load(self) -> None:
+        import torch
+        from transformers import AutoModelForCausalLM
+
+        source = resolve_model_source(
+            os.environ.get("BOTMODELS_MOONDREAM_MODEL"),
+            MOONDREAM_MODEL,
+        )
+        logger.info("Loading Moondream vision backend", source=source)
+
+        device = settings.device or "cpu"
+        self.model = AutoModelForCausalLM.from_pretrained(
+            source,
+            trust_remote_code=True,
+            torch_dtype=torch.float16 if device == "cuda" else torch.float32,
+        ).to(device)
+
+    def describe(
+        self,
+        image,
+        prompt: Optional[str] = None,
+        max_new_tokens: int = 128,
+    ) -> str:
+        self.ensure_loaded()
+        if self.model is None:  # pragma: no cover
+            raise BackendNotLoadedError(self.capability, self.name)
+
+        if prompt:
+            result = self.model.query(image, prompt)
+        else:
+            result = self.model.caption(image, length="normal")
+        if isinstance(result, dict):
+            result = result.get("caption") or result.get("answer") or ""
+        return str(result).strip()
+
+
 class Blip2Backend(Backend):
-    """BLIP2 captioner. Default vision backend in min mode."""
+    """BLIP2 captioner. Available on larger hosts; not the min default."""
 
     name = "blip2"
     capability = "vision"
@@ -158,6 +225,7 @@ class Qwen3VLBackend(Backend):
 
     name = "qwen3-vl"
     capability = "vision"
+    requires_gpu = True
 
     def __init__(self) -> None:
         super().__init__()
@@ -270,6 +338,7 @@ class Qwen3VLBackend(Backend):
 
 VISION_BACKENDS: dict[str, type[Backend]] = {
     "blip": BlipCaptionBackend,
+    "moondream": MoondreamBackend,
     "blip2": Blip2Backend,
     "qwen3-vl": Qwen3VLBackend,
 }

@@ -10,7 +10,7 @@ from ...core.config import settings
 from ...core.logging import get_logger
 from ..errors import BackendNotLoadedError
 from .base import Backend
-from .sources import SD_TURBO_MODEL, resolve_model_source
+from .sources import QWEN_IMAGE_MODEL, SD_TURBO_MODEL, resolve_model_source
 
 logger = get_logger("backends.image")
 
@@ -104,6 +104,7 @@ class QwenImageBackend(Backend):
 
     name = "qwen-image"
     capability = "image"
+    requires_gpu = True
 
     def __init__(self) -> None:
         super().__init__()
@@ -123,12 +124,12 @@ class QwenImageBackend(Backend):
 
         from diffusers import QwenImagePipeline
 
-        path = settings.image_model_path
-        logger.info("Loading Qwen-Image backend", path=path)
+        source = resolve_model_source(settings.image_model_path, QWEN_IMAGE_MODEL)
+        logger.info("Loading Qwen-Image backend", source=source)
 
         device = settings.device or "cpu"
         pipeline = QwenImagePipeline.from_pretrained(
-            path,
+            source,
             torch_dtype=torch.bfloat16 if device == "cuda" else torch.float32,
         )
         self.pipeline = pipeline.to(device)

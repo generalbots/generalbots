@@ -17,14 +17,27 @@ allowed by running in offline mode (``HF_HUB_OFFLINE=1``) or by prefetching.
 from pathlib import Path
 from typing import Optional
 
+from ...core.config import settings
+
 # Canonical open-source checkpoints used when no local path is configured.
 BLIP_CAPTION_MODEL = "Salesforce/blip-image-captioning-base"
+MOONDREAM_MODEL = "vikhyatk/moondream2"
 BLIP2_MODEL = "Salesforce/blip2-opt-2.7b"
 QWEN_VL_MODEL = "Qwen/Qwen3-VL-4B-Instruct"
 SD_TURBO_MODEL = "stabilityai/sd-turbo"
+QWEN_IMAGE_MODEL = "Qwen/Qwen-Image"
 ZEROSCOPE_MODEL = "cerspense/zeroscope_v2_576w"
 WAN22_MODEL = "Wan-AI/Wan2.2-TI2V-5B"
 PADDLE_OCR_MODEL = "PaddlePaddle/PaddleOCR-VL"
+
+
+def default_stt_model() -> str:
+    """CPU keeps the interactive small model; a GPU host defaults to large-v3.
+
+    ``BOTMODELS_STT_MODEL`` overrides this in both cases (for example
+    ``medium`` on a CPU host that prefers accuracy over latency).
+    """
+    return "large-v3" if settings.gpu_available else "small"
 
 
 def resolve_model_source(

@@ -10,6 +10,7 @@ import asyncio
 import threading
 from typing import Optional
 
+from ...core.config import settings
 from ...core.logging import get_logger
 from ..errors import BackendNotLoadedError
 
@@ -21,6 +22,9 @@ class Backend:
 
     name: str = "base"
     capability: str = "base"
+    # Max-tier backends set this. The gate is enforced before any weights are
+    # touched, so a CPU host gets a deterministic 503 instead of an OOM.
+    requires_gpu: bool = False
 
     def __init__(self) -> None:
         self._loaded = False
@@ -46,6 +50,13 @@ class Backend:
 
     def ensure_loaded(self) -> None:
         """Load once. Thread-safe; a failed load is not retried per request."""
+        if self.requires_gpu and not settings.gpu_available:
+            raise BackendNotLoadedError(
+                self.capability,
+                self.name,
+                "requires a GPU (CUDA/MPS); this host resolved to CPU. "
+                "Use the min-tier CPU backend or run on a GPU host.",
+            )
         if self._loaded:
             return
 
@@ -92,5 +103,6 @@ class Backend:
             "capability": self.capability,
             "loaded": self._loaded,
             "available": self.is_available(),
+            "requires_gpu": self.requires_gpu,
             "error": self._load_error,
         }

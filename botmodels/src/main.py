@@ -20,6 +20,7 @@ from .core.logging import get_logger
 from .core.mode import InvalidModeError
 from .core.startup import finalize_mode, health_summary
 from .services.backends import registry
+from .services.errors import BotModelsError
 
 logger = get_logger("main")
 
@@ -52,6 +53,25 @@ app = FastAPI(
     docs_url="/api/docs",
     redoc_url="/api/redoc",
 )
+
+
+@app.exception_handler(BotModelsError)
+async def botmodels_error_handler(request, exc: BotModelsError):
+    """Map backend/load failures to 503 with the capability and cause.
+
+    The GPU gate raises before any weights load; returning 503 keeps that
+    distinguishable from a malformed request (4xx) and from an internal bug.
+    """
+    logger.warning(
+        "Backend unavailable",
+        path=str(request.url.path),
+        error=str(exc),
+        kind=type(exc).__name__,
+    )
+    return JSONResponse(
+        status_code=503,
+        content={"detail": str(exc), "error_type": type(exc).__name__},
+    )
 
 # Credentials require a specific origin list; browsers reject "*" together with
 # allow_credentials, which silently broke credentialed cross-origin requests.

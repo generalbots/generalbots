@@ -186,3 +186,145 @@ async def tts_stream(socket: WebSocket) -> None:
         logger.info("TTS stream disconnected")
     except Exception as exc:
         logger.warning("TTS stream terminated", error=str(exc))
+
+
+@router.websocket("/duplex")
+async def duplex_stream(socket: WebSocket) -> None:
+    """Bidirectional speech on one socket with barge-in.
+
+    Client -> server:
+      * binary PCM frames (STT), same framing as ``/stt/stream``;
+      * ``{"type":"say","text":"…"}`` to synthesize;
+      * ``{"type":"stop"}``, ``{"type":"flush"}``, ``{"type":"config"}``.
+
+    Server -> client: ``meta``, ``partial``/``final`` transcripts, and for TTS
+    ``speech_start`` + binary PCM + ``speech_end``. Incoming audio while the
+    server is speaking cancels that utterance and emits ``barge_in``.
+
+    The socket is not echo-cancelled: the client must not feed the synthesised
+    output back into the microphone. This is the duplex state machine; acoustic
+    echo cancellation and voice-activity tuning remain client-side.
+    """
+    if not await _authorize(socket):
+        return
+
+    stt = EngineFactory.stt()
+    tts = EngineFactory.tts()
+    if stt is None or tts is None:
+        await _close_with_error(socket, "Duplex requires local STT and TTS engines.")
+        return
+
+    sample_rate = TARGET_SAMPLE_RATE
+    buffer = bytearray()
+    buffered_seconds = 0.0
+    silence_ms = 0.0
+    send_lock = asyncio.Lock()
+    speech_task: asyncio.Task | None = None
+
+    async def send_json(payload: dict) -> None:
+        async with send_lock:
+            await socket.send_json(payload)
+
+    async def speak(text: str) -> None:
+        try:
+            frames = await asyncio.to_thread(lambda: list(tts.synthesize_stream(text)))
+            await send_json({"type": "speech_start", "text": text})
+            for frame in frames:
+                async with send_lock:
+                    await socket.send_bytes(frame)
+                # 4096 bytes of 16-bit mono at 16 kHz is ~128 ms of audio.
+                # Pacing keeps the duplex stream real-time and gives inbound
+                # speech a window to barge in; blasting the buffer made the
+                # utterance finish before the client could interrupt.
+                await asyncio.sleep(0.12)
+            await send_json({"type": "speech_end"})
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:  # noqa: BLE001 - reported as a socket frame
+            await send_json({"type": "error", "message": f"TTS failed: {exc}"})
+
+    def cancel_speech() -> None:
+        nonlocal speech_task
+        if speech_task is not None and not speech_task.done():
+            speech_task.cancel()
+        speech_task = None
+
+    await send_json(
+        {
+            "type": "meta",
+            "stt": stt.name,
+            "tts": tts.name,
+            "sample_rate": TARGET_SAMPLE_RATE,
+            "duplex": True,
+        }
+    )
+
+    try:
+        while True:
+            message = await socket.receive()
+            if message["type"] == "websocket.disconnect":
+                break
+
+            text = message.get("text")
+            if text:
+                try:
+                    event = json.loads(text)
+                except json.JSONDecodeError:
+                    continue
+                kind = event.get("type")
+                if kind == "config":
+                    sample_rate = int(event.get("sample_rate") or sample_rate)
+                elif kind == "say":
+                    cancel_speech()
+                    speech_task = asyncio.create_task(
+                        speak(str(event.get("text") or ""))
+                    )
+                elif kind == "stop":
+                    cancel_speech()
+                    await send_json({"type": "speech_stopped"})
+                elif kind == "flush":
+                    transcript = await _transcribe(stt, bytes(buffer), sample_rate)
+                    buffer.clear()
+                    buffered_seconds = 0.0
+                    silence_ms = 0.0
+                    await send_json({"type": "final", "text": transcript})
+                continue
+
+            frame = message.get("bytes") or b""
+            if not frame:
+                continue
+
+            # New inbound audio is a barge-in: stop the current utterance
+            # before processing the frame, so the reply never overlaps it.
+            if speech_task is not None and not speech_task.done():
+                cancel_speech()
+                await send_json({"type": "barge_in"})
+
+            buffer.extend(frame)
+            buffered_seconds += frame_duration_ms(frame, sample_rate) / 1000.0
+            if rms_energy(frame) < ENERGY_GATE:
+                silence_ms += frame_duration_ms(frame, sample_rate)
+            else:
+                silence_ms = 0.0
+
+            if buffered_seconds >= WINDOW_SECONDS:
+                buffered_seconds = 0.0
+                transcript = await _transcribe(stt, bytes(buffer), sample_rate)
+                if transcript:
+                    await send_json({"type": "partial", "text": transcript})
+            if silence_ms >= SILENCE_THRESHOLD_MS and buffer:
+                transcript = await _transcribe(stt, bytes(buffer), sample_rate)
+                buffer.clear()
+                buffered_seconds = 0.0
+                silence_ms = 0.0
+                await send_json({"type": "final", "text": transcript})
+    except WebSocketDisconnect:
+        logger.info("Duplex stream disconnected")
+    except Exception as exc:  # noqa: BLE001 - close politely
+        logger.warning("Duplex stream terminated", error=str(exc))
+        try:
+            await _close_with_error(socket, f"Duplex stream failed: {exc}")
+        except Exception:  # noqa: BLE001 - socket may already be closed
+            logger.debug("Duplex error frame could not be delivered")
+    finally:
+        cancel_speech()

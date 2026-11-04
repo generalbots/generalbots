@@ -110,6 +110,7 @@ class Wan22Backend(Backend):
 
     name = "wan22"
     capability = "video"
+    requires_gpu = True
 
     def __init__(self) -> None:
         super().__init__()
@@ -127,13 +128,15 @@ class Wan22Backend(Backend):
 
     def _load(self) -> None:
         import torch
-        from diffusers import AutoPipeline
+        from diffusers import DiffusionPipeline
 
         source = resolve_model_source(settings.video_model_path, WAN22_MODEL)
         logger.info("Loading Wan 2.2 backend", source=source)
 
-        device = settings.device or "cpu"
-        self.pipeline = AutoPipeline.from_pretrained(
+        device = settings.device or "cuda"
+        # DiffusionPipeline resolves the Wan pipeline class from the checkpoint
+        # config; the previous AutoPipeline symbol does not exist in diffusers.
+        self.pipeline = DiffusionPipeline.from_pretrained(
             source,
             torch_dtype=torch.bfloat16 if device == "cuda" else torch.float32,
         ).to(device)

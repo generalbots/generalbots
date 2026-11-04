@@ -69,7 +69,13 @@ def health_summary() -> dict:
             "mode_source": settings.mode_source,
             "detail": "hardware profile unavailable",
         }
-    return summary(settings.resolved_mode, settings.mode_source, _cached_hw)
+    payload = summary(settings.resolved_mode, settings.mode_source, _cached_hw)
+    payload["gpu_available"] = settings.gpu_available
+    payload["duplex"] = {
+        "endpoint": "/v1/audio/duplex",
+        "barge_in": True,
+    }
+    return payload
 
 
 __all__ = [

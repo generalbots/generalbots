@@ -80,6 +80,35 @@ The `min` tier deliberately uses the BLIP **base** captioner instead of
 BLIP2 2.7B: the larger checkpoint does not fit the under-8 GB hosts the tier
 targets. Both `blip2` and `qwen3-vl` remain registered for larger machines.
 
+### Better CPU alternatives
+
+These are free/open-source upgrades that still run without a GPU. They are
+opt-in so the default test path stays light:
+
+| Need | Min default | Better CPU option | Selection |
+|------|-------------|-------------------|-----------|
+| Speech-to-text | faster-whisper `small` | Whisper `medium` or `large-v3` (int8) | `BOTMODELS_STT_MODEL=medium` |
+| Text-to-speech | Piper | Kokoro-82M (Apache-2.0) | `BOTMODELS_TTS_BACKEND=kokoro` |
+| Image questions | BLIP caption | Moondream2 (VQA, ~3.7 GB fp32) | `BOTMODELS_VISION_BACKEND=moondream` |
+
+Any capability can be pinned this way: `BOTMODELS_{CAPABILITY}_BACKEND`
+(`STT`, `TTS`, `VISION`, `IMAGE`, `VIDEO`, `OCR`). An unknown or unavailable
+override falls back to the tier's backend, and the fallback is logged.
+
+### GPU gate
+
+`settings.gpu_available` is true only when the resolved device is CUDA or MPS.
+The max-tier backends (`qwen3-vl`, `qwen3-asr`, `qwen-image`, `wan22`,
+`paddleocr-vl`) set `requires_gpu`; the base load path refuses them on CPU with
+a `503` that names the capability and the reason, before any weights are
+touched. `/api/health` exposes `gpu_available` and each loaded backend's
+`requires_gpu`, so a deployment can verify the gate without provoking an OOM.
+
+`MODE=auto` selects `max` only with a CUDA GPU of at least 16 GB VRAM and
+32 GB RAM (or MPS with 32 GB RAM); otherwise it selects `min`. Forcing
+`MODE=max` on a CPU host is a configuration error that the gate reports
+per request rather than attempting the load.
+
 ### Provisioning
 
 `botmodels/scripts/provision_models.py` verifies the imports and fetches the
@@ -332,10 +361,13 @@ Two WebSocket endpoints carry raw 16-bit PCM at 16 kHz. They authenticate with
 |----------|-----------|----------|
 | `/v1/audio/stt/stream` | client → server | binary PCM frames; `{"type":"config","sample_rate":…}`, `{"type":"flush"}`; server answers `partial`/`final` JSON |
 | `/v1/audio/tts/stream` | server → client | send `{"text":"…"}`; server answers a `meta` frame, binary PCM frames, then `{"type":"done"}` |
+| `/v1/audio/duplex` | both | one socket: binary PCM for STT, `{"type":"say","text":…}` for TTS; incoming audio cancels the utterance and emits `barge_in` |
 
-The two sockets are independent half-duplex streams. Running both at once is
-the substrate for a full-duplex client; there is no single duplex socket, no
-barge-in state machine and no echo cancellation in this service.
+`/v1/audio/duplex` is the full-duplex state machine: it accepts speech while
+synthesising, paces PCM at ~128 ms per frame, and cancels the active utterance
+on barge-in. It does **not** perform acoustic echo cancellation; the client
+must not route the synthesised output back into its microphone. `/stt/stream`
+and `/tts/stream` remain available for half-duplex clients.
 
 ```bash
 # HTTP round-trip
@@ -443,6 +475,13 @@ min-tier bundle.
 Reduce `gpu-layers` or `batch-size`. Video generation is particularly
 memory-intensive. On CPU-only hosts the min tier uses the BLIP base captioner
 rather than BLIP2 2.7B; forcing `MODE=max` on such a host will fail at load.
+
+**A max-tier backend returns 503 “requires a GPU”**
+
+The host resolved to CPU. This is the gate working as intended: use the min
+tier, or select a CPU backend explicitly with
+`BOTMODELS_{CAPABILITY}_BACKEND=blip|piper|faster-whisper|rapidocr|zeroscope`.
+The max-tier checkpoints need CUDA or MPS.
 
 ## Security Considerations
 

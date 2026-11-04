@@ -72,6 +72,7 @@ class PaddleOcrBackend(Backend):
 
     name = "paddleocr-vl"
     capability = "ocr"
+    requires_gpu = True
 
     def __init__(self) -> None:
         super().__init__()

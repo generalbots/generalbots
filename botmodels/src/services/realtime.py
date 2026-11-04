@@ -12,7 +12,9 @@ from typing import Iterator, List, Optional
 
 import numpy as np
 
+from ..core.config import settings
 from ..core.logging import get_logger
+from .backends.sources import default_stt_model
 
 logger = get_logger("realtime")
 
@@ -102,7 +104,7 @@ class LocalWhisperStt(SttEngine):
     name = "local-whisper"
 
     def __init__(self) -> None:
-        self.model_size: str = os.getenv("BOTMODELS_STT_MODEL", "small")
+        self.model_size: str = os.getenv("BOTMODELS_STT_MODEL") or default_stt_model()
         self._model: Optional["WhisperModel"] = None
 
     def _ensure_model(self) -> bool:

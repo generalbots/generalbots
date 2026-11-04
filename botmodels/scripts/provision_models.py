@@ -92,6 +92,15 @@ MAX_ENTRIES = [
         "note": "max tier multilingual ASR",
     },
     {
+        "name": "moondream2",
+        "kind": "hf",
+        "repo": "vikhyatk/moondream2",
+        "module": "transformers",
+        "capability": "vision",
+        "note": "CPU-capable VQA alternative to BLIP (~3.7 GB fp32); "
+        "select with BOTMODELS_VISION_BACKEND=moondream",
+    },
+    {
         "name": "kokoro-82m",
         "kind": "hf",
         "repo": "hexgrad/Kokoro-82M",

@@ -81,6 +81,17 @@ class Settings(BaseSettings):
     def is_production(self) -> bool:
         return self.env == "production"
 
+    @property
+    def gpu_available(self) -> bool:
+        """Whether the resolved device is an accelerator.
+
+        The max-tier backends set ``requires_gpu``; the base load path refuses
+        them on CPU with a clear 503 instead of attempting a multi-gigabyte
+        load that cannot fit. ``mps`` is an Apple GPU and counts as available.
+        """
+        device = (self.device or "").strip().lower()
+        return device.startswith("cuda") or device == "mps"
+
 
 settings = Settings()
 settings.output_dir.mkdir(parents=True, exist_ok=True)

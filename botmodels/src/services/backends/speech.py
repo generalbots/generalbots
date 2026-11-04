@@ -17,6 +17,7 @@ from ...core.config import settings
 from ...core.logging import get_logger
 from ..errors import BackendNotLoadedError
 from .base import Backend
+from .sources import default_stt_model
 
 logger = get_logger("backends.speech")
 
@@ -161,7 +162,10 @@ class FasterWhisperSttBackend(Backend):
     def _load(self) -> None:
         from faster_whisper import WhisperModel
 
-        size = os.environ.get("BOTMODELS_STT_MODEL", "small")
+        # CPU defaults to small so the min tier stays interactive; a GPU host
+        # defaults to large-v3 for accuracy. BOTMODELS_STT_MODEL overrides both
+        # (e.g. medium on a CPU host that can trade latency for quality).
+        size = os.environ.get("BOTMODELS_STT_MODEL") or default_stt_model()
         device = settings.device or "cpu"
         compute = "float16" if device == "cuda" else "int8"
 
@@ -191,6 +195,7 @@ class Qwen3AsrSttBackend(Backend):
 
     name = "qwen3-asr"
     capability = "stt"
+    requires_gpu = True
 
     def __init__(self) -> None:
         super().__init__()
