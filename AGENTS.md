@@ -10,6 +10,7 @@
 | **Temp files** | Stop saving `.png`/files on repo root — use `/tmp/`. NEVER create new files on root |
 | **Backups** | NEVER create `.bak`/`.old`/backup dirs in the repo — use `/tmp/` only; never commit them |
 | **ALM push** | NEVER push to alm without asking first — it is production! |
+| **Boteval cost** | ❌ NEVER run `boteval` / `boteval-run` in this environment — every task spends paid model calls. Use the last recorded report in `docs/e2e/2026-11-04/gb7-results.md`; do not re-run for verification. |
 | **Deploy** | ❌ NEVER deploy to production manually (no `scp`, no direct SSH binary copy, no manual transfers). ✅ ALWAYS push to ALM → CI builds on alm-ci → CI deploys to system container automatically. Never compile directly for production — ALWAYS push + CI/CD |
 | **Secrets** | ❌ NEVER include sensitive data (IPs, tokens, passwords, keys) in AGENTS.md or any documentation. Never hardcode credentials in source — use `generate_random_string()` or env vars. Secret files go in `/tmp/` only |
 | **Bot restarts** | ❌ NEVER restart botserver for `config.csv` changes — DriveMonitor auto-reloads on ETag change (~10s) |

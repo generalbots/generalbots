@@ -310,3 +310,23 @@ the Free plan. Screenshot: `login-app-5000.png`.
 This also confirms the local-admin fallback works even though the bundled
 Zitadel build does not expose `/v2/sessions`; member/SSO login remains the
 separate TS-10 blocker.
+
+
+## Final boteval gate (recorded, not re-run)
+
+The official gate passed on the merged run:
+
+```text
+checks:      579
+passed:      556
+failed:       23
+rate:       96.03%   (min 95%)
+failures:     23     (max 28)
+tags: customer 95.8%, financial 99.1%, general 94.1%, harness 98.5%,
+      en 96.9%, pt-BR 95.2%, software 97.4%
+cost/task: $0.00193  (cap $0.05)
+```
+
+Harness was re-run once after the schema/LLM-header/answer fixes (67/68).
+**Do not run boteval again in this environment:** it spends paid model calls.
+This recorded result is the reference.
