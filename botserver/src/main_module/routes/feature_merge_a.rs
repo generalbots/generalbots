@@ -30,6 +30,10 @@ pub(super) async fn merge_part_a(
     *api_router = api_router
         .clone()
         .merge(crate::core::bot::sandbox::routes::router());
+    // #1676 — generated apps over the Model Context Protocol.
+    *api_router = api_router
+        .clone()
+        .merge(crate::core::bot::mcp_apps::router());
     *api_router = api_router
         .clone()
         .merge(crate::core::bot::runs::quality::router());

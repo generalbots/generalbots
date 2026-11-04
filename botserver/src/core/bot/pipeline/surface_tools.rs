@@ -495,6 +495,7 @@ async fn run_show_app(identity: &SessionIdentity<'_>, args: &str) {
             &html,
             csp,
             900,
+            Some(title),
         )
         .await;
         (Some(format!("{origin}{path}")), None)

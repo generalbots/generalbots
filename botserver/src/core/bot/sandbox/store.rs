@@ -53,6 +53,7 @@ pub async fn publish_resource(
     html: &str,
     csp: UiCsp,
     ttl_secs: i64,
+    title: Option<&str>,
 ) -> String {
     let bytes = html.as_bytes();
     let hash = resource_hash(bytes);
@@ -79,6 +80,26 @@ pub async fn publish_resource(
             .await
         {
             log::warn!("sandbox metadata store failed: {error}");
+        }
+        // #1676 — catalog sidecar so the built-in MCP server can list the app
+        // by title without parsing the HTML.
+        let catalog_key = format!("_sandbox/ui/{hash}.meta.json");
+        let catalog = serde_json::json!({
+            "title": title.unwrap_or("Generated app"),
+            "thread_id": thread_id,
+            "created_at": chrono::Utc::now().to_rfc3339(),
+        })
+        .to_string();
+        if let Err(error) = drive
+            .put_object(
+                bucket,
+                &catalog_key,
+                catalog.into_bytes(),
+                Some("application/json"),
+            )
+            .await
+        {
+            log::warn!("sandbox catalog store failed: {error}");
         }
     }
 

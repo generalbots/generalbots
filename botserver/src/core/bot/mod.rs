@@ -1,5 +1,6 @@
 pub use botcorebot::*;
 pub mod runs;
+pub mod mcp_apps;
 pub mod sandbox;
 pub mod ws;
 pub mod manager;

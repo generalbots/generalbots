@@ -220,6 +220,7 @@ pub(crate) const ALL_ROUTES_D: &[ApiEndpoint] = &[
     ApiEndpoint { method: "GET", path: "/api/workspaces/:workspace_id/search", summary: "registered in crates/botworkspaces/src/lib.rs" },
     ApiEndpoint { method: "GET", path: "/api/workspaces/commands", summary: "registered in crates/botworkspaces/src/lib.rs" },
     ApiEndpoint { method: "GET", path: "/api/runs/tools", summary: "native surface tool manifests (name, inputSchema, annotations) for run-event capable clients" },
+    ApiEndpoint { method: "POST", path: "/api/mcp/apps", summary: "built-in MCP server (JSON-RPC) exposing generated apps as ui:// resources" },
     ApiEndpoint { method: "GET", path: "/api/workspaces/{workspace_id}", summary: "registered in crates/botworkspaces/src/lib.rs" },
     ApiEndpoint { method: "DELETE", path: "/api/workspaces/{workspace_id}/members/{user_id}", summary: "registered in crates/botworkspaces/src/lib.rs" },
     ApiEndpoint { method: "GET", path: "/api/workspaces/{workspace_id}/pages", summary: "registered in crates/botworkspaces/src/lib.rs" },
