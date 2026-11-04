@@ -1,6 +1,9 @@
 mod ooxml_extract;
+mod office_preview;
 mod rtf;
 mod types;
+
+pub use office_preview::office_html;
 
 pub use types::{ChunkMetadata, DocumentFormat, DocumentMetadata, TextChunk};
 

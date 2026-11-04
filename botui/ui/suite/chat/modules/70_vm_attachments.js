@@ -100,8 +100,9 @@ function vmFilePreviewable(path) {
 }
 
 // #1672 — preview kinds: image renders as <img>, pdf/html as a sandboxed
-// iframe, office has no inline renderer in the browser and falls back to an
-// explicit window preview.
+// iframe, office renders inline through the server conversion endpoint
+// (`preview=1`, sanitized script-free HTML with sheet/slide sections), with
+// the window preview kept as a secondary action.
 function vmInlineKind(path) {
   var mime = vmFileMimeType(path);
   if (mime.indexOf("image/") === 0) return "image";
@@ -189,6 +190,20 @@ function vmAttachmentUrl(conversationId, path) {
   return url;
 }
 
+// Office conversion endpoint: same signed pipeline, server-rendered and
+// sanitized (no scripts, no frames, no external fetch) (#1672).
+function vmOfficePreviewUrl(conversationId, path) {
+  var token = vmAttachmentsToken();
+  var url =
+    "/api/agent/vm/file?conversation_id=" +
+    encodeURIComponent(conversationId) +
+    "&path=" +
+    encodeURIComponent(path) +
+    "&preview=1";
+  if (token) url += "&access_token=" + encodeURIComponent(token);
+  return url;
+}
+
 function vmNotifyError(err) {
   var message =
     "Attachment failed: " + (err && err.message ? err.message : "unknown error");
@@ -198,7 +213,7 @@ function vmNotifyError(err) {
 
 // #1672 — inline preview inside the attachment card. The frame is created
 // lazily on the first click; nothing is fetched while the card is idle.
-function vmToggleInlinePreview(card, url, path) {
+function vmToggleInlinePreview(card, url, path, convId) {
   if (!card) return;
   var existing = card.querySelector(".gb-attachment-inline");
   if (existing) {
@@ -263,19 +278,37 @@ function vmToggleInlinePreview(card, url, path) {
     frame.src = url;
     body.appendChild(frame);
   } else if (kind === "office") {
-    var note = document.createElement("div");
-    note.className = "gb-attachment-inline-note";
-    note.textContent =
-      "Office files are not rendered inside the conversation. Open the window preview to read this file.";
-    var openBtn = document.createElement("button");
-    openBtn.type = "button";
-    openBtn.className = "gb-attachment-btn";
-    openBtn.textContent = "Open preview";
-    openBtn.addEventListener("click", function () {
-      vmShowPreviewUrl(url, path);
+    // #1672 — Office renders INLINE now: the server converts the package to
+    // sanitized, script-free HTML (xlsx sheets, docx paragraphs, pptx
+    // slides) through the same signed pipeline. Fully opaque iframe: the
+    // document cannot touch the conversation, cookies or any network.
+    var officeFrame = document.createElement("iframe");
+    officeFrame.className = "gb-attachment-inline-frame";
+    officeFrame.setAttribute("sandbox", "");
+    officeFrame.setAttribute("title", name);
+    officeFrame.setAttribute(
+      "loading",
+      "lazy"
+    );
+    officeFrame.src = vmOfficePreviewUrl(convId || "", path);
+    var fallbackNote = null;
+    officeFrame.addEventListener("error", function () {
+      if (fallbackNote) return;
+      fallbackNote = document.createElement("div");
+      fallbackNote.className = "gb-attachment-inline-note";
+      fallbackNote.textContent =
+        "This file has no inline conversion. Open the window preview to read it.";
+      var openWindow = document.createElement("button");
+      openWindow.type = "button";
+      openWindow.className = "gb-attachment-btn";
+      openWindow.textContent = "Open window preview";
+      openWindow.addEventListener("click", function () {
+        vmShowPreviewUrl(url, path);
+      });
+      fallbackNote.appendChild(openWindow);
+      officeFrame.replaceWith(fallbackNote);
     });
-    note.appendChild(openBtn);
-    body.appendChild(note);
+    body.appendChild(officeFrame);
   } else {
     var other = document.createElement("div");
     other.className = "gb-attachment-inline-note";
@@ -344,8 +377,14 @@ function vmBindAttachment(card) {
   card.dataset.bound = "1";
   var path = card.dataset.path;
   var explicitConv = card.dataset.conversationId || "";
+  var resolvedConvId = explicitConv;
   var resolve = function () {
-    return explicitConv ? Promise.resolve(explicitConv) : vmActiveConversationId();
+    return explicitConv
+      ? Promise.resolve(explicitConv)
+      : vmActiveConversationId().then(function (convId) {
+          resolvedConvId = convId || "";
+          return convId;
+        });
   };
   var nameLink = card.querySelector(".gb-attachment-name");
   var fileName = String(path || "").split("/").pop() || "file";
@@ -401,7 +440,8 @@ function vmBindAttachment(card) {
       e.preventDefault();
       urlFor()
         .then(function (url) {
-          vmToggleInlinePreview(card, url, path);
+          if (!resolvedConvId) throw new Error("No active VM");
+          vmToggleInlinePreview(card, url, path, resolvedConvId);
         })
         .catch(vmNotifyError);
     });

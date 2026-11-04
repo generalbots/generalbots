@@ -12,6 +12,7 @@ botschema = { workspace = true, features = ["agents"] }
 base64 = { workspace = true }
 jsonwebtoken = { workspace = true }
 axum = { workspace = true }
+botcore = { workspace = true }
 botlib = { workspace = true, features = ["database"] }
 botsecurity-core = { workspace = true }
 chrono = { workspace = true, features = ["serde"] }

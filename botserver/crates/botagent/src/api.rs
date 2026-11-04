@@ -425,6 +425,53 @@ pub async fn vm_file(
         return Err((StatusCode::NOT_FOUND, format!("File not found: {}", stderr)));
     }
     let encoded = stdout.trim().to_string();
+    // `preview=1` renders Office packages (docx/xlsx/pptx) as a sanitized,
+    // script-free HTML document (#1672) so the conversation previews them
+    // inline instead of handing the file to an external viewer. Everything
+    // goes through the same signed pipeline — same conversation scoping, same
+    // path checks, same VM.
+    if params.contains_key("preview") {
+        use base64::Engine;
+        let bytes = base64::engine::general_purpose::STANDARD
+            .decode(encoded.as_bytes())
+            .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, format!("decode failed: {error}")))?;
+        let file_name: String = rel_path
+            .rsplit('/')
+            .next()
+            .unwrap_or("file")
+            .chars()
+            .filter(|character| !matches!(character, '"' | '\r' | '\n' | '\\'))
+            .collect();
+        return match botcore::kb::document_processor::office_html(&file_name, &bytes) {
+            Some(Ok(html)) => Ok((
+                [
+                    (
+                        axum::http::header::CONTENT_TYPE,
+                        "text/html; charset=utf-8".to_string(),
+                    ),
+                    (
+                        axum::http::header::CONTENT_SECURITY_POLICY,
+                        "default-src 'none'; style-src 'unsafe-inline'; img-src data:; base-uri 'none'; form-action 'none'".to_string(),
+                    ),
+                    (
+                        axum::http::header::CONTENT_DISPOSITION,
+                        format!("inline; filename=\"{file_name}.html\""),
+                    ),
+                    (
+                        axum::http::header::CACHE_CONTROL,
+                        "private, max-age=60".to_string(),
+                    ),
+                ],
+                html,
+            )
+                .into_response()),
+            Some(Err(why)) => Err((StatusCode::BAD_REQUEST, format!("Preview failed: {why}"))),
+            None => Err((
+                StatusCode::UNSUPPORTED_MEDIA_TYPE,
+                format!("{file_name} has no inline preview"),
+            )),
+        };
+    }
     // `raw=1` serves the real bytes so a plain hyperlink downloads the file
     // itself (name, type and content), not a JSON envelope.
     if params.contains_key("raw") {
