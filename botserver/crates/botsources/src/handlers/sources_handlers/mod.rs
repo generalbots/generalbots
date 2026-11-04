@@ -39,6 +39,7 @@ pub struct InstallSkillRequest {
 mod handle_list_repositories;
 mod handle_models;
 mod handle_skills;
+mod skills_package;
 
 pub use handle_list_repositories::*;
 pub use handle_models::*;
