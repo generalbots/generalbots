@@ -66,6 +66,9 @@ function sendMessage(messageContent, extra) {
   }
 
   addMessage("user", content || ("📎 " + file.name));
+  // Immediate feedback: the provider may take seconds (or minutes) before the
+  // first thinking frame, and the chat used to look frozen after Enter.
+  if (typeof showThinkingIndicator === "function") showThinkingIndicator();
   // Sending always returns the view to the live edge.
   ChatState.isUserScrolling = false;
   scrollToBottom(false);

@@ -704,6 +704,7 @@
       window.armChatPending(text || (file && file.name) || "");
     }
     appendToContainer(t.pane, "user", display);
+    if (typeof showThinkingIndicator === "function") showThinkingIndicator();
     pushScrollback(t, "user", display);
     schedulePersist();
     var payload = {

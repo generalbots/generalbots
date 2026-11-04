@@ -286,8 +286,9 @@ function renderInlineArtifact(html, titleOverride) {
 function addMessage(sender, content, msgId, reasoning) {
   var messages = document.getElementById("messages");
   if (!messages) return;
-  if (sender === "bot" && typeof window.clearChatPending === "function") {
-    window.clearChatPending();
+  if (sender === "bot") {
+    if (typeof window.clearChatPending === "function") window.clearChatPending();
+    if (typeof hideThinkingIndicator === "function") hideThinkingIndicator();
   }
   // Capture the user's position BEFORE the new bubble changes scrollHeight.
   // Measuring after the append made a long reply look like "user scrolled up"
