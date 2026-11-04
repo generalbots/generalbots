@@ -23,6 +23,7 @@ Examples
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
 import subprocess
@@ -155,6 +156,32 @@ def _dir_size(path: str) -> int:
     return total
 
 
+def _sha256_path(path: str) -> str | None:
+    """Deterministic digest of a file or a snapshot directory.
+
+    Directory digests include each relative path so two snapshots with the
+    same files in different layouts do not collide.
+    """
+    target = Path(path)
+    if target.is_file():
+        digest = hashlib.sha256()
+        with target.open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        return digest.hexdigest()
+    if target.is_dir():
+        digest = hashlib.sha256()
+        for item in sorted(target.rglob("*")):
+            if not item.is_file():
+                continue
+            digest.update(item.relative_to(target).as_posix().encode("utf-8"))
+            with item.open("rb") as handle:
+                for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                    digest.update(chunk)
+        return digest.hexdigest()
+    return None
+
+
 def _piper_install() -> bool:
     target = MODELS_DIR / "piper"
     target.mkdir(parents=True, exist_ok=True)
@@ -184,6 +211,7 @@ def evaluate(entry: dict, install: bool, deps_only: bool) -> dict:
         "status": "unknown",
         "path": None,
         "size_bytes": 0,
+        "sha256": None,
     }
 
     if not status["module_ok"]:
@@ -202,6 +230,7 @@ def evaluate(entry: dict, install: bool, deps_only: bool) -> dict:
             status["status"] = "ok"
             status["path"] = str(path)
             status["size_bytes"] = path.stat().st_size
+            status["sha256"] = _sha256_path(str(path))
         else:
             status["status"] = "missing-weights"
         return status
@@ -214,6 +243,7 @@ def evaluate(entry: dict, install: bool, deps_only: bool) -> dict:
         status["status"] = "ok"
         status["path"] = path
         status["size_bytes"] = _dir_size(path)
+        status["sha256"] = _sha256_path(path)
         return status
 
     status["status"] = "unknown-kind"
@@ -243,6 +273,28 @@ def main() -> int:
 
     entries = MIN_ENTRIES if args.tier == "min" else MAX_ENTRIES
     results = [evaluate(entry, install=install, deps_only=args.deps_only) for entry in entries]
+
+    # A check compares against the last install manifest, so a truncated or
+    # swapped checkpoint is reported instead of silently passing on size alone.
+    previous = {}
+    if MANIFEST.exists() and not args.deps_only:
+        try:
+            previous = {
+                item["name"]: item
+                for item in json.loads(MANIFEST.read_text(encoding="utf-8")).get("entries", [])
+            }
+        except (OSError, ValueError, KeyError):
+            previous = {}
+        for result in results:
+            stored = previous.get(result["name"], {}).get("sha256")
+            if (
+                result["status"] == "ok"
+                and stored
+                and result.get("sha256")
+                and stored != result["sha256"]
+            ):
+                result["status"] = "hash-mismatch"
+
     ok = all(result["status"] == "ok" for result in results)
 
     manifest = {
