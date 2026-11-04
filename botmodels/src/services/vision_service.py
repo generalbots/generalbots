@@ -111,7 +111,9 @@ class VisionService:
         """
         result = await self.describe_image(image_data, prompt=question)
         result["answer"] = result["description"]
-        result["reasoning"] = self.backend.name != "blip2"
+        # Only the max-tier multimodal backend genuinely reasons about a
+        # question; BLIP/BLIP2 use it as a caption prompt.
+        result["reasoning"] = self.backend.name in {"qwen3-vl"}
         return result
 
 

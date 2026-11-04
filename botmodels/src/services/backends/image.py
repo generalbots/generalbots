@@ -10,6 +10,7 @@ from ...core.config import settings
 from ...core.logging import get_logger
 from ..errors import BackendNotLoadedError
 from .base import Backend
+from .sources import SD_TURBO_MODEL, resolve_model_source
 
 logger = get_logger("backends.image")
 
@@ -37,12 +38,12 @@ class StableDiffusionBackend(Backend):
         import torch
         from diffusers import DPMSolverMultistepScheduler, StableDiffusionPipeline
 
-        path = settings.image_model_path
-        logger.info("Loading SD image backend", path=path)
+        source = resolve_model_source(settings.image_model_path, SD_TURBO_MODEL)
+        logger.info("Loading SD image backend", source=source)
 
         device = settings.device or "cpu"
         pipeline = StableDiffusionPipeline.from_pretrained(
-            path,
+            source,
             torch_dtype=torch.float16 if device == "cuda" else torch.float32,
             safety_checker=None,
         )

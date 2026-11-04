@@ -29,7 +29,8 @@ VALID_SETTINGS: tuple[str, ...] = ("auto", "min", "max")
 BACKENDS: dict[str, dict[str, str]] = {
     "min": {
         "image": "sd-turbo",
-        "vision": "blip2",
+        # BLIP base fits constrained CPU hosts; BLIP2 2.7B does not.
+        "vision": "blip",
         "stt": "faster-whisper",
         "tts": "piper",
         "ocr": "tesseract",

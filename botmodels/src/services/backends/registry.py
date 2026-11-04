@@ -10,7 +10,7 @@ from typing import Optional
 from ...core.config import settings
 from ...core.logging import get_logger
 from ...core.mode import backends_for
-from ..errors import UnsupportedBackendError
+from ..errors import BackendNotLoadedError, UnsupportedBackendError
 from .base import Backend
 from .image import IMAGE_BACKENDS
 from .ocr import OCR_BACKENDS
@@ -43,7 +43,31 @@ def build(capability: str) -> Backend:
     if selected not in registry:
         raise UnsupportedBackendError(capability, selected, list(registry))
 
-    return registry[selected]()
+    # Prefer the tier's backend, but fall back to another registered backend
+    # when the preferred one cannot even import (e.g. tesseract's system
+    # binary is absent and RapidOCR is installed). Model-weight failures are
+    # handled at load time, not here: probing must stay cheap.
+    for name in [selected, *[n for n in registry if n != selected]]:
+        instance = registry[name]()
+        try:
+            available = instance.is_available()
+        except Exception:  # noqa: BLE001 - availability probes must not crash
+            available = False
+        if available:
+            if name != selected:
+                logger.warning(
+                    "Preferred backend unavailable, using fallback",
+                    capability=capability,
+                    preferred=selected,
+                    selected=name,
+                )
+            return instance
+
+    raise BackendNotLoadedError(
+        capability,
+        selected,
+        f"no registered backend is available: {list(registry)}",
+    )
 
 
 def get(capability: str) -> Backend:

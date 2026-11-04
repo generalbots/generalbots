@@ -115,7 +115,9 @@ class BackendTableTests(unittest.TestCase):
     def test_min_keeps_established_models(self):
         resolved = backends_for("min")
         self.assertEqual(resolved["image"], "sd-turbo")
-        self.assertEqual(resolved["vision"], "blip2")
+        # BLIP base rather than BLIP2: the 2.7B checkpoint does not fit the
+        # <8 GB hosts the min tier targets.
+        self.assertEqual(resolved["vision"], "blip")
         self.assertEqual(resolved["tts"], "piper")
         self.assertEqual(resolved["ocr"], "tesseract")
         self.assertEqual(resolved["video"], "zeroscope")

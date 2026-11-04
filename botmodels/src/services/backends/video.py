@@ -13,6 +13,7 @@ from ...core.config import settings
 from ...core.logging import get_logger
 from ..errors import BackendNotLoadedError
 from .base import Backend
+from .sources import WAN22_MODEL, ZEROSCOPE_MODEL, resolve_model_source
 
 logger = get_logger("backends.video")
 
@@ -58,12 +59,12 @@ class ZeroscopeBackend(Backend):
         import torch
         from diffusers import DiffusionPipeline
 
-        path = settings.video_model_path
-        logger.info("Loading Zeroscope backend", path=path)
+        source = resolve_model_source(settings.video_model_path, ZEROSCOPE_MODEL)
+        logger.info("Loading Zeroscope backend", source=source)
 
         device = settings.device or "cpu"
         self.pipeline = DiffusionPipeline.from_pretrained(
-            path,
+            source,
             torch_dtype=torch.float16 if device == "cuda" else torch.float32,
         ).to(device)
 
@@ -128,12 +129,12 @@ class Wan22Backend(Backend):
         import torch
         from diffusers import AutoPipeline
 
-        path = settings.video_model_path
-        logger.info("Loading Wan 2.2 backend", path=path)
+        source = resolve_model_source(settings.video_model_path, WAN22_MODEL)
+        logger.info("Loading Wan 2.2 backend", source=source)
 
         device = settings.device or "cpu"
         self.pipeline = AutoPipeline.from_pretrained(
-            path,
+            source,
             torch_dtype=torch.bfloat16 if device == "cuda" else torch.float32,
         ).to(device)
 

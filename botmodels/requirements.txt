@@ -51,6 +51,8 @@ pyzbar==0.1.9
 # OCR - max tier backend. Requires the `tesseract` system binary for the
 # min tier backend; nothing here installs it.
 pytesseract==0.3.10
+# Pip-only OCR fallback for hosts without the tesseract binary (PP-OCR ONNX).
+rapidocr-onnxruntime>=1.2.3
 
 # HTTP & API
 httpx==0.27.2
