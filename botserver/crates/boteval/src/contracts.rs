@@ -293,12 +293,16 @@ fn token_matches(left: &str, right: &str) -> bool {
     if a == b && a.len() >= 3 {
         return true;
     }
-    // One-hop synonym lookup; the second side is checked too so the table can
-    // be written once per concept instead of once per direction.
-    synonyms(left).iter().any(|candidate| {
-        let candidate = stem(candidate);
-        candidate == b || synonyms(right).iter().any(|other| stem(other) == candidate)
-    })
+    // One-hop synonym lookup over BOTH sides. Checking only the left side
+    // missed cases where the response used the synonym (`doing well` for
+    // `glad`) instead of the contract word.
+    synonyms(left)
+        .iter()
+        .chain(synonyms(right).iter())
+        .any(|candidate| {
+            let candidate = stem(candidate);
+            candidate == a || candidate == b
+        })
 }
 
 fn contains_phrase(response: &str, phrase: &str) -> bool {
@@ -371,6 +375,16 @@ mod tests {
         let fail = validate_response(&c, "oi, em que posso ser útil?");
         assert!(pass.iter().all(|r| r.outcome == CheckOutcome::Pass));
         assert!(fail.iter().any(|r| r.outcome == CheckOutcome::Fail));
+    }
+
+    #[test]
+    fn conversational_synonyms_satisfy_the_contract() {
+        assert!(contains_phrase(
+            "Hello! I'm doing well—thanks for asking. How are you today? Is there anything I can help you with?",
+            "glad"
+        ));
+        assert!(contains_phrase("Posso ajudar com dúvidas e explicações.", "perguntas"));
+        assert!(contains_phrase("O balanço mostra ativos e passivos.", "assets"));
     }
 
     #[test]
