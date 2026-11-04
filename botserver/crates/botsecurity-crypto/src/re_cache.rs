@@ -8,17 +8,6 @@
 
 use regex::Regex;
 
-/// Compile a constant pattern once per call site.
-macro_rules! cached_re {
-    ($pattern:expr) => {{
-        static RE: ::std::sync::OnceLock<::core::option::Option<::regex::Regex>> =
-            ::std::sync::OnceLock::new();
-        RE.get_or_init(|| $crate::re_cache::compile($pattern)).as_ref()
-    }};
-}
-
-pub(crate) use cached_re;
-
 pub(crate) fn compile(pattern: &'static str) -> Option<Regex> {
     match Regex::new(pattern) {
         Ok(re) => Some(re),

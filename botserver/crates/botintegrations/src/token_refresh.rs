@@ -64,14 +64,15 @@ async fn refresh_one(
         .ok_or(IntegrationError::NotFound)?
         .to_string();
 
-    let (client, client_config_path) = vault
+    let client = vault
         .load_oauth_client(
             row.org_id,
             row.branch_id,
             row.bot_id,
             &row.provider_slug,
         )
-        .await?;
+        .await?
+        .0;
     log::debug!(
         "token refresh: {} client loaded",
         row.provider_slug

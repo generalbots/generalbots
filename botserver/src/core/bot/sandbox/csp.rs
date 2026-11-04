@@ -29,7 +29,7 @@ impl UiCsp {
         Self {
             connect_domains: domains(csp.get("connectDomains")),
             resource_domains: domains(csp.get("resourceDomains")),
-            permissions: strings(ui.get("permissions")),
+            permissions: permission_names(ui.get("permissions")),
             domain: ui
                 .get("domain")
                 .and_then(Value::as_str)
@@ -91,6 +91,29 @@ fn strings(value: Option<&Value>) -> Vec<String> {
 
 fn domains(value: Option<&Value>) -> Vec<String> {
     strings(value)
+}
+
+/// Permission names (`camera`, `microphone`, …) are not URLs: they must not go
+/// through the CSP source validator, which would drop every one of them.
+fn permission_names(value: Option<&Value>) -> Vec<String> {
+    value
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::trim)
+                .filter(|name| {
+                    !name.is_empty()
+                        && name.len() <= 64
+                        && name
+                            .chars()
+                            .all(|character| character.is_ascii_alphanumeric() || character == '-')
+                })
+                .map(str::to_string)
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 /// Accepts explicit https/wss origins plus loopback http for development.

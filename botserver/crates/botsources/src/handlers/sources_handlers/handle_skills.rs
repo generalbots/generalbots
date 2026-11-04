@@ -438,7 +438,10 @@ mod tests {
     #[test]
     fn rejects_missing_front_matter_and_bad_names() {
         assert!(parse_skill_package("no front matter", None).is_err());
-        assert!(parse_skill_package("---\nname: Bad Name\n---\nx", None).is_err());
+        // Human names normalize to a slug; unusable names are rejected.
+        let normalized = parse_skill_package("---\nname: Bad Name\n---\nx", None).expect("normalizes");
+        assert_eq!(normalized.id, "bad-name");
+        assert!(parse_skill_package("---\nname: \"!!!\"\n---\nx", None).is_err());
         assert!(parse_skill_package("---\nname: ok\n---\n", None).is_err());
     }
 }

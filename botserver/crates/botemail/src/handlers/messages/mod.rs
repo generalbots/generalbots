@@ -2,7 +2,6 @@ pub(crate) use axum::{ extract::{Path, State}, Json, };
 pub(crate) use base64::{engine::general_purpose, Engine as _};
 pub(crate) use diesel::prelude::*;
 pub(crate) use lettre::{ transport::smtp::authentication::{Credentials, Mechanism}, Message, SmtpTransport, Transport, };
-pub(crate) use log::info;
 #[cfg(feature = "mail")]
 pub(crate) use mailparse::{parse_mail, MailHeaderMap};
 pub(crate) use std::sync::Arc;
