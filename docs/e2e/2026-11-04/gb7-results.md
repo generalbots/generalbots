@@ -186,3 +186,44 @@ rejects_cost_over_cap
 
 That covers browser-task step/cost caps. No per-run chat/VM spend cap was
 found in the chat path.
+
+## Full boteval suite (TS-10)
+
+The complete 210-entry dataset ran in six parallel shards against the same
+configured endpoint as chat:
+
+```
+checks:  551
+passed:  468
+failed:   83
+rate:    84.94%
+cost:    $0.424582
+```
+
+Per-tag: software_development 94.4%, harness 80.0%, customer_support 86.4%,
+financial_analysis 87.3%, general 78.9%, lang:en 87.3%, lang:pt-BR 82.6%.
+Failures are `must_contain` (341) and `language` (210) checks. The official
+gate (`min_pass_rate=0.95`, `max_failures=0`, `tag_pass_rates=0.90`) therefore
+**fails**; the shards used a permissive gate only to collect the report.
+Tracked as #1688.
+
+## 100+ turn TTFT/payload (TS-06)
+
+Valid encrypted history was duplicated in `message_history` to create
+**224 messages (112 turns)** in session `31c1030b-…`. Loading that session
+showed 224 messages, then the next turn answered `long-ok` with:
+
+```
+TTFT after 112 turns: 564 ms
+turn 1 (earlier):     464 ms
+turn 12 (earlier):    2850 ms
+```
+
+The history reader loads at most `history-limit` (10) turns, so the payload is
+bounded and TTFT does not degrade with the stored history. The test's "~35%
+improvement" target was not observed; the payload bound is the structural
+result.
+
+Steering remains partial: the second run is started with the steer text
+(`run_events` shows `RUN_STARTED` titled with the steering message), but the
+model produced reasoning-only content and no visible `STEER-OK`.
