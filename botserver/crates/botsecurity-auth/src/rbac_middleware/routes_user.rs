@@ -8,6 +8,8 @@ pub(crate) fn authenticated_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/chat/history/**", "GET", ""),
         RoutePermission::new("/api/chat/history/**", "PUT", ""),
         RoutePermission::new("/api/chat/history/**", "DELETE", ""),
+        // #1682 — lock/unlock a conversation behind a PIN.
+        RoutePermission::new("/api/chat/history/**", "POST", ""),
 
         // Drive / Files
         RoutePermission::new("/api/drive/**", "GET", ""),
@@ -24,6 +26,9 @@ pub(crate) fn authenticated_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/sandbox/config", "GET", ""),
         // Tool manifests for the native surface tools (#1678)
         RoutePermission::new("/api/runs/tools", "GET", ""),
+        // Built-in MCP server for generated apps (#1676)
+        RoutePermission::new("/api/mcp/**", "GET", ""),
+        RoutePermission::new("/api/mcp/**", "POST", ""),
 
         // Computer use (browser + terminal consent and execution)
         RoutePermission::new("/api/computer/**", "GET", ""),

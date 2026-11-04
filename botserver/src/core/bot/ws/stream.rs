@@ -351,7 +351,7 @@ pub async fn process_llm_response(
                                 current_tool: None,
                                 created_at: chrono::Utc::now(),
                                 updated_at: chrono::Utc::now(),
-                            };
+                            locked: false, lock_pin_hash: None, };
                             let _ = tokio::task::spawn_blocking(move || {
                                 let mut svc = crate::basic::ScriptService::new(
                                     state_for_tool.clone(), session_for_tool,

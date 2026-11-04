@@ -78,6 +78,8 @@ pub async fn run_tool_exec(identity: &SessionIdentity<'_>, tool_name: &str) {
             current_tool: None,
             created_at: chrono::Utc::now(),
             updated_at: chrono::Utc::now(),
+            locked: false,
+            lock_pin_hash: None,
         };
         let tool_run = tokio::task::spawn_blocking(move || {
             let mut svc = crate::basic::ScriptService::new(
@@ -389,7 +391,7 @@ pub async fn run_llm_tool_call(
                 current_tool: None,
                 created_at: chrono::Utc::now(),
                 updated_at: chrono::Utc::now(),
-            };
+            locked: false, lock_pin_hash: None, };
             let tool_name_err = tool_name.clone();
             let tool_run = tokio::task::spawn_blocking(move || {
                 let mut svc = crate::basic::ScriptService::new(

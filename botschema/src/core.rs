@@ -161,6 +161,9 @@ diesel::table! {
         session_id -> Nullable<Varchar>,
         data -> Nullable<Jsonb>,
         expires_at -> Nullable<Timestamptz>,
+        // #1682 — locked conversations (6.8.7-chat-lock).
+        locked -> Bool,
+        lock_pin_hash -> Nullable<Text>,
     }
 }
 

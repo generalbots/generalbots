@@ -25,6 +25,10 @@ pub struct UserSession {
     pub session_id: Option<String>,
     pub data: Option<serde_json::Value>,
     pub expires_at: Option<DateTime<Utc>>,
+    /// #1682 — locked conversations are hidden from history/search and the
+    /// message log is gated behind the stored PIN hash.
+    pub locked: bool,
+    pub lock_pin_hash: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

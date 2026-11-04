@@ -172,7 +172,7 @@ async fn run_tool(
         current_tool: Some(tool.to_string()),
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
-    };
+    locked: false, lock_pin_hash: None, };
     let tool_name = tool.to_string();
     let _ = tokio::task::spawn_blocking(move || {
         let mut svc = crate::basic::ScriptService::new(state_for_tool.clone(), session);

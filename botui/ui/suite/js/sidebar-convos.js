@@ -85,6 +85,9 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
       '<div class="chat-sidebar-conv-name"></div>' +
       "</div>" +
       '<div class="chat-sidebar-conv-time"></div>' +
+       '<button type="button" class="chat-sidebar-conv-lock" ' +
+       'aria-label="Lock conversation" title="Lock conversation">' +
+       '\u{1F512}</button>' +
        '<button type="button" class="chat-sidebar-conv-rename" ' +
        'aria-label="Rename conversation" title="Rename conversation">' +
        '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" ' +
@@ -108,6 +111,14 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
     item.addEventListener("click", function () {
       mod.openConversation(session.session_id);
     });
+    var lockBtn = item.querySelector(".chat-sidebar-conv-lock");
+    if (lockBtn) {
+      lockBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        mod.lockConversation(session.session_id, item);
+      });
+    }
     var renameBtn = item.querySelector(".chat-sidebar-conv-rename");
     if (renameBtn) {
       renameBtn.addEventListener("click", function (e) {
@@ -182,6 +193,110 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
       });
   };
 
+  /// Locks the conversation behind a 4-8 digit PIN (#1682). The item
+  /// disappears from history; it is only reachable from "Locked".
+  mod.lockConversation = function (sessionId) {
+    if (!sessionId) return;
+    var pin = window.prompt("Set a 4-8 digit PIN for this conversation:");
+    if (pin === null) return;
+    pin = String(pin).trim();
+    if (!/^[0-9]{4,8}$/.test(pin)) {
+      window.alert("PIN must be 4 to 8 digits.");
+      return;
+    }
+    fetch("/api/chat/history/sessions/" + encodeURIComponent(sessionId) + "/lock", {
+      method: "POST",
+      headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
+      body: JSON.stringify({ pin: pin }),
+    })
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        mod.loadHistory();
+      })
+      .catch(function (err) {
+        window.alert("Could not lock conversation: " + err.message);
+      });
+  };
+
+  /// Lists locked conversations (ids and dates only — no titles) and opens one
+  /// after the PIN is verified. The grant is short-lived; the conversation
+  /// stays locked in storage.
+  mod.showLocked = function () {
+    var list = document.getElementById("chatConversations");
+    if (!list) return;
+    fetch(
+      "/api/chat/history/sessions?locked=1&limit=50&bot_name=" +
+        encodeURIComponent(resolveBot()),
+      { headers: authHeaders() }
+    )
+      .then(function (r) {
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        var sessions = (data && data.sessions) || [];
+        list.innerHTML = "";
+        var back = document.createElement("button");
+        back.type = "button";
+        back.className = "chat-sidebar-conv-back";
+        back.textContent = "\u2190 Back to conversations";
+        back.addEventListener("click", function () {
+          mod.loadHistory();
+        });
+        list.appendChild(back);
+        if (!sessions.length) {
+          var empty = document.createElement("div");
+          empty.className = "chat-sidebar-history-empty";
+          empty.textContent = "No locked conversations";
+          list.appendChild(empty);
+          return;
+        }
+        sessions.forEach(function (session) {
+          var item = document.createElement("div");
+          item.className = "chat-sidebar-conv-item locked";
+          item.setAttribute("data-session-id", session.session_id);
+          item.innerHTML =
+            '<div class="chat-sidebar-conv-info">' +
+            '<div class="chat-sidebar-conv-name">\u{1F512} Locked conversation</div>' +
+            "</div>" +
+            '<div class="chat-sidebar-conv-time"></div>';
+          item.addEventListener("click", function () {
+            mod.unlockConversation(session.session_id);
+          });
+          list.appendChild(item);
+        });
+      })
+      .catch(function (err) {
+        window.alert("Could not list locked conversations: " + err.message);
+      });
+  };
+
+  /// Verifies the PIN, stores the short-lived grant and opens the chat tab.
+  mod.unlockConversation = function (sessionId) {
+    if (!sessionId) return;
+    var pin = window.prompt("Enter the conversation PIN:");
+    if (pin === null) return;
+    fetch("/api/chat/history/sessions/" + encodeURIComponent(sessionId) + "/unlock", {
+      method: "POST",
+      headers: Object.assign({ "Content-Type": "application/json" }, authHeaders()),
+      body: JSON.stringify({ pin: String(pin).trim() }),
+    })
+      .then(function (r) {
+        if (r.status === 403) throw new Error("Incorrect PIN");
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        if (data && data.unlock_token) {
+          sessionStorage.setItem("gb-unlock:" + sessionId, data.unlock_token);
+        }
+        mod.openConversation(sessionId);
+      })
+      .catch(function (err) {
+        window.alert("Could not unlock conversation: " + err.message);
+      });
+  };
+
   mod.renderHistory = function (sessions) {
     var list = document.getElementById("chatConversations");
     if (!list) return;
@@ -196,6 +311,15 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
     sessions.forEach(function (s) {
       list.appendChild(historyItem(s));
     });
+    var lockedToggle = document.createElement("button");
+    lockedToggle.type = "button";
+    lockedToggle.className = "chat-sidebar-conv-locked-toggle";
+    lockedToggle.textContent = "\u{1F512} Locked conversations";
+    lockedToggle.addEventListener("click", function (e) {
+      e.preventDefault();
+      mod.showLocked();
+    });
+    list.appendChild(lockedToggle);
     highlightActive(currentActiveSession());
   };
 

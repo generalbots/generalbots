@@ -331,6 +331,8 @@ pub async fn run_start_bas_on_connect(
         current_tool: None,
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
+        locked: false,
+        lock_pin_hash: None,
     };
     // #1369 — both values are consumed by the call and unused afterwards, so
     // they are moved instead of cloned (`UserSession` owns several Strings).

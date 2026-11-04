@@ -93,6 +93,8 @@ pub async fn run_start_bas(
         current_tool: None,
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
+        locked: false,
+        lock_pin_hash: None,
     };
     let exec_result = crate::basic::ScriptService::execute_script(
         state_for_bas.clone(),

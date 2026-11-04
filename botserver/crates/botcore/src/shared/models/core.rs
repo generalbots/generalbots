@@ -99,6 +99,8 @@ impl From<UserSession> for botbasic_types::UserSession {
             session_id: None,
             data: None,
             expires_at: None,
+            locked: false,
+            lock_pin_hash: None,
         }
     }
 }

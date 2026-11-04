@@ -378,6 +378,8 @@ impl BasicRuntime for AppStateBasicRuntime {
             current_tool: user.current_tool.clone(),
             created_at: user.created_at,
             updated_at: user.updated_at,
+            locked: user.locked,
+            lock_pin_hash: user.lock_pin_hash.clone(),
         };
         let mut service = crate::basic::ScriptService::new(Arc::clone(&self.0), lib_user);
         service.load_bot_config_params(&self.0, user.bot_id);

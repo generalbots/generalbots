@@ -18,6 +18,8 @@ fn to_lib_session(s: botcoresession::UserSession) -> botlib::models::UserSession
         current_tool: None,
         created_at: s.created_at,
         updated_at: s.updated_at,
+        locked: s.locked,
+        lock_pin_hash: s.lock_pin_hash,
     }
 }
 

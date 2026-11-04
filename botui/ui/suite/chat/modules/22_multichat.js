@@ -422,7 +422,11 @@
     var headers = {};
     var tok = token();
     if (tok) headers["Authorization"] = "Bearer " + tok;
-    fetch("/api/chat/history/sessions/" + encodeURIComponent(t.sessionId) + "/messages", {
+    // #1682 — locked conversations need the short-lived unlock grant.
+    var grant = sessionStorage.getItem("gb-unlock:" + t.sessionId);
+    var url = "/api/chat/history/sessions/" + encodeURIComponent(t.sessionId) + "/messages";
+    if (grant) url += "?unlock_token=" + encodeURIComponent(grant);
+    fetch(url, {
       headers: headers,
     })
       .then(function (r) { return r.ok ? r.json() : null; })

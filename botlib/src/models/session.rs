@@ -67,6 +67,9 @@ pub struct UserSession {
     pub current_tool: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// #1682 — locked conversations hide from history and gate the log.
+    pub locked: bool,
+    pub lock_pin_hash: Option<String>,
 }
 
 impl UserSession {
@@ -83,6 +86,8 @@ impl UserSession {
             current_tool: None,
             created_at: now,
             updated_at: now,
+            locked: false,
+            lock_pin_hash: None,
         }
     }
 }
