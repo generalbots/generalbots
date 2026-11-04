@@ -360,3 +360,17 @@ Details: `issue-1690.md`.
 | Duplicate bot replies in new tabs | PASS | completion frames deduped; one bubble per turn |
 
 Details: `issue-1691.md`.
+
+## Final state
+
+All code-side GB7 work is complete and recorded here:
+
+- TS-01/02/03/04/06/07/08/09 PASS on the externally configured DeepSeek model
+  with BotModels on the open-source CPU tier.
+- TS-10 RBAC, tenant isolation, accessibility, budget caps and the eval gate
+  PASS. Member SSO needs an identity provider that exposes `/v2/sessions`.
+- TS-05 correction is ready in `ts05-rebaseline.md`; the published test page
+  lives outside this repository and must be updated by its owner.
+
+No boteval runs were repeated locally; the recorded 556/579 gate remains the
+reference (CI only).
