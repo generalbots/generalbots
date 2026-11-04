@@ -119,3 +119,58 @@ ANNOTATION TITLE "Classify and file media"
 ```
 
 Unknown annotation hints are ignored (forward compatibility), and a tool without hints keeps the plain manifest. `cargo test -p botbasic_compiler` guards the source-to-manifest flow.
+
+## Privacy: locked conversations (#1682)
+
+A conversation can be locked from the sidebar (`Lock conversation`) with a
+4–8 digit PIN. Locking stores an Argon2 hash on `user_sessions.locked` /
+`lock_pin_hash` and takes the conversation out of every listing and search
+path server-side — the filter lives in the query layer, not the UI.
+
+Opening a locked conversation asks for the PIN. `POST
+/api/chat/history/sessions/:id/unlock` verifies it and mints a short-lived
+grant (5 minutes idle, extended on each read). The grant is what the chat tab
+sends when replaying `/messages`; the conversation itself stays locked, so a
+closed tab or an idle window re-locks it without a second state machine.
+`GET /api/chat/history/sessions?locked=1` lists locked ids without titles so
+the Locked view can offer them without leaking content.
+
+## Portable skills (#1681)
+
+`POST /api/sources/skills` imports a `SKILL.md` package (front-matter `name`,
+`description`, `version` plus instructions). The import validates the slug,
+hashes the document and stores it in `bot_skills` with `enabled`, `version`
+and `content_hash` (migration 6.8.8). `GET` lists, `POST /:id/enable|disable`
+toggles and `DELETE /:id` removes; the Settings → Integrations card is the
+UI.
+
+Enabled skills are rendered into the system prompt as an `INSTALLED SKILLS`
+block under a clear data boundary: packages are guidance, never executable
+instructions, and a hash change is visible in the list so re-consent follows
+the same pinning idea as MCP UI resources.
+
+## Generated apps for external hosts (#1676)
+
+`show_app` publishes content-addressed resources (`_sandbox/ui/{hash}.html`
+with a `.meta.json` sidecar). The built-in MCP server at `POST /api/mcp/apps`
+implements `initialize`, `resources/list` and `resources/read` over
+streamable-HTTP JSON-RPC:
+
+- resources appear as `ui://generated/{hash}` with
+  `text/html;profile=mcp-app` and the declared CSP in `_meta.ui`;
+- `resources/read` returns the same sanitized HTML the sandbox serves;
+- resources are immutable by hash, so any compliant host can list and render
+  a generated app without touching our chat surface.
+
+## Desktop settings and takeover (#1675, #1677)
+
+The desktop edition mounts the MCP management component inside Settings →
+Integrations against the same `/api/sources/mcp` endpoints as the
+Integrations app (no parallel store); hash drift from approval is shown and
+re-consent starts from Settings.
+
+While a run holds a terminal or browser surface the run card exposes Take
+over / Hand back. Takeover opens the real PTY of the workspace VM (the same
+container the run executes in), and every segment is persisted as a `CUSTOM`
+`gb.takeover` run event, replayed on reload and on a second device. ESC sends
+`run_cancel`, while hand-back only returns input to the agent.
