@@ -1023,6 +1023,23 @@
                 <div class="settings-mcp-status" id="settings-mcp-status" role="status"></div>
             </div>
 
+            <!-- #1681 — Agent Skills packages. Imported SKILL.md documents are
+                 advertised to the model as guidance and can be toggled off. -->
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Agent Skills</h2>
+                    <button class="btn-secondary btn-sm" id="settings-skills-import">Import skill</button>
+                </div>
+                <textarea id="settings-skills-input" class="settings-skills-input" rows="6"
+                    placeholder="Paste a SKILL.md package:&#10;---&#10;name: deploy-check&#10;description: Verify a deploy before announcing it&#10;---&#10;1. …"></textarea>
+                <div class="connections-list settings-mcp-list" id="settings-skills-list" aria-busy="true">
+                    <div class="empty-state">
+                        <p>Loading skills</p>
+                    </div>
+                </div>
+                <div class="settings-mcp-status" id="settings-skills-status" role="status"></div>
+            </div>
+
             <!-- OAuth Connections -->
             <div class="setting-card">
                 <div class="card-header">
@@ -2520,6 +2537,7 @@
 </button>
 
 <script src="/suite/settings/settings-mcp.js"></script>
+<script src="/suite/settings/settings-skills.js"></script>
 <script>
     // #1304 — Integrations lives in its own app window; Settings just opens
     // it (window manager when available, desktop route otherwise).

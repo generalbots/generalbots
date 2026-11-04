@@ -1,0 +1,4 @@
+ALTER TABLE bot_skills DROP COLUMN IF EXISTS enabled;
+ALTER TABLE bot_skills DROP COLUMN IF EXISTS version;
+ALTER TABLE bot_skills DROP COLUMN IF EXISTS content_hash;
+ALTER TABLE bot_skills DROP COLUMN IF EXISTS content;

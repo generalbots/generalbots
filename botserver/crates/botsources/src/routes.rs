@@ -5,6 +5,7 @@ use axum::{routing::{get, post, delete}, Router};
 use std::sync::Arc;
 
 const API_SOURCES_KB: &str = "/api/sources/kb";
+const API_SOURCES_SKILLS: &str = "/api/sources/skills";
 const API_SOURCES_MCP: &str = "/api/sources/mcp";
 const API_UI_SOURCES: &str = "/api/ui/sources";
 const API_INTEGRATIONS: &str = "/api/integrations";
@@ -42,6 +43,12 @@ pub fn configure_sources_api_routes() -> Router<Arc<AppState>> {
             "/:name/disable",
             axum::routing::post(handle_disable_mcp_server),
         );
+
+    let skill_routes = Router::new()
+        .route("/", get(handle_list_skills).post(handle_install_skill))
+        .route("/:id", delete(uninstall_skill))
+        .route("/:id/enable", axum::routing::post(enable_skill))
+        .route("/:id/disable", axum::routing::post(disable_skill));
 
     let ui_sources_routes = Router::new()
         .route("/repositories", get(handle_list_repositories))
@@ -83,7 +90,7 @@ pub fn configure_sources_api_routes() -> Router<Arc<AppState>> {
         .route("/etl/:id", delete(integrations_handlers::handle_delete_etl_job));
 
     Router::new()
-        .route("/api/ui/skills/install", post(handle_install_skill))
+        .nest(API_SOURCES_SKILLS, skill_routes)
         .nest(API_SOURCES_KB, kb_routes)
         .nest(API_SOURCES_MCP, mcp_routes)
         .nest(API_UI_SOURCES, ui_sources_routes)

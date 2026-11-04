@@ -277,3 +277,17 @@
   border-radius: 8px;
   background: #fff;
 }
+
+/* #1681 — skill import textarea. */
+.settings-skills-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  font: 12px/1.4 ui-monospace, SFMono-Regular, Menlo, monospace;
+  resize: vertical;
+}

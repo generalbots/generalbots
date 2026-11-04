@@ -53,6 +53,20 @@ pub(super) fn build(
     } else {
         format!("{system_prompt}{memory_block}")
     };
+    // #1681 — installed Agent Skills packages are advertised as guidance.
+    #[cfg(feature = "sources")]
+    let skills_block = match state.conn.get() {
+        Ok(mut conn) => {
+            botsources::handlers::sources_handlers::render_for_prompt(&mut conn, bot_uuid)
+        }
+        Err(error) => {
+            log::warn!("skills prompt skipped: pool error: {error}");
+            String::new()
+        }
+    };
+    #[cfg(not(feature = "sources"))]
+    let skills_block = String::new();
+    let system_prompt = format!("{system_prompt}{skills_block}");
     let role = crate::security::user_role::resolve_user_role(&state.conn, user_id);
     // The desktop product's action surface is the agent VM (`vm_exec`), not the
     // SaaS REST catalogue. Teaching `api.find` there made the free model look
