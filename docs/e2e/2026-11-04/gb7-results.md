@@ -90,3 +90,37 @@ Uploaded `parity-search-unique.pdf` (unique phrase `ZEBRA-PARITY-9147`),
   resources and the Settings toggle are verified.
 - **TS-10**: a valid Zitadel admin PAT is required to create the member user
   and drive the SSO leg end to end.
+
+## Follow-up — steering, a11y, tenant isolation
+
+### TS-06 steering
+
+A `vm_exec` loop ran while a second message was sent. The server queued it
+(`bus.is_running`) and started a **second run** at the turn boundary; its
+`RUN_STARTED` title is the steering text (`Do not run any command. Reply with
+exactly: STEER-OK`). The model's second turn produced reasoning-only content
+(no visible final `STEER-OK`), so the delivery mechanism is verified but the
+model instruction following remains partial. The earlier takeover replay
+(`?session=`, active bar) still stands (#1677). The 2-hour goal and 100-turn
+TTFT checks were not run.
+
+### TS-10 RBAC / cross-tenant / a11y
+
+- Member token (`roles: ["User"]`) → `POST /api/files/bots`: **403**
+  `{"code":"RBAC_DENIED"}`. Admin token passes the middleware (422 for the
+  empty request body).
+- Cross-tenant: member and admin requests for bucket `salesianos.gborg`
+  return **403** `Access denied for this bucket` for both listing and
+  `download-inline`.
+- 375 px emulation: `innerWidth=375`, `scrollWidth=375`, no horizontal
+  overflow; 0 images without `alt`; key composer present. One cached icon
+  (`#scrollToBottom`) still lacks an accessible name in the rendered page;
+  `aria-label` was added to the source along with the three taskbar tray
+  icons (`#trayUsage`, `#trayNotifications`, `#trayLock`).
+- Caps: `botbrowserpolicy::BudgetTracker` enforces step and milli-unit cost
+  caps for **browser tasks**; no per-run chat/VM spend cap was found.
+- Evals: `boteval-run` exists with `ci/gate.toml`
+  (`max_cost_per_task = 0.05`, `min_pass_rate = 0.95`); the full suite was not
+  executed (it requires building the runner and spending model calls).
+- SSO remains blocked by the invalid Zitadel admin PAT (the bootstrap logs
+  “No access token”).
