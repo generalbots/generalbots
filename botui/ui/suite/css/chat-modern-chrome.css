@@ -1,0 +1,288 @@
+/* chat-modern split: rail, window chrome, run cards, floating controls. */
+
+/* ── Rail ──────────────────────────────────────────────────────────── */
+
+.chat-sidebar {
+    background: #fafafa !important;
+    border-right: 1px solid var(--gb-border);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto,
+        "Helvetica Neue", Arial, sans-serif;
+}
+
+.chat-sidebar-section-label {
+    font-size: 10.5px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #a1a1aa;
+    padding: 16px 14px 6px;
+}
+
+.chat-sidebar-conv-item {
+    border-radius: 10px;
+    padding: 7px 10px;
+    margin: 1px 8px;
+    transition: background 120ms ease;
+}
+
+.chat-sidebar-conv-item:hover,
+.chat-sidebar-conv-item.active {
+    background: rgba(24, 24, 27, 0.05);
+}
+
+.chat-sidebar-conv-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gb-text);
+}
+
+.chat-sidebar-conv-time {
+    font-size: 10.5px;
+    color: #a1a1aa;
+}
+
+.chat-sidebar-new-chat {
+    margin: 10px 12px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--gb-border);
+    background: var(--gb-surface);
+    color: var(--gb-text);
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+.chat-sidebar-new-chat:hover {
+    border-color: rgba(22, 163, 74, 0.5);
+    color: var(--gb-accent);
+    background: var(--gb-surface);
+}
+
+/* The window body behind the chat layout must share the canvas colour,
+   otherwise a stripe of the desktop theme shows at the right edge. */
+.window-element-glass .window-body,
+.window-element .window-body {
+    background: #fafafa;
+}
+
+/* ── Window chrome ─────────────────────────────────────────────────── */
+
+.window-element-glass .window-header-glass,
+.window-element .window-header {
+    height: 42px;
+    padding: 0 14px;
+    border-bottom: 1px solid rgba(24, 24, 27, 0.07);
+    background: #fff;
+}
+
+.window-element-glass .window-title,
+.window-element .window-title {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    color: #3f3f46;
+}
+
+.window-element-glass .window-dot,
+.window-element .window-dot {
+    width: 10px;
+    height: 10px;
+}
+
+/* #1584 — output/ as one folder card with a grid of generated files. */
+.gb-attachment-folder {
+    margin: 10px 0 4px;
+    border: 1px solid rgba(24, 24, 27, 0.09);
+    border-radius: 14px;
+    background: linear-gradient(180deg, #ffffff 0%, #fafafa 100%);
+    box-shadow: 0 1px 2px rgba(24, 24, 27, 0.05);
+    overflow: hidden;
+    max-width: 560px;
+}
+
+.gb-folder-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 12px;
+    border-bottom: 1px solid rgba(24, 24, 27, 0.06);
+    background: #f7f7f8;
+}
+
+.gb-folder-icon {
+    font-size: 15px;
+    line-height: 1;
+}
+
+.gb-folder-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #27272a;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.gb-folder-count {
+    font-size: 11.5px;
+    color: #71717a;
+}
+
+.gb-folder-head .gb-folder-save {
+    margin-left: auto;
+}
+
+.gb-folder-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px;
+}
+
+.gb-folder-grid .gb-attachment {
+    margin: 0;
+    border: none;
+    background: transparent;
+}
+
+.gb-folder-grid .gb-attachment:hover {
+    background: #f4f4f5;
+}
+
+/* Epic acceptance: 44 px touch targets on a 390 px viewport. */
+@media (max-width: 480px) {
+    #sendBtn,
+    #fileBtn,
+    .gb-attachment-btn,
+    .gb-folder-save,
+    .suggestion-btn,
+    .gb-artifact-btn,
+    .message-actions button,
+    .gb-retry-btn,
+    .gb-ws-tab-add,
+    .chat-sidebar-new-chat,
+    .gb-side-action,
+    .chat-sidebar-conv-delete {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 10px 12px;
+    }
+}
+
+/* #1547 — live "what the assistant is doing" line inside the conversation. */
+.chat-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 6px 4px 2px;
+    padding: 6px 10px;
+    font-size: 12.5px;
+    color: #52525b;
+    background: #f8f8f9;
+    border: 1px solid rgba(24, 24, 27, 0.06);
+    border-radius: 999px;
+    width: fit-content;
+    max-width: min(100%, 640px);
+}
+
+.chat-status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #10b981;
+    animation: gb-status-pulse 1.1s ease-in-out infinite;
+    flex: 0 0 auto;
+}
+
+@keyframes gb-status-pulse {
+    0%, 100% { opacity: 0.35; transform: scale(0.85); }
+    50% { opacity: 1; transform: scale(1); }
+}
+
+/* ── Run cards: a quiet step, not a log billboard ───────────────────── */
+
+#chat-app .run-card {
+    max-width: min(760px, 100%);
+    margin: 4px 0;
+    border: 1px solid var(--gb-border-soft);
+    border-radius: 12px;
+    background: #fcfcfd;
+    box-shadow: none;
+    font-size: 12.5px;
+}
+
+#chat-app .run-card-head {
+    padding: 6px 10px;
+    gap: 7px;
+    background: transparent;
+}
+
+#chat-app .run-title {
+    font-weight: 500;
+    color: #52525b;
+    font-size: 12.5px;
+}
+
+#chat-app .run-elapsed {
+    color: #a1a1aa;
+    font-size: 11.5px;
+}
+
+#chat-app .run-toggle,
+#chat-app .run-stop {
+    border: 1px solid transparent;
+    border-radius: 7px;
+    padding: 2px 7px;
+    color: #71717a;
+    background: transparent;
+    font-size: 11.5px;
+}
+
+#chat-app .run-toggle:hover,
+#chat-app .run-stop:hover {
+    background: var(--gb-surface-muted);
+    border-color: var(--gb-border);
+    color: var(--gb-text);
+}
+
+#chat-app .run-card .run-dot {
+    width: 7px;
+    height: 7px;
+}
+
+/* ── Floating controls: grays, never hard black ─────────────────────── */
+
+#chat-app .scroll-to-bottom,
+#chat-app #scrollToBottom {
+    border: 1px solid var(--gb-border);
+    background: var(--gb-surface);
+    color: var(--gb-muted);
+    box-shadow: var(--gb-shadow-raised);
+}
+#chat-app .scroll-to-bottom:hover,
+#chat-app #scrollToBottom:hover {
+    border-color: var(--gb-border-strong);
+    color: var(--gb-text);
+}
+
+/* ── Window chrome around the conversation ──────────────────────────── */
+
+.window-element,
+.window-element-glass {
+    /* The light theme used a 72% navy border, which reads as black. */
+    border: 1px solid var(--gb-border-strong, #d4d4d8);
+    border-radius: 12px;
+    box-shadow: 0 18px 48px rgba(16, 24, 40, 0.12);
+}
+
+.window-element .window-header,
+.window-element-glass .window-header-glass {
+    border-bottom: 1px solid var(--gb-border-soft, #ececef);
+}
+
+.window-element .window-statusbar,
+.window-element-glass .window-statusbar {
+    border-top: 1px solid var(--gb-border-soft, #ececef);
+    box-shadow: none;
+    background: #fafafa;
+    color: #71717a;
+}
+

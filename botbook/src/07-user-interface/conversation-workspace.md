@@ -174,3 +174,47 @@ over / Hand back. Takeover opens the real PTY of the workspace VM (the same
 container the run executes in), and every segment is persisted as a `CUSTOM`
 `gb.takeover` run event, replayed on reload and on a second device. ESC sends
 `run_cancel`, while hand-back only returns input to the agent.
+
+## Visual language (chat surface)
+
+The conversation surface is styled by `botui/ui/suite/css/chat-modern.css`,
+which is loaded from `desktop.html` after the chat partial and after the
+desktop window shell, so it wins without `!important` except for the message
+text colour the older partial forces.
+
+Tokens (scoped to `#chat-app` and `.chat-sidebar`):
+
+| Token | Light | Purpose |
+|---|---|---|
+| `--gb-bg` | `#fafafa` | Conversation canvas |
+| `--gb-surface` | `#ffffff` | Bot bubble, composer, raised controls |
+| `--gb-surface-muted` | `#f4f4f5` | User bubble |
+| `--gb-border` | `#e4e4e7` | Default border — a true gray, never black or black-alpha |
+| `--gb-border-soft` | `#ececef` | Bot bubble and run-card outline |
+| `--gb-border-strong` | `#d4d4d8` | Window frame and hover outlines |
+
+Rules the design review pinned:
+
+- **User messages are a neutral gray surface with a gray border and dark
+  text.** No saturated accent fill, no white text, no black border. The same
+  contract holds in dark mode (`#26262b` fill, `#3f3f46` border).
+- **Bot messages** are white (dark: `#1b1b1f`) with an `#ececef`
+  (`#313138`) border, 18 px radius and a 1 px shadow.
+- **Hover metadata:** `chat-messages.js` stamps `data-time` on live messages;
+  CSS reveals the timestamp on hover. Replayed history keeps its stored time.
+- **Message actions** (copy, listen) sit beside the bot bubble and are revealed
+  on hover/focus; they are always visible on hover-less (touch) devices.
+- **Run cards** are compact, gray-outlined cards. A finished run that arrived
+  through `run_resume` replay is removed rather than parked at the bottom of
+  the transcript; live cards keep their position for the turn.
+- **Composer** has one gray border and one soft shadow. The focused state
+  changes the border colour only — no double outline.
+- **Window chrome** around the chat uses `--gb-border-strong`; the theme's
+  near-black focused border is overridden for the window that hosts
+  `#chat-app`.
+
+`desktop.html` carries the cache-buster for `chat-modern.css` and
+`partials/chat.html` for `chat-messages.js` / `71_run_timeline.js`; bump them
+whenever those files change.
+
+Tracking: [`#1689`](https://github.com/generalbots/generalbots/issues/1689).

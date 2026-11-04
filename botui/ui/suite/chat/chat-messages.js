@@ -107,6 +107,16 @@ function addMessage(sender, content, msgId, reasoning) {
   var div = document.createElement("div");
   div.className = "message " + sender;
   if (msgId) div.id = msgId;
+  // Hover timestamp. Replayed history keeps its own stored time, so only
+  // stamp messages that are being added live.
+  if (!ChatState.suppressPersist) {
+    try {
+      div.dataset.time = new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    } catch (e) { /* Intl unavailable — no timestamp is fine */ }
+  }
 
   if (sender !== "user") setChatStatus("");
   if (sender === "user") {
@@ -132,6 +142,7 @@ function addMessage(sender, content, msgId, reasoning) {
     div.innerHTML = '<div class="message-content bot-message">' + thinkingHtml + parsed + "</div>";
     polishOutputBlocks(div);
     if (content && content.trim() !== "") {
+      div.appendChild(createCopyButton(content));
       div.appendChild(createSpeakButton(content));
     }
   }
@@ -246,6 +257,40 @@ function initTtsToggle() {
 document.addEventListener("DOMContentLoaded", initTtsToggle);
 
 // ── TTS (issue #708) — speak a bot message aloud ──
+function createCopyButton(text) {
+  var btn = document.createElement("button");
+  btn.className = "copy-msg-btn";
+  btn.type = "button";
+  btn.title = "Copy message";
+  btn.setAttribute("aria-label", "Copy message");
+  btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+  btn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    var done = function () {
+      btn.classList.add("copied");
+      btn.title = "Copied";
+      if (window.showToast) window.showToast("Message copied", "success");
+      setTimeout(function () {
+        btn.classList.remove("copied");
+        btn.title = "Copy message";
+      }, 1500);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(function () {
+        if (window.showToast) window.showToast("Copy failed", "warning");
+      });
+    } else {
+      var area = document.createElement("textarea");
+      area.value = text;
+      document.body.appendChild(area);
+      area.select();
+      try { document.execCommand("copy"); done(); } catch (err) { /* ignore */ }
+      area.remove();
+    }
+  });
+  return btn;
+}
+
 function createSpeakButton(text) {
   var btn = document.createElement("button");
   btn.className = "tts-speak-btn";

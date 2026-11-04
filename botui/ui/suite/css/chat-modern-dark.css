@@ -1,0 +1,146 @@
+/* chat-modern split: dark theme overrides. Loaded last so the dark
+   surfaces win over the light defaults. */
+
+/* ── Dark theme: same calm surfaces, dark-gray borders ──────────────── */
+
+[data-theme="dark"] #chat-app,
+[data-theme="dark"] .chat-sidebar {
+    --gb-bg: #131316;
+    --gb-surface: #1b1b1f;
+    --gb-surface-muted: #26262b;
+    --gb-text: #ededf0;
+    --gb-muted: #a1a1aa;
+    --gb-border: #3f3f46;
+    --gb-border-soft: #313138;
+    --gb-border-strong: #52525b;
+    --gb-accent: #4ade80;
+    --gb-accent-soft: rgba(74, 222, 128, 0.12);
+    --gb-shadow-bubble: 0 1px 2px rgba(0, 0, 0, 0.35);
+    --gb-shadow-raised: 0 10px 28px rgba(0, 0, 0, 0.45);
+    --gb-focus-ring: 0 0 0 3px rgba(74, 222, 128, 0.18);
+}
+
+[data-theme="dark"] #chat-app .user-message {
+    background: var(--gb-surface-muted);
+    color: var(--gb-text);
+    border-color: var(--gb-border);
+}
+
+[data-theme="dark"] #chat-app .bot-message {
+    background: var(--gb-surface);
+    border-color: var(--gb-border-soft);
+    color: var(--gb-text);
+}
+
+[data-theme="dark"] #chat-app .bot-message,
+[data-theme="dark"] #chat-app .bot-message p,
+[data-theme="dark"] #chat-app .bot-message span,
+[data-theme="dark"] #chat-app .bot-message li,
+[data-theme="dark"] #chat-app .bot-message strong,
+[data-theme="dark"] #chat-app .bot-message h1,
+[data-theme="dark"] #chat-app .bot-message h2,
+[data-theme="dark"] #chat-app .bot-message h3 {
+    color: var(--gb-text) !important;
+}
+
+[data-theme="dark"] #chat-app .bot-message pre {
+    background: #101013;
+    color: #e4e4e7;
+}
+
+[data-theme="dark"] #chat-app .run-card {
+    background: #18181c;
+    border-color: var(--gb-border-soft);
+}
+[data-theme="dark"] #chat-app .run-title { color: #c4c4cc; }
+[data-theme="dark"] .window-element,
+[data-theme="dark"] .window-element-glass {
+    border-color: var(--gb-border-strong, #3f3f46);
+}
+
+/* Only the window that hosts the chat uses a neutral frame. The theme's
+   focused border is a near-black green, which is exactly the hard edge the
+   design review rejected. */
+.window-element-glass:has(#chat-app),
+.window-element:has(#chat-app),
+.window-element-glass:has(#chat-app).window-focused,
+.window-element:has(#chat-app).window-focused {
+    border-color: var(--gb-border-strong, #d4d4d8);
+}
+
+/* The window loading indicator inherited the theme's near-black green.
+   A neutral track + brand arc is the same information without the hard edge. */
+.gb-window-loading-spinner {
+    border-color: #e4e4e7;
+    border-top-color: #16a34a;
+}
+
+[data-theme="dark"] .window-element-glass:has(#chat-app),
+[data-theme="dark"] .window-element:has(#chat-app),
+[data-theme="dark"] .window-element-glass:has(#chat-app).window-focused,
+[data-theme="dark"] .window-element:has(#chat-app).window-focused {
+    border-color: #3f3f46;
+}
+
+[data-theme="dark"] .gb-window-loading-spinner {
+    border-color: #3f3f46;
+    border-top-color: #4ade80;
+}
+
+/* Run cards are flex children of the transcript. Without an explicit
+   flex-basis the browser shrank them to a 2.5 px line; keep their header
+   height whatever the transcript length. */
+#chat-app #messages > .run-card {
+    flex: 0 0 auto;
+    width: fit-content;
+    min-width: 220px;
+    max-width: min(760px, 100%);
+}
+
+
+/* Dark chrome: the header/status bars are hardcoded white in the light
+   shell. Leaving them white while the conversation is dark breaks the
+   window into two products. */
+[data-theme="dark"] .window-element-glass:has(#chat-app) .window-header-glass,
+[data-theme="dark"] .window-element:has(#chat-app) .window-header,
+[data-theme="dark"] .window-element-glass .window-header-glass,
+[data-theme="dark"] .window-element .window-header {
+    background: #1b1b1f;
+    border-bottom-color: #313138;
+}
+
+[data-theme="dark"] .window-element-glass .window-title,
+[data-theme="dark"] .window-element .window-title {
+    color: #ededf0;
+}
+
+[data-theme="dark"] .window-element-glass:has(#chat-app) .window-body,
+[data-theme="dark"] .window-element:has(#chat-app) .window-body,
+[data-theme="dark"] .window-element-glass .window-body,
+[data-theme="dark"] .window-element .window-body {
+    background: #131316;
+}
+
+[data-theme="dark"] .window-element-glass:has(#chat-app) .window-statusbar,
+[data-theme="dark"] .window-element:has(#chat-app) .window-statusbar,
+[data-theme="dark"] .window-element-glass .window-statusbar,
+[data-theme="dark"] .window-element .window-statusbar {
+    background: #131316;
+    border-top-color: #313138;
+    color: #a1a1aa;
+}
+
+[data-theme="dark"] #chat-app footer {
+    background: #131316;
+}
+
+[data-theme="dark"] #chat-app .input-container {
+    background: #1b1b1f;
+    border-color: #3f3f46;
+}
+
+[data-theme="dark"] #chat-app .input-container:focus-within {
+    border-color: rgba(74, 222, 128, 0.55);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+

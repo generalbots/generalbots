@@ -13,6 +13,11 @@
     var runs = Object.create(null);
     var seenSeq = Object.create(null);
     var activeRunId = null;
+    // True while replaying stored frames right after a (re)connect. A run
+    // that already finished before this page loaded is history: its card is
+    // removed on RUN_FINISHED instead of being parked at the end of the
+    // transcript, away from the turn it belongs to.
+    var restoring = false;
     // #1677 — takeover segments that arrived before the run card existed
     // (the WS broadcast can beat RUN_STARTED). Applied on card creation.
     var pendingTakeover = Object.create(null);
@@ -268,6 +273,7 @@
             terminal: false,
             logLines: 0,
             collapsed: false,
+            restored: restoring,
         };
 
         toggle.addEventListener("click", function () {
@@ -396,6 +402,14 @@
     function finish(entry, state, data) {
         if (!entry || entry.terminal) return;
         entry.terminal = true;
+        if (entry.restored && state === "succeeded") {
+            // Replayed history, not a live turn: the transcript already holds
+            // the answer and this card would sit detached at the bottom.
+            entry.card.remove();
+            delete runs[entry.id];
+            if (activeRunId === entry.id) activeRunId = null;
+            return;
+        }
         entry.card.classList.remove("running", "waiting");
         entry.card.classList.add("state-" + state);
         entry.stop.hidden = true;
@@ -585,6 +599,8 @@
         var last = hasCards ? readLastSeq() : 0;
         var ws = window.ChatState && window.ChatState.ws;
         if (!ws || ws.readyState !== WebSocket.OPEN) return;
+        restoring = true;
+        window.setTimeout(function () { restoring = false; }, 2500);
         ws.send(JSON.stringify({
             type: "run_resume",
             session_id: sessionKey(),

@@ -1,0 +1,195 @@
+/* chat-modern split: composer, suggestions, tab strip, empty states. */
+
+/* ── Composer ──────────────────────────────────────────────────────── */
+
+#chat-app footer {
+    padding: 0 22px 16px;
+    background: var(--gb-bg);
+}
+
+#chat-app .chat-footer-content:empty { display: none; }
+
+#chat-app .input-container {
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    padding: 7px 8px 7px 6px;
+    background: var(--gb-surface);
+    border: 1px solid var(--gb-border);
+    border-radius: 22px;
+    box-shadow: 0 4px 16px rgba(16, 24, 40, 0.05);
+    transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+#chat-app .input-container:focus-within {
+    border-color: rgba(22, 163, 74, 0.55);
+    /* Exactly one border, no halo: the old double outline made the composer
+       look like a focused form control instead of a writing surface. */
+    box-shadow: 0 4px 16px rgba(16, 24, 40, 0.06);
+}
+
+#chat-app .gb-attachment {
+    background: #f4f4f5 !important;
+    border: 1px solid var(--gb-border);
+    border-radius: 10px;
+    padding: 4px 8px;
+    color: var(--gb-text) !important;
+}
+
+#chat-app .gb-attachment-name {
+    color: var(--gb-text) !important;
+}
+
+#chat-app .gb-attachment-btn {
+    color: #3f3f46 !important;
+}
+
+#chat-app .gb-attachment-btn:hover {
+    color: var(--gb-accent) !important;
+}
+
+#chat-app .gb-model-picker {
+    appearance: none;
+    -webkit-appearance: none;
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+    padding: 8px 6px;
+    margin: 0 0 0 4px;
+    max-width: 150px;
+    font-size: 12px;
+    color: var(--gb-muted);
+    cursor: pointer;
+}
+
+#chat-app .gb-model-picker:focus {
+    outline: none;
+    color: var(--gb-text);
+}
+
+#chat-app #messageInput {
+    flex: 1;
+    min-height: 24px;
+    max-height: 180px;
+    padding: 10px 4px;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: var(--gb-text) !important;
+    font-size: 14.5px;
+    line-height: 1.45;
+    resize: none;
+}
+
+#chat-app #messageInput::placeholder { color: #a1a1aa; }
+#chat-app #messageInput:focus { outline: none; }
+
+#chat-app #sendBtn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border: 0;
+    border-radius: 50%;
+    background: var(--gb-accent);
+    color: #fff;
+    font-size: 16px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: transform 120ms ease, filter 120ms ease;
+}
+
+#chat-app #sendBtn:hover { transform: translateY(-1px); filter: brightness(1.06); }
+#chat-app #sendBtn:disabled { opacity: 0.5; cursor: default; transform: none; }
+
+#chat-app .file-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    color: var(--gb-muted);
+    cursor: pointer;
+}
+
+#chat-app .file-btn:hover { background: rgba(24, 24, 27, 0.05); }
+
+/* ── Suggestions ───────────────────────────────────────────────────── */
+
+#chat-app .suggestions-container {
+    padding: 0 2px 10px;
+    gap: 6px;
+}
+
+#chat-app .suggestion-chip,
+#chat-app .suggestion-button {
+    padding: 6px 13px;
+    border-radius: 999px;
+    border: 1px solid var(--gb-border);
+    background: var(--gb-surface);
+    color: #52525b;
+    font-size: 12.5px;
+    line-height: 1.2;
+    box-shadow: none;
+    transition: border-color 120ms ease, color 120ms ease, transform 120ms ease;
+}
+
+#chat-app .suggestion-chip:hover,
+#chat-app .suggestion-button:hover {
+    border-color: rgba(22, 163, 74, 0.5);
+    color: var(--gb-accent);
+    transform: translateY(-1px);
+    background: var(--gb-surface);
+}
+
+/* ── Tab strip ─────────────────────────────────────────────────────── */
+
+#chat-app .gb-tab-strip {
+    padding: 8px 12px 6px;
+    gap: 6px;
+    border-bottom: 1px solid var(--gb-border);
+    background: var(--gb-surface);
+}
+
+#chat-app .gb-tab {
+    padding: 5px 10px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    color: var(--gb-muted);
+    border: 1px solid transparent;
+}
+
+#chat-app .gb-tab:hover { background: rgba(24, 24, 27, 0.05); }
+
+#chat-app .gb-tab.active {
+    background: var(--gb-accent-soft);
+    border-color: rgba(22, 163, 74, 0.25);
+    color: var(--gb-accent);
+    font-weight: 600;
+}
+
+#chat-app .gb-tab-new {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+    color: var(--gb-muted);
+    border: 1px dashed rgba(24, 24, 27, 0.18);
+}
+
+#chat-app .gb-tab-new:hover {
+    border-color: var(--gb-accent);
+    color: var(--gb-accent);
+}
+
+/* ── States ────────────────────────────────────────────────────────── */
+
+#chat-app .gb-state {
+    margin: auto;
+    padding: 18px 22px;
+    border-radius: 14px;
+    border: 1px solid var(--gb-border);
+    background: var(--gb-surface);
+    color: var(--gb-muted);
+    font-size: 13px;
+}
+
