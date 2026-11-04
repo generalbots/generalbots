@@ -143,7 +143,7 @@ impl LLMProvider for OpenAIClient {
 
         // #1393 — serialize calls process-wide and back off properly on 429.
         let _gate = retry::call_gate().acquire().await;
-        let max_retries = 6;
+        let max_retries = 3;
         let mut stream_started = false;
         info!("LLM request URL: {}, body size: {} bytes, stream={}", full_url, request_body.to_string().len(), use_stream);
         'retry_loop: for attempt in 0..=max_retries {
@@ -184,7 +184,8 @@ impl LLMProvider for OpenAIClient {
                 warn!("LLM HTTP error body: {}", error_text);
                 let _ = chunk_tx.send(Err(format!("Status {}: {}", status, error_text))).await;
                 if attempt < max_retries && retry::is_retryable_status(status.as_u16()) {
-                    let wait = retry::wait_for(status.as_u16(), &error_text, retry_after_hdr.as_deref(), attempt);
+                    let wait = retry::wait_for(status.as_u16(), &error_text, retry_after_hdr.as_deref(), attempt)
+                        .min(std::time::Duration::from_secs(8));
                     warn!("LLM generate_stream attempt {} failed (status {}): {} — retrying in {:?}", attempt + 1, status, error_text, wait);
                     tokio::time::sleep(wait).await;
                     continue;

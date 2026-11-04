@@ -239,8 +239,10 @@ function tabText(key, fallback) {
       strip.className = "gb-tab-strip";
       wrapper.insertBefore(strip, wrapper.firstChild);
     }
+    var visible = visibleTabs();
     var html = "";
-    GBTabs.state.tabs.forEach(function (tab, idx) {
+    visible.forEach(function (tab) {
+      var idx = GBTabs.state.tabs.indexOf(tab);
       var glyph = tab.faviconGlyph ||
         (tab.title ? tab.title.charAt(0).toUpperCase() : "\u{1F4AC}");
       var cls = "gb-tab" + (tab.id === GBTabs.state.activeTabId ? " active" : "");
@@ -255,8 +257,84 @@ function tabText(key, fallback) {
         '<button type="button" class="gb-tab-close" title="' + escapeHtml(tabText("tab-close", "Close tab")) + '">\u00D7</button>' +
         "</div>";
     });
+    var hidden = GBTabs.state.tabs.length - visible.length;
+    if (hidden > 0) {
+      html += '<button type="button" class="gb-tab-overflow" id="gbTabOverflow" title="' +
+        escapeHtml(tabText("tab-more", "More tabs")) + '" aria-haspopup="menu">' +
+        '<span>\u2026</span><span class="gb-tab-overflow-count">+' + hidden + "</span></button>";
+    }
     html += '<button type="button" class="gb-tab-new" id="gbTabNew" title="' + escapeHtml(tabText("tab-new", "New tab")) + '">+</button>';
     strip.innerHTML = html;
+    var more = strip.querySelector("#gbTabOverflow");
+    if (more) {
+      more.addEventListener("click", function (event) {
+        event.stopPropagation();
+        GBTabs.showOverflowMenu(more);
+      });
+    }
+  };
+
+  // Five tabs fit comfortably; narrow windows keep three. The active tab is
+  // always among them, and the rest live in the "…" menu instead of forcing
+  // the strip to scroll horizontally.
+  function visibleTabs() {
+    var tabs = GBTabs.state.tabs;
+    var limit = window.innerWidth < 760 ? 3 : 5;
+    if (tabs.length <= limit) return tabs.slice();
+    var visible = tabs.slice(0, limit);
+    var activeId = GBTabs.state.activeTabId;
+    if (activeId && !visible.some(function (tab) { return tab.id === activeId; })) {
+      var active = null;
+      for (var i = 0; i < tabs.length; i++) {
+        if (tabs[i].id === activeId) { active = tabs[i]; break; }
+      }
+      if (active) visible[limit - 1] = active;
+    }
+    return visible;
+  }
+
+  GBTabs.showOverflowMenu = function (button) {
+    var existing = document.getElementById("gbTabOverflowMenu");
+    if (existing) { existing.remove(); return; }
+    var visible = visibleTabs();
+    var hidden = GBTabs.state.tabs.filter(function (tab) {
+      return visible.indexOf(tab) === -1;
+    });
+    if (!hidden.length) return;
+    var menu = document.createElement("div");
+    menu.id = "gbTabOverflowMenu";
+    menu.className = "gb-tab-overflow-menu";
+    menu.setAttribute("role", "menu");
+    hidden.forEach(function (tab) {
+      var item = document.createElement("button");
+      item.type = "button";
+      item.className = "gb-tab-overflow-item" +
+        (tab.id === GBTabs.state.activeTabId ? " active" : "") +
+        (GBTabs.unread[tab.id] ? " unread" : "");
+      item.setAttribute("role", "menuitem");
+      var glyph = tab.faviconGlyph ||
+        (tab.title ? tab.title.charAt(0).toUpperCase() : "\u{1F4AC}");
+      item.innerHTML = '<span class="gb-tab-overflow-glyph">' + escapeHtml(glyph) + "</span>" +
+        '<span class="gb-tab-overflow-title">' + escapeHtml(tab.title) + "</span>";
+      item.addEventListener("click", function () {
+        menu.remove();
+        GBTabs.focusTab(tab.id);
+      });
+      menu.appendChild(item);
+    });
+    document.body.appendChild(menu);
+    var rect = button.getBoundingClientRect();
+    var width = menu.offsetWidth || 240;
+    menu.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8)) + "px";
+    menu.style.top = Math.min(rect.bottom + 6, window.innerHeight - menu.offsetHeight - 8) + "px";
+    setTimeout(function () {
+      document.addEventListener("click", function close(event) {
+        if (!menu.contains(event.target)) {
+          menu.remove();
+          document.removeEventListener("click", close);
+        }
+      });
+    }, 0);
   };
 
   GBTabs.schedulePersist = function () {
@@ -321,13 +399,29 @@ function tabText(key, fallback) {
         }
         var localStamp = local ? recordUpdatedAt(local) : "";
         var serverStamp = recordUpdatedAt(server);
+        // Preserve tabs created while the server merge was in flight. The
+        // "+" tab used to vanish from the strip (active id without a record)
+        // when restore() replaced state with the older server list.
+        var fresh = GBTabs.state.tabs.filter(function (tab) {
+          return tab.fresh && Date.now() - tab.fresh < 300000;
+        });
         if (localStamp && serverStamp && localStamp >= serverStamp) {
           GBTabs.state.tabs = capTabs(local.tabs);
           persistToServer(GBTabs.state.tabs);
         } else {
           GBTabs.state.tabs = capTabs(serverTabs);
-          writeLocal(GBTabs.state.tabs);
         }
+        fresh.forEach(function (tab) {
+          if (!GBTabs.state.tabs.some(function (known) { return known.id === tab.id; })) {
+            GBTabs.state.tabs.push(tab);
+          }
+        });
+        if (GBTabs.state.activeTabId &&
+            !GBTabs.state.tabs.some(function (tab) { return tab.id === GBTabs.state.activeTabId; })) {
+          GBTabs.state.activeTabId = GBTabs.state.tabs[0] ? GBTabs.state.tabs[0].id : null;
+        }
+        GBTabs.renderStrip();
+        writeLocal(GBTabs.state.tabs);
         maybeActivateFrom(serverStamp || localStamp);
       })
       .catch(function () {

@@ -1885,6 +1885,7 @@ chat-voice-duplex-on = 連続音声がオン — 返答を読み上げ、マイ�
 chat-voice-duplex-off = 連続音声（全二重） — ハンズフリーで話して聞けます。
 chat-ready = 準備完了
 tab-new = 新しいタブ
+tab-more = その他のタブ
 tab-close = タブを閉じる
 drive-download = ダウンロード
 drive-delete = 削除

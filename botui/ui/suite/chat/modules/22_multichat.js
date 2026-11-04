@@ -180,6 +180,12 @@
     div.appendChild(inner);
     msgs.appendChild(div);
     msgs.scrollTop = msgs.scrollHeight;
+    if (sender !== "user") {
+      var cards = div.querySelectorAll(".gb-attachment");
+      for (var ci = 0; ci < cards.length; ci++) {
+        if (typeof vmBindAttachment === "function") vmBindAttachment(cards[ci]);
+      }
+    }
     return div;
   }
 
@@ -237,13 +243,57 @@
       }
       // Restore the canonical ids on the STOCK surface (they were handed to
       // the parallel pane while it was active).
-      var stockMsgs = wrap.querySelector("main[data-mc-stock]");
-      if (stockMsgs) {
-        stockMsgs.id = "messages";
-        stockMsgs.removeAttribute("data-mc-stock");
-        stockMsgs.style.display = ""; // unhide: the stock surface is active again
+      // Exactly one stock message area may carry id="messages". A fragment
+      // re-injection or interrupted switch used to leave a second orphan main;
+      // both then received flex:1 and split the height 50/50, which showed as
+      // a half-height chat with a blank first pane.
+      var allMessageMains = wrap.querySelectorAll("main#messages");
+      for (var dup = allMessageMains.length - 1; dup > 0; dup--) {
+        allMessageMains[dup].remove();
       }
-      var stockSugg = wrap.querySelector("footer .suggestions-container[data-mc-stock]");
+      var stockMsgs = wrap.querySelector("main#messages") ||
+        wrap.querySelector("main[data-mc-stock]");
+      if (!stockMsgs) {
+        var mains = wrap.querySelectorAll("main");
+        for (var mi = 0; mi < mains.length; mi++) {
+          if (!mains[mi].classList.contains("chat-pane-messages") &&
+              mains[mi].id !== "messages") {
+            stockMsgs = mains[mi];
+            break;
+          }
+        }
+      }
+      // Drop any remaining orphan main that is neither the stock area nor a
+      // pane's message list (it would still consume flex space).
+      var leftovers = wrap.querySelectorAll("main");
+      for (var li = 0; li < leftovers.length; li++) {
+        if (leftovers[li] !== stockMsgs &&
+            !leftovers[li].classList.contains("chat-pane-messages") &&
+            leftovers[li].id !== "messages") {
+          leftovers[li].remove();
+        }
+      }
+      if (!stockMsgs) {
+        stockMsgs = document.createElement("main");
+        var footerHost = wrap.querySelector("footer");
+        if (footerHost) wrap.insertBefore(stockMsgs, footerHost);
+        else wrap.appendChild(stockMsgs);
+      }
+      stockMsgs.id = "messages";
+      stockMsgs.removeAttribute("data-mc-stock");
+      stockMsgs.style.display = ""; // unhide: the stock surface is active again
+      // Switching back to Default must bring its conversation back. The stock
+      // DOM can be empty after a parallel pane owned #messages during boot;
+      // reload the stock session once instead of showing a blank page.
+      if (!stockMsgs.childElementCount &&
+          window.ChatState && ChatState.currentSessionId &&
+          stockMsgs.dataset.loadedSession !== ChatState.currentSessionId &&
+          typeof loadSessionHistory === "function") {
+        stockMsgs.dataset.loadedSession = ChatState.currentSessionId;
+        loadSessionHistory(ChatState.currentSessionId);
+      }
+      var stockSugg = wrap.querySelector("footer .suggestions-container[data-mc-stock]") ||
+        wrap.querySelector("footer .suggestions-container:not([id])");
       if (stockSugg) {
         stockSugg.id = "suggestions";
         stockSugg.removeAttribute("data-mc-stock");
@@ -350,13 +400,37 @@
   }
 
   function connectTab(t) {
+    if (!t) return;
+    // A healthy socket must not be replaced: every connect used to mint a new
+    // /api/auth session, so the tab's record and its live socket diverged and
+    // the reply was delivered to a stale conversation.
+    if (t.ws && (t.ws.readyState === WebSocket.OPEN || t.ws.readyState === WebSocket.CONNECTING) && t.sessionId) {
+      return;
+    }
+    // One socket per tab. Calling connect twice (switch + reconnect + boot)
+    // used to leave the previous socket alive, so both handlers rendered the
+    // same reply and output looked mixed between conversations.
+    var generation = (t.wsGeneration || 0) + 1;
+    t.wsGeneration = generation;
+    if (t.ws) {
+      try {
+        t.ws.onmessage = null;
+        t.ws.onclose = null;
+        t.ws.close();
+      } catch (e) { /* already closed */ }
+      t.ws = null;
+    }
     var headers = {};
     var tok = token();
     if (tok) headers["Authorization"] = "Bearer " + tok;
-    fetch("/api/auth?bot_name=" + encodeURIComponent(resolveBotName()), { headers: headers })
+    // Reuse the tab's session on reconnect; without session_id the auth
+    // endpoint mints a fresh conversation and the old one is orphaned.
+    var authUrl = "/api/auth?bot_name=" + encodeURIComponent(resolveBotName());
+    if (t.sessionId) authUrl += "&session_id=" + encodeURIComponent(t.sessionId);
+    fetch(authUrl, { headers: headers })
       .then(function (r) { return r.json(); })
       .then(function (auth) {
-        if (!t || MC.tabs[t.id] !== t) return;
+        if (!t || MC.tabs[t.id] !== t || t.wsGeneration !== generation) return;
         if (t.sessionId && auth.session_id && requestedSessionRebind(t)) {
           /* keep stored binding */
         }
@@ -380,21 +454,44 @@
         t.ws = ws;
 
         ws.onmessage = function (event) {
+          if (t.wsGeneration !== generation) return;
           try {
             var data = JSON.parse(event.data);
             if (data.type === "connected") return;
+            clearTabAck(t);
             if (data.event) return; // run events route elsewhere
-            if (data.message_type === 2) handleBotFrame(t, data);
+            if (data.message_type === 2) {
+              if (typeof window.clearChatPending === "function") window.clearChatPending();
+              handleBotFrame(t, data);
+            }
             // The stock socket executes UI plans in chat-websocket.js; a
             // parallel tab has its own socket and used to drop the frame, so
             // "open Weather" answered but never opened the window (#1691).
             if (data.message_type === 9 && data.plan && window.GBUiOrchestrator) {
               window.GBUiOrchestrator.executePlan(data.plan);
             }
+            // Structured surfaces and HTML apps arrive as CUSTOM frames. The
+            // stock socket handled them; a parallel tab used to drop them, so
+            // show_app produced an upload but nothing appeared in the chat.
+            if (data.type === "CUSTOM" && data.data) {
+              if (typeof window.clearChatPending === "function") window.clearChatPending();
+              var paneRoot = t.pane && t.pane.querySelector(".chat-pane-messages");
+              var name = data.data.name;
+              if (name === "gb.app" && window.AppFrame) {
+                window.AppFrame.renderFromFrame(data, paneRoot);
+              } else if ((name === "gb.surface" || name === "gb.plan") && window.SurfaceRenderer) {
+                window.SurfaceRenderer.renderFromFrame(data, paneRoot);
+              } else if (name === "gb.question" && window.SurfaceRenderer) {
+                window.SurfaceRenderer.renderQuestion(data, paneRoot);
+              } else if (name === "gb.surface_update" && window.SurfaceRenderer) {
+                window.SurfaceRenderer.applyUpdate(data);
+              }
+            }
           } catch (e) { /* ignore malformed frame */ }
         };
 
         ws.onclose = function () {
+          if (t.wsGeneration !== generation) return;
           if (MC.tabs[t.id] !== t) return;
           // Bounded reconnect so a downed server cannot spin forever.
           t.reconnects = (t.reconnects || 0) + 1;
@@ -408,6 +505,7 @@
         };
 
         ws.onopen = function () {
+          if (t.wsGeneration !== generation) return;
           t.reconnects = 0;
           if (t.needsHistoryReplay && t.sessionId) {
             t.needsHistoryReplay = false;
@@ -441,14 +539,27 @@
         var msgs = t.pane && t.pane.querySelector(".chat-pane-messages");
         if (msgs) msgs.innerHTML = "";
         t.scrollback = [];
+        var previousRole = "";
+        var previousContent = "";
         data.messages.forEach(function (m) {
           var sender = m.role === "user" ? "user" : "bot";
+          if (sender === "bot" && previousRole === "bot" && previousContent === m.content) {
+            return;
+          }
+          previousRole = sender;
+          previousContent = m.content;
           pushScrollback(t, sender, m.content);
           appendToContainer(t.pane, sender, m.content);
         });
         // Bind the cards and list any output/ file the model did not link.
         if (typeof hydrateVmAttachments === "function") {
           hydrateVmAttachments(t.pane);
+        }
+        if (typeof snapToBottom === "function") {
+          setTimeout(snapToBottom, 250);
+        }
+        if (typeof stickToBottom === "function") {
+          stickToBottom(2500);
         }
         schedulePersist();
       })
@@ -533,6 +644,51 @@
 
   /* ── Sending from a specific tab ── */
 
+  function clearTabAck(t) {
+    if (!t) return;
+    if (t.ackTimer) {
+      clearTimeout(t.ackTimer);
+      t.ackTimer = null;
+    }
+    t.pendingAck = null;
+  }
+
+  // A tab socket can look OPEN after a server restart and still drop the
+  // frame. Arm a short delivery guard: if no frame comes back, reconnect and
+  // resend once so a message never disappears silently.
+  function armTabAck(t, payload) {
+    if (!t) return;
+    clearTabAck(t);
+    var ack = { payload: payload, attempts: 1 };
+    t.pendingAck = ack;
+    function expire() {
+      if (t.pendingAck !== ack) return;
+      // An OPEN socket with no frame is usually a slow model, not a lost
+      // message. Reconnecting here resent the prompt and produced two
+      // answers. Only retry when the socket is actually closed.
+      if (t.ws && t.ws.readyState === WebSocket.OPEN) {
+        t.pendingAck = null;
+        return;
+      }
+      if (ack.attempts >= 2) {
+        t.pendingAck = null;
+        if (typeof notify === "function") {
+          notify("Message not delivered — reconnecting. Please try again.", "error");
+        }
+        return;
+      }
+      ack.attempts += 1;
+      try {
+        if (t.ws && t.ws.readyState < WebSocket.CLOSING) t.ws.close();
+      } catch (e) { /* already closed */ }
+      t.pending = t.pending || [];
+      t.pending.push(ack.payload);
+      connectTab(t);
+      t.ackTimer = setTimeout(expire, 8000);
+    }
+    t.ackTimer = setTimeout(expire, 7000);
+  }
+
   MC.sendInTab = function (tabId, text, file) {
     var t = MC.tabs[tabId];
     if (!t) return;
@@ -544,6 +700,9 @@
     // session — parallel tabs shared one history. The tab's own socket is
     // connected with the tab's session id.
     var display = text || ("📎 " + file.name);
+    if (typeof window.armChatPending === "function") {
+      window.armChatPending(text || (file && file.name) || "");
+    }
     appendToContainer(t.pane, "user", display);
     pushScrollback(t, "user", display);
     schedulePersist();
@@ -562,7 +721,13 @@
     function dispatch() {
       t.pending = t.pending || [];
       if (t.ws && t.ws.readyState === WebSocket.OPEN) {
-        t.ws.send(JSON.stringify(payload));
+        try {
+          t.ws.send(JSON.stringify(payload));
+          armTabAck(t, payload);
+        } catch (e) {
+          t.pending.push(payload);
+          connectTab(t);
+        }
       } else {
         t.pending.push(payload);
         if (!t.ws || t.ws.readyState >= WebSocket.CLOSING) connectTab(t);
@@ -657,6 +822,10 @@
     var tab = e && e.detail && e.detail.tab;
     if (!tab || !window.GBTabs) return;
     if (tab.id === "tab-default") {
+      // Clicking Default while a parallel pane is still mounted must restore
+      // the stock surface even if MC.activeId was already tab-default.
+      var def = MC.tabs["tab-default"];
+      if (def) mountActive(def);
       if (MC.activeId !== tab.id) switchTo(tab.id);
       return;
     }
@@ -671,6 +840,7 @@
       return;
     }
     if (MC.activeId !== tab.id) switchTo(tab.id);
+    else mountActive(t);
   });
 
   // A bot switch (ChatSwitchBot) re-authenticates and mints a new session in
@@ -684,6 +854,15 @@
     GBTabs.state.tabs.forEach(function (st) {
       if (st.id === "tab-default") st.sessionId = sid;
     });
+    // The auth callback sets the session AFTER the chat module boots, so the
+    // boot-time history check found no session and the conversation stayed
+    // blank. Replay it here, once per session.
+    var stock = ensureStockSurface();
+    if (stock && !stock.childElementCount && typeof loadSessionHistory === "function" &&
+        stock.dataset.loadedSession !== sid) {
+      stock.dataset.loadedSession = sid;
+      loadSessionHistory(sid);
+    }
     if (typeof GBTabs.schedulePersist === "function") GBTabs.schedulePersist();
   });
 
@@ -745,7 +924,7 @@
       seen[st.sessionId] = true;
       kept.push(st);
     });
-    while (kept.length > 6) kept.splice(kept.length - 1, 1);
+    while (kept.length > 10) kept.splice(kept.length - 1, 1);
     if (kept.length !== GBTabs.state.tabs.length) {
       GBTabs.state.tabs = kept;
       if (typeof GBTabs.schedulePersist === "function") GBTabs.schedulePersist();
@@ -811,6 +990,64 @@
 
   var _started = false;
   var _bootId = null;
+  var BOOT_AT = Date.now();
+
+  // Reloads start from the canonical Default conversation. Restoring old
+  // parallel tabs reconnected stale sockets/sessions and produced mixed
+  // output, blank panes and ghost tabs. Tabs created after this boot are kept.
+  // Guarantee the stock conversation has a message area. A previous pane
+  // switch can remove every <main>, leaving the composer glued under the tabs.
+  function ensureStockSurface() {
+    var wrap = wrapper();
+    if (!wrap) return null;
+    var footer = wrap.querySelector("footer");
+    var stock = wrap.querySelector("main#messages");
+    if (!stock) {
+      var mains = wrap.querySelectorAll("main");
+      for (var i = 0; i < mains.length; i++) {
+        if (!mains[i].classList.contains("chat-pane-messages")) {
+          stock = mains[i];
+          break;
+        }
+      }
+    }
+    if (!stock) {
+      stock = document.createElement("main");
+      if (footer) wrap.insertBefore(stock, footer);
+      else wrap.appendChild(stock);
+    }
+    stock.id = "messages";
+    stock.style.display = "";
+    var all = wrap.querySelectorAll("main");
+    for (var j = 0; j < all.length; j++) {
+      if (all[j] !== stock && !all[j].classList.contains("chat-pane-messages")) {
+        all[j].remove();
+      }
+    }
+    return stock;
+  }
+
+  function pruneRestoredTabs() {
+    if (!window.GBTabs || !GBTabs.state || !Array.isArray(GBTabs.state.tabs)) return;
+    var keep = GBTabs.state.tabs.filter(function (tab) {
+      return tab.id === "tab-default" || (tab.fresh && tab.fresh > BOOT_AT + 1500);
+    });
+    if (keep.length === GBTabs.state.tabs.length) return;
+    GBTabs.state.tabs = keep;
+    if (!keep.some(function (tab) { return tab.id === GBTabs.state.activeTabId; })) {
+      GBTabs.state.activeTabId = "tab-default";
+    }
+    Object.keys(MC.tabs || {}).forEach(function (id) {
+      if (id === "tab-default") return;
+      if (!keep.some(function (tab) { return tab.id === id; })) {
+        var rec = MC.tabs[id];
+        if (rec && rec.ws) { try { rec.ws.close(); } catch (e) {} }
+        delete MC.tabs[id];
+      }
+    });
+    GBTabs.renderStrip();
+  }
+
   MC.start = function () {
     installStockRenderGuard();
     // Track the window injection we booted against: the WM re-injects the
@@ -855,6 +1092,18 @@
     // surface (it was not in MC.tabs).
     var orig = GBTabs.defaultTab();
     if (!GBTabs.state.tabs.length) GBTabs.activate();
+    // The first tab must be the canonical `tab-default`, not whichever
+    // conversation happened to be first in the persisted order. Marking a
+    // parallel tab as `usesStockDom` mixed its output with the stock session.
+    var defaultIndex = -1;
+    for (var di = 0; di < GBTabs.state.tabs.length; di++) {
+      if (GBTabs.state.tabs[di].id === "tab-default") { defaultIndex = di; break; }
+    }
+    if (defaultIndex === -1) {
+      GBTabs.state.tabs.unshift(orig);
+    } else if (defaultIndex > 0) {
+      GBTabs.state.tabs.splice(0, 0, GBTabs.state.tabs.splice(defaultIndex, 1)[0]);
+    }
     var first = GBTabs.state.tabs[0] || GBTabs.createTab({ kind: "chat", title: orig.title, pinned: true });
     // The default tab represents the session the server minted for THIS page
     // load. A persisted tab kept the previous conversation's id, and the
@@ -874,9 +1123,24 @@
     t.usesStockDom = true;
     t.pane = null;
     MC.activeId = first.id;
+    pruneRestoredTabs();
+    var stockSurface = ensureStockSurface();
+    if (stockSurface && !stockSurface.childElementCount &&
+        window.ChatState && ChatState.currentSessionId &&
+        stockSurface.dataset.loadedSession !== ChatState.currentSessionId &&
+        typeof loadSessionHistory === "function") {
+      stockSurface.dataset.loadedSession = ChatState.currentSessionId;
+      loadSessionHistory(ChatState.currentSessionId);
+    }
+    // Reconcile the DOM with the stock tab: a previous injection may have
+    // left a parallel pane mounted while the record already said default.
+    if (t && t.usesStockDom) mountActive(t);
     var restored = restore();
     pruneTabs();
     syncTabTitles();
+    // The composer must be routed from the very first send after a reload,
+    // not only after the user clicks a tab.
+    installSendRouter();
     // Boot always lands on the default tab. A restored parallel tab used to
     // come back as the active tab while ChatState carried the freshly minted
     // session; frames were then stamped with the OLD conversation id and new
@@ -909,6 +1173,11 @@
         if (MC.activeId !== rec.id && !MC.activeId) MC.activeId = rec.id;
       }
     }
+    // The server merge resolves later and can re-add persisted tabs; prune
+    // again so only this boot's Default and new tabs survive.
+    setTimeout(pruneRestoredTabs, 2000);
+    setTimeout(pruneRestoredTabs, 5000);
+
     // Drop MC records whose state tab vanished (cap pruning, remote delete).
     Object.keys(MC.tabs).forEach(function (id) {
       if (id === "tab-default") return;

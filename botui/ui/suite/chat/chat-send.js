@@ -4,6 +4,30 @@
 
 // #1691 — the server needs the client's real surfaces and the Preview-mode
 // switch to advertise only the applications this session can actually use.
+// Visible waiting state + one retry hint. The provider can return 503 and
+// retry for a while; without this the chat looked dead.
+function clearChatPending() {
+  ChatState.pendingResponseAt = null;
+  if (ChatState.responseWatchdog) {
+    clearTimeout(ChatState.responseWatchdog);
+    ChatState.responseWatchdog = null;
+  }
+  if (typeof setChatStatus === "function") setChatStatus("");
+}
+window.clearChatPending = clearChatPending;
+
+function armChatPending(text) {
+  clearChatPending();
+  ChatState.pendingResponseAt = Date.now();
+  ChatState.pendingText = text || "";
+  ChatState.responseWatchdog = setTimeout(function () {
+    if (!ChatState.pendingResponseAt || ChatState.isStreaming) return;
+    if (typeof setChatStatus === "function") {
+      setChatStatus("Waiting for the model… the provider may be busy.");
+    }
+  }, 12000);
+}
+
 function clientCapabilities() {
   return {
     surfaces: ["text", "ui_plan"],
@@ -42,6 +66,9 @@ function sendMessage(messageContent, extra) {
   }
 
   addMessage("user", content || ("📎 " + file.name));
+  // Sending always returns the view to the live edge.
+  ChatState.isUserScrolling = false;
+  scrollToBottom(false);
 
   var selectedMentions = Array.isArray(ChatState.selectedMentions) ? ChatState.selectedMentions : [];
   ChatState.selectedMentions = [];
@@ -147,6 +174,7 @@ function sendMessage(messageContent, extra) {
   var finalSend = function () {
     var sentPayload = payload;
     ChatState.ws.send(JSON.stringify(sentPayload));
+    armChatPending(content || file?.name || "");
     // Delivery guard: a send that never reaches the server used to look like a
     // bot that ignores the user. Watch for any frame of this conversation for
     // a few seconds; if nothing arrives, reopen the socket and resend once.

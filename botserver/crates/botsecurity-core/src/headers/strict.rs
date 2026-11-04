@@ -210,10 +210,11 @@ pub(super) fn apply_security_headers(response: &mut Response, config: &SecurityH
 
     if let Some(ref xfo) = config.x_frame_options {
         if let Ok(value) = HeaderValue::from_str(xfo) {
-            headers.insert(
-                HeaderName::from_static("x-frame-options"),
-                value,
-            );
+            // A handler-scoped policy wins: same-origin file previews must be
+            // embeddable in the chat (the global default is DENY).
+            headers
+                .entry(HeaderName::from_static("x-frame-options"))
+                .or_insert(value);
         }
     }
 

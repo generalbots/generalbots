@@ -1885,6 +1885,7 @@ chat-voice-duplex-on = Voix continue activée — les réponses sont lues et le 
 chat-voice-duplex-off = Voix continue (duplex intégral) — parlez et écoutez sans les mains.
 chat-ready = Prêt
 tab-new = Nouvel onglet
+tab-more = Plus d'onglets
 tab-close = Fermer l'onglet
 drive-download = Télécharger
 drive-delete = Supprimer

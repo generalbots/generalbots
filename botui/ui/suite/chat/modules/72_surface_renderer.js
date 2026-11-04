@@ -525,6 +525,12 @@
             var component = resolve(raw, dataModel);
             body.appendChild(renderComponent(component, context, onSubmit));
         });
+        // A form whose heading repeats the card title printed it twice
+        // ("Before we start" over "Before we start").
+        var surfaceTitle = String(surface.title || "").trim();
+        body.querySelectorAll(".surface-form > h4").forEach(function (heading) {
+            if (heading.textContent.trim() === surfaceTitle) heading.hidden = true;
+        });
         wrapper.appendChild(body);
         if (surface.surface_id) {
             mounted[surface.surface_id] = {
@@ -560,7 +566,7 @@
         }
     }
 
-    function renderFromFrame(frame) {
+    function renderFromFrame(frame, rootEl) {
         var payload = frame && frame.data ? frame.data.payload || {} : {};
         var surface = payload.surface;
         if (!surface && Array.isArray(payload.steps)) {
@@ -580,14 +586,14 @@
         }
         if (!surface) surface = payload;
         var fallback = payload.fallback || surface.fallback || generateFallback(surface);
-        var root = document.getElementById("messages");
+        var root = rootEl || document.getElementById("messages");
         if (!root) return null;
         var card = render(surface, fallback, defaultSubmit);
         root.appendChild(card);
         return card;
     }
 
-    function renderQuestion(frame) {
+    function renderQuestion(frame, rootEl) {
         var payload = frame && frame.data ? frame.data.payload || {} : {};
         var fields = Array.isArray(payload.fields) ? payload.fields : [];
         var surface = {
@@ -603,7 +609,7 @@
             }],
             fallback: payload.fallback || "",
         };
-        var root = document.getElementById("messages");
+        var root = rootEl || document.getElementById("messages");
         if (!root) return null;
         var card = render(surface, surface.fallback, function (detail) {
             detail.question_id = surface.surface_id;

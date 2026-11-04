@@ -43,8 +43,8 @@ pub(crate) async fn consume_sse_stream(
                 Ok(Some(Err(e))) => return Err(format!("Stream error: {}", e).into()),
                 Ok(None) => break,
                 Err(_) => {
-                    log::error!("LLM stream idle timeout after 5s (no data received)");
-                    return Err("LLM stream idle timeout after 5s".into());
+                    log::error!("LLM stream idle timeout (no data received)");
+                    return Err("LLM stream idle timeout".into());
                 }
             };
             let chunk_str = String::from_utf8_lossy(&chunk_result);

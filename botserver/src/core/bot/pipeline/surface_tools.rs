@@ -278,6 +278,40 @@ async fn run_propose_plan(identity: &SessionIdentity<'_>, args: &str) {
             issues.push(format!("steps[{index}].title is required"));
         }
     }
+    // Optional decisions: a plan that needs input should ask for it in the
+    // same turn instead of ending with a paragraph the reader must answer by
+    // hand. Fields use the same schema as ask_user.
+    let mut question_fields = match parsed.get("questions") {
+        Some(Value::Array(items)) => items.clone(),
+        Some(_) => {
+            issues.push("questions must be an array".to_string());
+            Vec::new()
+        }
+        None => Vec::new(),
+    };
+    for (index, field) in question_fields.iter().enumerate() {
+        let Some(object) = field.as_object() else {
+            issues.push(format!("questions[{index}] must be an object"));
+            continue;
+        };
+        if object.get("id").and_then(Value::as_str).map(str::trim).unwrap_or("").is_empty() {
+            issues.push(format!("questions[{index}].id is required"));
+        }
+        let kind = object.get("type").and_then(Value::as_str).unwrap_or("text");
+        if !matches!(kind, "text" | "textarea" | "select" | "number" | "date" | "email") {
+            issues.push(format!("questions[{index}].type '{kind}' is not supported"));
+        }
+    }
+    if !question_fields.is_empty() {
+        // Never ask again for a field this thread already answered.
+        let answered = answered_in_thread(&identity.session_id.to_string());
+        if !answered.is_empty() {
+            question_fields.retain(|field| {
+                let id = field.get("id").and_then(Value::as_str).unwrap_or("");
+                !answered.contains_key(id)
+            });
+        }
+    }
     if !issues.is_empty() {
         invalid(identity, "propose_plan", &issues).await;
         return;
@@ -324,9 +358,46 @@ async fn run_propose_plan(identity: &SessionIdentity<'_>, args: &str) {
         }),
     )
     .await;
+    if question_fields.is_empty() {
+        crate::core::bot::runs::bus::bus()
+            .thread(&identity.session_id.to_string())
+            .set_state(botevents::RunState::WaitingApproval);
+        return;
+    }
+    let question_title = parsed
+        .get("question_title")
+        .and_then(Value::as_str)
+        .unwrap_or("Before we start");
+    let labels: Vec<String> = question_fields
+        .iter()
+        .filter_map(|field| field.get("label").and_then(Value::as_str).map(str::to_string))
+        .collect();
+    let question_fallback = format!("{question_title}: {}", labels.join("; "));
+    {
+        let SessionIdentity {
+            state,
+            session_id,
+            user_id,
+            ..
+        } = *identity;
+        let text = format!("{question_title}\n{question_fallback}");
+        persist(state, session_id, user_id, &text).await;
+    }
+    emit_custom(
+        identity,
+        "gb.question",
+        json!({
+            "question_id": uuid::Uuid::new_v4().to_string(),
+            "title": question_title,
+            "fields": question_fields,
+            "blocking": true,
+            "fallback": question_fallback,
+        }),
+    )
+    .await;
     crate::core::bot::runs::bus::bus()
         .thread(&identity.session_id.to_string())
-        .set_state(botevents::RunState::WaitingApproval);
+        .set_state(botevents::RunState::WaitingInput);
 }
 
 async fn run_show_surface(identity: &SessionIdentity<'_>, args: &str) {

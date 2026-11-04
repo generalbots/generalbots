@@ -1885,6 +1885,7 @@ chat-voice-duplex-on = Voz continua activa — las respuestas se leen y el micr�
 chat-voice-duplex-off = Voz continua (duplex completo) — habla y escucha sin usar las manos.
 chat-ready = Listo
 tab-new = Nueva pestaña
+tab-more = Más pestañas
 tab-close = Cerrar pestaña
 drive-download = Descargar
 drive-delete = Eliminar

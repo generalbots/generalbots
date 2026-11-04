@@ -76,6 +76,8 @@
 
     function mountFrame(host) {
         if (host.frame) return;
+        host.poster.hidden = true;
+        host.mountedAt = Date.now();
         var payload = host.payload;
         var source = payload.url;
         if (!source && payload.html_base64) {
@@ -104,6 +106,13 @@
         frame.addEventListener("load", function () {
             host.status.textContent = "Starting…";
             sendInitialize(host);
+            // Most generated apps do not implement the JSON-RPC handshake;
+            // "Starting…" must not be the permanent label of a working app.
+            setTimeout(function () {
+                if (host.status.textContent === "Starting…") {
+                    host.status.textContent = "Running";
+                }
+            }, 1200);
         });
         host.body.appendChild(frame);
         host.frame = frame;
@@ -253,8 +262,8 @@
         }
     }
 
-    function render(payload) {
-        var root = document.getElementById("messages");
+    function render(payload, rootEl) {
+        var root = rootEl || document.getElementById("messages");
         if (!root || !payload) return null;
         var host = createFrameHost(payload);
         host.card._gbAppHost = host;
@@ -268,6 +277,7 @@
             host.card.classList.toggle("expanded");
         });
         host.card.querySelector(".gb-app-btn:nth-of-type(3)").addEventListener("click", function () {
+            host.stopped = true;
             unloadFrame(host);
             host.status.textContent = "Stopped";
             host.poster.hidden = true;
@@ -280,7 +290,18 @@
         if ("IntersectionObserver" in window) {
             host.observer = new IntersectionObserver(function (entries) {
                 entries.forEach(function (entry) {
-                    if (!entry.isIntersecting && host.frame) unloadFrame(host);
+                    if (entry.isIntersecting) {
+                        // A freshly appended card starts below the fold and was
+                        // unloaded before the transcript scrolled; it must come
+                        // back when it enters the viewport, not wait for a click.
+                        if (!host.stopped && !host.frame) mountFrame(host);
+                        return;
+                    }
+                    // Do not unload in the first seconds: the card is appended
+                    // before the chat scrolls to the new message.
+                    if (host.frame && Date.now() - (host.mountedAt || 0) > 2500) {
+                        unloadFrame(host);
+                    }
                 });
             }, { rootMargin: "200px" });
             host.observer.observe(host.card);
@@ -293,9 +314,9 @@
 
     window.AppFrame = {
         render: render,
-        renderFromFrame: function (frame) {
+        renderFromFrame: function (frame, rootEl) {
             var payload = frame && frame.data ? frame.data.payload || {} : {};
-            return render(payload);
+            return render(payload, rootEl);
         },
         liveCount: function () { return live.length; },
         context: function (surfaceId) { return contextStore[surfaceId] || null; },

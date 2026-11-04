@@ -120,7 +120,7 @@ function proceedWithChatInit() {
       }));
 
       var readyToConnect = requestedSession
-        ? loadSessionHistory(requestedSession)
+        ? loadSessionHistory(requestedSession, true)
         : Promise.resolve();
       readyToConnect.then(function () {
 
@@ -282,6 +282,31 @@ scrollBtn.addEventListener("click", function () { scrollToBottom(true); ChatStat
 
 var messagesEl = document.getElementById("messages");
 if (messagesEl) {
+// Async layout (iframe artifacts, suggestions, footer resize) changes the
+// viewport after the initial scroll. Stay pinned while the reader is near the
+// live edge; a deliberate scroll further up is left alone.
+if (window.ResizeObserver) {
+  var liveEdgeObserver = new ResizeObserver(function () {
+    var box = document.getElementById("messages");
+    if (!box) return;
+    if (box.scrollHeight - box.scrollTop - box.clientHeight < 320) {
+      box.scrollTop = box.scrollHeight;
+    }
+  });
+  liveEdgeObserver.observe(messagesEl);
+}
+if (window.MutationObserver) {
+  var liveEdgeMutations = new MutationObserver(function () {
+    requestAnimationFrame(function () {
+      var box = document.getElementById("messages");
+      if (!box) return;
+      if (box.scrollHeight - box.scrollTop - box.clientHeight < 320) {
+        box.scrollTop = box.scrollHeight;
+      }
+    });
+  });
+  liveEdgeMutations.observe(messagesEl, { childList: true, subtree: true });
+}
 messagesEl.addEventListener("scroll", function () {
 ChatState.isUserScrolling = true;
 updateScrollButton();

@@ -1885,6 +1885,7 @@ chat-voice-duplex-on = 连续语音已开启 — 回复会被朗读并重新开�
 chat-voice-duplex-off = 连续语音（全双工）— 免提说话和收听。
 chat-ready = 就绪
 tab-new = 新标签页
+tab-more = 更多标签页
 tab-close = 关闭标签页
 drive-download = 下载
 drive-delete = 删除

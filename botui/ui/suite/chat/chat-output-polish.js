@@ -45,12 +45,21 @@ function polishOutputBlocks(el) {
     var text = g
       .map(function (u) { return u.text; })
       .join("\n")
-      .replace(/\n{2,}/g, "\n")
-      .replace(/^\s+|\s+$/g, "");
+      .split("\n")
+      .map(function (line) { return line.trim(); })
+      // Tool logs end with "Files" and empty "-" bullets; they carry no
+      // information once the file cards are rendered below.
+      .filter(function (line) {
+        return line && !/^files$/i.test(line) && !/^-+$/.test(line);
+      })
+      .join("\n")
+      .replace(/\n{2,}/g, "\n");
     if (!text) return;
-    var card = document.createElement("div");
+    // Collapsed by default: the run is evidence, not the answer. The reader
+    // opens it only when diagnosing the workspace step.
+    var card = document.createElement("details");
     card.className = "gb-console";
-    var head = document.createElement("div");
+    var head = document.createElement("summary");
     head.className = "gb-console-head";
     head.textContent = "workspace run";
     var pre = document.createElement("pre");

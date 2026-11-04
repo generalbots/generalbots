@@ -339,6 +339,7 @@ pub(super) const TRANSLATION_KEYS: &[&str] = &[
     "chat-voice-duplex-off",
     "chat-ready",
     "tab-new",
+    "tab-more",
     "tab-close",
     "sidebar-conversations",
     "sidebar-pinned",

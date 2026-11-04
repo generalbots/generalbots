@@ -223,6 +223,18 @@ function dialChatSocket(seq) {
         }
       }
 
+      // While a parallel conversation tab is active, the stock socket's
+      // replies belong to the default conversation and must not paint into
+      // the parallel pane (that was the "output from one process in another"
+      // symptom). They are stored server-side and reappear on the default tab.
+      var parallelActive = window.GBMultiChat && GBMultiChat.activeId &&
+        GBMultiChat.activeId !== "tab-default";
+      if (parallelActive &&
+          (data.message_type === MessageType.BOT_RESPONSE ||
+           data.message_type === MessageType.UI_ACTION)) {
+        return;
+      }
+
       if (data.message_type === MessageType.BOT_RESPONSE) {
         var contentPreview = data.content ? data.content.substring(0, 200) : '(empty)';
         console.log("[WS] processMessage: complete=" + data.is_complete + " content_preview=" + contentPreview);

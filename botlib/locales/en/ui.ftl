@@ -1891,6 +1891,7 @@ chat-voice-duplex-on = Continuous voice on — replies are spoken and the mic re
 chat-voice-duplex-off = Continuous voice (full duplex) — speak and listen hands-free.
 chat-ready = Ready
 tab-new = New tab
+tab-more = More tabs
 tab-close = Close tab
 drive-download = Download
 drive-delete = Delete

@@ -1885,6 +1885,7 @@ chat-voice-duplex-on = Dauersprachmodus aktiv — Antworten werden vorgelesen un
 chat-voice-duplex-off = Dauersprachmodus (Vollduplex) — freihändig sprechen und zuhören.
 chat-ready = Bereit
 tab-new = Neuer Tab
+tab-more = Weitere Tabs
 tab-close = Tab schließen
 drive-download = Herunterladen
 drive-delete = Löschen

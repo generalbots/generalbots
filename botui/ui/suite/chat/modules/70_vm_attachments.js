@@ -271,9 +271,16 @@ function vmToggleInlinePreview(card, url, path, convId) {
     body.appendChild(img);
   } else if (kind === "pdf" || kind === "html") {
     var frame = document.createElement("iframe");
-    // No scripts and no same-origin: sanitized HTML cannot execute, and the
-    // PDF viewer cannot reach the host page.
-    frame.setAttribute("sandbox", "");
+    // Interactive HTML artifacts (infographics, charts, dashboards) need
+    // scripts and get an opaque origin: they cannot read the suite DOM,
+    // cookies or storage. A PDF must NOT be sandboxed — Chrome refuses to run
+    // its built-in viewer inside a sandboxed frame and shows a broken-file
+    // icon. The PDF response is application/pdf + nosniff, so it cannot
+    // execute as the parent origin.
+    if (kind === "html") {
+      frame.setAttribute("sandbox", "allow-scripts allow-forms allow-modals");
+    }
+    frame.setAttribute("referrerpolicy", "no-referrer");
     frame.setAttribute("title", name);
     frame.src = url;
     body.appendChild(frame);
@@ -417,6 +424,22 @@ function vmBindAttachment(card) {
   urlFor().catch(function () {
     /* resolved again on click */
   });
+  // A generated HTML infographic should land on the chat surface, not hide
+  // behind a Preview button. Auto-open only when this card belongs to the
+  // newest bot message, so history stays quiet.
+  if (/\.html?$/i.test(fileName)) {
+    var message = card.closest(".message");
+    var botMessages = document.querySelectorAll("#messages .message.bot");
+    var newest = botMessages.length ? botMessages[botMessages.length - 1] : null;
+    if (message && newest === message) {
+      setTimeout(function () {
+        var preview = card.querySelector(".gb-attachment-preview");
+        if (preview && !card.querySelector(".gb-attachment-inline")) {
+          preview.click();
+        }
+      }, 350);
+    }
+  }
   if (nameLink) {
     nameLink.addEventListener("click", function (e) {
       // Before the first resolve the href is still "#": keep the browser on

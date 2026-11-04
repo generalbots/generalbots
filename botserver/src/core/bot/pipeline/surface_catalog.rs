@@ -56,12 +56,17 @@ const SURFACE_TOOLS: &[SurfaceToolEntry] = &[
                 "[{\"title\": \"…\", \"description\": \"…\"}] — three or more stages",
             ),
             ("title", "plan title"),
+            (
+                "questions",
+                "[{\"id\": \"language\", \"label\": \"Which language?\", \"type\": \"select\", \"options\": [\"English\", \"Portuguese\"]}] — optional decisions the plan needs; rendered as a form under the plan",
+            ),
+            ("question_title", "heading for the decisions form"),
         ],
         read_only: true,
         destructive: false,
         few_shots: &[(
-            "Plan and then run the migration",
-            "propose_plan with steps, then continue after approval",
+            "Plan a city guide and ask the open questions",
+            "propose_plan with steps and questions (language, audience), then continue after the answers",
         )],
     },
     SurfaceToolEntry {

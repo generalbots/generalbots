@@ -461,6 +461,10 @@ pub async fn vm_file(
                         axum::http::header::CACHE_CONTROL,
                         "private, max-age=60".to_string(),
                     ),
+                    (
+                        axum::http::header::X_FRAME_OPTIONS,
+                        "SAMEORIGIN".to_string(),
+                    ),
                 ],
                 html,
             )
@@ -517,6 +521,9 @@ pub async fn vm_file(
                 (axum::http::header::CONTENT_TYPE, mime.to_string()),
                 (axum::http::header::CONTENT_DISPOSITION, disposition),
                 (axum::http::header::CACHE_CONTROL, "private, max-age=60".to_string()),
+                // The chat previews PDFs/images in a same-origin iframe; the
+                // global DENY made that preview a blank broken-file box.
+                (axum::http::header::X_FRAME_OPTIONS, "SAMEORIGIN".to_string()),
             ],
             bytes,
         )

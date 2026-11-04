@@ -1885,6 +1885,7 @@ chat-voice-duplex-on = 연속 음성이 켜졌습니다 — 응답을 읽고 마
 chat-voice-duplex-off = 연속 음성(전이중) — 손을 사용하지 않고 말하고 들으세요.
 chat-ready = 준비됨
 tab-new = 새 탭
+tab-more = 더 많은 탭
 tab-close = 탭 닫기
 drive-download = 다운로드
 drive-delete = 삭제

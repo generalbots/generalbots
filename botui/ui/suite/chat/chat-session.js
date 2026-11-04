@@ -186,9 +186,10 @@ window.ChatSwitchBot = function (botName) {
     });
     ChatState.suppressPersist = false;
     scrollToBottom(false);
+    if (typeof stickToBottom === "function") stickToBottom(2500);
   }
 
-  function loadSessionHistory(sessionId) {
+  function loadSessionHistory(sessionId, replace) {
     var headers = {};
     var tok = window.getGBAccessToken ? window.getGBAccessToken()
       : (localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || localStorage.getItem("management_token"));
@@ -201,13 +202,28 @@ window.ChatSwitchBot = function (botName) {
           return;
         }
         var pane = document.getElementById("messages");
+        // A reply can land while the history request is in flight; never wipe
+        // turns the reader already sees unless this is an explicit open.
+        if (!replace && pane && pane.childElementCount > 0) return;
         if (pane) pane.innerHTML = "";
         ChatState.suppressPersist = true;
+        var previousRole = "";
+        var previousContent = "";
         data.messages.forEach(function (m) {
-          addMessage(m.role === "user" ? "user" : "bot", m.content);
+          var role = m.role === "user" ? "user" : "bot";
+          // The pipeline can persist the same assistant turn twice; do not
+          // replay both bubbles into the conversation.
+          if (role === "bot" && previousRole === "bot" && previousContent === m.content) {
+            return;
+          }
+          previousRole = role;
+          previousContent = m.content;
+          addMessage(role, m.content);
         });
         ChatState.suppressPersist = false;
         scrollToBottom(false);
+        setTimeout(snapToBottom, 250);
+        if (typeof stickToBottom === "function") stickToBottom(2500);
       })
       .catch(function () { restoreLocalHistory(); });
   }
