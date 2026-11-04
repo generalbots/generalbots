@@ -1168,6 +1168,7 @@ version = "6.7.0"
 dependencies = [
  "axum",
  "base64 0.22.1",
+ "botcore",
  "botlib",
  "botschema",
  "botsecurity-core",
