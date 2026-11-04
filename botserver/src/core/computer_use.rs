@@ -221,6 +221,9 @@ pub fn propose_terminal_from_text(text: &str) -> Option<Value> {
     let prefixes = [
         "run the command ",
         "execute the command ",
+        "use vm_exec to run ",
+        "use vm_exec to execute ",
+        "use the terminal to run ",
         "run ",
         "execute ",
         "rode ",
@@ -240,7 +243,40 @@ pub fn propose_terminal_from_text(text: &str) -> Option<Value> {
             .find('`')
             .map(|end| after[..end].trim().to_string())?
     } else {
-        rest.trim_matches(|c: char| c == '"' || c == '\'' || c == '.' || c == ';')
+        // "Run this shell command with vm_exec: ls /nope. Report the exit
+        // code" used to propose the whole sentence as the command. When the
+        // text names a command/vm_exec before a colon, the payload after the
+        // colon is the command; follow-up instructions are cut off.
+        let candidate = match rest.split_once(':') {
+            Some((head, after)) => {
+                let head = head.to_lowercase();
+                if head.contains("command") || head.contains("vm_exec") || head.contains("shell")
+                {
+                    after
+                } else {
+                    rest
+                }
+            }
+            None => rest,
+        };
+        let lower = candidate.to_lowercase();
+        let cut = [
+            ". report",
+            ". show",
+            ". do not",
+            "; report",
+            "; show",
+            " and report ",
+            " and show ",
+            " then ",
+            " do not ",
+        ]
+        .iter()
+        .filter_map(|needle| lower.find(needle))
+        .min()
+        .unwrap_or(candidate.len());
+        candidate[..cut]
+            .trim_matches(|c: char| c == '"' || c == '\'' || c == '.' || c == ';')
             .trim()
             .to_string()
     };
@@ -370,5 +406,21 @@ mod tests {
         assert_eq!(plain["command"], "echo hello");
         assert!(propose_terminal_from_text("what is the weather?").is_none());
         assert!(propose_terminal_from_text("run ").is_none());
+    }
+
+    #[test]
+    fn command_after_colon_excludes_the_follow_up_request() {
+        let proposal = propose_terminal_from_text(
+            "Run this shell command with vm_exec: ls /nope. Report the stdout/stderr \
+             and the exact exit code; do not claim success.",
+        )
+        .expect("a named command must propose a terminal action");
+        assert_eq!(proposal["command"], "ls /nope");
+
+        let chained = propose_terminal_from_text(
+            "Use vm_exec to run the shell command: date; ls -la",
+        )
+        .expect("a chained command must be preserved");
+        assert_eq!(chained["command"], "date; ls -la");
     }
 }
