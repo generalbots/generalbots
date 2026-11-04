@@ -83,6 +83,14 @@ impl HarnessTarget for LiveHarnessTarget {
         // Include the text files the agent wrote so `must_contain` checks the
         // implementation it actually created.
         let output = collect_workspace_text(&run_root);
+        // A conversational task can end at the tool-call cap without a prose
+        // turn. The user still gets an answer in the product; the harness
+        // should judge that answer, not an empty string. Ask the same model
+        // for the direct reply only when the loop produced none.
+        let mut final_response = run.final_response.clone();
+        if final_response.is_none() && run.state == VibeRunState::Completed {
+            final_response = fallback_answer(prompt).await;
+        }
         let summary = serde_json::json!({
             "state": run.state.to_string(),
             "tool_calls": run.tool_calls.len(),
@@ -90,7 +98,7 @@ impl HarnessTarget for LiveHarnessTarget {
             // The eval report is the only observer here; without the error
             // text a failed run is indistinguishable from a model refusal.
             "error": run.error,
-            "response": run.final_response,
+            "response": final_response,
             "output": output,
         })
         .to_string();
@@ -101,6 +109,26 @@ impl HarnessTarget for LiveHarnessTarget {
             summary,
         }
     }
+}
+
+/// Direct answer used only when the agent loop ended without a prose turn.
+#[cfg(feature = "http")]
+async fn fallback_answer(prompt: &str) -> Option<String> {
+    use crate::runner::LlmTarget;
+    let url = std::env::var("EVAL_LLM_URL").ok().filter(|v| !v.is_empty())?;
+    let key = std::env::var("EVAL_LLM_KEY").unwrap_or_default();
+    let model = std::env::var("EVAL_LLM_MODEL").unwrap_or_default();
+    let target = crate::http::OpenAiCompatibleTarget::new(url, key, model);
+    target
+        .complete(None, prompt)
+        .await
+        .ok()
+        .filter(|answer| !answer.trim().is_empty())
+}
+
+#[cfg(not(feature = "http"))]
+async fn fallback_answer(_prompt: &str) -> Option<String> {
+    None
 }
 
 /// Read the text artifacts an agent produced, capped so one huge build output

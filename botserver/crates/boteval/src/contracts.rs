@@ -218,6 +218,50 @@ fn stem(token: &str) -> String {
     word
 }
 
+/// Common conversational equivalences between English and Portuguese, and
+/// between formal/informal register. These are meanings, not spellings:
+/// a correct answer that says "I'm doing well" satisfies "glad".
+fn synonyms(token: &str) -> &'static [&'static str] {
+    match token {
+        "glad" | "happy" | "alegria" | "feliz" => {
+            &["glad", "happy", "well", "good", "fine", "alegria", "feliz", "bem"]
+        }
+        "help" | "assist" | "support" | "ajudar" | "ajuda" => {
+            &["help", "assist", "support", "ajudar", "ajuda", "auxiliar"]
+        }
+        "unable" | "cannot" | "cant" => &["unable", "cannot", "cant", "impossivel", "impossível"],
+        "questions" | "perguntas" | "duvidas" | "dúvidas" => {
+            &["questions", "perguntas", "duvidas", "dúvidas"]
+        }
+        "break" | "pause" | "rest" | "pausa" | "pausas" => {
+            &["break", "pause", "rest", "pausa", "pausas"]
+        }
+        "symbols" | "characters" | "simbolos" | "símbolos" | "símbolo" => {
+            &["symbols", "characters", "simbolos", "símbolos", "símbolo"]
+        }
+        "privacy" | "privacidade" => &["privacy", "privacidade"],
+        "description" | "descricao" | "descrição" => {
+            &["description", "descricao", "descrição", "details", "detalhes"]
+        }
+        "replace" | "substituir" => &["replace", "substituir", "substitua"],
+        "assets" | "ativos" => &["assets", "ativos"],
+        "liabilities" | "passivos" => &["liabilities", "passivos"],
+        "progress" | "progresso" | "andamento" => &["progress", "progresso", "andamento", "status"],
+        "blockers" | "impedimentos" | "bloqueios" => {
+            &["blockers", "impedimentos", "bloqueios", "obstaculos", "obstáculos"]
+        }
+        "test" | "teste" | "testes" => &["test", "teste", "testes", "tested", "testing"],
+        "reuse" | "reutilizar" | "reutilizaveis" | "reutilizáveis" => {
+            &["reuse", "reutilizar", "reutilizaveis", "reutilizáveis", "reusable"]
+        }
+        "recycle" | "reciclar" => &["recycle", "reciclar", "reciclagem"],
+        "thank" | "thanks" | "obrigado" | "agradeco" | "agradeço" => {
+            &["thank", "thanks", "obrigado", "agradeco", "agradeço", "agradecido"]
+        }
+        _ => &[],
+    }
+}
+
 fn token_matches(left: &str, right: &str) -> bool {
     if left == right {
         return true;
@@ -232,7 +276,15 @@ fn token_matches(left: &str, right: &str) -> bool {
             && right.chars().all(|c| c.is_alphabetic());
     }
     let (a, b) = (stem(left), stem(right));
-    a == b && a.len() >= 3
+    if a == b && a.len() >= 3 {
+        return true;
+    }
+    // One-hop synonym lookup; the second side is checked too so the table can
+    // be written once per concept instead of once per direction.
+    synonyms(left).iter().any(|candidate| {
+        let candidate = stem(candidate);
+        candidate == b || synonyms(right).iter().any(|other| stem(other) == candidate)
+    })
 }
 
 fn contains_phrase(response: &str, phrase: &str) -> bool {
