@@ -1,5 +1,8 @@
 /* Inline MCP Apps frame (#1676). */
 .gb-app-card {
+    /* #1676 — the message list is a height-constrained flex column; without
+       this the card is shrunk to 0 px and the iframe becomes invisible. */
+    flex: 0 0 auto;
     border: 1px solid var(--gb-border, #d7dbe2);
     border-radius: 10px;
     margin: 8px 0;
