@@ -45,12 +45,41 @@ Messages are sent and received instantly via WebSocket connection.
 
 ### Voice Input
 
-Click the microphone button to speak your message:
+Two composer controls cover hands-on and hands-free use:
 
-1. Click **🎤** to start recording
-2. Speak your message clearly
-3. Click again to stop
-4. Message converts to text automatically
+| Control | What it does |
+|---------|--------------|
+| 🎤 **Microphone** | Records one utterance, then sends it as an audio attachment. BotModels `faster-whisper` transcribes it server-side (`/api/speech/totext`) and the answer arrives as normal chat. Silence ends the recording automatically. |
+| 🎧 **Full duplex** | Continuously re-arms the microphone after every reply and reads the answer aloud, so you can hold a spoken conversation without touching the keyboard. |
+
+Microphone permission is requested by the browser on first use. If it is
+denied, the composer shows a localized explanation instead of failing
+silently. Recordings are ordinary chat attachments, so they also appear in the
+conversation history and can be transcribed again later.
+
+### Conversation tabs
+
+Each chat window can hold up to ten conversations. The tab strip is pinned
+above the message canvas (CSS `order` keeps it there even when a restored
+workspace re-attaches panes), the composer stays below the messages, and only
+the message list scrolls — the window frame itself no longer grows a second
+scrollbar.
+
+### Attachments
+
+Generated files appear as attachment cards. Clicking the file name opens it in
+a new browser tab: images, PDFs, text, audio and video use the raw file
+endpoint, while Office documents use the sanitized server-side preview. The
+explicit **Download** button keeps the save-to-disk behavior.
+
+### Localization
+
+All desktop chrome (taskbar, Start, search, tray, clock tooltip, sidebar
+sections) and chat controls are tagged with `data-i18n` keys served by
+`GET /api/i18n/{locale}`. Missing keys fall back to the authored English text
+instead of exposing the raw key. The language is chosen in
+**Settings → Language & Region** and applies on the next load; dates and times
+follow the same locale through `GBDateTime`.
 
 ### Quick Suggestions
 

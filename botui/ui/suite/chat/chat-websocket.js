@@ -24,22 +24,30 @@ function updateConnectionStatus(status) {
   if (statusText) {
     switch (status) {
       case "connected":
-        statusText.textContent = "Connected";
+        statusText.textContent = tr("chat-online", "Connected");
         statusEl.style.display = "none";
         if (window.GBAppLifecycle) GBAppLifecycle.setState(null);
         break;
       case "disconnected":
-        statusText.textContent = "Disconnected";
+        statusText.textContent = tr("chat-offline", "Disconnected");
         statusEl.style.display = "flex";
-        if (window.GBAppLifecycle) GBAppLifecycle.setState("error", "Disconnected from server. Reconnecting…");
+        if (window.GBAppLifecycle) GBAppLifecycle.setState("error", tr("chat-offline", "Disconnected"));
         break;
       case "connecting":
-        statusText.textContent = "Connecting...";
+        statusText.textContent = tr("chat-connecting", "Connecting...");
         statusEl.style.display = "flex";
-        if (window.GBAppLifecycle) GBAppLifecycle.setState("loading", "Connecting…");
+        if (window.GBAppLifecycle) GBAppLifecycle.setState("loading", tr("chat-connecting", "Connecting…"));
         break;
     }
   }
+}
+
+function tr(key, fallback) {
+  if (window.i18n && typeof window.i18n.t === "function") {
+    var value = window.i18n.t(key);
+    return value === key ? fallback : value;
+  }
+  return fallback;
 }
 
 // A private bot refuses the WebSocket upgrade with 401, and the browser

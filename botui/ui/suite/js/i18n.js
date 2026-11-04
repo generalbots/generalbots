@@ -6,7 +6,7 @@
   // Languages rendered right-to-left; the document dir attribute follows.
   const RTL_LANGUAGES = ["ar", "he", "fa", "ur"];
   const STORAGE_KEY = "gb-locale";
-  const CACHE_VERSION = "v2";
+  const CACHE_VERSION = "v4";
   const CACHE_TTL_MS = 3600000;
 
   // IMPORTANT: Increment CACHE_VERSION when translation structure changes
@@ -164,22 +164,28 @@
         }
       }
 
-      element.textContent = t(key, params);
+      const value = t(key, params);
+      // A missing catalogue entry returns the key. Keep the authored English
+      // text in that case instead of replacing it with a raw identifier.
+      if (value !== key) element.textContent = value;
     }
 
     const placeholderKey = element.getAttribute("data-i18n-placeholder");
     if (placeholderKey) {
-      element.setAttribute("placeholder", t(placeholderKey));
+      const value = t(placeholderKey);
+      if (value !== placeholderKey) element.setAttribute("placeholder", value);
     }
 
     const titleKey = element.getAttribute("data-i18n-title");
     if (titleKey) {
-      element.setAttribute("title", t(titleKey));
+      const value = t(titleKey);
+      if (value !== titleKey) element.setAttribute("title", value);
     }
 
     const ariaLabelKey = element.getAttribute("data-i18n-aria-label");
     if (ariaLabelKey) {
-      element.setAttribute("aria-label", t(ariaLabelKey));
+      const value = t(ariaLabelKey);
+      if (value !== ariaLabelKey) element.setAttribute("aria-label", value);
     }
   }
 
@@ -276,14 +282,28 @@
     isInitialized = true;
     console.log(`i18n: Initialization complete, current locale: ${currentLocale}`);
 
+    // Late-binding consumers (sidebar sections, generated chips) render their
+    // own DOM and cannot be reached by data-i18n attributes. Announce that
+    // the catalogue is ready AFTER the DOM translation pass so listeners that
+    // boot on DOMContentLoaded are already registered.
+    function announceLocale() {
+      try {
+        window.dispatchEvent(new CustomEvent("localeChanged", {
+          detail: { locale: currentLocale },
+        }));
+      } catch (e) { /* CustomEvent unavailable */ }
+    }
+
     if (document.readyState === "loading") {
       (function(){ var __cb = () => {
         translatePage();
         setupBodyListeners();
+        setTimeout(announceLocale, 0);
       }; if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", __cb); } else { __cb(); } })();
     } else {
       translatePage();
       setupBodyListeners();
+      setTimeout(announceLocale, 0);
     }
   }
 

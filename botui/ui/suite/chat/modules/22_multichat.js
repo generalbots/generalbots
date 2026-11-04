@@ -516,17 +516,19 @@
 
   /* ── Sending from a specific tab ── */
 
-  MC.sendInTab = function (tabId, text) {
+  MC.sendInTab = function (tabId, text, file) {
     var t = MC.tabs[tabId];
-    if (!t || !text || !text.trim()) return;
-    text = text.trim();
+    if (!t) return;
+    text = (text || "").trim();
+    if (!text && !file) return;
     // Parallel tabs ALWAYS use their own socket + session: the stock
     // pipeline's socket is bound to the default conversation, so routing
     // through it sent the message (and received the reply) under the WRONG
     // session — parallel tabs shared one history. The tab's own socket is
     // connected with the tab's session id.
-    appendToContainer(t.pane, "user", text);
-    pushScrollback(t, "user", text);
+    var display = text || ("📎 " + file.name);
+    appendToContainer(t.pane, "user", display);
+    pushScrollback(t, "user", display);
     schedulePersist();
     var payload = {
       bot_id: t.botId || "default",
@@ -537,12 +539,34 @@
       message_type: 1,
       timestamp: new Date().toISOString(),
     };
-    t.pending = t.pending || [];
-    if (t.ws && t.ws.readyState === WebSocket.OPEN) {
-      t.ws.send(JSON.stringify(payload));
+    function dispatch() {
+      t.pending = t.pending || [];
+      if (t.ws && t.ws.readyState === WebSocket.OPEN) {
+        t.ws.send(JSON.stringify(payload));
+      } else {
+        t.pending.push(payload);
+        if (!t.ws || t.ws.readyState >= WebSocket.CLOSING) connectTab(t);
+      }
+    }
+    // Audio recordings and uploaded files in a parallel tab used to be
+    // dropped: the router only forwarded text, so the attachment never
+    // reached the tab's socket. Read it like the stock path does and send the
+    // same `file` payload.
+    if (file) {
+      var reader = new FileReader();
+      reader.onerror = function () {
+        notify("Could not read the attachment. Attach it again.", "error");
+      };
+      reader.onload = function () {
+        payload.file = {
+          name: file.name,
+          content_base64: String(reader.result).split(",")[1] || reader.result,
+        };
+        dispatch();
+      };
+      reader.readAsDataURL(file);
     } else {
-      t.pending.push(payload);
-      if (!t.ws || t.ws.readyState >= WebSocket.CLOSING) connectTab(t);
+      dispatch();
     }
   };
 
@@ -909,12 +933,18 @@
         var t = MC.activeId && MC.tabs[MC.activeId];
         if (!t || t.usesStockDom) return stockSend.apply(this, arguments);
         var input = q("messageInput");
+        var fileInput = q("messageFile");
+        var file = fileInput && fileInput.files && fileInput.files[0];
         var text = messageContent || (input ? input.value : "");
         if (input && !messageContent) {
           input.value = "";
           input.focus();
         }
-        if (text && text.trim()) MC.sendInTab(t.id, text);
+        if ((!text || !text.trim()) && !file) return;
+        MC.sendInTab(t.id, text, file);
+        if (fileInput) fileInput.value = "";
+        var chip = q("fileChip");
+        if (chip) { chip.style.display = "none"; chip.textContent = ""; }
       };
       routed.__mcRouted = true;
       window.sendMessage = routed;

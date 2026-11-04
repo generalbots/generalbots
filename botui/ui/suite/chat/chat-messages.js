@@ -119,9 +119,25 @@ function addMessage(sender, content, msgId, reasoning) {
   }
 
   if (sender !== "user") setChatStatus("");
+  var userAttachmentName = null;
   if (sender === "user") {
-    var processedContent = renderMentionInMessage(escapeHtml(content));
+    // #1641 — persisted user turns carry a trailing `📎 name`. Show it once,
+    // as a chip, instead of printing the marker twice (the text plus the
+    // restored chip used to duplicate the same filename).
+    var shownContent = content || "";
+    var attachmentMatch = shownContent.match(/(?:^|\n)📎\s+([^\n]+)\s*$/);
+    if (attachmentMatch) {
+      userAttachmentName = attachmentMatch[1].trim();
+      shownContent = shownContent.replace(attachmentMatch[0], "").trim();
+    }
+    var processedContent = renderMentionInMessage(escapeHtml(shownContent));
     div.innerHTML = '<div class="message-content user-message">' + processedContent + "</div>";
+    if (userAttachmentName) {
+      var restored = document.createElement("div");
+      restored.className = "gb-attachment-restored";
+      restored.textContent = "📎 " + userAttachmentName;
+      div.querySelector(".message-content").appendChild(restored);
+    }
     enrichMentionIds(div);
   } else {
     var thinkingHtml = renderThinkingSection(reasoning);
@@ -184,19 +200,6 @@ function addMessage(sender, content, msgId, reasoning) {
     });
     var retryTarget = div.querySelector(".message-content");
     if (retryTarget) retryTarget.appendChild(retryBtn);
-  }
-
-  // #1641 — the persisted user turn carries `📎 name`; render it as a chip so
-  // reopening the conversation still shows the attachment on the message.
-  if (sender === "user" && content) {
-    var attachment = content.match(/📎\s+([^\n]+)/);
-    if (attachment) {
-      var restored = document.createElement("div");
-      restored.className = "gb-attachment-restored";
-      restored.textContent = "📎 " + attachment[1].trim();
-      var contentEl = div.querySelector(".message-content");
-      if (contentEl) contentEl.appendChild(restored);
-    }
   }
 
   if (sender === "bot" && content) {
@@ -404,6 +407,13 @@ function processMessage(data) {
     }
     ChatState.isStreaming = false;
     ChatState.currentReasoning = "";
+    // Consumers that react to a finished turn (voice/full-duplex, proactivity)
+    // must fire once, on completion — not on the first streaming chunk.
+    try {
+      window.dispatchEvent(new CustomEvent("gb-chat-bot-complete", {
+        detail: { content: finalContent || finalReasoning || "" },
+      }));
+    } catch (e) { /* CustomEvent unavailable */ }
     if (data.suggestions && Array.isArray(data.suggestions) && data.suggestions.length > 0) {
       renderSuggestions(data.suggestions);
     }

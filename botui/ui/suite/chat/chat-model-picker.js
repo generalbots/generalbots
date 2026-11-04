@@ -21,14 +21,23 @@
     }
   }
 
+  function tr(key, fallback) {
+    if (window.i18n && typeof window.i18n.t === "function") {
+      var value = window.i18n.t(key);
+      return value === key ? fallback : value;
+    }
+    return fallback;
+  }
+
   function apply(select, tiers) {
     tiers.forEach(function (tier) {
       var option = select.querySelector('option[value="' + tier.id + '"]');
       if (!option) return;
       // Never leak a raw model id into the picker: the test suite (TS-01)
-      // requires plain-language cost/speed/fit labels.
-      option.textContent =
-        tier.label + (tier.tradeoff ? " · " + tier.tradeoff : "");
+      // requires plain-language cost/speed/fit labels. Prefer the localized
+      // catalogue; the API label is the fallback for an unknown tier.
+      var apiLabel = tier.label + (tier.tradeoff ? " · " + tier.tradeoff : "");
+      option.textContent = tr("chat-model-" + tier.id, apiLabel);
       option.title = tier.inherits_default
         ? (tier.tradeoff || "") +
           " Uses the bot's default model until a tier-specific model is configured."

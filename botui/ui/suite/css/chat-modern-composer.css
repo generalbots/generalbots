@@ -144,11 +144,27 @@
 
 /* ── Tab strip ─────────────────────────────────────────────────────── */
 
+/* Explicit stacking: the conversation tabs always sit above the message
+ * canvas and the composer, even when a new tab or a restored workspace
+ * re-attaches the panes in a different DOM order. */
 #chat-app .gb-tab-strip {
+    order: -1;
+    flex: 0 0 auto;
     padding: 8px 12px 6px;
     gap: 6px;
     border-bottom: 1px solid var(--gb-border);
     background: var(--gb-surface);
+}
+
+#chat-app #messages,
+#chat-app .chat-pane {
+    order: 0;
+    min-height: 0;
+}
+
+#chat-app footer {
+    order: 1;
+    flex: 0 0 auto;
 }
 
 #chat-app .gb-tab {

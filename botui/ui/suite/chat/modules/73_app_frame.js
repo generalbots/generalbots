@@ -240,7 +240,7 @@
 
         if (message.id && message.result) {
             if (message.result.hostCapabilities || message.result.appCapabilities) {
-                host.status.textContent = "Ready";
+                host.status.textContent = (window.i18n && typeof window.i18n.t === "function" && window.i18n.t("chat-ready") !== "chat-ready") ? window.i18n.t("chat-ready") : "Ready";
                 send(host, notify("ui/notifications/initialized", {}));
             }
             return;

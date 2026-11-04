@@ -34,6 +34,23 @@ The Suite includes integrated applications:
 | 🔍 Research | AI search |
 | 📊 Analytics | Dashboards |
 
+### Desktop shell and taskbar
+
+The desktop is a window manager over a persistent app rail:
+
+- **Taskbar** — one 30 px strip (`--taskbar-h`) pinned to the viewport edge:
+  Start and universal search on the left, running apps centred, tray and clock
+  on the right. It is a single global element, so it does not inherit chat
+  styles and does not grow a second row.
+- **Maximized windows** use `position: fixed` and fill the viewport above the
+  taskbar, covering the app rail; the taskbar stays reachable to restore or
+  switch windows.
+- **One scrollbar per window** — the window frame clips (`overflow: hidden`)
+  and only `.window-body`/the app's own list scrolls.
+- **Session lifetime** — suite sessions last seven days by default (sliding
+  work sessions no longer expire after one hour), configurable through
+  `GB_SESSION_TTL_SECS`.
+
 ### Responsive Design
 
 The Suite adapts to any screen size:

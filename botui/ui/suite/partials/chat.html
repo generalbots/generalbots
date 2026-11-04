@@ -1,11 +1,11 @@
-<link rel="stylesheet" href="/suite/chat/chat.p1.css?v=1" />
+<link rel="stylesheet" href="/suite/chat/chat.p1.css?v=2" />
 <link rel="stylesheet" href="/suite/chat/chat.p2.css?v=3" />
 <link rel="stylesheet" href="/suite/chat/chat.p3.css?v=1" />
 <link rel="stylesheet" href="/suite/chat/chat.p4.css?v=1" />
 <link rel="stylesheet" href="/suite/chat/chat.p5.css?v=1" />
 <link rel="stylesheet" href="/suite/chat/chat.p6.css?v=1" />
 <link rel="stylesheet" href="/suite/chat/chat.p7.css?v=2" />
-<link rel="stylesheet" href="/suite/chat/chat-composer.css?v=1" />
+<link rel="stylesheet" href="/suite/chat/chat-composer.css?v=2" />
 <link rel="stylesheet" href="/suite/css/markdown-message.css?v=1" />
 <link rel="stylesheet" href="/suite/css/chat-agent-mode.css" />
 <link rel="stylesheet" href="/suite/css/run-timeline.css?v=1" />
@@ -16,12 +16,12 @@
     <div class="chat-content-wrapper" id="chatContentWrapper">
         <div class="connection-status connecting" id="connectionStatus" style="display: none">
             <span class="connection-status-dot"></span>
-            <span class="connection-text">Connecting...</span>
+            <span class="connection-text" data-i18n="chat-connecting">Connecting...</span>
         </div>
 
         <main id="messages">
-            <div class="gb-state gb-state-loading"><span class="gb-state-msg">Connecting…</span></div>
-            <div class="gb-state gb-state-error"><span class="gb-state-msg">Connection failed</span></div>
+            <div class="gb-state gb-state-loading"><span class="gb-state-msg" data-i18n="chat-connecting">Connecting…</span></div>
+            <div class="gb-state gb-state-error"><span class="gb-state-msg" data-i18n="chat-connection-failed">Connection failed</span></div>
         </main>
 
         <footer>
@@ -65,6 +65,27 @@
                     </svg>
                     <span class="web-search-label" data-i18n="chat-web-off-short">Web off</span>
                 </button>
+                <button type="button" id="voiceBtn" class="chat-tool-toggle voice-toggle"
+                    aria-pressed="false" aria-label="Voice input — click to speak" data-i18n-aria-label="chat-voice-input"
+                    title="Voice input — click to speak" data-i18n-title="chat-voice-input">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <rect x="9" y="2" width="6" height="12" rx="3"></rect>
+                        <path d="M5 10v1a7 7 0 0 0 14 0v-1"></path>
+                        <line x1="12" y1="19" x2="12" y2="22"></line>
+                    </svg>
+                    <span class="sr-only" data-i18n="chat-voice-input">Voice input</span>
+                </button>
+                <button type="button" id="voiceDuplexBtn" class="chat-tool-toggle voice-duplex-toggle"
+                    aria-pressed="false" aria-label="Continuous voice (full duplex)" data-i18n-aria-label="chat-voice-duplex-off"
+                    title="Continuous voice (full duplex) — speak and listen hands-free" data-i18n-title="chat-voice-duplex-off">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M4 12a8 8 0 0 1 16 0"></path>
+                        <path d="M4 12v3a2 2 0 0 0 2 2h1v-5H6a2 2 0 0 0-2 2z"></path>
+                        <path d="M20 12v3a2 2 0 0 1-2 2h-1v-5h1a2 2 0 0 1 2 2z"></path>
+                        <path d="M7 19a5 5 0 0 0 10 0"></path>
+                    </svg>
+                    <span class="sr-only" data-i18n="chat-voice-duplex">Full duplex</span>
+                </button>
                 <button type="submit" id="sendBtn" title="Send" data-i18n-title="chat-send">&#8593;</button>
             </form>
         </footer>
@@ -96,31 +117,32 @@
 <script src="/suite/chat/chat-mentions.js?v=4"></script>
 <script src="/suite/chat/chat-artifacts.js?v=1"></script>
 <script src="/suite/chat/chat-render.js?v=1"></script>
-<script src="/suite/chat/chat-messages.js?v=15"></script>
+<script src="/suite/chat/chat-messages.js?v=17"></script>
 <script src="/suite/chat/chat-output-polish.js?v=1"></script>
 <script src="/suite/chat/chat-suggestions.js?v=4"></script>
 <script src="/suite/chat/chat-theme.js?v=6"></script>
-<script src="/suite/chat/chat-websocket.js?v=22"></script>
+<script src="/suite/chat/chat-websocket.js?v=23"></script>
 <script src="/suite/chat/chat-session.js?v=1"></script>
 <script src="/suite/chat/chat-send.js?v=2"></script>
 <script src="/suite/chat/chat-init.js?v=23"></script>
-<script src="/suite/chat/chat-model-picker.js?v=3"></script>
+<script src="/suite/chat/chat-model-picker.js?v=4"></script>
 <script src="/suite/chat/chat-bot-env-tabs.js?v=1"></script>
-<script src="/suite/chat/modules/20_tabs.js?v=6"></script>
+<script src="/suite/chat/modules/20_tabs.js?v=7"></script>
 <script src="/suite/chat/modules/21_tabs_events.js?v=8"></script>
-<script src="/suite/chat/modules/22_multichat.js?v=35"></script>
+<script src="/suite/chat/modules/22_multichat.js?v=36"></script>
 <script src="/suite/chat/modules/23_autotasks.js?v=1"></script>
 <script src="/suite/chat/modules/50_memory.js?v=1"></script>
 <script src="/suite/chat/modules/45_web_search_toggle.js?v=3"></script>
 <script src="/suite/chat/modules/30_citations.js?v=21"></script>
 <script src="/suite/chat/modules/60_computer_use.js?v=2"></script>
 <script src="/suite/chat/modules/61_terminal_use.js?v=2"></script>
-<script src="/suite/chat/modules/70_vm_attachments.js?v=11"></script>
+<script src="/suite/chat/modules/70_vm_attachments.js?v=12"></script>
 <script src="/suite/chat/modules/71_run_timeline.js?v=6"></script>
 <script src="/suite/chat/modules/72_surface_renderer.js?v=2"></script>
 <script src="/suite/chat/modules/74_viz.js?v=1"></script>
-<script src="/suite/chat/modules/73_app_frame.js?v=1"></script>
+<script src="/suite/chat/modules/73_app_frame.js?v=2"></script>
 <script src="/suite/chat/modules/75_perf.js?v=2"></script>
+<script src="/suite/chat/modules/76_voice.js?v=1"></script>
 <script src="/suite/chat/modules/62_sandbox.js?v=1"></script>
 <script src="/suite/js/chat-agent-mode.js?v=4"></script>
 <script src="/suite/js/ui-orchestrator.js?v=2"></script>

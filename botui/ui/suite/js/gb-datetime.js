@@ -8,7 +8,6 @@
  * instead of being stored and ignored (#1339).
  */
 (function () {
-    var DEFAULT_DATE_FORMAT = "MM/DD/YYYY";
     var DEFAULT_TIME_FORMAT = "24h";
 
     function readPref(key, fallback) {
@@ -17,6 +16,21 @@
         } catch (err) {
             return fallback;
         }
+    }
+
+    /* Locale-aware default. The long-standing MM/DD/YYYY default made a
+       Portuguese UI print 11/04/2026 for 4 November. Settings can still
+       override the value explicitly. */
+    function defaultDateFormat() {
+        var locale = "";
+        try {
+            locale = localStorage.getItem("gb-locale") || navigator.language || "en";
+        } catch (err) {
+            locale = "en";
+        }
+        if (/^en-US/i.test(locale)) return "MM/DD/YYYY";
+        if (/^(ja|zh|ko)/i.test(locale)) return "YYYY-MM-DD";
+        return "DD/MM/YYYY";
     }
 
     function pad(value) {
@@ -48,7 +62,7 @@
             return readPref("gb-time-format", DEFAULT_TIME_FORMAT);
         },
         dateFormat: function () {
-            return readPref("gb-date-format", DEFAULT_DATE_FORMAT);
+            return readPref("gb-date-format", defaultDateFormat());
         },
         formatTime: function (date) {
             return formatTime(date, this.timeFormat());

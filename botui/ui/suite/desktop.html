@@ -62,9 +62,9 @@
 
         <!-- GB Fluent CSS modules -->
         <link rel="stylesheet" href="/suite/css/desktop/motion.css?v=1" />
-        <link rel="stylesheet" href="/suite/css/desktop/windows.css?v=13" />
+        <link rel="stylesheet" href="/suite/css/desktop/windows.css?v=14" />
         <link rel="stylesheet" href="/suite/css/desktop/wallpaper.css?v=2" />
-        <link rel="stylesheet" href="/suite/css/desktop/taskbar.css?v=1" />
+        <link rel="stylesheet" href="/suite/css/desktop/taskbar.css?v=4" />
         <link rel="stylesheet" href="/suite/css/desktop/sidebar.css?v=5" />
         <link rel="stylesheet" href="/suite/css/desktop/start-menu.css?v=1" />
         <link rel="stylesheet" href="/suite/css/desktop/widgets.css?v=1" />
@@ -78,10 +78,10 @@
 
         <!-- Local JS requirements per AGENTS.md / UI.md -->
         <script src="/suite/js/vendor/htmx.min.js"></script>
-        <script src="/suite/js/i18n.js?v=3"></script>
+        <script src="/suite/js/i18n.js?v=6"></script>
         <script src="/suite/js/security-bootstrap.js?v=6"></script>
         <script src="/suite/js/vendor/marked.min.js"></script>
-        <script src="/suite/js/window-manager.js?v=51"></script>
+        <script src="/suite/js/window-manager.js?v=56"></script>
         <script src="/suite/js/css-loader.js"></script>
         <script src="/suite/js/vibe-bridge.js?v=4"></script>
         <script src="/suite/js/theme-manager.js?v=1"></script>
@@ -104,8 +104,8 @@
         <script src="/suite/js/desktop-shortcuts.js?v=2"></script>
         <script src="/suite/js/screensavers.js?v=1"></script>
         <script src="/suite/js/pinned-launcher.js?v=3"></script>
-        <script src="/suite/js/sidebar-enhance.js?v=4"></script>
-        <script src="/suite/js/sidebar-sections.js?v=4"></script>
+        <script src="/suite/js/sidebar-enhance.js?v=5"></script>
+        <script src="/suite/js/sidebar-sections.js?v=5"></script>
         <script src="/suite/js/sidebar-history.js?v=3"></script>
         <script src="/suite/js/snap-assist.js?v=1"></script>
         <script src="/suite/js/virtual-desktops.js?v=1"></script>
@@ -113,7 +113,7 @@
         <script src="/suite/js/alt-tab.js?v=1"></script>
         <script src="/suite/js/taskbar-previews.js?v=1"></script>
         <script src="/suite/js/gb-toasts.js?v=1"></script>
-        <script src="/suite/js/gb-datetime.js?v=1"></script>
+        <script src="/suite/js/gb-datetime.js?v=2"></script>
         <script src="/suite/js/control-center.js?v=1"></script>
         <script src="/suite/js/lock-screen.js?v=2"></script>
         <script src="/suite/js/spotlight.js?v=1"></script>
@@ -286,7 +286,7 @@
     }
     </style>
         <link rel="stylesheet" href="/suite/css/chat-modern.css?v=16" />
-        <link rel="stylesheet" href="/suite/css/chat-modern-composer.css?v=1" />
+        <link rel="stylesheet" href="/suite/css/chat-modern-composer.css?v=2" />
         <link rel="stylesheet" href="/suite/css/chat-modern-chrome.css?v=1" />
         <link rel="stylesheet" href="/suite/css/chat-modern-dark.css?v=1" />
 </head>
@@ -355,10 +355,10 @@
                     </div>
                     <button class="chat-sidebar-new-chat" id="sidebarNewChatBtn">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                        New conversation
+                        <span data-i18n="chat-new-conversation">New conversation</span>
                     </button>
                     <nav class="chat-sidebar-apps" id="sidebarAppsNav" aria-label="Main apps"></nav>
-                    <div class="chat-sidebar-section-label">Conversations</div>
+                    <div class="chat-sidebar-section-label" data-i18n="sidebar-conversations">Conversations</div>
                     <div class="chat-sidebar-conversations" id="chatConversations"></div>
                     <div class="chat-sidebar-theme" id="themeSelectorContainer" title="UI theme"></div>
                     <div class="chat-sidebar-user" id="sidebarUser"></div>
@@ -387,26 +387,27 @@
 
                 <!-- Bottom Taskbar (v15) -->
                 <footer class="toolbar-v15" id="taskbar">
-                    <!-- #1618 — the dock pill is a real wrapper so it hugs its
-                         content. The old empty ::before pill had min-width 420px
-                         and rendered as a blank rounded box when few items were
-                         docked. -->
+                    <!-- Compact full-width taskbar: Start + search on the
+                         left, running apps centred, tray + clock on the
+                         right. Heights are driven by --taskbar-h. -->
                     <div class="taskbar-shell" id="taskbarShell">
-                    <div id="startBtn" onclick="window.WindowManager.toggleStartMenu()" title="Start">
+                    <div class="taskbar-left">
+                    <div id="startBtn" onclick="window.WindowManager.toggleStartMenu()" title="Start" data-i18n-title="taskbar-start" role="button" tabindex="0" aria-label="Start">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="9" height="9" rx="1.5"/><rect x="13" y="2" width="9" height="9" rx="1.5"/><rect x="2" y="13" width="9" height="9" rx="1.5"/><rect x="13" y="13" width="9" height="9" rx="1.5"/></svg>
                     </div>
                     <div class="taskbar-search" id="taskbarSearchWrap">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-                        <input type="search" id="taskbarSearch" placeholder="Search..." aria-label="Universal search" autocomplete="off">
+                        <input type="search" id="taskbarSearch" placeholder="Search..." data-i18n-placeholder="taskbar-search" aria-label="Universal search" data-i18n-aria-label="taskbar-search" autocomplete="off">
+                    </div>
                     </div>
                     <div class="taskbar-center" id="taskbar-center"></div>
                     <div class="taskbar-right">
                         <div class="taskbar-tray">
                             <!-- #1648 — the usage panel finally has a caller. -->
-                            <button class="tray-btn" id="trayUsage" title="Usage &amp; cost" aria-label="Usage and cost" onclick="window.GBUsageStats &amp;&amp; window.GBUsageStats.showPanel()">
+                            <button class="tray-btn" id="trayUsage" title="Usage &amp; cost" data-i18n-title="taskbar-usage" aria-label="Usage and cost" data-i18n-aria-label="taskbar-usage" onclick="window.GBUsageStats &amp;&amp; window.GBUsageStats.showPanel()">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg>
                             </button>
-                            <button class="tray-btn" id="trayNotifications" title="Notifications" aria-label="Notifications" onclick="window.GBToasts && window.GBToasts.toggleCenter()">
+                            <button class="tray-btn" id="trayNotifications" title="Notifications" data-i18n-title="taskbar-notifications" aria-label="Notifications" data-i18n-aria-label="taskbar-notifications" onclick="window.GBToasts && window.GBToasts.toggleCenter()">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                                 <span class="tray-badge" id="trayNotificationsBadge" style="display:none"></span>
                             </button>
@@ -414,11 +415,11 @@
                                  Desktops are not part of the current desktop scope.
                                  Their modules stay loaded behind the keyboard
                                  shortcuts; only the tray buttons are removed. -->
-                            <button class="tray-btn" id="trayLock" title="Lock Screen" aria-label="Lock screen" onclick="window.LockScreen && window.LockScreen.lock()">
+                            <button class="tray-btn" id="trayLock" title="Lock Screen" data-i18n-title="taskbar-lock" aria-label="Lock screen" data-i18n-aria-label="taskbar-lock" onclick="window.LockScreen && window.LockScreen.lock()">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                             </button>
                         </div>
-                        <div class="taskbar-clock" id="taskbarClock" title="Date &amp; time settings" ondblclick="window.openDeepLink &amp;&amp; window.openDeepLink('settings', {})">
+                        <div class="taskbar-clock" id="taskbarClock" title="Date &amp; time settings" data-i18n-title="taskbar-datetime" ondblclick="window.openDeepLink &amp;&amp; window.openDeepLink('settings', {})">
                             <div id="clock-time">00:00</div>
                             <div id="clock-date">01/01/2026</div>
                         </div>

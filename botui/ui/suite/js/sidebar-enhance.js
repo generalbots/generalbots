@@ -21,6 +21,14 @@
 
   // ── Shared helpers (exposed as window.GBSidebarBase) ─────────
 
+  function tr(key, fallback) {
+    if (window.i18n && typeof window.i18n.t === "function") {
+      var value = window.i18n.t(key);
+      return value === key ? fallback : value;
+    }
+    return fallback;
+  }
+
   function readPins() {
     // An empty or missing store must fall back to the default pins —
     // returning "[]" here leaves the left-bar pin strip empty on first run.
@@ -106,6 +114,7 @@
     byId: byId,
     getById: byId,
     iconOf: iconOf,
+    tr: tr,
     authToken: authToken,
     authHeaders: authHeaders,
     section: section,
@@ -116,9 +125,9 @@
   function insertSections(content) {
     var nav = byId("sidebarAppsNav");
     var sections = [
-      section("Pinned", "gbSidePins"),
-      section("Quick Files", "gbQuickFiles"),
-      section("Quick actions", "gbQuickActions"),
+      section(tr("sidebar-pinned", "Pinned"), "gbSidePins"),
+      section(tr("sidebar-quick-files", "Quick Files"), "gbQuickFiles"),
+      section(tr("sidebar-quick-actions", "Quick actions"), "gbQuickActions"),
     ];
     if (nav && nav.parentNode) {
       sections.forEach(function (sec) {
@@ -131,10 +140,25 @@
     }
   }
 
+  function refreshSectionLabels() {
+    var labels = {
+      gbSidePins: ["sidebar-pinned", "Pinned"],
+      gbQuickFiles: ["sidebar-quick-files", "Quick Files"],
+      gbQuickActions: ["sidebar-quick-actions", "Quick actions"],
+    };
+    Object.keys(labels).forEach(function (id) {
+      var body = byId(id);
+      if (!body || !body.parentElement) return;
+      var label = body.parentElement.querySelector(".gb-side-sec-title");
+      if (label) label.textContent = tr(labels[id][0], labels[id][1]);
+    });
+  }
+
   function boot() {
     var content = document.querySelector(".chat-sidebar-content");
     if (!content) return;
     if (!byId("gbSidePins")) insertSections(content);
+    refreshSectionLabels();
 
     if (window.GBSidebarSections) {
       window.GBSidebarSections.renderPins();
@@ -150,6 +174,26 @@
         window.GBSidebarHistory.resetForBot();
       });
     }
+
+    // Translations may arrive after this boot; refresh the labels and the
+    // generated chips when the catalogue becomes available or the user
+    // switches language.
+    window.addEventListener("localeChanged", function () {
+      refreshSectionLabels();
+      if (window.GBSidebarSections) {
+        window.GBSidebarSections.renderPins();
+        window.GBSidebarSections.renderActions();
+        window.GBSidebarSections.enhanceUserCard();
+      }
+    });
+    window.addEventListener("i18n:localeChanged", function () {
+      refreshSectionLabels();
+      if (window.GBSidebarSections) {
+        window.GBSidebarSections.renderPins();
+        window.GBSidebarSections.renderActions();
+        window.GBSidebarSections.enhanceUserCard();
+      }
+    });
 
     // #1596/#1614 — the product config resolves after boot, so re-render the
     // app-derived surfaces once the real app set is known.

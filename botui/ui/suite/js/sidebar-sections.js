@@ -12,6 +12,13 @@
     return window.GBSidebarBase;
   };
 
+  function tr(key, fallback) {
+    var helpers = base();
+    return helpers && typeof helpers.tr === "function"
+      ? helpers.tr(key, fallback)
+      : fallback;
+  }
+
   // #1596/#1614 — a surface may only show an app the product profile enables
   // (and the binary compiles). `isAppEnabled` lives in base.js and returns
   // true while the product config is still loading, so an early render is
@@ -109,7 +116,7 @@
       var empty = document.createElement("div");
       empty.className = "desktop-context-item";
       empty.style.opacity = "0.6";
-      empty.textContent = "All apps are already pinned";
+      empty.textContent = tr("sidebar-no-apps", "All apps are already pinned");
       menu.appendChild(empty);
     }
     document.body.appendChild(menu);
@@ -134,7 +141,7 @@
     menu.style.top = Math.min(y, window.innerHeight - 130) + "px";
     var unpin = document.createElement("div");
     unpin.className = "desktop-context-item";
-    unpin.textContent = "Unpin from sidebar";
+    unpin.textContent = tr("sidebar-unpin", "Unpin from sidebar");
     unpin.addEventListener("click", function () {
       base().state.pinned = base().state.pinned.filter(function (id) {
         return id !== appId;
@@ -248,7 +255,7 @@
     // core surface (always enabled) and declares no app.
     var actions = [
       {
-        label: "New conversation",
+        label: tr("chat-new-conversation", "New conversation"),
         run: function () {
           var btn = base().byId("sidebarNewChatBtn");
           if (btn) btn.click();
@@ -256,14 +263,14 @@
       },
       {
         // #1303 — Explorer replaces Terminal in the quick actions.
-        label: "Explorer",
+        label: tr("sidebar-explorer", "Explorer"),
         app: "drive",
         run: function () {
           if (window.openDeepLink) window.openDeepLink("drive", {});
         },
       },
       {
-        label: "Settings",
+        label: tr("sidebar-settings", "Settings"),
         run: function () {
           if (window.openDeepLink) window.openDeepLink("settings", {});
         },
@@ -301,11 +308,11 @@
     var meta = document.createElement("div");
     meta.className = "gb-user-meta";
     var userInfo = readUserInfo();
-    meta.textContent = userInfo.email || "Signed in";
+    meta.textContent = userInfo.email || tr("sidebar-signed-in", "Signed in");
     card.appendChild(meta);
     var dot = document.createElement("span");
     dot.className = "gb-user-dot";
-    dot.title = "Online";
+    dot.title = tr("sidebar-online", "Online");
     if (userInfo.role) dot.textContent = userInfo.role;
     card.appendChild(dot);
     card.addEventListener("click", function () {
@@ -332,19 +339,19 @@
     menu.className = "desktop-context-menu gb-launcher-menu";
     var items = [
       {
-        label: "Settings",
+        label: tr("sidebar-settings", "Settings"),
         run: function () {
           if (window.openDeepLink) window.openDeepLink("settings", {});
         },
       },
       {
-        label: "Billing",
+        label: tr("sidebar-billing", "Billing"),
         run: function () {
           if (window.openDeepLink) window.openDeepLink("billing", {});
         },
       },
       {
-        label: "Logout",
+        label: tr("sidebar-logout", "Logout"),
         run: function () {
           // Full logout: same surface as sidebar.js — clears the suite
           // token, the cloud management session and the GBSecurity

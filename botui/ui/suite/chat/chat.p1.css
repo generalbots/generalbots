@@ -387,8 +387,10 @@
     overflow-y: auto;
 }
 
-/* Footer with solid background */
-footer {
+/* Footer with solid background. Scoped to the chat app: a bare `footer`
+   selector also styled the desktop taskbar (which is a <footer> element),
+   painting a full-width white strip over the dock. */
+#chat-app footer {
     padding: 12px 20px;
     border-top: 1px solid var(--border, var(--border-color, #2a2a2a));
     background: var(--surface, #f5f5f5);

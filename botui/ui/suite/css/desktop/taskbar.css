@@ -1,87 +1,170 @@
 /* ============================================ */
-/* GB FLUENT — Floating Dock Taskbar             */
+/* GB Fluent — Desktop taskbar                   */
+/*                                               */
+/* One compact strip across the bottom edge:     */
+/* Start + search on the left, running apps in   */
+/* the middle, tray + clock on the right. The    */
+/* whole bar is half the old dock height so the  */
+/* workspace keeps the vertical space.           */
 /* ============================================ */
 
 :root {
-  --shell-bg: var(--glass-bg, rgba(20,22,35,0.68));
-  --shell-border: var(--glass-border-color, rgba(255,255,255,0.12));
-  --shell-shadow: 0 4px 24px rgba(0,0,0,0.3);
+  /* Single source of truth for every layout rule that must clear the bar. */
+  --taskbar-h: 30px;
+  --shell-bg: var(--glass-bg, rgba(20, 22, 35, 0.68));
+  --shell-border: var(--glass-border-color, rgba(255, 255, 255, 0.12));
+  --shell-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
   --shell-radius: 18px;
   --shell-margin: 10px;
   --shell-blur: blur(24px) saturate(170%);
 }
 
-/* Main wrapper adjusts so workspace flows under the floating dock */
+/* Main wrapper adjusts so the workspace flows under the taskbar */
 .main-wrapper {
   position: relative;
   overflow: hidden;
 }
 
-/* Dock wrapper — absolutely positioned strip, centered dock */
+/* Full-width strip pinned to the bottom edge of the viewport. Fixed (not
+   absolute inside the workspace) so it starts at the true left edge, under
+   the rail, and spans the whole window. */
 .toolbar-v15 {
-  position: absolute;
-  bottom: var(--shell-margin);
+  position: fixed;
+  bottom: 0;
   left: 0;
   right: 0;
-  height: 56px;
+  width: 100vw;
+  height: var(--taskbar-h);
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 0;
-  margin: 0 auto;
-  pointer-events: none;
+  justify-content: stretch;
+  padding: 0 6px;
+  margin: 0;
+  background: var(--shell-bg);
+  backdrop-filter: var(--shell-blur);
+  -webkit-backdrop-filter: var(--shell-blur);
+  border-top: 1px solid var(--shell-border);
+  pointer-events: auto;
   z-index: 2000;
 }
 
-/* #1618 — the dock content is a real wrapper that hugs its items. The old
-   empty ::before pill had `min-width: 420px` and painted a blank rounded box
-   when the dock held few items. The wrapper carries no background of its own:
-   the toolbar strip is the dock surface. */
 .toolbar-v15 .taskbar-shell {
   position: relative;
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: fit-content;
-  max-width: 92vw;
+  width: 100%;
+  max-width: none;
   height: 100%;
-  padding: 0 10px;
+  padding: 0;
+  gap: 4px;
   pointer-events: auto;
 }
 
-/* #1618 — no dock items means no reserved space in the middle of the bar. */
-.toolbar-v15 .taskbar-center:empty {
-  display: none;
+/* Left cluster: Start and the universal search field. */
+.toolbar-v15 .taskbar-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+  height: 100%;
 }
 
-.toolbar-v15 .taskbar-center,
-.toolbar-v15 .taskbar-right,
-.toolbar-v15 .taskbar-search,
-#startBtn {
-  pointer-events: auto;
+/* Running apps occupy the flexible middle and stay centred. */
+.toolbar-v15 .taskbar-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex: 1 1 auto;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
 
-/* ---------------------------------------- */
-/* Universal search box in taskbar          */
-/* ---------------------------------------- */
+/* Tray and clock hug the right edge. */
+.toolbar-v15 .taskbar-right {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: auto;
+  flex: 0 0 auto;
+  height: 100%;
+  padding-right: 2px;
+}
 
+.toolbar-v15 .taskbar-tray {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.toolbar-v15 .tray-btn {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  color: var(--text-secondary, #6b7280);
+  background: transparent;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.toolbar-v15 .tray-btn:hover {
+  background: rgba(127, 127, 127, 0.14);
+  color: var(--text, #111827);
+}
+
+.toolbar-v15 .tray-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+}
+
+.toolbar-v15 .tray-badge {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent, #2563eb);
+}
+
+/* Universal search box — compact, next to Start. */
 .toolbar-v15 .taskbar-search {
   display: flex;
   align-items: center;
-  gap: 6px;
-  height: 34px;
-  padding: 0 10px;
-  margin: 0 8px;
-  background: var(--surface, #26262b);
-  border: 1px solid var(--shell-border, #3a3a3f);
-  border-radius: 8px;
+  gap: 5px;
+  height: 24px;
+  padding: 0 8px;
+  margin: 0;
+  background: rgba(127, 127, 127, 0.10);
+  border: 1px solid transparent;
+  border-radius: 6px;
   color: var(--muted, #888);
-  width: 240px;
+  width: 190px;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+
+.toolbar-v15 .taskbar-search:hover {
+  background: rgba(127, 127, 127, 0.14);
 }
 
 .toolbar-v15 .taskbar-search:focus-within {
+  background: var(--surface, #fff);
   border-color: var(--accent, #84d669);
-  box-shadow: 0 0 0 3px rgba(132, 214, 105, 0.15);
+  box-shadow: 0 0 0 2px rgba(132, 214, 105, 0.18);
+}
+
+.toolbar-v15 .taskbar-search svg {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
 }
 
 .toolbar-v15 .taskbar-search input {
@@ -91,21 +174,12 @@
   border: none;
   outline: none;
   color: var(--text, #e8e8e8);
-  font-family: "Fira Code", monospace;
-  font-size: 12px;
+  font-family: inherit;
+  font-size: 11.5px;
 }
 
 .toolbar-v15 .taskbar-search input::placeholder {
   color: var(--muted, #888);
-}
-
-
-.toolbar-v15 .taskbar-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  height: 100%;
 }
 
 /* ---------------------------------------- */
@@ -113,96 +187,73 @@
 /* ---------------------------------------- */
 
 .toolbar-v15 .taskbar-dock-item {
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 180ms var(--ease-spring, cubic-bezier(0.2,0,0,1));
+  transition: background 140ms ease, transform 140ms ease;
   position: relative;
+  flex-shrink: 0;
 }
 
 .toolbar-v15 .taskbar-dock-item:hover {
-  background: var(--win-caption-hover, rgba(255,255,255,0.08));
-  transform: scale(1.12);
+  background: rgba(127, 127, 127, 0.16);
 }
 
 .toolbar-v15 .taskbar-dock-item.active::after {
   content: "";
   position: absolute;
-  bottom: 3px;
+  bottom: 1px;
   left: 50%;
   transform: translateX(-50%);
-  width: 6px;
-  height: 4px;
-  border-radius: 3px;
+  width: 5px;
+  height: 2px;
+  border-radius: 2px;
   background: var(--primary, var(--accent, #84d669));
-  box-shadow: 0 0 8px var(--primary, var(--accent, #84d669));
 }
 
 .toolbar-v15 .taskbar-dock-item svg {
-  width: 18px;
-  height: 18px;
-  stroke: var(--text-secondary, #aaa);
-  transition: all 150ms;
+  width: 15px;
+  height: 15px;
+  stroke: var(--text-secondary, #6b7280);
+  transition: stroke 140ms ease;
 }
 
-.toolbar-v15 .taskbar-dock-item:hover svg {
-  stroke: var(--text, #eee);
-}
-
+.toolbar-v15 .taskbar-dock-item:hover svg,
 .toolbar-v15 .taskbar-dock-item.active svg {
-  stroke: var(--primary, var(--accent, #84d669));
+  stroke: var(--text, #111827);
 }
 
 /* ---------------------------------------- */
-/* Right zone (clock / login / theme)       */
+/* Clock                                    */
 /* ---------------------------------------- */
-
-.toolbar-v15 .taskbar-right {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-shrink: 0;
-  margin-left: auto;
-  padding-right: 8px;
-}
 
 .toolbar-v15 .taskbar-clock {
   font-family: Inter, system-ui, -apple-system, sans-serif;
   font-variant-numeric: tabular-nums;
-  font-size: 12px;
-  color: var(--text-secondary, #999);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text, #111827);
   text-align: right;
-  line-height: 1.3;
-  padding: 0 8px;
+  line-height: 1.05;
+  padding: 0 6px;
   user-select: none;
-}
-
-.toolbar-v15 .taskbar-widget {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   justify-content: center;
-  cursor: pointer;
-  transition: all 150ms;
-  color: var(--text-secondary, #888);
-  gap: 4px;
+  gap: 1px;
+  cursor: default;
 }
 
-.toolbar-v15 .taskbar-widget:hover {
-  background: var(--win-caption-hover, rgba(255,255,255,0.08));
-  color: var(--text, #eee);
-}
-
-.toolbar-v15 .taskbar-widget svg {
-  width: 18px;
-  height: 18px;
-  stroke: currentColor;
+.toolbar-v15 .taskbar-clock #clock-date {
+  font-size: 8.5px;
+  font-weight: 400;
+  color: var(--text-secondary, #6b7280);
+  letter-spacing: 0.01em;
 }
 
 /* ---------------------------------------- */
@@ -210,42 +261,57 @@
 /* ---------------------------------------- */
 
 #startBtn {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 180ms var(--ease-spring, cubic-bezier(0.2,0,0,1));
-  background: rgba(255,255,255,0.06);
-  border: 1px solid transparent;
+  transition: background 140ms ease;
+  background: transparent;
+  border: 0;
   flex-shrink: 0;
 }
 
 #startBtn:hover {
-  background: rgba(255,255,255,0.12);
-  border-color: rgba(255,255,255,0.15);
+  background: rgba(127, 127, 127, 0.16);
 }
 
 #startBtn svg {
-  width: 20px;
-  height: 20px;
-  stroke: var(--text, #eee);
-  transition: stroke 180ms;
+  width: 15px;
+  height: 15px;
+  stroke: var(--text, #111827);
+  transition: stroke 140ms ease;
 }
 
-#startBtn:hover svg {
-  stroke: var(--primary, var(--accent, #84d669));
+#startBtn:hover svg,
+.start-menu-open #startBtn svg {
+  stroke: var(--primary, var(--accent, #2563eb));
 }
 
 .start-menu-open #startBtn {
-  background: rgba(255,255,255,0.15);
-  border-color: var(--primary, var(--accent, #84d669));
+  background: rgba(127, 127, 127, 0.18);
 }
 
-.start-menu-open #startBtn svg {
-  stroke: var(--primary, var(--accent, #84d669));
+/* ---------------------------------------- */
+/* Compact viewports                        */
+/* ---------------------------------------- */
+
+@media (max-width: 760px) {
+  .toolbar-v15 .taskbar-search {
+    width: 132px;
+  }
+
+  .toolbar-v15 .taskbar-clock #clock-date {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .toolbar-v15 .taskbar-search {
+    display: none;
+  }
 }
 
 /* ---------------------------------------- */
@@ -257,14 +323,28 @@
 }
 
 /* ---------------------------------------- */
-/* Maximized window clears dock             */
+/* Maximized window: over the rail, taskbar */
+/* still reachable                          */
 /* ---------------------------------------- */
 
-body.window-maximized .window-element-glass,
-body.window-maximized .window-element {
+body.window-maximized .window-element-glass.window-maximized-target,
+body.window-maximized .window-element.window-maximized-target {
+  position: fixed !important;
+  left: 0 !important;
   top: 0 !important;
-  height: calc(100vh - 56px - var(--shell-margin)) !important;
-  width: 100% !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+  height: calc(100vh - var(--taskbar-h)) !important;
+  max-height: calc(100vh - var(--taskbar-h)) !important;
+  border-radius: 0 !important;
+  z-index: 1500 !important;
+}
+
+/* The rail ends where the taskbar begins, so its footer controls stay
+   clickable instead of hiding behind the bar. */
+.chat-sidebar {
+  padding-bottom: var(--taskbar-h);
+  box-sizing: border-box;
 }
 
 /* ---------------------------------------- */

@@ -330,3 +330,19 @@ cost/task: $0.00193  (cap $0.05)
 Harness was re-run once after the schema/LLM-header/answer fixes (67/68).
 **Boteval runs on CI only.** Do not run it locally or in dev: every task
 spends paid model calls. This recorded result is the reference.
+
+## Human review UX (#1690) — PASS
+
+| Item | Result | Evidence |
+|------|--------|----------|
+| Taskbar half height (30 px), Start left, tray/clock right | PASS | `1690-taskbar-max-ptbr.png`; measured 1205×30 at x=0 |
+| Maximized window over the left rail | PASS | window `l=0,w=1205,h=610`; Start menu z 9999 vs 1500 |
+| Two scrollbars | PASS | window `overflow:hidden`; only `#messages` scrolls (4277/357) |
+| Composer vs tabs order | PASS | strip y=43, messages y=84, footer y=416 after switch |
+| Attachment opens in browser | PASS | PDF popup `document.contentType=application/pdf` |
+| Mic + full-duplex controls | PASS | recording/duplex states; audio sent in a new tab |
+| Voice pipeline on open-source stack | PASS | BotModels TTS WAV → whisper transcript → “Paris.” |
+| Token error after sleeping | PASS | `expires_in 604800` (7-day session TTL) |
+| i18n (chrome, chat, dates, model tiers) | PASS | `1690-sidebar-i18n.png`; pt-BR strings/date verified |
+
+Details: `issue-1690.md`.

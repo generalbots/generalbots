@@ -164,7 +164,7 @@ function renderVmFileLinks(html) {
       '<span class="gb-attachment-icon">' +
       vmFileIcon(parts.path) +
       "</span>" +
-      '<a class="gb-attachment-name" href="#" download>' +
+      '<a class="gb-attachment-name" href="#" target="_blank" rel="noopener">' +
       vmEscapeHtml(name) +
       "</a>" +
       '<button type="button" class="gb-attachment-btn gb-attachment-preview">Preview</button>' +
@@ -388,13 +388,26 @@ function vmBindAttachment(card) {
   };
   var nameLink = card.querySelector(".gb-attachment-name");
   var fileName = String(path || "").split("/").pop() || "file";
+  // Files a browser renders natively open in a new tab. Office documents go
+  // through the server-side converter (`preview=1`) so the tab shows readable
+  // HTML instead of downloading a binary. Anything else keeps a download.
+  var inlineViewable = /\.(png|jpe?g|gif|webp|svg|bmp|ico|pdf|txt|md|markdown|csv|tsv|json|xml|ya?ml|log|html?|mp3|wav|ogg|m4a|mp4|webm|mov)$/i.test(fileName);
+  var officeDoc = /\.(docx?|xlsx?|pptx?|odt|ods|odp|rtf)$/i.test(fileName);
   var urlFor = function () {
     return resolve().then(function (convId) {
       if (!convId) throw new Error("No active VM");
-      var url = vmAttachmentUrl(convId, path);
+      var url = officeDoc && !inlineViewable
+        ? vmOfficePreviewUrl(convId, path)
+        : vmAttachmentUrl(convId, path);
       if (nameLink && nameLink.tagName === "A") {
         nameLink.href = url;
-        nameLink.setAttribute("download", fileName);
+        nameLink.target = "_blank";
+        nameLink.rel = "noopener";
+        if (inlineViewable || officeDoc) {
+          nameLink.removeAttribute("download");
+        } else {
+          nameLink.setAttribute("download", fileName);
+        }
       }
       return url;
     });
@@ -404,6 +417,29 @@ function vmBindAttachment(card) {
   urlFor().catch(function () {
     /* resolved again on click */
   });
+  if (nameLink) {
+    nameLink.addEventListener("click", function (e) {
+      // Before the first resolve the href is still "#": keep the browser on
+      // the page and open the real URL once it is known.
+      if (!nameLink.href || nameLink.getAttribute("href") === "#") {
+        e.preventDefault();
+        urlFor()
+          .then(function (url) {
+            if (inlineViewable || officeDoc) {
+              window.open(url, "_blank", "noopener");
+            } else {
+              var link = document.createElement("a");
+              link.href = url;
+              link.download = fileName;
+              document.body.appendChild(link);
+              link.click();
+              link.remove();
+            }
+          })
+          .catch(vmNotifyError);
+      }
+    });
+  }
 
   var download = card.querySelector(".gb-attachment-download");
   var preview = card.querySelector(".gb-attachment-preview");
@@ -455,7 +491,7 @@ function vmAppendCard(wrapper, conversationId, path, name) {
   card.dataset.conversationId = conversationId || "";
   card.innerHTML =
     '<span class="gb-attachment-icon"></span>' +
-    '<a class="gb-attachment-name" href="#" download></a>' +
+    '<a class="gb-attachment-name" href="#" target="_blank" rel="noopener"></a>' +
     '<button type="button" class="gb-attachment-btn gb-attachment-preview">Preview</button>' +
     '<button type="button" class="gb-attachment-btn gb-attachment-download">Download</button>' +
     '<button type="button" class="gb-attachment-btn gb-attachment-save">Save</button>';
@@ -586,7 +622,7 @@ function vmRenderInlineReferences(root) {
         card.dataset.conversationId = parts.conversationId || "";
         card.innerHTML =
           '<span class="gb-attachment-icon">' + vmFileIcon(parts.path) + "</span>" +
-          '<a class="gb-attachment-name" href="#" download></a>' +
+          '<a class="gb-attachment-name" href="#" target="_blank" rel="noopener"></a>' +
           '<button type="button" class="gb-attachment-btn gb-attachment-preview">Preview</button>' +
           '<button type="button" class="gb-attachment-btn gb-attachment-download">Download</button>' +
           '<button type="button" class="gb-attachment-btn gb-attachment-save">Save</button>';

@@ -17,6 +17,14 @@ window.GBTabs = {
   _persistTimer: null,
 };
 
+function tabText(key, fallback) {
+  if (window.i18n && typeof window.i18n.t === "function") {
+    var value = window.i18n.t(key);
+    return value === key ? fallback : value;
+  }
+  return fallback;
+}
+
 (function () {
   function token() {
     try {
@@ -114,7 +122,7 @@ window.GBTabs = {
     var tab = {
       id: GBTabs.newId(),
       kind: opts.kind || "chat",
-      title: opts.title || "New tab",
+      title: opts.title || tabText("tab-new", "New tab"),
       pinned: !!opts.pinned,
     };
     if (opts.sessionId) tab.sessionId = opts.sessionId;
@@ -244,10 +252,10 @@ window.GBTabs = {
         escapeHtml(tab.title) + "</span>" +
         '<span class="gb-tab-dot"></span>' +
         '<span class="gb-tab-pin">\u{1F4CC}</span>' +
-        '<button type="button" class="gb-tab-close" title="Close tab">\u00D7</button>' +
+        '<button type="button" class="gb-tab-close" title="' + escapeHtml(tabText("tab-close", "Close tab")) + '">\u00D7</button>' +
         "</div>";
     });
-    html += '<button type="button" class="gb-tab-new" id="gbTabNew" title="New tab">+</button>';
+    html += '<button type="button" class="gb-tab-new" id="gbTabNew" title="' + escapeHtml(tabText("tab-new", "New tab")) + '">+</button>';
     strip.innerHTML = html;
   };
 
