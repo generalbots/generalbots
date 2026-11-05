@@ -61,6 +61,7 @@ media services: BotModels open-source stack.
 | TS-03 memory | “Remember: I write in pt-BR and prefer tables” was acknowledged and applied **in that session** (pt-BR + table), but no `bot_memory_extended` row was created. A fresh tab asked the same preference and the model chose `vm_exec ls` instead, then the turn ended on the raw listing | Bot-level memory needs a real write/read tool contract; the model cannot be trusted to search the workspace for preferences. Tracked as a feature, not a UI defect |
 | Agent loop after tools | The pipeline executes a tool call and `break`s the LLM loop; the tool output is the final reply. A follow-up answer is not requested | Requires a bounded re-prompt loop (tool result → model) with cost/turn limits; a larger pipeline change |
 | Multi-attachment | ~~The composer accepts one file and the WS payload carries a single `file`~~ **Fixed:** input is `multiple`, the chip lists every file, the client sends `files: [{name, content_base64}]`, and the server stages each entry | TS-01 PDF + PNG verified in one turn |
+| TS-02 video | Zeroscope freezes this CPU-only host (4 cores / 7.8 GB RAM) while loading; two environment restarts. | **Blocked by hardware** — out of scope here; do not retry `/api/video/generate`. Audio, images, PDF and HTML pass |
 | Model tiers | `/api/chat/models` returns four tiers, all `inherits_default` on `deepseek-v4.1-flash`; there is no cost/speed-differentiated model configured | Correct for the “external DeepSeek only” constraint; adding a second provider would violate it |
 | Generic consent API | The optional `consent` feature is not compiled in this build (`/api/consent/*` 404); terminal/browser consent works through `/api/computer/*` and `/api/terminal/*` | Enabling the feature requires the consent migrations and a product decision; the renderer is loaded and the boot fetch tolerates the 404 |
 
@@ -117,14 +118,19 @@ Attached with “Transcribe and summarize this voice note”:
 > Transcrição: “The quick brown fox jumps over the lazy dog, General Bot's
 > voice test number 42.” … Item / Conteúdo … (table in pt-BR)
 
-### TS-02 video (environment-blocked)
+### TS-02 video (blocked by the host — do not retry)
 
-`POST /api/video/generate` (zeroscope) failed with:
-`video backend 'zeroscope' is not loaded: I/O error: IO Error: No space left on device (os error 28)`.
-The root filesystem was **100% full** (74 GB, 4 KB free). Removed 1.6 GB of
-stale `target/debug/deps/botserver-*` test binaries (not the running binary);
-root is now 98% (1.6 GB free). Video needs a later run with disk headroom; the
-chat attachment path itself is not implicated.
+The first attempt failed with `No space left on device`; after freeing space
+and completing the zeroscope download (3.5 GB cached), the next attempt
+**froze the machine** while loading the video pipeline. The host is CPU-only
+(4 cores, 7.8 GB RAM) and zeroscope is too heavy for it; the environment
+restarted twice. This is a hardware limitation, not a chat defect.
+
+**Decision:** video generation is out of scope on this host. Do not call
+`/api/video/generate` again here. TS-02 audio, PDF/image previews and HTML
+artifacts pass; the video attachment path (`is_media` + BotModels
+`describe-video`) is wired but cannot be exercised without a GPU/host with
+more RAM.
 
 ### TS-06 refresh durability (pass at session level)
 
