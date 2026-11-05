@@ -155,6 +155,34 @@ function vmSplitTarget(target) {
   return { conversationId: head, path: rest };
 }
 
+// #1711 — the app that can edit an Office artifact produced in chat.
+function vmOfficeAppFor(path) {
+  var ext = String(path || "").split(".").pop().toLowerCase();
+  if (["docx", "doc", "odt", "rtf"].indexOf(ext) !== -1) return "docs";
+  if (["xlsx", "xls", "ods", "csv"].indexOf(ext) !== -1) return "sheet";
+  if (["pptx", "ppt"].indexOf(ext) !== -1) return "slides";
+  return null;
+}
+
+// drive_bridge::save_object returns "bucket/key"; split it for the app
+// deep link ({file, bucket}).
+function vmSplitDrivePath(savedPath) {
+  var value = String(savedPath || "");
+  var slash = value.indexOf("/");
+  if (slash === -1) return null;
+  return { bucket: value.slice(0, slash), key: value.slice(slash + 1) };
+}
+
+function vmOpenInOfficeApp(path, savedPath) {
+  var app = vmOfficeAppFor(path);
+  var target = vmSplitDrivePath(savedPath);
+  if (!app || !target) throw new Error("this file has no editor app");
+  if (!window.WindowManager || !window.WindowManager.openDeepLink) {
+    throw new Error("desktop shell unavailable");
+  }
+  window.WindowManager.openDeepLink(app, { file: target.key, bucket: target.bucket });
+}
+
 // Replace <a href="vmfile:..."> anchors produced by marked with attachment
 // cards. Runs on the rendered HTML before it is inserted in the message.
 function renderVmFileLinks(html) {
@@ -180,6 +208,9 @@ function renderVmFileLinks(html) {
       vmEscapeHtml(name) +
       "</a>" +
       '<button type="button" class="gb-attachment-btn gb-attachment-preview">Preview</button>' +
+      (vmOfficeAppFor(parts.path)
+        ? '<button type="button" class="gb-attachment-btn gb-attachment-open">Open</button>'
+        : "") +
       '<button type="button" class="gb-attachment-btn gb-attachment-download">Download</button>' +
       '<button type="button" class="gb-attachment-btn gb-attachment-save">Save</button>' +
       "</span>"
@@ -506,6 +537,24 @@ function vmBindAttachment(card) {
           return vmSaveToDrive(convId, [fileName]);
         })
         .then(vmReportSaved)
+        .catch(vmNotifyError);
+    });
+  }
+  var openBtn = card.querySelector(".gb-attachment-open");
+  if (openBtn) {
+    openBtn.addEventListener("click", function (e) {
+      e.preventDefault();
+      resolve()
+        .then(function (convId) {
+          if (!convId) throw new Error("No active VM");
+          return vmSaveToDrive(convId, [fileName]);
+        })
+        .then(function (data) {
+          var saved = (data && data.saved) || [];
+          if (!saved.length) throw new Error("file was not saved to Drive");
+          vmOpenInOfficeApp(fileName, saved[0].path);
+          vmReportSaved(data);
+        })
         .catch(vmNotifyError);
     });
   }

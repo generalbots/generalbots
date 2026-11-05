@@ -380,9 +380,12 @@ if (typeof htmx === 'undefined') {
   // Direct URL params fallback
   var qs = window.__SHEET_URL_PARAMS || window.location.search;
   if (qs && !qs.startsWith('?')) qs = '?' + qs;
+  // A desktop deep link (chat "Open", Drive) carries the params in
+  // __gbAppParams__ — the shell URL has no query string of its own.
+  var gp = window.__gbAppParams__ || {};
   var params = new URLSearchParams(qs);
-  var bucket = params.get('bucket');
-  var path = params.get('path');
+  var bucket = params.get('bucket') || gp.bucket;
+  var path = params.get('path') || gp.file;
 
   if (!bucket || !path) {
     window.__SHEET_INITIAL_ID = "current";
