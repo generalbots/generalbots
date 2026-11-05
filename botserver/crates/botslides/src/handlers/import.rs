@@ -121,7 +121,17 @@ pub async fn handle_import_presentation<D: DriveOps>(
         Some(stable_source_id(&source_bucket, &source_path))
     };
     if let (Some(id), Some(drive)) = (source_id.as_ref(), state.drive.as_ref()) {
-        if let Ok(existing) = crate::storage::load_presentation_by_id(drive, &user_id, id).await {
+        if let Ok(mut existing) = crate::storage::load_presentation_by_id(drive, &user_id, id).await {
+            // Decks imported before the source fields existed have no identity:
+            // record it on re-open so their next save also writes the sibling
+            // .gbslides.pptx (#1710).
+            if existing.source_bucket.is_none() || existing.source_path.is_none() {
+                existing.source_bucket = Some(source_bucket.clone());
+                existing.source_path = Some(source_path.clone());
+                if let Err(e) = save_presentation_to_drive(drive, &user_id, &existing).await {
+                    log::warn!("slides import: source backfill save failed: {e}");
+                }
+            }
             return Ok(Json(existing));
         }
     }
