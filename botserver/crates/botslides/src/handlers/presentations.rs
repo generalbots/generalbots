@@ -95,16 +95,46 @@ pub async fn handle_save_presentation<D: DriveOps>(
     Json(req): Json<SavePresentationRequest>,
 ) -> Result<Json<SaveResponse>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = get_current_user_id();
-    let presentation_id = req.id.unwrap_or_else(|| Uuid::new_v4().to_string());
+    let presentation_id = req
+        .id
+        .filter(|id| !id.is_empty())
+        .unwrap_or_else(|| Uuid::new_v4().to_string());
 
-    let presentation = Presentation {
-        id: presentation_id.clone(),
-        name: req.name,
-        owner_id: user_id.clone(),
-        slides: req.slides,
-        theme: req.theme,
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
+    let presentation = if req.slides.is_some() && req.theme.is_some() {
+        Presentation {
+            id: presentation_id.clone(),
+            name: req.name.unwrap_or_else(|| "Untitled Presentation".to_string()),
+            owner_id: user_id.clone(),
+            slides: req.slides.unwrap_or_default(),
+            theme: req.theme.unwrap_or_else(crate::utils::create_default_theme),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }
+    } else {
+        // Partial payload (the title rename posts {id, action} only): start
+        // from the stored deck — never wipe slides/theme — then overlay the
+        // fields that were provided.
+        let mut base = match state.drive.as_ref() {
+            Some(drive) => load_presentation_by_id(drive, &user_id, &presentation_id)
+                .await
+                .ok(),
+            None => None,
+        }
+        .unwrap_or_else(|| {
+            let mut fresh = create_new_presentation();
+            fresh.id = presentation_id.clone();
+            fresh
+        });
+        if let Some(name) = req.name {
+            base.name = name;
+        }
+        if let Some(slides) = req.slides {
+            base.slides = slides;
+        }
+        if let Some(theme) = req.theme {
+            base.theme = theme;
+        }
+        base
     };
 
     if let Some(drive) = &state.drive {

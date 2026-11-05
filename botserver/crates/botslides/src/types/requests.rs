@@ -4,9 +4,14 @@ use super::*;
 pub struct SavePresentationRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub id: Option<String>,
-    pub name: String,
-    pub slides: Vec<Slide>,
-    pub theme: PresentationTheme,
+    /// Optional so partial payloads work: the title field posts
+    /// `{id, action}` only and must not wipe the stored deck.
+    #[serde(default)]
+    pub name: Option<String>,
+    #[serde(default)]
+    pub slides: Option<Vec<Slide>>,
+    #[serde(default)]
+    pub theme: Option<PresentationTheme>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
