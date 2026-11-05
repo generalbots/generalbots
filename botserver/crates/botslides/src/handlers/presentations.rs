@@ -90,6 +90,17 @@ pub async fn handle_load_presentation<D: DriveOps>(
     }
 }
 
+/// `dir/sample.pptx` → `dir/sample.gbslides.pptx`; a path without an extension
+/// gets `.gbslides.pptx` appended. Save-back never overwrites the source.
+fn sibling_pptx_path(path: &str) -> String {
+    let (dir, name) = match path.rsplit_once('/') {
+        Some((dir, name)) => (format!("{dir}/"), name),
+        None => (String::new(), path),
+    };
+    let stem = name.rsplit_once('.').map(|(stem, _)| stem).unwrap_or(name);
+    format!("{dir}{stem}.gbslides.pptx")
+}
+
 pub async fn handle_save_presentation<D: DriveOps>(
     State(state): State<Arc<SlidesState<D>>>,
     Json(req): Json<SavePresentationRequest>,
@@ -134,25 +145,29 @@ pub async fn handle_save_presentation<D: DriveOps>(
             ));
         }
         // Save-back: a deck imported from a Drive .pptx writes the exported
-        // presentation to that same object, so the Office file the chat or the
-        // Drive picker produced stays the single source of truth (#1710). A
-        // failure here never discards the deck JSON saved above.
+        // presentation next to the source as `{stem}.gbslides.pptx` — the same
+        // parity the sheet app gives (a `.gbsheet.xlsx` sibling). The original
+        // object is never overwritten: the exporter models text, shapes,
+        // images and notes, not every source feature (tables), so replacing
+        // the upload could silently drop content (#1710). A failure here never
+        // discards the deck JSON saved above.
         if let (Some(bucket), Some(path)) = (
             presentation.source_bucket.as_deref(),
             presentation.source_path.as_deref(),
         ) {
             match crate::pptx::export_to_pptx(&presentation) {
                 Ok(bytes) => {
+                    let sibling = sibling_pptx_path(path);
                     if let Err(e) = drive
                         .put_object(
                             bucket,
-                            path,
+                            &sibling,
                             bytes,
                             "application/vnd.openxmlformats-officedocument.presentationml.presentation",
                         )
                         .await
                     {
-                        log::warn!("slides save-back to {bucket}/{path} failed: {e}");
+                        log::warn!("slides save-back to {bucket}/{sibling} failed: {e}");
                     }
                 }
                 Err(e) => log::warn!("slides save-back export failed for {bucket}/{path}: {e}"),
@@ -208,5 +223,27 @@ pub async fn handle_get_presentation_by_id<D: DriveOps>(
             StatusCode::NOT_FOUND,
             Json(serde_json::json!({ "error": e })),
         )),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::sibling_pptx_path;
+
+    #[test]
+    fn save_back_uses_a_sibling_path() {
+        assert_eq!(
+            sibling_pptx_path("destacados/review.pptx"),
+            "destacados/review.gbslides.pptx"
+        );
+        assert_eq!(sibling_pptx_path("review.pptx"), "review.gbslides.pptx");
+        assert_eq!(
+            sibling_pptx_path("folder/noext"),
+            "folder/noext.gbslides.pptx"
+        );
+        assert_eq!(
+            sibling_pptx_path("folder/two.dots.pptx"),
+            "folder/two.dots.gbslides.pptx"
+        );
     }
 }
