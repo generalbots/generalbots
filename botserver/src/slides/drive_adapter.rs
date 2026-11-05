@@ -27,9 +27,21 @@ impl DriveOps for DriveOpsAdapter {
         let key = key.to_string();
         let content_type = content_type.to_string();
         async move {
-            repository
-                .put_object(&bucket, &key, body, Some(&content_type))
+            match repository
+                .put_object(&bucket, &key, body.clone(), Some(&content_type))
                 .await
+            {
+                Ok(()) => Ok(()),
+                Err(error) if error.contains("NoSuchBucket") => {
+                    // Fresh environments ship without the `gbo` bucket that
+                    // holds presentation persistence keys — create it, retry.
+                    repository.create_bucket_if_not_exists(&bucket).await?;
+                    repository
+                        .put_object(&bucket, &key, body, Some(&content_type))
+                        .await
+                }
+                Err(error) => Err(error),
+            }
         }
     }
 

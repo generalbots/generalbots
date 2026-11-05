@@ -30,7 +30,11 @@ use axum::{
 use log::info;
 use std::path::Path;
 #[cfg(not(feature = "embed-ui"))]
+use tower::Layer;
+#[cfg(not(feature = "embed-ui"))]
 use tower_http::services::{ServeDir, ServeFile};
+#[cfg(not(feature = "embed-ui"))]
+use tower_http::set_response_header::SetResponseHeaderLayer;
 
 use crate::shared::AppState;
 use crate::ui_server::constants::{ROOT_FILES, SITE_ROOT_FILES};
@@ -82,26 +86,42 @@ fn add_static_routes(router: Router<AppState>, _suite_path: &Path) -> Router<App
     }
     #[cfg(not(feature = "embed-ui"))]
     {
+        // Static assets must be revalidated (304 when unchanged) instead of
+        // served from the browser's heuristic cache: after a deploy the old
+        // module JS otherwise keeps executing until the cache TTL expires
+        // (observed with a stale docs/99_init.js after the office fixes).
+        let no_cache = || {
+            SetResponseHeaderLayer::overriding(
+                axum::http::HeaderName::from_static("cache-control"),
+                axum::http::HeaderValue::from_static("no-cache"),
+            )
+        };
         let mut r = router;
         for dir in SUITE_DIRS {
             let path = _suite_path.join(dir);
             info!("Adding route for /suite/{} -> {:?}", dir, path);
-            r = r.nest_service(&format!("/suite/{dir}"), ServeDir::new(path.clone()));
+            r = r.nest_service(
+                &format!("/suite/{dir}"),
+                no_cache().layer(ServeDir::new(path.clone())),
+            );
         }
 
         let wizard_path = get_ui_root().join("wizard");
         info!("Adding route for /wizard -> {:?}", wizard_path);
-        r = r.nest_service("/wizard", ServeDir::new(wizard_path));
+        r = r.nest_service("/wizard", no_cache().layer(ServeDir::new(wizard_path)));
 
         for file in ROOT_FILES {
             let path = _suite_path.join(file);
-            r = r.nest_service(&format!("/suite/{}", file), ServeFile::new(path));
+            r = r.nest_service(
+                &format!("/suite/{}", file),
+                no_cache().layer(ServeFile::new(path)),
+            );
         }
 
         let ui_root = get_ui_root();
         for file in SITE_ROOT_FILES {
             let path = ui_root.join(file);
-            r = r.nest_service(&format!("/{}", file), ServeFile::new(path));
+            r = r.nest_service(&format!("/{}", file), no_cache().layer(ServeFile::new(path)));
         }
         r
     }

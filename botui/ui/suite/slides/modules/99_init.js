@@ -12,8 +12,11 @@ function loadDrivePresentationIntoApp() {
   var bucket = params.get('bucket') || gp.bucket;
   if (!file) return;
 
+  // Several office windows (docs/sheet/slides) can be open at once and each
+  // carries a #saveStatus — scope the lookup to this app's window body.
+  var scope = document.querySelector('[id^="window-body-slides"]') || document;
   var setStatus = function (text) {
-    var el = document.getElementById('saveStatus');
+    var el = scope.querySelector('#saveStatus');
     if (el) el.textContent = text;
   };
   setStatus('Opening from Drive…');
@@ -43,7 +46,7 @@ function loadDrivePresentationIntoApp() {
       var id = presentation && presentation.id;
       if (!id) throw new Error('import returned no id');
       window.__SLIDES_PRESENTATION_ID = id;
-      var titleEl = document.getElementById('presTitle');
+      var titleEl = scope.querySelector('#presTitle');
       if (titleEl) {
         titleEl.value = presentation.name || file.split('/').pop();
         // hx-vals is static JSON; point the rename at the imported deck so

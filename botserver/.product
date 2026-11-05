@@ -27,7 +27,7 @@ apps=chat,drive,terminal,editor,integrations,clock-widget,jukebox,sheet,docs,sli
 # Ids are validated against the catalog in `src/apps/registry.rs` and the
 # feature map in `src/apps/mod.rs::is_app_compiled`; an id in neither place is
 # ignored by the launcher and should not be listed here.
-preview_apps=analytics,attendant,automations,banking,billing,browser,calendar,campaigns,canvas,compliance,concierge,crm,designer,docs,fraud,goals,handoff,hr,kyc,learn,lists,mail,meet,memory,minutes,monitoring,o365,paper,people,plan,plugins,pos,products,project,recycle,retail,slides,social,store,tasks,tax,templates,tickets,timeclock,vibe,video,vision,workspace
+preview_apps=analytics,attendant,automations,banking,billing,browser,calendar,campaigns,canvas,compliance,concierge,crm,designer,fraud,goals,handoff,hr,kyc,learn,lists,mail,meet,memory,minutes,monitoring,o365,paper,people,plan,plugins,pos,products,project,recycle,retail,social,store,tasks,tax,templates,tickets,timeclock,vibe,video,vision,workspace
 
 
 # Sidebar visibility

@@ -23,9 +23,12 @@ function loadDriveFileIntoEditor() {
       return r.json();
     })
     .then(function (doc) {
-      var titleEl = document.getElementById('docTitle');
+      // Several office windows can be open at once; scope to this app's body
+      // so a sibling window's #docTitle/#docs-content is never touched.
+      var scope = document.querySelector('[id^="window-body-docs"]') || document;
+      var titleEl = scope.querySelector('#docTitle');
       if (titleEl) titleEl.value = doc.title || file.split('/').pop();
-      var contentEl = document.getElementById('docs-content');
+      var contentEl = scope.querySelector('#docs-content');
       var article = contentEl && contentEl.querySelector('article[contenteditable]');
       if (!article && contentEl) {
         article = document.createElement('article');
@@ -40,10 +43,14 @@ function loadDriveFileIntoEditor() {
         if (article.dataset) article.dataset.docId = doc.id || file;
         if (window.updatePageCount) window.updatePageCount();
       }
-      setSaveStatus('Opened from Drive', false);
+      var scope2 = document.querySelector('[id^="window-body-docs"]') || document;
+      var statusEl = scope2.querySelector('#saveStatus');
+      if (statusEl) statusEl.textContent = 'Opened from Drive';
     })
     .catch(function (err) {
-      setSaveStatus('Failed to open from Drive: ' + err.message, true);
+      var scope3 = document.querySelector('[id^="window-body-docs"]') || document;
+      var statusEl = scope3.querySelector('#saveStatus');
+      if (statusEl) statusEl.textContent = 'Failed to open from Drive: ' + err.message;
     });
 }
 

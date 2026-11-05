@@ -15,9 +15,22 @@ impl DriveOps for DriveOpsAdapter {
         body: Vec<u8>,
         content_type: &str,
     ) -> Result<(), String> {
-        self.0
-            .put_object(bucket, key, body, Some(content_type))
+        match self
+            .0
+            .put_object(bucket, key, body.clone(), Some(content_type))
             .await
+        {
+            Ok(()) => Ok(()),
+            Err(error) if error.contains("NoSuchBucket") => {
+                // Fresh environments ship without the `gbo` bucket that holds
+                // sheet persistence keys — create it and retry once.
+                self.0.create_bucket_if_not_exists(bucket).await?;
+                self.0
+                    .put_object(bucket, key, body, Some(content_type))
+                    .await
+            }
+            Err(error) => Err(error),
+        }
     }
 
     async fn get_object(
