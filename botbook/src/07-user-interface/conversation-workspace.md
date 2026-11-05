@@ -66,6 +66,14 @@ Invalid calls return schema paths and the model is expected to correct them. The
 | `chat/modules/75_perf.js` | First-paint, log-latency and resume budgets (`window.GBPerf`) |
 | `chat/chat-websocket.js` | Feeds frames to the timeline, surfaces and apps; `run_resume` |
 
+### Tool results become an answer
+
+A workspace or terminal tool no longer ends the turn on its raw output. The
+pipeline captures the result, appends it to the model context and asks for a
+final answer (bounded to two follow-ups and 12k characters). The raw log is
+kept in the collapsed “workspace run” card, and the visible reply is the
+synthesized answer. Verified with `vm_exec` listings and a generated PDF.
+
 ### Consent cards
 
 Terminal and browser actions proposed by the agent render a consent card with

@@ -125,3 +125,29 @@ The root filesystem was **100% full** (74 GB, 4 KB free). Removed 1.6 GB of
 stale `target/debug/deps/botserver-*` test binaries (not the running binary);
 root is now 98% (1.6 GB free). Video needs a later run with disk headroom; the
 chat attachment path itself is not implicated.
+
+### TS-06 refresh durability (pass at session level)
+
+Started “Create a one-page PDF about the Amazon rainforest…” and reloaded the
+page **4 s later**. The server kept running; the transcript after reload
+contained the final answer and the file card:
+
+```
+04:55:38 LLM RESPONSE end (tool call vm_exec)
+04:55:42 vm_exec done ok=Some(true)
+04:55:42 tool follow-up: depth 1/2 after 442 bytes
+04:55:46 LLM RESPONSE end (final answer)
+```
+
+Result: `output/amazonia.pdf` (1 page, 4.3 KB), answer in pt-BR with a table,
+file card present (`amazonia.pdf`), gap 0, no raw tool listing. This proves
+the turn is server-held and survives a reload. **Partial:** live timeline
+resume and mid-run steering were not exercised; the run UI is tied to the
+agent-run frames, not to a plain `vm_exec` tool call.
+
+### Workspace bubble
+
+The raw `ls`/script output no longer appears as a separate bubble. It is
+merged into the preceding collapsed “workspace run” card
+(`mergeWorkspaceOutput`), and the model’s follow-up answer is the visible
+reply. Verified on the Amazon PDF run and on the earlier `vm_exec` listing.
