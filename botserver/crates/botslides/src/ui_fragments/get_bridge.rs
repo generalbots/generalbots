@@ -42,6 +42,8 @@ fn blank_presentation() -> Presentation {
         theme,
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
+        source_bucket: None,
+        source_path: None,
     }
 }
 

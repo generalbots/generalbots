@@ -133,6 +133,8 @@ pub async fn handle_import_presentation<D: DriveOps>(
         theme,
         created_at: Utc::now(),
         updated_at: Utc::now(),
+        source_bucket: Some(source_bucket.clone()).filter(|value| !value.is_empty()),
+        source_path: Some(source_path.clone()).filter(|value| !value.is_empty()),
     };
 
     if let Some(drive) = &state.drive {

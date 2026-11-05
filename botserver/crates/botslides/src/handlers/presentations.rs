@@ -100,42 +100,31 @@ pub async fn handle_save_presentation<D: DriveOps>(
         .filter(|id| !id.is_empty())
         .unwrap_or_else(|| Uuid::new_v4().to_string());
 
-    let presentation = if req.slides.is_some() && req.theme.is_some() {
-        Presentation {
-            id: presentation_id.clone(),
-            name: req.name.unwrap_or_else(|| "Untitled Presentation".to_string()),
-            owner_id: user_id.clone(),
-            slides: req.slides.unwrap_or_default(),
-            theme: req.theme.unwrap_or_else(crate::utils::create_default_theme),
-            created_at: Utc::now(),
-            updated_at: Utc::now(),
-        }
-    } else {
-        // Partial payload (the title rename posts {id, action} only): start
-        // from the stored deck — never wipe slides/theme — then overlay the
-        // fields that were provided.
-        let mut base = match state.drive.as_ref() {
-            Some(drive) => load_presentation_by_id(drive, &user_id, &presentation_id)
-                .await
-                .ok(),
-            None => None,
-        }
-        .unwrap_or_else(|| {
-            let mut fresh = create_new_presentation();
-            fresh.id = presentation_id.clone();
-            fresh
-        });
-        if let Some(name) = req.name {
-            base.name = name;
-        }
-        if let Some(slides) = req.slides {
-            base.slides = slides;
-        }
-        if let Some(theme) = req.theme {
-            base.theme = theme;
-        }
-        base
-    };
+    // Always start from the stored deck when it exists: that preserves the
+    // import source identity (needed for save-back to the .pptx) and the
+    // creation timestamp even when the client posts a full slides+theme
+    // payload (#1710).
+    let mut presentation = match state.drive.as_ref() {
+        Some(drive) => load_presentation_by_id(drive, &user_id, &presentation_id)
+            .await
+            .ok(),
+        None => None,
+    }
+    .unwrap_or_else(|| {
+        let mut fresh = create_new_presentation();
+        fresh.id = presentation_id.clone();
+        fresh
+    });
+    if let Some(name) = req.name {
+        presentation.name = name;
+    }
+    if let Some(slides) = req.slides {
+        presentation.slides = slides;
+    }
+    if let Some(theme) = req.theme {
+        presentation.theme = theme;
+    }
+    presentation.updated_at = Utc::now();
 
     if let Some(drive) = &state.drive {
         if let Err(e) = save_presentation_to_drive(drive, &user_id, &presentation).await {
@@ -143,6 +132,31 @@ pub async fn handle_save_presentation<D: DriveOps>(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botslides::handlers::presentations", None)})),
             ));
+        }
+        // Save-back: a deck imported from a Drive .pptx writes the exported
+        // presentation to that same object, so the Office file the chat or the
+        // Drive picker produced stays the single source of truth (#1710). A
+        // failure here never discards the deck JSON saved above.
+        if let (Some(bucket), Some(path)) = (
+            presentation.source_bucket.as_deref(),
+            presentation.source_path.as_deref(),
+        ) {
+            match crate::pptx::export_to_pptx(&presentation) {
+                Ok(bytes) => {
+                    if let Err(e) = drive
+                        .put_object(
+                            bucket,
+                            path,
+                            bytes,
+                            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                        )
+                        .await
+                    {
+                        log::warn!("slides save-back to {bucket}/{path} failed: {e}");
+                    }
+                }
+                Err(e) => log::warn!("slides save-back export failed for {bucket}/{path}: {e}"),
+            }
         }
     }
 

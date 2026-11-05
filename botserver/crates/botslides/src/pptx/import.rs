@@ -42,6 +42,8 @@ pub fn load_pptx(bytes: &[u8]) -> Result<Presentation, String> {
         theme,
         created_at: chrono::Utc::now(),
         updated_at: chrono::Utc::now(),
+        source_bucket: None,
+        source_path: None,
     })
 }
 

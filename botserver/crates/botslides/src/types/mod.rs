@@ -146,6 +146,13 @@ pub struct Presentation {
     pub theme: PresentationTheme,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// Drive object the deck was imported from, when the opener supplied its
+    /// identity. Saving the deck writes the exported .pptx back to this object
+    /// so the Office file stays the single source of truth (#1710).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_bucket: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_path: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -205,6 +205,8 @@ pub fn create_new_presentation() -> Presentation {
         theme,
         created_at: Utc::now(),
         updated_at: Utc::now(),
+        source_bucket: None,
+        source_path: None,
     }
 }
 
