@@ -95,10 +95,10 @@ jobs:
             ${{ runner.os }}-cargo-alm-
 
       - name: Build botserver (debug, default features + docs)
-        run: cargo build -p botserver --features docs,sheet,slides
+        run: cargo build -p botserver --features docs,sheet,slides,canvas
 
       - name: Build botui (debug, default features + docs)
-        run: cargo build -p botui --features docs,sheet,slides
+        run: cargo build -p botui --features docs,sheet,slides,canvas
 
       - name: Package assets and manifest
         run: |
@@ -141,7 +141,7 @@ jobs:
               ).strip(),
               "target": "x86_64-unknown-linux-gnu",
               "profile": "debug",
-              "features": "default,docs,sheet,slides",
+              "features": "default,docs,sheet,slides,canvas",
               "build_arch": platform.machine(),
               "assets": assets,
           }
