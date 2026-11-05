@@ -29,6 +29,8 @@ const Proactivity = (() => {
   }
 
   function poll() {
+    // No vibe route in this build: do not poll (and do not log a 404) (#1693).
+    if (featureCompiled("vibe") === false) return;
     const tok =
       (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) ||
       localStorage.getItem("token") ||
@@ -74,6 +76,12 @@ const Proactivity = (() => {
       .catch(() => {
         /* API unavailable — try again next tick */
       });
+  }
+
+  function featureCompiled(name) {
+    const cfg = window.productConfig;
+    if (!cfg || !Array.isArray(cfg.compiled_features)) return null;
+    return cfg.compiled_features.indexOf(name) !== -1;
   }
 
   function init() {

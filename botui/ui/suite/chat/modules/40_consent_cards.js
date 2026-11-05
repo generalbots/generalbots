@@ -133,7 +133,19 @@
     pane.appendChild(wrap);
   }
 
+  function featureCompiled(name) {
+    var cfg = window.productConfig;
+    if (!cfg || !Array.isArray(cfg.compiled_features)) return null;
+    return cfg.compiled_features.indexOf(name) !== -1;
+  }
+
   function revivePending() {
+    // Builds without the consent route would answer 404; the manifest says
+    // so up front, and the browser logs every failed request (#1693).
+    if (featureCompiled("consent") === false) {
+      window.__gbConsentApiAvailable = false;
+      return;
+    }
     fetch("/api/consent/pending", { headers: authHeaders() })
       .then(function (r) {
         // Builds without the optional `consent` feature have no such route;

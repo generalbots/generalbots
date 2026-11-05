@@ -391,3 +391,63 @@ so new chat modules never loaded until the SW was unregistered. The shell cache
 was bumped (`gb-desktop-shell-v34`) and its core list updated; a fresh tab then
 loaded `chat-messages.js?v=31`, `chat-live-artifact.js`, and
 `71_run_timeline.js?v=10`.
+
+## Parity pass 2 — console, session management, suggestions/switchers (2026-11-05)
+
+### Boot console is clean
+
+`/api/product` now advertises optional routes compiled into the binary
+(`consent`, `vibe`). The consent revival and proactivity poll check the manifest
+first, so builds without those routes no longer request them. Fresh load:
+
+```
+http4xx: []   console errors: []   msgs: 143   chips: 4
+```
+
+### Session rename (pass)
+
+Renamed “Reply with one word: alpha” through the sidebar pencil → prompt
+`Sanity Rename 1693`. Rail item updated immediately and the server agreed:
+
+```
+dialog: "Rename conversation:"
+ui:     {renamed: true, title: "Sanity Rename 1693"}
+api:    {found: true, title: "Sanity Rename 1693"}
+```
+
+### Session delete (pass)
+
+“New conversation” created a second tab/session, one message was sent, then
+the trash action on its rail item was confirmed:
+
+```
+dialog: "Delete this conversation and its workspace files?"
+removed from rail: true
+still on server:   false
+```
+
+### Session search (pass)
+
+The sidebar search filtered 30 conversations to the single match
+`Reply with one word: alpha`; clearing the field restored all 30.
+
+### Suggestions (pass)
+
+Four chips render from the bot; clicking **Calculate** added the user turn
+“Calculate” and started the reply (`users: 51 → 52`, thinking indicator on).
+
+### Switchers (renderer pass; none configured for this bot)
+
+The default bot has no switchers, so the server sends an empty list. The
+renderer/toggle path was exercised with a definition in the live page:
+`🤖 Sanity Bot` chip rendered, one click produced
+`activeSwitchers: ["sanity-sw"]` and `class="switcher-chip active"`, a second
+click removed it.
+
+### AutoTask terminal runs
+
+The user-facing equivalent is `terminal_run` (real PTY inside the agent VM),
+verified end to end in the “TS-06 live terminal run and takeover” section:
+live output, Take over while running, Hand back, and completion. The legacy
+`botautotask::AgentExecutor` still has no construction site; wiring it would
+duplicate this path, so the PTY tool is the supported launch path.
