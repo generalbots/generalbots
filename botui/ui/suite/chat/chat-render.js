@@ -64,9 +64,14 @@ function stripMarkdownBlocks(content) {
   // Unwrap markdown-language fences embedded in prose (before trailing-fence strip,
   // which would otherwise remove the closing ``` and leave the block unwrapped)
   cleanContent = cleanContent.replace(/(^|\n)```(?:markdown|md|text|plain)\s*\n([\s\S]*?)\n?```\s*(\n|$)/gi, "$1$2$3");
-  // Unwrap whole-message code fences (HTML/XML/markdown/text) so tables and markup
-  // render as HTML instead of displaying as raw markdown
-  cleanContent = cleanContent.replace(/^```(?:html|xml|markdown|md|text|plain)?\s*\n?/gi, "").replace(/\n?```\s*$/gi, "");
+  // Unwrap whole-message code fences (HTML/XML/markdown/text) so tables and
+  // markup render as HTML instead of displaying as raw markdown. The opening
+  // fence must be unlabeled or one of those languages: the previous optional
+  // group also matched ```python, leaving "python" as the first prose line and
+  // turning every code answer into a paragraph with no copy button.
+  cleanContent = cleanContent
+    .replace(/^```(?:(?:html|xml|markdown|md|text|plain)\s*\n|\n)/i, "")
+    .replace(/\n?```\s*$/i, "");
   var hasHtmlTags = /<\/?[a-zA-Z][^>]*>|<!--|-->/i.test(cleanContent);
   if (hasHtmlTags) {
     cleanContent = stripSectorInfo(cleanContent);

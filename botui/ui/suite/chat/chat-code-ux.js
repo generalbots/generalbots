@@ -52,17 +52,32 @@
 
     function highlight(text, lang) {
         var rules = LANGUAGE_TOKENIZERS[lang || ""] || LANGUAGE_TOKENIZERS.js;
-        var out = escapeHtml(text);
-        for (var r = 0; r < rules.length; r++) {
-            var rule = rules[r];
-            if (!rule.re) continue;
-            rule.re.lastIndex = 0;
-            if (rule.re.test(out)) {
-                rule.re.lastIndex = 0;
-                out = out.replace(rule.re, function (match) {
-                    return '<span class="gb-' + rule.named + '">' + match + "</span>";
-                });
+        if (!rules.length) return escapeHtml(text);
+        // Tokenize the raw source in one pass. The previous version ran each
+        // rule over the HTML produced by the earlier ones, so the string rule
+        // matched class="gb-kw" and code rendered as `"gb-kw">def`.
+        var out = "";
+        var pos = 0;
+        while (pos < text.length) {
+            var best = null;
+            for (var r = 0; r < rules.length; r++) {
+                var rule = rules[r];
+                if (!rule.re) continue;
+                var scanner = new RegExp(rule.re.source, rule.re.flags || "g");
+                scanner.lastIndex = pos;
+                var match = scanner.exec(text);
+                if (!match || match[0].length === 0) continue;
+                if (!best || match.index < best.index) {
+                    best = { index: match.index, value: match[0], named: rule.named };
+                }
             }
+            if (!best) {
+                out += escapeHtml(text.slice(pos));
+                break;
+            }
+            out += escapeHtml(text.slice(pos, best.index));
+            out += '<span class="gb-' + best.named + '">' + escapeHtml(best.value) + "</span>";
+            pos = best.index + best.value.length;
         }
         return out;
     }
