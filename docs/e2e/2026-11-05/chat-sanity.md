@@ -451,3 +451,24 @@ verified end to end in the “TS-06 live terminal run and takeover” section:
 live output, Take over while running, Hand back, and completion. The legacy
 `botautotask::AgentExecutor` still has no construction site; wiring it would
 duplicate this path, so the PTY tool is the supported launch path.
+
+### Stop, copy and scroll (pass)
+
+- **Stop:** clicked during a long essay request; card switched to
+  `Cancelled / CANCELLED`, streaming and the thinking indicator cleared, and
+  the transcript length stayed at 145 messages afterwards. Completed cards
+  hide their Stop button (`hidden: true` on all 11 finished cards).
+- **Copy:** the bot message copy action captured `"Stopped."` (8 chars) through
+  `navigator.clipboard.writeText`.
+- **Scroll:** after scrolling to the top (gap 30,309 px) the jump button became
+  visible; clicking it returned the view to `gap: 0`; at the bottom the button
+  computes `opacity: 0; pointer-events: none`.
+
+### Parity ledger — remaining exceptions
+
+| Area | Status | Reason |
+|------|--------|--------|
+| Video generation | Blocked by hardware | Zeroscope freezes this CPU-only 4-core/7.8 GB host; do not retry |
+| Model tier cost/latency | Partial by design | Only one external DeepSeek model is configured; there is no second price/speed point to compare |
+| Tab reload restoration | Default-only by design | Reload starts the canonical conversation to avoid stale per-tab sockets; other sessions stay in history and the server mirror |
+| AutoTask `AgentExecutor` | Superseded | It launches a new LXC container per task via `lxc` (not installed; disk-bound). `terminal_run` is the supported PTY path and is verified with real takeover |
