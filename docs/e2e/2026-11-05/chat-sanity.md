@@ -60,7 +60,7 @@ media services: BotModels open-source stack.
 |------|---------|------------------------------|
 | TS-03 memory | “Remember: I write in pt-BR and prefer tables” was acknowledged and applied **in that session** (pt-BR + table), but no `bot_memory_extended` row was created. A fresh tab asked the same preference and the model chose `vm_exec ls` instead, then the turn ended on the raw listing | Bot-level memory needs a real write/read tool contract; the model cannot be trusted to search the workspace for preferences. Tracked as a feature, not a UI defect |
 | Agent loop after tools | The pipeline executes a tool call and `break`s the LLM loop; the tool output is the final reply. A follow-up answer is not requested | Requires a bounded re-prompt loop (tool result → model) with cost/turn limits; a larger pipeline change |
-| Multi-attachment | The composer accepts one file (`multiple=false`) and the WS payload carries a single `file` | Needs list-shaped payload + server extraction for each item; TS-01 “PDF + PNG” currently has to be sequential |
+| Multi-attachment | ~~The composer accepts one file and the WS payload carries a single `file`~~ **Fixed:** input is `multiple`, the chip lists every file, the client sends `files: [{name, content_base64}]`, and the server stages each entry | TS-01 PDF + PNG verified in one turn |
 | Model tiers | `/api/chat/models` returns four tiers, all `inherits_default` on `deepseek-v4.1-flash`; there is no cost/speed-differentiated model configured | Correct for the “external DeepSeek only” constraint; adding a second provider would violate it |
 | Generic consent API | The optional `consent` feature is not compiled in this build (`/api/consent/*` 404); terminal/browser consent works through `/api/computer/*` and `/api/terminal/*` | Enabling the feature requires the consent migrations and a product decision; the renderer is loaded and the boot fetch tolerates the 404 |
 
@@ -151,3 +151,37 @@ The raw `ls`/script output no longer appears as a separate bubble. It is
 merged into the preceding collapsed “workspace run” card
 (`mergeWorkspaceOutput`), and the model’s follow-up answer is the visible
 reply. Verified on the Amazon PDF run and on the earlier `vm_exec` listing.
+
+### TS-06 live timeline, resume and steering (pass)
+
+- **Live card:** a PDF turn rendered a `.run-card` with the user title, elapsed
+  timer (0.8 s → 3.3 s), Collapse, **Stop** and “Answering / RUNNING”.
+- **Resume:** reloaded 4 s into an Atlantic Forest PDF run; the client sent
+  `run_resume` (seq 10), replayed to seq 25, and the final
+  `mata-atlantica.pdf` answer appeared once (single `vm_exec done`).
+- **Steering:** started a Pantanal PDF run, sent “Also add a table comparing
+  the wet and dry seasons.” 1.5 s later. The message queued at the turn
+  boundary and started a second run (41 s) that updated `pantanal.pdf` with
+  “Cheia e seca: comparação das estações” (3 × 6 table). Both run cards ended
+  `state-succeeded`.
+- **Partial:** terminal/browser “Take over” was not exercised (the PDF run
+  uses `vm_exec`, not the terminal/browser tools).
+
+### TS-01 PDF + PNG in one turn (pass)
+
+The composer now accepts multiple files. Selecting `rio-de-janeiro.pdf` and
+`ts01_test.png` at once shows:
+
+```
+📎 rio-de-janeiro.pdf, ts01_test.png (2 files, 9.5 KB)
+```
+
+The server staged both (`stored chat attachment` twice) and the answer
+contained the Rio PDF summary table **and**:
+
+> Imagem (ts01_test.png): fundo azul com uma borda branca — só isso, sem
+> outros elementos visíveis.
+
+The client sends `files: [...]` (with `file` kept as the first for older
+servers); `ingest_attachment` loops over every entry and combines the prompt
+notes.

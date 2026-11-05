@@ -194,7 +194,41 @@ pub(super) struct AttachmentResult {
 
 /// Stores a base64 attachment under `inbox/` and produces the system block
 /// that carries its extracted text (or an honest "cannot read this" note).
+/// Stages one attachment (`file`) or every entry of a `files` array. The
+/// composer sends the array when the user selects PDF + PNG in one turn; the
+/// single-file shape stays for older clients and channel adapters.
 pub(super) async fn ingest_attachment(
+    state: &Arc<AppState>,
+    bot_uuid: Uuid,
+    bot_name: &str,
+    parsed: &Value,
+    user_text: String,
+) -> AttachmentResult {
+    let files: Vec<Value> = parsed
+        .get("files")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    if files.is_empty() {
+        return ingest_single_attachment(state, bot_uuid, bot_name, parsed, user_text).await;
+    }
+    let mut text = user_text;
+    let mut notes: Vec<String> = Vec::new();
+    for file in files {
+        let single = serde_json::json!({ "file": file });
+        let result = ingest_single_attachment(state, bot_uuid, bot_name, &single, text).await;
+        text = result.user_text;
+        if let Some(note) = result.note {
+            notes.push(note);
+        }
+    }
+    AttachmentResult {
+        user_text: text,
+        note: if notes.is_empty() { None } else { Some(notes.join("\n\n")) },
+    }
+}
+
+async fn ingest_single_attachment(
     state: &Arc<AppState>,
     bot_uuid: Uuid,
     bot_name: &str,

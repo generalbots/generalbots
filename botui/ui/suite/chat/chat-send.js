@@ -49,9 +49,12 @@ function sendMessage(messageContent, extra) {
   var content = messageContent || input.value.trim();
 
   var fileInput = document.getElementById("messageFile");
-  var file = fileInput && fileInput.files && fileInput.files[0];
+  var files = fileInput && fileInput.files
+    ? Array.prototype.slice.call(fileInput.files)
+    : [];
+  var fileNames = files.map(function (file) { return file.name; }).join(", ");
 
-  if (!content && !file) return;
+  if (!content && !files.length) return;
 
   if (ChatState.isStreaming && ChatState.streamingMessageId) {
     finalizeStreaming();
@@ -65,7 +68,9 @@ function sendMessage(messageContent, extra) {
     input.focus();
   }
 
-  addMessage("user", content || ("📎 " + file.name));
+  var display = content || ("📎 " + fileNames);
+  if (content && fileNames) display += "\n\n📎 " + fileNames;
+  addMessage("user", display);
   // Immediate feedback: the provider may take seconds (or minutes) before the
   // first thinking frame, and the chat used to look frozen after Enter.
   if (typeof showThinkingIndicator === "function") showThinkingIndicator();
@@ -213,8 +218,8 @@ function sendMessage(messageContent, extra) {
     }, 6000);
     // GB6-15: the attachment leaves the composer with a visible outcome
     // instead of silently disappearing.
-    if (file) {
-      notify("Attachment sent: " + file.name, "success");
+    if (files.length) {
+      notify((files.length === 1 ? "Attachment sent: " : "Attachments sent: ") + fileNames, "success");
     }
     if (fileInput) { fileInput.value = ""; }
     var chip = document.getElementById("fileChip");
@@ -230,45 +235,49 @@ function sendMessage(messageContent, extra) {
     }));
   };
 
-  if (file && ChatState.ws && ChatState.ws.readyState === WebSocket.OPEN) {
+  function readAttachments(list) {
+    return Promise.all(list.map(function (attachment) {
+      return new Promise(function (resolve, reject) {
+        var reader = new FileReader();
+        reader.onerror = function () { reject(new Error(attachment.name)); };
+        reader.onload = function () {
+          resolve({
+            name: attachment.name,
+            content_base64: String(reader.result).split(",")[1] || reader.result,
+          });
+        };
+        reader.readAsDataURL(attachment);
+      });
+    }));
+  }
+
+  if (files.length && ChatState.ws && ChatState.ws.readyState === WebSocket.OPEN) {
     var activeChip = document.getElementById("fileChip");
     if (activeChip) {
-      activeChip.textContent = "⏳ Preparing " + file.name + " (" + formatAttachSize(file.size) + ")…";
+      activeChip.textContent = "⏳ Preparing " + fileNames + "…";
       activeChip.style.display = "inline-flex";
     }
-    var reader = new FileReader();
-    reader.onerror = function () {
-      if (activeChip) activeChip.textContent = "⚠ Could not read " + file.name + " — try again";
-      notify("Could not read the attachment. Attach it again.", "error");
-    };
-    reader.onprogress = function (event) {
-      if (!event.lengthComputable || !activeChip) return;
-      var pct = Math.round((event.loaded / event.total) * 100);
-      activeChip.textContent = "⏳ " + file.name + " — " + pct + "%";
-    };
-    reader.onload = function () {
-      payload.file = {
-        name: file.name,
-        content_base64: String(reader.result).split(",")[1] || reader.result,
-      };
+    readAttachments(files).then(function (attachments) {
+      payload.files = attachments;
+      payload.file = attachments[0];
       finalSend();
-    };
-    reader.readAsDataURL(file);
+    }).catch(function (error) {
+      if (activeChip) activeChip.textContent = "⚠ Could not read " + error.message;
+      notify("Could not read an attachment. Attach it again.", "error");
+    });
   } else if (ChatState.ws && ChatState.ws.readyState === WebSocket.OPEN) {
     finalSend();
-  } else if (file) {
-    // #1275 — reconnect may still be in flight when the user attaches a
-    // file: read it now and queue the send for the reopened socket.
+  } else if (files.length) {
+    // #1275 — reconnect may still be in flight; read every attachment now
+    // and queue the send for the reopened socket.
     notify("Connection is back shortly — attachment queued", "info");
-    var queuedReader = new FileReader();
-    queuedReader.onload = function () {
-      payload.file = {
-        name: file.name,
-        content_base64: String(queuedReader.result).split(",")[1] || queuedReader.result,
-      };
+    readAttachments(files).then(function (attachments) {
+      payload.files = attachments;
+      payload.file = attachments[0];
       queueOfflineMessage(payload);
-    };
-    queuedReader.readAsDataURL(file);
+    }).catch(function () {
+      notify("Could not read an attachment. Attach it again.", "error");
+    });
   } else {
     // #1275 — a server restart kills the socket while the user keeps
     // typing. Queue instead of dropping the message on the floor; the

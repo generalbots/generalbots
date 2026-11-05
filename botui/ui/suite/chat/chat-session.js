@@ -10,16 +10,29 @@
   if (!fileBtn || !fileInput || !chip) return;
 
   var MAX_FILE_SIZE = 25 * 1024 * 1024;
+  // One turn can carry PDF + PNG (+ more): the server stages every entry of
+  // the `files` array. The chip lists them; the limit is per file.
+  fileInput.multiple = true;
 
-  function showFileChip(file) {
-    if (file.size > MAX_FILE_SIZE) {
-      notify("File too large (max 25 MB)", "warning");
+  function showFileChip(files) {
+    var list = Array.prototype.slice.call(files || []);
+    if (!list.length) {
+      chip.style.display = "none";
+      chip.textContent = "";
+      chip.title = "";
+      return;
+    }
+    var tooBig = list.find(function (file) { return file.size > MAX_FILE_SIZE; });
+    if (tooBig) {
+      notify("File too large (max 25 MB): " + tooBig.name, "warning");
       fileInput.value = "";
       return;
     }
-    chip.textContent = "📎 " + file.name + " (" + formatAttachSize(file.size) + ")";
+    var total = list.reduce(function (sum, file) { return sum + file.size; }, 0);
+    chip.textContent = "📎 " + list.map(function (f) { return f.name; }).join(", ") +
+      " (" + list.length + (list.length === 1 ? " file, " : " files, ") + formatAttachSize(total) + ")";
     chip.style.display = "inline-flex";
-    chip.title = file.name;
+    chip.title = list.map(function (f) { return f.name; }).join("\n");
   }
 
   fileBtn.addEventListener("click", function (e) {
@@ -27,7 +40,7 @@
     fileInput.click();
   });
   fileInput.addEventListener("change", function () {
-    if (fileInput.files && fileInput.files[0]) showFileChip(fileInput.files[0]);
+    showFileChip(fileInput.files);
   });
 
   chip.addEventListener("click", function () {
@@ -47,12 +60,12 @@
     });
     chatArea.addEventListener("drop", function (e) {
       chatArea.classList.remove("gb-chat-drag");
-      var files = e.dataTransfer && e.dataTransfer.files;
-      if (files && files[0]) {
+      var dropped = e.dataTransfer && e.dataTransfer.files;
+      if (dropped && dropped.length) {
         var dt = new DataTransfer();
-        dt.items.add(files[0]);
+        for (var d = 0; d < dropped.length; d++) dt.items.add(dropped[d]);
         fileInput.files = dt.files;
-        showFileChip(files[0]);
+        showFileChip(dropped);
       }
     });
   }
@@ -61,17 +74,19 @@
     if (e.target && (e.target.tagName === "TEXTAREA" || (e.target.tagName === "INPUT" && e.target.type === "text" && e.target.id !== "messageInput"))) return;
     var items = e.clipboardData && e.clipboardData.items;
     if (!items) return;
+    var pasted = [];
     for (var i = 0; i < items.length; i++) {
       if (items[i].kind === "file") {
         var f = items[i].getAsFile();
-        if (!f) continue;
-        e.preventDefault();
-        var dt = new DataTransfer();
-        dt.items.add(f);
-        fileInput.files = dt.files;
-        showFileChip(f);
-        break;
+        if (f) pasted.push(f);
       }
+    }
+    if (pasted.length) {
+      e.preventDefault();
+      var dt = new DataTransfer();
+      for (var j = 0; j < pasted.length; j++) dt.items.add(pasted[j]);
+      fileInput.files = dt.files;
+      showFileChip(pasted);
     }
   });
 })();

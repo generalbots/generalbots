@@ -73,6 +73,12 @@ workspace re-attaches panes), the composer stays below the messages, and only
 the message list scrolls — the window frame itself no longer grows a second
 scrollbar.
 
+One turn can carry several attachments: the file input is `multiple`, the
+chip lists every name and total size, and the client sends a `files` array
+(each with base64 content). The server stages each file under the bot's
+`inbox/` and combines the extracted-text/media notes, so “summarize the PDF
+and describe the image” works with both attached at once.
+
 Suggestion chips are rendered from the session's Redis set. Redis is not
 durable across a stack restart, so when the set is empty for a conversation
 that already has history (start.bas is skipped), the server replays the
