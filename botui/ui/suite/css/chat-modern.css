@@ -30,6 +30,12 @@
     -webkit-font-smoothing: antialiased;
     color: var(--gb-text);
     background: var(--gb-bg);
+    /* One accent for the whole conversation. The legacy chat styles still
+       read --accent/--primary, which used to resolve to the suite blue while
+       the modern chrome was green — two brands in one window. */
+    --accent: var(--gb-accent);
+    --primary: var(--gb-accent);
+    --suggestion-color: var(--gb-accent);
 }
 
 /* ── Conversation canvas ───────────────────────────────────────────── */

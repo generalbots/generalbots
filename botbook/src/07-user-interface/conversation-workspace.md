@@ -66,6 +66,17 @@ Invalid calls return schema paths and the model is expected to correct them. The
 | `chat/modules/75_perf.js` | First-paint, log-latency and resume budgets (`window.GBPerf`) |
 | `chat/chat-websocket.js` | Feeds frames to the timeline, surfaces and apps; `run_resume` |
 
+### Consent cards
+
+Terminal and browser actions proposed by the agent render a consent card with
+Run/Deny (or Allow/Deny). The chat stops saying “Waiting for the model…” as
+soon as the card appears — it is waiting for the person, not the provider —
+and again when the result is reported. The result is shown in the card and
+recorded server-side; an API-tool consent request (`consent_request`) uses the
+same card surface with Allow once / Allow for this run / Allow for 1 hour /
+Always allow / Deny. Both consent endpoints accept the chat's opaque `gb_`
+session token, not only a JWT.
+
 ### Inline file previews
 
 Attachment cards preview PDFs, images and Office files in place. PDFs use the

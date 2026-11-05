@@ -135,7 +135,15 @@
 
   function revivePending() {
     fetch("/api/consent/pending", { headers: authHeaders() })
-      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (r) {
+        // Builds without the optional `consent` feature have no such route;
+        // do not retry or log a 404 on every boot.
+        if (r.status === 404) {
+          window.__gbConsentApiAvailable = false;
+          return null;
+        }
+        return r.ok ? r.json() : null;
+      })
       .then(function (d) {
         if (!d) return;
         var items = Array.isArray(d) ? d : (d.items || d.requests || d.pending || []);

@@ -102,6 +102,17 @@ pub(crate) fn resolve_chat_user_uuid(user_id: &str) -> uuid::Uuid {
 /// A real account whose `users` row was first materialised by the anonymous
 /// path carries a `guest_*@anonymous.local` email. Restore the verified email
 /// from the token so Drive and file scopes address the right folder.
+/// Resolves the full session identity for a suite/cloud token, including the
+/// verified email needed by the guest-repair path.
+fn session_identity(token: &str) -> Option<botcoredirectory::auth_routes::SessionUserData> {
+    if let Ok(cache) = botcoredirectory::auth_routes::SESSION_CACHE.try_read() {
+        if let Some(user) = cache.get(token) {
+            return Some(user.clone());
+        }
+    }
+    botcoredirectory::auth_routes::session_from_persisted(token)
+}
+
 fn repair_poisoned_identity(
     state: &Arc<AppState>,
     user_uuid: uuid::Uuid,
@@ -115,19 +126,26 @@ fn repair_poisoned_identity(
         .and_then(|v| v.to_str().ok())
         .and_then(|s| s.strip_prefix("Bearer "));
     let Some(token) = token else { return };
-    let parts: Vec<&str> = token.split('.').collect();
-    if parts.len() != 3 {
-        return;
-    }
-    let Some(payload) = base64_url_decode_impl(parts[1]) else {
-        return;
+    // Cloud tokens are JWTs; suite tokens are opaque `gb_<uuid>_<ts>` values
+    // resolved from the session cache/DB. Both carry the verified email, and
+    // both must repair a guest row — otherwise an admin chat keeps the
+    // workspace locked as guest_*@anonymous.local after a restart.
+    let email = if token.split('.').count() == 3 {
+        let parts: Vec<&str> = token.split('.').collect();
+        let Some(payload) = base64_url_decode_impl(parts[1]) else {
+            return;
+        };
+        let Ok(payload) = serde_json::from_slice::<serde_json::Value>(&payload) else {
+            return;
+        };
+        payload
+            .get("email")
+            .and_then(|v| v.as_str())
+            .map(|value| value.to_string())
+    } else {
+        session_identity(token).map(|user| user.email)
     };
-    let Ok(payload) = serde_json::from_slice::<serde_json::Value>(&payload) else {
-        return;
-    };
-    let Some(email) = payload.get("email").and_then(|v| v.as_str()) else {
-        return;
-    };
+    let Some(email) = email else { return };
     if email.trim().is_empty() {
         return;
     }
@@ -138,7 +156,7 @@ fn repair_poisoned_identity(
             .filter(u::email.like("guest\\_%@anonymous.local")),
     )
     .set((
-        u::email.eq(email),
+        u::email.eq(&email),
         u::username.eq(email.split('@').next().unwrap_or("user")),
         u::updated_at.eq(chrono::Utc::now()),
     ))

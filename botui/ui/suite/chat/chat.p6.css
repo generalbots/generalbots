@@ -81,7 +81,7 @@
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: var(--accent, #2563eb);
+    background: var(--gb-accent, var(--accent, #16a34a));
     display: none;
     flex-shrink: 0;
 }

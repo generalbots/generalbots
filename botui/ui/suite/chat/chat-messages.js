@@ -29,6 +29,33 @@ function stickToBottom(duration) {
   }, 120);
 }
 
+// History replay appends messages whose inline artifacts and images load
+// lazily, so the transcript keeps growing after the first scroll. Keep the
+// newest turn in view until the layout settles, and stop the moment the
+// reader scrolls away (their intent wins).
+function followLiveEdge(maxMs) {
+  var messages = document.getElementById("messages");
+  if (!messages) return;
+  var end = Date.now() + (maxMs || 12000);
+  var cancelled = false;
+  function cancel() { cancelled = true; cleanup(); }
+  function cleanup() {
+    messages.removeEventListener("wheel", cancel);
+    messages.removeEventListener("touchstart", cancel);
+    messages.removeEventListener("keydown", cancel);
+  }
+  messages.addEventListener("wheel", cancel, { passive: true });
+  messages.addEventListener("touchstart", cancel, { passive: true });
+  messages.addEventListener("keydown", cancel);
+  function step() {
+    if (cancelled) return;
+    messages.scrollTop = messages.scrollHeight;
+    if (Date.now() < end) requestAnimationFrame(step);
+    else cleanup();
+  }
+  requestAnimationFrame(step);
+}
+
 function showThinkingIndicator() {
   var existing = document.getElementById("thinking-indicator");
   if (existing) return;

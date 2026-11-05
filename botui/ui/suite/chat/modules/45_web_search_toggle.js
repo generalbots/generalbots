@@ -57,8 +57,8 @@
 
   function copy() {
     return enabled
-      ? tr("chat-web-on-title", "Web search: on — answers can use live sources. Click to turn off.")
-      : tr("chat-web-off-title", "Web search: off — answers use no live sources. Click to turn on.");
+      ? tr("chat-web-on", "Web search: on — answers can use live sources. Click to turn off.")
+      : tr("chat-web-off", "Web search: off — answers use no live sources. Click to turn on.");
   }
 
   function paint() {

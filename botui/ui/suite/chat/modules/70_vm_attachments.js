@@ -548,6 +548,13 @@ function vmVisiblePane() {
   return null;
 }
 
+function vmLatestBotMessage() {
+  var pane = vmVisiblePane();
+  if (!pane) return null;
+  var bots = pane.querySelectorAll(".message.bot");
+  return bots.length ? bots[bots.length - 1] : null;
+}
+
 function vmAttachmentAnchor(container) {
   if (container && container.isConnected) {
     var rect = container.getBoundingClientRect();
@@ -695,12 +702,49 @@ function hydrateVmAttachments(container) {
   if (!anchor) return;
   vmGroupAttachments(anchor);
 
+  // History replay already carries the files the model linked. The
+  // conversation-wide fallback must not staple today's output/ folder onto
+  // old turns, so it only runs for a live reply. Record the conversation's
+  // existing files as seen first, otherwise the next live answer would
+  // re-attach every PDF produced before the reload.
+  if (typeof ChatState !== "undefined" && ChatState.suppressPersist) {
+    vmCurrentConversationId().then(function (conversationId) {
+      if (!conversationId) return;
+      var seen = VmAttachments.renderedPaths[conversationId];
+      if (!seen) {
+        seen = {};
+        VmAttachments.renderedPaths[conversationId] = seen;
+      }
+      var cards = anchor.querySelectorAll(".gb-attachment");
+      for (var index = 0; index < cards.length; index++) {
+        if (cards[index].dataset.path) seen[cards[index].dataset.path] = true;
+      }
+      return vmAttachmentsRequest(
+        "/api/agent/vm/files?conversation_id=" + encodeURIComponent(conversationId)
+      ).then(function (data) {
+        ((data && data.files) || []).forEach(function (name) {
+          seen["output/" + name] = true;
+        });
+      });
+    }).catch(function () { /* replay stays best-effort */ });
+    return;
+  }
   vmCurrentConversationId()
     .then(function (conversationId) {
       if (!conversationId) return;
-      var seen = VmAttachments.renderedPaths[conversationId] || {};
+      // Claim the conversation synchronously: replay hydrates every message
+      // at once, and each callback used to create its own empty set, so the
+      // same output/ files were appended to all 34 replies.
+      var seen = VmAttachments.renderedPaths[conversationId];
+      if (!seen) {
+        seen = {};
+        VmAttachments.renderedPaths[conversationId] = seen;
+      }
+      // The fallback folder belongs to the newest reply, never to an older
+      // turn that happened to hydrate first.
+      var fallback = vmLatestBotMessage() || anchor;
       var present = {};
-      var existing = anchor.querySelectorAll(".gb-attachment");
+      var existing = fallback.querySelectorAll(".gb-attachment");
       for (var j = 0; j < existing.length; j++) {
         present[existing[j].dataset.path] = true;
         seen[existing[j].dataset.path] = true;
@@ -714,11 +758,10 @@ function hydrateVmAttachments(container) {
           return !seen[path] && !present[path];
         });
         if (!missing.length) {
-          VmAttachments.renderedPaths[conversationId] = seen;
-          vmGroupAttachments(anchor);
+          vmGroupAttachments(fallback);
           return;
         }
-        if (!anchor.isConnected) return;
+        if (!fallback.isConnected) return;
         var wrapper = document.createElement("div");
         wrapper.className = "gb-attachments";
         missing.forEach(function (name) {
@@ -726,10 +769,9 @@ function hydrateVmAttachments(container) {
           vmAppendCard(wrapper, conversationId, path, name);
           seen[path] = true;
         });
-        VmAttachments.renderedPaths[conversationId] = seen;
-        var target = anchor.querySelector(".message-content") || anchor;
+        var target = fallback.querySelector(".message-content") || fallback;
         target.appendChild(wrapper);
-        vmGroupAttachments(anchor);
+        vmGroupAttachments(fallback);
         if (
           typeof ChatState !== "undefined" &&
           !ChatState.isUserScrolling &&

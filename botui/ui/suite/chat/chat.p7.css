@@ -118,16 +118,18 @@
   max-width: 340px;
   padding: 7px 10px;
   margin: 2px 0;
-  border: 1px solid color-mix(in srgb, var(--accent, #7c5cff) 22%, transparent);
+  /* Files are content, not actions: a neutral card keeps the conversation
+     calm and lets the accent stay on the controls that do something. */
+  border: 1px solid var(--gb-border, #e4e4e7);
   border-radius: 11px;
-  background: color-mix(in srgb, var(--accent, #7c5cff) 9%, var(--surface, #1e1e2e));
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  background: var(--gb-surface-muted, #fafafa);
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
   font-size: 12.5px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 #chat-app .gb-attachment:hover {
-  border-color: color-mix(in srgb, var(--accent, #7c5cff) 45%, transparent);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  border-color: var(--gb-border-strong, #d4d4d8);
+  box-shadow: 0 2px 8px rgba(16, 24, 40, 0.06);
 }
 #chat-app .gb-attachment-icon {
   display: inline-flex;
@@ -137,8 +139,9 @@
   height: 26px;
   flex-shrink: 0;
   border-radius: 8px;
-  background: color-mix(in srgb, var(--accent, #7c5cff) 16%, transparent);
-  color: var(--accent, #a78bfa);
+  background: var(--gb-surface, #f4f4f5);
+  border: 1px solid var(--gb-border, #e4e4e7);
+  color: #52525b;
   font-size: 13px;
   line-height: 1;
 }
@@ -151,7 +154,7 @@
   font-weight: 500;
   font-family: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
   font-size: 12px;
-  color: var(--text, #e5e5e5);
+  color: var(--gb-text, #18181b);
   text-decoration: none;
 }
 #chat-app .gb-attachment-name:hover {
@@ -168,7 +171,9 @@
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
-  opacity: 0;
+  /* Touch devices have no hover: the actions stay visible at rest and
+     brighten on hover/focus instead of disappearing entirely. */
+  opacity: 0.72;
   transition: opacity 0.15s ease, background 0.15s ease, color 0.15s ease;
 }
 #chat-app .gb-attachment:hover .gb-attachment-btn,

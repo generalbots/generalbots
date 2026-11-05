@@ -41,6 +41,10 @@
   }
 
   function sendResultToChat(actionId, result) {
+    // The panel shows the outcome; the server records it without starting a
+    // new model turn, so the chat must stop saying "Waiting for the model…".
+    if (typeof clearChatPending === "function") clearChatPending();
+    if (typeof hideThinkingIndicator === "function") hideThinkingIndicator();
     // GB6-19 — persist the outcome for the action the server proposed, so the
     // assistant can read it even when the tab reconnects. The WS frame below
     // stays as the live path.
@@ -210,6 +214,9 @@
       }
 
       var origResolve = window.GBRenderConsentCard;
+      // Waiting for a human decision is not waiting for the model.
+      if (typeof clearChatPending === "function") clearChatPending();
+      if (typeof hideThinkingIndicator === "function") hideThinkingIndicator();
       var pane = document.getElementById("messages");
       if (pane) {
         var wrap = document.createElement("div");

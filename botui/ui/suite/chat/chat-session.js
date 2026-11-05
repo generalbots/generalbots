@@ -223,7 +223,8 @@ window.ChatSwitchBot = function (botName) {
         ChatState.suppressPersist = false;
         scrollToBottom(false);
         setTimeout(snapToBottom, 250);
-        if (typeof stickToBottom === "function") stickToBottom(2500);
+        if (typeof followLiveEdge === "function") followLiveEdge(12000);
+        else if (typeof stickToBottom === "function") stickToBottom(2500);
       })
       .catch(function () { restoreLocalHistory(); });
   }

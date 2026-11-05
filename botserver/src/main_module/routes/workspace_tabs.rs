@@ -13,6 +13,8 @@ use uuid::Uuid;
 
 use botcore::shared::state::AppState;
 
+use super::anonymous_auth::{resolve_chat_user_uuid, resolve_token_user};
+
 type HandlerError = (StatusCode, String);
 
 const MAX_TABS: usize = 20;
@@ -35,62 +37,30 @@ pub struct TabsBody {
     tabs: serde_json::Value,
 }
 
-fn requester(headers: &HeaderMap, state: &Arc<AppState>) -> Result<Uuid, HandlerError> {
-    let raw = headers
-        .get("authorization")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer "))
+/// Resolves the tab owner the same way chat history does: the chat sends its
+/// `gb_` suite session token, not a JWT, so a JWT-only parser rejected every
+/// restore/save with 401. `resolve_token_user` validates both the cached
+/// suite session token and the signed cloud JWT.
+fn requester(headers: &HeaderMap) -> Result<Uuid, HandlerError> {
+    let token = headers
+        .get(axum::http::header::AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| value.strip_prefix("Bearer "))
         .unwrap_or_default();
-    if raw.is_empty() {
-        return Err((StatusCode::UNAUTHORIZED, "Authentication required".to_string()));
-    }
-    let sub = jwt_subject(raw)
-        .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;
-    resolve_user_uuid(state, &sub)
-}
-
-/// Minimal unverified extraction of the `sub` claim for user resolution.
-/// Signature verification is delegated to the auth middleware upstream.
-fn jwt_subject(token: &str) -> Option<String> {
-    use base64::Engine as _;
-    let payload_b64 = token.split('.').nth(1)?;
-    let bytes = base64::engine::general_purpose::URL_SAFE_NO_PAD
-        .decode(payload_b64)
-        .or_else(|_| base64::engine::general_purpose::STANDARD_NO_PAD.decode(payload_b64))
-        .ok()?;
-    let value: serde_json::Value = serde_json::from_slice(&bytes).ok()?;
-    value["sub"].as_str().map(|s| s.to_string())
-}
-
-/// Resolves the platform user row from a JWT subject claim. Subjects minted
-/// by the directory provider map through UUIDv5; numeric/anonymous ids pass
-/// through `resolve_chat_user_uuid` helpers used elsewhere.
-fn resolve_user_uuid(state: &Arc<AppState>, subject: &str) -> Result<Uuid, HandlerError> {
-    let derived = uuid::Uuid::new_v5(&uuid::Uuid::nil(), format!("zitadel:{subject}").as_bytes());
-    let mut conn = state
-        .conn
-        .get()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("DB pool: {e}")))?;
-    let found: Option<Uuid> = diesel::sql_query("SELECT id AS user_id FROM users WHERE id = $1")
-        .bind::<diesel::sql_types::Uuid, _>(derived)
-        .get_result::<UserIdRow>(&mut conn)
-        .map(|r| r.user_id)
-        .optional()
-        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("user lookup: {e}")))?;
-    Ok(found.unwrap_or(derived))
-}
-
-#[derive(diesel::QueryableByName)]
-struct UserIdRow {
-    #[diesel(sql_type = diesel::sql_types::Uuid)]
-    user_id: Uuid,
+    let (user_raw, _roles) = resolve_token_user(token).ok_or_else(|| {
+        (
+            StatusCode::UNAUTHORIZED,
+            "Authentication required".to_string(),
+        )
+    })?;
+    Ok(resolve_chat_user_uuid(&user_raw))
 }
 
 pub async fn get_tabs(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> Result<Json<serde_json::Value>, HandlerError> {
-    let user_id = requester(&headers, &state)?;
+    let user_id = requester(&headers)?;
     let mut conn = state
         .conn
         .get()
@@ -115,7 +85,7 @@ pub async fn put_tabs(
     headers: HeaderMap,
     Json(body): Json<TabsBody>,
 ) -> Result<Json<serde_json::Value>, HandlerError> {
-    let user_id = requester(&headers, &state)?;
+    let user_id = requester(&headers)?;
     if serde_json::to_string(&body.tabs)
         .map(|s| s.len() > MAX_TAB_JSON_BYTES)
         .unwrap_or(true)

@@ -84,9 +84,53 @@ fn jwt_user_id(headers: &HeaderMap) -> Option<Uuid> {
     None
 }
 
-fn require_user(headers: &HeaderMap) -> Result<Uuid, (StatusCode, String)> {
-    jwt_user_id(headers)
-        .ok_or_else(|| (StatusCode::UNAUTHORIZED, "Authentication required".to_string()))
+fn bearer_token(headers: &HeaderMap) -> Option<&str> {
+    headers
+        .get("authorization")?
+        .to_str()
+        .ok()?
+        .strip_prefix("Bearer ")
+        .map(str::trim)
+}
+
+/// Resolves the owner of a suite `gb_<uuid>_<ts>` token from the persisted
+/// login session. The chat sends that opaque token, not a JWT, so a
+/// JWT-only check made every consent call 403 — including resolving a prompt.
+fn opaque_session_user_id(pool: &crate::DbPool, token: &str) -> Option<Uuid> {
+    use diesel::prelude::*;
+    #[derive(QueryableByName)]
+    struct SessionRow {
+        #[diesel(sql_type = diesel::sql_types::Text)]
+        user_data: String,
+    }
+    let mut conn = pool.get().ok()?;
+    let row = diesel::sql_query(
+        "SELECT user_data::text AS user_data FROM login_sessions WHERE token = $1 LIMIT 1",
+    )
+    .bind::<diesel::sql_types::Text, _>(token)
+    .get_result::<SessionRow>(&mut conn)
+    .optional()
+    .ok()??;
+    let claims: serde_json::Value = serde_json::from_str(&row.user_data).ok()?;
+    claims
+        .get("user_id")
+        .and_then(|value| value.as_str())
+        .and_then(|value| Uuid::parse_str(value).ok())
+}
+
+fn require_consent_user(
+    headers: &HeaderMap,
+    pool: &crate::DbPool,
+) -> Result<Uuid, (StatusCode, String)> {
+    if let Some(user_id) = jwt_user_id(headers) {
+        return Ok(user_id);
+    }
+    if let Some(token) = bearer_token(headers) {
+        if let Some(user_id) = opaque_session_user_id(pool, token) {
+            return Ok(user_id);
+        }
+    }
+    Err((StatusCode::UNAUTHORIZED, "Authentication required".to_string()))
 }
 
 pub fn configure_routes() -> Router<Arc<ConsentService>> {
@@ -106,7 +150,7 @@ pub async fn list_permissions(
     State(service): State<Arc<ConsentService>>,
     headers: HeaderMap,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let user_id = require_user(&headers)?;
+    let user_id = require_consent_user(&headers, &service.pool)?;
     let rows = {
         let mut conn = service
             .pool
@@ -124,7 +168,7 @@ pub async fn revoke_permission(
     headers: HeaderMap,
     Path(permission_id): Path<Uuid>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let user_id = require_user(&headers)?;
+    let user_id = require_consent_user(&headers, &service.pool)?;
     let deleted = {
         let mut conn = service
             .pool
@@ -144,7 +188,7 @@ pub async fn pending_requests(
     State(service): State<Arc<ConsentService>>,
     headers: HeaderMap,
 ) -> Result<Json<serde_json::Value>, (StatusCode, String)> {
-    let user_id = require_user(&headers)?;
+    let user_id = require_consent_user(&headers, &service.pool)?;
     let now = std::time::Instant::now();
     let pend = service.pending.lock().await;
     let items: Vec<&PendingRequest> = pend
@@ -233,7 +277,7 @@ pub async fn resolve_consent(
     headers: HeaderMap,
     body: axum::body::Bytes,
 ) -> Result<Response, (StatusCode, String)> {
-    let user_id = require_user(&headers)?;
+    let user_id = require_consent_user(&headers, &service.pool)?;
     let parsed = parse_resolve_body(&headers, &body)
         .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid body: {e}")))?;
 
@@ -272,7 +316,7 @@ pub async fn permissions_table(
     State(service): State<Arc<ConsentService>>,
     headers: HeaderMap,
 ) -> Result<Html<String>, (StatusCode, String)> {
-    let user_id = require_user(&headers)?;
+    let user_id = require_consent_user(&headers, &service.pool)?;
     let rows = {
         let mut conn = service
             .pool
@@ -325,6 +369,6 @@ mod tests {
     #[test]
     fn missing_token_is_unauthorized() {
         let map = HeaderMap::new();
-        assert!(require_user(&map).is_err());
+        assert!(jwt_user_id(&map).is_none());
     }
 }

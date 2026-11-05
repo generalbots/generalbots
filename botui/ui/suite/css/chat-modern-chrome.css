@@ -381,3 +381,39 @@
 }
 #chat-app .gb-console[open] > summary.gb-console-head::after { content: "Hide log"; }
 #chat-app .gb-console:not([open]) > pre { display: none; }
+
+/* File names are content, not links: keep the neutral text colour even
+   though bot-message links use the green accent. */
+#chat-app .bot-message .gb-attachment-name {
+    color: var(--gb-text) !important;
+}
+#chat-app .bot-message .gb-attachment-name:hover {
+    color: var(--gb-accent) !important;
+}
+
+/* Accessibility: the chat animates messages, typing dots, status pulses and
+   voice rings. Readers who ask the OS for less motion get the same layout
+   without movement. */
+@media (prefers-reduced-motion: reduce) {
+    #chat-app *,
+    #chat-app *::before,
+    #chat-app *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Phones: the composer carried six controls and left the textarea 67 px
+   wide. Camera and duplex are secondary; keep attach, web, mic and send. */
+@media (max-width: 480px) {
+    #chat-app #cameraBtn,
+    #chat-app #voiceDuplexBtn {
+        display: none;
+    }
+    #chat-app .input-container {
+        gap: 4px;
+        padding: 7px 6px;
+    }
+}

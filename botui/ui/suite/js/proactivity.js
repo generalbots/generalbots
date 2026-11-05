@@ -39,8 +39,18 @@ const Proactivity = (() => {
     const h = { "Content-Type": "application/json" };
     if (tok) h["Authorization"] = "Bearer " + tok;
     fetch(CARDS_API, { headers: h })
-      .then((r) => r.json())
+      .then((r) => {
+        // The Vibe feature is optional. When this build has no proactivity
+        // route, stop polling instead of logging a 404 every minute.
+        if (r.status === 404) {
+          stop();
+          return null;
+        }
+        if (!r.ok) return null;
+        return r.json();
+      })
       .then((data) => {
+        if (!data) return;
         const cards = (data && data.cards) || [];
         const seen = seenSet();
         for (const card of cards) {

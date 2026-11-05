@@ -578,6 +578,11 @@
     // the active one its pane IS #messages, so appendToContainer lands in
     // the visible surface; background tabs render into their parked pane.
     if (data.is_complete) {
+      // The send path shows a thinking indicator as soon as Enter is pressed;
+      // a parallel tab's completion never cleared it, so the dots stayed next
+      // to the finished answer.
+      var indicator = t.pane && t.pane.querySelector && t.pane.querySelector("#thinking-indicator");
+      if (indicator) indicator.remove();
       // Drop the live-streaming placeholder, if any.
       if (t.streamingEl && t.streamingEl.nodeType) {
         t.streamingEl.remove();

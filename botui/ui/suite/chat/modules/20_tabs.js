@@ -237,6 +237,38 @@ function tabText(key, fallback) {
       strip = document.createElement("div");
       strip.id = "gbTabStrip";
       strip.className = "gb-tab-strip";
+      strip.setAttribute("role", "tablist");
+      strip.setAttribute("aria-label", tabText("tab-strip", "Conversations"));
+      // Tabs were pointer-only <div>s: keyboard and screen-reader users could
+      // not reach them. Arrow keys move, Enter/Space activates, Delete closes.
+      strip.addEventListener("keydown", function (event) {
+        var tabEl = event.target.closest(".gb-tab");
+        if (!tabEl) return;
+        var id = tabEl.getAttribute("data-tab-id");
+        var tabs = GBTabs.state.tabs;
+        var index = tabs.findIndex(function (tab) { return tab.id === id; });
+        if (index < 0) return;
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          GBTabs.focusTab(id);
+          return;
+        }
+        if (event.key === "Delete" && !tabs[index].pinned && tabs.length > 1) {
+          event.preventDefault();
+          GBTabs.closeTab(id);
+          return;
+        }
+        if (event.key === "ArrowRight" || event.key === "ArrowLeft" || event.key === "Home" || event.key === "End") {
+          event.preventDefault();
+          var next;
+          if (event.key === "Home") next = tabs[0];
+          else if (event.key === "End") next = tabs[tabs.length - 1];
+          else next = tabs[(index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length];
+          GBTabs.focusTab(next.id);
+          var again = strip.querySelector('.gb-tab[data-tab-id="' + next.id + '"]');
+          if (again) again.focus();
+        }
+      });
       wrapper.insertBefore(strip, wrapper.firstChild);
     }
     var visible = visibleTabs();
@@ -248,7 +280,9 @@ function tabText(key, fallback) {
       var cls = "gb-tab" + (tab.id === GBTabs.state.activeTabId ? " active" : "");
       if (tab.pinned) cls += " pinned";
       if (GBTabs.unread[tab.id]) cls += " unread";
-      html += '<div class="' + cls + '" data-tab-id="' + tab.id + '" data-tab-idx="' + idx + '">' +
+      var selected = tab.id === GBTabs.state.activeTabId;
+      html += '<div class="' + cls + '" role="tab" aria-selected="' + (selected ? "true" : "false") +
+        '" tabindex="' + (selected ? "0" : "-1") + '" data-tab-id="' + tab.id + '" data-tab-idx="' + idx + '">' +
         '<span class="gb-tab-glyph">' + escapeHtml(glyph) + "</span>" +
         '<span class="gb-tab-title" title="' + escapeHtml(tab.title) + '">' +
         escapeHtml(tab.title) + "</span>" +

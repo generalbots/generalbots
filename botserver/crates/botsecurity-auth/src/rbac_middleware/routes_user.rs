@@ -35,6 +35,15 @@ pub(crate) fn authenticated_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/computer/**", "POST", ""),
         RoutePermission::new("/api/terminal/**", "GET", ""),
         RoutePermission::new("/api/terminal/**", "POST", ""),
+        // Consent prompts for terminal/browser/API-tool actions are per-user.
+        // Without these rows the default-deny catalogue rejected every
+        // pending/resolve call with 403 before the handler ran.
+        RoutePermission::new("/api/consent/**", "GET", ""),
+        RoutePermission::new("/api/consent/**", "POST", ""),
+        RoutePermission::new("/api/consent/**", "DELETE", ""),
+        // Workspace tab mirror (chat tab strip).
+        RoutePermission::new("/api/user/workspace/**", "GET", ""),
+        RoutePermission::new("/api/user/workspace/**", "PUT", ""),
         // Connected external drives (compiled only with external_sync)
         RoutePermission::new("/api/external-drives/**", "GET", ""),
         RoutePermission::new("/api/external-drives/**", "POST", ""),

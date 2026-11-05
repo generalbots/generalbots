@@ -124,6 +124,14 @@ pub async fn search_and_inject(
         status(sink, bot_uuid, session_id, user_id, "No usable sources — answering from what I know.").await;
         return Vec::new();
     }
+    // Search engines still return removed articles. A citation the reader
+    // cannot open is worse than no citation (TS-01 opens every source), so
+    // drop only URLs that answer 404/410 — bot-blocked pages stay.
+    let results = drop_dead_sources(results).await;
+    if results.is_empty() {
+        status(sink, bot_uuid, session_id, user_id, "No usable sources — answering from what I know.").await;
+        return Vec::new();
+    }
 
     let domains: Vec<&str> = {
         let mut seen: Vec<&str> = Vec::new();
@@ -174,6 +182,50 @@ pub async fn search_and_inject(
     // citations of the answer, so the chips always describe what the model was
     // actually given (never an invented list).
     results.iter().map(citation_for).collect()
+}
+
+/// Removes search hits whose URL is definitively gone (404/410). HEAD is
+/// best-effort: a network error or a bot challenge is not evidence that the
+/// page is dead, so those results are kept.
+async fn drop_dead_sources(
+    results: Vec<botresearch::web_search::WebSearchResult>,
+) -> Vec<botresearch::web_search::WebSearchResult> {
+    let client = match reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(4))
+        .user_agent("Mozilla/5.0 (compatible; GeneralBots/1.0; +https://generalbo.ts)")
+        .build()
+    {
+        Ok(client) => client,
+        Err(error) => {
+            log::debug!("web context: liveness client unavailable: {error}");
+            return results;
+        }
+    };
+    let checks = results.iter().map(|result| {
+        let client = client.clone();
+        let url = result.url.clone();
+        async move {
+            match client.head(&url).send().await {
+                Ok(response) => !matches!(response.status().as_u16(), 404 | 410),
+                Err(_) => true,
+            }
+        }
+    });
+    let live = futures::future::join_all(checks).await;
+    let mut kept = Vec::with_capacity(results.len());
+    let mut dead = 0usize;
+    for (result, is_live) in results.into_iter().zip(live) {
+        if is_live {
+            kept.push(result);
+        } else {
+            dead += 1;
+            log::info!("web context: dropped dead source {}", result.url);
+        }
+    }
+    if dead > 0 {
+        log::info!("web context: {dead} dead source(s) removed");
+    }
+    kept
 }
 
 /// Maps one search result to the citation shape the chat renderer consumes

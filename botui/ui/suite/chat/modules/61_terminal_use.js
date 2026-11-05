@@ -126,6 +126,11 @@
   }
 
   function sendTerminalResult(actionId, result) {
+    // The command card already shows the outcome; the server records the
+    // result but does not start another model turn. Leaving the pending
+    // watchdog armed made the composer say "Waiting for the model…" forever.
+    if (typeof clearChatPending === "function") clearChatPending();
+    if (typeof hideThinkingIndicator === "function") hideThinkingIndicator();
     if (actionId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(actionId)) {
       var token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token") || "";
       fetch("/api/computer/actions/" + encodeURIComponent(actionId) + "/result", {
@@ -203,6 +208,9 @@
 
     body.appendChild(card);
     pane.appendChild(wrap);
+    // The turn is now waiting for the user's decision, not for the model.
+    if (typeof clearChatPending === "function") clearChatPending();
+    if (typeof hideThinkingIndicator === "function") hideThinkingIndicator();
     if (typeof scrollToBottom === "function") scrollToBottom(true);
   });
 

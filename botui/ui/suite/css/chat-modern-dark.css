@@ -144,3 +144,10 @@
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
+
+/* Suggestion chips inherit the light-mode #52525b text, which is almost
+   invisible on the dark canvas. */
+[data-theme="dark"] #chat-app .suggestion-chip,
+[data-theme="dark"] #chat-app .suggestion-button {
+    color: var(--gb-muted);
+}

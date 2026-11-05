@@ -73,6 +73,24 @@ workspace re-attaches panes), the composer stays below the messages, and only
 the message list scrolls — the window frame itself no longer grows a second
 scrollbar.
 
+Suggestion chips are rendered from the session's Redis set. Redis is not
+durable across a stack restart, so when the set is empty for a conversation
+that already has history (start.bas is skipped), the server replays the
+`ADD_SUGGESTION "…"` lines of the bot's start.bas. The chips therefore survive
+reloads and restarts instead of disappearing until the next new conversation.
+
+Code blocks carry a **Copy** button (the `chat-code-ux` module highlights and
+wires it); the copied text is the raw code, not the rendered markup.
+
+On phones (≤480 px) the composer keeps attach, web search, microphone and send;
+camera and full-duplex move out of the row so the textarea is not squeezed to a
+few dozen pixels. The model picker stays hidden at that width and is available
+on larger windows.
+
+The tab strip is a real `tablist`: each tab has `role="tab"`,
+`aria-selected` and roving `tabindex`; Arrow keys/Home/End move, Enter or Space
+activates, Delete closes a non-pinned tab. Ctrl+Tab and Ctrl+W continue to work.
+
 Each tab owns one WebSocket and one session; reconnecting reuses the tab's
 session id instead of minting a new conversation. A reload starts from the
 canonical **Default** conversation (old parallel tabs reconnected stale

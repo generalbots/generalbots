@@ -188,20 +188,55 @@ pub fn load_bot_styles_css(bot_name: &str) -> String {
     String::new()
 }
 
+/// Replays the static `ADD_SUGGESTION "…"` lines of a bot's start.bas.
+/// Redis is the live store, but a restart flushes it; a reopened
+/// conversation then had no chips at all because start.bas is skipped for
+/// sessions that already have history.
+fn suggestions_from_start_bas(source: &str) -> Vec<botlib::models::Suggestion> {
+    let mut suggestions = Vec::new();
+    for line in source.lines() {
+        let trimmed = line.trim();
+        if trimmed.starts_with('\'') || !trimmed.to_ascii_uppercase().starts_with("ADD_SUGGESTION") {
+            continue;
+        }
+        let Some(open) = trimmed.find('"') else { continue };
+        let rest = &trimmed[open + 1..];
+        let Some(close) = rest.find('"') else { continue };
+        let text = rest[..close].trim();
+        if !text.is_empty() && suggestions.len() < 12 {
+            suggestions.push(botlib::models::Suggestion::new(text));
+        }
+    }
+    suggestions
+}
+
+async fn fallback_suggestions(bot_name: &str) -> Vec<botlib::models::Suggestion> {
+    let work_path = botcore::shared::utils::get_work_path();
+    let rel = format!("{bot_name}.gbdialog/start.bas");
+    match botcore::shared::utils::read_bot_file_across_layouts(&work_path, bot_name, &rel).await {
+        Some(source) => suggestions_from_start_bas(&source),
+        None => {
+            log::debug!("start.bas suggestions unavailable for {bot_name}");
+            Vec::new()
+        }
+    }
+}
+
 pub async fn send_start_suggestions(
     state: &Arc<AppState>,
     ws_sender: &mut futures_util::stream::SplitSink<axum::extract::ws::WebSocket, Message>,
     bot_uuid: Uuid,
     session_id: Uuid,
     user_id: Uuid,
-) {
+    bot_name: &str,
+) -> usize {
     // #1369 — both ids are needed as strings several times below; format them
     // once per call instead of once per use. This runs on every session
     // connect, reconnect and after start.bas.
     let bot_id = bot_uuid.to_string();
     let session = session_id.to_string();
 
-    let suggestions = {
+    let mut suggestions = {
         #[cfg(feature = "chat")]
         {
             crate::basic::keywords::add_suggestion::get_suggestions(
@@ -213,6 +248,9 @@ pub async fn send_start_suggestions(
         #[cfg(not(feature = "chat"))]
         Vec::new()
     };
+    if suggestions.is_empty() {
+        suggestions = fallback_suggestions(bot_name).await;
+    }
     let switchers = {
         #[cfg(feature = "chat")]
         {
@@ -225,6 +263,7 @@ pub async fn send_start_suggestions(
         #[cfg(not(feature = "chat"))]
         Vec::new()
     };
+    let sent = suggestions.len();
     if !suggestions.is_empty() || !switchers.is_empty() {
         info!("ws_handler: sending {} suggestions and {} switchers on reconnect", suggestions.len(), switchers.len());
         let _ = ws_sender.send(Message::Text(serde_json::json!({
@@ -241,6 +280,7 @@ pub async fn send_start_suggestions(
             "context_max_length": 0,
         }).to_string())).await;
     }
+    sent
 }
 
 pub async fn run_start_bas_on_connect(
@@ -260,7 +300,7 @@ pub async fn run_start_bas_on_connect(
         if guards.contains_key(&session_id) {
             info!("start.bas execution skipped: session already initialized (in-memory guard)");
             drop(guards);
-            send_start_suggestions(state, ws_sender, bot_uuid, session_id, user_id).await;
+            send_start_suggestions(state, ws_sender, bot_uuid, session_id, user_id, bot_name).await;
             return false;
         }
         guards.insert(session_id, true);
@@ -279,7 +319,7 @@ pub async fn run_start_bas_on_connect(
         };
         if has_history {
             info!("start.bas skipped: session {session_id} already has messages");
-            send_start_suggestions(state, ws_sender, bot_uuid, session_id, user_id).await;
+            send_start_suggestions(state, ws_sender, bot_uuid, session_id, user_id, bot_name).await;
             return false;
         }
     }
@@ -364,6 +404,6 @@ pub async fn run_start_bas_on_connect(
     }
     info!("start.bas: drained {} responses immediately", drained);
 
-    send_start_suggestions(state, ws_sender, bot_uuid, session_id, user_id).await;
+    send_start_suggestions(state, ws_sender, bot_uuid, session_id, user_id, bot_name).await;
     true
 }
