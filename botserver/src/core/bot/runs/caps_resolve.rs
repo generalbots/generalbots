@@ -61,5 +61,14 @@ pub fn resolve_for_run(state: &Arc<AppState>, bot_uuid: Uuid, user_id: Uuid) -> 
     let cfg = ConfigManager::new(state.conn.clone());
     let bot_tokens = cfg.get_config(&bot_uuid, "run-max-tokens", None).ok();
     let bot_seconds = cfg.get_config(&bot_uuid, "run-max-seconds", None).ok();
-    RunCaps::merge(bot_tokens.as_deref(), bot_seconds.as_deref(), group_caps)
+    let caps = RunCaps::merge(bot_tokens.as_deref(), bot_seconds.as_deref(), group_caps);
+    log::info!(
+        "run caps resolved: max_tokens={} max_seconds={} (bot {}, defaults t={} s={})",
+        caps.max_tokens,
+        caps.max_seconds,
+        bot_uuid,
+        group_caps.max_tokens,
+        group_caps.max_seconds
+    );
+    caps
 }
