@@ -250,7 +250,10 @@ function vmOfficePreviewUrl(conversationId, path) {
 function vmNotifyError(err) {
   var message =
     "Attachment failed: " + (err && err.message ? err.message : "unknown error");
-  if (window.showToast) window.showToast(message, "error");
+  // window.showToast does not exist on the desktop shell; GBToasts does.
+  // Without this order every attachment failure was console-only.
+  if (window.GBToasts && GBToasts.show) GBToasts.show("Attachment", message, "error");
+  else if (window.showToast) window.showToast(message, "error");
   else console.error(message);
 }
 
