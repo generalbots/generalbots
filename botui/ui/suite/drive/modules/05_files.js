@@ -220,6 +220,24 @@ async function loadStarredFiles() {
     }
 }
 
+async function toggleStar(path, bucket, starred) {
+    try {
+        await apiRequest("/favorite/toggle", {
+            method: "POST",
+            body: JSON.stringify({
+                bucket: bucket || getEffectiveBucket(),
+                path: path,
+                starred: starred !== false,
+            }),
+        });
+        showNotification(starred === false ? "Removed from starred" : "Added to starred", "success");
+        if (sessionStorage.getItem("drive-tab") === "starred") loadStarredFiles();
+    } catch (err) {
+        showNotification("Star failed: " + err.message, "error");
+    }
+}
+window.toggleStar = toggleStar;
+
 async function loadSharedFiles() {
     const content = document.getElementById("drive-content") || document.getElementById("file-grid");
     if (!content) return;

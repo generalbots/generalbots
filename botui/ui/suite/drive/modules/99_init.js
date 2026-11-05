@@ -81,6 +81,7 @@ window.DriveModule = {
     downloadFile: downloadFile,
     downloadSelected: downloadSelected,
     previewFile: previewFile,
+    toggleStar: toggleStar,
     shareFile: shareFile,
     createShareLinkNow: createShareLinkNow,
     revokeShareLinkFromModal: revokeShareLinkFromModal,

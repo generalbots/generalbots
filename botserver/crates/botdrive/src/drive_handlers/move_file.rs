@@ -45,6 +45,17 @@ pub async fn recent_files(
     let uid = effective_uid(&state, &user, params.user_id.as_deref());
     let bucket = resolve_bucket(&state, params.bucket.as_deref(), &scope, Some(uid.as_str()), None, &user)?;
     let prefix = resolve_scope_prefix(&scope, &uid);
+    // drive_files stores bucket-relative keys: `{workspace}.gbai/...` inside
+    // an org bucket and `{bot}.gbdialog/...` inside a standalone `{bot}.gbai`
+    // bucket. Filtering by the bucket name (e.g. `default.gborg`) matched no
+    // row, so Recent was permanently empty in the org layout.
+    let indexed_prefix = if let Some(org) = bucket.strip_suffix(".gborg") {
+        format!("{org}.gbai/")
+    } else if let Some(bot) = bucket.strip_suffix(".gbai") {
+        format!("{bot}.")
+    } else {
+        format!("{bucket}/")
+    };
 
     if let Ok(mut conn) = state.conn.get() {
         #[derive(QueryableByName)]
@@ -59,9 +70,9 @@ pub async fn recent_files(
             last_modified: Option<chrono::DateTime<chrono::Utc>>,
         }
         let rows = diesel::sql_query(
-            "SELECT file_path, file_type, file_size, last_modified FROM drive_files WHERE file_path LIKE $1 || '/%' AND indexed = true ORDER BY last_modified DESC NULLS LAST LIMIT 50"
+            "SELECT file_path, file_type, file_size, last_modified FROM drive_files WHERE file_path LIKE $1 || '%' AND indexed = true ORDER BY last_modified DESC NULLS LAST LIMIT 50"
         )
-        .bind::<Text, _>(&bucket)
+        .bind::<Text, _>(&indexed_prefix)
         .load::<Row>(&mut conn);
 
         if let Ok(values) = rows {
