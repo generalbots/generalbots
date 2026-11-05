@@ -1,6 +1,8 @@
 <link rel="stylesheet" href="/suite/settings/settings.p1.css?v=1" />
+<link rel="stylesheet" href="/suite/settings/settings-ledger.css?v=1" />
 <script src="/suite/settings/settings-main.js?v=4"></script>
 <script src="/suite/settings/settings-ai-accounts.js?v=1"></script>
+<script src="/suite/settings/settings-ledger.js?v=1"></script>
 
 <div class="gb-app settings-layout" data-gb-app="settings">
     <!-- Sidebar Navigation -->
@@ -117,6 +119,14 @@
             <div class="nav-divider" data-admin-only="true">
                 <span data-i18n="settings-administration">Administration</span>
             </div>
+
+            <a href="#ledger" class="nav-item" data-admin-only="true" onclick="showSection('ledger', this)">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 11l3 3 8-8"></path>
+                    <path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h9"></path>
+                </svg>
+                <span>Ledger</span>
+            </a>
 
             <a href="#users" class="nav-item" data-admin-only="true" onclick="showSection('users', this)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1480,6 +1490,25 @@
                         <span>Loading version information...</span>
                     </div>
                 </div>
+            </div>
+        </section>
+
+        <!-- Ledger Section (#1702) -->
+        <section id="ledger-section" class="settings-section" data-admin-only="true">
+            <div class="section-header">
+                <h1>Ledger</h1>
+                <p class="section-description">Every terminal and browser action, with the consent decision, outcome and screenshot path.</p>
+            </div>
+            <div class="setting-card">
+                <div class="card-header">
+                    <h2>Actions ledger</h2>
+                    <button type="button" class="btn-secondary btn-sm" id="ledger-refresh">Refresh</button>
+                </div>
+                <div class="ledger-tabs">
+                    <button type="button" class="ledger-tab active" data-kind="terminal">Terminal</button>
+                    <button type="button" class="ledger-tab" data-kind="browser">Browser</button>
+                </div>
+                <div id="ledger-list" class="ledger-list">Loading…</div>
             </div>
         </section>
     </main>

@@ -1,0 +1,58 @@
+/* #1702 — actions ledger (terminal + browser audit trails). */
+
+#ledger-section .ledger-tabs {
+    display: flex;
+    gap: 8px;
+    margin: 0 0 12px;
+}
+
+#ledger-section .ledger-tab {
+    border: 1px solid var(--border, #d9e0ea);
+    background: transparent;
+    color: inherit;
+    border-radius: 999px;
+    padding: 4px 14px;
+    font: inherit;
+    font-size: 12.5px;
+    cursor: pointer;
+}
+
+#ledger-section .ledger-tab.active {
+    background: var(--accent, #2563eb);
+    border-color: var(--accent, #2563eb);
+    color: #fff;
+}
+
+#ledger-section .ledger-list {
+    overflow-x: auto;
+}
+
+#ledger-section .ledger-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+}
+
+#ledger-section .ledger-table th,
+#ledger-section .ledger-table td {
+    text-align: left;
+    vertical-align: top;
+    padding: 6px 10px;
+    border-bottom: 1px solid var(--border, #e5e7eb);
+    white-space: nowrap;
+}
+
+#ledger-section .ledger-table td:nth-child(5) {
+    white-space: normal;
+    min-width: 220px;
+}
+
+#ledger-section .ledger-table code {
+    font: 12px ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+#ledger-section .ledger-empty {
+    color: var(--muted, #6b7280);
+    font-size: 13px;
+    padding: 14px 2px;
+}
