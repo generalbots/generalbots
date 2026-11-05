@@ -91,6 +91,10 @@ function vmFilePreviewable(path) {
   return (
     mime === "application/pdf" ||
     mime === "text/html" ||
+    mime === "text/plain" ||
+    mime === "text/csv" ||
+    mime === "text/markdown" ||
+    mime === "application/json" ||
     mime.indexOf("image/") === 0 ||
     mime.indexOf("officedocument") !== -1 ||
     mime === "application/msword" ||
@@ -108,6 +112,14 @@ function vmInlineKind(path) {
   if (mime.indexOf("image/") === 0) return "image";
   if (mime === "application/pdf") return "pdf";
   if (mime === "text/html") return "html";
+  if (
+    mime === "text/plain" ||
+    mime === "text/csv" ||
+    mime === "text/markdown" ||
+    mime === "application/json"
+  ) {
+    return "text";
+  }
   if (
     mime.indexOf("officedocument") !== -1 ||
     mime === "application/msword" ||
@@ -316,6 +328,24 @@ function vmToggleInlinePreview(card, url, path, convId) {
       officeFrame.replaceWith(fallbackNote);
     });
     body.appendChild(officeFrame);
+  } else if (kind === "text") {
+    // Plain text, CSV, markdown and JSON render inline: fetch the signed URL
+    // and write it into a <pre> as text (never parsed as HTML).
+    var pre = document.createElement("pre");
+    pre.className = "gb-attachment-inline-text";
+    pre.textContent = "Loading…";
+    body.appendChild(pre);
+    fetch(url)
+      .then(function (res) {
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        return res.text();
+      })
+      .then(function (text) {
+        pre.textContent = text.slice(0, 200000);
+      })
+      .catch(function () {
+        pre.textContent = "Could not load the file preview.";
+      });
   } else {
     var other = document.createElement("div");
     other.className = "gb-attachment-inline-note";
