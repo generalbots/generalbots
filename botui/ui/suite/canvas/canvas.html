@@ -880,7 +880,13 @@
                     '" rx="' + (el.width / 2) + '" ry="' + (el.height / 2) +
                     '" stroke="' + stroke + '" fill="' + fill + '" stroke-width="' + sw + '"/>';
             } else if (el.type === "line" || el.type === "arrow") {
-                svg += '<line x1="' + el.x1 + '" y1="' + el.y1 + '" x2="' + el.x2 + '" y2="' + el.y2 +
+                // Tool-drawn lines carry a bounding box (x/y/width/height),
+                // SVG-imported ones carry x1..y2 — support both (#1708).
+                const lx1 = el.x1 !== undefined ? el.x1 : el.x;
+                const ly1 = el.y1 !== undefined ? el.y1 : el.y;
+                const lx2 = el.x2 !== undefined ? el.x2 : el.x + el.width;
+                const ly2 = el.y2 !== undefined ? el.y2 : el.y + el.height;
+                svg += '<line x1="' + lx1 + '" y1="' + ly1 + '" x2="' + lx2 + '" y2="' + ly2 +
                     '" stroke="' + stroke + '" stroke-width="' + sw + '"/>';
             } else if (el.type === "text") {
                 svg += '<text x="' + el.x + '" y="' + el.y + '" font-size="' + (el.fontSize || 18) +
@@ -1272,6 +1278,13 @@
         if (!el) return null;
         var copy = Object.assign({}, el);
         delete copy.img; // HTMLImageElement is not JSON-serializable
+        // Legacy vibe-design elements store w/h; the canvas draw shape is
+        // width/height. Normalize first so saved designs take the
+        // full-element branch below and keep stroke/fill/strokeWidth (#1713).
+        if (copy.width === undefined && copy.w !== undefined) {
+            copy.width = copy.w;
+            copy.height = copy.h;
+        }
         if (copy.imgSrc && !copy.img) {
             copy.img = new Image();
             copy.img.src = copy.imgSrc;
@@ -1392,15 +1405,23 @@
                 width: 2 * rx, height: 2 * ry, stroke: strokeOf(n), fill: fillOf(n), strokeWidth: swOf(n) });
         });
         root.querySelectorAll("line").forEach(function (n) {
-            add("line", { x1: num(n.getAttribute("x1")), y1: num(n.getAttribute("y1")),
-                x2: num(n.getAttribute("x2")), y2: num(n.getAttribute("y2")),
+            var x1 = num(n.getAttribute("x1")), y1 = num(n.getAttribute("y1")),
+                x2 = num(n.getAttribute("x2")), y2 = num(n.getAttribute("y2"));
+            // drawElement and its rotation prelude read x/y/width/height;
+            // x1..y2 stay for exportSvg (#1708).
+            add("line", { x1: x1, y1: y1, x2: x2, y2: y2,
+                x: Math.min(x1, x2), y: Math.min(y1, y2),
+                width: Math.abs(x2 - x1), height: Math.abs(y2 - y1),
                 stroke: strokeOf(n), strokeWidth: swOf(n) });
         });
         root.querySelectorAll("text").forEach(function (n) {
             var fs = num(n.getAttribute("font-size"), 18);
             var fill = n.getAttribute("fill");
+            var content = (n.textContent || "").trim();
+            // drawElement's rotation prelude reads x/width: text needs a bbox (#1708).
             add("text", { x: num(n.getAttribute("x")), y: num(n.getAttribute("y")) - fs,
-                fontSize: fs, text: (n.textContent || "").trim(),
+                fontSize: fs, text: content,
+                width: content.length * fs * 0.6, height: fs * 1.4,
                 stroke: fill && fill !== "none" ? fill : "#000000" });
         });
         var parsePoints = function (raw) {
@@ -1409,11 +1430,22 @@
                 return acc;
             }, []);
         };
+        var bboxOfPoints = function (ps) {
+            var xs = ps.map(function (p) { return p.x; });
+            var ys = ps.map(function (p) { return p.y; });
+            var minX = Math.min.apply(Math, xs), maxX = Math.max.apply(Math, xs);
+            var minY = Math.min.apply(Math, ys), maxY = Math.max.apply(Math, ys);
+            return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
+        };
         root.querySelectorAll("polyline").forEach(function (n) {
-            add("polyline", { points: parsePoints(n.getAttribute("points")), stroke: strokeOf(n), strokeWidth: swOf(n) });
+            var ps = parsePoints(n.getAttribute("points"));
+            // drawElement has no "polyline" case — pencil draws from points,
+            // but its prelude still needs the bounding box (#1708).
+            add("pencil", Object.assign({ points: ps, stroke: strokeOf(n), strokeWidth: swOf(n) }, bboxOfPoints(ps)));
         });
         root.querySelectorAll("polygon").forEach(function (n) {
-            add("polyline", { points: parsePoints(n.getAttribute("points")), stroke: strokeOf(n), strokeWidth: swOf(n) });
+            var ps = parsePoints(n.getAttribute("points"));
+            add("pencil", Object.assign({ points: ps, stroke: strokeOf(n), strokeWidth: swOf(n) }, bboxOfPoints(ps)));
         });
         if (!out.length) {
             keepBackground("no mappable shapes");
