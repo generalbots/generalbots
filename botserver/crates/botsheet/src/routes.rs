@@ -108,7 +108,7 @@ pub fn configure_sheet_routes() -> Router<Arc<SheetState>> {
         .route("/api/sheet/array-formula/delete", post(handle_delete_array_formula))
         .route("/api/sheet/resize", post(handle_resize))
         .route("/api/sheet/paste", post(handle_paste))
-        .route("/api/sheet/tables", get(handle_table_list))
+        .route("/api/sheet/tables", post(handle_table_list))
         .route("/api/sheet/table", post(handle_table_create))
         .route("/api/sheet/table/delete", post(handle_table_delete))
         .route("/api/sheet/named-range", post(handle_create_named_range))
