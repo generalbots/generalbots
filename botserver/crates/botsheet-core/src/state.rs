@@ -175,6 +175,11 @@ pub async fn load_sheet_by_id(
     user_id: &str,
     sheet_id: &str,
 ) -> Result<crate::types::Spreadsheet, String> {
+    // A missing id would otherwise become a degenerate S3 GET of `sheets/.json`
+    // whose raw storage error leaked to the client — validate it first.
+    if sheet_id.trim().is_empty() {
+        return Err("Sheet ID is required".to_string());
+    }
     let drive = state
         .drive
         .as_ref()
@@ -182,7 +187,14 @@ pub async fn load_sheet_by_id(
 
     let path = format!("{}/{}.json", get_user_sheets_path(user_id), sheet_id);
 
-    let bytes = drive.get_object("gbo", &path).await?;
+    let bytes = drive.get_object("gbo", &path).await.map_err(|error| {
+        if error.contains("404") {
+            "Sheet not found".to_string()
+        } else {
+            log::error!("sheet load of {path} failed: {error}");
+            "Failed to load sheet".to_string()
+        }
+    })?;
 
     let sheet: crate::types::Spreadsheet =
         serde_json::from_slice(&bytes).map_err(|e| format!("Failed to parse sheet: {e}"))?;

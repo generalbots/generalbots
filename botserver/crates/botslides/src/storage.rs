@@ -110,13 +110,25 @@ pub async fn load_presentation_by_id<D: DriveOps>(
     user_id: &str,
     presentation_id: &str,
 ) -> Result<Presentation, String> {
+    // Empty ids turn into a degenerate S3 GET (`presentations/.json`) whose raw
+    // storage error would leak to the client — validate first.
+    if presentation_id.trim().is_empty() {
+        return Err("Presentation ID is required".to_string());
+    }
     let path = format!(
         "{}/{}.json",
         get_user_presentations_path(user_id),
         presentation_id
     );
 
-    let bytes = drive.get_object("gbo", &path).await?;
+    let bytes = drive.get_object("gbo", &path).await.map_err(|error| {
+        if error.contains("404") {
+            "Presentation not found".to_string()
+        } else {
+            log::error!("presentation load of {path} failed: {error}");
+            "Failed to load presentation".to_string()
+        }
+    })?;
 
     let presentation: Presentation =
         serde_json::from_slice(&bytes).map_err(|e| format!("Failed to parse presentation: {e}"))?;
