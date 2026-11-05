@@ -407,6 +407,7 @@ function addMessage(sender, content, msgId, reasoning) {
   }
 
   messages.appendChild(div);
+  if (typeof mergeWorkspaceOutput === "function") mergeWorkspaceOutput(div);
 
   reexecuteScripts(div);
   // BBSIA-CHAT-02 (#1582): VM-generated files become attachment cards.

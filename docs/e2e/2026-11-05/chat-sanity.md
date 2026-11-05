@@ -72,3 +72,56 @@ curl -s http://localhost:8085/api/health             # BotModels open-source sta
 pdfinfo /tmp/opencode/rio-de-janeiro.pdf             # 4 pages, A4
 pdftotext /tmp/opencode/rio-de-janeiro.pdf -         # real content
 ```
+
+## Second loop — tool handoff, memory, media (2026-11-05 late)
+
+### Tool-result handoff (fixed)
+
+`run_llm_tool_call` now returns the tool output, native tools (`vm_exec`)
+capture their sink messages per session, and the LLM pipeline feeds the
+result back for a bounded follow-up (`MAX_TOOL_FOLLOWUPS = 2`). Evidence:
+
+```
+20261105044136 info tool_exec: executing tool 'vm_exec'
+20261105044138 info tool follow-up: depth 1/2 after 367 bytes of tool output
+20261105044138 info llm:LLM REQUEST: 26 messages, model=deepseek-v4.1-flash
+```
+
+The answer became a synthesized pt-BR table (“Raiz do workspace … Item/Tipo
+data/output/program”), not the raw `ls` listing. The raw output is merged into
+the preceding collapsed “workspace run” card by `mergeWorkspaceOutput`.
+
+### TS-03 memory across sessions (pass)
+
+`Remember: I write in pt-BR and prefer tables.` now persists (the colon form
+was not matched by the prefix list), and the prompt reads it back:
+
+```
+chat_preferences:
+ user_id b2a87ec8…  bot_id f47ac10b…
+ memory_key i-write-in-pt-br-and-prefer-tables
+ memory_value I write in pt-BR and prefer tables
+```
+
+A **new tab/session** (`1b744a98…`, 3 messages only) answered:
+
+> Pelas preferências salvas na sua conta… Idioma: você escreve em pt-BR;
+> Formato: você prefere tabelas… (in a table, in pt-BR)
+
+### TS-02 audio ingestion (pass)
+
+BotModels piper generated a 5.4 s WAV
+(`/outputs/audio/20261105_044734_c07bd91c.wav`, 238,636 bytes, 22.05 kHz mono).
+Attached with “Transcribe and summarize this voice note”:
+
+> Transcrição: “The quick brown fox jumps over the lazy dog, General Bot's
+> voice test number 42.” … Item / Conteúdo … (table in pt-BR)
+
+### TS-02 video (environment-blocked)
+
+`POST /api/video/generate` (zeroscope) failed with:
+`video backend 'zeroscope' is not loaded: I/O error: IO Error: No space left on device (os error 28)`.
+The root filesystem was **100% full** (74 GB, 4 KB free). Removed 1.6 GB of
+stale `target/debug/deps/botserver-*` test binaries (not the running binary);
+root is now 98% (1.6 GB free). Video needs a later run with disk headroom; the
+chat attachment path itself is not implicated.

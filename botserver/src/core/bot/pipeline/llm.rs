@@ -68,6 +68,23 @@ pub async fn stream_llm_response(
     user_text: &str,
     model_preference: &str,
 ) -> PipelineResult<()> {
+    stream_llm_response_inner(identity, rx, messages, user_text, model_preference, 0).await
+}
+
+/// Bounded tool loop: after a tool call the result is fed back to the model
+/// for a final answer. Before this, the pipeline broke immediately after the
+/// tool ran, so the chat ended on the raw output (an `ls -la` listing, a
+/// JSON blob, …) instead of an answer.
+const MAX_TOOL_FOLLOWUPS: usize = 2;
+
+async fn stream_llm_response_inner(
+    identity: &SessionIdentity<'_>,
+    rx: &mut tokio::sync::mpsc::Receiver<botlib::models::BotResponse>,
+    messages: &serde_json::Value,
+    user_text: &str,
+    model_preference: &str,
+    tool_depth: usize,
+) -> PipelineResult<()> {
     let SessionIdentity {
         sink,
         state,
@@ -429,17 +446,54 @@ pub async fn stream_llm_response(
                             .split('\n')
                             .filter(|c| c.contains("\"__tool_call__\":"))
                             .collect();
-                        if call_chunks.len() > 1 {
+                        let tool_output = if call_chunks.len() > 1 {
                             log::info!("Executing {} parallel tool calls", call_chunks.len());
+                            let mut parts = Vec::new();
                             for call_chunk in call_chunks {
-                                super::tool_exec::run_llm_tool_call(
-                                    identity, rx, call_chunk, user_text,
-                                ).await;
+                                parts.push(
+                                    super::tool_exec::run_llm_tool_call(
+                                        identity, rx, call_chunk, user_text,
+                                    ).await,
+                                );
                             }
+                            parts.join("\n\n")
                         } else {
                             super::tool_exec::run_llm_tool_call(
                                 identity, rx, &full_response, user_text,
-                            ).await;
+                            ).await
+                        };
+                        if tool_depth < MAX_TOOL_FOLLOWUPS && !tool_output.trim().is_empty() {
+                            // Keep the follow-up inside a sane prompt budget;
+                            // a runaway listing must not crowd out the answer.
+                            let follow_output: String = tool_output.chars().take(12_000).collect();
+                            let mut follow_messages = messages.clone();
+                            if let Some(items) = follow_messages.as_array_mut() {
+                                items.push(serde_json::json!({
+                                    "role": "assistant",
+                                    "content": full_response,
+                                }));
+                                items.push(serde_json::json!({
+                                    "role": "user",
+                                    "content": format!(
+                                        "The tool finished with this result:\n\n{follow_output}\n\nAnswer the user's original request now using this result. Do not call another tool unless it is strictly necessary."
+                                    ),
+                                }));
+                            }
+                            log::info!(
+                                "tool follow-up: depth {}/{} after {} bytes of tool output",
+                                tool_depth + 1,
+                                MAX_TOOL_FOLLOWUPS,
+                                tool_output.len()
+                            );
+                            return Box::pin(stream_llm_response_inner(
+                                identity,
+                                rx,
+                                &follow_messages,
+                                user_text,
+                                model_preference,
+                                tool_depth + 1,
+                            ))
+                            .await;
                         }
                     }
                 }

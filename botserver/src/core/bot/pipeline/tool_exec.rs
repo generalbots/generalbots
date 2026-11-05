@@ -115,7 +115,7 @@ pub async fn run_llm_tool_call(
     rx: &mut tokio::sync::mpsc::Receiver<botlib::models::BotResponse>,
     full_response: &str,
     user_text: &str,
-) {
+) -> String {
     let SessionIdentity {
         sink,
         state,
@@ -124,6 +124,9 @@ pub async fn run_llm_tool_call(
         user_id,
         bot_name,
     } = *identity;
+    // The caller feeds this back to the model for a follow-up turn. Without
+    // it the chat ended on the raw tool output (e.g. an `ls -la` listing).
+    let mut tool_output = String::new();
     use crate::core::bot::ws::handler::validate_bot_name;
     use crate::core::bot::ws::handler::verify_path_within_workdir;
     use botcore::shared::utils::get_work_path;
@@ -134,14 +137,13 @@ pub async fn run_llm_tool_call(
             .or_else(|| parse_xml_tool_use(full_response))
         {
             let text = synthetic.to_string();
-            Box::pin(run_llm_tool_call(identity, rx, &text, user_text)).await;
-            return;
+            return Box::pin(run_llm_tool_call(identity, rx, &text, user_text)).await;
         }
     }
     let tool_call_trigger = "\"__tool_call__\":";
     let tc_start = match full_response.find(tool_call_trigger) {
         Some(pos) => full_response[..pos].rfind('{').unwrap_or(pos),
-        None => return,
+        None => return String::new(),
     };
     let tc_json = &full_response[tc_start..];
     let tool_call = match extract_tool_call(tc_json).or_else(|| salvage_tool_call(tc_json)) {
@@ -151,7 +153,7 @@ pub async fn run_llm_tool_call(
                 "tool_call: could not parse the model's JSON call; reply starts with: {}",
                 tc_json.chars().take(200).collect::<String>()
             );
-            return;
+            return String::new();
         }
     };
     {
@@ -247,7 +249,7 @@ pub async fn run_llm_tool_call(
                 sink.channel_type(),
             );
             let _ = sink.send_bot_response(&resp).await;
-            return;
+            return String::new();
         }
 
         if all_args_are_placeholder(tool_args) {
@@ -258,25 +260,28 @@ pub async fn run_llm_tool_call(
                 user_id.to_string(), &msg, sink.channel_type(),
             );
             let _ = sink.send_bot_response(&resp).await;
-            return;
+            return String::new();
         }
 
         if is_generic_greeting(user_text) {
             log::info!("Blocking tool '{raw_tool_name}' on short generic user message: '{user_text}'");
-            return;
+            return String::new();
         }
 
         // Native infrastructure tools (#1582) have no per-bot `.ast`: the
         // workspace executor is available to every bot with an agent VM.
+        // Their output goes straight to the sink, so capture it for the
+        // model follow-up before running.
+        super::native_tools::begin_capture(session_id);
         if super::native_tools::try_run(identity, &raw_tool_name, tool_args).await {
-            return;
+            return super::native_tools::take_capture(session_id);
         }
 
         let tool_name = match validate_bot_name(&raw_tool_name) {
             Ok(n) => n,
             Err(e) => {
                 log::warn!("LLM tool_call: invalid tool name '{raw_tool_name}': {e}");
-                return;
+                return String::new();
             }
         };
 
@@ -284,7 +289,7 @@ pub async fn run_llm_tool_call(
         let rel_tool_path = format!("{bot_name}.gborg/{bot_name}.gbai/{bot_name}.gbdialog/{tool_name}.ast");
         if !verify_path_within_workdir(&rel_tool_path) {
             log::error!("Path traversal detected in LLM tool_call for tool: {tool_name}");
-            return;
+            return String::new();
         }
 
         // The org directory is named after the org id (`<uuid>.gborg`), not the
@@ -336,7 +341,7 @@ pub async fn run_llm_tool_call(
                     identity, &llm_target, &api_call, user_text, rx,
                 ))
                 .await;
-                return;
+                return String::new();
             }
             // Unknown name with no script: say so instead of going silent.
             log::warn!(
@@ -353,7 +358,7 @@ pub async fn run_llm_tool_call(
                 sink.channel_type(),
             );
             let _ = sink.send_bot_response(&resp).await;
-            return;
+            return String::new();
         }
 
         {
@@ -365,7 +370,7 @@ pub async fn run_llm_tool_call(
                 log::info!(
                     "LLM tool_call: tool '{tool_name}' not associated with session {session_id}, skipping"
                 );
-                return;
+                return String::new();
             }
             let state_for_tool = state.clone();
             let work_path_for_mcp = work_path.clone();
@@ -452,6 +457,9 @@ pub async fn run_llm_tool_call(
                     &message,
                     sink.channel_type(),
                 );
+                if tool_output.is_empty() {
+                    tool_output = message.clone();
+                }
                 let _ = sink.send_bot_response(&resp).await;
             }
 
@@ -460,6 +468,12 @@ pub async fn run_llm_tool_call(
                 tokio::time::sleep(std::time::Duration::from_millis(100)).await;
                 match rx.try_recv() {
                     Ok(response) => {
+                        if !response.content.trim().is_empty() {
+                            if !tool_output.is_empty() {
+                                tool_output.push('\n');
+                            }
+                            tool_output.push_str(&response.content);
+                        }
                         let _ = sink.send_bot_response(&response).await;
                     }
                     Err(tokio::sync::mpsc::error::TryRecvError::Empty) => continue,
@@ -468,7 +482,9 @@ pub async fn run_llm_tool_call(
             }
         }
     }
+    tool_output
 }
+
 
 /// Extracts the first balanced JSON object from a model reply.
 ///

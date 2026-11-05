@@ -5,6 +5,31 @@
 //! agent VM must expose it, so it is handled here before the script lookup.
 
 use super::types::SessionIdentity;
+use std::collections::HashMap;
+use std::sync::{Mutex, OnceLock};
+
+/// The last message(s) a native tool sent to chat, keyed by session. The LLM
+/// pipeline uses it to feed the tool result back for a follow-up answer;
+/// native tools write to the sink directly and previously returned no value.
+static NATIVE_CAPTURE: OnceLock<Mutex<HashMap<uuid::Uuid, String>>> = OnceLock::new();
+
+fn capture() -> &'static Mutex<HashMap<uuid::Uuid, String>> {
+    NATIVE_CAPTURE.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+pub(super) fn begin_capture(session_id: uuid::Uuid) {
+    if let Ok(mut map) = capture().lock() {
+        map.remove(&session_id);
+    }
+}
+
+pub(super) fn take_capture(session_id: uuid::Uuid) -> String {
+    capture()
+        .lock()
+        .ok()
+        .and_then(|mut map| map.remove(&session_id))
+        .unwrap_or_default()
+}
 
 /// Maximum characters of process output echoed back into chat. A runaway
 /// program must not paste megabytes into the conversation.
@@ -42,6 +67,13 @@ pub(super) async fn send(identity: &SessionIdentity<'_>, message: &str) {
         user_id,
         ..
     } = *identity;
+    if let Ok(mut map) = capture().lock() {
+        let entry = map.entry(session_id).or_default();
+        if !entry.is_empty() {
+            entry.push('\n');
+        }
+        entry.push_str(message);
+    }
     let resp = botlib::models::BotResponse::new(
         bot_uuid.to_string(),
         session_id.to_string(),

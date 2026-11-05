@@ -179,6 +179,7 @@
     }
     div.appendChild(inner);
     msgs.appendChild(div);
+    if (typeof mergeWorkspaceOutput === "function") mergeWorkspaceOutput(div);
     msgs.scrollTop = msgs.scrollHeight;
     if (sender !== "user") {
       var cards = div.querySelectorAll(".gb-attachment");

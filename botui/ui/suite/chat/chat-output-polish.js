@@ -73,3 +73,35 @@ function polishOutputBlocks(el) {
     });
   });
 }
+
+/* A tool run sends a status bubble ("workspace run") and then the raw output
+ * as its own code block. Keep the answer readable: move the output into the
+ * collapsed run card instead of leaving an `ls -la` listing as a chat bubble. */
+function mergeWorkspaceOutput(el) {
+  var message = el && el.classList && el.classList.contains("message")
+    ? el
+    : (el && el.closest ? el.closest(".message") : null);
+  if (!message) return false;
+  var prev = message.previousElementSibling;
+  if (!prev || !prev.classList || !prev.classList.contains("bot")) return false;
+  var card = prev.querySelector(".gb-console");
+  if (!card) return false;
+  var pre = message.querySelector(".message-content > pre");
+  if (!pre) return false;
+  var text = (pre.textContent || "").trim();
+  if (!text) return false;
+  // Only shell/tool output; never merge a model-authored code answer.
+  if (!/^(total \d+|drwx|-\w{9}|installed:|PDF created|found:|size:|\/(?:home|opt|usr|tmp|var)\b)/m.test(text)) {
+    return false;
+  }
+  var log = card.querySelector("pre");
+  if (!log) return false;
+  log.textContent = (log.textContent ? log.textContent + "\n" : "") + text;
+  var summary = card.querySelector("summary");
+  if (summary) {
+    summary.textContent = "workspace run · " + log.textContent.split("\n").length + " lines";
+  }
+  message.remove();
+  return true;
+}
+window.mergeWorkspaceOutput = mergeWorkspaceOutput;

@@ -206,7 +206,7 @@ pub(super) async fn handle_api_call(
         let synthetic = format!(
             "{{\"__tool_call__\": true, \"name\": \"{name}\", \"arguments\": {args_escaped}}}"
         );
-        super::tool_exec::run_llm_tool_call(identity, rx, &synthetic, user_text).await;
+        let _ = super::tool_exec::run_llm_tool_call(identity, rx, &synthetic, user_text).await;
         return true;
     }
 

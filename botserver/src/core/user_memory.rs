@@ -86,15 +86,23 @@ pub fn render_rows(rows: Vec<UserMemoryRow>) -> String {
 
 /// Imperative phrases that explicitly ask the assistant to remember a fact.
 /// Kept prefix-only: "do you remember…" is a question, not a write.
-const REMEMBER_PREFIXES: [&str; 12] = [
+const REMEMBER_PREFIXES: [&str; 20] = [
     "please remember that ",
+    "please remember: ",
+    "please remember:",
     "please remember ",
     "remember that ",
+    "remember: ",
+    "remember:",
     "remember ",
-    "lembre-se que ",
     "lembre-se de que ",
+    "lembre-se que ",
+    "lembre-se: ",
+    "lembre-se:",
     "lembre-se ",
     "lembre que ",
+    "lembre: ",
+    "lembre:",
     "lembre ",
     "guarde que ",
     "guarde ",
@@ -253,6 +261,16 @@ mod tests {
         assert_eq!(
             super::extract_remember_directive("Lembre-se que meu fuso é São Paulo."),
             Some("meu fuso é São Paulo".to_string())
+        );
+        // The colon form is the one people actually type; it used to be
+        // ignored because the prefix required a space.
+        assert_eq!(
+            super::extract_remember_directive("Remember: I write in pt-BR and prefer tables."),
+            Some("I write in pt-BR and prefer tables".to_string())
+        );
+        assert_eq!(
+            super::extract_remember_directive("Lembre-se: prefiro tabelas."),
+            Some("prefiro tabelas".to_string())
         );
     }
 
