@@ -7,6 +7,7 @@ use log::{error, info, warn};
 use tokio::sync::mpsc;
 use uuid::Uuid;
 
+use crate::core::bot::runs::caps::{CapBreach, RunBudget, RunCaps};
 use crate::core::bot::ws::handler::validate_bot_name;
 use crate::core::bot::ws::handler::verify_path_within_workdir;
 use crate::core::bot::ws::message::load_bot_styles_css;
@@ -41,6 +42,9 @@ pub async fn process_llm_response(
     let _desktop_activity = crate::core::desktop_activity::ActivityGuard::begin();
     let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
     let mut full_response = String::new();
+    // #1696 — opt-in per-run budget (tokens + wall clock); 0 means unlimited.
+    let mut budget = RunBudget::start(RunCaps::from_env());
+    let mut cap_breach: Option<CapBreach> = None;
 
     let bot_llm_provider: Option<(Arc<dyn botlib::traits::LLMProvider>, String, String)> =
         match crate::core::bot::pipeline::enriched_llm::resolve_bot_llm_provider(
@@ -170,7 +174,7 @@ pub async fn process_llm_response(
                 }
             };
 
-            let _stream_handle = tokio::spawn(async move {
+            let stream_handle = tokio::spawn(async move {
                 info!("LLM spawn task starting: model={}, key_len={}, key_first_20={}", llm_model_clone, llm_key_clone.len(), llm_key_clone.chars().take(20).collect::<String>());
                 let tools_arg = if session_tools.is_empty() { None } else { Some(session_tools) };
                 if let Err(e) = llm.generate_stream(&prompt_clone, &messages_clone, stream_tx, &llm_model_clone, &llm_key_clone, tools_arg.as_ref()).await {
@@ -251,6 +255,18 @@ pub async fn process_llm_response(
                                         .execute(&mut conn);
                                     });
                                 }
+                                // #1696 — stop spending as soon as a limit is
+                                // reached; the final frame explains why.
+                                budget.observe_chars(full_response.chars().count());
+                                if let Some(breach) = budget.check() {
+                                    log::warn!(
+                                        "run cap: {} (session {})",
+                                        RunBudget::describe(&breach),
+                                        session_id_s
+                                    );
+                                    cap_breach = Some(breach);
+                                    break;
+                                }
                                 let chunk_resp = serde_json::json!({
                                     "bot_id": bot_uuid_s,
                                     "user_id": user_id.to_string(),
@@ -291,10 +307,24 @@ pub async fn process_llm_response(
                 }
             }
 
-            let mut final_content = full_response.trim_end().to_string();
-            if let Some(pos) = final_content.rfind("{\"__tool_call__\":") {
-                final_content = final_content[..pos].trim_end().to_string();
-            }
+            let capped = cap_breach.is_some();
+            let final_content = if let Some(breach) = cap_breach.take() {
+                // Stop the producer too: consuming the loop alone would leave
+                // the provider stream running and still spending.
+                stream_handle.abort();
+                let notice = format!("Run stopped — {}.", RunBudget::describe(&breach));
+                // Persist the stopping message so the run reads the same after
+                // a reconnect or on another device.
+                let mut sm = state.session_manager.lock().await;
+                let _ = sm.save_message(session_id, user_id, 2, &notice, 2);
+                notice
+            } else {
+                let mut content = full_response.trim_end().to_string();
+                if let Some(pos) = content.rfind("{\"__tool_call__\":") {
+                    content = content[..pos].trim_end().to_string();
+                }
+                content
+            };
 
             // #1635 — drain the sources for this turn. The frame below is the
             // only place the renderer reads `citations` from, so an empty vec
@@ -325,7 +355,7 @@ pub async fn process_llm_response(
             }
 
             let tool_call_trigger = "\"__tool_call__\":".to_string();
-            if full_response.contains(&tool_call_trigger) {
+            if !capped && full_response.contains(&tool_call_trigger) {
                 if let Ok(tool_call) = serde_json::from_str::<serde_json::Value>(&full_response) {
                     let raw_tool_name = tool_call.get("name").and_then(|v| v.as_str()).unwrap_or("").to_string();
                     let tool_args = tool_call.get("arguments").and_then(|v| v.as_str()).unwrap_or("");
