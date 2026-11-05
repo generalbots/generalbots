@@ -53,3 +53,22 @@ media services: BotModels open-source stack.
   is honest (`inherits_default`) and matches the “external DeepSeek only”
   requirement; no other provider key is configured.
 - Boteval remains CI-only; the recorded 556/579 gate is the reference.
+
+## Known gaps found (not fixed in this pass)
+
+| Area | Finding | Why it is not a one-line fix |
+|------|---------|------------------------------|
+| TS-03 memory | “Remember: I write in pt-BR and prefer tables” was acknowledged and applied **in that session** (pt-BR + table), but no `bot_memory_extended` row was created. A fresh tab asked the same preference and the model chose `vm_exec ls` instead, then the turn ended on the raw listing | Bot-level memory needs a real write/read tool contract; the model cannot be trusted to search the workspace for preferences. Tracked as a feature, not a UI defect |
+| Agent loop after tools | The pipeline executes a tool call and `break`s the LLM loop; the tool output is the final reply. A follow-up answer is not requested | Requires a bounded re-prompt loop (tool result → model) with cost/turn limits; a larger pipeline change |
+| Multi-attachment | The composer accepts one file (`multiple=false`) and the WS payload carries a single `file` | Needs list-shaped payload + server extraction for each item; TS-01 “PDF + PNG” currently has to be sequential |
+| Model tiers | `/api/chat/models` returns four tiers, all `inherits_default` on `deepseek-v4.1-flash`; there is no cost/speed-differentiated model configured | Correct for the “external DeepSeek only” constraint; adding a second provider would violate it |
+| Generic consent API | The optional `consent` feature is not compiled in this build (`/api/consent/*` 404); terminal/browser consent works through `/api/computer/*` and `/api/terminal/*` | Enabling the feature requires the consent migrations and a product decision; the renderer is loaded and the boot fetch tolerates the 404 |
+
+## Commands used
+
+```
+curl -s http://localhost:3000/api/i18n/pt-BR        # 816 keys, mention keys present
+curl -s http://localhost:8085/api/health             # BotModels open-source stack
+pdfinfo /tmp/opencode/rio-de-janeiro.pdf             # 4 pages, A4
+pdftotext /tmp/opencode/rio-de-janeiro.pdf -         # real content
+```
