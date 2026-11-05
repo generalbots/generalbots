@@ -36,6 +36,11 @@ pub(super) async fn inject(
                      `language` is python, node or shell. The tool writes the program into \
                      program/, runs it in the conversation folder, and returns stdout, \
                      stderr and every file it finds in output/. \
+                     Live terminal: when the user explicitly asks to watch a command or \
+                     take over a terminal, call `terminal_run` with \
+                     {{\"command\": \"<bash command>\", \"timeout_ms\": 60000}}. It runs in a \
+                     real PTY inside this VM, streams terminal output to the run card and \
+                     lets the user take over. Use vm_exec for scripts that produce files. \
                      Dependencies: prefer the language standard library. Declare EVERY \
                      third-party package the program imports in \\\"packages\\\" (pip for \
                      python, npm for node), EVEN the preinstalled ones: a declared package \

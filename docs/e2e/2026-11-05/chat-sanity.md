@@ -285,3 +285,109 @@ Reloads deliberately start from the canonical Default conversation to avoid
 reconnecting stale per-tab sockets; the session stays in history and the
 server tab mirror retains the list. Browser-like tab restoration is a separate
 feature.
+
+### TS-06 live terminal run and takeover — pass (real PTY, 2026-11-05)
+
+A native `terminal_run` tool now spawns a real PTY inside the user's agent VM
+(`incus exec <vm> -- timeout <n>s bash -lc <command>`) and streams
+`terminal_output` + `gb.command_output` frames to the run card. Two runs were
+driven from chat:
+
+- **Run 1** (`4da6dbb7-e6a5-42e4-8e06-5e6a0ea7a5a8`): server logged
+  `LLM tool_call: executing tool 'terminal_run'`; the run card showed
+  `tick 1 … tick 6` live, Take over was exposed, and the final answer was
+  “A última linha impressa foi: tick 6”.
+- **Run 2** (`f2280c78-43ef-4796-b5f1-365681305f99`): Take over was clicked
+  **while the run was still running** (`running: true`). The card switched to
+  “You control”, the hint “You control the terminal…”, and the terminal window
+  opened. **Hand back** while still running hid the bar, restored “Take over”
+  and the run continued to `tick 10`; the answer reported “tick 10”.
+
+Two defects surfaced and were fixed:
+
+1. `handleFrame` returned for *every* `CUSTOM` frame after the takeover branch,
+   so `gb.command_output` never reached `appendLog` and the live log stayed
+   empty. Only `gb.takeover` returns now; the other custom frames continue to
+   the dispatcher. Verified: `tick 1 … tick 10` rendered in the run log.
+2. The pre-LLM terminal-proposal heuristic hijacked sentences naming the tool
+   (“Run this with terminal_run …”), skipped the model and offered a consent
+   card whose command was the prose (`this with terminal_run …` →
+   `sh: Syntax error: "do" unexpected`). `propose_terminal_from_text` now
+   returns `None` when the text contains `terminal_run`, leaving the turn to
+   the model; a regression test covers it.
+
+## Issue #1693 — resolved items (2026-11-05, browser-verified)
+
+### 1. Upload preview appears
+
+`GET /api/chat/attachments/preview?bot=default&name=ts02_upload.docx&access_token=…`
+returns `200 text/html` (Office converted to sanitized HTML). The user bubble
+chip now has **Preview**; the inline frame is 320 px tall and the document body
+reads “Pantanal / User-uploaded Word document preview test…”. The first attempt
+returned `500 session lookup: operator does not exist: character varying = uuid`
+— `user_sessions.user_id` is text; the query now binds Text. The route was also
+added to the auth middleware's anonymous list because an iframe cannot send an
+Authorization header (the handler verifies the `access_token` itself).
+
+### 2. Attach from Drive
+
+New **Drive** button in the composer (`chat-drive-picker.js`): lists
+`/api/files/list?scope=bot&path=…`, navigates folders, and attaches a file via
+`/api/files/download-binary`. Verified end to end: picked
+`parity-search-unique.pdf` from Drive → chip `📎 parity-search-unique.pdf
+(1 file, 1.4 KB)` → sent → answer identified `ZEBRA-PARITY-9147` → server
+`stored chat attachment` → the user chip offers Preview (PDF `200`,
+`application/pdf`, 320 px).
+
+### 3. Black chip on the user side
+
+The restored attachment chip was `#1e1e2e` (dark) on the light theme. It now
+uses the theme surface: computed `background rgb(244,244,245)`,
+`border rgb(228,228,231)`.
+
+### 4. Output list: newest first, featured, rest as history
+
+`list_conversation_output` sorts by mtime (`find -printf '%T@ %f' | sort -rn`).
+The folder card reorders rows by that listing and marks the first row
+**Latest**. Verified against the API:
+
+```
+DOM: output/newer-note.txt, output/older-note.txt, output/latest-check.txt, …
+API: newer-note.txt, older-note.txt, latest-check.txt, …
+badge: "Latest"
+```
+
+### 5. Streaming SVG/HTML preview
+
+`chat-live-artifact.js` renders an open ```svg/```html fence into a sandboxed
+iframe and refreshes it on every stream render. Real model output produced two
+previews (1,199 and 15,375 chars). Refresh path: the same iframe node was kept
+and its document grew 299 → 353 chars (`sameFrame: true`).
+
+### 6 and 9. “Answering / RUNNING / Answering” duplication
+
+`STEP_STARTED` emitted a row with the same word as the summary. The row is now
+suppressed for the `Answering` step; tool rows still explain what runs.
+Verified: `answeringRows: 0`, card shows `Succeeded` + `ok llm`.
+
+### 7 and 8. Verbose progress and VM→chat intercommunication
+
+`vm_exec` publishes `gb.tool_progress` start/done frames; the run card reacts.
+During a real 20 s `time.sleep` run, mid-flight evidence:
+
+```
+summary: ["Running vm_exec…"]
+rows:    ["RUNNING | vm_exec · python"]
+elapsed: "18.3s"   running: true
+```
+
+On completion: `Succeeded`, rows `ok vm_exec finished`, `ok llm`, answer
+“waited 20”. The Stop button and elapsed timer keep the UI responsive.
+
+### Stale service-worker shell
+
+The desktop SW served a cached shell that requested `partials/chat.html?v=3`,
+so new chat modules never loaded until the SW was unregistered. The shell cache
+was bumped (`gb-desktop-shell-v34`) and its core list updated; a fresh tab then
+loaded `chat-messages.js?v=31`, `chat-live-artifact.js`, and
+`71_run_timeline.js?v=10`.

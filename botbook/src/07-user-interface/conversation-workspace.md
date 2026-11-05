@@ -74,6 +74,18 @@ final answer (bounded to two follow-ups and 12k characters). The raw log is
 kept in the collapsed “workspace run” card, and the visible reply is the
 synthesized answer. Verified with `vm_exec` listings and a generated PDF.
 
+### Live terminal runs
+
+`terminal_run` opens a real PTY inside the user's agent VM and streams each
+line into the run card as `terminal_output` / `gb.command_output` frames. The
+command is wrapped in `timeout` and capped (5–120 s); the full output is also
+returned to the model for a synthesized final answer. Ask for a live terminal
+when you want to watch a command or take it over; use `vm_exec` for scripts
+that produce files.
+
+A sentence that names `terminal_run` is left to the model — the pre-LLM
+terminal-consent heuristic no longer turns that sentence into a shell command.
+
 ### Takeover
 
 A run that touched the terminal or the browser reveals **Take over** on its
@@ -82,6 +94,22 @@ run card. Taking over opens the matching surface — the terminal window for a
 card shows “You control” until **Hand back** (or ESC interrupts the run).
 The takeover segment is persisted as a `gb.takeover` run event, so it survives
 a reload or appears on another device.
+
+### Attachments from Drive and live artifacts
+
+The composer has two attach paths: the paperclip for local files and the Drive
+button, which browses the bot's Drive and downloads the chosen file into the
+same multi-file payload. Uploaded attachments get a Preview chip that streams
+the staged Drive inbox copy through the sanitized preview endpoint.
+
+A fenced ```svg or ```html block the model writes is previewed while it is
+still streaming: the iframe is refreshed as chunks arrive, in an opaque sandbox
+(scripts allowed for HTML charts, never same-origin access).
+
+The output folder lists the newest generation first, badges it **Latest**, and
+keeps older files below as history. While `vm_exec` runs, the run card says
+“Running vm_exec…” with a live elapsed timer; the VM reports start/finish
+through `gb.tool_progress` frames.
 
 ### Consent cards
 

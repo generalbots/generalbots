@@ -310,6 +310,81 @@ function renderInlineArtifact(html, titleOverride) {
   return box;
 }
 
+// User-uploaded attachments (#1673): the chip under a user turn offers a
+// Preview button that streams the staged Drive inbox copy through the
+// sanitized preview endpoint. Nothing is fetched until the button is pressed.
+function userAttachmentPreviewUrl(name) {
+  var bot =
+    (window.ChatState && ChatState.currentBotName) ||
+    window.__INITIAL_BOT_NAME__ ||
+    "default";
+  var url =
+    "/api/chat/attachments/preview?bot=" +
+    encodeURIComponent(bot) +
+    "&name=" +
+    encodeURIComponent(name);
+  var token = "";
+  try {
+    token =
+      (typeof window.getGBAccessToken === "function" && window.getGBAccessToken()) ||
+      localStorage.getItem("gb-access-token") ||
+      sessionStorage.getItem("gb-access-token") ||
+      "";
+  } catch (e) { /* storage unavailable */ }
+  if (token) url += "&access_token=" + encodeURIComponent(token);
+  return url;
+}
+
+function toggleUserAttachmentPreview(chip, name) {
+  if (!chip) return;
+  var existing = chip.nextElementSibling;
+  if (existing && existing.classList && existing.classList.contains("gb-user-preview")) {
+    existing.remove();
+    return;
+  }
+  var box = document.createElement("div");
+  box.className = "gb-attachment-inline gb-user-preview";
+
+  var head = document.createElement("div");
+  head.className = "gb-attachment-inline-head";
+  var title = document.createElement("span");
+  title.textContent = name;
+  head.appendChild(title);
+
+  var expand = document.createElement("button");
+  expand.type = "button";
+  expand.className = "gb-attachment-inline-btn";
+  expand.textContent = "Expand";
+  expand.addEventListener("click", function () {
+    box.classList.toggle("expanded");
+    expand.textContent = box.classList.contains("expanded") ? "Collapse" : "Expand";
+  });
+  head.appendChild(expand);
+
+  var close = document.createElement("button");
+  close.type = "button";
+  close.className = "gb-attachment-inline-btn";
+  close.setAttribute("aria-label", "Close preview");
+  close.textContent = "×";
+  close.addEventListener("click", function () { box.remove(); });
+  head.appendChild(close);
+
+  var body = document.createElement("div");
+  body.className = "gb-attachment-inline-body";
+  var frame = document.createElement("iframe");
+  frame.src = userAttachmentPreviewUrl(name);
+  frame.title = "Preview of " + name;
+  frame.setAttribute("sandbox", "");
+  frame.setAttribute("referrerpolicy", "no-referrer");
+  frame.setAttribute("loading", "lazy");
+  body.appendChild(frame);
+
+  box.appendChild(head);
+  box.appendChild(body);
+  chip.after(box);
+  if (typeof snapToBottom === "function") snapToBottom();
+}
+
 function addMessage(sender, content, msgId, reasoning) {
   var messages = document.getElementById("messages");
   if (!messages) return;
@@ -354,10 +429,27 @@ function addMessage(sender, content, msgId, reasoning) {
     var processedContent = renderMentionInMessage(escapeHtml(shownContent));
     div.innerHTML = '<div class="message-content user-message">' + processedContent + "</div>";
     if (userAttachmentName) {
-      var restored = document.createElement("div");
-      restored.className = "gb-attachment-restored";
-      restored.textContent = "📎 " + userAttachmentName;
-      div.querySelector(".message-content").appendChild(restored);
+      // Several files in one turn were joined as `📎 a.pdf, b.png`; show one
+      // chip per file so each one can be previewed on its own.
+      var attachmentNames = userAttachmentName.split(/,\s+/).filter(Boolean);
+      attachmentNames.forEach(function (singleName) {
+        var restored = document.createElement("div");
+        restored.className = "gb-attachment-restored";
+        var restoredLabel = document.createElement("span");
+        restoredLabel.textContent = "📎 " + singleName;
+        restored.appendChild(restoredLabel);
+        if (/(\.docx|\.xlsx|\.pptx|\.pdf|\.png|\.jpe?g|\.gif|\.webp)$/i.test(singleName)) {
+          var previewButton = document.createElement("button");
+          previewButton.type = "button";
+          previewButton.className = "gb-attachment-btn";
+          previewButton.textContent = "Preview";
+          previewButton.addEventListener("click", function () {
+            toggleUserAttachmentPreview(restored, singleName);
+          });
+          restored.appendChild(previewButton);
+        }
+        div.querySelector(".message-content").appendChild(restored);
+      });
     }
     enrichMentionIds(div);
   } else {
@@ -407,6 +499,9 @@ function addMessage(sender, content, msgId, reasoning) {
   }
 
   messages.appendChild(div);
+  if (sender === "bot" && window.GBLiveArtifact) {
+    window.GBLiveArtifact.render(div, content);
+  }
   if (typeof mergeWorkspaceOutput === "function") mergeWorkspaceOutput(div);
 
   reexecuteScripts(div);
@@ -599,6 +694,10 @@ function updateStreaming(content) {
   parsed = renderMentionInMessage(parsed);
   var thinkingHtml = renderThinkingSection(ChatState.currentReasoning);
   msgContent.innerHTML = thinkingHtml + parsed;
+  // #1693 — an open ```svg/```html fence is previewed as it grows. The frame
+  // lives on the message (not inside .message-content) so the next streaming
+  // re-render does not destroy and reload it every 200 ms.
+  if (window.GBLiveArtifact) window.GBLiveArtifact.render(el, content);
   if (window.ChatCodeUX) {
     ChatCodeUX.enhance(msgContent);
     var toolCards = ChatCodeUX.extractToolCards(content);

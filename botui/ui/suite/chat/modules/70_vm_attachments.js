@@ -568,6 +568,53 @@ function vmAttachmentAnchor(container) {
   return bots.length ? bots[bots.length - 1] : null;
 }
 
+// Folder rows follow the server's newest-first listing (#1693). Reply links
+// arrive in tool order, which can put an older file first; the VM listing is
+// ordered by mtime, so it is the source of truth. Cached per conversation and
+// invalidated on every live reply that may add files.
+var vmFolderOrder = {};
+function vmApplyFolderOrder(grid, rank) {
+  var items = Array.prototype.slice.call(grid.querySelectorAll(".gb-attachment"));
+  items.sort(function (a, b) {
+    var an = String(a.dataset.path || "").split("/").pop();
+    var bn = String(b.dataset.path || "").split("/").pop();
+    var ar = Object.prototype.hasOwnProperty.call(rank, an) ? rank[an] : 1e9;
+    var br = Object.prototype.hasOwnProperty.call(rank, bn) ? rank[bn] : 1e9;
+    return ar - br;
+  });
+  items.forEach(function (el) { grid.appendChild(el); });
+}
+var vmFolderPending = {};
+function vmOrderFolder(grid) {
+  if (!grid || grid.querySelectorAll(".gb-attachment").length < 2) return;
+  vmCurrentConversationId()
+    .then(function (conversationId) {
+      if (!conversationId) return;
+      if (vmFolderOrder[conversationId]) {
+        vmApplyFolderOrder(grid, vmFolderOrder[conversationId]);
+        return;
+      }
+      // History replay groups every reply at once; one listing per
+      // conversation is enough, so concurrent folders share the request.
+      if (!vmFolderPending[conversationId]) {
+        vmFolderPending[conversationId] = vmAttachmentsRequest(
+          "/api/agent/vm/files?conversation_id=" + encodeURIComponent(conversationId)
+        )
+          .then(function (data) {
+            var rank = {};
+            ((data && data.files) || []).forEach(function (name, i) { rank[name] = i; });
+            vmFolderOrder[conversationId] = rank;
+            return rank;
+          })
+          .finally(function () { delete vmFolderPending[conversationId]; });
+      }
+      return vmFolderPending[conversationId].then(function (rank) {
+        vmApplyFolderOrder(grid, rank);
+      });
+    })
+    .catch(function () { /* keep the reply order */ });
+}
+
 // One folder card for every attachment of the reply (#1584): the user sees
 // "output" as a folder with all generated files, not a flat list of links.
 function vmGroupAttachments(anchor) {
@@ -594,10 +641,16 @@ function vmGroupAttachments(anchor) {
     target.appendChild(folder);
   }
   var grid = folder.querySelector(".gb-folder-grid");
-  for (var j = 0; j < cards.length; j++) grid.appendChild(cards[j]);
+  // New cards lead the folder (#1693): the file the user just asked for is
+  // the first row, older outputs follow as history. Inserting in reverse
+  // keeps the source order (newest first) while placing it on top.
+  for (var j = cards.length - 1; j >= 0; j--) {
+    grid.insertBefore(cards[j], grid.firstChild);
+  }
   var count = grid.querySelectorAll(".gb-attachment").length;
   folder.querySelector(".gb-folder-count").textContent =
     count + " file" + (count === 1 ? "" : "s");
+  vmOrderFolder(grid);
   var saveAll = folder.querySelector(".gb-folder-save");
   if (saveAll && !saveAll.dataset.bound) {
     saveAll.dataset.bound = "1";
@@ -693,6 +746,10 @@ function vmDropEmptyListItems(root) {
 // Bind inline vmfile cards and append output/ files the model did not link.
 function hydrateVmAttachments(container) {
   if (!container) return;
+  // A live reply can add files; the cached newest-first ranking is stale.
+  if (typeof ChatState === "undefined" || !ChatState.suppressPersist) {
+    vmFolderOrder = {};
+  }
   vmRenderInlineReferences(container);
   vmDropEmptyListItems(container);
   var cards = container.querySelectorAll(".gb-attachment");

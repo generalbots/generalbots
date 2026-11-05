@@ -452,11 +452,19 @@ sup.gb-cite-ref:hover {
 .gb-attachment-btn:hover { background: var(--surface-3, #2a2a3e); }
 /* #1641 — attachment restored from history, shown as a chip under the turn. */
 .gb-attachment-restored {
-  display: inline-block; margin-top: 6px; padding: 2px 9px;
-  border: 1px solid var(--border, #333); border-radius: 999px;
-  font-size: 11px; color: var(--text-secondary, #888);
-  background: var(--surface-2, #1e1e2e);
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 6px; margin-right: 6px; padding: 2px 4px 2px 9px;
+  border: 1px solid var(--gb-border, #d7dbe2); border-radius: 999px;
+  font-size: 11px; color: var(--gb-text-muted, #57606a);
+  background: var(--gb-surface-muted, #f6f7f9);
 }
+.gb-attachment-restored .gb-attachment-btn {
+  border-radius: 999px; padding: 1px 8px;
+}
+/* Inline preview frames default to ~150px; a document needs room to read.
+   The frame scrolls internally and "Expand" grows it without leaving chat. */
+.gb-attachment-inline-body iframe { height: 320px; }
+.gb-attachment-inline.expanded .gb-attachment-inline-body iframe { height: 72vh; }
 .gb-artifact-panel {
   position: fixed; top: 0; right: 0; width: 50vw; min-width: 380px; height: 100vh;
   background: var(--bg, #0f0f18); border-left: 1px solid var(--border, #333);

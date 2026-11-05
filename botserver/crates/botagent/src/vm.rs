@@ -761,7 +761,9 @@ pub async fn list_conversation_output(
 ) -> Result<Vec<String>, (StatusCode, String)> {
     let clean_cid = sanitize_id(conversation_id)?;
     let script = format!(
-        "find /opt/vibe/conversations/{clean_cid}/output -maxdepth 1 -type f -printf '%f\\n' 2>/dev/null | sort | head -100"
+        // Newest first: the file the user just asked for must lead the list;
+        // older outputs follow as history (#1693).
+        "find /opt/vibe/conversations/{clean_cid}/output -maxdepth 1 -type f -printf '%T@ %f\\n' 2>/dev/null | sort -rn | cut -d' ' -f2- | head -100"
     );
     let (ok, stdout, _) = exec_in_vm(
         state,

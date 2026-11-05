@@ -6,15 +6,15 @@
  * policy silently froze window-manager, partials and CSS after their first
  * fetch — "the browser is not loading the updated app"). Version bump
  * invalidates the previous cache. */
-var CACHE = "gb-desktop-shell-v27";
+var CACHE = "gb-desktop-shell-v34";
 var CORE = [
   "/suite/desktop.html",
   "/suite/js/vendor/htmx.min.js",
   "/suite/js/security-bootstrap.js?v=6",
-  "/suite/js/window-manager.js?v=37",
+  "/suite/js/window-manager.js?v=124",
   "/suite/js/widget-registry.js?v=2",
   "/suite/js/widget-renderer.js?v=2",
-  "/suite/js/sidebar.js?v=7",
+  "/suite/js/sidebar.js?v=18",
   "/suite/js/vibe-bridge.js?v=4",
   "/suite/css/desktop/widgets.css?v=1",
 ];

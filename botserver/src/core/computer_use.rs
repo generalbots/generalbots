@@ -218,6 +218,14 @@ pub fn propose_from_text(text: &str) -> Option<Value> {
 pub fn propose_terminal_from_text(text: &str) -> Option<Value> {
     let trimmed = text.trim();
     let lower = trimmed.to_lowercase();
+    // A turn that names the live-terminal tool belongs to the model: the
+    // native `terminal_run` streams output into the run card and lets the
+    // user take over. Proposing a consent card here skipped the model and
+    // turned the phrasing itself into a shell command ("Run this with
+    // terminal_run …" executed `this with terminal_run …`).
+    if lower.contains("terminal_run") {
+        return None;
+    }
     let prefixes = [
         "run the command ",
         "execute the command ",
@@ -406,6 +414,14 @@ mod tests {
         assert_eq!(plain["command"], "echo hello");
         assert!(propose_terminal_from_text("what is the weather?").is_none());
         assert!(propose_terminal_from_text("run ").is_none());
+    }
+
+    #[test]
+    fn live_terminal_tool_requests_are_left_to_the_model() {
+        assert!(propose_terminal_from_text(
+            "Run this with terminal_run in a live terminal: for i in 1 2 3; do echo tick $i; done"
+        )
+        .is_none());
     }
 
     #[test]

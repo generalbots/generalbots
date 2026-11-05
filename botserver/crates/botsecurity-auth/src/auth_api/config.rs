@@ -61,6 +61,11 @@ impl Default for AuthConfig {
                 // made download and preview answer 401 (#1582).
                 "/api/agent/vm/file".to_string(),
                 "/api/agent/vm/files".to_string(),
+                // User-uploaded attachment preview. The chat renders it in a
+                // sandboxed iframe, which cannot set an Authorization header;
+                // the suite token travels as `access_token` and the handler
+                // verifies it before reading the staged Drive inbox copy.
+                "/api/chat/attachments/preview".to_string(),
             ],
             public_paths: vec![
                 "/static".to_string(),

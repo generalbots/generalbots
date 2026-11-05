@@ -345,6 +345,8 @@
             existing.setAttribute("data-status", status);
             var badge = existing.querySelector(".run-row-status");
             if (badge) badge.textContent = status;
+            var existingLabel = existing.querySelector(".run-row-name");
+            if (existingLabel && name) existingLabel.textContent = name;
             return existing;
         }
         var item = document.createElement("div");
@@ -500,8 +502,11 @@
                         surface: payload.surface || "terminal",
                     };
                 }
+                return;
             }
-            return;
+            // Every OTHER custom frame must continue to the dispatcher below;
+            // the takeover branch used to return unconditionally, so
+            // `gb.command_output` (live terminal lines) never reached the log.
         }
 
         // A run that touched the terminal or the browser exposes takeover.
@@ -544,8 +549,14 @@
 
         if (type === "STEP_STARTED") {
             var stepId = (frame.data && frame.data.step_id) || "step";
-            row(entry, "step:" + stepId, (frame.data && frame.data.name) || stepId, "running");
-            entry.summary.textContent = (frame.data && frame.data.name) || "Working…";
+            var stepName = (frame.data && frame.data.name) || stepId;
+            entry.summary.textContent = stepName;
+            // The only step the pipeline emits is "Answering", and the summary
+            // already shows it. A row with the same word printed the status
+            // twice ("Answering … Answering", #1693).
+            if (stepName.toLowerCase() !== "answering") {
+                row(entry, "step:" + stepId, stepName, "running");
+            }
             return;
         }
         if (type === "STEP_FINISHED") {
@@ -555,13 +566,18 @@
         }
         if (type === "TOOL_CALL_START") {
             var callId = (frame.data && frame.data.call_id) || "call";
-            row(entry, "tool:" + callId, (frame.data && frame.data.name) || callId, "running");
+            var toolName = (frame.data && frame.data.name) || callId;
+            // Say what the VM is doing while it runs, instead of a static
+            // "Answering" until the tool returns (#1693).
+            entry.summary.textContent = "Running " + toolName + "…";
+            row(entry, "tool:" + callId, toolName, "running");
             return;
         }
         if (type === "TOOL_CALL_RESULT") {
             var resultId = (frame.data && frame.data.call_id) || "call";
             var status = (frame.data && frame.data.status) || "ok";
             row(entry, "tool:" + resultId, "Tool result", status);
+            entry.summary.textContent = status === "error" ? "Tool failed" : "Answering…";
             var result = frame.data && frame.data.result;
             if (result && typeof result === "object") {
                 var lines = Array.isArray(result.lines) ? result.lines : null;
@@ -588,6 +604,19 @@
             var payload = customPayload(frame);
             if (name === "gb.command_output") {
                 appendLog(entry, payload.line || "", payload.stream || "stdout");
+            } else if (name === "gb.tool_progress") {
+                // #1693 — the VM reports start/finish so the card says what it
+                // is doing during a long run instead of a static "Answering".
+                var progressTool = payload.tool || "tool";
+                if (payload.phase === "start") {
+                    entry.summary.textContent = "Running " + progressTool + "…";
+                    row(entry, "progress:" + progressTool, progressTool +
+                        (payload.detail ? " · " + payload.detail : ""), "running");
+                } else {
+                    entry.summary.textContent = "Answering…";
+                    row(entry, "progress:" + progressTool, progressTool + " finished",
+                        payload.ok === false ? "error" : "ok");
+                }
             } else if (name === "gb.question") {
                 row(entry, "question:" + (payload.question_id || "q"), "Waiting for your answer", "waiting");
                 entry.card.classList.add("waiting");

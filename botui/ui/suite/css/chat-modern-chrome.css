@@ -147,6 +147,30 @@
     background: #f4f4f5;
 }
 
+/* #1693 — the newest generation leads the folder: slightly stronger surface
+   and a "Latest" badge; older files remain below as history. */
+.gb-folder-grid .gb-attachment:first-child:not(:only-child) {
+    background: linear-gradient(180deg, #ffffff 0%, #f7f8fb 100%);
+    border: 1px solid rgba(24, 24, 27, 0.08);
+    border-radius: 10px;
+    padding: 8px 10px;
+    margin-bottom: 4px;
+}
+.gb-folder-grid .gb-attachment:first-child:not(:only-child) .gb-attachment-name {
+    font-weight: 600;
+}
+.gb-folder-grid .gb-attachment:first-child:not(:only-child)::after {
+    content: "Latest";
+    margin-left: auto;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #4f46e5;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
 /* Epic acceptance: 44 px touch targets on a 390 px viewport. */
 @media (max-width: 480px) {
     #sendBtn,
@@ -416,4 +440,151 @@
         gap: 4px;
         padding: 7px 6px;
     }
+}
+
+/* #1693 — live SVG/HTML preview while the model draws it. */
+.gb-live-artifact {
+    margin-top: 8px;
+    border: 1px solid rgba(24, 24, 27, 0.09);
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+    max-width: 560px;
+}
+.gb-live-artifact-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 10px;
+    border-bottom: 1px solid rgba(24, 24, 27, 0.06);
+    background: #f7f7f8;
+}
+.gb-live-artifact-title {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 600;
+    color: #52525b;
+}
+.gb-live-artifact-body iframe {
+    display: block;
+    width: 100%;
+    height: 280px;
+    border: 0;
+    background: #fff;
+}
+.gb-live-artifact.expanded .gb-live-artifact-body iframe { height: 70vh; }
+
+/* #1693 — Drive picker for the composer. */
+.gb-drive-picker-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 95000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.38);
+}
+.gb-drive-picker {
+    width: min(540px, 92vw);
+    max-height: 76vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+    font-family: inherit;
+}
+.gb-drive-picker-head {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(24, 24, 27, 0.07);
+}
+.gb-drive-picker-title {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 600;
+    color: #18181b;
+}
+.gb-drive-picker-close {
+    border: 0;
+    background: transparent;
+    font-size: 20px;
+    line-height: 1;
+    color: #71717a;
+    cursor: pointer;
+    padding: 2px 6px;
+}
+.gb-drive-picker-crumb {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px;
+    padding: 8px 14px;
+    font-size: 12px;
+    color: #52525b;
+    border-bottom: 1px solid rgba(24, 24, 27, 0.05);
+}
+.gb-drive-picker-crumb-btn {
+    border: 0;
+    background: transparent;
+    padding: 2px 4px;
+    border-radius: 5px;
+    color: #4f46e5;
+    font: inherit;
+    cursor: pointer;
+}
+.gb-drive-picker-crumb-btn:hover { background: #eef2ff; }
+.gb-drive-picker-sep { color: #a1a1aa; }
+.gb-drive-picker-status {
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #71717a;
+}
+.gb-drive-picker-list {
+    overflow: auto;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.gb-drive-picker-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    padding: 9px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    text-align: left;
+    font: inherit;
+    color: #18181b;
+    cursor: pointer;
+}
+.gb-drive-picker-row:hover { background: #f4f4f5; }
+.gb-drive-picker-icon { flex: none; font-size: 15px; }
+.gb-drive-picker-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+}
+.gb-drive-picker-meta { flex: none; font-size: 11px; color: #a1a1aa; }
+.gb-drive-picker-attach {
+    flex: none;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #4f46e5;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+#chat-app button.file-btn {
+    padding: 0;
+    border: 0;
+    background: transparent;
 }
