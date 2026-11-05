@@ -12,19 +12,36 @@ use axum::{
 use std::sync::Arc;
 use uuid::Uuid;
 
+/// Resolution of the title stored with a save. The editor autosave sends only
+/// `{id, content}`; an empty title must keep the existing one instead of
+/// renaming the document to "Untitled Document" on every keystroke.
+async fn effective_title(
+    state: &DocState,
+    user_id: &str,
+    doc_id: &str,
+    requested: &str,
+) -> String {
+    if !requested.trim().is_empty() {
+        return requested.to_string();
+    }
+    match load_document_from_drive(state, user_id, doc_id).await {
+        Ok(Some(doc)) if !doc.title.trim().is_empty() => doc.title,
+        _ => "Untitled Document".to_string(),
+    }
+}
+
 pub async fn handle_docs_save(
     State(state): State<Arc<DocState>>,
     Json(req): Json<DocsSaveRequest>,
 ) -> Result<Json<DocsSaveResponse>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = get_current_user_id();
-    let doc_id = req.id.unwrap_or_else(|| Uuid::new_v4().to_string());
+    let doc_id = req.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
+    let title = effective_title(&state, &user_id, &doc_id, &req.title).await;
 
     // #1138: archive the previous version before overwriting it.
-    super::history::capture_snapshot(&state, &doc_id, &req.title, &req.content).await;
+    super::history::capture_snapshot(&state, &doc_id, &title, &req.content).await;
 
-    if let Err(e) =
-        save_document_to_drive(&state, &user_id, &doc_id, &req.title, &req.content).await
-    {
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc_id, &title, &req.content).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::crud", None)})),
@@ -129,11 +146,10 @@ pub async fn handle_save_document(
     Json(req): Json<DocsSaveRequest>,
 ) -> Result<Json<DocsSaveResponse>, (StatusCode, Json<serde_json::Value>)> {
     let user_id = get_current_user_id();
-    let doc_id = req.id.unwrap_or_else(|| Uuid::new_v4().to_string());
+    let doc_id = req.id.clone().unwrap_or_else(|| Uuid::new_v4().to_string());
+    let title = effective_title(&state, &user_id, &doc_id, &req.title).await;
 
-    if let Err(e) =
-        save_document_to_drive(&state, &user_id, &doc_id, &req.title, &req.content).await
-    {
+    if let Err(e) = save_document_to_drive(&state, &user_id, &doc_id, &title, &req.content).await {
         return Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(serde_json::json!({ "error": botsecurity_core::error_sanitizer::log_and_sanitize_json(&e, "botdocs::crud", None)})),

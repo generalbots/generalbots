@@ -35,7 +35,7 @@ pub async fn handle_doc_list_sidebar(Json(items): Json<Vec<DocumentMetadata>>) -
         r##"<div class="dc-sidebar" id="doc-list-sidebar">
 <div class="dc-sidebar-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid #334155;">
 <h3 style="margin:0;color:#f8fafc;font-size:14px;">Meus Documentos</h3>
-<button hx-get="/api/docs/new" hx-target="#doc-content" hx-swap="innerHTML" style="background:#10b981;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">+ Novo</button>
+<button hx-get="/suite/docs/fragments/new" hx-target="#docs-content" hx-swap="innerHTML" style="background:#10b981;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">+ Novo</button>
 </div>
 <div class="dc-sidebar-body" style="padding:8px;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 200px);overflow-y:auto;">"##
     );
@@ -88,12 +88,15 @@ pub async fn handle_recent_sidebar(Json(items): Json<Vec<DocumentMetadata>>) -> 
 }
 
 pub async fn handle_document_view(Json(payload): Json<serde_json::Value>) -> Html<String> {
-    let title = payload.get("title").and_then(|v| v.as_str()).unwrap_or("Documento sem título");
+    let title = payload
+        .get("title")
+        .and_then(|v| v.as_str())
+        .unwrap_or("Documento sem título");
     let content = payload.get("content").and_then(|v| v.as_str()).unwrap_or("");
     let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
     let word_count = content.split_whitespace().count();
     Html(format!(
-        r##"<div class="dc-view" id="doc-view" data-id="{id}">
+        r##"<div class="dc-view" id="doc-view" data-id="{id}" data-title="{title}">
 <div class="dc-view-header" style="padding:16px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;align-items:center;background:#0f172a;">
 <div>
 <h2 style="margin:0;color:#f8fafc;">{title}</h2>
@@ -105,11 +108,26 @@ pub async fn handle_document_view(Json(payload): Json<serde_json::Value>) -> Htm
 <button hx-post="/suite/docs/modals/find-replace" hx-vals='{{"id":"{id}"}}' hx-target="#modal-container" hx-swap="innerHTML" style="background:#0f172a;color:#f8fafc;border:1px solid #334155;padding:6px 12px;border-radius:4px;cursor:pointer;font-size:12px;">🔍 Buscar</button>
 </div>
 </div>
-<article class="dc-content" id="doc-content" contenteditable="true" hx-post="/api/docs/autosave" hx-trigger="blur changed" hx-vals='{{"id":"{id}"}}' hx-swap="none" style="padding:48px 64px;line-height:1.8;color:#cbd5e1;font-size:15px;background:#0f172a;min-height:60vh;outline:none;font-family:Georgia,serif;">{content}</article>
+<!-- content is the document body authored by this editor; the JSON load path
+     already renders it as HTML, so escaping it here showed raw tags. -->
+<article class="dc-content" id="doc-content" data-doc-id="{id}" contenteditable="true" style="padding:48px 64px;line-height:1.8;color:#cbd5e1;font-size:15px;background:#0f172a;min-height:60vh;outline:none;font-family:Georgia,serif;">{content}</article>
 </div>"##,
         id = html_escape(id),
         title = html_escape(title),
-        content = html_escape(content),
+        content = content,
         words = word_count
     ))
+}
+
+/// GET /suite/docs/fragments/new — creates an unsaved document view.
+/// The id is a fresh UUID and the first autosave persists it, so an empty
+/// document does not appear in the sidebar until it has content.
+pub async fn handle_new_document_view() -> Html<String> {
+    let doc = crate::storage::create_new_document();
+    handle_document_view(Json(serde_json::json!({
+        "id": doc.id,
+        "title": doc.title,
+        "content": doc.content,
+    })))
+    .await
 }

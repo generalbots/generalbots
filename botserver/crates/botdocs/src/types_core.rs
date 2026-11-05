@@ -289,6 +289,9 @@ pub struct DocsAiResponse {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DocsSaveRequest {
     pub id: Option<String>,
+    /// Optional: the editor's autosave sends only `{id, content}`. An empty
+    /// title keeps the stored one instead of renaming the document.
+    #[serde(default)]
     pub title: String,
     pub content: String,
     #[serde(default)]
