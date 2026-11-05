@@ -15,6 +15,7 @@ pub mod conversation_autotasks;
 pub mod desktop_status;
 pub mod channel_support;
 pub mod feature_merge_a;
+pub mod group_budgets;
 pub mod feature_merge_b;
 pub mod feature_routers;
 pub mod org_handlers;

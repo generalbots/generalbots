@@ -40,6 +40,10 @@ pub(super) async fn merge_part_a(
     *api_router = api_router
         .clone()
         .merge(crate::core::bot::runs::tools::router());
+    // #1697 — pooled group budgets and usage reports.
+    *api_router = api_router
+        .clone()
+        .merge(super::group_budgets::router());
 
     *api_router = api_router
         .clone()
