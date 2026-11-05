@@ -19,6 +19,29 @@
     return el ? el.getAttribute("data-tab-id") : null;
   }
 
+  // Every close path (×, middle-click, Ctrl+W, context menu, overflow menu)
+  // called this function, but it was never defined: the click threw a
+  // ReferenceError and the tab stayed open. Refuse only the cases the strip
+  // must protect: a pinned tab and the last remaining tab.
+  function closeTabGuarded(id) {
+    if (!id || !window.GBTabs || !GBTabs.state) return;
+    var tabs = GBTabs.state.tabs || [];
+    var tab = null;
+    for (var i = 0; i < tabs.length; i++) {
+      if (tabs[i].id === id) { tab = tabs[i]; break; }
+    }
+    if (!tab) return;
+    if (tab.pinned) {
+      if (typeof notify === "function") notify("Pinned tabs cannot be closed", "info");
+      return;
+    }
+    if (tabs.length <= 1) {
+      if (typeof notify === "function") notify("Keep at least one conversation open", "info");
+      return;
+    }
+    GBTabs.closeTab(id);
+  }
+
   // ── Pointer-drag reorder ──
 
   var drag = null;

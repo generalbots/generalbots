@@ -74,6 +74,15 @@ final answer (bounded to two follow-ups and 12k characters). The raw log is
 kept in the collapsed “workspace run” card, and the visible reply is the
 synthesized answer. Verified with `vm_exec` listings and a generated PDF.
 
+### Takeover
+
+A run that touched the terminal or the browser reveals **Take over** on its
+run card. Taking over opens the matching surface — the terminal window for a
+`terminal_output` run, the browser panel for a `browser_ready` run — and the
+card shows “You control” until **Hand back** (or ESC interrupts the run).
+The takeover segment is persisted as a `gb.takeover` run event, so it survives
+a reload or appears on another device.
+
 ### Consent cards
 
 Terminal and browser actions proposed by the agent render a consent card with

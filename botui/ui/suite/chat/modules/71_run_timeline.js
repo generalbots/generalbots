@@ -233,9 +233,19 @@
         takeoverBar.appendChild(handBack);
 
         takeover.addEventListener("click", function () {
-            applyTakeover(runId, "taken_over", "terminal");
-            reportTakeover(runId, "taken_over", "terminal");
-            if (window.GBBrowserUse) window.GBBrowserUse.show();
+            // Open the surface the run actually touched. The old handler
+            // always opened the browser panel, so taking over a terminal run
+            // showed the wrong surface.
+            var surface = entry.surface || "terminal";
+            applyTakeover(runId, "taken_over", surface);
+            reportTakeover(runId, "taken_over", surface);
+            if (surface === "browser") {
+                if (window.GBBrowserUse) window.GBBrowserUse.show();
+            } else if (window.WindowManager && typeof window.WindowManager.openDeepLink === "function") {
+                window.WindowManager.openDeepLink("terminal", {});
+            } else {
+                window.open("/suite/desktop.html?app=terminal", "_blank", "noopener");
+            }
         });
 
         var rows = document.createElement("div");
@@ -496,6 +506,7 @@
 
         // A run that touched the terminal or the browser exposes takeover.
         if ((type === "terminal_output" || type === "browser_ready") && entry && entry.takeover) {
+            entry.surface = type === "browser_ready" ? "browser" : "terminal";
             entry.takeover.hidden = false;
         }
 

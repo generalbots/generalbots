@@ -170,8 +170,13 @@ reply. Verified on the Amazon PDF run and on the earlier `vm_exec` listing.
   boundary and started a second run (41 s) that updated `pantanal.pdf` with
   “Cheia e seca: comparação das estações” (3 × 6 table). Both run cards ended
   `state-succeeded`.
-- **Partial:** terminal/browser “Take over” was not exercised (the PDF run
-  uses `vm_exec`, not the terminal/browser tools).
+- **Takeover (pass, protocol + UI):** a live run card revealed **Take over**
+  after a `terminal_output` frame. Clicking it showed “You control”, the
+  takeover bar/hint, and opened the **terminal** window (the old handler
+  always opened the browser panel — fixed). Hand back restored “Take over”
+  and hid the bar; the server recorded both `run_takeover` frames. The frame
+  was fed through the real `RunTimeline.handleFrame` path; a full AutoTask
+  terminal run was not started.
 
 ### TS-01 PDF + PNG in one turn (pass)
 
@@ -191,3 +196,27 @@ contained the Rio PDF summary table **and**:
 The client sends `files: [...]` (with `file` kept as the first for older
 servers); `ingest_attachment` loops over every entry and combines the prompt
 notes.
+
+### TS-02 Office preview (pass, better than the expected partial)
+
+Asked the bot to create a real DOCX (`output/ts02.docx`, 36,977 bytes) via
+`vm_exec` + python-docx. The file card exposed **Preview**; clicking it opened
+the inline Office preview iframe:
+
+```
+src=/api/agent/vm/file?...&path=output%2Fts02.docx&preview=1
+sandbox=""  height=150
+text: Pantanal | O Pantanal é a maior planície alagável do mundo…
+```
+
+The server converts DOCX → sanitized, script-free HTML; the inline preview is
+shipped (TS-02 only required a preview window).
+
+### Tabs — close and overflow (pass, one defect fixed)
+
+Seven tabs: five visible + `… +2`; the overflow menu listed Chat 4 and Chat 5.
+Closing the active tab worked after fixing a **missing `closeTabGuarded`**:
+every close path (×, middle-click, Ctrl+W, context menu) threw a
+ReferenceError before this. Result: 7 → 6 tabs, active moved to Chat 5,
+overflow `+2` → `+1`. Closing pinned **Default** was refused and the tab
+stayed.
