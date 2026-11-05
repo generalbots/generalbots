@@ -36,6 +36,9 @@
     --accent: var(--gb-accent);
     --primary: var(--gb-accent);
     --suggestion-color: var(--gb-accent);
+    /* Markdown tables read this theme variable, which stays suite-blue
+       globally; inside the conversation it must follow the chat accent. */
+    --chat-color1: var(--gb-accent);
 }
 
 /* ── Conversation canvas ───────────────────────────────────────────── */
