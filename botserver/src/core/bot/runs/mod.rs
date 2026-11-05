@@ -9,6 +9,7 @@ pub mod group_budget;
 pub mod observability;
 pub mod quality;
 pub mod steering;
+pub mod subagents;
 pub mod store;
 pub mod ttft;
 pub mod ttft_stats;

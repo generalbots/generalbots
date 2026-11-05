@@ -48,6 +48,10 @@ pub(super) async fn merge_part_a(
     *api_router = api_router
         .clone()
         .merge(super::group_budgets::router());
+    // #1694 — parallel sub-agent fan-out.
+    *api_router = api_router
+        .clone()
+        .merge(super::subagents::router());
 
     *api_router = api_router
         .clone()
