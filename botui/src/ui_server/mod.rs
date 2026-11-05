@@ -34,7 +34,7 @@ use tower::Layer;
 #[cfg(not(feature = "embed-ui"))]
 use tower_http::services::{ServeDir, ServeFile};
 #[cfg(not(feature = "embed-ui"))]
-use tower_http::set_response_header::SetResponseHeaderLayer;
+use tower_http::set_header::SetResponseHeaderLayer;
 
 use crate::shared::AppState;
 use crate::ui_server::constants::{ROOT_FILES, SITE_ROOT_FILES};
