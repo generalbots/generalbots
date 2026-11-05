@@ -42,7 +42,15 @@ window.GBDrivePicker = window.GBDrivePicker || (function () {
 
   function close() {
     if (overlay) overlay.remove();
+    document.removeEventListener("keydown", onPickerKey);
     overlay = null;
+  }
+
+  function onPickerKey(event) {
+    if (event.key === "Escape" && overlay) {
+      event.preventDefault();
+      close();
+    }
   }
 
   function ensureOverlay() {
@@ -63,6 +71,7 @@ window.GBDrivePicker = window.GBDrivePicker || (function () {
       if (event.target === overlay) close();
     });
     overlay.querySelector(".gb-drive-picker-close").addEventListener("click", close);
+    document.addEventListener("keydown", onPickerKey);
     document.body.appendChild(overlay);
     listEl = overlay.querySelector(".gb-drive-picker-list");
     crumbEl = overlay.querySelector(".gb-drive-picker-crumb");
