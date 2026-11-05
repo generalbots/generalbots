@@ -36,6 +36,10 @@ function loadDrivePresentationIntoApp() {
     .then(function (blob) {
       var form = new FormData();
       form.append('file', blob, file.split('/').pop() || 'import.pptx');
+      // Source identity: repeated opens of the same Drive file resolve to the
+      // same deck instead of piling up duplicates (#1710).
+      form.append('bucket', bucket || '');
+      form.append('path', file);
       return fetch('/api/slides/import', { method: 'POST', body: form });
     })
     .then(function (r) {
