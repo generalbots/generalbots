@@ -300,6 +300,13 @@ pub async fn handle_delete_chat_history_session(
     })))
 }
 
+fn escape_preview_text(input: &str) -> String {
+    input
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
 /// `GET /api/chat/attachments/preview?bot=&name=&access_token=`
 ///
 /// User uploads are staged in the bot's Drive `inbox/`; the chat iframe
@@ -395,6 +402,20 @@ pub async fn handle_attachment_preview(
                     StatusCode::UNSUPPORTED_MEDIA_TYPE,
                     "This Office file could not be converted for preview".to_string(),
                 ))?;
+            ("text/html; charset=utf-8", html.into_bytes(), true)
+        }
+        "txt" | "md" | "csv" | "json" | "log" => {
+            // Plain-text uploads get the same preview surface as documents;
+            // the body is escaped and capped so a large log cannot bloat the
+            // conversation (#1693).
+            let text: String = String::from_utf8_lossy(&bytes).chars().take(200_000).collect();
+            let escaped = escape_preview_text(&text);
+            let html = format!(
+                "<!doctype html><html><head><meta charset=\"utf-8\">\
+                 <style>body{{margin:0;padding:12px;font:13px/1.5 ui-monospace,Menlo,monospace;\
+                 white-space:pre-wrap;word-break:break-word;color:#0f172a;background:#fff}}</style>\
+                 </head><body>{escaped}</body></html>"
+            );
             ("text/html; charset=utf-8", html.into_bytes(), true)
         }
         "pdf" => ("application/pdf", bytes, false),

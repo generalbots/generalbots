@@ -472,3 +472,17 @@ duplicate this path, so the PTY tool is the supported launch path.
 | Model tier cost/latency | Partial by design | Only one external DeepSeek model is configured; there is no second price/speed point to compare |
 | Tab reload restoration | Default-only by design | Reload starts the canonical conversation to avoid stale per-tab sockets; other sessions stay in history and the server mirror |
 | AutoTask `AgentExecutor` | Superseded | It launches a new LXC container per task via `lxc` (not installed; disk-bound). `terminal_run` is the supported PTY path and is verified with real takeover |
+
+### Text/CSV upload preview (pass)
+
+Plain-text uploads (`txt`, `md`, `csv`, `json`, `log`) now use the same preview
+chip. An uploaded `sanity_preview.csv` containing `<b>not bold</b>` produced:
+
+```
+status: 200   type: text/html; charset=utf-8
+escaped: true   raw tag rendered: false
+body: name,note A,&lt;b&gt;not bold&lt;/b&gt; B,"x,y"
+```
+
+The preview is capped at 200k characters and rendered as escaped monospace
+text, so an uploaded file cannot inject markup into the conversation.

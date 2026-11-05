@@ -438,7 +438,7 @@ function addMessage(sender, content, msgId, reasoning) {
         var restoredLabel = document.createElement("span");
         restoredLabel.textContent = "📎 " + singleName;
         restored.appendChild(restoredLabel);
-        if (/(\.docx|\.xlsx|\.pptx|\.pdf|\.png|\.jpe?g|\.gif|\.webp)$/i.test(singleName)) {
+        if (/(\.docx|\.xlsx|\.pptx|\.pdf|\.png|\.jpe?g|\.gif|\.webp|\.txt|\.md|\.csv|\.json|\.log)$/i.test(singleName)) {
           var previewButton = document.createElement("button");
           previewButton.type = "button";
           previewButton.className = "gb-attachment-btn";
