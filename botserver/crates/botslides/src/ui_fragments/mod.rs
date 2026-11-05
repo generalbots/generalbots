@@ -1,3 +1,4 @@
+pub mod get_bridge;
 pub mod panels;
 pub mod sidebars;
 pub mod toolbar;
@@ -14,7 +15,7 @@ use panels::{
 use sidebars::{
     handle_presentation_list_sidebar, handle_search_sidebar, handle_recent_sidebar,
     handle_slide_thumbnails, handle_presentation_view,
-        handle_presentation_view_by_id,
+        handle_presentation_view_by_id, handle_presentation_view_post,
 };
 use toolbar::{
     handle_share_form, handle_ai_form, handle_new_slide_form, handle_insert_element_form,
@@ -66,7 +67,7 @@ pub fn configure<D: crate::storage::DriveOps + Send + Sync + 'static>() -> Route
         .route("/suite/slides/fragments/presentation-list", get(handle_presentation_list_sidebar))
         .route("/suite/slides/fragments/search", get(handle_search_sidebar))
         .route("/suite/slides/fragments/recent", get(handle_recent_sidebar))
-        .route("/suite/slides/fragments/view", post(handle_presentation_view))
+        .route("/suite/slides/fragments/view", post(handle_presentation_view_post::<D>))
         .route("/suite/slides/fragments/view-by-id", get(handle_presentation_view_by_id::<D>))
         .route("/suite/slides/fragments/thumbnails", post(handle_slide_thumbnails))
         .route("/suite/slides/fragments/slide-list", post(handle_slide_list_panel))
@@ -109,6 +110,10 @@ pub fn configure<D: crate::storage::DriveOps + Send + Sync + 'static>() -> Route
         .route("/suite/slides/modals/export", post(handle_export_modal))
         .route("/suite/slides/modals/master", post(handle_master_modal))
         .route("/suite/slides/health", get(health))
+        // GET bridge for the hx-get shell: forms/modals/fragments are
+        // invoked with hx-get + hx-vals (query params) but the handlers
+        // take a JSON body — see get_bridge module docs.
+        .route("/suite/slides/*path", get(get_bridge::get_bridge::<D>))
 }
 
 async fn health() -> &'static str { "ok" }

@@ -11,7 +11,7 @@ pub async fn handle_presentation_list_sidebar(Json(items): Json<Vec<Presentation
         r##"<div class="sl-sidebar" id="presentation-list-sidebar">
 <div class="sl-sidebar-header" style="display:flex;justify-content:space-between;align-items:center;padding:12px;border-bottom:1px solid #334155;">
 <h3 style="margin:0;color:#f8fafc;font-size:14px;">Apresentações</h3>
-<button hx-get="/api/slides/new" hx-target="#slides-content" hx-swap="innerHTML" style="background:#10b981;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">+ Nova</button>
+<button hx-get="/suite/slides/fragments/new" hx-target="#slides-content" hx-swap="innerHTML" style="background:#10b981;color:white;border:none;padding:4px 10px;border-radius:4px;cursor:pointer;font-size:12px;">+ Nova</button>
 </div>
 <div class="sl-sidebar-body" style="padding:8px;display:flex;flex-direction:column;gap:8px;max-height:calc(100vh - 200px);overflow-y:auto;">"##
     );
@@ -83,6 +83,21 @@ pub async fn handle_presentation_view_by_id<D: crate::storage::DriveOps>(
     }
 }
 
+/// POST /suite/slides/fragments/view — the metadata cards send
+/// `{id, action:"load"}` (never a full Presentation), so resolve the id
+/// instead of failing JSON deserialization with 400.
+pub async fn handle_presentation_view_post<D: crate::storage::DriveOps>(
+    State(state): State<std::sync::Arc<SlidesState<D>>>,
+    Json(payload): Json<serde_json::Value>,
+) -> Html<String> {
+    if let Ok(pres) = serde_json::from_value::<Presentation>(payload.clone()) {
+        return handle_presentation_view(Json(pres)).await;
+    }
+    let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or_default();
+    let pres = super::get_bridge::load_or_blank(&state, id).await;
+    handle_presentation_view(Json(pres)).await
+}
+
 pub async fn handle_presentation_view(Json(pres): Json<Presentation>) -> Html<String> {
     let total = pres.slides.len();
     let current = 0;
@@ -144,7 +159,7 @@ pub async fn handle_slide_thumbnails(Json(payload): Json<serde_json::Value>) -> 
     ))
 }
 
-fn render_slide(slide: &Slide) -> String {
+pub(super) fn render_slide(slide: &Slide) -> String {
     let mut html = String::new();
     for e in &slide.elements {
         let style = format!(

@@ -109,7 +109,7 @@
                 <button class="sidebar-tab" data-sidebar-tab="files" style="flex:1;padding:8px;background:#0f172a;color:#94a3b8;border:none;cursor:pointer;font-size:12px;">📁</button>
             </div>
             <div class="sidebar-content" id="sidebar-thumbs" data-sidebar-content="thumbs" hx-get="/suite/slides/fragments/slide-thumbnails" hx-vals='{"id":"new"}' hx-trigger="load" hx-target="this" hx-swap="innerHTML" style="flex:1;overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:8px;"></div>
-            <div class="sidebar-content" id="sidebar-files" data-sidebar-content="files" hx-get="/api/slides/list" hx-trigger="load" hx-target="this" hx-swap="innerHTML" style="display:none;flex:1;overflow-y:auto;padding:8px;"></div>
+            <div class="sidebar-content" id="sidebar-files" data-sidebar-content="files" hx-get="/suite/slides/fragments/presentation-list" hx-trigger="load" hx-target="this" hx-swap="innerHTML" style="display:none;flex:1;overflow-y:auto;padding:8px;"></div>
         </aside>
 
         <div class="slides-content" id="slides-content" hx-get="/suite/slides/fragments/presentation-view" hx-vals='{"id":"new"}' hx-trigger="load" hx-swap="innerHTML" style="flex:1;display:flex;flex-direction:column;background:#0f172a;overflow:hidden;">
