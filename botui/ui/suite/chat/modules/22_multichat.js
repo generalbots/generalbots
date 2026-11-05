@@ -933,7 +933,32 @@
     });
     while (kept.length > 10) kept.splice(kept.length - 1, 1);
     if (kept.length !== GBTabs.state.tabs.length) {
+      var dropped = GBTabs.state.tabs.filter(function (st) {
+        return !kept.some(function (k) { return k.id === st.id; });
+      });
       GBTabs.state.tabs = kept;
+      dropped.forEach(function (st) {
+        // The tile is gone: drop its pane record too, or it stays mounted and
+        // keeps receiving frames for a session the strip no longer shows.
+        if (MC.tabs[st.id]) {
+          if (MC.tabs[st.id].pane && MC.tabs[st.id].pane.parentNode) {
+            MC.tabs[st.id].pane.parentNode.removeChild(MC.tabs[st.id].pane);
+          }
+          delete MC.tabs[st.id];
+        }
+      });
+      // A pruned tab may have been the active one; focus a surviving tab
+      // rather than leaving activeTabId dangling (the strip showed no active
+      // tile and the stock pane kept the wrong conversation).
+      if (!kept.some(function (k) { return k.id === GBTabs.state.activeTabId; })) {
+        var fallback = kept[0] || null;
+        if (fallback) {
+          GBTabs.state.activeTabId = fallback.id;
+          setTimeout(function () {
+            window.dispatchEvent(new CustomEvent("gb-tab-focused", { detail: { tab: fallback } }));
+          }, 0);
+        }
+      }
       if (typeof GBTabs.schedulePersist === "function") GBTabs.schedulePersist();
     }
   }
@@ -1036,13 +1061,36 @@
 
   function pruneRestoredTabs() {
     if (!window.GBTabs || !GBTabs.state || !Array.isArray(GBTabs.state.tabs)) return;
-    var keep = GBTabs.state.tabs.filter(function (tab) {
-      return tab.id === "tab-default" || (tab.fresh && tab.fresh > BOOT_AT + 1500);
+    // Tabs persisted from the previous session are KEPT as tiles: the user
+    // gets their context back after a reload, but nothing connects or replays
+    // until the tile is clicked (no boot socket storm). Tabs without a
+    // session that were not created during this boot cannot represent a
+    // conversation and are dropped.
+    var seen = { "tab-default": true };
+    var keep = [];
+    GBTabs.state.tabs.forEach(function (tab) {
+      if (tab.id === "tab-default") { keep.unshift(tab); return; }
+      if (tab.fresh && tab.fresh > BOOT_AT + 1500) { keep.push(tab); return; }
+      if (tab.sessionId && !seen[tab.sessionId]) {
+        seen[tab.sessionId] = true;
+        tab.restored = true;
+        keep.push(tab);
+      }
     });
-    if (keep.length === GBTabs.state.tabs.length) return;
+    if (keep.length === GBTabs.state.tabs.length &&
+        keep.some(function (tab) { return tab.id === GBTabs.state.activeTabId; })) {
+      GBTabs.renderStrip();
+      return;
+    }
     GBTabs.state.tabs = keep;
     if (!keep.some(function (tab) { return tab.id === GBTabs.state.activeTabId; })) {
       GBTabs.state.activeTabId = "tab-default";
+      var def = keep.find(function (tab) { return tab.id === "tab-default"; });
+      if (def) {
+        setTimeout(function () {
+          window.dispatchEvent(new CustomEvent("gb-tab-focused", { detail: { tab: def } }));
+        }, 0);
+      }
     }
     Object.keys(MC.tabs || {}).forEach(function (id) {
       if (id === "tab-default") return;

@@ -305,6 +305,17 @@
     window.addEventListener("gb-open-history-tab", function (e) {
       var d = e.detail || {};
       if (!d.sessionId) return;
+      // Opening a conversation that already has a tab must activate that tab.
+      // Creating a second tab for the same session made pruneTabs drop it as a
+      // duplicate, leaving activeTabId pointing at a tile that no longer
+      // existed and replaying the history into the wrong pane (#1693).
+      var existing = (GBTabs.state.tabs || []).find(function (tab) {
+        return String(tab.sessionId || "") === String(d.sessionId);
+      });
+      if (existing) {
+        GBTabs.focusTab(existing.id);
+        return;
+      }
       GBTabs.createTab({
         kind: "history",
         sessionId: d.sessionId,

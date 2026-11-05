@@ -12,7 +12,7 @@ use botcore::shared::state::AppState;
 /// botui proxies `/ws/task-progress[/:task_id]` here (see
 /// `botui/src/ui_server/ws.rs::ws_task_progress_proxy`). Events come from the
 /// shared `task_progress_broadcast` channel fed by AutoTask producers
-/// (`AgentExecutor::broadcast_step`, terminal output, LLM streaming, ...).
+/// (terminal output, LLM streaming, ...).
 /// When a task id is present in the path only events for that task are sent.
 pub async fn task_progress_ws(
     ws: WebSocketUpgrade,

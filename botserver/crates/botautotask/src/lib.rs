@@ -16,7 +16,5 @@ pub mod safety_layer;
 pub mod intent_classifier;
 pub mod intent_compiler;
 pub mod designer_ai;
-pub mod agent_executor;
-pub mod container_session;
 pub mod ask_later;
 pub mod api;

@@ -470,8 +470,8 @@ duplicate this path, so the PTY tool is the supported launch path.
 |------|--------|--------|
 | Video generation | Blocked by hardware | Zeroscope freezes this CPU-only 4-core/7.8 GB host; do not retry |
 | Model tier cost/latency | Partial by design | Only one external DeepSeek model is configured; there is no second price/speed point to compare |
-| Tab reload restoration | Default-only by design | Reload starts the canonical conversation to avoid stale per-tab sockets; other sessions stay in history and the server mirror |
-| AutoTask `AgentExecutor` | Superseded | It launches a new LXC container per task via `lxc` (not installed; disk-bound). `terminal_run` is the supported PTY path and is verified with real takeover |
+| Tab reload restoration | Pass | Restored conversations stay as tiles; Default mounts at boot and other tabs connect/replay on first click |
+| AutoTask `AgentExecutor` | Removed | Zero call sites and an unavailable `lxc` dependency; deleted. `terminal_run` is the supported PTY path with verified takeover |
 
 ### Text/CSV upload preview (pass)
 
@@ -557,3 +557,67 @@ crontab -l | grep -c 'a35ee200' → 0
 
 `orphaned` was terminal: a job whose workspace was briefly down never came
 back. The list now re-checks orphaned rows as well.
+
+## Parity pass 4 — lock/PIN, tab restore, tiers, dead executor (2026-11-05)
+
+### Conversation lock/PIN (pass, two defects fixed)
+
+Locked the disposable conversation `3184398f…` ("Lock me 1693") with PIN
+`2468` from the sidebar:
+
+```
+prompt: "Set a 4-8 digit PIN for this conversation:"
+rail:            gone
+regular history: absent
+locked list:     present, title "" (no content leak)
+toggle:          "🔒 Locked conversations"
+```
+
+Opening it without the PIN was rejected and did not change the active session:
+
+```
+PIN 0000 → alert "Could not unlock conversation: Incorrect PIN"
+active tab/session unchanged, still listed as locked
+```
+
+Correct PIN stored the short-lived grant and opened the conversation
+(`grant: true`, pane users `["Lock me 1693"]`). A follow-up message
+("Ping after unlock") landed in `3184398f…` (2 → 4 rows) while Default stayed
+at 165, so the send router uses the tab's session.
+
+Fixed while testing: opening a history conversation always created a new tab
+even when one existed, and `pruneTabs` then dropped the duplicate while
+`activeTabId` still pointed at it (no active tile, history replayed into the
+wrong surface). `gb-open-history-tab` now focuses the existing tab, and
+`pruneTabs` removes the pane record and re-focuses a surviving tab. Reopening
+the conversation keeps the strip at two tabs.
+
+### Tab restore after reload (pass — changed from Default-only)
+
+Restored conversations now stay in the strip after a reload as `restored`
+tiles; nothing connects or replays until the tile is clicked (no boot socket
+storm). Verified:
+
+```
+after reload: tiles ["Default", "Chat 1"], active "Default", pane 153 msgs
+click Chat 1 → active "Chat 1", pane users ["Reload tab test"], 3 msgs
+```
+
+### Model tiers with a single model (pass — honest UI)
+
+Only one model is configured, so the alternative tiers were a fake choice.
+The picker now detects one distinct model and disables the alternatives:
+
+```
+value "auto"   data-single-model "1"
+fast/balanced/quality: disabled
+title: "Same model as Auto — no separate tier model is configured."
+select title: "This bot uses one model; no separate cost/speed tier is configured."
+```
+
+### AutoTask `AgentExecutor` (resolved — removed)
+
+The executor and its `container_session` module had **zero call sites** and
+launched a new LXC container per task via `lxc` (not installed; disk-bound).
+Both modules were deleted rather than left as dead code; `terminal_run` is the
+supported, browser-verified PTY path (live output + takeover).
