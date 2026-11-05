@@ -274,7 +274,21 @@ function renameSheet() {
         notif.textContent = 'Renamed';
         document.body.appendChild(notif);
         setTimeout(function() { notif.remove(); }, 2000);
-    }).catch(function() {});
+    }).catch(function(err) {
+        sheetNotify('Rename failed: ' + (err && err.message ? err.message : 'unknown error'), true);
+    });
+}
+
+// Save/rename failures used to be swallowed by an empty .catch; show them in
+// the same place successes appear so a failed save is never silent (#1712).
+function sheetNotify(message, isError) {
+    var notif = document.createElement('div');
+    notif.style.cssText = 'position:fixed;bottom:20px;right:20px;background:' +
+        (isError ? '#ef4444' : '#10b981') +
+        ';color:white;padding:10px 20px;border-radius:6px;font-size:13px;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.3);';
+    notif.textContent = message;
+    document.body.appendChild(notif);
+    setTimeout(function() { notif.remove(); }, isError ? 5000 : 2000);
 }
 function saveSheet() {
     var nameInput = document.getElementById('sheetName');
@@ -301,7 +315,9 @@ function saveSheet() {
         notif.textContent = '✓ Sheet saved';
         document.body.appendChild(notif);
         setTimeout(function() { notif.remove(); }, 2000);
-    }).catch(function() {});
+    }).catch(function(err) {
+        sheetNotify('Save failed: ' + (err && err.message ? err.message : 'unknown error'), true);
+    });
 }
 document.addEventListener('keydown', function(e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {

@@ -123,6 +123,7 @@ pub fn render_metadata_card(m: &crate::types::PresentationMetadata) -> String {
         r##"<div class="sl-metadata-card" hx-post="/suite/slides/fragments/view" hx-vals='{{"id":"{id}","action":"load"}}' hx-target="#slides-content" hx-swap="innerHTML" style="padding:12px;border:1px solid #334155;border-radius:6px;background:#1e293b;cursor:pointer;">
 <div style="font-weight:600;color:#f8fafc;">{name}</div>
 <div style="font-size:12px;color:#94a3b8;margin-top:4px;">{slides} slide(s) • Atualizado {updated}</div>
+<button type="button" onclick="event.stopPropagation(); deletePresentation('{id}')" title="Delete presentation" style="margin-top:6px;background:#7f1d1d;color:#fecaca;border:1px solid #991b1b;border-radius:4px;padding:3px 8px;font-size:11px;cursor:pointer;">🗑 Delete</button>
 </div>"##,
         id = html_escape(&m.id),
         name = html_escape(&m.name),

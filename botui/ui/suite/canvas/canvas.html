@@ -1067,25 +1067,6 @@
     }
 
     // Map a project.draw design element to the canvas-app element shape.
-    function canvasElement(designEl) {
-        var el = designEl || {};
-        var w = el.w || el.width || 160;
-        var h = el.h || el.height || 90;
-        var elem = {
-            id: el.id || Date.now() + Math.floor(Math.random() * 10000),
-            type: el.type || "rectangle",
-            x: el.x || 0,
-            y: el.y || 0,
-            width: w,
-            height: h,
-            stroke: "#0f172a",
-            fill: el.text ? "#e0f2fe" : "transparent",
-            strokeWidth: 2,
-        };
-        if (el.text) { elem.text = el.text; elem.type = "text"; }
-        return elem;
-    }
-
     function loadProjectDraw() {
         var pid = currentProjectId();
         if (!pid || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pid)) return;
@@ -1114,7 +1095,7 @@
                 // Push saved design elements into the live canvas via the app API.
                 var app = window._canvasApp;
                 if (app && typeof app.appendCanvasElements === "function") {
-                    app.appendCanvasElements(items.map(canvasElement));
+                    app.appendCanvasElements(items.map(toCanvasElement).filter(Boolean));
                 }
             })
             .catch(function () { /* no project.draw yet — blank canvas */ });
@@ -1134,16 +1115,25 @@
         if (!pid || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pid)) return;
         var app = window._canvasApp;
         var els = app && typeof app.getCanvasElements === "function" ? app.getCanvasElements() : [];
+        // Keep the full canvas geometry (#1713): the old mapping collapsed
+        // every element to text|rectangle, so ellipses/lines/polylines/images
+        // came back as boxes on the next open. `w`/`h` stay for the Vibe
+        // design tools that read the legacy shape.
         var designElements = els.map(function (el) {
-            return {
+            var design = {
                 id: el.id,
-                type: el.type === "text" ? "text" : "rectangle",
+                type: el.type,
                 x: Math.round(el.x),
                 y: Math.round(el.y),
                 w: Math.round(el.width),
                 h: Math.round(el.height),
-                text: el.text || undefined,
             };
+            ["x1", "y1", "x2", "y2", "stroke", "fill", "strokeWidth", "fontSize", "points"].forEach(function (k) {
+                if (el[k] !== undefined) design[k] = el[k];
+            });
+            if (el.text) design.text = el.text;
+            if (el.img && el.img.src) design.imgSrc = el.img.src;
+            return design;
         });
         var content = {
             kind: "vibe-design",

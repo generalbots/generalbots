@@ -17,6 +17,48 @@ document.addEventListener("click", function (e) {
   }
 });
 
+// #1715 — the delete API existed with no caller; the presentation card's
+// Delete button resolves through here. The list fragment refreshes in place
+// (scoped to this app window — #sidebar-files also exists in the docs app).
+function deletePresentation(id) {
+  if (!id || !window.confirm("Delete this presentation?")) return;
+  fetch("/api/slides/delete", {
+    method: "POST",
+    headers: Object.assign(
+      { "Content-Type": "application/json" },
+      (window.GBSidebarConvos && window.GBSidebarConvos.authHeaders)
+        ? window.GBSidebarConvos.authHeaders()
+        : {}
+    ),
+    body: JSON.stringify({ id: id }),
+  })
+    .then(function (r) {
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      return r.json();
+    })
+    .then(function () {
+      var scope = document.querySelector('[id^="window-body-slides"]') || document;
+      var list = scope.querySelector("#sidebar-files");
+      if (window.htmx && list) {
+        htmx.ajax("GET", "/suite/slides/fragments/presentation-list", {
+          target: list,
+          swap: "innerHTML",
+        });
+      }
+      if (window.__SLIDES_PRESENTATION_ID === id) {
+        window.__SLIDES_PRESENTATION_ID = null;
+      }
+      var status = scope.querySelector("#saveStatus");
+      if (status) status.textContent = "Presentation deleted";
+    })
+    .catch(function (err) {
+      var scope = document.querySelector('[id^="window-body-slides"]') || document;
+      var status = scope.querySelector("#saveStatus");
+      if (status) status.textContent = "Delete failed: " + err.message;
+    });
+}
+window.deletePresentation = deletePresentation;
+
 function initSidebar() {
   var saved = null;
   try { saved = sessionStorage.getItem(SIDEBAR_TAB_KEY); } catch (_) {}
