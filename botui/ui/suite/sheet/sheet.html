@@ -401,7 +401,13 @@ if (typeof htmx === 'undefined') {
 
   window.__SHEET_BOOT = fetch('/api/sheet/load-from-drive', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: Object.assign(
+      { 'Content-Type': 'application/json' },
+      (function () {
+        var token = (typeof window.getGBAccessToken === 'function' && window.getGBAccessToken()) || '';
+        return token ? { Authorization: 'Bearer ' + token } : {};
+      })()
+    ),
     body: JSON.stringify({ bucket: bucket, path: path })
   }).then(function(r){ return r.json(); }).then(function(sheet){
     window.__LOADED_SHEET = sheet;

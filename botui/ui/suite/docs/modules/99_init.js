@@ -15,7 +15,15 @@ function loadDriveFileIntoEditor() {
 
   fetch('/api/docs/open-from-drive', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: Object.assign(
+      { 'Content-Type': 'application/json' },
+      (function () {
+        // Authenticated deployments reject a token-less read; the desktop
+        // build runs without a token, so it simply sends none (#1711).
+        var token = (typeof window.getGBAccessToken === 'function' && window.getGBAccessToken()) || '';
+        return token ? { Authorization: 'Bearer ' + token } : {};
+      })()
+    ),
     body: JSON.stringify({ bucket: bucket || '', path: file })
   })
     .then(function (r) {
