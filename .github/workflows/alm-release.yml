@@ -22,12 +22,14 @@ name: ALM release binaries
 #
 # Build profile matches what ALM used to compile on the runner:
 #   botserver: debug, default features + docs   (the production feature set)
-#   botui:     debug, default features
+#   botui:     debug, default features + docs
 #
-# `docs` is opt-in in Cargo.toml (it pulls the OOXML SDK), but the deployed
-# product must ship it: the collaborative document/presentation app is a
-# declared GB7 parity requirement, and without the feature every /api/docs/*
-# route is absent from the binary (the static UI then fails with 404s).
+# `docs` is opt-in in both Cargo.toml files (it pulls the OOXML SDK on the
+# server side), but the deployed product must ship it: the collaborative
+# document/presentation app is a declared GB7 parity requirement. Without the
+# botserver feature every /api/docs/* route is absent; without the botui
+# feature /suite/docs is not mounted at all and the desktop request is parsed
+# as a bot named "docs.html" (Access denied).
 # Release tarballs for end users stay in `.github/workflows/desktop-binaries.yml`.
 
 on:
@@ -94,8 +96,8 @@ jobs:
       - name: Build botserver (debug, default features + docs)
         run: cargo build -p botserver --features docs
 
-      - name: Build botui (debug, default features)
-        run: cargo build -p botui
+      - name: Build botui (debug, default features + docs)
+        run: cargo build -p botui --features docs
 
       - name: Package assets and manifest
         run: |
