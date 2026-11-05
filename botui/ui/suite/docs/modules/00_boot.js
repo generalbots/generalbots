@@ -72,11 +72,6 @@
           var words = text.trim().split(/\s+/).filter(Boolean).length;
           stats.textContent = words + (words === 1 ? " word" : " words");
         }
-        try {
-          history.replaceState(null, "", "?id=" + encodeURIComponent(doc.id));
-        } catch (ignored) {
-          /* file:// or a host that forbids history updates */
-        }
       });
   }
 

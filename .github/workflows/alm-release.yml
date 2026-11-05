@@ -21,15 +21,16 @@ name: ALM release binaries
 # Only the newest releases are kept; older ones are pruned after publishing.
 #
 # Build profile matches what ALM used to compile on the runner:
-#   botserver: debug, default features + docs   (the production feature set)
-#   botui:     debug, default features + docs
+#   botserver: debug, default + docs,sheet,slides   (the production feature set)
+#   botui:     debug, default + docs,sheet,slides
 #
 # `docs` is opt-in in both Cargo.toml files (it pulls the OOXML SDK on the
 # server side), but the deployed product must ship it: the collaborative
-# document/presentation app is a declared GB7 parity requirement. Without the
-# botserver feature every /api/docs/* route is absent; without the botui
-# feature /suite/docs is not mounted at all and the desktop request is parsed
-# as a bot named "docs.html" (Access denied).
+# document/presentation and spreadsheet apps are declared GB7 parity
+# requirements. Without the botserver features every /api/docs/*, /api/sheet/*
+# and /api/slides/* route is absent; without the botui features /suite/docs,
+# /suite/sheet and /suite/slides are not mounted at all and the desktop request
+# is parsed as a bot named "docs.html" (Access denied).
 # Release tarballs for end users stay in `.github/workflows/desktop-binaries.yml`.
 
 on:
@@ -94,10 +95,10 @@ jobs:
             ${{ runner.os }}-cargo-alm-
 
       - name: Build botserver (debug, default features + docs)
-        run: cargo build -p botserver --features docs
+        run: cargo build -p botserver --features docs,sheet,slides
 
       - name: Build botui (debug, default features + docs)
-        run: cargo build -p botui --features docs
+        run: cargo build -p botui --features docs,sheet,slides
 
       - name: Package assets and manifest
         run: |
@@ -140,7 +141,7 @@ jobs:
               ).strip(),
               "target": "x86_64-unknown-linux-gnu",
               "profile": "debug",
-              "features": "default,docs",
+              "features": "default,docs,sheet,slides",
               "build_arch": platform.machine(),
               "assets": assets,
           }
