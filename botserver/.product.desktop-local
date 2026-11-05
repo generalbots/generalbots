@@ -4,9 +4,9 @@
 
 name=General Bots
 
-# Only Chat and Drive are active in the desktop-local edition.
-# #1632 item 8 — the everyday tools ship enabled in the launcher too; every
-# other application stays behind `preview_apps` (empty here, so the minimal
+# Desktop-local edition: Chat + Drive plus the everyday tools. Office editors
+# (Docs, Sheets, Slides) and Canvas ship so chat attachments can open in their
+# editor; everything else stays behind `preview_apps` (empty here, so the
 # profile shows exactly this list).
 apps=chat,drive,clock-widget,jukebox,sheet,database,player,calculator,notes,photos,timer,weather,docs,slides,canvas
 
