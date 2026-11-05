@@ -122,7 +122,13 @@
 
   function start() {
     if (!document.getElementById("docs-content")) return;
-    if (new URLSearchParams(window.location.search).get("file")) return;
+    // A deep link has no query string of its own (the shell URL stays
+    // /suite/desktop.html) and passes the file through __gbAppParams__. Without
+    // this guard start() loaded/created a blank document in parallel with the
+    // Drive open and the last fetch won, so a chat attachment opened a blank
+    // Docs (#1711).
+    var deepLink = window.__gbAppParams__ || {};
+    if (new URLSearchParams(window.location.search).get("file") || deepLink.file) return;
     var wanted = new URLSearchParams(window.location.search).get("id");
     json("/api/docs/list")
       .then(function (items) {
