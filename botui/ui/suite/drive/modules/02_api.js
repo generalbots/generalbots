@@ -212,6 +212,17 @@ async function previewFile(path) {
             });
             return;
         }
+        // docx/pptx open in the Docs/Slides app window. The shell URL has no
+        // query string of its own, so the app reads file/bucket from
+        // window.__gbAppParams__ (see docs 99_init / slides boot).
+        if (app === "docs" && window.WindowManager) {
+            window.WindowManager.openDeepLink("docs", { file: path, bucket: getEffectiveBucket() || "" });
+            return;
+        }
+        if (app === "slides" && window.WindowManager) {
+            window.WindowManager.openDeepLink("slides", { file: path, bucket: getEffectiveBucket() || "" });
+            return;
+        }
         if (app === "designer" && window.WindowManager) {
             var bucket = getEffectiveBucket();
             var fileName = path.split("/").pop() || "Script";

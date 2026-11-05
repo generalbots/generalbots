@@ -87,6 +87,12 @@ pub async fn open_file(
             "docs".to_string(),
             format!("/suite/docs/?file={path}&bucket={bucket}"),
         ),
+        // Presentations open in the Slides app (the app imports the file
+        // from Drive through the existing /api/slides/import handler).
+        "pptx" | "ppt" => (
+            "slides".to_string(),
+            format!("/suite/slides/slides.html?bucket={bucket}&path={path}"),
+        ),
         "draw" => (
             "canvas".to_string(),
             format!("/suite/canvas/canvas.html?bucket={bucket}&path={path}"),
