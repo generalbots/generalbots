@@ -42,6 +42,20 @@ impl RunCaps {
         }
     }
 
+    /// Applies group policies, keeping the most restrictive non-zero limit.
+    /// Group limits can only tighten the current caps, never raise them.
+    #[must_use]
+    pub fn restrict_to(self, max_tokens: Option<u64>, max_seconds: Option<u64>) -> Self {
+        let tighten = |current: u64, candidate: Option<u64>| match candidate.filter(|value| *value > 0) {
+            Some(value) if current == 0 || value < current => value,
+            _ => current,
+        };
+        Self {
+            max_tokens: tighten(self.max_tokens, max_tokens),
+            max_seconds: tighten(self.max_seconds, max_seconds),
+        }
+    }
+
     #[must_use]
     pub fn is_unlimited(&self) -> bool {
         self.max_tokens == 0 && self.max_seconds == 0
@@ -234,5 +248,25 @@ mod tests {
         assert_eq!(RunCaps::merge(None, None, defaults), defaults);
         assert_eq!(RunCaps::merge(Some(""), Some("not-a-number"), defaults), defaults);
         assert_eq!(RunCaps::merge(Some("0"), Some("-5"), defaults), defaults);
+    }
+
+    #[test]
+    fn group_policies_only_tighten_caps() {
+        let defaults = RunCaps {
+            max_tokens: 1000,
+            max_seconds: 60,
+        };
+        let tightened = defaults.restrict_to(Some(200), Some(600));
+        assert_eq!(tightened.max_tokens, 200);
+        // A looser seconds limit cannot raise the existing 60s cap.
+        assert_eq!(tightened.max_seconds, 60);
+    }
+
+    #[test]
+    fn group_policy_sets_an_unlimited_default() {
+        let caps = RunCaps::default().restrict_to(Some(500), Some(30));
+        assert_eq!(caps.max_tokens, 500);
+        assert_eq!(caps.max_seconds, 30);
+        assert!(!caps.is_unlimited());
     }
 }

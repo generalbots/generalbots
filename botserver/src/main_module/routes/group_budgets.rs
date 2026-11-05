@@ -94,6 +94,10 @@ pub fn router() -> Router<Arc<AppState>> {
         )
         .route("/api/groups/:group/spend", post(add_spend))
         .route("/api/groups/:group/usage", get(usage))
+        .route(
+            "/api/groups/:group/caps",
+            get(get_caps).put(put_caps),
+        )
 }
 
 async fn get_budget(
@@ -172,6 +176,102 @@ async fn put_budget(
         "group": group,
         "exists": true,
         "budget": summary_json(row.budget_milli.max(0) as u64, row.spent_milli.max(0) as u64),
+    })))
+}
+
+#[derive(Debug, diesel::QueryableByName)]
+struct CapsRow {
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::BigInt>)]
+    max_tokens: Option<i64>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::BigInt>)]
+    max_seconds: Option<i64>,
+}
+
+fn caps_json(max_tokens: Option<i64>, max_seconds: Option<i64>) -> Value {
+    json!({
+        "max_tokens": max_tokens.unwrap_or(0).max(0),
+        "max_seconds": max_seconds.unwrap_or(0).max(0),
+    })
+}
+
+async fn get_caps(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(group): Path<String>,
+) -> Result<Json<Value>, ApiError> {
+    let _user = user_from_headers(&headers)?;
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+    let row = diesel::sql_query(
+        "SELECT max_tokens, max_seconds FROM group_cap_policies WHERE group_name = $1",
+    )
+    .bind::<diesel::sql_types::Text, _>(&group)
+    .get_result::<CapsRow>(&mut conn);
+    match row {
+        Ok(row) => Ok(Json(json!({
+            "group": group,
+            "exists": true,
+            "caps": caps_json(row.max_tokens, row.max_seconds),
+        }))),
+        Err(diesel::result::Error::NotFound) => Ok(Json(json!({
+            "group": group,
+            "exists": false,
+            "caps": caps_json(None, None),
+        }))),
+        Err(error) => Err(api_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("caps lookup failed: {error}"),
+        )),
+    }
+}
+
+#[derive(Debug, Deserialize)]
+struct CapsBody {
+    max_tokens: i64,
+    max_seconds: i64,
+}
+
+async fn put_caps(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(group): Path<String>,
+    Json(body): Json<CapsBody>,
+) -> Result<Json<Value>, ApiError> {
+    let _user = user_from_headers(&headers)?;
+    if body.max_tokens < 0 || body.max_seconds < 0 {
+        return Err(api_error(
+            StatusCode::BAD_REQUEST,
+            "caps must be zero or positive (zero means no limit)",
+        ));
+    }
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+    let row = diesel::sql_query(
+        "INSERT INTO group_cap_policies (group_name, max_tokens, max_seconds) \
+         VALUES ($1, $2, $3) \
+         ON CONFLICT (group_name) DO UPDATE \
+         SET max_tokens = EXCLUDED.max_tokens, max_seconds = EXCLUDED.max_seconds, \
+             updated_at = NOW() \
+         RETURNING max_tokens, max_seconds",
+    )
+    .bind::<diesel::sql_types::Text, _>(&group)
+    .bind::<diesel::sql_types::BigInt, _>(body.max_tokens)
+    .bind::<diesel::sql_types::BigInt, _>(body.max_seconds)
+    .get_result::<CapsRow>(&mut conn)
+    .map_err(|error| {
+        api_error(
+            StatusCode::INTERNAL_SERVER_ERROR,
+            &format!("caps upsert failed: {error}"),
+        )
+    })?;
+    Ok(Json(json!({
+        "group": group,
+        "exists": true,
+        "caps": caps_json(row.max_tokens, row.max_seconds),
     })))
 }
 
