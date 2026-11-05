@@ -8,6 +8,7 @@ pub mod caps;
 pub mod group_budget;
 pub mod observability;
 pub mod quality;
+pub mod steering;
 pub mod store;
 pub mod ttft;
 pub mod ttft_stats;

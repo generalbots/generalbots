@@ -183,7 +183,15 @@ pub async fn process_llm_response(
                 }
             };
 
-            let stream_handle = tokio::spawn(async move {
+            let steer_llm = llm.clone();
+            let steer_key = llm_key_clone.clone();
+            let steer_model = llm_model_clone.clone();
+            let steer_tools = if session_tools.is_empty() {
+                None
+            } else {
+                Some(session_tools.clone())
+            };
+            let mut stream_handle = tokio::spawn(async move {
                 info!("LLM spawn task starting: model={}, key_len={}, key_first_20={}", llm_model_clone, llm_key_clone.len(), llm_key_clone.chars().take(20).collect::<String>());
                 let tools_arg = if session_tools.is_empty() { None } else { Some(session_tools) };
                 if let Err(e) = llm.generate_stream(&prompt_clone, &messages_clone, stream_tx, &llm_model_clone, &llm_key_clone, tools_arg.as_ref()).await {
@@ -223,6 +231,9 @@ pub async fn process_llm_response(
             }
 
             let mut reasoning_accumulated = String::new();
+            // #1701 — messages sent while this turn streams are honored inside
+            // the run (bounded), not only at the turn boundary.
+            let mut steering_rounds: u8 = 0;
 
             let mut keepalive_interval = tokio::time::interval(std::time::Duration::from_millis(800));
             keepalive_interval.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
@@ -292,6 +303,81 @@ pub async fn process_llm_response(
                                 });
                                 if ws_sender.send(Message::Text(chunk_resp.to_string())).await.is_err() {
                                     break;
+                                }
+                                // #1701 — honor a message sent mid-run before
+                                // the next step: abort this provider stream and
+                                // continue with the partial answer plus the
+                                // steering instruction.
+                                if steering_rounds < crate::core::bot::runs::steering::MAX_STEERS_PER_RUN {
+                                    let thread_id = session_id_s.clone();
+                                    if let Some(steer) =
+                                        crate::core::bot::runs::bus::bus().take_steering(&thread_id)
+                                    {
+                                        steering_rounds += 1;
+                                        warn!(
+                                            "steering mid-run (session {}): {}",
+                                            session_id_s, steer
+                                        );
+                                        stream_handle.abort();
+                                        let mut steered = messages.clone();
+                                        if let Some(items) = steered.as_array_mut() {
+                                            let partial = full_response.trim();
+                                            if !partial.is_empty() {
+                                                items.push(serde_json::json!({
+                                                    "role": "assistant",
+                                                    "content": partial,
+                                                }));
+                                            }
+                                            items.push(serde_json::json!({
+                                                "role": "user",
+                                                "content": crate::core::bot::runs::steering::instruction(&steer),
+                                            }));
+                                        }
+                                        let notice = serde_json::json!({
+                                            "type": "gb.steer",
+                                            "session_id": session_id_s,
+                                            "message": steer,
+                                        });
+                                        let _ = ws_sender
+                                            .send(Message::Text(notice.to_string()))
+                                            .await;
+                                        crate::core::bot::runs::bus::bus().publish(
+                                            &thread_id,
+                                            serde_json::json!({
+                                                "type": "CUSTOM",
+                                                "session_id": session_id_s,
+                                                "data": {
+                                                    "name": "gb.steer",
+                                                    "payload": { "message": steer },
+                                                },
+                                            }),
+                                        );
+                                        full_response.clear();
+                                        reasoning_accumulated.clear();
+                                        let (steer_tx, steer_rx) = mpsc::channel::<String>(100);
+                                        stream_rx = steer_rx;
+                                        let llm2 = steer_llm.clone();
+                                        let key2 = steer_key.clone();
+                                        let model2 = steer_model.clone();
+                                        let prompt2 = user_text.to_string();
+                                        let tools2 = steer_tools.clone();
+                                        stream_handle = tokio::spawn(async move {
+                                            if let Err(e) = llm2
+                                                .generate_stream(
+                                                    &prompt2,
+                                                    &steered,
+                                                    steer_tx,
+                                                    &model2,
+                                                    &key2,
+                                                    tools2.as_ref(),
+                                                )
+                                                .await
+                                            {
+                                                error!("LLM stream error after steering: {}", e);
+                                            }
+                                        });
+                                        continue;
+                                    }
                                 }
                             }
                             None => break,

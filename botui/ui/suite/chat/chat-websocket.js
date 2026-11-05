@@ -16,6 +16,20 @@ function notify(message, type) {
   }
 }
 
+// #1701 — steering feedback. The chat route has no global showToast and not
+// every shell build exposes GBAlerts; GBToasts is the shared component.
+function notifySteering(message) {
+  if (typeof window.showToast === "function") {
+    window.showToast(message, "info");
+    return;
+  }
+  if (window.GBToasts && typeof window.GBToasts.show === "function") {
+    window.GBToasts.show("Steering", message, "info");
+    return;
+  }
+  console.info(message);
+}
+
 function updateConnectionStatus(status) {
   var statusEl = document.getElementById("connectionStatus");
   if (!statusEl) return;
@@ -173,9 +187,12 @@ function dialChatSocket(seq) {
         return;
       }
       if (data.type === "gb.steering_queued") {
-        if (typeof window.showToast === "function") {
-          window.showToast(data.message || "Queued for the next step.", "info");
-        }
+        notifySteering(data.message || "Queued for the next step.");
+        return;
+      }
+      // #1701 — the queued correction is being applied inside the running turn.
+      if (data.type === "gb.steer") {
+        notifySteering("Steering: " + (data.message || ""));
         return;
       }
       // #1668 — every run frame feeds the timeline, regardless of agent mode.
