@@ -42,8 +42,17 @@ pub async fn process_llm_response(
     let _desktop_activity = crate::core::desktop_activity::ActivityGuard::begin();
     let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
     let mut full_response = String::new();
-    // #1696 — opt-in per-run budget (tokens + wall clock); 0 means unlimited.
-    let mut budget = RunBudget::start(RunCaps::from_env());
+    // #1696 — opt-in per-run budget (tokens + wall clock). Per-bot settings
+    // (plan/workspace `run-max-tokens` / `run-max-seconds`) override the
+    // deployment defaults; 0 means unlimited everywhere.
+    let caps = {
+        use botcore::config::ConfigManager;
+        let cfg = ConfigManager::new(state.conn.clone());
+        let bot_tokens = cfg.get_config(&bot_uuid, "run-max-tokens", None).ok();
+        let bot_seconds = cfg.get_config(&bot_uuid, "run-max-seconds", None).ok();
+        RunCaps::merge(bot_tokens.as_deref(), bot_seconds.as_deref(), RunCaps::from_env())
+    };
+    let mut budget = RunBudget::start(caps);
     let mut cap_breach: Option<CapBreach> = None;
 
     let bot_llm_provider: Option<(Arc<dyn botlib::traits::LLMProvider>, String, String)> =

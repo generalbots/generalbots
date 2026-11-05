@@ -31,10 +31,27 @@ impl RunCaps {
         }
     }
 
+    /// Per-bot (plan/workspace) settings override the deployment defaults.
+    /// Empty, missing or unparsable bot values keep the environment value, so
+    /// an existing deployment is unchanged until a limit is configured.
+    #[must_use]
+    pub fn merge(bot_max_tokens: Option<&str>, bot_max_seconds: Option<&str>, defaults: Self) -> Self {
+        Self {
+            max_tokens: parse_positive(bot_max_tokens).unwrap_or(defaults.max_tokens),
+            max_seconds: parse_positive(bot_max_seconds).unwrap_or(defaults.max_seconds),
+        }
+    }
+
     #[must_use]
     pub fn is_unlimited(&self) -> bool {
         self.max_tokens == 0 && self.max_seconds == 0
     }
+}
+
+fn parse_positive(value: Option<&str>) -> Option<u64> {
+    value
+        .and_then(|raw| raw.trim().parse::<u64>().ok())
+        .filter(|parsed| *parsed > 0)
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -195,5 +212,27 @@ mod tests {
             chars: 4,
         };
         assert_eq!(budget.check().map(|b| b.kind), Some(CapKind::Tokens));
+    }
+
+    #[test]
+    fn bot_settings_override_environment_defaults() {
+        let defaults = RunCaps {
+            max_tokens: 1000,
+            max_seconds: 60,
+        };
+        let caps = RunCaps::merge(Some("250"), Some("30"), defaults);
+        assert_eq!(caps.max_tokens, 250);
+        assert_eq!(caps.max_seconds, 30);
+    }
+
+    #[test]
+    fn missing_or_invalid_bot_settings_keep_defaults() {
+        let defaults = RunCaps {
+            max_tokens: 1000,
+            max_seconds: 60,
+        };
+        assert_eq!(RunCaps::merge(None, None, defaults), defaults);
+        assert_eq!(RunCaps::merge(Some(""), Some("not-a-number"), defaults), defaults);
+        assert_eq!(RunCaps::merge(Some("0"), Some("-5"), defaults), defaults);
     }
 }
