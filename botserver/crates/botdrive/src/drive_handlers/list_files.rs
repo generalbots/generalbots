@@ -83,10 +83,25 @@ pub async fn upload_file_to_drive(
     // GB6-14 — the previous revision becomes restorable history before the
     // overwrite. The snapshot never blocks the write.
     snapshot_before_write(drive, &bucket, &key, &scope, &uid).await;
-    drive
-        .put_object(&bucket, &key, data, None)
-        .await
-        .map_err(|e| err(StatusCode::INTERNAL_SERVER_ERROR, &format!("Upload failed: {e}")))?;
+    // A personal bucket may not exist yet (the local/email user id produces
+    // user-<slug>, created on first use). Mirrors list_files: create on
+    // NoSuchBucket and retry once instead of failing the upload (#1709).
+    let mut created = false;
+    loop {
+        match drive.put_object(&bucket, &key, data.clone(), None).await {
+            Ok(()) => break,
+            Err(e) if !created && e.contains("NoSuchBucket") => {
+                let _ = drive.create_bucket_if_not_exists(&bucket).await;
+                created = true;
+            }
+            Err(e) => {
+                return Err(err(
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    &format!("Upload failed: {e}"),
+                ))
+            }
+        }
+    }
 
     botlog::safe_info!("File uploaded: {key} to bucket {bucket}");
     Ok(Json(SuccessResponse { success: true }))
