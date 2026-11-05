@@ -152,10 +152,19 @@ async fn create(
             tokio::time::sleep(Duration::from_secs(interval)).await;
             let pool = pool.clone();
             let run_id = run_id.clone();
+            let log_id = run_id.clone();
             let outcome = tokio::task::spawn_blocking(move || advance(&pool, &run_id)).await;
             match outcome {
                 Ok(Ok(row)) if row.status == "running" => continue,
-                _ => break,
+                Ok(Ok(_)) => break,
+                Ok(Err(error)) => {
+                    log::warn!("goal run tick failed ({}): {error}", log_id);
+                    break;
+                }
+                Err(error) => {
+                    log::warn!("goal run tick task failed ({}): {error}", log_id);
+                    break;
+                }
             }
         }
     });
@@ -192,6 +201,8 @@ struct TickRow {
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
     org_id: Option<Uuid>,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
+    branch_id: Option<Uuid>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Uuid>)]
     bot_id: Option<Uuid>,
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     user_id: Uuid,
@@ -205,7 +216,7 @@ fn advance(pool: &DbPool, id: &str) -> Result<RunRow, String> {
     let mut conn = pool.get().map_err(|error| error.to_string())?;
     let run = diesel::sql_query(format!(
         "{RUN_COLUMNS}, r.user_id, r.key_result_id, \
-         k.org_id, k.bot_id, k.start_value::double precision AS start_value, \
+         k.org_id, k.branch_id, k.bot_id, k.start_value::double precision AS start_value, \
          k.current_value::double precision AS current_value{RUN_FROM} \
          WHERE r.id = $1::uuid"
     ))
@@ -218,9 +229,10 @@ fn advance(pool: &DbPool, id: &str) -> Result<RunRow, String> {
 
     let mut status = "running".to_string();
     let mut last_value = run.last_value;
-    if let (Some(kr), Some(org), Some(bot), Some(target), Some(start)) = (
+    if let (Some(kr), Some(org), Some(branch), Some(bot), Some(target), Some(start)) = (
         run.key_result_id,
         run.org_id,
+        run.branch_id,
         run.bot_id,
         run.target_value,
         run.start_value,
@@ -233,10 +245,11 @@ fn advance(pool: &DbPool, id: &str) -> Result<RunRow, String> {
         }
         diesel::sql_query(
             "INSERT INTO okr_checkins \
-                (org_id, bot_id, key_result_id, user_id, previous_value, new_value, note) \
-             VALUES ($1, $2, $3, $4, $5, $6, $7)",
+                (org_id, branch_id, bot_id, key_result_id, user_id, previous_value, new_value, note) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
         )
         .bind::<diesel::sql_types::Uuid, _>(org)
+        .bind::<diesel::sql_types::Uuid, _>(branch)
         .bind::<diesel::sql_types::Uuid, _>(bot)
         .bind::<diesel::sql_types::Uuid, _>(kr)
         .bind::<diesel::sql_types::Uuid, _>(run.user_id)
