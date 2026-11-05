@@ -220,3 +220,13 @@ every close path (×, middle-click, Ctrl+W, context menu) threw a
 ReferenceError before this. Result: 7 → 6 tabs, active moved to Chat 5,
 overflow `+2` → `+1`. Closing pinned **Default** was refused and the tab
 stayed.
+
+### Environment note — master-key rotation
+
+After the repeated environment restarts, the Default session's older rows could
+not be decrypted: the server log reports
+`get_conversation_history: 113 message(s) skipped … (encrypted under another master key)`.
+The chat drops unreadable rows instead of rendering ciphertext, so the
+conversation continues with the 8 readable recent turns. This is a Vault
+master-key rotation caused by the environment, not a chat regression; the old
+rows cannot be recovered without the previous key.
