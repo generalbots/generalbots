@@ -287,3 +287,42 @@ mod run_route_tests {
         assert!(r.matches_path("/api/vibe/run/abc"), "short id");
     }
 }
+
+/// #1695 — regression guard for the default-deny catalogue. A feature can be
+/// fully implemented on both ends and still be unusable when its prefix is
+/// absent from `authenticated_routes()`: the middleware answers 403 before the
+/// handler runs. These asserts cover the collaboration backbone and the
+/// endpoints added for the GB7 runs/observability work.
+#[tokio::test]
+async fn collaboration_and_gb7_routes_are_reachable_for_authenticated_users() {
+    let routes = build_default_route_permissions();
+    let manager = RbacManager::with_defaults();
+    manager.register_routes(routes).await;
+    let user = AuthenticatedUser::new(Uuid::new_v4(), "user@example.com".to_string());
+
+    let cases = [
+        ("GET", "/api/collab/comments"),
+        ("POST", "/api/collab/comments"),
+        ("POST", "/api/collab/comments/abc/resolve"),
+        ("DELETE", "/api/collab/comments/abc"),
+        ("GET", "/api/collab/presence"),
+        ("POST", "/api/collab/presence"),
+        ("GET", "/api/collab/permissions/me"),
+        ("GET", "/api/activity"),
+        ("GET", "/api/browser/audit"),
+        ("GET", "/api/runs/ttft"),
+        ("POST", "/api/runs/subagents"),
+        ("GET", "/api/runs/subagents"),
+        ("GET", "/api/groups/sanity/usage"),
+        ("PUT", "/api/groups/sanity/budget"),
+        ("POST", "/api/groups/sanity/spend"),
+        ("GET", "/api/groups/sanity/caps"),
+    ];
+
+    for (method, path) in cases {
+        assert!(
+            manager.check_route_access(path, method, &user).await.is_allowed(),
+            "{method} {path} must be allowed for an authenticated user"
+        );
+    }
+}

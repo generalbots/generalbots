@@ -101,6 +101,31 @@ pub(crate) fn authenticated_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/docs/**", "POST", ""),
         RoutePermission::new("/api/docs/**", "PUT", ""),
         RoutePermission::new("/api/docs/**", "DELETE", ""),
+        // #1695 — cross-app collaboration: threaded comments, reactions,
+        // presence, permissions, versions and links are shared by docs,
+        // sheets, drive and the calendar. Missing from the catalogue, so
+        // default-deny rejected every collaborative call with
+        // "No matching route permission found" before the handler ran and
+        // the docs editor could never collaborate at all.
+        RoutePermission::new("/api/collab/**", "GET", ""),
+        RoutePermission::new("/api/collab/**", "POST", ""),
+        RoutePermission::new("/api/collab/**", "PUT", ""),
+        RoutePermission::new("/api/collab/**", "DELETE", ""),
+        RoutePermission::new("/api/activity", "GET", ""),
+        RoutePermission::new("/api/activity", "POST", ""),
+        // Browser-action ledger (#1702): the read endpoint behind the
+        // Settings → Ledger → Browser tab.
+        RoutePermission::new("/api/browser/**", "GET", ""),
+        // First-token latency summary (#1700).
+        RoutePermission::new("/api/runs/ttft", "GET", ""),
+        // Parallel sub-agent fan-out (#1694).
+        RoutePermission::new("/api/runs/subagents", "GET", ""),
+        RoutePermission::new("/api/runs/subagents", "POST", ""),
+        // Pooled group budgets, usage reports and cap policies (#1696/#1697).
+        RoutePermission::new("/api/groups/**", "GET", ""),
+        RoutePermission::new("/api/groups/**", "POST", ""),
+        RoutePermission::new("/api/groups/**", "PUT", ""),
+        RoutePermission::new("/api/groups/**", "DELETE", ""),
         RoutePermission::new("/api/paper/**", "GET", ""),
         RoutePermission::new("/api/paper/**", "POST", ""),
         RoutePermission::new("/api/paper/**", "PUT", ""),
