@@ -1,0 +1,36 @@
+name: GB7 feature contract
+
+# #1704 — the GB7 comparison and test-script pages are published from the
+# site, not generated here. This job fetches the live pages and fails when
+# they drift from the shipped contract: wrong header counts, a shipped row
+# still declared as a gap, a gap/follow-up without a tracked issue, or a
+# test-script page that still describes the old four-gap baseline.
+on:
+  push:
+    paths:
+      - "scripts/gb7_features_check.py"
+      - ".github/workflows/gb7-features.yml"
+  pull_request:
+    paths:
+      - "scripts/gb7_features_check.py"
+      - ".github/workflows/gb7-features.yml"
+  schedule:
+    # Daily: the site can change without a repository commit.
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Verify the published GB7 contract
+    if: ${{ github.server_url == 'https://github.com' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify live comparison and test scripts
+        run: |
+          set -euo pipefail
+          python3 --version
+          python3 scripts/gb7_features_check.py
