@@ -42,12 +42,57 @@ pub async fn save_document_as_docx(
     Ok(docx_bytes)
 }
 
+/// Document fields persisted beside the HTML body. The editor's title+content
+/// autosave must never erase them, so every write merges the previous
+/// sidecar and a full `Document` save overlays its own values.
+const DOC_META_EXTRAS: [&str; 8] = [
+    "collaborators",
+    "track_changes",
+    "track_changes_enabled",
+    "comments",
+    "footnotes",
+    "endnotes",
+    "styles",
+    "toc",
+];
+
+async fn read_doc_meta(state: &DocState, meta_path: &str) -> serde_json::Value {
+    match state
+        .drive
+        .get_object(&state.bucket_name, meta_path)
+        .await
+    {
+        Ok(bytes) => String::from_utf8(bytes)
+            .ok()
+            .and_then(|text| serde_json::from_str(&text).ok())
+            .unwrap_or(serde_json::Value::Null),
+        Err(_) => serde_json::Value::Null,
+    }
+}
+
+fn meta_field<T: serde::de::DeserializeOwned>(meta: &serde_json::Value, key: &str) -> Option<T> {
+    meta.get(key)
+        .cloned()
+        .and_then(|value| serde_json::from_value(value).ok())
+}
+
 pub async fn save_document_to_drive(
     state: &DocState,
     user_identifier: &str,
     doc_id: &str,
     title: &str,
     content: &str,
+) -> Result<String, String> {
+    save_document_with_extras(state, user_identifier, doc_id, title, content, None).await
+}
+
+async fn save_document_with_extras(
+    state: &DocState,
+    user_identifier: &str,
+    doc_id: &str,
+    title: &str,
+    content: &str,
+    document: Option<&Document>,
 ) -> Result<String, String> {
     let base_path = get_user_docs_path(user_identifier);
     let doc_path = format!("{base_path}/{doc_id}.html");
@@ -64,16 +109,42 @@ pub async fn save_document_to_drive(
         .await
         .map_err(|e| format!("Failed to save document: {e}"))?;
 
-    let word_count = count_words(content);
+    // Read the previous sidecar first: `created_at` and the structured
+    // collections belong to the document, not to the latest keystroke.
+    let existing = read_doc_meta(state, &meta_path).await;
+    let created_at = existing
+        .get("created_at")
+        .and_then(serde_json::Value::as_str)
+        .map(str::to_string)
+        .unwrap_or_else(|| Utc::now().to_rfc3339());
+    let version = existing
+        .get("version")
+        .and_then(serde_json::Value::as_u64)
+        .unwrap_or(0)
+        .saturating_add(1);
 
-    let metadata = serde_json::json!({
+    let mut metadata = serde_json::json!({
         "id": doc_id,
         "title": title,
-        "created_at": Utc::now().to_rfc3339(),
+        "created_at": created_at,
         "updated_at": Utc::now().to_rfc3339(),
-        "word_count": word_count,
-        "version": 1
+        "word_count": count_words(content),
+        "version": version,
     });
+
+    let doc_value = document.and_then(|doc| serde_json::to_value(doc).ok());
+    for key in DOC_META_EXTRAS {
+        if let Some(value) = doc_value
+            .as_ref()
+            .and_then(|value| value.get(key))
+        {
+            metadata[key] = value.clone();
+            continue;
+        }
+        if let Some(value) = existing.get(key) {
+            metadata[key] = value.clone();
+        }
+    }
 
     state
         .drive
@@ -94,7 +165,15 @@ pub async fn save_document(
     user_identifier: &str,
     doc: &Document,
 ) -> Result<String, String> {
-    save_document_to_drive(state, user_identifier, &doc.id, &doc.title, &doc.content).await
+    save_document_with_extras(
+        state,
+        user_identifier,
+        &doc.id,
+        &doc.title,
+        &doc.content,
+        Some(doc),
+    )
+    .await
 }
 
 pub async fn load_document_from_drive(
@@ -115,30 +194,24 @@ pub async fn load_document_from_drive(
         Err(_) => return Ok(None),
     };
 
-    let (title, created_at, updated_at) = match state
-        .drive
-        .get_object(&state.bucket_name, &meta_path)
-        .await
-    {
-        Ok(bytes) => {
-            let meta_str = String::from_utf8(bytes).map_err(|e| e.to_string())?;
-            let meta: serde_json::Value = serde_json::from_str(&meta_str).unwrap_or_default();
-            (
-                meta["title"].as_str().unwrap_or("Untitled").to_string(),
-                meta["created_at"]
-                    .as_str()
-                    .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
-                    .map(|d| d.with_timezone(&Utc))
-                    .unwrap_or_else(Utc::now),
-                meta["updated_at"]
-                    .as_str()
-                    .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
-                    .map(|d| d.with_timezone(&Utc))
-                    .unwrap_or_else(Utc::now),
-            )
-        }
-        Err(_) => ("Untitled".to_string(), Utc::now(), Utc::now()),
-    };
+    let meta = read_doc_meta(state, &meta_path).await;
+    let title = meta
+        .get("title")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or("Untitled")
+        .to_string();
+    let created_at = meta
+        .get("created_at")
+        .and_then(serde_json::Value::as_str)
+        .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
+        .map(|d| d.with_timezone(&Utc))
+        .unwrap_or_else(Utc::now);
+    let updated_at = meta
+        .get("updated_at")
+        .and_then(serde_json::Value::as_str)
+        .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
+        .map(|d| d.with_timezone(&Utc))
+        .unwrap_or_else(Utc::now);
 
     Ok(Some(Document {
         id: doc_id.to_string(),
@@ -148,15 +221,21 @@ pub async fn load_document_from_drive(
         storage_path: doc_path,
         created_at,
         updated_at,
-        collaborators: Vec::new(),
-        version: 1,
-        track_changes: None,
-        comments: None,
-        footnotes: None,
-        endnotes: None,
-        styles: None,
-        toc: None,
-        track_changes_enabled: false,
+        collaborators: meta_field(&meta, "collaborators").unwrap_or_default(),
+        version: meta
+            .get("version")
+            .and_then(serde_json::Value::as_u64)
+            .unwrap_or(1),
+        track_changes: meta_field(&meta, "track_changes"),
+        comments: meta_field(&meta, "comments"),
+        footnotes: meta_field(&meta, "footnotes"),
+        endnotes: meta_field(&meta, "endnotes"),
+        styles: meta_field(&meta, "styles"),
+        toc: meta_field(&meta, "toc"),
+        track_changes_enabled: meta
+            .get("track_changes_enabled")
+            .and_then(serde_json::Value::as_bool)
+            .unwrap_or(false),
     }))
 }
 
