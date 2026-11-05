@@ -230,3 +230,58 @@ The chat drops unreadable rows instead of rendering ciphertext, so the
 conversation continues with the 8 readable recent turns. This is a Vault
 master-key rotation caused by the environment, not a chat regression; the old
 rows cannot be recovered without the previous key.
+
+## Remaining parity checks (2026-11-05, final pass)
+
+### Real AutoTask terminal/browser run — not wired in this build
+
+`botautotask::agent_executor::AgentExecutor` is the producer of
+`terminal_output` / `browser_ready` / takeover segments, but it has **no
+construction site**:
+
+```
+$ grep -rn "AgentExecutor::new" botserver/src botserver/crates
+(no output)
+```
+
+`/api/autotask/execute` only persists a BASIC automation (DriveMonitor picks
+it up); it does not start a live container/PTY. The takeover UI and protocol
+were verified on a real run card with a terminal frame fed through the actual
+`RunTimeline.handleFrame` path: Take over → “You control” → terminal window →
+Hand back, with both `run_takeover` frames recorded by the server. A real
+AutoTask terminal session requires wiring the executor (a separate feature).
+
+### User-uploaded Office file — ingestion pass, preview Partial
+
+Uploaded a valid 973-byte DOCX (`ts02_upload.docx`) with “What is in this
+document?”. The server staged it and the answer listed the three document
+lines correctly (Pantanal / preview test / wetland sentence). The **user
+bubble has no preview card** — it shows `📎 ts02_upload.docx` only
+(`userPreview: false`). Preview cards are rendered for bot-generated output
+files, whose DOCX preview passes (see above). A user-upload preview would need
+a Drive-inbox preview endpoint.
+
+### Model tiers — plain labels pass, cost/latency Partial
+
+`/api/chat/models` returns four tiers, all `deepseek-v4.1-flash` and all
+`inherits_default: true` except `auto`:
+
+```
+fast     "Rápido · ágil"          title "cheapest, quick … default model …"
+balanced "Equilibrado · padrão"   title "middle ground …"
+quality  "Qualidade · melhor"     title "best, slower …"
+```
+
+Visible labels are localised plain language and honest about inheriting the
+default. There is no pricing/latency metadata to display because only one
+external DeepSeek model is configured; comparing tiers would violate the
+“external DeepSeek only” constraint. Partial by design.
+
+### Tab reload persistence — Default-only by design (Partial)
+
+Before reload: `enabled:true`, 3 tabs (Default, Chat 1, Chat 2), localStorage
+3. After reload: `enabled:true`, **1 tab (Default)**, localStorage still 3.
+Reloads deliberately start from the canonical Default conversation to avoid
+reconnecting stale per-tab sockets; the session stays in history and the
+server tab mirror retains the list. Browser-like tab restoration is a separate
+feature.
