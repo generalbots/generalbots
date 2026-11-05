@@ -1,10 +1,10 @@
 <link rel="stylesheet" href="/suite/css/suite.css" />
 <link rel="stylesheet" href="/suite/css/collab.css" />
 
-<div class="gb-app slides-app" id="slides-app" data-touch-target="self" data-gb-app="slides">
+<div class="gb-app slides-app" id="slides-app" data-touch-target="self" data-gb-app="slides" hx-ext="json-enc">
     <div class="slides-toolbar">
         <div class="toolbar-left">
-            <input type="text" class="slides-title-input" id="presTitle" value="Untitled Presentation" spellcheck="false" hx-post="/api/slides/save" hx-trigger="blur changed" hx-vals='{"id":"current","action":"rename"}' hx-swap="none" />
+            <input type="text" class="slides-title-input" id="presTitle" name="name" value="Untitled Presentation" spellcheck="false" hx-post="/api/slides/save" hx-trigger="blur changed" hx-vals='{"id":"current","action":"rename"}' hx-swap="none" />
             <span class="slides-save-status" id="saveStatus" style="color:#94a3b8;font-size:12px;margin-left:8px;">All changes saved</span>
         </div>
         <div class="toolbar-center">
