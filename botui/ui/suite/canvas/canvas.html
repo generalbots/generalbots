@@ -1151,7 +1151,7 @@
             title: "project",
             elements: designElements,
             connectors: [],
-            generated: null,
+            generated: currentGenerated(),
         };
         api("/api/vibe/projects/" + encodeURIComponent(pid) + "/files", {
             method: "POST",
@@ -1282,6 +1282,10 @@
         if (!el) return null;
         var copy = Object.assign({}, el);
         delete copy.img; // HTMLImageElement is not JSON-serializable
+        if (copy.imgSrc && !copy.img) {
+            copy.img = new Image();
+            copy.img.src = copy.imgSrc;
+        }
         if (copy.width !== undefined || copy.type === "text" || copy.points) {
             if (copy.type === "text") copy.fontSize = copy.fontSize || 18;
             if (!copy.stroke) copy.stroke = "#000000";
@@ -1308,20 +1312,126 @@
     }
 
     function serializeElements(els) {
-        var keys = ["id", "type", "x", "y", "width", "height", "stroke", "fill", "strokeWidth", "rotation", "opacity", "fontSize", "text", "points"];
+        var keys = ["id", "type", "x", "y", "x1", "y1", "x2", "y2", "width", "height", "stroke", "fill", "strokeWidth", "rotation", "opacity", "fontSize", "text", "points"];
         return (els || []).map(function (el) {
             var copy = {};
             keys.forEach(function (k) {
                 if (el[k] !== undefined) copy[k] = el[k];
             });
+            // HTMLImageElement is not JSON-serializable; keep its source so
+            // an image element survives save/reload (#1708 no-loss).
+            if (el.img && el.img.src) copy.imgSrc = el.img.src;
             return copy;
         });
+    }
+
+    // #1708 — the generated architecture SVG loaded as background must
+    // survive a save: both save paths used to write `generated: null`,
+    // destroying it on the first Save/undo/redo.
+    function currentGenerated() {
+        var bg = document.getElementById("canvas-bg-svg");
+        var html = bg && bg.innerHTML ? bg.innerHTML.trim() : "";
+        return html.indexOf("<svg") === 0 ? { svg: html } : null;
     }
 
     function canvasTitle() {
         var el = document.getElementById("canvas-name");
         var t = ((el && el.value) || "Untitled Canvas").trim();
         return t.replace(/\.draw$/i, "");
+    }
+
+    // #1708 — open a generated .svg as editable canvas elements. Only the
+    // shape vocabulary the canvas models maps over (rect/circle/ellipse/
+    // line/text/polyline/polygon, no gradients/transforms/use/image); when
+    // anything outside that vocabulary appears the original SVG stays as the
+    // non-interactive background so nothing is ever lost or double-drawn.
+    function importSvgAsElements(svgText) {
+        var app = window._canvasApp;
+        var bg = document.getElementById("canvas-bg-svg");
+        var doc;
+        try { doc = new DOMParser().parseFromString(svgText, "image/svg+xml"); } catch (e) { doc = null; }
+        var root = doc && doc.documentElement;
+        if (!root || root.nodeName.toLowerCase() !== "svg" || doc.querySelector("parsererror")) {
+            setStatus("Could not read SVG");
+            return;
+        }
+        var keepBackground = function (reason) {
+            if (bg) bg.innerHTML = svgText;
+            if (app && typeof app.setCanvasBackgroundHidden === "function") app.setCanvasBackgroundHidden();
+            setStatus("SVG kept as background — " + reason);
+        };
+        // Gradients/filters/patterns referenced by url(#) cannot be modelled
+        // by the canvas fill/stroke values: keep the original for fidelity.
+        if (/url\s*\(/.test(svgText)) {
+            keepBackground("uses gradients/filters");
+            return;
+        }
+        var MAPPABLE = { rect: 1, circle: 1, ellipse: 1, line: 1, text: 1, polyline: 1, polygon: 1 };
+        var STRUCTURAL = { svg: 1, g: 1, title: 1, desc: 1, defs: 1, style: 1, metadata: 1, switch: 1 };
+        var unsupported = 0;
+        root.querySelectorAll("*").forEach(function (n) {
+            var name = n.nodeName.toLowerCase();
+            if (STRUCTURAL[name]) return;
+            if (!MAPPABLE[name]) unsupported++;
+            if (name === "polygon" && n.getAttribute("fill") && n.getAttribute("fill") !== "none") unsupported++;
+        });
+        if (unsupported > 0) {
+            keepBackground(unsupported + " unsupported element(s)");
+            return;
+        }
+        var num = function (v, d) { var n = parseFloat(v); return isNaN(n) ? (d || 0) : n; };
+        var strokeOf = function (n) { var v = n.getAttribute("stroke"); return v && v !== "none" ? v : "#000000"; };
+        var fillOf = function (n) { var v = n.getAttribute("fill"); return v && v !== "none" ? v : "transparent"; };
+        var swOf = function (n) { return num(n.getAttribute("stroke-width"), 2); };
+        var seed = 0;
+        var out = [];
+        var add = function (type, base) { base.id = "svg" + (++seed) + "_" + Date.now(); base.type = type; out.push(base); };
+        root.querySelectorAll("rect").forEach(function (n) {
+            add("rectangle", { x: num(n.getAttribute("x")), y: num(n.getAttribute("y")),
+                width: num(n.getAttribute("width")), height: num(n.getAttribute("height")),
+                stroke: strokeOf(n), fill: fillOf(n), strokeWidth: swOf(n) });
+        });
+        root.querySelectorAll("circle").forEach(function (n) {
+            var r = num(n.getAttribute("r"));
+            add("ellipse", { x: num(n.getAttribute("cx")) - r, y: num(n.getAttribute("cy")) - r,
+                width: 2 * r, height: 2 * r, stroke: strokeOf(n), fill: fillOf(n), strokeWidth: swOf(n) });
+        });
+        root.querySelectorAll("ellipse").forEach(function (n) {
+            var rx = num(n.getAttribute("rx")), ry = num(n.getAttribute("ry"));
+            add("ellipse", { x: num(n.getAttribute("cx")) - rx, y: num(n.getAttribute("cy")) - ry,
+                width: 2 * rx, height: 2 * ry, stroke: strokeOf(n), fill: fillOf(n), strokeWidth: swOf(n) });
+        });
+        root.querySelectorAll("line").forEach(function (n) {
+            add("line", { x1: num(n.getAttribute("x1")), y1: num(n.getAttribute("y1")),
+                x2: num(n.getAttribute("x2")), y2: num(n.getAttribute("y2")),
+                stroke: strokeOf(n), strokeWidth: swOf(n) });
+        });
+        root.querySelectorAll("text").forEach(function (n) {
+            var fs = num(n.getAttribute("font-size"), 18);
+            var fill = n.getAttribute("fill");
+            add("text", { x: num(n.getAttribute("x")), y: num(n.getAttribute("y")) - fs,
+                fontSize: fs, text: (n.textContent || "").trim(),
+                stroke: fill && fill !== "none" ? fill : "#000000" });
+        });
+        var parsePoints = function (raw) {
+            return (raw || "").trim().split(/[\s,]+/).reduce(function (acc, tok, i, arr) {
+                if (i % 2 === 0) acc.push({ x: num(tok), y: num(arr[i + 1]) });
+                return acc;
+            }, []);
+        };
+        root.querySelectorAll("polyline").forEach(function (n) {
+            add("polyline", { points: parsePoints(n.getAttribute("points")), stroke: strokeOf(n), strokeWidth: swOf(n) });
+        });
+        root.querySelectorAll("polygon").forEach(function (n) {
+            add("polyline", { points: parsePoints(n.getAttribute("points")), stroke: strokeOf(n), strokeWidth: swOf(n) });
+        });
+        if (!out.length) {
+            keepBackground("no mappable shapes");
+            return;
+        }
+        if (app && typeof app.setCanvasElements === "function") app.setCanvasElements(out);
+        if (bg) bg.innerHTML = "";
+        setStatus("Imported " + out.length + " SVG shape(s) — editable");
     }
 
     function loadDriveDraw() {
@@ -1335,6 +1445,10 @@
                 if (!d || !d.content) return;
                 var text;
                 try { text = atob(d.content); } catch (e) { return; }
+                if (/\.svg$/i.test(f.path || "")) {
+                    importSvgAsElements(text);
+                    return;
+                }
                 var parsed;
                 try { parsed = JSON.parse(text); } catch (e) { return; }
                 var items = Array.isArray(parsed.elements) ? parsed.elements : [];
@@ -1369,7 +1483,7 @@
             title: canvasTitle(),
             elements: serializeElements(els),
             connectors: [],
-            generated: null,
+            generated: currentGenerated(),
         }, null, 2);
 
         var name = canvasTitle();

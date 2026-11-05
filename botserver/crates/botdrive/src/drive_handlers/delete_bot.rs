@@ -97,6 +97,13 @@ pub async fn open_file(
             "canvas".to_string(),
             format!("/suite/canvas/canvas.html?bucket={bucket}&path={path}"),
         ),
+        // An SVG opened from Drive lands in the Canvas app, which imports it
+        // as editable elements (or keeps it as background when it uses
+        // constructs the canvas cannot model — #1708).
+        "svg" => (
+            "canvas".to_string(),
+            format!("/suite/canvas/canvas.html?bucket={bucket}&path={path}"),
+        ),
         // #1306 — images open the Photo Editor APP WINDOW (never a raw tab).
         "png" | "jpg" | "jpeg" | "gif" | "webp" | "bmp" | "avif" => (
             "photo-editor".to_string(),
