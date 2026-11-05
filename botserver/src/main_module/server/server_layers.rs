@@ -138,7 +138,18 @@ pub(super) fn add_mail_routes(r: Router, s: &Arc<AppState>) -> Router {
 }
 #[cfg(feature = "slides")]
 pub(super) fn add_slides_routes(r: Router, s: &Arc<AppState>) -> Router {
-    r.merge(crate::slides::routes::configure_slides_routes(s.clone()))
+    let drive = s
+        .drive
+        .as_ref()
+        .map(|repository| crate::slides::drive_adapter::DriveOpsAdapter(repository.clone()));
+    let state = Arc::new(crate::slides::SlidesState {
+        drive,
+        conn: Arc::new(s.conn.clone()),
+        get_default_bot: Arc::new(|_conn: &mut diesel::PgConnection| {
+            (uuid::Uuid::nil(), "default".to_string())
+        }),
+    });
+    r.merge(crate::slides::routes::configure_slides_routes().with_state(state))
 }
 #[cfg(feature = "plan")]
 pub(super) fn add_plan_routes(r: Router, s: &Arc<AppState>) -> Router {
