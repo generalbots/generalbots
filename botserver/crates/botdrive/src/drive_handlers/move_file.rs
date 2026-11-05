@@ -57,6 +57,12 @@ pub async fn recent_files(
         format!("{bucket}/")
     };
 
+    // The index stores bucket-relative keys. In the user scope those keys are
+    // `users/{uid}/...`; in the bot scope they carry the bot/workspace prefix
+    // (`{bot}.` or `{org}.gbai/`). Filtering both scopes with the bot prefix
+    // returned bot-scoped rows for a user request, and opening them prefixed
+    // the path a second time (#1709).
+    let db_prefix = if prefix.is_empty() { indexed_prefix.clone() } else { prefix.clone() };
     if let Ok(mut conn) = state.conn.get() {
         #[derive(QueryableByName)]
         struct Row {
@@ -72,7 +78,7 @@ pub async fn recent_files(
         let rows = diesel::sql_query(
             "SELECT file_path, file_type, file_size, last_modified FROM drive_files WHERE file_path LIKE $1 || '%' AND indexed = true ORDER BY last_modified DESC NULLS LAST LIMIT 50"
         )
-        .bind::<Text, _>(&indexed_prefix)
+        .bind::<Text, _>(&db_prefix)
         .load::<Row>(&mut conn);
 
         if let Ok(values) = rows {
