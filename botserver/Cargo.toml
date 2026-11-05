@@ -181,7 +181,9 @@ desktop-local = [
     "sheet", "database", "player",
     # #1707 — the office editors and the canvas ship in the desktop edition so
     # Chat attachments can open in Docs/Sheets/Slides and drawn boards load.
-    "docs", "slides", "canvas",
+    # The botcore features advertise them in /api/product and /api/apps/catalog;
+    # without them the routes exist but the suite never offers the apps.
+    "docs", "slides", "canvas", "botcore/docs", "botcore/slides", "botcore/canvas",
     "botcore/desktop-local",
     # #1621 — the infrastructure features the remaining crates use. The domain
     # defaults (mail, calendar, people, tickets, billing, meet, analytics, …)
