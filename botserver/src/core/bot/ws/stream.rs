@@ -1,6 +1,7 @@
 use std::sync::Arc;
 use axum::extract::ws::{Message, WebSocket};
 use botcore::shared::state::AppState;
+use diesel::prelude::*;
 use futures_util::SinkExt;
 use log::{error, info, warn};
 use tokio::sync::mpsc;
@@ -179,6 +180,12 @@ pub async fn process_llm_response(
                 }
             });
 
+            // #1700 — first-token latency is recorded once per turn at the
+            // first content chunk, so the ~35% server-held-thread claim can be
+            // measured instead of asserted.
+            let llm_started_at = std::time::Instant::now();
+            let mut ttft_logged = false;
+
             {
                 let mut init_msg = serde_json::json!({
                     "bot_id": bot_uuid_s,
@@ -224,6 +231,26 @@ pub async fn process_llm_response(
                                     continue;
                                 }
                                 full_response.push_str(&chunk);
+                                if !ttft_logged {
+                                    ttft_logged = true;
+                                    let ttft_ms = i64::try_from(llm_started_at.elapsed().as_millis())
+                                        .unwrap_or(i64::MAX);
+                                    info!("llm_ttft: {} ms (model {})", ttft_ms, llm_model);
+                                    let pool = state.conn.clone();
+                                    let model = llm_model.to_string();
+                                    tokio::task::spawn_blocking(move || {
+                                        let Ok(mut conn) = pool.get() else { return };
+                                        let _ = diesel::sql_query(
+                                            "INSERT INTO llm_metrics (id, request_id, session_id, bot_id, model, request_type, input_tokens, output_tokens, total_tokens, latency_ms, ttft_ms, cached, success, estimated_cost, timestamp, metadata) \
+                                             VALUES (gen_random_uuid(), gen_random_uuid(), $1, $2, $3, 'chat', 0, 0, 0, $4, $4, false, true, 0, NOW(), '{}'::jsonb)",
+                                        )
+                                        .bind::<diesel::sql_types::Uuid, _>(session_id)
+                                        .bind::<diesel::sql_types::Uuid, _>(bot_uuid)
+                                        .bind::<diesel::sql_types::Text, _>(&model)
+                                        .bind::<diesel::sql_types::BigInt, _>(ttft_ms)
+                                        .execute(&mut conn);
+                                    });
+                                }
                                 let chunk_resp = serde_json::json!({
                                     "bot_id": bot_uuid_s,
                                     "user_id": user_id.to_string(),
