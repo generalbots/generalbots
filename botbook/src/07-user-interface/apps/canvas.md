@@ -58,6 +58,23 @@ Canvas is the collaborative whiteboard in General Bots Suite. Draw diagrams, cre
 | PDF | High-quality document |
 | JSON | Editable board data |
 
+Tool-drawn lines and arrows export as `<line>` from their bounding box, so
+SVG output never contains undefined coordinates.
+
+### Round-trip and SVG import
+
+Boards saved as `project.draw` keep, per element, the full geometry and
+styling — `x1..y2`, `points`, `stroke`, `fill`, `strokeWidth`, `fontSize` and
+the image source — so reopening a board reproduces ellipses, lines,
+polylines, text and images instead of collapsing them to rectangles.
+
+Importing an SVG converts supported shapes (`rect`, `circle`, `ellipse`,
+`line`, `text`, `polyline`, `polygon`) into editable canvas elements; a line
+keeps both its endpoints and its bounding box, and polylines/polygons are
+imported as freehand strokes. SVGs that rely on gradients, filters or
+patterns (referenced through `url(#…)`) cannot be represented by the canvas
+fill/stroke model and are kept as the canvas background instead.
+
 ### Collaborate
 
 | Feature | Description |

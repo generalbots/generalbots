@@ -54,6 +54,14 @@ Drive is your personal cloud storage within General Bots Suite. Upload, organize
 - **Sidebar**: Quick access to My Drive, Starred, Recent, Trash
 - **Search**: Find files by name or content
 
+### Starred and Recent
+
+Star files from the context menu (**Add to starred**) and unstar them from the
+Starred view. Recent lists the 50 most recently modified files; it reads the
+`drive_files` index when that index has entries and otherwise falls back to
+listing the bucket directly, so a fresh workspace still shows its files
+before indexing completes.
+
 ### Labels & Organization
 
 | Label | Icon | Use For |
