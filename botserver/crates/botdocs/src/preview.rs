@@ -209,6 +209,7 @@ fn presentation_html(bytes: &[u8]) -> Result<String, String> {
             .by_index(index)
             .map_err(|error| format!("Failed to read PPTX entry: {error}"))?
             .name()
+            .map_err(|error| format!("Failed to read PPTX entry name: {error}"))?
             .to_string();
         let Some(rest) = name.strip_prefix("ppt/slides/slide") else {
             continue;
