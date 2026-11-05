@@ -581,10 +581,13 @@ var TTSState = {
 
 function initTtsToggle() {
   var btn = document.getElementById("ttsToggle");
-  if (!btn) return;
+  if (!btn || btn.dataset.bound === "1") return;
+  btn.dataset.bound = "1";
   function refresh() {
     btn.classList.toggle("active", TTSState.autoSpeak);
+    btn.setAttribute("aria-pressed", TTSState.autoSpeak ? "true" : "false");
     btn.title = TTSState.autoSpeak ? "Stop auto-reading bot replies" : "Auto-read bot replies (TTS)";
+    btn.setAttribute("aria-label", btn.title);
   }
   btn.addEventListener("click", function () {
     TTSState.autoSpeak = !TTSState.autoSpeak;
@@ -597,7 +600,13 @@ function initTtsToggle() {
   refresh();
 }
 
-document.addEventListener("DOMContentLoaded", initTtsToggle);
+// The chat partial is injected by htmx after DOMContentLoaded, so the
+// listener alone would never bind the toggle (#1693 follow-up).
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initTtsToggle);
+} else {
+  initTtsToggle();
+}
 
 // ── TTS (issue #708) — speak a bot message aloud ──
 function createCopyButton(text) {

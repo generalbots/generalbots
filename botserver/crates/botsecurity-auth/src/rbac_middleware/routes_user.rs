@@ -41,6 +41,12 @@ pub(crate) fn authenticated_routes() -> Vec<RoutePermission> {
         RoutePermission::new("/api/consent/**", "GET", ""),
         RoutePermission::new("/api/consent/**", "POST", ""),
         RoutePermission::new("/api/consent/**", "DELETE", ""),
+        // Conversation autotasks (#1613): per-user cron/systemd jobs owned by
+        // the caller's conversation. Missing from the catalogue, so every
+        // GET/POST answered 403 and the chat indicator was permanently dark.
+        RoutePermission::new("/api/conversations/**", "GET", ""),
+        RoutePermission::new("/api/conversations/**", "POST", ""),
+        RoutePermission::new("/api/conversation-autotasks/**", "POST", ""),
         // Workspace tab mirror (chat tab strip).
         RoutePermission::new("/api/user/workspace/**", "GET", ""),
         RoutePermission::new("/api/user/workspace/**", "PUT", ""),

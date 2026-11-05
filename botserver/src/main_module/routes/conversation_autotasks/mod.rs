@@ -169,7 +169,13 @@ pub async fn list(
     // Reconcile lazily: the workspace is usually warm when the conversation is
     // open, and this keeps the indicator honest without a boot-time VM sweep.
     for row in &rows {
-        if row.status == STATUS_RUNNING || row.status == STATUS_SCHEDULED {
+        // `orphaned` is not terminal: a workspace that was briefly down comes
+        // back with the job still installed. Re-check it or the indicator
+        // stays dark forever (#1693 follow-up).
+        if row.status == STATUS_RUNNING
+            || row.status == STATUS_SCHEDULED
+            || row.status == STATUS_ORPHANED
+        {
             workspace::refresh(&state, row).await;
         }
     }

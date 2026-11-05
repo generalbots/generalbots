@@ -60,6 +60,34 @@ pub async fn run_shell_in_conversation(
     }
 }
 
+/// Installer variant: runs as root in the conversation's VM. Used by the
+/// conversation-autotask installer, which needs `/etc/systemd/system` or a
+/// crontab; generated programs keep running as `runner`.
+pub async fn run_shell_in_conversation_as_root(
+    user_id: uuid::Uuid,
+    bot_uuid: uuid::Uuid,
+    conversation_id: uuid::Uuid,
+    code: &str,
+    timeout_ms: u64,
+) -> Option<(bool, String, String)> {
+    let service = SERVICE.get()?;
+    let conversation = conversation_id.to_string();
+    let row = match botagent::vm::ensure_vm(service, &user_id, &bot_uuid, Some(&conversation)).await {
+        Ok(row) => row,
+        Err((status, error)) => {
+            log::warn!("autotask: could not ensure the workspace ({status}): {error}");
+            return None;
+        }
+    };
+    match botagent::vm::run_root_shell(service, &row.vm_name, code, timeout_ms).await {
+        Ok(outcome) => Some(outcome),
+        Err((status, error)) => {
+            log::warn!("autotask: root install failed ({status}): {error}");
+            None
+        }
+    }
+}
+
 /// Handles the legacy `{ "type": "agent_mode" }` control frame for backward
 /// compatibility. New clients no longer need to send this — agent mode is
 /// always on.

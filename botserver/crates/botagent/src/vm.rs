@@ -470,7 +470,9 @@ GW=$(ip route 2>/dev/null | awk '/^default/ {print $3; exit}')
 } > /etc/resolv.conf
 {
   apt-get -o DPkg::Lock::Timeout=300 update -q
-  apt-get -o DPkg::Lock::Timeout=300 install -y -q python3 python3-pip nodejs npm iptables iproute2
+  # `cron` powers conversation autotasks (scheduled shell jobs); an image
+  # without it made every `kind=cron` install fail with "crontab: not found".
+  apt-get -o DPkg::Lock::Timeout=300 install -y -q python3 python3-pip nodejs npm iptables iproute2 cron
   mkdir -p /opt/vibe/conversations
   # Base data/document toolkit: the model should not pay an install round-trip
   # for the common agent outputs (decks, sheets, charts, PDFs).
@@ -1050,6 +1052,20 @@ async fn write_program(
 }
 
 /// Runs a shell command in the VM with a hard timeout.
+/// Runs a shell snippet as **root** in the VM, without the `runner` handoff.
+///
+/// Only installers use this (conversation autotasks must write systemd units
+/// or a crontab). User-generated programs still go through
+/// [`exec_in_conversation`], which drops to `runner`.
+pub async fn run_root_shell(
+    state: &AgentService,
+    vm_name: &str,
+    command: &str,
+    timeout_ms: u64,
+) -> Result<(bool, String, String), (StatusCode, String)> {
+    run_with_timeout(state, vm_name, command.to_string(), timeout_ms).await
+}
+
 async fn run_with_timeout(
     state: &AgentService,
     vm_name: &str,

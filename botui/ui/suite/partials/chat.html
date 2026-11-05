@@ -5,7 +5,7 @@
 <link rel="stylesheet" href="/suite/chat/chat.p5.css?v=1" />
 <link rel="stylesheet" href="/suite/chat/chat.p6.css?v=4" />
 <link rel="stylesheet" href="/suite/chat/chat.p7.css?v=3" />
-<link rel="stylesheet" href="/suite/chat/chat-composer.css?v=3" />
+<link rel="stylesheet" href="/suite/chat/chat-composer.css?v=4" />
 <link rel="stylesheet" href="/suite/chat/chat-voice-camera.css?v=3" />
 <link rel="stylesheet" href="/suite/css/markdown-message.css?v=1" />
 <link rel="stylesheet" href="/suite/css/chat-agent-mode.css" />
@@ -76,6 +76,15 @@
                     </svg>
                     <span class="web-search-label" data-i18n="chat-web-off-short">Web off</span>
                 </button>
+                <button type="button" id="ttsToggle" class="chat-tool-toggle tts-toggle"
+                    aria-pressed="false" aria-label="Auto-read replies: off"
+                    title="Auto-read replies: off">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M11 5L6 9H2v6h4l5 4z"></path>
+                        <path d="M15.5 8.5a5 5 0 0 1 0 7"></path>
+                        <path d="M19 5a9 9 0 0 1 0 14"></path>
+                    </svg>
+                </button>
                 <button type="button" id="voiceBtn" class="chat-tool-toggle voice-toggle"
                     aria-pressed="false" aria-label="Voice input — click to speak" data-i18n-aria-label="chat-voice-input"
                     title="Voice input — click to speak" data-i18n-title="chat-voice-input">
@@ -131,7 +140,7 @@
 <script src="/suite/chat/chat-drive-picker.js?v=1"></script>
 <script src="/suite/chat/chat-code-ux.js?v=2"></script>
 <script src="/suite/chat/chat-render.js?v=2"></script>
-<script src="/suite/chat/chat-messages.js?v=32"></script>
+<script src="/suite/chat/chat-messages.js?v=33"></script>
 <script src="/suite/chat/chat-output-polish.js?v=3"></script>
 <script src="/suite/chat/chat-suggestions.js?v=4"></script>
 <script src="/suite/chat/chat-theme.js?v=6"></script>

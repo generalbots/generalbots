@@ -511,3 +511,49 @@ description continues in parallel.
   history keeps its stored timestamp.
 - **Mentions:** typing `@` opened the entity dropdown with the CRM types
   (Lead / Opportunity / Account / Contact / Invoice) and the search hint.
+
+## Parity pass 3 — TTS, conversation autotasks (2026-11-05)
+
+### TTS auto-read (fixed and pass)
+
+The chat JS expected `#ttsToggle`, but the button was absent from the partial
+and the initializer only listened for `DOMContentLoaded` (already fired when
+htmx injects the chat). Added the speaker toggle to the composer and bind it
+immediately when the partial loads. Verified:
+
+```
+toggle: true  bound: "1"  pressed: "false"
+click → active: true  aria-pressed: "true"  storage: "1"
+title: "Stop auto-reading bot replies"
+speak button → speechSynthesis.speak(text) with 224 chars
+```
+
+### Conversation autotasks (fixed and pass)
+
+The panel was dark for every user and every job kind for three separate
+reasons, all fixed:
+
+1. **RBAC:** `/api/conversations/**` and `/api/conversation-autotasks/**` had
+   no user-catalogue row, so the default-deny middleware answered 403
+   (`No matching route permission found`) before the handler. Added GET/POST
+   rules.
+2. **Identity:** the installer ran as `runner`, so `crontab` was absent and
+   `/etc/systemd/system` was not writable. Install, check and removal now use a
+   root-scoped runner (`run_root_shell`); generated user programs still run as
+   `runner`.
+3. **Missing cron:** the agent VM image had no `crontab`. The installer now
+   installs `cron` when absent, and the VM bootstrap package list includes it.
+
+Verified end to end:
+
+```
+POST create → status "scheduled", unit gb-autotask-a35ee200…
+panel      → "Sanity autotask — Every day at 03:00 | Stop"
+tab        → class "gb-tab active pinned has-autotask"
+Stop       → status "stopped", status line hidden
+toast      → "Background job stopped — The schedule was removed…"
+crontab -l | grep -c 'a35ee200' → 0
+```
+
+`orphaned` was terminal: a job whose workspace was briefly down never came
+back. The list now re-checks orphaned rows as well.

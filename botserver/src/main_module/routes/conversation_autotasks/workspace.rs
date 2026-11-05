@@ -60,13 +60,24 @@ pub(super) async fn install(
     } else {
         format!(
             "{script}\
+             command -v crontab >/dev/null 2>&1 || \\
+               (apt-get -o DPkg::Lock::Timeout=300 update -q && \\
+                DEBIAN_FRONTEND=noninteractive apt-get -o DPkg::Lock::Timeout=300 install -y -q cron) >/dev/null 2>&1 || true\n\
              (crontab -l 2>/dev/null | grep -v 'gb-autotask:{id}' || true; \
              echo '{schedule} /bin/sh {root}/autotasks/{id}.sh # gb-autotask:{id}') | crontab -\n\
              crontab -l | grep -c 'gb-autotask:{id}'\n"
         )
     };
-    match agent_vm_hook::run_shell_in_conversation(user_id, bot_id, conversation_id, &install, 60_000)
-        .await
+    // Installers need root (systemd units, crontab); generated programs still
+    // run as `runner` through run_shell_in_conversation.
+    match agent_vm_hook::run_shell_in_conversation_as_root(
+        user_id,
+        bot_id,
+        conversation_id,
+        &install,
+        120_000,
+    )
+    .await
     {
         Some((true, stdout, _stderr)) => {
             if kind == "systemd" && stdout.trim() == "active" {
@@ -96,7 +107,9 @@ pub(super) async fn refresh(state: &AppState, row: &AutotaskRow) {
             row.id
         )
     };
-    let observed = agent_vm_hook::run_shell_in_conversation(
+    // Same identity as the installer: root owns the crontab/systemd unit.
+    // Checking as `runner` made every installed job look orphaned.
+    let observed = agent_vm_hook::run_shell_in_conversation_as_root(
         row.user_id,
         row.bot_id,
         row.conversation_id,
@@ -155,7 +168,7 @@ pub(super) async fn remove(row: &AutotaskRow) -> Option<String> {
              rm -f {root}/autotasks/{id}.sh\n"
         )
     };
-    match agent_vm_hook::run_shell_in_conversation(
+    match agent_vm_hook::run_shell_in_conversation_as_root(
         row.user_id,
         row.bot_id,
         row.conversation_id,
