@@ -76,25 +76,31 @@ pub async fn recent_files(
         .load::<Row>(&mut conn);
 
         if let Ok(values) = rows {
-            let items: Vec<FileListItem> = values.into_iter().map(|r| {
-                let file_path = &r.file_path;
-                let relative = if file_path.starts_with(&prefix) {
-                    file_path[prefix.len()..].to_string()
-                } else {
-                    file_path.to_string()
-                };
-                FileListItem {
-                    is_dir: false,
-                    name: relative.rsplit('/').next().unwrap_or(relative.as_str()).to_string(),
-                    path: relative,
-                    size: r.file_size.unwrap_or(0) as u64,
-                    modified: r.last_modified.map(|d| d.to_rfc3339()),
-                    is_kb: r.file_type == "kb",
-                    is_public: false,
-                    bucket: None,
-                }
-            }).collect();
-            return Ok(Json(items));
+            // An empty result is not "no recent files": it means the index has
+            // no rows yet (fresh drive, indexing disabled, or a bucket whose
+            // keys the LIKE above does not cover). Fall through to the object
+            // store listing instead of returning an empty Recent (#1709).
+            if !values.is_empty() {
+                let items: Vec<FileListItem> = values.into_iter().map(|r| {
+                    let file_path = &r.file_path;
+                    let relative = if file_path.starts_with(&prefix) {
+                        file_path[prefix.len()..].to_string()
+                    } else {
+                        file_path.to_string()
+                    };
+                    FileListItem {
+                        is_dir: false,
+                        name: relative.rsplit('/').next().unwrap_or(relative.as_str()).to_string(),
+                        path: relative,
+                        size: r.file_size.unwrap_or(0) as u64,
+                        modified: r.last_modified.map(|d| d.to_rfc3339()),
+                        is_kb: r.file_type == "kb",
+                        is_public: false,
+                        bucket: None,
+                    }
+                }).collect();
+                return Ok(Json(items));
+            }
         }
     }
 
