@@ -70,6 +70,14 @@ fn pipeline() -> &'static Arc<EventPipeline> {
     })
 }
 
+/// Keeps the in-process sequencer ahead of a sequence number persisted out of
+/// band (takeover events write directly to `run_events`). Without this the
+/// next minted event reuses the same `(thread_id, seq)` and the unique
+/// constraint drops it, silently losing timeline frames.
+pub fn observe_persisted_seq(thread_id: &str, seq: u64) {
+    pipeline().observe_seq(thread_id, seq);
+}
+
 /// Runtime flag. Compiling the contract is unconditional; emitting is opt-in
 /// so an existing deployment is unchanged until `GB_RUN_EVENTS` is set.
 #[must_use]
@@ -137,13 +145,32 @@ impl RunContext {
         self.bot_id = Some(bot_id);
         self.user_id = Some(user_id);
         self.org_id = org_id;
+        self.seed_sequencer();
         self
     }
 
     #[must_use]
     pub fn with_state(mut self, state: Arc<AppState>) -> Self {
         self.state = Some(state);
+        self.seed_sequencer();
         self
+    }
+
+    /// After a restart the in-process counter starts at 1 while the thread may
+    /// already have persisted events. Seed from the log so the next minted
+    /// sequence cannot collide with `(thread_id, seq)`.
+    fn seed_sequencer(&self) {
+        let (Some(state), Some(bot_id)) = (self.state.as_ref(), self.bot_id) else {
+            return;
+        };
+        let Ok(mut conn) = state.conn.get() else {
+            return;
+        };
+        match crate::core::bot::runs::store::last_seq(&mut conn, bot_id, &self.thread_id) {
+            Ok(last) if last > 0 => observe_persisted_seq(&self.thread_id, last),
+            Ok(_) => {}
+            Err(error) => log::warn!("run event sequencer seed failed: {error}"),
+        }
     }
 
     #[must_use]

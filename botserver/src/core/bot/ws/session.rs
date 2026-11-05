@@ -434,6 +434,10 @@ fn persist_takeover(
             return 0;
         }
     };
+    // Keep the in-process sequencer ahead of this out-of-band row; otherwise
+    // the next emitted event reuses this seq and the unique constraint drops
+    // it (#1701 durability).
+    crate::core::bot::pipeline::event_sink::observe_persisted_seq(thread_id, seq);
     let envelope = Envelope {
         v: 1,
         event_type: EventType::Custom,

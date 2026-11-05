@@ -26,9 +26,10 @@ use uuid::Uuid;
 mod audit;
 mod page;
 
+pub use audit::browser_audit;
 pub use audit::spawn_terminal_audit_purge;
 pub use audit::terminal_audit;
-use audit::{audit_terminal, TerminalAuditRow};
+use audit::{audit_browser, audit_terminal, BrowserAuditRow, TerminalAuditRow};
 use page::fetch_page;
 mod terminal_rules;
 use terminal_rules::blocked_pattern;
@@ -138,11 +139,78 @@ pub async fn submit_result(
                         output: "user denied consent",
                     },
                 );
+            } else if action.kind == "browser" {
+                let action_name = action
+                    .action
+                    .get("action")
+                    .and_then(Value::as_str)
+                    .unwrap_or("browser");
+                let target = action
+                    .action
+                    .get("url")
+                    .and_then(Value::as_str)
+                    .or_else(|| action.action.get("selector").and_then(Value::as_str))
+                    .unwrap_or("");
+                audit_browser(
+                    &state.conn,
+                    BrowserAuditRow {
+                        user_id,
+                        session_id: Some(&action.session_id),
+                        action_id: Some(id),
+                        target,
+                        action: action_name,
+                        decision: "denied",
+                        result: Some("user denied consent"),
+                        screenshot_path: None,
+                    },
+                );
             }
         }
     }
+    let submitted = result.clone();
     match computer_use::complete(id, user_id, result).await {
-        Some(action) => Ok(Json(action.to_json())),
+        Some(action) => {
+            if action.kind == "browser" {
+                let action_name = action
+                    .action
+                    .get("action")
+                    .and_then(Value::as_str)
+                    .unwrap_or("browser");
+                let target = action
+                    .action
+                    .get("url")
+                    .and_then(Value::as_str)
+                    .or_else(|| action.action.get("selector").and_then(Value::as_str))
+                    .or_else(|| action.action.get("text").and_then(Value::as_str))
+                    .unwrap_or("");
+                let decision = submitted
+                    .get("status")
+                    .and_then(Value::as_str)
+                    .unwrap_or("completed");
+                let result_text = submitted
+                    .get("text")
+                    .and_then(Value::as_str)
+                    .or_else(|| submitted.get("error").and_then(Value::as_str))
+                    .or_else(|| submitted.get("title").and_then(Value::as_str));
+                let screenshot_path = submitted
+                    .get("screenshot_path")
+                    .and_then(Value::as_str);
+                audit_browser(
+                    &state.conn,
+                    BrowserAuditRow {
+                        user_id,
+                        session_id: Some(&action.session_id),
+                        action_id: Some(id),
+                        target,
+                        action: action_name,
+                        decision,
+                        result: result_text,
+                        screenshot_path,
+                    },
+                );
+            }
+            Ok(Json(action.to_json()))
+        }
         None => Err(api_error(StatusCode::NOT_FOUND, "action not found")),
     }
 }
@@ -438,4 +506,5 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/api/computer/actions/:id/result", post(submit_result))
         .route("/api/terminal/exec", post(terminal_exec))
         .route("/api/terminal/audit", get(terminal_audit))
+        .route("/api/browser/audit", get(browser_audit))
 }

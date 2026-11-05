@@ -113,6 +113,96 @@ pub async fn terminal_audit(
     })))
 }
 
+pub(super) struct BrowserAuditRow<'a> {
+    pub(super) user_id: Uuid,
+    pub(super) session_id: Option<&'a str>,
+    pub(super) action_id: Option<Uuid>,
+    pub(super) target: &'a str,
+    pub(super) action: &'a str,
+    pub(super) decision: &'a str,
+    pub(super) result: Option<&'a str>,
+    pub(super) screenshot_path: Option<&'a str>,
+}
+
+/// #1702 — one ledger row per browser consent decision / result.
+pub(super) fn audit_browser(pool: &botcore::shared::utils::DbPool, row: BrowserAuditRow<'_>) {
+    let Ok(mut conn) = pool.get() else {
+        log::warn!("browser audit: database unavailable, row not written");
+        return;
+    };
+    let result: Option<String> = row.result.map(|value| value.chars().take(2000).collect());
+    if let Err(error) = diesel::sql_query(
+        "INSERT INTO browser_audit
+            (user_id, session_id, action_id, target, action, decision, result, screenshot_path)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+    )
+    .bind::<DieselUuid, _>(row.user_id)
+    .bind::<Nullable<Text>, _>(row.session_id)
+    .bind::<Nullable<DieselUuid>, _>(row.action_id)
+    .bind::<Nullable<Text>, _>(Some(row.target.chars().take(4000).collect::<String>()))
+    .bind::<Text, _>(row.action.chars().take(200).collect::<String>())
+    .bind::<Text, _>(row.decision.chars().take(40).collect::<String>())
+    .bind::<Nullable<Text>, _>(result)
+    .bind::<Nullable<Text>, _>(row.screenshot_path.map(str::to_string))
+    .execute(&mut conn)
+    {
+        log::warn!("browser audit insert failed: {error}");
+    }
+}
+
+/// GET /api/browser/audit — the visible browser trail: target, action,
+/// decision, result excerpt, screenshot path and timestamp.
+pub async fn browser_audit(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Query(query): Query<AuditQuery>,
+) -> Result<Json<Value>, ApiError> {
+    let user_id = resolve_user(&headers)?;
+    let limit = query.limit.unwrap_or(50).clamp(1, 200);
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
+    #[derive(diesel::QueryableByName)]
+    struct Row {
+        #[diesel(sql_type = Text)]
+        id: String,
+        #[diesel(sql_type = Nullable<Text>)]
+        target: Option<String>,
+        #[diesel(sql_type = Text)]
+        action: String,
+        #[diesel(sql_type = Text)]
+        decision: String,
+        #[diesel(sql_type = Nullable<Text>)]
+        result: Option<String>,
+        #[diesel(sql_type = Nullable<Text>)]
+        screenshot_path: Option<String>,
+        #[diesel(sql_type = Text)]
+        created_at: String,
+    }
+    let rows = diesel::sql_query(
+        "SELECT id::text, target, action, decision, result, screenshot_path,
+                created_at::text AS created_at
+         FROM browser_audit WHERE user_id = $1
+         ORDER BY created_at DESC LIMIT $2",
+    )
+    .bind::<DieselUuid, _>(user_id)
+    .bind::<diesel::sql_types::BigInt, _>(limit)
+    .load::<Row>(&mut conn)
+    .unwrap_or_default();
+    Ok(Json(json!({
+        "entries": rows.into_iter().map(|row| json!({
+            "id": row.id,
+            "target": row.target,
+            "action": row.action,
+            "decision": row.decision,
+            "result": row.result,
+            "screenshot_path": row.screenshot_path,
+            "created_at": row.created_at,
+        })).collect::<Vec<_>>(),
+    })))
+}
+
 /// #1645 — 90-day retention. Started from the background boot sequence.
 pub fn spawn_terminal_audit_purge(state: Arc<AppState>) {
     tokio::spawn(async move {
@@ -132,6 +222,14 @@ pub fn spawn_terminal_audit_purge(state: Arc<AppState>) {
                     .unwrap_or(0);
                     if deleted > 0 {
                         log::info!("terminal audit: purged {deleted} row(s) older than 90 days");
+                    }
+                    let browser_deleted = diesel::sql_query(
+                        "DELETE FROM browser_audit WHERE created_at < NOW() - INTERVAL '90 days'",
+                    )
+                    .execute(&mut conn)
+                    .unwrap_or(0);
+                    if browser_deleted > 0 {
+                        log::info!("browser audit: purged {browser_deleted} row(s) older than 90 days");
                     }
                 }
                 Err(error) => log::warn!("terminal audit purge: db pool: {error}"),
