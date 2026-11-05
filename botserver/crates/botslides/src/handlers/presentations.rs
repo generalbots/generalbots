@@ -151,26 +151,42 @@ pub async fn handle_save_presentation<D: DriveOps>(
         // images and notes, not every source feature (tables), so replacing
         // the upload could silently drop content (#1710). A failure here never
         // discards the deck JSON saved above.
+        //
+        // The source bucket arrived in the import request, so it is not
+        // trusted for a write: only the bot's own Drive bucket is accepted,
+        // which blocks cross-tenant writes from a crafted import.
+        let bot_bucket = state.conn.get().ok().map(|mut conn| {
+            let (bot_id, _) = (state.get_default_bot)(&mut conn);
+            botbasic_core::utils::bot_drive_location_for(&mut conn, bot_id).bucket
+        });
         if let (Some(bucket), Some(path)) = (
             presentation.source_bucket.as_deref(),
             presentation.source_path.as_deref(),
         ) {
-            match crate::pptx::export_to_pptx(&presentation) {
-                Ok(bytes) => {
-                    let sibling = sibling_pptx_path(path);
-                    if let Err(e) = drive
-                        .put_object(
-                            bucket,
-                            &sibling,
-                            bytes,
-                            "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-                        )
-                        .await
-                    {
-                        log::warn!("slides save-back to {bucket}/{sibling} failed: {e}");
+            if bot_bucket.as_deref() != Some(bucket) {
+                log::warn!(
+                    "slides save-back skipped: source bucket '{bucket}' is not the bot drive bucket"
+                );
+            } else {
+                match crate::pptx::export_to_pptx(&presentation) {
+                    Ok(bytes) => {
+                        let sibling = sibling_pptx_path(path);
+                        if let Err(e) = drive
+                            .put_object(
+                                bucket,
+                                &sibling,
+                                bytes,
+                                "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                            )
+                            .await
+                        {
+                            log::warn!("slides save-back to {bucket}/{sibling} failed: {e}");
+                        }
+                    }
+                    Err(e) => {
+                        log::warn!("slides save-back export failed for {bucket}/{path}: {e}")
                     }
                 }
-                Err(e) => log::warn!("slides save-back export failed for {bucket}/{path}: {e}"),
             }
         }
     }
