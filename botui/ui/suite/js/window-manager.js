@@ -673,6 +673,12 @@ if (typeof window.WindowManager === "undefined") {
         content.appendChild(s);
       });
       if (window.htmx) htmx.process(content);
+      // Localize the fragment: the i18n boot pass ran before this window
+      // existed, so its [data-i18n] nodes otherwise keep authored text or a
+      // raw key (seen as "drive-starred"/"drive-recent" in the Drive nav).
+      if (window.i18n && typeof window.i18n.translatePage === "function") {
+        window.i18n.translatePage(content);
+      }
       this._revealWhenReady(body);
     }
 
