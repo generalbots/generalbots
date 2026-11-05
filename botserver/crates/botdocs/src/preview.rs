@@ -286,10 +286,16 @@ impl SlidePreview {
         let mut paragraph = String::new();
         let mut cell = String::new();
         let mut row: Vec<String> = Vec::new();
+        let mut table: Vec<Vec<String>> = Vec::new();
         loop {
             match reader.read_event() {
                 Ok(Event::Start(event)) => match event.name().as_ref() {
-                    b"a:tbl" => in_table += 1,
+                    b"a:tbl" => {
+                        in_table += 1;
+                        if in_table == 1 {
+                            table.clear();
+                        }
+                    }
                     b"a:tr" if in_table > 0 => {
                         in_row = true;
                         row.clear();
@@ -321,10 +327,15 @@ impl SlidePreview {
                         in_cell = false;
                     }
                     b"a:tr" if in_row => {
-                        preview.tables.push(std::mem::take(&mut row));
+                        table.push(std::mem::take(&mut row));
                         in_row = false;
                     }
-                    b"a:tbl" => in_table = in_table.saturating_sub(1),
+                    b"a:tbl" => {
+                        in_table = in_table.saturating_sub(1);
+                        if in_table == 0 {
+                            preview.tables.push(std::mem::take(&mut table));
+                        }
+                    }
                     b"a:p" if in_paragraph => {
                         preview.paragraphs.push(std::mem::take(&mut paragraph));
                         in_paragraph = false;
