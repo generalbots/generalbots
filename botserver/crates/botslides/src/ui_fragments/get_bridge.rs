@@ -22,7 +22,12 @@ use crate::SlidesState;
 type Params = HashMap<String, String>;
 
 fn to_json(params: Params) -> Json<serde_json::Value> {
-    Json(serde_json::Value::Object(params.into_iter().collect()))
+    Json(serde_json::Value::Object(
+        params
+            .into_iter()
+            .map(|(key, value)| (key, serde_json::Value::String(value)))
+            .collect(),
+    ))
 }
 
 /// The deck an empty session starts from: the rest of the app addresses it

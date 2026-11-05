@@ -14,7 +14,7 @@ use panels::{
 };
 use sidebars::{
     handle_presentation_list_sidebar, handle_search_sidebar, handle_recent_sidebar,
-    handle_slide_thumbnails, handle_presentation_view,
+    handle_slide_thumbnails,
         handle_presentation_view_by_id, handle_presentation_view_post,
 };
 use toolbar::{
