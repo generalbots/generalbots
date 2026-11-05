@@ -179,6 +179,9 @@ desktop-local = [
     "external_sync",
     # #1632 item 8 — the everyday tools enabled in the launcher by default.
     "sheet", "database", "player",
+    # #1707 — the office editors and the canvas ship in the desktop edition so
+    # Chat attachments can open in Docs/Sheets/Slides and drawn boards load.
+    "docs", "slides", "canvas",
     "botcore/desktop-local",
     # #1621 — the infrastructure features the remaining crates use. The domain
     # defaults (mail, calendar, people, tickets, billing, meet, analytics, …)
