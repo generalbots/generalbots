@@ -14,6 +14,7 @@
 //! external fetches. XLSX support is self-contained (`xl/*` member parsing)
 //! so the preview does not depend on the opt-in `kb-extraction` feature.
 
+use base64::Engine as _;
 use std::io::{Cursor, Read};
 use zip::ZipArchive;
 
@@ -42,7 +43,10 @@ td,th{{border:1px solid #cbd5e1;padding:3px 8px;font-size:12px;color:#0f172a}}\
 th{{background:#e2e8f0;text-align:left}}\
 h3{{font-size:13px;margin:12px 0 4px;color:#334155}}\
 details{{margin:0 0 10px}}summary{{font-weight:600;font-size:13px;color:#1e293b}}\
-section{{font-size:13px;color:#1e293b;margin:0 0 6px}}</style>\
+section{{font-size:13px;color:#1e293b;margin:0 0 6px}}\
+.gb-media{{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}}\
+.gb-media figure{{margin:0}}\
+.gb-media img{{max-width:280px;max-height:200px;border:1px solid #cbd5e1;border-radius:6px}}</style>\
 </head><body>{body}</body></html>",
         title = escape_html(title),
         body = body
@@ -76,16 +80,71 @@ fn paragraphs_html(text: &str) -> String {
         .collect::<String>()
 }
 
+/// Inline images embedded in the package (docx `word/media/`, pptx
+/// `ppt/media/`). The preview cannot reproduce Office layout, so images are
+/// appended as a bounded gallery instead of being dropped (#1714).
+/// EMF/WMF/TIFF are skipped: browsers cannot render them.
+fn media_gallery(bytes: &[u8], prefix: &str) -> String {
+    let Ok(mut archive) = ZipArchive::new(Cursor::new(bytes)) else {
+        return String::new();
+    };
+    let mut html = String::new();
+    let mut shown = 0usize;
+    for index in 0..archive.len() {
+        if shown >= 12 {
+            break;
+        }
+        let Ok(mut file) = archive.by_index(index) else {
+            continue;
+        };
+        let name = match file.name() {
+            Ok(value) => value.to_string(),
+            Err(_) => continue,
+        };
+        if !name.starts_with(prefix) {
+            continue;
+        }
+        let extension = name.rsplit('.').next().unwrap_or("").to_lowercase();
+        let mime = match extension.as_str() {
+            "png" => "image/png",
+            "jpg" | "jpeg" => "image/jpeg",
+            "gif" => "image/gif",
+            "webp" => "image/webp",
+            "bmp" => "image/bmp",
+            "svg" => "image/svg+xml",
+            _ => continue,
+        };
+        let mut data = Vec::new();
+        if file.read_to_end(&mut data).is_err() || data.len() > 2 * 1024 * 1024 {
+            continue;
+        }
+        let encoded = base64::engine::general_purpose::STANDARD.encode(&data);
+        html.push_str(&format!(
+            r#"<figure><img src="data:{mime};base64,{encoded}" alt="embedded image" loading="lazy"/></figure>"#
+        ));
+        shown += 1;
+    }
+    if shown == 0 {
+        String::new()
+    } else {
+        format!(r#"<div class="gb-media">{html}</div>"#)
+    }
+}
+
 fn word_html(file_name: &str, bytes: &[u8]) -> Result<String, String> {
     let text =
         super::ooxml_extract::extract_docx_text_from_zip(bytes)?;
-    Ok(document_shell(file_name, &paragraphs_html(&text)))
+    let mut body = paragraphs_html(&text);
+    body.push_str(&media_gallery(bytes, "word/media/"));
+    Ok(document_shell(file_name, &body))
 }
 
 fn slides_html(file_name: &str, bytes: &[u8]) -> Result<String, String> {
     let text =
         super::ooxml_extract::extract_pptx_text_from_zip(bytes)?;
-    Ok(document_shell(file_name, &paragraphs_html(&text)))
+    let mut body = paragraphs_html(&text);
+    body.push_str(&media_gallery(bytes, "ppt/media/"));
+    Ok(document_shell(file_name, &body))
 }
 
 struct SheetRow {

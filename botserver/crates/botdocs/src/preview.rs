@@ -11,6 +11,7 @@
 //!
 //! Everything user-authored is escaped; the only HTML emitted is the wrapper.
 
+use base64::Engine as _;
 use std::io::{Cursor, Read};
 use std::sync::Arc;
 
@@ -77,7 +78,10 @@ pub fn preview_html(file_name: &str, extension: &str, bytes: &[u8]) -> Result<St
     let body = match extension {
         "docx" | "doc" | "odt" | "rtf" => {
             let html = crate::storage::convert_docx_to_html(bytes)?;
-            format!(r#"<div class="gb-office-doc">{html}</div>"#)
+            format!(
+                r#"<div class="gb-office-doc">{html}</div>{}"#,
+                media_gallery(bytes, "word/media/")
+            )
         }
         "xlsx" | "xls" | "xlsb" | "ods" => spreadsheet_html(extension, bytes)?,
         "pptx" | "ppt" => presentation_html(bytes)?,
@@ -96,6 +100,9 @@ pub fn preview_html(file_name: &str, extension: &str, bytes: &[u8]) -> Result<St
 .gb-office-preview .gb-slide{{border:1px solid #cbd5e1;border-radius:8px;padding:16px 20px;margin:12px 0;background:#f8fafc;}}
 .gb-office-preview .gb-slide h3{{margin:0 0 8px;font:600 12px sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#64748b;}}
 .gb-office-preview .gb-slide p{{margin:4px 0;}}
+.gb-office-preview .gb-office-media{{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px;}}
+.gb-office-preview .gb-office-media img{{max-width:320px;max-height:240px;border:1px solid #cbd5e1;border-radius:6px;}}
+.gb-office-preview .gb-office-media figcaption{{font:11px sans-serif;color:#64748b;}}
 </style>
 <div class="gb-preview-name">{name}</div>
 {body}
@@ -103,6 +110,59 @@ pub fn preview_html(file_name: &str, extension: &str, bytes: &[u8]) -> Result<St
         name = crate::ui_fragments::html_escape(file_name),
         body = body
     ))
+}
+
+/// Inline images embedded in the package (docx `word/media/`, pptx
+/// `ppt/media/`), appended as a bounded gallery: the converter does not
+/// reproduce Office layout, but dropping the images entirely made image-heavy
+/// documents preview as a blank page (#1714). EMF/WMF/TIFF are skipped (not
+/// browser-renderable); each image is capped at 2 MiB, 12 per document.
+fn media_gallery(bytes: &[u8], prefix: &str) -> String {
+    let Ok(mut archive) = zip::ZipArchive::new(Cursor::new(bytes)) else {
+        return String::new();
+    };
+    let mut html = String::new();
+    let mut shown = 0usize;
+    for index in 0..archive.len() {
+        if shown >= 12 {
+            break;
+        }
+        let Ok(mut file) = archive.by_index(index) else {
+            continue;
+        };
+        let name = match file.name() {
+            Ok(value) => value.to_string(),
+            Err(_) => continue,
+        };
+        if !name.starts_with(prefix) {
+            continue;
+        }
+        let extension = name.rsplit('.').next().unwrap_or("").to_lowercase();
+        let mime = match extension.as_str() {
+            "png" => "image/png",
+            "jpg" | "jpeg" => "image/jpeg",
+            "gif" => "image/gif",
+            "webp" => "image/webp",
+            "bmp" => "image/bmp",
+            "svg" => "image/svg+xml",
+            _ => continue,
+        };
+        let mut data = Vec::new();
+        if file.read_to_end(&mut data).is_err() || data.len() > 2 * 1024 * 1024 {
+            continue;
+        }
+        let encoded = base64::engine::general_purpose::STANDARD.encode(&data);
+        html.push_str(&format!(
+            r#"<figure><img src="data:{mime};base64,{encoded}" alt="embedded image" loading="lazy"/><figcaption>{}</figcaption></figure>"#,
+            crate::ui_fragments::html_escape(&name)
+        ));
+        shown += 1;
+    }
+    if shown == 0 {
+        String::new()
+    } else {
+        format!(r#"<div class="gb-office-media">{html}</div>"#)
+    }
 }
 
 /// One bounded HTML row set per worksheet. A macro keeps the three concrete
@@ -248,6 +308,7 @@ fn presentation_html(bytes: &[u8]) -> Result<String, String> {
         }
         html.push_str("</div>");
     }
+    html.push_str(&media_gallery(bytes, "ppt/media/"));
     Ok(html)
 }
 
