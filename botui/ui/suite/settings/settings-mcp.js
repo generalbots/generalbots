@@ -13,6 +13,7 @@
 (function (ns) {
   var endpoints = {
     list: "/api/sources/mcp",
+    apps: "/api/mcp/apps",
     action: function (name, action) {
       return "/api/sources/mcp/" + encodeURIComponent(name) + "/" + action;
     },
@@ -126,41 +127,110 @@
         var bytes = decodeBase64(data && data.html_base64);
         if (!bytes) { throw new Error("Preview payload is not valid base64"); }
         var html = new TextDecoder("utf-8").decode(bytes);
-        // Same containment as the Integrations app preview: opaque iframe,
-        // scripts inside never see Settings, cookies or the conversation.
-        var blob = new Blob(["<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; base-uri 'none'; form-action 'none'\">" + html], { type: "text/html" });
-        var objectUrl = URL.createObjectURL(blob);
-        var overlay = document.createElement("div");
-        overlay.className = "settings-mcp-preview-overlay";
-        overlay.setAttribute("role", "dialog");
-        overlay.setAttribute("aria-modal", "true");
-        overlay.setAttribute("aria-label", (data && data.name) || "UI resource preview");
-        var panel = document.createElement("div");
-        panel.className = "settings-mcp-preview-panel";
-        var close = document.createElement("button");
-        close.type = "button";
-        close.textContent = "Close";
-        close.className = "btn-secondary btn-sm";
-        var frame = document.createElement("iframe");
-        frame.className = "settings-mcp-preview-frame";
-        frame.setAttribute("sandbox", "allow-scripts");
-        frame.src = objectUrl;
-        panel.appendChild(close);
-        panel.appendChild(frame);
-        overlay.appendChild(panel);
-        document.body.appendChild(overlay);
-        var dismiss = function () {
-          overlay.remove();
-          URL.revokeObjectURL(objectUrl);
-        };
-        close.addEventListener("click", dismiss);
-        overlay.addEventListener("click", function (event) {
-          if (event.target === overlay) { dismiss(); }
-        });
-        close.focus();
+        openHtmlPreview(html, (data && data.name) || "UI resource preview");
       })
       .catch(function (error) {
         status("MCP UI preview unavailable: " + error.message, true);
+      });
+  }
+
+  /// Sandboxed HTML preview shared by external UI resources and the built-in
+  /// `ui://generated/*` server: opaque iframe, strict CSP, no host access.
+  function openHtmlPreview(html, label) {
+    var blob = new Blob(["<meta http-equiv=\"Content-Security-Policy\" content=\"default-src 'none'; base-uri 'none'; form-action 'none'\">" + html], { type: "text/html" });
+    var objectUrl = URL.createObjectURL(blob);
+    var overlay = document.createElement("div");
+    overlay.className = "settings-mcp-preview-overlay";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.setAttribute("aria-label", label || "UI resource preview");
+    var panel = document.createElement("div");
+    panel.className = "settings-mcp-preview-panel";
+    var close = document.createElement("button");
+    close.type = "button";
+    close.textContent = "Close";
+    close.className = "btn-secondary btn-sm";
+    var frame = document.createElement("iframe");
+    frame.className = "settings-mcp-preview-frame";
+    frame.setAttribute("sandbox", "allow-scripts");
+    frame.src = objectUrl;
+    panel.appendChild(close);
+    panel.appendChild(frame);
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+    var dismiss = function () {
+      overlay.remove();
+      URL.revokeObjectURL(objectUrl);
+    };
+    close.addEventListener("click", dismiss);
+    overlay.addEventListener("click", function (event) {
+      if (event.target === overlay) { dismiss(); }
+    });
+    close.focus();
+  }
+
+  /// The built-in MCP server (#1676) publishes generated apps as
+  /// `ui://generated/{hash}` resources. Discovery lists them next to external
+  /// servers so the same signed, sandboxed frame renders any MCP app.
+  function loadGeneratedApps() {
+    var list = document.getElementById("settings-mcp-list");
+    if (!list) { return; }
+    fetch(endpoints.apps, {
+      method: "POST",
+      headers: headers({ "Content-Type": "application/json", Accept: "application/json" }),
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "resources/list" }),
+    })
+      .then(function (response) {
+        if (!response.ok) { throw new Error("HTTP " + response.status); }
+        return response.json();
+      })
+      .then(function (payload) {
+        var resources = (payload && payload.result && payload.result.resources) || [];
+        var block = document.createElement("div");
+        block.className = "settings-mcp-generated";
+        var rows = resources.map(function (resource, index) {
+          return '<div class="connection-item settings-mcp-row">' +
+            '<div class="connection-info">' +
+            '<span class="connection-name">' + escapeHtml(resource.name || resource.uri) +
+            ' <span class="connection-status">generated app · ui://</span></span>' +
+            '<span class="connection-status settings-mcp-desc">' + escapeHtml(resource.description || resource.uri) + "</span>" +
+            "</div>" +
+            '<div class="settings-mcp-actions">' +
+            '<button class="btn-secondary btn-sm settings-mcp-app-preview" data-uri="' + escapeHtml(resource.uri) +
+            '" data-name="' + escapeHtml(resource.name || resource.uri) + '" data-index="' + index + '">Preview</button>' +
+            "</div></div>";
+        }).join("");
+        block.innerHTML =
+          '<div class="settings-mcp-group-title">Generated apps (ui://)</div>' +
+          (rows || '<div class="empty-state"><p>No generated apps yet — ask the assistant to build one.</p></div>');
+        list.appendChild(block);
+        block.querySelectorAll(".settings-mcp-app-preview").forEach(function (button) {
+          button.addEventListener("click", function () {
+            var uri = button.getAttribute("data-uri");
+            var name = button.getAttribute("data-name");
+            fetch(endpoints.apps, {
+              method: "POST",
+              headers: headers({ "Content-Type": "application/json", Accept: "application/json" }),
+              body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "resources/read", params: { uri: uri } }),
+            })
+              .then(function (response) {
+                if (!response.ok) { throw new Error("HTTP " + response.status); }
+                return response.json();
+              })
+              .then(function (payload) {
+                var contents = (payload && payload.result && payload.result.contents) || [];
+                var html = contents.length ? contents[0].text : "";
+                if (!html) { throw new Error("empty resource"); }
+                openHtmlPreview(html, name);
+              })
+              .catch(function (error) {
+                status("Generated app preview unavailable: " + error.message, true);
+              });
+          });
+        });
+      })
+      .catch(function () {
+        // A build without the built-in MCP server simply lists no apps.
       });
   }
 
@@ -197,6 +267,7 @@
         var servers = normalize(payload);
         status(servers.length + " MCP server" + (servers.length === 1 ? "" : "s"));
         render(servers);
+        loadGeneratedApps();
       })
       .catch(function (error) {
         list.setAttribute("aria-busy", "false");
