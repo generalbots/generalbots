@@ -43,7 +43,15 @@ window.GBArtifacts = window.GBArtifacts || (function () {
   }
 
   function titleFor(content, kind) {
-    var heading = String(content || "").match(/^\s{0,3}#{1,6}\s+(.+)$/m);
+    var source = String(content || "");
+    // Drawn artifacts have no markdown heading: the old fallback used the
+    // first line, so an SVG panel was titled "<svg xmlns=\"http://…". Use the
+    // document's <title> when present, otherwise a human label (#1693).
+    var docTitle = source.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    if (docTitle && docTitle[1].trim()) return docTitle[1].trim().slice(0, 80);
+    if (/```svg/i.test(source) || /^\s*<svg[\s>]/i.test(source)) return "SVG drawing";
+    if (/```html/i.test(source) || /<!doctype html|<html[\s>]/i.test(source)) return "HTML document";
+    var heading = source.match(/^\s{0,3}#{1,6}\s+(.+)$/m);
     if (heading) return heading[1].replace(/[*_`]/g, "").trim().slice(0, 80);
     var lines = String(content || "").split(/\n/);
     for (var i = 0; i < lines.length; i++) {

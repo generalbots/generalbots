@@ -500,3 +500,14 @@ button: true   status: 200   type: image/png
 
 The preview is available as soon as the user turn appears, while the image
 description continues in parallel.
+
+### Artifact panel, timestamps, mentions (pass)
+
+- **Artifact panel:** “Open as document” opened the side panel with 15,193
+  rendered characters. Its title used to be the first line (`<svg xmlns=…`);
+  it now resolves to `SVG drawing`, the document `<title>` for HTML, or the
+  markdown heading (verified: `SVG drawing`, `Quarterly report`, `Real heading`).
+- **Timestamps:** live turns carry `data-time` (e.g. `11:58 AM`); replayed
+  history keeps its stored timestamp.
+- **Mentions:** typing `@` opened the entity dropdown with the CRM types
+  (Lead / Opportunity / Account / Contact / Invoice) and the search hint.
