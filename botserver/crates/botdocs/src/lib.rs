@@ -1,6 +1,7 @@
 pub mod collaboration;
 pub mod handlers_api;
 pub mod ooxml;
+pub mod preview;
 pub mod review;
 pub mod state;
 pub mod storage;
@@ -40,6 +41,7 @@ pub use types_requests::*;
 pub fn configure_docs_routes() -> Router<Arc<DocState>> {
     Router::new()
         .merge(ui_fragments::configure())
+        .route("/api/files/office-preview", get(preview::handle_office_preview))
         .route("/api/docs/list", get(handle_list_documents))
         .route("/api/docs/search", get(handle_search_documents))
         .route("/api/docs/load", get(handle_get_document))

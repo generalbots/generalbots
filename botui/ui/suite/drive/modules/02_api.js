@@ -108,8 +108,13 @@ var PREVIEWABLE_EXT = [
     "pdf",
     "txt", "md", "csv", "json", "xml", "log", "yml", "yaml", "toml",
     "js", "ts", "py", "rs", "go", "java", "c", "cpp", "h", "html", "css",
-    "bas", "sql", "sh", "bat", "ini", "cfg", "conf"
+    "bas", "sql", "sh", "bat", "ini", "cfg", "conf",
+    "docx", "doc", "odt", "rtf", "xlsx", "xls", "xlsb", "ods", "pptx", "ppt"
 ];
+
+// Office documents render through the server-side converter (docx-rs,
+// calamine, slide XML) instead of the raw-bytes viewer.
+var OFFICE_PREVIEW_EXT = ["docx", "doc", "odt", "rtf", "xlsx", "xls", "xlsb", "ods", "pptx", "ppt"];
 
 function getFileExt(path) {
     var name = (path || "").split("/").pop() || "";
@@ -132,6 +137,16 @@ async function previewFile(path) {
         const headers = { "Content-Type": "application/json" };
         const token = localStorage.getItem("gb-access-token") || sessionStorage.getItem("gb-access-token");
         if (token) headers["Authorization"] = "Bearer " + token;
+        if (OFFICE_PREVIEW_EXT.indexOf(ext) !== -1) {
+            const office = await fetch(
+                "/api/files/office-preview?bucket=" + encodeURIComponent(getEffectiveBucket()) +
+                "&path=" + encodeURIComponent(path),
+                { headers: token ? { "Authorization": "Bearer " + token } : {} }
+            );
+            if (!office.ok) throw new Error("HTTP " + office.status);
+            showOfficePreviewModal(fileName, await office.text());
+            return;
+        }
         const response = await fetch(API_BASE + "/download-inline", {
             method: "POST",
             headers: headers,

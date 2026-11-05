@@ -60,6 +60,33 @@ function sanitizeHtml(html) {
   return html;
 }
 
+// Office documents (docx/xlsx/pptx) arrive as a server-rendered, escaped
+// HTML fragment: render it on a white page inside the usual preview shell.
+function showOfficePreviewModal(fileName, html) {
+    var modal = document.getElementById("preview-modal");
+    if (modal) modal.remove();
+    modal = document.createElement("div");
+    modal.id = "preview-modal";
+    modal.style.cssText = "position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); display: flex; align-items: center; justify-content: center; z-index: 9999; backdrop-filter: blur(8px);";
+    const container = document.createElement("div");
+    container.style.cssText = "background: #1e293b; border: 1px solid #334155; border-radius: 12px; width: 82%; max-width: 980px; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); overflow: hidden;";
+    const header = document.createElement("div");
+    header.style.cssText = "display: flex; align-items: center; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid #334155;";
+    header.innerHTML = '<h3 style="margin:0; color:#f8fafc; font-size:1.125rem;">Preview: ' + escapeHtml(fileName) + '</h3>';
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "\u00D7";
+    closeBtn.style.cssText = "background: none; border: none; color: #94a3b8; font-size: 28px; cursor: pointer; line-height: 1; padding: 0; margin: 0;";
+    closeBtn.onclick = function() { modal.remove(); };
+    header.appendChild(closeBtn);
+    const body = document.createElement("div");
+    body.style.cssText = "padding: 20px; overflow: auto; flex-grow: 1; background: #0f172a;";
+    body.innerHTML = html;
+    container.appendChild(header);
+    container.appendChild(body);
+    modal.appendChild(container);
+    document.body.appendChild(modal);
+}
+
 function showPreviewModal(fileName, ext, blob) {
     var modal = document.getElementById("preview-modal");
     if (modal) modal.remove();
