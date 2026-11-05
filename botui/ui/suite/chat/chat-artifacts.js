@@ -142,6 +142,10 @@ function openArtifactPanel(content, sourceEl) {
   var title = window.GBArtifacts.titleFor(content, kind);
   if (codeMatch && lang === "html") kind = "html";
   if (kind === "code" && /^\s*<(!doctype|html)/i.test(body)) kind = "html";
+  // An SVG drawing is the one artifact that has an editable destination:
+  // Canvas imports it into real shapes instead of showing read-only code
+  // (#1708).
+  var isSvg = (codeMatch && lang === "svg") || /^\s*<svg[\s>]/i.test(body);
 
   var panel = document.createElement("div");
   panel.id = "gb-artifact-panel";
@@ -169,6 +173,7 @@ function openArtifactPanel(content, sourceEl) {
     '<div class="gb-artifact-actions">' +
     '<input class="gb-artifact-folder" type="text" placeholder="Folder (optional)" aria-label="Drive folder" />' +
     '<button class="gb-artifact-copy" title="Copy">Copy</button>' +
+    (isSvg ? '<button class="gb-artifact-open-canvas" title="Open in Canvas">Open in Canvas</button>' : "") +
     '<button class="gb-artifact-save" title="Save to Drive">Save</button>' +
     '<button class="gb-artifact-close" title="Close">Close</button>' +
     "</div></div>" +
@@ -193,6 +198,51 @@ function openArtifactPanel(content, sourceEl) {
   panel.querySelector(".gb-artifact-copy").addEventListener("click", function () {
     if (navigator.clipboard) navigator.clipboard.writeText(body);
   });
+  var openCanvasBtn = panel.querySelector(".gb-artifact-open-canvas");
+  if (openCanvasBtn) {
+    openCanvasBtn.addEventListener("click", function () {
+      var folderInput = panel.querySelector(".gb-artifact-folder");
+      var folder = folderInput ? folderInput.value.trim().replace(/^\/+|\/+$/g, "") : "";
+      var fileName = window.GBArtifacts.slug(title) + ".svg";
+      var path = folder ? folder + "/" + fileName : fileName;
+      var token = "";
+      try {
+        token =
+          (window.getGBAccessToken && window.getGBAccessToken()) ||
+          localStorage.getItem("gb-access-token") ||
+          sessionStorage.getItem("gb-access-token") ||
+          "";
+      } catch (e) {}
+      fetch("/api/files/write", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: "Bearer " + token } : {}),
+        },
+        body: JSON.stringify({
+          path: path,
+          content: btoa(unescape(encodeURIComponent(body))),
+          scope: "user",
+        }),
+      })
+        .then(function (res) {
+          if (!res.ok) throw new Error("HTTP " + res.status);
+          if (window.GBToasts) {
+            GBToasts.show("Canvas", "Opening " + fileName + " in Canvas", "success");
+          }
+          if (typeof window.openDeepLink === "function") {
+            window.openDeepLink("canvas", { file: path, scope: "user" });
+          } else if (window.WindowManager && window.WindowManager.openDeepLink) {
+            window.WindowManager.openDeepLink("canvas", { file: path, scope: "user" });
+          }
+        })
+        .catch(function (err) {
+          if (window.GBToasts) {
+            GBToasts.show("Canvas", "Could not open in Canvas: " + err.message, "error");
+          }
+        });
+    });
+  }
   panel.querySelector(".gb-artifact-save").addEventListener("click", function () {
     var ext = kind === "markdown" ? "md" : kind === "html" ? "html" : lang || "txt";
     var fileName = window.GBArtifacts.slug(title) + "." + ext;

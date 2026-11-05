@@ -1228,6 +1228,13 @@
         var p = window.__CANVAS_FILE_PATH || "";
         var b = window.__CANVAS_FILE_BUCKET || "";
         var s = window.__CANVAS_FILE_SCOPE || "bot";
+        // Deep links (chat artifact, Drive "Open") pass their arguments through
+        // window.__gbAppParams__; the shell URL has no query string of its own
+        // (#1708). Query params stay supported for direct navigation.
+        var gp = window.__gbAppParams__ || {};
+        if (!p) p = gp.file || "";
+        if (!b) b = gp.bucket || "";
+        if (gp.scope) s = gp.scope;
         if (!p || !b) {
             var qs = new URLSearchParams(window.location.search);
             if (!p) p = qs.get("path") || "";
@@ -1458,10 +1465,14 @@
 
     function loadDriveDraw() {
         var f = currentCanvasFile();
-        if (!f.bucket || !f.path) return;
+        // A deep link can carry only the path: the API resolves the bucket from
+        // the scope (default bucket) when it is omitted (#1708).
+        if (!f.path) return;
+        var body = { path: f.path, scope: f.scope };
+        if (f.bucket) body.bucket = f.bucket;
         api("/api/files/download", {
             method: "POST",
-            body: JSON.stringify({ bucket: f.bucket, path: f.path, scope: f.scope }),
+            body: JSON.stringify(body),
         })
             .then(function (d) {
                 if (!d || !d.content) return;
@@ -1513,7 +1524,7 @@
         }, null, 2);
 
         var name = canvasTitle();
-        if (!f.bucket) {
+        if (!f.bucket && !f.path) {
             // Standalone canvas: download a local .draw file.
             var blob = new Blob([content], { type: "application/json" });
             var link = document.createElement("a");
@@ -1533,14 +1544,15 @@
             window.__CANVAS_FILE_PATH = path;
         }
 
+        var writeBody = {
+            path: path,
+            content: btoa(content),
+            scope: f.scope,
+        };
+        if (f.bucket) writeBody.bucket = f.bucket;
         api("/api/files/write", {
             method: "POST",
-            body: JSON.stringify({
-                bucket: f.bucket,
-                path: path,
-                content: btoa(content),
-                scope: f.scope,
-            }),
+            body: JSON.stringify(writeBody),
         })
             .then(function () {
                 setStatus("Saved · " + path.split("/").pop() + " ✓");
