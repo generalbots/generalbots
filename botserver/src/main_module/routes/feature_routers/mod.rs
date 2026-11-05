@@ -33,6 +33,11 @@ mod resolve_default_branch;
 #[cfg(any(feature = "paper", feature = "designer", feature = "dashboards", feature = "canvas", feature = "social", feature = "billing", feature = "saas", feature = "marketing", feature = "telegram", feature = "instagram", feature = "msteams", feature = "attendant"))]
 pub(crate) use resolve_default_branch::*;
 
+#[cfg(feature = "canvas")]
+mod make_canvas_router;
+#[cfg(feature = "canvas")]
+pub(crate) use make_canvas_router::*;
+
 #[cfg(feature = "saas")]
 mod resolve_default_bot_id;
 #[cfg(feature = "saas")]

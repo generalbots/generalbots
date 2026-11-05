@@ -80,16 +80,6 @@ pub(crate) fn resolve_directory_service_token(api_url: &str, configured: Option<
     }
     configured
 }
-pub(crate) fn resolve_default_branch_pool(
-    _pool: &diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
-) -> (uuid::Uuid, uuid::Uuid) {
-    let mut conn = match _pool.get() {
-        Ok(c) => c,
-        Err(_) => return (uuid::Uuid::nil(), uuid::Uuid::nil()),
-    };
-    let branch = resolve_default_branch(&mut conn);
-    (branch, branch)
-}
 #[cfg(feature = "paper")]
 pub(crate) fn make_paper_state(app_state: &Arc<AppState>) -> Arc<crate::paper::state::PaperState> {
     let drive = app_state.drive.clone();
@@ -219,19 +209,6 @@ pub(crate) fn make_dashboards_router(app_state: &Arc<AppState>) -> Router<()> {
             pool: app_state.conn.clone(),
             get_default_bot: default_bot_fn,
         })))
-}
-#[cfg(feature = "canvas")]
-pub(crate) fn make_canvas_router(app_state: &Arc<AppState>) -> Router<()> {
-    let make_state = || Arc::new(botcanvas::CanvasState {
-        pool: Arc::new(app_state.conn.clone()),
-        get_bot_context: Arc::new(
-            resolve_default_branch_pool as fn(&diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>) -> (uuid::Uuid, uuid::Uuid),
-        ),
-    });
-    let state = make_state();
-    Router::new()
-        .merge(crate::canvas::configure_canvas_routes().with_state(state.clone()))
-        .merge(crate::canvas::configure_canvas_ui_routes().with_state(state))
 }
 #[cfg(feature = "social")]
 pub(crate) fn make_social_router(app_state: &Arc<AppState>) -> Router<()> {
