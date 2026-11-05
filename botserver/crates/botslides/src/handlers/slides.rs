@@ -228,6 +228,7 @@ fn wire_element(payload: &serde_json::Value) -> Option<SlideElement> {
         .and_then(|value| value.as_str())?
         .to_string();
     let number = |key: &str| payload.get(key).and_then(|value| value.as_f64()).unwrap_or(0.0);
+    let number_opt = |key: &str| payload.get(key).and_then(|value| value.as_f64());
     let text = |key: &str| {
         payload
             .get(key)
@@ -253,16 +254,11 @@ fn wire_element(payload: &serde_json::Value) -> Option<SlideElement> {
         style: ElementStyle {
             fill: text("fill"),
             stroke: text("stroke"),
-            stroke_width: None,
-            opacity: None,
-            shadow: None,
-            font_family: None,
-            font_size: None,
-            font_weight: None,
-            font_style: None,
-            text_align: None,
-            vertical_align: None,
-            locked: false,
+            stroke_width: number_opt("stroke_width").or_else(|| number_opt("strokeWidth")),
+            opacity: number_opt("opacity"),
+            font_size: number_opt("font_size").or_else(|| number_opt("fontSize")),
+            color: text("color"),
+            ..Default::default()
         },
         animations: Vec::new(),
         z_index: 0,
