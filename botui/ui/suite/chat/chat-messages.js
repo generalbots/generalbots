@@ -761,6 +761,16 @@ function processMessage(data) {
         speakText(finalReasoning);
       }
     }
+    // The final bubble can be rendered by a pane renderer that skips the
+    // addMessage hydration; re-run it on the visible last bot turn so raw
+    // `[name](vmfile:...)` text always becomes attachment cards.
+    try {
+      var bots = document.querySelectorAll("#messages .message.bot");
+      var lastBot = bots.length ? bots[bots.length - 1] : null;
+      if (lastBot && typeof hydrateVmAttachments === "function") {
+        hydrateVmAttachments(lastBot);
+      }
+    } catch (e) { /* hydration is best-effort */ }
     ChatState.isStreaming = false;
     ChatState.currentReasoning = "";
     // Consumers that react to a finished turn (voice/full-duplex, proactivity)

@@ -182,9 +182,15 @@
     if (typeof mergeWorkspaceOutput === "function") mergeWorkspaceOutput(div);
     msgs.scrollTop = msgs.scrollHeight;
     if (sender !== "user") {
-      var cards = div.querySelectorAll(".gb-attachment");
-      for (var ci = 0; ci < cards.length; ci++) {
-        if (typeof vmBindAttachment === "function") vmBindAttachment(cards[ci]);
+      if (typeof hydrateVmAttachments === "function") {
+        // Converts raw `[name](vmfile:...)` text (marked does not always
+        // produce an anchor) and binds every card on this message.
+        hydrateVmAttachments(div);
+      } else {
+        var cards = div.querySelectorAll(".gb-attachment");
+        for (var ci = 0; ci < cards.length; ci++) {
+          if (typeof vmBindAttachment === "function") vmBindAttachment(cards[ci]);
+        }
       }
     }
     return div;
