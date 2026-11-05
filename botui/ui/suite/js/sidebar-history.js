@@ -131,6 +131,12 @@
       return;
     }
     host._gbLastSig = sig;
+    // Preserve children that are not conversation items or group labels
+    // (e.g. the "Locked conversations" toggle) across regrouping.
+    var extras = Array.prototype.slice.call(host.children).filter(function (el) {
+      return !el.classList.contains("chat-sidebar-conv-item") &&
+             !el.classList.contains("gb-conv-group-title");
+    });
     host.innerHTML = "";
     ["Today", "Yesterday", "Previous 7 Days", "Older"].forEach(function (name) {
       if (!groups[name].length) return;
@@ -141,6 +147,9 @@
       groups[name].forEach(function (item) {
         host.appendChild(item);
       });
+    });
+    extras.forEach(function (el) {
+      if (el && el.parentNode !== host) host.appendChild(el);
     });
     applyFilter(host);
   }

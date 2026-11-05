@@ -420,7 +420,9 @@ select:focus {
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1100;
+    /* Above the desktop window layer (1500) and the Start menu (9999):
+       modal dialogs appended to <body> must never render behind windows. */
+    z-index: 12000;
     padding: 16px;
     opacity: 0;
     visibility: hidden;

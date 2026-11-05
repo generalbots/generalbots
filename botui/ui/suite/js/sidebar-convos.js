@@ -8,6 +8,7 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
 
 (function (mod) {
   var historyLoading = false;
+  var historyPending = false;
 
   function authToken() {
     if (window.getGBAccessToken) {
@@ -245,7 +246,9 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
   }
 
   mod.loadHistory = function () {
-    if (historyLoading) return;
+    // A refresh requested while another is in flight must not be dropped:
+    // queue it so lock/rename/delete actions always re-render afterwards.
+    if (historyLoading) { historyPending = true; return; }
     var list = document.getElementById("chatConversations");
     if (!list) return;
     historyLoading = true;
@@ -275,6 +278,10 @@ window.GBSidebarConvos = window.GBSidebarConvos || {};
       })
       .finally(function () {
         historyLoading = false;
+        if (historyPending) {
+          historyPending = false;
+          mod.loadHistory();
+        }
       });
   };
 
