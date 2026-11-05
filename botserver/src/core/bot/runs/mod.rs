@@ -5,6 +5,7 @@
 
 pub mod bus;
 pub mod caps;
+pub mod goal_runner;
 pub mod group_budget;
 pub mod observability;
 pub mod quality;

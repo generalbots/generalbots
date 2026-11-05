@@ -52,6 +52,10 @@ pub(super) async fn merge_part_a(
     *api_router = api_router
         .clone()
         .merge(super::subagents::router());
+    // #1705 — long-horizon goal runs with automatic checkpoints.
+    *api_router = api_router
+        .clone()
+        .merge(super::goal_runs::router());
 
     *api_router = api_router
         .clone()
