@@ -243,3 +243,47 @@
   border-radius: 6px;
   font-size: 11.5px;
 }
+
+/* #1694 — per-agent progress for parallel fan-out. */
+.gb-subagents {
+    margin: 10px 0;
+    border: 1px solid var(--gb-border-soft, #e5e7eb);
+    border-radius: 10px;
+    background: var(--gb-surface-muted, #f7f8fa);
+    font-size: 12.5px;
+    overflow: hidden;
+}
+.gb-subagents-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--gb-border-soft, #e5e7eb);
+    font-weight: 600;
+}
+.gb-subagents-count { color: var(--gb-muted, #6b7280); font-weight: 500; }
+.gb-subagent-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--gb-border-soft, #e5e7eb);
+}
+.gb-subagent-row:last-child { border-bottom: 0; }
+.gb-subagent-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #9ca3af; flex: 0 0 8px;
+}
+.gb-subagent-dot.is-running { background: #f59e0b; }
+.gb-subagent-dot.is-succeeded { background: #16a34a; }
+.gb-subagent-dot.is-failed { background: #dc2626; }
+.gb-subagent-name { font-weight: 600; }
+.gb-subagent-state { color: var(--gb-muted, #6b7280); }
+.gb-subagent-excerpt {
+    flex: 1 0 100%;
+    color: var(--gb-muted, #6b7280);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

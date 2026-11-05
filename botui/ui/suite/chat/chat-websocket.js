@@ -221,6 +221,8 @@ function dialChatSocket(seq) {
           window.SurfaceRenderer.applyUpdate(data);
         } else if (data.data.name === "gb.app" && window.AppFrame) {
           window.AppFrame.renderFromFrame(data);
+        } else if (data.data.name === "gb.subagent" && window.GBSubagents) {
+          window.GBSubagents.apply(data.data.payload || {});
         }
       }
       if (window.AgentMode && data.type &&
