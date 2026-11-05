@@ -274,12 +274,6 @@ async fn ingest_single_attachment(
 
     let excerpt = super::attachment_text::extract_excerpt(&fname, &data);
     let media = super::attachment_text::is_media(&fname);
-    // Resolve media before the Drive upload takes ownership of `data`.
-    let media_note = if media && excerpt.is_none() {
-        describe_media_locally(state, bot_uuid, &fname, &data).await
-    } else {
-        None
-    };
     let mut stored = false;
     if let Some(drive) = state.drive.as_ref() {
         // Same resolution as the channel stagers: an org-hosted bot lives under
@@ -293,7 +287,10 @@ async fn ingest_single_attachment(
         };
         let bucket = loc.bucket.clone();
         let key = loc.key_for(&format!("inbox/{fname}"));
-        match drive.put_object(&bucket, &key, data, None).await {
+        // Stage the upload BEFORE media analysis: describing an image can take
+        // tens of seconds, and the chat already offers Preview, which answered
+        // 404 while the file was not yet in the inbox (#1693).
+        match drive.put_object(&bucket, &key, data.clone(), None).await {
             Ok(()) => {
                 stored = true;
                 log::info!("stored chat attachment: {bucket}/{key}");
@@ -310,6 +307,12 @@ async fn ingest_single_attachment(
             "{user_text}\n\n📎 {fname} (Drive is not configured, so the file was not stored)"
         );
     }
+    // Media analysis runs after the file is reachable in the inbox.
+    let media_note = if media && excerpt.is_none() {
+        describe_media_locally(state, bot_uuid, &fname, &data).await
+    } else {
+        None
+    };
     if stored {
         user_text = format!("{user_text}\n\n📎 {fname}");
         attachment_note = Some(match excerpt {

@@ -486,3 +486,17 @@ body: name,note A,&lt;b&gt;not bold&lt;/b&gt; B,"x,y"
 
 The preview is capped at 200k characters and rendered as escaped monospace
 text, so an uploaded file cannot inject markup into the conversation.
+
+### Image preview race (fixed)
+
+Clicking Preview on an image 1.8 s after send returned 404: the attachment was
+only staged **after** BotModels finished describing it (~40 s for vision).
+`turn_hooks` now uploads the file to the Drive inbox before media analysis
+(the bytes are cloned for the upload). Re-test mid-turn:
+
+```
+button: true   status: 200   type: image/png
+```
+
+The preview is available as soon as the user turn appears, while the image
+description continues in parallel.
