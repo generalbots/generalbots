@@ -37,6 +37,10 @@ pub(super) async fn merge_part_a(
     *api_router = api_router
         .clone()
         .merge(crate::core::bot::runs::quality::router());
+    // #1700 — first-token latency summary and hourly trend.
+    *api_router = api_router
+        .clone()
+        .merge(crate::core::bot::runs::ttft::router());
     *api_router = api_router
         .clone()
         .merge(crate::core::bot::runs::tools::router());

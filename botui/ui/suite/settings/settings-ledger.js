@@ -179,11 +179,77 @@
     }
   }
 
+  function loadTtft(hours) {
+    var box = document.getElementById("ledger-ttft-report");
+    if (!box) return;
+    box.innerHTML = empty("Loading…");
+    fetch("/api/runs/ttft?hours=" + encodeURIComponent(hours), {
+      headers: token() ? { Authorization: "Bearer " + token() } : {},
+    })
+      .then(function (response) {
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        return response.json();
+      })
+      .then(function (payload) {
+        var summary = (payload && payload.summary) || {};
+        var buckets = (payload && payload.trend) || [];
+        var head =
+          '<p class="ledger-budget-summary">p50 <strong>' + esc(summary.p50_ms || 0) +
+          " ms</strong> · p95 <strong>" + esc(summary.p95_ms || 0) +
+          " ms</strong> · avg <strong>" + esc(summary.avg_ms || 0) +
+          " ms</strong> · n=" + esc(summary.count || 0) +
+          " · min " + esc(summary.min_ms || 0) + " ms · max " + esc(summary.max_ms || 0) + " ms</p>";
+        if (!buckets.length) {
+          box.innerHTML = head + empty("No first-token samples in this window yet.");
+          return;
+        }
+        var rows = buckets
+          .map(function (bucket) {
+            return (
+              "<tr><td>" + esc(bucket.bucket) + "</td><td>" + esc(bucket.count) +
+              "</td><td>" + esc(bucket.p50_ms) + "</td><td>" + esc(bucket.p95_ms) + "</td></tr>"
+            );
+          })
+          .join("");
+        box.innerHTML =
+          head +
+          '<table class="ledger-table"><thead><tr><th>Hour</th><th>Samples</th>' +
+          "<th>p50 (ms)</th><th>p95 (ms)</th></tr></thead><tbody>" + rows + "</tbody></table>";
+      })
+      .catch(function (error) {
+        box.innerHTML = empty("Could not load TTFT metrics: " + error.message);
+      });
+  }
+
+  function bindTtft() {
+    var hours = document.getElementById("ledger-ttft-hours");
+    var reload = document.getElementById("ledger-ttft-load");
+    if (reload) {
+      reload.addEventListener("click", function () {
+        loadTtft(Number(hours.value || 24));
+      });
+    }
+  }
+
   function load(kind) {
     if (state.busy) return;
     state.busy = true;
     state.kind = kind;
     var box = list();
+    if (kind === "ttft") {
+      if (box) {
+        box.innerHTML =
+          '<div class="ledger-budget-toolbar">' +
+          '<label>Window (hours) <input id="ledger-ttft-hours" type="number" min="1" max="720" value="24"></label>' +
+          '<button type="button" class="btn-secondary btn-sm" id="ledger-ttft-load">Load</button>' +
+          "</div>" +
+          '<div id="ledger-ttft-report">' + empty("Load the window to see first-token latency.") + "</div>";
+        bindTtft();
+        loadTtft(24);
+      }
+      state.busy = false;
+      return;
+    }
     if (kind === "budget") {
       if (box) {
         box.innerHTML = budgetForm();
