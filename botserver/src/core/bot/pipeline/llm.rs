@@ -141,6 +141,13 @@ async fn stream_llm_response_inner(
             let mut full_response = String::new();
             let reasoning_accumulated: String;
 
+            // #1696 — per-run caps must gate THIS path too: the web chat
+            // streams through the pipeline, not the legacy ws loop.
+            let caps = crate::core::bot::runs::caps_resolve::resolve_for_run(
+                state, bot_uuid, user_id,
+            );
+            let mut budget = crate::core::bot::runs::caps::RunBudget::start(caps);
+
             for attempt in 0..=LLM_RETRY_MAX {
                 full_response.clear();
                 let mut content_buffer = String::new();
@@ -186,6 +193,9 @@ async fn stream_llm_response_inner(
                     log::warn!("LLM retry attempt {}/{}", attempt, LLM_RETRY_MAX);
                 }
 
+                // #1700 — first content chunk latency for this attempt.
+                let llm_started_at = std::time::Instant::now();
+                let mut ttft_logged = false;
                 let mut keepalive = tokio::time::interval(Duration::from_millis(800));
                 keepalive.set_missed_tick_behavior(tokio::time::MissedTickBehavior::Skip);
                 loop {
@@ -255,6 +265,56 @@ async fn stream_llm_response_inner(
                                     }
                                     full_response.push_str(&chunk);
                                     content_buffer.push_str(&chunk);
+                                    budget.observe_chars(full_response.chars().count());
+                                    if let Some(breach) = budget.check() {
+                                        let notice = format!(
+                                            "Run stopped — {}.",
+                                            crate::core::bot::runs::caps::RunBudget::describe(&breach)
+                                        );
+                                        log::warn!(
+                                            "run cap: {} (session {})",
+                                            crate::core::bot::runs::caps::RunBudget::describe(&breach),
+                                            session_id_s
+                                        );
+                                        {
+                                            let mut sm = state.session_manager.lock().await;
+                                            let _ = sm.save_message(session_id, user_id, 2, &notice, 2);
+                                        }
+                                        let capped = serde_json::json!({
+                                            "bot_id": bot_uuid_s,
+                                            "user_id": user_id.to_string(),
+                                            "session_id": session_id_s,
+                                            "channel": "web",
+                                            "content": notice,
+                                            "message_type": 2,
+                                            "is_complete": true,
+                                            "suggestions": [],
+                                            "switchers": [],
+                                            "context_length": 0,
+                                            "context_max_length": 0,
+                                        });
+                                        let _ = sink.send_raw_json(&capped).await;
+                                        return Ok(());
+                                    }
+                                    if !ttft_logged {
+                                        ttft_logged = true;
+                                        let ttft_ms = i64::try_from(
+                                            llm_started_at.elapsed().as_millis(),
+                                        )
+                                        .unwrap_or(i64::MAX);
+                                        log::info!(
+                                            "llm_ttft: {} ms (pipeline, model {})",
+                                            ttft_ms,
+                                            llm_model
+                                        );
+                                        crate::core::bot::runs::ttft::record_first_token(
+                                            &state.conn,
+                                            session_id,
+                                            bot_uuid,
+                                            &llm_model,
+                                            ttft_ms,
+                                        );
+                                    }
                                 }
                                 None => break,
                             }
@@ -467,6 +527,30 @@ async fn stream_llm_response_inner(
                             // a runaway listing must not crowd out the answer.
                             let follow_output: String = tool_output.chars().take(12_000).collect();
                             let mut follow_messages = messages.clone();
+                            // #1701 — a message sent while the step runs is
+                            // honored at the step boundary in THIS path too
+                            // (web chat streams through the pipeline, so the
+                            // ws-loop steering queue alone was dead code).
+                            if let Some(steer) = crate::core::bot::runs::bus::bus()
+                                .take_steering(&session_id_s)
+                            {
+                                log::warn!(
+                                    "steering applied before follow-up (session {}): {}",
+                                    session_id_s, steer
+                                );
+                                let notice = serde_json::json!({
+                                    "type": "gb.steer",
+                                    "session_id": session_id_s,
+                                    "message": steer,
+                                });
+                                let _ = sink.send_raw_json(&notice).await;
+                                if let Some(items) = follow_messages.as_array_mut() {
+                                    items.push(serde_json::json!({
+                                        "role": "user",
+                                        "content": crate::core::bot::runs::steering::instruction(&steer),
+                                    }));
+                                }
+                            }
                             if let Some(items) = follow_messages.as_array_mut() {
                                 items.push(serde_json::json!({
                                     "role": "assistant",

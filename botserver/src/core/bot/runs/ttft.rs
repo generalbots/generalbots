@@ -21,6 +21,34 @@ pub fn router() -> Router<Arc<AppState>> {
     Router::new().route("/api/runs/ttft", get(run_ttft))
 }
 
+/// Records one first-token sample for a chat turn (#1700).
+///
+/// Both streaming implementations must feed `llm_metrics`: the legacy
+/// websocket loop (`ws/stream.rs`) and the pipeline (`pipeline/llm.rs`). This
+/// helper keeps the row shape identical so the dashboard sees one series.
+pub fn record_first_token(
+    pool: &botcore::shared::utils::DbPool,
+    session_id: uuid::Uuid,
+    bot_uuid: uuid::Uuid,
+    model: &str,
+    ttft_ms: i64,
+) {
+    let pool = pool.clone();
+    let model = model.to_string();
+    tokio::task::spawn_blocking(move || {
+        let Ok(mut conn) = pool.get() else { return };
+        let _ = diesel::sql_query(
+            "INSERT INTO llm_metrics (id, request_id, session_id, bot_id, model, request_type, input_tokens, output_tokens, total_tokens, latency_ms, ttft_ms, cached, success, estimated_cost, timestamp, metadata) \
+             VALUES (gen_random_uuid(), gen_random_uuid(), $1, $2, $3, 'chat', 0, 0, 0, $4, $4, false, true, 0, NOW(), '{}'::jsonb)",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(session_id)
+        .bind::<diesel::sql_types::Uuid, _>(bot_uuid)
+        .bind::<diesel::sql_types::Text, _>(&model)
+        .bind::<diesel::sql_types::BigInt, _>(ttft_ms)
+        .execute(&mut conn);
+    });
+}
+
 #[derive(Debug, diesel::QueryableByName)]
 struct SampleRow {
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::BigInt>)]
