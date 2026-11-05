@@ -81,10 +81,13 @@ struct RunRow {
     target_value: Option<f64>,
 }
 
-const RUN_SELECT: &str = "SELECT r.id::text AS id, r.status, r.checkpoints, r.interval_seconds, \
+// Columns and FROM are kept apart: `advance` adds extra columns for the
+// tick. Concatenating them after FROM produced 'syntax error at or near ::"'
+// on every checkpoint.
+const RUN_COLUMNS: &str = "SELECT r.id::text AS id, r.status, r.checkpoints, r.interval_seconds, \
     r.step_value::double precision AS step_value, r.last_value::double precision AS last_value, \
-    k.target_value::double precision AS target_value \
-    FROM goal_runs r LEFT JOIN okr_key_results k ON k.id = r.key_result_id ";
+    k.target_value::double precision AS target_value";
+const RUN_FROM: &str = " FROM goal_runs r LEFT JOIN okr_key_results k ON k.id = r.key_result_id ";
 
 async fn create(
     State(state): State<Arc<AppState>>,
@@ -201,9 +204,9 @@ struct TickRow {
 fn advance(pool: &DbPool, id: &str) -> Result<RunRow, String> {
     let mut conn = pool.get().map_err(|error| error.to_string())?;
     let run = diesel::sql_query(format!(
-        "{RUN_SELECT}, r.user_id, r.key_result_id, \
+        "{RUN_COLUMNS}, r.user_id, r.key_result_id, \
          k.org_id, k.bot_id, k.start_value::double precision AS start_value, \
-         k.current_value::double precision AS current_value \
+         k.current_value::double precision AS current_value{RUN_FROM} \
          WHERE r.id = $1::uuid"
     ))
     .bind::<diesel::sql_types::Text, _>(id)
@@ -277,7 +280,7 @@ fn advance(pool: &DbPool, id: &str) -> Result<RunRow, String> {
     .execute(&mut conn)
     .map_err(|error| format!("goal run update failed: {error}"))?;
 
-    diesel::sql_query(format!("{RUN_SELECT} WHERE r.id = $1::uuid"))
+    diesel::sql_query(format!("{RUN_COLUMNS}{RUN_FROM} WHERE r.id = $1::uuid"))
         .bind::<diesel::sql_types::Text, _>(id)
         .get_result::<RunRow>(&mut conn)
         .map_err(|error| format!("goal run reload failed: {error}"))
@@ -362,7 +365,7 @@ async fn list(
         .get()
         .map_err(|e| api_error(StatusCode::INTERNAL_SERVER_ERROR, &format!("db pool: {e}")))?;
     let rows = diesel::sql_query(format!(
-        "{RUN_SELECT} WHERE r.objective_id = $1::uuid ORDER BY r.created_at DESC LIMIT 50"
+        "{RUN_COLUMNS}{RUN_FROM} WHERE r.objective_id = $1::uuid ORDER BY r.created_at DESC LIMIT 50"
     ))
     .bind::<diesel::sql_types::Text, _>(&query.objective_id)
     .load::<RunRow>(&mut conn)
