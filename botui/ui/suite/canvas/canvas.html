@@ -1446,6 +1446,10 @@
                 var text;
                 try { text = atob(d.content); } catch (e) { return; }
                 if (/\.svg$/i.test(f.path || "")) {
+                    // Keep the source SVG untouched: subsequent saves go to a
+                    // sibling .draw file (which also round-trips the original
+                    // SVG through `generated` when it stays a background).
+                    window.__CANVAS_FILE_PATH = f.path.replace(/\.svg$/i, ".draw");
                     importSvgAsElements(text);
                     return;
                 }
