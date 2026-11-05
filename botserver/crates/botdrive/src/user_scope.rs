@@ -9,8 +9,27 @@ const GBAI_SUFFIX: &str = ".gbai";
 /// Returns the bucket name for a user's personal files.
 ///
 /// `get_user_bucket("abc-123")` → `"user-abc-123"`
+///
+/// The user id is not always UUID-shaped: the local administrator's id is
+/// `admin@localhost`, and S3 bucket names only allow lowercase letters,
+/// digits, dots and hyphens. Sanitizing here keeps every caller (resolution,
+/// authorization, creation) on the same valid name — previously a user-scope
+/// upload failed with `InvalidBucketName` for any id containing `@` (#1709).
 pub fn get_user_bucket(user_id: &str) -> String {
-    format!("{USER_BUCKET_PREFIX}{user_id}")
+    let mut sanitized = String::with_capacity(user_id.len());
+    for ch in user_id.chars() {
+        let lower = ch.to_ascii_lowercase();
+        if lower.is_ascii_alphanumeric() || lower == '-' || lower == '.' {
+            sanitized.push(lower);
+        } else if !sanitized.ends_with('-') {
+            sanitized.push('-');
+        }
+    }
+    let sanitized = sanitized.trim_matches(|c| c == '-' || c == '.');
+    let sanitized = if sanitized.is_empty() { "local" } else { sanitized };
+    // Bucket names are capped at 63 chars; keep room for the prefix.
+    let limited: String = sanitized.chars().take(63 - USER_BUCKET_PREFIX.len()).collect();
+    format!("{USER_BUCKET_PREFIX}{limited}")
 }
 
 /// Returns the bucket name for a bot's shared files.
@@ -108,6 +127,15 @@ mod tests {
     fn user_bucket_format() {
         assert_eq!(get_user_bucket("u1"), "user-u1");
         assert_eq!(get_user_bucket("550e8400-e29b"), "user-550e8400-e29b");
+    }
+
+    #[test]
+    fn user_bucket_sanitizes_invalid_characters() {
+        // The local administrator signs in with an email, and S3 rejects `@`.
+        assert_eq!(get_user_bucket("admin@localhost"), "user-admin-localhost");
+        assert_eq!(get_user_bucket("John.Doe+test@Example.COM"), "user-john.doe-test-example.com");
+        assert_eq!(get_user_bucket(""), "user-local");
+        assert!(get_user_bucket(&"x".repeat(200)).chars().count() <= 63);
     }
 
     #[test]
