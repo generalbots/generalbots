@@ -73,11 +73,126 @@
     );
   }
 
+  function budgetGroup() {
+    return localStorage.getItem("gb-budget-group") || "default";
+  }
+
+  function budgetForm() {
+    return (
+      '<div class="ledger-budget-toolbar">' +
+      '<label>Group <input id="ledger-budget-group" type="text" value="' + esc(budgetGroup()) + '"></label>' +
+      '<label>Allowance (milli-USD) <input id="ledger-budget-amount" type="number" min="0" step="1" placeholder="10000"></label>' +
+      '<button type="button" class="btn-secondary btn-sm" id="ledger-budget-save">Save budget</button>' +
+      '<button type="button" class="btn-secondary btn-sm" id="ledger-budget-load">Load report</button>' +
+      "</div>" +
+      '<div id="ledger-budget-report">' + empty("Enter a group and load its report.") + "</div>"
+    );
+  }
+
+  function renderBudgetReport(payload) {
+    var budget = (payload && payload.budget) || {};
+    var report = (payload && payload.report) || {};
+    var members = report.members || [];
+    var summary =
+      '<p class="ledger-budget-summary">Spent <strong>' + esc(budget.spent_milli || 0) +
+      "</strong> of <strong>" + esc(budget.budget_milli || 0) +
+      "</strong> · remaining <strong>" + esc(budget.remaining_milli || 0) +
+      "</strong> · " + esc(budget.percent_used || 0) + "%" +
+      (budget.over_budget ? ' · <strong class="is-over">over budget</strong>' : "") + "</p>";
+    if (!members.length) return summary + empty("No spend attributed yet.");
+    var rows = members
+      .map(function (member) {
+        return (
+          "<tr><td><code>" + esc(member.user_id) + "</code></td>" +
+          "<td>" + esc(member.amount_milli) + "</td>" +
+          "<td>" + esc(member.entries) + "</td></tr>"
+        );
+      })
+      .join("");
+    return (
+      summary +
+      '<table class="ledger-table"><thead><tr><th>Member</th><th>Spent (milli)</th>' +
+      "<th>Entries</th></tr></thead><tbody>" + rows + "</tbody></table>"
+    );
+  }
+
+  function loadBudget(group) {
+    var box = document.getElementById("ledger-budget-report");
+    if (!box) return;
+    box.innerHTML = empty("Loading…");
+    fetch("/api/groups/" + encodeURIComponent(group) + "/usage?limit=200", {
+      headers: token() ? { Authorization: "Bearer " + token() } : {},
+    })
+      .then(function (response) {
+        if (response.status === 404) throw new Error("no budget configured for this group");
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        return response.json();
+      })
+      .then(function (payload) {
+        box.innerHTML = renderBudgetReport(payload);
+      })
+      .catch(function (error) {
+        box.innerHTML = empty("Could not load the report: " + error.message);
+      });
+  }
+
+  function saveBudget(group, amount) {
+    fetch("/api/groups/" + encodeURIComponent(group) + "/budget", {
+      method: "PUT",
+      headers: Object.assign(
+        { "Content-Type": "application/json" },
+        token() ? { Authorization: "Bearer " + token() } : {}
+      ),
+      body: JSON.stringify({ budget_milli: amount }),
+    })
+      .then(function (response) {
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        return response.json();
+      })
+      .then(function () {
+        loadBudget(group);
+      })
+      .catch(function (error) {
+        var box = document.getElementById("ledger-budget-report");
+        if (box) box.innerHTML = empty("Could not save the budget: " + error.message);
+      });
+  }
+
+  function bindBudget() {
+    var groupInput = document.getElementById("ledger-budget-group");
+    var amountInput = document.getElementById("ledger-budget-amount");
+    var save = document.getElementById("ledger-budget-save");
+    var reload = document.getElementById("ledger-budget-load");
+    if (save) {
+      save.addEventListener("click", function () {
+        var group = (groupInput.value || "default").trim() || "default";
+        localStorage.setItem("gb-budget-group", group);
+        saveBudget(group, Number(amountInput.value || 0));
+      });
+    }
+    if (reload) {
+      reload.addEventListener("click", function () {
+        var group = (groupInput.value || "default").trim() || "default";
+        localStorage.setItem("gb-budget-group", group);
+        loadBudget(group);
+      });
+    }
+  }
+
   function load(kind) {
     if (state.busy) return;
     state.busy = true;
     state.kind = kind;
     var box = list();
+    if (kind === "budget") {
+      if (box) {
+        box.innerHTML = budgetForm();
+        bindBudget();
+        loadBudget(budgetGroup());
+      }
+      state.busy = false;
+      return;
+    }
     if (box) box.innerHTML = empty("Loading…");
     var url =
       (kind === "browser" ? "/api/browser/audit" : "/api/terminal/audit") + "?limit=50";

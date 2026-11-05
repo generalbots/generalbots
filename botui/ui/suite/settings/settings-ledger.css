@@ -56,3 +56,37 @@
     font-size: 13px;
     padding: 14px 2px;
 }
+
+#ledger-section .ledger-budget-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+    margin-bottom: 12px;
+}
+
+#ledger-section .ledger-budget-toolbar label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--muted, #6b7280);
+}
+
+#ledger-section .ledger-budget-toolbar input {
+    padding: 6px 8px;
+    border: 1px solid var(--border, #d9e0ea);
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+}
+
+#ledger-section .ledger-budget-summary {
+    font-size: 13px;
+    margin: 4px 0 10px;
+}
+
+#ledger-section .ledger-budget-summary .is-over {
+    color: #b91c1c;
+}
