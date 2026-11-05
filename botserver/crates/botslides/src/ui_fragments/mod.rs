@@ -5,7 +5,17 @@ pub mod toolbar;
 pub mod modals;
 pub mod themes;
 
-use axum::{routing::{get, post}, Router};
+use axum::{
+    extract::{Query, State},
+    response::Html,
+    routing::{get, post},
+    Json, Router,
+};
+use serde::Deserialize;
+use std::sync::Arc;
+
+use crate::storage::DriveOps;
+use crate::types::PresentationMetadata;
 
 use panels::{
     handle_slide_list_panel, handle_theme_panel, handle_transitions_panel,
@@ -62,11 +72,60 @@ pub fn empty_fragment(text: &str) -> String {
     )
 }
 
+/// Decks the sidebar shows: the Drive listing for the single local user.
+/// The sidebar routes are GETs (hx-get), so they load the metadata here
+/// instead of expecting a JSON request body — registering the Json-taking
+/// render functions directly made every load fail with "Expected request
+/// with Content-Type: application/json" (#1715/#1707).
+async fn sidebar_presentations<D: DriveOps + Send + Sync + 'static>(
+    state: &Arc<crate::SlidesState<D>>,
+) -> Vec<PresentationMetadata> {
+    match state.drive.as_ref() {
+        Some(drive) => crate::storage::list_presentations_from_drive(
+            drive,
+            &crate::storage::get_current_user_id(),
+        )
+        .await
+        .unwrap_or_default(),
+        None => Vec::new(),
+    }
+}
+
+#[derive(Deserialize)]
+struct SidebarQuery {
+    q: Option<String>,
+}
+
+async fn get_presentation_list<D: DriveOps + Send + Sync + 'static>(
+    State(state): State<Arc<crate::SlidesState<D>>>,
+) -> Html<String> {
+    handle_presentation_list_sidebar(Json(sidebar_presentations(&state).await)).await
+}
+
+async fn get_search_sidebar<D: DriveOps + Send + Sync + 'static>(
+    State(state): State<Arc<crate::SlidesState<D>>>,
+    Query(params): Query<SidebarQuery>,
+) -> Html<String> {
+    let needle = params.q.unwrap_or_default().to_lowercase();
+    let items: Vec<PresentationMetadata> = sidebar_presentations(&state)
+        .await
+        .into_iter()
+        .filter(|item| needle.is_empty() || item.name.to_lowercase().contains(&needle))
+        .collect();
+    handle_search_sidebar(Json(items)).await
+}
+
+async fn get_recent_sidebar<D: DriveOps + Send + Sync + 'static>(
+    State(state): State<Arc<crate::SlidesState<D>>>,
+) -> Html<String> {
+    handle_recent_sidebar(Json(sidebar_presentations(&state).await)).await
+}
+
 pub fn configure<D: crate::storage::DriveOps + Send + Sync + 'static>() -> Router<std::sync::Arc<crate::SlidesState<D>>> {
     Router::new()
-        .route("/suite/slides/fragments/presentation-list", get(handle_presentation_list_sidebar))
-        .route("/suite/slides/fragments/search", get(handle_search_sidebar))
-        .route("/suite/slides/fragments/recent", get(handle_recent_sidebar))
+        .route("/suite/slides/fragments/presentation-list", get(get_presentation_list::<D>))
+        .route("/suite/slides/fragments/search", get(get_search_sidebar::<D>))
+        .route("/suite/slides/fragments/recent", get(get_recent_sidebar::<D>))
         .route("/suite/slides/fragments/view", post(handle_presentation_view_post::<D>))
         .route("/suite/slides/fragments/view-by-id", get(handle_presentation_view_by_id::<D>))
         .route("/suite/slides/fragments/thumbnails", post(handle_slide_thumbnails))
