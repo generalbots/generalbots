@@ -100,6 +100,9 @@ pub fn preview_html(file_name: &str, extension: &str, bytes: &[u8]) -> Result<St
 .gb-office-preview .gb-slide{{border:1px solid #cbd5e1;border-radius:8px;padding:16px 20px;margin:12px 0;background:#f8fafc;}}
 .gb-office-preview .gb-slide h3{{margin:0 0 8px;font:600 12px sans-serif;text-transform:uppercase;letter-spacing:.08em;color:#64748b;}}
 .gb-office-preview .gb-slide p{{margin:4px 0;}}
+.gb-office-preview .gb-slide-notes{{margin-top:10px;padding-top:8px;border-top:1px dashed #cbd5e1;}}
+.gb-office-preview .gb-slide-notes h4{{margin:0 0 4px;font:600 11px sans-serif;text-transform:uppercase;letter-spacing:.06em;color:#64748b;}}
+.gb-office-preview .gb-slide-notes p{{font-size:12px;color:#475569;font-style:italic;}}
 .gb-office-preview .gb-office-media{{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px;}}
 .gb-office-preview .gb-office-media img{{max-width:320px;max-height:240px;border:1px solid #cbd5e1;border-radius:6px;}}
 .gb-office-preview .gb-office-media figcaption{{font:11px sans-serif;color:#64748b;}}
@@ -260,10 +263,86 @@ fn cell_text(cell: &Data) -> String {
     }
 }
 
+#[derive(Default)]
+struct SlidePreview {
+    paragraphs: Vec<String>,
+    tables: Vec<Vec<Vec<String>>>,
+    notes: Vec<String>,
+}
+
+impl SlidePreview {
+    /// Splits one slide XML into flow paragraphs and tables. Paragraphs inside
+    /// `a:tbl` are cell content: rendering them as slide paragraphs as well
+    /// duplicated every table cell above the table (#1714).
+    fn parse(xml: &str) -> Self {
+        use quick_xml::events::Event;
+        let mut reader = quick_xml::Reader::from_str(xml);
+        let mut preview = Self::default();
+        let mut in_table = 0usize;
+        let mut in_row = false;
+        let mut in_cell = false;
+        let mut in_paragraph = false;
+        let mut in_text = false;
+        let mut paragraph = String::new();
+        let mut cell = String::new();
+        let mut row: Vec<String> = Vec::new();
+        loop {
+            match reader.read_event() {
+                Ok(Event::Start(event)) => match event.name().as_ref() {
+                    b"a:tbl" => in_table += 1,
+                    b"a:tr" if in_table > 0 => {
+                        in_row = true;
+                        row.clear();
+                    }
+                    b"a:tc" if in_table > 0 => {
+                        in_cell = true;
+                        cell.clear();
+                    }
+                    b"a:p" if in_table == 0 => {
+                        in_paragraph = true;
+                        paragraph.clear();
+                    }
+                    b"a:t" => in_text = true,
+                    _ => {}
+                },
+                Ok(Event::Text(text)) if in_text => {
+                    if let Ok(decoded) = text.unescape() {
+                        if in_cell {
+                            cell.push_str(&decoded);
+                        } else if in_paragraph {
+                            paragraph.push_str(&decoded);
+                        }
+                    }
+                }
+                Ok(Event::End(event)) => match event.name().as_ref() {
+                    b"a:t" => in_text = false,
+                    b"a:tc" if in_cell => {
+                        row.push(std::mem::take(&mut cell));
+                        in_cell = false;
+                    }
+                    b"a:tr" if in_row => {
+                        preview.tables.push(std::mem::take(&mut row));
+                        in_row = false;
+                    }
+                    b"a:tbl" => in_table = in_table.saturating_sub(1),
+                    b"a:p" if in_paragraph => {
+                        preview.paragraphs.push(std::mem::take(&mut paragraph));
+                        in_paragraph = false;
+                    }
+                    _ => {}
+                },
+                Ok(Event::Eof) | Err(_) => break,
+                _ => {}
+            }
+        }
+        preview
+    }
+}
+
 fn presentation_html(bytes: &[u8]) -> Result<String, String> {
     let mut archive = zip::ZipArchive::new(Cursor::new(bytes))
         .map_err(|error| format!("Failed to parse PPTX: {error}"))?;
-    let mut slides: Vec<(u32, Vec<String>)> = Vec::new();
+    let mut slides: Vec<(u32, SlidePreview)> = Vec::new();
     for index in 0..archive.len() {
         let name = archive
             .by_index(index)
@@ -286,18 +365,20 @@ fn presentation_html(bytes: &[u8]) -> Result<String, String> {
             .map_err(|error| format!("Failed to read PPTX slide: {error}"))?
             .read_to_string(&mut xml)
             .map_err(|error| format!("Failed to read PPTX slide XML: {error}"))?;
-        slides.push((number, slide_paragraphs(&xml)));
+        let mut preview = SlidePreview::parse(&xml);
+        preview.notes = slide_notes(&mut archive, number);
+        slides.push((number, preview));
     }
     slides.sort_by_key(|(number, _)| *number);
     if slides.is_empty() {
         return Err("no slides found in presentation".to_string());
     }
     let mut html = String::new();
-    for (number, paragraphs) in slides {
+    for (number, slide) in slides {
         html.push_str(&format!(
             r#"<div class="gb-slide"><h3>Slide {number}</h3>"#
         ));
-        for paragraph in paragraphs {
+        for paragraph in slide.paragraphs {
             let text = paragraph.trim();
             if !text.is_empty() {
                 html.push_str(&format!(
@@ -306,13 +387,100 @@ fn presentation_html(bytes: &[u8]) -> Result<String, String> {
                 ));
             }
         }
+        for table in slide.tables {
+            html.push_str("<table>");
+            for (row_index, row) in table.iter().enumerate() {
+                html.push_str("<tr>");
+                for cell in row {
+                    let tag = if row_index == 0 { "th" } else { "td" };
+                    html.push_str(&format!(
+                        "<{tag}>{}</{tag}>",
+                        crate::ui_fragments::html_escape(cell.trim())
+                    ));
+                }
+                html.push_str("</tr>");
+            }
+            html.push_str("</table>");
+        }
+        if !slide.notes.is_empty() {
+            html.push_str(r#"<div class="gb-slide-notes"><h4>Speaker notes</h4>"#);
+            for note in slide.notes {
+                html.push_str(&format!(
+                    "<p>{}</p>",
+                    crate::ui_fragments::html_escape(note.trim())
+                ));
+            }
+            html.push_str("</div>");
+        }
         html.push_str("</div>");
     }
     html.push_str(&media_gallery(bytes, "ppt/media/"));
     Ok(html)
 }
 
-fn slide_paragraphs(xml: &str) -> Vec<String> {
+fn zip_entry_text(
+    archive: &mut zip::ZipArchive<Cursor<&[u8]>>,
+    name: &str,
+) -> Result<String, String> {
+    let mut entry = archive
+        .by_name(name)
+        .map_err(|error| format!("{name}: {error}"))?;
+    let mut content = String::new();
+    entry
+        .read_to_string(&mut content)
+        .map_err(|error| format!("Failed to read {name}: {error}"))?;
+    Ok(content)
+}
+
+/// Speaker notes for a slide. The note part is not guaranteed to share the
+/// slide number, so the relationship target is resolved from the slide's
+/// `.rels` file first (#1714).
+fn slide_notes(archive: &mut zip::ZipArchive<Cursor<&[u8]>>, slide_number: u32) -> Vec<String> {
+    let rels = format!("ppt/slides/_rels/slide{slide_number}.xml.rels");
+    let Ok(rels_xml) = zip_entry_text(archive, &rels) else {
+        return Vec::new();
+    };
+    let Some(target) = notes_target(&rels_xml) else {
+        return Vec::new();
+    };
+    let path = rels_target_path("ppt/slides", &target);
+    let Ok(xml) = zip_entry_text(archive, &path) else {
+        return Vec::new();
+    };
+    notes_paragraphs(&xml)
+}
+
+fn notes_target(rels_xml: &str) -> Option<String> {
+    let mut remaining = rels_xml;
+    while let Some(position) = remaining.find("Target=\"") {
+        let after = &remaining[position + 8..];
+        let end = after.find('"')?;
+        let value = &after[..end];
+        if value.contains("notesSlide") && value.ends_with(".xml") {
+            return Some(value.to_string());
+        }
+        remaining = &after[end..];
+    }
+    None
+}
+
+/// Resolves an OOXML relationship target (`../notesSlides/notesSlide1.xml`)
+/// against the part directory (`ppt/slides`).
+fn rels_target_path(base_dir: &str, target: &str) -> String {
+    let mut parts: Vec<&str> = base_dir.split('/').filter(|part| !part.is_empty()).collect();
+    for segment in target.split('/') {
+        match segment {
+            "" | "." => {}
+            ".." => {
+                parts.truncate(parts.len().saturating_sub(1));
+            }
+            other => parts.push(other),
+        }
+    }
+    parts.join("/")
+}
+
+fn notes_paragraphs(xml: &str) -> Vec<String> {
     use quick_xml::events::Event;
     let mut reader = quick_xml::Reader::from_str(xml);
     let mut paragraphs = Vec::new();
@@ -333,13 +501,21 @@ fn slide_paragraphs(xml: &str) -> Vec<String> {
                 if let Ok(decoded) = text.unescape() {
                     current.push_str(&decoded);
                 }
-            },
+            }
             Ok(Event::End(event)) => match event.name().as_ref() {
                 b"a:t" => in_text = false,
                 b"a:p" => {
                     in_text = false;
                     if in_paragraph {
-                        paragraphs.push(std::mem::take(&mut current));
+                        let text = std::mem::take(&mut current);
+                        let trimmed = text.trim();
+                        // Notes parts repeat the slide number and empty
+                        // placeholders; neither is speaker note content.
+                        if !trimmed.is_empty()
+                            && !trimmed.chars().all(|character| character.is_ascii_digit())
+                        {
+                            paragraphs.push(text);
+                        }
                         in_paragraph = false;
                     }
                 }
@@ -359,8 +535,35 @@ mod tests {
     #[test]
     fn slide_paragraphs_collect_runs_per_paragraph() {
         let xml = r#"<p:sld xmlns:a="a"><a:p><a:r><a:t>Quarter</a:t></a:r><a:r><a:t> results</a:t></a:r></a:p><a:p><a:t>Revenue up</a:t></a:p></p:sld>"#;
-        let paragraphs = slide_paragraphs(xml);
+        let paragraphs = SlidePreview::parse(xml).paragraphs;
         assert_eq!(paragraphs, vec!["Quarter results", "Revenue up"]);
+    }
+
+    #[test]
+    fn slide_tables_keep_rows_and_cells_out_of_paragraphs() {
+        let xml = r#"<p:sld xmlns:a="a"><a:p><a:t>Title</a:t></a:p><a:tbl><a:tr><a:tc><a:p><a:t>A</a:t></a:p></a:tc><a:tc><a:p><a:t>B</a:t></a:p></a:tc></a:tr><a:tr><a:tc><a:p><a:t>1</a:t></a:p></a:tc><a:tc><a:p><a:t>2</a:t></a:p></a:tc></a:tr></a:tbl></p:sld>"#;
+        let slide = SlidePreview::parse(xml);
+        assert_eq!(slide.paragraphs, vec!["Title"]);
+        assert_eq!(
+            slide.tables,
+            vec![vec![vec!["A", "B"], vec!["1", "2"]]]
+        );
+    }
+
+    #[test]
+    fn notes_target_resolves_the_relationship() {
+        let rels = r#"<Relationships><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/notesSlide" Target="../notesSlides/notesSlide3.xml"/></Relationships>"#;
+        let target = notes_target(rels).expect("notes relationship");
+        assert_eq!(
+            rels_target_path("ppt/slides", &target),
+            "ppt/notesSlides/notesSlide3.xml"
+        );
+    }
+
+    #[test]
+    fn notes_paragraphs_skip_slide_number_placeholders() {
+        let xml = r#"<p:notes xmlns:a="a"><a:p><a:t>Keep this note</a:t></a:p><a:p><a:t>7</a:t></a:p></p:notes>"#;
+        assert_eq!(notes_paragraphs(xml), vec!["Keep this note"]);
     }
 
     #[test]
