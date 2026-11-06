@@ -17,7 +17,8 @@ pub async fn handle_share_form(Json(payload): Json<serde_json::Value>) -> Html<S
 </label>
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Compartilhar</button>
 </form>"##,
-        id = html_escape(id)
+        id = html_escape(id),
+        template = html_escape(template)
     ))
 }
 
@@ -143,7 +144,7 @@ pub async fn handle_template_form(Json(payload): Json<serde_json::Value>) -> Htm
     let id = payload.get("id").and_then(|v| v.as_str()).unwrap_or("");
     let template = payload.get("template").and_then(|v| v.as_str()).unwrap_or("blank");
     Html(format!(
-        r##"<form class="dc-form" hx-post="/api/docs/template/{template}" hx-vals='{{"id":"{id}"}}' hx-target="#doc-content" hx-swap="innerHTML" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
+        r##"<form class="dc-form" data-template="{template}" onsubmit="return GBDocsApplyTemplate(event, '{id}')" style="padding:16px;display:flex;flex-direction:column;gap:12px;">
 <label style="color:#f8fafc;font-size:13px;">Modelo
 <select name="template" style="width:100%;padding:8px;background:#0f172a;border:1px solid #334155;border-radius:4px;color:#f8fafc;margin-top:4px;">
 <option value="blank">Em Branco</option>
@@ -154,7 +155,6 @@ pub async fn handle_template_form(Json(payload): Json<serde_json::Value>) -> Htm
 </label>
 <button type="submit" style="background:#3b82f6;color:white;border:none;padding:10px;border-radius:4px;cursor:pointer;font-weight:600;">Aplicar Modelo</button>
 </form>"##,
-        id = html_escape(id),
-        template = html_escape(template)
+        id = html_escape(id)
     ))
 }
