@@ -1,4 +1,3 @@
-use super::super::*;
 
 /// Normalizes a search query for scraping-friendly engines: strips accents
 /// (DuckDuckGo/Mojeek serve anti-bot challenge pages for %20-encoded or

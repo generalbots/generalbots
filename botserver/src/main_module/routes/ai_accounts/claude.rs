@@ -11,6 +11,7 @@ use uuid::Uuid;
 
 use super::shared::{agent_service, ensure_user, ensure_vm, err, map_claude_state, ApiError};
 use crate::core::ai_accounts;
+use crate::security::auth_api::types::AuthenticatedUser;
 
 pub(super) async fn connect_claude(
     state: &Arc<AppState>,

@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 use super::TERMINAL_BUFFER_LINES;
 
+#[derive(Clone)]
 pub struct TerminalLine {
     pub data: String,
     pub at: DateTime<Utc>,

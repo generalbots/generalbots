@@ -22,4 +22,3 @@ pub use service::{
     PENDING_TTL_SECS,
 };
 
-pub(crate) use resolve::resolve_in_memory;
