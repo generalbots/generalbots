@@ -8,6 +8,31 @@ use super::types::{PipelineResult, SessionIdentity};
 
 /// Enriches the LLM prompt with KB context, memory recall and integration
 /// mention blocks, saves the user turn, and streams the LLM response.
+
+/// The persisted conversation shows the user's own words; the agent-only
+/// `[User attached a file stored at inbox/…]` block must stay in the prompt
+/// copy only (replay used to show it inside the user's bubble).
+fn display_user_text(text: &str) -> String {
+    const MARKER: &str = "[User attached a file stored at inbox/";
+    let Some(position) = text.find(MARKER) else {
+        return text.to_string();
+    };
+    let before = text[..position].trim();
+    if !before.is_empty() {
+        return before.to_string();
+    }
+    let file_name = text[position + MARKER.len()..]
+        .split(';')
+        .next()
+        .unwrap_or("")
+        .trim();
+    if file_name.is_empty() {
+        "📎 attachment".to_string()
+    } else {
+        format!("📎 {file_name}")
+    }
+}
+
 pub(super) async fn build_and_stream(
     identity: &SessionIdentity<'_>,
     rx: &mut tokio::sync::mpsc::Receiver<botlib::models::BotResponse>,
@@ -68,12 +93,13 @@ pub(super) async fn build_and_stream(
     }
 
     if !is_switcher_replay {
+        let display_text = display_user_text(user_text);
         let mut sm = state.session_manager.lock().await;
-        let _ = sm.save_message(session_id, user_id, 1, user_text, 1);
+        let _ = sm.save_message(session_id, user_id, 1, &display_text, 1);
         // Name the conversation as soon as it starts, from the user's own
         // words. Only runs while the title is still a placeholder, so a later
         // rename (manual or automatic) is preserved.
-        let _ = sm.ensure_title_from_message(session_id, user_id, user_text);
+        let _ = sm.ensure_title_from_message(session_id, user_id, &display_text);
     }
 
     if let Some(arr) = messages_val.as_array_mut() {
